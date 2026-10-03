@@ -83,8 +83,9 @@ pub(super) fn execute(paths: &Paths, image: &Path, digest: &str) -> Result<(), C
             "CONDUIT_BOOT_STAGE front-door-ready",
             "run-control-boot-timeout",
         )?;
+        journey_input::birth_from_creche(&mut stream, &mut reader)?;
+        journey_input::start_born_body(&mut stream, &mut reader, &serial, &mut child)?;
         for (key, marker) in [
-            ("ret", "\"status\":\"quiescent-awaiting-input\""),
             ("f8", "\"status\":\"stopped\""),
             ("f9", "workspace-opened"),
             ("f11", "chooser-transient-shown"),

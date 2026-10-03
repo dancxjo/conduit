@@ -21,6 +21,41 @@ pub(super) fn key_pair(
     hid_qmp::send_named_keys(qmp, reader, &[key], false, label)
 }
 
+/// Birth the selected zero-Body Crèche plan through the ordinary keyboard Face.
+/// Keep the separate journey boots on the same authored interaction sequence.
+pub(super) fn birth_from_creche(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+) -> Result<(), ConduitosError> {
+    // The initial Face focuses the name argument. Three reverse controls in
+    // the current semantic Face lead to Birth without traversing plot choices.
+    for _ in 0..3 {
+        hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], true, "creche-focus-birth")?;
+        hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], false, "creche-focus-birth")?;
+    }
+    key_pair(qmp, reader, "ret", "creche-birth")
+}
+
+/// Birth leaves a resting Body. The ordinary lifecycle requires three distinct
+/// accepted actions before its keyboard Play is quiescent and ready for input.
+pub(super) fn start_born_body(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
+) -> Result<(), ConduitosError> {
+    wait_status(serial, child, "born-lulled")?;
+    for (key, status) in [
+        ("f4", "awake"),
+        ("f5", "planned"),
+        ("f6", "quiescent-awaiting-input"),
+    ] {
+        key_pair(qmp, reader, key, "creche-body-lifecycle")?;
+        wait_status(serial, child, status)?;
+    }
+    Ok(())
+}
+
 pub(super) fn relative_motion(
     stream: &mut UnixStream,
     reader: &mut qmp::Reader,

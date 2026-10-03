@@ -77,6 +77,52 @@ fn press(usage: u8) -> KeyEvent {
 }
 
 #[test]
+fn creche_name_argument_reverses_to_birth_without_inventory_index_guessing() {
+    use conduit_birth_plot::{BirthDraft, BirthFaceBasis, BirthPlotChoice};
+    let choices = crate::native_workset::profile()
+        .installed()
+        .iter()
+        .map(|plot| BirthPlotChoice {
+            title: plot.title().into(),
+            search_text: plot.title().into(),
+            plot: crate::native_workset::resident(*plot).unwrap(),
+            refusal: None,
+            selected: true,
+        })
+        .collect();
+    let draft = BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap();
+    let producer = fixture::producer_plan();
+    let face = draft
+        .face(&BirthFaceBasis {
+            host_id: "host/birth".into(),
+            boot_id: "boot/birth".into(),
+            encounter_id: "arrival/one".into(),
+            producer_plot: conduit_core::PlotIdentity {
+                source_document_id: producer.source_document_id,
+                checked_plot_id: producer.checked_plot_id,
+                expanded_plot_id: producer.expanded_plot_id,
+            },
+            producer_plan_id: producer.plan_id,
+        })
+        .unwrap();
+    let mut scene = NativeFaceScene::prepare(face, 1280, 800).unwrap();
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: "creche.name".into(),
+            argument_name: Some("value".into()),
+        })
+        .unwrap();
+    for expected in ["creche.name", "creche.suggest", "creche.birth"] {
+        let control = scene.focus_next(false).unwrap();
+        assert_eq!(
+            scene.presentation().actions[control.action].identity,
+            expected
+        );
+        assert_eq!(control.argument, None);
+    }
+}
+
+#[test]
 fn modifier_press_on_argument_free_action_does_not_submit_or_refuse() {
     let original = face(2);
     let show = fixture::show(&original);

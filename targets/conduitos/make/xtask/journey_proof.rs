@@ -244,12 +244,8 @@ fn execute_image(
                 "product-journey-front-door-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
-            for _ in 0..7 {
-                journey_input::key_pair(&mut qmp, &mut reader, "tab", "creche-select-plot")?;
-            }
-            journey_input::key_pair(&mut qmp, &mut reader, "spc", "creche-omit-plot")?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f3", "creche-birth")?;
-            journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
+            journey_input::birth_from_creche(&mut qmp, &mut reader)?;
+            journey_input::start_born_body(&mut qmp, &mut reader, &serial_path, &mut child)?;
             artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
             for _ in 0..2 {
                 journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-plots")?;
