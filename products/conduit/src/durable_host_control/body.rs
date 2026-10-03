@@ -11,11 +11,11 @@ use conduit_body::{
     BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt, PortableInvitation,
     PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
+use conduit_core::LinkBindingId;
 use conduit_presentation::{
     OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
     OWNER_FACE_RESPONSE_SCHEMA,
 };
-use conduit_core::LinkBindingId;
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
 use std::{
