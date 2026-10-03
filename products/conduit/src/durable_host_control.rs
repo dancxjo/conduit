@@ -40,10 +40,12 @@ mod body_run;
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
 pub(crate) use body::start_browser_window;
+#[cfg(unix)]
+pub(crate) use body::submit_browser_face_interaction;
 use body::HostSource;
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
-    local_face_snapshot, submit_browser_face_interaction, submit_local_face_interaction,
+    local_face_snapshot, submit_local_face_interaction,
 };
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
 
