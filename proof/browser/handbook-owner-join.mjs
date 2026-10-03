@@ -104,7 +104,7 @@ try {
   assert.equal(final.membership.parts.length, 2);
   await writeFile(path.join(output, 'report.json'), `${JSON.stringify({
     schema: 'conduit.body/handbook-owner-join@1', ownerSha256: digest(ownerBytes),
-    handbookPackageSha256: digest(app), browserBundleSource: JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json'))).reviewed_distribution.source_commit,
+    handbookManifestSha256: digest(app), browserBundleSource: JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json'))).reviewed_distribution.source_commit,
     bodyId: final.body_id, browserHostId: identity.hostId, browserBootId: identity.bootId,
     browserPartId: admitted.credential.part_id, finalPartCount: final.membership.parts.length,
     screenshot: 'browser-admitted.png', screenshotSha256: digest(await readFile(screenshot)),
