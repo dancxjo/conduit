@@ -22,6 +22,7 @@ type SpeechSourceFlow<C> = {
 }
 type SpeechSourceResult<C> = {
     input: SpeechSourceCarry<C>
+    voicing: I32
     sample: I32
 }
 type SpeechSourceOnlyRequest = SpeechSourceCarry<SpeechSourceOnlyContext>
@@ -45,7 +46,7 @@ plot speech/source-mix (
     output: type
     >> value: item
     result: output >>
-) = ({input: .input, sample: (.current - .previous) * .input.source.voiced + (.input.source.noise % 4096 - 2048) * .input.source.frication})
+) = ({input: .input, voicing: (.current - .previous) * .input.source.voiced, sample: (.current - .previous) * .input.source.voiced + (.input.source.noise % 4096 - 2048) * .input.source.frication})
 plot speech/excitation (
     >> value: ExcitationInput
     result: I32 >>

@@ -77,3 +77,6 @@ mod glottal_parity;
 
 #[cfg(test)]
 mod intensity_parity;
+
+#[cfg(test)]
+mod upper_source_parity;

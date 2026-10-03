@@ -127,6 +127,7 @@ fn authored_pitch_and_dsp_chain_matches_portable_graph_with_exact_context() {
                 value.attack = frame != 63;
                 value.release = frame != target.frames - 1;
                 value.state = SpeechFrameState {
+                    voicing: -1234,
                     phase: 57,
                     noise: 65535,
                     first1: 32767,

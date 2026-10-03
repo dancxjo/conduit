@@ -65,6 +65,7 @@ pub(super) fn state(ty: &StructuredInfoType, value: SpeechFrameState) -> Structu
     integers(
         ty,
         &[
+            ("voicing", value.voicing),
             ("phase", value.phase),
             ("noise", value.noise),
             ("first1", value.first1),
@@ -76,7 +77,7 @@ pub(super) fn state(ty: &StructuredInfoType, value: SpeechFrameState) -> Structu
         ],
     )
 }
-fn input(ty: &StructuredInfoType, value: SpeechFrameInput) -> Vec<u8> {
+pub(super) fn input(ty: &StructuredInfoType, value: SpeechFrameInput) -> Vec<u8> {
     record(
         ty,
         &[
@@ -191,6 +192,7 @@ fn composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges() {
                         frame,
                         period,
                         state: SpeechFrameState {
+                            voicing: -1234,
                             phase: frame % period,
                             noise: (frame * 25173) % 65536,
                             first1: 32767,
@@ -262,6 +264,19 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
                 frication: target.frication,
             })
             .unwrap();
+            let voicing = speech_excitation(ExcitationInput {
+                phase: history.phase,
+                period: 61,
+                noise,
+                voiced: target.voiced,
+                frication: 0,
+            })
+            .unwrap();
+            let upper = if target.voiced == 1 && target.frication == 0 {
+                voicing - history.voicing
+            } else {
+                excitation
+            };
             let mut current = [0; 3];
             for (index, (gain, b, c, y1, y2)) in [
                 (
@@ -291,7 +306,7 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
             {
                 current[index] = speech_filter_limit(ResonatorInput {
                     drive: speech_drive(DriveInput {
-                        sample: excitation,
+                        sample: if index == 0 { excitation } else { upper },
                         gain,
                     })
                     .unwrap(),
@@ -312,6 +327,7 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
             .unwrap();
             let expected = SpeechFrameResult {
                 state: SpeechFrameState {
+                    voicing,
                     phase: speech_phase(PhaseInput {
                         phase: history.phase,
                         period: 61,

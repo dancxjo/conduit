@@ -34,6 +34,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ],
         ),
         (
+            "nasal-place",
+            vec![
+                P::m,
+                P::aa,
+                P::n,
+                P::aa,
+                P::ng,
+                P::aa,
+                P::m,
+                P::iy,
+                P::n,
+                P::iy,
+                P::ng,
+                P::iy,
+            ],
+        ),
+        (
             "vowel-inventory",
             vec![
                 P::iy,

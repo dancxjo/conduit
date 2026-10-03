@@ -139,11 +139,25 @@ difference. This is informed by the source/flow model in
 [Klatt and Klatt (1990), section II.B](https://www.source-code.biz/klattSyn/Klatt-1990.pdf),
 without copying an implementation or their parameter tables. It is a limited
 source model, with no spectral-tilt, aspiration, flutter or diplophonia controls.
+For pure voicing, the second and third resonators receive the difference
+between the current and previous voiced-source values; the first receives the
+full source. Noise-containing frames retain their original excitation. This
+addresses higher-branch low-frequency energy filling spectral valleys, following
+the parallel-model guidance in [Klatt (1980), section II.F](https://www.fon.hum.uva.nl/david/ma_ssp/doc/Klatt-1980-JAS000971.pdf).
+One additional I32 history value retains the exact previous voiced source,
+including across authored silence; it does not represent measured phonation or
+change phone identity. Initial history is zero. The admitted pure source stays
+within ±1600, so its difference stays within ±3200 and the existing ±4096
+resonator-drive proof envelope. Portable frame checks cover the new state;
+focused source tests cover steady-source rejection, exact noise bypass and
+selected overflow refusal. `nasal-place.wav` compares m, n and ng before aa and
+iy. This does not yet implement nasal pole/zero insertion or adjacent-vowel
+nasalization, and subjective improvement remains unverified.
 The discrete flow difference sums to zero over each fixed-period cycle and
 retains the closure impulse before its zero closed interval. Both the scalar
 source query and the frame graph share the same authored normalization, flow
-and noise-mixing policies through exact context-carrying cords. No new history,
-waveform table or allocation is needed. These are profile defaults, not measured
+and noise-mixing policies through exact context-carrying cords. The cubic pulse itself adds no history or waveform table; upper-branch
+differencing adds one fixed history value. No allocation is needed. These are profile defaults, not measured
 phonation features or a new phone identity. Portable source-edge/refusal parity
 and independent cycle laws accompany the frame proof; subjective quality is
 unverified. The checked `speech/frame`

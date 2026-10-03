@@ -91,11 +91,16 @@ fn all_intermediate_profile_operations_fit_signed_32_bits() {
                         })
                         .unwrap();
                         assert!(i64::from(excitation).abs() <= 4096);
+                        if frication == 0 {
+                            assert!(excitation.abs() <= 1600);
+                        }
                     }
                 }
             }
         }
     }
+    // Two admitted voiced-source history values therefore differ by at most
+    // 3200; the existing 4096 resonator-input envelope covers upper branches.
     // Noise is nonnegative and reduced modulo 65536; phase is reset at period.
     // Initial history and boundary preservation satisfy the same invariant.
     let initial = speech_initial_state(SpeechStart::begin).unwrap();
