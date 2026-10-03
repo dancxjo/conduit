@@ -70,7 +70,7 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
         .filter(|subject| subject.role == PresentationRole::Plot)
         .map(|subject| subject.identity.clone())
         .collect::<Vec<_>>();
-    assert_eq!(seeds.len(), 2);
+    assert_eq!(seeds.len(), 3);
 
     session
         .open_subject(&seeds[0], initial.presentation.revision)
@@ -86,7 +86,7 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
             .iter()
             .filter(|role| **role == PresentationRole::Plot)
             .count(),
-        2
+        seeds.len()
     );
     assert_eq!(
         program
