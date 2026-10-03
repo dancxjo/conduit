@@ -48,6 +48,19 @@ pub struct PresenterRequestProofReceipt {
     pub manifestation: GeneratedManifestationCandidate,
 }
 
+/// One exact Face Presenter Plan/Play, without making unrelated model kinds
+/// prerequisites for the candidate. The owner Face remains external to this
+/// local model Host; its identity is bound by the request and candidate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct LocalModelPresenterProofReceipt {
+    pub proof_class: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub model_content_identity: String,
+    pub implementation_identity: String,
+    pub presenter: PresenterRequestProofReceipt,
+}
+
 struct CapturingLocalModelAdapter {
     inner: Box<dyn HostedLocalModelAdapter>,
     generated_text: Arc<Mutex<Option<Vec<u8>>>>,
@@ -249,6 +262,84 @@ pub fn run(
         house_response_sha256,
         house_speech,
         presenter_requests: presenter_receipts,
+    })
+}
+
+pub fn run_presenter_only(
+    adapter: OllamaLocalModelAdapter,
+    request: &GenerativePresenterRequest,
+) -> Result<LocalModelPresenterProofReceipt, Box<dyn std::error::Error>> {
+    request
+        .validate()
+        .map_err(|error| format!("invalid supplied Presenter request: {error:?}"))?;
+    let proof_class = if adapter
+        .offer()
+        .identity
+        .runtime_version
+        .contains("fixture-http")
+    {
+        "ollama-http-fixture"
+    } else {
+        "live-local-model"
+    };
+    let model_content_identity = adapter.offer().identity.model_content_identity.clone();
+    let presenter_manifestations = Arc::new(Mutex::new(Vec::new()));
+    let contract = conduit_ai::llm_contract(LocalModelKindProfile::PresentSemanticFront.kind())
+        .expect("Presenter profile is L0");
+    let additional_capabilities = vec![
+        crate::installed_std::test_local_model_io::source_offer(
+            contract.inputs[0].value_kind.as_str(),
+        ),
+        crate::installed_std::test_local_model_io::sink_offer(
+            contract.outputs[0].value_kind.as_str(),
+        ),
+    ];
+    let mut host = StdHost::new_with_local_model_capabilities(
+        StdHostConfig {
+            host_id: HostId::from("host/local-ollama-presenter-proof"),
+            boot_id: BootId::from("boot/local-ollama-presenter-proof"),
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal(),
+        Box::new(CapturingLocalModelAdapter {
+            inner: Box::new(adapter),
+            generated_text: Arc::new(Mutex::new(None)),
+            presenter_manifestations: Arc::clone(&presenter_manifestations),
+        }),
+        additional_capabilities,
+    )?;
+    let encoded = serde_json::to_vec(request)?;
+    let (plan_id, play_completed) =
+        crate::installed_std::test_local_model_io::with_generative_presenter_request(
+            encoded,
+            || run_profile(&mut host, LocalModelKindProfile::PresentSemanticFront),
+        )?;
+    let manifestation = presenter_manifestations
+        .lock()
+        .map_err(|_| "Presenter proof capture lock is poisoned")?
+        .pop()
+        .ok_or("Presenter proof produced no captured candidate")?;
+    request
+        .validate_candidate(&manifestation)
+        .map_err(|error| format!("invalid provider candidate: {error:?}"))?;
+    Ok(LocalModelPresenterProofReceipt {
+        proof_class: proof_class.into(),
+        host_id: host.advertisement.host_id.as_str().into(),
+        boot_id: host.advertisement.boot_id.as_str().into(),
+        model_content_identity,
+        implementation_identity: conduit_ai::LOCAL_MODEL_IMPLEMENTATION.into(),
+        presenter: PresenterRequestProofReceipt {
+            plan_id,
+            play_completed,
+            request_identity: request.request_identity.clone(),
+            source_presentation_identity: request
+                .semantic_data
+                .source_presentation_identity
+                .clone(),
+            source_presentation_revision: request.semantic_data.source_presentation_revision,
+            policy_revision: request.policy.template_contract_revision.clone(),
+            manifestation,
+        },
     })
 }
 

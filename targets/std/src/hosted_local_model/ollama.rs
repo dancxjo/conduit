@@ -328,11 +328,11 @@ impl OllamaLocalModelAdapter {
         } else {
             json!({ "type": "string", "enum": available_actions })
         };
-        // The finite wording policy has a tagged claim grammar whose exact
-        // identities and values are checked after inference. JSON mode avoids
-        // turning the provider's schema support into semantic authority.
+        // The provider grammar guides bounded structure. The Host still
+        // validates every Face identity, value, and available action after
+        // inference; schema conformance alone grants no semantic authority.
         let format = if system == super::ollama_present::WORDING_SYSTEM_POLICY {
-            json!("json")
+            super::ollama_present::wording_format(&input, &available_actions)
         } else {
             json!({
                 "type": "object",

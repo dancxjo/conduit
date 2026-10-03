@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
@@ -51,6 +52,9 @@ try {
     ["field-station", fieldUrl.href], ["current-product", new URL("current-product.html", server.url).href],
     ["handbook-journey", new URL("journeys/verticals/handbook/", server.url).href],
   ];
+  if (existsSync(path.join(siteRoot, "journeys/current/one-body-five-masks/index.html"))) {
+    routes.push(["one-body", new URL("journeys/current/one-body-five-masks/", server.url).href]);
+  }
   for (const [layout, width] of [["desktop", 1280], ["mobile", 390]]) {
     await page.setViewportSize({ width, height: 900 });
     for (const [id, url] of routes) {
@@ -115,6 +119,25 @@ try {
             `${layout}: missing loaded documentary screenshot ${step.id}`);
         }
       }
+      if (id === "one-body") {
+        assert.equal(await page.locator("main.journey article").count(), 8, "One Body journey needs all eight chapters");
+        await decodeImages(page.locator("main.journey img"));
+        assert(await page.locator("main.journey img").count() > 0, "One Body journey needs live screenshots");
+        assert(await page.locator("main.journey pre").count() > 0, "One Body journey needs a terminal capture");
+        const audio = page.locator("main.journey audio");
+        assert(await audio.count() >= 2, "One Body journey needs direct and model speech");
+        for (const mode of ["Direct mechanical reading", "Finite model-assisted wording"]) {
+          const card = page.locator("main.journey .audio-card").filter({ hasText: mode }).first();
+          assert.equal(await card.count(), 1, `One Body journey has no ${mode} card`);
+          const player = card.locator("audio");
+          const src = await player.getAttribute("src");
+          assert(src, "One Body audio has no source");
+          const response = await context.request.head(new URL(src, page.url()).href);
+          assert(response.ok() && Number(response.headers()["content-length"]) > 44,
+            `One Body audio is missing or empty: ${src}`);
+          assert.equal(response.headers()["content-type"], "audio/wav", `One Body audio MIME differs: ${src}`);
+        }
+      }
       await page.evaluate(() => document.fonts.ready);
       const dimensions = await page.evaluate(() => ({
         viewport: document.documentElement.clientWidth,
@@ -133,7 +156,8 @@ try {
           || link.pathname.startsWith("/conduit/handbook/")
           || link.pathname.startsWith(fieldUrl.pathname)
           || link.pathname.startsWith("/conduit/journeys/current/three-bodies/")
-          || link.pathname.startsWith("/conduit/journeys/current/little-life/");
+          || link.pathname.startsWith("/conduit/journeys/current/little-life/")
+          || link.pathname.startsWith("/conduit/journeys/current/one-body-five-masks/");
         if (!known) {
           if (!excluded.has(link.pathname)) report.excludedLinks.push({ path: link.pathname,
             reason: "Outside the documentary page routes; runtime distributions and historical evidence are validated separately." });

@@ -4,6 +4,8 @@ use clap::{Args, Subcommand, ValueEnum};
 
 use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
+#[path = "evidence_one_body_spoken.rs"]
+mod one_body_spoken;
 #[path = "evidence_three_body_browser.rs"]
 mod three_body_browser;
 #[path = "evidence_three_body_journey.rs"]
@@ -25,6 +27,10 @@ pub(crate) enum EvidenceCommand {
     RenderRecordedThreeBody { root: PathBuf },
     /// Refresh the gallery around retained evidence without a new capture.
     RefreshGallery { site_root: PathBuf },
+    /// Validate and render one complete eight-chapter, one-Body journey run.
+    RenderOneBodyJourney(OneBodyJourneyArgs),
+    /// Capture one installed owner's current Face through a live finite Presenter and spoken Mask.
+    OneBodySpokenChapter(one_body_spoken::Args),
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OnePlotTwoFronts(TwoFrontsArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
@@ -87,6 +93,21 @@ pub(crate) struct TwoFrontsArgs {
     /// New directory that will receive the bounded sibling evidence manifest.
     #[arg(long, default_value = "target/journeys/one-plot-two-fronts")]
     output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+pub(crate) struct OneBodyJourneyArgs {
+    /// Complete producer-owned evidence directory with manifest.json and journey.json.
+    #[arg(long)]
+    evidence_root: PathBuf,
+
+    /// New output directory; existing pages are never overwritten.
+    #[arg(long)]
+    output: PathBuf,
+
+    /// Exact 40-character source commit shared by every capture.
+    #[arg(long)]
+    commit: String,
 }
 
 #[derive(Args, Debug)]
@@ -186,6 +207,15 @@ pub fn run(command: EvidenceCommand) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceCommand::RefreshGallery { site_root } => {
             evidence::refresh_gallery(&site_root).map_err(Into::into)
         }
+        EvidenceCommand::RenderOneBodyJourney(args) => {
+            evidence::render_one_body_journey(&evidence::OneBodyJourneyRequest {
+                evidence_root: args.evidence_root,
+                output: args.output,
+                commit: args.commit,
+            })
+            .map_err(Into::into)
+        }
+        EvidenceCommand::OneBodySpokenChapter(args) => one_body_spoken::run(args),
         EvidenceCommand::OnePlotTwoFronts(args) => two_fronts::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {

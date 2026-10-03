@@ -1,5 +1,24 @@
 //! Shared preparation and controlled execution, before success-only artifact admission.
 use super::*;
+const LEGACY_SPOKEN_TEMPLATE_REVISION: &str = "template/spoken-mask@1";
+
+fn policy_for_retained(
+    candidate: &conduit_presentation::GeneratedManifestationCandidate,
+) -> Result<conduit_presentation::GenerativePresenterPolicy, String> {
+    use conduit_presentation::{GenerativeNarratorRole, GenerativePresenterPolicy};
+    match candidate.template_contract_revision.as_str() {
+        conduit_presentation::FINITE_FACE_WORDING_TEMPLATE_REVISION => {
+            Ok(crate::hosted_local_model::finite_face_wording_presenter_policy())
+        }
+        LEGACY_SPOKEN_TEMPLATE_REVISION => Ok(GenerativePresenterPolicy {
+            template_contract_revision: LEGACY_SPOKEN_TEMPLATE_REVISION.into(),
+            narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+            instructions: "Speak one truthful sentence from the supplied Presentation.".into(),
+        }),
+        _ => Err("retained Presenter selected an unsupported spoken Mask template".into()),
+    }
+}
+
 pub(super) struct MaskRun {
     pub report: crate::StdRunReport,
     pub deliveries: Vec<crate::ExternalForeDelivery>,
@@ -33,8 +52,7 @@ pub(super) fn run_mask(
         ProfileCatalog, StartupCatalog,
     };
     use conduit_presentation::{
-        GenerativeNarratorRole, GenerativePresenterBounds, GenerativePresenterPolicy,
-        GenerativePresenterRequest, MaskPlot, PlannedMaskPlot,
+        GenerativePresenterBounds, GenerativePresenterRequest, MaskPlot, PlannedMaskPlot,
     };
     use std::collections::BTreeMap;
 
@@ -51,6 +69,7 @@ pub(super) fn run_mask(
         fn wait(&mut self, _: std::time::Duration) {}
     }
 
+    let policy = policy_for_retained(&retained)?;
     let safe_id = execution_id.replace('/', "-");
     let config = crate::StdHostConfig {
         host_id: HostId::from(format!("host/{execution_id}")),
@@ -182,11 +201,7 @@ pub(super) fn run_mask(
         .map_err(|error| format!("seal spoken Mask: {error:?}"))?;
     let request = GenerativePresenterRequest::from_presentation(
         format!("request/{execution_id}"),
-        GenerativePresenterPolicy {
-            template_contract_revision: "template/spoken-mask@1".into(),
-            narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-            instructions: "Speak one truthful sentence from the supplied Presentation.".into(),
-        },
+        policy,
         presentation.clone(),
         None,
         GenerativePresenterBounds::reviewed_default(),

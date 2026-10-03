@@ -2,6 +2,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { acquire, command, digest, xtask } from './common.mjs';
+import { retainedOneBodyEvidence } from '../one-body-evidence.mjs';
 
 // Retain the last documentary publication as history, never as new execution.
 const HISTORY = 'd9b79319bd78c72e4a6b48ef524e269300a82bdf';
@@ -29,6 +30,16 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     cpSync(path.join(temporary, `conduit-${HISTORY}`, 'journeys'), path.join(directory, 'journeys'), { recursive: true });
   } finally { rmSync(temporary, { recursive: true, force: true }); }
   renderFieldStation('target/journeys/handbook', path.join(directory, 'journeys/verticals/handbook'), sourceCommit, true);
+  // An environment-dependent, multi-host capture cannot be recreated by browser CI
+  // runner. Carry its complete raw evidence in source, then render it only
+  // after preflight checks source ancestry and the strict renderer checks media.
+  const oneBodyEvidence = retainedOneBodyEvidence();
+  if (oneBodyEvidence) {
+    xtask('prove', 'render-one-body-journey',
+      '--evidence-root', oneBodyEvidence.root,
+      '--output', path.join(directory, 'journeys/current/one-body-five-masks'),
+      '--commit', oneBodyEvidence.sourceCommit);
+  }
   xtask('prove', 'refresh-gallery', path.join(directory, 'journeys'));
   // The catalogue refresh writes the historical Field Station introduction.
   // Replace it with this build's complete captured walkthrough afterwards.
@@ -67,6 +78,8 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     handbook: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/handbook/' },
     fieldStation: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/field-station-clock/' },
     threeBodies: { sourceCommit: RECORDED_THREE_BODIES, path: 'journeys/current/three-bodies/', refreshedExecution: false },
+    ...(oneBodyEvidence && { oneBody: { captureSourceCommit: oneBodyEvidence.sourceCommit, publicationSourceCommit: sourceCommit,
+      path: 'journeys/current/one-body-five-masks/', proof: 'producer-owned-complete-evidence' } }),
   }, null, 2));
 }
 
@@ -93,5 +106,5 @@ function renderFieldStation(source, destination, commit, handbook = false) {
     writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your local Handbook · Conduit journeys</title><style>${styles()}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation()}<main class="site-content"><p><a href="../../">All journeys</a></p><p class="eyebrow">Chromium · seven steps</p><h1>${escape(manifest.title)}</h1><p class="lede">${escape(manifest.summary)}</p><h2>Before you begin</h2><p>Open <a href="/conduit/handbook/">your Handbook</a> in a browser with local storage enabled. This recording uses a fresh Chromium profile and static files. Each browser installation creates its own local Body; no shared application backend is required.</p><ol class="journey-steps">${steps}</ol><h2>What stayed with you?</h2><p>The Body kept its edited clock and workset through a reload. The new Boot admitted fresh execution; the recording does not claim the clock ran while the page was closed.</p><p>Try it in <a href="/conduit/handbook/">your own Handbook</a>, or <a href="../field-station-clock/">follow a smaller clock journey</a>.</p><details><summary>About this recording</summary><p>Captured from actual application acceptance in Chromium at source <code>${escape(commit)}</code>.</p><p><a href="index.json">Screenshot inventory</a> · <a href="runtime-evidence.json">Observed runtime identities</a></p></details></main></body></html>`);
     return;
   }
-  writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Field Station Clock · Conduit journeys</title><style>${styles()}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation()}<main class="site-content"><p><a href="../../">All journeys</a></p><p class="eyebrow">Browser · three steps</p><h1>Return to your clock after a reload</h1><p class="lede">Open the clock, reload the page, and stop it when you are finished. This walkthrough shows what stays with the body and what starts again when you return.</p><h2>Before you begin</h2><p>This recording uses the Field Station browser example. Opening the page creates and starts the clock automatically. You need a browser with local storage enabled.</p><ol class="journey-steps">${steps}</ol><h2>What happened?</h2><p>The same body returned after reload, with a new run of its clock. Lull stopped that run while keeping the body. The recording does not show the clock running while the browser was closed.</p><p>Next: <a href="../../current/three-bodies/">follow a longer browser walkthrough</a> or read <a href="/conduit/handbook/Bodies-hosts-plans-and-plays.html">how bodies keep their identity</a>.</p><details><summary>About this recording</summary><p>Captured in Chromium from source <code>${escape(commit)}</code>.</p><p><a href="index.json">Screenshot inventory</a> · <a href="runtime-evidence.json">Recorded runtime observations</a></p></details></main></body></html>`);
+  writeFileSync(path.join(destination, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Field Station Clock · Conduit journeys</title><style>${styles()}</style></head><body data-application-theme="conduit.presentation/phosphor@1">${navigation()}<main class="site-content"><p><a href="../../">All journeys</a></p><p class="eyebrow">Browser · three steps</p><h1>Return to your clock after a reload</h1><p class="lede">Open the clock, reload the page, and stop it when you are finished. This walkthrough shows what stays with the body and what starts again when you return.</p><h2>Before you begin</h2><p>This recording uses the Field Station browser example. Opening the page creates and starts the clock automatically. You need a browser with local storage enabled.</p><ol class="journey-steps">${steps}</ol><h2>What happened?</h2><p>The same body returned after reload, with a new run of its clock. Lull stopped that run while keeping the body. The recording does not show the clock running while the browser was closed.</p><p>Next: <a href="../../">choose another Journey</a>, try the <a href="../handbook/">Handbook walkthrough</a>, or read <a href="/conduit/handbook/Bodies-hosts-plans-and-plays.html">how bodies keep their identity</a>.</p><details><summary>About this recording</summary><p>Captured in Chromium from source <code>${escape(commit)}</code>.</p><p><a href="index.json">Screenshot inventory</a> · <a href="runtime-evidence.json">Recorded runtime observations</a></p></details></main></body></html>`);
 }
