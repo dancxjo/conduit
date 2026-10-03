@@ -234,7 +234,10 @@ fn composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges() {
             },
         };
         assert_eq!(speech_frame(value), None);
-        assert!(programs[0].1.evaluate(&input(input_type, value)).is_err());
+        assert_eq!(
+            crate::prosody_parity::evaluate(&programs, result_index, &input(input_type, value)),
+            None,
+        );
     }
 }
 

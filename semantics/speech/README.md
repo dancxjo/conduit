@@ -101,15 +101,15 @@ pitch-period contour for known primary, secondary, unstressed and reduced stress
 The `speech/pitch` graph carries the actual stress, target, frame, excitation
 history and envelope flags through base-period selection and contour calculation
 via exact authored cords. Both pitch policies have one authored owner. The
-`speech/prosodic-frame` graph connects that exact pitched frame to the five-stage
+`speech/prosodic-frame` graph connects that exact pitched frame to the nine-stage
 DSP graph. The `speech/contextual-frame` graph also carries that context through
 vowel-onset preparation and blending before prosody/DSP; Rust calls the complete
-nine-stage onset/prosody/DSP graph. The `speech/connected-frame` graph retains
+thirteen-stage onset/prosody/DSP graph. The `speech/connected-frame` graph retains
 the exact selected phone, stress, history and neighbors through connection,
 pairs its model/envelope result with that context, and feeds onset/prosody/DSP
 through authored cords. The `speech/temporal-frame` graph also composes the
 three temporal-target stages and their context projection before connection,
-yielding one seventeen-stage synthesis graph. The trajectory equations specialize
+yielding one twenty-one-stage synthesis graph. The trajectory equations specialize
 through existing Conduit type parameters for model-only endpoint requests and
 real synthesis context; endpoint requests carry no invented frame history.
 Non-segment neighbors retain their relation and receive the exact current
@@ -118,7 +118,20 @@ Unknown and unspecified stress retain the neutral period throughout; the contour
 never changes the segment's stress specification. Portable differential checks
 cover checked arithmetic refusals and all stress states; admitted contours stay
 within 58–69 sample periods. These profile defaults do not model phrase-level
-intonation or establish measured prosody. The checked `speech/frame`
+intonation or establish measured prosody. The voiced source in `glottal.conduit`
+uses a self-authored Q8 cubic flow pulse with an open phase of `floor(3*period/4)`, followed by an exact discrete
+difference. This is informed by the source/flow model in
+[Klatt and Klatt (1990), section II.B](https://www.source-code.biz/klattSyn/Klatt-1990.pdf),
+without copying an implementation or their parameter tables. It is a limited
+source model, with no spectral-tilt, aspiration, flutter or diplophonia controls.
+The discrete flow difference sums to zero over each fixed-period cycle and
+retains the closure impulse before its zero closed interval. Both the scalar
+source query and the frame graph share the same authored normalization, flow
+and noise-mixing policies through exact context-carrying cords. No new history,
+waveform table or allocation is needed. These are profile defaults, not measured
+phonation features or a new phone identity. Portable source-edge/refusal parity
+and independent cycle laws accompany the frame proof; subjective quality is
+unverified. The checked `speech/frame`
 plot composes excitation, three resonator transitions and output mixing through
 exact authored cords. Initial history and
 boundary silence also come from checked plots. Rust traversal handles bounded
@@ -128,7 +141,8 @@ composes realization and voice-model lookup while retaining the exact original
 input, selected phone and derivation alongside the acoustic target. Its generic
 lookup shares one authored table with the scalar phone-model entrance. Portable
 proof covers all 40 phonemes, six stress states and five positions. The
-seven-stage `speech/neighbor-endpoint` graph selects the exact adjacent phone model at its declared start or end, carries the selected stop-place cue
+seven-stage `speech/neighbor-endpoint` graph selects the exact adjacent phone
+model at its declared start or end, carries the selected stop-place cue
 through the shared temporal equations, and returns both together. The scalar
 cue query shares the same authored policy. Portable proof covers all 44 phones
 at both ends, including arithmetic refusals. Rust currently connects segment

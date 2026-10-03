@@ -1,0 +1,60 @@
+# Self-authored integer cubic flow pulse, informed by the source/flow approach
+# in Klatt & Klatt (1990), section II.B. This is not their full KLGLOTT88 model.
+# Open phase is floor(3*period/4); flow is q*q*(256-q)/256 for Q8 phase q.
+# Difference of consecutive flow values folds a discrete radiation operator
+# into the source. Each fixed-period cycle telescopes to zero, including closure.
+# No waveform table, new retained state, transcendental or allocation is needed.
+type SpeechSourceOnlyContext =
+    source_only
+type SpeechSourceCarry<C> = {
+    source: ExcitationInput
+    context: C
+}
+type SpeechSourcePhase<C> = {
+    input: SpeechSourceCarry<C>
+    current: I32
+    previous: I32
+}
+type SpeechSourceFlow<C> = {
+    input: SpeechSourceCarry<C>
+    current: I32
+    previous: I32
+}
+type SpeechSourceResult<C> = {
+    input: SpeechSourceCarry<C>
+    sample: I32
+}
+type SpeechSourceOnlyRequest = SpeechSourceCarry<SpeechSourceOnlyContext>
+type SpeechSourceOnlyPhase = SpeechSourcePhase<SpeechSourceOnlyContext>
+type SpeechSourceOnlyFlow = SpeechSourceFlow<SpeechSourceOnlyContext>
+type SpeechSourceOnlyResult = SpeechSourceResult<SpeechSourceOnlyContext>
+plot speech/source-phase (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: ., current: .source.phase * 256 / (.source.period * 3 / 4), previous: .source.phase <= 0 ? 0 : (.source.phase - 1) * 256 / (.source.period * 3 / 4)})
+plot speech/source-flow (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: .input, current: .current <= 0 || .current >= 256 ? 0 : .current * .current * (256 - .current) / 256, previous: .previous <= 0 || .previous >= 256 ? 0 : .previous * .previous * (256 - .previous) / 256})
+plot speech/source-mix (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: .input, sample: (.current - .previous) * .input.source.voiced + (.input.source.noise % 4096 - 2048) * .input.source.frication})
+plot speech/excitation (
+    >> value: ExcitationInput
+    result: I32 >>
+) {
+    phase: speech/source-phase(item = SpeechSourceOnlyRequest, output = SpeechSourceOnlyPhase)
+    flow: speech/source-flow(item = SpeechSourceOnlyPhase, output = SpeechSourceOnlyFlow)
+    mix: speech/source-mix(item = SpeechSourceOnlyFlow, output = SpeechSourceOnlyResult)
+    value >> ({source: ., context: SpeechSourceOnlyContext.source_only}) >> phase.value
+    phase.result >> flow.value
+    flow.result >> mix.value
+    mix.result >> (.sample) >> result
+}

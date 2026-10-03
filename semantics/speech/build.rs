@@ -44,15 +44,17 @@ fn main() {
     println!("cargo:rerun-if-changed=prosody.conduit");
     println!("cargo:rerun-if-changed=onset.conduit");
     println!("cargo:rerun-if-changed=normalization.conduit");
+    println!("cargo:rerun-if-changed=glottal.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         fs::read_to_string(path).expect("native speech source"),
         include_str!("pronunciation.conduit"),
         include_str!("trajectory.conduit"),
         include_str!("connection.conduit"),
         include_str!("prosody.conduit"),
         include_str!("onset.conduit"),
-        include_str!("normalization.conduit")
+        include_str!("normalization.conduit"),
+        include_str!("glottal.conduit")
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);

@@ -71,3 +71,6 @@ mod arithmetic_bounds;
 
 #[cfg(test)]
 mod neighbor_parity;
+
+#[cfg(test)]
+mod glottal_parity;

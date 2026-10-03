@@ -136,10 +136,6 @@ type ExcitationInput = {
     voiced: I32
     frication: I32
 }
-plot speech/excitation (
-    >> value: ExcitationInput
-    result: I32 >>
-) = ((.phase < .period / 4 ? 1600 - .phase * 6400 / .period : -500 + .phase * 500 / .period) * .voiced + (.noise % 4096 - 2048) * .frication)
 
 plot speech/noise (
     >> value: I32
@@ -336,10 +332,28 @@ type SpeechFrameResult = {
     state: SpeechFrameState
     sample: I32
 }
+type SpeechFrameSourceRequest = SpeechSourceCarry<SpeechFrameInput>
+type SpeechFrameSourcePhase = SpeechSourcePhase<SpeechFrameInput>
+type SpeechFrameSourceFlow = SpeechSourceFlow<SpeechFrameInput>
+type SpeechFrameSourceResult = SpeechSourceResult<SpeechFrameInput>
+plot speech/frame-source-result (
+    >> value: SpeechFrameSourceResult
+    result: SpeechFrameWorking >>
+) = ({input: .input.context, phase: .input.context.state.phase + 1 >= .input.context.period ? 0 : .input.context.state.phase + 1, noise: .input.source.noise, excitation: .sample, first: 0, second: 0, third: 0, envelope: (.input.context.frame < .input.context.target.closure ? 0 : .input.context.target.closure > 0 ? (.input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256) : .input.context.attack && .input.context.frame - .input.context.target.closure < 64 ? (.input.context.frame - .input.context.target.closure) * 4 : .input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256)})
 plot speech/frame-excite (
     >> value: SpeechFrameInput
     result: SpeechFrameWorking >>
-) = ({input: ., phase: .state.phase + 1 >= .period ? 0 : .state.phase + 1, noise: ((.state.noise * 25173 + 13849) % 65536), excitation: ((.state.phase < .period / 4 ? 1600 - .state.phase * 6400 / .period : -500 + .state.phase * 500 / .period) * .target.voiced + (((.state.noise * 25173 + 13849) % 65536) % 4096 - 2048) * .target.frication), first: 0, second: 0, third: 0, envelope: (.frame < .target.closure ? 0 : .target.closure > 0 ? (.release && .target.frames - .frame < 64 ? (.target.frames - .frame) * 4 : 256) : .attack && .frame - .target.closure < 64 ? (.frame - .target.closure) * 4 : .release && .target.frames - .frame < 64 ? (.target.frames - .frame) * 4 : 256)})
+) {
+    phase: speech/source-phase(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
+    flow: speech/source-flow(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
+    mix: speech/source-mix(item = SpeechFrameSourceFlow, output = SpeechFrameSourceResult)
+    finish: speech/frame-source-result
+    value >> ({source: {phase: .state.phase, period: .period, noise: (.state.noise * 25173 + 13849) % 65536, voiced: .target.voiced, frication: .target.frication}, context: .}) >> phase.value
+    phase.result >> flow.value
+    flow.result >> mix.value
+    mix.result >> finish.value
+    finish.result >> result
+}
 plot speech/frame-first (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>
