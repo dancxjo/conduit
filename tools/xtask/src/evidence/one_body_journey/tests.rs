@@ -75,6 +75,22 @@ fn fixture(
     omit_chapter: bool,
     repeat_action: bool,
 ) -> Fixture {
+    fixture_with_png(
+        mixed_run,
+        stale_transcript,
+        omit_chapter,
+        repeat_action,
+        false,
+    )
+}
+
+fn fixture_with_png(
+    mixed_run: bool,
+    stale_transcript: bool,
+    omit_chapter: bool,
+    repeat_action: bool,
+    invalid_png: bool,
+) -> Fixture {
     let root = std::env::temp_dir().join(format!(
         "conduit-one-body-render-test-{}-{}",
         std::process::id(),
@@ -141,7 +157,14 @@ fn fixture(
                 _ => (
                     EvidenceKind::Screenshot,
                     "image/png",
-                    b"\x89PNG\r\n\x1a\nsynthetic".to_vec(),
+                    if invalid_png {
+                        b"\x89PNG\r\n\x1a\nsynthetic".to_vec()
+                    } else {
+                        resvg::tiny_skia::Pixmap::new(1, 1)
+                            .unwrap()
+                            .encode_png()
+                            .unwrap()
+                    },
                 ),
             };
             let sha = add(&root, &mut manifest, &artifact, kind, media_type, &bytes);
@@ -245,7 +268,7 @@ fn renders_only_complete_correlated_synthetic_fixture() {
     run(&fixture).unwrap();
     let page = fs::read_to_string(fixture.output.join("index.html")).unwrap();
     assert!(page.contains("Chapter 8 of 8"));
-    assert!(page.contains("Words spoken (llm-assisted)"));
+    assert!(page.contains("Words in produced audio (llm-assisted)"));
     assert!(page.contains("aria-label=\"Main navigation\""));
     assert!(run(&fixture).unwrap_err().contains("already exists"));
 }
@@ -282,14 +305,22 @@ fn rejects_stale_speech_and_missing_chapter() {
 #[test]
 fn rejects_tampered_media_hash() {
     let fixture = fixture(false, false, false, false);
-    fs::write(
-        fixture.root.join("media-join-0.png"),
-        b"\x89PNG\r\n\x1a\ncorrupted",
-    )
-    .unwrap();
+    let path = fixture.root.join("media-join-0.png");
+    let mut bytes = fs::read(&path).unwrap();
+    *bytes.last_mut().unwrap() ^= 1;
+    fs::write(path, bytes).unwrap();
     assert!(run(&fixture)
         .unwrap_err()
         .contains("evidence digest does not match"));
+    assert!(!fixture.output.exists());
+}
+
+#[test]
+fn rejects_nondecodable_png_even_with_matching_digest() {
+    let fixture = fixture_with_png(false, false, false, false, true);
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("is not a supported real capture"));
     assert!(!fixture.output.exists());
 }
 
