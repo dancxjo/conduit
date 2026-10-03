@@ -74,6 +74,12 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &["check", "-p", "conduit-signal", "--no-default-features"],
     ),
     Step::new(
+        "check.no-std.speech",
+        "Native speech fixed-storage no-default-features check",
+        "cargo",
+        &["check", "-p", "conduit-speech", "--no-default-features"],
+    ),
+    Step::new(
         "check.no-std.wire",
         "Wire no-default-features check",
         "cargo",

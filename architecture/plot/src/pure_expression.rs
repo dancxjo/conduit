@@ -1,5 +1,6 @@
 //! Bounded parser for canonical pure Conduitese expressions.
 
+mod call;
 mod operator;
 
 use crate::prelude::*;
@@ -305,70 +306,6 @@ impl Parser<'_> {
             fields,
             span: self.from(start, self.offset),
         })
-    }
-
-    fn atomic_or_call(&mut self, depth: usize) -> Result<ExpressionSyntax, (String, Span)> {
-        let start = self.offset;
-        let path = self.semantic_path_end();
-        if let Some(end) = path {
-            self.offset = end;
-        } else {
-            while let Some(character) = self.peek() {
-                if character == '.' && self.decimal_point() {
-                    self.bump();
-                    continue;
-                }
-                if character == '%' && self.percentage_suffix(start) {
-                    self.bump();
-                    continue;
-                }
-                if operator::is_delimiter(character) {
-                    break;
-                }
-                self.bump();
-            }
-        }
-        if self.offset == start {
-            return Err(self.error("expected an atomic expression value"));
-        }
-        let atom = SpannedText {
-            text: self.text[start..self.offset].to_string(),
-            span: self.from(start, self.offset),
-        };
-        self.whitespace();
-        if self.peek() != Some('(') {
-            return Ok(ExpressionSyntax::Atomic(atom));
-        }
-        self.bump();
-        let mut arguments = Vec::new();
-        self.whitespace();
-        if self.peek() != Some(')') {
-            loop {
-                arguments.push(self.expression(0, depth + 1)?);
-                self.whitespace();
-                if self.peek() == Some(')') {
-                    break;
-                }
-                self.take(',')?;
-            }
-        }
-        self.take(')')?;
-        let span = self.from(start, self.offset);
-        if atom.text.contains('/') {
-            Ok(ExpressionSyntax::SemanticCall {
-                kind: atom,
-                arguments,
-                span,
-            })
-        } else if arguments.len() == 1 && is_name(&atom.text) {
-            Ok(ExpressionSyntax::Variant {
-                tag: atom,
-                payload: Box::new(arguments.pop().expect("one variant payload")),
-                span,
-            })
-        } else {
-            Err(("variant literal requires exactly one payload".into(), span))
-        }
     }
 
     fn percentage_suffix(&self, atom_start: usize) -> bool {

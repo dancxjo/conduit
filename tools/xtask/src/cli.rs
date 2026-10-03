@@ -337,7 +337,9 @@ pub enum ProveTarget {
 }
 
 mod demo;
-pub use demo::{DemoArgs, DemoCommand, LightSwitchDemoArgs, PatchbayDemoArgs, PatchbayHost};
+pub use demo::{
+    DemoArgs, DemoCommand, LightSwitchDemoArgs, NativeSpeechArgs, PatchbayDemoArgs, PatchbayHost,
+};
 
 #[derive(Args, Debug)]
 pub struct DoctorArgs {

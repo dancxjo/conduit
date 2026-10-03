@@ -39,6 +39,18 @@ pub enum DemoCommand {
     TonguesResearch,
     /// Analyze the frozen Tongues latent dynamics with bounded controls.
     TonguesAnalysis,
+    /// Check native speech/recognition/translation types and retain early voice WAVs.
+    NativeSpeech(NativeSpeechArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct NativeSpeechArgs {
+    /// Retained WAV output directory; never enables device playback.
+    #[arg(long, default_value = "target/conduit-evidence/native-speech")]
+    pub output: std::path::PathBuf,
+    /// Also link the allocation-free Cortex-M0+ footprint probe.
+    #[arg(long)]
+    pub microcontroller: bool,
 }
 
 #[derive(Args, Debug)]

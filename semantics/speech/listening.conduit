@@ -1,0 +1,296 @@
+# Native listening contracts from Speaking event.rs, transcript.rs, asr.rs,
+# word_stream.rs and incremental_morphology.rs at the pinned Tongues revision.
+# Hypotheses, stable prefixes, commits, cancellation and finality are distinct.
+# These declarations neither install an ASR model nor grant capture authority.
+
+type ListeningStreamId = Text <= 64B not in [""]
+type ListeningEventId = Text <= 64B not in [""]
+type ListeningSegmentId = Text <= 64B not in [""]
+type AsrSessionId = Text <= 64B not in [""]
+type SpeechVarietyId = Text <= 64B not in [""]
+type SpeechMorphemeOccurrenceId = Text <= 64B not in [""]
+
+type ListeningProviderClock = {
+    provider: Text <= 64B not in [""]
+    clock: Text <= 64B not in [""]
+}
+
+type ListeningClockOrigin =
+    unix_epoch
+    | stream_start
+    | media_timeline Text <= 64B not in [""]
+    | provider ListeningProviderClock
+
+type ListeningEventTime = {
+    origin: ListeningClockOrigin
+    offset_ms: I64
+}
+
+type ListeningEventTimes = {
+    occurred_at: ListeningEventTime
+    observed_at: ListeningEventTime
+}
+
+type ListeningEventRef = {
+    stream_id: ListeningStreamId
+    event_id: ListeningEventId
+}
+
+type ListeningProvenanceKind =
+    direct
+    | derived
+    | recalled
+
+type ListeningScoreRange = {
+    minimum: Text <= 64B not in [""]
+    maximum: Text <= 64B not in [""]
+}
+
+type ListeningProviderConfidenceScale = {
+    provider: Text <= 64B not in [""]
+    metric: Text <= 64B not in [""]
+    range: ListeningScoreRange?
+}
+
+type ListeningConfidenceScale =
+    probability
+    | log_probability
+    | provider_native ListeningProviderConfidenceScale
+
+# Preserve provider-native f64 score semantics: a negative log score is not a
+# probability, absence is not zero, and calibration is independently named.
+type ListeningConfidence = {
+    value: F64
+    scale: ListeningConfidenceScale
+    calibration: Text <= 64B?
+}
+
+type ListeningProvenance = {
+    kind: ListeningProvenanceKind
+    sources: sequence ListeningEventRef <= 8
+    provider: Text <= 64B?
+    model: Text <= 64B?
+    attributes: sequence ListeningProviderAttribute <= 16
+}
+
+# Exact Unicode-scalar text ranges, never a UTF-8 byte index.
+type ListeningTextRange = {
+    start: U32
+    end: U32
+    where .start <= .end
+}
+
+type ListeningTimeRange = {
+    start_ms: U64
+    end_ms: U64
+    where .start_ms <= .end_ms
+}
+
+type ListeningTimedToken = {
+    text: Text <= 256B
+    range: ListeningTimeRange
+    confidence: ListeningConfidence?
+}
+
+type ListeningLanguageHypothesis = {
+    language: SpeechLanguageId
+    confidence: ListeningConfidence?
+}
+
+type ListeningTextRole =
+    recognition
+    | generation
+    | normalized
+    | parse
+    | interpretation
+
+type AsrPartialHypothesis = {
+    role: ListeningTextRole
+    segment_id: ListeningSegmentId
+    text: Text <= 4096B
+    confidence: ListeningConfidence?
+}
+
+type AsrRevisedHypothesis = {
+    role: ListeningTextRole
+    segment_id: ListeningSegmentId
+    replaces: ListeningTextRange
+    text: Text <= 4096B
+    confidence: ListeningConfidence?
+}
+
+type AsrCommittedSegment = {
+    role: ListeningTextRole
+    segment_id: ListeningSegmentId
+    text: Text <= 4096B
+    words: sequence ListeningTimedToken <= 32
+    language: ListeningLanguageHypothesis?
+    speaker_id: Text <= 64B?
+    confidence: ListeningConfidence?
+}
+
+type AsrHypothesisCancelled = {
+    role: ListeningTextRole
+    segment_id: ListeningSegmentId
+    reason: Text <= 256B not in [""]
+}
+
+type ListeningSpeechEnded = {
+    segment_id: ListeningSegmentId
+    reason: Text <= 256B not in [""]
+}
+
+type ListeningTokenTiming = {
+    segment_id: ListeningSegmentId
+    token: ListeningTimedToken
+}
+
+type ListeningLanguageAssignment = {
+    segment_id: ListeningSegmentId
+    hypothesis: ListeningLanguageHypothesis
+}
+
+type ListeningSpeakerAssignment = {
+    segment_id: ListeningSegmentId
+    speaker_id: Text <= 64B not in [""]
+    confidence: ListeningConfidence?
+}
+
+type ListeningDiscontinuity = {
+    expected_chunk_sequence: U64
+    received_chunk_sequence: U64
+    reason: Text <= 256B not in [""]
+}
+
+type ListeningDiagnostic = {
+    code: Text <= 64B not in [""]
+    message: Text <= 256B
+    recoverable: Boolean
+}
+
+type AsrRecognitionEvent =
+    speech_started ListeningSegmentId
+    | speech_ended ListeningSpeechEnded
+    | partial_hypothesis AsrPartialHypothesis
+    | revised_hypothesis AsrRevisedHypothesis
+    | committed_segment AsrCommittedSegment
+    | hypothesis_cancelled AsrHypothesisCancelled
+    | word_timing ListeningTokenTiming
+    | token_timing ListeningTokenTiming
+    | language_hypothesis ListeningLanguageAssignment
+    | speaker_assigned ListeningSpeakerAssignment
+    | discontinuity ListeningDiscontinuity
+    | end_of_stream
+    | warning ListeningDiagnostic
+    | error ListeningDiagnostic
+    | cancelled Text <= 256B
+    | completed
+
+type AsrRecognitionEnvelope = {
+    stream_id: ListeningStreamId
+    event_id: ListeningEventId
+    sequence: U64
+    times: ListeningEventTimes
+    provenance: ListeningProvenance
+    event: AsrRecognitionEvent
+}
+
+# This is a stability snapshot, not a committed recognition event. The upstream
+# stable_prefix_len is measured in UTF-8 bytes; revised-event ranges above are
+# Unicode scalars. Preserve that distinction rather than reinterpreting indices.
+type AsrTranscriptCandidate = {
+    candidate_id: ListeningSegmentId
+    text: Text <= 4096B
+    stable_prefix_utf8_bytes: U32 in 0..=4096
+    stable_text: Text <= 4096B
+    unstable_text: Text <= 4096B
+    stable_word_prefix: Text <= 4096B?
+    stable_word_count: U32
+    confidence: F32?
+}
+
+type AsrTranscriptChunk = {
+    text: Text <= 4096B
+    is_final: Boolean
+}
+
+type AsrPartialKind =
+    final_only
+    | approximate
+    | token_streaming
+
+type AsrChunkedSimulation = {
+    window_ms: U64 in 1..
+    overlap_ms: U64
+    where .overlap_ms < .window_ms
+}
+
+type AsrStreamingMode =
+    native
+    | chunked_simulation AsrChunkedSimulation
+    | offline_only
+
+type AsrDecodingControl =
+    beam_width
+    | temperature
+    | prompt
+    | timestamps
+    | punctuation
+    | vocabulary_bias
+
+type AsrDecodingConfig = {
+    beam_width: U32 in 1..?
+    temperature: F32?
+    prompt: Text <= 4096B?
+    timestamps: Boolean?
+    punctuation: Boolean?
+    vocabulary_bias: sequence Text <= 32
+}
+
+type AsrSessionConfig = {
+    language: SpeechLanguageId?
+    decoding: AsrDecodingConfig
+}
+
+type ListeningWordCommitment =
+    hypothetical
+    | stable_text
+    | prepared
+    | playable
+    | played
+    | final
+    | confirmed
+    | cancelled
+
+type ListeningBoundarySource =
+    whisper
+    | refined_acoustic
+    | predicted
+    | playback_cursor
+    | manual
+
+type ListeningAnalysisFinality =
+    provisional
+    | final
+
+type ListeningGraphemeCandidate = {
+    text: Text <= 256B
+    span: ListeningTextRange
+    variety: SpeechVarietyId
+    finality: ListeningAnalysisFinality
+}
+
+type ListeningWordCandidate = {
+    text: Text <= 256B
+    span: ListeningTextRange
+    variety: SpeechVarietyId
+    finality: ListeningAnalysisFinality
+    morpheme_occurrences: sequence SpeechMorphemeOccurrenceId <= 16
+}
+
+# Provider extensions are independently retained bounded content. They never
+# replace the typed score scale, event identities, clock, role or commitment.
+type ListeningProviderAttribute = {
+    name: Text <= 64B not in [""]
+    json_text: Text <= 1024B
+}

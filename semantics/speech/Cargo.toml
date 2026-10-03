@@ -1,0 +1,21 @@
+[package]
+name = "conduit-speech"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+default = []
+semantic-bindings = ["dep:conduit-core", "dep:conduit-plot"]
+
+[dependencies]
+conduit-core = { path = "../../architecture/core", optional = true }
+conduit-plot = { path = "../../architecture/plot", optional = true }
+
+[build-dependencies]
+conduit-plot = { path = "../../architecture/plot" }
+conduit-core = { path = "../../architecture/core" }
+
+[dev-dependencies]
+conduit-plot = { path = "../../architecture/plot" }
+conduit-core = { path = "../../architecture/core" }

@@ -1,0 +1,127 @@
+# Translation relates exact segment occurrences. Symbols, array offsets alone,
+# language tags, and similar spelling never establish an alignment.
+
+type LanguageTextId = Text <= 64B not in [""]
+type LanguageTextRevisionId = Text <= 64B not in [""]
+type SpeechUtteranceId = Text <= 64B not in [""]
+type SpeechSegmentRevisionId = Text <= 64B not in [""]
+type SpeechSegmentSequenceId = Text <= 64B not in [""]
+type TranslationCandidateId = Text <= 64B not in [""]
+type TranslationAlignmentId = Text <= 64B not in [""]
+type LocalizationLocaleId = Text <= 64B not in [""]
+type LocalizationMessageId = Text <= 128B not in [""]
+
+type LanguageTextSegmentKind =
+    grapheme
+    | morpheme
+    | word
+    | phrase
+    | utterance
+
+type LanguageTextSegmentRef = {
+    text_id: LanguageTextId
+    revision_id: LanguageTextRevisionId
+    language: SpeechLanguageId
+    kind: LanguageTextSegmentKind
+    range: ListeningTextRange
+}
+
+# Ordinal is scoped to an exact utterance, inventory and sequence revision.
+# Two occurrences of /t/ never collapse to one PhonemeId or PhoneId.
+type LanguageSpeechTokenRef = {
+    utterance_id: SpeechUtteranceId
+    sequence_id: SpeechSegmentSequenceId
+    revision_id: SpeechSegmentRevisionId
+    inventory_id: SpeechInventoryId
+    language: SpeechLanguageId
+    ordinal: U32
+}
+
+type LanguageSegmentRef =
+    text LanguageTextSegmentRef
+    | phoneme LanguageSpeechTokenRef
+    | phone LanguageSpeechTokenRef
+    | recognition ListeningEventRef
+
+type LanguageText = {
+    identity: LanguageTextId
+    revision: LanguageTextRevisionId
+    language: SpeechLanguageId
+    text: Text <= 4096B
+}
+
+type TranslationAlignedGroup = {
+    sources: sequence LanguageSegmentRef in 1..=8
+    targets: sequence LanguageSegmentRef in 1..=8
+}
+
+type TranslationSourceOnly = {
+    sources: sequence LanguageSegmentRef in 1..=8
+    reason: Text <= 256B not in [""]
+}
+
+type TranslationTargetOnly = {
+    targets: sequence LanguageSegmentRef in 1..=8
+    reason: Text <= 256B not in [""]
+}
+
+type TranslationUnresolvedGroup = {
+    sources: sequence LanguageSegmentRef <= 8
+    targets: sequence LanguageSegmentRef <= 8
+    reason: Text <= 256B not in [""]
+}
+
+# Alignment carries correspondence, not ordering or equal segment counts.
+# Reordering is legal; omission/insertion are explicit rather than fake matches.
+type TranslationCorrespondence =
+    aligned TranslationAlignedGroup
+    | omitted TranslationSourceOnly
+    | inserted TranslationTargetOnly
+    | unresolved TranslationUnresolvedGroup
+
+type TranslationAlignment = {
+    identity: TranslationAlignmentId
+    correspondence: TranslationCorrespondence
+    confidence: ListeningConfidence?
+    provenance: ListeningProvenance
+}
+
+# A candidate is not a committed translation. An alignment does not authorize
+# TTS, capture, provider access, acceptance or replacement of its source text.
+type TranslationCandidate = {
+    identity: TranslationCandidateId
+    source: LanguageText
+    target: LanguageText
+    alignments: sequence TranslationAlignment <= 64
+    provenance: ListeningProvenance
+}
+
+type TranslationAccepted = {
+    candidate_id: TranslationCandidateId
+    source_text_id: LanguageTextId
+    source_revision: LanguageTextRevisionId
+    target_text_id: LanguageTextId
+    target_revision: LanguageTextRevisionId
+    acceptance_provenance: ListeningProvenance
+}
+
+type TranslationWithdrawal = {
+    candidate_id: TranslationCandidateId
+    reason: Text <= 256B not in [""]
+    provenance: ListeningProvenance
+}
+
+type TranslationEvent =
+    proposed TranslationCandidate
+    | accepted TranslationAccepted
+    | withdrawn TranslationWithdrawal
+    | unsupported Text <= 256B
+
+# Language is linguistic content; locale is formatting/selection policy. Neither
+# is a voice, a device, an identity grant, or an assumption about the user.
+type LocalizationRequest = {
+    message_id: LocalizationMessageId
+    source: LanguageText
+    target_language: SpeechLanguageId
+    locale: LocalizationLocaleId?
+}

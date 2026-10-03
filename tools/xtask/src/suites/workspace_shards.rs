@@ -51,6 +51,7 @@ package_test_shard!(
         "conduit-host-make",
         "conduit-planner",
         "conduit-signal",
+        "conduit-speech",
         "conduit-signal-conformance",
         "conduit-alife-distributed-conformance",
         "conduit-r1-network-conformance",
@@ -78,7 +79,7 @@ package_test_shard!(
         "patchbay-application",
         "patchbay-svg-mask",
     ],
-    []
+    ["--features", "conduit-speech/semantic-bindings"]
 );
 
 package_test_shard!(

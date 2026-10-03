@@ -49,3 +49,5 @@ pub mod toggle;
 pub mod tongues;
 pub mod unifont_subset;
 pub mod workspace;
+
+pub mod native_speech;

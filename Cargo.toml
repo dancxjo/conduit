@@ -30,6 +30,7 @@ members = [
 	"semantics/purpose",
 	"semantics/robotics",
 	"semantics/signal",
+	"semantics/speech",
 	"semantics/system-continuity",
 	"semantics/text",
 	"semantics/time",
