@@ -45,7 +45,11 @@ fn refuse_legacy_owner_admissions(state_dir: &Path) -> Result<(), String> {
 }
 
 pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Result<(), String> {
-    let portable = issue_body_invitation_document(state_dir, ttl_seconds, None)?;
+    let portable = if state_dir.join("runtime.json").exists() {
+        crate::durable_host_control::issue_owned_invitation(state_dir, ttl_seconds, None)?
+    } else {
+        issue_body_invitation_document(state_dir, ttl_seconds, None)?
+    };
     let encoded = serde_json::to_string(&portable)
         .map_err(|error| format!("encode Body invitation: {error}"))?;
     println!("{encoded}");
@@ -164,7 +168,11 @@ pub(crate) fn admit_body_request(
     };
     let request: PortableSpawnAdmissionRequest = serde_json::from_slice(&request_bytes)
         .map_err(|error| format!("Body admission request: {error}"))?;
-    let receipt = admit_body_request_document(request, state_dir, authorize_admission)?;
+    let receipt = if state_dir.join("runtime.json").exists() {
+        crate::durable_host_control::admit_owned_request(state_dir, request)?
+    } else {
+        admit_body_request_document(request, state_dir, authorize_admission)?
+    };
     println!(
         "{}",
         serde_json::to_string(&receipt)
