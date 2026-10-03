@@ -1,9 +1,11 @@
 //! Long-lived ordinary product service for the Patchbay lifecycle journey.
 
 mod arrival;
+mod face_arrival;
 mod input_actions;
 mod tutorial;
 mod workspace_view_sign;
+use face_arrival::{FaceArrival, FaceArrivalInput};
 use input_actions::{ProductControl, action_for, product_control, resident_application_action};
 mod journey_sign;
 pub(crate) mod transient_sign;
@@ -86,11 +88,10 @@ pub fn run(
     entropy
         .fill(&mut surface_issuer_key)
         .map_err(|_| "product-surface-authority-key-unavailable")?;
-    journey.admit_surface_provider(
-        effect_bases
-            .framebuffer_provider(surface_issuer_key)
-            .map_err(|_| "product-framebuffer-provider-unavailable")?,
-    );
+    let surface_provider = effect_bases
+        .framebuffer_provider(surface_issuer_key)
+        .map_err(|_| "product-framebuffer-provider-unavailable")?;
+    journey.admit_surface_provider(surface_provider.clone());
     surface_issuer_key.fill(0);
     // The embedded defaults are Crèche inventory, not ProductJourney state.
     let plot = keyboard_text_plan::checked_plot_identity().map_err(|error| error.as_str())?;
@@ -110,6 +111,14 @@ pub fn run(
         true,
     );
     arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
+    let mut face_arrival = FaceArrival::prepare(
+        host_id.clone(),
+        boot_id.clone(),
+        generation,
+        make.build_id,
+        framebuffer_basis.base_id.clone(),
+        &surface_provider,
+    )?;
     let mut presenter = FrontDoorPresenter::prepare(
         host_id,
         boot_id,
@@ -120,9 +129,7 @@ pub fn run(
         make.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
-    let receipt = presenter
-        .present(&front_door, display)
-        .map_err(|error| error.as_str())?;
+    let receipt = face_arrival.present_first(&front_door, display)?;
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\nCONDUIT_CRECHE_CHECKPOINT ready\n");
@@ -179,8 +186,15 @@ pub fn run(
                 workspace_updates.accept(event, &mut journey, &mut front_door)?;
                 return Ok(ProductInputControl::Continue);
             }
-            let keyboard_route = presenter.route_keyboard().map_err(|error| error.as_str())?;
-            if matches!(keyboard_route, InputRoute::NoTarget) {
+            let keyboard_target = if front_door.creche_open() {
+                face_arrival.route_keyboard()?
+            } else {
+                matches!(
+                    presenter.route_keyboard().map_err(|error| error.as_str())?,
+                    InputRoute::Delivered(_)
+                )
+            };
+            if !keyboard_target {
                 return Ok(ProductInputControl::Continue);
             }
             if product_control(event.usage()) == Some(ProductControl::UsbLine)
@@ -316,27 +330,17 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if front_door.creche_open() {
-                match front_door
-                    .accept_creche(event, front_door.revision())
-                    .map_err(|e| e.as_str())?
-                {
-                    crate::front_door::ArrivalInput::Unchanged => {}
-                    crate::front_door::ArrivalInput::Changed => {
-                        presenter
-                            .present(&front_door, display)
-                            .map_err(|e| e.as_str())?;
-                        arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT edited\n");
-                    }
-                    crate::front_door::ArrivalInput::Birth(selection) => {
+                match face_arrival.accept_key(
+                    event,
+                    &mut front_door,
+                    &mut journey,
+                    &mut presenter,
+                    display,
+                    make,
+                )? {
+                    FaceArrivalInput::Continue => {}
+                    FaceArrivalInput::Born => {
                         consumed_birth_key = Some(event.usage());
-                        arrival::birth_and_arrive(
-                            selection,
-                            &mut front_door,
-                            &mut journey,
-                            &mut presenter,
-                            display,
-                            make,
-                        )?;
                     }
                 }
                 return Ok(ProductInputControl::Continue);
