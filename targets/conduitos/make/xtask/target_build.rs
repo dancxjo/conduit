@@ -294,11 +294,7 @@ fn boot_aarch64_product(
 
 fn complete_aarch64_product_sign(transcript: &str) -> Option<&str> {
     const PREFIX: &str = "CONDUIT_AARCH64_PRODUCT ";
-    transcript.lines().find_map(|line| {
-        line.find(PREFIX)
-            .map(|offset| &line[offset + PREFIX.len()..])
-            .filter(|json| json.ends_with('}'))
-    })
+    super::emitted_line::complete_json_line(transcript, PREFIX)
 }
 
 fn validate_aarch64_product_sign(
