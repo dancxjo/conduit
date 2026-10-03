@@ -80,7 +80,7 @@ fn connected_target_graph_matches_portable_models_at_every_transition_edge() {
         })
         .collect();
     let (composed, composed_result) = crate::prosody_parity::graph("speech_connected_frame");
-    assert_eq!(composed.len(), 17);
+    assert_eq!(composed.len(), 20);
     let ty = &programs[0].1.input_type;
     let other = speech_voice_target(EnglishPhone::iy).unwrap();
     for (phone, phone_tag) in PHONES {

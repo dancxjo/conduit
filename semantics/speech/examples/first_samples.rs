@@ -64,6 +64,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         write_wav(&output, name, &events)?;
         println!("{output}/{name}.wav");
     }
+    let mut stress_events = Vec::new();
+    for stress in [
+        S::primary,
+        S::secondary,
+        S::unstressed,
+        S::reduced,
+        S::unknown,
+        S::unspecified,
+    ] {
+        stress_events.push(VoiceEvent::segment(RealizationInput {
+            phoneme: P::eh,
+            stress,
+            position: W::isolated,
+        }));
+        stress_events.push(VoiceEvent::boundary(VoiceBoundary::word));
+    }
+    write_wav(&output, "stress-prosody", &stress_events)?;
+    println!("{output}/stress-prosody.wav: primary, secondary, unstressed, reduced, unknown, unspecified");
     for (name, text) in [
         ("text-hello-world", "Hello, world!"),
         ("text-digits", "0123456789"),

@@ -74,3 +74,6 @@ mod neighbor_parity;
 
 #[cfg(test)]
 mod glottal_parity;
+
+#[cfg(test)]
+mod intensity_parity;

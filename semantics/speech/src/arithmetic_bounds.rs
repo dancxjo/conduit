@@ -69,6 +69,7 @@ fn all_intermediate_profile_operations_fit_signed_32_bits() {
     // Covers any admitted history, including histories from different phones.
     // Each resonator stores a sample clamped to [-32767,32767].
     fits(256 * 256 * 256); // conservative Q8 cubic-flow numerator
+    fits(4725 * 256); // maximum admitted gain times bounded stress level
     fits(68 * 256); // normalized phase numerator
     fits(4096 * 4725 + 32768 * 32767 + 16384 * 32767);
     fits((32767 + 32767 / 2 + 32767 / 4) * 256);

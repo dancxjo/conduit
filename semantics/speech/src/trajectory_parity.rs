@@ -302,7 +302,7 @@ fn temporal_frame_preserves_typed_context_and_matches_portable_specialization() 
         prosody_parity::{evaluate, graph},
     };
     let (programs, result_index) = graph("speech_temporal_frame");
-    assert_eq!(programs.len(), 21);
+    assert_eq!(programs.len(), 24);
     let ty = &programs[0].1.input_type;
     let trajectory_type = field_type(ty, "trajectory");
     let context_type = field_type(ty, "context");

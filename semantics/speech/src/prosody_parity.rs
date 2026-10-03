@@ -116,7 +116,7 @@ pub(super) fn context(
 #[test]
 fn authored_pitch_and_dsp_chain_matches_portable_graph_with_exact_context() {
     let (programs, result_index) = graph("speech_prosodic_frame");
-    assert_eq!(programs.len(), 11); // pitch preparation/contour plus the nine DSP stages
+    assert_eq!(programs.len(), 14); // three intensity stages, two pitch stages and nine DSP stages
     let ty = &programs[0].1.input_type;
     let output_type = &programs[result_index].1.output_type;
     for (phone, _) in PHONES {
@@ -147,7 +147,10 @@ fn authored_pitch_and_dsp_chain_matches_portable_graph_with_exact_context() {
                 assert_eq!(pitched.frame, value.frame);
                 assert_eq!(pitched.attack, value.attack);
                 assert_eq!(pitched.release, value.release);
-                assert_eq!(speech_prosodic_frame(value), speech_frame(pitched));
+                assert_eq!(
+                    speech_prosodic_frame(value),
+                    speech_frame(speech_pitch(speech_stress_intensity(value).unwrap()).unwrap()),
+                );
             }
         }
     }

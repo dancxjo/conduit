@@ -104,22 +104,37 @@ via exact authored cords. Both pitch policies have one authored owner. The
 `speech/prosodic-frame` graph connects that exact pitched frame to the nine-stage
 DSP graph. The `speech/contextual-frame` graph also carries that context through
 vowel-onset preparation and blending before prosody/DSP; Rust calls the complete
-thirteen-stage onset/prosody/DSP graph. The `speech/connected-frame` graph retains
+sixteen-stage onset/prosody/DSP graph. The `speech/connected-frame` graph retains
 the exact selected phone, stress, history and neighbors through connection,
 pairs its model/envelope result with that context, and feeds onset/prosody/DSP
 through authored cords. The `speech/temporal-frame` graph also composes the
 three temporal-target stages and their context projection before connection,
-yielding one twenty-one-stage synthesis graph. The trajectory equations specialize
+yielding one twenty-four-stage synthesis graph. The trajectory equations specialize
 through existing Conduit type parameters for model-only endpoint requests and
 real synthesis context; endpoint requests carry no invented frame history.
 Non-segment neighbors retain their relation and receive the exact current
 temporal model as their neutral endpoint. Rust calls this synthesis graph once.
+The three-stage `speech/stress-intensity` graph precedes pitch. It carries the
+exact context through level selection, a bounded edge contour and gain scaling.
+Known secondary, unstressed and reduced sonorants have relative interior levels
+224/256, 192/256 and 160/256; primary, unknown and unspecified remain neutral.
+Stops and frication remain neutral. First/last 128-frame transitions return
+sonorant gains to the exact neutral model at segment joins. Only the three gains
+change; phone identity, stress, duration, spectral model, excitation flags and
+history are retained. Neutral branches return the exact input without running
+scaling arithmetic. These are self-authored profile cues, not measured loudness
+or inferred syllable stress. Portable checks cover every phone/stress state,
+context preservation and selected overflow refusal; independent laws cover gain
+bounds, neutral joins and monotone edge contours. `stress-prosody.wav` presents
+eh with primary, secondary, unstressed, reduced, unknown and unspecified stress
+in that order. Subjective prosody and intelligibility remain unverified.
 Unknown and unspecified stress retain the neutral period throughout; the contour
 never changes the segment's stress specification. Portable differential checks
 cover checked arithmetic refusals and all stress states; admitted contours stay
 within 58–69 sample periods. These profile defaults do not model phrase-level
 intonation or establish measured prosody. The voiced source in `glottal.conduit`
-uses a self-authored Q8 cubic flow pulse with an open phase of `floor(3*period/4)`, followed by an exact discrete
+uses a self-authored Q8 cubic flow pulse with an open phase of
+`floor(3*period/4)`, followed by an exact discrete
 difference. This is informed by the source/flow model in
 [Klatt and Klatt (1990), section II.B](https://www.source-code.biz/klattSyn/Klatt-1990.pdf),
 without copying an implementation or their parameter tables. It is a limited

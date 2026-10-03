@@ -242,7 +242,7 @@ fn onset_models_restore_targets_keep_stable_poles_and_respect_boundaries() {
 #[test]
 fn contextual_frame_preserves_onset_context_and_matches_the_portable_chain() {
     let (programs, result_index) = graph("speech_contextual_frame");
-    assert_eq!(programs.len(), 13);
+    assert_eq!(programs.len(), 16);
     let ty = &programs[0].1.input_type;
     let output_type = &programs[result_index].1.output_type;
     for (phone, phone_tag) in PHONES {
