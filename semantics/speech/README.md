@@ -247,7 +247,15 @@ boot, device drivers and rich preparation metadata. The probes render directly
 into caller-owned static PCM storage, observing each produced sample with a
 volatile read and a small checksum; they avoid a second stack output buffer.
 The proof retains each `_start` disassembly and reports its register-save and
-fixed stack-subtraction bytes. Unsupported prologue shapes refuse inspection.
+fixed stack-subtraction bytes. It also retains complete linked disassembly with
+the ELF symbol table and a `stack-inventory.json` report. That inventory separates
+function entry reservations, direct call sites and identified computed-control
+sites from embedded data. It does not sum entries into a call-chain bound:
+computed targets, body stack adjustments and call-chain liveness are unverified.
+Its machine-readable `full_stack_status` remains `unproven`, and unsupported
+entry shapes retain an explicit gap instead of a numeric reservation. The current
+renderer has four identified computed-control sites, and text plus synthesis has
+46; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
 This is an entry-stack lower bound: callee frames, later body stack changes,
 boot and interrupts are excluded. It cannot establish total stack or device fit.
 A link is not device playback or proof of real-time performance. WAV generation

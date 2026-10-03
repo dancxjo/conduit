@@ -1,5 +1,7 @@
 //! Narrow entry-prologue evidence, never a complete stack/call-chain bound.
 use std::{fs, path::Path, process::Command};
+#[path = "native_speech_inventory.rs"]
+mod inventory;
 
 pub(super) fn inspect(
     root: &Path,
@@ -30,12 +32,7 @@ pub(super) fn inspect(
         );
     }
     let output = Command::new(tool)
-        .args([
-            "-d",
-            "--disassemble-symbols=_start",
-            "--no-show-raw-insn",
-            "--no-print-imm-hex",
-        ])
+        .args(["-d", "--syms", "--no-show-raw-insn", "--no-print-imm-hex"])
         .arg(artifact)
         .output()?;
     if !output.status.success() {
@@ -48,7 +45,24 @@ pub(super) fn inspect(
     let assembly = std::str::from_utf8(&output.stdout)?;
     fs::create_dir_all(evidence)?;
     let path = evidence.join(format!("{binary}.entry.asm"));
-    fs::write(&path, assembly)?;
+    // Preserve the existing entry artifact and retain the complete linked code
+    // separately, so downstream inspection never relies on a truncated view.
+    let entry = assembly
+        .lines()
+        .skip_while(|line| !line.trim().ends_with(" <_start>:"))
+        .take_while(|line| line.trim().ends_with(" <_start>:") || !line.trim().ends_with(">:"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(
+        &path,
+        format!("probe: file format elf32-littlearm\n{entry}\n"),
+    )?;
+    let linked = evidence.join(format!("{binary}.linked.asm"));
+    fs::write(&linked, assembly)?;
+    let report = inventory::report(assembly)?;
+    let inventory = evidence.join(format!("{binary}.stack-inventory.json"));
+    fs::write(&inventory, serde_json::to_vec_pretty(&report)?)?;
+    println!("Linked stack inventory: {}. Full stack remains unproven; {} identified computed-control sites. Retained {}",inventory.display(),report["identified_computed_control_sites"].as_array().map_or(0, Vec::len),linked.display());
     let bytes = entry_prologue(assembly).map_err(|error| format!("{}: {error}", path.display()))?;
     println!("Entry _start prologue: {bytes} bytes (saved registers plus fixed SP subtraction). Retained {}", path.display());
     println!("Entry contribution only: callee frames, body stack changes, boot and interrupts are excluded. This is a stack lower bound, not total stack or device-fit acceptance.");
