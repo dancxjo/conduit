@@ -1,13 +1,19 @@
 //! Bounded boot-time join proof emitted on the admitted early serial Line.
 
 use alloc::{string::String, vec::Vec};
-use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret, SpawnRendezvousDescriptor};
+use conduit_body::{
+    PortableSpawnAdmissionRequest, ROUTED_ADMISSION_REQUEST_SCHEMA, RoutedAdmissionRequest,
+    SPAWN_ADMISSION_REQUEST_SCHEMA, SpawnInvitationClaim, SpawnInvitationSecret,
+    SpawnRendezvousDescriptor,
+};
 use serde::Serialize;
 
 use crate::spore_provision::{NativeMediaProvision, RouteCertificate};
 
 pub const JOIN_SCHEMA: &str = "conduit.conduitos/serial-spawn-observation@1";
 pub const MAXIMUM_JOIN_BYTES: usize = 32 * 1024;
+pub const MAXIMUM_ROUTE_REQUEST_BYTES: usize =
+    crate::native_network_bounds::MAXIMUM_BINARY_MESSAGE_BYTES;
 
 /// Public provision facts carried into the native Face. A signed observation
 /// is still only a request: no receipt, membership, or Body exists here yet.
@@ -41,6 +47,14 @@ pub enum JoinError {
     Bound,
 }
 
+/// One exact signed boot observation and, for a routed invitation, its
+/// transport-owned admission request. Neither value is a membership receipt.
+/// The request must never be projected into the pending Face or serial log.
+pub struct PreparedNativeJoin {
+    pub serial_observation: Vec<u8>,
+    pub routed_request: Option<RoutedAdmissionRequest>,
+}
+
 impl JoinError {
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -72,6 +86,13 @@ pub fn encode(
     provision: NativeMediaProvision,
     advertisement: &conduit_core::HostAdvertisement,
 ) -> Result<Vec<u8>, JoinError> {
+    prepare(provision, advertisement).map(|join| join.serial_observation)
+}
+
+pub fn prepare(
+    provision: NativeMediaProvision,
+    advertisement: &conduit_core::HostAdvertisement,
+) -> Result<PreparedNativeJoin, JoinError> {
     let mut provision = provision;
     let claim = SpawnInvitationClaim {
         invitation_id: serde_json::from_value(serde_json::Value::String(
@@ -104,6 +125,32 @@ pub fn encode(
     let signature = secret.sign(&transcript);
     secret_bytes.fill(0);
     provision.invitation_provision.secret.fill(0);
+    let routed_request =
+        provision
+            .invitation_provision
+            .rendezvous
+            .as_ref()
+            .map(|_| RoutedAdmissionRequest {
+                schema: ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
+                invitation_id: claim.invitation_id.as_str().into(),
+                request: PortableSpawnAdmissionRequest {
+                    schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
+                    invitation_id: claim.invitation_id.clone(),
+                    body_id: claim.body_id.clone(),
+                    host_advertisement: advertisement.clone(),
+                    nonce: claim.nonce,
+                    signature: signature.to_vec(),
+                    membership_admitted: false,
+                    plan_created: false,
+                    play_created: false,
+                },
+            });
+    if let Some(request) = &routed_request {
+        let encoded = serde_json::to_vec(request).map_err(|_| JoinError::Serialization)?;
+        if encoded.len() > MAXIMUM_ROUTE_REQUEST_BYTES {
+            return Err(JoinError::Bound);
+        }
+    }
     let envelope = JoinEnvelope {
         schema: JOIN_SCHEMA,
         protocol: 1,
@@ -125,7 +172,10 @@ pub fn encode(
     if encoded.len() > MAXIMUM_JOIN_BYTES {
         return Err(JoinError::Bound);
     }
-    Ok(encoded)
+    Ok(PreparedNativeJoin {
+        serial_observation: encoded,
+        routed_request,
+    })
 }
 
 pub fn encode_region(
@@ -155,6 +205,17 @@ pub fn encode_native(
     let boot_id = conduit_core::BootId::from(crate::identity::hex(&identities.boot));
     let advertisement = crate::mask_control::native_host_advertisement(&host_id, &boot_id, 1);
     encode(provision, &advertisement)
+}
+
+#[cfg(target_arch = "x86_64")]
+pub fn prepare_native(
+    provision: NativeMediaProvision,
+    identities: crate::identity::BootIdentities,
+) -> Result<PreparedNativeJoin, JoinError> {
+    let host_id = conduit_core::HostId::from(crate::identity::hex(&identities.host));
+    let boot_id = conduit_core::BootId::from(crate::identity::hex(&identities.boot));
+    let advertisement = crate::mask_control::native_host_advertisement(&host_id, &boot_id, 1);
+    prepare(provision, &advertisement)
 }
 
 #[cfg(test)]
@@ -200,6 +261,12 @@ mod tests {
         assert_eq!(value["expiry_checked_by_body"], true);
         assert_eq!(value["signature"].as_array().unwrap().len(), 64);
         assert!(!encoded.windows(32).any(|window| window == [13; 32]));
+        assert!(
+            prepare(provision(), &advertisement)
+                .unwrap()
+                .routed_request
+                .is_none()
+        );
     }
 
     #[test]
@@ -239,5 +306,27 @@ mod tests {
         assert_eq!(pending.route_certificates.len(), 1);
         assert_eq!(pending.route_certificates[0].certificate_der, vec![42; 128]);
         assert!(!format!("{pending:?}").contains(&format!("{:?}", [13_u8; 32])));
+
+        let advertisement = crate::mask_control::native_host_advertisement(
+            &HostId::from("host/one"),
+            &BootId::from("boot/one"),
+            1,
+        );
+        let prepared = prepare(provision, &advertisement).unwrap();
+        let request = prepared.routed_request.unwrap();
+        assert_eq!(request.schema, ROUTED_ADMISSION_REQUEST_SCHEMA);
+        assert_eq!(request.invitation_id, "invitation/one");
+        assert_eq!(request.request.host_advertisement, advertisement);
+        assert_eq!(request.request.body_id.as_str(), "body/one");
+        assert!(!request.request.membership_admitted);
+        assert!(!request.request.plan_created);
+        assert!(!request.request.play_created);
+        assert!(serde_json::to_vec(&request).unwrap().len() <= MAXIMUM_ROUTE_REQUEST_BYTES);
+        let observation: serde_json::Value =
+            serde_json::from_slice(&prepared.serial_observation).unwrap();
+        assert_eq!(
+            observation["signature"],
+            serde_json::json!(request.request.signature)
+        );
     }
 }
