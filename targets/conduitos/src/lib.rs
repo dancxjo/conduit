@@ -51,6 +51,7 @@ pub mod keyboard_text_play;
 mod keyboard_text_play_tests;
 pub mod local_rescue;
 pub mod machine;
+pub mod machine_membrane;
 #[cfg(any(
     test,
     target_arch = "x86_64",

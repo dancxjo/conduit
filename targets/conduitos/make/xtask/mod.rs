@@ -88,6 +88,7 @@ pub(crate) mod target_backend;
 pub(crate) mod target_build;
 mod target_lowering;
 mod timing_profile;
+mod usb_plots_check;
 mod usb_proof;
 mod usb_run;
 mod virtio_net_proof;
@@ -157,6 +158,12 @@ enum ConduitosCommand {
     XhciProof(PreparedProofArgs),
     /// Prove one real bounded root-attached USB device without semantic input.
     UsbProof(PreparedProofArgs),
+    /// Check shared USB wire plots and machine register-possession fixtures.
+    UsbPlotsCheck {
+        /// Type-check the shared library for each product CPU architecture.
+        #[arg(long)]
+        cross: bool,
+    },
     /// Prove one real HID boot-keyboard press/release stream without semantics.
     HidProof(PreparedProofArgs),
     /// Prove the exact portable keyboard offer, Plan, Play, and event values.
@@ -513,6 +520,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
         ConduitosCommand::UsbProof(args) => usb_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::UsbPlotsCheck { cross } => usb_plots_check::execute(cross, opts),
         ConduitosCommand::HidProof(args) => hid_proof::execute(args.prepared_image, opts),
         ConduitosCommand::KeyboardProof(args) => keyboard_proof::execute(args.prepared_image, opts),
         ConduitosCommand::Ps2InputProof => ps2_input_proof::execute(opts),
