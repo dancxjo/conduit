@@ -3,10 +3,11 @@
 use conduit_body::{
     AdmissionDocumentRefusal as Refusal, AdmissionManager, AdmissionRefusal, AdmissionSigns, Body,
     BodyMembership, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
-    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, SpawnInvitationSecret,
-    SpawnRendezvousDescriptor, ADMISSION_SIGNATURE_BYTES, INVITATION_SCHEMA,
-    RENDEZVOUS_DESCRIPTOR_PROTOCOL, ROUTED_INVITATION_SCHEMA, SPAWN_ADMISSION_RECEIPT_SCHEMA,
-    SPAWN_ADMISSION_REQUEST_SCHEMA,
+    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
+    RoutedAdmissionResponse, SpawnInvitationSecret, SpawnRendezvousDescriptor,
+    ADMISSION_SIGNATURE_BYTES, INVITATION_SCHEMA, RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+    ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA, ROUTED_INVITATION_SCHEMA,
+    SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_core::{HostAdvertisement, OfferGeneration, SignId, PROTOCOL_VERSION};
 use serde::{de::DeserializeOwned, Serialize};
@@ -172,6 +173,50 @@ fn existing_invitation_and_admission_json_shapes_roundtrip_exactly() {
             "current_offers_available": false, "plan_created": false, "play_created": false,
         }),
     );
+}
+
+#[test]
+fn routed_owner_frames_keep_the_existing_request_and_receipt_shapes() {
+    let mut f = fixture();
+    let routed_request = RoutedAdmissionRequest {
+        schema: ROUTED_ADMISSION_REQUEST_SCHEMA.into(),
+        invitation_id: f.request.invitation_id.as_str().into(),
+        request: f.request.clone(),
+    };
+    exact_roundtrip(
+        &routed_request,
+        json!({
+            "schema": "conduit.body/routed-admission-request@1",
+            "invitation_id": f.request.invitation_id,
+            "request": f.request,
+        }),
+    );
+    let receipt = admitted(&mut f);
+    exact_roundtrip(
+        &RoutedAdmissionResponse::Admitted {
+            schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+            receipt: Box::new(receipt.clone()),
+        },
+        json!({
+            "outcome": "admitted",
+            "schema": "conduit.body/routed-admission-response@1",
+            "receipt": receipt,
+        }),
+    );
+    exact_roundtrip(
+        &RoutedAdmissionResponse::Refused {
+            schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+            code: "wrong-invitation".into(),
+        },
+        json!({
+            "outcome": "refused",
+            "schema": "conduit.body/routed-admission-response@1",
+            "code": "wrong-invitation",
+        }),
+    );
+    let mut unknown = serde_json::to_value(routed_request).unwrap();
+    unknown["unknown"] = json!(true);
+    assert!(serde_json::from_value::<RoutedAdmissionRequest>(unknown).is_err());
 }
 
 #[test]
