@@ -186,7 +186,7 @@ fn aborted_challenge_is_not_retained_across_service_restart() {
         .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
         .unwrap();
     let next = advertise(&mut resumed, &second.window_id);
-    assert_ne!(first.admission_id, next.admission_id);
+    assert_ne!(first.nonce, next.nonce);
     assert!(resumed
         .admissions
         .as_ref()
