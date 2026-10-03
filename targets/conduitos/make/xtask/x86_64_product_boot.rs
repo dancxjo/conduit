@@ -234,7 +234,7 @@ fn validate(
             "journey",
             journey,
             "presenter_implementation_id",
-            serde_json::json!("presenter/native-graphical@1"),
+            serde_json::json!("presentation/renderer-conduitos-native@1"),
         ),
         ("journey", journey, "body_id", serde_json::Value::Null),
         ("journey", journey, "plan_id", serde_json::Value::Null),
