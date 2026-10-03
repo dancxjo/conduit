@@ -259,6 +259,13 @@ entry = "native-graphical"
 deterministic = { package = "conduitos", test = "lib", case = "presenter_control::tests::native_presenter_is_the_exact_ordinary_mask_plot_and_keeps_its_branched_plan", plan_play_evidence = true }
 browser_safe_not_applicable = "the ordinary Mask is realized by the ConduitOS graphical Host, not a browser Host"
 [[plots]]
+slug = "face-snapshot"
+title = "Face Snapshot"
+entry = "host-face-snapshot"
+workspace_catalog = false
+deterministic = { package = "conduitos", test = "lib", case = "native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts", plan_play_evidence = true }
+browser_safe_not_applicable = "the Host-owned snapshot forwards native Face facts; it is not a standalone browser experience"
+[[plots]]
 slug = "morse-network"
 title = "Morse Network"
 entry = "morse_network"
