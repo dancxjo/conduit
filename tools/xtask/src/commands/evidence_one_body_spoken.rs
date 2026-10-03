@@ -5,35 +5,45 @@ use crate::evidence::{
     verify, EvidenceKind, EvidenceManifest, EvidenceResult, ExpectedEvidenceResult,
     VerificationRequest,
 };
-use clap::Args as ClapArgs;
-use conduit_presentation::{
-    GeneratedContentRole, GeneratedManifestationDisposition, GenerativePresenterBounds,
-    GenerativePresenterRequest,
-};
-use conduit_std_host::{
-    hosted_local_model::{
-        finite_face_wording_presenter_policy, LocalModelKindProfile, OllamaDiscovery,
-    },
-    hosted_speech_synthesis::EspeakDiscovery,
-    local_model_proof, spoken_mask_journey,
-};
-use serde_json::json;
+use clap::{Args as ClapArgs, ValueEnum};
+use conduit_std_host::hosted_speech_synthesis::EspeakDiscovery;
 use sha2::{Digest, Sha256};
 use std::{
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 const PROOF_ID: &str = "journey-one-body-spoken-chapter";
 const SUITE_ID: &str = "journey-gallery";
 
+#[path = "evidence_one_body_spoken/direct.rs"]
+mod direct;
+#[path = "evidence_one_body_spoken/llm.rs"]
+mod llm;
 #[path = "evidence_one_body_spoken/owner.rs"]
 mod owner;
 #[path = "evidence_one_body_spoken/retention.rs"]
 mod retention;
-use owner::{face_bytes, git, hash_file, parse_snapshot};
-use retention::{declare, retain, retain_json};
+use owner::{face_bytes, git, hash_file, parse_snapshot, OwnerSnapshot};
+use retention::retain;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+enum SpeechMode {
+    Direct,
+    LlmAssisted,
+}
+
+struct LiveContext<'a> {
+    workspace: &'a Path,
+    source_commit: &'a str,
+    bin: &'a Path,
+    state_dir: &'a Path,
+    bin_sha256: &'a str,
+    face: &'a OwnerSnapshot,
+    run_id: &'a str,
+    voice: &'a str,
+}
 
 #[derive(ClapArgs, Debug)]
 pub(crate) struct Args {
@@ -49,9 +59,12 @@ pub(crate) struct Args {
     /// Capture owner's preassigned run token, supplied before this action begins.
     #[arg(long)]
     run_id: Option<String>,
+    /// Mechanical full-Face reading or finite model-assisted wording.
+    #[arg(long, value_enum, default_value_t = SpeechMode::LlmAssisted)]
+    mode: SpeechMode,
     /// Already-local Ollama model name.
     #[arg(long)]
-    model: String,
+    model: Option<String>,
     #[arg(long, default_value = "http://127.0.0.1:11434")]
     ollama_endpoint: String,
     #[arg(long, default_value_t = 2048)]
@@ -68,6 +81,15 @@ pub(crate) struct Args {
 }
 
 pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+    match (args.mode, args.model.as_deref()) {
+        (SpeechMode::LlmAssisted, None) => {
+            return Err("--model is required for --mode llm-assisted".into());
+        }
+        (SpeechMode::Direct, Some(_)) => {
+            return Err("--model applies only to --mode llm-assisted".into());
+        }
+        _ => {}
+    }
     let workspace = crate::workspace::workspace_root()?;
     let source_commit = git(&workspace, &["rev-parse", "HEAD"])?;
     let changed = git(&workspace, &["status", "--porcelain"])?;
@@ -109,25 +131,6 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         return Err("run ID must be a bounded alphanumeric, dash, or underscore token".into());
     }
     let execution_id = format!("journey-spoken-{}", &run_digest[..24]);
-    let request = GenerativePresenterRequest::from_presentation(
-        format!("request/journey-spoken/{}", &run_digest[..24]),
-        finite_face_wording_presenter_policy(),
-        first.presentation.clone(),
-        None,
-        GenerativePresenterBounds::reviewed_default(),
-    )
-    .map_err(|error| format!("cannot prepare current Face Presenter request: {error:?}"))?;
-    let discovery = OllamaDiscovery::discover_at(&args.ollama_endpoint, &args.model)?;
-    let adapter = discovery.initialize(
-        args.admitted_memory_mib,
-        vec![
-            LocalModelKindProfile::Generate,
-            LocalModelKindProfile::ClassifyFiniteLabels,
-            LocalModelKindProfile::ExtractValidatedInfo,
-            LocalModelKindProfile::InterpretSignEvidence,
-            LocalModelKindProfile::PresentSemanticFront,
-        ],
-    )?;
     let speech = EspeakDiscovery::inspect(
         &args.speech_executable,
         &args.speech_data,
@@ -148,267 +151,65 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         &first,
         None,
     )?;
-    retain_json(
-        &mut manifest,
-        "presenter-request",
-        "presenter-request.json",
-        &request,
-        &run_id,
-        &first,
-        None,
-    )?;
-    let model_proof = match local_model_proof::run(adapter, &[request.clone()]) {
-        Ok(proof) => proof,
-        Err(error) => {
-            manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
-            return Err(error);
-        }
+    let context = LiveContext {
+        workspace: &workspace,
+        source_commit: &source_commit,
+        bin: &bin,
+        state_dir: &state_dir,
+        bin_sha256: &bin_sha256,
+        face: &first,
+        run_id: &run_id,
+        voice: &args.speech_voice,
     };
-    retain_json(
-        &mut manifest,
-        "model-proof",
-        "model-proof.json",
-        &model_proof,
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    let [presenter] = model_proof.presenter_requests.as_slice() else {
-        return Err("model proof did not retain exactly one Presenter result".into());
-    };
-    if !presenter.play_completed
-        || presenter.request_identity != request.request_identity
-        || presenter.source_presentation_identity != first.presentation.identity.as_str()
-        || presenter.source_presentation_revision != first.presentation.revision
-        || presenter.policy_revision != request.policy.template_contract_revision
-    {
-        return Err("Presenter receipt does not match the current owner Face".into());
+    if args.mode == SpeechMode::Direct {
+        return direct::run(&context, &mut manifest, speech);
     }
-    let candidate = &presenter.manifestation;
-    retain_json(
+    let model = args.model.as_deref().ok_or("model preflight failed")?;
+    llm::run(
+        &context,
         &mut manifest,
-        "candidate",
-        "candidate.json",
-        candidate,
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    let raw = candidate
-        .raw_provider_output
-        .as_ref()
-        .ok_or("finite Presenter omitted original provider output")?;
-    retain_json(
-        &mut manifest,
-        "original-model-output",
-        "original-model-output.json",
-        &json!({
-            "schema": "conduit.journey/provider-output@1",
-            "request_id": request.request_identity,
-            "candidate_id": candidate.candidate_identity,
-            "output": raw,
-            "sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
-        }),
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    let accepted = candidate.disposition == GeneratedManifestationDisposition::Produced;
-    let spoken = if accepted {
-        accepted_wording(&request, candidate)?
-    } else {
-        String::new()
-    };
-    let validation = json!({
-        "schema": "conduit.journey/one-body-presenter-validation@1",
-        "chapter_id": "hear",
-        "proof_class": model_proof.proof_class,
-        "source_commit": source_commit,
-        "run_id": run_id,
-        "body_id": body_id.as_str(),
-        "owner_host_id": first.advertisement.host_id,
-        "owner_boot_id": first.advertisement.boot_id,
-        "face_id": first.presentation.identity,
-        "face_revision": first.presentation.revision,
-        "request_id": request.request_identity,
-        "presenter_plan_id": presenter.plan_id,
-        "presenter_play_completed": presenter.play_completed,
-        "candidate_id": candidate.candidate_identity,
-        "provider_id": candidate.provider_identity,
-        "model_id": candidate.model_identity,
-        "original_model_output_sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
-        "accepted": accepted,
-        "accepted_wording_sha256": accepted.then(|| format!("{:x}", Sha256::digest(spoken.as_bytes()))),
-        "accepted_wording": accepted.then_some(spoken.as_str()),
-        "rejection": (!accepted).then_some(format!("{:?}", candidate.disposition)),
-    });
-    retain_json(
-        &mut manifest,
-        "validation",
-        "validation.json",
-        &validation,
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    if !accepted {
-        manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
-        return Err(
-            "finite Presenter refused the current owner Face; diagnostic evidence retained".into(),
-        );
-    }
-    retain(
-        &mut manifest,
-        "transcript",
-        "transcript.txt",
-        EvidenceKind::ConsoleTranscript,
-        "text/plain; charset=utf-8",
-        spoken.as_bytes(),
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    let wav = manifest.root().join("speech.wav");
-    let mask = spoken_mask_journey::execute_retained_manifestation_mask_with_streaming_espeak(
-        "one-body-journey-spoken",
+        speech,
+        &args.ollama_endpoint,
+        model,
+        args.admitted_memory_mib,
         &execution_id,
-        first.presentation.clone(),
-        candidate.clone(),
-        speech.clone(),
-        &wav,
     )
-    .map_err(|error| {
-        let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
-        error
-    })?;
-    let show_id = mask.execution.shown.show.show_id.as_str();
-    let transcript = json!({
-        "schema": "conduit.journey/speech-transcript@1",
-        "source_commit": source_commit,
-        "run_id": run_id,
-        "body_id": body_id.as_str(),
-        "chapter_id": "hear",
-        "show_id": show_id,
-        "face_revision": first.presentation.revision.to_string(),
-        "text": spoken,
-        "original_model_output": raw,
-    });
-    let transcript_bytes = serde_json::to_vec_pretty(&transcript)?;
-    retain(
-        &mut manifest,
-        "speech-transcript",
-        "speech-transcript.json",
-        EvidenceKind::MachineReadableManifest,
-        "application/json",
-        &transcript_bytes,
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    retain_json(
-        &mut manifest,
-        "model-validation",
-        "model-validation.json",
-        &json!({
-            "schema": "conduit.journey/model-validation@1",
-            "source_commit": source_commit,
-            "run_id": run_id,
-            "body_id": body_id.as_str(),
-            "show_id": show_id,
-            "face_revision": first.presentation.revision.to_string(),
-            "provider_id": candidate.provider_identity,
-            "model_id": candidate.model_identity,
-            "original_output_sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
-            "validated_text_sha256": format!("{:x}", Sha256::digest(spoken.as_bytes())),
-            "accepted": true,
-        }),
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    declare(
-        &mut manifest,
-        "speech-wav",
-        "speech.wav",
-        EvidenceKind::Audio,
-        "audio/wav",
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    let last = match face_bytes(&bin, &state_dir).and_then(|bytes| parse_snapshot(&bytes)) {
-        Ok(snapshot) => snapshot,
-        Err(error) => {
-            manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
-            return Err(error.into());
+}
+
+fn check_current(
+    context: &LiveContext<'_>,
+    manifest: &mut EvidenceManifest,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let result = (|| {
+        let last = parse_snapshot(&face_bytes(context.bin, context.state_dir)?)?;
+        if &last != context.face
+            || hash_file(context.bin).map_err(|error| error.to_string())? != context.bin_sha256
+            || git(context.workspace, &["rev-parse", "HEAD"])? != context.source_commit
+            || !git(context.workspace, &["status", "--porcelain"])?.is_empty()
+        {
+            return Err(
+                "source, owner executable, Face, or Host/Boot changed during spoken Mask Play"
+                    .to_owned(),
+            );
         }
-    };
-    if last != first
-        || hash_file(&bin)? != bin_sha256
-        || git(&workspace, &["rev-parse", "HEAD"])? != source_commit
-        || !git(&workspace, &["status", "--porcelain"])?.is_empty()
-    {
+        Ok::<(), String>(())
+    })();
+    if let Err(error) = result {
         manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
-        return Err(
-            "source, owner executable, Face, or Host/Boot changed during Presenter and spoken Mask Play"
-                .into(),
-        );
+        return Err(error.into());
     }
-    retain_json(
-        &mut manifest,
-        "speech-receipt",
-        "speech-receipt.json",
-        &json!({
-        "schema": "conduit.journey/one-body-spoken-chapter@1",
-        "chapter_id": "hear",
-        "speech_mode": "llm-assisted",
-            "proof_class": model_proof.proof_class,
-            "source_commit": source_commit,
-            "run_id": run_id,
-            "installed_owner_executable": bin,
-            "installed_owner_executable_sha256": bin_sha256,
-            "owner_snapshot_before_after_equal": true,
-            "owner_host_id": first.advertisement.host_id,
-            "owner_boot_id": first.advertisement.boot_id,
-            "model_host_id": model_proof.host_id,
-            "model_boot_id": model_proof.boot_id,
-            "mask_host_id": mask.execution.shown.show.show.host_id,
-            "mask_boot_id": mask.execution.shown.show.show.boot_id,
-            "body_id": body_id.as_str(),
-            "face_id": first.presentation.identity,
-            "face_revision": first.presentation.revision,
-            "request_id": request.request_identity,
-            "presenter_plan_id": presenter.plan_id,
-            "presenter_play_completed": presenter.play_completed,
-            "candidate_id": candidate.candidate_identity,
-            "provider_id": candidate.provider_identity,
-            "model_id": candidate.model_identity,
-            "original_model_output_sha256": format!("{:x}", Sha256::digest(raw.as_bytes())),
-        "accepted_wording_sha256": format!("{:x}", Sha256::digest(spoken.as_bytes())),
-        "transcript_id": "speech-transcript",
-        "transcript_sha256": format!("{:x}", Sha256::digest(&transcript_bytes)),
-        "validation_id": "model-validation",
-        "voice_id": args.speech_voice,
-            "speech_provider_sha256": speech.provider_sha256,
-            "mask_plan": mask.execution.plan,
-            "acknowledged_show": mask.execution.shown,
-            "wav_artifact": mask.artifact,
-            "playback_observed": false,
-            "human_hearing_observed": false,
-        }),
-        &run_id,
-        &first,
-        Some(&model_proof.proof_class),
-    )?;
-    let result = if model_proof.proof_class == "live-local-model" {
-        EvidenceResult::Complete
-    } else {
-        EvidenceResult::DiagnosticIncomplete
-    };
+    Ok(())
+}
+
+fn finish_manifest(
+    manifest: &mut EvidenceManifest,
+    source_commit: &str,
+    result: EvidenceResult,
+) -> Result<(), Box<dyn std::error::Error>> {
     manifest.finish(result)?;
     verify(&VerificationRequest {
         root: manifest.root().to_path_buf(),
-        commit: source_commit,
+        commit: source_commit.into(),
         result: if result == EvidenceResult::Complete {
             ExpectedEvidenceResult::Complete
         } else {
@@ -417,31 +218,5 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         proof_id: PROOF_ID.into(),
         suite_id: SUITE_ID.into(),
     })?;
-    println!("one current Body Face produced finite Presenter wording and an acknowledged spoken WAV ({}) at {}", model_proof.proof_class, manifest.root().display());
     Ok(())
-}
-
-fn accepted_wording(
-    request: &GenerativePresenterRequest,
-    candidate: &conduit_presentation::GeneratedManifestationCandidate,
-) -> Result<String, String> {
-    request
-        .validate_candidate(candidate)
-        .map_err(|error| format!("candidate validation failed: {error:?}"))?;
-    let proposal = candidate
-        .wording_proposal
-        .as_ref()
-        .ok_or("finite Presenter omitted wording proposal")?;
-    let spoken = proposal
-        .render_exact(&request.semantic_data.presentation)
-        .map_err(|error| {
-            format!("finite wording was not grounded in the current Face: {error:?}")
-        })?;
-    let [segment] = candidate.content.as_slice() else {
-        return Err("finite Presenter did not return exactly one spoken segment".into());
-    };
-    if segment.role != GeneratedContentRole::Speech || segment.bytes != spoken.as_bytes() {
-        return Err("accepted wording does not equal the retained spoken segment".into());
-    }
-    Ok(spoken)
 }
