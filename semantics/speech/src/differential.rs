@@ -91,8 +91,9 @@ fn compiled_integer_operations_match_checked_overflow_and_boundary_behavior() {
 }
 #[test]
 fn all_compiled_phone_targets_match_the_portable_typed_program() {
-    let program = program("speech_voice_target");
-    let StructuredInfoTypeShape::Variant { cases, .. } = program.input_type.shape() else {
+    let (programs, result_index) = crate::prosody_parity::graph("speech_voice_target");
+    let input_type = &programs[0].1.input_type;
+    let StructuredInfoTypeShape::Variant { cases, .. } = input_type.shape() else {
         panic!("phone")
     };
     // The native enums are generated in exact checked case order. Derive each
@@ -100,10 +101,14 @@ fn all_compiled_phone_targets_match_the_portable_typed_program() {
     for (phone, tag) in PHONES {
         let case = cases.iter().find(|case| case.tag() == *tag).unwrap();
         let payload = StructuredInfoValue::leaf(case.payload_type().clone(), vec![]).unwrap();
-        let value =
-            StructuredInfoValue::variant(program.input_type.clone(), case.tag(), payload).unwrap();
+        let value = StructuredInfoValue::variant(input_type.clone(), case.tag(), payload).unwrap();
         let output = StructuredInfoValue::from_canonical_bytes(
-            &program.evaluate(&value.canonical_bytes().unwrap()).unwrap(),
+            &crate::prosody_parity::evaluate(
+                &programs,
+                result_index,
+                &value.canonical_bytes().unwrap(),
+            )
+            .unwrap(),
         )
         .unwrap();
         let conduit_core::StructuredInfoValueShape::Record(fields) = output.shape() else {

@@ -28,6 +28,8 @@ fn tag(value: &StructuredInfoValue) -> &str {
 #[test]
 fn every_realization_preserves_typed_input_phone_and_derivation() {
     let program = program("speech_realize");
+    let (model_programs, model_result) = crate::prosody_parity::graph("speech_segment_model");
+    assert_eq!(model_programs.len(), 4);
     let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
         panic!("input")
     };
@@ -68,6 +70,39 @@ fn every_realization_preserves_typed_input_phone_and_derivation() {
                         stress: *stress,
                         position: *position
                     }
+                );
+                let model = speech_segment_model(actual.input).unwrap();
+                assert_eq!(model.realization, actual);
+                assert_eq!(model.target, speech_voice_target(actual.phone).unwrap());
+                let portable_model = StructuredInfoValue::from_canonical_bytes(
+                    &crate::prosody_parity::evaluate(
+                        &model_programs,
+                        model_result,
+                        &input.canonical_bytes().unwrap(),
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+                let StructuredInfoValueShape::Record(model_fields) = portable_model.shape() else {
+                    panic!("segment model")
+                };
+                let model_field = |name| {
+                    model_fields
+                        .iter()
+                        .find(|field| field.name() == name)
+                        .unwrap()
+                        .value()
+                };
+                assert_eq!(model_field("realization"), &output);
+                assert_eq!(
+                    model_field("target"),
+                    &crate::frame_parity::integers(
+                        crate::frame_parity::field_type(
+                            &model_programs[model_result].1.output_type,
+                            "target"
+                        ),
+                        &target_fields(model.target),
+                    )
                 );
                 let StructuredInfoValueShape::Record(fields) = output.shape() else {
                     panic!("output")

@@ -123,8 +123,12 @@ plot composes excitation, three resonator transitions and output mixing through
 exact authored cords. Initial history and
 boundary silence also come from checked plots. Rust traversal handles bounded
 event/frame iteration and caller-owned output. The `speech/frame` graph owns
-its DSP stage sequence; Rust currently connects the typed realization, target,
-neighbor and temporal-frame calls. Consolidating that entire
+its DSP stage sequence. The four-stage `speech/segment-model` preparation graph
+composes realization and voice-model lookup while retaining the exact original
+input, selected phone and derivation alongside the acoustic target. Its generic
+lookup shares one authored table with the scalar phone-model entrance. Portable
+proof covers all 40 phonemes, six stress states and five positions. Rust currently
+connects this preparation graph, adjacent-tape projection and temporal-frame calls. Consolidating that entire
 chain into one authored graph needs explicit pairing of retained frame context
 with called results. The current unary pure-value compiler does not invent
 implicit synchronization or erase a Flow join's temporal contract.

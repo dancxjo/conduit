@@ -45,9 +45,9 @@ impl RenderCursor {
                 }
                 event => {
                     let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-                    speech_realize(value)
-                        .and_then(|realization| speech_voice_target(realization.phone))
+                    speech_segment_model(value)
                         .ok_or(RenderRefusal::Arithmetic)?
+                        .target
                         .frames
                 }
             };
@@ -99,10 +99,9 @@ impl RenderCursor {
                 }
                 event => {
                     let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-                    let phone = speech_realize(value)
-                        .ok_or(RenderRefusal::Arithmetic)?
-                        .phone;
-                    let target = speech_voice_target(phone).ok_or(RenderRefusal::Arithmetic)?;
+                    let model = speech_segment_model(value).ok_or(RenderRefusal::Arithmetic)?;
+                    let phone = model.realization.phone;
+                    let target = model.target;
                     let (previous, previous_place) =
                         neighbor(events, self.event_index.checked_sub(1), target, true)?;
                     let (next, _) =
@@ -208,10 +207,9 @@ fn neighbor(
         ));
     }
     let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-    let phone = speech_realize(value)
-        .ok_or(RenderRefusal::Arithmetic)?
-        .phone;
-    let target = speech_voice_target(phone).ok_or(RenderRefusal::Arithmetic)?;
+    let prepared = speech_segment_model(value).ok_or(RenderRefusal::Arithmetic)?;
+    let phone = prepared.realization.phone;
+    let target = prepared.target;
     let model = speech_phone_frame_target(SpeechTrajectoryInput {
         phone,
         target,
