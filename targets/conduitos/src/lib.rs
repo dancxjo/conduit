@@ -230,6 +230,7 @@ pub mod rescue_guest;
 pub mod sign_format;
 // Pending join facts are shared with the portable front door on every arch;
 // only the boot-specific serial emission is target-gated inside the module.
+pub mod native_guest_part;
 pub mod spore_join;
 pub mod spore_provision;
 #[cfg(any(test, target_arch = "x86_64"))]
