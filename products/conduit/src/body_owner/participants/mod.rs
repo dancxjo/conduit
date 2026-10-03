@@ -2,18 +2,18 @@
 //! The window bounds admission authorization, not carrier handshake/close latency.
 //! This is membership and presence only, never admission of remote execution.
 mod admission;
+mod service;
+mod service_worker;
 mod transport;
 use super::Owner;
-use conduit_body::{
-    disclose_host_offer, BodyState, CandidateObservation, HostPresenceClock,
-    HostPresenceClockScale, HostPresenceTable, MembershipCredential, OfferDisclosureRequest,
-    OfferDisclosureStage, RemoteProofClass,
-};
+use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
 use conduit_core::{HostId, LinkBindingId, SignId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
 };
+pub(crate) use service::{BrowserAdmittedSnapshot, BrowserWindow, BrowserWindowAuthorization};
+pub(crate) use service_worker::run_service_window;
 use std::{
     path::Path,
     time::{Duration, Instant},
@@ -93,15 +93,9 @@ impl Owner {
                 )?;
                 admission::remaining(deadline)?;
                 self.persist(root)?; // A credential is never acknowledged ahead of durable membership.
-                serve_presence(
-                    self,
-                    &mut socket,
-                    &credential,
-                    &observation,
-                    &binding,
-                    clock,
-                    deadline,
-                )
+                let snapshot =
+                    BrowserAdmittedSnapshot::from_foreground(self, credential, observation)?;
+                serve_presence(&snapshot, &mut socket, &binding, clock, deadline)
             })();
             // Every exit fences the current browser incarnation, including failed acknowledgement.
             let current = self
@@ -140,15 +134,14 @@ impl Owner {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn serve_presence(
-    owner: &Owner,
+pub(crate) fn serve_presence(
+    snapshot: &BrowserAdmittedSnapshot,
     socket: &mut transport::Socket,
-    credential: &MembershipCredential,
-    observation: &CandidateObservation,
     binding: &LinkBindingId,
     clock: Instant,
     deadline: Instant,
 ) -> Result<&'static str, String> {
+    let credential = &snapshot.credential;
     let presence_clock = HostPresenceClock::new(
         binding.as_str().into(),
         HostPresenceClockScale::Milliseconds,
@@ -158,7 +151,7 @@ fn serve_presence(
     .map_err(debug)?;
     let mut presence = HostPresenceTable::new(credential.body_id.clone(), presence_clock, LEASE_MS)
         .map_err(debug)?;
-    let membership = &owner.session.evidence().membership;
+    let membership = &snapshot.biography.membership;
     presence
         .start(
             membership,
@@ -177,21 +170,11 @@ fn serve_presence(
     })?;
     socket.send(&Out::BiographyEvidence {
         protocol: PROTOCOL,
-        evidence: Box::new(owner.session.evidence().clone()),
+        evidence: snapshot.biography.clone(),
     })?;
-    let offer = disclose_host_offer(
-        observation,
-        RemoteProofClass::SelfReported,
-        &OfferDisclosureRequest {
-            stage: OfferDisclosureStage::AdmittedMembership,
-            capability_ids: vec![],
-            resource_pool_ids: vec![],
-        },
-    )
-    .map_err(debug)?;
     socket.send(&Out::OfferEvidence {
         protocol: PROTOCOL,
-        evidence: Box::new(offer),
+        evidence: snapshot.offer.clone(),
     })?;
     acknowledge_presence(socket, &presence)?;
     for _ in 0..256 {
