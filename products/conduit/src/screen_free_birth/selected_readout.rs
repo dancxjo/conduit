@@ -79,9 +79,12 @@ pub(super) fn emit_readout(
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
                     let _ = worker.join();
                     let reason = "selected speech Play stopped without an outcome";
-                    reader
+                    let terminal = reader
                         .acknowledge_batch(SpokenBatchDelivery::Failed(reason.into()))
                         .map_err(debug_error)?;
+                    if let Some(terminal) = terminal {
+                        write_turn(&terminal, output)?;
+                    }
                     return Err(reason.into());
                 }
                 Err(mpsc::RecvTimeoutError::Timeout)
@@ -107,15 +110,21 @@ pub(super) fn emit_readout(
         };
         if worker.join().is_err() {
             let reason = "selected speech worker panicked";
-            reader
+            let terminal = reader
                 .acknowledge_batch(SpokenBatchDelivery::Failed(reason.into()))
                 .map_err(debug_error)?;
+            if let Some(terminal) = terminal {
+                write_turn(&terminal, output)?;
+            }
             return Err(reason.into());
         }
         if let Some(reason) = interruption_error {
-            reader
+            let terminal = reader
                 .acknowledge_batch(SpokenBatchDelivery::Failed(reason.clone()))
                 .map_err(debug_error)?;
+            if let Some(terminal) = terminal {
+                write_turn(&terminal, output)?;
+            }
             return Err(reason);
         }
         let result = match played {
@@ -145,10 +154,12 @@ pub(super) fn emit_readout(
             .map_err(debug_error)?;
         writeln!(output, "{}", selected.receipt_json(&result))
             .map_err(|error| error.to_string())?;
+        if let Some(terminal) = &terminal {
+            write_turn(terminal, output)?;
+        }
         verify_current_face(state_dir, face, advertisement, phase)
             .map_err(|error| format!("spoken Face changed during selected Play: {error}"))?;
-        if let Some(terminal) = terminal {
-            write_turn(&terminal, output)?;
+        if terminal.is_some() {
             return Ok(());
         }
     }

@@ -44,7 +44,7 @@ pub(crate) fn run(json_output: bool, output: &mut impl Write) -> Result<(), Stri
             "schema": "conduit.body/local-speech-options@1",
             "speakers": speakers,
             "providers": providers,
-            "effect_performed": false,
+            "playback_performed": false,
         })
         .to_string();
         if inventory.len() > 65_536 {
