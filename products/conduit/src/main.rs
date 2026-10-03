@@ -370,14 +370,21 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(command),
         }) => match command {
-            cli::BodyCommand::Birth { screen_free, state_dir } => {
+            cli::BodyCommand::SpeechOptions { json } => {
+                screen_free_birth::speech_options(json, &mut io::stdout().lock())
+            }
+            cli::BodyCommand::Birth { screen_free, state_dir, speech } => {
                 if screen_free {
                     state_dir.map_or_else(current_state_dir, Ok).and_then(|state_dir| {
-                        screen_free_birth::run_installed(
-                            &state_dir,
-                            &mut io::stdin().lock(),
-                            &mut io::stdout().lock(),
-                        )
+                        if speech.speak {
+                            screen_free_birth::run_installed_spoken(&state_dir, &speech, &mut io::stdout().lock())
+                        } else {
+                            screen_free_birth::run_installed(
+                                &state_dir,
+                                &mut io::stdin().lock(),
+                                &mut io::stdout().lock(),
+                            )
+                        }
                     })
                 } else {
                     enter_birth()
