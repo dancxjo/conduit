@@ -11,3 +11,26 @@ plot speech/pitch-contour (
     >> value: SpeechPitchInput
     result: I32 >>
 ) = (.stress is primary ? .base_period - 3 + .frame * 8 / (.total - 1) : .stress is secondary ? .base_period - 2 + .frame * 5 / (.total - 1) : (.stress is unstressed || .stress is reduced) ? .base_period + .frame * 2 / (.total - 1) : .base_period)
+
+# Context travels as one value; no independent input is implicitly joined back
+# to a called result. Base-period policy has one authored owner.
+type SpeechPitchContext = {
+    stress: EnglishStress
+    frame: I32
+    total: I32
+}
+plot speech/pitch-prepare (
+    >> value: SpeechPitchContext
+    result: SpeechPitchInput >>
+) = ({stress: .stress, base_period: .stress is primary ? 61 : .stress is secondary ? 64 : 67, frame: .frame, total: .total})
+
+plot speech/pitch (
+    >> value: SpeechPitchContext
+    result: I32 >>
+) {
+    prepare: speech/pitch-prepare
+    contour: speech/pitch-contour
+    value >> prepare.value
+    prepare.result >> contour.value
+    contour.result >> result
+}

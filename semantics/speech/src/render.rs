@@ -128,11 +128,8 @@ impl RenderCursor {
                         relation: previous.relation,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
-                    let period =
-                        speech_pitch_period(value.stress).ok_or(RenderRefusal::Arithmetic)?;
-                    let period = speech_pitch_contour(SpeechPitchInput {
+                    let period = speech_pitch(SpeechPitchContext {
                         stress: value.stress,
-                        base_period: period,
                         frame: self.event_frame,
                         total: target.frames,
                     })

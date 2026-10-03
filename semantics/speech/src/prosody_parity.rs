@@ -133,3 +133,105 @@ fn admitted_contours_are_bounded_monotone_and_uncertainty_remains_neutral() {
         );
     }
 }
+
+#[test]
+fn authored_pitch_chain_preserves_context_and_portable_refusals() {
+    use conduit_plot::PortableExpressionProgram;
+    use std::vec::Vec;
+    let graph = GRAPHS
+        .iter()
+        .find(|graph| graph.name == "speech_pitch")
+        .unwrap();
+    assert_eq!(graph.steps.len(), 2);
+    let programs = graph
+        .steps
+        .iter()
+        .map(|(source, encoded)| {
+            (
+                *source,
+                PortableExpressionProgram::from_canonical_hex(encoded).unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let ty = &programs[0].1.input_type;
+    let stress_type = field_type(ty, "stress");
+    let StructuredInfoTypeShape::Variant { cases, .. } = stress_type.shape() else {
+        panic!("stress")
+    };
+    for (stress, tag) in STRESSES {
+        let case = cases.iter().find(|c| c.tag() == *tag).unwrap();
+        for (frame, total) in [
+            (0, 960),
+            (479, 960),
+            (959, 960),
+            (639, 640),
+            (0, 1),
+            (i32::MAX, 960),
+            (0, i32::MIN),
+        ] {
+            let input = record(
+                ty,
+                &[
+                    (
+                        "stress",
+                        StructuredInfoValue::variant(
+                            stress_type.clone(),
+                            *tag,
+                            StructuredInfoValue::leaf(case.payload_type().clone(), vec![]).unwrap(),
+                        )
+                        .unwrap(),
+                    ),
+                    (
+                        "frame",
+                        StructuredInfoValue::leaf(
+                            field_type(ty, "frame").clone(),
+                            frame.to_le_bytes().to_vec(),
+                        )
+                        .unwrap(),
+                    ),
+                    (
+                        "total",
+                        StructuredInfoValue::leaf(
+                            field_type(ty, "total").clone(),
+                            total.to_le_bytes().to_vec(),
+                        )
+                        .unwrap(),
+                    ),
+                ],
+            )
+            .canonical_bytes()
+            .unwrap();
+            let mut values = Vec::new();
+            let portable = (|| {
+                for (source, program) in &programs {
+                    let argument = if *source == usize::MAX {
+                        &input
+                    } else {
+                        &values[*source]
+                    };
+                    values.push(program.evaluate(argument).ok()?);
+                }
+                Some(i32::from_le_bytes(
+                    values[graph.result].as_slice().try_into().unwrap(),
+                ))
+            })();
+            let actual = speech_pitch(SpeechPitchContext {
+                stress: *stress,
+                frame,
+                total,
+            });
+            assert_eq!(actual, portable, "{stress:?}, {frame}/{total}");
+            assert_eq!(
+                actual,
+                speech_pitch_period(*stress).and_then(|base_period| {
+                    speech_pitch_contour(SpeechPitchInput {
+                        stress: *stress,
+                        base_period,
+                        frame,
+                        total,
+                    })
+                })
+            );
+        }
+    }
+}

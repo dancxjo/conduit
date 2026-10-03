@@ -98,6 +98,9 @@ these defaults do not reproduce its model or measured parameter data.
 Separate aspiration and broader coarticulation remain unfinished. These are
 modeled transitions, not measured acoustic alignment. `prosody.conduit` adds a bounded within-segment
 pitch-period contour for known primary, secondary, unstressed and reduced stress.
+The `speech/pitch` graph carries stress, frame and duration together through
+base-period selection and contour calculation via exact authored cords; the
+base-period policy has one authored owner. Rust calls that complete pitch graph.
 Unknown and unspecified stress retain the neutral period throughout; the contour
 never changes the segment's stress specification. Portable differential checks
 cover checked arithmetic refusals and all stress states; admitted contours stay

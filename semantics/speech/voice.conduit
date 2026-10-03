@@ -254,7 +254,11 @@ plot speech/pause (
 plot speech/pitch-period (
     >> value: EnglishStress
     result: I32 >>
-) = (. is primary ? 61 : . is secondary ? 64 : 67)
+) {
+    prepare: speech/pitch-prepare
+    value >> ({stress: ., frame: 0, total: 0}) >> prepare.value
+    prepare.result >> (.base_period) >> result
+}
 
 # Composition is authored connectivity, not a Rust sequence of DSP calls.
 plot speech/filter-limit (
