@@ -143,11 +143,16 @@ fn main() {
     generated.push_str(&format!("#[cfg(test)] pub fn target_fields(value: SpeechAcousticTarget) -> [(&'static str, i32); {}] {{ [{}] }}\n", fields.len(), fields.iter().map(|field| format!("({:?}, value.{})", field.name(), field.name())).collect::<Vec<_>>().join(",")));
     let mut programs = Vec::new();
     let mut graphs = Vec::new();
+    let mut symbols = std::collections::BTreeSet::new();
     for plot in &checked.plots {
         let authored =
             expand_canonical_plot_for_authoring(&checked, &plot.name, &ProfileCatalog::new())
                 .unwrap_or_else(|error| panic!("speech plot {} expands: {error:?}", plot.name));
-        let name = plot.name.replace(['/', '-'], "_");
+        let name = graph::symbol(&plot.name);
+        assert!(
+            symbols.insert(name.clone()),
+            "checked plot names collide as Rust symbols"
+        );
         let lowered = graph::function(&name, &authored, &types).expect("fixed pure graph lowering");
         if plot.name == "speech/profile" {
             let program = PortableExpressionProgram::from_canonical_hex(&lowered.programs[0].1)

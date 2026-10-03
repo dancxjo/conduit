@@ -76,3 +76,25 @@ fn profile_constants_require_closed_literal_trees() {
             .unwrap();
     assert_eq!(lower::constant(&program, &[]).unwrap(), "(17_i64)");
 }
+
+#[test]
+fn generic_context_carriers_expand_to_closed_exact_expression_graphs() {
+    let source = "type Carry<T> = {\n context: T\n value: I32\n}\ntype ConcreteCarry = Carry<I32>\nplot carry (\n item: type\n output: type\n >> value: item\n result: output >>\n) = ({context: ., value: 7})\nplot concrete (\n >> value: I32\n result: ConcreteCarry >>\n) {\n child: carry(item = I32, output = ConcreteCarry)\n value >> child.value\n child.result >> result\n}\n";
+    let parsed = parse_syntax_document(source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    let checked = check_syntax_document(&parsed, &StartupCatalog::new()).unwrap();
+    let plot =
+        expand_canonical_plot_for_authoring(&checked, "concrete", &ProfileCatalog::new()).unwrap();
+    let lowered = graph::function("concrete", &plot, &[]).unwrap();
+    assert_eq!(
+        graph::symbol("speech/carry[item=value/i32]"),
+        "speech_carry_item_value_i32_"
+    );
+    assert_eq!(lowered.programs.len(), 1);
+    assert_eq!(lowered.graph.len(), 1);
+    assert!(checked.plots.iter().all(|plot| plot.name != "carry"));
+    assert!(matches!(
+        checked.native_types[0].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Record { .. }
+    ));
+}

@@ -8,7 +8,11 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape, StructuredInfoVa
 use conduit_plot::PortableExpressionProgram;
 use std::{vec, vec::Vec};
 
-fn neighbor(ty: &StructuredInfoType, value: SpeechNeighborModel, tag: &str) -> StructuredInfoValue {
+pub(super) fn neighbor(
+    ty: &StructuredInfoType,
+    value: SpeechNeighborModel,
+    tag: &str,
+) -> StructuredInfoValue {
     let relation = field_type(ty, "relation");
     let StructuredInfoTypeShape::Variant { cases, .. } = relation.shape() else {
         panic!("relation")

@@ -107,7 +107,13 @@ vowel-onset preparation and blending before prosody/DSP; Rust calls the complete
 nine-stage onset/prosody/DSP graph. The `speech/connected-frame` graph retains
 the exact selected phone, stress, history and neighbors through connection,
 pairs its model/envelope result with that context, and feeds onset/prosody/DSP
-through authored cords. Rust calls that thirteen-stage graph once.
+through authored cords. The `speech/temporal-frame` graph also composes the
+three temporal-target stages and their context projection before connection,
+yielding one seventeen-stage synthesis graph. The trajectory equations specialize
+through existing Conduit type parameters for model-only endpoint requests and
+real synthesis context; endpoint requests carry no invented frame history.
+Non-segment neighbors retain their relation and receive the exact current
+temporal model as their neutral endpoint. Rust calls this synthesis graph once.
 Unknown and unspecified stress retain the neutral period throughout; the contour
 never changes the segment's stress specification. Portable differential checks
 cover checked arithmetic refusals and all stress states; admitted contours stay
@@ -118,7 +124,7 @@ exact authored cords. Initial history and
 boundary silence also come from checked plots. Rust traversal handles bounded
 event/frame iteration and caller-owned output. The `speech/frame` graph owns
 its DSP stage sequence; Rust currently connects the typed realization, target,
-trajectory, neighbor and connected-frame calls. Consolidating that entire
+neighbor and temporal-frame calls. Consolidating that entire
 chain into one authored graph needs explicit pairing of retained frame context
 with called results. The current unary pure-value compiler does not invent
 implicit synchronization or erase a Flow join's temporal contract.

@@ -293,3 +293,166 @@ fn unvoiced_stop_spectra_separate_low_mid_and_high_energy_models() {
     assert!(t > 0.65, "t: {t}");
     assert!(p < k && k < t, "p: {p}, k: {k}, t: {t}");
 }
+
+#[test]
+fn temporal_frame_preserves_typed_context_and_matches_portable_specialization() {
+    use crate::{
+        connection_parity::neighbor,
+        onset_parity::variant,
+        prosody_parity::{evaluate, graph},
+    };
+    let (programs, result_index) = graph("speech_temporal_frame");
+    assert_eq!(programs.len(), 17);
+    let ty = &programs[0].1.input_type;
+    let trajectory_type = field_type(ty, "trajectory");
+    let context_type = field_type(ty, "context");
+    let other = speech_voice_target(EnglishPhone::iy).unwrap();
+    for (phone, phone_tag) in PHONES {
+        let target = speech_voice_target(*phone).unwrap();
+        for (stress, stress_tag) in STRESSES {
+            for frame in [0, target.closure, target.frames - 1] {
+                let relation = if frame == 0 {
+                    SpeechNeighborRelation::sequence_edge
+                } else {
+                    SpeechNeighborRelation::segment
+                };
+                let relation_tag = if frame == 0 {
+                    "sequence_edge"
+                } else {
+                    "segment"
+                };
+                let model = SpeechNeighborModel {
+                    relation,
+                    model: other,
+                };
+                let mut history = speech_initial_state(SpeechStart::begin).unwrap();
+                history.first1 = 12000;
+                history.third2 = -23000;
+                let value = SpeechTemporalRequest {
+                    trajectory: SpeechTrajectoryInput {
+                        phone: *phone,
+                        target,
+                        frame,
+                    },
+                    context: SpeechTemporalContext {
+                        stress: *stress,
+                        state: history,
+                        previous_place: SpeechStopPlace::not_stop,
+                        previous: model,
+                        next: model,
+                    },
+                };
+                let input = record(
+                    ty,
+                    &[
+                        (
+                            "trajectory",
+                            record(
+                                trajectory_type,
+                                &[
+                                    (
+                                        "phone",
+                                        variant(field_type(trajectory_type, "phone"), phone_tag),
+                                    ),
+                                    (
+                                        "frame",
+                                        StructuredInfoValue::leaf(
+                                            field_type(trajectory_type, "frame").clone(),
+                                            frame.to_le_bytes().to_vec(),
+                                        )
+                                        .unwrap(),
+                                    ),
+                                    (
+                                        "target",
+                                        integers(
+                                            field_type(trajectory_type, "target"),
+                                            &target_fields(target),
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        ),
+                        (
+                            "context",
+                            record(
+                                context_type,
+                                &[
+                                    (
+                                        "stress",
+                                        variant(field_type(context_type, "stress"), stress_tag),
+                                    ),
+                                    (
+                                        "state",
+                                        crate::frame_parity::state(
+                                            field_type(context_type, "state"),
+                                            history,
+                                        ),
+                                    ),
+                                    (
+                                        "previous_place",
+                                        variant(
+                                            field_type(context_type, "previous_place"),
+                                            "not_stop",
+                                        ),
+                                    ),
+                                    (
+                                        "previous",
+                                        neighbor(
+                                            field_type(context_type, "previous"),
+                                            model,
+                                            relation_tag,
+                                        ),
+                                    ),
+                                    (
+                                        "next",
+                                        neighbor(
+                                            field_type(context_type, "next"),
+                                            model,
+                                            relation_tag,
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+                .canonical_bytes()
+                .unwrap();
+                let actual = speech_temporal_frame(value).unwrap();
+                assert_eq!(
+                    evaluate(&programs, result_index, &input),
+                    Some(crate::frame_parity::result(
+                        &programs[result_index].1.output_type,
+                        actual
+                    )),
+                    "{phone:?}, {stress:?}, {frame}"
+                );
+                let temporal = speech_phone_frame_target(value.trajectory).unwrap();
+                let endpoint = if relation == SpeechNeighborRelation::segment {
+                    other
+                } else {
+                    temporal
+                };
+                assert_eq!(
+                    Some(actual),
+                    speech_connected_frame(SpeechConnectedInput {
+                        phone: *phone,
+                        target: temporal,
+                        stress: *stress,
+                        state: history,
+                        frame,
+                        previous_place: SpeechStopPlace::not_stop,
+                        previous: SpeechNeighborModel {
+                            relation,
+                            model: endpoint
+                        },
+                        next: SpeechNeighborModel {
+                            relation,
+                            model: endpoint
+                        },
+                    })
+                );
+            }
+        }
+    }
+}

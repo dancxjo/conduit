@@ -103,26 +103,24 @@ impl RenderCursor {
                         .ok_or(RenderRefusal::Arithmetic)?
                         .phone;
                     let target = speech_voice_target(phone).ok_or(RenderRefusal::Arithmetic)?;
-                    let target = speech_phone_frame_target(SpeechTrajectoryInput {
-                        phone,
-                        frame: self.event_frame,
-                        target,
-                    })
-                    .ok_or(RenderRefusal::Arithmetic)?;
                     let (previous, previous_place) =
                         neighbor(events, self.event_index.checked_sub(1), target, true)?;
                     let (next, _) =
                         neighbor(events, self.event_index.checked_add(1), target, false)?;
                     let frames = target.frames;
-                    let frame = speech_connected_frame(SpeechConnectedInput {
-                        phone,
-                        stress: value.stress,
-                        state: self.state,
-                        previous_place,
-                        target,
-                        frame: self.event_frame,
-                        previous,
-                        next,
+                    let frame = speech_temporal_frame(SpeechTemporalRequest {
+                        trajectory: SpeechTrajectoryInput {
+                            phone,
+                            target,
+                            frame: self.event_frame,
+                        },
+                        context: SpeechTemporalContext {
+                            stress: value.stress,
+                            state: self.state,
+                            previous_place,
+                            previous,
+                            next,
+                        },
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
                     self.state = frame.state;

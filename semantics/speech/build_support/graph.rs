@@ -171,3 +171,21 @@ pub fn function(
         result: ordinals[result],
     })
 }
+
+/// Rust symbol spelling only; semantic and checked identities remain exact.
+pub fn symbol(name: &str) -> String {
+    let mut result: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if result.as_bytes().first().is_some_and(u8::is_ascii_digit) {
+        result.insert_str(0, "plot_");
+    }
+    result
+}
