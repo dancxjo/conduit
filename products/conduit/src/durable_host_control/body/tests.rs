@@ -92,7 +92,28 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
         truth["biography"]["membership"]["parts"][0]["current"]["boot_id"],
         "boot/service"
     );
+    let (local_face, local_host) = runtime.owned_body_local_face().unwrap();
+    local_face.validate().unwrap();
+    assert_eq!(local_face.basis.body_id.as_ref().unwrap().as_str(), body_id);
+    assert_eq!(local_host.boot_id.as_str(), "boot/service");
     let token = [9_u8; 32];
+    assert!(matches!(
+        super::super::handle(
+            Request::BodyLocalFace { protocol: PROTOCOL, token: vec![8; 32] },
+            &token,
+            &mut runtime
+        ),
+        Response::Refused { code, .. } if code == "unauthorized"
+    ));
+    assert!(matches!(
+        super::super::handle(
+            Request::BodyLocalFace { protocol: PROTOCOL, token: token.to_vec() },
+            &token,
+            &mut runtime
+        ),
+        Response::BodyLocalFace { presentation, advertisement, .. }
+            if *presentation == local_face && advertisement.boot_id == local_host.boot_id
+    ));
     assert!(matches!(
         super::super::handle(
             Request::BodyInspect {

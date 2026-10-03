@@ -119,6 +119,10 @@ export class BrowserBodyParticipation {
   pageLifecycle(): string;
   freshnessProfile(): Readonly<Record<string, unknown>>;
   requestOfferEvidence(options: { capabilityIds?: readonly string[]; resourcePoolIds?: readonly string[] }): void;
+  /** Read the authoritative owner Face while this Host and Boot have current presence. */
+  ownerFaceSnapshot(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Uint8Array>;
+  prepareOwnerFaceMask(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Readonly<Record<string, unknown>>>;
+  acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
   signalWebRtc(options: Readonly<Record<string, unknown>>): void;
   requestWebRtcGrant(index: number, generation?: number): void;
   webRtcSessions(): Readonly<Record<string, unknown>>;

@@ -43,6 +43,22 @@ impl StdHost {
         output: &mut W,
         timer: &mut T,
     ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_to_with_start(request, output, timer, |_, _| Ok(()))
+    }
+
+    /// Publish the exact admitted Play before the kernel advances. A caller may
+    /// durably retain the start and refuse execution if that publication fails.
+    /// The callback is never invoked for preparation or reservation refusal.
+    pub fn run_body_plan_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        mut started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
         request
             .plan
             .validate_for(request.wake)
@@ -91,6 +107,7 @@ impl StdHost {
                 .body_plan_ready(request.plan, sign(0).sign_id)
                 .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+            started(&play, &wake_at_start)?;
             let terminal_sign = sign(2);
             let result = kernel.run(output, timer, request.keyboard, request.control);
             Ok(BodyRunReport {

@@ -49,6 +49,14 @@ export async function startOwnerParticipation(application, root) {
     <section aria-labelledby="owner-result-title"><h3 id="owner-result-title">What the Body admitted</h3>
       <p data-owner-result>No admission has been acknowledged.</p>
       <details><summary>Exact owner biography evidence</summary><pre data-owner-evidence>No biography received.</pre></details></section>
+    <section class="owner-face" aria-labelledby="owner-face-title" data-owner-face>
+      <header><p class="eyebrow">Same Body · another view</p><h3 id="owner-face-title">What your Body says now</h3>
+        <p>The owner supplies the meaning. This browser runs its own graphical Mask for that exact Face. Actions appear as read-only until a return route is admitted.</p></header>
+      <p role="status" data-owner-face-status>Join the Body to see its current Face.</p>
+      <div data-owner-face-document></div>
+      <button type="button" data-owner-face-refresh disabled>Refresh this Face</button>
+      <details><summary>Face and Show identities</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
+    </section>
     <button type="button" data-owner-leave disabled>Leave this window</button>
     <p><a href="?">Return to my local Handbook</a>. Your local Body remains retained; this join mode does not open or change it.</p>`;
   const status = root.querySelector('[data-owner-status]');
@@ -56,7 +64,94 @@ export async function startOwnerParticipation(application, root) {
   const result = root.querySelector('[data-owner-result]');
   const evidence = root.querySelector('[data-owner-evidence]');
   const leave = root.querySelector('[data-owner-leave]');
-  let host, participation, expectedBodyId = null;
+  const faceStatus = root.querySelector('[data-owner-face-status]');
+  const faceDocument = root.querySelector('[data-owner-face-document]');
+  const faceEvidence = root.querySelector('[data-owner-face-evidence]');
+  const faceRefresh = root.querySelector('[data-owner-face-refresh]');
+  let host, participation, expectedBodyId = null, faceView = null, faceBusy = false;
+  const faceNode = (tag, text, className) => {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  };
+  const renderFace = view => {
+    const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
+    const documentNode = faceNode('article', '', 'owner-face-document');
+    const overview = faceNode('p', `${view.subjects.length} subjects · ${view.relationships.length} relationships · ${view.actions.length} described actions`, 'owner-face-summary');
+    documentNode.append(overview);
+    for (const subject of view.subjects) {
+      const node = document.createElement(subject.role === 'Body' || subject.role === 'Plot' ? 'article' : 'section');
+      node.className = 'owner-face-subject';
+      node.dataset.faceRole = subject.role;
+      node.append(faceNode('span', subject.role, 'owner-face-role'));
+      node.append(faceNode(subject.role === 'Body' ? 'h4' : 'h5', subject.name));
+      for (const text of subject.text) node.append(faceNode('p', text));
+      if (subject.properties.length) {
+        const details = document.createElement('details');
+        details.append(faceNode('summary', 'Exact facts'));
+        const list = document.createElement('ul');
+        for (const property of subject.properties) {
+          const item = document.createElement('li'); item.textContent = property; list.append(item);
+        }
+        details.append(list); node.append(details);
+      }
+      documentNode.append(node);
+    }
+    if (view.relationships.length) {
+      const relations = document.createElement('details');
+      relations.append(faceNode('summary', 'How these parts relate'));
+      const list = document.createElement('ul');
+      for (const relationship of view.relationships) {
+        const item = document.createElement('li');
+        item.textContent = `${names.get(relationship.source) ?? relationship.source} ${relationship.kind.toLowerCase()} ${names.get(relationship.target) ?? relationship.target}`;
+        list.append(item);
+      }
+      relations.append(list); documentNode.append(relations);
+    }
+    if (view.actions.length) {
+      const actions = document.createElement('section');
+      actions.append(faceNode('h4', 'What this Face describes'));
+      actions.append(faceNode('p', 'These actions are visible, but this browser has no admitted interaction return to the owner yet.'));
+      const list = document.createElement('ul');
+      for (const action of view.actions) {
+        const item = document.createElement('li');
+        item.textContent = `${action.name} · ${action.availability}${action.explanation ? ` — ${action.explanation}` : ''}`;
+        list.append(item);
+      }
+      actions.append(list); documentNode.append(actions);
+    }
+    faceDocument.replaceChildren(documentNode);
+    faceDocument.dataset.faceId = view.face_id;
+    faceDocument.dataset.faceRevision = view.face_revision;
+    faceDocument.dataset.showId = view.show_id;
+  };
+  const refreshFace = async () => {
+    if (!participation || faceBusy || participation.presenceState() !== 'available') return;
+    faceBusy = true; faceRefresh.disabled = true;
+    try {
+      faceStatus.textContent = 'Asking the owner for its current Face…';
+      const prepared = await participation.prepareOwnerFaceMask(faceView ? {
+        lastSeenRevision: faceView.face_revision, lastSeenIdentity: faceView.face_id,
+      } : undefined);
+      renderFace(prepared);
+      const shown = prepared.show_state === 'available' ? prepared
+        : participation.acknowledgeOwnerFaceMask(prepared);
+      faceView = shown;
+      faceStatus.textContent = `The browser Mask showed the owner’s Face at revision ${shown.face_revision}.`;
+      faceEvidence.textContent = JSON.stringify({ body_id: shown.body_id, face_id: shown.face_id,
+        face_revision: shown.face_revision, mask_plot_id: shown.mask_plot_id,
+        mask_plan_id: shown.mask_plan_id, mask_play_id: shown.mask_play_id,
+        show_id: shown.show_id, show_state: shown.show_state, interactions_admitted: false }, null, 2);
+      root.dataset.ownerFaceShown = 'true';
+    } catch (error) {
+      faceStatus.textContent = `Owner Face refused: ${error.message}`;
+      faceStatus.dataset.refused = 'true';
+    } finally {
+      faceBusy = false;
+      faceRefresh.disabled = participation?.presenceState() !== 'available';
+    }
+  };
   const showState = state => {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
@@ -113,13 +208,24 @@ export async function startOwnerParticipation(application, root) {
         onCredential: credential => application.storage.writeJson(`owner-part/${bodyId}`, credential),
         onState: state => {
           showState(state);
-          if (state === 'offline' || state.startsWith('refused:')) leave.disabled = true;
+          if (state === 'offline' || state.startsWith('refused:')) {
+            leave.disabled = true;
+            faceRefresh.disabled = true;
+            if (faceView) faceStatus.textContent = `The browser lost the owner route. Last shown Face revision ${faceView.face_revision} is now historical.`;
+          } else if (state === 'admitted' && participation?.presenceState() === 'available') {
+            faceRefresh.disabled = false;
+            if (!faceView) queueMicrotask(refreshFace);
+          }
         },
         onBiographyEvidence: biography => queueMicrotask(() => showBiography(biography)),
       });
       leave.disabled = false;
       const received = participation.biographyEvidence();
       if (received) showBiography(received);
+      if (participation.presenceState() === 'available') {
+        faceRefresh.disabled = false;
+        queueMicrotask(refreshFace);
+      }
     } catch (error) {
       status.textContent = `Join refused: ${error.message}`;
       status.dataset.refused = 'true';
@@ -132,6 +238,7 @@ export async function startOwnerParticipation(application, root) {
     leave.disabled = true;
     showState('leaving');
   });
+  faceRefresh.addEventListener('click', refreshFace);
   globalThis.__conduitOwnerParticipation = Object.freeze({
     host: () => host.current(),
     admissionIdentity: () => host.admissionIdentity(),
@@ -139,5 +246,6 @@ export async function startOwnerParticipation(application, root) {
     presence: () => participation?.presenceState() ?? 'unavailable',
     credential: () => participation?.membershipCredential() ?? null,
     biography: () => participation?.biographyEvidence() ?? null,
+    face: () => faceView,
   });
 }

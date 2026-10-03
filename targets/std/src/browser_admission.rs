@@ -13,6 +13,10 @@ use conduit_body::{
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
 use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
+use conduit_presentation::{
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
+    OWNER_FACE_RESPONSE_SCHEMA,
+};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -80,6 +84,10 @@ pub enum BrowserAdmissionIngress {
         host_id: HostId,
         boot_id: BootId,
         sequence: u64,
+    },
+    FaceSnapshotRequest {
+        protocol: u16,
+        request: OwnerFaceSnapshotRequest,
     },
     OfferDisclosureRequest {
         protocol: u16,
@@ -162,6 +170,10 @@ pub enum BrowserAdmissionEgress {
         renew_after_millis: u64,
         expires_at_millis: u64,
     },
+    FaceSnapshotResponse {
+        protocol: u16,
+        response: OwnerFaceSnapshotResponse,
+    },
     MediaUsePlan {
         protocol: u16,
         plan_id: PlanId,
@@ -211,6 +223,7 @@ pub enum BrowserAdmissionFrameError {
     InvalidBiographyEvidence,
     InvalidOfferEvidence,
     InvalidOfferDisclosureRequest,
+    InvalidFaceSnapshot,
     InvalidSignal,
     InvalidGrant,
     OutputTooSmall,
@@ -378,6 +391,17 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
         } => {
             if *sequence == 0 {
                 return Err(BrowserAdmissionFrameError::InvalidSequence);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::FaceSnapshotRequest { protocol, request } => {
+            if !request.has_exact_basis()
+                || request
+                    .last_seen_identity
+                    .as_ref()
+                    .is_some_and(|id| id.as_str().is_empty() || id.as_str().len() > 256)
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
             }
             protocol
         }

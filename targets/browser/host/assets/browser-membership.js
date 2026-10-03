@@ -5,6 +5,9 @@ const INPUT_CAPACITY = 4096;
 const MEDIA_PLAN_TIMEOUT_MILLIS = 10_000;
 
 const MAXIMUM_WEB_RTC_GRANTS = 16;
+const OWNER_FACE_REQUEST_SCHEMA = "conduit.presentation/owner-face-request@1";
+const OWNER_FACE_RESPONSE_SCHEMA = "conduit.presentation/owner-face-response@1";
+const MAX_OWNER_FACE_RESPONSE_BYTES = 8178;
 
 export function immutableWebRtcGrantFrame(frame) {
   if (frame?.grant !== null && (typeof frame?.grant !== "object" ||
@@ -156,6 +159,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let webRtcFailure = null;
   let webRtcRefusal = null;
   let pendingMediaPlan = null;
+  let pendingFaceSnapshot = null;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
     scheduling: "best-effort-browser-event-loop",
@@ -258,10 +262,25 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       })));
     });
     socket.addEventListener("message", async (event) => {
-    const frame = JSON.parse(typeof event.data === "string"
-      ? event.data
-      : decoder.decode(new Uint8Array(event.data)));
-    if (frame.kind === "media-use-plan" && frame.protocol === 1) {
+    const frameBytes = typeof event.data === "string"
+      ? encoder.encode(event.data)
+      : new Uint8Array(event.data);
+    const frame = JSON.parse(decoder.decode(frameBytes));
+    if (frame.kind === "face-snapshot-response" && frame.protocol === 1) {
+      const pending = pendingFaceSnapshot;
+      if (!pending) throw new Error("unsolicited owner Face response");
+      clearTimeout(pending.timeout);
+      pendingFaceSnapshot = null;
+      if (frameBytes.length < 1 || frameBytes.length > MAX_OWNER_FACE_RESPONSE_BYTES + 256 ||
+          frame.response?.schema !== OWNER_FACE_RESPONSE_SCHEMA ||
+          !["snapshot", "unchanged", "refused"].includes(frame.response?.outcome)) {
+        pending.reject(new Error("invalid bounded owner Face response"));
+      } else {
+        // Keep the exact u64 revision bytes. JSON.parse rounds them in JS;
+        // the production WASM Mask decodes and validates this original frame.
+        pending.resolve(frameBytes.slice());
+      }
+    } else if (frame.kind === "media-use-plan" && frame.protocol === 1) {
       if (!pendingMediaPlan || frame.resource_handle !== pendingMediaPlan.resourceHandle) {
         throw new Error("stale or mismatched media use Plan");
       }
@@ -494,6 +513,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingMediaPlan.reject(new Error("media use planning Line closed"));
         pendingMediaPlan = null;
       }
+      if (pendingFaceSnapshot) {
+        clearTimeout(pendingFaceSnapshot.timeout);
+        pendingFaceSnapshot.reject(new Error("owner Face Line closed"));
+        pendingFaceSnapshot = null;
+      }
       if (state.startsWith("refused:")) return;
       if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
         reconnectAttempts += 1;
@@ -565,6 +589,46 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     if ((!canonical(capabilityIds) && capabilityIds.length !== 0) || (!canonical(resourcePoolIds) && resourcePoolIds.length !== 0) || capabilityIds.length + resourcePoolIds.length === 0) throw new Error("offer disclosure selection must be finite and canonical");
     socket.send(encoder.encode(JSON.stringify({kind:"offer-disclosure-request",protocol:1,credential_id:credential.credential_id,body_id:credential.body_id,part_id:credential.part_id,host_id:hostId,boot_id:bootId,request:{stage:"Planning",capability_ids:capabilityIds,resource_pool_ids:resourcePoolIds}})));
   }
+  function requestFaceSnapshot({ lastSeenRevision = null, lastSeenIdentity = null } = {}) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for the owner Face"));
+    }
+    if (pendingFaceSnapshot) return Promise.reject(new Error("one owner Face request is already pending"));
+    if ((lastSeenRevision === null) !== (lastSeenIdentity === null) ||
+        (lastSeenRevision !== null && (typeof lastSeenRevision !== "string" ||
+          !/^(0|[1-9][0-9]{0,19})$/.test(lastSeenRevision) ||
+          BigInt(lastSeenRevision) > 18_446_744_073_709_551_615n ||
+          typeof lastSeenIdentity !== "string" || lastSeenIdentity.length < 1 || lastSeenIdentity.length > 256))) {
+      return Promise.reject(new Error("owner Face prior basis must be one exact revision and identity"));
+    }
+    const request = {
+      schema: OWNER_FACE_REQUEST_SCHEMA,
+      credential_id: credential.credential_id,
+      body_id: credential.body_id,
+      part_id: credential.part_id,
+      host_id: credential.host_id,
+      boot_id: credential.boot_id,
+      last_seen_revision: null,
+      last_seen_identity: lastSeenIdentity,
+    };
+    // Preserve the exact Rust u64 while serializing from JavaScript; JSON
+    // numbers above 2^53 cannot make a round trip through Number.
+    const serialized = JSON.stringify({ kind: "face-snapshot-request", protocol: 1, request });
+    const bytes = encoder.encode(lastSeenRevision === null ? serialized
+      : serialized.replace('"last_seen_revision":null', `"last_seen_revision":${lastSeenRevision}`));
+    if (bytes.length > INPUT_CAPACITY) return Promise.reject(new Error("owner Face request exceeds its finite bound"));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingFaceSnapshot?.resolve === resolve) {
+          pendingFaceSnapshot = null;
+          reject(new Error("owner Face response deadline"));
+        }
+      }, 5_000);
+      pendingFaceSnapshot = { resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingFaceSnapshot = null; reject(error); }
+    });
+  }
   return Object.freeze({
     hostId,
     bootId,
@@ -572,6 +636,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     biographyEvidence: () => biographyEvidence,
     offerEvidence: () => offerEvidence,
     requestOfferEvidence,
+    requestFaceSnapshot,
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,
