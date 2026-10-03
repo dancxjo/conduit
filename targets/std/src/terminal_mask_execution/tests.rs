@@ -82,7 +82,7 @@ fn ordinary_mask_runs_to_real_renderer_call_then_show_and_interaction_fore() {
     assert_eq!(available.show.lifecycle, ManifestationLifecycle::Available);
     assert_ne!(
         available.presentation_plan_id,
-        available.planned_mask.plan.plan_id
+        Some(available.planned_mask.plan.plan_id.clone())
     );
     let interaction = FaceInteraction::new(&face, &available, "start", "clock", vec![], 0).unwrap();
     let correlation = execution.interact(interaction.clone()).unwrap();
