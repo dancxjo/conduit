@@ -1,0 +1,173 @@
+# Shared USB wire mathematics. These plots grant no device authority.
+# Packed words are little-endian wire bytes, never pointers or possession.
+
+plot usb-word-low (
+    word: U64 >> octet: U64
+) = (. & 255)
+plot usb-word-high (
+    word: U64 >> octet: U64
+) = ((. / 256) & 255)
+
+plot usb-endpoint-number (
+    address: U64 >> number: U64
+) = (. & 15)
+plot usb-endpoint-input (
+    address: U64 >> input: Boolean
+) = ((. & 128) != 0)
+plot usb-endpoint-address-valid (
+    address: U64 >> valid: Boolean
+) = (. < 256 && (. & 15) != 0 && (. & 112) == 0)
+plot usb-endpoint-dci (
+    address: U64 >> dci: U64
+) = ((. & 15) * 2 + ((. & 128) != 0 ? 1 : 0))
+
+# bInterfaceClass, bInterfaceSubClass, bInterfaceProtocol in three octets.
+plot usb-hid-keyboard-interface (
+    fields: U64 >> matches: Boolean
+) = ((. & 16777215) == 65795)
+plot usb-hid-mouse-interface (
+    fields: U64 >> matches: Boolean
+) = ((. & 16777215) == 131331)
+plot usb-audio-streaming-interface (
+    fields: U64 >> matches: Boolean
+) = ((. & 16777215) == 513)
+plot usb-cdc-ecm-interface (
+    fields: U64 >> matches: Boolean
+) = ((. & 16777215) == 1538)
+plot usb-cdc-acm-interface (
+    fields: U64 >> matches: Boolean
+) = ((. & 65535) == 514)
+plot usb-storage-bulk-only-interface (
+    fields: U64 >> matches: Boolean
+) = ((. & 16777215) == 5244424)
+
+# HID 1.11 Appendix B.2: the first three boot-mouse octets are buttons, X, Y.
+# Wheel extensions have a separate contract; they cannot alter this prefix.
+plot usb-hid-mouse-buttons (
+    word: U64 >> buttons: U64
+) = (. & 7)
+plot usb-hid-mouse-x-octet (
+    word: U64 >> octet: U64
+) = ((. / 256) & 255)
+plot usb-hid-mouse-y-octet (
+    word: U64 >> octet: U64
+) = ((. / 65536) & 255)
+plot usb-hid-mouse-report (
+    >> word: U64
+    buttons: U64 >>
+    x_octet: U64 >>
+    y_octet: U64 >>
+) {
+    decode_buttons: usb-hid-mouse-buttons
+    x: usb-hid-mouse-x-octet
+    y: usb-hid-mouse-y-octet
+    word >> decode_buttons >> buttons
+    word >> x >> x_octet
+    word >> y >> y_octet
+}
+plot usb-hid-mouse-buttons-valid (
+    word: U64 >> valid: Boolean
+) = ((. & 248) == 0)
+
+# HID keyboard reports are exactly eight octets; length is checked at transfer.
+plot usb-hid-keyboard-modifiers (
+    word: U64 >> octet: U64
+) = ((. / 1) & 255)
+plot usb-hid-keyboard-reserved (
+    word: U64 >> octet: U64
+) = ((. / 256) & 255)
+plot usb-hid-keyboard-key0 (
+    word: U64 >> octet: U64
+) = ((. / 65536) & 255)
+plot usb-hid-keyboard-key1 (
+    word: U64 >> octet: U64
+) = ((. / 16777216) & 255)
+plot usb-hid-keyboard-key2 (
+    word: U64 >> octet: U64
+) = ((. / 4294967296) & 255)
+plot usb-hid-keyboard-key3 (
+    word: U64 >> octet: U64
+) = ((. / 1099511627776) & 255)
+plot usb-hid-keyboard-key4 (
+    word: U64 >> octet: U64
+) = ((. / 281474976710656) & 255)
+plot usb-hid-keyboard-key5 (
+    word: U64 >> octet: U64
+) = ((. / 72057594037927936) & 255)
+# USB SET_PROTOCOL(boot): bmRequestType=0x21, bRequest=11, wValue=0,
+# wIndex=interface, wLength=0. Interface comes from current discovery.
+plot usb-hid-select-boot (
+    interface: U8 >> setup: U64
+) = (value/u64(.) * 4294967296 + 2849)
+
+# SET_INTERFACE selects the exact current alternate interface, not a device.
+type UsbAlternateSetting = {
+    interface: U8
+    alternate: U8
+}
+plot usb-select-alternate (
+    selection: UsbAlternateSetting >> setup: U64
+) = (value/u64(.interface) * 4294967296 + value/u64(.alternate) * 65536 + 2817)
+
+# UAC1 PCM frequency control uses three little-endian octets and endpoint
+# recipient; profile negotiation precedes this request.
+plot usb-audio-frequency-control (
+    endpoint: U8 >> setup: U64
+) = (value/u64(.) * 4294967296 + 844424946909474)
+
+# ECM SET_ETHERNET_PACKET_FILTER: directed + broadcast, no promiscuous mode.
+plot usb-ecm-directed-broadcast (
+    interface: U8 >> setup: U64
+) = (value/u64(.) * 4294967296 + 803617)
+
+# Interpret a validated boot-mouse relative-motion octet without wrap.
+plot usb-hid-signed-delta (
+    octet: I16 >> delta: I16
+) = (. < 128 ? . : . - 256)
+
+# Instantaneous ring geometry. Sequence is lifetime progress, not occupancy.
+# Ring users retire the exact current completion before reusing its buffer.
+type UsbRingQuery = {
+    sequence: U64
+    slots: U64 in 1..=63
+    buffers: U64 in 1..=8
+}
+plot usb-ring-slot (
+    query: UsbRingQuery >> slot: U64
+) = (.sequence % .slots)
+plot usb-ring-buffer (
+    query: UsbRingQuery >> buffer: U64
+) = (.sequence % .buffers)
+plot usb-ring-cycle (
+    query: UsbRingQuery >> cycle: U64
+) = (1 ^ ((.sequence / .slots) & 1))
+
+# Full-speed Type-I PCM packet cadence, with explicit phase rather than an
+# ever-growing frame counter. Unsupported formats must refuse negotiation.
+type UsbPcmCadence = {
+    phase: U64 in 0..=999
+    sample_rate: U64 in 8000..=48000
+    channels: U64 in 1..=2
+    sample_bytes: U64 in 1..=2
+}
+plot usb-pcm-packet-bytes (
+    cadence: UsbPcmCadence >> bytes: U64
+) = (((.phase + 1) * .sample_rate / 1000 - .phase * .sample_rate / 1000) * .channels * .sample_bytes)
+plot usb-pcm-next-phase (
+    cadence: UsbPcmCadence >> phase: U64
+) = ((.phase + 1) % 1000)
+
+# A stale DMA completion cannot become truth for a replacement attachment.
+type UsbCompletionIdentity = {
+    expected_slot: U64
+    observed_slot: U64
+    expected_endpoint: U64
+    observed_endpoint: U64
+    expected_descriptor: U64
+    observed_descriptor: U64
+    expected_attachment: U64
+    observed_attachment: U64
+}
+plot usb-completion-current (
+    identity: UsbCompletionIdentity >> current: Boolean
+) = (.expected_slot == .observed_slot && .expected_endpoint == .observed_endpoint && .expected_descriptor == .observed_descriptor && .expected_attachment == .observed_attachment && .expected_attachment != 0)
