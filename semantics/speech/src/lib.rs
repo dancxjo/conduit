@@ -28,8 +28,10 @@ pub use render::{
     SAMPLE_RATE_HZ,
 };
 
-#[cfg(feature = "semantic-bindings")]
+#[cfg(any(feature = "semantic-bindings", feature = "kernel"))]
 extern crate alloc;
+#[cfg(feature = "kernel")]
+pub mod kernel;
 /// Preparation/inspection bindings. The compact rendering Back does not carry
 /// rich inventories or a heap. Bounds and local laws are checked here; resolving
 /// artifact references remains an admission responsibility.

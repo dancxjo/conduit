@@ -71,6 +71,27 @@ full-duration state/sample history against the original checked scalar
 composition. Sample rate and admission limits come from the checked literal
 `speech/profile` plot, without a second Rust copy of that policy.
 
+The optional `kernel` feature provides the exact `speech/english-utterance`
+contract, offer and `NativeSpeechBack`. It accepts one bounded text value and
+emits canonical `audio/pcm-frames@1` on a closing Flow: mono s16le at 8 kHz,
+128-frame maximum blocks, a configured semantic media-clock identity, and
+contiguous frame positions. Preparation checks the selected Fore, Kind,
+implementation, source-bound artifact, limits and absence of resources/authority.
+The kernel retains the original text value until the last block commits; private
+segment ranges therefore remain source-scoped. The Back stages a copied cursor
+and fixed PCM bytes, then advances only in `step_committed`. Existing kernel
+fan-out owns atomic pressure, storage, cancellation and terminal signs.
+Cooperative fuel reserves one bounded computation quantum before text/event/
+frame traversal, plus two I/O actions; this is not instruction containment or a
+CPU timing guarantee. Preparation may allocate descriptions; play does not.
+
+The supported proof checks an ordinary planned graph lowered through
+`conduit-plan-lowering`, with two exact PCM sinks. It establishes byte equality
+with the standalone renderer, capacity-one fan-out pressure, cancellation versus
+completion, malformed versus unsupported text, and zero heap allocations during
+prepared play. The pack exposes this reusable Back; registration in the installed
+product Host and public `conduit` voice availability remain unfinished.
+
 The text profile admits at most 512 UTF-8 bytes and 32 bytes per word, within
 the same 256-event and 30-second rendering bounds. It handles ASCII English
 letters, apostrophes, whitespace and the punctuation declared in the checked
@@ -98,6 +119,5 @@ writes hosted artifacts and does not access an audio device.
 Remaining work includes artifact-reference validation and explicit rich-to-
 compact segment admission, broader text/number normalization and pronunciation,
 transitions/diphthongs,
-coarticulation and additional Klatt controls, an exact planned kernel Back with
-pressure/cancellation signs, and physical timing/footprint proof. The samples do
+coarticulation and additional Klatt controls, installed Host registration and product availability, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.
