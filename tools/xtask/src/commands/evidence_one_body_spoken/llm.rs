@@ -53,13 +53,7 @@ pub(super) fn run(
     let discovery = OllamaDiscovery::discover_at(endpoint, model)?;
     let adapter = discovery.initialize(
         admitted_memory_mib,
-        vec![
-            LocalModelKindProfile::Generate,
-            LocalModelKindProfile::ClassifyFiniteLabels,
-            LocalModelKindProfile::ExtractValidatedInfo,
-            LocalModelKindProfile::InterpretSignEvidence,
-            LocalModelKindProfile::PresentSemanticFront,
-        ],
+        vec![LocalModelKindProfile::PresentSemanticFront],
     )?;
     retain_json(
         manifest,
@@ -70,7 +64,7 @@ pub(super) fn run(
         first,
         None,
     )?;
-    let model_proof = match local_model_proof::run(adapter, &[request.clone()]) {
+    let model_proof = match local_model_proof::run_presenter_only(adapter, &request) {
         Ok(proof) => proof,
         Err(error) => {
             manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
@@ -86,9 +80,7 @@ pub(super) fn run(
         first,
         Some(&model_proof.proof_class),
     )?;
-    let [presenter] = model_proof.presenter_requests.as_slice() else {
-        return Err("model proof did not retain exactly one Presenter result".into());
-    };
+    let presenter = &model_proof.presenter;
     if !presenter.play_completed
         || presenter.request_identity != request.request_identity
         || presenter.source_presentation_identity != first.presentation.identity.as_str()
