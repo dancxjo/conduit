@@ -183,10 +183,14 @@ impl Owner {
         result
     }
 
-    /// End a worker's authorization after its bounded carrier loop, or undo
-    /// a start whose listener/thread could not be created. Never fence a live
-    /// membership from this generic cleanup operation.
-    pub(crate) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
+    /// End a worker's authorization after its bounded carrier loop. If the
+    /// worker died after proof but before leave, fence only its retained exact
+    /// Host, Boot, and Part before discarding the authorization.
+    pub(crate) fn browser_cancel_window(
+        &mut self,
+        root: &Path,
+        window_id: &str,
+    ) -> Result<(), String> {
         let window = self
             .pending_browser
             .as_ref()
@@ -194,8 +198,9 @@ impl Owner {
         if window.id != window_id {
             return Err("browser admission window identity differs".into());
         }
-        if matches!(window.state, WindowState::Active(_)) {
-            return Err("active browser membership requires an exact leave".into());
+        if let WindowState::Active(credential) = &window.state {
+            let credential = credential.clone();
+            self.browser_leave(root, window_id, &credential)?;
         }
         self.pending_browser = None;
         Ok(())
