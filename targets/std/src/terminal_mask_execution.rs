@@ -21,7 +21,7 @@ mod backs;
 #[path = "terminal_mask_execution/kernel.rs"]
 mod kernel;
 #[path = "terminal_mask_execution/planning.rs"]
-mod planning;
+pub(crate) mod planning;
 #[cfg(test)]
 #[path = "terminal_mask_execution/tests.rs"]
 mod tests;
@@ -48,6 +48,7 @@ fn debug_error(error: impl core::fmt::Debug) -> TerminalError {
 pub struct HostedTerminalMaskExecution {
     host: HostAdvertisement,
     planned: PlannedMaskPlot,
+    read_only: bool,
     next_sequence: u64,
     pending: Option<Play>,
     host_retired: bool,
@@ -59,8 +60,9 @@ struct Play {
     request: HostCallRequest,
     show_fore: LoweredForePort,
     interaction_fore: LoweredForePort,
-    interaction_node: conduit_kernel::NodeId,
+    interaction_node: Option<conduit_kernel::NodeId>,
     awaiting_input: bool,
+    read_only: bool,
     retired: bool,
 }
 impl Drop for Play {
@@ -73,9 +75,24 @@ impl Drop for Play {
 
 impl HostedTerminalMaskExecution {
     pub fn new(host: &HostAdvertisement) -> Result<Self, TerminalError> {
+        Self::with_plan(host, planning::plan(host)?, false)
+    }
+
+    /// Execute only the terminal Back offered by this exact current Host.
+    /// The caller must retain the attached I/O provider through the Show.
+    pub fn new_attached(host: &HostAdvertisement) -> Result<Self, TerminalError> {
+        Self::with_plan(host, planning::plan_attached(host)?, true)
+    }
+
+    fn with_plan(
+        host: &HostAdvertisement,
+        planned: PlannedMaskPlot,
+        read_only: bool,
+    ) -> Result<Self, TerminalError> {
         Ok(Self {
-            planned: planning::plan(host)?,
+            planned,
             host: host.clone(),
+            read_only,
             next_sequence: 0,
             pending: None,
             host_retired: false,
@@ -159,12 +176,18 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
                 .ok_or_else(|| error("missing terminal Host Call"))
         };
         let renderer = call(PRESENT_CALL)?;
-        let interaction = call(INTERACTION_CALL)?;
+        let interaction = if self.read_only {
+            None
+        } else {
+            Some(call(INTERACTION_CALL)?)
+        };
         if renderer.target_kind.as_ref().map(|k| k.as_str()) != Some(TERMINAL_TARGET)
             || renderer.call != HostCallId(0)
-            || interaction.call != HostCallId(0)
-            || interaction.target_kind.as_ref().map(|k| k.as_str())
-                != Some(conduit_presentation::FACE_INTERACTION_VALUE_KIND)
+            || interaction.as_ref().is_some_and(|interaction| {
+                interaction.call != HostCallId(0)
+                    || interaction.target_kind.as_ref().map(|k| k.as_str())
+                        != Some(conduit_presentation::FACE_INTERACTION_VALUE_KIND)
+            })
         {
             return Err(error("terminal Host Call binding mismatch"));
         }
@@ -198,8 +221,9 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
             request,
             show_fore,
             interaction_fore,
-            interaction_node: interaction.node,
+            interaction_node: interaction.map(|call| call.node),
             awaiting_input: false,
+            read_only: self.read_only,
             retired: false,
         });
         Ok(show)
@@ -233,8 +257,9 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
         let mut pending = None;
         for _ in 0..64 {
             if let Some(request) = play.scheduler.next_host_request() {
-                if pending.is_some()
-                    || request.node != play.interaction_node
+                if play.read_only
+                    || pending.is_some()
+                    || Some(request.node) != play.interaction_node
                     || request.call != HostCallId(0)
                     || request.request != RequestId(1)
                     || play
@@ -255,6 +280,10 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
                 actual_show.validate(&play.face).map_err(debug_error)?;
                 play.show = actual_show;
                 observed = true;
+            }
+            if observed && play.read_only {
+                play.finish(None)?;
+                return Ok(play.show.clone());
             }
             if observed && pending.is_some() {
                 play.request = pending.take().expect("observed pending Host Call");

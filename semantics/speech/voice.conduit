@@ -249,9 +249,21 @@ plot speech/segment-model (
     result: SpeechSegmentModel >>
 ) {
     realize: speech/realize
-    lookup: speech/voice-model(item = SpeechRealizedRequest, output = SpeechRealizedModel)
+    selected: speech/selected-segment-model
     value >> realize.value
-    realize.result >> ({phone: .phone, context: .}) >> lookup.value
+    realize.result >> selected.value
+    selected.result >> result
+}
+
+
+# Consume an explicit selected realization without running phonology again.
+# This preserves the supplied derivation; it does not attest its provenance.
+plot speech/selected-segment-model (
+    >> value: RealizationResult
+    result: SpeechSegmentModel >>
+) {
+    lookup: speech/voice-model(item = SpeechRealizedRequest, output = SpeechRealizedModel)
+    value >> ({phone: .phone, context: .}) >> lookup.value
     lookup.result >> ({realization: .input.context, target: .target}) >> result
 }
 
@@ -287,6 +299,7 @@ type VoiceEvent =
     segment RealizationInput
     | pronounced TextSpeechSegment
     | boundary VoiceBoundary
+    | selected RealizationResult
 
 plot speech/pause (
     >> value: VoiceBoundary

@@ -44,8 +44,8 @@ impl RenderCursor {
                     speech_pause(*boundary).ok_or(RenderRefusal::Arithmetic)?
                 }
                 event => {
-                    let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-                    speech_segment_model(value)
+                    event
+                        .model()
                         .ok_or(RenderRefusal::Arithmetic)?
                         .target
                         .frames
@@ -98,8 +98,7 @@ impl RenderCursor {
                     )
                 }
                 event => {
-                    let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-                    let model = speech_segment_model(value).ok_or(RenderRefusal::Arithmetic)?;
+                    let model = event.model().ok_or(RenderRefusal::Arithmetic)?;
                     let phone = model.realization.phone;
                     let target = model.target;
                     let (previous, previous_place) =
@@ -114,7 +113,7 @@ impl RenderCursor {
                             frame: self.event_frame,
                         },
                         context: SpeechTemporalContext {
-                            stress: value.stress,
+                            stress: model.realization.input.stress,
                             state: self.state,
                             previous_place,
                             previous,
@@ -165,11 +164,21 @@ impl<'a> Renderer<'a> {
 }
 
 impl VoiceEvent {
+    fn model(self) -> Option<SpeechSegmentModel> {
+        let realization = match self {
+            Self::selected(value) => value,
+            Self::segment(value) => speech_realize(value)?,
+            Self::pronounced(value) => speech_realize(value.realization)?,
+            Self::boundary(_) => return None,
+        };
+        speech_selected_segment_model(realization)
+    }
     /// Representation projection; pronunciation and realization policy stay in plots.
     pub fn realization(self) -> Option<RealizationInput> {
         match self {
             Self::segment(value) => Some(value),
             Self::pronounced(value) => Some(value.realization),
+            Self::selected(value) => Some(value.input),
             Self::boundary(_) => None,
         }
     }
@@ -206,8 +215,7 @@ fn neighbor(
             SpeechStopPlace::not_stop,
         ));
     }
-    let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-    let prepared = speech_segment_model(value).ok_or(RenderRefusal::Arithmetic)?;
+    let prepared = event.model().ok_or(RenderRefusal::Arithmetic)?;
     let endpoint = speech_neighbor_endpoint(SpeechNeighborEndpointInput {
         phone: prepared.realization.phone,
         target: prepared.target,

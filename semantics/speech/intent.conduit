@@ -1,0 +1,43 @@
+# Linguistic/acoustic intent is distinct from an execution Plan and from an
+# observed token. Unknown, unspecified, variable and gradient remain explicit.
+type SpeechDurationSpecification = SpeechSpec<SpeechExactDuration>
+type SpeechCycleSpecification = SpeechSpec<SpeechFundamentalCycle>
+type SpeechIntensitySpecification = SpeechSpec<SpeechRelativeIntensity>
+
+type SpeechSegmentProsodyIntent = {
+    duration: SpeechDurationSpecification
+    fundamental_cycle: SpeechCycleSpecification
+    relative_intensity: SpeechIntensitySpecification
+}
+
+type SpeechPlannedSegmentIntent = {
+    occurrence: LanguageSpeechTokenRef
+    sources: sequence LanguageSegmentRef in 1..=8
+    phoneme: PhonemeSpecification
+    phone: PhoneSpecification
+    stress: StressSpecification
+    word_position: SpeechSpec<SpeechWordPosition>
+    prosody: SpeechSegmentProsodyIntent
+    provenance: SpeechEvidenceProvenance
+}
+
+# A boundary/pause remains a separate event; it is never an absent phone.
+type SpeechPlannedBoundaryIntent = {
+    sources: sequence LanguageSegmentRef in 1..=8
+    kind: SpeechSpec<SpeechBoundaryKind>
+    duration: SpeechDurationSpecification
+    provenance: SpeechEvidenceProvenance
+}
+
+type SpeechUtteranceIntentEvent =
+    segment SpeechPlannedSegmentIntent
+    | boundary SpeechPlannedBoundaryIntent
+
+type SpeechUtteranceIntent = {
+    utterance_id: SpeechUtteranceId
+    revision_id: SpeechSegmentRevisionId
+    language: SpeechLanguageId
+    inventory_id: SpeechInventoryId
+    events: sequence SpeechUtteranceIntentEvent <= 256
+    provenance: SpeechEvidenceProvenance
+}

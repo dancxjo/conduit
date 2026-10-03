@@ -243,16 +243,7 @@ impl PatchbayHtmlServer {
                     self.snapshot.presentation.clone(),
                     conduit_body::BodyFaceSelector {
                         plot,
-                        source_placement_id: self
-                            .snapshot
-                            .presentation
-                            .basis
-                            .expanded_plot_id
-                            .clone()
-                            .map(|id| conduit_core::PlacementId::from(id.as_str()))
-                            .unwrap_or_else(|| {
-                                conduit_core::PlacementId::from("patchbay/presentation")
-                            }),
+                        source_placement_id: None,
                     },
                     conduit_patchbay_workbench::RendererAdapterKind::HtmlDomSvg,
                     conduit_patchbay_workbench::RendererAdapterIdentity {

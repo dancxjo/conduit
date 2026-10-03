@@ -2,7 +2,7 @@ use super::*;
 use conduit_body::{
     Body, BodyFaceSelector, BodyPlanningSession, BodyPlanningTransition, BodyWorkset, ResidentPlot,
 };
-use conduit_core::{BaseImplementationId, BootId, HostId, PlacementId, SignId};
+use conduit_core::{BaseImplementationId, BootId, HostId, SignId};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_presentation::{
     Presentation, PresentationBasis, PresentationRole, PresentationSubject,
@@ -73,7 +73,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         presentation.clone(),
         BodyFaceSelector {
             plot: Some(resident),
-            source_placement_id: PlacementId::from("hello/presentation"),
+            source_placement_id: None,
         },
         RendererAdapterKind::NativeWayland,
         identity("graphical"),

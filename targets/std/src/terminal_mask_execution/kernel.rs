@@ -22,9 +22,12 @@ pub(super) fn prepare(
     fragment: &conduit_core::PlanFragment,
     lowered: &LoweredPlanFragment,
 ) -> Result<Scheduler, TerminalError> {
+    let read_only = fragment.placements.iter().any(|placement| {
+        placement.implementation_id.as_str() == planning::READ_ONLY_INTERACTION_IMPLEMENTATION
+    });
     if fragment.placements.len() != 3
         || lowered.cords.len() != 6
-        || lowered.host_calls.len() != 2
+        || lowered.host_calls.len() != if read_only { 1 } else { 2 }
         || lowered.cord_value_slots != 6
     {
         return Err(error("unexpected terminal Mask Plan shape"));
@@ -69,10 +72,16 @@ pub(super) fn prepare(
                 pending: false,
                 emitted: false,
             }),
-            FACE_INTERACTION_KIND => Ok(backs::MaskBack::Interaction {
-                seen_face: false,
-                pending: false,
-            }),
+            FACE_INTERACTION_KIND => {
+                if p.implementation_id.as_str() == planning::READ_ONLY_INTERACTION_IMPLEMENTATION {
+                    Ok(backs::MaskBack::InteractionClose { seen_face: false })
+                } else {
+                    Ok(backs::MaskBack::Interaction {
+                        seen_face: false,
+                        pending: false,
+                    })
+                }
+            }
             _ => Err(error("unknown terminal back")),
         })
         .collect::<Result<Vec<_>, _>>()?
