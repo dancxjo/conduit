@@ -3,6 +3,19 @@
 use super::UsbError;
 use crate::arch::x86_64::xhci::Event;
 
+/// xHCI Setup Stage TRT (6.4.1.2.1): no data=0, OUT=2, IN=3.
+/// This encodes controller machinery, not a USB class request or its payload.
+pub(super) const fn setup_transfer_type(input: bool, length: u16) -> u32 {
+    let transfer_type = if length == 0 {
+        0
+    } else if input {
+        3
+    } else {
+        2
+    };
+    transfer_type << 16
+}
+
 /// Controller residuals are 24-bit counts, not narrowed request lengths.
 /// A residual outside the submitted envelope is malformed hardware truth;
 /// saturating subtraction would falsely report a successful short transfer.
