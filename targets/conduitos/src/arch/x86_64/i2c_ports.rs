@@ -29,7 +29,7 @@ impl I801Registers for I801PortWindow {
 /// `base` must name the actual admitted ICH-compatible SMBus register window,
 /// with exclusive native ownership for the complete provider lifetime. The
 /// trusted root must validate the PCI controller and port assignment, enable
-/// host operation with I2C_EN=0 and SMI routing disabled, and preserve firmware
+/// the controller with I2C_EN=0 and SMI routing disabled, and preserve firmware
 /// ownership restrictions. An arbitrary integer or plot value is not permission
 /// to call this constructor. Subsequent effects must pass through the admitted
 /// I2cHostCall, rather than exposing this primitive to ordinary protocol code.

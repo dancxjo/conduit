@@ -164,7 +164,7 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
             .map_err(|_| I2cInstallationRefusal::Advertisement)
     }
 
-    /// Consume native ownership into the exact selected host operation.
+    /// Consume native ownership into the exact selected Host Call.
     pub fn bind_selected(
         self,
         table: BaseCapabilityTable,
