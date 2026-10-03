@@ -61,7 +61,7 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
       media_type: "application/x-iso9660-image",
       image_content_digest: release.manifest.artifact.sha256,
       image_bytes: release.manifest.artifact.bytes,
-      provision_bytes: 4096,
+      provision_bytes: 32 * 1024,
     },
   });
   const downloaded = await downloadArtifact(page, handoff, {
@@ -136,7 +136,7 @@ for (const target of PROMOTED) {
         format: "iso",
         image_content_digest: release.manifest.artifact.sha256,
         image_bytes: release.manifest.artifact.bytes,
-        provision_bytes: 4096,
+        provision_bytes: 32 * 1024,
       },
     });
   });

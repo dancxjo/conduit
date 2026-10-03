@@ -1,9 +1,7 @@
 //! Planned hosted synthesis of exact mechanical spoken Face segments.
 //!
-//! The installed std Host currently accepts one value per external Fore port.
-//! This executor refuses a multi-value closing Flow before any effect until
-//! the Host gains an admitted sequential Fore feeder. It never renumbers or
-//! flattens already committed Tongues segments to make them fit.
+//! The installed std Host feeds committed Tongues segments sequentially through
+//! one exact external Fore Flow. It never renumbers or flattens them.
 
 use std::{
     collections::BTreeMap,
@@ -33,7 +31,6 @@ pub enum SpokenStreamExecutionRefusal {
     StaleFace,
     StaleShow,
     InvalidBatch,
-    RequiresSequentialForeFlow,
     ExistingOutput,
     InvalidOutput,
     Check(String),
@@ -169,7 +166,7 @@ pub fn execute_real_spoken_batch(
         fn wait(&mut self, _: Duration) {}
     }
     let report = host
-        .run_external_plot_to(
+        .run_external_plot_sequence_to(
             fragment.clone(),
             &inputs,
             &mut NoOutput,
@@ -223,11 +220,8 @@ pub fn execute_real_spoken_batch(
     })
 }
 
-/// The installed Fore currently admits one input value per port. This is a
-/// pure preflight so callers can refuse a 2+ segment batch without discovering
-/// providers, planning, or creating output artifacts. A future sequential
-/// Flow feeder can reuse the same source validation and replace only this
-/// cardinality check.
+/// Pure preflight before provider discovery, planning, or artifact creation.
+/// The batch owns the exact finite committed sequence for one Fore Flow.
 pub fn validate_batch_for_installed_fore(
     face: &Presentation,
     source_show: &MaskShow,
@@ -246,11 +240,6 @@ pub fn validate_batch_for_installed_fore(
     batch
         .validate(face, source_show)
         .map_err(|_| SpokenStreamExecutionRefusal::InvalidBatch)?;
-    // A fixed array of Fore input *ports* is not a sequence of values on one
-    // Flow. Refuse now, before provider discovery or artifact creation.
-    if batch.segments.len() != 1 || batch.segments[0].segment.sequence != 0 {
-        return Err(SpokenStreamExecutionRefusal::RequiresSequentialForeFlow);
-    }
     if wav_path.exists() {
         return Err(SpokenStreamExecutionRefusal::ExistingOutput);
     }

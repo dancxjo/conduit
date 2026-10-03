@@ -66,7 +66,7 @@ export function validateConduitOsReleaseManifest(manifest, profile) {
     || manifest.spore_region?.schema !== "conduit.conduitos/spore-region@1"
     || manifest.spore_region?.encoding !== "conduit.spore/native-media-provision@1"
     || !Number.isSafeInteger(manifest.spore_region?.offset) || manifest.spore_region.offset < 0
-    || manifest.spore_region?.bytes !== 4096
+    || manifest.spore_region?.bytes !== 32 * 1024
     || manifest.spore_region.offset + manifest.spore_region.bytes > manifest.artifact?.bytes
     || typeof manifest.artifact?.path !== "string" || manifest.artifact.path.includes("/")
     || !Number.isSafeInteger(manifest.artifact?.bytes) || manifest.artifact.bytes < 1 || manifest.artifact.bytes > MAXIMUM_IMAGE_BYTES

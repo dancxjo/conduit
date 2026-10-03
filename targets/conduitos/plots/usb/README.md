@@ -80,6 +80,26 @@ Preparation may allocate; these request/result hot paths use finite storage.
 Definition and encoding do not yet install a selected native USB Host Call or
 prove device execution, cancellation or DMA quiescence.
 
+`src/usb_base/control_owner` binds an already-issued opaque Base possession to
+the exact sealed Plan, canonical active Play and ordinary lowering. Register
+and USB preparation share that verifier. Native attachment/slot/generation and
+storage bounds belong to the trusted physical owner; requests cannot choose
+them. Every submission reauthorizes its complete operation claim and receives
+a move-only native ticket. One pending transfer holds pressure until acknowledged
+physical quiescence. Revocation clears software possession but retains physical
+pending state; a subsequent physical acknowledgement cannot publish a late
+successful result. Tickets from another issuer, slot or attachment generation
+cannot clear a genuine pending operation.
+The shared single-call Back's kernel request IDs remain the correlation source;
+replaying a completed request is refused rather than repeating a native effect.
+
+The quiescence acknowledgement is currently a private unsafe native-provider
+boundary, exercised by cooperative fixtures. Its safety contract requires the
+exact final status or acknowledged endpoint/controller stop. Software timeout,
+cancellation and loss alone are insufficient. These fixtures do not demonstrate
+real controller stop, DMA retention or dispatcher installation; the actual
+native owner must enforce that lifetime independently before this is offered.
+
 Native control completion retains a short Data Stage residue until the final
 Status Stage succeeds; status success cannot replace the actual data count.
 Duplicate stages, foreign slot/endpoint identities and malformed counts remain

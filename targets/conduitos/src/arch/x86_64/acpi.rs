@@ -13,6 +13,8 @@ pub struct InterruptTopology {
     pub io_apic_gsi_base: u32,
     pub timer_gsi: u32,
     pub timer_flags: u16,
+    /// Validated physical base of the optional HPET timer block.
+    pub hpet_address: Option<u64>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -88,18 +90,50 @@ pub fn discover(
     if &root[..4] != expected || !(root.len() - SDT_HEADER_BYTES).is_multiple_of(entry_bytes) {
         return Err(AcpiRefusal::UnsupportedRoot);
     }
+    let mut madt = None;
+    let mut hpet_address = None;
     for entry in root[SDT_HEADER_BYTES..].chunks_exact(entry_bytes) {
         let physical = if entry_bytes == 8 {
             read_u64(entry, 0)?
         } else {
             u64::from(read_u32(entry, 0)?)
         };
-        let table = physical_sdt(hhdm, physical, image_virtual_to_physical)?;
+        let table = match physical_sdt(hhdm, physical, image_virtual_to_physical) {
+            Ok(table) => table,
+            // The existing MADT is enough to boot. An optional later table
+            // may be malformed or unmappable without invalidating the
+            // interrupt topology; deadline admission will then fail closed.
+            Err(_) if madt.is_some() => continue,
+            Err(error) => return Err(error),
+        };
         if &table[..4] == b"APIC" {
-            return parse_madt(table);
+            madt = Some(table);
+        } else if &table[..4] == b"HPET" {
+            hpet_address = parse_hpet_address(table);
         }
     }
-    Err(AcpiRefusal::MissingMadt)
+    let mut topology = parse_madt(madt.ok_or(AcpiRefusal::MissingMadt)?)?;
+    topology.hpet_address = hpet_address;
+    Ok(topology)
+}
+
+/// ACPI HPET table, including its Generic Address Structure at byte 40.
+/// Refuse unsupported address spaces and malformed register locations; the
+/// separate HPET capability register supplies the actual clock period.
+fn parse_hpet_address(table: &[u8]) -> Option<u64> {
+    // SeaBIOS describes this fixed HPET block with an unspecified GAS width
+    // (zero). The hardware capability register below still has to prove a
+    // working 64-bit counter before admission.
+    if table.len() < 56
+        || table[40] != 0
+        || !matches!(table[41], 0 | 64)
+        || table[42] != 0
+        || !matches!(table[43], 0 | 4)
+    {
+        return None;
+    }
+    let address = u64::from_le_bytes(table.get(44..52)?.try_into().ok()?);
+    (address != 0 && address & 0xfff == 0).then_some(address)
 }
 
 fn parse_madt(table: &[u8]) -> Result<InterruptTopology, AcpiRefusal> {
@@ -147,6 +181,7 @@ fn parse_madt(table: &[u8]) -> Result<InterruptTopology, AcpiRefusal> {
         io_apic_gsi_base,
         timer_gsi,
         timer_flags,
+        hpet_address: None,
     })
 }
 
@@ -231,6 +266,7 @@ mod tests {
                 io_apic_gsi_base: 0,
                 timer_gsi: 2,
                 timer_flags: 0,
+                hpet_address: None,
             })
         );
     }
@@ -240,5 +276,24 @@ mod tests {
         let mut table = [0_u8; MADT_FIXED_BYTES + 2];
         table[44..].copy_from_slice(&[1, 1]);
         assert_eq!(parse_madt(&table), Err(AcpiRefusal::Length));
+    }
+
+    #[test]
+    fn hpet_requires_memory_mapped_64_bit_aligned_registers() {
+        let mut table = [0_u8; 56];
+        table[..4].copy_from_slice(b"HPET");
+        table[44..52].copy_from_slice(&0xfed0_0000_u64.to_le_bytes());
+        assert_eq!(parse_hpet_address(&table), Some(0xfed0_0000));
+        table[41] = 64;
+        assert_eq!(parse_hpet_address(&table), Some(0xfed0_0000));
+        table[41] = 32;
+        assert_eq!(parse_hpet_address(&table), None);
+        table[41] = 0;
+        table[40] = 1;
+        assert_eq!(parse_hpet_address(&table), None);
+        table[40] = 0;
+        table[44..52].copy_from_slice(&0xfed0_0001_u64.to_le_bytes());
+        assert_eq!(parse_hpet_address(&table), None);
+        assert_eq!(parse_hpet_address(&table[..55]), None);
     }
 }

@@ -97,7 +97,7 @@ fn exact_single_segment_is_admitted_and_receipt_is_terminal_only_after_audio() {
 }
 
 #[test]
-fn multiple_real_committed_segments_refuse_before_effect_or_artifact() {
+fn multiple_real_committed_segments_pass_preflight_without_creating_artifact() {
     let (face, show) = source(2);
     let (_, batch) = batch(&face, &show);
     assert_eq!(batch.segments.len(), 2);
@@ -109,7 +109,7 @@ fn multiple_real_committed_segments_refuse_before_effect_or_artifact() {
     ));
     assert_eq!(
         validate_batch_for_installed_fore(&face, &show, &batch, &destination),
-        Err(SpokenStreamExecutionRefusal::RequiresSequentialForeFlow)
+        Ok(())
     );
     assert!(!destination.exists());
 }
@@ -120,7 +120,7 @@ fn multiple_real_committed_segments_refuse_before_effect_or_artifact() {
 #[test]
 #[ignore = "requires installed eSpeak NG and writes a real WAV"]
 fn installed_espeak_produces_exact_plan_play_pcm_receipt() {
-    let (face, show) = source(1);
+    let (face, show) = source(2);
     let (mut reader, batch) = batch(&face, &show);
     let discovery = EspeakDiscovery::inspect(
         Path::new("/usr/bin/espeak-ng"),
@@ -139,15 +139,57 @@ fn installed_espeak_produces_exact_plan_play_pcm_receipt() {
     assert!(result.receipt.pcm_bytes > 0);
     assert!(result.receipt.pcm_blocks > 0);
     assert_eq!(result.receipt.wav_bytes, fs::metadata(&wav).unwrap().len());
+    let produced = fs::read(&wav).unwrap();
+    assert!(produced[44..].iter().any(|sample| *sample != 0));
+    assert_eq!(
+        result.receipt.wav_sha256,
+        format!("{:x}", Sha256::digest(&produced))
+    );
     assert_eq!(
         result.receipt.source_segments_sha256,
         batch.source_segments_sha256
     );
+    let sources = serde_json::json!({
+        "faceId": batch.face_id,
+        "faceRevision": batch.face_revision,
+        "sourceShowId": batch.source_show_id,
+        "streamIdentity": batch.stream_identity,
+        "sourceSegmentsSha256": batch.source_segments_sha256,
+        "segments": batch.segments.iter().map(|item| serde_json::json!({
+            "sequence": item.segment.sequence,
+            "text": item.segment.text,
+            "textSha256": item.text_sha256,
+            "reason": item.segment.reason,
+        })).collect::<Vec<_>>(),
+    });
+    fs::write(
+        directory.join("source-segments.json"),
+        serde_json::to_vec_pretty(&sources).unwrap(),
+    )
+    .unwrap();
+    let receipt = &result.receipt;
+    let produced_receipt = serde_json::json!({
+        "sourceSegmentsSha256": receipt.source_segments_sha256,
+        "streamIdentity": receipt.stream_identity,
+        "sourceShowId": receipt.source_show_id,
+        "speechPlanId": receipt.speech_plan_id,
+        "speechPlayId": receipt.speech_play_id,
+        "providerSha256": receipt.provider_sha256,
+        "wavSha256": receipt.wav_sha256,
+        "wavBytes": receipt.wav_bytes,
+        "pcmBytes": receipt.pcm_bytes,
+        "pcmBlocks": receipt.pcm_blocks,
+    });
+    fs::write(
+        directory.join("speech-receipt.json"),
+        serde_json::to_vec_pretty(&produced_receipt).unwrap(),
+    )
+    .unwrap();
     let terminal = reader
         .acknowledge_batch(SpokenBatchDelivery::Completed(result.receipt))
         .unwrap()
         .unwrap();
     assert_eq!(terminal.outcome, SpokenTurnOutcome::Completed);
-    assert_eq!(terminal.completed_segments, 1);
+    assert_eq!(terminal.completed_segments, 2);
     eprintln!("real spoken Face WAV: {}", wav.display());
 }
