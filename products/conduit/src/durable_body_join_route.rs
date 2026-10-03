@@ -139,7 +139,12 @@ fn serve_optional_face_snapshot(
     let length = match line.receive_binary(&mut bytes) {
         Ok(length) => length,
         Err(SecureWebSocketError::Disconnected)
-        | Err(SecureWebSocketError::Transport(ErrorKind::TimedOut | ErrorKind::WouldBlock)) => {
+        | Err(SecureWebSocketError::Transport(
+            ErrorKind::TimedOut
+            | ErrorKind::WouldBlock
+            | ErrorKind::UnexpectedEof
+            | ErrorKind::ConnectionReset,
+        )) => {
             return Ok(());
         }
         Err(error) => return Err(format!("receive owner Face request: {error:?}")),
