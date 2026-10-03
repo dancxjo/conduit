@@ -11,6 +11,7 @@ use face_arrival::{FaceArrival, FaceArrivalInput};
 use face_workspace::FaceWorkspace;
 use input_actions::{ProductControl, action_for, product_control, resident_application_action};
 mod journey_sign;
+mod owner_action_evidence;
 pub(crate) mod transient_sign;
 mod workspace_input;
 use workspace_input::refresh_with_face as refresh;
@@ -235,21 +236,7 @@ pub fn run(
                                 Ok(outcome) => {
                                     let admitted =
                                         owner_route.as_ref().is_some_and(|route| route.available());
-                                    let evidence = serde_json::json!({
-                                        "schema":"conduit.conduitos/native-owner-action@1",
-                                        "status":if outcome.accepted { "accepted" } else if outcome.code == "control-outcome-unknown" { "unknown" } else { "refused" },
-                                        "code":&outcome.code,
-                                        "prior_show_id":show.show_id.as_str(),
-                                        "interaction_id":interaction.identity.as_str(),
-                                        "face_refreshed":outcome.face.is_some(),
-                                    });
-                                    if let Ok(bytes) = serde_json::to_vec(&evidence)
-                                        && bytes.len() <= 1024
-                                    {
-                                        arch::early_write(b"CONDUIT_NATIVE_OWNER_ACTION ");
-                                        arch::early_write(&bytes);
-                                        arch::early_write(b"\n");
-                                    }
+                                    owner_action_evidence::emit(&show, &interaction, &outcome);
                                     let refreshed = outcome.face.is_some();
                                     if let Some(face) = outcome.face {
                                         face_arrival.present_owner_face(
