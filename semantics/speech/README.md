@@ -37,10 +37,13 @@ The optional `semantic-bindings` feature generates ordinary rich native Rust
 bindings for preparation and inspection. It uses allocation and is separate
 from the small renderer. The default rendering crate has no runtime dependencies
 and uses no allocator. A narrow build-time lowering compiles eligible checked
-portable expression trees from `voice.conduit` into integer
-Rust functions. Unsupported operations refuse the build. The generic prepared expression Back
-currently refuses variant construction; this pack uses its separately tested
-compiled Back, and does not claim generic kernel coverage for those programs. No Rust phoneme table,
+portable expression trees and finite acyclic pure-expression graphs from
+`voice.conduit` into integer Rust functions. Every wire resolves to an exact
+typed value before compilation; missing inputs, cycles, duplicate writers,
+non-value tracks and unsupported operations refuse the build. The generic
+prepared expression Back currently refuses variant construction; this pack uses
+its separately tested compiled Back, and does not claim generic kernel coverage
+for those programs. No Rust phoneme table,
 realization rule, or DSP equation substitutes for the plots.
 
 This first voice accepts a closed English phoneme profile with explicit stress
@@ -49,9 +52,15 @@ phone. It uses three parallel Q14 resonators at 8 kHz, bounded excitation/noise,
 closure/envelope, and pauses. Caller-owned traversal admits at most 256 events,
 30 seconds, and 128 frames per advance. A candidate copy can be discarded under
 output pressure before committing progress. This is synthesis Back conformance,
-not an additional scheduler or execution kernel. The prototype traversal also
-orchestrates the three resonator invocations in Rust; moving that frame
-composition into a checked plot is part of completing the all-plot voice.
+not an additional scheduler or execution kernel. The checked `speech/frame`
+plot composes excitation, three resonator transitions and output mixing through
+exact authored cords. Initial history and
+boundary silence also come from checked plots. Rust traversal handles bounded
+event/frame iteration and caller-owned output; it does not sequence DSP stages.
+Whole-frame differential proof covers every phone at envelope edges and compares
+full-duration state/sample history against the original checked scalar
+composition. Sample rate and admission limits come from the checked literal
+`speech/profile` plot, without a second Rust copy of that policy.
 
 Generate the early phoneme-authored WAVs and run focused conformance:
 
@@ -68,7 +77,7 @@ A link is not device playback or proof of real-time performance. WAV generation
 writes hosted artifacts and does not access an audio device.
 
 Remaining work includes artifact-reference validation and explicit rich-to-
-compact segment admission, composed frame plots, arbitrary-text pronunciation, transitions/diphthongs,
+compact segment admission, arbitrary-text pronunciation, transitions/diphthongs,
 coarticulation and additional Klatt controls, an exact planned kernel Back with
 pressure/cancellation signs, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.

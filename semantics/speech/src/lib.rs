@@ -40,3 +40,6 @@ extern crate std;
 mod differential;
 #[cfg(test)]
 mod realization_parity;
+
+#[cfg(test)]
+mod frame_parity;

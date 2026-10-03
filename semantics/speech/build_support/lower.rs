@@ -43,11 +43,30 @@ pub fn function(
     types: &[(StructuredInfoType, String)],
 ) -> Result<String, String> {
     Ok(format!(
-        "pub fn {name}(input: {}) -> Option<{}> {{ Some({}) }}\n",
+        "pub fn {name}(input: {}) -> Option<{}> {{ let _ = input; Some({}) }}\n",
         ty(&program.input_type, types)?,
         ty(&program.output_type, types)?,
         node(&program.root, types)?
     ))
+}
+
+/// Only authored literal records can become compile-time profile constants.
+/// Runtime inputs and arithmetic do not become an unchecked constant shortcut.
+pub fn constant(
+    program: &PortableExpressionProgram,
+    types: &[(StructuredInfoType, String)],
+) -> Result<String, String> {
+    fn closed(value: &Node) -> bool {
+        match &value.operation {
+            Op::Literal(_) => true,
+            Op::Record(fields) => fields.iter().all(|(_, field)| closed(field)),
+            _ => false,
+        }
+    }
+    if !closed(&program.root) {
+        return Err("constant requires a closed literal tree".into());
+    }
+    node(&program.root, types)
 }
 
 fn node(value: &Node, types: &[(StructuredInfoType, String)]) -> Result<String, String> {
