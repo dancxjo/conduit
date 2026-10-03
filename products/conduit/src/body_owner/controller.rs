@@ -4,6 +4,7 @@ use super::state;
 mod invited;
 #[path = "participants/mod.rs"]
 mod participants;
+pub(crate) use participants::{BrowserAdmittedSnapshot, BrowserWindowAuthorization, run_service_window};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
@@ -24,6 +25,7 @@ pub(crate) struct Owner {
     resident: Option<ResidentPlot>,
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
+    pending_browser: Option<participants::BrowserWindow>,
 }
 impl Owner {
     pub(crate) fn open(
@@ -104,6 +106,7 @@ impl Owner {
             resident: Some(resident),
             last_execution: None,
             admissions: None,
+            pending_browser: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -119,6 +122,7 @@ impl Owner {
             resident,
             last_execution: None,
             admissions: None,
+            pending_browser: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {

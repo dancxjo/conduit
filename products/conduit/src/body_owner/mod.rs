@@ -4,7 +4,7 @@ mod image;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
-pub(crate) use controller::Owner;
+pub(crate) use controller::{BrowserAdmittedSnapshot, BrowserWindowAuthorization, Owner, run_service_window};
 use serde::Deserialize;
 use std::{
     io::{BufRead, Read, Write},

@@ -2,7 +2,7 @@
 //! Network waits remain on that worker; this control carrier never decides
 //! admission, membership, authority, or elapsed authorization time.
 use super::{read_frame, read_secret, write_frame, Request, Response, PROTOCOL};
-use crate::body_owner::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
+use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
 use conduit_body::{BodyBiographyEvidence, MembershipCredential};
 use conduit_core::LinkBindingId;
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
@@ -12,7 +12,7 @@ pub(crate) fn spawn_window(
     state_dir: &Path,
     authorization: BrowserWindowAuthorization,
 ) -> Result<String, String> {
-    crate::body_owner::run_service_window(state_dir, authorization)
+    crate::durable_host::owner::run_service_window(state_dir, authorization)
 }
 
 fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Response, String> {

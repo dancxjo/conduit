@@ -134,7 +134,7 @@ impl Owner {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn serve_presence(
+fn serve_presence(
     snapshot: &BrowserAdmittedSnapshot,
     socket: &mut transport::Socket,
     binding: &LinkBindingId,
