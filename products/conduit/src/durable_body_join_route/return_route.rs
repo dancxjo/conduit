@@ -294,6 +294,7 @@ fn apply(
     let (accepted, code) = match &result {
         Ok(_) => (true, "accepted"),
         Err(error) if error == "control-outcome-unknown" => (false, "control-outcome-unknown"),
+        Err(error) if error.contains("control-grant-expired") => (false, "return-expired"),
         Err(error)
             if error.contains("StaleFace")
                 || error.contains("StaleShow")
