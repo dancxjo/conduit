@@ -29,6 +29,18 @@ pub fn initialize_machine(
         crate::arch::early_write(b"\n");
         cpu::deterministic_exit(false)
     });
+    #[cfg(feature = "native-owner-network")]
+    {
+        if super::deadline::initialize_hpet(
+            topology.hpet_address,
+            record.hhdm_offset,
+            image_virtual_to_physical,
+        ) {
+            crate::arch::early_write(b"CONDUIT_DEADLINE_CLOCK hpet-ready\n");
+        } else {
+            crate::arch::early_write(b"CONDUIT_DEADLINE_CLOCK hpet-unavailable\n");
+        }
+    }
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-controller\n");
     if let Err(error) =
         interrupt_controller::initialize(record.hhdm_offset, topology, image_virtual_to_physical)
