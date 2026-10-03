@@ -41,11 +41,13 @@ matches the routed candidate's pinned leaf. Keep the owner alive, then boot the
 cargo xtask make conduitos live-owner-boot \
   --spore /absolute/path/to/private-spore.iso \
   --candidate-id 'candidate/from-owner-invitation' \
-  --owner-forward 127.0.0.1:19000
+  --owner-forward 172.17.0.1:19000
 ```
 
-`--owner-forward` names an explicit local owner listener, not a discovered or
-authorized owner. The command validates the exact ISO's image digest,
+`--owner-forward` names an explicit private, non-loopback IPv4 owner listener
+reachable from QEMU's user network; replace the example address with the
+address on your machine. It is not a discovered or authorized owner. The
+command validates the exact ISO's image digest,
 invitation, selected candidate, expiry, and certificate pin before launching.
 The selected candidate must be the first authenticated TLS route in the
 invitation, matching the current product boot's bounded attempt order.
@@ -54,8 +56,7 @@ through VirtIO-net to that listener. The guest must still authenticate the
 owner and validate its admission receipt. Use `--dry-run` to inspect the QEMU
 invocation after the same preflight; neither a launch nor a dry run proves
 membership. A real admission additionally needs a guest-supported calibrated
-monotonic deadline clock. QEMU TCG's default `-cpu max` currently lacks the
-required invariant-TSC/CPUID frequency basis, so the guest reports
+monotonic deadline clock. If none is available, the guest reports
 `owner-route-deadline-clock-unavailable` instead of attempting an unbounded
 exchange. Do not infer join success from a visible window or a forwarded port.
 
