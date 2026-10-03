@@ -67,6 +67,9 @@ and `setup-ci` cover portable checks and CI validation).
 The **Measure tool acquisition** workflow compares a cold project cache with
 an exact restored cache on a second, fresh hosted runner. It runs when a tooling
 PR becomes ready for review, or manually with selected target IDs or `all`.
+Each target's cold and warm jobs form one bounded pair; at most two pairs run
+concurrently. A whole-matrix cold phase can evict its own cache entries before
+any warm phase begins when the repository cache is busy.
 Its default selection covers apt, validation tools, QEMU, Chromium/npm, Cargo
 tools, AVR, and both ESP compiler families. Measurements include cache
 restoration and saving, but exclude common checkout and baseline Rust/Node
