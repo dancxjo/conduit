@@ -12,9 +12,9 @@ use conduit_core::{bind_sign, BaseImplementationId};
 use conduit_presentation::{Face, FaceContext, FaceFocus, OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
-pub(crate) use participants::{
-    run_service_window, BrowserAdmittedSnapshot, BrowserWindowAuthorization,
-};
+#[cfg(unix)]
+pub(crate) use participants::run_service_window;
+pub(crate) use participants::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
 use std::{
     collections::BTreeMap,
     io::Write,

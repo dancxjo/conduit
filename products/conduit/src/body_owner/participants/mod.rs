@@ -3,6 +3,7 @@
 //! This is membership and presence only, never admission of remote execution.
 mod admission;
 mod service;
+#[cfg(unix)]
 mod service_worker;
 mod transport;
 use super::Owner;
@@ -13,6 +14,7 @@ use conduit_std_host::browser_admission::{
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
 };
 pub(crate) use service::{BrowserAdmittedSnapshot, BrowserWindow, BrowserWindowAuthorization};
+#[cfg(unix)]
 pub(crate) use service_worker::run_service_window;
 use std::{
     path::Path,
