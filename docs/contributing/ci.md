@@ -31,9 +31,10 @@ live in `tools/ci/pipeline/plan.mjs`.
 
 Every selected target owns setup, build, proof, packaging, and one final
 artifact upload on its runner. Targets never depend on an unrelated target.
-Compiler caches retain Cargo compiler directories and dependencies. A separate
-acquisition cache retains verified tool downloads and pinned installations;
-staged products and product proof always start fresh.
+Compiler caches retain Cargo compiler directories and dependencies. Browser,
+AVR, ESP32, and RP2040 lanes use a separate acquisition cache for verified tool
+downloads and pinned installations; other lanes acquire their small tool sets
+directly. Staged products and product proof always start fresh.
 Once the target matrix starts, a failure does not cancel siblings. Code tests
 have no retries. Acquisition may have one bounded infrastructure retry.
 Browser acceptance keeps pinned Chromium, one worker, and zero retries.
