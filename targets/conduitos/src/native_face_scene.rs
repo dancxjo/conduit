@@ -12,6 +12,8 @@ use conduit_presentation::{
 
 use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
 
+#[path = "native_face_scene/diagram.rs"]
+mod diagram;
 #[path = "native_face_scene/document.rs"]
 mod document;
 #[path = "native_face_scene/input.rs"]
@@ -85,6 +87,7 @@ pub struct NativeFaceScene {
     page: usize,
     focus: Option<FaceControl>,
     showing_details: bool,
+    showing_diagram: bool,
     input: input::InputState,
 }
 
@@ -109,6 +112,7 @@ impl NativeFaceScene {
             page: 0,
             focus: None,
             showing_details: false,
+            showing_diagram: false,
             input: input::InputState::default(),
         })
     }
@@ -125,8 +129,20 @@ impl NativeFaceScene {
         self.showing_details
     }
 
+    pub fn showing_diagram(&self) -> bool {
+        self.showing_diagram
+    }
+
+    pub fn has_diagram(&self) -> bool {
+        diagram::exists(&self.face)
+    }
+
     pub fn pages(&self) -> usize {
-        self.rows().last().map_or(1, |row| row.page + 1)
+        if self.showing_diagram {
+            diagram::pages(&self.face, self.screen.width)
+        } else {
+            self.rows().last().map_or(1, |row| row.page + 1)
+        }
     }
 
     pub fn page(&self) -> usize {
@@ -135,6 +151,15 @@ impl NativeFaceScene {
 
     pub fn show_details(&mut self, details: bool) {
         self.showing_details = details;
+        self.showing_diagram = false;
+        self.page = 0;
+        self.focus = None;
+    }
+
+    /// A diagram is available only when Gear subjects actually occur in this
+    /// exact Face; F3 never constructs a specimen graph to fill an empty view.
+    pub fn show_diagram(&mut self, diagram: bool) {
+        self.showing_diagram = diagram && self.has_diagram();
         self.page = 0;
         self.focus = None;
     }
@@ -150,6 +175,9 @@ impl NativeFaceScene {
     }
 
     pub fn focus_next(&mut self, forward: bool) -> Option<FaceControl> {
+        if self.showing_diagram {
+            return None;
+        }
         let position = self.focus.and_then(|focus| {
             self.rows()
                 .iter()
@@ -249,15 +277,74 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
+        let heading = if self.showing_diagram {
+            "PATCHBAY"
+        } else if self.showing_details {
+            "DETAILS"
+        } else {
+            "CURRENT VIEW"
+        };
+        push(
+            &mut scene,
+            GraphicsCommand::text(
+                LayoutRect {
+                    x: SPACE_XL as i16,
+                    y: 12,
+                    width: self.screen.width - SPACE_XL * 2 - 88,
+                    height: 32,
+                },
+                self.screen,
+                GraphicsPaintRole::Accent,
+                heading,
+            )
+            .and_then(|command| command.with_text_role(GraphicsTextRole::Heading)),
+        )?;
+        let page_marker = alloc::format!("{} / {}", self.page + 1, self.pages());
+        push(
+            &mut scene,
+            GraphicsCommand::text(
+                LayoutRect {
+                    x: (self.screen.width - SPACE_XL - 80) as i16,
+                    y: 16,
+                    width: 80,
+                    height: 24,
+                },
+                self.screen,
+                GraphicsPaintRole::Muted,
+                &page_marker,
+            )
+            .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
+        )?;
+        push(
+            &mut scene,
+            GraphicsCommand::rect(
+                LayoutRect {
+                    x: SPACE_XL as i16,
+                    y: (layout::HEADER - 8) as i16,
+                    width: self.screen.width - SPACE_XL * 2,
+                    height: 2,
+                },
+                self.screen,
+                GraphicsPaintRole::Accent,
+                GraphicsShapeStyle::Fill,
+            ),
+        )?;
         let mut hits = Vec::with_capacity(layout::MAX_PAGE_ROWS);
-        for row in self.rows().iter().filter(|row| row.page == self.page) {
+        if self.showing_diagram {
+            diagram::append(&mut scene, &self.face, self.screen, self.page)?;
+        }
+        for row in self
+            .rows()
+            .iter()
+            .filter(|row| !self.showing_diagram && row.page == self.page)
+        {
             let available = row.control.is_some_and(|control| {
                 self.face.actions[control.action]
                     .availability
                     .is_available()
             });
-            let paint = if available && row.control == self.focus {
-                GraphicsPaintRole::Status
+            let outline = if available && row.control == self.focus {
+                GraphicsPaintRole::Focus
             } else {
                 row.paint
             };
@@ -267,14 +354,14 @@ impl NativeFaceScene {
                     GraphicsCommand::rect(
                         row.bounds,
                         self.screen,
-                        paint,
+                        outline,
                         GraphicsShapeStyle::Stroke,
                     ),
                 )?;
             }
             push(
                 &mut scene,
-                GraphicsCommand::text(row.text_bounds(), self.screen, paint, &row.text)
+                GraphicsCommand::text(row.text_bounds(), self.screen, row.paint, &row.text)
                     .and_then(|command| command.with_text_role(row.role)),
             )?;
             if available {
@@ -289,17 +376,35 @@ impl NativeFaceScene {
             }
         }
         let footer = self.input.preview(self.focus).unwrap_or_else(|| {
-            alloc::format!(
-                "Page {}/{} · PgUp/PgDn · Tab · Enter · F2 details",
-                self.page + 1,
-                self.pages()
-            )
+            if self.showing_diagram {
+                "Visible links only · F2 all facts · F3 return".into()
+            } else if self.showing_details {
+                "PgUp/PgDn pages · Tab next · F2 return".into()
+            } else if self.has_diagram() {
+                "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
+            } else {
+                "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
+            }
         });
+        push(
+            &mut scene,
+            GraphicsCommand::rect(
+                LayoutRect {
+                    x: SPACE_XL as i16,
+                    y: (self.screen.height - layout::FOOTER + 4) as i16,
+                    width: self.screen.width - SPACE_XL * 2,
+                    height: 2,
+                },
+                self.screen,
+                GraphicsPaintRole::Muted,
+                GraphicsShapeStyle::Fill,
+            ),
+        )?;
         let bounds = LayoutRect {
             x: SPACE_XL as i16,
-            y: (self.screen.height - layout::FOOTER) as i16,
+            y: (self.screen.height - layout::FOOTER + 14) as i16,
             width: self.screen.width - SPACE_XL * 2,
-            height: layout::FOOTER - SPACE_SM,
+            height: layout::FOOTER - 16,
         };
         push(
             &mut scene,

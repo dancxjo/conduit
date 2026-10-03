@@ -12,6 +12,7 @@ pub(super) struct Item {
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
+    pub indent: u8,
 }
 
 fn item(text: String, role: GraphicsTextRole) -> Item {
@@ -20,6 +21,7 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
         role,
         paint: GraphicsPaintRole::Foreground,
         control: None,
+        indent: 0,
     }
 }
 
@@ -89,13 +91,61 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
             PresentationRole::Diagnostic => GraphicsTextRole::Warning,
             _ => GraphicsTextRole::Label,
         };
-        primary.push(item(subject.name.clone(), role));
+        // Contains is Face truth. Its visual indentation is Mask geometry;
+        // unknown semantic roles remain named subjects, never dropped.
+        let mut depth = 0u8;
+        let mut ancestor = subject.identity.as_str();
+        while depth < 2 {
+            let Some(parent) = face.relationships.iter().find(|relation| {
+                relation.target == ancestor
+                    && matches!(
+                        relation.kind,
+                        conduit_presentation::PresentationRelationshipKind::Contains
+                    )
+            }) else {
+                break;
+            };
+            depth += 1;
+            ancestor = &parent.source;
+        }
+        let mut append = |mut item: Item| {
+            item.indent = depth;
+            primary.push(item);
+        };
+        let mut heading = item(subject.name.clone(), role);
+        heading.paint = match subject.role {
+            PresentationRole::Diagnostic => GraphicsPaintRole::Warning,
+            PresentationRole::Status => GraphicsPaintRole::Foreground,
+            PresentationRole::Region | PresentationRole::Collection => GraphicsPaintRole::Accent,
+            _ => GraphicsPaintRole::Foreground,
+        };
+        append(heading);
         for text in face
             .text
             .iter()
             .filter(|text| text.subject == subject.identity)
         {
-            primary.push(item(text.text.clone(), GraphicsTextRole::Body));
+            append(item(text.text.clone(), GraphicsTextRole::Body));
+        }
+        // The common reader owns the wording and semantic order. A graphical
+        // Mask may place these connections beside their source subject, but
+        // must not invent a diagram edge or interpret an open domain kind.
+        for clause in &plan.clauses {
+            let belongs_here = match &clause.provenance {
+                Provenance::Relationship(provenance) => {
+                    face.relationships[*provenance.index() as usize].source == subject.identity
+                }
+                Provenance::Composition(provenance) => face.composition.iter().any(|relation| {
+                    relation.identity.as_str() == provenance.identity()
+                        && relation.source == subject.identity
+                }),
+                _ => false,
+            };
+            if belongs_here {
+                let mut connection = item(clause.text.clone(), GraphicsTextRole::Body);
+                connection.paint = GraphicsPaintRole::Muted;
+                append(connection);
+            }
         }
         for clause in &plan.clauses {
             if let Provenance::Property(provenance) = &clause.provenance {
@@ -109,7 +159,7 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                             | PresentationPropertyValue::Flag(_)
                     )
                 {
-                    primary.push(item(clause.text.clone(), GraphicsTextRole::Body));
+                    append(item(clause.text.clone(), GraphicsTextRole::Body));
                 }
             }
         }
@@ -140,10 +190,10 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                 PresentationActionAvailability::Unavailable { explanation, .. }
                 | PresentationActionAvailability::Refused { explanation, .. } => (
                     format!("{} — {}", action.name, explanation),
-                    GraphicsPaintRole::Muted,
+                    GraphicsPaintRole::Warning,
                 ),
             };
-            primary.push(Item {
+            append(Item {
                 text,
                 role: GraphicsTextRole::Action,
                 paint,
@@ -151,9 +201,10 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                     action: index,
                     argument: None,
                 }),
+                indent: 0,
             });
             for (argument_index, argument) in action.arguments.iter().enumerate() {
-                primary.push(Item {
+                append(Item {
                     text: format!(
                         "{} · {} · {}",
                         subject.name,
@@ -164,12 +215,13 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                             "enter a replacement value"
                         }
                     ),
-                    role: GraphicsTextRole::Body,
+                    role: GraphicsTextRole::Label,
                     paint,
                     control: Some(FaceControl {
                         action: index,
                         argument: Some(argument_index),
                     }),
+                    indent: 0,
                 });
             }
         }

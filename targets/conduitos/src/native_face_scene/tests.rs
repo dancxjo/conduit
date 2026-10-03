@@ -114,7 +114,13 @@ fn full_face_retained_and_semantic_order_is_not_action_index_order() {
     assert_eq!(frame.pages, scene.pages());
     assert!(!scene.showing_details());
     assert!(scene.focused().is_none());
-    assert_eq!(frame.scene.commands()[1].payload(), "A readable encounter");
+    assert!(
+        frame
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "A readable encounter")
+    );
     assert!(
         !scene
             .primary
@@ -161,6 +167,197 @@ fn full_face_retained_and_semantic_order_is_not_action_index_order() {
 }
 
 #[test]
+fn primary_view_explains_face_relationships_and_composition_without_new_meaning() {
+    let original = face(10)
+        .with_composition(vec![PresentationCompositionRelation {
+            identity: "name-after-document".into(),
+            source: "a-field".into(),
+            target: "z-first".into(),
+            kind: PresentationCompositionKind::RevealAfter,
+        }])
+        .unwrap();
+    let scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
+    let spoken = plan_face_utterances(&original).unwrap();
+    for clause in spoken.clauses.iter().filter(|clause| {
+        matches!(
+            clause.provenance,
+            FaceUtteranceProvenance::Relationship(_) | FaceUtteranceProvenance::Composition(_)
+        )
+    }) {
+        assert!(scene.primary.iter().any(|row| row.text == clause.text));
+    }
+    assert!(
+        scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Change name · Friendly name")
+    );
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("opaque/sha256"))
+    );
+}
+
+#[test]
+fn focused_action_has_visible_focus_and_unavailable_action_has_no_hit() {
+    let mut original = face(11);
+    original.actions[1].availability = PresentationActionAvailability::Unavailable {
+        reason_code: "test/not-ready".into(),
+        explanation: "Waiting for a name".into(),
+    };
+    let original = Presentation::new_with_semantics(
+        11,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let mut scene = NativeFaceScene::prepare(original, 640, 480).unwrap();
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: "edit".into(),
+            argument_name: None,
+        })
+        .unwrap();
+    let frame = scene.frame().unwrap();
+    assert!(frame.scene.commands().iter().any(|command| {
+        command.paint == GraphicsPaintRole::Focus && command.kind == GraphicsCommandKind::Rect
+    }));
+    assert!(scene.primary.iter().any(|row| {
+        row.paint == GraphicsPaintRole::Warning && row.text.contains("Waiting for a name")
+    }));
+    assert!(frame.hits.iter().all(|hit| hit.action.identity != "finish"));
+}
+
+#[test]
+fn patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints() {
+    let mut original = face(12);
+    for (identity, role, name) in [
+        ("gear/a", PresentationRole::Gear, "Source Gear"),
+        ("gear/b", PresentationRole::Gear, "Sink Gear"),
+        ("port/a", PresentationRole::Port, "Out · text"),
+        ("port/b", PresentationRole::Port, "In · text"),
+        ("cord/a-b", PresentationRole::Cord, "Text to display"),
+    ] {
+        original.subjects.push(PresentationSubject {
+            identity: identity.into(),
+            role,
+            name: name.into(),
+        });
+    }
+    for (source, target, kind) in [
+        ("gear/a", "port/a", PresentationRelationshipKind::Contains),
+        ("gear/b", "port/b", PresentationRelationshipKind::Contains),
+        ("cord/a-b", "port/a", PresentationRelationshipKind::Connects),
+        ("cord/a-b", "port/b", PresentationRelationshipKind::Connects),
+    ] {
+        original.relationships.push(PresentationRelationship {
+            source: source.into(),
+            target: target.into(),
+            kind,
+        });
+    }
+    for (subject, name, value) in [
+        (
+            "port/a",
+            "semantic-id",
+            PresentationPropertyValue::Identity("out".into()),
+        ),
+        (
+            "port/b",
+            "semantic-id",
+            PresentationPropertyValue::Identity("in".into()),
+        ),
+        (
+            "port/a",
+            "direction",
+            PresentationPropertyValue::Text("outgoing".into()),
+        ),
+        (
+            "port/b",
+            "direction",
+            PresentationPropertyValue::Text("receiving".into()),
+        ),
+        (
+            "cord/a-b",
+            "source-port",
+            PresentationPropertyValue::Identity("out".into()),
+        ),
+        (
+            "cord/a-b",
+            "sink-port",
+            PresentationPropertyValue::Identity("in".into()),
+        ),
+    ] {
+        original.properties.push(PresentationProperty {
+            subject: subject.into(),
+            name: name.into(),
+            value,
+        });
+    }
+    let original = Presentation::new_with_semantics(
+        12,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let show = fixture::show(&original);
+    let mut scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
+    assert!(scene.has_diagram());
+    assert!(matches!(
+        scene.key(press(60), &show, 1),
+        Ok(FaceSceneInput::Changed)
+    ));
+    assert!(scene.showing_diagram());
+    let frame = scene.frame().unwrap();
+    assert!(frame.scene.commands().iter().any(|command| {
+        command.kind == GraphicsCommandKind::OrthogonalPath && command.path_geometry().is_some()
+    }));
+    assert!(
+        frame
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Source Gear")
+    );
+    assert!(
+        frame
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload() == "Sink Gear")
+    );
+    assert!(frame.hits.is_empty());
+    scene.show_details(true);
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("Text to display"))
+    );
+    assert_eq!(scene.presentation(), &original);
+    let mut compact = NativeFaceScene::prepare(original, 320, 240).unwrap();
+    compact.show_diagram(true);
+    assert_eq!(compact.pages(), 2);
+    for _ in 0..compact.pages() {
+        let frame = compact.frame().unwrap();
+        assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+        compact.turn_page(true);
+    }
+}
+
+#[test]
 fn every_utf8_byte_survives_layout_pages_with_bounded_commands() {
     let mut original = face(2);
     let long = "é中 long readable words ".repeat(30);
@@ -184,7 +381,11 @@ fn every_utf8_byte_survives_layout_pages_with_bounded_commands() {
     let joined: String = scene
         .primary
         .iter()
-        .filter(|row| row.control.is_none() && row.role == GraphicsTextRole::Body)
+        .filter(|row| {
+            row.control.is_none()
+                && row.role == GraphicsTextRole::Body
+                && row.paint == GraphicsPaintRole::Foreground
+        })
         .map(|row| row.text.as_str())
         .collect();
     assert_eq!(joined, long);
