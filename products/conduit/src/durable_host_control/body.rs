@@ -195,6 +195,8 @@ impl DurableHostRuntime {
             pool_member,
             cancellation_signal,
             next_observation_sequence,
+            #[cfg(unix)]
+            terminal_route,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
@@ -214,6 +216,8 @@ impl DurableHostRuntime {
             pool_member,
             cancellation_signal,
             next_observation_sequence,
+            #[cfg(unix)]
+            terminal_route,
         })
     }
 
@@ -286,6 +290,14 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        #[cfg(unix)]
+        if self
+            .terminal_route
+            .as_ref()
+            .is_some_and(|route| route.show.show_id == show.show_id)
+        {
+            return Err("terminal-owner-route-read-only".into());
+        }
         let HostSource::Body {
             owner,
             root,

@@ -26,6 +26,10 @@ const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 
+#[path = "durable_host/runtime_marker.rs"]
+mod runtime_marker;
+pub(crate) use runtime_marker::refresh_offer_generation;
+
 #[path = "durable_host_invitation.rs"]
 mod invitation;
 #[path = "durable_host_membership.rs"]
