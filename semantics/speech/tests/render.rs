@@ -111,3 +111,45 @@ fn realization_preserves_the_input_and_distinguishes_allophone_derivation() {
     assert_eq!(result.phone, EnglishPhone::t);
     assert_eq!(result.derivation, D::voice_profile);
 }
+
+#[test]
+fn selected_realizations_match_frontend_results_across_neighbors_and_blocks() {
+    let input = events();
+    let selected = input.map(|event| {
+        VoiceEvent::selected(conduit_speech::realize(event.realization().unwrap()).unwrap())
+    });
+    let expected = render(&input, 128);
+    for block in [1, 63, 128] {
+        assert_eq!(render(&selected, block), expected);
+    }
+}
+
+#[test]
+fn explicit_phone_is_not_reselected_from_its_phoneme() {
+    use conduit_speech::{realize, EnglishPhone};
+    let input = RealizationInput {
+        phoneme: P::t,
+        stress: S::primary,
+        position: W::initial,
+    };
+    let mut selected = realize(input).unwrap();
+    assert_eq!(selected.phone, EnglishPhone::t_aspirated);
+    selected.phone = EnglishPhone::t;
+    let events = [VoiceEvent::selected(selected), events()[1]];
+    // The selected plain stop must differ from the frontend's aspirated stop,
+    // both in its own waveform and as the following segment's exact neighbor.
+    let frontend = [VoiceEvent::segment(input), events[1]];
+    let selected_pcm = render(&events, 63);
+    let frontend_pcm = render(&frontend, 63);
+    assert_ne!(selected_pcm, frontend_pcm);
+    let plain = [
+        VoiceEvent::segment(RealizationInput {
+            position: W::medial,
+            ..input
+        }),
+        events[1],
+    ];
+    assert_eq!(selected_pcm, render(&plain, 128));
+    assert_eq!(events[0], VoiceEvent::selected(selected));
+    assert_eq!(events[0].realization(), Some(input));
+}

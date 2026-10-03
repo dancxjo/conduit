@@ -361,3 +361,12 @@ The supported native-speech proof also retains `duration-default`,
 `duration-faster` and `duration-slower` WAVs of the same “Hello, world!” event
 sequence. The faster/slower listening fixtures explicitly author duration
 factors of 2/3 and 3/2. Shared pitch and intensity intake remains unfinished.
+
+An explicit compact `VoiceEvent.selected` carries a `RealizationResult`: the
+source phoneme/stress/position, selected phone, and derivation remain separate.
+The formant plots consume that phone directly, including timed segments and
+adjacent-segment models, instead of running the English allophone selector again.
+Existing `segment` and `pronounced` inputs still run the authored selector.
+Supplied selection is an input, not an attestation that its derivation or
+external provenance was validated. Rich utterance/reference admission and
+shared pitch/intensity intake remain unfinished.

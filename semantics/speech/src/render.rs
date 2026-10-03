@@ -70,13 +70,7 @@ impl RenderCursor {
                     VoiceEvent::boundary(boundary) => {
                         speech_pause(*boundary).ok_or(RenderRefusal::Arithmetic)?
                     }
-                    event => {
-                        let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-                        speech_segment_model(value)
-                            .ok_or(RenderRefusal::Arithmetic)?
-                            .target
-                            .frames
-                    }
+                    event => timed_model(*event, None)?.target.frames,
                 }
             };
             total_frames = total_frames
@@ -253,11 +247,21 @@ impl<'a> Renderer<'a> {
 }
 
 impl VoiceEvent {
+    fn model(self) -> Option<SpeechSegmentModel> {
+        let realization = match self {
+            Self::selected(value) => value,
+            Self::segment(value) => speech_realize(value)?,
+            Self::pronounced(value) => speech_realize(value.realization)?,
+            Self::boundary(_) => return None,
+        };
+        speech_selected_segment_model(realization)
+    }
     /// Representation projection; pronunciation and realization policy stay in plots.
     pub fn realization(self) -> Option<RealizationInput> {
         match self {
             Self::segment(value) => Some(value),
             Self::pronounced(value) => Some(value.realization),
+            Self::selected(value) => Some(value.input),
             Self::boundary(_) => None,
         }
     }
@@ -314,8 +318,7 @@ fn timed_model(
     event: VoiceEvent,
     frames: Option<i32>,
 ) -> Result<SpeechSegmentModel, RenderRefusal> {
-    let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-    let mut model = speech_segment_model(value).ok_or(RenderRefusal::Arithmetic)?;
+    let mut model = event.model().ok_or(RenderRefusal::Arithmetic)?;
     if let Some(frames) = frames {
         model.target = speech_duration_target(SpeechDurationTargetInput {
             target: model.target,
