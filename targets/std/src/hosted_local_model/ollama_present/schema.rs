@@ -35,7 +35,9 @@ pub(in crate::hosted_local_model) fn wording_format(
                             clause("action", &["identity", "name"]),
                         ] },
                         "minItems": 1,
-                        "maxItems": conduit_presentation::MAX_GENERATED_WORDING_CLAUSES,
+                        // The selected Host Back has a 256-token output budget.
+                        // One claim leaves room for the exact source envelope.
+                        "maxItems": 1,
                     },
                 },
                 "required": [
@@ -92,6 +94,10 @@ mod tests {
             request.semantic_data.source_presentation_revision,
         );
         let variants = &format["properties"]["proposal"]["properties"]["clauses"]["items"]["oneOf"];
+        assert_eq!(
+            format["properties"]["proposal"]["properties"]["clauses"]["maxItems"],
+            1,
+        );
         assert_eq!(variants.as_array().unwrap().len(), 3);
         assert!(variants[0]["required"]
             .as_array()
