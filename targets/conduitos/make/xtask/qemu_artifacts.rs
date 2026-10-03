@@ -3,12 +3,8 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
-// The complete seven-page Tour adds per-exercise and per-page evidence to the
-// ordinary resident-Plot journey. Fifty retains the exact forty-nine
-// normal checkpoints, including workload revision/replanning and
-// Home/Prompt/Plots/return, plus one failure frame without coalescing distinct
-// proof checkpoints.
-const MAX_CHECKPOINTS: usize = 50;
+// Ten user steps plus one possible failure capture fit this finite manifest.
+const MAX_CHECKPOINTS: usize = 16;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -49,7 +45,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most fifty captures admitted",
+                "at most sixteen captures admitted",
             ));
         }
         let mut serial = Vec::new();
@@ -126,13 +122,6 @@ impl Artifacts {
             json!({"cause":cause,"status":status.to_string(),"code":status.code()});
     }
 
-    pub(super) fn registers(&mut self, result: Result<Value, ConduitosError>) {
-        self.context["register_diagnostic"] = match result {
-            Ok(value) => json!({"result":value}),
-            Err(error) => json!({"reason":error.reason,"detail":error.detail}),
-        };
-    }
-
     pub(super) fn diagnostic_failure(&mut self, error: &ConduitosError) {
         self.context["failure_capture_error"] =
             json!({"reason":error.reason,"detail":error.detail});
@@ -164,18 +153,8 @@ impl Artifacts {
 
 fn journey_step_ids(checkpoint: &str) -> &'static [&'static str] {
     match checkpoint {
-        "body-awake" => &[conduit_home_model::HOME_ARRIVED_STEP_ID],
-        "home-plots" => &[
-            conduit_home_model::PLOTS_OPENED_STEP_ID,
-            conduit_home_model::PLOT_SELECTED_STEP_ID,
-        ],
-        "home-prompt" => &[conduit_home_model::PROMPT_OPENED_STEP_ID],
-        "home-play-observed" => &[
-            conduit_home_model::PLOT_RUN_STEP_ID,
-            conduit_home_model::PLAY_OBSERVED_STEP_ID,
-        ],
-        "home-patchbay-open" => &[conduit_home_model::PATCHBAY_REQUESTED_STEP_ID],
-        "home-returned" => &[conduit_home_model::HOME_RETURNED_STEP_ID],
+        "home" => &[conduit_home_model::HOME_ARRIVED_STEP_ID],
+        "patchbay-workspace" => &[conduit_home_model::PATCHBAY_REQUESTED_STEP_ID],
         _ => &[],
     }
 }
