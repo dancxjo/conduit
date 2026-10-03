@@ -38,7 +38,7 @@ static ALLOCATOR: CountingAllocator = CountingAllocator;
 #[test]
 fn prepared_planned_speech_play_has_no_heap_growth() {
     let mut scheduler = graph::scheduler(
-        b"This is a native speech synthesizer.",
+        b"This is a native speech synthesizer. 007.",
         Rc::new(Cell::new(false)),
     );
     let capacities = scheduler.values().allocation_capacities();

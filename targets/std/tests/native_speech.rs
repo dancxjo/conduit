@@ -124,41 +124,43 @@ fn run(text: &str) -> (Collector, conduit_std_host::StdRunReport) {
 }
 #[test]
 fn installed_host_runs_native_voice_and_closes_after_exact_pcm_delivery() {
-    let text = "This is a native speech synthesizer.";
-    let (collected, report) = run(text);
-    let mut events = [conduit_speech::VoiceEvent::boundary(conduit_speech::VoiceBoundary::phrase);
-        conduit_speech::MAXIMUM_EVENTS];
-    let prepared = conduit_speech::pronounce(text, &mut events).unwrap();
-    let mut renderer = conduit_speech::Renderer::prepare(prepared.events()).unwrap();
-    let mut expected = Vec::new();
-    while !renderer.is_complete() {
-        let mut block = [0_i16; conduit_speech::MAXIMUM_BLOCK_FRAMES];
-        let count = renderer.render(&mut block).unwrap();
-        for sample in &block[..count] {
-            expected.extend_from_slice(&sample.to_le_bytes());
+    for text in ["This is a native speech synthesizer.", "007"] {
+        let (collected, report) = run(text);
+        let mut events =
+            [conduit_speech::VoiceEvent::boundary(conduit_speech::VoiceBoundary::phrase);
+                conduit_speech::MAXIMUM_EVENTS];
+        let prepared = conduit_speech::pronounce(text, &mut events).unwrap();
+        let mut renderer = conduit_speech::Renderer::prepare(prepared.events()).unwrap();
+        let mut expected = Vec::new();
+        while !renderer.is_complete() {
+            let mut block = [0_i16; conduit_speech::MAXIMUM_BLOCK_FRAMES];
+            let count = renderer.render(&mut block).unwrap();
+            for sample in &block[..count] {
+                expected.extend_from_slice(&sample.to_le_bytes());
+            }
         }
-    }
-    assert_eq!(collected.pcm, expected);
+        assert_eq!(collected.pcm, expected);
 
-    let kernel = report.kernel.as_ref().unwrap();
-    assert!(kernel
-        .kernel_sign
-        .iter()
-        .any(|event| event.kind == conduit_kernel::KernelEventKind::BackCompleted));
-    assert!(kernel
-        .kernel_sign
-        .iter()
-        .any(|event| event.kind == conduit_kernel::KernelEventKind::RemoteOutputClosed));
-    assert_eq!(
-        kernel.value_allocation_capacity_before,
-        kernel.value_allocation_capacity_after
-    );
-    assert!(report.observations.iter().any(|o| matches!(
-        o.kind,
-        ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed
-        }
-    )));
+        let kernel = report.kernel.as_ref().unwrap();
+        assert!(kernel
+            .kernel_sign
+            .iter()
+            .any(|event| event.kind == conduit_kernel::KernelEventKind::BackCompleted));
+        assert!(kernel
+            .kernel_sign
+            .iter()
+            .any(|event| event.kind == conduit_kernel::KernelEventKind::RemoteOutputClosed));
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
+        assert!(report.observations.iter().any(|o| matches!(
+            o.kind,
+            ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Completed
+            }
+        )));
+    }
 }
 #[test]
 fn minimal_and_reference_compositions_truthfully_select_the_native_family() {

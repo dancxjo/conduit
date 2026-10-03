@@ -109,7 +109,7 @@ fn preparation_rejects_fore_artifact_pool_and_configuration_drift() {
 #[test]
 fn planned_kernel_fanout_preserves_every_frame_and_drains_before_completion() {
     let pause = Rc::new(Cell::new(true));
-    let mut scheduler = graph::scheduler(b"Hello world", pause.clone());
+    let mut scheduler = graph::scheduler(b"Hello 007 world", pause.clone());
     for _ in 0..32 {
         scheduler.step().unwrap();
     }
@@ -137,7 +137,7 @@ fn planned_kernel_fanout_preserves_every_frame_and_drains_before_completion() {
     pause.set(false);
     scheduler.run(20000).unwrap();
     let mut events = [VoiceEvent::boundary(VoiceBoundary::phrase); MAXIMUM_EVENTS];
-    let prepared = pronounce("Hello world", &mut events).unwrap();
+    let prepared = pronounce("Hello 007 world", &mut events).unwrap();
     let mut renderer = Renderer::prepare(prepared.events()).unwrap();
     let mut expected = Vec::new();
     while !renderer.is_complete() {
@@ -177,7 +177,7 @@ fn cancellation_invalid_text_and_empty_utterance_are_distinct() {
             conduit_speech::kernel::InputFailureDetail::InvalidUtf8,
         ),
         (
-            b"123".as_slice(),
+            b"@".as_slice(),
             conduit_speech::kernel::InputFailureDetail::UnsupportedCharacter,
         ),
     ] {

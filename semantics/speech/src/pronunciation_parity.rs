@@ -263,3 +263,71 @@ fn lexicon_and_spelling_outputs_match_portable_exact_native_values() {
         }
     }
 }
+
+#[test]
+fn digit_normalization_has_exact_portable_values_and_matches_digit_name_lexicon() {
+    let p = program("speech_digit_normalization");
+    for scalar in [
+        i32::MIN,
+        -1,
+        0,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        255,
+        i32::MAX,
+    ] {
+        let actual = speech_digit_normalization(scalar).unwrap();
+        assert_eq!(
+            speech_text_class(scalar) == Some(EnglishTextClass::digit),
+            (48..=57).contains(&scalar)
+        );
+        let expected = match actual {
+            EnglishDigitDecision::unsupported => variant(&p.output_type, "unsupported", None),
+            EnglishDigitDecision::normalized(value) => {
+                let name = [
+                    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                ][(scalar - 48) as usize];
+                assert_eq!(
+                    speech_english_lexicon(name),
+                    Some(EnglishLexiconDecision::matched(value.phonemes))
+                );
+                assert_eq!(value.origin, EnglishPronunciationOrigin::digit_name);
+                assert_eq!(
+                    (value.before, value.after),
+                    (EnglishTextClass::word_gap, EnglishTextClass::word_gap)
+                );
+                let ty = payload(&p.output_type, "normalized");
+                variant(
+                    &p.output_type,
+                    "normalized",
+                    Some(record(
+                        ty,
+                        vec![
+                            ("phonemes", phones(field(ty, "phonemes"), value.phonemes)),
+                            ("origin", variant(field(ty, "origin"), "digit_name", None)),
+                            ("before", variant(field(ty, "before"), "word_gap", None)),
+                            ("after", variant(field(ty, "after"), "word_gap", None)),
+                        ],
+                    )),
+                )
+            }
+        }
+        .canonical_bytes()
+        .unwrap();
+        assert_eq!(
+            p.evaluate(&scalar.to_le_bytes()).unwrap(),
+            expected,
+            "{scalar}"
+        );
+    }
+}

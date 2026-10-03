@@ -66,6 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     for (name, text) in [
         ("text-hello-world", "Hello, world!"),
+        ("text-digits", "0123456789"),
         (
             "text-native-speech",
             "This is a native speech synthesizer. Please listen.",

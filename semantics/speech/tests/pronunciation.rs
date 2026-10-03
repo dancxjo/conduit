@@ -52,10 +52,10 @@ fn refusal_is_atomic_and_never_returns_a_silently_truncated_prefix() {
             },
         ),
         (
-            "hello 2".into(),
+            "hello @".into(),
             TextRefusal::UnsupportedCharacter {
                 scalar: 6,
-                codepoint: 50,
+                codepoint: 64,
             },
         ),
         ("a".repeat(33), TextRefusal::WordBound),

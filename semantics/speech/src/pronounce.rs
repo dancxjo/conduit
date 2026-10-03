@@ -140,22 +140,68 @@ fn word_events(
     })?;
     let mut ordinal = 0;
     walk_word(word, |pronunciation, from, to, origin| {
-        let realization = speech_text_realization(EnglishTextSegmentContext {
+        emit_pronounced(
             pronunciation,
             ordinal,
             count,
-        })
-        .ok_or(TextRefusal::Arithmetic)?;
-        emit(VoiceEvent::pronounced(TextSpeechSegment {
-            realization,
-            source_scalar_start: start + from as u32,
-            source_scalar_end: start + to as u32,
+            start + from as u32,
+            start + to as u32,
             origin,
-        }))?;
+            &mut emit,
+        )?;
         ordinal += 1;
         Ok(())
     })?;
     Ok(count != 0)
+}
+fn emit_pronounced(
+    pronunciation: EnglishPronouncedPhoneme,
+    ordinal: u32,
+    count: u32,
+    source_scalar_start: u32,
+    source_scalar_end: u32,
+    origin: EnglishPronunciationOrigin,
+    emit: &mut impl FnMut(VoiceEvent) -> Result<(), TextRefusal>,
+) -> Result<(), TextRefusal> {
+    let realization = speech_text_realization(EnglishTextSegmentContext {
+        pronunciation,
+        ordinal,
+        count,
+    })
+    .ok_or(TextRefusal::Arithmetic)?;
+    emit(VoiceEvent::pronounced(TextSpeechSegment {
+        realization,
+        source_scalar_start,
+        source_scalar_end,
+        origin,
+    }))
+}
+fn digit_events(
+    value: EnglishNormalizedDigit,
+    start: u32,
+    emit: &mut impl FnMut(VoiceEvent) -> Result<(), TextRefusal>,
+) -> Result<(), TextRefusal> {
+    let phones = slots(value.phonemes);
+    let count = phones
+        .iter()
+        .filter(|slot| matches!(slot, EnglishPhonemeSlot::present(_)))
+        .count() as u32;
+    let mut ordinal = 0;
+    for slot in phones {
+        if let EnglishPhonemeSlot::present(pronunciation) = slot {
+            emit_pronounced(
+                pronunciation,
+                ordinal,
+                count,
+                start,
+                start + 1,
+                value.origin,
+                emit,
+            )?;
+            ordinal += 1;
+        }
+    }
+    Ok(())
 }
 fn boundary(
     class: EnglishTextClass,
@@ -195,6 +241,23 @@ fn traverse(
                 }
                 word[length] = u8::try_from(normalized).map_err(|_| TextRefusal::Arithmetic)?;
                 length += 1;
+            }
+            EnglishTextClass::digit => {
+                if length != 0 {
+                    if word_events(&word[..length], start, &mut emit)? {
+                        tail = EnglishTextTail::segment;
+                    }
+                    length = 0;
+                }
+                let EnglishDigitDecision::normalized(value) =
+                    speech_digit_normalization(normalized).ok_or(TextRefusal::Arithmetic)?
+                else {
+                    return Err(TextRefusal::Arithmetic);
+                };
+                boundary(value.before, &mut tail, &mut emit)?;
+                digit_events(value, index as u32, &mut emit)?;
+                tail = EnglishTextTail::segment;
+                boundary(value.after, &mut tail, &mut emit)?;
             }
             EnglishTextClass::unsupported => {
                 return Err(TextRefusal::UnsupportedCharacter {

@@ -149,8 +149,14 @@ and terminal signs. Device playback and a CLI WAV-output route remain unfinished
 The text profile admits at most 512 UTF-8 bytes and 32 bytes per word, within
 the same 256-event and 30-second rendering bounds. It handles ASCII English
 letters, apostrophes, whitespace and the punctuation declared in the checked
-classification plot. Digits and non-ASCII characters explicitly refuse with a
-scalar offset/codepoint. Preparation preflights event count and caller storage;
+classification plot. `normalization.conduit` reads ASCII digits as individual
+English digit names, preserving leading zeroes. Its phoneme/stress rows agree
+with the profile's word-name dictionary; they remain authored models. Each
+emitted phoneme carries `digit_name` provenance and the exact original digit's
+scalar range. The normalization plot owns the separators before and after each
+digit name. Letter/digit mixtures remain source-scoped. Cardinal, ordinal,
+decimal, date and locale interpretations are not inferred. Other unsupported
+characters explicitly refuse with a scalar offset/codepoint. Preparation preflights event count and caller storage;
 refusal leaves storage unchanged. Its fixed dictionary chooses profile defaults;
 spelling guesses do not resolve all English irregularities, homographs or stress.
 Artifact identity and rich-to-compact admission remain separate work.
@@ -171,7 +177,7 @@ A link is not device playback or proof of real-time performance. WAV generation
 writes hosted artifacts and does not access an audio device.
 
 Remaining work includes artifact-reference validation and explicit rich-to-
-compact segment admission, broader text/number normalization and pronunciation,
+compact segment admission, cardinal/ordinal/decimal/date normalization and broader pronunciation,
 broader consonant-vowel transitions and vowel-dependent stop-burst spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.
