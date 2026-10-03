@@ -41,6 +41,7 @@ pub(super) fn wav(path: &Path) -> Result<bool, String> {
     let mut offset = 12;
     let mut frame_bytes = None;
     let mut data_bytes = None;
+    let mut nonzero_samples = false;
     while offset + 8 <= bytes.len() {
         let size = u32::from_le_bytes(bytes[offset + 4..offset + 8].try_into().unwrap()) as usize;
         let start = offset + 8;
@@ -71,12 +72,16 @@ pub(super) fn wav(path: &Path) -> Result<bool, String> {
                 }
                 frame_bytes = Some(usize::from(align));
             }
-            b"data" => data_bytes = Some(size),
+            b"data" => {
+                data_bytes = Some(size);
+                nonzero_samples = bytes[start..end].iter().any(|byte| *byte != 0);
+            }
             _ => {}
         }
         offset = end + (size & 1);
     }
     Ok(offset == bytes.len()
+        && nonzero_samples
         && frame_bytes
             .is_some_and(|align| data_bytes.is_some_and(|size| size > 0 && size % align == 0)))
 }
