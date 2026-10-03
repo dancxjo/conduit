@@ -78,9 +78,7 @@ fn owner_names_are_human_facing_while_exact_body_and_plot_truth_remain_inspectab
     }));
     assert!(face.presentation.text.iter().any(|text| {
         text.subject == body_subject.identity
-            && text
-                .text
-                .starts_with("North Station is lulled with 1 resident Plot")
+            && text.text == "North Station is lulled with one resident plot."
     }));
     face.presentation.validate().unwrap();
 }
