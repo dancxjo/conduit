@@ -261,3 +261,8 @@ required-features = ["native-compositor"]
 name = "native_compositor_input"
 path = "tests/native_compositor_input.rs"
 required-features = ["native-compositor"]
+
+[[test]]
+name = "native_compositor_scanout"
+path = "tests/native_compositor_scanout.rs"
+required-features = ["native-compositor"]
