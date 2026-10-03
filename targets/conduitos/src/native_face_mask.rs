@@ -32,6 +32,19 @@ pub enum NativeFaceMaskError {
     Compositor(crate::native_compositor::NativeCompositorError),
 }
 
+impl NativeFaceMaskError {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Plan => "native-face-mask-plan-refused",
+            Self::Face => "native-face-mask-face-refused",
+            Self::Producer(_) => "native-face-mask-producer-refused",
+            Self::Scene(_) => "native-face-mask-scene-refused",
+            Self::Mask(_) => "native-face-mask-execution-refused",
+            Self::Compositor(_) => "native-face-mask-compositor-refused",
+        }
+    }
+}
+
 pub enum NativeFaceMaskInput {
     Unchanged,
     Redrawn(CompositionReceipt),
@@ -131,6 +144,39 @@ impl NativeFaceMask {
 
     pub fn scene(&self) -> Option<&NativeFaceScene> {
         self.scene.as_ref()
+    }
+
+    /// Restore a Mask-local focus request only after the semantic owner has
+    /// accepted an interaction and published the replacement Face/Show.
+    pub fn focus_named(
+        &mut self,
+        request: &FaceFocusRequest,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, NativeFaceMaskError> {
+        self.scene
+            .as_mut()
+            .ok_or(NativeFaceMaskError::Face)?
+            .focus_named(request)
+            .map_err(NativeFaceMaskError::Scene)?;
+        self.repaint(display)
+    }
+
+    /// Release the arrival surface before the Body's ordinary presenter takes
+    /// the finite display. No pending Show remains after this transition.
+    pub fn suspend(&mut self) -> Result<(), NativeFaceMaskError> {
+        if let Some(session) = self.session.take() {
+            session
+                .close_without_input()
+                .map_err(NativeFaceMaskError::Mask)?;
+        }
+        if self.surface_admitted {
+            self.compositor
+                .remove_surface(&self.surface_id)
+                .map_err(NativeFaceMaskError::Compositor)?;
+            self.surface_admitted = false;
+        }
+        self.scene = None;
+        Ok(())
     }
 
     pub fn route_keyboard(&self) -> Result<bool, NativeFaceMaskError> {
