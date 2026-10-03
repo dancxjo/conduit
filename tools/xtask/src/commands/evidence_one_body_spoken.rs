@@ -43,6 +43,9 @@ pub(crate) struct Args {
     /// New evidence directory; no existing output is replaced.
     #[arg(long)]
     output: PathBuf,
+    /// Capture owner's preassigned run token, supplied before this action begins.
+    #[arg(long)]
+    run_id: Option<String>,
     /// Already-local Ollama model name.
     #[arg(long)]
     model: String,
@@ -83,17 +86,28 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         .as_ref()
         .ok_or("owner Face has no Body identity")?;
     let run_nonce = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-    let run_id = format!(
-        "one-body-spoken/{}/{}/{}/{}",
+    let run_seed = format!(
+        "{}/{}/{}/{}",
         source_commit,
         body_id.as_str(),
         first.presentation.revision,
         run_nonce,
     );
-    let short_run_id = format!("{:x}", Sha256::digest(run_id.as_bytes()));
-    let execution_id = format!("journey-spoken-{}", &short_run_id[..24]);
+    let run_digest = format!("{:x}", Sha256::digest(run_seed.as_bytes()));
+    let run_id = args
+        .run_id
+        .unwrap_or_else(|| format!("one-body-spoken-{}", &run_digest[..32]));
+    if run_id.is_empty()
+        || run_id.len() > 128
+        || !run_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    {
+        return Err("run ID must be a bounded alphanumeric, dash, or underscore token".into());
+    }
+    let execution_id = format!("journey-spoken-{}", &run_digest[..24]);
     let request = GenerativePresenterRequest::from_presentation(
-        format!("request/journey-spoken/{}", &short_run_id[..24]),
+        format!("request/journey-spoken/{}", &run_digest[..24]),
         finite_face_wording_presenter_policy(),
         first.presentation.clone(),
         None,
