@@ -161,7 +161,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let private =
-            std::env::temp_dir().join(format!("conduit-owner-qmp-{}-{nonce}", std::process::id()));
+            Path::new("/tmp").join(format!("conduit-qmp-{}-{nonce:x}", std::process::id()));
         std::fs::create_dir(&private).unwrap();
         std::fs::set_permissions(&private, std::fs::Permissions::from_mode(0o700)).unwrap();
         let socket = private.join("monitor.sock");
