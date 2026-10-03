@@ -54,6 +54,12 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
     let paths = Paths::new(ConduitosArch::X86_64)?;
     prepared_proof_image::ensure(prepared_image, opts)?;
     let positive = run::boot_once(&paths, opts)?;
+    if positive.usb.short_packets == 0 {
+        return Err(ConduitosError::refusal(
+            "usb-short-control-proof-missing",
+            "the bounded descriptor request must retain a short Data Stage followed by successful Status Stage",
+        ));
+    }
     let absent = usb_run::prove_absent(&paths)?;
     let status = Command::new("cargo")
         .args(["test", "-p", "conduitos", "--lib", "arch::x86_64::usb"])
