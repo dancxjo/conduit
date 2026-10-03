@@ -21,6 +21,14 @@ impl ProductJourney {
         })?
     }
 
+    pub fn foreground_patchbay_graph(&self) -> Option<&patchbay_graph::PatchbayGraph> {
+        (self.status == JourneyStatus::QuiescentAwaitingInput).then(|| {
+            self.kernel
+                .as_ref()?
+                .patchbay_graph(self.foreground_index())
+        })?
+    }
+
     pub fn take_application_request(&mut self) -> Option<native_workset::NativeApplicationRequest> {
         self.application_request.take()
     }

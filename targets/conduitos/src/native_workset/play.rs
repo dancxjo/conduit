@@ -168,6 +168,12 @@ impl NativeWorksetPlay {
     pub fn application_view(&self, plot: usize) -> Option<&conduit_presentation::ApplicationView> {
         self.application_views.get(plot)?.as_ref()
     }
+    pub fn patchbay_graph(&self, plot: usize) -> Option<&patchbay_graph::PatchbayGraph> {
+        match self.applications.get(plot)?.as_ref()? {
+            NativeApplication::Patchbay(application) => application.selected_graph(),
+            _ => None,
+        }
+    }
     pub fn select_patchbay_target(
         &mut self,
         patchbay: usize,

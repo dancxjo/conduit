@@ -64,9 +64,11 @@ impl FrontDoor {
                 self.reset_application_navigation();
             }
             self.application_view = application_view;
+            self.patchbay_graph = journey.foreground_patchbay_graph().cloned();
             Ok(())
         } else {
             self.application_view = None;
+            self.patchbay_graph = None;
             self.observe_journey(journey.projection())
         }
     }
