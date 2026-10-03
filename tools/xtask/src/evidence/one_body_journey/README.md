@@ -15,7 +15,7 @@ Media requirements:
 
 The renderer checks digest and size of every declared output, refuses undeclared or symlinked inputs, rejects mixed or stale run/Body/Face/action/media relationships, checks WAV structure, and escapes all human text before embedding it in the common site theme. Its checks establish internal documentary correlation. Only the live producer and environment-specific acceptance can establish that the claimed action, Mask Show, QMP frame, browser interaction, speech playback, and human listening actually occurred. Synthetic fixtures in `tests.rs` exercise rejection and layout; they are not publication evidence.
 
-The retained bundle permits at most 64 declared outputs, each at most 16 MiB, and the renderer additionally refuses more than 128 MiB of declared output bytes in total. The final site staging must measure the actual produced bundle and keep the documentary source commit distinct from the later site carrier commit.
+The retained bundle permits at most 128 declared outputs, each at most 16 MiB, and the renderer additionally refuses more than 128 MiB of declared output bytes in total. Previously retained 64-output manifests remain verifiable. The final site staging must measure the actual produced bundle and keep the documentary source commit distinct from the later site carrier commit.
 
 ## One live spoken chapter producer
 
