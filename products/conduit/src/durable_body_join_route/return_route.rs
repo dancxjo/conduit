@@ -285,11 +285,12 @@ fn apply(
     grant_expires_at_millis: u64,
 ) -> Response {
     let request = action.request;
-    let result = crate::durable_host_control::submit_browser_face_interaction(
+    let result = crate::durable_host_control::submit_browser_face_interaction_until(
         state_dir,
         request.clone(),
         action.show,
         action.interaction,
+        grant_expires_at_millis,
     );
     let (accepted, code) = match &result {
         Ok(_) => (true, "accepted"),

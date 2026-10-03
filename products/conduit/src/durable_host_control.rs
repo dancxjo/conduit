@@ -43,7 +43,6 @@ mod body_run;
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
 pub(crate) use body::start_browser_window;
-pub(crate) use body::submit_browser_face_interaction;
 use body::HostSource;
 #[allow(unused_imports)]
 // Native return consumes the expiry-bearing entrance after its route lands.
@@ -51,6 +50,7 @@ pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
     local_face_snapshot, submit_local_face_interaction, submit_local_face_interaction_until,
 };
+pub(crate) use body::{submit_browser_face_interaction, submit_browser_face_interaction_until};
 pub(crate) use body_birth::BirthTransition;
 pub(crate) use body_birth::{face as birth_face, interact as submit_birth_interaction};
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
@@ -987,6 +987,8 @@ enum Request {
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
         interaction: FaceInteraction,
+        #[serde(default)]
+        not_after_millis: Option<u64>,
     },
     BodyStart {
         protocol: u16,
@@ -1854,9 +1856,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             request,
             show,
             interaction,
+            not_after_millis,
             ..
-        } if protocol == PROTOCOL => runtime
-            .owned_body_browser_interaction(&request, &show, &interaction)
+        } if protocol == PROTOCOL => check_action_expiry(not_after_millis)
+            .and_then(|()| runtime.owned_body_browser_interaction(&request, &show, &interaction))
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),
@@ -2025,7 +2028,7 @@ fn refused(code: &str) -> Response {
 
 fn check_action_expiry(not_after_millis: Option<u64>) -> Result<(), String> {
     if let Some(limit) = not_after_millis {
-        if now_millis()? > limit {
+        if now_millis()? >= limit {
             return Err("control-grant-expired".into());
         }
     }
@@ -2105,6 +2108,10 @@ mod tests {
             "control-grant-expired"
         );
         assert!(check_action_expiry(None).is_ok());
+        assert_eq!(
+            check_action_expiry(Some(now_millis().unwrap())).unwrap_err(),
+            "control-grant-expired"
+        );
     }
     use conduit_body::{
         Body, BodyConversationContext, HostPresenceClock, HostPresenceClockScale, HostPresenceTable,
