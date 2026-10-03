@@ -8,7 +8,7 @@ use std::{
 };
 
 use clap::Args as ClapArgs;
-use conduit_body::{PortableInvitation, INVITATION_SCHEMA};
+use conduit_body::PortableInvitation;
 use conduit_body_make::{
     seal_reviewed_prebuilt_body_spore_with_content_digest, SelectedPrebuiltContent, SporeBinding,
 };
@@ -101,12 +101,6 @@ pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn std::erro
     invitation
         .validate(now_millis)
         .map_err(|error| format!("owner invitation refused: {error:?}"))?;
-    // The current native-media candidate shape cannot retain the canonical
-    // transport authentication binding. Refuse routed invitations until that
-    // representation is joined; never silently erase its route authority.
-    if invitation.schema != INVITATION_SCHEMA || invitation.rendezvous.is_some() {
-        return Err("routed invitation needs a native-media authentication binding".into());
-    }
     let SporeBinding::SelfJoining { invitation_id } = &spore.manifest.binding else {
         return Err("checked Body Host is not self-joining".into());
     };
@@ -125,6 +119,7 @@ pub(super) fn run(args: Args, opts: &GlobalOpts) -> Result<(), Box<dyn std::erro
             "expires_at_millis": invitation.claim.expires_at_millis,
             "secret": invitation.secret,
             "rendezvous_candidates": [],
+            "rendezvous": invitation.rendezvous.as_ref(),
         }
     });
     let mut encoded = serde_json::to_vec(&provision)?;
