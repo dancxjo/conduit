@@ -1,62 +1,15 @@
 use super::*;
+use conduit_core::HostAdvertisement;
 
 pub(crate) const MASK_SOURCE: &str = "plot browser-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 pub(super) const ALTERNATE_MASK_SOURCE: &str = "plot browser-graphical-alternate (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 
-fn port(
-    name: &str,
-    value_kind: &str,
-    direction: PortDirection,
-    temporal: PortTemporal,
-) -> PortDescriptor {
-    PortDescriptor {
-        port_id: port_id(name),
-        value_kind: kind_id(value_kind),
-        direction,
-        temporal,
-        abnormal_kind: None,
-    }
-}
-
 pub(crate) fn planned_mask(
-    host_id: HostId,
-    boot_id: BootId,
+    host: &HostAdvertisement,
     source: &str,
     name: &str,
 ) -> Result<PlannedMaskPlot, String> {
-    let definition = Kind {
-        startup_parameters: vec![],
-        shorthand: None,
-        kind_id: kind_id("presentation/browser-dom-mask"),
-        kind_contract_revision: KindIdentity::from("conduit.browser/presentation-dom-mask@1"),
-        inputs: vec![port(
-            "presentation",
-            PRESENTATION_VALUE_KIND,
-            PortDirection::Input,
-            PortTemporal::Value,
-        )],
-        outputs: vec![
-            port(
-                "interaction",
-                FACE_INTERACTION_VALUE_KIND,
-                PortDirection::Output,
-                PortTemporal::Flow { closes: true },
-            ),
-            port(
-                "show",
-                SHOW_VALUE_KIND,
-                PortDirection::Output,
-                PortTemporal::Value,
-            ),
-        ],
-        configuration: vec![],
-        semantic_laws: Default::default(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 4,
-            max_queue_bytes: MASK_BYTES,
-        },
-    };
+    let definition = crate::installed_browser::dom_mask::kind();
     let mut startup = StartupCatalog::new();
     install_mask_plot_value_aliases(&mut startup).map_err(|error| format!("{error:?}"))?;
     startup
@@ -74,39 +27,9 @@ pub(crate) fn planned_mask(
     if !syntax.diagnostics.is_empty() {
         return Err(format!("{:?}", syntax.diagnostics));
     }
-    let offer = BackOfferBuilder::new(
-        definition,
-        Back {
-            capability_id: CapabilityId::from("capability/browser-dom-mask"),
-            execution_profile_id: ExecutionProfileId::from("browser/mask@1"),
-            implementation_id: ImplementationId::from("implementation/browser-dom-mask"),
-            artifact_id: ArtifactId::from("artifact/browser-runtime"),
-            host_calls: vec![HostCallRequirement {
-                contract_id: HostCallContractId::from(MASK_OPERATION),
-                target_kind: Some(kind_id("presentation/browser-dom-mask")),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MASK_BYTES,
-                maximum_output_bytes: MASK_BYTES,
-            }],
-            resource_requirements: vec![],
-            authority_requirements: vec![],
-        },
-    )
-    .build();
-    let host = HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id,
-        boot_id,
-        offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("browser/mask@1"),
-        bases: vec![],
-        resources: vec![],
-        capabilities: vec![offer],
-        planner_capabilities: vec![],
-    };
     let placements = conduit_planner::default_expanded_placements(
         &authoring.expanded,
-        core::slice::from_ref(&host),
+        core::slice::from_ref(host),
     )
     .map_err(|error| format!("{error:?}"))?;
     let mut boundary_limits = BTreeMap::new();
@@ -130,7 +53,7 @@ pub(crate) fn planned_mask(
     }
     let plan = conduit_planner::plan_expanded_authoring_with_options(
         &authoring,
-        &[host],
+        core::slice::from_ref(host),
         &placements,
         &[],
         conduit_planner::PlanningOptions {
@@ -208,4 +131,43 @@ pub(super) fn admitted_routes(
         ],
     )
     .map_err(|error| format!("admit browser Mask routes: {error:?}"))
+}
+
+#[cfg(test)]
+mod installed_offer_tests {
+    use super::*;
+    use conduit_core::{BootId, HostId};
+
+    #[test]
+    fn dom_mask_plan_requires_the_current_advertised_back_and_presentation_resource() {
+        let host = crate::installed_browser::membership_advertisement(
+            HostId::from("host/browser-mask"),
+            BootId::from("boot/browser-mask"),
+        );
+        let planned = planned_mask(&host, MASK_SOURCE, "browser-graphical").unwrap();
+        let placement = &planned.plan.fragments[0].placements[0];
+        assert_eq!(placement.host_id, host.host_id);
+        assert_eq!(placement.boot_id, host.boot_id);
+        assert_eq!(placement.offer_generation, host.offer_generation);
+        assert_eq!(
+            placement.capability_id,
+            crate::installed_browser::dom_mask::offer().capability_id
+        );
+        assert!(placement
+            .resources
+            .iter()
+            .any(|resource| resource.pool_id.as_str() == "browser/presentation"));
+
+        let mut no_back = host.clone();
+        no_back.capabilities.retain(|offer| {
+            offer.capability_id != crate::installed_browser::dom_mask::offer().capability_id
+        });
+        assert!(planned_mask(&no_back, MASK_SOURCE, "browser-graphical").is_err());
+
+        let mut no_resource = host;
+        no_resource
+            .resources
+            .retain(|resource| resource.pool_id.as_str() != "browser/presentation");
+        assert!(planned_mask(&no_resource, MASK_SOURCE, "browser-graphical").is_err());
+    }
 }
