@@ -321,6 +321,19 @@ impl SpokenFaceSession {
     /// audio outcome before another one is offered. Read-all needs no giant
     /// assembled speech string or whole-view PCM allocation.
     pub fn next_segment(&mut self) -> Result<Option<SpokenSegment>, SpokenFaceRefusal> {
+        self.next_segment_up_to(MAXIMUM_SPEAKABLE_SEGMENT_BYTES)
+    }
+
+    /// Use a smaller UTF-8 text budget when the selected speech Back has a
+    /// tighter, provider-dependent audio-time budget. The default remains the
+    /// portable maximum; neither limit predicts actual PCM duration.
+    pub fn next_segment_up_to(
+        &mut self,
+        maximum_text_bytes: usize,
+    ) -> Result<Option<SpokenSegment>, SpokenFaceRefusal> {
+        if !(4..=MAXIMUM_SPEAKABLE_SEGMENT_BYTES).contains(&maximum_text_bytes) {
+            return Err(SpokenFaceRefusal::InvalidValue);
+        }
         if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
@@ -344,7 +357,7 @@ impl SpokenFaceSession {
             Reading::Message { text, offset } => (&*text, None, None, offset),
         };
         let remaining = &text[*offset..];
-        let cut = split_at_char_boundary(remaining, MAXIMUM_SPEAKABLE_SEGMENT_BYTES);
+        let cut = split_at_char_boundary(remaining, maximum_text_bytes);
         let part = remaining[..cut].to_string();
         *offset += cut;
         let finished_piece = *offset == text.len();
