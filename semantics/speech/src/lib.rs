@@ -34,11 +34,16 @@ extern crate alloc;
 pub mod admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
+#[cfg(feature = "semantic-bindings")]
+pub mod timing;
 /// Preparation/inspection bindings. The compact rendering Back does not carry
 /// rich inventories or a heap. Bounds and local laws are checked here; resolving
 /// artifact references remains an admission responsibility.
 #[cfg(feature = "semantic-bindings")]
-#[allow(dead_code)]
+// Rich preparation values retain inline native variant payloads. Their finite
+// collection bounds remain explicit; boxing is not a semantic requirement.
+// This optional module is absent from the compact renderer's default profile.
+#[allow(dead_code, clippy::large_enum_variant)]
 pub mod semantic {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
@@ -49,6 +54,8 @@ extern crate std;
 mod differential;
 #[cfg(test)]
 mod realization_parity;
+#[cfg(test)]
+mod timing_parity;
 
 #[cfg(test)]
 mod frame_parity;

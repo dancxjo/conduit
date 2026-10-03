@@ -21,6 +21,34 @@ own this compact English voice's realization choices and fixed-point equations.
   locale differ. These are structures for i18n, not a translation engine or
   locale formatter.
 
+`timing.conduit` adds exact rational seconds, strictly positive fundamental
+cycle durations, and dimensionless relative amplitude. Duration and cycle
+identity differ even for equal fractions; neither is a renderer frame count.
+`intent.conduit` carries these quantities through the existing six specification
+states, with separate phoneme/phone identity, exact occurrence/source references,
+stress and provenance. Boundary/pause intent is a separate event. These are
+speech intents, distinct from an execution Plan or an acoustic observation.
+
+The optional preparation module `timing` projects admitted durations/cycles into
+an explicit sample rate through checked `speech/time-at-rate` arithmetic. It
+retains the original fraction, whole frames and exact remainder; it neither
+normalizes the ratio nor chooses a rounding policy. Native output laws verify
+the quotient/remainder relation. Product overflow refuses. For example, a
+61/8000-second cycle gives 61 frames at 8 kHz and 122 at 16 kHz. A 1/3-second
+duration at 8 kHz gives 2666 frames plus 2/3 of a frame. Independently dropping
+per-segment remainders can accumulate drift; timeline commitment must account
+for them. The private numeric carrier in `timing_projection.conduit` is not a
+public admission path. Rust only projects admitted fields into that carrier
+and reconstructs the law-checked native result.
+
+This is the first shared-intent prerequisite for
+[#4898](https://github.com/dancxjo/conduit/issues/4898) and
+[#4907](https://github.com/dancxjo/conduit/issues/4907). The current compact
+renderer still consumes its existing event tape; rich-to-compact realization,
+linguistic analysis, commitment and FARGAN execution remain unfinished. The
+new intent does not claim that artifact references have been resolved, that
+uncertain values have been committed, or that both voices already consume it.
+
 `pronunciation.conduit` owns this first English orthography profile's case
 normalization, classification, small self-authored dictionary, ordered spelling
 rules, word position and punctuation decisions. `pronounce` prepares ordinary
