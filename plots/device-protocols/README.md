@@ -45,8 +45,23 @@ Imported checked Types retain their refinement metadata. Construction may
 forward an identical field contract or use a valid constant; it cannot silently
 discard a law or justify arithmetic changes from shape alone.
 
+`bme280-lifecycle.conduit` now checks and expands a staged probe/reset,
+initialization, deadline and bounded polling policy, with calibration and sample
+capture. Each event is handled once. The staged topology stays within the
+existing expression-depth limit; it does not add a private protocol scheduler.
+Deterministic transcripts check exact register order, response lengths, both
+protocol addresses, refusal preservation, deadlines and finite poll exhaustion.
+Prepared transition reuse allocates nothing. The source initializer owns the
+initial state; the test harness supplies events and bus responses.
+
+`bme280-observation.conduit` assembles one typed fixed-point temperature,
+pressure and humidity observation from decoded calibration and samples.
+Malformed input, disabled samples and invalid calibration yield explicit
+unavailable results; their numeric scratch is never published. Its staged
+topology uses checked arithmetic and capacity-stable prepared storage.
+
 These remain arithmetic, finite frame and bus foundations. They do not yet
-supply a complete device state machine or an installed hardware Back.
+supply an integrated production device lifecycle or an installed hardware Back.
 CRC check-vector tests compose the steps in a deterministic test harness; they
 do not yet establish a complete authored CRC flow through the production kernel.
 

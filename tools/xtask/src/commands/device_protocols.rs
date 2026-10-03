@@ -10,6 +10,19 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.borrowed-values",
+                "Check exact borrowed collection and variant projections",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit-core",
+                    "--test",
+                    "borrowed_projection",
+                ],
+            ),
+            Step::new(
                 "device-protocols.binary",
                 "Check and execute reviewed portable binary plots",
                 "cargo",
@@ -39,6 +52,10 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "native_expression_construction",
                     "--test",
                     "bme280_compensation",
+                    "--test",
+                    "bme280_lifecycle",
+                    "--test",
+                    "bme280_observation",
                 ],
             ),
             Step::new(

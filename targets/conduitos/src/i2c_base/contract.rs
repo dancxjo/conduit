@@ -112,12 +112,19 @@ impl I2cContract {
 
     pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
         let mut startup = StartupCatalog::new();
-        startup
-            .insert_checked_native_type("machine/i2c/transact/request", &self.types[0])
-            .expect("request Type");
-        startup
-            .insert_checked_native_type("machine/i2c/transact/result", &self.types[1])
-            .expect("result Type");
+        for (name, path) in [
+            ("I2cTransaction", "machine/i2c/transact/request"),
+            ("I2cResult", "machine/i2c/transact/result"),
+        ] {
+            let ty = self
+                .types
+                .iter()
+                .find(|ty| ty.name == name)
+                .expect("checked I2C Type");
+            startup
+                .insert_checked_native_type(path, ty)
+                .expect("I2C import");
+        }
         startup
             .insert(conduit_plot::KindSignature {
                 kind: I2C_KIND.into(),
