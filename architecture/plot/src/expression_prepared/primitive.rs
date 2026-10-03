@@ -220,3 +220,32 @@ fn shift_count(value: FixedInteger) -> Result<u32, Refusal> {
     };
     u32::try_from(value).map_err(|_| Refusal::Arithmetic)
 }
+
+/// Checked strict widening preserves the entire source domain and uses inline
+/// integer storage; it never allocates during evaluation or truncates bits.
+pub(super) fn evaluate_widen(
+    expected: PrimitiveInfoKind,
+    operand: &PrimitiveValue<'_>,
+) -> Result<PrimitiveValue<'static>, Refusal> {
+    let source = decode_integer(operand)?;
+    let widened = if signed_integer(source.kind()) {
+        FixedInteger::from_signed(
+            expected,
+            source.signed().map_err(|_| Refusal::InvalidProgram)?,
+        )
+    } else if signed_integer(expected) {
+        FixedInteger::from_signed(
+            expected,
+            i128::try_from(source.unsigned().map_err(|_| Refusal::InvalidProgram)?)
+                .map_err(|_| Refusal::InvalidProgram)?,
+        )
+    } else {
+        FixedInteger::from_unsigned(
+            expected,
+            source.unsigned().map_err(|_| Refusal::InvalidProgram)?,
+        )
+    }
+    .map_err(|_| Refusal::InvalidProgram)?;
+    let (bytes, length) = widened.encode();
+    PrimitiveValue::new(expected, &bytes[..length])
+}
