@@ -245,3 +245,112 @@ plot speech/pitch-period (
     >> value: EnglishStress
     result: I64 >>
 ) = (. is primary ? 61 : . is secondary ? 64 : 67)
+
+# Composition is authored connectivity, not a Rust sequence of DSP calls.
+plot speech/filter-limit (
+    >> value: ResonatorInput
+    result: I64 >>
+) {
+    filter: speech/resonator
+    limit: speech/limit
+    value >> filter.value
+    filter.result >> limit.value
+    limit.result >> result
+}
+
+# State is an exact value carried through one bounded sample transition.
+type SpeechFrameState = {
+    phase: I64
+    noise: I64
+    first1: I64
+    first2: I64
+    second1: I64
+    second2: I64
+    third1: I64
+    third2: I64
+}
+type SpeechFrameInput = {
+    target: SpeechAcousticTarget
+    period: I64
+    frame: I64
+    state: SpeechFrameState
+}
+type SpeechFrameWorking = {
+    input: SpeechFrameInput
+    phase: I64
+    noise: I64
+    excitation: I64
+    first: I64
+    second: I64
+    third: I64
+    envelope: I64
+}
+type SpeechFrameResult = {
+    state: SpeechFrameState
+    sample: I64
+}
+plot speech/frame-excite (
+    >> value: SpeechFrameInput
+    result: SpeechFrameWorking >>
+) = ({input: ., phase: .state.phase + 1 >= .period ? 0 : .state.phase + 1, noise: ((.state.noise * 25173 + 13849) % 65536), excitation: ((.state.phase < .period / 4 ? 1600 - .state.phase * 6400 / .period : -500 + .state.phase * 500 / .period) * .target.voiced + (((.state.noise * 25173 + 13849) % 65536) % 4096 - 2048) * .target.frication), first: 0, second: 0, third: 0, envelope: (.frame < .target.closure ? 0 : .frame - .target.closure < 64 ? (.frame - .target.closure) * 4 : .target.frames - .frame < 64 ? (.target.frames - .frame) * 4 : 256)})
+plot speech/frame-first (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameWorking >>
+) = ({input: .input, phase: .phase, noise: .noise, excitation: .excitation, first: (((.excitation * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) < -32767 ? -32767 : ((.excitation * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) > 32767 ? 32767 : ((.excitation * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384)), second: .second, third: .third, envelope: .envelope})
+plot speech/frame-second (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameWorking >>
+) = ({input: .input, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: (((.excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) < -32767 ? -32767 : ((.excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) > 32767 ? 32767 : ((.excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384)), third: .third, envelope: .envelope})
+plot speech/frame-third (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameWorking >>
+) = ({input: .input, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: .second, third: (((.excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) < -32767 ? -32767 : ((.excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) > 32767 ? 32767 : ((.excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384)), envelope: .envelope})
+plot speech/frame-result (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameResult >>
+) = ({state: {phase: .phase, noise: .noise, first1: .first, first2: .input.state.first1, second1: .second, second2: .input.state.second1, third1: .third, third2: .input.state.third1}, sample: ((.first + .second / 2 + .third / 4) * .envelope / 256) < -32767 ? -32767 : ((.first + .second / 2 + .third / 4) * .envelope / 256) > 32767 ? 32767 : ((.first + .second / 2 + .third / 4) * .envelope / 256)})
+
+plot speech/frame (
+    >> value: SpeechFrameInput
+    result: SpeechFrameResult >>
+) {
+    excite: speech/frame-excite
+    first: speech/frame-first
+    second: speech/frame-second
+    third: speech/frame-third
+    finish: speech/frame-result
+    value >> excite.value
+    excite.result >> first.value
+    first.result >> second.value
+    second.result >> third.value
+    third.result >> finish.value
+    finish.result >> result
+}
+
+# Starting excitation history is source policy, not an ambient random seed.
+type SpeechStart =
+    begin
+    | reset
+plot speech/initial-state (
+    >> value: SpeechStart
+    result: SpeechFrameState >>
+) = ({phase: 0, noise: 1, first1: 0, first2: 0, second1: 0, second2: 0, third1: 0, third2: 0})
+
+# Pauses preserve phase and filter history; silence is an explicit output.
+plot speech/boundary-frame (
+    >> value: SpeechFrameState
+    result: SpeechFrameResult >>
+) = ({state: ., sample: 0})
+
+# These are this compact voice profile's preparation and block admission limits.
+# The acoustic coefficients above are authored for exactly this sample rate.
+type SpeechRenderProfile = {
+    sample_rate_hz: U32
+    maximum_events: U32
+    maximum_block_frames: U32
+    maximum_utterance_frames: U64
+}
+plot speech/profile (
+    >> value: SpeechStart
+    result: SpeechRenderProfile >>
+) = ({sample_rate_hz: 8000, maximum_events: 256, maximum_block_frames: 128, maximum_utterance_frames: 240000})

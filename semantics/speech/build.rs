@@ -1,6 +1,8 @@
+#[path = "build_support/graph.rs"]
+mod graph;
 #[path = "build_support/lower.rs"]
 mod lower;
-use conduit_core::{ConfigurationValue, StructuredInfoTypeShape};
+use conduit_core::StructuredInfoTypeShape;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     PortableExpressionProgram, ProfileCatalog, StartupCatalog,
@@ -35,6 +37,7 @@ fn main() {
     let path = "voice.conduit";
     println!("cargo:rerun-if-changed={path}");
     println!("cargo:rerun-if-changed=build_support/lower.rs");
+    println!("cargo:rerun-if-changed=build_support/graph.rs");
     let source = fs::read_to_string(path).expect("native speech source");
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -124,39 +127,50 @@ fn main() {
     };
     generated.push_str(&format!("#[cfg(test)] pub fn target_fields(value: SpeechAcousticTarget) -> [(&'static str, i64); {}] {{ [{}] }}\n", fields.len(), fields.iter().map(|field| format!("({:?}, value.{})", field.name(), field.name())).collect::<Vec<_>>().join(",")));
     let mut programs = Vec::new();
+    let mut graphs = Vec::new();
     for plot in &checked.plots {
         let authored =
             expand_canonical_plot_for_authoring(&checked, &plot.name, &ProfileCatalog::new())
                 .expect("speech plot expands");
-        assert_eq!(
-            authored.expanded.gears.len(),
-            1,
-            "only unary expression backs are lowered"
-        );
-        let gear = &authored.expanded.gears[0];
-        assert_eq!(
-            gear.kind_contract_revision.as_str(),
-            conduit_plot::PURE_EXPRESSION_REVISION
-        );
-        let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
-            panic!("program")
-        };
-        let program =
-            PortableExpressionProgram::from_canonical_hex(encoded).expect("checked program");
         let name = plot.name.replace(['/', '-'], "_");
-        programs.push((name.clone(), encoded.clone()));
+        let lowered = graph::function(&name, &authored, &types).expect("fixed pure graph lowering");
+        if plot.name == "speech/profile" {
+            let program = PortableExpressionProgram::from_canonical_hex(&lowered.programs[0].1)
+                .expect("profile program");
+            generated.push_str(&format!(
+                "pub const RENDER_PROFILE: SpeechRenderProfile = {};\n",
+                lower::constant(&program, &types).expect("literal voice profile")
+            ));
+        }
+        programs.extend(lowered.programs);
+        graphs.push((name.clone(), lowered.graph, lowered.result));
         generated.push_str(&format!(
             "pub const {}_ID: &str = {:?};\n",
             name.to_uppercase(),
             plot.checked_plot_id.as_str()
         ));
-        generated.push_str(
-            &lower::function(&name, &program, &types).expect("fixed native expression lowering"),
-        );
+        generated.push_str(&format!(
+            "pub const {}_EXPANDED_ID: &str = {:?};\n",
+            name.to_uppercase(),
+            authored.expanded.expanded_plot_id.as_str()
+        ));
+        generated.push_str(&lowered.source);
     }
     generated.push_str(&format!(
         "#[cfg(test)] pub const PROGRAMS: &[(&str, &str)] = &{:?};\n",
         programs
+    ));
+    generated.push_str("#[cfg(test)] pub struct CompiledGraphProof { pub name: &'static str, pub steps: &'static [(usize, &'static str)], pub result: usize }\n");
+    generated.push_str(&format!(
+        "#[cfg(test)] pub const GRAPHS: &[CompiledGraphProof] = &[{}];\n",
+        graphs
+            .iter()
+            .map(|(name, graph, result)| format!(
+                "CompiledGraphProof {{ name: {name:?}, steps: &{:?}, result: {result} }}",
+                graph
+            ))
+            .collect::<Vec<_>>()
+            .join(",")
     ));
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("voice.rs"),
