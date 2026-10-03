@@ -337,3 +337,12 @@ compact segment admission, cardinal/ordinal/decimal/date normalization and broad
 broader consonant-vowel transitions and vowel-dependent stop-burst spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.
+
+An explicit compact `VoiceEvent.selected` carries a `RealizationResult`: the
+source phoneme/stress/position, selected phone, and derivation remain separate.
+The formant plots consume that phone directly, including adjacent-segment
+models, instead of running the English allophone selector again. Existing
+`segment` and `pronounced` inputs still run the authored selector. Supplied
+selection is an input, not an attestation that its derivation or external
+provenance was validated. This compact entry does not yet lower rich utterance
+intent, duration, pitch, or intensity into the rendering profile.
