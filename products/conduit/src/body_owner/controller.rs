@@ -12,6 +12,9 @@ use conduit_core::{bind_sign, BaseImplementationId};
 use conduit_presentation::{Face, FaceContext, FaceFocus, OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
+#[cfg(unix)]
+pub(crate) use participants::run_service_window;
+pub(crate) use participants::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
 use std::{
     collections::BTreeMap,
     io::Write,
@@ -25,6 +28,7 @@ pub(crate) struct Owner {
     resident: Option<ResidentPlot>,
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
+    pending_browser: Option<participants::BrowserWindow>,
 }
 impl Owner {
     pub(crate) fn open(
@@ -105,6 +109,7 @@ impl Owner {
             resident: Some(resident),
             last_execution: None,
             admissions: None,
+            pending_browser: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -120,6 +125,7 @@ impl Owner {
             resident,
             last_execution: None,
             admissions: None,
+            pending_browser: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {

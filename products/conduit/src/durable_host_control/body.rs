@@ -8,13 +8,15 @@ use super::{read_frame, read_secret, write_frame};
 #[cfg(any(unix, test))]
 use super::{Request, Response, PROTOCOL};
 use conduit_body::{
-    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
-    RendezvousCandidate,
+    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt, PortableInvitation,
+    PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
+use conduit_core::LinkBindingId;
 use conduit_presentation::{
     OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
     OWNER_FACE_RESPONSE_SCHEMA,
 };
+use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
 use std::{
     ops::{Deref, DerefMut},
@@ -50,6 +52,95 @@ impl DerefMut for HostSource {
 }
 
 impl DurableHostRuntime {
+    pub(super) fn start_browser_window(
+        &mut self,
+        expected_host_id: &str,
+        new_host_verifying_key: Option<[u8; 32]>,
+        maximum_millis: u64,
+    ) -> Result<
+        (
+            crate::durable_host::owner::BrowserWindowAuthorization,
+            String,
+        ),
+        String,
+    > {
+        let HostSource::Body { owner, root } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let authorization = owner.browser_authorize_window(
+            expected_host_id,
+            new_host_verifying_key,
+            maximum_millis,
+        )?;
+        #[cfg(unix)]
+        {
+            match super::browser::spawn_window(root, authorization.clone()) {
+                Ok(url) => Ok((authorization, url)),
+                Err(error) => {
+                    let _ = owner.browser_cancel_window(root, &authorization.window_id);
+                    Err(error)
+                }
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = root;
+            let _ = owner.browser_cancel_window(root, &authorization.window_id);
+            Err("browser admission worker requires local Unix control".into())
+        }
+    }
+
+    pub(super) fn browser_begin(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        frame: BrowserAdmissionIngress,
+        encoded_bytes: u32,
+    ) -> Result<BrowserAdmissionEgress, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => {
+                owner.browser_begin(window_id, binding, frame, encoded_bytes)
+            }
+            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+        }
+    }
+
+    pub(super) fn browser_complete(
+        &mut self,
+        window_id: &str,
+        frame: BrowserAdmissionIngress,
+    ) -> Result<crate::durable_host::owner::BrowserAdmittedSnapshot, String> {
+        match &mut self.host {
+            HostSource::Body { owner, root } => owner.browser_complete(root, window_id, frame),
+            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+        }
+    }
+
+    pub(super) fn browser_abort(&mut self, window_id: &str) -> Result<(), String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => owner.browser_abort(window_id),
+            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+        }
+    }
+
+    pub(super) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
+        match &mut self.host {
+            HostSource::Body { owner, root } => owner.browser_cancel_window(root, window_id),
+            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+        }
+    }
+
+    pub(super) fn browser_leave(
+        &mut self,
+        window_id: &str,
+        credential: &MembershipCredential,
+    ) -> Result<BodyBiographyEvidence, String> {
+        match &mut self.host {
+            HostSource::Body { owner, root } => owner.browser_leave(root, window_id, credential),
+            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+        }
+    }
+
     pub(crate) fn with_owned_body(self, root: &Path) -> Result<Self, String> {
         let Self {
             target_id,
@@ -163,6 +254,7 @@ fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
         Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
+        | Request::BodyBrowserStart { token, .. }
         | Request::BodyFace { token, .. } => token.fill(0),
         _ => unreachable!("Body control client only sends Body requests"),
     }
@@ -171,6 +263,59 @@ fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
         .shutdown(std::net::Shutdown::Write)
         .map_err(|error| format!("finish Body owner control request: {error}"))?;
     read_frame(&mut stream)
+}
+
+#[cfg(unix)]
+pub(crate) fn start_browser_window(
+    state_dir: &Path,
+    expected_host_id: &str,
+    new_host_verifying_key: Option<[u8; 32]>,
+    maximum_millis: u64,
+) -> Result<(), String> {
+    match call(
+        state_dir,
+        Request::BodyBrowserStart {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            expected_host_id: expected_host_id.into(),
+            new_host_verifying_key,
+            maximum_millis,
+        },
+    )? {
+        Response::BodyBrowserWindow {
+            protocol: PROTOCOL,
+            window_id,
+            url,
+            body_id,
+            maximum_millis,
+        } => {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "schema":"conduit.body/browser-admission-window@1",
+                    "window_id":window_id,
+                    "url":url,
+                    "body_id":body_id,
+                    "expected_host_id":expected_host_id,
+                    "maximum_millis":maximum_millis,
+                    "remote_execution":false,
+                })
+            );
+            Ok(())
+        }
+        Response::Refused { code, .. } => Err(format!("Body owner refused browser window: {code}")),
+        _ => Err("Body owner returned the wrong browser-window response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn start_browser_window(
+    _state_dir: &Path,
+    _expected_host_id: &str,
+    _new_host_verifying_key: Option<[u8; 32]>,
+    _maximum_millis: u64,
+) -> Result<(), String> {
+    Err("browser admission window requires local Unix control".into())
 }
 
 #[cfg(unix)]
