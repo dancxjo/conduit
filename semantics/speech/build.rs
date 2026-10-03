@@ -39,10 +39,12 @@ fn main() {
     println!("cargo:rerun-if-changed=build_support/lower.rs");
     println!("cargo:rerun-if-changed=build_support/graph.rs");
     println!("cargo:rerun-if-changed=pronunciation.conduit");
+    println!("cargo:rerun-if-changed=trajectory.conduit");
     let source = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         fs::read_to_string(path).expect("native speech source"),
-        include_str!("pronunciation.conduit")
+        include_str!("pronunciation.conduit"),
+        include_str!("trajectory.conduit")
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);

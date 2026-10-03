@@ -1,0 +1,41 @@
+# Temporal acoustic realization of one already selected phone. Acoustic
+# destinations below are this profile's spectral models, not new segment IDs.
+# Progress holds the initial quarter, glides over half, then holds the last
+# quarter. This approximate coefficient interpolation is not coarticulation.
+type SpeechTrajectoryInput = {
+    phone: EnglishPhone
+    frame: I64
+    target: SpeechAcousticTarget
+}
+type SpeechAcousticTransition = {
+    input: SpeechTrajectoryInput
+    destination: SpeechAcousticTarget
+    progress: I64
+}
+plot speech/trajectory-prepare (
+    >> value: SpeechTrajectoryInput
+    result: SpeechAcousticTransition >>
+) = ({input: ., destination: (.phone is ey || (.phone is ay || .phone is oy)) ? { f1: 270, f2: 2290, f3: 3010, b1: 31165, b2: -7114, b3: -22103, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (.phone is ow || .phone is aw) ? { f1: 300, f2: 870, f3: 2240, b1: 30999, b2: 24433, b3: -5812, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : .target, progress: .frame < .target.frames / 4 ? 0 : .frame >= .target.frames * 3 / 4 ? 256 : (.frame - .target.frames / 4) * 512 / .target.frames})
+plot speech/trajectory-blend (
+    >> value: SpeechAcousticTransition
+    result: SpeechTrajectoryInput >>
+) = ({phone: .input.phone, frame: .input.frame, target: {f1: .input.target.f1 + (.destination.f1 - .input.target.f1) * .progress / 256, f2: .input.target.f2 + (.destination.f2 - .input.target.f2) * .progress / 256, f3: .input.target.f3 + (.destination.f3 - .input.target.f3) * .progress / 256, b1: .input.target.b1 + (.destination.b1 - .input.target.b1) * .progress / 256, b2: .input.target.b2 + (.destination.b2 - .input.target.b2) * .progress / 256, b3: .input.target.b3 + (.destination.b3 - .input.target.b3) * .progress / 256, c1: .input.target.c1 + (.destination.c1 - .input.target.c1) * .progress / 256, c2: .input.target.c2 + (.destination.c2 - .input.target.c2) * .progress / 256, c3: .input.target.c3 + (.destination.c3 - .input.target.c3) * .progress / 256, gain1: .input.target.gain1 + (.destination.gain1 - .input.target.gain1) * .progress / 256, gain2: .input.target.gain2 + (.destination.gain2 - .input.target.gain2) * .progress / 256, gain3: .input.target.gain3 + (.destination.gain3 - .input.target.gain3) * .progress / 256, voiced: .input.target.voiced, frication: .input.target.frication, frames: .input.target.frames, closure: .input.target.closure}})
+# Closure precedes a finite 96-frame release-noise window. Aspirated stops and
+# affricates retain their declared frication after that window. A plain stop
+# no longer disappears merely because its steady target has no frication.
+plot speech/trajectory-release (
+    >> value: SpeechTrajectoryInput
+    result: SpeechAcousticTarget >>
+) = ({f1: .target.f1, f2: .target.f2, f3: .target.f3, b1: .target.b1, b2: .target.b2, b3: .target.b3, c1: .target.c1, c2: .target.c2, c3: .target.c3, gain1: .target.gain1, gain2: .target.gain2, gain3: .target.gain3, voiced: .frame < .target.closure ? 0 : .target.voiced, frication: .frame < .target.closure ? 0 : (.target.closure > 0 && .frame < .target.closure + 96) ? 1 : .target.frication, frames: .target.frames, closure: .target.closure})
+plot speech/phone-frame-target (
+    >> value: SpeechTrajectoryInput
+    result: SpeechAcousticTarget >>
+) {
+    prepare: speech/trajectory-prepare
+    blend: speech/trajectory-blend
+    release: speech/trajectory-release
+    value >> prepare.value
+    prepare.result >> blend.value
+    blend.result >> release.value
+    release.result >> result
+}.

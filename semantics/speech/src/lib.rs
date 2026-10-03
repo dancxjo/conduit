@@ -53,3 +53,6 @@ mod frame_parity;
 
 #[cfg(test)]
 mod pronunciation_parity;
+
+#[cfg(test)]
+mod trajectory_parity;

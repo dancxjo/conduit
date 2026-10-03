@@ -58,7 +58,13 @@ realization rule, or DSP equation substitutes for the plots.
 This first voice accepts a closed English phoneme profile with explicit stress
 and position. It retains the input and realization derivation with the selected
 phone. It uses three parallel Q14 resonators at 8 kHz, bounded excitation/noise,
-closure/envelope, and pauses. Caller-owned traversal admits at most 256 events,
+closure/envelope, and pauses. `trajectory.conduit` owns a finite stop-release
+noise window and within-phone diphthong coefficient glides. The acoustic
+endpoints model spectra; they do not split one diphthong into phoneme or phone
+occurrences, infer stress, or claim measured alignment. Plain stops have a
+96-frame release window; aspirated stops and affricates retain their profile's
+frication after release. Stop place spectra remain approximate. Caller-owned
+traversal admits at most 256 events,
 30 seconds, and 128 frames per advance. A candidate copy can be discarded under
 output pressure before committing progress. This is synthesis Back conformance,
 not an additional scheduler or execution kernel. The checked `speech/frame`
@@ -67,8 +73,11 @@ exact authored cords. Initial history and
 boundary silence also come from checked plots. Rust traversal handles bounded
 event/frame iteration and caller-owned output; it does not sequence DSP stages.
 Whole-frame differential proof covers every phone at envelope edges and compares
-full-duration state/sample history against the original checked scalar
-composition. Sample rate and admission limits come from the checked literal
+full-duration state/sample history against the checked scalar composition
+with temporal targets. A separate portable-graph differential checks every
+phone at closure, release and glide edges; acoustic checks cover nonzero plain
+stop release, stationary monophthongs and preserved diphthong durations. Sample
+rate and admission limits come from the checked literal
 `speech/profile` plot, without a second Rust copy of that policy.
 
 The optional `kernel` feature provides the exact `speech/english-utterance`
@@ -121,6 +130,6 @@ writes hosted artifacts and does not access an audio device.
 
 Remaining work includes artifact-reference validation and explicit rich-to-
 compact segment admission, broader text/number normalization and pronunciation,
-transitions/diphthongs,
+richer transitions and place-dependent stop spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.

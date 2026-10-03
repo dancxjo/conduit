@@ -99,9 +99,16 @@ impl RenderCursor {
                 }
                 event => {
                     let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
-                    let target = speech_realize(value)
-                        .and_then(|realization| speech_voice_target(realization.phone))
-                        .ok_or(RenderRefusal::Arithmetic)?;
+                    let phone = speech_realize(value)
+                        .ok_or(RenderRefusal::Arithmetic)?
+                        .phone;
+                    let target = speech_voice_target(phone).ok_or(RenderRefusal::Arithmetic)?;
+                    let target = speech_phone_frame_target(SpeechTrajectoryInput {
+                        phone,
+                        frame: self.event_frame,
+                        target,
+                    })
+                    .ok_or(RenderRefusal::Arithmetic)?;
                     let period =
                         speech_pitch_period(value.stress).ok_or(RenderRefusal::Arithmetic)?;
                     let frame = speech_frame(SpeechFrameInput {
