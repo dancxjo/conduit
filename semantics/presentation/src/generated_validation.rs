@@ -185,6 +185,9 @@ impl GeneratedValidationSession {
     ) -> Result<GeneratedValidationOutcome, GeneratedValidationError> {
         validate_generated_candidate(request, &candidate)
             .map_err(GeneratedValidationError::InvalidCandidate)?;
+        if !candidate.wording_envelope_is_bounded() {
+            return Err(GeneratedValidationError::InvalidAssessmentContract);
+        }
         crate::generative_presenter::validate_identity(&assessment.assessment_identity)
             .map_err(|_| GeneratedValidationError::InvalidAssessmentIdentity)?;
         if assessment
@@ -209,6 +212,20 @@ impl GeneratedValidationSession {
             return Err(GeneratedValidationError::MaskMismatch);
         }
         let accepted = assessment.disposition == GeneratedValidationDisposition::Accepted;
+        let finite_wording = request.policy.template_contract_revision
+            == crate::FINITE_FACE_WORDING_TEMPLATE_REVISION;
+        // A selected validator is still an untrusted implementation boundary.
+        // Its acceptance cannot turn a stale or invented model wording proposal
+        // into speech merely by naming valid Face correlations.
+        if accepted
+            && (candidate.disposition != crate::GeneratedManifestationDisposition::Produced
+                || (finite_wording != candidate.wording_proposal.is_some())
+                || (finite_wording
+                    && (!exact_model_wording(request, &candidate)
+                        || assessment.accepted_correlations != candidate.correlations)))
+        {
+            return Err(GeneratedValidationError::InvalidAssessmentContract);
+        }
         if !accepted {
             if assessment.refusal_code.is_none() || !assessment.accepted_correlations.is_empty() {
                 return Err(GeneratedValidationError::InvalidAssessmentContract);
@@ -254,6 +271,7 @@ impl GeneratedValidationSession {
             accepted_correlations: assessment.accepted_correlations,
             disposition: assessment.disposition,
             terminal_code: assessment.refusal_code,
+            raw_provider_output: candidate.raw_provider_output.clone(),
         };
         if accepted {
             Ok(GeneratedValidationOutcome::Accepted(Box::new(
@@ -295,8 +313,17 @@ pub fn assess_generated_output_exactly(
     mask_identity: String,
 ) -> GeneratedValidatorAssessment {
     let candidate = &envelope.candidate;
-    let accepted = validate_generated_candidate(&envelope.request, candidate).is_ok()
-        && exact_text_segments(envelope)
+    let finite_wording = envelope.request.policy.template_contract_revision
+        == crate::FINITE_FACE_WORDING_TEMPLATE_REVISION;
+    let accepted = candidate.disposition == crate::GeneratedManifestationDisposition::Produced
+        && validate_generated_candidate(&envelope.request, candidate).is_ok()
+        && candidate.wording_envelope_is_bounded()
+        && finite_wording == candidate.wording_proposal.is_some()
+        && if finite_wording {
+            exact_model_wording(&envelope.request, candidate)
+        } else {
+            candidate.raw_provider_output.is_none() && exact_text_segments(envelope)
+        }
         && exact_action_correlations(envelope);
     GeneratedValidatorAssessment {
         assessment_identity,
@@ -317,6 +344,68 @@ pub fn assess_generated_output_exactly(
             Vec::new()
         },
     }
+}
+
+fn exact_model_wording(
+    request: &GenerativePresenterRequest,
+    candidate: &GeneratedManifestationCandidate,
+) -> bool {
+    let Some(proposal) = &candidate.wording_proposal else {
+        return false;
+    };
+    let Some(raw) = &candidate.raw_provider_output else {
+        return false;
+    };
+    if raw.is_empty() || raw.len() > crate::MAX_RAW_PRESENTER_OUTPUT_BYTES {
+        return false;
+    }
+    let Ok(rendered) = proposal.render_exact(&request.semantic_data.presentation) else {
+        return false;
+    };
+    if !matches!(candidate.content.as_slice(), [segment]
+        if segment.role == crate::GeneratedContentRole::Speech
+            && segment.bytes == rendered.as_bytes())
+    {
+        return false;
+    }
+    proposal.clauses.iter().all(|clause| {
+        candidate
+            .correlations
+            .iter()
+            .any(|correlation| match (clause, correlation) {
+                (
+                    crate::GeneratedWordingClause::Text { index, subject, .. },
+                    GeneratedSemanticCorrelation::Text {
+                        index: actual,
+                        subject: actual_subject,
+                    },
+                ) => index == actual && subject == actual_subject,
+                (
+                    crate::GeneratedWordingClause::Property {
+                        index,
+                        subject,
+                        name,
+                        ..
+                    },
+                    GeneratedSemanticCorrelation::Property {
+                        index: actual,
+                        subject: actual_subject,
+                        name: actual_name,
+                    },
+                ) => index == actual && subject == actual_subject && name == actual_name,
+                (
+                    crate::GeneratedWordingClause::Action {
+                        index, identity, ..
+                    },
+                    GeneratedSemanticCorrelation::Action {
+                        index: actual,
+                        identity: actual_identity,
+                        ..
+                    },
+                ) => index == actual && identity == actual_identity,
+                _ => false,
+            })
+    })
 }
 
 fn exact_text_segments(envelope: &GeneratedValidationEnvelope) -> bool {

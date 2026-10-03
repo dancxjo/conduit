@@ -119,6 +119,8 @@ fn manifestation(
                 .identity
                 .clone(),
         }],
+        raw_provider_output: None,
+        wording_proposal: None,
     };
     candidate.candidate_identity = candidate.digest();
     candidate

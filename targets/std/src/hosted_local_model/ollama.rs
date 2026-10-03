@@ -328,15 +328,13 @@ impl OllamaLocalModelAdapter {
         } else {
             json!({ "type": "string", "enum": available_actions })
         };
-        let body = serde_json::to_vec(&json!({
-            "model": self.model_name,
-            "messages": [
-                { "role": "system", "content": system },
-                { "role": "user", "content": semantic_data }
-            ],
-            "stream": false,
-            "think": false,
-            "format": {
+        // The finite wording policy has a tagged claim grammar whose exact
+        // identities and values are checked after inference. JSON mode avoids
+        // turning the provider's schema support into semantic authority.
+        let format = if system == super::ollama_present::WORDING_SYSTEM_POLICY {
+            json!("json")
+        } else {
+            json!({
                 "type": "object",
                 "properties": {
                     "speech_text_index": { "type": "integer", "minimum": 0 },
@@ -349,7 +347,17 @@ impl OllamaLocalModelAdapter {
                 },
                 "required": ["speech_text_index", "presented_thought_text_index", "suggested_action_identities"],
                 "additionalProperties": false
-            },
+            })
+        };
+        let body = serde_json::to_vec(&json!({
+            "model": self.model_name,
+            "messages": [
+                { "role": "system", "content": system },
+                { "role": "user", "content": semantic_data }
+            ],
+            "stream": false,
+            "think": false,
+            "format": format,
             "keep_alive": "5m",
             "options": { "num_predict": maximum_tokens, "temperature": 0 }
         }))

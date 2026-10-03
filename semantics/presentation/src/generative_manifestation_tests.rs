@@ -8,7 +8,7 @@ use crate::{
     PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationTemporalFact,
     PresentationTemporalRole, PresentationText, TemporalInstant, TemporalReference, TemporalScale,
 };
-use alloc::{string::String, vec};
+use alloc::{string::String, string::ToString, vec};
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, BootId, BoundedResourceRef, CapabilityId,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
@@ -192,6 +192,8 @@ fn candidate(request: &GenerativePresenterRequest) -> GeneratedManifestationCand
                 relationship: PresentationRelationshipKind::Contains,
             },
         ],
+        raw_provider_output: None,
+        wording_proposal: None,
     };
     candidate.candidate_identity = candidate.digest();
     candidate
@@ -342,6 +344,9 @@ fn deterministic_validator_accepts_only_exact_presentation_wording() {
         GeneratedValidationDisposition::Refused
     );
 }
+
+#[path = "generative_manifestation_tests/wording.rs"]
+mod wording;
 
 #[test]
 fn validator_session_requires_exact_kind_placement_and_current_plan_binding() {
