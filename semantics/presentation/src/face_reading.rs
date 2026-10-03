@@ -89,6 +89,18 @@ impl FaceReadingCursor {
         self.plan.clauses.len()
     }
 
+    pub fn plan(&self) -> &FaceUtterancePlan {
+        &self.plan
+    }
+
+    pub fn focused_index(&self) -> usize {
+        self.focus
+    }
+
+    pub fn has_pending(&self) -> bool {
+        self.pending.is_some()
+    }
+
     pub fn focused_clause(&self) -> &FaceUtteranceClause {
         &self.plan.clauses[self.focus]
     }
@@ -198,10 +210,12 @@ impl FaceReadingCursor {
         &mut self,
         face: &Presentation,
     ) -> Result<FaceReadingRefresh, FaceReadingRefusal> {
-        let plan = plan_face_utterances(face).map_err(FaceReadingRefusal::InvalidFace)?;
-        if plan.clauses.is_empty() {
-            return Err(FaceReadingRefusal::EmptyFace);
-        }
+        Ok(self.replace(Self::new(face)?))
+    }
+
+    /// Install an already validated and prepared reading cursor. This avoids
+    /// rebuilding a large Face when a Mask also prepares spoken wording.
+    pub fn replace(&mut self, next: Self) -> FaceReadingRefresh {
         let old = &self.plan.clauses[self.focus].provenance;
         let stable = matches!(
             old,
@@ -209,19 +223,20 @@ impl FaceReadingCursor {
         );
         let retained = stable
             .then(|| {
-                plan.clauses
+                next.plan
+                    .clauses
                     .iter()
                     .position(|clause| &clause.provenance == old)
             })
             .flatten();
         let interrupted = self.pending.take().is_some();
         self.focus = retained.unwrap_or(0);
-        self.plan = plan;
-        Ok(FaceReadingRefresh {
+        self.plan = next.plan;
+        FaceReadingRefresh {
             focused_clause: self.focus,
             retained_focus: retained.is_some(),
             interrupted,
-        })
+        }
     }
 
     fn check_current(&self, face: &Presentation) -> Result<(), FaceReadingRefusal> {
