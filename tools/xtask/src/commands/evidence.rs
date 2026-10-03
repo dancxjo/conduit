@@ -4,6 +4,8 @@ use clap::{Args, Subcommand, ValueEnum};
 
 use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
+#[path = "evidence_one_body_spoken.rs"]
+mod one_body_spoken;
 #[path = "evidence_three_body_browser.rs"]
 mod three_body_browser;
 #[path = "evidence_three_body_journey.rs"]
@@ -27,6 +29,8 @@ pub(crate) enum EvidenceCommand {
     RefreshGallery { site_root: PathBuf },
     /// Validate and render one complete eight-chapter, one-Body journey run.
     RenderOneBodyJourney(OneBodyJourneyArgs),
+    /// Capture one installed owner's current Face through a live finite Presenter and spoken Mask.
+    OneBodySpokenChapter(one_body_spoken::Args),
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OnePlotTwoFronts(TwoFrontsArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
@@ -211,6 +215,7 @@ pub fn run(command: EvidenceCommand) -> Result<(), Box<dyn std::error::Error>> {
             })
             .map_err(Into::into)
         }
+        EvidenceCommand::OneBodySpokenChapter(args) => one_body_spoken::run(args),
         EvidenceCommand::OnePlotTwoFronts(args) => two_fronts::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
         EvidenceCommand::Verify(args) => {
