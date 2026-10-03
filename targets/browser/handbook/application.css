@@ -52,5 +52,18 @@
 .handbook-application [data-owner-join] { max-width: 48rem; }
 .handbook-application [data-owner-join] input { display: block; box-sizing: border-box; width: 100%; font: inherit; padding: .5rem; }
 .handbook-application [data-owner-result] { max-width: 72ch; }
+.owner-face { margin-block: 2rem; padding: clamp(1rem,2vw,1.5rem); border: 1px solid var(--conduit-structure-secondary); border-radius: .75rem; background: var(--conduit-background); }
+.owner-face > header { max-width: 70ch; }
+.owner-face > header h3 { font-size: clamp(1.35rem,2.2vw,1.8rem); margin-block: .2rem .6rem; }
+.owner-face-summary { grid-column: 1/-1; color: var(--conduit-text-secondary); font-size: .95rem; }
+.owner-face-document { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap: .75rem; margin-block: 1rem; }
+.owner-face-document > * { min-width: 0; }
+.owner-face-subject { padding: 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-surface); overflow-wrap: anywhere; }
+.owner-face-subject[data-face-role="Body"], .owner-face-subject[data-face-role="Plot"] { border-top: 3px solid var(--conduit-emphasis); }
+.owner-face-subject h4, .owner-face-subject h5 { margin-block: .3rem .7rem; font-size: 1.08rem; }
+.owner-face-subject p { margin-block: .5rem; line-height: 1.5; }
+.owner-face-role { font: 700 .72rem var(--conduit-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--conduit-emphasis); }
+.owner-face-document > details, .owner-face-document > section:not(.owner-face-subject) { grid-column: 1/-1; padding: .8rem 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+.owner-face li { margin-block: .3rem; overflow-wrap: anywhere; }
 @media(max-width:900px) { .handbook-first-steps ol { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:540px) { .handbook-first-steps ol, .handbook-reading { grid-template-columns: 1fr; }.handbook-application { padding: 1rem; }.handbook-application select { max-width: 100%; }.handbook-controls button { flex: 1 1 8rem; } }

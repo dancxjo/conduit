@@ -17,6 +17,35 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             offer_evidence::validate(evidence)?;
             protocol
         }
+        BrowserAdmissionEgress::FaceSnapshotResponse { protocol, response } => {
+            if serde_json::to_vec(response)
+                .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                .len()
+                > MAX_OWNER_FACE_RESPONSE_BYTES
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            match response {
+                OwnerFaceSnapshotResponse::Snapshot {
+                    schema,
+                    presentation,
+                    interactions_admitted,
+                } if schema == OWNER_FACE_RESPONSE_SCHEMA && !interactions_admitted => {
+                    presentation
+                        .validate()
+                        .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?;
+                }
+                OwnerFaceSnapshotResponse::Unchanged {
+                    schema, identity, ..
+                } if schema == OWNER_FACE_RESPONSE_SCHEMA && !identity.as_str().is_empty() => {}
+                OwnerFaceSnapshotResponse::Refused { schema, code }
+                    if schema == OWNER_FACE_RESPONSE_SCHEMA
+                        && !code.is_empty()
+                        && code.len() <= 128 => {}
+                _ => return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot),
+            }
+            protocol
+        }
         BrowserAdmissionEgress::MediaUsePlan {
             protocol,
             plan_id,

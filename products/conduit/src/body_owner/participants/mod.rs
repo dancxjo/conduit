@@ -9,6 +9,7 @@ mod transport;
 use super::Owner;
 use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
 use conduit_core::{HostId, LinkBindingId, SignId};
+use conduit_presentation::{OwnerFaceSnapshotResponse, OWNER_FACE_RESPONSE_SCHEMA};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
@@ -97,7 +98,7 @@ impl Owner {
                 self.persist(root)?; // A credential is never acknowledged ahead of durable membership.
                 let snapshot =
                     BrowserAdmittedSnapshot::from_foreground(self, credential, observation)?;
-                serve_presence(&snapshot, &mut socket, &binding, clock, deadline)
+                serve_presence(&snapshot, &mut socket, &binding, clock, deadline, None)
             })();
             // Every exit fences the current browser incarnation, including failed acknowledgement.
             let current = self
@@ -142,6 +143,7 @@ fn serve_presence(
     binding: &LinkBindingId,
     clock: Instant,
     deadline: Instant,
+    state_dir: Option<&Path>,
 ) -> Result<&'static str, String> {
     let credential = &snapshot.credential;
     let presence_clock = HostPresenceClock::new(
@@ -223,6 +225,50 @@ fn serve_presence(
                     )
                     .map_err(debug)?;
                 acknowledge_presence(socket, &presence)?;
+            }
+            In::FaceSnapshotRequest {
+                protocol: PROTOCOL,
+                request,
+            } if request.credential_id == credential.credential_id.as_str()
+                && request.body_id == credential.body_id
+                && request.part_id == credential.part_id
+                && request.host_id == credential.host_id
+                && request.boot_id == credential.boot_id =>
+            {
+                // The carrier and lease prove reachability. The serialized
+                // owner checks this credential and its current Part again
+                // against authoritative admission before projecting a Face.
+                let response = state_dir
+                    .ok_or_else(|| "owner Face requires the installed service actor".to_string())
+                    .and_then(|dir| crate::durable_host_control::face_snapshot(dir, request))
+                    .unwrap_or_else(|error| OwnerFaceSnapshotResponse::Refused {
+                        schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                        code: match error.as_str() {
+                            "face-frame-pressure" => "face-frame-pressure",
+                            "owner-face-credential-not-admitted" => "face-credential-not-admitted",
+                            "owner-face-current-part-unavailable" => {
+                                "face-current-part-unavailable"
+                            }
+                            _ => "face-unavailable",
+                        }
+                        .into(),
+                    });
+                socket.send(&Out::FaceSnapshotResponse {
+                    protocol: PROTOCOL,
+                    response,
+                })?;
+            }
+            In::FaceSnapshotRequest {
+                protocol: PROTOCOL, ..
+            } => {
+                socket.send(&Out::FaceSnapshotResponse {
+                    protocol: PROTOCOL,
+                    response: OwnerFaceSnapshotResponse::Refused {
+                        schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                        code: "face-credential-mismatch".into(),
+                    },
+                })?;
+                return Err("owner Face request differs from this admitted browser carrier".into());
             }
             In::WebRtcGrantRequest {
                 protocol: PROTOCOL,
