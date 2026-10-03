@@ -21,7 +21,7 @@ mod abi;
 #[path = "owner_face_mask/view.rs"]
 mod view;
 
-const MASK_BYTES: u32 = 512 * 1024;
+use crate::installed_browser::dom_mask::MASK_BYTES;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -146,12 +146,8 @@ impl OwnerBrowserMask {
         if presentation.basis.body_id.as_ref() != Some(&basis.body_id) {
             return Err("owner Face belongs to another Body".into());
         }
-        let planned = plan::planned_mask(
-            basis.host_id,
-            basis.boot_id,
-            plan::MASK_SOURCE,
-            "browser-graphical",
-        )?;
+        let host = crate::installed_browser::membership_advertisement(basis.host_id, basis.boot_id);
+        let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical")?;
         let terminal = planned.show_placement();
         let play = bind_active_play(
             &planned.plan.plan_id,

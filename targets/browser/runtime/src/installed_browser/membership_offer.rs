@@ -1,4 +1,4 @@
-//! Membership advertises the installed local catalog as well as live webchat.
+//! Membership advertises installed local, DOM Mask, and live webchat Backs.
 use conduit_core::{BootId, HostAdvertisement, HostId};
 
 pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
@@ -10,6 +10,13 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
             .retain(|prior| prior.capability_id != offer.capability_id);
         advertised.capabilities.push(offer);
     }
+    // The DOM Mask has its own bounded presentation executor and is not a
+    // general workload Back in the ordinary browser plot runner.
+    let mask = super::dom_mask::offer();
+    advertised
+        .capabilities
+        .retain(|prior| prior.capability_id != mask.capability_id);
+    advertised.capabilities.push(mask);
     for resource in local.resources {
         advertised
             .resources
