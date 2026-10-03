@@ -51,6 +51,32 @@ same checked resident source; it does not import a proof biography as birth.
 The state directory must already be an installed Host and must not belong to a
 different joined Body.
 
+## Continue as a live installed service
+
+After `body own` closes, the installed executable can run
+`host service run --state-dir /absolute/path/to/host-state`. It resumes the retained Body on the
+service's **fresh Boot**, persists that transition, and holds exclusive Host and
+Body ownership for its lifetime.
+`body status --state-dir /absolute/path/to/host-state --json` then asks the authenticated local service
+for its current Body session rather than inferring a live Boot from
+`runtime.json`. A stale marker alone cannot issue a live invitation.
+
+While the service runs, `body invite` with `--route-bind`, `--route-url`,
+`--route-tls-cert`, `--route-tls-key`, `--authorize-route`, and `--state-dir`
+uses that service's single-use invitation authority. The matching `body join`
+on another installed, running Host sends a signed request over the pinned TLS
+route and retains the returned canonical receipt. The owner commits admission
+to its current in-memory session and recoverable biography before sending the
+receipt. A separate foreground `body own` or disk admission writer is refused
+while the service owns the locks.
+
+This is **membership admission**, not continuing remote reachability. The
+one-shot route closes after its receipt; the service currently reports remote
+carrier availability as `unobserved`. Its retained membership snapshot must
+not be read as a live lease, shared workload, or current remote Face. The
+service's Body control currently exposes inspect and invitation/admission only;
+plan/run and semantic terminal interaction still require a later integration.
+
 ## Internal control and retained truth
 
 The foreground entrance currently accepts bounded JSON lines on standard input.
@@ -120,7 +146,9 @@ membership mutations while the owner is running.
   complete that request-and-receipt exchange over a live duplex Line. Shared
   presentation, remote execution, and a terminal Mask are not implemented by
   this entrance. The owner restores the same retained single-use invitation
-  authority after reopening.
+  authority after reopening. The installed service route can now perform the
+  same canonical admission for a live requester, but it does not maintain a
+  presence lease after the one-shot route closes.
 - The retained workset is fixed to the checked source at birth. This entrance
   does not yet provide source replacement or resident-workset editing.
 - Biography compaction requires an admitted archive store. This slice has none

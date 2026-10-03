@@ -4,6 +4,7 @@ mod image;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
+pub(crate) use controller::Owner;
 use serde::Deserialize;
 use std::{
     io::{BufRead, Read, Write},
@@ -15,6 +16,17 @@ const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 
 pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
     state::recover(root)
+}
+pub(crate) fn resume_service(
+    host: conduit_std_host::StdHost,
+    root: &Path,
+) -> Result<Owner, String> {
+    state::recover(root)?;
+    let retained = state::load(root)?.ok_or("installed Host has no retained Body")?;
+    let mut owner = Owner::resume(host, retained)?;
+    owner.restore_execution(root)?;
+    owner.persist(root)?;
+    Ok(owner)
 }
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
@@ -107,7 +119,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                     match request {
                         Request::Inspect => {}
                         Request::Invite { ttl_seconds } => {
-                            let invitation = owner.issue_invitation(&root, ttl_seconds)?;
+                            let invitation = owner.issue_invitation(&root, ttl_seconds, None)?;
                             emit(&serde_json::to_value(invitation).map_err(|e| e.to_string())?)?;
                         }
                         Request::AdmitBrowser {
