@@ -8,7 +8,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret, SpawnRendezvousDescriptor};
+use conduit_body::{
+    RendezvousLineFamily, SpawnInvitationClaim, SpawnInvitationSecret, SpawnRendezvousDescriptor,
+};
 use conduit_body_make::{SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
 use conduit_core::HostAdvertisement;
 use conduitos::spore_provision::{validate_route_certificates, RouteCertificate};
@@ -26,7 +28,7 @@ const MAKE_PACKAGE: &str = "conduitos-image@1";
 const DEPLOYMENT_ADAPTER: &str = "conduit-host-conduitos/boot-x86_64@1";
 const MAGIC: &[u8] = b"CONDUIT_SPORE_MEDIA@1\0";
 const HEADER_BYTES: usize = 32;
-const TRAILER_BYTES: usize = 4096;
+const TRAILER_BYTES: usize = conduitos::spore_provision::REGION_BYTES;
 const MINIMUM_IMAGE_BYTES: usize = 512;
 const MAXIMUM_ARTIFACT_BYTES: usize = 80 * 1024 * 1024;
 const MAXIMUM_RENDEZVOUS_CANDIDATES: usize = 4;
@@ -120,6 +122,75 @@ struct AdmittedSpore {
     image_sha256: String,
     artifact_sha256: String,
     artifact_bytes: usize,
+}
+
+/// An already-validated, exact route in a private self-joining product ISO.
+/// The owner address used by QEMU is a separate host-local forwarding input.
+pub(super) struct OwnerBootRoute {
+    pub candidate_id: String,
+    pub reachability: String,
+    pub artifact_sha256: String,
+}
+
+pub(super) fn owner_boot_route(
+    path: &Path,
+    candidate_id: &str,
+) -> Result<OwnerBootRoute, ConduitosError> {
+    let admitted = admit(path)?;
+    let route = admitted
+        .provision
+        .invitation_provision
+        .rendezvous
+        .as_ref()
+        .ok_or_else(|| {
+            ConduitosError::refusal("owner-boot-route-missing", "spore has no routed invitation")
+        })?;
+    let candidate = route
+        .candidates
+        .iter()
+        .find(|candidate| candidate.candidate_id == candidate_id)
+        .ok_or_else(|| {
+            ConduitosError::refusal(
+                "owner-boot-candidate-missing",
+                "candidate ID is absent from the provisioned route",
+            )
+        })?;
+    if candidate.line_family != RendezvousLineFamily::AuthenticatedTlsStream {
+        return Err(ConduitosError::refusal(
+            "owner-boot-line-unsupported",
+            "normal x86 QEMU owner boot requires an authenticated TLS stream candidate",
+        ));
+    }
+    if route
+        .candidates
+        .iter()
+        .find(|candidate| candidate.line_family == RendezvousLineFamily::AuthenticatedTlsStream)
+        .is_none_or(|first| first.candidate_id != candidate_id)
+    {
+        return Err(ConduitosError::refusal(
+            "owner-boot-candidate-order",
+            "normal product boot currently attempts the first authenticated TLS candidate; select that exact candidate",
+        ));
+    }
+    let now_millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| {
+            ConduitosError::refusal("owner-boot-clock-unavailable", error.to_string())
+        })?
+        .as_millis();
+    if now_millis >= u128::from(candidate.expires_at_millis)
+        || now_millis >= u128::from(admitted.provision.invitation_provision.expires_at_millis)
+    {
+        return Err(ConduitosError::refusal(
+            "owner-boot-invitation-expired",
+            "the selected candidate or invitation has expired; issue and provision a fresh spore",
+        ));
+    }
+    Ok(OwnerBootRoute {
+        candidate_id: candidate.candidate_id.clone(),
+        reachability: candidate.reachability.clone(),
+        artifact_sha256: admitted.artifact_sha256,
+    })
 }
 
 pub(super) fn execute(path: &Path, opts: &GlobalOpts) -> Result<(), ConduitosError> {

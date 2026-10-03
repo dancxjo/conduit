@@ -27,7 +27,7 @@ use crate::display::{DisplayError, DisplayFormat, RawDisplay};
 const PINNED_BOOTLOADER_NAME: &str = "Limine";
 const PINNED_BOOTLOADER_VERSION: &str = "12.5.2";
 const SPORE_MODULE_COMMAND: &[u8] = b"conduit.spore/native-media-provision@1";
-const SPORE_MODULE_BYTES: u64 = 4096;
+const SPORE_MODULE_BYTES: u64 = crate::spore_provision::REGION_BYTES as u64;
 
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]

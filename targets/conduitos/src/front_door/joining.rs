@@ -11,7 +11,10 @@ use super::{Error, FrontDoor};
 use crate::spore_join::{OwnerExchange, PendingNativeJoin};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PendingJoinView(PendingNativeJoin);
+pub struct PendingJoinView(
+    PendingNativeJoin,
+    Option<crate::native_guest_part::NativeGuestPart>,
+);
 
 impl FrontDoor {
     /// The Host-owned pending Face carries the identity of the actual
@@ -37,12 +40,34 @@ impl FrontDoor {
             return Err(Error::ActionUnavailable);
         }
         self.lifecycle_authority_admitted = false;
-        self.joining = Some(PendingJoinView(pending));
+        self.joining = Some(PendingJoinView(pending, None));
+        self.advance()
+    }
+
+    /// Replace the pending candidate with the owner's exact admitted Part.
+    /// This still grants no local lifecycle or workset control.
+    pub fn install_join(
+        &mut self,
+        part: crate::native_guest_part::NativeGuestPart,
+    ) -> Result<(), Error> {
+        let joining = self.joining.as_mut().ok_or(Error::ActionUnavailable)?;
+        if joining.1.is_some()
+            || joining.0.body_id != part.credential().body_id.as_str()
+            || part.credential().host_id != self.host_id
+            || part.credential().boot_id != self.boot_id
+            || self
+                .journey
+                .as_ref()
+                .is_some_and(|journey| journey.body_id.is_some())
+        {
+            return Err(Error::Presentation);
+        }
+        joining.1 = Some(part);
         self.advance()
     }
 
     pub const fn joining_pending(&self) -> bool {
-        self.joining.is_some()
+        matches!(&self.joining, Some(joining) if joining.1.is_none())
     }
 }
 
@@ -52,6 +77,9 @@ impl PendingJoinView {
         door: &FrontDoor,
         producer: Option<&BirthFaceBasis>,
     ) -> Result<Presentation, Error> {
+        if let Some(part) = &self.1 {
+            return self.admitted_presentation(door, producer, part);
+        }
         let host = format!("host/{}/{}", door.host_id.as_str(), door.boot_id.as_str());
         let candidate = format!("candidate/{}", self.0.spore_id);
         Presentation::new_with_semantics(
@@ -124,6 +152,58 @@ impl PendingJoinView {
             ],
         )
         .map_err(|_| Error::Presentation)
+    }
+
+    fn admitted_presentation(
+        &self,
+        door: &FrontDoor,
+        producer: Option<&BirthFaceBasis>,
+        admitted: &crate::native_guest_part::NativeGuestPart,
+    ) -> Result<Presentation, Error> {
+        let host = format!("host/{}/{}", door.host_id.as_str(), door.boot_id.as_str());
+        let credential = admitted.credential();
+        let body = format!("body/{}", credential.body_id.as_str());
+        let part = format!("part/{}", credential.part_id.as_str());
+        Presentation::new_with_semantics(
+            door.revision,
+            PresentationBasis {
+                body_id: Some(credential.body_id.clone()),
+                wake_id: None,
+                source_document_id: producer.map(|basis| basis.producer_plot.source_document_id.clone()),
+                checked_plot_id: producer.map(|basis| basis.producer_plot.checked_plot_id.clone()),
+                expanded_plot_id: producer.map(|basis| basis.producer_plot.expanded_plot_id.clone()),
+                plan_id: producer.map(|basis| basis.producer_plan_id.clone()),
+                active_play_id: None,
+                sign_ids: Vec::new(),
+            },
+            vec![
+                PresentationSubject { identity: host.clone(), role: PresentationRole::Host, name: "This ConduitOS host".into() },
+                PresentationSubject { identity: body.clone(), role: PresentationRole::Body, name: "Joined Body".into() },
+                PresentationSubject { identity: part.clone(), role: PresentationRole::Part, name: "This host's admitted Part".into() },
+            ],
+            vec![
+                PresentationRelationship { source: body.clone(), target: part.clone(), kind: PresentationRelationshipKind::Contains },
+                PresentationRelationship { source: part.clone(), target: host.clone(), kind: PresentationRelationshipKind::Contains },
+            ],
+            vec![
+                property(&body, "body-id", PresentationPropertyValue::Identity(credential.body_id.as_str().into())),
+                property(&part, "part-id", PresentationPropertyValue::Identity(credential.part_id.as_str().into())),
+                property(&part, "credential-id", PresentationPropertyValue::Identity(credential.credential_id.as_str().into())),
+                property(&part, "membership-admitted", PresentationPropertyValue::Flag(true)),
+                property(&part, "present-at-admission", PresentationPropertyValue::Flag(admitted.is_present())),
+                property(&body, "workset-known-here", PresentationPropertyValue::Flag(false)),
+            ],
+            vec![
+                PresentationText { subject: body.clone(), text: "The owner admitted this host to this Body. Its workset and current lifecycle have not yet been transferred here.".into() },
+                PresentationText { subject: part.clone(), text: "This Part was present on this Host and Boot at admission. Later owner presence has not been reconciled. There is no local Body Plan or Play; local Birth remains unavailable.".into() },
+            ],
+            Vec::new(),
+            vec![
+                PresentationDisclosure { subject: body, level: PresentationDisclosureLevel::Primary },
+                PresentationDisclosure { subject: part, level: PresentationDisclosureLevel::Primary },
+                PresentationDisclosure { subject: host, level: PresentationDisclosureLevel::Context },
+            ],
+        ).map_err(|_| Error::Presentation)
     }
 }
 
