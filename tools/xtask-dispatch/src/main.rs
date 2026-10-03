@@ -10,6 +10,9 @@ use std::path::PathBuf;
 #[path = "../../xtask/src/commands/host_release.rs"]
 mod host_release;
 
+const HOST_RELEASE_BOOTSTRAP_ENV: &str = "CONDUIT_XTASK_HOST_RELEASE_BOOTSTRAP";
+const HOST_RELEASE_REQUESTED_TARGET_ENV: &str = "CONDUIT_XTASK_HOST_RELEASE_REQUESTED_TARGET";
+
 mod proof {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum ProofClass {
@@ -122,9 +125,17 @@ fn main() {
     if let Some(options) = host_release_options(&arguments) {
         #[cfg(feature = "host-release")]
         {
-            // The isolated directory protects the running bootstrap executable;
-            // it is not part of the host artifact make contract.
-            std::env::remove_var("CARGO_TARGET_DIR");
+            // The bootstrap executable uses an isolated Cargo target. Restore
+            // the caller's target directory for the actual Host product build.
+            if std::env::var_os(HOST_RELEASE_BOOTSTRAP_ENV).is_some() {
+                if let Some(target) = std::env::var_os(HOST_RELEASE_REQUESTED_TARGET_ENV) {
+                    std::env::set_var("CARGO_TARGET_DIR", target);
+                } else {
+                    std::env::remove_var("CARGO_TARGET_DIR");
+                }
+                std::env::remove_var(HOST_RELEASE_BOOTSTRAP_ENV);
+                std::env::remove_var(HOST_RELEASE_REQUESTED_TARGET_ENV);
+            }
             if let Err(error) = run_host_release(options) {
                 eprintln!("xtask error: {error}");
                 std::process::exit(1);
@@ -171,8 +182,11 @@ fn host_release_options(arguments: &[String]) -> Option<&[String]> {
 fn launch_host_release(options: &[String]) -> ! {
     // Windows cannot replace the dispatcher executable while it is running.
     // Compile the feature-bearing Host release binary in an isolated target.
-    let status = std::process::Command::new("cargo")
+    let requested_target = std::env::var_os("CARGO_TARGET_DIR");
+    let mut command = std::process::Command::new("cargo");
+    command
         .env("CARGO_TARGET_DIR", "target/xtask-host-release")
+        .env(HOST_RELEASE_BOOTSTRAP_ENV, "1")
         .args([
             "run",
             "--locked",
@@ -184,8 +198,13 @@ fn launch_host_release(options: &[String]) -> ! {
             "host",
             "release",
         ])
-        .args(options)
-        .status();
+        .args(options);
+    if let Some(target) = requested_target {
+        command.env(HOST_RELEASE_REQUESTED_TARGET_ENV, target);
+    } else {
+        command.env_remove(HOST_RELEASE_REQUESTED_TARGET_ENV);
+    }
+    let status = command.status();
     match status {
         Ok(status) => std::process::exit(status.code().unwrap_or(1)),
         Err(error) => {

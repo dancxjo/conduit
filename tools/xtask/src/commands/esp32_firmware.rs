@@ -74,11 +74,26 @@ enum Esp32FirmwareCommand {
 
 fn artifact(target: Esp32FamilyTarget, root: &Path) -> PathBuf {
     let facts = target.facts();
-    root.join(facts.package_dir)
-        .join("target")
+    inherited_cargo_target_dir(&root.join(facts.package_dir))
         .join(facts.cargo_target)
         .join("release")
         .join(facts.artifact_name)
+}
+
+fn inherited_cargo_target_dir(package: &Path) -> PathBuf {
+    let configured = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from);
+    cargo_target_dir(package, configured.as_deref())
+}
+
+fn cargo_target_dir(package: &Path, configured: Option<&Path>) -> PathBuf {
+    let target_dir = configured.unwrap_or_else(|| Path::new("target"));
+    if target_dir.is_absolute() {
+        target_dir.to_owned()
+    } else {
+        // The Cargo child runs from the package directory, including for a
+        // relative inherited CARGO_TARGET_DIR.
+        package.join(target_dir)
+    }
 }
 
 #[derive(Serialize)]
@@ -224,7 +239,7 @@ fn run_build(
             "bluetooth"
         },
         source_sha: git_head(&root)?,
-        artifact: relative(&root, &artifact)?,
+        artifact: artifact_reference(&root, &artifact)?,
         artifact_sha256: sha256_file(&artifact)?,
         tool: None,
         serial_path: None,
@@ -301,7 +316,7 @@ fn run_flash(
             "bluetooth"
         },
         source_sha: git_head(&root)?,
-        artifact: relative(&root, &artifact)?,
+        artifact: artifact_reference(&root, &artifact)?,
         artifact_sha256: sha256_file(&artifact)?,
         tool: Some(ToolReceipt {
             name: "espflash",
@@ -417,9 +432,10 @@ fn git_head(root: &Path) -> Result<String, Box<dyn std::error::Error>> {
     }
     Ok(String::from_utf8(output.stdout)?.trim().to_owned())
 }
-fn relative(root: &Path, path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+fn artifact_reference(root: &Path, path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     Ok(path
-        .strip_prefix(root)?
+        .strip_prefix(root)
+        .unwrap_or(path)
         .to_str()
         .ok_or("artifact path is not UTF-8")?
         .to_owned())
@@ -448,6 +464,24 @@ mod tests {
         assert_eq!(
             Esp32FamilyTarget::S3.facts().rust_toolchain,
             "esp-conduit-1.91.1"
+        );
+    }
+
+    #[test]
+    fn cargo_artifact_paths_resolve_relative_to_the_child_package() {
+        let package = Path::new("/repo/targets/esp32/firmware/c3");
+        assert_eq!(cargo_target_dir(package, None), package.join("target"));
+        assert_eq!(
+            cargo_target_dir(package, Some(Path::new("build/cache"))),
+            package.join("build/cache")
+        );
+        assert_eq!(
+            cargo_target_dir(package, Some(Path::new("/shared/cargo"))),
+            Path::new("/shared/cargo")
+        );
+        assert_eq!(
+            artifact_reference(Path::new("/repo"), Path::new("/shared/cargo/fw")).unwrap(),
+            "/shared/cargo/fw"
         );
     }
 }

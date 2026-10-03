@@ -20,6 +20,7 @@ export function command(program, args, options = {}) {
   return result;
 }
 export const cargo = (...args) => command('cargo', [`+${toolchain()}`, ...args]);
+export const cargoArtifact = (...segments) => path.join(process.env.CARGO_TARGET_DIR ?? 'target', ...segments);
 // Keep the command first so the dependency-light dispatcher recognizes it.
 export const xtask = (...args) => cargo('xtask', ...args, '--locked');
 

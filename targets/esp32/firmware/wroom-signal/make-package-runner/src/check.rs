@@ -77,9 +77,13 @@ pub fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             ),
             &mut commands,
         )?;
-        Some(provenance::sha256(&fs::read(
-            package_root.join(&descriptor.artifact),
-        )?))
+        let configured_target = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from);
+        let artifact = built_artifact(
+            &package_root,
+            &descriptor.artifact,
+            configured_target.as_deref(),
+        )?;
+        Some(provenance::sha256(&fs::read(artifact)?))
     };
 
     let lock_sha256 = provenance::sha256(&fs::read(args.repo_root.join(LOCK_RELATIVE_PATH))?);
@@ -130,6 +134,22 @@ pub fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         println!("ESP32 MAKE PACKAGE CHECKED: {}", args.receipt.display());
     }
     Ok(())
+}
+
+fn built_artifact(
+    package_root: &Path,
+    descriptor_artifact: &str,
+    configured_target: Option<&Path>,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let within_target = Path::new(descriptor_artifact).strip_prefix("target")?;
+    let target_dir = configured_target.unwrap_or_else(|| Path::new("target"));
+    let target_root = if target_dir.is_absolute() {
+        target_dir.to_owned()
+    } else {
+        // cargo_build runs with package_root as its working directory.
+        package_root.join(target_dir)
+    };
+    Ok(target_root.join(within_target))
 }
 
 fn validate_common_make_package(
@@ -393,6 +413,31 @@ fn make_receipt(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn artifact_lookup_matches_the_cargo_child_target_directory() {
+        let package = Path::new("/repo/targets/esp32/firmware/wroom-signal");
+        let descriptor_artifact = "target/xtensa-esp32-none-elf/release/conduit-esp32-wroom-signal";
+        let suffix = Path::new("xtensa-esp32-none-elf/release/conduit-esp32-wroom-signal");
+        assert_eq!(
+            built_artifact(package, descriptor_artifact, None).unwrap(),
+            package.join("target").join(suffix)
+        );
+        assert_eq!(
+            built_artifact(package, descriptor_artifact, Some(Path::new("build/cache"))).unwrap(),
+            package.join("build/cache").join(suffix)
+        );
+        assert_eq!(
+            built_artifact(
+                package,
+                descriptor_artifact,
+                Some(Path::new("/shared/cargo"))
+            )
+            .unwrap(),
+            Path::new("/shared/cargo").join(suffix)
+        );
+        assert!(built_artifact(package, "release/firmware", None).is_err());
+    }
 
     const PINNED: &str = concat!(
         "rustc 1.91.1-nightly (719630278 2025-08-24)\n",

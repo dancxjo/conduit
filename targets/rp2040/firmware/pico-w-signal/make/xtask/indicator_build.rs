@@ -44,6 +44,7 @@ pub(super) fn run(args: &PicoArgs) -> PicoResult<()> {
         .as_nanos()
         .to_string();
     let status = Command::new("cargo")
+        .current_dir(&root)
         .args([
             "build",
             "--locked",

@@ -186,10 +186,7 @@ fn build(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
             status.to_string(),
         ));
     }
-    let built = paths.root.join(format!(
-        "target/{}/release/{BINARY}",
-        loongarch64_a0::TARGET
-    ));
+    let built = paths.built_binary(loongarch64_a0::TARGET, BINARY);
     fs::copy(built, &paths.kernel)
         .map_err(|e| refusal("build-output-unavailable", e.to_string()))?;
     let symbols = super::profile::command(

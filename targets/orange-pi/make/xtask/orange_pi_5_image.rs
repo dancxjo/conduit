@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsStr,
     fs::{self, File},
     io::{Seek, SeekFrom, Write},
     path::{Path, PathBuf},
@@ -105,9 +106,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     build_kernel(&paths, &base_commit, opts)?;
     let kernel = output.join("Image");
     elf_to_image(
-        &paths
-            .root
-            .join(format!("target/{RUST_TARGET}/release/{BINARY}")),
+        &cargo_kernel_path(&paths.root, std::env::var_os("CARGO_TARGET_DIR").as_deref()),
         &kernel,
     )?;
     let bootloader = prepare_bootloader(&paths)?;
@@ -215,6 +214,15 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         println!("ConduitOS Orange Pi 5 SD image: {}", image.display());
     }
     Ok(())
+}
+
+fn cargo_kernel_path(root: &Path, target_dir: Option<&OsStr>) -> PathBuf {
+    let target_dir = match target_dir {
+        Some(target_dir) if Path::new(target_dir).is_absolute() => PathBuf::from(target_dir),
+        Some(target_dir) => root.join(target_dir),
+        None => root.join("target"),
+    };
+    target_dir.join(RUST_TARGET).join("release").join(BINARY)
 }
 
 fn build_kernel(paths: &Paths, base_commit: &str, opts: &GlobalOpts) -> Result<(), ConduitosError> {

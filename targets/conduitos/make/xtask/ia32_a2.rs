@@ -58,9 +58,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     if !status.success() {
         return Err(refusal("ia32-a3-compile-link-failed", status.to_string()));
     }
-    let built = paths
-        .root
-        .join(format!("target/{IA32_OBJECT_TARGET}/release/{BINARY}"));
+    let built = paths.built_binary(IA32_OBJECT_TARGET, BINARY);
     fs::copy(built, &paths.kernel)
         .map_err(|error| refusal("build-output-unavailable", error.to_string()))?;
     let bytes = fs::read(&paths.kernel)

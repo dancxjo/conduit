@@ -226,7 +226,7 @@ pub(super) fn run(args: MorseKeyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn s
         target: "esp32-c3/devkitm-1",
         serial_path: args.port.display().to_string(),
         usb_serial: facts.usb_serial.into(),
-        firmware_artifact: super::relative(&root, &artifact)?,
+        firmware_artifact: super::artifact_reference(&root, &artifact)?,
         firmware_sha256,
         flashing_tool_sha256: super::sha256_file(&tool)?,
         boot_identity,
@@ -246,8 +246,7 @@ pub(super) fn run(args: MorseKeyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn s
 fn build_firmware(root: &Path, locked: bool) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let facts = Esp32FamilyTarget::C3.facts();
     let package = root.join(facts.package_dir);
-    let artifact = package
-        .join("target")
+    let artifact = super::inherited_cargo_target_dir(&package)
         .join(facts.cargo_target)
         .join("release")
         .join("conduit-esp32-c3-light-switch");

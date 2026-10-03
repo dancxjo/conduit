@@ -62,7 +62,8 @@ fn build_binary(
         std::iter::once(gcc_bin.clone())
             .chain(env::split_paths(&env::var_os("PATH").unwrap_or_default())),
     )?;
-    let manifest = root.join(FIRMWARE).join("Cargo.toml");
+    let firmware_dir = root.join(FIRMWARE);
+    let manifest = firmware_dir.join("Cargo.toml");
     let output = Command::new("rustup")
         .args([
             "run",
@@ -76,13 +77,17 @@ fn build_binary(
         ])
         .arg("--manifest-path")
         .arg(&manifest)
-        .current_dir(root.join(FIRMWARE))
+        .current_dir(&firmware_dir)
         .env("PATH", path)
         .output()?;
     require_success(&output, "Rust AVR firmware build")?;
 
-    let firmware_target = root.join(FIRMWARE).join("target/avr-atmega32u4/release");
-    let elf = firmware_target.join(elf_name);
+    let target_dir = env::var_os("CARGO_TARGET_DIR");
+    let elf = compiled_elf_path(
+        &firmware_dir,
+        target_dir.as_deref().map(Path::new),
+        elf_name,
+    );
     if !elf.is_file() {
         return Err(format!("Rust AVR build omitted {}", elf.display()).into());
     }
@@ -108,4 +113,41 @@ fn build_binary(
         flash_bytes: metric(&report, "Program:", "bytes")?,
         sram_bytes: metric(&report, "Data:", "bytes")?,
     })
+}
+
+fn compiled_elf_path(firmware_dir: &Path, target_dir: Option<&Path>, elf_name: &str) -> PathBuf {
+    let target_dir = target_dir.unwrap_or_else(|| Path::new("target"));
+    let target_dir = if target_dir.is_absolute() {
+        target_dir.to_path_buf()
+    } else {
+        firmware_dir.join(target_dir)
+    };
+    target_dir.join("avr-atmega32u4/release").join(elf_name)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::compiled_elf_path;
+
+    #[test]
+    fn compiled_elf_follows_cargo_target_dir_from_firmware_working_directory() {
+        let firmware_dir = Path::new("/repo/targets/avr/firmware/promicro-host");
+        let elf = "conduit-avr-promicro-host.elf";
+        assert_eq!(
+            compiled_elf_path(firmware_dir, None, elf),
+            firmware_dir.join("target/avr-atmega32u4/release").join(elf)
+        );
+        assert_eq!(
+            compiled_elf_path(firmware_dir, Some(Path::new("shared-target")), elf),
+            firmware_dir
+                .join("shared-target/avr-atmega32u4/release")
+                .join(elf)
+        );
+        assert_eq!(
+            compiled_elf_path(firmware_dir, Some(Path::new("/cache/cargo-target")), elf),
+            Path::new("/cache/cargo-target/avr-atmega32u4/release").join(elf)
+        );
+    }
 }
