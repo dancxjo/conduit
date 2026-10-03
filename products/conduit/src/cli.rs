@@ -306,6 +306,17 @@ pub(crate) enum BodyCommand {
         /// Use a terminal and nonvisual command input for the zero-Body Crèche.
         #[arg(long)]
         screen_free: bool,
+        /// The installed Host whose current Boot owns the Birth encounter.
+        #[arg(long)]
+        state_dir: Option<PathBuf>,
+    },
+    /// Read the installed owner's exact current Body Face and Host advertisement.
+    Face {
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Emit the bounded machine-readable Face snapshot envelope.
+        #[arg(long)]
+        json: bool,
     },
     /// Own a retained Body on an installed Linux Host in the foreground.
     ///
@@ -457,7 +468,10 @@ mod public_surface_tests {
                 .expect("screen-free Birth parses")
                 .command,
             Some(Command::Body {
-                command: Some(BodyCommand::Birth { screen_free: true })
+                command: Some(BodyCommand::Birth {
+                    screen_free: true,
+                    ..
+                })
             })
         ));
         assert!(matches!(
@@ -465,7 +479,10 @@ mod public_surface_tests {
                 .expect("browser Birth remains default")
                 .command,
             Some(Command::Body {
-                command: Some(BodyCommand::Birth { screen_free: false })
+                command: Some(BodyCommand::Birth {
+                    screen_free: false,
+                    ..
+                })
             })
         ));
     }

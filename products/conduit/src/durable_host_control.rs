@@ -30,10 +30,13 @@ use std::{
 };
 
 const PROTOCOL: u16 = 1;
+pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
 #[path = "durable_host_control/body.rs"]
 mod body;
+#[path = "durable_host_control/body_birth.rs"]
+mod body_birth;
 #[path = "durable_host_control/body_run.rs"]
 mod body_run;
 #[cfg(unix)]
@@ -42,10 +45,14 @@ pub(crate) mod browser;
 pub(crate) use body::start_browser_window;
 pub(crate) use body::submit_browser_face_interaction;
 use body::HostSource;
+#[allow(unused_imports)]
+// Native return consumes the expiry-bearing entrance after its route lands.
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
-    local_face_snapshot, submit_local_face_interaction,
+    local_face_snapshot, submit_local_face_interaction, submit_local_face_interaction_until,
 };
+pub(crate) use body_birth::BirthTransition;
+pub(crate) use body_birth::{face as birth_face, interact as submit_birth_interaction};
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
 
 #[derive(Debug, Clone)]
@@ -59,6 +66,8 @@ pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
     host: HostSource,
+    birth: Option<body_birth::ServiceBirth>,
+    birth_root: Option<PathBuf>,
     remote_fragment: Option<AdmittedRemoteFragment>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
@@ -69,6 +78,7 @@ impl DurableHostRuntime {
     pub(crate) fn into_owner_host(self) -> StdHost {
         match self.host {
             HostSource::Bare(host) => *host,
+            HostSource::Transitioning => unreachable!("Host transition is synchronous"),
             HostSource::Body { .. } => unreachable!("foreground owner cannot take a service Body"),
         }
     }
@@ -78,6 +88,8 @@ impl DurableHostRuntime {
             target_id,
             image_content_digest,
             host: HostSource::Bare(Box::new(host)),
+            birth: None,
+            birth_root: None,
             remote_fragment: None,
             pool_member: None,
             cancellation_signal: None,
@@ -951,11 +963,23 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BirthFace {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    BirthInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
+    },
     BodyInteraction {
         protocol: u16,
         token: Vec<u8>,
         show: Box<MaskShow>,
         interaction: FaceInteraction,
+        #[serde(default)]
+        not_after_millis: Option<u64>,
     },
     BodyBrowserInteraction {
         protocol: u16,
@@ -1075,6 +1099,20 @@ enum Response {
         presentation: Box<Presentation>,
         advertisement: HostAdvertisement,
     },
+    BirthFace {
+        protocol: u16,
+        presentation: Box<Presentation>,
+        advertisement: HostAdvertisement,
+    },
+    BirthChanged {
+        protocol: u16,
+        presentation: Box<Presentation>,
+    },
+    BirthCompleted {
+        protocol: u16,
+        body_id: conduit_body::BodyId,
+        presentation: Box<Presentation>,
+    },
     BodyInteraction {
         protocol: u16,
         result: Box<serde_json::Value>,
@@ -1176,6 +1214,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
     use std::os::unix::{fs::PermissionsExt, net::UnixListener};
 
     runtime.install_cancellation_signal(state_dir);
+    runtime.birth_root = Some(state_dir.to_path_buf());
     let socket = state_dir.join("control.sock");
     if socket.exists() {
         fs::remove_file(&socket)
@@ -1602,6 +1641,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BirthFace { token, .. }
+        | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyStart { token, .. }
@@ -1757,13 +1798,52 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 advertisement,
             })
             .unwrap_or_else(|code| refused(&code)),
-        Request::BodyInteraction {
+        Request::BirthFace { protocol, .. } if protocol == PROTOCOL => runtime
+            .birth_root
+            .clone()
+            .as_deref()
+            .ok_or_else(|| "service Birth is unavailable".to_string())
+            .and_then(|root| runtime.birth_face(root))
+            .map(|(presentation, advertisement)| Response::BirthFace {
+                protocol: PROTOCOL,
+                presentation: Box::new(presentation),
+                advertisement,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BirthInteraction {
             protocol,
             show,
             interaction,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_local_interaction(&show, &interaction)
+            .birth_root
+            .clone()
+            .as_deref()
+            .ok_or_else(|| "service Birth is unavailable".to_string())
+            .and_then(|root| runtime.birth_interaction(root, &show, &interaction))
+            .map(|result| match result {
+                BirthTransition::Changed(presentation) => Response::BirthChanged {
+                    protocol: PROTOCOL,
+                    presentation: Box::new(presentation),
+                },
+                BirthTransition::Born {
+                    body_id,
+                    presentation,
+                } => Response::BirthCompleted {
+                    protocol: PROTOCOL,
+                    body_id,
+                    presentation: Box::new(presentation),
+                },
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyInteraction {
+            protocol,
+            show,
+            interaction,
+            not_after_millis,
+            ..
+        } if protocol == PROTOCOL => check_action_expiry(not_after_millis)
+            .and_then(|()| runtime.owned_body_local_interaction(&show, &interaction))
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),
@@ -1943,6 +2023,15 @@ fn refused(code: &str) -> Response {
     }
 }
 
+fn check_action_expiry(not_after_millis: Option<u64>) -> Result<(), String> {
+    if let Some(limit) = not_after_millis {
+        if now_millis()? > limit {
+            return Err("control-grant-expired".into());
+        }
+    }
+    Ok(())
+}
+
 fn read_secret(path: &Path) -> Result<[u8; 32], String> {
     let bytes = fs::read(path).map_err(|error| format!("read local control token: {error}"))?;
     bytes
@@ -2008,6 +2097,15 @@ fn now_millis() -> Result<u64, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn expired_action_grant_is_rejected_before_owner_dispatch() {
+        assert_eq!(
+            check_action_expiry(Some(0)).unwrap_err(),
+            "control-grant-expired"
+        );
+        assert!(check_action_expiry(None).is_ok());
+    }
     use conduit_body::{
         Body, BodyConversationContext, HostPresenceClock, HostPresenceClockScale, HostPresenceTable,
     };

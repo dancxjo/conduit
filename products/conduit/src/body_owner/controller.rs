@@ -30,6 +30,7 @@ use std::{
 #[path = "continuing.rs"]
 mod continuing;
 pub(crate) use continuing::RunWorker;
+mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
 pub(crate) fn clock_interval_action() -> &'static str {

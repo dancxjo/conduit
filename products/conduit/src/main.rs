@@ -1,3 +1,5 @@
+mod birth_identity;
+mod body_face_json;
 mod body_product;
 mod body_terminal;
 mod cli;
@@ -264,6 +266,9 @@ fn main() {
             command: Some(cli::BodyCommand::Status { state_dir, json }),
         }) => durable_host::body_status(&state_dir, json),
         Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Face { state_dir, json }),
+        }) => body_face_json::run(&state_dir, json),
+        Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Start { state_dir, maximum_millis }),
         }) => durable_host_control::start_owned_body(&state_dir, maximum_millis),
         Some(cli::Command::Body {
@@ -365,9 +370,15 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(command),
         }) => match command {
-            cli::BodyCommand::Birth { screen_free } => {
+            cli::BodyCommand::Birth { screen_free, state_dir } => {
                 if screen_free {
-                    screen_free_birth::run(&mut io::stdin().lock(), &mut io::stdout().lock())
+                    state_dir.map_or_else(current_state_dir, Ok).and_then(|state_dir| {
+                        screen_free_birth::run_installed(
+                            &state_dir,
+                            &mut io::stdin().lock(),
+                            &mut io::stdout().lock(),
+                        )
+                    })
                 } else {
                     enter_birth()
                 }

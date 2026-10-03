@@ -14,6 +14,30 @@ pub struct RetainedBirthEvidence {
 }
 
 impl ZeroBodyFrontDoor {
+    /// Source for the first retained Plot, if any. The complete selected
+    /// workset remains in the Body; the installed owner currently executes
+    /// only its first resident Plot.
+    pub fn primary_selected_source(
+        &self,
+        selection: &BirthSelection,
+    ) -> Result<Option<&str>, String> {
+        selection
+            .workset
+            .plots()
+            .first()
+            .map(|resident| {
+                self.plots
+                    .iter()
+                    .find(|candidate| {
+                        candidate.source_document_id == resident.source_document_id
+                            && candidate.checked_plot_id == resident.checked_plot_id
+                    })
+                    .map(|candidate| candidate.source.as_str())
+                    .ok_or_else(|| "Crèche first Plot is outside current reviewed inventory".into())
+            })
+            .transpose()
+    }
+
     /// Build the shared Crèche draft from current reviewed inventory. Opening
     /// the draft grants no Plot special status and creates no Body.
     pub fn creche_draft(&self, uuid: String) -> Result<BirthDraft, String> {
