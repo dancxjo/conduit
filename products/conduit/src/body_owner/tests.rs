@@ -1,5 +1,6 @@
 use super::*;
 use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_presentation::PresentationRole;
 use conduit_std_host::StdHostConfig;
 const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
 const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
@@ -21,6 +22,72 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
         plot.expanded.source_document_id.clone(),
         plot.expanded.checked_plot_id.clone(),
     )
+}
+
+#[test]
+fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-face-names",
+        "retained-source",
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = super::super::super::Installation {
+        schema: super::super::super::INSTALL_SCHEMA.into(),
+        host_id: "host/owner-test".into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: super::super::super::digest(b"bundle/test"),
+        product_executable: "fixture-unused".into(),
+        body_state: None,
+        joined_body_state: None,
+    };
+    super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let checked = source();
+    let mut born = Owner::open(
+        host("boot/name-first"),
+        resident(&checked),
+        None,
+        "North Station",
+    )
+    .unwrap();
+    born.set_resident_plot_name(&checked).unwrap();
+    born.persist(&root).unwrap();
+    let names = |owner: &Owner| {
+        let face = owner.local_face_snapshot().unwrap();
+        let body = face
+            .subjects
+            .iter()
+            .find(|subject| subject.role == PresentationRole::Body)
+            .unwrap()
+            .name
+            .clone();
+        let plot = face
+            .subjects
+            .iter()
+            .find(|subject| subject.role == PresentationRole::Plot)
+            .unwrap()
+            .name
+            .clone();
+        (body, plot, face.basis.body_id)
+    };
+    let original = names(&born);
+    assert_eq!(original.0, "North Station");
+    assert_eq!(original.1, checked.expanded.name);
+    std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
+    let resumed = super::super::resume_service(host("boot/name-next"), &root).unwrap();
+    assert_eq!(names(&resumed), original);
+
+    // A legacy or interrupted source write preserves the biography and exact
+    // Plot identity, but cannot claim a checked human Plot name.
+    std::fs::remove_file(root.join("body/source.conduit")).unwrap();
+    let legacy = super::super::resume_service(host("boot/name-legacy"), &root).unwrap();
+    let legacy_names = names(&legacy);
+    assert_eq!(legacy_names.0, "North Station");
+    assert_eq!(legacy_names.2, original.2);
+    assert!(legacy_names.1.starts_with("Resident Plot "));
+
+    std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
+    assert!(super::super::resume_service(host("boot/name-wrong"), &root).is_err());
+    std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
 fn checked_birth_and_fresh_boot_recovery_preserve_body_without_replaying_proposal() {

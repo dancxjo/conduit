@@ -41,12 +41,8 @@ impl Owner {
         if self.host.is_playing() || self.session.realization().is_some() {
             return Err("Body already has a current proposal or Play".into());
         }
-        let bytes = super::super::super::bounded_read(
-            &root.join("body/source.conduit"),
-            super::super::MAXIMUM_SOURCE,
-        )?;
-        let source = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
-        let checked = crate::plot_source::parse(source)?.expand_entry_for_authoring()?;
+        let checked = super::super::checked_retained_source(root)?
+            .ok_or("retained source is unavailable for Body Play")?;
         let resident = ResidentPlot::new(
             checked.expanded.source_document_id.clone(),
             checked.expanded.checked_plot_id.clone(),

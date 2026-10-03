@@ -26,9 +26,29 @@ pub(crate) fn resume_service(
     state::recover(root)?;
     let retained = state::load(root)?.ok_or("installed Host has no retained Body")?;
     let mut owner = Owner::resume(host, retained)?;
+    if let Some(checked) = checked_retained_source(root)? {
+        owner.set_resident_plot_name(&checked)?;
+    }
     owner.restore_execution(root)?;
     owner.persist(root)?;
     Ok(owner)
+}
+
+/// Recheck the retained source through the product's ordinary checked Plot
+/// entrance. An older or interrupted installation can lack these source bytes;
+/// its Face then retains the exact resident identity with a generic name.
+fn checked_retained_source(
+    root: &Path,
+) -> Result<Option<conduit_plot::ExpandedAuthoringPlot>, String> {
+    let path = root.join("body/source.conduit");
+    if !path.exists() {
+        return Ok(None);
+    }
+    let bytes = super::bounded_read(&path, MAXIMUM_SOURCE)?;
+    let source = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
+    crate::plot_source::parse(source)?
+        .expand_entry_for_authoring()
+        .map(Some)
 }
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
@@ -81,6 +101,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
     let result = (|| {
         let mut owner =
             controller::Owner::open(runtime.into_owner_host(), resident, retained, name)?;
+        owner.set_resident_plot_name(&checked)?;
         owner.restore_execution(&root)?;
         owner.persist(&root)?;
         status.body_id =
