@@ -307,7 +307,9 @@ fn serve_presence(
                     Ok(_) => (true, String::new()),
                     Err(error) => (
                         false,
-                        if error == "body-play-active"
+                        if error == "control-outcome-unknown" {
+                            "control-outcome-unknown"
+                        } else if error == "body-play-active"
                             || error.contains("retired Play")
                             || error == "clock-play-must-lull"
                         {

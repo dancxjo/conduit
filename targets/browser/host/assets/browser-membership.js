@@ -290,7 +290,12 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pending.resolve(Object.freeze({ accepted: true }));
       } else if (frame.accepted === false && typeof frame.code === "string" &&
           frame.code.length > 0 && frame.code.length <= 128) {
-        pending.reject(new Error(`Body owner refused interaction: ${frame.code}`));
+        const uncertain = frame.code === "control-outcome-unknown";
+        const error = new Error(uncertain
+          ? "Body owner control outcome unknown; do not retry this interaction"
+          : `Body owner refused interaction: ${frame.code}`);
+        error.code = frame.code;
+        pending.reject(error);
       } else {
         pending.reject(new Error("invalid owner interaction response"));
       }

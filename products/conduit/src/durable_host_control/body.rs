@@ -579,6 +579,16 @@ pub(crate) fn submit_browser_face_interaction(
 }
 
 #[cfg(not(unix))]
+pub(crate) fn submit_browser_face_interaction(
+    _state_dir: &Path,
+    _request: OwnerFaceSnapshotRequest,
+    _show: MaskShow,
+    _interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
 pub(crate) fn local_face_snapshot(
     _state_dir: &Path,
 ) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {

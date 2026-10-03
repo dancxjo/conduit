@@ -40,7 +40,6 @@ mod body_run;
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
 pub(crate) use body::start_browser_window;
-#[cfg(unix)]
 pub(crate) use body::submit_browser_face_interaction;
 use body::HostSource;
 pub(crate) use body::{
