@@ -13,7 +13,7 @@ use conduit_body::{
 };
 use conduit_core::HostAdvertisement;
 use conduit_presentation::{
-    MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
+    MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
     OwnerFaceSnapshotResponse,
 };
 
@@ -162,12 +162,12 @@ fn exchange_face(
     }
     let encoded =
         serde_json::to_vec(&request).map_err(|_| NativeOwnerFaceExchangeRefusal::Encoding)?;
-    if encoded.len() > MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES {
+    if encoded.len() > MAX_OWNER_FACE_RESPONSE_BYTES {
         return Err(NativeOwnerFaceExchangeRefusal::FramePressure);
     }
     line.send_binary(&encoded)
         .map_err(NativeOwnerFaceExchangeRefusal::Send)?;
-    let mut response = vec![0; MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES];
+    let mut response = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
     let received = line
         .receive_binary(&mut response)
         .map_err(NativeOwnerFaceExchangeRefusal::Receive)?;
