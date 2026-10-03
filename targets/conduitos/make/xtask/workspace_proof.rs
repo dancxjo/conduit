@@ -118,6 +118,7 @@ pub(super) fn execute_supplied(
                 serde_json::from_str(include_str!("../../../../proof/journeys/workspace.json"))
                     .map_err(|error| refusal(error.to_string()))?;
             let mut completed_actions = Vec::new();
+            let mut completed_edits = 0;
             for action in &scenario.actions {
                 match action.id.as_str() {
                     "arrive" => {
@@ -137,7 +138,6 @@ pub(super) fn execute_supplied(
                         }
                     }
                     "configure-birth" => {
-                        let mut completed_edits = 0;
                         let mut edit = |key: &str| -> Result<(), ConduitosError> {
                             journey_input::key_pair(
                                 &mut qmp,
@@ -157,19 +157,40 @@ pub(super) fn execute_supplied(
                         for character in scenario.name.chars() {
                             edit(&character.to_string())?;
                         }
-                        // Ordinary Crèche controls select the same portable plots. Each
-                        // completed edit is observed before the next input is submitted.
-                        for _ in 0..4 {
+                        edit("ret")?; // Commit the name through its Face action.
+                                      // Tab reaches the Keyboard canvas boolean on the ordinary Face.
+                        for _ in 0..2 {
                             edit("tab")?;
                         }
-                        edit("spc")?; // Omit Keyboard canvas.
-                        for _ in 0..3 {
+                        edit("0")?;
+                        edit("ret")?; // Omit Keyboard canvas.
+                                      // Pass Memory Lantern and Tutorial to the Patchbay boolean.
+                        for _ in 0..6 {
                             edit("tab")?;
                         }
-                        edit("spc")?; // Omit Patchbay.
+                        edit("0")?;
+                        edit("ret")?; // Omit Patchbay.
                     }
                     "birth" => {
-                        journey_input::key_pair(&mut qmp, &mut reader, "f3", "workspace-birth")?;
+                        // The next five ordinary controls lead to Birth Body. Each
+                        // focus move is acknowledged by the rendered Face adapter.
+                        for _ in 0..5 {
+                            journey_input::key_pair(
+                                &mut qmp,
+                                &mut reader,
+                                "tab",
+                                "workspace-birth-focus",
+                            )?;
+                            completed_edits += 1;
+                            hid_qmp::wait_for_stage_count(
+                                &serial_path,
+                                &mut child,
+                                "CONDUIT_CRECHE_CHECKPOINT edited",
+                                completed_edits,
+                                "workspace-birth-focus-timeout",
+                            )?;
+                        }
+                        journey_input::key_pair(&mut qmp, &mut reader, "ret", "workspace-birth")?;
                         journey_input::wait_status(&serial_path, &mut child, "born-lulled")?;
                         let born_records = journey_records::decode(
                             &fs::read_to_string(&serial_path).map_err(io_error)?,
