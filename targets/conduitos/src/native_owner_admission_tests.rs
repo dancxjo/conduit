@@ -226,7 +226,7 @@ fn owner_face_refusal_and_frame_pressure_leave_admission_receipt_independent() {
         Err(NativeOwnerFaceExchangeRefusal::Face(GuestFaceRefusal::OwnerRefused(code)))
             if code == "face-frame-pressure"
     ));
-    line.response = vec![0; MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES + 1];
+    line.response = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES + 1];
     assert!(matches!(
         exchange_face(&mut line, &receipt),
         Err(NativeOwnerFaceExchangeRefusal::Receive(
