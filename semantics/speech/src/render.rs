@@ -113,26 +113,16 @@ impl RenderCursor {
                         neighbor(events, self.event_index.checked_sub(1), target, true)?;
                     let (next, _) =
                         neighbor(events, self.event_index.checked_add(1), target, false)?;
-                    let connected = speech_connected_target(SpeechConnectedInput {
+                    let frames = target.frames;
+                    let frame = speech_connected_frame(SpeechConnectedInput {
+                        phone,
+                        stress: value.stress,
+                        state: self.state,
+                        previous_place,
                         target,
                         frame: self.event_frame,
                         previous,
                         next,
-                    })
-                    .ok_or(RenderRefusal::Arithmetic)?;
-                    let frames = connected.target.frames;
-                    let frame = speech_contextual_frame(SpeechVowelOnsetInput {
-                        phone,
-                        prosody: SpeechProsodyInput {
-                            stress: value.stress,
-                            attack: connected.attack,
-                            release: connected.release,
-                            target: connected.target,
-                            frame: self.event_frame,
-                            state: self.state,
-                        },
-                        previous_place,
-                        relation: previous.relation,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
                     self.state = frame.state;

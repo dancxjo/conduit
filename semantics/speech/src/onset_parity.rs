@@ -9,7 +9,7 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape, StructuredInfoVa
 use conduit_plot::PortableExpressionProgram;
 use std::{vec, vec::Vec};
 
-fn variant(ty: &StructuredInfoType, tag: &str) -> StructuredInfoValue {
+pub(super) fn variant(ty: &StructuredInfoType, tag: &str) -> StructuredInfoValue {
     let StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {
         panic!("variant")
     };
