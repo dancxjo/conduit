@@ -151,3 +151,7 @@ impl ChildKernel {
         })
     }
 }
+
+fn debug(error: impl core::fmt::Debug) -> String {
+    format!("{error:?}")
+}

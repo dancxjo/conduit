@@ -3,7 +3,9 @@ mod host_dispatch;
 #[cfg(test)]
 use host_dispatch::{dispatch_matches, outstanding_host_call_index};
 mod preparation;
-use crate::child::{BoundaryEndpoint, ChildKernel, ChildTerminalError, ChildTransportError};
+use crate::child::{
+    BoundaryEndpoint, ChildExecutionError, ChildKernel, ChildTerminalError, ChildTransportError,
+};
 use crate::{KernelCompositeDefinition, KernelOperationRegistry};
 use alloc::collections::BTreeMap;
 use conduit_core::{
@@ -23,52 +25,13 @@ pub struct KernelCompositePreparation {
     children: BTreeMap<HostId, LoweredPlanFragment>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum KernelCompositeError {
-    Empty,
-    DuplicateChild(HostId),
-    Lowering {
-        child: HostId,
-        error: LoweringError,
-    },
-    InvalidBoundary(String),
-    InvalidHostCallToken,
-    HostCallDispatchMismatch,
-    HostCallOutputExceeded,
-    StaleHostCallChild,
-    ChildRefused {
-        child: HostId,
-        reason: String,
-    },
-    Execution {
-        child: HostId,
-        reason: String,
-    },
-    UnknownFront,
-    StaleChild(HostId),
-    MalformedBoundary(PortId),
-    InvalidLifecycle,
-    CancellationRefused {
-        failed_children: usize,
-    },
-    InternalTransport {
-        link: usize,
-        reason: ChildTransportError,
-    },
-    Terminal(ChildTerminalError),
-}
-
-impl core::fmt::Display for KernelCompositeError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
-impl core::error::Error for KernelCompositeError {}
+mod error;
+pub use error::KernelCompositeError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct FaceRoute {
     child: HostId,
+    child_index: usize,
     direction: PortDirection,
 }
 
@@ -76,9 +39,11 @@ struct FaceRoute {
 struct InternalLink {
     connection_id: ConnectionId,
     source_child: HostId,
+    source_index: usize,
     source_endpoint: RemoteEndpointId,
     source_cord: conduit_kernel::CordId,
     sink_child: HostId,
+    sink_index: usize,
     sink_endpoint: RemoteEndpointId,
     sink_cord: conduit_kernel::CordId,
     closed: bool,
@@ -148,12 +113,17 @@ pub struct KernelCompositeHost {
         BTreeMap<(HostId, NodeId, HostCallId), ([u8; 32], KernelCompositeHostCallObligation)>,
     outstanding_host_calls: Vec<Option<OutstandingHostCall>>,
     next_dispatch_token: u64,
-    cancellation_failures: Vec<(HostId, String)>,
+    cancellation_failures: Vec<(usize, conduit_kernel::scheduler::SchedulerError)>,
 }
 
 impl KernelCompositeHost {
     pub(crate) fn has_exact_definition(&self, definition: &KernelCompositeDefinition) -> bool {
         &self.definition == definition
+    }
+
+    /// Resolve the prepared child identity retained by an execution refusal.
+    pub fn child_identity(&self, child_index: usize) -> Option<&HostId> {
+        self.children.keys().nth(child_index)
     }
 
     pub fn definition(&self) -> &KernelCompositeDefinition {
@@ -194,9 +164,11 @@ impl KernelCompositeHost {
         let child = &route.child;
         self.children
             .get_mut(child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(child.clone()))?
+            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                child: route.child_index,
+            })?
             .admit_boundary(port_id, sequence, value)
-            .map_err(|_| KernelCompositeError::MalformedBoundary(port_id.clone()))
+            .map_err(|reason| execution(route.child_index, reason))
     }
 
     pub fn close_input(&mut self, port_id: &PortId) -> Result<(), KernelCompositeError> {
@@ -209,9 +181,11 @@ impl KernelCompositeHost {
         let child = &route.child;
         self.children
             .get_mut(child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(child.clone()))?
+            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                child: route.child_index,
+            })?
             .close_boundary(port_id)
-            .map_err(|reason| execution(child, reason))
+            .map_err(|reason| execution(route.child_index, reason))
     }
 
     pub fn close_input_abnormal(
@@ -228,11 +202,14 @@ impl KernelCompositeHost {
         let child = &route.child;
         self.children
             .get_mut(child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(child.clone()))?
+            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                child: route.child_index,
+            })?
             .close_boundary_abnormal(port_id, terminal)
-            .map_err(|reason| execution(child, reason))
+            .map_err(|reason| execution(route.child_index, reason))
     }
 
+    /// Allocating presentation convenience; sealed Play uses `output_into`.
     pub fn output(
         &mut self,
         port_id: &PortId,
@@ -245,9 +222,11 @@ impl KernelCompositeHost {
             .ok_or(KernelCompositeError::UnknownFront)?;
         self.children
             .get_mut(&route.child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                child: route.child_index,
+            })?
             .boundary_output(port_id)
-            .map_err(|reason| execution(&route.child, reason))
+            .map_err(|reason| execution(route.child_index, reason))
     }
 
     pub fn output_into(
@@ -263,9 +242,11 @@ impl KernelCompositeHost {
             .ok_or(KernelCompositeError::UnknownFront)?;
         self.children
             .get_mut(&route.child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                child: route.child_index,
+            })?
             .boundary_output_into(port_id, output)
-            .map_err(|reason| execution(&route.child, reason))
+            .map_err(|reason| execution(route.child_index, reason))
     }
 
     pub fn complete_output(
@@ -281,9 +262,11 @@ impl KernelCompositeHost {
             .ok_or(KernelCompositeError::UnknownFront)?;
         self.children
             .get_mut(&route.child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                child: route.child_index,
+            })?
             .deliver_boundary(port_id, sequence)
-            .map_err(|reason| execution(&route.child, reason))
+            .map_err(|reason| execution(route.child_index, reason))
     }
 
     pub fn output_terminal_into(
@@ -295,7 +278,9 @@ impl KernelCompositeHost {
         let route = self.front(port_id, PortDirection::Output)?;
         self.children
             .get(&route.child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                child: route.child_index,
+            })?
             .boundary_terminal_into(port_id, abnormal)
             .map(|terminal| {
                 terminal.map(|terminal| match terminal {
@@ -311,8 +296,10 @@ impl KernelCompositeHost {
             return Ok(KernelCompositeStatus::Cancelled);
         }
         self.require_started()?;
-        for (child, kernel) in &mut self.children {
-            kernel.step().map_err(|reason| execution(child, reason))?;
+        for (child_index, kernel) in self.children.values_mut().enumerate() {
+            kernel
+                .step()
+                .map_err(|reason| execution(child_index, reason))?;
         }
         self.pump_internal()?;
         if self
@@ -333,9 +320,9 @@ impl KernelCompositeHost {
         self.cancelled = true;
         self.outstanding_host_calls.fill(None);
         self.cancellation_failures.clear();
-        for (child, kernel) in &mut self.children {
+        for (child_index, kernel) in self.children.values_mut().enumerate() {
             if let Err(reason) = kernel.cancel() {
-                self.cancellation_failures.push((child.clone(), reason));
+                self.cancellation_failures.push((child_index, reason));
             }
         }
         if self.cancellation_failures.is_empty() {
@@ -347,10 +334,12 @@ impl KernelCompositeHost {
         }
     }
 
-    pub fn cancellation_failures(&self) -> &[(HostId, String)] {
+    /// Finite failures indexed into the same prepared child identity table.
+    pub fn cancellation_failures(&self) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
         &self.cancellation_failures
     }
 
+    /// Allocating presentation snapshot, outside sealed Play.
     pub fn signs(&self) -> BTreeMap<HostId, Vec<KernelEvent>> {
         self.children
             .iter()
@@ -385,7 +374,9 @@ impl KernelCompositeHost {
             }
             let offer = children
                 .get_mut(&link.source_child)
-                .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
+                .ok_or(KernelCompositeError::StaleRuntimeChild {
+                    child: link.source_index,
+                })?
                 .remote_offer_into(link.source_endpoint, link.source_cord, &mut link.transfer)
                 .map_err(|reason| KernelCompositeError::InternalTransport {
                     link: link_index,
@@ -394,7 +385,9 @@ impl KernelCompositeHost {
             if let Some(sequence) = offer {
                 let accepted = children
                     .get_mut(&link.sink_child)
-                    .ok_or_else(|| KernelCompositeError::StaleChild(link.sink_child.clone()))?
+                    .ok_or(KernelCompositeError::StaleRuntimeChild {
+                        child: link.sink_index,
+                    })?
                     .remote_admit(link.sink_endpoint, link.sink_cord, sequence, &link.transfer)
                     .map_err(|reason| KernelCompositeError::InternalTransport {
                         link: link_index,
@@ -403,7 +396,9 @@ impl KernelCompositeHost {
                 if matches!(accepted, RemoteIngressOutcome::Accepted { .. }) {
                     children
                         .get_mut(&link.source_child)
-                        .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
+                        .ok_or(KernelCompositeError::StaleRuntimeChild {
+                            child: link.source_index,
+                        })?
                         .remote_delivered(link.source_endpoint, link.source_cord, sequence)
                         .map_err(|reason| KernelCompositeError::InternalTransport {
                             link: link_index,
@@ -413,7 +408,9 @@ impl KernelCompositeHost {
             } else {
                 let terminal = children
                     .get(&link.source_child)
-                    .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
+                    .ok_or(KernelCompositeError::StaleRuntimeChild {
+                        child: link.source_index,
+                    })?
                     .remote_terminal_disposition(link.source_endpoint, link.source_cord)
                     .map_err(|reason| KernelCompositeError::InternalTransport {
                         link: link_index,
@@ -423,8 +420,8 @@ impl KernelCompositeHost {
                     Some(RemoteTerminalDisposition::NormalClose) => {
                         children
                             .get_mut(&link.sink_child)
-                            .ok_or_else(|| {
-                                KernelCompositeError::StaleChild(link.sink_child.clone())
+                            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                                child: link.sink_index,
                             })?
                             .remote_close(link.sink_endpoint, link.sink_cord)
                             .map_err(|reason| KernelCompositeError::InternalTransport {
@@ -436,8 +433,8 @@ impl KernelCompositeHost {
                     Some(RemoteTerminalDisposition::Abnormal) => {
                         let abnormal = children
                             .get(&link.source_child)
-                            .ok_or_else(|| {
-                                KernelCompositeError::StaleChild(link.source_child.clone())
+                            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                                child: link.source_index,
                             })?
                             .remote_abnormal_terminal(link.source_endpoint, link.source_cord)
                             .map_err(|reason| KernelCompositeError::InternalTransport {
@@ -450,8 +447,8 @@ impl KernelCompositeHost {
                             })?;
                         children
                             .get_mut(&link.sink_child)
-                            .ok_or_else(|| {
-                                KernelCompositeError::StaleChild(link.sink_child.clone())
+                            .ok_or(KernelCompositeError::StaleRuntimeChild {
+                                child: link.sink_index,
                             })?
                             .remote_close_abnormal(link.sink_endpoint, link.sink_cord, abnormal)
                             .map_err(|reason| KernelCompositeError::InternalTransport {
@@ -472,11 +469,8 @@ fn invalid_front(port_id: &PortId, reason: &str) -> KernelCompositeError {
     KernelCompositeError::InvalidBoundary(format!("front '{}': {reason}", port_id.as_str()))
 }
 
-fn execution(child: &HostId, reason: String) -> KernelCompositeError {
-    KernelCompositeError::Execution {
-        child: child.clone(),
-        reason,
-    }
+fn execution(child: usize, reason: ChildExecutionError) -> KernelCompositeError {
+    KernelCompositeError::Execution { child, reason }
 }
 
 #[cfg(test)]

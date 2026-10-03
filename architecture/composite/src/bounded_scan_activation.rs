@@ -376,7 +376,9 @@ impl BoundedScanActivationHost {
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
     }
-    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+    pub fn last_cancellation_failures(
+        &self,
+    ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
         self.receipts
             .last()
             .map_or(&[], KernelCompositeHost::cancellation_failures)

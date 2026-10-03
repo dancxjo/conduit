@@ -1,4 +1,3 @@
-use crate::prelude::*;
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
     AdmittedKernelCompositeHostRequest, BoundedActivationAdmission, BoundedActivationError,
@@ -389,7 +388,9 @@ impl FlowSelectCoordinator {
         self.activation.next_host_request()
     }
 
-    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+    pub fn last_cancellation_failures(
+        &self,
+    ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
         self.activation.last_cancellation_failures()
     }
 

@@ -7,6 +7,27 @@ use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerError, SchedulerStatus,
 };
 
+/// A finite execution refusal; formatting belongs outside Play.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChildExecutionError {
+    UnknownFront,
+    ValueKindMismatch,
+    BufferContractMismatch,
+    Scheduler(SchedulerError),
+}
+
+impl From<SchedulerError> for ChildExecutionError {
+    fn from(error: SchedulerError) -> Self {
+        Self::Scheduler(error)
+    }
+}
+
+impl From<conduit_kernel::StorageError> for ChildExecutionError {
+    fn from(error: conduit_kernel::StorageError) -> Self {
+        Self::Scheduler(error.into())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChildTransportError {
     Scheduler(SchedulerError),
@@ -73,8 +94,8 @@ pub(crate) struct ChildKernel {
 }
 
 impl ChildKernel {
-    pub(crate) fn step(&mut self) -> Result<SchedulerStatus, String> {
-        self.status = self.scheduler.step().map_err(debug)?;
+    pub(crate) fn step(&mut self) -> Result<SchedulerStatus, ChildExecutionError> {
+        self.status = self.scheduler.step().map_err(ChildExecutionError::from)?;
         Ok(self.status)
     }
 
@@ -91,21 +112,28 @@ impl ChildKernel {
         node: NodeId,
         request: conduit_kernel::RequestId,
         outcome: conduit_kernel::HostCallOutcome,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildExecutionError> {
         self.scheduler
             .complete_host_call(node, request, outcome)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
-    pub(crate) fn host_value(&self, value: conduit_kernel::ValueRef) -> Result<&[u8], String> {
-        self.scheduler.host_value(value).map_err(debug)
+    pub(crate) fn host_value(
+        &self,
+        value: conduit_kernel::ValueRef,
+    ) -> Result<&[u8], ChildExecutionError> {
+        self.scheduler
+            .host_value(value)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn store_host_value(
         &mut self,
         bytes: &[u8],
-    ) -> Result<conduit_kernel::ValueRef, String> {
-        self.scheduler.store_host_value(bytes).map_err(debug)
+    ) -> Result<conduit_kernel::ValueRef, ChildExecutionError> {
+        self.scheduler
+            .store_host_value(bytes)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn admit_boundary(
@@ -113,63 +141,66 @@ impl ChildKernel {
         port_id: &SemanticPortId,
         sequence: u64,
         value: &ValuePayload,
-    ) -> Result<RemoteIngressOutcome, String> {
+    ) -> Result<RemoteIngressOutcome, ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         if boundary.value_kind != value.value_kind {
-            return Err("composite input value kind differs from its exact front".into());
+            return Err(ChildExecutionError::ValueKindMismatch);
         }
         self.scheduler
             .admit_remote_input(boundary.endpoint, boundary.cord, sequence, &value.encoded)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
-    pub(crate) fn close_boundary(&mut self, port_id: &SemanticPortId) -> Result<(), String> {
+    pub(crate) fn close_boundary(
+        &mut self,
+        port_id: &SemanticPortId,
+    ) -> Result<(), ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         self.scheduler
             .close_remote_input(boundary.endpoint, boundary.cord)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn close_boundary_abnormal(
         &mut self,
         port_id: &SemanticPortId,
         terminal: &ValuePayload,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         if boundary.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
-            return Err("composite abnormal input kind differs from its exact front".into());
+            return Err(ChildExecutionError::ValueKindMismatch);
         }
-        let terminal = CanonicalValue::new(&terminal.encoded).map_err(debug)?;
+        let terminal = CanonicalValue::new(&terminal.encoded).map_err(ChildExecutionError::from)?;
         self.scheduler
             .close_remote_input_abnormal(boundary.endpoint, boundary.cord, terminal)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn boundary_output(
         &mut self,
         port_id: &SemanticPortId,
-    ) -> Result<Option<(u64, ValuePayload)>, String> {
+    ) -> Result<Option<(u64, ValuePayload)>, ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         let Some(offer) = self
             .scheduler
             .remote_egress_offer(boundary.endpoint, boundary.cord)
-            .map_err(debug)?
+            .map_err(ChildExecutionError::from)?
         else {
             return Ok(None);
         };
@@ -177,7 +208,7 @@ impl ChildKernel {
             .scheduler
             .values()
             .get(offer.value)
-            .map_err(debug)?
+            .map_err(ChildExecutionError::from)?
             .to_vec();
         Ok(Some((
             offer.sequence,
@@ -192,22 +223,26 @@ impl ChildKernel {
         &mut self,
         port_id: &SemanticPortId,
         output: &mut ValuePayload,
-    ) -> Result<Option<u64>, String> {
+    ) -> Result<Option<u64>, ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         let Some(offer) = self
             .scheduler
             .remote_egress_offer(boundary.endpoint, boundary.cord)
-            .map_err(debug)?
+            .map_err(ChildExecutionError::from)?
         else {
             return Ok(None);
         };
-        let bytes = self.scheduler.values().get(offer.value).map_err(debug)?;
+        let bytes = self
+            .scheduler
+            .values()
+            .get(offer.value)
+            .map_err(ChildExecutionError::from)?;
         if output.value_kind != boundary.value_kind || bytes.len() > output.encoded.capacity() {
-            return Err("prepared composite output buffer differs from its exact front".into());
+            return Err(ChildExecutionError::BufferContractMismatch);
         }
         output.encoded.clear();
         output.encoded.extend_from_slice(bytes);
@@ -218,19 +253,19 @@ impl ChildKernel {
         &mut self,
         port_id: &SemanticPortId,
         sequence: u64,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         self.scheduler
             .remote_egress_accept(boundary.endpoint, boundary.cord, sequence)
             .and_then(|()| {
                 self.scheduler
                     .remote_egress_delivered(boundary.endpoint, boundary.cord, sequence)
             })
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn boundary_terminal_into(
@@ -274,8 +309,8 @@ impl ChildKernel {
         }
     }
 
-    pub(crate) fn cancel(&mut self) -> Result<(), String> {
-        self.scheduler.cancel().map_err(debug)?;
+    pub(crate) fn cancel(&mut self) -> Result<(), SchedulerError> {
+        self.scheduler.cancel()?;
         self.status = SchedulerStatus::Cancelled;
         Ok(())
     }
@@ -377,8 +412,4 @@ impl ChildKernel {
             .close_remote_input_abnormal(endpoint, cord, terminal)
             .map_err(ChildTransportError::Scheduler)
     }
-}
-
-fn debug(error: impl core::fmt::Debug) -> String {
-    format!("{error:?}")
 }

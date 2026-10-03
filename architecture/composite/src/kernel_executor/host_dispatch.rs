@@ -77,9 +77,7 @@ impl KernelCompositeHost {
                 host == child && *node == request.request.node && *call == request.request.call
             })
             .map(|(_, (_, obligation))| obligation)
-            .ok_or_else(|| {
-                KernelCompositeError::InvalidBoundary("Host Call has no selected obligation".into())
-            })
+            .ok_or(KernelCompositeError::MissingHostCallObligation)
     }
 
     pub fn admit_host_request(
@@ -116,7 +114,7 @@ impl KernelCompositeHost {
             .nth(child_index)
             .ok_or(KernelCompositeError::StaleHostCallChild)?
             .complete_host_call(request.node, request.request, outcome)
-            .map_err(KernelCompositeError::InvalidBoundary)?;
+            .map_err(|reason| execution(child_index, reason))?;
         self.outstanding_host_calls[slot] = None;
         Ok(())
     }
@@ -132,7 +130,7 @@ impl KernelCompositeHost {
             .get(child)
             .ok_or(KernelCompositeError::StaleHostCallChild)?
             .host_value(request.request.input.value)
-            .map_err(|reason| execution(child, reason))
+            .map_err(|reason| execution(request.child_index, reason))
     }
 
     /// Store a bounded adapter result in the owning child and complete its call.
@@ -157,11 +155,7 @@ impl KernelCompositeHost {
                         && *call == outstanding.request.call
                 })
                 .map(|(_, (_, obligation))| obligation)
-                .ok_or_else(|| {
-                    KernelCompositeError::InvalidBoundary(
-                        "Host Call has no selected obligation".into(),
-                    )
-                })?;
+                .ok_or(KernelCompositeError::MissingHostCallObligation)?;
             (
                 outstanding.child_index,
                 outstanding.request,
@@ -178,9 +172,11 @@ impl KernelCompositeHost {
             .ok_or(KernelCompositeError::StaleHostCallChild)?;
         let value = child
             .store_host_value(bytes)
-            .map_err(KernelCompositeError::InvalidBoundary)?;
-        let output = conduit_kernel::BoundedValueRef::new(value, bytes.len() as u32)
-            .map_err(|error| KernelCompositeError::InvalidBoundary(format!("{error:?}")))?;
+            .map_err(|reason| execution(child_index, reason))?;
+        let output =
+            conduit_kernel::BoundedValueRef::new(value, bytes.len() as u32).map_err(|error| {
+                execution(child_index, ChildExecutionError::Scheduler(error.into()))
+            })?;
         child
             .complete_host_call(
                 request.node,
@@ -191,7 +187,7 @@ impl KernelCompositeHost {
                     failure: None,
                 },
             )
-            .map_err(KernelCompositeError::InvalidBoundary)?;
+            .map_err(|reason| execution(child_index, reason))?;
         self.outstanding_host_calls[slot] = None;
         Ok(())
     }

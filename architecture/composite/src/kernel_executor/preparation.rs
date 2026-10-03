@@ -112,6 +112,11 @@ impl KernelCompositeHost {
                 front.external_port.port_id.clone(),
                 FaceRoute {
                     child: front.internal_child.clone(),
+                    child_index: preparation
+                        .children
+                        .keys()
+                        .position(|child| child == &front.internal_child)
+                        .expect("validated child remains in the prepared plan"),
                     direction: front.external_port.direction,
                 },
             );
@@ -234,9 +239,15 @@ impl KernelCompositeHost {
 fn internal_links(
     preparation: &KernelCompositePreparation,
 ) -> Result<Vec<InternalLink>, KernelCompositeError> {
-    type Endpoint = (HostId, RemoteEndpointId, conduit_kernel::CordId, usize);
+    type Endpoint = (
+        HostId,
+        usize,
+        RemoteEndpointId,
+        conduit_kernel::CordId,
+        usize,
+    );
     let mut rows = BTreeMap::<ConnectionId, (Option<Endpoint>, Option<Endpoint>)>::new();
-    for (child, lowered) in preparation.children() {
+    for (child_index, (child, lowered)) in preparation.children().enumerate() {
         for endpoint in &lowered.remote_endpoints {
             let row = rows
                 .entry(endpoint.connection_id.clone())
@@ -249,7 +260,13 @@ fn internal_links(
                 .ok_or_else(|| {
                     KernelCompositeError::InvalidBoundary("remote endpoint Cord is absent".into())
                 })?;
-            let value = (child.clone(), endpoint.endpoint, endpoint.cord, maximum);
+            let value = (
+                child.clone(),
+                child_index,
+                endpoint.endpoint,
+                endpoint.cord,
+                maximum,
+            );
             match endpoint.direction {
                 RemoteCordDirection::Egress => row.0 = Some(value),
                 RemoteCordDirection::Ingress => row.1 = Some(value),
@@ -258,14 +275,14 @@ fn internal_links(
     }
     rows.into_iter()
         .map(|(connection_id, (source, sink))| {
-            let (source_child, source_endpoint, source_cord, maximum_value_bytes) = source
-                .ok_or_else(|| {
+            let (source_child, source_index, source_endpoint, source_cord, maximum_value_bytes) =
+                source.ok_or_else(|| {
                     KernelCompositeError::InvalidBoundary(format!(
                         "internal Cord '{}' has no source child",
                         connection_id.as_str()
                     ))
                 })?;
-            let (sink_child, sink_endpoint, sink_cord, _) = sink.ok_or_else(|| {
+            let (sink_child, sink_index, sink_endpoint, sink_cord, _) = sink.ok_or_else(|| {
                 KernelCompositeError::InvalidBoundary(format!(
                     "internal Cord '{}' has no sink child",
                     connection_id.as_str()
@@ -274,9 +291,11 @@ fn internal_links(
             Ok(InternalLink {
                 connection_id,
                 source_child,
+                source_index,
                 source_endpoint,
                 source_cord,
                 sink_child,
+                sink_index,
                 sink_endpoint,
                 sink_cord,
                 closed: false,
