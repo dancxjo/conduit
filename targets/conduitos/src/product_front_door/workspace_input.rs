@@ -53,6 +53,27 @@ impl PendingInput {
         }
         Ok(Some(receipt))
     }
+
+    pub(super) fn service_with_face(
+        &mut self,
+        door: &mut FrontDoor,
+        journey: &ProductJourney,
+        presenter: &mut crate::front_door::FrontDoorPresenter,
+        face_workspace: &mut super::face_workspace::FaceWorkspace,
+        display: &mut impl crate::display::PixelTarget,
+        visible: bool,
+    ) -> Result<Option<crate::native_compositor::CompositionReceipt>, &'static str> {
+        if !face_workspace.active() {
+            return self.service(door, journey, presenter, display, visible);
+        }
+        let pending = core::mem::take(self);
+        if !pending.changed || !visible {
+            return Ok(None);
+        }
+        face_workspace
+            .refresh(door, journey, presenter, display)
+            .map(Some)
+    }
 }
 
 /// Tab changes foreground membership without replacing the admitted play.
@@ -124,7 +145,21 @@ pub(super) fn refresh(
         .map_err(|error| error.as_str())
 }
 
+pub(super) fn refresh_with_face(
+    front_door: &mut FrontDoor,
+    journey: &ProductJourney,
+    presenter: &mut crate::front_door::FrontDoorPresenter,
+    face_workspace: &mut super::face_workspace::FaceWorkspace,
+    display: &mut impl crate::display::PixelTarget,
+) -> Result<crate::native_compositor::CompositionReceipt, &'static str> {
+    if face_workspace.active() {
+        face_workspace.refresh(front_door, journey, presenter, display)
+    } else {
+        refresh(front_door, journey, presenter, display)
+    }
+}
+
 #[cfg(test)]
 mod service_tests;
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

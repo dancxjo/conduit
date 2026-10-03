@@ -10,7 +10,7 @@ use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
 use conduit_presentation::PresentationPropertyValue;
 
-pub(super) fn listening() -> (ProductJourney, FrontDoor) {
+pub(in crate::product_front_door) fn listening() -> (ProductJourney, FrontDoor) {
     let (ids, offer, mut journey) = fixture();
     journey
         .birth_from_creche(BirthSelection {

@@ -2,15 +2,17 @@
 
 mod arrival;
 mod face_arrival;
+mod face_workspace;
 mod input_actions;
 mod tutorial;
 mod workspace_view_sign;
 use face_arrival::{FaceArrival, FaceArrivalInput};
+use face_workspace::FaceWorkspace;
 use input_actions::{ProductControl, action_for, product_control, resident_application_action};
 mod journey_sign;
 pub(crate) mod transient_sign;
 mod workspace_input;
-use workspace_input::refresh;
+use workspace_input::refresh_with_face as refresh;
 
 use alloc::format;
 
@@ -119,6 +121,14 @@ pub fn run(
         framebuffer_basis.base_id.clone(),
         &surface_provider,
     )?;
+    let mut face_workspace = FaceWorkspace::prepare(
+        host_id.clone(),
+        boot_id.clone(),
+        generation,
+        make.build_id,
+        framebuffer_basis.base_id.clone(),
+        &surface_provider,
+    )?;
     let mut presenter = FrontDoorPresenter::prepare(
         host_id,
         boot_id,
@@ -144,10 +154,11 @@ pub fn run(
         let mut interact = |input| {
             let event = match input {
                 ProductInputEvent::Service => {
-                    if let Some(receipt) = workspace_updates.service(
+                    if let Some(receipt) = workspace_updates.service_with_face(
                         &mut front_door,
                         &journey,
                         &mut presenter,
+                        &mut face_workspace,
                         display,
                         true,
                     )? {
@@ -168,7 +179,13 @@ pub fn run(
                         journey
                             .input_lost(crate::product_journey::JourneyLossKind::InputDevice)
                             .map_err(|error| error.as_str())?;
-                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        let receipt = refresh(
+                            &mut front_door,
+                            &journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                        )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
                     return Ok(ProductInputControl::Continue);
@@ -188,6 +205,8 @@ pub fn run(
             }
             let keyboard_target = if front_door.creche_open() {
                 face_arrival.route_keyboard()?
+            } else if face_workspace.active() {
+                face_workspace.route_keyboard()?
             } else {
                 matches!(
                     presenter.route_keyboard().map_err(|error| error.as_str())?,
@@ -212,7 +231,64 @@ pub fn run(
             if event.transition() == KeyTransition::Pressed
                 && product_control(event.usage()) == Some(ProductControl::Tour)
             {
+                face_workspace.relinquish()?;
                 tutorial::select(&mut journey, &mut front_door, &mut presenter, display, make)?;
+                return Ok(ProductInputControl::Continue);
+            }
+            if face_workspace.active() {
+                if event.transition() == KeyTransition::Pressed && event.usage() == 41 {
+                    let receipt = face_workspace.leave(&front_door, &mut presenter, display)?;
+                    emit_journey_sign(&journey.projection(), make, &receipt);
+                    arch::early_write(b"CONDUIT_WORKSPACE_FACE returned-to-application\n");
+                    return Ok(ProductInputControl::Continue);
+                }
+                // Existing application shortcuts remain available after an
+                // explicit return to its surface. F3 belongs to the Face
+                // diagram only while this Mask is active; Tour F3 is unchanged.
+                if event.transition() == KeyTransition::Pressed
+                    && matches!(event.usage(), F1 | F10 | F11)
+                {
+                    face_workspace.leave(&front_door, &mut presenter, display)?;
+                } else if event.transition() == KeyTransition::Pressed
+                    && matches!(event.usage(), 61..=65 | 77)
+                {
+                    if let Some(action) = action_for(event.usage(), &front_door, &journey) {
+                        let receipt = face_workspace.invoke_product_action(
+                            action,
+                            &mut front_door,
+                            &mut journey,
+                            display,
+                            identities,
+                            offer,
+                            make,
+                        )?;
+                        emit_journey_sign(&journey.projection(), make, &receipt);
+                    }
+                    return Ok(ProductInputControl::Continue);
+                } else {
+                    if let Some(receipt) = face_workspace.accept_key(
+                        event,
+                        &mut front_door,
+                        &mut journey,
+                        display,
+                        identities,
+                        offer,
+                        make,
+                    )? {
+                        emit_journey_sign(&journey.projection(), make, &receipt);
+                        workspace_view_sign::emit(&front_door, &journey, &receipt)?;
+                    }
+                    return Ok(ProductInputControl::Continue);
+                }
+            }
+            if event.transition() == KeyTransition::Pressed
+                && event.usage() == 59
+                && !front_door.exact_details_open()
+                && journey.projection().body_id.is_some()
+            {
+                let receipt = face_workspace.enter(&front_door, &mut presenter, display)?;
+                emit_journey_sign(&journey.projection(), make, &receipt);
+                arch::early_write(b"CONDUIT_WORKSPACE_FACE shown\n");
                 return Ok(ProductInputControl::Continue);
             }
             if front_door.home_open()
@@ -263,7 +339,13 @@ pub fn run(
                                 .map_err(|error| error.as_str())?;
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
-                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        let receipt = refresh(
+                            &mut front_door,
+                            &journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                        )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(b"CONDUIT_HOME_CHECKPOINT patchbay-opened\n");
                     }
@@ -294,7 +376,13 @@ pub fn run(
                                 .map_err(|error| error.as_str())?;
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
-                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        let receipt = refresh(
+                            &mut front_door,
+                            &journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                        )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
                             format!("CONDUIT_HOME_CHECKPOINT plot-opened {}\n", requested.name())
@@ -319,7 +407,13 @@ pub fn run(
                                 .map_err(|error| error.as_str())?;
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
-                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        let receipt = refresh(
+                            &mut front_door,
+                            &journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                        )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
                             format!("CONDUIT_HOME_CHECKPOINT plot-run {}\n", requested.name())
@@ -340,6 +434,8 @@ pub fn run(
                 )? {
                     FaceArrivalInput::Continue => {}
                     FaceArrivalInput::Born => {
+                        let (observation, play) = face_arrival.next_publication_sequences();
+                        face_workspace.continue_after_birth(observation, play);
                         consumed_birth_key = Some(event.usage());
                     }
                 }
@@ -351,7 +447,13 @@ pub fn run(
                 && !front_door.exact_details_open()
             {
                 front_door.open_home().map_err(|error| error.as_str())?;
-                let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                let receipt = refresh(
+                    &mut front_door,
+                    &journey,
+                    &mut presenter,
+                    &mut face_workspace,
+                    display,
+                )?;
                 emit_journey_sign(&journey.projection(), make, &receipt);
                 arch::early_write(b"CONDUIT_HOME_CHECKPOINT returned\n");
                 return Ok(ProductInputControl::Continue);
@@ -468,13 +570,25 @@ pub fn run(
                         }
                         None => {}
                     }
-                    let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                    let receipt = refresh(
+                        &mut front_door,
+                        &journey,
+                        &mut presenter,
+                        &mut face_workspace,
+                        display,
+                    )?;
                     emit_journey_sign(&journey.projection(), make, &receipt);
                     return Ok(ProductInputControl::Continue);
                 }
                 if let Some(changed) = workspace_input::select(event, &mut journey)? {
                     if changed {
-                        let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                        let receipt = refresh(
+                            &mut front_door,
+                            &journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                        )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
                     return Ok(ProductInputControl::Continue);
@@ -511,7 +625,13 @@ pub fn run(
                 arch::early_write(
                     format!("CONDUIT_PRODUCT_ACTION applied {}\n", action.as_str()).as_bytes(),
                 );
-                let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                let receipt = refresh(
+                    &mut front_door,
+                    &journey,
+                    &mut presenter,
+                    &mut face_workspace,
+                    display,
+                )?;
                 emit_journey_sign(&journey.projection(), make, &receipt);
                 return Ok(ProductInputControl::Continue);
             }
@@ -602,7 +722,13 @@ pub fn run(
                         body_id: body_id.clone(),
                     })
                     .map_err(|error| error.as_str())?;
-                let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                let receipt = refresh(
+                    &mut front_door,
+                    &journey,
+                    &mut presenter,
+                    &mut face_workspace,
+                    display,
+                )?;
                 emit_journey_sign(&journey.projection(), make, &receipt);
                 Ok(())
             },
