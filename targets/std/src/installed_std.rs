@@ -60,6 +60,7 @@ mod midi_output_back;
 mod model_host;
 mod model_text_back;
 mod morse_backs;
+mod native_speech_back;
 mod navigation_backs;
 mod pacing_backs;
 mod pattern_comparison_back;
@@ -83,6 +84,7 @@ mod data_text_host;
 mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
+mod fore_sign_storage;
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_back;
@@ -414,21 +416,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     sign_items = sign_items
         .checked_add(remote_sign_items)
         .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
-    let sign_bytes = u32::from(sign_items)
-        .checked_mul(
-            u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
-                .map_err(|_| "installed sign charge overflow".to_string())?,
-        )
-        .ok_or_else(|| "installed sign byte budget overflow".to_string())?;
-    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
-        .ok_or_else(|| "external Fore remote Sign byte budget overflow".to_string())?;
-    let sign = HostedSignLog::new_with_remote_storage(
-        sign_items,
-        sign_bytes,
-        remote_sign_items,
-        remote_sign_bytes,
-    )
-    .map_err(|error| format!("installed sign store: {error:?}"))?;
+    let sign = fore_sign_storage::prepare(sign_items, !lowered.fore_ports.is_empty())?;
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;

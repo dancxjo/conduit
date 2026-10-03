@@ -203,6 +203,7 @@ use conduit_core::{ImplementationId, PlanFragment};
 const FACTORIES: &[&BackFactory] = &[
     &DISTANCE_FREQUENCY_FACTORY,
     &AUDIO_TONE_FACTORY,
+    &super::native_speech_back::FACTORY,
     #[cfg(test)]
     &TEST_FREQUENCY_SOURCE_FACTORY,
     #[cfg(test)]

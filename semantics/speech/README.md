@@ -89,8 +89,11 @@ The supported proof checks an ordinary planned graph lowered through
 `conduit-plan-lowering`, with two exact PCM sinks. It establishes byte equality
 with the standalone renderer, capacity-one fan-out pressure, cancellation versus
 completion, malformed versus unsupported text, and zero heap allocations during
-prepared play. The pack exposes this reusable Back; registration in the installed
-product Host and public `conduit` voice availability remain unfinished.
+prepared play. The installed std Host reference composition includes this Back; a minimal
+composition selects it with `with_native_speech`. `conduit check` recognizes
+the voice Kind and `PcmFrames` output alias. Installed execution proof uses an
+ordinary plot with exact bounded external text/PCM Fores and verifies all bytes
+and terminal signs. Device playback and a CLI WAV-output route remain unfinished.
 
 The text profile admits at most 512 UTF-8 bytes and 32 bytes per word, within
 the same 256-event and 30-second rendering bounds. It handles ASCII English
@@ -119,5 +122,5 @@ writes hosted artifacts and does not access an audio device.
 Remaining work includes artifact-reference validation and explicit rich-to-
 compact segment admission, broader text/number normalization and pronunciation,
 transitions/diphthongs,
-coarticulation and additional Klatt controls, installed Host registration and product availability, and physical timing/footprint proof. The samples do
+coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.
