@@ -67,7 +67,7 @@ pub(crate) struct BrowserWindow {
 
 enum WindowState {
     Ready,
-    Pending(Pending),
+    Pending(Box<Pending>),
     Active(MembershipCredential),
 }
 
@@ -177,13 +177,26 @@ impl Owner {
             }
             Ok(())
         })();
-        let finished = result.is_ok()
-            && matches!(window.state, WindowState::Ready)
-            && Instant::now() >= window.deadline;
-        if !finished {
-            self.pending_browser = Some(window);
-        }
+        self.pending_browser = Some(window);
         result
+    }
+
+    /// End a worker's authorization after its bounded carrier loop, or undo
+    /// a start whose listener/thread could not be created. Never fence a live
+    /// membership from this generic cleanup operation.
+    pub(crate) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
+        let window = self
+            .pending_browser
+            .as_ref()
+            .ok_or("no browser admission window")?;
+        if window.id != window_id {
+            return Err("browser admission window identity differs".into());
+        }
+        if matches!(window.state, WindowState::Active(_)) {
+            return Err("active browser membership requires an exact leave".into());
+        }
+        self.pending_browser = None;
+        Ok(())
     }
 
     pub(crate) fn browser_leave(

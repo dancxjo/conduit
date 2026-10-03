@@ -18,11 +18,20 @@ pub(crate) fn spawn_window(
 fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Response, String> {
     use std::os::unix::net::UnixStream;
     let mut secret = read_secret(&state_dir.join("control.token"))?;
-    let request = request(secret.to_vec());
+    let mut request = request(secret.to_vec());
     secret.fill(0);
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
         .map_err(|error| format!("connect to current Body owner service: {error}"))?;
-    write_frame(&mut stream, &request)?;
+    let sent = write_frame(&mut stream, &request);
+    match &mut request {
+        Request::BodyBrowserBegin { token, .. }
+        | Request::BodyBrowserComplete { token, .. }
+        | Request::BodyBrowserAbort { token, .. }
+        | Request::BodyBrowserLeave { token, .. }
+        | Request::BodyBrowserCancel { token, .. } => token.fill(0),
+        _ => unreachable!("browser worker only sends browser owner operations"),
+    }
+    sent?;
     stream.shutdown(std::net::Shutdown::Write)
         .map_err(|error| format!("finish browser owner control request: {error}"))?;
     read_frame(&mut stream)
@@ -80,5 +89,15 @@ pub(crate) fn leave(
         Response::BodyBrowserLeft { protocol: PROTOCOL, biography } => Ok(*biography),
         Response::Refused { code, .. } => Err(format!("Body owner refused browser leave: {code}")),
         _ => Err("Body owner returned the wrong browser leave response".into()),
+    }
+}
+
+pub(crate) fn cancel(state_dir: &Path, window_id: &str) -> Result<(), String> {
+    match call(state_dir, |token| Request::BodyBrowserCancel {
+        protocol: PROTOCOL, token, window_id: window_id.into(),
+    })? {
+        Response::BodyBrowserCancelled { protocol: PROTOCOL } => Ok(()),
+        Response::Refused { code, .. } => Err(format!("Body owner refused browser window cleanup: {code}")),
+        _ => Err("Body owner returned the wrong browser window cleanup response".into()),
     }
 }

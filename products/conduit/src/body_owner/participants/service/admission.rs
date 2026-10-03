@@ -81,7 +81,7 @@ impl Owner {
                             signal(binding, "requested"),
                         )
                         .map_err(debug)?;
-                    window.state = WindowState::Pending(Pending {
+                    window.state = WindowState::Pending(Box::new(Pending {
                         binding: binding.clone(),
                         observation,
                         kind: PendingKind::Ambient {
@@ -89,7 +89,7 @@ impl Owner {
                             observed_candidates,
                             verifying_key: offered,
                         },
-                    });
+                    }));
                     Ok(Out::Challenge {
                         protocol: PROTOCOL,
                         challenge,
@@ -136,14 +136,14 @@ impl Owner {
                         freshness_sequence: self.session.evidence().membership.revision.0,
                         encoded_bytes,
                     };
-                    window.state = WindowState::Pending(Pending {
+                    window.state = WindowState::Pending(Box::new(Pending {
                         binding: binding.clone(),
                         observation,
                         kind: PendingKind::Returning {
                             challenge: challenge.clone(),
                             advertisement,
                         },
-                    });
+                    }));
                     Ok(Out::ReturnChallenge {
                         protocol: PROTOCOL,
                         challenge,
