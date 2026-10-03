@@ -164,9 +164,16 @@ fn exact_owner_face_follows_receipt_on_the_authenticated_line() {
         .unwrap(),
         sent: Vec::new(),
     };
-    let accepted = exchange_face(&mut line, &receipt).unwrap();
+    let (accepted, grant) = exchange_face(&mut line, &receipt).unwrap();
     assert_eq!(accepted.presentation(), &face);
-    let request: OwnerFaceSnapshotRequest = serde_json::from_slice(&line.sent).unwrap();
+    assert!(grant.is_none());
+    let wrapper: serde_json::Value = serde_json::from_slice(&line.sent).unwrap();
+    assert_eq!(
+        wrapper["schema"],
+        "conduit.body/native-owner-face-request@1"
+    );
+    let request: OwnerFaceSnapshotRequest =
+        serde_json::from_value(wrapper["request"].clone()).unwrap();
     assert!(request.has_exact_basis());
     assert_eq!(
         request.credential_id,
@@ -179,7 +186,7 @@ fn exact_owner_face_follows_receipt_on_the_authenticated_line() {
 }
 
 #[test]
-fn foreign_body_or_unadmitted_interaction_route_cannot_become_shared_face() {
+fn foreign_body_or_unproven_interaction_route_cannot_become_shared_face() {
     let (_, receipt) = admitted_exchange();
     let mut line = ScriptedLine {
         response: serde_json::to_vec(&OwnerFaceSnapshotResponse::Snapshot {
@@ -204,9 +211,7 @@ fn foreign_body_or_unadmitted_interaction_route_cannot_become_shared_face() {
     .unwrap();
     assert!(matches!(
         exchange_face(&mut line, &receipt),
-        Err(NativeOwnerFaceExchangeRefusal::Face(
-            GuestFaceRefusal::InteractionRoute
-        ))
+        Err(NativeOwnerFaceExchangeRefusal::Encoding)
     ));
 }
 
@@ -234,6 +239,36 @@ fn owner_face_refusal_and_frame_pressure_leave_admission_receipt_independent() {
         ))
     ));
     assert!(receipt.membership_admitted);
+}
+
+#[test]
+fn native_return_grant_requires_fresh_bearer_exact_receipt_and_finite_envelope() {
+    let (_, receipt) = admitted_exchange();
+    let credential = &receipt.credential;
+    let grant = NativeOwnerReturnGrant {
+        schema: "conduit.body/native-owner-return-grant@1".into(),
+        token: [7; 32],
+        credential_id: credential.credential_id.as_str().into(),
+        body_id: credential.body_id.as_str().into(),
+        part_id: credential.part_id.as_str().into(),
+        host_id: credential.host_id.as_str().into(),
+        boot_id: credential.boot_id.as_str().into(),
+        remaining_millis: 60_000,
+        maximum_actions: 4,
+    };
+    assert!(grant.matches_receipt(&receipt));
+    let mut invalid = grant.clone();
+    invalid.token = [0; 32];
+    assert!(!invalid.matches_receipt(&receipt));
+    invalid = grant.clone();
+    invalid.boot_id = "boot/stale".into();
+    assert!(!invalid.matches_receipt(&receipt));
+    invalid = grant.clone();
+    invalid.maximum_actions = 5;
+    assert!(!invalid.matches_receipt(&receipt));
+    invalid = grant;
+    invalid.remaining_millis = 60_001;
+    assert!(!invalid.matches_receipt(&receipt));
 }
 
 #[test]
@@ -327,10 +362,7 @@ fn route_candidate_must_match_the_invitation_endpoint_and_certificate() {
         remote_port: 8443,
         local_port: 48111,
     };
-    assert!(matches!(
-        validate_candidate(&route, &certificate, &request, endpoint, 50),
-        Ok(_)
-    ));
+    assert!(validate_candidate(&route, &certificate, &request, endpoint, 50).is_ok());
     let mut wrong = route.clone();
     wrong.body_id = "body/other".into();
     assert!(matches!(
@@ -362,10 +394,7 @@ fn route_candidate_must_match_the_invitation_endpoint_and_certificate() {
         remote_address: [10, 0, 2, 100],
         ..endpoint
     };
-    assert!(matches!(
-        validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 50),
-        Ok(_)
-    ));
+    assert!(validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 50).is_ok());
     assert!(matches!(
         validate_candidate(&numeric, &certificate, &request, endpoint, 50),
         Err(NativeOwnerAdmissionRefusal::EndpointBinding)
@@ -373,14 +402,8 @@ fn route_candidate_must_match_the_invitation_endpoint_and_certificate() {
 
     // Poll pressure is an independent work cap, not an elapsed millisecond.
     numeric.candidates[0].attempt_timeout_millis = 1;
-    assert!(matches!(
-        validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 1_000),
-        Ok(_)
-    ));
-    assert!(matches!(
-        validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 50),
-        Ok(_)
-    ));
+    assert!(validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 1_000).is_ok());
+    assert!(validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 50).is_ok());
     numeric.candidates[0].attempt_timeout_millis = 0;
     assert!(matches!(
         validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 1_000),

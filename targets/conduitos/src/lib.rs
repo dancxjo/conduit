@@ -78,6 +78,8 @@ pub mod native_guest_face;
 pub mod native_network_bounds;
 #[cfg(feature = "native-owner-network")]
 pub mod native_owner_admission;
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+pub mod native_owner_return;
 pub mod native_workset;
 pub mod observatory;
 pub mod offer;

@@ -14,8 +14,8 @@ use conduit_body::{
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
 use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
 use conduit_presentation::{
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
-    OWNER_FACE_RESPONSE_SCHEMA,
+    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
+    MAX_FACE_INTERACTION_BYTES, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -88,6 +88,12 @@ pub enum BrowserAdmissionIngress {
     FaceSnapshotRequest {
         protocol: u16,
         request: OwnerFaceSnapshotRequest,
+    },
+    FaceInteractionRequest {
+        protocol: u16,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
     },
     OfferDisclosureRequest {
         protocol: u16,
@@ -173,6 +179,11 @@ pub enum BrowserAdmissionEgress {
     FaceSnapshotResponse {
         protocol: u16,
         response: OwnerFaceSnapshotResponse,
+    },
+    FaceInteractionResponse {
+        protocol: u16,
+        accepted: bool,
+        code: String,
     },
     MediaUsePlan {
         protocol: u16,
@@ -400,6 +411,24 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
                     .last_seen_identity
                     .as_ref()
                     .is_some_and(|id| id.as_str().is_empty() || id.as_str().len() > 256)
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::FaceInteractionRequest {
+            protocol,
+            request,
+            show,
+            interaction,
+        } => {
+            if !request.has_exact_basis()
+                || interaction.encode().len() > MAX_FACE_INTERACTION_BYTES
+                || interaction.show_id != show.show_id.as_str()
+                || interaction.face_revision != show.presentation_revision
+                || interaction.face_id != show.presentation_id.as_str()
+                || show.show.host_id != request.host_id
+                || show.show.boot_id != request.boot_id
             {
                 return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
             }

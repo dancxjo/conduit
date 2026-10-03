@@ -1,4 +1,4 @@
-//! Higher voiced branches reject steady/DC source energy; noise bypasses it.
+//! Pure-voicing differencing and explicit continuous-frication source roles.
 use crate::{generated::*, prosody_parity::context};
 
 #[test]
@@ -31,6 +31,15 @@ fn upper_voicing_difference_tracks_exact_source_and_keeps_noise_unchanged() {
                     out.upper_excitation,
                     if target.voiced == 1 && target.frication == 0 {
                         voicing - old
+                    } else if matches!(
+                        phone,
+                        EnglishPhone::v | EnglishPhone::dh | EnglishPhone::z | EnglishPhone::zh
+                    ) {
+                        speech_excitation(ExcitationInput {
+                            voiced: 0,
+                            ..source
+                        })
+                        .unwrap()
                     } else {
                         mixed
                     }

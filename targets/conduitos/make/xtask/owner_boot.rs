@@ -3,19 +3,27 @@
 use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::Path,
+    process::Command,
 };
 
 use crate::cli::GlobalOpts;
 
 use super::{acceptance, demo, ConduitosError};
 
-pub(super) fn execute(
+pub(super) struct PreparedOwnerBoot {
+    pub artifact_sha256: String,
+    pub build_id: String,
+    pub source_identity: String,
+    pub candidate_id: String,
+    pub reachability: String,
+    pub netdev: String,
+}
+
+pub(super) fn prepare(
     spore: &Path,
     candidate_id: &str,
     owner_forward: SocketAddr,
-    qmp_socket: Option<&Path>,
-    opts: &GlobalOpts,
-) -> Result<(), ConduitosError> {
+) -> Result<PreparedOwnerBoot, ConduitosError> {
     let SocketAddr::V4(owner_forward) = owner_forward else {
         return Err(ConduitosError::refusal(
             "owner-boot-forward-invalid",
@@ -28,10 +36,36 @@ pub(super) fn execute(
             "the owner forward must be an explicit private IPv4 owner listener with a nonzero port",
         ));
     }
-    let qmp = qmp_socket.map(qmp_arg).transpose()?;
     let route = acceptance::owner_boot_route(spore, candidate_id)?;
     let (guest_address, guest_port) = guest_forward(&route.reachability)?;
-    let netdev = netdev(guest_address, guest_port, owner_forward);
+    // QEMU's static guestfwd TCP chardev connects to the host once. The
+    // invitation and its owner return are separate Lines to the same exact
+    // candidate, so require the per-connection command backend here.
+    Command::new("nc").arg("-h").output().map_err(|error| {
+        ConduitosError::refusal(
+            "owner-boot-forward-helper-unavailable",
+            format!("QEMU's per-connection guest forward requires nc: {error}"),
+        )
+    })?;
+    Ok(PreparedOwnerBoot {
+        artifact_sha256: route.artifact_sha256,
+        build_id: route.build_id,
+        source_identity: route.source_identity,
+        candidate_id: route.candidate_id,
+        reachability: route.reachability,
+        netdev: netdev(guest_address, guest_port, owner_forward),
+    })
+}
+
+pub(super) fn execute(
+    spore: &Path,
+    candidate_id: &str,
+    owner_forward: SocketAddr,
+    qmp_socket: Option<&Path>,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    let qmp = qmp_socket.map(qmp_arg).transpose()?;
+    let route = prepare(spore, candidate_id, owner_forward)?;
     if !opts.quiet && !opts.json {
         println!("Provisioned owner candidate: {}", route.candidate_id);
         println!("Guest route: {}", route.reachability);
@@ -41,14 +75,14 @@ pub(super) fn execute(
     demo::boot_visible_image_with_network(
         spore,
         Some(&route.artifact_sha256),
-        Some(&netdev),
+        Some(&route.netdev),
         qmp.as_deref(),
         opts,
     )
 }
 
 #[cfg(unix)]
-fn qmp_arg(path: &Path) -> Result<String, ConduitosError> {
+pub(super) fn qmp_arg(path: &Path) -> Result<String, ConduitosError> {
     use std::{io::ErrorKind, os::unix::fs::PermissionsExt};
 
     let value = path.to_str().ok_or_else(|| {
@@ -94,7 +128,7 @@ fn qmp_arg(path: &Path) -> Result<String, ConduitosError> {
 }
 
 #[cfg(not(unix))]
-fn qmp_arg(_path: &Path) -> Result<String, ConduitosError> {
+pub(super) fn qmp_arg(_path: &Path) -> Result<String, ConduitosError> {
     Err(ConduitosError::refusal(
         "owner-boot-qmp-unsupported",
         "this QMP socket capture is available only on Unix hosts",
@@ -143,7 +177,9 @@ fn guest_forward(reachability: &str) -> Result<(Ipv4Addr, u16), ConduitosError> 
 
 fn netdev(guest_address: Ipv4Addr, guest_port: u16, owner: SocketAddrV4) -> String {
     format!(
-        "user,id=conduit-owner,restrict=on,guestfwd=tcp:{guest_address}:{guest_port}-tcp:{owner}"
+        "user,id=conduit-owner,restrict=on,guestfwd=tcp:{guest_address}:{guest_port}-cmd:nc {} {}",
+        owner.ip(),
+        owner.port()
     )
 }
 
@@ -192,7 +228,7 @@ mod tests {
         let (guest, port) = guest_forward("wss://10.0.2.100:9000/conduit").unwrap();
         assert_eq!(
             netdev(guest, port, "172.17.0.1:19000".parse().unwrap()),
-            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-tcp:172.17.0.1:19000"
+            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-cmd:nc 172.17.0.1 19000"
         );
     }
 

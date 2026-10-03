@@ -285,7 +285,7 @@ impl ZeroBodyFrontDoor {
         adapter: Arc<dyn crate::PatchbayHostAdapter>,
         model: PatchbayModel,
     ) -> Result<Self, String> {
-        let plot = PlotCandidate::from_source(
+        let morse_network = PlotCandidate::from_source(
             "Morse Network",
             "plots/morse-network/main.conduit",
             include_str!("../../../../../plots/morse-network/main.conduit"),
@@ -293,11 +293,19 @@ impl ZeroBodyFrontDoor {
             SignId::from("patchbay/front-door/plot-available"),
             1,
         )?;
+        let clock = PlotCandidate::from_source(
+            "Clock",
+            "plots/clock/main.conduit",
+            include_str!("../../../../../plots/clock/main.conduit"),
+            "reviewed plot inventory; opening is inert and BIRTH remains explicit",
+            SignId::from("patchbay/front-door/clock-available"),
+            2,
+        )?;
         Ok(Self {
             adapter,
             model,
             body_candidates: Vec::new(),
-            plots: vec![plot],
+            plots: vec![morse_network, clock],
             opened: None,
             refusals: Vec::new(),
             revision: 1,

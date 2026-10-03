@@ -58,6 +58,7 @@ mod opl2_proof;
 mod orange_pi_5_image;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_media.rs"]
 mod orange_pi_5_media;
+mod owner_action_proof;
 mod owner_boot;
 mod pc_speaker_proof;
 mod prepared_proof_image;
@@ -127,6 +128,8 @@ enum ConduitosCommand {
     LiveBoot(LiveArgs),
     /// Boot one private owner-provisioned x86 product ISO with its exact VirtIO route.
     LiveOwnerBoot(LiveOwnerBootArgs),
+    /// Prove one typed native clock action through a live installed owner.
+    LiveOwnerActionProof(LiveOwnerActionProofArgs),
     /// Prove the canonical IA-32 live artifact through legacy BIOS only.
     Ia32LegacyBiosProof,
     /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.
@@ -274,6 +277,22 @@ struct LiveOwnerBootArgs {
     /// Optional QMP socket under an existing private directory for live capture.
     #[arg(long)]
     qmp_socket: Option<PathBuf>,
+}
+
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerActionProofArgs {
+    /// Private ISO produced by `make body provision-conduitos` for a live owner.
+    #[arg(long)]
+    spore: PathBuf,
+    /// Exact routed candidate ID contained in that ISO.
+    #[arg(long)]
+    candidate_id: String,
+    /// Explicit private IPv4 TLS owner listener to receive QEMU guestfwd traffic.
+    #[arg(long)]
+    owner_forward: std::net::SocketAddr,
+    /// Existing empty private directory for QMP, receipts, and before/after PNGs.
+    #[arg(long)]
+    output_dir: PathBuf,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -478,6 +497,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             args.qmp_socket.as_deref(),
             opts,
         ),
+        ConduitosCommand::LiveOwnerActionProof(args) => owner_action_proof::execute(&args, opts),
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),

@@ -22,8 +22,14 @@ quote the copied JSON key array as one argument. The command prints the exact
 Body ID and window URL to enter on the page. For a returning browser Host,
 omit `--new-host-verifying-key` and retain its credential in browser storage.
 The production SDK and WASM runtime prove
-admission and display the owner's biography. This local window proves membership
-and presence, not a transferred Plan, Play, or remotely executed Plot. A public
+admission and display the owner's biography. While that exact authorized window
+and browser presence remain current, the browser Mask can return the Face's
+reviewed clock interval action to the installed owner. Lull a running clock
+first; the owner checks the current credential, Part, Face, Show, and typed
+argument, changes its checked workset, then supplies a fresh Face. The next
+start requires a replacement Plan. A closed window does not remain an action
+route. This local window proves membership and presence, not a transferred
+Plan, Play, or remotely executed Plot. A public
 HTTPS deployment cannot use this loopback window to reach a different computer;
 the ordinary static Handbook remains independent of it.
 

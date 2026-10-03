@@ -14,9 +14,10 @@ use rustls::{
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{BufReader, ErrorKind, Read, Write};
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
+use std::thread;
 use std::time::{Duration, Instant};
 use tungstenite::client::IntoClientRequest;
 use tungstenite::error::Error as TungsteniteError;
@@ -142,6 +143,9 @@ impl SecureWebSocketListener {
         stream
             .set_write_timeout(Some(Duration::from_secs(5)))
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
+        // A socket read timeout is per read. A peer can otherwise trickle a
+        // handshake or partial frame indefinitely while each read succeeds.
+        let deadline_guard = SocketDeadlineGuard::start(&stream, deadline)?;
         let connection = ServerConnection::new(Arc::clone(&self.server_config))
             .map_err(|_| SecureWebSocketError::Tls)?;
         let tls = StreamOwned::new(connection, stream);
@@ -152,9 +156,13 @@ impl SecureWebSocketListener {
                         SecureWebSocketError::Handshake
                     }
                 })?;
+        if Instant::now() >= deadline {
+            return Err(SecureWebSocketError::AcceptDeadline);
+        }
         Ok(SecureWebSocketLine {
             socket,
             maximum_message_bytes: self.maximum_message_bytes,
+            input_deadline_guard: Some(deadline_guard),
         })
     }
 }
@@ -162,6 +170,51 @@ impl SecureWebSocketListener {
 pub struct SecureWebSocketLine {
     socket: WebSocket<StreamOwned<ServerConnection, TcpStream>>,
     maximum_message_bytes: usize,
+    input_deadline_guard: Option<SocketDeadlineGuard>,
+}
+
+/// Enforce one absolute lifetime across accept, TLS/WebSocket handshake, and
+/// every later frame. The watchdog owns only a clone of this exact socket and
+/// is joined when the Line ends; it cannot affect another accepted Line.
+struct SocketDeadlineGuard {
+    cancel: mpsc::Sender<()>,
+    watchdog: Option<thread::JoinHandle<()>>,
+}
+
+impl SocketDeadlineGuard {
+    fn start(stream: &TcpStream, deadline: Instant) -> Result<Self, SecureWebSocketError> {
+        let remaining = deadline
+            .checked_duration_since(Instant::now())
+            .ok_or(SecureWebSocketError::AcceptDeadline)?;
+        let shutdown_stream = stream
+            .try_clone()
+            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
+        let (cancel, receiver) = mpsc::channel();
+        let watchdog = thread::Builder::new()
+            .name("conduit-wss-deadline".into())
+            .spawn(move || {
+                if matches!(
+                    receiver.recv_timeout(remaining),
+                    Err(mpsc::RecvTimeoutError::Timeout)
+                ) {
+                    let _ = shutdown_stream.shutdown(Shutdown::Both);
+                }
+            })
+            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
+        Ok(Self {
+            cancel,
+            watchdog: Some(watchdog),
+        })
+    }
+}
+
+impl Drop for SocketDeadlineGuard {
+    fn drop(&mut self) {
+        let _ = self.cancel.send(());
+        if let Some(watchdog) = self.watchdog.take() {
+            let _ = watchdog.join();
+        }
+    }
 }
 
 /// Native client for one descriptor-pinned authenticated TLS candidate.
@@ -316,6 +369,12 @@ impl ServerCertVerifier for PinnedServerCertificate {
 }
 
 impl SecureWebSocketLine {
+    /// A caller may release the input deadline only after it has received and
+    /// admitted a complete request before that deadline. Bounded actor work
+    /// and its response may then finish after the grant's submission cutoff.
+    pub fn complete_bounded_input(&mut self) {
+        self.input_deadline_guard = None;
+    }
     pub fn set_read_timeout(&self, timeout: Option<Duration>) -> Result<(), SecureWebSocketError> {
         self.socket
             .get_ref()

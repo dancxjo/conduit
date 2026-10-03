@@ -11,6 +11,10 @@ fn target_bounds(t: SpeechAcousticTarget) {
     for gain in [t.gain1, t.gain2, t.gain3] {
         assert!((0..=4725).contains(&gain));
     }
+    assert!((0..=64).contains(&t.bypass_gain));
+    if t.bypass_gain != 0 {
+        assert_eq!((t.frication, t.closure), (1, 0));
+    }
     assert!((0..=1).contains(&t.voiced));
     assert!((0..=1).contains(&t.frication));
     assert!(t.closure >= 0 && t.closure <= t.frames && t.frames <= 960);
@@ -72,7 +76,7 @@ fn all_intermediate_profile_operations_fit_signed_32_bits() {
     fits(4725 * 256); // maximum admitted gain times bounded stress level
     fits(68 * 256); // normalized phase numerator
     fits(4096 * 4725 + 32768 * 32767 + 16384 * 32767);
-    fits((32767 + 32767 / 2 + 32767 / 4) * 256);
+    fits((32767 + 32767 / 2 + 32767 / 4 + 683 * 64 / 256) * 16 * 256);
     fits(65535 * 25173 + 13849);
     fits(2 * 32768 * 256); // weighted sums and coefficient-delta products
     fits(i64::try_from(RENDER_PROFILE.maximum_utterance_frames).unwrap() * 8);
@@ -101,6 +105,8 @@ fn all_intermediate_profile_operations_fit_signed_32_bits() {
     }
     // Two admitted voiced-source history values therefore differ by at most
     // 3200; the existing 4096 resonator-input envelope covers upper branches.
+    // Continuous voiced-fricative branches use pure voicing (<=1600) below
+    // and scaled modulo noise (<=683) above, both within the same envelope.
     // Noise is nonnegative and reduced modulo 65536; phase is reset at period.
     // Initial history and boundary preservation satisfy the same invariant.
     let initial = speech_initial_state(SpeechStart::begin).unwrap();

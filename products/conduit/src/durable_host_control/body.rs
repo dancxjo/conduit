@@ -2,9 +2,9 @@
 //! The service holds `body-owner.lock` for its lifetime, so these operations
 //! are the only live writer of its biography and invitation authority.
 
-use super::DurableHostRuntime;
 #[cfg(unix)]
-use super::{read_frame, read_secret, write_frame};
+use super::read_secret;
+use super::DurableHostRuntime;
 #[cfg(any(unix, test))]
 use super::{Request, Response, PROTOCOL};
 use conduit_body::{
@@ -23,8 +23,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(unix)]
+#[path = "body/control_client.rs"]
+mod control_client;
+#[cfg(unix)]
+pub(super) use control_client::call;
+
 pub(super) enum HostSource {
     Bare(Box<StdHost>),
+    /// Occupied only while the same Host moves into a journaled Body owner.
+    Transitioning,
     Body {
         owner: Box<crate::durable_host::owner::Owner>,
         root: PathBuf,
@@ -36,6 +44,7 @@ impl HostSource {
     pub(super) fn advertisement(&self) -> &conduit_core::HostAdvertisement {
         match self {
             Self::Bare(host) => host.advertisement(),
+            Self::Transitioning => unreachable!("Host transition is synchronous"),
             Self::Body { owner, .. } => owner.host.advertisement(),
         }
     }
@@ -57,6 +66,7 @@ impl Deref for HostSource {
     fn deref(&self) -> &StdHost {
         match self {
             Self::Bare(host) => host,
+            Self::Transitioning => unreachable!("Host transition is synchronous"),
             Self::Body { owner, .. } => owner.host.current(),
         }
     }
@@ -66,6 +76,7 @@ impl DerefMut for HostSource {
     fn deref_mut(&mut self) -> &mut StdHost {
         match self {
             Self::Bare(host) => host,
+            Self::Transitioning => unreachable!("Host transition is synchronous"),
             Self::Body { owner, .. } => owner.host.current_mut(),
         }
     }
@@ -121,7 +132,9 @@ impl DurableHostRuntime {
             HostSource::Body { owner, .. } => {
                 owner.browser_begin(window_id, binding, frame, encoded_bytes)
             }
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
 
@@ -132,21 +145,27 @@ impl DurableHostRuntime {
     ) -> Result<crate::durable_host::owner::BrowserAdmittedSnapshot, String> {
         match &mut self.host {
             HostSource::Body { owner, root, .. } => owner.browser_complete(root, window_id, frame),
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
 
     pub(super) fn browser_abort(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => owner.browser_abort(window_id),
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
 
     pub(super) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
             HostSource::Body { owner, root, .. } => owner.browser_cancel_window(root, window_id),
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
 
@@ -159,7 +178,9 @@ impl DurableHostRuntime {
             HostSource::Body { owner, root, .. } => {
                 owner.browser_leave(root, window_id, credential)
             }
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
 
@@ -168,6 +189,8 @@ impl DurableHostRuntime {
             target_id,
             image_content_digest,
             host,
+            birth,
+            birth_root,
             remote_fragment,
             pool_member,
             cancellation_signal,
@@ -185,6 +208,8 @@ impl DurableHostRuntime {
                 root: root.to_path_buf(),
                 running: None,
             },
+            birth,
+            birth_root,
             remote_fragment,
             pool_member,
             cancellation_signal,
@@ -202,7 +227,9 @@ impl DurableHostRuntime {
                 truth["remote_carrier_availability"] = serde_json::json!("unobserved");
                 Ok(truth)
             }
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
 
@@ -273,6 +300,37 @@ impl DurableHostRuntime {
         owner.apply_clock_interval_interaction(root, show, interaction)
     }
 
+    pub(super) fn owned_body_browser_interaction(
+        &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        let HostSource::Body {
+            owner,
+            root,
+            running,
+        } = &mut self.host
+        else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        if running.is_some() {
+            return Err("clock-play-must-lull".into());
+        }
+        // The credential is checked against the retained admission and the
+        // current Part before a browser Show can exercise an owner action.
+        let face = owner.face_snapshot(request)?;
+        if show.show.host_id != request.host_id
+            || show.show.boot_id != request.boot_id
+            || show.show.body_id.as_ref() != Some(&request.body_id)
+            || show.presentation_id != face.identity
+            || show.presentation_revision != face.revision
+        {
+            return Err("browser-show-basis-mismatch".into());
+        }
+        owner.apply_clock_interval_interaction(root, show, interaction)
+    }
+
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -282,7 +340,9 @@ impl DurableHostRuntime {
             HostSource::Body { owner, root, .. } => {
                 owner.issue_invitation(root, ttl_seconds, candidates)
             }
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
 
@@ -298,34 +358,11 @@ impl DurableHostRuntime {
                 let expected = request.host_advertisement.host_id.as_str().to_owned();
                 owner.admit_invited(root, request, &expected)
             }
-            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
         }
     }
-}
-
-#[cfg(unix)]
-pub(super) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
-    use std::os::unix::net::UnixStream;
-    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to current Body owner service: {error}"))?;
-    let sent = write_frame(&mut stream, &request);
-    match &mut request {
-        Request::BodyInspect { token, .. }
-        | Request::BodyInvite { token, .. }
-        | Request::BodyAdmit { token, .. }
-        | Request::BodyBrowserStart { token, .. }
-        | Request::BodyFace { token, .. }
-        | Request::BodyLocalFace { token, .. }
-        | Request::BodyInteraction { token, .. }
-        | Request::BodyStart { token, .. }
-        | Request::BodyLull { token, .. } => token.fill(0),
-        _ => unreachable!("Body control client only sends Body requests"),
-    }
-    sent?;
-    stream
-        .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| format!("finish Body owner control request: {error}"))?;
-    read_frame(&mut stream)
 }
 
 #[cfg(unix)]
@@ -502,6 +539,27 @@ pub(crate) fn submit_local_face_interaction(
     show: MaskShow,
     interaction: FaceInteraction,
 ) -> Result<serde_json::Value, String> {
+    submit_local_face_interaction_with_expiry(state_dir, show, interaction, None)
+}
+
+#[cfg(unix)]
+#[allow(dead_code)] // Native return consumes this exact expiry-bearing entrance after its route lands.
+pub(crate) fn submit_local_face_interaction_until(
+    state_dir: &Path,
+    show: MaskShow,
+    interaction: FaceInteraction,
+    not_after_millis: u64,
+) -> Result<serde_json::Value, String> {
+    submit_local_face_interaction_with_expiry(state_dir, show, interaction, Some(not_after_millis))
+}
+
+#[cfg(unix)]
+fn submit_local_face_interaction_with_expiry(
+    state_dir: &Path,
+    show: MaskShow,
+    interaction: FaceInteraction,
+    not_after_millis: Option<u64>,
+) -> Result<serde_json::Value, String> {
     match call(
         state_dir,
         Request::BodyInteraction {
@@ -509,6 +567,7 @@ pub(crate) fn submit_local_face_interaction(
             token: token(state_dir)?,
             show: Box::new(show),
             interaction,
+            not_after_millis,
         },
     )? {
         Response::BodyInteraction {
@@ -518,6 +577,82 @@ pub(crate) fn submit_local_face_interaction(
         Response::Refused { code, .. } => Err(format!("Body owner refused interaction: {code}")),
         _ => Err("Body owner returned the wrong interaction response".into()),
     }
+}
+
+#[cfg(unix)]
+pub(crate) fn submit_browser_face_interaction(
+    state_dir: &Path,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+    interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    submit_browser_face_interaction_with_expiry(state_dir, request, show, interaction, None)
+}
+
+#[cfg(unix)]
+pub(crate) fn submit_browser_face_interaction_until(
+    state_dir: &Path,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+    interaction: FaceInteraction,
+    not_after_millis: u64,
+) -> Result<serde_json::Value, String> {
+    submit_browser_face_interaction_with_expiry(
+        state_dir,
+        request,
+        show,
+        interaction,
+        Some(not_after_millis),
+    )
+}
+
+#[cfg(unix)]
+fn submit_browser_face_interaction_with_expiry(
+    state_dir: &Path,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+    interaction: FaceInteraction,
+    not_after_millis: Option<u64>,
+) -> Result<serde_json::Value, String> {
+    match call(
+        state_dir,
+        Request::BodyBrowserInteraction {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            request,
+            show: Box::new(show),
+            interaction,
+            not_after_millis,
+        },
+    )? {
+        Response::BodyInteraction {
+            protocol: PROTOCOL,
+            result,
+        } => Ok(*result),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong browser interaction response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn submit_browser_face_interaction(
+    _state_dir: &Path,
+    _request: OwnerFaceSnapshotRequest,
+    _show: MaskShow,
+    _interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn submit_browser_face_interaction_until(
+    _state_dir: &Path,
+    _request: OwnerFaceSnapshotRequest,
+    _show: MaskShow,
+    _interaction: FaceInteraction,
+    _not_after_millis: u64,
+) -> Result<serde_json::Value, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(not(unix))]
@@ -532,6 +667,16 @@ pub(crate) fn submit_local_face_interaction(
     _state_dir: &Path,
     _show: MaskShow,
     _interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn submit_local_face_interaction_until(
+    _state_dir: &Path,
+    _show: MaskShow,
+    _interaction: FaceInteraction,
+    _not_after_millis: u64,
 ) -> Result<serde_json::Value, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
 }
