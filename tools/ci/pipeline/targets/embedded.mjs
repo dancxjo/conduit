@@ -38,7 +38,8 @@ export function embedded(id, directory) {
     verifyImageManifest(directory, 'orange-pi-5-image.json');
   } else if (id === 'rp2040') {
     xtask('make', 'pico', 'build');
-    const root = 'targets/rp2040/firmware/pico-w-signal/target/thumbv6m-none-eabi/release';
+    const root = path.join(process.env.CARGO_TARGET_DIR ?? 'targets/rp2040/firmware/pico-w-signal/target',
+      'thumbv6m-none-eabi', 'release');
     for (const suffix of ['', '.uf2', '.identity.json', '.generated-image.json']) {
       const name = `conduit-pico-w-signal${suffix}`;
       copyFile(path.join(root, name), path.join(directory, name));

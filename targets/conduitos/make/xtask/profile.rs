@@ -29,6 +29,8 @@ pub const IA32_LINK_PROFILE: &str = "rust-elf-object+rust-lld-elf_i386";
 
 pub struct Paths {
     pub root: PathBuf,
+    /// Cargo's compiled artifacts; independent of the target-owned proof root.
+    pub cargo_target: PathBuf,
     pub target: PathBuf,
     pub kernel: PathBuf,
     pub iso_root: PathBuf,
@@ -53,6 +55,7 @@ impl Paths {
     pub fn new(arch: ConduitosArch) -> Result<Self, ConduitosError> {
         let root = workspace_root()
             .map_err(|error| ConduitosError::refusal("workspace-unavailable", error))?;
+        let cargo_target = cargo_target_root(&root, std::env::var_os("CARGO_TARGET_DIR"))?;
         let target_root = target_root(&root, std::env::var_os("CONDUIT_CONDUITOS_TARGET_ROOT"))?;
         let target = target_root.join(arch.as_str());
         Ok(Self {
@@ -78,9 +81,35 @@ impl Paths {
             opl2_proof: target.join("opl2-proof.json"),
             prepared_proof_image: target.join("prepared-proof-image.json"),
             root,
+            cargo_target,
             target,
         })
     }
+
+    pub fn built_binary(&self, rust_target: &str, binary: &str) -> PathBuf {
+        self.cargo_target
+            .join(rust_target)
+            .join("release")
+            .join(binary)
+    }
+}
+
+fn cargo_target_root(root: &Path, requested: Option<OsString>) -> Result<PathBuf, ConduitosError> {
+    let Some(requested) = requested else {
+        return Ok(root.join("target"));
+    };
+    let requested = PathBuf::from(requested);
+    if requested.as_os_str().is_empty() {
+        return Err(ConduitosError::refusal(
+            "cargo-target-dir-invalid",
+            "CARGO_TARGET_DIR must be nonempty",
+        ));
+    }
+    Ok(if requested.is_absolute() {
+        requested
+    } else {
+        root.join(requested)
+    })
 }
 
 fn target_root(root: &Path, requested: Option<OsString>) -> Result<PathBuf, ConduitosError> {
@@ -146,6 +175,21 @@ pub fn command_with_env(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cargo_artifacts_follow_the_build_commands_target_directory() {
+        let root = Path::new("/repo");
+        assert_eq!(cargo_target_root(root, None).unwrap(), root.join("target"));
+        assert_eq!(
+            cargo_target_root(root, Some(OsString::from("shared/cargo"))).unwrap(),
+            root.join("shared/cargo")
+        );
+        assert_eq!(
+            cargo_target_root(root, Some(OsString::from("/cache/cargo"))).unwrap(),
+            Path::new("/cache/cargo")
+        );
+        assert!(cargo_target_root(root, Some(OsString::new())).is_err());
+    }
 
     #[test]
     fn isolated_target_root_is_explicit_and_traversal_free() {

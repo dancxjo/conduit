@@ -1,4 +1,9 @@
-use std::{fs, path::Path, process::Command};
+use std::{
+    ffi::OsStr,
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use serde::Serialize;
 
@@ -97,7 +102,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
         return Err(refusal("armv6-compile-link-failed", status));
     }
 
-    let built = paths.root.join(format!("target/{TARGET}/release/{BINARY}"));
+    let built = built_binary_path(&paths.root, std::env::var_os("CARGO_TARGET_DIR").as_deref());
     fs::copy(&built, &paths.kernel).map_err(|error| refusal("build-output-unavailable", error))?;
     let elf = fs::read(&paths.kernel).map_err(|error| refusal("artifact-unavailable", error))?;
     let facts = inspect_elf(&elf)?;
@@ -154,6 +159,13 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
         println!("Raspberry Pi kernel image: {}", kernel_image.display());
     }
     Ok(record)
+}
+
+fn built_binary_path(root: &Path, cargo_target_dir: Option<&OsStr>) -> PathBuf {
+    root.join(cargo_target_dir.unwrap_or_else(|| OsStr::new("target")))
+        .join(TARGET)
+        .join("release")
+        .join(BINARY)
 }
 
 #[derive(Debug)]
@@ -325,6 +337,26 @@ fn refusal(reason: &'static str, detail: impl std::fmt::Display) -> ConduitosErr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::ffi::OsStr;
+
+    #[test]
+    fn built_binary_follows_cargo_target_dir() {
+        let root = Path::new("/repo");
+        let artifact = format!("{TARGET}/release/{BINARY}");
+        assert_eq!(
+            built_binary_path(root, None),
+            root.join("target").join(&artifact)
+        );
+        assert_eq!(
+            built_binary_path(root, Some(OsStr::new("build/cache"))),
+            root.join("build/cache").join(&artifact)
+        );
+        assert_eq!(
+            built_binary_path(root, Some(OsStr::new("/shared/cargo"))),
+            Path::new("/shared/cargo").join(artifact)
+        );
+    }
 
     #[test]
     fn rejects_foreign_and_truncated_artifacts() {
