@@ -2,8 +2,11 @@
 
 #![cfg(unix)]
 
-use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
-use conduit_core::SignId;
+use conduit_body::{
+    AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership, MembershipProofId,
+    PartId,
+};
+use conduit_core::{BootId, HostId, OfferGeneration, SignId};
 use rcgen::{generate_simple_self_signed, CertifiedKey};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -317,12 +320,18 @@ fn two_installed_processes_complete_pipeable_body_admission_without_creating_a_p
     let owner_status = product(&["body", "status", "--state-dir", path(&owner), "--json"]);
     assert_success(&owner_status, "inspect admitted body");
     let owner_status: Value = serde_json::from_slice(&owner_status.stdout).unwrap();
-    assert_eq!(owner_status["body_id"], invitation["claim"]["body_id"]);
-    assert_eq!(owner_status["presence"], "current");
-    assert_eq!(owner_status["member_count"], 1);
-    assert_eq!(owner_status["present_member_count"], 1);
-    assert_eq!(owner_status["plan_created"], false);
-    assert_eq!(owner_status["play_created"], false);
+    assert_eq!(
+        owner_status["biography"]["body_id"],
+        invitation["claim"]["body_id"]
+    );
+    assert_eq!(owner_status["remote_carrier_availability"], "unobserved");
+    assert_eq!(
+        owner_status["biography"]["membership"]["parts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
 
     let joining_status = product(&["body", "status", "--state-dir", path(&joining), "--json"]);
     assert_success(&joining_status, "inspect completed joined membership");
@@ -340,6 +349,10 @@ fn seed_installation(state: &Path, owns_body: bool) {
     fs::write(&executable, b"reviewed installed product image").unwrap();
     let executable_sha = digest(&fs::read(&executable).unwrap());
     let body_state = if owns_body {
+        let host_id = format!(
+            "host/installed/{}",
+            state.file_name().unwrap().to_string_lossy()
+        );
         let body = Body::born(
             "source/installed-process-proof".into(),
             "checked/installed-process-proof".into(),
@@ -347,12 +360,42 @@ fn seed_installation(state: &Path, owns_body: bool) {
             SignId::from("sign/installed-process-proof/born"),
         )
         .unwrap();
-        let biography = BodyBiographyEvidence::born(
+        let mut membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        let mut biography = BodyBiographyEvidence::born(
             body.clone(),
-            BodyMembership::new(body.body_id.clone()).unwrap(),
+            membership.clone(),
             "Independent installed process proof".into(),
         )
         .unwrap();
+        let part = PartId::bind(&body.body_id, &host_id, 0).unwrap();
+        let proof = MembershipProofId::bind("conduit/installed-process-proof/local-birth").unwrap();
+        let admitted = membership
+            .admit(
+                &body.body_id,
+                membership.revision,
+                part.clone(),
+                proof.clone(),
+                SignId::from("sign/installed-process-proof/admitted"),
+            )
+            .unwrap();
+        let present = membership
+            .observe_present(
+                &body.body_id,
+                membership.revision,
+                &part,
+                AuthenticatedHostObservation {
+                    host_id: HostId::from(host_id.as_str()),
+                    boot_id: BootId::from("boot/installed-process-proof/previous"),
+                    offer_generation: OfferGeneration(1),
+                    proof_id: proof,
+                    sequence: 0,
+                },
+                SignId::from("sign/installed-process-proof/present"),
+            )
+            .unwrap();
+        biography
+            .append_membership_events(membership, &[(admitted, 2), (present, 3)])
+            .unwrap();
         let body_dir = state.join("body");
         fs::create_dir_all(&body_dir).unwrap();
         let biography_path = body_dir.join("biography.json");
