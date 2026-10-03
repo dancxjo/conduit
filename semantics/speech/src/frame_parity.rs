@@ -274,6 +274,20 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
             .unwrap();
             let upper = if target.voiced == 1 && target.frication == 0 {
                 voicing - history.voicing
+            } else if target.voiced == 1 && target.frication == 1 && target.closure == 0 {
+                speech_excitation(ExcitationInput {
+                    phase: history.phase,
+                    period: 61,
+                    noise,
+                    voiced: 0,
+                    frication: 1,
+                })
+                .unwrap()
+            } else {
+                excitation
+            };
+            let lower = if target.voiced == 1 && target.frication == 1 && target.closure == 0 {
+                voicing
             } else {
                 excitation
             };
@@ -306,7 +320,7 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
             {
                 current[index] = speech_filter_limit(ResonatorInput {
                     drive: speech_drive(DriveInput {
-                        sample: if index == 0 { excitation } else { upper },
+                        sample: if index == 0 { lower } else { upper },
                         gain,
                     })
                     .unwrap(),

@@ -149,9 +149,10 @@ without copying an implementation or their parameter tables. It is a limited
 source model, with no spectral-tilt, aspiration, flutter or diplophonia controls.
 For pure voicing, the second and third resonators receive the difference
 between the current and previous voiced-source values; the first receives the
-full source. Noise-containing frames retain their original excitation. This
+full source. Continuous voiced-fricative frames separate their source roles as
+described below; other noise-containing frames retain their mixed excitation. This
 addresses higher-branch low-frequency energy filling spectral valleys, following
-the parallel-model guidance in [Klatt (1980), section II.F](https://www.fon.hum.uva.nl/david/ma_ssp/doc/Klatt-1980-JAS000971.pdf).
+the parallel-model guidance in [Klatt (1980), section II.G](https://www.fon.hum.uva.nl/david/ma_ssp/doc/Klatt-1980-JAS000971.pdf).
 One additional I32 history value retains the exact previous voiced source,
 including across authored silence; it does not represent measured phonation or
 change phone identity. Initial history is zero. The admitted pure source stays
@@ -161,6 +162,26 @@ focused source tests cover steady-source rejection, exact noise bypass and
 selected overflow refusal. `nasal-place.wav` compares m, n and ng before aa and
 iy. This does not yet implement nasal pole/zero insertion or adjacent-vowel
 nasalization, and subjective improvement remains unverified.
+
+For v, dh, z and zh, the first resonator receives pure voicing while the upper
+two receive pure turbulent noise. The authored selection requires voiced and
+frication flags both equal to one and no closure; stops and affricates retain
+their release policy. Four self-authored models use a 250 Hz, 140 Hz-bandwidth
+low voicing bar and retain the corresponding unvoiced phones' upper noise bands.
+This follows the separate-source motivation in [Klatt (1980), section II.F](https://www.fon.hum.uva.nl/david/ma_ssp/doc/Klatt-1980-JAS000971.pdf),
+using a compact low-band approximation rather than a full separate voiced
+cascade. It adds no retained history or runtime allocation. Selected phone,
+derivation, stress and duration remain exact. `voiced-frication.wav` compares
+f/v, th/dh, s/z and sh/zh before aa. Independent source-isolation and decoded-pole
+laws accompany portable frame parity; listening-quality improvement is unverified.
+
+The raw modulo turbulence is scaled by one third before filtering, so its
+mean-square excitation energy is below that of the glottal source throughout
+the admitted pitch range. The authored mixer applies a fixed output gain of
+16 before its explicit limiter. This balances the previously overpowering noise
+and raises the quiet PCM level; it is a profile setting, not WAV normalization
+or a loudness measurement. Listening-quality acceptance remains open.
+
 The discrete flow difference sums to zero over each fixed-period cycle and
 retains the closure impulse before its zero closed interval. Both the scalar
 source query and the frame graph share the same authored normalization, flow
