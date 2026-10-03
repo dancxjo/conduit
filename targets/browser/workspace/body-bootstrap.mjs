@@ -211,7 +211,8 @@ function review(runner, host, state, controls) {
       selectedReviewedSource(state.inventorySource, state.initialPlots),
       state.initialPlots,
     );
-    state.status = `Ready to birth with ${state.initialPlots.length} Plot(s).`;
+    const plotCount = state.initialPlots.length;
+    state.status = `Ready to birth with ${plotCount} ${plotCount === 1 ? 'plot' : 'plots'}.`;
     state.outcome = "success-status";
   } catch (error) {
     state.review = null;

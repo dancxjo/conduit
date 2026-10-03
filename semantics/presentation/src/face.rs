@@ -235,14 +235,18 @@ impl Face {
             .body_name
             .map(String::from)
             .unwrap_or_else(|| format!("Body {}", body.body_id.as_str()));
+        let resident_phrase = match body.workset.len() {
+            0 => "no resident plots".into(),
+            1 => "one resident plot".into(),
+            count => format!("{count} resident plots"),
+        };
         let mut text = vec![PresentationText {
             subject: body_subject.clone(),
             text: format!(
-                "{} is {} with {} resident Plot(s) at workload revision {}.",
+                "{} is {} with {}.",
                 body_phrase,
                 lifecycle_label(&body.state),
-                body.workset.len(),
-                body.workload_revision
+                resident_phrase,
             ),
         }];
         let mut actions = Vec::new();
