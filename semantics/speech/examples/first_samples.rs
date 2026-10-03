@@ -34,6 +34,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ],
         ),
         (
+            "voiced-frication",
+            vec![
+                P::f,
+                P::aa,
+                P::v,
+                P::aa,
+                P::th,
+                P::aa,
+                P::dh,
+                P::aa,
+                P::s,
+                P::aa,
+                P::z,
+                P::aa,
+                P::sh,
+                P::aa,
+                P::zh,
+                P::aa,
+            ],
+        ),
+        (
             "nasal-place",
             vec![
                 P::m,

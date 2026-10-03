@@ -80,3 +80,6 @@ mod intensity_parity;
 
 #[cfg(test)]
 mod upper_source_parity;
+
+#[cfg(test)]
+mod frication_parity;
