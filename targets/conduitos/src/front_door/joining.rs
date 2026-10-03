@@ -8,7 +8,7 @@ use conduit_presentation::{
 };
 
 use super::{Error, FrontDoor};
-use crate::spore_join::PendingNativeJoin;
+use crate::spore_join::{OwnerExchange, PendingNativeJoin};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PendingJoinView(PendingNativeJoin);
@@ -92,19 +92,23 @@ impl PendingJoinView {
                     self.0.rendezvous.as_ref().map_or(0, |route| route.candidates.len()) as u64,
                 )),
                 property(&candidate, "membership-admitted", PresentationPropertyValue::Flag(false)),
+                property(&candidate, "owner-receipt-verified", PresentationPropertyValue::Flag(
+                    self.0.owner_exchange == OwnerExchange::ReceiptVerified,
+                )),
             ],
             vec![
                 PresentationText {
                     subject: host.clone(),
-                    text: "This host has sent an invitation-bound request. It has not joined a Body, and no Plan or Play is active here.".into(),
+                    text: "This host prepared an invitation-bound admission request. It has not joined a Body, and no Plan or Play is active here.".into(),
                 },
                 PresentationText {
                     subject: candidate.clone(),
-                    text: if self.0.rendezvous.is_some() {
-                        "A candidate route to the owner is recorded, but no connection or admission receipt has completed. Local Birth is unavailable; this guest will not create a different Body."
-                    } else {
-                        "Waiting for an authenticated owner route and admission receipt. Local Birth is unavailable; this guest will not create a different Body."
-                    }.into(),
+                    text: match self.0.owner_exchange {
+                        OwnerExchange::ReceiptVerified => "The owner returned an exact verified admission receipt. This guest has not installed membership yet. Local Birth is unavailable; it will not create a different Body.".into(),
+                        OwnerExchange::Refused(reason) => format!("Owner admission did not complete ({reason}). This guest remains unjoined. Local Birth is unavailable; it will not create a different Body."),
+                        OwnerExchange::NotAttempted if self.0.rendezvous.is_some() => "A candidate route to the owner is recorded, but no connection or admission receipt has completed. Local Birth is unavailable; this guest will not create a different Body.".into(),
+                        OwnerExchange::NotAttempted => "Waiting for an authenticated owner route and admission receipt. Local Birth is unavailable; this guest will not create a different Body.".into(),
+                    },
                 },
             ],
             Vec::new(),
@@ -160,6 +164,7 @@ mod tests {
             invitation_id: "invitation/one".into(),
             rendezvous: None,
             route_certificates: Vec::new(),
+            owner_exchange: OwnerExchange::NotAttempted,
         })
         .unwrap();
         assert!(door.joining_pending());
@@ -237,6 +242,7 @@ mod tests {
                 candidate_id: "candidate/owner".into(),
                 certificate_der: certificate,
             }],
+            owner_exchange: OwnerExchange::NotAttempted,
         })
         .unwrap();
         let face = door.presentation().unwrap();
@@ -250,5 +256,28 @@ mod tests {
             text.text
                 .contains("no connection or admission receipt has completed")
         }));
+
+        door.joining.as_mut().unwrap().0.owner_exchange =
+            OwnerExchange::Refused("virtio-net-absent");
+        let refused = door.presentation().unwrap();
+        assert!(refused.text.iter().any(|text| {
+            text.text.contains("virtio-net-absent") && text.text.contains("unjoined")
+        }));
+        assert!(refused.basis.body_id.is_none());
+
+        door.joining.as_mut().unwrap().0.owner_exchange = OwnerExchange::ReceiptVerified;
+        let verified = door.presentation().unwrap();
+        assert!(verified.properties.iter().any(|property| {
+            property.name == "owner-receipt-verified"
+                && property.value == PresentationPropertyValue::Flag(true)
+        }));
+        assert!(
+            verified
+                .text
+                .iter()
+                .any(|text| { text.text.contains("has not installed membership yet") })
+        );
+        assert!(verified.basis.body_id.is_none());
+        assert!(verified.actions.is_empty());
     }
 }
