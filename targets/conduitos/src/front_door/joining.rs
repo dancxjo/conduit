@@ -138,6 +138,7 @@ mod tests {
         BootId, CheckedPlotId, ExpandedPlotId, HostId, OfferGeneration, PlanId, PlotIdentity,
         SourceDocumentId,
     };
+    use sha2::{Digest, Sha256};
 
     #[test]
     fn provisioned_guest_exposes_pending_candidate_without_a_body_or_birth() {
@@ -158,6 +159,7 @@ mod tests {
             body_id: "body/invited".into(),
             invitation_id: "invitation/one".into(),
             rendezvous: None,
+            route_certificates: Vec::new(),
         })
         .unwrap();
         assert!(door.joining_pending());
@@ -194,6 +196,8 @@ mod tests {
 
     #[test]
     fn provisioned_owner_route_remains_visible_without_claiming_a_connection() {
+        let certificate = vec![42; 128];
+        let binding: [u8; 32] = Sha256::digest(&certificate).into();
         let route = serde_json::from_value(serde_json::json!({
             "protocol": 1,
             "body_id": "body/invited",
@@ -204,7 +208,7 @@ mod tests {
                 "reachability": "wss://owner.example:443/conduit",
                 "authentication": {
                     "server_identity": "owner.example",
-                    "transport_binding_sha256": vec![7; 32]
+                    "transport_binding_sha256": binding
                 },
                 "expires_at_millis": 1_800_000_000_000_u64,
                 "maximum_attempts": 1,
@@ -229,6 +233,10 @@ mod tests {
             body_id: "body/invited".into(),
             invitation_id: "invitation/one".into(),
             rendezvous: Some(route),
+            route_certificates: vec![crate::spore_provision::RouteCertificate {
+                candidate_id: "candidate/owner".into(),
+                certificate_der: certificate,
+            }],
         })
         .unwrap();
         let face = door.presentation().unwrap();
