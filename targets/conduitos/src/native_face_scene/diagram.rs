@@ -15,13 +15,23 @@ fn columns(width: u16) -> usize {
     if width >= 520 { 2 } else { 1 }
 }
 
-pub(super) fn pages(face: &Presentation, width: u16) -> usize {
+fn rows(height: u16) -> usize {
+    if height >= 680 {
+        3
+    } else if height >= 440 {
+        2
+    } else {
+        1
+    }
+}
+
+pub(super) fn pages(face: &Presentation, width: u16, height: u16) -> usize {
     let gears = face
         .subjects
         .iter()
         .filter(|subject| subject.role == PresentationRole::Gear)
         .count();
-    gears.div_ceil(columns(width)).max(1)
+    gears.div_ceil(columns(width) * rows(height)).max(1)
 }
 
 pub(super) fn exists(face: &Presentation) -> bool {
@@ -37,18 +47,21 @@ pub(super) fn append(
     page: usize,
 ) -> Result<(), FaceSceneError> {
     let columns = columns(screen.width);
+    let rows = rows(screen.height);
+    let capacity = columns * rows;
     let width = (screen.width - SPACE_XL * 2 - GAP * (columns as u16 - 1)) / columns as u16;
-    let height = screen.height - layout::HEADER - layout::FOOTER - 16;
+    let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
+        / rows as u16;
     let gears = face
         .subjects
         .iter()
         .filter(|subject| subject.role == PresentationRole::Gear)
-        .skip(page * columns)
-        .take(columns)
+        .skip(page * capacity)
+        .take(capacity)
         .collect::<Vec<_>>();
-    let card = |column: usize| LayoutRect {
-        x: (SPACE_XL + column as u16 * (width + GAP)) as i16,
-        y: (layout::HEADER + 8) as i16,
+    let card = |index: usize| LayoutRect {
+        x: (SPACE_XL + index.rem_euclid(columns) as u16 * (width + GAP)) as i16,
+        y: (layout::HEADER + 8 + index.div_euclid(columns) as u16 * (height + GAP)) as i16,
         width,
         height,
     };
@@ -66,25 +79,32 @@ pub(super) fn append(
         ) else {
             continue;
         };
-        let (Some((source_column, source_row)), Some((sink_column, sink_row))) = (
+        let (Some((source_index, source_row)), Some((sink_index, sink_row))) = (
             port_location(face, &gears, &cord.identity, source, "outgoing", height),
             port_location(face, &gears, &cord.identity, sink, "receiving", height),
         ) else {
             continue;
         };
-        if source_column == sink_column {
+        if source_index == sink_index {
             continue;
         }
         if visible_links == MAX_VISIBLE_LINKS {
             break;
         }
-        let from = card(source_column);
-        let to = card(sink_column);
-        let start_x = from.x + from.width as i16 - 1;
-        let end_x = to.x;
+        let from = card(source_index);
+        let to = card(sink_index);
+        let (start_x, end_x) = if from.x <= to.x {
+            (from.x + from.width as i16 - 1, to.x)
+        } else {
+            (from.x, to.x + to.width as i16 - 1)
+        };
         let start_y = from.y + 59 + source_row as i16 * PORT_ROW as i16;
         let end_y = to.y + 59 + sink_row as i16 * PORT_ROW as i16;
-        let middle = start_x + (end_x - start_x) / 2;
+        let middle = if from.x == to.x {
+            from.x + from.width as i16 + GAP as i16 / 2
+        } else {
+            start_x + (end_x - start_x) / 2
+        };
         let mut points = Vec::with_capacity(4);
         points.push(GraphicsPoint::new(start_x, start_y).map_err(|_| FaceSceneError::SceneBound)?);
         if start_y != end_y {
@@ -100,8 +120,8 @@ pub(super) fn append(
         )?;
         visible_links += 1;
     }
-    for (column, gear) in gears.into_iter().enumerate() {
-        let bounds = card(column);
+    for (index, gear) in gears.into_iter().enumerate() {
+        let bounds = card(index);
         push(
             scene,
             GraphicsCommand::rect(
@@ -122,7 +142,7 @@ pub(super) fn append(
                 },
                 screen,
                 GraphicsPaintRole::Foreground,
-                &preview(&gear.name, 24),
+                &preview(&readable(&gear.name), 42),
             )
             .and_then(|command| command.with_text_role(GraphicsTextRole::Heading)),
         )?;
@@ -256,4 +276,8 @@ fn preview(value: &str, limit: usize) -> alloc::string::String {
         .nth(limit - 3)
         .map_or(value.len(), |(index, _)| index);
     alloc::format!("{}...", &value[..end])
+}
+
+fn readable(value: &str) -> alloc::string::String {
+    value.replace(['-', '_'], " ").replace('/', " · ")
 }

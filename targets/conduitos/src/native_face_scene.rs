@@ -139,7 +139,7 @@ impl NativeFaceScene {
 
     pub fn pages(&self) -> usize {
         if self.showing_diagram {
-            diagram::pages(&self.face, self.screen.width)
+            diagram::pages(&self.face, self.screen.width, self.screen.height)
         } else {
             self.rows().last().map_or(1, |row| row.page + 1)
         }
