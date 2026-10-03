@@ -45,6 +45,22 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "semantic-bindings,kernel",
         "--tests",
     ])?;
+    invoke(&[
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--test",
+        "native_speech",
+    ])?;
+    invoke(&[
+        "test",
+        "--locked",
+        "-p",
+        "conduit",
+        "--test",
+        "native_speech",
+    ])?;
     let status = Command::new("cargo")
         .args([
             "run",

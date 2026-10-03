@@ -88,6 +88,7 @@ pub fn offer() -> CapabilityOffer {
 }
 
 pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Result<(), String> {
+    startup.insert_value_kind_alias("PcmFrames", kind_id(conduit_audio::AUDIO_PCM_INFO_ID))?;
     startup.insert(KindSignature {
         kind: KIND.into(),
         startup_parameters: vec![StartupParameterSignature {
