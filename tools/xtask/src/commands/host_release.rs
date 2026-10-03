@@ -417,6 +417,27 @@ fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     Ok(format!("sha256:{:x}", Sha256::digest(fs::read(path)?)))
 }
 
+fn bundle_digest(files: &[ReleaseFile]) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"conduit.release/host-bundle-content@1\0");
+    for file in files {
+        digest.update(file.path.as_bytes());
+        digest.update(b"\0");
+        digest.update(file.sha256.as_bytes());
+        digest.update(b"\n");
+    }
+    format!("{:x}", digest.finalize())
+}
+
+fn require_success(command: &mut Command, label: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let status = command.status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("{label} failed with {status}").into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -467,26 +488,5 @@ mod tests {
         assert!(refusal.to_string().contains("finite byte bound"));
         assert!(!root.join("oversized.json").exists());
         fs::remove_dir_all(root).unwrap();
-    }
-}
-
-fn bundle_digest(files: &[ReleaseFile]) -> String {
-    let mut digest = Sha256::new();
-    digest.update(b"conduit.release/host-bundle-content@1\0");
-    for file in files {
-        digest.update(file.path.as_bytes());
-        digest.update(b"\0");
-        digest.update(file.sha256.as_bytes());
-        digest.update(b"\n");
-    }
-    format!("{:x}", digest.finalize())
-}
-
-fn require_success(command: &mut Command, label: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let status = command.status()?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(format!("{label} failed with {status}").into())
     }
 }
