@@ -1160,11 +1160,21 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         2,
     )
     .unwrap();
-    failed.activate(3, &value(b"fault")).unwrap();
-    assert!(matches!(
-        failed.step().unwrap(),
-        BoundedActivationState::Faulted { sequence: 3, .. }
-    ));
+    assert_eq!(failed.child_identity(0).unwrap().as_str(), "first-child");
+    let input = value(b"fault");
+    let allocations = allocations_during(|| {
+        failed.activate(3, &input).unwrap();
+        assert!(matches!(
+            failed.step().unwrap(),
+            BoundedActivationState::Faulted { sequence: 3, .. }
+        ));
+        assert_eq!(failed.child_identity(0).unwrap().as_str(), "first-child");
+        assert!(failed.child_identity(2).is_none());
+    });
+    assert_eq!(
+        allocations, 0,
+        "lifted failure and identity inspection allocated"
+    );
 
     let mut cancelled = BoundedActivationHost::prepare(
         definition(),

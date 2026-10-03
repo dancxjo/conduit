@@ -388,6 +388,10 @@ impl FlowSelectCoordinator {
         self.activation.next_host_request()
     }
 
+    pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
+        self.activation.child_identity(child)
+    }
+
     pub fn last_cancellation_failures(
         &self,
     ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {

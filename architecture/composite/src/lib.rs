@@ -4,6 +4,8 @@
 
 #[macro_use]
 extern crate alloc;
+#[cfg(test)]
+extern crate std;
 
 mod prelude {
     pub use alloc::boxed::Box;

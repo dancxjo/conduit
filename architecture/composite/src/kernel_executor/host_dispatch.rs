@@ -173,21 +173,28 @@ impl KernelCompositeHost {
         let value = child
             .store_host_value(bytes)
             .map_err(|reason| execution(child_index, reason))?;
-        let output =
-            conduit_kernel::BoundedValueRef::new(value, bytes.len() as u32).map_err(|error| {
-                execution(child_index, ChildExecutionError::Scheduler(error.into()))
-            })?;
-        child
-            .complete_host_call(
-                request.node,
-                request.request,
-                conduit_kernel::HostCallOutcome {
-                    disposition: conduit_kernel::HostCallDisposition::Completed,
-                    output: Some(output),
-                    failure: None,
-                },
-            )
-            .map_err(|reason| execution(child_index, reason))?;
+        // The admission is positive even when the exact canonical payload is
+        // empty (for example Unit). Its actual extent remains zero.
+        let output = match conduit_kernel::BoundedValueRef::new(value, bytes.len().max(1) as u32) {
+            Ok(output) => output,
+            Err(error) => {
+                let completion = ChildExecutionError::Scheduler(error.into());
+                discard_rejected_completion(child, child_index, value, completion)?;
+                return Err(execution(child_index, completion));
+            }
+        };
+        if let Err(completion) = child.complete_host_call(
+            request.node,
+            request.request,
+            conduit_kernel::HostCallOutcome {
+                disposition: conduit_kernel::HostCallDisposition::Completed,
+                output: Some(output),
+                failure: None,
+            },
+        ) {
+            discard_rejected_completion(child, child_index, value, completion)?;
+            return Err(execution(child_index, completion));
+        }
         self.outstanding_host_calls[slot] = None;
         Ok(())
     }
@@ -239,3 +246,21 @@ pub(super) fn outstanding_host_call_index(
         .position(|slot| slot.as_ref().is_some_and(|item| item.token == token))
         .ok_or_else(invalid_host_call_token)
 }
+
+fn discard_rejected_completion(
+    child: &mut ChildKernel,
+    child_index: usize,
+    value: conduit_kernel::ValueRef,
+    completion: ChildExecutionError,
+) -> Result<(), KernelCompositeError> {
+    child.discard_host_value(value).map_err(|cleanup| {
+        KernelCompositeError::HostCallCompletionCleanup {
+            child: child_index,
+            completion,
+            cleanup,
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests;

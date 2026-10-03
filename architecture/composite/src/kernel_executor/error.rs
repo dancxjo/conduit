@@ -24,6 +24,11 @@ pub enum KernelCompositeError {
         child: usize,
         reason: ChildExecutionError,
     },
+    HostCallCompletionCleanup {
+        child: usize,
+        completion: ChildExecutionError,
+        cleanup: conduit_kernel::scheduler::HostValueDiscardRefusal,
+    },
     UnknownFront,
     StaleChild(HostId),
     StaleRuntimeChild {

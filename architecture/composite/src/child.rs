@@ -136,6 +136,13 @@ impl ChildKernel {
             .map_err(ChildExecutionError::from)
     }
 
+    pub(crate) fn discard_host_value(
+        &mut self,
+        value: conduit_kernel::ValueRef,
+    ) -> Result<(), conduit_kernel::scheduler::HostValueDiscardRefusal> {
+        self.scheduler.discard_host_value(value)
+    }
+
     pub(crate) fn admit_boundary(
         &mut self,
         port_id: &SemanticPortId,

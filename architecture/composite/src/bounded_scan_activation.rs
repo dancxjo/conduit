@@ -376,6 +376,15 @@ impl BoundedScanActivationHost {
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
     }
+    /// Resolve a failure index against the exact prepared child identities.
+    pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
+        self.active
+            .as_ref()
+            .or_else(|| self.receipts.last())
+            .or_else(|| self.ready.last())
+            .and_then(|host| host.child_identity(child))
+    }
+
     pub fn last_cancellation_failures(
         &self,
     ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
