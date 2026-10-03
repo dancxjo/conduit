@@ -5,51 +5,18 @@ use super::{
     write_json_atomic, Installation, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
 };
 use conduit_body::{
-    AdmissionManager, AdmissionSigns, BodyBiographyEvidence, MembershipCredential,
-    SpawnAdmissionProof, SpawnInvitationSecret,
+    AdmissionManager, AdmissionSigns, BodyBiographyEvidence, SpawnAdmissionProof,
+    SpawnInvitationSecret,
 };
-use conduit_core::{bind_sign, BootId, HostAdvertisement, HostId, OfferGeneration};
+use conduit_core::{bind_sign, BootId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use std::{fs, io::Read, path::Path};
 
-pub(super) const INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@1";
-pub(super) const ROUTED_INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@2";
-
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(super) struct PortableInvitation {
-    pub(super) schema: String,
-    pub(super) claim: conduit_body::SpawnInvitationClaim,
-    pub(super) secret: [u8; 32],
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(super) rendezvous: Option<conduit_body::SpawnRendezvousDescriptor>,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(super) struct PortableSpawnAdmissionRequest {
-    pub(super) schema: String,
-    pub(super) invitation_id: conduit_body::SpawnInvitationId,
-    pub(super) body_id: conduit_body::BodyId,
-    pub(super) host_advertisement: conduit_core::HostAdvertisement,
-    pub(super) nonce: [u8; 32],
-    pub(super) signature: Vec<u8>,
-    pub(super) membership_admitted: bool,
-    pub(super) plan_created: bool,
-    pub(super) play_created: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub(super) struct PortableAdmissionReceipt {
-    pub(super) schema: String,
-    pub(super) credential: MembershipCredential,
-    pub(super) host_advertisement: HostAdvertisement,
-    pub(super) membership_admitted: bool,
-    pub(super) current_offers_available: bool,
-    pub(super) plan_created: bool,
-    pub(super) play_created: bool,
-}
+pub(super) use conduit_body::{
+    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest, INVITATION_SCHEMA,
+    ROUTED_INVITATION_SCHEMA,
+};
 
 #[derive(Serialize, Deserialize)]
 struct AdmissionTransaction {
@@ -191,13 +158,7 @@ pub(super) fn admit_body_request_document(
     if !authorize_admission {
         return Err("admitting a host into this body requires --authorize-admission".into());
     }
-    if request.schema != "conduit.body/spawn-admission-request@1"
-        || request.membership_admitted
-        || request.plan_created
-        || request.play_created
-    {
-        return Err("Body admission request has an unsupported schema or claims effects".into());
-    }
+    request.validate().map_err(|error| error.to_string())?;
     let mut installation = read_installation(&state_dir.join("installation.json"))?;
     let body = installation
         .body_state
@@ -221,19 +182,9 @@ pub(super) fn admit_body_request_document(
     let mut admission: AdmissionManager =
         serde_json::from_slice(&bounded_read(&admission_path, 256 * 1024)?)
             .map_err(|error| format!("Body admission state: {error}"))?;
-    let signature: [u8; conduit_body::ADMISSION_SIGNATURE_BYTES] = request
-        .signature
-        .as_slice()
-        .try_into()
-        .map_err(|_| "Body admission request signature has the wrong bound")?;
-    let proof = SpawnAdmissionProof {
-        invitation_id: request.invitation_id,
-        body_id: request.body_id,
-        host_id: request.host_advertisement.host_id.clone(),
-        boot_id: request.host_advertisement.boot_id.clone(),
-        nonce: request.nonce,
-        signature,
-    };
+    let proof = request
+        .admission_proof()
+        .map_err(|error| error.to_string())?;
     let first_sequence = biography
         .last_sequence()
         .checked_add(1)
@@ -282,7 +233,7 @@ pub(super) fn admit_body_request_document(
         .append_membership_events(biography.membership.clone(), &events)
         .map_err(|error| format!("retain Body admission evidence: {error:?}"))?;
     let receipt = PortableAdmissionReceipt {
-        schema: "conduit.body/spawn-admission-receipt@1".into(),
+        schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
         credential,
         current_offers_available: !request.host_advertisement.capabilities.is_empty(),
         host_advertisement: request.host_advertisement,
@@ -387,33 +338,14 @@ pub(super) fn prepare_body_join(
     if !authorize_join {
         return Err("accepting a body invitation requires --authorize-join".into());
     }
-    let routed = invitation.schema == ROUTED_INVITATION_SCHEMA;
-    if invitation.schema != INVITATION_SCHEMA && !routed {
-        return Err("Body invitation has an unsupported schema".into());
-    }
     let installation = read_installation(&state_dir.join("installation.json"))?;
     if installation.body_state.is_some() || installation.joined_body_state.is_some() {
         return Err("this installed host already owns or has joined a body".into());
     }
     let now_millis = current_time_millis()?;
     invitation
-        .claim
-        .inspect(now_millis)
-        .map_err(|error| format!("Body invitation refused: {error:?}"))?;
-    match (&invitation.rendezvous, routed) {
-        (None, false) => {}
-        (Some(rendezvous), true) => {
-            rendezvous
-                .validate(now_millis)
-                .map_err(|error| format!("Body invitation route refused: {error:?}"))?;
-            if rendezvous.body_id != invitation.claim.body_id.as_str()
-                || rendezvous.invitation_id != invitation.claim.invitation_id.as_str()
-            {
-                return Err("Body invitation route lost its exact invitation identity".into());
-            }
-        }
-        _ => return Err("Body invitation schema and route disagree".into()),
-    }
+        .validate(now_millis)
+        .map_err(|error| error.to_string())?;
     let secret = SpawnInvitationSecret::from_csprng_bytes(invitation.secret)
         .map_err(|error| format!("Body invitation secret refused: {error:?}"))?;
     let runtime_bytes = bounded_read(&state_dir.join("runtime.json"), 64 * 1024)?;
@@ -442,7 +374,7 @@ pub(super) fn prepare_body_join(
         signature: secret.sign(&transcript),
     };
     let request = PortableSpawnAdmissionRequest {
-        schema: "conduit.body/spawn-admission-request@1".into(),
+        schema: conduit_body::SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
         invitation_id: proof.invitation_id,
         body_id: proof.body_id,
         host_advertisement: advertisement,

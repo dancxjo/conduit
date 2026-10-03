@@ -12,10 +12,16 @@ use crate::{
 };
 
 mod continuity;
+mod documents;
 mod invitation;
 
 use continuity::{ContinuityKeyRecord, PendingReturn};
 pub use continuity::{PartReturnChallenge, PartReturnProof};
+pub use documents::{
+    AdmissionDocumentRefusal, PortableAdmissionReceipt, PortableInvitation,
+    PortableSpawnAdmissionRequest, INVITATION_SCHEMA, ROUTED_INVITATION_SCHEMA,
+    SPAWN_ADMISSION_RECEIPT_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
+};
 use invitation::InvitationRecord;
 pub use invitation::{
     SpawnAdmissionProof, SpawnInvitation, SpawnInvitationClaim, SpawnInvitationSecret,
