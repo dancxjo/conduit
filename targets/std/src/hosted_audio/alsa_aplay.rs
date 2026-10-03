@@ -32,6 +32,7 @@ pub enum PlaybackFailure {
     OpenFailed,
     InvalidPcm,
     DiscontinuousInput,
+    StagingExceeded,
     Underrun,
     ProviderLost,
     WriteFailed,

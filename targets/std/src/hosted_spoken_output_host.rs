@@ -6,7 +6,7 @@ impl crate::StdHost {
         &mut self,
         artifact: crate::hosted_wav_artifact::WavArtifactSelection,
     ) -> Result<(), String> {
-        self.attach_spoken_output(artifact, None)
+        self.attach_spoken_output(Some(artifact), None)
     }
 
     /// Attach an initialized, explicitly authorized speech provider and its
@@ -23,7 +23,33 @@ impl crate::StdHost {
                 self.advertisement.offer_generation,
             )
             .map_err(|error| error.to_string())?;
-        self.attach_spoken_output(artifact, Some(adapter))
+        self.attach_spoken_output(Some(artifact), Some(adapter))
+    }
+
+    /// Attach an explicitly selected speaker route to a real streaming voice.
+    /// The selected playback resource must already belong to this Host Boot;
+    /// discovering a device alone never grants authority to play it.
+    pub fn attach_espeak_speech_for_selected_playback(
+        &mut self,
+        adapter: crate::hosted_speech_synthesis::EspeakSpeechAdapter,
+    ) -> Result<(), String> {
+        adapter
+            .validate_host(
+                &self.advertisement.host_id,
+                &self.advertisement.boot_id,
+                self.advertisement.offer_generation,
+            )
+            .map_err(|error| error.to_string())?;
+        let playback = self
+            .playback
+            .as_ref()
+            .ok_or_else(|| "spoken playback requires an exact selected resource".to_string())?;
+        if playback.boot_id != self.advertisement.boot_id
+            || playback.offer_generation != self.advertisement.offer_generation
+        {
+            return Err("selected spoken playback is stale for this Host Boot".into());
+        }
+        self.attach_spoken_output(None, Some(adapter))
     }
 
     /// The exact grant selected when this provider was initialized. Discovery
@@ -43,22 +69,26 @@ impl crate::StdHost {
     }
     fn attach_spoken_output(
         &mut self,
-        artifact: crate::hosted_wav_artifact::WavArtifactSelection,
+        artifact: Option<crate::hosted_wav_artifact::WavArtifactSelection>,
         adapter: Option<crate::hosted_speech_synthesis::EspeakSpeechAdapter>,
     ) -> Result<(), String> {
         if self.wav_artifact.is_some()
             || self.speech_synthesis.is_some()
-            || artifact.boot_id != self.advertisement.boot_id
-            || artifact.offer_generation != self.advertisement.offer_generation
+            || artifact.as_ref().is_some_and(|artifact| {
+                artifact.boot_id != self.advertisement.boot_id
+                    || artifact.offer_generation != self.advertisement.offer_generation
+            })
         {
-            return Err("spoken artifact is stale or already selected".into());
+            return Err("spoken output is stale or already selected".into());
         }
         let mut advertisement = self.advertisement.clone();
-        advertisement.resources.push(conduit_core::resource_offer(
-            artifact.pool_id().as_str(),
-            conduit_std_offers::AUDIO_WAV_ARTIFACT_RESOURCE_CLASS,
-            1,
-        ));
+        if let Some(artifact) = &artifact {
+            advertisement.resources.push(conduit_core::resource_offer(
+                artifact.pool_id().as_str(),
+                conduit_std_offers::AUDIO_WAV_ARTIFACT_RESOURCE_CLASS,
+                1,
+            ));
+        }
         let speech = if let Some(adapter) = &adapter {
             advertisement.resources.push(adapter.resource_offer());
             let commit = conduit_std_offers::generated_speech_commit_offer();
@@ -95,15 +125,17 @@ impl crate::StdHost {
                 .retain(|offer| offer.kind_id != projection.kind_id);
             advertisement.capabilities.push(projection);
         }
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::audio_write_wav_artifact_offer());
+        if artifact.is_some() {
+            advertisement
+                .capabilities
+                .push(conduit_std_offers::audio_write_wav_artifact_offer());
+        }
         advertisement.resources.sort();
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
         let resources = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         self.advertisement = advertisement;
         self.kernel_resources = resources;
-        self.wav_artifact = Some(artifact);
+        self.wav_artifact = artifact;
         self.speech_synthesis = adapter;
         Ok(())
     }
