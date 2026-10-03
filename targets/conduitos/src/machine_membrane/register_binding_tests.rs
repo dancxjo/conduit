@@ -18,12 +18,11 @@ fn selected() -> (
     let scope = scope();
     let kind = contract();
     let placement = PlacementId::from("placement/registers");
-    let gear = PlannedGear {
+    let gear = conduit_core::planned_gear_from_parts! {
         placement_id: placement.clone(),
         gear_id: GearId::from("gear/registers"),
         kind_id: kind.kind_id.clone(),
         kind_contract_revision: kind.kind_contract_revision.clone(),
-        source_span: None,
         execution_profile_id: ExecutionProfileId::from("conduitos/cooperative-bounded-step@1"),
         configuration: vec![],
         host_id: scope.host_id.clone(),
