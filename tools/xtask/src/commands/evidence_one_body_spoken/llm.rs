@@ -39,18 +39,18 @@ pub(super) fn run(
         .ok_or("owner Face has no Body")?;
     let bin = context.bin;
     let bin_sha256 = context.bin_sha256;
+    let execution_nonce = execution_id
+        .strip_prefix("journey-spoken-")
+        .ok_or("invalid spoken execution identity")?;
     let request = GenerativePresenterRequest::from_presentation(
-        format!(
-            "request/journey-spoken/{}",
-            &execution_id["journey-spoken-".len()..]
-        ),
+        format!("request/journey-spoken/{execution_nonce}"),
         finite_face_wording_presenter_policy(),
         first.presentation.clone(),
         None,
         GenerativePresenterBounds::reviewed_default(),
     )
     .map_err(|error| format!("cannot prepare current Face Presenter request: {error:?}"))?;
-    let discovery = OllamaDiscovery::discover_at(&endpoint, model)?;
+    let discovery = OllamaDiscovery::discover_at(endpoint, model)?;
     let adapter = discovery.initialize(
         admitted_memory_mib,
         vec![
@@ -138,6 +138,7 @@ pub(super) fn run(
         "proof_class": model_proof.proof_class,
         "source_commit": source_commit,
         "run_id": run_id,
+        "action_id": context.action_id,
         "body_id": body_id.as_str(),
         "owner_host_id": first.advertisement.host_id,
         "owner_boot_id": first.advertisement.boot_id,
@@ -249,7 +250,7 @@ pub(super) fn run(
         first,
         Some(&model_proof.proof_class),
     )?;
-    check_current(&context, manifest)?;
+    check_current(context, manifest)?;
     retain_json(
         manifest,
         "speech-receipt",
@@ -261,6 +262,7 @@ pub(super) fn run(
             "proof_class": model_proof.proof_class,
             "source_commit": source_commit,
             "run_id": run_id,
+            "action_id": context.action_id,
             "installed_owner_executable": bin,
             "installed_owner_executable_sha256": bin_sha256,
             "owner_snapshot_before_after_equal": true,

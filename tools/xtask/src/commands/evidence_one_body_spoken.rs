@@ -42,6 +42,7 @@ struct LiveContext<'a> {
     bin_sha256: &'a str,
     face: &'a OwnerSnapshot,
     run_id: &'a str,
+    action_id: &'a str,
     voice: &'a str,
 }
 
@@ -59,6 +60,9 @@ pub(crate) struct Args {
     /// Capture owner's preassigned run token, supplied before this action begins.
     #[arg(long)]
     run_id: Option<String>,
+    /// Capture owner's action token, assigned before this speech action begins.
+    #[arg(long)]
+    action_id: Option<String>,
     /// Mechanical full-Face reading or finite model-assisted wording.
     #[arg(long, value_enum, default_value_t = SpeechMode::LlmAssisted)]
     mode: SpeechMode,
@@ -119,16 +123,20 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         run_nonce,
     );
     let run_digest = format!("{:x}", Sha256::digest(run_seed.as_bytes()));
+    let integrated_run = args.run_id.is_some();
     let run_id = args
         .run_id
         .unwrap_or_else(|| format!("one-body-spoken-{}", &run_digest[..32]));
-    if run_id.is_empty()
-        || run_id.len() > 128
-        || !run_id
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
-    {
+    if !token(&run_id) {
         return Err("run ID must be a bounded alphanumeric, dash, or underscore token".into());
+    }
+    let action_id = match (integrated_run, args.action_id) {
+        (_, Some(action_id)) => action_id,
+        (false, None) => format!("hear-{}", &run_digest[..24]),
+        (true, None) => return Err("--action-id is required with --run-id".into()),
+    };
+    if !token(&action_id) {
+        return Err("action ID must be a bounded alphanumeric, dash, or underscore token".into());
     }
     let execution_id = format!("journey-spoken-{}", &run_digest[..24]);
     let speech = EspeakDiscovery::inspect(
@@ -159,6 +167,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         bin_sha256: &bin_sha256,
         face: &first,
         run_id: &run_id,
+        action_id: &action_id,
         voice: &args.speech_voice,
     };
     if args.mode == SpeechMode::Direct {
@@ -174,6 +183,14 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         args.admitted_memory_mib,
         &execution_id,
     )
+}
+
+fn token(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
 }
 
 fn check_current(
