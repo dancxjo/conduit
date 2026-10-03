@@ -24,6 +24,7 @@ struct HostRunInputs<'a> {
 pub struct ExternalForeRun<'a> {
     pub inputs: &'a [ExternalForeInput],
     pub output: &'a mut dyn ExternalForeOutputAdapter,
+    pub sequential: bool,
 }
 
 impl StdHost {
@@ -184,11 +185,75 @@ impl StdHost {
         output: &mut W,
         timer: &mut T,
     ) -> Result<StdRunReport, String> {
+        self.run_external_plot_with_mode_to(
+            fragment,
+            inputs,
+            output_adapter,
+            output,
+            timer,
+            &RunControl::default(),
+            false,
+        )
+    }
+
+    /// Feed a finite sequence through one exact, Plan-sealed input Flow.
+    /// Pressure is handled by the installed kernel loop before the next value
+    /// is admitted; this does not create synthetic per-value Fore ports.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_external_plot_sequence_controlled_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        inputs: &[ExternalForeInput],
+        output_adapter: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+    ) -> Result<StdRunReport, String> {
+        self.run_external_plot_with_mode_to(
+            fragment,
+            inputs,
+            output_adapter,
+            output,
+            timer,
+            control,
+            true,
+        )
+    }
+
+    pub fn run_external_plot_sequence_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        inputs: &[ExternalForeInput],
+        output_adapter: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<StdRunReport, String> {
+        self.run_external_plot_sequence_controlled_to(
+            fragment,
+            inputs,
+            output_adapter,
+            output,
+            timer,
+            &RunControl::default(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn run_external_plot_with_mode_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        inputs: &[ExternalForeInput],
+        output_adapter: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+        sequential: bool,
+    ) -> Result<StdRunReport, String> {
         self.run_fragment_owned_with_keyboard_to(
             fragment,
             output,
             timer,
-            &RunControl::default(),
+            control,
             HostRunInputs {
                 keyboard: None,
                 indicator: None,
@@ -197,6 +262,7 @@ impl StdHost {
                 external_fore: Some(ExternalForeRun {
                     inputs,
                     output: output_adapter,
+                    sequential,
                 }),
                 spoken_mask: None,
                 durable_state: None,
