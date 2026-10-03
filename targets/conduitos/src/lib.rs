@@ -72,6 +72,8 @@ pub mod native_face_mask;
 pub mod native_face_scene;
 pub mod native_face_snapshot;
 pub mod native_network_bounds;
+#[cfg(feature = "virtio-net-proof")]
+pub mod native_owner_admission;
 pub mod native_workset;
 pub mod observatory;
 pub mod offer;
