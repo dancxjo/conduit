@@ -41,3 +41,21 @@ type SpeechCycleAtRate = {
     where .remainder_numerator < .request.cycle.denominator
     where .whole_frames * .request.cycle.denominator + .remainder_numerator == .request.cycle.numerator_seconds * .request.sample_rate_hz
 }
+
+# Source quantities remain distinct from their numeric controls.
+# Quantization floors at 1/256-frame or 1/32768-amplitude precision;
+# its exact remainder is retained rather than represented as zero error.
+type SpeechCycleQ8AtRate = {
+    request: SpeechCycleAtRateRequest
+    whole_q8: U64
+    remainder_numerator: U64
+    where .remainder_numerator < .request.cycle.denominator
+    where .whole_q8 * .request.cycle.denominator + .remainder_numerator == .request.cycle.numerator_seconds * .request.sample_rate_hz * 256
+}
+type SpeechAmplitudeQ15 = {
+    request: SpeechRelativeIntensity
+    whole_q15: U64
+    remainder_numerator: U64
+    where .remainder_numerator < .request.denominator
+    where .whole_q15 * .request.denominator + .remainder_numerator == .request.numerator * 32768
+}

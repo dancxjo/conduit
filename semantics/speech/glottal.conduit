@@ -5,7 +5,8 @@
 # into the source. Each fixed-period cycle telescopes to zero, including closure.
 # Turbulence is one third of the raw modulo noise, balancing its energy
 # against the glottal flow difference before the authored resonators.
-# No waveform table, new retained state, transcendental or allocation is needed.
+# No waveform table, transcendental or allocation is needed.
+# The explicit-cycle path below retains a subframe phase in the caller cursor.
 type SpeechSourceOnlyContext =
     source_only
 type SpeechSourceCarry<C> = {
@@ -61,3 +62,39 @@ plot speech/excitation (
     flow.result >> mix.value
     mix.result >> (.sample) >> result
 }
+
+# Subframe phase has its own Type. Open duration is a declared whole-frame
+# profile approximation; Q8 phase advances retain the fractional-cycle offset.
+type SpeechSubframeExcitationInput = {
+    phase_q8: I32
+    period_q8: I32
+    open_q8: I32
+    noise: I32
+    voiced: I32
+    frication: I32
+}
+type SpeechSubframeSourceCarry<C> = {
+    source: SpeechSubframeExcitationInput
+    context: C
+}
+type SpeechSubframeSourcePhase<C> = {
+    input: SpeechSubframeSourceCarry<C>
+    current: I32
+    previous: I32
+}
+type SpeechSubframeSourceFlow<C> = {
+    input: SpeechSubframeSourceCarry<C>
+    current: I32
+    previous: I32
+}
+type SpeechSubframeSourceResult<C> = {
+    input: SpeechSubframeSourceCarry<C>
+    voicing: I32
+    sample: I32
+}
+plot speech/subframe-source-phase (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: ., current: .source.phase_q8 * 256 / .source.open_q8, previous: .source.phase_q8 < 256 ? 0 : (.source.phase_q8 - 256) * 256 / .source.open_q8})

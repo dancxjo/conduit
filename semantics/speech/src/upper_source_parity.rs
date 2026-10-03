@@ -46,7 +46,15 @@ fn upper_voicing_difference_tracks_exact_source_and_keeps_noise_unchanged() {
                 );
                 let state = speech_frame(value).unwrap().state;
                 assert_eq!(state.voicing, voicing);
-                assert_eq!(speech_boundary_frame(state).unwrap().state, state);
+                assert_eq!(
+                    speech_boundary_frame(SpeechBoundaryFrameInput {
+                        state,
+                        phase_q8: state.phase * 256
+                    })
+                    .unwrap()
+                    .state,
+                    state
+                );
             }
         }
     }

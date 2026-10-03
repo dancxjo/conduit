@@ -13,6 +13,8 @@ pub enum RenderRefusal {
     DurationBound,
     Arithmetic,
     OutputBound,
+    ControlCount,
+    ControlDomain,
 }
 
 /// Allocation-free bounded transducer. This owns no timer, device, scheduler,
@@ -20,6 +22,7 @@ pub enum RenderRefusal {
 #[derive(Clone, Copy)]
 pub struct Renderer<'a> {
     events: &'a [VoiceEvent],
+    controls: Option<&'a [SpeechEventVoiceControl]>,
     cursor: RenderCursor,
 }
 
@@ -29,6 +32,7 @@ pub(crate) struct RenderCursor {
     event_index: usize,
     event_frame: i32,
     state: SpeechFrameState,
+    phase_q8: i32,
     rendered_frames: u64,
     total_frames: u64,
 }
@@ -62,6 +66,7 @@ impl RenderCursor {
             event_index: 0,
             event_frame: 0,
             state: speech_initial_state(SpeechStart::begin).ok_or(RenderRefusal::Arithmetic)?,
+            phase_q8: 0,
             rendered_frames: 0,
             total_frames,
         })
@@ -82,6 +87,14 @@ impl RenderCursor {
         events: &[VoiceEvent],
         output: &mut [i16],
     ) -> Result<usize, RenderRefusal> {
+        self.render_controlled(events, None, output)
+    }
+    fn render_controlled(
+        &mut self,
+        events: &[VoiceEvent],
+        controls: Option<&[SpeechEventVoiceControl]>,
+        output: &mut [i16],
+    ) -> Result<usize, RenderRefusal> {
         if output.len() > MAXIMUM_BLOCK_FRAMES {
             return Err(RenderRefusal::OutputBound);
         }
@@ -89,9 +102,13 @@ impl RenderCursor {
         while written < output.len() && self.event_index < events.len() {
             let (sample, frames) = match events[self.event_index] {
                 VoiceEvent::boundary(boundary) => {
-                    let frame =
-                        speech_boundary_frame(self.state).ok_or(RenderRefusal::Arithmetic)?;
+                    let frame = speech_boundary_frame(SpeechBoundaryFrameInput {
+                        state: self.state,
+                        phase_q8: self.phase_q8,
+                    })
+                    .ok_or(RenderRefusal::Arithmetic)?;
                     self.state = frame.state;
+                    self.phase_q8 = frame.phase_q8;
                     (
                         i16::try_from(frame.sample).map_err(|_| RenderRefusal::Arithmetic)?,
                         speech_pause(boundary).ok_or(RenderRefusal::Arithmetic)?,
@@ -113,6 +130,18 @@ impl RenderCursor {
                             frame: self.event_frame,
                         },
                         context: SpeechTemporalContext {
+                            cycle: match controls {
+                                Some(controls) => SpeechFrameCycleControl {
+                                    mode: controls[self.event_index].cycle_mode,
+                                    phase_q8: self.phase_q8,
+                                    period_q8: controls[self.event_index].period_q8,
+                                },
+                                None => SpeechFrameCycleControl {
+                                    mode: SpeechCycleControlMode::profile,
+                                    phase_q8: self.phase_q8,
+                                    period_q8: 0,
+                                },
+                            },
                             stress: model.realization.input.stress,
                             state: self.state,
                             previous_place,
@@ -122,8 +151,17 @@ impl RenderCursor {
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
                     self.state = frame.state;
+                    self.phase_q8 = frame.phase_q8;
+                    let sample = match controls {
+                        Some(controls) => speech_amplitude_apply(SpeechAmplitudeApplyInput {
+                            sample: frame.sample,
+                            amplitude_q15: controls[self.event_index].amplitude_q15,
+                        })
+                        .ok_or(RenderRefusal::Arithmetic)?,
+                        None => frame.sample,
+                    };
                     (
-                        i16::try_from(frame.sample).map_err(|_| RenderRefusal::Arithmetic)?,
+                        i16::try_from(sample).map_err(|_| RenderRefusal::Arithmetic)?,
                         frames,
                     )
                 }
@@ -145,7 +183,29 @@ impl<'a> Renderer<'a> {
     pub fn prepare(events: &'a [VoiceEvent]) -> Result<Self, RenderRefusal> {
         Ok(Self {
             events,
+            controls: None,
             cursor: RenderCursor::prepare(events)?,
+        })
+    }
+    /// Already projected controls. Native source ratios and precision receipts
+    /// are retained by the optional preparation adapter, separate from play.
+    pub fn prepare_controlled(
+        events: &'a [VoiceEvent],
+        controls: &'a [SpeechEventVoiceControl],
+    ) -> Result<Self, RenderRefusal> {
+        if controls.len() != events.len() {
+            return Err(RenderRefusal::ControlCount);
+        }
+        let cursor = RenderCursor::prepare(events)?;
+        for control in controls {
+            if !speech_voice_control_admitted(*control).ok_or(RenderRefusal::Arithmetic)? {
+                return Err(RenderRefusal::ControlDomain);
+            }
+        }
+        Ok(Self {
+            events,
+            controls: Some(controls),
+            cursor,
         })
     }
     pub fn total_frames(&self) -> u64 {
@@ -159,7 +219,12 @@ impl<'a> Renderer<'a> {
     }
     /// Advances only this caller-owned copy; commit it after output acceptance.
     pub fn render(&mut self, output: &mut [i16]) -> Result<usize, RenderRefusal> {
-        self.cursor.render(self.events, output)
+        match self.controls {
+            Some(_) => self
+                .cursor
+                .render_controlled(self.events, self.controls, output),
+            None => self.cursor.render(self.events, output),
+        }
     }
 }
 

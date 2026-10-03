@@ -167,6 +167,7 @@ fn plain_stops_have_silent_closure_and_audible_finite_release() {
                 i32::from(frame >= base.closure && frame < base.closure + 96)
             );
             let result = speech_frame(SpeechFrameInput {
+                cycle: crate::frame_parity::profile_cycle(),
                 attack: true,
                 release: true,
                 target,
@@ -244,6 +245,7 @@ fn released_samples(phone: EnglishPhone) -> Vec<i64> {
         })
         .unwrap();
         let result = speech_frame(SpeechFrameInput {
+            cycle: crate::frame_parity::profile_cycle(),
             attack: true,
             release: true,
             target,
@@ -335,6 +337,7 @@ fn temporal_frame_preserves_typed_context_and_matches_portable_specialization() 
                         frame,
                     },
                     context: SpeechTemporalContext {
+                        cycle: crate::frame_parity::profile_cycle(),
                         stress: *stress,
                         state: history,
                         previous_place: SpeechStopPlace::not_stop,
@@ -377,6 +380,13 @@ fn temporal_frame_preserves_typed_context_and_matches_portable_specialization() 
                             record(
                                 context_type,
                                 &[
+                                    (
+                                        "cycle",
+                                        crate::frame_parity::cycle_value(
+                                            field_type(context_type, "cycle"),
+                                            value.context.cycle,
+                                        ),
+                                    ),
                                     (
                                         "stress",
                                         variant(field_type(context_type, "stress"), stress_tag),
@@ -436,6 +446,7 @@ fn temporal_frame_preserves_typed_context_and_matches_portable_specialization() 
                 assert_eq!(
                     Some(actual),
                     speech_connected_frame(SpeechConnectedInput {
+                        cycle: crate::frame_parity::profile_cycle(),
                         phone: *phone,
                         target: temporal,
                         stress: *stress,

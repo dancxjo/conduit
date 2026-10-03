@@ -330,7 +330,20 @@ type SpeechFrameState = {
     third1: I32
     third2: I32
 }
+# The explicit-cycle realization uses Q8 sample coordinates. Profile selection
+# remains distinct; a zero period never stands for an unknown cycle or silence.
+type SpeechCycleControlMode =
+    profile
+    | resolved
+# Private numeric realization carrier; native cycle specifications and retained
+# projection receipts own semantic meaning. Mode distinguishes profile choice.
+type SpeechFrameCycleControl = {
+    mode: SpeechCycleControlMode
+    phase_q8: I32
+    period_q8: I32
+}
 type SpeechFrameInput = {
+    cycle: SpeechFrameCycleControl
     attack: Boolean
     release: Boolean
     target: SpeechAcousticTarget
@@ -339,6 +352,7 @@ type SpeechFrameInput = {
     state: SpeechFrameState
 }
 type SpeechFrameWorking = {
+    phase_q8: I32
     input: SpeechFrameInput
     voicing: I32
     upper_excitation: I32
@@ -351,30 +365,28 @@ type SpeechFrameWorking = {
     envelope: I32
 }
 type SpeechFrameResult = {
+    phase_q8: I32
     state: SpeechFrameState
     sample: I32
 }
-type SpeechFrameSourceRequest = SpeechSourceCarry<SpeechFrameInput>
-type SpeechFrameSourcePhase = SpeechSourcePhase<SpeechFrameInput>
-type SpeechFrameSourceFlow = SpeechSourceFlow<SpeechFrameInput>
-type SpeechFrameSourceResult = SpeechSourceResult<SpeechFrameInput>
-# Continuous voiced frication has two source roles: a low voicing bar and
-# upper turbulent noise. Closured stops/affricates retain their release model.
-# This compact profile approximates voicing with the first pole; it is not
-# Klatt's full separate cascade/parallel voiced-fricative tract.
+type SpeechFrameSourceRequest = SpeechSubframeSourceCarry<SpeechFrameInput>
+type SpeechFrameSourcePhase = SpeechSubframeSourcePhase<SpeechFrameInput>
+type SpeechFrameSourceFlow = SpeechSubframeSourceFlow<SpeechFrameInput>
+type SpeechFrameSourceResult = SpeechSubframeSourceResult<SpeechFrameInput>
+# Subframe phonation retains the existing separate voicing/noise roles.
 plot speech/frame-source-result (
     >> value: SpeechFrameSourceResult
     result: SpeechFrameWorking >>
-) = ({input: .input.context, voicing: .voicing, upper_excitation: (.input.context.target.voiced == 1 && .input.context.target.frication == 1 && .input.context.target.closure == 0) ? .sample - .voicing : (.input.context.target.voiced == 1 && .input.context.target.frication == 0) ? .voicing - .input.context.state.voicing : .sample, phase: .input.context.state.phase + 1 >= .input.context.period ? 0 : .input.context.state.phase + 1, noise: .input.source.noise, excitation: .sample, first: 0, second: 0, third: 0, envelope: (.input.context.frame < .input.context.target.closure ? 0 : .input.context.target.closure > 0 ? (.input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256) : .input.context.attack && .input.context.frame - .input.context.target.closure < 64 ? (.input.context.frame - .input.context.target.closure) * 4 : .input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256)})
+) = ({phase_q8: .input.context.cycle.mode is profile ? (.input.context.state.phase + 1 >= .input.context.period ? 0 : .input.context.state.phase + 1) * 256 : (.input.source.phase_q8 + 256) % .input.source.period_q8, input: .input.context, voicing: .voicing, upper_excitation: (.input.context.target.voiced == 1 && .input.context.target.frication == 1 && .input.context.target.closure == 0) ? .sample - .voicing : (.input.context.target.voiced == 1 && .input.context.target.frication == 0) ? .voicing - .input.context.state.voicing : .sample, phase: .input.context.cycle.mode is profile ? (.input.context.state.phase + 1 >= .input.context.period ? 0 : .input.context.state.phase + 1) : ((.input.source.phase_q8 + 256) % .input.source.period_q8) / 256, noise: .input.source.noise, excitation: .sample, first: 0, second: 0, third: 0, envelope: (.input.context.frame < .input.context.target.closure ? 0 : .input.context.target.closure > 0 ? (.input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256) : .input.context.attack && .input.context.frame - .input.context.target.closure < 64 ? (.input.context.frame - .input.context.target.closure) * 4 : .input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256)})
 plot speech/frame-excite (
     >> value: SpeechFrameInput
     result: SpeechFrameWorking >>
 ) {
-    phase: speech/source-phase(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
+    phase: speech/subframe-source-phase(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
     flow: speech/source-flow(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
     mix: speech/source-mix(item = SpeechFrameSourceFlow, output = SpeechFrameSourceResult)
     finish: speech/frame-source-result
-    value >> ({source: {phase: .state.phase, period: .period, noise: (.state.noise * 25173 + 13849) % 65536, voiced: .target.voiced, frication: .target.frication}, context: .}) >> phase.value
+    value >> ({source: {phase_q8: .cycle.mode is profile ? .state.phase * 256 : .cycle.phase_q8, period_q8: .cycle.mode is profile ? .period * 256 : .cycle.period_q8, open_q8: .cycle.mode is profile ? (.period * 3 / 4) * 256 : (.cycle.period_q8 * 3 / 4 / 256) * 256, noise: (.state.noise * 25173 + 13849) % 65536, voiced: .target.voiced, frication: .target.frication}, context: .}) >> phase.value
     phase.result >> flow.value
     flow.result >> mix.value
     mix.result >> finish.value
@@ -383,19 +395,19 @@ plot speech/frame-excite (
 plot speech/frame-first (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>
-) = ({input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: (((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) < -32767 ? -32767 : ((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) > 32767 ? 32767 : ((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384)), second: .second, third: .third, envelope: .envelope})
+) = ({phase_q8: .phase_q8, input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: (((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) < -32767 ? -32767 : ((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) > 32767 ? 32767 : ((((.input.target.voiced == 1 && .input.target.frication == 1 && .input.target.closure == 0) ? .voicing : .excitation) * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384)), second: .second, third: .third, envelope: .envelope})
 plot speech/frame-second (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>
-) = ({input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: (((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384)), third: .third, envelope: .envelope})
+) = ({phase_q8: .phase_q8, input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: (((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384)), third: .third, envelope: .envelope})
 plot speech/frame-third (
     >> value: SpeechFrameWorking
     result: SpeechFrameWorking >>
-) = ({input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: .second, third: (((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384)), envelope: .envelope})
+) = ({phase_q8: .phase_q8, input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: .second, third: (((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384)), envelope: .envelope})
 plot speech/frame-result (
     >> value: SpeechFrameWorking
     result: SpeechFrameResult >>
-) = ({state: {voicing: .voicing, phase: .phase, noise: .noise, first1: .first, first2: .input.state.first1, second1: .second, second2: .input.state.second1, third1: .third, third2: .input.state.third1}, sample: ((.first + .second / 2 + .third / 4 + (.input.target.bypass_gain == 0 ? 0 : .upper_excitation * .input.target.bypass_gain / 256)) * 16 * .envelope / 256) < -32767 ? -32767 : ((.first + .second / 2 + .third / 4 + (.input.target.bypass_gain == 0 ? 0 : .upper_excitation * .input.target.bypass_gain / 256)) * 16 * .envelope / 256) > 32767 ? 32767 : ((.first + .second / 2 + .third / 4 + (.input.target.bypass_gain == 0 ? 0 : .upper_excitation * .input.target.bypass_gain / 256)) * 16 * .envelope / 256)})
+) = ({phase_q8: .phase_q8, state: {voicing: .voicing, phase: .phase, noise: .noise, first1: .first, first2: .input.state.first1, second1: .second, second2: .input.state.second1, third1: .third, third2: .input.state.third1}, sample: ((.first + .second / 2 + .third / 4 + (.input.target.bypass_gain == 0 ? 0 : .upper_excitation * .input.target.bypass_gain / 256)) * 16 * .envelope / 256) < -32767 ? -32767 : ((.first + .second / 2 + .third / 4 + (.input.target.bypass_gain == 0 ? 0 : .upper_excitation * .input.target.bypass_gain / 256)) * 16 * .envelope / 256) > 32767 ? 32767 : ((.first + .second / 2 + .third / 4 + (.input.target.bypass_gain == 0 ? 0 : .upper_excitation * .input.target.bypass_gain / 256)) * 16 * .envelope / 256)})
 
 plot speech/frame (
     >> value: SpeechFrameInput
@@ -424,10 +436,14 @@ plot speech/initial-state (
 ) = ({voicing: 0, phase: 0, noise: 1, first1: 0, first2: 0, second1: 0, second2: 0, third1: 0, third2: 0})
 
 # Pauses preserve phase and filter history; silence is an explicit output.
+type SpeechBoundaryFrameInput = {
+    state: SpeechFrameState
+    phase_q8: I32
+}
 plot speech/boundary-frame (
-    >> value: SpeechFrameState
+    >> value: SpeechBoundaryFrameInput
     result: SpeechFrameResult >>
-) = ({state: ., sample: 0})
+) = ({phase_q8: .phase_q8, state: .state, sample: 0})
 
 # These are this compact voice profile's preparation and block admission limits.
 # The acoustic coefficients above are authored for exactly this sample rate.
