@@ -4,7 +4,6 @@ use super::state;
 mod invited;
 #[path = "participants/mod.rs"]
 mod participants;
-pub(crate) use participants::{BrowserAdmittedSnapshot, BrowserWindowAuthorization, run_service_window};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
@@ -12,6 +11,9 @@ use conduit_body::{
 use conduit_core::{bind_sign, BaseImplementationId};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
+pub(crate) use participants::{
+    run_service_window, BrowserAdmittedSnapshot, BrowserWindowAuthorization,
+};
 use std::{
     collections::BTreeMap,
     io::Write,

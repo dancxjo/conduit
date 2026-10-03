@@ -1,19 +1,20 @@
 //! Authenticated local control plane into the durable installed host owner.
 
-use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableSpawnAdmissionRequest,
-    RendezvousCandidate,
+    BodyBiographyEvidence, MembershipCredential, PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
+use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
 use conduit_core::{
-    ActivePlayIdentity, HostAdvertisement, LinkBindingId, PlacementId, Plan, PoolMemberSessionDirection,
-    PoolRealizationEnvelope, PoolRealizationObservation, PoolSelectionEvidence, SignId,
+    ActivePlayIdentity, HostAdvertisement, LinkBindingId, PlacementId, Plan,
+    PoolMemberSessionDirection, PoolRealizationEnvelope, PoolRealizationObservation,
+    PoolSelectionEvidence, SignId,
 };
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_std_host::{
     browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
-    hosted_local_model::LocalModelAdapterTerminal, pool_member_sessions::PoolMemberSessions,
+    hosted_local_model::LocalModelAdapterTerminal,
+    pool_member_sessions::PoolMemberSessions,
     AdmittedLocalModelPoolMember, AdmittedRemoteFragment, StdHost,
 };
 use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionMessage};
@@ -33,9 +34,9 @@ mod body;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
+pub(crate) use body::start_browser_window;
 use body::HostSource;
 pub(crate) use body::{admit_owned_request, inspect_owned_body, issue_owned_invitation};
-pub(crate) use body::start_browser_window;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
@@ -920,6 +921,11 @@ enum Request {
         token: Vec<u8>,
         window_id: String,
     },
+    BodyBrowserCancel {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+    },
     BodyBrowserLeave {
         protocol: u16,
         token: Vec<u8>,
@@ -1010,6 +1016,9 @@ enum Response {
         snapshot: Box<crate::durable_host::owner::BrowserAdmittedSnapshot>,
     },
     BodyBrowserAborted {
+        protocol: u16,
+    },
+    BodyBrowserCancelled {
         protocol: u16,
     },
     BodyBrowserLeft {
@@ -1507,6 +1516,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserAbort { token, .. }
+        | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
@@ -1606,6 +1616,14 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         } if protocol == PROTOCOL => runtime
             .browser_abort(&window_id)
             .map(|()| Response::BodyBrowserAborted { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserCancel {
+            protocol,
+            window_id,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_cancel_window(&window_id)
+            .map(|()| Response::BodyBrowserCancelled { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserLeave {
             protocol,

@@ -8,8 +8,8 @@ use super::{read_frame, read_secret, write_frame};
 #[cfg(any(unix, test))]
 use super::{Request, Response, PROTOCOL};
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
-    RendezvousCandidate,
+    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt, PortableInvitation,
+    PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
 use conduit_core::LinkBindingId;
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
@@ -53,7 +53,13 @@ impl DurableHostRuntime {
         expected_host_id: &str,
         new_host_verifying_key: Option<[u8; 32]>,
         maximum_millis: u64,
-    ) -> Result<(crate::durable_host::owner::BrowserWindowAuthorization, String), String> {
+    ) -> Result<
+        (
+            crate::durable_host::owner::BrowserWindowAuthorization,
+            String,
+        ),
+        String,
+    > {
         let HostSource::Body { owner, root } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
@@ -67,7 +73,7 @@ impl DurableHostRuntime {
             match super::browser::spawn_window(root, authorization.clone()) {
                 Ok(url) => Ok((authorization, url)),
                 Err(error) => {
-                    let _ = owner.browser_abort(&authorization.window_id);
+                    let _ = owner.browser_cancel_window(&authorization.window_id);
                     Err(error)
                 }
             }
@@ -75,7 +81,7 @@ impl DurableHostRuntime {
         #[cfg(not(unix))]
         {
             let _ = root;
-            let _ = owner.browser_abort(&authorization.window_id);
+            let _ = owner.browser_cancel_window(&authorization.window_id);
             Err("browser admission worker requires local Unix control".into())
         }
     }
@@ -88,7 +94,9 @@ impl DurableHostRuntime {
         encoded_bytes: u32,
     ) -> Result<BrowserAdmissionEgress, String> {
         match &mut self.host {
-            HostSource::Body { owner, .. } => owner.browser_begin(window_id, binding, frame, encoded_bytes),
+            HostSource::Body { owner, .. } => {
+                owner.browser_begin(window_id, binding, frame, encoded_bytes)
+            }
             HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
         }
     }
@@ -107,6 +115,13 @@ impl DurableHostRuntime {
     pub(super) fn browser_abort(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => owner.browser_abort(window_id),
+            HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
+        }
+    }
+
+    pub(super) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => owner.browser_cancel_window(window_id),
             HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
         }
     }
