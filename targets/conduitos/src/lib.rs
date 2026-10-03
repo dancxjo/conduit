@@ -65,6 +65,11 @@ pub mod make;
 mod native_components;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
+#[cfg(feature = "native-compositor")]
+pub mod native_face_mask;
+#[cfg(feature = "native-compositor")]
+pub mod native_face_scene;
+pub mod native_face_snapshot;
 pub mod native_workset;
 pub mod observatory;
 pub mod offer;
@@ -151,16 +156,6 @@ pub mod linear_presenter;
     feature = "aarch64-orange-pi-5"
 ))]
 mod mask_control;
-#[cfg(any(
-    test,
-    target_arch = "x86_64",
-    feature = "ia32-product",
-    feature = "aarch64-product",
-    feature = "riscv64-product",
-    feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
-))]
-mod native_mask_journey;
 #[cfg(any(
     test,
     target_arch = "x86_64",

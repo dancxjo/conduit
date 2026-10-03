@@ -7,6 +7,7 @@ use conduit_presentation::ApplicationEventKind;
 
 use super::{Error, FrontDoor};
 
+mod mask_interaction;
 mod projection;
 mod scene;
 

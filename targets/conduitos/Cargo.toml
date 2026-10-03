@@ -214,7 +214,7 @@ conduit-robotics = { path = "../../semantics/robotics" }
 patchbay-control = { path = "../../plots/patchbay" }
 patchbay-application = { path = "../../plots/patchbay/application" }
 conduit-plot = { path = "../../architecture/plot" }
-conduit-kernel = { path = "../../architecture/kernel" }
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
@@ -260,4 +260,9 @@ required-features = ["native-compositor"]
 [[test]]
 name = "native_compositor_input"
 path = "tests/native_compositor_input.rs"
+required-features = ["native-compositor"]
+
+[[test]]
+name = "native_compositor_scanout"
+path = "tests/native_compositor_scanout.rs"
 required-features = ["native-compositor"]

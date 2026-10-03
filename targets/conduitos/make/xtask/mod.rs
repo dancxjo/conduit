@@ -18,6 +18,7 @@ mod armv6_rpi_physical;
 mod build;
 mod demo;
 mod emergency_halt_proof;
+mod emitted_line;
 mod front_door_proof;
 mod graphical_asset_proof;
 mod graphical_profile_proof;

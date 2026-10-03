@@ -20,6 +20,9 @@ pub struct NativeSurfacePossessionReceipt {
     pub lifecycle: &'static str,
 }
 
+// This authority holder is retained for the resource-bound renderer Host Call.
+// The current Face/Mask path has not connected it to scanout or local repaint.
+#[allow(dead_code)]
 pub struct ActiveNativeSurfacePossession {
     table: BaseCapabilityTable,
     cord: conduit_core::AcceptedResourceCord,
@@ -27,6 +30,7 @@ pub struct ActiveNativeSurfacePossession {
     lease: Option<BaseOperationLease>,
 }
 
+#[allow(dead_code)]
 impl ActiveNativeSurfacePossession {
     pub fn begin(
         provider: &NativeSurfaceProvider,

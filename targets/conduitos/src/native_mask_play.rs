@@ -1,34 +1,67 @@
 //! Bounded execution of one ordinary Mask Plot through its plan-sealed Fore.
 
+#[cfg(any(test, feature = "native-compositor"))]
+mod backs;
+#[cfg(any(test, feature = "native-compositor"))]
+mod interaction;
+#[cfg(any(test, feature = "native-compositor"))]
+mod prepared;
+#[cfg(test)]
+mod tests;
+#[cfg(any(test, feature = "native-compositor"))]
+use backs::MaskBack;
+#[cfg(any(test, feature = "native-compositor"))]
+pub use interaction::NativeMaskInteractionSession;
+#[cfg(any(test, feature = "native-compositor"))]
+pub use prepared::PreparedNativeMaskPlay;
+
+#[cfg(any(test, feature = "native-compositor"))]
 use alloc::{string::String, vec::Vec};
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, RemoteIngressOutcome, RemoteTerminalDisposition, SchedulerStatus,
-    StepBack, StepInputBytes, StepIo, StepOutcome,
-};
-use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallId, HostCallOutcome, PortId, RequestId, SignSink,
-};
-use conduit_plan_lowering::lowering::{
-    FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment, lower_plan_fragment,
-};
+#[cfg(any(test, feature = "native-compositor"))]
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler};
+#[cfg(any(test, feature = "native-compositor"))]
+use conduit_kernel::{FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedValueStore};
+#[cfg(any(test, feature = "native-compositor"))]
+use conduit_plan_lowering::lowering::lower_plan_fragment;
+#[cfg(any(test, feature = "native-compositor"))]
+use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
+#[cfg(any(test, feature = "native-compositor"))]
 use conduit_presentation::{PlannedMaskPlot, Presentation};
+#[cfg(any(test, feature = "native-compositor"))]
 use serde::Serialize;
+#[cfg(any(test, feature = "native-compositor"))]
 use sha2::{Digest, Sha256};
 
-pub const MAX_MASK_VALUE_BYTES: usize = 4 * 1024;
+// The current complete Tutorial Face is 11,550 encoded bytes. This finite
+// native profile admits it whole; larger Faces still require a new admission.
+pub const MAX_MASK_VALUE_BYTES: usize = 16 * 1024;
+#[cfg(any(test, feature = "native-compositor"))]
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+#[cfg(any(test, feature = "native-compositor"))]
 const NODES: usize = 4;
+#[cfg(any(test, feature = "native-compositor"))]
 const CORDS: usize = 6;
+#[cfg(any(test, feature = "native-compositor"))]
 const ROUTES: usize = NODES * PORTS;
+#[cfg(any(test, feature = "native-compositor"))]
 const HOST_BINDINGS: usize = 4;
-const VALUES: usize = 10;
-const VALUE_BYTES: usize = VALUES * MAX_MASK_VALUE_BYTES;
+// One value per fixed Cord queue slot plus one result per pending Host Call.
+#[cfg(any(test, feature = "native-compositor"))]
+const VALUES: usize = CORDS + NODES;
+#[cfg(any(test, feature = "native-compositor"))]
+const INTERACTION_VALUE_BYTES: usize = conduit_presentation::MAX_FACE_INTERACTION_BYTES;
+#[cfg(any(test, feature = "native-compositor"))]
+const STORAGE_VALUE_BYTES: usize = MAX_MASK_VALUE_BYTES;
+// Five Face/Show queues, one interaction queue, and the two Host Call results.
+#[cfg(any(test, feature = "native-compositor"))]
+const VALUE_BYTES: usize = 6 * MAX_MASK_VALUE_BYTES + 2 * INTERACTION_VALUE_BYTES;
+#[cfg(any(test, feature = "native-compositor"))]
 const SIGNS: usize = 96;
 
+#[cfg(any(test, feature = "native-compositor"))]
 type Scheduler = FixedScheduler<
     MaskBack,
-    FixedValueStore<VALUES, MAX_MASK_VALUE_BYTES>,
+    HostedValueStore,
     FixedSignLog<SIGNS>,
     NODES,
     CORDS,
@@ -40,6 +73,7 @@ type Scheduler = FixedScheduler<
     NODES,
 >;
 
+#[cfg(any(test, feature = "native-compositor"))]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NativeMaskPlayReceipt {
     pub mask_plan_id: conduit_core::PlanId,
@@ -47,10 +81,15 @@ pub struct NativeMaskPlayReceipt {
     pub presentation_id: String,
     pub presentation_revision: u64,
     pub show_value_id: String,
+    pub scanout_frame_sequence: u64,
+    pub scanout_pixels_written: u32,
+    pub display_base_id: conduit_core::HostBaseId,
+    pub surface_id: String,
     pub kernel_signs: u16,
     pub fore_endpoints: u16,
 }
 
+#[cfg(any(test, feature = "native-compositor"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeMaskPlayError {
     Presentation,
@@ -63,114 +102,15 @@ pub enum NativeMaskPlayError {
     HostComplete,
     ForeOutput,
     Value,
+    PendingRenderer,
+    RendererMismatch,
+    RendererFailed,
+    Interaction(conduit_presentation::FaceInteractionRefusal),
+    Pressure,
+    Cancelled,
 }
 
-enum MaskBack {
-    ResourceSource,
-    Tee,
-    Renderer { pending: bool, emitted: bool },
-    Interaction { seen: u8 },
-}
-
-impl StepBack<PORTS> for MaskBack {
-    fn step(
-        &mut self,
-        io: &mut StepIo<PORTS>,
-        _input_bytes: &StepInputBytes<'_, PORTS>,
-    ) -> StepOutcome {
-        match self {
-            Self::ResourceSource => StepOutcome::Complete,
-            Self::Tee => pass_one(io),
-            Self::Renderer { pending, emitted } => render(pending, emitted, io),
-            Self::Interaction { seen } => correlate(seen, io),
-        }
-    }
-}
-
-fn pass_one(io: &mut StepIo<PORTS>) -> StepOutcome {
-    if let Some(value) = io.input(PortId(0)) {
-        if !io.output_ready(PortId(0)) {
-            return StepOutcome::Await;
-        }
-        if io.consume(PortId(0)).is_err() || io.send(PortId(0), value).is_err() {
-            return failure();
-        }
-        return StepOutcome::Progress;
-    }
-    if io.input_closed(PortId(0)) {
-        if io.consume_closed(PortId(0)).is_err() {
-            return failure();
-        }
-        return StepOutcome::Complete;
-    }
-    StepOutcome::Await
-}
-
-fn render(pending: &mut bool, emitted: &mut bool, io: &mut StepIo<PORTS>) -> StepOutcome {
-    if *pending {
-        let Some((request, outcome)) = io.host_completion() else {
-            return StepOutcome::Await;
-        };
-        let Some(output) = outcome.output else {
-            return failure();
-        };
-        if request != RequestId(0)
-            || outcome.disposition != HostCallDisposition::Completed
-            || outcome.failure.is_some()
-            || !io.output_ready(PortId(0))
-            || io.consume_host_completion().is_err()
-            || io.send(PortId(0), output.value).is_err()
-        {
-            return failure();
-        }
-        *pending = false;
-        *emitted = true;
-        return StepOutcome::Progress;
-    }
-    if !*emitted && let Some(value) = io.input(PortId(0)) {
-        let Ok(value) = BoundedValueRef::new(value, MAX_MASK_VALUE_BYTES as u32) else {
-            return failure();
-        };
-        if io.consume(PortId(0)).is_err()
-            || io
-                .request_host_call(RequestId(0), HostCallId(0), value)
-                .is_err()
-        {
-            return failure();
-        }
-        *pending = true;
-        return StepOutcome::Progress;
-    }
-    if *emitted {
-        return StepOutcome::Complete;
-    }
-    StepOutcome::Await
-}
-
-fn correlate(seen: &mut u8, io: &mut StepIo<PORTS>) -> StepOutcome {
-    for port in 0..2 {
-        let port = PortId(port);
-        if *seen & (1 << port.0) == 0 && io.input(port).is_some() {
-            if io.consume(port).is_err() {
-                return failure();
-            }
-            *seen |= 1 << port.0;
-            return StepOutcome::Progress;
-        }
-    }
-    if *seen == 0b11 {
-        return StepOutcome::Complete;
-    }
-    StepOutcome::Await
-}
-
-fn failure() -> StepOutcome {
-    StepOutcome::Fail(conduit_kernel::Failure {
-        code: conduit_kernel::FailureCode::InvalidLifecycle,
-        detail: 1,
-    })
-}
-
+#[cfg(any(test, feature = "native-compositor"))]
 #[derive(Serialize)]
 struct ShowValue<'a> {
     schema: &'static str,
@@ -181,151 +121,18 @@ struct ShowValue<'a> {
     show_value_id: &'a str,
 }
 
+/// An unacknowledged renderer cannot produce a Show. Call `PreparedNativeMaskPlay`
+/// and complete it with compositor-owned scanout evidence instead.
+#[cfg(test)]
 pub fn run(
-    planned: &PlannedMaskPlot,
-    presentation: &Presentation,
-    play_sequence: u64,
+    _planned: &PlannedMaskPlot,
+    _presentation: &Presentation,
+    _play_sequence: u64,
 ) -> Result<NativeMaskPlayReceipt, NativeMaskPlayError> {
-    presentation
-        .validate()
-        .map_err(|_| NativeMaskPlayError::Presentation)?;
-    let fragment = planned
-        .plan
-        .fragments
-        .first()
-        .ok_or(NativeMaskPlayError::Plan)?;
-    let active = conduit_core::bind_active_play(
-        &planned.plan.plan_id,
-        &fragment.host_id,
-        &fragment.boot_id,
-        play_sequence,
-    );
-    let presentation_bytes =
-        serde_json::to_vec(presentation).map_err(|_| NativeMaskPlayError::Value)?;
-    if presentation_bytes.len() > MAX_MASK_VALUE_BYTES {
-        return Err(NativeMaskPlayError::Value);
-    }
-    let show_value_id = show_value_id(planned, presentation, &active);
-    let show_bytes = serde_json::to_vec(&ShowValue {
-        schema: "conduit.presentation/show-value@1",
-        mask_plan_id: planned.plan.plan_id.as_str(),
-        active_play_id: active.active_play_id.as_str(),
-        presentation_id: presentation.identity.as_str(),
-        presentation_revision: presentation.revision,
-        show_value_id: &show_value_id,
-    })
-    .map_err(|_| NativeMaskPlayError::Value)?;
-    let lowered = lower_plan_fragment(fragment).map_err(|_| NativeMaskPlayError::Plan)?;
-    let mut scheduler = scheduler(fragment, &lowered)?;
-    let face_fore = lowered
-        .fore_ports
-        .iter()
-        .find(|port| {
-            port.direction == conduit_core::PortDirection::Input
-                && port.front_port_id.as_str() == "face"
-        })
-        .ok_or(NativeMaskPlayError::Shape)?;
-    match scheduler
-        .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &presentation_bytes)
-        .map_err(|_| NativeMaskPlayError::ForeAdmit)?
-    {
-        RemoteIngressOutcome::Accepted { sequence: 0 } => {}
-        _ => return Err(NativeMaskPlayError::Kernel),
-    }
-    scheduler
-        .close_remote_input(face_fore.endpoint, face_fore.cord)
-        .map_err(|_| NativeMaskPlayError::ForeClose)?;
-    let show_fore = lowered
-        .fore_ports
-        .iter()
-        .find(|port| {
-            port.direction == conduit_core::PortDirection::Output
-                && port.front_port_id.as_str() == "show"
-        })
-        .ok_or(NativeMaskPlayError::Shape)?;
-    let interaction_fore = lowered
-        .fore_ports
-        .iter()
-        .find(|port| {
-            port.direction == conduit_core::PortDirection::Output
-                && port.front_port_id.as_str() == "interaction"
-        })
-        .ok_or(NativeMaskPlayError::Shape)?;
-    let mut observed_show = false;
-    for _ in 0..64 {
-        while let Some(request) = scheduler.next_host_request() {
-            let value = scheduler
-                .store_host_value(&show_bytes)
-                .map_err(|_| NativeMaskPlayError::Value)?;
-            let value = BoundedValueRef::new(value, show_bytes.len() as u32)
-                .map_err(|_| NativeMaskPlayError::Value)?;
-            scheduler
-                .complete_host_call(
-                    request.node,
-                    request.request,
-                    HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output: Some(value),
-                        failure: None,
-                    },
-                )
-                .map_err(|_| NativeMaskPlayError::HostComplete)?;
-        }
-        while let Some(offer) = scheduler
-            .remote_egress_offer(show_fore.endpoint, show_fore.cord)
-            .map_err(|_| NativeMaskPlayError::ForeOutput)?
-        {
-            if observed_show
-                || scheduler
-                    .host_value(offer.value)
-                    .map_err(|_| NativeMaskPlayError::Value)?
-                    != show_bytes
-            {
-                return Err(NativeMaskPlayError::Value);
-            }
-            scheduler
-                .remote_egress_accept(show_fore.endpoint, show_fore.cord, offer.sequence)
-                .and_then(|_| {
-                    scheduler.remote_egress_delivered(
-                        show_fore.endpoint,
-                        show_fore.cord,
-                        offer.sequence,
-                    )
-                })
-                .map_err(|_| NativeMaskPlayError::ForeOutput)?;
-            observed_show = true;
-        }
-        match scheduler.step().map_err(|_| NativeMaskPlayError::Kernel)? {
-            SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Drained if observed_show => {
-                if scheduler
-                    .remote_egress_terminal_disposition(
-                        interaction_fore.endpoint,
-                        interaction_fore.cord,
-                    )
-                    .map_err(|_| NativeMaskPlayError::ForeOutput)?
-                    != Some(RemoteTerminalDisposition::NormalClose)
-                {
-                    return Err(NativeMaskPlayError::ForeOutput);
-                }
-                return Ok(NativeMaskPlayReceipt {
-                    mask_plan_id: planned.plan.plan_id.clone(),
-                    active_play_id: active.active_play_id,
-                    presentation_id: presentation.identity.as_str().into(),
-                    presentation_revision: presentation.revision,
-                    show_value_id,
-                    kernel_signs: scheduler.signs().len(),
-                    fore_endpoints: lowered.fore_ports.len() as u16,
-                });
-            }
-            SchedulerStatus::Drained | SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
-                return Err(NativeMaskPlayError::Kernel);
-            }
-        }
-    }
-    Err(NativeMaskPlayError::Kernel)
+    Err(NativeMaskPlayError::PendingRenderer)
 }
 
+#[cfg(any(test, feature = "native-compositor"))]
 fn show_value_id(
     planned: &PlannedMaskPlot,
     presentation: &Presentation,
@@ -348,6 +155,7 @@ fn show_value_id(
     value
 }
 
+#[cfg(any(test, feature = "native-compositor"))]
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &LoweredPlanFragment,
@@ -355,6 +163,7 @@ fn scheduler(
     if !matches!(lowered.nodes.len(), 3 | NODES) || lowered.cords.len() != CORDS {
         return Err(NativeMaskPlayError::Shape);
     }
+    let value_bytes = admitted_value_bytes(lowered)?;
     let mut node_specs = lowered.node_specs.clone();
     if node_specs.len() == 3 {
         node_specs.push(conduit_kernel::scheduler::NodeSpec {
@@ -404,7 +213,10 @@ fn scheduler(
                     emitted: false,
                 })
             }
-            conduit_presentation::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction { seen: 0 }),
+            conduit_presentation::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction {
+                seen_face: false,
+                pending: false,
+            }),
             _ => Err(NativeMaskPlayError::Shape),
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -412,7 +224,7 @@ fn scheduler(
         drivers.push(MaskBack::ResourceSource);
     }
     let drivers = drivers.try_into().map_err(|_| NativeMaskPlayError::Shape)?;
-    let values = FixedValueStore::<VALUES, MAX_MASK_VALUE_BYTES>::new(VALUE_BYTES as u32)
+    let values = HostedValueStore::new(VALUES as u16, STORAGE_VALUE_BYTES as u32, value_bytes)
         .map_err(|_| NativeMaskPlayError::Value)?;
     let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
         lowered
@@ -424,4 +236,36 @@ fn scheduler(
     .map_err(|_| NativeMaskPlayError::Kernel)?;
     FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|_| NativeMaskPlayError::SchedulerCreate)
+}
+
+/// The preallocated store reserves 10 finite value slots at preparation; its live
+/// byte budget follows the admitted Cord queues plus the two bounded Host Call
+/// results. Native rendering narrows its larger semantic offer to 16 KiB;
+/// interaction retains its declared 8192-byte bound. No budget grows during Play.
+#[cfg(any(test, feature = "native-compositor"))]
+fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMaskPlayError> {
+    if usize::from(lowered.cord_value_slots) > CORDS || lowered.host_calls.len() != 2 {
+        return Err(NativeMaskPlayError::Shape);
+    }
+    let mut bytes = lowered.cord_value_bytes;
+    for call in &lowered.host_calls {
+        if call.maximum_in_flight != 1 {
+            return Err(NativeMaskPlayError::Shape);
+        }
+        let bound = match call.contract_id.as_str() {
+            "conduit.host/present@1" => MAX_MASK_VALUE_BYTES,
+            "conduit.host/presentation-interaction@1" => INTERACTION_VALUE_BYTES,
+            _ => return Err(NativeMaskPlayError::Shape),
+        } as u32;
+        if call.binding.maximum_output_bytes > bound {
+            return Err(NativeMaskPlayError::Pressure);
+        }
+        bytes = bytes
+            .checked_add(call.binding.maximum_output_bytes)
+            .ok_or(NativeMaskPlayError::Pressure)?;
+    }
+    if bytes as usize > VALUE_BYTES {
+        return Err(NativeMaskPlayError::Pressure);
+    }
+    Ok(bytes)
 }

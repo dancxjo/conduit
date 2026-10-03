@@ -24,7 +24,7 @@ fn arrival() -> (GuestBootSign, Value) {
     let journey = json!({
         "status": "world", "profile_id": boot.profile_id, "build_id": boot.build_id,
         "image_id": boot.image_binding, "host_id": boot.host_id, "boot_id": boot.boot_id,
-        "presenter_implementation_id": "presenter/native-graphical@1",
+        "presenter_implementation_id": "presentation/renderer-conduitos-native@1",
         "body_id": null, "plan_id": null, "active_play_id": null,
     });
     (boot, journey)
