@@ -33,6 +33,21 @@ must bind the exact already-admitted device-memory mapping and revoke possession
 before unmapping. Its cooperative fixture is not hostile-code containment. CPU
 ordering is distinct from mapping attributes and DMA cache maintenance.
 
+`plots/machine/register32.conduit` builds the primitive requests and calls the
+register Kind through ordinary checked topology. Revision 2 of the register Host
+Call takes exactly 16 canonical U128 bytes: offset, value, operation and reserved
+bits; its result is exactly four U32 bytes. The provider rejects malformed words
+and wrong node/call bindings before access. Production preparation binds a sealed
+Plan fragment, canonical active Play, selected Base/provider, authority/resource
+and exact lowered call. The kernel Host Call back is shared with pure expressions;
+there is no separate machine scheduler. Fixtures prove repeated calls, output
+pressure, typed denial, revocation and rejection of late cancelled completions.
+
+A register window alone does not confine DMA or enforce mandatory device safety.
+The trusted native mapping owner must enforce those invariants independently.
+USB class plots consume class-neutral bounded transfers; they must not be given
+arbitrary controller-register programming authority.
+
 ## Check the groundwork
 
 ```sh
@@ -54,12 +69,13 @@ physical behavior, or stable acceptance.
 
 ## Remaining implementation
 
-The protocol calculations are not installed native device offers. The register
-leaf is not yet a callable catalog Kind/production Host Call; native composition
-has not bound it to the existing xHCI path. The following work remains under the
-owning issue:
+The protocol calculations and register definition are not installed product
+device offers. Register calls execute through the production kernel in a
+cooperative mapping fixture; native composition has not bound a real admitted
+controller resource or installed its advertisement/dispatcher. The following
+work remains under the owning issue:
 
-- exact machine leaf Kinds and production Host Call/resource integration;
+- product machine/USB offers, native dispatcher and actual resource integration;
 - a class-neutral bounded USB transfer base with distinct short/malformed,
   pressure, cancellation, provider-loss and stale-attachment outcomes;
 - finite DMA/coherence/interrupt possession and lifecycle;
