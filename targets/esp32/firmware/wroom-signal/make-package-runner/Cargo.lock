@@ -175,6 +175,7 @@ dependencies = [
  "conduit-plot",
  "conduit-time",
  "serde",
+ "serde_json",
  "sha2",
 ]
 
