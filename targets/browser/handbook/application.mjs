@@ -1,10 +1,16 @@
 // Browser controls orchestrate public SDK operations; Rust owns every Body transition.
+import { startOwnerParticipation } from "./owner-participation.mjs";
+
 export async function startApplication(application) {
   const navigation = document.querySelector('[data-site-navigation]');
   if (navigation) navigation.innerHTML = application.text('site-navigation');
   const root = document.querySelector('[data-handbook-application]') ?? document.createElement('section');
   if (!root.isConnected) document.querySelector('main').append(root);
   root.className = 'handbook-application';
+  if (new URLSearchParams(location.search).get('participate') === 'owner') {
+    await startOwnerParticipation(application, root);
+    return;
+  }
   root.innerHTML = `<header><p class="eyebrow">Your local body</p><h2>Read. Try. Look inside.</h2>
     <p>The site supplies the starting material. Your browser creates this instance and keeps its continuity locally.</p></header>
     <p role="status" data-session-status>Opening your Handbook…</p>

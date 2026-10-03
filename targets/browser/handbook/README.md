@@ -12,6 +12,16 @@ cargo xtask make body static \
 
 Publish the complete directory through a static HTTP host. HTTPS, or a trusted local loopback origin, supplies the browser APIs used for persistence and cooperative ownership. No shared Body service or live backend is needed.
 
+The optional `?participate=owner` entrance admits this browser Host into an
+already running Linux-owned Body on the same computer. It opens no local Body:
+the page shows its exact Host ID and public verifying key, then accepts the
+short-lived `ws://127.0.0.1:PORT/conduit` window that the foreground Body owner
+explicitly authorizes for that Host. The production SDK and WASM runtime prove
+admission and display the owner's biography. This local window proves membership
+and presence, not a transferred Plan, Play, or remotely executed Plot. A public
+HTTPS deployment cannot use this loopback window to reach a different computer;
+the ordinary static Handbook remains independent of it.
+
 Open the Handbook, choose **A clock you can stop** or **Turn keystrokes into text**, and edit the Plot source. Live highlighting comes from the packaged Rust/WASM syntax projection. **Try in my Handbook** checks and installs the exact source in your local Body; an invalid edit reports its refusal. **Lull** ends execution, and **Wake** admits another run.
 
 **Open in Patchbay** opens the resident Patchbay application. Select the example from its list to inspect the actual checked Plot and execution projection. DOM/SVG is the browser Mask realization of this Show, not a second semantic graph store.

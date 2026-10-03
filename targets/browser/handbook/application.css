@@ -45,5 +45,12 @@
 .handbook-reading strong, .handbook-reading span { display: block; }
 .handbook-reading span { margin-top: .35rem; color: var(--conduit-text-secondary); font-size: .95rem; }
 .handbook-local-note { border-top: 1px solid var(--conduit-structure-secondary); padding-top: 1rem; max-width: 70ch; color: var(--conduit-text-secondary); }
+.owner-identity { display: grid; grid-template-columns: max-content minmax(0,1fr); gap: .5rem 1rem; }
+.owner-identity dt { font-weight: 700; }
+.owner-identity dd { margin: 0; overflow-wrap: anywhere; }
+.owner-identity [data-copy-key] { display: block; margin-top: .5rem; }
+.handbook-application [data-owner-join] { max-width: 48rem; }
+.handbook-application [data-owner-join] input { display: block; box-sizing: border-box; width: 100%; font: inherit; padding: .5rem; }
+.handbook-application [data-owner-result] { max-width: 72ch; }
 @media(max-width:900px) { .handbook-first-steps ol { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:540px) { .handbook-first-steps ol, .handbook-reading { grid-template-columns: 1fr; }.handbook-application { padding: 1rem; }.handbook-application select { max-width: 100%; }.handbook-controls button { flex: 1 1 8rem; } }
