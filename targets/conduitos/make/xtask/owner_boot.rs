@@ -3,6 +3,7 @@
 use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::Path,
+    process::Command,
 };
 
 use crate::cli::GlobalOpts;
@@ -37,6 +38,15 @@ pub(super) fn prepare(
     }
     let route = acceptance::owner_boot_route(spore, candidate_id)?;
     let (guest_address, guest_port) = guest_forward(&route.reachability)?;
+    // QEMU's static guestfwd TCP chardev connects to the host once. The
+    // invitation and its owner return are separate Lines to the same exact
+    // candidate, so require the per-connection command backend here.
+    Command::new("nc").arg("-h").output().map_err(|error| {
+        ConduitosError::refusal(
+            "owner-boot-forward-helper-unavailable",
+            format!("QEMU's per-connection guest forward requires nc: {error}"),
+        )
+    })?;
     Ok(PreparedOwnerBoot {
         artifact_sha256: route.artifact_sha256,
         build_id: route.build_id,
@@ -167,7 +177,9 @@ fn guest_forward(reachability: &str) -> Result<(Ipv4Addr, u16), ConduitosError> 
 
 fn netdev(guest_address: Ipv4Addr, guest_port: u16, owner: SocketAddrV4) -> String {
     format!(
-        "user,id=conduit-owner,restrict=on,guestfwd=tcp:{guest_address}:{guest_port}-tcp:{owner}"
+        "user,id=conduit-owner,restrict=on,guestfwd=tcp:{guest_address}:{guest_port}-cmd:nc {} {}",
+        owner.ip(),
+        owner.port()
     )
 }
 
@@ -216,7 +228,7 @@ mod tests {
         let (guest, port) = guest_forward("wss://10.0.2.100:9000/conduit").unwrap();
         assert_eq!(
             netdev(guest, port, "172.17.0.1:19000".parse().unwrap()),
-            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-tcp:172.17.0.1:19000"
+            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-cmd:nc 172.17.0.1 19000"
         );
     }
 
