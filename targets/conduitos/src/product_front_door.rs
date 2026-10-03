@@ -57,6 +57,7 @@ pub fn run(
     usb_line_device: Option<&UsbDevice>,
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
+    pending_join: Option<crate::spore_join::PendingNativeJoin>,
 ) -> Result<(), &'static str> {
     let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
         .map_err(|_| "product-base-provider-invalid")?;
@@ -97,6 +98,7 @@ pub fn run(
     surface_issuer_key.fill(0);
     // The embedded defaults are Crèche inventory, not ProductJourney state.
     let plot = keyboard_text_plan::checked_plot_identity().map_err(|error| error.as_str())?;
+    let joining_pending = pending_join.is_some();
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -110,9 +112,18 @@ pub fn run(
             + u64::from(offer.keyboard.is_some())
             + u64::from(offer.pointer.is_some())
             + u64::from(offer.pc_speaker.is_some()),
-        true,
+        !joining_pending,
     );
-    arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
+    if let Some(pending) = pending_join {
+        front_door
+            .observe_journey(journey.projection())
+            .map_err(|error| error.as_str())?;
+        front_door
+            .await_join(pending)
+            .map_err(|error| error.as_str())?;
+    } else {
+        arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
+    }
     let mut face_arrival = FaceArrival::prepare(
         host_id.clone(),
         boot_id.clone(),
@@ -139,10 +150,19 @@ pub fn run(
         make.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
-    let receipt = face_arrival.present_first(&front_door, display)?;
+    let receipt = if joining_pending {
+        face_arrival.present_pending_join(&front_door, display)?
+    } else {
+        face_arrival.present_first(&front_door, display)?
+    };
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
-    arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\nCONDUIT_CRECHE_CHECKPOINT ready\n");
+    arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
+    if joining_pending {
+        arch::early_write(b"CONDUIT_JOIN_CHECKPOINT awaiting-owner-receipt\n");
+    } else {
+        arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT ready\n");
+    }
     let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
     let mut serial = arch::Serial::new();
@@ -152,6 +172,12 @@ pub fn run(
         let mut line_requested = false;
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
+            if joining_pending {
+                if let ProductInputEvent::LocalRescue(local) = input {
+                    rescue_guest::observe(identities, rescue_matcher, local, true);
+                }
+                return Ok(ProductInputControl::Continue);
+            }
             let event = match input {
                 ProductInputEvent::Service => {
                     if let Some(receipt) = workspace_updates.service_with_face(

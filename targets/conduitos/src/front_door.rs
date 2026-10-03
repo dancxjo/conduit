@@ -17,6 +17,7 @@ mod application_layout;
 mod arrival;
 mod graph_projection;
 mod home;
+mod joining;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
 mod projection;
@@ -25,6 +26,7 @@ mod workspace;
 mod workspace_scene;
 pub use arrival::ArrivalInput;
 pub use home::{HomeInput, HomeView};
+pub use joining::PendingJoinView;
 mod semantics;
 #[cfg(any(test, feature = "native-compositor"))]
 pub use presenter::{FrontDoorPresenter, PresenterError};
@@ -59,6 +61,7 @@ pub struct FrontDoor {
     journey: Option<JourneyProjection>,
     connectivity: Option<ConnectivityProjection>,
     arrival: Option<arrival::Arrival>,
+    joining: Option<PendingJoinView>,
     home: Option<home::Home>,
     refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
@@ -157,6 +160,7 @@ impl FrontDoor {
             journey: None,
             connectivity: None,
             arrival: None,
+            joining: None,
             home: None,
             refusal: None,
             workspace: None,

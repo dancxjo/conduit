@@ -83,6 +83,17 @@ impl FaceArrival {
             .map_err(|error| error.as_str())
     }
 
+    pub(super) fn present_pending_join(
+        &mut self,
+        door: &FrontDoor,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
+        let face = door
+            .joining_face(&self.basis)
+            .map_err(|error| error.as_str())?;
+        self.present(face, display)
+    }
+
     fn present_current(
         &mut self,
         door: &FrontDoor,
@@ -91,6 +102,14 @@ impl FaceArrival {
         let face = door
             .creche_face(&self.basis)
             .map_err(|error| error.as_str())?;
+        self.present(face, display)
+    }
+
+    fn present(
+        &mut self,
+        face: conduit_presentation::Presentation,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
         let observation = self.next_observation;
         let play = self.next_play;
         self.next_observation = observation

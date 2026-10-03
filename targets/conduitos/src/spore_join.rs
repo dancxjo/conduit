@@ -1,6 +1,6 @@
 //! Bounded boot-time join proof emitted on the admitted early serial Line.
 
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
 use serde::Serialize;
 
@@ -8,6 +8,15 @@ use crate::spore_provision::NativeMediaProvision;
 
 pub const JOIN_SCHEMA: &str = "conduit.conduitos/serial-spawn-observation@1";
 pub const MAXIMUM_JOIN_BYTES: usize = 32 * 1024;
+
+/// Public provision facts carried into the native Face. A signed observation
+/// is still only a request: no receipt, membership, or Body exists here yet.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PendingNativeJoin {
+    pub spore_id: String,
+    pub body_id: String,
+    pub invitation_id: String,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinError {
