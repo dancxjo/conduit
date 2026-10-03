@@ -91,6 +91,8 @@ with `F8`. The [captured journey](https://dancxjo.github.io/conduit/journeys/cur
 shows each action and resulting screen. Browser, hosted terminal, and spoken
 Masks consume the same Face meaning, but the complete shared-Body journey
 across those hosts remains open in [#4807](https://github.com/dancxjo/conduit/issues/4807).
+For an owner-issued invitation and a guest that truthfully waits to join, see
+[ConduitOS spore provisioning](contributing/native-spore-provision.md).
 
 ```bash
 cargo xtask make conduitos live-matrix

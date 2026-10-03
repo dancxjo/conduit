@@ -183,6 +183,9 @@ pub(super) fn execute(path: &Path, opts: &GlobalOpts) -> Result<(), ConduitosErr
 
 fn boot_and_observe(path: &Path) -> Result<journey_proof::JourneyIdentity, ConduitosError> {
     let paths = Paths::new(ConduitosArch::X86_64)?;
+    fs::create_dir_all(&paths.target).map_err(|error| {
+        ConduitosError::refusal("creche-spore-proof-output-unavailable", error.to_string())
+    })?;
     let serial_path = paths.target.join("creche-spore-boot-serial.log");
     let _ = fs::remove_file(&serial_path);
     let serial = format!("file:{}", serial_path.to_string_lossy());

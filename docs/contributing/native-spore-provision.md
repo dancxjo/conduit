@@ -1,0 +1,64 @@
+# Provision a ConduitOS guest from a running Body owner
+
+This development entrance binds one verified x86_64 ConduitOS product ISO to
+one checked, self-joining Body Host and a fresh invitation issued by the
+running Linux Body owner. The output boots into a **pending join**. It does not
+admit the guest, establish a protected Line, or return the owner's receipt.
+Because the image contains the invitation secret, this producer is available
+on Unix hosts where it can create private media with mode `0600`.
+
+First build the product image and keep its `build-manifest.json` and
+`resolved-image.json` beside the ISO:
+
+```sh
+cargo xtask make conduitos live x86_64
+```
+
+Use the installed owner described in [Local Linux Body owner](shared-body-owner.md)
+to issue a short-lived invitation through its `invite` operation. Save the
+single `conduit.body/spawn-invitation@1` JSON document as a private file. It
+contains a one-use secret; do not put it in a repository, a command argument,
+or a journey capture. The owner must retain its issued invitation and remain
+available to consume the guest's later admission request.
+
+Author a `.body.conduit` source with the **same Body ID and invitation ID** as
+that owner document. Its ConduitOS Host entry must select `self-joining` and
+`disk-image`, with the reviewed
+`targets/conduitos/profiles/conduitos-native.host.conduit` configuration. For
+example, with paths and IDs filled from the actual owner and checkout:
+
+```conduit
+body shared {
+  schema = 2
+  id = "<owner-body-id>"
+  host = {name: "native", configuration: "<path-to-conduitos-native.host.conduit>", spore: {join_mode: "self-joining", invitation: "<owner-invitation-id>", output: "disk-image"}}
+}
+```
+
+Then use the supported checks and producer:
+
+```sh
+cargo xtask make body check path/to/shared.body.conduit
+cargo xtask make body provision-conduitos path/to/shared.body.conduit \
+  --host native \
+  --build target/conduitos/live/x86_64-pc \
+  --invitation path/to/private-invitation.json \
+  --output path/to/new-private-spore.iso
+cargo xtask make conduitos acceptance --spore path/to/new-private-spore.iso
+```
+
+The producer verifies the exact target BUILD and ISO digest, uses the checked
+Body/make binding to seal the actual ISO content digest, and replaces exactly
+one blank 4096-byte media region. It refuses an existing output, ambiguous or
+already provisioned media, a mismatched Body or invitation, and an expired
+invitation. The created ISO has mode `0600` on Unix. Its receipt records the
+source identity and exact image/artifact digests without serializing the secret.
+
+The current owner issues an unrouted invitation. A routed invitation is refused
+here because the older ConduitOS media candidate shape cannot retain the
+canonical transport authentication binding. The next join slice must carry
+that binding into a protected duplex Line and deliver the owner's receipt to
+the guest. The acceptance command proves a QEMU boot and the invitation-signed
+serial observation only; its receipt explicitly says guest membership is false.
+For #4807 publication, build and capture from one clean source revision and
+record the owner, model, and voice inputs separately.
