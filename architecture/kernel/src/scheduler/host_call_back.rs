@@ -57,7 +57,7 @@ impl<const PORTS: usize> StepBack<PORTS> for HostCallBack {
             io.consume(PortId(0))
                 .expect("present bounded Host Call input");
             io.request_host_call(request, HostCallId(0), input)
-                .expect("bounded Host Call Host Call");
+                .expect("bounded Host Call request");
             self.next_request = next_request;
             self.pending = Some(request);
             return StepOutcome::Progress;

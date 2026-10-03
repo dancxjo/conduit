@@ -41,6 +41,15 @@ impl RegisterHostCall {
         {
             return Err(RegisterRefusal::WrongBinding);
         }
+        // Matching IDs alone do not prove that numeric routing/storage/terminal
+        // tables came from this fragment. Preparation may allocate; Play may
+        // only use the exact ordinary lowering, with no substituted tables.
+        if conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
+            .map_err(|_| RegisterRefusal::WrongBinding)?
+            != *lowered
+        {
+            return Err(RegisterRefusal::WrongBinding);
+        }
         let mut matches = fragment
             .placements
             .iter()
