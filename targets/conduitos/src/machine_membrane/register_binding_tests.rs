@@ -169,7 +169,7 @@ fn selected_base_binds_to_the_exact_lowered_operation() {
 
 #[test]
 fn altered_planning_and_lowering_facts_cannot_bind_a_leaf() {
-    for case in 0..12 {
+    for case in 0..16 {
         let (mut fragment, mut lowered, mut active, placement) = selected();
         let mut registers = [9];
         let provider = bound_leaf(&mut registers, &fragment, &active);
@@ -198,6 +198,10 @@ fn altered_planning_and_lowering_facts_cannot_bind_a_leaf() {
                 let duplicate = lowered.host_calls[0].clone();
                 lowered.host_calls.push(duplicate);
             }
+            12 => lowered.nodes[0].maximum_step_fuel += 1,
+            13 => lowered.cord_value_bytes += 1,
+            14 => lowered.sign_items += 1,
+            15 => lowered.nodes[0].outputs[0].port = conduit_kernel::PortId(1),
             _ => unreachable!(),
         }
         assert!(
