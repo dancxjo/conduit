@@ -4,14 +4,15 @@ use super::{StateDelay, StateError};
 use crate::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use crate::{CanonicalValue, Failure, FailureCode, PortId};
 
-/// This profile uses the kernel's existing bounded derived-value envelope.
-/// Larger profiles must refuse construction rather than truncate State.
+/// Inline and explicitly prepared output profiles share the same state machine.
 pub struct StateBack<const BYTES: usize> {
     state: StateDelay<BYTES>,
     next: PortId,
     current: PortId,
     started: bool,
     terminal: bool,
+    prepared_outputs: bool,
+    prepared_staged: bool,
 }
 
 impl<const BYTES: usize, const PORTS: usize> StepBack<PORTS> for StateBack<BYTES> {
@@ -27,11 +28,21 @@ impl<const BYTES: usize, const PORTS: usize> StepBack<PORTS> for StateBack<BYTES
             if !io.output_ready(self.current) {
                 return StepOutcome::Await;
             }
-            let Ok(value) = CanonicalValue::new(self.state.current()) else {
-                return self.step_refusal(FailureCode::StorageExhausted, 4);
-            };
-            if io.send_canonical(self.current, value).is_err() {
-                return StepOutcome::Await;
+            if self.prepared_outputs {
+                if io
+                    .send_prepared(self.current, self.state.current_len as u32)
+                    .is_err()
+                {
+                    return self.step_refusal(FailureCode::StateCapacityExhausted, 4);
+                }
+                self.prepared_staged = true;
+            } else {
+                let Ok(value) = CanonicalValue::new(self.state.current()) else {
+                    return self.step_refusal(FailureCode::StorageExhausted, 4);
+                };
+                if io.send_canonical(self.current, value).is_err() {
+                    return StepOutcome::Await;
+                }
             }
             self.started = true;
             return StepOutcome::Progress;
@@ -57,11 +68,21 @@ impl<const BYTES: usize, const PORTS: usize> StepBack<PORTS> for StateBack<BYTES
                 return self.step_state_refusal(error);
             }
             io.consume(self.next).expect("present State input");
-            io.send_canonical(
-                self.current,
-                CanonicalValue::new(canonical).expect("admitted State canonical envelope"),
-            )
-            .expect("ready State output");
+            if self.prepared_outputs {
+                if io
+                    .send_prepared(self.current, canonical.len() as u32)
+                    .is_err()
+                {
+                    return self.step_refusal(FailureCode::StateCapacityExhausted, 4);
+                }
+                self.prepared_staged = true;
+            } else {
+                io.send_canonical(
+                    self.current,
+                    CanonicalValue::new(canonical).expect("admitted State canonical envelope"),
+                )
+                .expect("ready State output");
+            }
             return StepOutcome::Progress;
         }
         if io.input_closed(self.next) {
@@ -79,11 +100,24 @@ impl<const BYTES: usize, const PORTS: usize> StepBack<PORTS> for StateBack<BYTES
                 .commit()
                 .expect("State transition bounds were admitted before I/O");
         }
+        self.prepared_staged = false;
+    }
+
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        if port != self.current || !self.prepared_staged {
+            return None;
+        }
+        Some(if let Some(len) = self.state.candidate_len {
+            &self.state.candidate[..len]
+        } else {
+            self.state.current()
+        })
     }
 
     fn cancel(&mut self) {
         self.state.abort_step(true);
         self.terminal = true;
+        self.prepared_staged = false;
     }
 }
 
@@ -91,6 +125,7 @@ impl<const BYTES: usize> StateBack<BYTES> {
     fn step_refusal(&mut self, code: FailureCode, detail: u16) -> StepOutcome {
         self.state.abort_step(false);
         self.terminal = true;
+        self.prepared_staged = false;
         StepOutcome::Fail(Failure { code, detail })
     }
 
@@ -113,13 +148,38 @@ impl<const BYTES: usize> StateBack<BYTES> {
         if state.maximum_bytes > CanonicalValue::MAXIMUM_BYTES {
             return Err(StateError::InvalidBounds);
         }
-        Ok(Self {
+        Ok(Self::construct(state, next, current, false))
+    }
+
+    /// Admit fixed State storage through the kernel's prepared-output boundary.
+    /// The selected host profile must separately admit the exact output and
+    /// value-store capacities; this does not enlarge the inline kernel profile.
+    pub fn new_prepared(
+        state: StateDelay<BYTES>,
+        next: PortId,
+        current: PortId,
+    ) -> Result<Self, StateError> {
+        if u32::try_from(state.maximum_bytes).is_err() {
+            return Err(StateError::InvalidBounds);
+        }
+        Ok(Self::construct(state, next, current, true))
+    }
+
+    fn construct(
+        state: StateDelay<BYTES>,
+        next: PortId,
+        current: PortId,
+        prepared_outputs: bool,
+    ) -> Self {
+        Self {
             state,
             next,
             current,
             started: false,
             terminal: false,
-        })
+            prepared_outputs,
+            prepared_staged: false,
+        }
     }
 
     /// Move retained ownership after the containing driver has been retired.
