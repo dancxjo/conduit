@@ -34,7 +34,11 @@ pub enum VirtioTlsError {
     InvalidDescriptor,
     RequestTooLarge,
     ResponseTooLarge,
+    Connect(VirtioTcpError),
     Tcp(VirtioTcpError),
+    CloseTcp(VirtioTcpError),
+    HandshakeTimeout,
+    DeadlineExpired,
     Authentication,
     Handshake,
     Write,
@@ -54,7 +58,13 @@ impl VirtioTlsError {
             Self::InvalidDescriptor => "virtio-tls-descriptor-invalid",
             Self::RequestTooLarge => "virtio-tls-request-too-large",
             Self::ResponseTooLarge => "virtio-tls-response-too-large",
+            Self::Connect(VirtioTcpError::Timeout) => "virtio-tcp-connect-timeout",
+            Self::Connect(error) => error.as_str(),
             Self::Tcp(error) => error.as_str(),
+            Self::CloseTcp(VirtioTcpError::Timeout) => "virtio-tcp-close-timeout",
+            Self::CloseTcp(error) => error.as_str(),
+            Self::HandshakeTimeout => "virtio-tls-handshake-timeout",
+            Self::DeadlineExpired => "virtio-tls-deadline-expired",
             Self::Authentication => "virtio-tls-authentication-failed",
             Self::Handshake => "virtio-tls-handshake-failed",
             Self::Write => "virtio-tls-write-failed",
@@ -215,7 +225,7 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
         &mut tcp_transmit,
         &mut socket_storage,
     )
-    .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Tcp(error)))?;
+    .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Connect(error)))?;
     let mut tls_receive = [0; TLS_RECEIVE_BUFFER_BYTES];
     let mut tls_transmit = [0; TLS_TRANSMIT_BUFFER_BYTES];
     let config = TlsConfig::new()
@@ -240,7 +250,9 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
     let websocket_close = websocket.close();
     let tls_close = tls.close();
     let tcp_close = match tls_close {
-        Ok(stream) => stream.close_tcp_with_device().map_err(VirtioTlsError::Tcp),
+        Ok(stream) => stream
+            .close_tcp_with_device()
+            .map_err(VirtioTlsError::CloseTcp),
         Err(_) => Err(VirtioTlsError::Close),
     };
     let value = match result {
@@ -248,9 +260,9 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
         Err(error) => return Err(VirtioWebSocketRunError::Operation(error)),
     };
     if deadline.is_some_and(|deadline| deadline.elapsed_millis().is_none()) {
-        return Err(VirtioWebSocketRunError::Transport(VirtioTlsError::Tcp(
-            VirtioTcpError::Timeout,
-        )));
+        return Err(VirtioWebSocketRunError::Transport(
+            VirtioTlsError::DeadlineExpired,
+        ));
     }
     websocket_close
         .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::WebSocket(error)))?;
@@ -264,9 +276,7 @@ fn classify_handshake(error: TlsError) -> VirtioTlsError {
         | TlsError::InvalidCertificateEntry
         | TlsError::InvalidSignature
         | TlsError::InvalidSignatureScheme => VirtioTlsError::Authentication,
-        TlsError::Io(embedded_io::ErrorKind::TimedOut) => {
-            VirtioTlsError::Tcp(VirtioTcpError::Timeout)
-        }
+        TlsError::Io(embedded_io::ErrorKind::TimedOut) => VirtioTlsError::HandshakeTimeout,
         _ => VirtioTlsError::Handshake,
     }
 }

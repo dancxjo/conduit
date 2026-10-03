@@ -148,6 +148,7 @@ pub(super) fn serve(
             Err(SecureWebSocketError::AcceptDeadline) => break,
             Err(error) => return Err(format!("accept native return: {error:?}")),
         };
+        eprintln!("CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"accepted\"}}");
         line.set_read_timeout(Some(left.min(Duration::from_secs(5))))
             .map_err(|error| format!("bound native return read: {error:?}"))?;
         let response = match receive_action(&mut line, &mut frame, &mut assembled) {
@@ -182,6 +183,10 @@ pub(super) fn serve(
             },
         };
         let outcome_unknown = response.code == "control-outcome-unknown";
+        eprintln!(
+            "CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"responding\",\"code\":\"{}\"}}",
+            response.code
+        );
         send(&mut line, &fit_response(response)?)?;
         if outcome_unknown {
             break;
@@ -203,6 +208,9 @@ fn receive_action(
         let length = line
             .receive_binary(frame)
             .map_err(|error| format!("receive native return: {error:?}"))?;
+        if assembled.expected.is_none() {
+            eprintln!("CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"first-frame\"}}");
+        }
         if assembled.push(&frame[..length])? {
             let action = serde_json::from_slice(&assembled.bytes)
                 .map_err(|error| format!("decode native return: {error}"))?;
