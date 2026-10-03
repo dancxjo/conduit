@@ -1,6 +1,9 @@
 //! Prepared, allocation-free observations of exact structured expression values.
-use super::{primitive::PrimitiveValue, PreparedPortableExpressionEvaluator, Refusal};
-use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
+use super::{
+    primitive::PrimitiveValue, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView,
+    Refusal,
+};
+use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, string::String};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoType, StructuredInfoTypeShape};
 
@@ -18,6 +21,7 @@ impl PreparedInspection {
         call: &str,
         arguments: &[PortableExpressionNode],
         input: &StructuredInfoType,
+        prepared_input: &PreparedInput,
     ) -> Result<Self, Refusal> {
         let source = arguments.first().ok_or(Refusal::InvalidProgram)?;
         let operation = match call {
@@ -66,13 +70,16 @@ impl PreparedInspection {
             }
             _ => return Err(Refusal::InvalidProgram),
         };
-        let program = PortableExpressionProgram {
-            input_type: input.clone(),
-            output_type: source.value_type.clone(),
-            root: source.clone(),
+        let program = ProgramView {
+            input_type: input,
+            output_type: &source.value_type,
+            root: source,
         };
         Ok(Self {
-            source: Box::new(PreparedPortableExpressionEvaluator::new(&program)?),
+            source: Box::new(PreparedPortableExpressionEvaluator::prepare(
+                program,
+                prepared_input.clone(),
+            )?),
             operation,
         })
     }

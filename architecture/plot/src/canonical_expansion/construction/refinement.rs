@@ -14,47 +14,93 @@ pub(super) fn proves(
         return false;
     }
     native.value_contracts.iter().all(|required| {
-        let Some(value) = constructed_member(node, &required.representation_path) else {
-            return false;
+        proves_at(
+            node,
+            &required.representation_path,
+            &required.contract,
+            input,
+            types,
+        )
+    })
+}
+
+fn proves_at(
+    node: &PortableExpressionNode,
+    path: &str,
+    required: &conduit_core::CheckedValueContract,
+    input: &conduit_core::StructuredInfoType,
+    types: &[CheckedNativeType],
+) -> bool {
+    let Ok(selected) = constructed_member(node, path) else {
+        return false;
+    };
+    let Some((value, remaining)) = selected else {
+        return true;
+    };
+    if let Op::Conditional {
+        when_true,
+        when_false,
+        ..
+    } = &value.operation
+    {
+        return proves_at(when_true, remaining, required, input, types)
+            && proves_at(when_false, remaining, required, input, types);
+    }
+    if remaining.is_empty() && matches!(value.operation, Op::Literal(_)) {
+        let constant = PortableExpressionProgram {
+            input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                conduit_core::UNIT_INFO_ID,
+            ))
+            .expect("Unit"),
+            output_type: value.value_type.clone(),
+            root: value.clone(),
         };
-        if matches!(value.operation, Op::Literal(_)) {
-            let constant = PortableExpressionProgram {
-                input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                    conduit_core::UNIT_INFO_ID,
-                ))
-                .expect("Unit"),
-                output_type: value.value_type.clone(),
-                root: value.clone(),
-            };
-            return constant
-                .evaluate(&[])
-                .is_ok_and(|bytes| required.contract.validate(&bytes).is_ok());
-        }
-        let Some(path) = input_path(value) else {
-            return false;
-        };
-        types.iter().filter(|ty| &ty.value_type == input).any(|ty| {
-            ty.value_contracts.iter().any(|contract| {
-                contract.representation_path == path && contract.contract == required.contract
-            })
-        })
+        return constant
+            .evaluate(&[])
+            .is_ok_and(|bytes| required.validate(&bytes).is_ok());
+    }
+    let Some(mut path) = input_path(value) else {
+        return false;
+    };
+    path.push_str(remaining);
+    types.iter().filter(|ty| &ty.value_type == input).any(|ty| {
+        ty.value_contracts
+            .iter()
+            .any(|contract| contract.representation_path == path && &contract.contract == required)
     })
 }
 
 fn constructed_member<'a>(
     node: &'a PortableExpressionNode,
-    path: &str,
-) -> Option<&'a PortableExpressionNode> {
-    if path.is_empty() {
-        return Some(node);
+    path: &'a str,
+) -> Result<Option<(&'a PortableExpressionNode, &'a str)>, ()> {
+    if path.is_empty()
+        || matches!(
+            node.operation,
+            Op::Input | Op::Projection { .. } | Op::Conditional { .. }
+        )
+    {
+        return Ok(Some((node, path)));
     }
-    let rest = path.strip_prefix('.')?;
+    if let Some(rest) = path.strip_prefix('|') {
+        let end = rest.find(['.', '|', '[', '?']).unwrap_or(rest.len());
+        let (case, remaining) = rest.split_at(end);
+        let Op::Variant { tag, payload } = &node.operation else {
+            return Err(());
+        };
+        return if tag == case {
+            constructed_member(payload, remaining)
+        } else {
+            Ok(None)
+        };
+    }
+    let rest = path.strip_prefix('.').ok_or(())?;
     let end = rest.find(['.', '|', '[', '?']).unwrap_or(rest.len());
     let (field, remaining) = rest.split_at(end);
     let Op::Record(fields) = &node.operation else {
-        return None;
+        return Err(());
     };
-    let value = &fields.iter().find(|(name, _)| name == field)?.1;
+    let value = &fields.iter().find(|(name, _)| name == field).ok_or(())?.1;
     constructed_member(value, remaining)
 }
 

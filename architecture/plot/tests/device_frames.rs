@@ -114,7 +114,7 @@ fn concatenation_preserves_actual_bytes_and_excludes_padding() {
                 .unwrap()
                 .value();
             assert!(
-                matches!(actual.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == &[left+right])
+                matches!(actual.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == [left+right])
             );
             let data = fields.iter().find(|f| f.name() == "bytes").unwrap().value();
             let StructuredInfoValueShape::Collection(values) = data.shape() else {
@@ -126,7 +126,7 @@ fn concatenation_preserves_actual_bytes_and_excludes_padding() {
                 .copy_from_slice(&[5, 6, 7, 8][..usize::from(right)]);
             for (value, expected) in values.iter().zip(expected) {
                 assert!(
-                    matches!(value.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == &[expected])
+                    matches!(value.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == [expected])
                 );
             }
         }

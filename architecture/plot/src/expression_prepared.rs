@@ -11,6 +11,8 @@ use conduit_core::{
 };
 
 mod inspection;
+mod shared_input;
+use shared_input::SharedBytes;
 mod member_selection;
 mod nominal;
 use member_selection::PreparedMemberSelection;
@@ -29,12 +31,20 @@ pub struct PreparedPortableExpressionEvaluator {
     output: Vec<u8>,
 }
 
+#[derive(Clone)]
 enum PreparedInput {
     Primitive {
         kind: PrimitiveInfoKind,
-        nominal_type: Option<Vec<u8>>,
+        nominal_type: Option<SharedBytes>,
     },
-    Structured(Vec<u8>),
+    Structured(SharedBytes),
+}
+
+#[derive(Clone, Copy)]
+struct ProgramView<'a> {
+    input_type: &'a conduit_core::StructuredInfoType,
+    output_type: &'a conduit_core::StructuredInfoType,
+    root: &'a PortableExpressionNode,
 }
 
 enum PreparedRoot {
@@ -89,7 +99,8 @@ impl PreparedPortableExpressionEvaluator {
                         program
                             .input_type
                             .canonical_bytes()
-                            .map_err(|_| Refusal::InvalidProgram)?,
+                            .map_err(|_| Refusal::InvalidProgram)?
+                            .into(),
                     ),
                 }
             }
@@ -97,13 +108,25 @@ impl PreparedPortableExpressionEvaluator {
                 program
                     .input_type
                     .canonical_bytes()
-                    .map_err(|_| Refusal::InvalidProgram)?,
+                    .map_err(|_| Refusal::InvalidProgram)?
+                    .into(),
             ),
         };
+        Self::prepare(
+            ProgramView {
+                input_type: &program.input_type,
+                output_type: &program.output_type,
+                root: &program.root,
+            },
+            input,
+        )
+    }
+
+    fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. } => {
-                let root = prepare_node(&program.root, &program.input_type)?;
-                if root.kind != leaf_kind(&program.output_type)? {
+                let root = prepare_node(program.root, program.input_type, &input)?;
+                if root.kind != leaf_kind(program.output_type)? {
                     return Err(Refusal::InvalidProgram);
                 }
                 PreparedRoot::Primitive {
@@ -121,12 +144,12 @@ impl PreparedPortableExpressionEvaluator {
                     .transpose()?,
                 }
             }
-            _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program)?),
+            _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program, &input)?),
         };
         Ok(Self {
             root,
             input,
-            output: Vec::with_capacity(storage_bound::output(&program.output_type)?),
+            output: Vec::with_capacity(storage_bound::output(program.output_type)?),
         })
     }
 
@@ -144,7 +167,7 @@ impl PreparedPortableExpressionEvaluator {
             PreparedInput::Structured(expected) => {
                 let validated = conduit_core::validate_canonical_structured_value(input)
                     .map_err(|_| Refusal::InvalidInput)?;
-                if validated.type_bytes() != expected {
+                if validated.type_bytes() != expected.as_ref() {
                     return Err(Refusal::InvalidInput);
                 }
                 None
@@ -176,6 +199,7 @@ impl PreparedPortableExpressionEvaluator {
 fn prepare_node(
     node: &PortableExpressionNode,
     input_type: &conduit_core::StructuredInfoType,
+    prepared_input: &PreparedInput,
 ) -> Result<PreparedNode, Refusal> {
     let kind = leaf_kind(&node.value_type)?;
     let operation = match &node.operation {
@@ -185,7 +209,7 @@ fn prepare_node(
         ),
         PortableExpressionOperation::Unary { operator, operand } => PreparedOperation::Unary {
             operator: *operator,
-            operand: Box::new(prepare_node(operand, input_type)?),
+            operand: Box::new(prepare_node(operand, input_type, prepared_input)?),
         },
         PortableExpressionOperation::Binary {
             operator,
@@ -195,17 +219,17 @@ fn prepare_node(
         } => PreparedOperation::Binary {
             operator: *operator,
             proven: *proven,
-            left: Box::new(prepare_node(left, input_type)?),
-            right: Box::new(prepare_node(right, input_type)?),
+            left: Box::new(prepare_node(left, input_type, prepared_input)?),
+            right: Box::new(prepare_node(right, input_type, prepared_input)?),
         },
         PortableExpressionOperation::Conditional {
             condition,
             when_true,
             when_false,
         } => PreparedOperation::Conditional {
-            condition: Box::new(prepare_node(condition, input_type)?),
-            when_true: Box::new(prepare_node(when_true, input_type)?),
-            when_false: Box::new(prepare_node(when_false, input_type)?),
+            condition: Box::new(prepare_node(condition, input_type, prepared_input)?),
+            when_true: Box::new(prepare_node(when_true, input_type, prepared_input)?),
+            when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
         },
         PortableExpressionOperation::SemanticCall {
             kind: call,
@@ -214,7 +238,7 @@ fn prepare_node(
             let [argument] = arguments.as_slice() else {
                 return Err(Refusal::InvalidProgram);
             };
-            let operand = prepare_node(argument, input_type)?;
+            let operand = prepare_node(argument, input_type, prepared_input)?;
             if call != kind_name(kind)
                 || !crate::expression_semantic_call::is_strict_widening(
                     kind_name(operand.kind),
@@ -242,11 +266,14 @@ fn prepare_node(
                 return Err(Refusal::InvalidProgram);
             }
             PreparedOperation::Inspection(inspection::PreparedInspection::new(
-                call, arguments, input_type,
+                call,
+                arguments,
+                input_type,
+                prepared_input,
             )?)
         }
         PortableExpressionOperation::Projection { .. } => {
-            PreparedOperation::Projection(member_selection::prepare(node)?)
+            PreparedOperation::Projection(member_selection::prepare(node, input_type)?)
         }
         _ => {
             return Err(Refusal::UnsupportedType(

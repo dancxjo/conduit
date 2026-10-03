@@ -1,139 +1,152 @@
-//! Prepared member selection preserves exact canonical identity with finite scratch.
+//! Borrow nested exact members; only a structured final result needs scratch.
 use super::{storage_bound, Refusal};
-use crate::{PortableExpressionNode, PortableExpressionOperation};
-use alloc::vec::Vec;
-use conduit_core::{
-    StructuredCanonicalSelection, StructuredInfoType, StructuredInfoTypeShape, StructuredSelector,
-};
+use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
+use alloc::{string::String, vec::Vec};
+use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 
 pub(super) struct PreparedMemberSelection {
-    steps: Vec<PreparedMemberStep>,
-    first: Vec<u8>,
-    second: Vec<u8>,
+    steps: Vec<Member>,
+    output_type: Vec<u8>,
+    output: Vec<u8>,
     primitive: bool,
 }
-
-struct PreparedMemberStep {
-    selector: StructuredSelector,
-    input_type: Vec<u8>,
-    output_type: Vec<u8>,
+enum Member {
+    Field(String),
+    Index(u16),
+    Variant(String),
 }
 
-pub(super) fn prepare(node: &PortableExpressionNode) -> Result<PreparedMemberSelection, Refusal> {
-    fn collect(
-        node: &PortableExpressionNode,
-        steps: &mut Vec<PreparedMemberStep>,
-    ) -> Result<StructuredInfoType, Refusal> {
+pub(super) fn prepare(
+    node: &PortableExpressionNode,
+    input: &StructuredInfoType,
+) -> Result<PreparedMemberSelection, Refusal> {
+    fn collect<'a>(
+        node: &'a PortableExpressionNode,
+        input: &StructuredInfoType,
+        steps: &mut Vec<Member>,
+    ) -> Result<&'a StructuredInfoType, Refusal> {
         match &node.operation {
-            PortableExpressionOperation::Input => Ok(node.value_type.clone()),
+            PortableExpressionOperation::Input if &node.value_type == input => Ok(&node.value_type),
             PortableExpressionOperation::Projection { value, member } => {
-                let input_type = collect(value, steps)?;
-                let selector = match member {
-                    crate::PortableExpressionProjection::Field(field) => {
-                        StructuredSelector::field(input_type.clone(), field.clone()).or_else(|_| {
-                            StructuredSelector::variant(
-                                input_type.clone(),
-                                field.clone(),
-                                conduit_core::UnmatchedVariantDisposition::Refuse,
-                            )
-                        })
+                let source = collect(value, input, steps)?;
+                let (selected, step) = match (source.shape(), member) {
+                    (
+                        StructuredInfoTypeShape::Record { fields, .. },
+                        PortableExpressionProjection::Field(name),
+                    ) => {
+                        let field = fields
+                            .iter()
+                            .find(|field| field.name() == name)
+                            .ok_or(Refusal::InvalidProgram)?;
+                        (field.value_type(), Member::Field(name.clone()))
                     }
-                    crate::PortableExpressionProjection::TupleIndex(index) => {
-                        StructuredSelector::index(input_type.clone(), *index).or_else(|_| {
-                            StructuredSelector::field(
-                                input_type.clone(),
-                                alloc::format!("item-{index:05}"),
-                            )
-                        })
+                    (
+                        StructuredInfoTypeShape::Record { fields, .. },
+                        PortableExpressionProjection::TupleIndex(index),
+                    ) => {
+                        let name = alloc::format!("item-{index:05}");
+                        let field = fields
+                            .iter()
+                            .find(|field| field.name() == name)
+                            .ok_or(Refusal::InvalidProgram)?;
+                        (field.value_type(), Member::Field(name))
                     }
-                }
-                .map_err(|_| Refusal::InvalidProgram)?;
-                if selector.output_type() != &node.value_type {
+                    (
+                        StructuredInfoTypeShape::Variant { cases, .. },
+                        PortableExpressionProjection::Field(name),
+                    ) => {
+                        let case = cases
+                            .iter()
+                            .find(|case| case.tag() == name)
+                            .ok_or(Refusal::InvalidProgram)?;
+                        (case.payload_type(), Member::Variant(name.clone()))
+                    }
+                    (
+                        StructuredInfoTypeShape::Collection { element, length },
+                        PortableExpressionProjection::TupleIndex(index),
+                    ) if *index < length => (element, Member::Index(*index)),
+                    (
+                        StructuredInfoTypeShape::Sequence {
+                            element,
+                            maximum_items,
+                            ..
+                        },
+                        PortableExpressionProjection::TupleIndex(index),
+                    ) if *index < maximum_items => (element, Member::Index(*index)),
+                    _ => return Err(Refusal::InvalidProgram),
+                };
+                if selected != &node.value_type {
                     return Err(Refusal::InvalidProgram);
                 }
-                steps.push(PreparedMemberStep {
-                    input_type: selector
-                        .input_type()
-                        .canonical_bytes()
-                        .map_err(|_| Refusal::InvalidProgram)?,
-                    output_type: selector
-                        .output_type()
-                        .canonical_bytes()
-                        .map_err(|_| Refusal::InvalidProgram)?,
-                    selector,
-                });
-                Ok(node.value_type.clone())
+                steps.push(step);
+                Ok(&node.value_type)
             }
-            _ => Err(Refusal::UnsupportedType(
-                "projection must originate at the expression input".into(),
-            )),
+            _ => Err(Refusal::InvalidProgram),
         }
     }
-
     let mut steps = Vec::new();
-    collect(node, &mut steps)?;
-    let capacity = steps.iter().try_fold(0, |bound, step| {
-        Ok::<_, Refusal>(
-            bound
-                .max(storage_bound::canonical(step.selector.input_type())?)
-                .max(storage_bound::canonical(step.selector.output_type())?),
-        )
-    })?;
+    collect(node, input, &mut steps)?;
     if steps.is_empty() {
         return Err(Refusal::InvalidProgram);
     }
+    let primitive = is_primitive(&node.value_type);
     Ok(PreparedMemberSelection {
         steps,
-        first: Vec::with_capacity(capacity),
-        second: Vec::with_capacity(capacity),
-        primitive: is_primitive(&node.value_type),
+        output_type: node
+            .value_type
+            .canonical_bytes()
+            .map_err(|_| Refusal::InvalidProgram)?,
+        output: Vec::with_capacity(if primitive {
+            0
+        } else {
+            storage_bound::canonical(&node.value_type)?
+        }),
+        primitive,
     })
 }
-
 impl PreparedMemberSelection {
-    pub(super) fn evaluate<'a>(&'a mut self, input: &[u8]) -> Result<&'a [u8], Refusal> {
-        if input.len() > self.first.capacity() {
+    pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
+        let mut value = conduit_core::validate_canonical_structured_value(input)
+            .map_err(|_| Refusal::InvalidInput)?;
+        for step in &self.steps {
+            value = match step {
+                Member::Field(name) => value.record_field(name),
+                Member::Index(index) => value.collection_index(*index),
+                Member::Variant(name) => value.variant_payload(name),
+            }
+            .map_err(|_| Refusal::InvalidInput)?
+            .ok_or(Refusal::InvalidInput)?;
+        }
+        if value.type_bytes() != self.output_type {
             return Err(Refusal::InvalidInput);
         }
-        self.first.clear();
-        self.first.extend_from_slice(input);
-        for step in &self.steps {
-            self.second.clear();
-            let selection = step
-                .selector
-                .select_canonical_into(
-                    &self.first,
-                    &step.input_type,
-                    &step.output_type,
-                    &mut self.second,
-                )
-                .map_err(|_| Refusal::InvalidInput)?;
-            if selection != StructuredCanonicalSelection::Matched {
-                return Err(Refusal::InvalidInput);
+        let node = value.value_node();
+        if self.primitive {
+            let [0, length @ ..] = node else {
+                return Err(Refusal::InvalidProgram);
+            };
+            let length_bytes = length.get(..4).ok_or(Refusal::InvalidProgram)?;
+            let size = u32::from_le_bytes(length_bytes.try_into().unwrap()) as usize;
+            let bytes = length.get(4..).ok_or(Refusal::InvalidProgram)?;
+            if bytes.len() != size {
+                return Err(Refusal::InvalidProgram);
             }
-            core::mem::swap(&mut self.first, &mut self.second);
+            return Ok(bytes);
         }
-        if !self.primitive {
-            return Ok(&self.first);
-        }
-        let value = conduit_core::validate_canonical_structured_value(&self.first)
-            .map_err(|_| Refusal::InvalidProgram)?
-            .value_node();
-        let [0, length @ ..] = value else {
-            return Err(Refusal::InvalidProgram);
-        };
-        if length.len() < 4 {
+        if self
+            .output_type
+            .len()
+            .checked_add(node.len())
+            .is_none_or(|size| size > self.output.capacity())
+        {
             return Err(Refusal::InvalidProgram);
         }
-        let encoded_length = u32::from_le_bytes(length[..4].try_into().unwrap()) as usize;
-        let encoded = length.get(4..).ok_or(Refusal::InvalidProgram)?;
-        if encoded.len() != encoded_length {
-            return Err(Refusal::InvalidProgram);
-        }
-        Ok(encoded)
+        self.output.clear();
+        self.output.extend_from_slice(&self.output_type);
+        self.output.extend_from_slice(node);
+        Ok(&self.output)
     }
 }
-
 fn is_primitive(ty: &StructuredInfoType) -> bool {
     match ty.shape() {
         StructuredInfoTypeShape::Leaf(_) => true,

@@ -1,10 +1,10 @@
 //! Refuse inconsistent structured constructors before prepared storage is exposed.
-use super::Refusal;
-use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
+use super::{ProgramView, Refusal};
+use crate::{PortableExpressionNode, PortableExpressionOperation};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 
-pub(super) fn validate(program: &PortableExpressionProgram) -> Result<(), Refusal> {
-    if program.root.value_type != program.output_type {
+pub(super) fn validate(program: ProgramView<'_>) -> Result<(), Refusal> {
+    if &program.root.value_type != program.output_type {
         return Err(Refusal::InvalidProgram);
     }
     match &program.root.operation {

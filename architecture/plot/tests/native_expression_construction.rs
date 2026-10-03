@@ -199,3 +199,17 @@ fn imported_checked_metadata_preserves_refinement_construction_rules() {
         );
     }
 }
+
+#[test]
+fn nested_conditional_and_variant_fields_preserve_every_active_refinement() {
+    let source = "type Query = {\n address: U8 in 8..=119\n}\ntype Wrapped = {\n payload: Query\n}\nplot choose (\n >> query: Query\n result: Wrapped >>\n) = ({payload: .address == 8 ? . : {address: 8}})\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace("{address: 8}", "{address: 0}"))
+        .unwrap_err()
+        .contains("law validator"));
+    let variant = "type Query = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Query\n | missing\nplot choose (\n >> query: Query\n result: Choice >>\n) = (.address == 8 ? known(.) : missing(unit))\n";
+    assert!(compile(variant).is_ok());
+    assert!(compile(&variant.replace("known(.)", "known({address: 0})"))
+        .unwrap_err()
+        .contains("law validator"));
+}

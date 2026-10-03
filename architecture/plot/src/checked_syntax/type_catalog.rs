@@ -88,7 +88,14 @@ impl StartupCatalog {
                 let contracts = self.structured_type_contracts.get(name)?;
                 Some(CheckedNativeType {
                     name: name.clone(),
-                    identity: ty.profile().ok()?.value_kind().clone(),
+                    identity: match ty.shape() {
+                        conduit_core::StructuredInfoTypeShape::Nominal { schema, .. }
+                        | conduit_core::StructuredInfoTypeShape::Record { schema, .. }
+                        | conduit_core::StructuredInfoTypeShape::Variant { schema, .. } => {
+                            schema.clone()
+                        }
+                        _ => return None,
+                    },
                     value_type: ty.clone(),
                     value_contracts: contracts.clone(),
                     invariants: self
