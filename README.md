@@ -14,7 +14,7 @@ architectural direction; each target and lifecycle promise has its own
 ## Try it
 
 - **[Open the body Workspace](https://dancxjo.github.io/conduit/workspace/)** to meet the browser product and its resident plots
-- **[See ConduitOS running](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)** in the narrated x86_64 QEMU journey
+- **[See ConduitOS running](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)** in the ten-step x86_64 QEMU journey
 - **[Check the published build](https://dancxjo.github.io/conduit/current-product.html)** for development, accepted-release, publication, and proof identities
 
 To run the first hosted example, install Git and [Rust through rustup](https://rustup.rs/),
