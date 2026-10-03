@@ -57,6 +57,9 @@ impl NativeFaceScene {
     /// Resolve a named navigation request against this fresh Face, not an old
     /// action index. A missing/removed/unavailable target refuses explicitly.
     pub fn focus_named(&mut self, request: &FaceFocusRequest) -> Result<(), FaceSceneError> {
+        if !self.interaction_admitted {
+            return Err(FaceSceneError::InputUnavailable);
+        }
         let (action_index, action) = self
             .face
             .actions
@@ -104,6 +107,9 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
+        if !self.interaction_admitted {
+            return Ok(FaceSceneInput::Unchanged);
+        }
         let control = self.frame()?.hit_test(x, y).map(|hit| hit.control);
         let Some(control) = control else {
             return if self.input.action.is_some() {
@@ -134,6 +140,18 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
+        if !self.interaction_admitted {
+            if event.transition() != KeyTransition::Pressed {
+                return Ok(FaceSceneInput::Unchanged);
+            }
+            match event.usage() {
+                59 => self.show_details(self.showing_diagram || !self.showing_details),
+                60 => self.show_diagram(!self.showing_diagram),
+                75 | 78 => self.turn_page(event.usage() == 78),
+                _ => return Ok(FaceSceneInput::Unchanged),
+            }
+            return Ok(FaceSceneInput::Changed);
+        }
         if event.transition() != KeyTransition::Pressed {
             self.input.keymap.apply(event);
             return Ok(FaceSceneInput::Unchanged);

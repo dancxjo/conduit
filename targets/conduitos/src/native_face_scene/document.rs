@@ -25,7 +25,10 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
     }
 }
 
-pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
+pub(super) fn prepare(
+    face: &Presentation,
+    interaction_admitted: bool,
+) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
     let plan = plan_face_utterances(face).map_err(|_| FaceSceneError::DocumentBound)?;
     let mut primary = Vec::new();
     let mut details = Vec::with_capacity(plan.clauses.len());
@@ -45,7 +48,7 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                 .enumerate()
                 .find(|(_, action)| &action.identity == name)
                 .ok_or(FaceSceneError::InvalidFace)?;
-            detail.control = Some(FaceControl {
+            detail.control = interaction_admitted.then_some(FaceControl {
                 action: index,
                 argument: argument_name
                     .map(|name| {
@@ -57,7 +60,7 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                     })
                     .transpose()?,
             });
-            detail.paint = if action.availability.is_available() {
+            detail.paint = if interaction_admitted && action.availability.is_available() {
                 GraphicsPaintRole::Accent
             } else {
                 GraphicsPaintRole::Muted
@@ -185,7 +188,11 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                     } else {
                         format!("{} · {}", action.name, subject.name)
                     },
-                    GraphicsPaintRole::Accent,
+                    if interaction_admitted {
+                        GraphicsPaintRole::Accent
+                    } else {
+                        GraphicsPaintRole::Muted
+                    },
                 ),
                 PresentationActionAvailability::Unavailable { explanation, .. }
                 | PresentationActionAvailability::Refused { explanation, .. } => (
@@ -194,10 +201,14 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                 ),
             };
             append(Item {
-                text,
+                text: if interaction_admitted {
+                    text
+                } else {
+                    format!("{text} · View only on this host")
+                },
                 role: GraphicsTextRole::Action,
                 paint,
-                control: Some(FaceControl {
+                control: interaction_admitted.then_some(FaceControl {
                     action: index,
                     argument: None,
                 }),
@@ -209,7 +220,9 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                         "{} · {} · {}",
                         subject.name,
                         argument.value_name,
-                        if argument.contract.value_kind.as_str() == "value/bool" {
+                        if !interaction_admitted {
+                            "view only on this host"
+                        } else if argument.contract.value_kind.as_str() == "value/bool" {
                             "0 false · 1 true · Enter applies"
                         } else {
                             "enter a replacement value"
@@ -217,7 +230,7 @@ pub(super) fn prepare(face: &Presentation) -> Result<(Vec<Item>, Vec<Item>), Fac
                     ),
                     role: GraphicsTextRole::Label,
                     paint,
-                    control: Some(FaceControl {
+                    control: interaction_admitted.then_some(FaceControl {
                         action: index,
                         argument: Some(argument_index),
                     }),
