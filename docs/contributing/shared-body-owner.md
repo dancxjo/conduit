@@ -73,7 +73,21 @@ operation accepts at most 512 KiB because it carries one portable signed
 `conduit.body/spawn-admission-request@1` document and an exact authorized
 `expected_host_id`. It emits the canonical admission receipt only after the
 single-use invitation and new membership biography have been retained together.
-This operation does not establish or authenticate a carrier; its caller must
+`admit-native-observation` accepts the JSON value emitted after
+`CONDUIT_SPORE_JOIN ` by a provisioned ConduitOS guest in QEMU, plus the
+independently authorized `expected_host_id`:
+
+```json
+{"operation":"admit-native-observation","expected_host_id":"<authorized HostId>","observation":{ "<exact ConduitOS serial observation>": "…" }}
+```
+
+Pass the complete observation object in place of the illustrative inner object;
+the serial prefix is not JSON. The owner checks the observation contract and
+Host/Boot correlation, then consumes the same single-use invitation through
+the portable request boundary. This request also has the 512 KiB limit. The
+operation never infers authorization from a serial line or silently admits a
+Host merely because a request was printed.
+Neither admission operation establishes or authenticates a carrier; its caller must
 authorize the exact Host separately. A native guest must receive and validate
 the receipt over its admitted return route before it may regard itself as joined.
 Runs are synchronous and accept deadlines
@@ -101,12 +115,12 @@ membership mutations while the owner is running.
   can currently plan but is refused before Play. That refusal has a regression
   test; this slice does not claim complete local effect support.
 - The owner can admit a browser participant during a bounded lulled window and
-  consume a preissued portable native invitation request. The ConduitOS product
-  does not yet complete that request-and-receipt exchange over a live duplex
-  Line. Shared presentation, remote execution, and a terminal Mask are not
-  implemented by this entrance. Invitation issue remains outside the running
-  owner; the owner now restores the same retained single-use authority after
-  reopening.
+  consume either a preissued portable native request or the exact signed
+  observation emitted by a real QEMU guest. The ConduitOS product does not yet
+  complete that request-and-receipt exchange over a live duplex Line. Shared
+  presentation, remote execution, and a terminal Mask are not implemented by
+  this entrance. The owner restores the same retained single-use invitation
+  authority after reopening.
 - The retained workset is fixed to the checked source at birth. This entrance
   does not yet provide source replacement or resident-workset editing.
 - Biography compaction requires an admitted archive store. This slice has none

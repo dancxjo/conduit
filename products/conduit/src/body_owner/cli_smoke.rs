@@ -173,6 +173,82 @@ fn installed_cli_runs_and_recovers_same_body_on_new_boot() {
         .iter()
         .any(|item| item["schema"] == "conduit.body/owner-refusal@1"
             && item["message"].as_str().unwrap().contains("Replay")));
+    let native_invitation = Command::new(&installation.product_executable)
+        .args(["body", "invite", "--state-dir"])
+        .arg(&state)
+        .output()
+        .unwrap();
+    assert!(native_invitation.status.success());
+    let native_invitation: PortableInvitation =
+        serde_json::from_slice(&native_invitation.stdout).unwrap();
+    let native = StdHost::new_with_config(StdHostConfig {
+        host_id: HostId::from("host/installed-conduitos-guest"),
+        boot_id: BootId::from("boot/installed-conduitos-guest/1"),
+        offer_generation: OfferGeneration(1),
+    });
+    let native_advertisement = native.advertisement().clone();
+    let native_secret = SpawnInvitationSecret::from_csprng_bytes(native_invitation.secret).unwrap();
+    let native_signature = native_secret.sign(&native_invitation.claim.signing_transcript(
+        &native_advertisement.host_id,
+        &native_advertisement.boot_id,
+        native_advertisement.offer_generation,
+    ));
+    let native_observation = serde_json::json!({
+        "schema":"conduit.conduitos/serial-spawn-observation@1", "protocol":1,
+        "spore_id":"spore/installed-native-smoke", "image_id":"image/installed-native-smoke",
+        "advertisement":native_advertisement,
+        "invitation_id":native_invitation.claim.invitation_id,
+        "body_id":native_invitation.claim.body_id,
+        "host_id":native_advertisement.host_id, "boot_id":native_advertisement.boot_id,
+        "nonce":native_invitation.claim.nonce, "signature":native_signature.to_vec(),
+        "expiry_checked_by_body":true, "membership_claimed":false
+    });
+    let native_commands = format!(
+        "{}\n{{\"operation\":\"close\"}}\n",
+        serde_json::json!({"operation":"admit-native-observation",
+            "expected_host_id":native_advertisement.host_id,
+            "observation":native_observation})
+    );
+    let native_admitted = run(
+        &installation.product_executable,
+        &state,
+        &source,
+        native_commands.as_bytes(),
+    );
+    let native_receipt: conduit_body::PortableAdmissionReceipt = serde_json::from_value(
+        native_admitted
+            .iter()
+            .find(|item| item["schema"] == conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA)
+            .unwrap()
+            .clone(),
+    )
+    .unwrap();
+    assert_eq!(
+        native_receipt.credential.host_id,
+        native_advertisement.host_id
+    );
+    assert_eq!(
+        native_receipt.credential.boot_id,
+        native_advertisement.boot_id
+    );
+    assert!(!native_receipt.plan_created && !native_receipt.play_created);
+    assert_eq!(
+        native_admitted.last().unwrap()["biography"]["membership"]["parts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+    let native_replay = run(
+        &installation.product_executable,
+        &state,
+        &source,
+        native_commands.as_bytes(),
+    );
+    assert!(native_replay
+        .iter()
+        .any(|item| item["schema"] == "conduit.body/owner-refusal@1"
+            && item["message"].as_str().unwrap().contains("Replay")));
     fs::write(
         root.join("first.json"),
         serde_json::to_vec_pretty(&first).unwrap(),
@@ -189,6 +265,13 @@ fn installed_cli_runs_and_recovers_same_body_on_new_boot() {
             &serde_json::json!({"receipt":receipt, "owner":admitted.last(),
             "replay":replay.last()}),
         )
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        root.join("native-observation-admission.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({"receipt":native_receipt,
+            "owner":native_admitted.last(), "replay":native_replay.last()}))
         .unwrap(),
     )
     .unwrap();
