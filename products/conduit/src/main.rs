@@ -292,6 +292,36 @@ fn main() {
         },
         Some(cli::Command::Body {
             command:
+                Some(cli::BodyCommand::BrowserWindow {
+                    state_dir,
+                    expected_host_id,
+                    new_host_verifying_key,
+                    maximum_millis,
+                    authorize_window,
+                }),
+        }) => {
+            if !authorize_window {
+                Err("browser admission window requires --authorize-window".into())
+            } else {
+                let key = new_host_verifying_key
+                    .as_deref()
+                    .map(|text| {
+                        serde_json::from_str::<[u8; 32]>(text)
+                            .map_err(|error| format!("browser verifying key must be a 32-byte JSON array: {error}"))
+                    })
+                    .transpose();
+                key.and_then(|key| {
+                    durable_host_control::start_browser_window(
+                        &state_dir,
+                        &expected_host_id,
+                        key,
+                        maximum_millis,
+                    )
+                })
+            }
+        }
+        Some(cli::Command::Body {
+            command:
                 Some(cli::BodyCommand::Join {
                     invitation,
                     state_dir,

@@ -1,14 +1,18 @@
 //! Authenticated local control plane into the durable installed host owner.
 
 use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
-use conduit_body::{PortableSpawnAdmissionRequest, RendezvousCandidate};
+use conduit_body::{
+    BodyBiographyEvidence, MembershipCredential, PortableSpawnAdmissionRequest,
+    RendezvousCandidate,
+};
 use conduit_core::{
-    ActivePlayIdentity, HostAdvertisement, PlacementId, Plan, PoolMemberSessionDirection,
+    ActivePlayIdentity, HostAdvertisement, LinkBindingId, PlacementId, Plan, PoolMemberSessionDirection,
     PoolRealizationEnvelope, PoolRealizationObservation, PoolSelectionEvidence, SignId,
 };
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_std_host::{
+    browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
     hosted_local_model::LocalModelAdapterTerminal, pool_member_sessions::PoolMemberSessions,
     AdmittedLocalModelPoolMember, AdmittedRemoteFragment, StdHost,
 };
@@ -26,8 +30,12 @@ const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
 #[path = "durable_host_control/body.rs"]
 mod body;
+#[cfg(unix)]
+#[path = "durable_host_control/browser.rs"]
+pub(crate) mod browser;
 use body::HostSource;
 pub(crate) use body::{admit_owned_request, inspect_owned_body, issue_owned_invitation};
+pub(crate) use body::start_browser_window;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
@@ -886,6 +894,38 @@ enum Request {
         token: Vec<u8>,
         request: Box<PortableSpawnAdmissionRequest>,
     },
+    BodyBrowserStart {
+        protocol: u16,
+        token: Vec<u8>,
+        expected_host_id: String,
+        new_host_verifying_key: Option<[u8; 32]>,
+        maximum_millis: u64,
+    },
+    BodyBrowserBegin {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        frame: Box<BrowserAdmissionIngress>,
+        encoded_bytes: u32,
+    },
+    BodyBrowserComplete {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        frame: Box<BrowserAdmissionIngress>,
+    },
+    BodyBrowserAbort {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+    },
+    BodyBrowserLeave {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        credential: MembershipCredential,
+    },
     Join {
         protocol: u16,
         token: Vec<u8>,
@@ -953,6 +993,28 @@ enum Response {
     BodyAdmitted {
         protocol: u16,
         receipt: Box<conduit_body::PortableAdmissionReceipt>,
+    },
+    BodyBrowserWindow {
+        protocol: u16,
+        window_id: String,
+        url: String,
+        body_id: conduit_body::BodyId,
+        maximum_millis: u64,
+    },
+    BodyBrowserChallenge {
+        protocol: u16,
+        frame: Box<BrowserAdmissionEgress>,
+    },
+    BodyBrowserSnapshot {
+        protocol: u16,
+        snapshot: Box<crate::durable_host::owner::BrowserAdmittedSnapshot>,
+    },
+    BodyBrowserAborted {
+        protocol: u16,
+    },
+    BodyBrowserLeft {
+        protocol: u16,
+        biography: Box<BodyBiographyEvidence>,
     },
     Join {
         protocol: u16,
@@ -1441,6 +1503,11 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
+        | Request::BodyBrowserStart { token, .. }
+        | Request::BodyBrowserBegin { token, .. }
+        | Request::BodyBrowserComplete { token, .. }
+        | Request::BodyBrowserAbort { token, .. }
+        | Request::BodyBrowserLeave { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
         | Request::ObserveLocalModelPool { token, .. }
@@ -1488,6 +1555,68 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|receipt| Response::BodyAdmitted {
                 protocol: PROTOCOL,
                 receipt: Box::new(receipt),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserStart {
+            protocol,
+            expected_host_id,
+            new_host_verifying_key,
+            maximum_millis,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .start_browser_window(&expected_host_id, new_host_verifying_key, maximum_millis)
+            .map(|(authorization, url)| Response::BodyBrowserWindow {
+                protocol: PROTOCOL,
+                window_id: authorization.window_id,
+                url,
+                body_id: authorization.body_id,
+                maximum_millis: authorization.maximum_millis,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserBegin {
+            protocol,
+            window_id,
+            binding,
+            frame,
+            encoded_bytes,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_begin(&window_id, &binding, *frame, encoded_bytes)
+            .map(|frame| Response::BodyBrowserChallenge {
+                protocol: PROTOCOL,
+                frame: Box::new(frame),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserComplete {
+            protocol,
+            window_id,
+            frame,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_complete(&window_id, *frame)
+            .map(|snapshot| Response::BodyBrowserSnapshot {
+                protocol: PROTOCOL,
+                snapshot: Box::new(snapshot),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserAbort {
+            protocol,
+            window_id,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_abort(&window_id)
+            .map(|()| Response::BodyBrowserAborted { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserLeave {
+            protocol,
+            window_id,
+            credential,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_leave(&window_id, &credential)
+            .map(|biography| Response::BodyBrowserLeft {
+                protocol: PROTOCOL,
+                biography: Box::new(biography),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::Join {

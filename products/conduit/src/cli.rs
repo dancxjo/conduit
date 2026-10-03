@@ -353,6 +353,24 @@ pub(crate) enum BodyCommand {
         #[arg(long, action = clap::ArgAction::SetTrue)]
         authorize_route: bool,
     },
+    /// Open one short-lived local window for this browser Host to join the installed owner.
+    BrowserWindow {
+        /// Installed Host state whose running service owns the Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Exact Host ID shown by the browser's "Join an owned Body" view.
+        #[arg(long)]
+        expected_host_id: String,
+        /// JSON byte array copied from the browser for first admission; omit on return.
+        #[arg(long)]
+        new_host_verifying_key: Option<String>,
+        /// Finite admission and presence window, at most one minute.
+        #[arg(long, default_value_t = 60_000, value_parser = clap::value_parser!(u64).range(1000..=60_000))]
+        maximum_millis: u64,
+        /// Explicitly authorize the local loopback browser admission window.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_window: bool,
+    },
     /// Join the Body named by one routed portable invitation.
     Join {
         /// Routed invitation JSON path, or `-` to read it from standard input.
