@@ -124,28 +124,7 @@ fn plan_on_host(
 }
 
 pub(crate) fn terminal_capabilities() -> Vec<CapabilityOffer> {
-    let mut capabilities = attached_terminal_capabilities();
-    capabilities.pop();
-    capabilities.push(face_interaction_offer(FaceInteractionRealizationOffer {
-        capability_id: "terminal/input".into(),
-        execution_profile_id: "std/terminal-mask@1".into(),
-        implementation_id: "presentation/terminal-input@1".into(),
-        artifact_id: "std/terminal-mask@1".into(),
-        host_call: HostCallRequirement {
-            contract_id: INTERACTION_CALL.into(),
-            target_kind: Some(kind_id(FACE_INTERACTION_VALUE_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAX_TERMINAL_VALUE_BYTES,
-            maximum_output_bytes: MAX_FACE_INTERACTION_BYTES as u32,
-        },
-        resource_requirement: resource_requirement("conduit.resource/terminal-input@1", 1),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAX_FACE_INTERACTION_BYTES as u32 * 8,
-        },
-    }));
-    capabilities
+    attached_terminal_capabilities()
 }
 
 pub(crate) const READ_ONLY_INTERACTION_IMPLEMENTATION: &str =
@@ -182,19 +161,25 @@ pub(crate) fn attached_terminal_capabilities() -> Vec<CapabilityOffer> {
             resource_requirement: resource_requirement("conduit.resource/terminal-output@1", 1),
             limits: limits.clone(),
         }),
-        face_interaction_close_offer(
-            "terminal/input-closed".into(),
-            ImplementationOffer {
-                execution_profile_id: "std/terminal-mask@1".into(),
-                implementation_id: READ_ONLY_INTERACTION_IMPLEMENTATION.into(),
-                artifact_id: "std/terminal-mask@1".into(),
+        face_interaction_offer(FaceInteractionRealizationOffer {
+            capability_id: "terminal/input".into(),
+            execution_profile_id: "std/terminal-mask@1".into(),
+            implementation_id: "presentation/terminal-input@1".into(),
+            artifact_id: "std/terminal-mask@1".into(),
+            host_call: HostCallRequirement {
+                contract_id: INTERACTION_CALL.into(),
+                target_kind: Some(kind_id(FACE_INTERACTION_VALUE_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAX_TERMINAL_VALUE_BYTES,
+                maximum_output_bytes: MAX_FACE_INTERACTION_BYTES as u32,
             },
-            CapabilityLimits {
+            resource_requirement: resource_requirement("conduit.resource/terminal-input@1", 1),
+            limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,
                 max_queue_bytes: MAX_FACE_INTERACTION_BYTES as u32 * 8,
             },
-        ),
+        }),
     ]
 }
 
@@ -206,9 +191,5 @@ pub(crate) fn terminal_resources() -> Vec<ResourceOffer> {
 }
 
 pub(crate) fn attached_terminal_resources() -> Vec<ResourceOffer> {
-    vec![resource_offer(
-        "terminal/output",
-        "conduit.resource/terminal-output@1",
-        1,
-    )]
+    terminal_resources()
 }
