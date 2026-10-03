@@ -330,8 +330,12 @@ fn selected_patchbay_graph_becomes_exact_face_subjects_for_the_native_mask() {
         }],
     });
     let face = door.presentation().unwrap();
-    let scene = crate::native_face_scene::NativeFaceScene::prepare(face.clone(), 800, 600).unwrap();
-    assert!(scene.has_diagram());
+    #[cfg(feature = "native-compositor")]
+    {
+        let scene =
+            crate::native_face_scene::NativeFaceScene::prepare(face.clone(), 800, 600).unwrap();
+        assert!(scene.has_diagram());
+    }
     assert!(face.relationships.iter().any(|relation| {
         relation.source == "cord/source-to-sink"
             && relation.target == "port/sink/in"
