@@ -632,7 +632,13 @@ fn gallery_publishes_current_history_and_provenance() {
             .join("index.html")
             .is_file());
     }
-    assert!(index.contains("Inspect a ConduitOS emulator run"));
+    let tasks = index.find("Start with a task").unwrap();
+    let conduitos = index
+        .find("<!-- conduit-conduitos-journey-card@1 -->")
+        .unwrap();
+    let technical = index.find("Technical examples").unwrap();
+    assert!(tasks < conduitos && conduitos < technical);
+    assert!(!index.contains("Inspect a ConduitOS emulator run"));
     assert!(scenario.contains("1440x1000"));
     assert!(scenario.contains("Exact provenance"));
     assert!(site_root
