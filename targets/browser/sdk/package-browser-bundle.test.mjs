@@ -109,6 +109,26 @@ try {
   for (const resource of appManifest.resources) {
     assert.equal(await sha256(await readFile(path.join(staticOutput, resource.path))), resource.sha256);
   }
+  await writeFile(path.join(app, "index.html"), '<!doctype html><html><head><title>Handbook</title></head><body><!-- conduit-site-navigation --><main>Read</main></body></html>');
+  await writeFile(path.join(app, "navigation.html"), '<header class="site-header"><nav aria-label="Main navigation"><a data-section="handbook" href="/conduit/handbook/">Handbook</a></nav></header>');
+  const handbookTemplate = {
+    ...template,
+    application_id: "conduit.application/handbook",
+    resources: template.resources.map(resource => resource.role === "navigation"
+      ? { ...resource, role: "site-navigation" } : resource),
+  };
+  await writeFile(templatePath, JSON.stringify(handbookTemplate));
+  const handbookOutput = path.join(scratch, "handbook");
+  const handbookResult = spawnSync(process.execPath, [staticScript, templatePath, source, handbookOutput], { encoding: "utf8" });
+  assert.equal(handbookResult.status, 0, handbookResult.stderr);
+  const handbookHtml = await readFile(path.join(handbookOutput, "index.html"), "utf8");
+  assert.match(handbookHtml, /<header class="site-header">/);
+  assert.match(handbookHtml, /data-section="handbook" aria-current="page"/);
+  assert.doesNotMatch(handbookHtml, /conduit-site-navigation/);
+  const handbookManifest = JSON.parse(await readFile(path.join(handbookOutput, "application.application.json"), "utf8"));
+  assert.equal(handbookManifest.resources.find(resource => resource.path === "index.html").sha256,
+    await sha256(new TextEncoder().encode(handbookHtml)));
+  await writeFile(templatePath, JSON.stringify(template));
   const overwrite = spawnSync(process.execPath, [staticScript, templatePath, source, staticOutput], { encoding: "utf8" });
   assert.notEqual(overwrite.status, 0);
   template.resources[0].path = "../outside.html";

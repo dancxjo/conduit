@@ -81,6 +81,9 @@ package_test_shard!(
     []
 );
 
+// Host tests launch real local providers and device-discovery subprocesses.
+// Keep cases within each test binary isolated; Cargo compilation and target
+// jobs remain parallel.
 package_test_shard!(
     HOST_TEST_PACKAGES,
     HOST_TEST_STEP,
@@ -98,7 +101,7 @@ package_test_shard!(
         "patchbay-workbench-host-contract",
         "conduit-browser-patchbay-workbench",
     ],
-    []
+    ["--", "--test-threads=1"]
 );
 
 package_test_shard!(
@@ -264,14 +267,21 @@ mod tests {
             let options = &step.args[2..];
             let package_end = options
                 .iter()
-                .position(|argument| *argument == "--features")
+                .position(|argument| matches!(*argument, "--features" | "--"))
                 .unwrap_or(options.len());
             let packages = &options[..package_end];
             assert_eq!(packages.len() % 2, 0, "{} package pairs", step.id);
             for pair in packages.as_chunks::<2>().0 {
                 assert_eq!(pair[0], "-p", "{} package flag for {}", step.id, pair[1]);
             }
-            if package_end < options.len() {
+            if step.id == "check.test.hosts" {
+                assert_eq!(
+                    &options[package_end..],
+                    ["--", "--test-threads=1"],
+                    "{} serial process fixtures",
+                    step.id
+                );
+            } else if package_end < options.len() {
                 assert_eq!(
                     &options[package_end..],
                     ["--features", "conduit-tongues/speech"],
