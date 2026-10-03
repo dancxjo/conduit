@@ -227,6 +227,10 @@ impl VirtioDevice {
         }
     }
 
+    pub(crate) fn into_ready(self) -> VirtioNetReady {
+        self.device.into_inner()
+    }
+
     pub(crate) fn take_error(&self) -> Option<VirtioNetError> {
         self.error.take()
     }

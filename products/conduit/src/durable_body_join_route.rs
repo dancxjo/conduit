@@ -1,5 +1,8 @@
 //! Finite authenticated owner route for one portable Body invitation.
 
+#[path = "durable_body_join_route/return_route.rs"]
+mod return_route;
+
 use super::invitation::{
     prepare_body_join, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
     ROUTED_INVITATION_SCHEMA,
@@ -11,8 +14,7 @@ use conduit_body::{
     RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
 };
 use conduit_presentation::{
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
-    OWNER_FACE_RESPONSE_SCHEMA,
+    OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::secure_websocket::{
     SecureWebSocketClientLine, SecureWebSocketError, SecureWebSocketListener,
@@ -101,27 +103,34 @@ pub(crate) fn serve_body_invitation_route(
         )?;
         return Err("routed admission request named another invitation".into());
     }
-    match crate::durable_host_control::admit_owned_request(state_dir, request.request) {
-        Ok(receipt) => {
-            send(
-                &mut line,
-                &RoutedAdmissionResponse::Admitted {
-                    schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
-                    receipt: Box::new(receipt.clone()),
-                },
-            )?;
-            serve_optional_face_snapshot(&mut line, state_dir, &receipt)
-        }
-        Err(error) => {
-            send(
-                &mut line,
-                &RoutedAdmissionResponse::Refused {
-                    schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
-                    code: admission_refusal_code(&error).into(),
-                },
-            )?;
-            Err(error)
-        }
+    let continuation =
+        match crate::durable_host_control::admit_owned_request(state_dir, request.request) {
+            Ok(receipt) => {
+                send(
+                    &mut line,
+                    &RoutedAdmissionResponse::Admitted {
+                        schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+                        receipt: Box::new(receipt.clone()),
+                    },
+                )?;
+                serve_optional_face_snapshot(&mut line, state_dir, &receipt)
+            }
+            Err(error) => {
+                send(
+                    &mut line,
+                    &RoutedAdmissionResponse::Refused {
+                        schema: ROUTED_ADMISSION_RESPONSE_SCHEMA.into(),
+                        code: admission_refusal_code(&error).into(),
+                    },
+                )?;
+                return Err(error);
+            }
+        }?;
+    drop(line);
+    if let Some(grant) = continuation {
+        return_route::serve(&listener, state_dir, &grant)
+    } else {
+        Ok(())
     }
 }
 
@@ -131,7 +140,7 @@ fn serve_optional_face_snapshot(
     line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
     state_dir: &Path,
     receipt: &PortableAdmissionReceipt,
-) -> Result<(), String> {
+) -> Result<Option<return_route::Grant>, String> {
     use std::io::ErrorKind;
     line.set_read_timeout(Some(Duration::from_secs(15)))
         .map_err(|error| format!("set owner Face deadline: {error:?}"))?;
@@ -145,12 +154,11 @@ fn serve_optional_face_snapshot(
             | ErrorKind::UnexpectedEof
             | ErrorKind::ConnectionReset,
         )) => {
-            return Ok(());
+            return Ok(None);
         }
         Err(error) => return Err(format!("receive owner Face request: {error:?}")),
     };
-    let request: OwnerFaceSnapshotRequest = serde_json::from_slice(&bytes[..length])
-        .map_err(|error| format!("decode owner Face request: {error}"))?;
+    let (request, return_requested) = return_route::decode_face_request(&bytes[..length])?;
     let credential = &receipt.credential;
     if !request.has_exact_basis()
         || request.credential_id != credential.credential_id.as_str()
@@ -168,19 +176,36 @@ fn serve_optional_face_snapshot(
         )?;
         return Err("owner Face request differs from the admitted guest".into());
     }
-    let response =
-        crate::durable_host_control::face_snapshot(state_dir, request).unwrap_or_else(|error| {
-            OwnerFaceSnapshotResponse::Refused {
-                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                code: if error == "face-frame-pressure" {
-                    "face-frame-pressure"
-                } else {
-                    "face-unavailable"
-                }
-                .into(),
+    let mut response = crate::durable_host_control::face_snapshot(state_dir, request)
+        .unwrap_or_else(|error| OwnerFaceSnapshotResponse::Refused {
+            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+            code: if error == "face-frame-pressure" {
+                "face-frame-pressure"
+            } else {
+                "face-unavailable"
             }
+            .into(),
         });
-    send(line, &response)
+    let grant = if return_requested
+        && matches!(&response, OwnerFaceSnapshotResponse::Snapshot { presentation, .. }
+            if presentation.actions.iter().any(|action| action.intent == crate::durable_host::owner::clock_interval_action()))
+    {
+        Some(return_route::Grant::issue(receipt)?)
+    } else {
+        None
+    };
+    if let OwnerFaceSnapshotResponse::Snapshot {
+        interactions_admitted,
+        ..
+    } = &mut response
+    {
+        *interactions_admitted = grant.is_some();
+    }
+    send(line, &response)?;
+    if let Some(grant) = &grant {
+        send(line, grant)?;
+    }
+    Ok(grant)
 }
 
 pub(crate) fn join_body_over_route(

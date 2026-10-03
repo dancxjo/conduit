@@ -3,9 +3,9 @@ use alloc::{string::String, vec};
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use conduit_presentation::*;
 #[path = "fixture.rs"]
-mod fixture;
+pub(crate) mod fixture;
 
-fn face(revision: u64) -> Presentation {
+pub(crate) fn face(revision: u64) -> Presentation {
     let producer = fixture::producer_plan();
     Presentation::new_with_semantics(
         revision,
@@ -74,6 +74,56 @@ fn face(revision: u64) -> Presentation {
 
 fn press(usage: u8) -> KeyEvent {
     KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::NONE).unwrap()
+}
+
+#[test]
+fn bounded_local_return_notice_does_not_mutate_owner_face() {
+    let owner_face = face(7);
+    let mut scene = NativeFaceScene::prepare(owner_face.clone(), 640, 480).unwrap();
+    scene
+        .set_local_notice("Owner accepted: Face refreshed")
+        .unwrap();
+    assert_eq!(scene.presentation(), &owner_face);
+    assert!(matches!(
+        scene.set_local_notice(&"x".repeat(97)),
+        Err(FaceSceneError::InputBound)
+    ));
+    assert_eq!(scene.presentation(), &owner_face);
+}
+
+#[test]
+fn incomplete_local_input_can_be_corrected_on_the_same_show() {
+    let owner_face = face(9);
+    let show = fixture::show(&owner_face);
+    let mut scene = NativeFaceScene::prepare(owner_face.clone(), 640, 480).unwrap();
+    focus_input(&mut scene);
+    assert!(matches!(
+        scene.key(press(40), &show, 1),
+        Err(FaceSceneError::IncompleteInput)
+    ));
+    scene.set_local_notice("Input refused: incomplete").unwrap();
+    assert!(scene.clear_local_notice());
+    assert!(matches!(
+        scene.key(press(4), &show, 2).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    let FaceSceneInput::Submitted { interaction, .. } = scene.key(press(40), &show, 3).unwrap()
+    else {
+        panic!("corrected input must submit on the original Show");
+    };
+    assert_eq!(interaction.arguments[0].value, b"a");
+    assert_eq!(scene.presentation(), &owner_face);
+}
+
+#[test]
+fn checked_mask_show_survives_compact_bounded_wire_roundtrip() {
+    let owner_face = face(10);
+    let show = fixture::show(&owner_face);
+    let mut compact = vec![0u8; 65_536];
+    let length = serde_json_core::to_slice(&show, &mut compact).unwrap();
+    let decoded: MaskShow = serde_json::from_slice(&compact[..length]).unwrap();
+    assert_eq!(decoded, show);
+    assert!(length <= 65_536);
 }
 
 #[test]

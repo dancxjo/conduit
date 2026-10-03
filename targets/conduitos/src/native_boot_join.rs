@@ -15,6 +15,7 @@ use crate::{
     identity::BootIdentities,
     native_guest_face::NativeGuestFace,
     native_owner_admission::{self, NativeOwnerFaceExchangeRefusal, OwnerRouteSeeds},
+    native_owner_return::NativeOwnerReturnRoute,
     spore_join::{OwnerExchange, PendingNativeJoin},
     virtio_tcp::VirtioTcpEndpoint,
     wss_candidate_support::literal_ipv4_locator,
@@ -29,6 +30,10 @@ pub struct BootJoinOutcome {
     /// A bounded owner Face request follows the verified receipt on the same
     /// authenticated Line. Its refusal never revokes the admitted Part.
     pub face: Option<Result<NativeGuestFace, NativeOwnerFaceExchangeRefusal>>,
+    /// A separate finite bearer granted after admission, not the invitation.
+    pub return_route: Option<NativeOwnerReturnRoute>,
+    /// A return-route failure cannot revoke the already verified admission.
+    pub return_refusal: Option<&'static str>,
 }
 
 pub fn attempt(
@@ -41,30 +46,44 @@ pub fn attempt(
             pending,
             receipt: None,
             face: None,
+            return_route: None,
+            return_refusal: None,
         };
     };
     let result = request
         .as_ref()
         .ok_or("owner-admission-request-missing")
         .and_then(|request| exchange(route, &pending.route_certificates, request, identities));
-    let (receipt, face) = match result {
-        Ok(exchange) => {
+    let (receipt, face, return_route, return_refusal) = match result {
+        Ok((exchange, return_route, return_refusal)) => {
             pending.owner_exchange = OwnerExchange::ReceiptVerified;
             arch::early_write(b"CONDUIT_NATIVE_OWNER_ADMISSION {\"schema\":\"conduit.conduitos/native-owner-admission@1\",\"status\":\"receipt-verified\",\"membership_installed\":false,\"plan_created\":false,\"play_created\":false}\n");
-            (Some(exchange.receipt), Some(exchange.face))
+            if let Some(reason) = return_refusal {
+                arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"refused\",\"code\":\"");
+                arch::early_write(reason.as_bytes());
+                arch::early_write(b"\"}\n");
+            }
+            (
+                Some(exchange.receipt),
+                Some(exchange.face),
+                return_route,
+                return_refusal,
+            )
         }
         Err(reason) => {
             pending.owner_exchange = OwnerExchange::Refused(reason);
             arch::early_write(b"CONDUIT_NATIVE_OWNER_ADMISSION {\"schema\":\"conduit.conduitos/native-owner-admission@1\",\"status\":\"refused\",\"reason\":\"");
             arch::early_write(reason.as_bytes());
             arch::early_write(b"\",\"membership_installed\":false,\"plan_created\":false,\"play_created\":false}\n");
-            (None, None)
+            (None, None, None, None)
         }
     };
     BootJoinOutcome {
         pending,
         receipt,
         face,
+        return_route,
+        return_refusal,
     }
 }
 
@@ -73,7 +92,14 @@ fn exchange(
     certificates: &[crate::spore_provision::RouteCertificate],
     request: &RoutedAdmissionRequest,
     identities: BootIdentities,
-) -> Result<native_owner_admission::NativeOwnerAdmissionExchange, &'static str> {
+) -> Result<
+    (
+        native_owner_admission::NativeOwnerAdmissionExchange,
+        Option<NativeOwnerReturnRoute>,
+        Option<&'static str>,
+    ),
+    &'static str,
+> {
     let candidate = route
         .candidates
         .iter()
@@ -84,6 +110,45 @@ fn exchange(
         .find(|certificate| certificate.candidate_id == candidate.candidate_id)
         .ok_or("owner-route-certificate-missing")?;
     let endpoint = candidate_endpoint(candidate).ok_or("owner-route-ipv4-unavailable")?;
+    let seeds = fresh_seeds()?;
+    let device =
+        arch::initialize_virtio_net(identities.boot, 1, crate::boot::executable_physical_address)
+            .map_err(|error| error.as_str())?;
+    // Reconstruct current boot truth independently of the signed request.
+    let current = crate::mask_control::native_host_advertisement(
+        &conduit_core::HostId::from(crate::identity::hex(&identities.host)),
+        &conduit_core::BootId::from(crate::identity::hex(&identities.boot)),
+        1,
+    );
+    let (mut exchange, _, device) = native_owner_admission::exchange_over_candidate(
+        device,
+        seeds,
+        endpoint,
+        MAXIMUM_ATTEMPT_POLLS,
+        route,
+        certificate,
+        request,
+        &current,
+    )
+    .map_err(|error| error.as_str())?;
+    let (return_route, return_refusal) = match exchange.return_grant.take() {
+        Some(grant) => match NativeOwnerReturnRoute::admit(
+            grant,
+            exchange.receipt.clone(),
+            device,
+            endpoint,
+            candidate.authentication.server_identity.clone(),
+            certificate.certificate_der.clone(),
+        ) {
+            Ok(route) => (Some(route), None),
+            Err(reason) => (None, Some(reason)),
+        },
+        None => (None, None),
+    };
+    Ok((exchange, return_route, return_refusal))
+}
+
+pub(crate) fn fresh_seeds() -> Result<OwnerRouteSeeds, &'static str> {
     let source = arch::RdrandEntropy::detect(1).map_err(|error| error.as_str())?;
     let mut entropy =
         CryptographicEntropyBase::<_, 2>::admit(source).map_err(|error| error.as_str())?;
@@ -103,28 +168,7 @@ fn exchange(
     entropy
         .with_secret::<32, _>(|secret, _| seeds.websocket.copy_from_slice(secret))
         .map_err(|error| error.as_str())?;
-    let device =
-        arch::initialize_virtio_net(identities.boot, 1, crate::boot::executable_physical_address)
-            .map_err(|error| error.as_str())?;
-    // Reconstruct current boot truth independently of the signed request.
-    // A serialized advertisement may not define its own freshness.
-    let current = crate::mask_control::native_host_advertisement(
-        &conduit_core::HostId::from(crate::identity::hex(&identities.host)),
-        &conduit_core::BootId::from(crate::identity::hex(&identities.boot)),
-        1,
-    );
-    let result = native_owner_admission::exchange_over_candidate(
-        device,
-        seeds,
-        endpoint,
-        MAXIMUM_ATTEMPT_POLLS,
-        route,
-        certificate,
-        request,
-        &current,
-    )
-    .map_err(|error| error.as_str())?;
-    Ok(result.0)
+    Ok(seeds)
 }
 
 /// Resolve only an exact IPv4-literal WSS authority. The IPv4 address and port

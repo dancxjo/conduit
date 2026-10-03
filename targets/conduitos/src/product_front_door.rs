@@ -11,6 +11,7 @@ use face_arrival::{FaceArrival, FaceArrivalInput};
 use face_workspace::FaceWorkspace;
 use input_actions::{ProductControl, action_for, product_control, resident_application_action};
 mod journey_sign;
+mod owner_action_evidence;
 pub(crate) mod transient_sign;
 mod workspace_input;
 use workspace_input::refresh_with_face as refresh;
@@ -60,10 +61,17 @@ pub fn run(
     rescue_matcher: &mut LocalRescueMatcher,
     pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
-    let (pending_join, owner_receipt, owner_face) = match pending_join {
-        Some(join) => (Some(join.pending), join.receipt, join.face),
-        None => (None, None, None),
-    };
+    let (pending_join, owner_receipt, owner_face, owner_route, owner_return_refusal) =
+        match pending_join {
+            Some(join) => (
+                Some(join.pending),
+                join.receipt,
+                join.face,
+                join.return_route,
+                join.return_refusal,
+            ),
+            None => (None, None, None, None, None),
+        };
     let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
         .map_err(|_| "product-base-provider-invalid")?;
     effect_bases
@@ -134,6 +142,10 @@ pub fn run(
         arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
         None
     };
+    let mut owner_route = owner_face
+        .as_ref()
+        .filter(|face| face.interactions_admitted())
+        .and(owner_route);
     let mut face_arrival = FaceArrival::prepare(
         host_id.clone(),
         boot_id.clone(),
@@ -162,12 +174,16 @@ pub fn run(
     .map_err(|error| error.as_str())?;
     let owner_face_presented = owner_face.is_some();
     let receipt = if let Some(owner_face) = owner_face {
-        face_arrival.present_owner_face(owner_face.into_presentation(), display)?
+        let admitted = owner_route.as_ref().is_some_and(|route| route.available());
+        face_arrival.present_owner_face(owner_face.into_presentation(), admitted, display)?
     } else if provisioned_guest {
         face_arrival.present_pending_join(&front_door, display)?
     } else {
         face_arrival.present_first(&front_door, display)?
     };
+    if let Some(reason) = owner_return_refusal {
+        face_arrival.show_owner_result(false, false, reason, display)?;
+    }
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
@@ -189,11 +205,72 @@ pub fn run(
         let mut interact = |input| {
             if provisioned_guest {
                 match input {
+                    ProductInputEvent::Service
+                        if owner_route.as_ref().is_some_and(|route| !route.available()) =>
+                    {
+                        owner_route = None;
+                        face_arrival.retire_owner_route(display)?;
+                        face_arrival.show_owner_result(false, false, "return-expired", display)?;
+                        arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"expired\"}\n");
+                    }
                     ProductInputEvent::LocalRescue(local) => {
                         rescue_guest::observe(identities, rescue_matcher, local, true);
                     }
                     ProductInputEvent::Key(event) if owner_face_presented => {
-                        face_arrival.accept_guest_key(event, display)?;
+                        let input = match face_arrival.accept_guest_key(event, display) {
+                            Ok(input) => input,
+                            Err(reason) => {
+                                arch::early_write(b"CONDUIT_NATIVE_OWNER_INPUT {\"schema\":\"conduit.conduitos/native-owner-input@1\",\"status\":\"refused\",\"code\":\"");
+                                arch::early_write(reason.as_bytes());
+                                arch::early_write(b"\"}\n");
+                                face_arrival.show_local_refusal(reason, display)?;
+                                return Ok(ProductInputControl::Continue);
+                            }
+                        };
+                        if let Some((show, interaction)) = input {
+                            let outcome = owner_route
+                                .as_mut()
+                                .ok_or("native-owner-return-unavailable")
+                                .and_then(|route| route.submit(*identities, &show, &interaction));
+                            match outcome {
+                                Ok(outcome) => {
+                                    let admitted =
+                                        owner_route.as_ref().is_some_and(|route| route.available());
+                                    owner_action_evidence::emit(&show, &interaction, &outcome);
+                                    let refreshed = outcome.face.is_some();
+                                    if let Some(face) = outcome.face {
+                                        face_arrival.present_owner_face(
+                                            face.into_presentation(),
+                                            admitted,
+                                            display,
+                                        )?;
+                                    } else {
+                                        face_arrival.retire_owner_route(display)?;
+                                    }
+                                    face_arrival.show_owner_result(
+                                        outcome.accepted,
+                                        refreshed,
+                                        &outcome.code,
+                                        display,
+                                    )?;
+                                }
+                                Err(reason) => {
+                                    arch::early_write(b"CONDUIT_NATIVE_OWNER_ACTION {\"schema\":\"conduit.conduitos/native-owner-action@1\",\"status\":\"");
+                                    arch::early_write(if reason == "control-outcome-unknown" {
+                                        b"unknown"
+                                    } else {
+                                        b"refused"
+                                    });
+                                    arch::early_write(b"\",\"code\":\"");
+                                    arch::early_write(reason.as_bytes());
+                                    arch::early_write(b"\"}\n");
+                                    owner_route = None;
+                                    face_arrival.retire_owner_route(display)?;
+                                    face_arrival
+                                        .show_owner_result(false, false, reason, display)?;
+                                }
+                            }
+                        }
                     }
                     _ => {}
                 }

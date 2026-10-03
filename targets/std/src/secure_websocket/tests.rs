@@ -47,8 +47,37 @@ fn wildcard_listener_requires_explicit_authorization_and_retains_exact_scope() {
         SecureWebSocketListener::bind(address, &certificate, &private_key, 1024, true).unwrap();
     assert_eq!(listener.local_addr().unwrap(), address);
 
+    // One byte of a TLS handshake must not extend the absolute route window
+    // through repeated per-read socket timeouts.
+    let client = TcpStream::connect((Ipv4Addr::LOCALHOST, port)).unwrap();
+    let mut client = client;
+    client.write_all(&[22]).unwrap();
+    let started = Instant::now();
+    assert!(matches!(
+        listener.accept_with_timeout(Duration::from_millis(80)),
+        Err(SecureWebSocketError::Handshake | SecureWebSocketError::AcceptDeadline)
+    ));
+    assert!(started.elapsed() < Duration::from_secs(1));
+
     drop(listener);
     fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn absolute_socket_deadline_terminates_a_partial_frame() {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let mut client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+    let (mut server, _) = listener.accept().unwrap();
+    server
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+    let _deadline =
+        SocketDeadlineGuard::start(&server, Instant::now() + Duration::from_millis(80)).unwrap();
+    client.write_all(b"partial").unwrap();
+    let started = Instant::now();
+    let mut complete_frame = [0_u8; 128];
+    assert!(server.read_exact(&mut complete_frame).is_err());
+    assert!(started.elapsed() < Duration::from_secs(1));
 }
 
 #[test]
