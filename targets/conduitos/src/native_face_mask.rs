@@ -26,6 +26,7 @@ use crate::{
 pub enum NativeFaceMaskError {
     Plan,
     Face,
+    InputUnavailable,
     Producer(FaceSnapshotRefusal),
     Scene(FaceSceneError),
     Mask(NativeMaskPlayError),
@@ -37,6 +38,7 @@ impl NativeFaceMaskError {
         match self {
             Self::Plan => "native-face-mask-plan-refused",
             Self::Face => "native-face-mask-face-refused",
+            Self::InputUnavailable => "native-face-mask-input-unavailable",
             Self::Producer(_) => "native-face-mask-producer-refused",
             Self::Scene(FaceSceneError::StaleFace) => "native-face-mask-stale-show",
             Self::Scene(FaceSceneError::UnknownControl) => "native-face-mask-unknown-control",
@@ -72,6 +74,7 @@ pub struct NativeFaceMask {
     session: Option<NativeMaskInteractionSession>,
     publication: Option<FaceSnapshotReceipt>,
     surface_admitted: bool,
+    interaction_admitted: bool,
 }
 
 impl NativeFaceMask {
@@ -123,6 +126,7 @@ impl NativeFaceMask {
             session: None,
             publication: None,
             surface_admitted: false,
+            interaction_admitted: true,
         })
     }
 
@@ -203,6 +207,30 @@ impl NativeFaceMask {
         play_sequence: u64,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
+        self.present_with_input(face, observation_sequence, play_sequence, display, true)
+    }
+
+    /// A guest can inspect the owner's exact Face without a return route for
+    /// semantic interactions. This changes only Mask affordances, never Face
+    /// identity, actions, or source wording.
+    pub fn present_read_only(
+        &mut self,
+        face: Presentation,
+        observation_sequence: u64,
+        play_sequence: u64,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, NativeFaceMaskError> {
+        self.present_with_input(face, observation_sequence, play_sequence, display, false)
+    }
+
+    fn present_with_input(
+        &mut self,
+        face: Presentation,
+        observation_sequence: u64,
+        play_sequence: u64,
+        display: &mut impl PixelTarget,
+        interaction_admitted: bool,
+    ) -> Result<CompositionReceipt, NativeFaceMaskError> {
         let format = display.format().validate().map_err(|error| {
             NativeFaceMaskError::Compositor(
                 crate::native_compositor::NativeCompositorError::Display(error),
@@ -210,13 +238,19 @@ impl NativeFaceMask {
         })?;
         let width = u16::try_from(format.width).map_err(|_| NativeFaceMaskError::Face)?;
         let height = u16::try_from(format.height).map_err(|_| NativeFaceMaskError::Face)?;
-        let scene = NativeFaceScene::prepare(face.clone(), width, height)
-            .map_err(NativeFaceMaskError::Scene)?;
+        let scene =
+            NativeFaceScene::prepare_with_input(face.clone(), width, height, interaction_admitted)
+                .map_err(NativeFaceMaskError::Scene)?;
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
         let front_subject = face
             .subjects
             .iter()
             .find(|subject| subject.role == PresentationRole::Host)
+            .or_else(|| {
+                face.subjects
+                    .iter()
+                    .find(|subject| subject.role == PresentationRole::Body)
+            })
             .ok_or(NativeFaceMaskError::Face)?
             .identity
             .to_string();
@@ -286,6 +320,7 @@ impl NativeFaceMask {
         self.publication = Some(published.receipt);
         self.scene = Some(scene);
         self.session = Some(session);
+        self.interaction_admitted = interaction_admitted;
         Ok(composition)
     }
 
@@ -295,6 +330,9 @@ impl NativeFaceMask {
         &mut self,
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeFaceMaskError> {
+        if !self.interaction_admitted {
+            return Err(NativeFaceMaskError::InputUnavailable);
+        }
         self.session
             .take()
             .ok_or(NativeFaceMaskError::Face)?
