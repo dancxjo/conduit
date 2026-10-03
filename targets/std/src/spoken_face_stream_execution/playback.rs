@@ -12,8 +12,8 @@ use crate::RunControl;
 use conduit_core::{OfferGeneration, SignId};
 
 /// The selected ALSA back admits at most 3,072 period blocks and 16,384 ms.
-/// Audio is consumed under backpressure by the installed kernel, not buffered
-/// as an utterance by this adapter.
+/// The selected Host adapter holds at most two seconds of PCM under pressure.
+/// Short utterances below its startup lead begin on input close.
 pub const SPOKEN_PLAYBACK_PLOT: &str = "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 3072, maximum-audio-millis = 16384)\n speaker: audio/play(maximum-blocks = 3072, maximum-audio-millis = 16384)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}.\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,6 +83,7 @@ pub fn execute_real_spoken_batch_to_selected_playback(
     control: &RunControl,
 ) -> Result<SpokenPlaybackExecution, SpokenStreamExecutionRefusal> {
     validate_spoken_source(face, source_show, batch)?;
+    let selection = selection.with_bounded_speech_queue();
     if selection.boot_id != config.boot_id || selection.offer_generation != config.offer_generation
     {
         return Err(SpokenStreamExecutionRefusal::Plan(

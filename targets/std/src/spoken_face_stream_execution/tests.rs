@@ -143,7 +143,8 @@ fn selected_fake_playback(
         config.boot_id.clone(),
         config.offer_generation,
         behavior,
-    );
+    )
+    .with_bounded_speech_queue();
     let authorization = ExplicitPlaybackAuthorization::new("grant/spoken-test-speaker").unwrap();
     (config, selection, authorization)
 }
@@ -186,7 +187,10 @@ fn selected_speaker_play_is_distinct_from_wav_and_drains_ordered_segments() {
     assert_eq!(result.playback.lifecycle, PlaybackLifecycle::StoppedClosed);
     assert!(result.playback.metrics.blocks_committed > 1);
     assert_eq!(result.playback.metrics.underruns, 0);
-    assert_eq!(result.playback.backend, "deterministic-playback-fixture@1");
+    assert_eq!(
+        result.playback.backend,
+        "deterministic-bounded-speech-fixture@1"
+    );
     assert!(result.selected_resource_pool_id.contains("fixture-speaker"));
     assert_eq!(result.authority_grant_id, "grant/spoken-test-speaker");
     assert!(!result.playback_plan_id.is_empty());
