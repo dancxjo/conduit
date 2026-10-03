@@ -1,6 +1,7 @@
 //! Bounded validation of the body invitation embedded in native ConduitOS media.
 
 use alloc::{string::String, vec::Vec};
+use conduit_body::SpawnRendezvousDescriptor;
 use serde::{Deserialize, Deserializer};
 
 pub const MAGIC: &[u8] = b"CONDUIT_SPORE_MEDIA@1\0";
@@ -55,6 +56,8 @@ pub struct InvitationProvision {
     pub secret: Vec<u8>,
     #[serde(default)]
     pub rendezvous_candidates: Vec<RendezvousCandidate>,
+    #[serde(default)]
+    pub rendezvous: Option<SpawnRendezvousDescriptor>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -97,6 +100,7 @@ pub enum ProvisionError {
     WrongBinding,
     InvalidIdentity,
     InvalidSecret,
+    InvalidRendezvous,
     WrongImageBinding,
 }
 
@@ -111,6 +115,7 @@ impl ProvisionError {
             Self::WrongBinding => "spore-binding-invalid",
             Self::InvalidIdentity => "spore-identity-invalid",
             Self::InvalidSecret => "spore-secret-invalid",
+            Self::InvalidRendezvous => "spore-rendezvous-invalid",
             Self::WrongImageBinding => "spore-image-binding-invalid",
         }
     }
@@ -222,6 +227,25 @@ fn validate(provision: &NativeMediaProvision) -> Result<(), ProvisionError> {
     {
         return Err(ProvisionError::InvalidIdentity);
     }
+    if provision
+        .invitation_provision
+        .rendezvous
+        .as_ref()
+        .is_some_and(|rendezvous| {
+            !provision
+                .invitation_provision
+                .rendezvous_candidates
+                .is_empty()
+                || rendezvous.body_id != provision.spore.body_id
+                || rendezvous.invitation_id.as_str() != invitation_id.as_str()
+                || rendezvous.validate(0).is_err()
+                || rendezvous.candidates.iter().any(|candidate| {
+                    candidate.expires_at_millis > provision.invitation_provision.expires_at_millis
+                })
+        })
+    {
+        return Err(ProvisionError::InvalidRendezvous);
+    }
     Ok(())
 }
 
@@ -306,6 +330,55 @@ mod tests {
         let mut weak = fixture();
         weak["invitation_provision"]["secret"] = serde_json::json!(vec![0; 32]);
         assert_eq!(decode(&region(weak)), Err(ProvisionError::InvalidSecret));
+    }
+
+    #[test]
+    fn canonical_route_retains_authentication_and_rejects_relabeling() {
+        let mut routed = fixture();
+        routed["invitation_provision"]["rendezvous_candidates"] = serde_json::json!([]);
+        routed["invitation_provision"]["rendezvous"] = serde_json::json!({
+            "protocol":1,
+            "body_id":"body/one",
+            "invitation_id":"invitation/one",
+            "candidates":[{
+                "candidate_id":"candidate/tls",
+                "line_family":"authenticated-tls-stream",
+                "reachability":"wss://owner.example:443/conduit",
+                "authentication":{
+                    "server_identity":"owner/example",
+                    "transport_binding_sha256":vec![7;32]
+                },
+                "expires_at_millis":1_800_000_000_000_u64,
+                "maximum_attempts":2,
+                "attempt_timeout_millis":2_000
+            }]
+        });
+        let decoded = decode(&region(routed.clone())).unwrap().unwrap();
+        assert_eq!(
+            decoded.invitation_provision.rendezvous.unwrap().candidates[0]
+                .authentication
+                .transport_binding_sha256,
+            [7; 32]
+        );
+        let mut relabeled = routed.clone();
+        relabeled["invitation_provision"]["rendezvous"]["body_id"] = "body/two".into();
+        assert_eq!(
+            decode(&region(relabeled)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        let mut weakened = routed.clone();
+        weakened["invitation_provision"]["rendezvous"]["candidates"][0]["authentication"]["transport_binding_sha256"] =
+            serde_json::json!(vec![0; 32]);
+        assert_eq!(
+            decode(&region(weakened)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
+        routed["invitation_provision"]["rendezvous_candidates"] =
+            fixture()["invitation_provision"]["rendezvous_candidates"].clone();
+        assert_eq!(
+            decode(&region(routed)),
+            Err(ProvisionError::InvalidRendezvous)
+        );
     }
 
     #[test]
