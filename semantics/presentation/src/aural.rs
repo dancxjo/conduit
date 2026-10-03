@@ -7,11 +7,12 @@
 use alloc::{format, string::String, vec::Vec};
 use sha2::{Digest, Sha256};
 
-use conduit_core::{IntervalEndpoint, ValueConstraint};
+use conduit_core::{IntervalEndpoint, TemporalRelation, ValueConstraint};
 
 use crate::{
     FaceUtteranceClauseKind, FaceUtteranceProvenance, Presentation, PresentationActionAvailability,
-    PresentationCompositionKind, PresentationError, PresentationRelationshipKind, PresentationRole,
+    PresentationCompositionKind, PresentationDisclosureLevel, PresentationError,
+    PresentationRelationshipKind, PresentationRole, PresentationTemporalRole,
 };
 
 pub const MAX_FACE_UTTERANCE_CLAUSES: usize = 10_256;
@@ -138,9 +139,9 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::Disclosure,
             text: format!(
-                "{} is {:?} content.",
-                subject_name(face, &disclosure.subject),
-                disclosure.level
+                "{}: {}.",
+                disclosure_token(disclosure.level),
+                subject_name(face, &disclosure.subject)
             ),
             provenance: FaceUtteranceProvenance::disclosure(index as u32).unwrap(),
         })?;
@@ -166,12 +167,12 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::TemporalFact,
             text: format!(
-                "{} has {:?} time at tick {} on {}: {:?} relative to {}{}.",
+                "{} {} at tick {} on {}. {} relative to {}{}.",
                 subject_name(face, &fact.subject),
-                fact.role,
+                temporal_role_token(fact.role),
                 fact.source.ticks,
                 fact.source.clock_basis,
-                fact.relation,
+                temporal_relation_token(fact.relation),
                 fact.reference,
                 fact.sign_id
                     .as_ref()
@@ -293,6 +294,43 @@ fn role_token(role: &PresentationRole) -> String {
         PresentationRole::TextEntry => "Text entry".into(),
         PresentationRole::Status => "Status".into(),
         PresentationRole::Action => "Action".into(),
+    }
+}
+
+fn disclosure_token(level: PresentationDisclosureLevel) -> &'static str {
+    match level {
+        PresentationDisclosureLevel::Primary => "Primary content",
+        PresentationDisclosureLevel::CurrentAction => "Current action",
+        PresentationDisclosureLevel::Context => "Context",
+        PresentationDisclosureLevel::SelectedDetail => "Selected detail",
+        PresentationDisclosureLevel::ExactProvenance => "Exact provenance",
+    }
+}
+
+fn temporal_role_token(role: PresentationTemporalRole) -> &'static str {
+    match role {
+        PresentationTemporalRole::Event => "happened",
+        PresentationTemporalRole::Observation => "was observed",
+        PresentationTemporalRole::Ingestion => "was received",
+    }
+}
+
+fn temporal_relation_token(relation: TemporalRelation) -> String {
+    match relation {
+        TemporalRelation::Past {
+            minimum_ticks,
+            maximum_ticks,
+        } => {
+            format!("Between {minimum_ticks} and {maximum_ticks} ticks before")
+        }
+        TemporalRelation::Present => "At the same instant as".into(),
+        TemporalRelation::Future {
+            minimum_ticks,
+            maximum_ticks,
+        } => {
+            format!("Between {minimum_ticks} and {maximum_ticks} ticks after")
+        }
+        TemporalRelation::Indeterminate => "Overlaps in time with".into(),
     }
 }
 

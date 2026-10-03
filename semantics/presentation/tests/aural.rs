@@ -601,7 +601,7 @@ fn read_all_includes_disclosure_and_temporal_context_with_exact_provenance() {
         (
             FaceUtteranceClauseKind::Disclosure,
             FaceUtteranceProvenance::disclosure(0).unwrap(),
-            "Arrived is Primary content",
+            "Primary content: Arrived",
         ),
         (
             FaceUtteranceClauseKind::TemporalReference,
@@ -611,7 +611,7 @@ fn read_all_includes_disclosure_and_temporal_context_with_exact_provenance() {
         (
             FaceUtteranceClauseKind::TemporalFact,
             FaceUtteranceProvenance::temporal_fact(0).unwrap(),
-            "Arrived has Observation time at tick 10",
+            "Arrived was observed at tick 10",
         ),
     ] {
         assert!(plan.clauses.iter().any(|clause| {
