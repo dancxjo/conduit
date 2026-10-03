@@ -176,14 +176,6 @@ impl BrowserMaskRuntime {
             plan::ALTERNATE_MASK_SOURCE,
             "browser-graphical-alternate",
         )?;
-        let source_placement_id = base_plan
-            .plots
-            .first()
-            .and_then(|f| f.plan.fragments.first())
-            .and_then(|f| f.placements.first())
-            .ok_or("Body Plan lacks Presentation source placement")?
-            .placement_id
-            .clone();
         let chains = [&planned, &alternate]
             .into_iter()
             .map(|p| BodyMaskChainPlan {
@@ -203,7 +195,7 @@ impl BrowserMaskRuntime {
             vec![BodyMaskTopology {
                 face: BodyFaceSelector {
                     plot: base_plan.plots.first().map(|f| f.plot.clone()),
-                    source_placement_id,
+                    source_placement_id: None,
                 },
                 chains,
             }],

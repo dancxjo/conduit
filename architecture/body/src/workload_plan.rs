@@ -32,10 +32,14 @@ pub const MAX_BODY_MASK_STAGES: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BodyFaceSelector {
-    /// The exact resident Plot when the Face is plot-scoped. `None` selects
-    /// the body-scoped Face without inventing a source Plot.
+    /// The exact resident Plot in focus, if any. A Face composed by the Body
+    /// owner may focus a Plot without originating at one of its placements.
     pub plot: Option<ResidentPlot>,
-    pub source_placement_id: PlacementId,
+    /// Only a Face emitted by a planned Plot gear names its actual placement.
+    /// `None` means the authoritative owner composed the Face and supplies its
+    /// exact revision at the declared Mask input, even if a Plot is in focus.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_placement_id: Option<PlacementId>,
 }
 
 /// One independently admitted linear chain. `plan` is an ordinary immutable
@@ -120,7 +124,7 @@ impl BodyPlan {
         }) {
             return Err(BodyPlanError::MissingPlot);
         }
-        validate_mask_topologies(&wake.workset, &mask_topologies)?;
+        validate_mask_topologies(&wake.workset, &plots, &mask_topologies)?;
         mask_topologies.sort_by(|left, right| left.face.cmp(&right.face));
         let plan_id = bind_body_plan(
             &wake.body_id,
@@ -193,7 +197,7 @@ impl BodyPlan {
         }) {
             return Err(BodyPlanError::MissingPlot);
         }
-        validate_mask_topologies(&self.workset, &self.mask_topologies)?;
+        validate_mask_topologies(&self.workset, &self.plots, &self.mask_topologies)?;
         if self
             .mask_topologies
             .windows(2)
@@ -251,7 +255,7 @@ fn bind_body_plan(
     mask_topologies: &[BodyMaskTopology],
 ) -> PlanId {
     let mut bytes = Vec::new();
-    push(&mut bytes, "conduit.body/body-plan@2");
+    push(&mut bytes, "conduit.body/body-plan@3");
     push(&mut bytes, body_id.as_str());
     push(&mut bytes, wake_id.as_str());
     bytes.extend_from_slice(&workload_revision.to_le_bytes());
@@ -270,7 +274,13 @@ fn bind_body_plan(
         } else {
             push(&mut bytes, "body");
         }
-        push(&mut bytes, topology.face.source_placement_id.as_str());
+        match &topology.face.source_placement_id {
+            Some(placement) => {
+                push(&mut bytes, "plot-placement");
+                push(&mut bytes, placement.as_str());
+            }
+            None => push(&mut bytes, "owner-composed"),
+        }
         bytes.extend_from_slice(&(topology.chains.len() as u32).to_le_bytes());
         for chain in &topology.chains {
             push(&mut bytes, chain.plan.plan_id.as_str());
@@ -285,18 +295,31 @@ fn bind_body_plan(
 
 fn validate_mask_topologies(
     workset: &BodyWorkset,
+    plots: &[BodyPlotPlan],
     topologies: &[BodyMaskTopology],
 ) -> Result<(), BodyPlanError> {
     if topologies.len() > MAX_BODY_MASK_TOPOLOGIES {
         return Err(BodyPlanError::MaskTopologyCapacityExceeded);
     }
     for (index, topology) in topologies.iter().enumerate() {
-        if topology
-            .face
-            .plot
-            .as_ref()
-            .is_some_and(|plot| !workset.contains(plot))
-            || topology.face.source_placement_id.as_str().is_empty()
+        let valid_source = match (&topology.face.plot, &topology.face.source_placement_id) {
+            (None, None) => true,
+            (Some(plot), None) => workset.contains(plot),
+            (Some(plot), Some(source)) => {
+                workset.contains(plot)
+                    && plots.iter().any(|partition| {
+                        &partition.plot == plot
+                            && partition
+                                .plan
+                                .fragments
+                                .iter()
+                                .flat_map(|fragment| &fragment.placements)
+                                .any(|placement| &placement.placement_id == source)
+                    })
+            }
+            _ => false,
+        };
+        if !valid_source
             || topology.chains.is_empty()
             || topology.chains.len() > MAX_BODY_MASK_CHAINS
         {

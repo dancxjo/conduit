@@ -105,7 +105,7 @@ fn admit_spoken_mask_routes_for_wake(
                         item.mask.plot_identity.source_document_id.clone(),
                         item.mask.plot_identity.checked_plot_id.clone(),
                     )),
-                    source_placement_id: first.clone(),
+                    source_placement_id: None,
                 },
                 chains: vec![BodyMaskChainPlan {
                     plan: item.plan.clone(),
