@@ -200,3 +200,133 @@ fn actual_execution_receipt_survives_fresh_boot_as_history_only() {
     assert!(reopened.restore_execution(&root).is_err());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn retained_invitation_admits_one_native_host_once_in_running_owner() {
+    use conduit_body::{
+        AdmissionManager, PortableSpawnAdmissionRequest, SpawnInvitationSecret,
+        SPAWN_ADMISSION_REQUEST_SCHEMA,
+    };
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-native-admission",
+        "invited",
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = super::super::super::Installation {
+        schema: super::super::super::INSTALL_SCHEMA.into(),
+        host_id: "host/owner-test".into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: super::super::super::digest(b"bundle/test"),
+        product_executable: "fixture-unused".into(),
+        body_state: None,
+        joined_body_state: None,
+    };
+    super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let plot = source();
+    let mut first = Owner::open(host("boot/first"), resident(&plot), None, "Shared Body").unwrap();
+    first.persist(&root).unwrap();
+    let owner_host = first.host.advertisement();
+    let now = super::super::super::current_time_millis().unwrap();
+    let secret = SpawnInvitationSecret::from_csprng_bytes([13; 32]).unwrap();
+    let mut manager = AdmissionManager::new(first.session.evidence().body_id.clone()).unwrap();
+    let claim = first
+        .session
+        .issue_invitation(
+            &mut manager,
+            secret.clone(),
+            [17; 32],
+            now,
+            now + 60_000,
+            &owner_host.host_id,
+            &owner_host.boot_id,
+        )
+        .unwrap();
+    // The installed invitation entrance writes this canonical file while the
+    // owner is stopped; the fresh owner must restore and consume it.
+    super::super::super::write_json_atomic(&root.join("body/admission.json"), &manager).unwrap();
+    let mut owner = Owner::open(
+        host("boot/second"),
+        resident(&plot),
+        state::load(&root).unwrap(),
+        "ignored",
+    )
+    .unwrap();
+    owner.restore_execution(&root).unwrap();
+    assert_eq!(owner.admissions, Some(manager));
+    let guest = StdHost::new_with_config(StdHostConfig {
+        host_id: HostId::from("host/native-guest"),
+        boot_id: BootId::from("boot/native-guest/1"),
+        offer_generation: OfferGeneration(1),
+    });
+    let advertisement = guest.advertisement().clone();
+    let request = PortableSpawnAdmissionRequest {
+        schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
+        invitation_id: claim.invitation_id.clone(),
+        body_id: claim.body_id.clone(),
+        host_advertisement: advertisement.clone(),
+        nonce: claim.nonce,
+        signature: secret
+            .sign(&claim.signing_transcript(
+                &advertisement.host_id,
+                &advertisement.boot_id,
+                advertisement.offer_generation,
+            ))
+            .to_vec(),
+        membership_admitted: false,
+        plan_created: false,
+        play_created: false,
+    };
+    assert!(owner
+        .admit_invited(&root, request.clone(), "host/wrong-guest")
+        .is_err());
+    let mut invalid = request.clone();
+    invalid.host_advertisement.protocol_version = 0;
+    assert!(owner
+        .admit_invited(&root, invalid, "host/native-guest")
+        .is_err());
+    let receipt = owner
+        .admit_invited(&root, request.clone(), "host/native-guest")
+        .unwrap();
+    receipt.validate_against(&request).unwrap();
+    assert_eq!(receipt.credential.host_id, advertisement.host_id);
+    assert_eq!(receipt.credential.boot_id, advertisement.boot_id);
+    let retained = state::load(&root).unwrap().unwrap();
+    assert_eq!(retained.body_id, claim.body_id);
+    assert_eq!(retained.membership.parts.len(), 2);
+    let before = owner.session.evidence().clone();
+    assert!(matches!(
+        owner.admit_invited(&root, request.clone(), "host/native-guest"),
+        Err(error) if error.contains("Replay")
+    ));
+    let mut next_manager = owner.admissions.take().unwrap();
+    let second_secret = SpawnInvitationSecret::from_csprng_bytes([23; 32]).unwrap();
+    let next = owner
+        .session
+        .issue_invitation(
+            &mut next_manager,
+            second_secret.clone(),
+            [27; 32],
+            now,
+            now + 60_000,
+            &owner.host.advertisement().host_id,
+            &owner.host.advertisement().boot_id,
+        )
+        .unwrap();
+    owner.admissions = Some(next_manager);
+    let mut duplicate = request;
+    duplicate.invitation_id = next.invitation_id.clone();
+    duplicate.nonce = next.nonce;
+    duplicate.signature = second_secret
+        .sign(&next.signing_transcript(
+            &advertisement.host_id,
+            &advertisement.boot_id,
+            advertisement.offer_generation,
+        ))
+        .to_vec();
+    assert!(matches!(
+        owner.admit_invited(&root, duplicate, "host/native-guest"),
+        Err(error) if error.contains("already has an admitted Part")
+    ));
+    assert_eq!(owner.session.evidence(), &before);
+    std::fs::remove_dir_all(root).unwrap();
+}

@@ -34,6 +34,16 @@ pub(super) struct PendingBodyJoin {
     pub(super) request: PortableSpawnAdmissionRequest,
 }
 
+fn refuse_legacy_owner_admissions(state_dir: &Path) -> Result<(), String> {
+    if state_dir.join("body/owner-admissions.json").exists() {
+        return Err(
+            "legacy owner admission authority must be migrated by reopening the foreground Body owner"
+                .into(),
+        );
+    }
+    Ok(())
+}
+
 pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Result<(), String> {
     let portable = issue_body_invitation_document(state_dir, ttl_seconds, None)?;
     let encoded = serde_json::to_string(&portable)
@@ -48,6 +58,7 @@ pub(super) fn issue_body_invitation_document(
     candidates: Option<Vec<conduit_body::RendezvousCandidate>>,
 ) -> Result<PortableInvitation, String> {
     let _body_ownership = super::owner_lock::body(state_dir)?;
+    super::owner::recover_retained_state(state_dir)?;
     if !(1..=600).contains(&ttl_seconds) {
         return Err("invitation lifetime must be between 1 and 600 seconds".into());
     }
@@ -57,6 +68,7 @@ pub(super) fn issue_body_invitation_document(
         .as_ref()
         .ok_or("this installed host does not own a body")?;
     recover_admission_transaction(state_dir, Path::new(&body.biography_path))?;
+    refuse_legacy_owner_admissions(state_dir)?;
     let biography_bytes = bounded_read(Path::new(&body.biography_path), 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
         return Err("retained body biography no longer matches its exact identity".into());
@@ -84,6 +96,19 @@ pub(super) fn issue_body_invitation_document(
         AdmissionManager::new(body_id)
             .map_err(|error| format!("initialize Body admission: {error:?}"))?
     };
+    let portable = issue_from_manager(&mut manager, ttl_seconds, candidates)?;
+    write_json_atomic(&admission_path, &manager)?;
+    Ok(portable)
+}
+
+pub(super) fn issue_from_manager(
+    manager: &mut AdmissionManager,
+    ttl_seconds: u64,
+    candidates: Option<Vec<conduit_body::RendezvousCandidate>>,
+) -> Result<PortableInvitation, String> {
+    if !(1..=600).contains(&ttl_seconds) {
+        return Err("invitation lifetime must be between 1 and 600 seconds".into());
+    }
     let now_millis = current_time_millis()?;
     let expires_at_millis = now_millis
         .checked_add(ttl_seconds.saturating_mul(1_000))
@@ -98,7 +123,6 @@ pub(super) fn issue_body_invitation_document(
     let invitation = manager
         .issue_spawn_invitation(secret, nonce, now_millis, expires_at_millis)
         .map_err(|error| format!("issue Body invitation: {error:?}"))?;
-    write_json_atomic(&admission_path, &manager)?;
     let claim = invitation.claim();
     let rendezvous = candidates.map(|candidates| conduit_body::SpawnRendezvousDescriptor {
         protocol: conduit_body::RENDEZVOUS_DESCRIPTOR_PROTOCOL,
@@ -155,6 +179,7 @@ pub(super) fn admit_body_request_document(
     authorize_admission: bool,
 ) -> Result<PortableAdmissionReceipt, String> {
     let _body_ownership = super::owner_lock::body(state_dir)?;
+    super::owner::recover_retained_state(state_dir)?;
     if !authorize_admission {
         return Err("admitting a host into this body requires --authorize-admission".into());
     }
@@ -166,6 +191,7 @@ pub(super) fn admit_body_request_document(
         .ok_or("this installed host does not own a body")?;
     let biography_path = std::path::PathBuf::from(&body.biography_path);
     recover_admission_transaction(state_dir, &biography_path)?;
+    refuse_legacy_owner_admissions(state_dir)?;
     let biography_bytes = bounded_read(&biography_path, 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
         return Err("retained body biography no longer matches its exact identity".into());
