@@ -190,7 +190,7 @@ pub(super) fn prepared(face: &Presentation) -> MaskShow {
 }
 
 /// Fixture acknowledgement only; production must observe its actual effect.
-pub(super) fn show(face: &Presentation) -> MaskShow {
+pub(crate) fn show(face: &Presentation) -> MaskShow {
     prepared(face)
         .transition(
             ManifestationLifecycle::Available,

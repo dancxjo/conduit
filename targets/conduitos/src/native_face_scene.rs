@@ -3,7 +3,7 @@
 //! Preparation retains the complete Face and admits a finite readable document.
 //! Pages and focus belong to this Mask; an ordinary Mask executor must still
 //! acknowledge scanout before using the returned mappings to make interactions.
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use conduit_presentation::{
     FaceActionArgument, FaceInteraction, FaceInteractionArgument, GraphicsCommand,
     GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole, LayoutRect, MaskShow,
@@ -23,7 +23,7 @@ mod layout;
 pub use input::{FaceFocusRequest, FaceSceneInput};
 #[cfg(test)]
 #[path = "native_face_scene/tests.rs"]
-mod tests;
+pub(crate) mod tests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FaceSceneError {
@@ -91,6 +91,7 @@ pub struct NativeFaceScene {
     showing_diagram: bool,
     input: input::InputState,
     interaction_admitted: bool,
+    local_notice: Option<String>,
 }
 
 impl NativeFaceScene {
@@ -126,11 +127,28 @@ impl NativeFaceScene {
             showing_diagram: false,
             input: input::InputState::default(),
             interaction_admitted,
+            local_notice: None,
         })
     }
 
     pub fn presentation(&self) -> &Presentation {
         &self.face
+    }
+
+    /// Bounded Mask-local outcome text. It never changes the owner's Face.
+    pub fn set_local_notice(&mut self, notice: &str) -> Result<(), FaceSceneError> {
+        if notice.is_empty()
+            || notice.len() > 96
+            || !notice.bytes().all(|byte| (32..=126).contains(&byte))
+        {
+            return Err(FaceSceneError::InputBound);
+        }
+        self.local_notice = Some(notice.into());
+        Ok(())
+    }
+
+    pub fn clear_local_notice(&mut self) -> bool {
+        self.local_notice.take().is_some()
     }
 
     pub fn focused(&self) -> Option<FaceControl> {
@@ -397,21 +415,25 @@ impl NativeFaceScene {
                 });
             }
         }
-        let footer = self.input.preview(self.focus).unwrap_or_else(|| {
-            if !self.interaction_admitted && self.has_diagram() {
-                "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
-            } else if !self.interaction_admitted {
-                "Read only · PgUp/PgDn pages · F2 facts".into()
-            } else if self.showing_diagram {
-                "Visible links only · F2 all facts · F3 return".into()
-            } else if self.showing_details {
-                "PgUp/PgDn pages · Tab next · F2 return".into()
-            } else if self.has_diagram() {
-                "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
-            } else {
-                "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
-            }
-        });
+        let footer = self
+            .local_notice
+            .clone()
+            .or_else(|| self.input.preview(self.focus))
+            .unwrap_or_else(|| {
+                if !self.interaction_admitted && self.has_diagram() {
+                    "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
+                } else if !self.interaction_admitted {
+                    "Read only · PgUp/PgDn pages · F2 facts".into()
+                } else if self.showing_diagram {
+                    "Visible links only · F2 all facts · F3 return".into()
+                } else if self.showing_details {
+                    "PgUp/PgDn pages · Tab next · F2 return".into()
+                } else if self.has_diagram() {
+                    "Tab next · Enter act · F2 inspect · F3 Patchbay".into()
+                } else {
+                    "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
+                }
+            });
         push(
             &mut scene,
             GraphicsCommand::rect(

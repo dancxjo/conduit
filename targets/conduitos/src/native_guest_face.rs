@@ -2,8 +2,7 @@
 //!
 //! A pinned owner Line authenticates the producer. This module checks that the
 //! received immutable Face describes the Body named by the exact admission
-//! receipt. The snapshot is read-only here; it does not grant a continuing
-//! owner route, a current Play, or local lifecycle authority.
+//! receipt. A separate, bounded return grant is required before actions.
 
 use alloc::{format, string::String};
 use conduit_body::{PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA};
@@ -17,6 +16,7 @@ use crate::native_guest_part::NativeGuestPart;
 pub struct NativeGuestFace {
     credential_id: String,
     presentation: Presentation,
+    interactions_admitted: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,17 +58,12 @@ impl NativeGuestFace {
         {
             return Err(GuestFaceRefusal::ReceiptBasis);
         }
-        let presentation = match response {
+        let (presentation, interactions_admitted) = match response {
             OwnerFaceSnapshotResponse::Snapshot {
                 schema,
                 presentation,
                 interactions_admitted,
-            } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
-                if interactions_admitted {
-                    return Err(GuestFaceRefusal::InteractionRoute);
-                }
-                *presentation
-            }
+            } if schema == OWNER_FACE_RESPONSE_SCHEMA => (*presentation, interactions_admitted),
             OwnerFaceSnapshotResponse::Refused { schema, code }
                 if schema == OWNER_FACE_RESPONSE_SCHEMA
                     && !code.is_empty()
@@ -99,6 +94,7 @@ impl NativeGuestFace {
         Ok(Self {
             credential_id: receipt.credential.credential_id.as_str().into(),
             presentation,
+            interactions_admitted,
         })
     }
 
@@ -109,6 +105,10 @@ impl NativeGuestFace {
 
     pub fn presentation(&self) -> &Presentation {
         &self.presentation
+    }
+
+    pub fn interactions_admitted(&self) -> bool {
+        self.interactions_admitted
     }
 
     pub fn into_presentation(self) -> Presentation {

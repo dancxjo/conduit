@@ -162,6 +162,36 @@ pub(crate) fn with_websocket_deadline<T, E>(
     deadline: Option<CandidateDeadline>,
     operation: impl FnOnce(&mut dyn BinaryWebSocketIo) -> Result<T, E>,
 ) -> Result<(T, u32), VirtioWebSocketRunError<E>> {
+    with_websocket_deadline_retain_device(
+        device,
+        tcp_seed,
+        tls_seed,
+        websocket_seed,
+        endpoint,
+        server_name,
+        pinned_certificate_der,
+        maximum_polls,
+        deadline,
+        operation,
+    )
+    .map(|(value, polls, _device)| (value, polls))
+}
+
+/// Keep the initialized network base after this authenticated Line closes.
+/// Failure consumes it and leaves no second authority to reconnect.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_websocket_deadline_retain_device<T, E>(
+    device: VirtioNetReady,
+    tcp_seed: u64,
+    tls_seed: [u8; 32],
+    websocket_seed: [u8; 32],
+    endpoint: VirtioTcpEndpoint,
+    server_name: &str,
+    pinned_certificate_der: &[u8],
+    maximum_polls: u32,
+    deadline: Option<CandidateDeadline>,
+    operation: impl FnOnce(&mut dyn BinaryWebSocketIo) -> Result<T, E>,
+) -> Result<(T, u32, VirtioNetReady), VirtioWebSocketRunError<E>> {
     if server_name.is_empty()
         || pinned_certificate_der.is_empty()
         || pinned_certificate_der.len() > MAXIMUM_CERTIFICATE_BYTES
@@ -210,7 +240,7 @@ pub(crate) fn with_websocket_deadline<T, E>(
     let websocket_close = websocket.close();
     let tls_close = tls.close();
     let tcp_close = match tls_close {
-        Ok(stream) => stream.close_tcp().map_err(VirtioTlsError::Tcp),
+        Ok(stream) => stream.close_tcp_with_device().map_err(VirtioTlsError::Tcp),
         Err(_) => Err(VirtioTlsError::Close),
     };
     let value = match result {
@@ -224,8 +254,8 @@ pub(crate) fn with_websocket_deadline<T, E>(
     }
     websocket_close
         .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::WebSocket(error)))?;
-    let tcp_polls = tcp_close.map_err(VirtioWebSocketRunError::Transport)?;
-    Ok((value, tcp_polls))
+    let (device, tcp_polls) = tcp_close.map_err(VirtioWebSocketRunError::Transport)?;
+    Ok((value, tcp_polls, device))
 }
 
 fn classify_handshake(error: TlsError) -> VirtioTlsError {
