@@ -48,7 +48,7 @@ export function acquisitionIdentity(target, { root = process.cwd(), env = proces
   if (target === 'avr') paths.push(path.join(rustup, 'toolchains/nightly-2024-07-22-x86_64-unknown-linux-gnu'),
     ...['tools', 'arduino/data', 'arduino/downloads', 'core-verification.json'].map(name => path.join(root, 'target/avr-promicro', name)));
   return { target, key, specificationKey, runnerImage, paths,
-    cacheable: !['preflight', 'unit', 'hosted-windows', 'hosted-macos'].includes(target) };
+    cacheable: ['browser', 'avr', 'esp32-c3', 'esp32-s3', 'esp32-wroom', 'rp2040'].includes(target) };
 }
 
 export function emitAcquisitionKey(target) {
