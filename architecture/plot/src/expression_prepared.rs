@@ -65,6 +65,7 @@ enum PreparedOperation {
         when_false: Box<PreparedNode>,
     },
     Projection(PreparedProjection),
+    Widen(Box<PreparedNode>),
 }
 
 struct PreparedProjection {
@@ -207,6 +208,24 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
             when_true: Box::new(prepare_node(when_true)?),
             when_false: Box::new(prepare_node(when_false)?),
         },
+        PortableExpressionOperation::SemanticCall {
+            kind: call,
+            arguments,
+        } if crate::expression_semantic_call::integer_widening_target(call).is_some() => {
+            let [argument] = arguments.as_slice() else {
+                return Err(Refusal::InvalidProgram);
+            };
+            let operand = prepare_node(argument)?;
+            if call != kind_name(kind)
+                || !crate::expression_semantic_call::is_strict_widening(
+                    kind_name(operand.kind),
+                    call,
+                )
+            {
+                return Err(Refusal::InvalidProgram);
+            }
+            PreparedOperation::Widen(Box::new(operand))
+        }
         PortableExpressionOperation::Projection { .. } => {
             PreparedOperation::Projection(prepare_projection(node)?)
         }
@@ -352,6 +371,10 @@ fn evaluate_node<'a>(
                 when_false
             };
             evaluate_node(selected, input, input_kind)?
+        }
+        PreparedOperation::Widen(operand) => {
+            let operand = evaluate_node(operand, input, input_kind)?;
+            primitive::evaluate_widen(expected, &operand)?
         }
         PreparedOperation::Projection(projection) => {
             PrimitiveValue::borrowed(expected, projection.evaluate(input)?)?

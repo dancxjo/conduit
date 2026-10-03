@@ -13,6 +13,7 @@ mod borrowed;
 mod canonical;
 pub use borrowed::*;
 mod inspection;
+mod prepared_composition;
 mod profile;
 mod selection;
 mod sequence;
@@ -24,6 +25,7 @@ use canonical::{
     type_extent, validate_value, value_extent,
 };
 pub use inspection::*;
+pub use prepared_composition::*;
 pub use profile::*;
 pub use selection::*;
 pub use sequence::*;

@@ -7,6 +7,10 @@ use core::ptr::{read_volatile, write_volatile};
 
 use super::xhci::XhciReady;
 
+#[path = "usb_control.rs"]
+mod control;
+use control::{ControlRequest, ControlRing, control};
+
 #[path = "usb_attachment.rs"]
 mod attachment;
 #[path = "usb_descriptor.rs"]
@@ -29,33 +33,14 @@ use descriptor::{
 pub use dma::USB_DEVICE_DMA_SLOTS;
 use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
-use transfer::validate_transfer_event;
+#[cfg(test)]
+use transfer::{setup_transfer_type, transferred_bytes, validate_transfer_event};
 pub const MAX_CONTROL_TRANSFERS: u8 = 5;
 pub const MAX_OUTSTANDING_CONTROL_TRANSFERS: u8 = 1;
 pub const MAX_ENUMERATION_RETRIES: u8 = 0;
 pub const USB_SIGN_SLOTS: u8 = 12;
 const TRANSFER_TRBS: usize = 32;
 const PORT_POLL_STEPS: u32 = 2_000_000;
-
-struct ControlRing {
-    enqueue: usize,
-    cycle: u32,
-    physical: u64,
-    buffer_physical: u64,
-    root_port: u8,
-    short_packets: u8,
-    dma: *mut UsbDma,
-}
-
-#[derive(Clone, Copy)]
-struct ControlRequest {
-    request_type: u8,
-    request: u8,
-    value: u16,
-    index: u16,
-    length: u16,
-    input: bool,
-}
 
 pub fn enumerate_one(
     controller: &mut XhciReady,
@@ -197,7 +182,10 @@ fn enumerate_root_port_at_epoch(
             request: 6,
             value: 0x0100,
             index: 0,
-            length: 18,
+            // Legacy enumeration overrequests one bounded packet; the device
+            // descriptor still must complete with exactly 18 actual octets.
+            // This exercises short Data Stage + final Status Stage handling.
+            length: 64,
             input: true,
         },
     )?;
@@ -413,75 +401,6 @@ unsafe fn write_context_u32(dma: *mut UsbDma, offset: usize, value: u32) {
             value,
         )
     };
-}
-
-fn control(
-    controller: &mut XhciReady,
-    ring: &mut ControlRing,
-    slot: u8,
-    request: ControlRequest,
-) -> Result<usize, UsbError> {
-    let ControlRequest {
-        request_type,
-        request,
-        value,
-        index,
-        length,
-        input,
-    } = request;
-    let count = if length == 0 { 2 } else { 3 };
-    if ring.enqueue + count >= TRANSFER_TRBS {
-        return Err(UsbError::TransferRingFull);
-    }
-    let setup = [
-        u32::from(request_type) | (u32::from(request) << 8) | (u32::from(value) << 16),
-        u32::from(index) | (u32::from(length) << 16),
-        8,
-        (2 << 10) | (1 << 6) | (if input { 3 << 16 } else { 0 }) | ring.cycle,
-    ];
-    put_transfer(ring.dma, ring.enqueue, setup);
-    ring.enqueue += 1;
-    if length != 0 {
-        let data = [
-            ring.buffer_physical as u32,
-            (ring.buffer_physical >> 32) as u32,
-            u32::from(length),
-            (3 << 10) | (u32::from(input) << 16) | ring.cycle,
-        ];
-        put_transfer(ring.dma, ring.enqueue, data);
-        ring.enqueue += 1;
-    }
-    let status_index = ring.enqueue;
-    put_transfer(
-        ring.dma,
-        status_index,
-        [
-            0,
-            0,
-            0,
-            (4 << 10) | (u32::from(!input || length == 0) << 16) | (1 << 5) | ring.cycle,
-        ],
-    );
-    ring.enqueue += 1;
-    controller.ring_endpoint(slot, 1);
-    let mut event = controller.next_event()?;
-    for _ in 0..TRANSFER_TRBS {
-        if event.event_type != 34 {
-            break;
-        }
-        event = controller.next_event()?;
-    }
-    if validate_transfer_event(event, slot, ring.physical + (status_index * 16) as u64)? {
-        ring.short_packets = ring.short_packets.saturating_add(1);
-    }
-    if controller.port_status(ring.root_port) & 1 == 0 {
-        return Err(UsbError::DeviceVanished);
-    }
-    Ok(usize::from(length.saturating_sub(event.residual as u16)))
-}
-
-fn put_transfer(dma: *mut UsbDma, index: usize, trb: [u32; 4]) {
-    unsafe { write_volatile(core::ptr::addr_of_mut!((*dma).transfer_ring[index]), trb) };
 }
 
 #[cfg(test)]

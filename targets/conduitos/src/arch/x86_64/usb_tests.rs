@@ -1,6 +1,37 @@
 use super::*;
 use crate::arch::x86_64::xhci::{Event, XhciError};
 
+#[test]
+fn setup_stage_distinguishes_no_data_out_and_in() {
+    for input in [false, true] {
+        assert_eq!(setup_transfer_type(input, 0), 0);
+    }
+    for length in [1, 3, 8, 256, u16::MAX] {
+        assert_eq!(setup_transfer_type(false, length), 2 << 16);
+        assert_eq!(setup_transfer_type(true, length), 3 << 16);
+    }
+}
+
+#[test]
+fn completion_lengths_preserve_short_and_reject_out_of_envelope_residuals() {
+    for requested in [0, 1, 8, 256, u16::MAX] {
+        assert_eq!(transferred_bytes(requested, 0), Ok(usize::from(requested)));
+        assert_eq!(transferred_bytes(requested, u32::from(requested)), Ok(0));
+        if requested > 0 {
+            assert_eq!(
+                transferred_bytes(requested, 1),
+                Ok(usize::from(requested - 1))
+            );
+        }
+        for residual in [u32::from(requested) + 1, 65536, 0x00ff_ffff, u32::MAX] {
+            assert_eq!(
+                transferred_bytes(requested, residual),
+                Err(UsbError::MalformedCompletion)
+            );
+        }
+    }
+}
+
 fn blank_device() -> UsbDevice {
     device_from_descriptor(
         1,

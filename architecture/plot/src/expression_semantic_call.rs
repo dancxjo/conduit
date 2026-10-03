@@ -142,7 +142,7 @@ pub(super) fn check(
     ))
 }
 
-fn integer_widening_target(name: &str) -> Option<&str> {
+pub(crate) fn integer_widening_target(name: &str) -> Option<&str> {
     matches!(
         name,
         "value/u16"
@@ -157,7 +157,7 @@ fn integer_widening_target(name: &str) -> Option<&str> {
     .then_some(name)
 }
 
-fn is_strict_widening(source: &str, target: &str) -> bool {
+pub(crate) fn is_strict_widening(source: &str, target: &str) -> bool {
     fn width(kind: &str) -> Option<(bool, u8)> {
         Some(match kind {
             "value/u8" => (false, 8),

@@ -5,11 +5,13 @@ use conduit_core::{
     StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
+mod call_structure;
 mod semantic_call;
 mod substitution;
 mod temporal;
 mod when_filter;
-use semantic_call::{contains_semantic_call, expand_semantic_call_graph};
+use call_structure::contains_semantic_call;
+use semantic_call::expand_semantic_call_graph;
 use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
