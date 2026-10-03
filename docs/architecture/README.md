@@ -33,6 +33,7 @@ is not itself evidence that every target implements it.
 ## Authority, effects, and confinement
 
 - [Base capabilities](base-capabilities.md)
+- [Device protocols in plots and migration audit](device-protocol-plots.md)
 - [Consequential effects](consequential-effects.md)
 - [Implementation confinement](implementation-confinement.md)
 - [Confined gear profile](confined-gear-profile.md)

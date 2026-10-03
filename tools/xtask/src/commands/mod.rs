@@ -14,6 +14,7 @@ pub mod ci;
 #[path = "../../../../targets/conduitos/make/xtask/mod.rs"]
 pub mod conduitos;
 pub mod demo;
+pub mod device_protocols;
 pub mod distributed_lenia;
 pub mod doctor;
 pub mod esp32_firmware;

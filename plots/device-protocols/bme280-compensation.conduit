@@ -1,0 +1,130 @@
+# BME280 fixed-point compensation, authored protocol math.
+# Integer units: temperature 0.01 deg C, pressure 1/256 Pa, humidity 1/1024 %RH.
+# I128 arithmetic is checked; calibration and t-fine remain explicit inputs.
+
+type BmeTemperatureCalibration = {
+    raw: I128 in 0..=1048575
+    t1: I128 in 0..=65535
+    t2: I128 in -32768..=32767
+    t3: I128 in -32768..=32767
+}
+
+plot bme280-fine-temperature (
+    input: BmeTemperatureCalibration >> result: I128
+) = (((((.raw >>> 3) - (.t1 <<< 1)) * .t2) >>> 11) + (((((.raw >>> 4) - .t1) * ((.raw >>> 4) - .t1)) >>> 12) * .t3 >>> 14))
+
+plot bme280-temperature-centidegrees (
+    input: I128 >> result: I128
+) = ((. * 5 + 128) >>> 8)
+
+type BmePressureCalibration = {
+    raw: I128 in 0..=1048575
+    fine: I128 in -2147483648..=2147483647
+    p1: I128 in 0..=65535
+    p2: I128 in -32768..=32767
+    p3: I128 in -32768..=32767
+    p4: I128 in -32768..=32767
+    p5: I128 in -32768..=32767
+    p6: I128 in -32768..=32767
+    p7: I128 in -32768..=32767
+    p8: I128 in -32768..=32767
+    p9: I128 in -32768..=32767
+}
+
+type BmePressurePolynomial = {
+    raw: I128
+    p1: I128
+    p2: I128
+    p3: I128
+    p7: I128
+    p8: I128
+    p9: I128
+    v1: I128
+    v2: I128
+}
+
+plot bme280-pressure-polynomial (
+    input: BmePressureCalibration >> result: BmePressurePolynomial
+) = ({ raw: .raw, p1: .p1, p2: .p2, p3: .p3, p7: .p7, p8: .p8, p9: .p9, v1: .fine - 128000, v2: (.fine - 128000) * (.fine - 128000) * .p6 + (((.fine - 128000) * .p5) <<< 17) + (.p4 <<< 35) })
+
+type BmePressureDivision = {
+    p7: I128
+    p8: I128
+    p9: I128
+    numerator: I128
+    denominator: I128
+}
+
+plot bme280-pressure-division (
+    input: BmePressurePolynomial >> result: BmePressureDivision
+) = ({ p7: .p7, p8: .p8, p9: .p9, numerator: (((1048576 - .raw) <<< 31) - .v2) * 3125, denominator: (((1 <<< 47) + ((.v1 * .v1 * .p3) >>> 8) + ((.v1 * .p2) <<< 12)) * .p1) >>> 33 })
+
+plot bme280-pressure-invalid-calibration (
+    input: BmePressureDivision >> result: Boolean
+) = (.denominator == 0)
+
+type BmePressureCorrection = {
+    p7: I128
+    p8: I128
+    p9: I128
+    pressure: I128
+}
+
+plot bme280-pressure-quotient (
+    input: BmePressureDivision >> result: BmePressureCorrection
+) = ({ p7: .p7, p8: .p8, p9: .p9, pressure: .denominator == 0 ? (.numerator & 0) : .numerator / .denominator })
+
+plot bme280-pressure-q24-8 (
+    input: BmePressureCorrection >> result: I128
+) = (((.pressure + ((.p9 * (.pressure >>> 13) * (.pressure >>> 13)) >>> 25) + ((.p8 * .pressure) >>> 19)) >>> 8) + (.p7 <<< 4))
+
+type BmeHumidityCalibration = {
+    raw: I128 in 0..=65535
+    fine: I128 in -2147483648..=2147483647
+    h1: I128 in 0..=255
+    h2: I128 in -32768..=32767
+    h3: I128 in 0..=255
+    h4: I128 in -2048..=2047
+    h5: I128 in -2048..=2047
+    h6: I128 in -128..=127
+}
+
+type BmeHumidityPolynomial = {
+    h1: I128
+    humidity: I128
+}
+
+plot bme280-humidity-polynomial (
+    input: BmeHumidityCalibration >> result: BmeHumidityPolynomial
+) = ({ h1: .h1, humidity: ((((.raw <<< 14) - (.h4 <<< 20) - .h5 * (.fine - 76800) + 16384) >>> 15) * (((((((.fine - 76800) * .h6) >>> 10) * ((((.fine - 76800) * .h3) >>> 11) + 32768)) >>> 10) + 2097152) * .h2 + 8192 >>> 14)) })
+
+plot bme280-humidity-correction (
+    input: BmeHumidityPolynomial >> result: I128
+) = (.humidity - (((((.humidity >>> 15) * (.humidity >>> 15)) >>> 7) * .h1) >>> 4))
+
+plot bme280-humidity-q22-10 (
+    input: I128 >> result: I128
+) = (. < 0 ? (. & 0) : (. > 419430400 ? ((. & 0) + 102400) : . >>> 12))
+
+plot bme280-pressure (
+    >> calibration: BmePressureCalibration
+    pressure: I128 >>
+    invalid_calibration: Boolean >>
+) {
+    polynomial: bme280-pressure-polynomial
+    division: bme280-pressure-division
+    quotient: bme280-pressure-quotient
+    correction: bme280-pressure-q24-8
+    invalid: bme280-pressure-invalid-calibration
+    calibration >> polynomial >> division
+    division >> quotient >> correction >> pressure
+    division >> invalid >> invalid_calibration
+}
+plot bme280-humidity (
+    input: BmeHumidityCalibration >> humidity: I128
+) {
+    polynomial: bme280-humidity-polynomial
+    correction: bme280-humidity-correction
+    clamp: bme280-humidity-q22-10
+    input >> polynomial >> correction >> clamp >> humidity
+}

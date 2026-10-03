@@ -32,7 +32,7 @@ impl<'a> PrimitiveValue<'a> {
         })
     }
 
-    fn new(kind: PrimitiveInfoKind, encoded: &[u8]) -> Result<Self, Refusal> {
+    pub(super) fn new(kind: PrimitiveInfoKind, encoded: &[u8]) -> Result<Self, Refusal> {
         let mut bytes = [0; 16];
         if encoded.len() > bytes.len() {
             return Err(Refusal::InvalidProgram);

@@ -1,5 +1,11 @@
 //! Exact semantic typing for finite, one-input pure expressions.
 
+mod collection;
+mod projection;
+mod record;
+mod structures;
+mod variant;
+
 use crate::expression_numeric_type::{
     boolean, is_fixed_integer, is_numeric, is_ordered_numeric, is_signed_numeric,
 };
@@ -39,7 +45,7 @@ impl CheckedExpressionType {
                 Self::Semantic(kind)
             }
             StructuredInfoTypeShape::Collection { element, length } => Self::Collection {
-                element: Box::new(Self::from_structured(element)),
+                element: Box::new(structures::member(element)),
                 length,
             },
             StructuredInfoTypeShape::Sequence { .. } => {
@@ -56,7 +62,7 @@ impl CheckedExpressionType {
                     .map(|field| {
                         (
                             field.name().to_string(),
-                            Self::from_structured(field.value_type()),
+                            structures::member(field.value_type()),
                         )
                     })
                     .collect(),
@@ -221,6 +227,15 @@ pub(crate) fn check_expression_as(
     expected: Option<&CheckedExpressionType>,
     context: &ExpressionTypeContext<'_>,
 ) -> Result<CheckedExpression, ExpressionTypeDiagnostic> {
+    let structures = structures::registry(context.structured_types);
+    let context = &ExpressionTypeContext {
+        structured_types: &structures,
+        input: context.input,
+        immutable_values: context.immutable_values,
+        literal_types: context.literal_types,
+        numeric_types: context.numeric_types,
+        semantic_kinds: context.semantic_kinds,
+    };
     let mut node_types = Vec::new();
     let value_type = infer(syntax, expected, context, &mut node_types)?;
     node_types.sort_by_key(|node| (node.span.start, node.span.end));
@@ -284,7 +299,7 @@ fn infer(
             span,
         } => {
             let source = infer(value, None, context, node_types)?;
-            projection(&source, member, *span, context)
+            projection::check(&source, member, *span, context)
         }
         ExpressionSyntax::Unary {
             operator,
@@ -346,63 +361,14 @@ fn infer(
             Ok(CheckedExpressionType::Tuple(checked))
         }
         ExpressionSyntax::Record { fields, span } => {
-            let mut checked = Vec::with_capacity(fields.len());
-            for field in fields {
-                if checked
-                    .iter()
-                    .any(|(name, _): &(String, CheckedExpressionType)| name == &field.name.text)
-                {
-                    return refuse(field.name.span, "record field names must be unique");
-                }
-                let expected_field = match expected {
-                    Some(CheckedExpressionType::Record(fields)) => fields
-                        .iter()
-                        .find(|(name, _)| name == &field.name.text)
-                        .map(|(_, value_type)| value_type),
-                    _ => None,
-                };
-                checked.push((
-                    field.name.text.clone(),
-                    infer(&field.value, expected_field, context, node_types)?,
-                ));
-            }
-            if checked.is_empty() {
-                return refuse(*span, "record must contain at least one field");
-            }
-            checked.sort_by(|left, right| left.0.cmp(&right.0));
-            Ok(CheckedExpressionType::Record(checked))
+            record::record(fields, *span, expected, context, node_types)
         }
         ExpressionSyntax::Collection { values, span } => {
-            let length = u16::try_from(values.len())
-                .map_err(|_| diagnostic(*span, "collection exceeds its finite length bound"))?;
-            let expected_element = match expected {
-                Some(CheckedExpressionType::Collection { element, length: n }) if *n == length => {
-                    Some(element.as_ref())
-                }
-                _ => None,
-            };
-            let Some(first) = values.first() else {
-                return refuse(*span, "collection must contain at least one typed value");
-            };
-            let element = infer(first, expected_element, context, node_types)?;
-            for value in &values[1..] {
-                let actual = infer(value, Some(&element), context, node_types)?;
-                require(
-                    actual,
-                    &element,
-                    value.span(),
-                    "collection elements must have one exact type",
-                )?;
-            }
-            Ok(CheckedExpressionType::Collection {
-                element: Box::new(element),
-                length,
-            })
+            collection::check(values, *span, expected, context, node_types)
         }
-        ExpressionSyntax::Variant { span, .. } => refuse(
-            *span,
-            "variant expressions require an exact expected variant type",
-        ),
+        ExpressionSyntax::Variant { tag, payload, span } => {
+            variant::check(tag, payload, *span, expected, context, node_types)
+        }
         ExpressionSyntax::SemanticCall {
             kind,
             arguments,
@@ -433,6 +399,13 @@ fn atomic(
     }
     if let Some(value_type) = context.literal_types.get(text) {
         return expected_or_exact(value_type.clone(), expected, span);
+    }
+    if text == "unit" {
+        return expected_or_exact(
+            CheckedExpressionType::semantic(conduit_core::UNIT_INFO_ID),
+            expected,
+            span,
+        );
     }
     if matches!(text, "true" | "false") {
         return expected_or_exact(boolean(), expected, span);
@@ -481,36 +454,6 @@ fn atomic(
         return Ok(expected.clone());
     }
     refuse(span, "literal is incompatible with its exact expected type")
-}
-
-fn projection(
-    source: &CheckedExpressionType,
-    member: &ExpressionProjection,
-    span: Span,
-    context: &ExpressionTypeContext<'_>,
-) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
-    let expanded = match source {
-        CheckedExpressionType::Semantic(kind) => context
-            .structured_types
-            .get(kind)
-            .map(CheckedExpressionType::from_structured)
-            .unwrap_or_else(|| source.clone()),
-        _ => source.clone(),
-    };
-    match (expanded, member) {
-        (CheckedExpressionType::Record(fields), ExpressionProjection::Field(field)) => fields
-            .into_iter()
-            .find(|(name, _)| name == &field.text)
-            .map(|(_, value_type)| value_type)
-            .ok_or_else(|| diagnostic(field.span, "record has no such field")),
-        (CheckedExpressionType::Tuple(values), ExpressionProjection::TupleIndex(index)) => index
-            .text
-            .parse::<usize>()
-            .ok()
-            .and_then(|index| values.get(index).cloned())
-            .ok_or_else(|| diagnostic(index.span, "tuple index is outside the exact tuple")),
-        _ => refuse(span, "projection does not match the exact input type"),
-    }
 }
 
 fn unary(
