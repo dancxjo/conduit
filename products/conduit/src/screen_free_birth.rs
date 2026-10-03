@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use conduit_birth_plot::{BirthActionOutcome, HostOwnedBirthFaceBasis};
 use conduit_patchbay_workbench::{PatchbayModel, ZeroBodyFrontDoor};
-use conduit_presentation::{FaceUtteranceProvenance, Presentation};
+use conduit_presentation::Presentation;
 use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
 use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
@@ -18,6 +18,10 @@ use patchbay_hosted::HostedPatchbayAdapter;
 
 mod audio;
 use audio::BirthSpeechOutput;
+mod input;
+#[cfg(test)]
+use input::MAX_SCREEN_FREE_COMMAND_BYTES;
+use input::{parse_command, read_command_line, SCREEN_FREE_COMMANDS};
 
 pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(), String> {
     run_with_output(input, output, None)
@@ -47,7 +51,11 @@ fn run_with_output(
     let (mut face, mut show) = present(&draft, &basis, &mut execution, output)?;
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
     if speech.is_none() {
-        writeln!(output, "Text readout; no speech audio has been produced. Commands: help, read all, next, previous, repeat, focus ACTION, edit value TEXT, activate, stop, quit.").map_err(io_error)?;
+        writeln!(
+            output,
+            "Text readout; no speech audio has been produced. {SCREEN_FREE_COMMANDS}"
+        )
+        .map_err(io_error)?;
     }
     let mut sequence = 1_u64;
     read(
@@ -63,17 +71,22 @@ fn run_with_output(
     loop {
         write!(output, "birth> ").map_err(io_error)?;
         output.flush().map_err(io_error)?;
-        let mut line = String::new();
-        if input.read_line(&mut line).map_err(io_error)? == 0 {
-            execution.close_without_input().map_err(debug_error)?;
-            return Ok(());
-        }
-        let line = line.trim_end_matches(['\r', '\n']);
+        let line = match read_command_line(input).map_err(io_error)? {
+            Ok(Some(line)) => line,
+            Ok(None) => {
+                execution.close_without_input().map_err(debug_error)?;
+                return Ok(());
+            }
+            Err(message) => {
+                writeln!(output, "Refused input: {message}").map_err(io_error)?;
+                continue;
+            }
+        };
         if line == "quit" {
             execution.close_without_input().map_err(debug_error)?;
             return Ok(());
         }
-        let command = match parse_command(line, &reader, &face) {
+        let command = match parse_command(&line, &reader, &face) {
             Ok(command) => command,
             Err(message) => {
                 writeln!(output, "Refused input: {message}").map_err(io_error)?;
@@ -217,59 +230,6 @@ fn emit_readout(
     Ok(())
 }
 
-fn parse_command(
-    line: &str,
-    reader: &SpokenFaceSession,
-    face: &Presentation,
-) -> Result<ReaderCommand, &'static str> {
-    match line {
-        "help" => Ok(ReaderCommand::Help),
-        "read all" => Ok(ReaderCommand::ReadAll),
-        "next" => Ok(ReaderCommand::Next),
-        "previous" => Ok(ReaderCommand::Previous),
-        "repeat" => Ok(ReaderCommand::Repeat),
-        "activate" => Ok(ReaderCommand::Activate),
-        "stop" => Ok(ReaderCommand::Stop),
-        _ => {
-            if let Some(action) = line.strip_prefix("focus ") {
-                if action.is_empty() {
-                    return Err("focus needs an exact action ID");
-                }
-                return Ok(ReaderCommand::FocusAction(action.into()));
-            }
-            if let Some(rest) = line.strip_prefix("edit ") {
-                let (argument, value) = rest
-                    .split_once(' ')
-                    .ok_or("edit needs an argument and value")?;
-                if argument.is_empty() {
-                    return Err("edit needs an argument");
-                }
-                let boolean = match &reader.focused_clause().provenance {
-                    FaceUtteranceProvenance::Action(provenance) => face
-                        .actions
-                        .iter()
-                        .find(|action| &action.identity == provenance.identity())
-                        .and_then(|action| {
-                            action.arguments.iter().find(|item| item.name == argument)
-                        })
-                        .is_some_and(|item| item.contract.value_kind.as_str() == "value/bool"),
-                    _ => false,
-                };
-                let value = match (boolean, value) {
-                    (true, "true") => vec![1],
-                    (true, "false") => vec![0],
-                    _ => value.as_bytes().to_vec(),
-                };
-                return Ok(ReaderCommand::Edit {
-                    argument: argument.into(),
-                    value,
-                });
-            }
-            Err("unknown command; enter help")
-        }
-    }
-}
-
 fn random_uuid() -> Result<String, String> {
     let mut bytes = [0_u8; 16];
     getrandom::fill(&mut bytes).map_err(|error| format!("Birth encounter identity: {error}"))?;
@@ -323,6 +283,40 @@ mod tests {
                 .unwrap()
                 .contains("Body born in this encounter"));
         }
+    }
+
+    #[test]
+    fn screen_free_commands_navigate_current_birth_groups_and_refuse_long_input() {
+        let oversized = format!("focus {}\n", "x".repeat(MAX_SCREEN_FREE_COMMAND_BYTES));
+        let input = format!(
+            "previous main\nnext article\nnext navigation\nnext action\nprevious action\nfocus subject absent\n{oversized}previous main\nquit\n"
+        );
+        let mut output = Vec::new();
+        run(&mut input.as_bytes(), &mut output).unwrap();
+        let output = String::from_utf8(output).unwrap();
+        assert!(output.contains("A body of your own, main."));
+        assert!(output.contains("Body name and starting Plots, article."));
+        assert!(output.contains("Birth actions, navigation."));
+        assert!(output.contains("Refused action: UnknownSubject"));
+        assert!(output.contains("Refused input: command is too long"));
+        assert!(!output.contains("Body born in this encounter"));
+    }
+
+    #[test]
+    fn bounded_command_reader_discards_rejected_line_tail() {
+        let input = format!(
+            "{}\nquit\n",
+            "x".repeat(MAX_SCREEN_FREE_COMMAND_BYTES + 200)
+        );
+        let mut input = input.as_bytes();
+        assert_eq!(
+            read_command_line(&mut input).unwrap(),
+            Err("command is too long")
+        );
+        assert_eq!(
+            read_command_line(&mut input).unwrap(),
+            Ok(Some("quit".into()))
+        );
     }
 
     /// Explicit local-provider proof. This uses the actual zero-Body draft,

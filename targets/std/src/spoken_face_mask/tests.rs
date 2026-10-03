@@ -3,9 +3,11 @@ use super::*;
 #[path = "../../../../semantics/presentation/tests/common/mod.rs"]
 mod common;
 
+use conduit_core::kind_id;
 use conduit_presentation::{
-    FaceActionArgument, PresentationAction, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationRole, PresentationSubject, PresentationText,
+    FaceActionArgument, ManifestationLifecycle, PresentationAction, PresentationDisclosureLevel,
+    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
+    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
 };
 
 fn face_with_action() -> (Presentation, MaskShow) {
@@ -84,6 +86,84 @@ fn face_with_action() -> (Presentation, MaskShow) {
     .unwrap();
     let show = common::available_mask_show(&face);
     (face, show)
+}
+
+#[test]
+fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects.clone();
+    for subject in &mut subjects {
+        subject.role = match subject.identity.as_str() {
+            "arrival" => PresentationRole::Semantic(kind_id("document/main")),
+            "draft" => PresentationRole::Semantic(kind_id("document/article")),
+            _ => PresentationRole::Semantic(kind_id("document/navigation")),
+        };
+    }
+    subjects.extend((0..80).map(|number| PresentationSubject {
+        identity: format!("item/{number:03}"),
+        role: PresentationRole::Item,
+        name: format!("Item {number}"),
+    }));
+    let mut actions = base.actions.clone();
+    actions[1].availability = PresentationActionAvailability::Unavailable {
+        reason_code: "birth/name-missing".into(),
+        explanation: "Give the Body a name first.".into(),
+    };
+    let face = Presentation::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        subjects,
+        vec![PresentationRelationship {
+            source: "arrival".into(),
+            target: "draft".into(),
+            kind: PresentationRelationshipKind::Contains,
+        }],
+        base.properties,
+        base.text,
+        actions,
+        base.disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let clauses = reader.take_text_readout().unwrap().unwrap().clauses;
+    assert!(clauses.iter().any(|clause| clause == "Item 79, item."));
+    assert!(clauses.iter().any(|clause| clause == "Welcome, main."));
+    assert!(clauses.iter().any(|clause| clause == "Body name, article."));
+    assert!(clauses
+        .iter()
+        .any(|clause| clause == "Welcome contains Body name."));
+    assert!(clauses
+        .iter()
+        .any(|clause| clause.contains("current name: New Body")));
+    assert!(clauses
+        .iter()
+        .any(|clause| clause.contains("Unavailable: Give the Body a name first.")));
+
+    reader
+        .command(
+            &face,
+            &show,
+            ReaderCommand::FocusSubject("arrival".into()),
+            2,
+        )
+        .unwrap();
+    reader.take_text_readout().unwrap();
+    reader
+        .command(
+            &face,
+            &show,
+            ReaderCommand::NextRole(PresentationRole::Semantic(kind_id("document/article"))),
+            3,
+        )
+        .unwrap();
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        ["Body name, article."]
+    );
 }
 
 fn receipt(packet: &SpokenSegment) -> SpokenAudioReceipt {
@@ -203,7 +283,7 @@ fn smaller_closing_flows_preserve_all_face_text_and_cancel_between_batches() {
 
 fn focus_action(session: &mut SpokenFaceSession, face: &Presentation, show: &MaskShow, id: &str) {
     let target = session
-        .plan
+        .plan()
         .clauses
         .iter()
         .position(|clause| {
@@ -418,7 +498,7 @@ fn utf8_chunking_never_splits_a_character() {
 }
 
 #[test]
-fn one_long_face_fact_streams_in_order_and_refresh_keeps_meaningful_focus() {
+fn one_long_face_fact_streams_in_order_and_refresh_resets_indexed_focus() {
     let (base, _) = face_with_action();
     let mut properties = base.properties.clone();
     properties[0].value = PresentationPropertyValue::Text("é".repeat(512));
@@ -436,7 +516,7 @@ fn one_long_face_fact_streams_in_order_and_refresh_keeps_meaningful_focus() {
     let show = common::available_mask_show(&face);
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
     let property_index = reader
-        .plan
+        .plan()
         .clauses
         .iter()
         .position(|clause| matches!(clause.provenance, FaceUtteranceProvenance::Property(_)))
@@ -492,10 +572,10 @@ fn one_long_face_fact_streams_in_order_and_refresh_keeps_meaningful_focus() {
         .unwrap();
     assert!(matches!(
         reader.focused_clause().provenance,
-        FaceUtteranceProvenance::Property(_)
+        FaceUtteranceProvenance::Subject(_)
     ));
     let announced = reader.next_segment().unwrap().unwrap();
-    assert!(announced.segment.text.contains("New name"));
+    assert!(announced.segment.text.contains("Welcome"));
     reader
         .acknowledge(SpokenDelivery::Completed(receipt(&announced)))
         .unwrap();
