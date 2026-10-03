@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -39,4 +39,10 @@ test('publication refuses incomplete or unrelated One Body evidence', () => inFr
   assert.throws(() => retainedOneBodyEvidence(), /complete, exact-source/);
   retainManifest(valid);
   assert.deepEqual(retainedOneBodyEvidence(), { root: ONE_BODY_EVIDENCE_ROOT, sourceCommit: 'a'.repeat(40) });
+}));
+
+test('publication refuses a linked evidence root, including a broken link', { skip: process.platform === 'win32' }, () => inFreshCheckout(() => {
+  mkdirSync(path.dirname(ONE_BODY_EVIDENCE_ROOT), { recursive: true });
+  symlinkSync('missing-evidence', ONE_BODY_EVIDENCE_ROOT);
+  assert.throws(() => retainedOneBodyEvidence(), /regular source directory/);
 }));

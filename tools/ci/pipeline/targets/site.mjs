@@ -30,7 +30,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     cpSync(path.join(temporary, `conduit-${HISTORY}`, 'journeys'), path.join(directory, 'journeys'), { recursive: true });
   } finally { rmSync(temporary, { recursive: true, force: true }); }
   renderFieldStation('target/journeys/handbook', path.join(directory, 'journeys/verticals/handbook'), sourceCommit, true);
-  // An attended, multi-host capture cannot be recreated by the browser CI
+  // An environment-dependent, multi-host capture cannot be recreated by browser CI
   // runner. Carry its complete raw evidence in source, then render it only
   // after preflight checks source ancestry and the strict renderer checks media.
   const oneBodyEvidence = retainedOneBodyEvidence();

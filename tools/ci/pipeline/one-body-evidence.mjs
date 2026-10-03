@@ -1,10 +1,19 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { lstatSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 export const ONE_BODY_EVIDENCE_ROOT = 'site/evidence/one-body-five-masks';
 
 export function retainedOneBodyEvidence() {
-  if (!existsSync(ONE_BODY_EVIDENCE_ROOT)) return null;
+  let root;
+  try {
+    root = lstatSync(ONE_BODY_EVIDENCE_ROOT);
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+  if (!root.isDirectory() || root.isSymbolicLink()) {
+    throw new Error('One Body evidence root must be a regular source directory');
+  }
   const manifest = JSON.parse(readFileSync(path.join(ONE_BODY_EVIDENCE_ROOT, 'manifest.json'), 'utf8'));
   const sourceCommit = manifest.git_commit;
   if (!/^[a-f0-9]{40}$/.test(sourceCommit)
