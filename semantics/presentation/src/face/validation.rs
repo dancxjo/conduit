@@ -1,14 +1,45 @@
 //! Admission and collision laws for Face contributions.
 
 use alloc::{format, vec};
-use conduit_body::{Body, BodyState, Wake, WakePlanState};
+use conduit_body::{Body, BodyState, Wake, WakePlanState, MAX_BODY_FRIENDLY_NAME_BYTES};
 
 use super::{
-    interaction_context_identity, FaceContext, FaceContribution, FaceFocus, FaceRefusal,
+    interaction_context_identity, FaceContext, FaceContribution, FaceFocus, FaceNames, FaceRefusal,
     MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
 };
 use crate::FaceContributionRole;
 use crate::PresentationFragmentError;
+use crate::{presentation::MAX_PRESENTATION_TEXT_BYTES, FaceResidentPlotName};
+
+pub(super) fn validate_names(body: &Body, names: FaceNames<'_>) -> Result<(), FaceRefusal> {
+    if names
+        .body_name
+        .is_some_and(|name| name.trim().is_empty() || name.len() > MAX_BODY_FRIENDLY_NAME_BYTES)
+    {
+        return Err(FaceRefusal::InvalidBodyName);
+    }
+    for (index, entry) in names.resident_plots.iter().enumerate() {
+        if entry.name.trim().is_empty() || entry.name.len() > MAX_PRESENTATION_TEXT_BYTES {
+            return Err(FaceRefusal::InvalidPlotName);
+        }
+        if !body.workset.plots().iter().any(|resident| {
+            resident.source_document_id == *entry.source_document_id
+                && resident.checked_plot_id == *entry.checked_plot_id
+        }) {
+            return Err(FaceRefusal::PlotNameNotResident);
+        }
+        if names.resident_plots[index + 1..]
+            .iter()
+            .any(|other: &FaceResidentPlotName<'_>| {
+                other.source_document_id == entry.source_document_id
+                    && other.checked_plot_id == entry.checked_plot_id
+            })
+        {
+            return Err(FaceRefusal::DuplicatePlotName);
+        }
+    }
+    Ok(())
+}
 
 pub(super) fn validate_wake(body: &Body, wake: Option<&Wake>) -> Result<(), FaceRefusal> {
     match (&body.state, wake) {
