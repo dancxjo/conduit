@@ -35,7 +35,7 @@ export async function startOwnerParticipation(application, root) {
     <p>This browser can join a Body already owned by a Linux Host on this computer. The owner must explicitly authorize this Host first. Joining does not birth another Body.</p></header>
     <p role="status" data-owner-status>Opening this browser Host…</p>
     <section aria-labelledby="owner-identity-title"><h3 id="owner-identity-title">1 · Give the owner this Host identity</h3>
-      <p>Use the running owner's admission control with this exact Host ID and public verifying key. The Boot changes when this page reloads.</p>
+      <p>On the running owner's Linux Host, use <code>conduit body browser-window</code> with this exact Host ID and copied public key. The Boot changes when this page reloads.</p>
       <dl class="owner-identity"><dt>Host</dt><dd><code data-owner-host></code></dd>
         <dt>Boot</dt><dd><code data-owner-boot></code></dd>
         <dt>Public verifying key (byte array)</dt><dd><code data-owner-key></code>

@@ -4,7 +4,9 @@ mod image;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
-pub(crate) use controller::Owner;
+#[cfg(unix)]
+pub(crate) use controller::run_service_window;
+pub(crate) use controller::{BrowserAdmittedSnapshot, BrowserWindowAuthorization, Owner};
 use serde::Deserialize;
 use std::{
     io::{BufRead, Read, Write},
