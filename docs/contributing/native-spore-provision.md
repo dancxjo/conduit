@@ -58,8 +58,14 @@ The current foreground owner issues an unrouted invitation. When an owner
 issues a canonical routed invitation, the producer retains its exact ordered
 candidates and transport authentication binding; the guest decoder and QEMU
 acceptance validator refuse a relabeled or weakened descriptor. The boot path
-keeps the public route in pending state, reports its candidate count in the
-Face, and emits a signed serial observation, but does not attempt a connection.
+keeps the public route and certificate pins in pending state, reports its
+candidate count in the Face, and emits a signed serial observation, but does
+not attempt a connection.
+For each distinct TLS leaf named by a routed invitation, also pass
+`--route-tls-cert path/to/owner-certificate.pem` to the producer. It retains
+only the first public certificate from that PEM file, checks its SHA-256 against
+the exact candidate binding, and refuses a missing, extra, duplicate, or
+oversized certificate. Unrouted invitations require no certificate.
 The next join slice must use that binding to establish a protected duplex Line
 and deliver the owner's receipt to the guest. The acceptance command proves a
 QEMU boot and the invitation-signed serial observation only; its receipt
