@@ -151,7 +151,15 @@ fn composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges() {
     let output_type = &programs[result_index].1.output_type;
     for (phone, _) in PHONES {
         let target = speech_voice_target(*phone).unwrap();
-        for frame in [0, 63, 64, 179, 180, target.frames - 1] {
+        for frame in [
+            0,
+            63,
+            64,
+            target.closure.saturating_sub(1),
+            target.closure,
+            target.closure + 1,
+            target.frames - 1,
+        ] {
             for period in [61, 67] {
                 let value = SpeechFrameInput {
                     target,

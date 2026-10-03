@@ -63,8 +63,16 @@ noise window and within-phone diphthong coefficient glides. The acoustic
 endpoints model spectra; they do not split one diphthong into phoneme or phone
 occurrences, infer stress, or claim measured alignment. Plain stops have a
 96-frame release window; aspirated stops and affricates retain their profile's
-frication after release. Stop place spectra remain approximate. Caller-owned
-traversal admits at most 256 events,
+frication after release. The self-authored reduced-bandwidth stop models
+separate low/mid/high release energy, with a rapid release attack and the shared
+trailing fade. Plain voiceless stops release 128 frames before their end;
+voiced stops release earlier and retain a voiced tail. Aspirated stops retain
+a longer noise tail. These are profile defaults: vowel-dependent place spectra,
+voicebars during closure and separate aspiration filtering remain unfinished.
+The closure/release/voicing separation and rapid plosive onset are informed by
+[Klatt's cascade/parallel synthesizer paper](https://sail.usc.edu/~lgoldste/Ling582/Week%2012/klatt1980.pdf);
+this profile does not reproduce its full controls or published parameter tables.
+Caller-owned traversal admits at most 256 events,
 30 seconds, and 128 frames per advance. A candidate copy can be discarded under
 output pressure before committing progress. This is synthesis Back conformance,
 not an additional scheduler or execution kernel. The checked `speech/frame`
@@ -76,8 +84,10 @@ Whole-frame differential proof covers every phone at envelope edges and compares
 full-duration state/sample history against the checked scalar composition
 with temporal targets. A separate portable-graph differential checks every
 phone at closure, release and glide edges; acoustic checks cover nonzero plain
-stop release, stationary monophthongs and preserved diphthong durations. Sample
-rate and admission limits come from the checked literal
+stop release, stationary monophthongs and preserved diphthong durations.
+Independent spectral analysis of rendered plain-stop PCM checks the distinct
+energy distributions; this is acoustic model evidence, not human intelligibility.
+Sample rate and admission limits come from the checked literal
 `speech/profile` plot, without a second Rust copy of that policy.
 
 The optional `kernel` feature provides the exact `speech/english-utterance`
@@ -130,6 +140,6 @@ writes hosted artifacts and does not access an audio device.
 
 Remaining work includes artifact-reference validation and explicit rich-to-
 compact segment admission, broader text/number normalization and pronunciation,
-richer transitions and place-dependent stop spectra,
+richer transitions and vowel-dependent stop spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.
