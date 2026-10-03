@@ -58,11 +58,11 @@ The current foreground owner issues an unrouted invitation. When an owner
 issues a canonical routed invitation, the producer retains its exact ordered
 candidates and transport authentication binding; the guest decoder and QEMU
 acceptance validator refuse a relabeled or weakened descriptor. The boot path
-currently consumes the provision for a signed serial observation and does not
-carry the route into a connection attempt. The next join slice must use that
-binding to establish a protected duplex Line and deliver the owner's receipt
-to the guest. The acceptance command proves a QEMU boot and the
-invitation-signed serial observation only; its receipt explicitly says guest
-membership is false.
+keeps the public route in pending state, reports its candidate count in the
+Face, and emits a signed serial observation, but does not attempt a connection.
+The next join slice must use that binding to establish a protected duplex Line
+and deliver the owner's receipt to the guest. The acceptance command proves a
+QEMU boot and the invitation-signed serial observation only; its receipt
+explicitly says guest membership is false.
 For #4807 publication, build and capture from one clean source revision and
 record the owner, model, and voice inputs separately.

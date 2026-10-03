@@ -137,11 +137,7 @@ fn inspect_spore_provision(
             let spore_id = provision.spore.spore_id.clone();
             let body_id = provision.spore.body_id.clone();
             let invitation_id = provision.invitation_provision.invitation_id.clone();
-            let pending = spore_join::PendingNativeJoin {
-                spore_id: spore_id.clone(),
-                body_id: body_id.clone(),
-                invitation_id: invitation_id.clone(),
-            };
+            let pending = spore_join::PendingNativeJoin::from_provision(&provision);
             let expires_at_millis = provision.invitation_provision.expires_at_millis;
             if let Err(error) = spore_provision::validate_image_binding(
                 &provision,
