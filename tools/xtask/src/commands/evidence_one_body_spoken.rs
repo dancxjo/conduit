@@ -25,8 +25,10 @@ mod llm;
 mod owner;
 #[path = "evidence_one_body_spoken/retention.rs"]
 mod retention;
-use owner::{face_bytes, git, hash_file, parse_snapshot, OwnerSnapshot};
-use retention::retain;
+use owner::{
+    face_bytes, git, hash_file, installed_release, parse_snapshot, InstalledRelease, OwnerSnapshot,
+};
+use retention::{retain, retain_json};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 enum SpeechMode {
@@ -41,6 +43,7 @@ struct LiveContext<'a> {
     state_dir: &'a Path,
     bin_sha256: &'a str,
     face: &'a OwnerSnapshot,
+    installed_release: &'a InstalledRelease,
     run_id: &'a str,
     action_id: &'a str,
     voice: &'a str,
@@ -108,6 +111,12 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let bin_sha256 = hash_file(&bin)?;
     let first_bytes = face_bytes(&bin, &state_dir)?;
     let first = parse_snapshot(&first_bytes)?;
+    let release = installed_release(
+        &state_dir,
+        &bin,
+        &source_commit,
+        first.advertisement.host_id.as_str(),
+    )?;
     let body_id = first
         .presentation
         .basis
@@ -159,6 +168,15 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         &first,
         None,
     )?;
+    retain_json(
+        &mut manifest,
+        "installed-release",
+        "installed-release.json",
+        &release,
+        &run_id,
+        &first,
+        None,
+    )?;
     let context = LiveContext {
         workspace: &workspace,
         source_commit: &source_commit,
@@ -166,6 +184,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         state_dir: &state_dir,
         bin_sha256: &bin_sha256,
         face: &first,
+        installed_release: &release,
         run_id: &run_id,
         action_id: &action_id,
         voice: &args.speech_voice,
@@ -200,6 +219,12 @@ fn check_current(
     let result = (|| {
         let last = parse_snapshot(&face_bytes(context.bin, context.state_dir)?)?;
         if &last != context.face
+            || installed_release(
+                context.state_dir,
+                context.bin,
+                context.source_commit,
+                last.advertisement.host_id.as_str(),
+            )? != *context.installed_release
             || hash_file(context.bin).map_err(|error| error.to_string())? != context.bin_sha256
             || git(context.workspace, &["rev-parse", "HEAD"])? != context.source_commit
             || !git(context.workspace, &["status", "--porcelain"])?.is_empty()

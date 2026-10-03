@@ -251,6 +251,8 @@ pub(super) fn run(
             "action_id": context.action_id,
             "installed_owner_executable": context.bin,
             "installed_owner_executable_sha256": context.bin_sha256,
+            "installed_release_source_identity": context.installed_release.release_source_identity,
+            "installed_release_bundle_sha256": context.installed_release.release_bundle_sha256,
             "owner_snapshot_before_after_equal": true,
             "owner_host_id": context.face.advertisement.host_id,
             "owner_boot_id": context.face.advertisement.boot_id,
