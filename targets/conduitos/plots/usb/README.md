@@ -39,7 +39,8 @@ Call takes exactly 16 canonical U128 bytes: offset, value, operation and reserve
 bits; its result is exactly four U32 bytes. The provider rejects malformed words
 and wrong node/call bindings before access. Production preparation binds a sealed
 Plan fragment, canonical active Play, selected Base/provider, authority/resource
-and exact lowered call. The kernel Host Call back is shared with pure expressions;
+and the complete ordinary numeric lowering, including its call, routing, storage
+and terminal tables. The kernel Host Call back is shared with pure expressions;
 there is no separate machine scheduler. Fixtures prove repeated calls, output
 pressure, typed denial, revocation and rejection of late cancelled completions.
 
