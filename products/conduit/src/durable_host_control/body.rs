@@ -195,6 +195,8 @@ impl DurableHostRuntime {
             pool_member,
             cancellation_signal,
             next_observation_sequence,
+            #[cfg(unix)]
+            terminal_route,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
@@ -214,6 +216,8 @@ impl DurableHostRuntime {
             pool_member,
             cancellation_signal,
             next_observation_sequence,
+            #[cfg(unix)]
+            terminal_route,
         })
     }
 
