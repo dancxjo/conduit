@@ -82,7 +82,11 @@ pub(super) fn report(assembly: &str) -> Result<Value, &'static str> {
             .split_whitespace()
             .next()
             .ok_or("empty decoded instruction")?;
-        if !opcode.chars().all(|c| c.is_ascii_alphabetic() || c == '.') {
+        // Even-width hexadecimal tokens are raw bytes/words, not mnemonics.
+        // Alphabetic hex such as `ff` must not become an unknown prologue gap.
+        let raw_hex =
+            matches!(opcode.len(), 2 | 4 | 8) && opcode.chars().all(|c| c.is_ascii_hexdigit());
+        if raw_hex || !opcode.chars().all(|c| c.is_ascii_alphabetic() || c == '.') {
             return Err("undecoded bytes inside a function require explicit inventory support");
         }
         function
@@ -182,8 +186,13 @@ mod tests {
             ELF.replace("0008 .hidden callee", "0020 .hidden callee")
                 .replace("1018 l O", "1020 l F"),
             ELF.replace("1010: push {r7, lr}", "1010: ff ff ????"),
+            ELF.replace("1010: push {r7, lr}", "1010: abcd ????"),
+            ELF.replace("1010: push {r7, lr}", "1010: deadbeef ????"),
         ] {
-            assert!(report(&assembly).is_err());
+            assert!(
+                report(&assembly).is_err(),
+                "accepted unsupported input: {assembly}"
+            );
         }
         let unknown = report(&ELF.replace("1010: push {r7, lr}", "1010: mov sp, r0")).unwrap();
         assert!(unknown["functions"][1]["entry_reservation_bytes"].is_null());
