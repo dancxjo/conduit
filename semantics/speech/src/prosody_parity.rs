@@ -7,7 +7,7 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape, StructuredInfoVa
 use conduit_plot::PortableExpressionProgram;
 use std::{vec, vec::Vec};
 
-fn input(ty: &StructuredInfoType, value: SpeechProsodyInput) -> Vec<u8> {
+pub(super) fn input(ty: &StructuredInfoType, value: SpeechProsodyInput) -> Vec<u8> {
     let stress_type = field_type(ty, "stress");
     let tag = STRESSES
         .iter()
@@ -65,7 +65,7 @@ fn input(ty: &StructuredInfoType, value: SpeechProsodyInput) -> Vec<u8> {
     .unwrap()
 }
 
-fn graph(name: &str) -> (Vec<(usize, PortableExpressionProgram)>, usize) {
+pub(super) fn graph(name: &str) -> (Vec<(usize, PortableExpressionProgram)>, usize) {
     let graph = GRAPHS.iter().find(|graph| graph.name == name).unwrap();
     (
         graph
@@ -81,7 +81,7 @@ fn graph(name: &str) -> (Vec<(usize, PortableExpressionProgram)>, usize) {
         graph.result,
     )
 }
-fn evaluate(
+pub(super) fn evaluate(
     programs: &[(usize, PortableExpressionProgram)],
     result: usize,
     input: &[u8],
@@ -98,7 +98,11 @@ fn evaluate(
     Some(values[result].clone())
 }
 
-fn context(stress: EnglishStress, target: SpeechAcousticTarget, frame: i32) -> SpeechProsodyInput {
+pub(super) fn context(
+    stress: EnglishStress,
+    target: SpeechAcousticTarget,
+    frame: i32,
+) -> SpeechProsodyInput {
     SpeechProsodyInput {
         stress,
         target,

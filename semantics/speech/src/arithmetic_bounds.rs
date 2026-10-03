@@ -44,12 +44,16 @@ fn every_profile_target_stays_inside_the_fixed_arithmetic_envelope() {
                 target_bounds(
                     speech_vowel_onset(SpeechVowelOnsetInput {
                         phone: *phone,
-                        target: base,
-                        frame,
+                        prosody: crate::prosody_parity::context(
+                            EnglishStress::unspecified,
+                            base,
+                            frame,
+                        ),
                         previous_place: place,
                         relation: SpeechNeighborRelation::segment,
                     })
-                    .unwrap(),
+                    .unwrap()
+                    .target,
                 );
             }
         }

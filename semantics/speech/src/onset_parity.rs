@@ -1,8 +1,9 @@
 //! Stop-derived vowel onsets preserve segment identity and finite extent.
 use crate::{
     differential::program,
-    frame_parity::{field_type, integers, record},
+    frame_parity::{field_type, record},
     generated::*,
+    prosody_parity::{context, evaluate, graph, input as prosody_input},
 };
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue};
 use conduit_plot::PortableExpressionProgram;
@@ -79,15 +80,11 @@ fn onset_graph_matches_portable_models_for_every_phone_place_and_window_edge() {
                     &[
                         ("phone", variant(field_type(ty, "phone"), phone_tag)),
                         (
-                            "target",
-                            integers(field_type(ty, "target"), &target_fields(target)),
-                        ),
-                        (
-                            "frame",
-                            StructuredInfoValue::leaf(
-                                field_type(ty, "frame").clone(),
-                                frame.to_le_bytes().to_vec(),
-                            )
+                            "prosody",
+                            StructuredInfoValue::from_canonical_bytes(&prosody_input(
+                                field_type(ty, "prosody"),
+                                context(EnglishStress::unspecified, target, frame),
+                            ))
                             .unwrap(),
                         ),
                         (
@@ -116,8 +113,7 @@ fn onset_graph_matches_portable_models_for_every_phone_place_and_window_edge() {
                 }
                 let actual = speech_vowel_onset(SpeechVowelOnsetInput {
                     phone: *phone,
-                    target,
-                    frame,
+                    prosody: context(EnglishStress::unspecified, target, frame),
                     previous_place: place,
                     relation: SpeechNeighborRelation::segment,
                 });
@@ -126,9 +122,7 @@ fn onset_graph_matches_portable_models_for_every_phone_place_and_window_edge() {
                     continue;
                 };
                 let out = &programs[graph.result].1.output_type;
-                let expected = integers(out, &target_fields(actual))
-                    .canonical_bytes()
-                    .unwrap();
+                let expected = prosody_input(out, actual);
                 assert_eq!(
                     values[graph.result], expected,
                     "{phone:?}, {place:?}, {frame}"
@@ -167,12 +161,11 @@ fn onset_models_restore_targets_keep_stable_poles_and_respect_boundaries() {
         ] {
             let input = SpeechVowelOnsetInput {
                 phone: *phone,
-                target,
-                frame: 0,
+                prosody: context(EnglishStress::unspecified, target, 0),
                 previous_place: place,
                 relation: SpeechNeighborRelation::segment,
             };
-            let start = speech_vowel_onset(input).unwrap();
+            let start = speech_vowel_onset(input).unwrap().target;
             if !vowels.contains(phone) {
                 assert_eq!(start, target);
             } else {
@@ -189,7 +182,15 @@ fn onset_models_restore_targets_keep_stable_poles_and_respect_boundaries() {
                 }
             }
             for frame in 0..=160 {
-                let t = speech_vowel_onset(SpeechVowelOnsetInput { frame, ..input }).unwrap();
+                let t = speech_vowel_onset(SpeechVowelOnsetInput {
+                    prosody: SpeechProsodyInput {
+                        frame,
+                        ..input.prosody
+                    },
+                    ..input
+                })
+                .unwrap()
+                .target;
                 assert_eq!(
                     (t.frames, t.closure, t.voiced, t.frication),
                     (
@@ -206,10 +207,14 @@ fn onset_models_restore_targets_keep_stable_poles_and_respect_boundaries() {
             }
             assert_eq!(
                 speech_vowel_onset(SpeechVowelOnsetInput {
-                    frame: 160,
+                    prosody: SpeechProsodyInput {
+                        frame: 160,
+                        ..input.prosody
+                    },
                     ..input
                 })
-                .unwrap(),
+                .unwrap()
+                .target,
                 target
             );
             for relation in [
@@ -219,9 +224,78 @@ fn onset_models_restore_targets_keep_stable_poles_and_respect_boundaries() {
                 SpeechNeighborRelation::sequence_edge,
             ] {
                 assert_eq!(
-                    speech_vowel_onset(SpeechVowelOnsetInput { relation, ..input }).unwrap(),
+                    speech_vowel_onset(SpeechVowelOnsetInput { relation, ..input })
+                        .unwrap()
+                        .target,
                     target
                 );
+            }
+        }
+    }
+}
+
+#[test]
+fn contextual_frame_preserves_onset_context_and_matches_the_portable_chain() {
+    let (programs, result_index) = graph("speech_contextual_frame");
+    assert_eq!(programs.len(), 9);
+    let ty = &programs[0].1.input_type;
+    let output_type = &programs[result_index].1.output_type;
+    for (phone, phone_tag) in PHONES {
+        let target = speech_voice_target(*phone).unwrap();
+        for (place, place_tag) in [
+            (SpeechStopPlace::not_stop, "not_stop"),
+            (SpeechStopPlace::labial, "labial"),
+            (SpeechStopPlace::alveolar, "alveolar"),
+            (SpeechStopPlace::velar, "velar"),
+        ] {
+            for (stress, _) in STRESSES {
+                for frame in [0, 159, 160] {
+                    let mut prosody = context(*stress, target, frame);
+                    prosody.attack = frame != 159;
+                    prosody.release = frame != 160;
+                    prosody.state.first1 = 32000;
+                    prosody.state.second2 = -32000;
+                    let value = SpeechVowelOnsetInput {
+                        phone: *phone,
+                        prosody,
+                        previous_place: place,
+                        relation: SpeechNeighborRelation::segment,
+                    };
+                    let shaped = speech_vowel_onset(value).unwrap();
+                    assert_eq!(shaped.stress, prosody.stress);
+                    assert_eq!(shaped.state, prosody.state);
+                    assert_eq!(shaped.frame, prosody.frame);
+                    assert_eq!(shaped.attack, prosody.attack);
+                    assert_eq!(shaped.release, prosody.release);
+                    let encoded = record(
+                        ty,
+                        &[
+                            ("phone", variant(field_type(ty, "phone"), phone_tag)),
+                            (
+                                "prosody",
+                                StructuredInfoValue::from_canonical_bytes(&prosody_input(
+                                    field_type(ty, "prosody"),
+                                    prosody,
+                                ))
+                                .unwrap(),
+                            ),
+                            (
+                                "previous_place",
+                                variant(field_type(ty, "previous_place"), place_tag),
+                            ),
+                            ("relation", variant(field_type(ty, "relation"), "segment")),
+                        ],
+                    )
+                    .canonical_bytes()
+                    .unwrap();
+                    let actual = speech_contextual_frame(value);
+                    assert_eq!(actual, speech_prosodic_frame(shaped));
+                    assert_eq!(
+                        evaluate(&programs, result_index, &encoded),
+                        actual.map(|out| crate::frame_parity::result(output_type, out)),
+                        "{phone:?}, {place:?}, {stress:?}, {frame}"
+                    );
+                }
             }
         }
     }

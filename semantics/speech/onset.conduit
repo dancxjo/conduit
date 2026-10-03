@@ -12,8 +12,7 @@ plot speech/stop-place (
 
 type SpeechVowelOnsetInput = {
     phone: EnglishPhone
-    target: SpeechAcousticTarget
-    frame: I32
+    prosody: SpeechProsodyInput
     previous_place: SpeechStopPlace
     relation: SpeechNeighborRelation
 }
@@ -23,23 +22,23 @@ type SpeechVowelOnsetInput = {
 # coefficient interpolation is approximate; it is not frequency-exact motion.
 # Restore the current temporal target within 160 frames (20 ms at 8 kHz).
 type SpeechVowelOnsetWorking = {
-    target: SpeechAcousticTarget
+    input: SpeechVowelOnsetInput
     endpoint: SpeechAcousticTarget
     weight: I32
 }
 plot speech/vowel-onset-prepare (
     >> value: SpeechVowelOnsetInput
     result: SpeechVowelOnsetWorking >>
-) = (.relation is segment && (!(.previous_place is not_stop) && (.frame < 160 && ((((.phone is iy || .phone is ih) || (.phone is ey || .phone is eh)) || ((.phone is ae || .phone is aa) || (.phone is ao || .phone is ow))) || (((.phone is uh || .phone is uw) || (.phone is ah || .phone is ax)) || ((.phone is er || .phone is ay) || (.phone is aw || .phone is oy)))))) ? {target: .target, endpoint: {f1: 200, f2: .previous_place is labial ? 800 : .previous_place is alveolar ? 1800 : (.target.f2 + .target.f3) / 2, f3: .previous_place is velar ? (.target.f2 + .target.f3) / 2 : .target.f3, b1: 31487, b2: .previous_place is labial ? 25489 : .previous_place is alveolar ? 4929 : (.target.b2 + .target.b3) / 2, b3: .previous_place is velar ? (.target.b2 + .target.b3) / 2 : .target.b3, c1: .target.c1, c2: .previous_place is velar ? (.target.c2 + .target.c3) / 2 : .target.c2, c3: .previous_place is velar ? (.target.c2 + .target.c3) / 2 : .target.c3, gain1: .target.gain1, gain2: .target.gain2, gain3: .target.gain3, voiced: .target.voiced, frication: .target.frication, frames: .target.frames, closure: .target.closure}, weight: 256 - .frame * 256 / 160} : {target: .target, endpoint: .target, weight: 0})
+) = (.relation is segment && (!(.previous_place is not_stop) && (.prosody.frame < 160 && ((((.phone is iy || .phone is ih) || (.phone is ey || .phone is eh)) || ((.phone is ae || .phone is aa) || (.phone is ao || .phone is ow))) || (((.phone is uh || .phone is uw) || (.phone is ah || .phone is ax)) || ((.phone is er || .phone is ay) || (.phone is aw || .phone is oy)))))) ? {input: ., endpoint: {f1: 200, f2: .previous_place is labial ? 800 : .previous_place is alveolar ? 1800 : (.prosody.target.f2 + .prosody.target.f3) / 2, f3: .previous_place is velar ? (.prosody.target.f2 + .prosody.target.f3) / 2 : .prosody.target.f3, b1: 31487, b2: .previous_place is labial ? 25489 : .previous_place is alveolar ? 4929 : (.prosody.target.b2 + .prosody.target.b3) / 2, b3: .previous_place is velar ? (.prosody.target.b2 + .prosody.target.b3) / 2 : .prosody.target.b3, c1: .prosody.target.c1, c2: .previous_place is velar ? (.prosody.target.c2 + .prosody.target.c3) / 2 : .prosody.target.c2, c3: .previous_place is velar ? (.prosody.target.c2 + .prosody.target.c3) / 2 : .prosody.target.c3, gain1: .prosody.target.gain1, gain2: .prosody.target.gain2, gain3: .prosody.target.gain3, voiced: .prosody.target.voiced, frication: .prosody.target.frication, frames: .prosody.target.frames, closure: .prosody.target.closure}, weight: 256 - .prosody.frame * 256 / 160} : {input: ., endpoint: .prosody.target, weight: 0})
 # Keep unchanged coefficients and gains directly; do not interpolate equal
 # endpoints or duplicate the connected-model envelope policy.
 plot speech/vowel-onset-blend (
     >> value: SpeechVowelOnsetWorking
-    result: SpeechAcousticTarget >>
-) = (.weight == 0 ? .target : {f1: (.target.f1 * (256 - .weight) + .endpoint.f1 * .weight) / 256, f2: (.target.f2 * (256 - .weight) + .endpoint.f2 * .weight) / 256, f3: (.target.f3 * (256 - .weight) + .endpoint.f3 * .weight) / 256, b1: (.target.b1 * (256 - .weight) + .endpoint.b1 * .weight) / 256, b2: (.target.b2 * (256 - .weight) + .endpoint.b2 * .weight) / 256, b3: (.target.b3 * (256 - .weight) + .endpoint.b3 * .weight) / 256, c1: .target.c1, c2: (.target.c2 * (256 - .weight) + .endpoint.c2 * .weight) / 256, c3: (.target.c3 * (256 - .weight) + .endpoint.c3 * .weight) / 256, gain1: .target.gain1, gain2: .target.gain2, gain3: .target.gain3, voiced: .target.voiced, frication: .target.frication, frames: .target.frames, closure: .target.closure})
+    result: SpeechProsodyInput >>
+) = ({stress: .input.prosody.stress, attack: .input.prosody.attack, release: .input.prosody.release, target: .weight == 0 ? .input.prosody.target : {f1: (.input.prosody.target.f1 * (256 - .weight) + .endpoint.f1 * .weight) / 256, f2: (.input.prosody.target.f2 * (256 - .weight) + .endpoint.f2 * .weight) / 256, f3: (.input.prosody.target.f3 * (256 - .weight) + .endpoint.f3 * .weight) / 256, b1: (.input.prosody.target.b1 * (256 - .weight) + .endpoint.b1 * .weight) / 256, b2: (.input.prosody.target.b2 * (256 - .weight) + .endpoint.b2 * .weight) / 256, b3: (.input.prosody.target.b3 * (256 - .weight) + .endpoint.b3 * .weight) / 256, c1: .input.prosody.target.c1, c2: (.input.prosody.target.c2 * (256 - .weight) + .endpoint.c2 * .weight) / 256, c3: (.input.prosody.target.c3 * (256 - .weight) + .endpoint.c3 * .weight) / 256, gain1: .input.prosody.target.gain1, gain2: .input.prosody.target.gain2, gain3: .input.prosody.target.gain3, voiced: .input.prosody.target.voiced, frication: .input.prosody.target.frication, frames: .input.prosody.target.frames, closure: .input.prosody.target.closure}, frame: .input.prosody.frame, state: .input.prosody.state})
 plot speech/vowel-onset (
     >> value: SpeechVowelOnsetInput
-    result: SpeechAcousticTarget >>
+    result: SpeechProsodyInput >>
 ) {
     prepare: speech/vowel-onset-prepare
     blend: speech/vowel-onset-blend
@@ -47,3 +46,15 @@ plot speech/vowel-onset (
     prepare.result >> blend.value
     blend.result >> result
 }.
+
+# All retained frame facts travel with the onset result into prosody and DSP.
+plot speech/contextual-frame (
+    >> value: SpeechVowelOnsetInput
+    result: SpeechFrameResult >>
+) {
+    onset: speech/vowel-onset
+    synthesize: speech/prosodic-frame
+    value >> onset.value
+    onset.result >> synthesize.value
+    synthesize.result >> result
+}

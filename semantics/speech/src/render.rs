@@ -120,27 +120,25 @@ impl RenderCursor {
                         next,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
-                    let target = speech_vowel_onset(SpeechVowelOnsetInput {
+                    let frames = connected.target.frames;
+                    let frame = speech_contextual_frame(SpeechVowelOnsetInput {
                         phone,
-                        target: connected.target,
-                        frame: self.event_frame,
+                        prosody: SpeechProsodyInput {
+                            stress: value.stress,
+                            attack: connected.attack,
+                            release: connected.release,
+                            target: connected.target,
+                            frame: self.event_frame,
+                            state: self.state,
+                        },
                         previous_place,
                         relation: previous.relation,
-                    })
-                    .ok_or(RenderRefusal::Arithmetic)?;
-                    let frame = speech_prosodic_frame(SpeechProsodyInput {
-                        stress: value.stress,
-                        attack: connected.attack,
-                        release: connected.release,
-                        target,
-                        frame: self.event_frame,
-                        state: self.state,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
                     self.state = frame.state;
                     (
                         i16::try_from(frame.sample).map_err(|_| RenderRefusal::Arithmetic)?,
-                        target.frames,
+                        frames,
                     )
                 }
             };
