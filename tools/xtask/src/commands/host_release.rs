@@ -1,4 +1,8 @@
-use std::{fs, path::Path, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use clap::ValueEnum;
 use serde::Serialize;
@@ -91,12 +95,14 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
         "compile browser Host release",
     )?;
     fs::create_dir_all(output)?;
-    let browser_files = [
-        (
-            "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
-            "runtime.wasm",
-            "application/wasm",
+    copy(
+        cargo_release_artifact(
+            Some("wasm32-unknown-unknown"),
+            "conduit_browser_runtime.wasm",
         ),
+        &output.join("runtime.wasm"),
+    )?;
+    let browser_files = [
         (
             "targets/browser/host/assets/index.html",
             "index.html",
@@ -156,7 +162,8 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
     for (source, name, _) in browser_files {
         copy(source, &output.join(name))?;
     }
-    let manifest_files = browser_files.map(|(_, name, media)| (name, media));
+    let mut manifest_files = vec![("runtime.wasm", "application/wasm")];
+    manifest_files.extend(browser_files.map(|(_, name, media)| (name, media)));
     browser::seal(
         output,
         "browser-page.json",
@@ -189,7 +196,7 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
     )?;
     fs::create_dir_all(output)?;
     copy(
-        "target/release/conduit",
+        cargo_release_artifact(None, "conduit"),
         &output.join("conduit-linux-x86_64"),
     )?;
     copy(
@@ -214,7 +221,7 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
         "compile Raspberry Pi OS aarch64 release",
     )?;
     copy(
-        "target/aarch64-unknown-linux-gnu/release/conduit",
+        cargo_release_artifact(Some("aarch64-unknown-linux-gnu"), "conduit"),
         &output.join("conduit-linux-aarch64"),
     )?;
     seal(
@@ -284,7 +291,7 @@ fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
     )?;
     fs::create_dir_all(output)?;
     copy(
-        "target/release/conduit.exe",
+        cargo_release_artifact(None, "conduit.exe"),
         &output.join("conduit-windows-x86_64.exe"),
     )?;
     seal(
@@ -310,7 +317,7 @@ fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
     )?;
     fs::create_dir_all(output)?;
     copy(
-        "target/release/conduit",
+        cargo_release_artifact(None, "conduit"),
         &output.join("conduit-macos-aarch64"),
     )?;
     copy(
@@ -389,6 +396,17 @@ fn seal(
 fn copy(source: impl AsRef<Path>, destination: &Path) -> Result<(), Box<dyn std::error::Error>> {
     fs::copy(source, destination)?;
     Ok(())
+}
+
+fn cargo_release_artifact(target: Option<&str>, binary: &str) -> PathBuf {
+    // The Cargo child inherits this variable and the same working directory.
+    let mut artifact = std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("target"));
+    if let Some(target) = target {
+        artifact.push(target);
+    }
+    artifact.join("release").join(binary)
 }
 
 fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {

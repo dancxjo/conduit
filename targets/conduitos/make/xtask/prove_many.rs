@@ -180,7 +180,7 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
         ConduitosError::refusal("proof-batch-root-unavailable", error.to_string())
     })?;
     refuse_nonempty_root(&output_root)?;
-    let shared_cargo_target = paths.root.join("target");
+    let shared_cargo_target = paths.cargo_target.clone();
     let batch_temp = BatchTempRoot::new()?;
     let commit = git_head(&paths.root)?;
     let executable = std::env::current_exe().map_err(|error| {

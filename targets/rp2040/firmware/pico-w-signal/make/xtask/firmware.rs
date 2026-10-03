@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -253,6 +254,7 @@ pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
         }
         let status = Command::new("cargo")
             .args(build_args)
+            .current_dir(&root)
             .env(
                 "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR",
                 &generated_identity_sidecar,
@@ -563,12 +565,39 @@ fn build_rerun_nonce() -> String {
 }
 
 fn firmware_target_profile_dir(root: &Path) -> PathBuf {
-    firmware_root(root)
-        .join("target")
-        .join(TARGET)
-        .join(PROFILE)
+    firmware_target_profile_dir_with(root, std::env::var_os("CARGO_TARGET_DIR").as_deref())
+}
+
+fn firmware_target_profile_dir_with(root: &Path, target_dir: Option<&OsStr>) -> PathBuf {
+    let target_root = target_dir
+        .map(|value| root.join(value))
+        .unwrap_or_else(|| firmware_root(root).join("target"));
+    target_root.join(TARGET).join(PROFILE)
 }
 
 fn firmware_root(root: &Path) -> PathBuf {
     root.join("targets/rp2040/firmware/pico-w-signal")
+}
+
+#[cfg(test)]
+mod target_path_tests {
+    use super::*;
+
+    #[test]
+    fn standalone_firmware_defaults_to_its_own_target_but_honors_cargo_override() {
+        let root = Path::new("/repo");
+        let suffix = Path::new("thumbv6m-none-eabi/release");
+        assert_eq!(
+            firmware_target_profile_dir_with(root, None),
+            firmware_root(root).join("target").join(suffix)
+        );
+        assert_eq!(
+            firmware_target_profile_dir_with(root, Some(OsStr::new("shared/build"))),
+            root.join("shared/build").join(suffix)
+        );
+        assert_eq!(
+            firmware_target_profile_dir_with(root, Some(OsStr::new("/cache/cargo"))),
+            Path::new("/cache/cargo").join(suffix)
+        );
+    }
 }
