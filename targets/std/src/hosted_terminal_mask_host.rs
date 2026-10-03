@@ -8,6 +8,10 @@ use std::{
     time::Duration,
 };
 
+#[path = "hosted_terminal_mask_host/effect.rs"]
+mod effect;
+pub use effect::{receive_terminal_frame_and_ack, TerminalFrameReceipt};
+
 impl StdHost {
     /// Prepare an ordinary terminal Mask only while this Host still owns the
     /// selected provider. The returned executor is fenced by the current
@@ -40,8 +44,8 @@ impl StdHost {
             return Err("terminal attachment peer already closed".into());
         }
         let mut advertisement = self.advertisement.clone();
-        let capabilities = terminal_mask_execution::planning::terminal_capabilities();
-        let resources = terminal_mask_execution::planning::terminal_resources();
+        let capabilities = terminal_mask_execution::planning::attached_terminal_capabilities();
+        let resources = terminal_mask_execution::planning::attached_terminal_resources();
         if capabilities.iter().any(|offer| {
             advertisement
                 .capabilities
@@ -74,11 +78,11 @@ impl StdHost {
             return Err("terminal detachment requires an idle attached Host".into());
         }
         let mut advertisement = self.advertisement.clone();
-        let capability_ids = terminal_mask_execution::planning::terminal_capabilities()
+        let capability_ids = terminal_mask_execution::planning::attached_terminal_capabilities()
             .into_iter()
             .map(|offer| offer.capability_id)
             .collect::<Vec<_>>();
-        let pool_ids = terminal_mask_execution::planning::terminal_resources()
+        let pool_ids = terminal_mask_execution::planning::attached_terminal_resources()
             .into_iter()
             .map(|offer| offer.pool_id)
             .collect::<Vec<_>>();
@@ -98,6 +102,57 @@ impl StdHost {
 
     pub fn terminal_attachment_mut(&mut self) -> Option<&mut UnixStream> {
         self.terminal_attachment.as_mut()
+    }
+
+    /// Run the ordinary planned Mask through this Host's attached terminal.
+    /// Only an actual foreground write+flush acknowledgement can make its
+    /// Show Available. This first entrance closes the typed input Fore without
+    /// an interaction; it is a read-only Show, not full terminal navigation.
+    pub fn present_attached_terminal_face(
+        &mut self,
+        face: &conduit_presentation::Presentation,
+    ) -> Result<conduit_presentation::MaskShow, String> {
+        use crate::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
+        let mut execution = match self.prepare_terminal_mask_execution() {
+            Ok(execution) => execution,
+            Err(error) => {
+                if self.terminal_attachment.is_some() {
+                    self.detach_terminal_mask()?;
+                }
+                return Err(error);
+            }
+        };
+        let mut mask = TerminalFaceMask::prepare_read_only(face.clone(), 80, 24)
+            .map_err(|error| format!("prepare attached terminal Face: {error:?}"))?;
+        let result = (|| {
+            let prepared = execution
+                .begin_render(face)
+                .map_err(|error| format!("begin attached terminal Mask: {error:?}"))?;
+            let stream = self
+                .terminal_attachment
+                .as_mut()
+                .ok_or("terminal attachment vanished before effect")?;
+            let mut writer = effect::AttachedTerminalWriter::new(stream, &prepared);
+            let receipt = mask
+                .render(&mut writer, &prepared)
+                .map_err(|error| format!("render attached terminal Face: {error:?}"))?;
+            if !self.terminal_attachment_is_live()? {
+                return Err("terminal attachment closed before Show acknowledgement".into());
+            }
+            let available = execution
+                .complete_render(&receipt)
+                .map_err(|error| format!("complete attached terminal Mask: {error:?}"))?;
+            mask.bind_show(receipt, available.clone())
+                .map_err(|error| format!("bind attached terminal Show: {error:?}"))?;
+            Ok(available)
+        })();
+        if result.is_err() {
+            let _ = execution.cancel();
+            // A failed output or missing acknowledgement must not leave an
+            // available terminal route under the old offer generation.
+            self.detach_terminal_mask()?;
+        }
+        result
     }
 
     /// A non-consuming liveness check for the owner event loop. A false result

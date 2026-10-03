@@ -108,7 +108,7 @@ pub mod hosted_speech_synthesis;
 mod hosted_spoken_output_host;
 pub mod hosted_synth;
 #[cfg(unix)]
-mod hosted_terminal_mask_host;
+pub mod hosted_terminal_mask_host;
 pub mod hosted_vector_index;
 pub mod hosted_vector_search;
 pub mod hosted_vision;
