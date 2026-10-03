@@ -105,6 +105,10 @@ impl StagedPlaybackSession {
         {
             return Err(PlaybackFailure::InvalidPcm);
         }
+        let next_start_frame = header
+            .start_frame
+            .checked_add(u64::from(header.frame_count))
+            .ok_or(PlaybackFailure::InvalidPcm)?;
         let next_total = self.total_frames + u64::from(header.frame_count);
         if next_total > 16_384 * u64::from(SAMPLE_RATE_HZ) / 1000
             || self.blocks_accepted >= MAXIMUM_BLOCKS as u32
@@ -151,7 +155,7 @@ impl StagedPlaybackSession {
             queue.started = true;
         }
         ready.notify_all();
-        self.expected_start_frame = Some(header.start_frame + u64::from(header.frame_count));
+        self.expected_start_frame = Some(next_start_frame);
         self.total_frames = next_total;
         self.blocks_accepted += 1;
         Ok(())
@@ -357,6 +361,24 @@ mod tests {
         session.write_frame(&frame()).unwrap();
         assert_eq!(session.drain(), Err(PlaybackFailure::ProviderLost));
         assert_eq!(session.report().metrics.frames_committed, 0);
+    }
+
+    #[test]
+    fn overflowing_source_position_is_refused_before_queueing_pcm() {
+        let mut session =
+            StagedPlaybackSession::prepare(selection(FakePlaybackBehavior::Success)).unwrap();
+        assert_eq!(
+            session.write_frame(&frame_at(u64::MAX)),
+            Err(PlaybackFailure::InvalidPcm)
+        );
+        let (lock, _) = &*session.shared;
+        let queue = lock.lock().unwrap();
+        assert!(queue.blocks.is_empty());
+        assert_eq!(queue.queued_frames, 0);
+        drop(queue);
+        assert_eq!(session.blocks_accepted, 0);
+        assert_eq!(session.expected_start_frame, None);
+        assert_eq!(session.report().metrics.blocks_committed, 0);
     }
 
     #[test]
