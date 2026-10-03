@@ -1,6 +1,5 @@
 //! Stop-derived vowel onsets preserve segment identity and finite extent.
 use crate::{
-    differential::program,
     frame_parity::{field_type, record},
     generated::*,
     prosody_parity::{context, evaluate, graph, input as prosody_input},
@@ -24,7 +23,7 @@ pub(super) fn variant(ty: &StructuredInfoType, tag: &str) -> StructuredInfoValue
 
 #[test]
 fn stop_place_is_derived_from_the_exact_selected_phone() {
-    let p = program("speech_stop_place");
+    let (programs, result) = graph("speech_stop_place");
     for (phone, tag) in PHONES {
         let (expected, expected_tag) = match phone {
             EnglishPhone::p | EnglishPhone::b | EnglishPhone::p_aspirated => {
@@ -40,9 +39,15 @@ fn stop_place_is_derived_from_the_exact_selected_phone() {
         };
         assert_eq!(speech_stop_place(*phone), Some(expected));
         assert_eq!(
-            p.evaluate(&variant(&p.input_type, tag).canonical_bytes().unwrap())
-                .unwrap(),
-            variant(&p.output_type, expected_tag)
+            evaluate(
+                &programs,
+                result,
+                &variant(&programs[0].1.input_type, tag)
+                    .canonical_bytes()
+                    .unwrap()
+            )
+            .unwrap(),
+            variant(&programs[result].1.output_type, expected_tag)
                 .canonical_bytes()
                 .unwrap()
         );

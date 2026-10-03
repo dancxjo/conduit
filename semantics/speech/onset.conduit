@@ -5,10 +5,32 @@ type SpeechStopPlace =
     | labial
     | alveolar
     | velar
+type SpeechPhoneCueContext =
+    phone_only
+type SpeechStopPlaceCarry<C> = {
+    phone: EnglishPhone
+    context: C
+}
+type SpeechStopPlaceResult<C> = {
+    input: SpeechStopPlaceCarry<C>
+    place: SpeechStopPlace
+}
+type SpeechStopPlaceOnlyRequest = SpeechStopPlaceCarry<SpeechPhoneCueContext>
+type SpeechStopPlaceOnlyResult = SpeechStopPlaceResult<SpeechPhoneCueContext>
+plot speech/stop-place-cue (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: ., place: ((.phone is p || (.phone is b || .phone is p_aspirated)) ? SpeechStopPlace.labial : (.phone is t || (.phone is d || .phone is t_aspirated)) ? SpeechStopPlace.alveolar : (.phone is k || (.phone is g || .phone is k_aspirated)) ? SpeechStopPlace.velar : SpeechStopPlace.not_stop)})
 plot speech/stop-place (
     >> phone: EnglishPhone
     result: SpeechStopPlace >>
-) = ((. is p || (. is b || . is p_aspirated)) ? SpeechStopPlace.labial : (. is t || (. is d || . is t_aspirated)) ? SpeechStopPlace.alveolar : (. is k || (. is g || . is k_aspirated)) ? SpeechStopPlace.velar : SpeechStopPlace.not_stop)
+) {
+    cue: speech/stop-place-cue(item = SpeechStopPlaceOnlyRequest, output = SpeechStopPlaceOnlyResult)
+    phone >> ({phone: ., context: SpeechPhoneCueContext.phone_only}) >> cue.value
+    cue.result >> (.place) >> result
+}
 
 type SpeechVowelOnsetInput = {
     phone: EnglishPhone

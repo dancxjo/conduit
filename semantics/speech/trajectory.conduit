@@ -92,3 +92,43 @@ plot speech/temporal-frame (
     context.result >> synthesize.value
     synthesize.result >> result
 }
+
+# Endpoint side belongs to the adjacent segment's acoustic query. It does not
+# create another phone occurrence or skip intervening boundary events.
+type SpeechEndpointSide =
+    start
+    | end
+type SpeechNeighborEndpointInput = {
+    phone: EnglishPhone
+    target: SpeechAcousticTarget
+    side: SpeechEndpointSide
+}
+type SpeechNeighborCueRequest = SpeechStopPlaceCarry<SpeechNeighborEndpointInput>
+type SpeechNeighborCueResult = SpeechStopPlaceResult<SpeechNeighborEndpointInput>
+type SpeechNeighborTrajectoryRequest = SpeechTrajectoryCarry<SpeechStopPlace>
+type SpeechNeighborTrajectoryTransition = SpeechTrajectoryTransition<SpeechStopPlace>
+type SpeechNeighborTrajectoryResult = SpeechTrajectoryResult<SpeechStopPlace>
+type SpeechNeighborEndpointResult = {
+    neighbor: SpeechNeighborModel
+    place: SpeechStopPlace
+}
+plot speech/neighbor-trajectory-input (
+    >> value: SpeechNeighborCueResult
+    result: SpeechNeighborTrajectoryRequest >>
+) = ({trajectory: {phone: .input.phone, target: .input.context.target, frame: .input.context.side is end ? .input.context.target.frames - 1 : 0}, context: .place})
+plot speech/neighbor-endpoint (
+    >> value: SpeechNeighborEndpointInput
+    result: SpeechNeighborEndpointResult >>
+) {
+    cue: speech/stop-place-cue(item = SpeechNeighborCueRequest, output = SpeechNeighborCueResult)
+    input: speech/neighbor-trajectory-input
+    prepare: speech/trajectory-prepare(item = SpeechNeighborTrajectoryRequest, output = SpeechNeighborTrajectoryTransition)
+    blend: speech/trajectory-blend(item = SpeechNeighborTrajectoryTransition, output = SpeechNeighborTrajectoryRequest)
+    release: speech/trajectory-release(item = SpeechNeighborTrajectoryRequest, output = SpeechNeighborTrajectoryResult)
+    value >> ({phone: .phone, context: .}) >> cue.value
+    cue.result >> input.value
+    input.result >> prepare.value
+    prepare.result >> blend.value
+    blend.result >> release.value
+    release.result >> ({neighbor: {relation: SpeechNeighborRelation.segment, model: .target}, place: .input.context}) >> result
+}

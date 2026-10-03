@@ -127,8 +127,12 @@ its DSP stage sequence. The four-stage `speech/segment-model` preparation graph
 composes realization and voice-model lookup while retaining the exact original
 input, selected phone and derivation alongside the acoustic target. Its generic
 lookup shares one authored table with the scalar phone-model entrance. Portable
-proof covers all 40 phonemes, six stress states and five positions. Rust currently
-connects this preparation graph, adjacent-tape projection and temporal-frame calls. Consolidating that entire
+proof covers all 40 phonemes, six stress states and five positions. The
+seven-stage `speech/neighbor-endpoint` graph selects the exact adjacent phone model at its declared start or end, carries the selected stop-place cue
+through the shared temporal equations, and returns both together. The scalar
+cue query shares the same authored policy. Portable proof covers all 44 phones
+at both ends, including arithmetic refusals. Rust currently connects segment
+preparation, exact adjacent-tape projection, endpoint and temporal-frame calls. Consolidating that entire
 chain into one authored graph needs explicit pairing of retained frame context
 with called results. The current unary pure-value compiler does not invent
 implicit synchronization or erase a Flow join's temporal contract.

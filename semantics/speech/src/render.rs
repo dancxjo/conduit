@@ -208,19 +208,15 @@ fn neighbor(
     }
     let value = event.realization().ok_or(RenderRefusal::Arithmetic)?;
     let prepared = speech_segment_model(value).ok_or(RenderRefusal::Arithmetic)?;
-    let phone = prepared.realization.phone;
-    let target = prepared.target;
-    let model = speech_phone_frame_target(SpeechTrajectoryInput {
-        phone,
-        target,
-        frame: if end { target.frames - 1 } else { 0 },
+    let endpoint = speech_neighbor_endpoint(SpeechNeighborEndpointInput {
+        phone: prepared.realization.phone,
+        target: prepared.target,
+        side: if end {
+            SpeechEndpointSide::end
+        } else {
+            SpeechEndpointSide::start
+        },
     })
     .ok_or(RenderRefusal::Arithmetic)?;
-    Ok((
-        SpeechNeighborModel {
-            relation: SpeechNeighborRelation::segment,
-            model,
-        },
-        speech_stop_place(phone).ok_or(RenderRefusal::Arithmetic)?,
-    ))
+    Ok((endpoint.neighbor, endpoint.place))
 }

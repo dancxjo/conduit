@@ -68,3 +68,6 @@ mod onset_parity;
 
 #[cfg(test)]
 mod arithmetic_bounds;
+
+#[cfg(test)]
+mod neighbor_parity;
