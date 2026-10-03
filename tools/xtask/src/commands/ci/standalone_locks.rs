@@ -9,6 +9,10 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "proof/fixtures/native-speech-footprint/Cargo.toml",
+        lock: "proof/fixtures/native-speech-footprint/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/avr/firmware/promicro-host/Cargo.toml",
         lock: "targets/avr/firmware/promicro-host/Cargo.lock",
     },

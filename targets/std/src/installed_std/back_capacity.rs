@@ -23,6 +23,9 @@ impl InstalledBack {
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
             Self::MusicSynth(_) => 0,
             Self::SpeechSynthesis(_) => 0,
+            Self::NativeSpeech(_) => {
+                core::mem::size_of::<conduit_speech::kernel::NativeSpeechBack>()
+            }
             Self::AudioRenderDemand(operation) => operation.allocation_capacity(),
             Self::AudioPlay(_) => 0,
             Self::AudioTone(_) => 0,

@@ -20,6 +20,8 @@ pub struct StdHostComposition {
     /// Ordered nominal pulse observation; selected independently of the broad reference image.
     pub pulse_observation: bool,
     pub text: bool,
+    /// Compiled checked English pronunciation and voice, independent of devices/providers.
+    pub native_speech: bool,
     pub input: bool,
     pub state: bool,
     pub data: bool,
@@ -45,6 +47,7 @@ impl StdHostComposition {
             time: true,
             pulse_observation: false,
             text: true,
+            native_speech: true,
             input: true,
             state: true,
             data: true,
@@ -71,6 +74,7 @@ impl StdHostComposition {
             time: false,
             pulse_observation: false,
             text: false,
+            native_speech: false,
             input: false,
             state: false,
             data: false,
@@ -106,6 +110,11 @@ impl StdHostComposition {
 
     pub const fn with_text(mut self) -> Self {
         self.text = true;
+        self
+    }
+
+    pub const fn with_native_speech(mut self) -> Self {
+        self.native_speech = true;
         self
     }
 
@@ -237,6 +246,9 @@ pub(super) fn build_advertisement(
             installed_std::text_offer(),
         ]);
         capabilities.extend(conduit_std_offers::morse_composition_offers());
+    }
+    if composition.native_speech {
+        capabilities.push(conduit_speech::kernel::offer());
     }
     if composition.input {
         capabilities.extend([

@@ -1,0 +1,90 @@
+# Neighboring acoustic models remain models, not new phoneme/phone tokens.
+# Missing neighbors use the current model as a neutral endpoint; the relation
+# still distinguishes a sequence edge from each authored pause class.
+type SpeechNeighborRelation =
+    segment
+    | word_boundary
+    | phrase_boundary
+    | turn_boundary
+    | sequence_edge
+type SpeechNeighborModel = {
+    relation: SpeechNeighborRelation
+    model: SpeechAcousticTarget
+}
+type SpeechConnectedInput = {
+    phone: EnglishPhone
+    stress: EnglishStress
+    state: SpeechFrameState
+    previous_place: SpeechStopPlace
+    target: SpeechAcousticTarget
+    frame: I32
+    previous: SpeechNeighborModel
+    next: SpeechNeighborModel
+}
+type SpeechConnectionEligibility = {
+    input: SpeechConnectedInput
+    left: Boolean
+    right: Boolean
+}
+type SpeechConnectedWorking = {
+    input: SpeechConnectedInput
+    target: SpeechAcousticTarget
+    endpoint: SpeechAcousticTarget
+    weight: I32
+    attack: Boolean
+    release: Boolean
+}
+type SpeechConnectedResult = {
+    input: SpeechConnectedInput
+    target: SpeechAcousticTarget
+    attack: Boolean
+    release: Boolean
+}
+# This small profile joins sonorant spectra only. It does not reinterpret a
+# release burst as a vocal-tract locus or guess across a pause.
+plot speech/connection-eligibility (
+    >> value: SpeechConnectedInput
+    result: SpeechConnectionEligibility >>
+) = ({input: ., left: ((.target.voiced == 1 && (.target.frication == 0 && .target.closure == 0)) && (.previous.relation is segment && (.previous.model.voiced == 1 && (.previous.model.frication == 0 && .previous.model.closure == 0)))), right: ((.target.voiced == 1 && (.target.frication == 0 && .target.closure == 0)) && (.next.relation is segment && (.next.model.voiced == 1 && (.next.model.frication == 0 && .next.model.closure == 0))))})
+plot speech/connection-prepare (
+    >> value: SpeechConnectionEligibility
+    result: SpeechConnectedWorking >>
+) = ({input: .input, target: .input.target, endpoint: .left && .input.frame < 128 ? .input.previous.model : .right && .input.frame >= .input.target.frames - 128 ? .input.next.model : .input.target, weight: .left && .input.frame < 128 ? 128 - .input.frame : .right && .input.frame >= .input.target.frames - 128 ? .input.frame - (.input.target.frames - 129) : 0, attack: !.left, release: !.right})
+# Both endpoints use the same weighted midpoint at the join. Duration, closure
+# and source excitation class remain those of the selected current phone.
+plot speech/connection-blend (
+    >> value: SpeechConnectedWorking
+    result: SpeechConnectedResult >>
+) = ({input: .input, target: .weight == 0 ? .target : {f1: (.target.f1 * (256 - .weight) + .endpoint.f1 * .weight) / 256, f2: (.target.f2 * (256 - .weight) + .endpoint.f2 * .weight) / 256, f3: (.target.f3 * (256 - .weight) + .endpoint.f3 * .weight) / 256, b1: (.target.b1 * (256 - .weight) + .endpoint.b1 * .weight) / 256, b2: (.target.b2 * (256 - .weight) + .endpoint.b2 * .weight) / 256, b3: (.target.b3 * (256 - .weight) + .endpoint.b3 * .weight) / 256, c1: (.target.c1 * (256 - .weight) + .endpoint.c1 * .weight) / 256, c2: (.target.c2 * (256 - .weight) + .endpoint.c2 * .weight) / 256, c3: (.target.c3 * (256 - .weight) + .endpoint.c3 * .weight) / 256, gain1: (.target.gain1 * (256 - .weight) + .endpoint.gain1 * .weight) / 256, gain2: (.target.gain2 * (256 - .weight) + .endpoint.gain2 * .weight) / 256, gain3: (.target.gain3 * (256 - .weight) + .endpoint.gain3 * .weight) / 256, voiced: .target.voiced, frication: .target.frication, frames: .target.frames, closure: .target.closure}, attack: .attack, release: .release})
+plot speech/connected-target (
+    >> value: SpeechConnectedInput
+    result: SpeechConnectedResult >>
+) {
+    eligibility: speech/connection-eligibility
+    prepare: speech/connection-prepare
+    blend: speech/connection-blend
+    value >> eligibility.value
+    eligibility.result >> prepare.value
+    prepare.result >> blend.value
+    blend.result >> result
+}.
+
+# Pair the retained exact context with its connected model/envelope result.
+# This bridge is authored data projection, not an implicit runtime join.
+plot speech/connected-onset-input (
+    >> value: SpeechConnectedResult
+    result: SpeechVowelOnsetInput >>
+) = ({phone: .input.phone, prosody: {stress: .input.stress, attack: .attack, release: .release, target: .target, frame: .input.frame, state: .input.state}, previous_place: .input.previous_place, relation: .input.previous.relation})
+
+plot speech/connected-frame (
+    >> value: SpeechConnectedInput
+    result: SpeechFrameResult >>
+) {
+    connection: speech/connected-target
+    context: speech/connected-onset-input
+    synthesize: speech/contextual-frame
+    value >> connection.value
+    connection.result >> context.value
+    context.result >> synthesize.value
+    synthesize.result >> result
+}
