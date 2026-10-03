@@ -159,6 +159,44 @@ fn host_owned_arrival_is_read_completely_with_one_bounded_segment_in_flight() {
 }
 
 #[test]
+fn host_owned_text_readout_and_focus_claim_no_audio() {
+    let (face, show) = face_with_action();
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let readout = reader.take_text_readout().unwrap().unwrap();
+    assert_eq!(readout.face_id, face.identity.as_str());
+    assert_eq!(readout.show_id, show.show_id.as_str());
+    assert!(readout.clauses.join(" ").contains("Create Body"));
+    assert!(reader.next_segment().unwrap().is_none());
+    reader
+        .command(
+            &face,
+            &show,
+            ReaderCommand::FocusAction("birth/confirm".into()),
+            2,
+        )
+        .unwrap();
+    assert!(reader
+        .take_text_readout()
+        .unwrap()
+        .unwrap()
+        .clauses
+        .join(" ")
+        .contains("Create Body"));
+    assert_eq!(
+        reader.command(
+            &face,
+            &show,
+            ReaderCommand::FocusAction("birth/absent".into()),
+            3,
+        ),
+        Err(SpokenFaceRefusal::UnknownAction)
+    );
+}
+
+#[test]
 fn inward_text_edit_and_birth_request_are_exact_typed_interactions() {
     let (face, show) = face_with_action();
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();

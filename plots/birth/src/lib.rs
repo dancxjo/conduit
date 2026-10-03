@@ -16,5 +16,5 @@ mod presentation;
 
 pub use actions::{BirthActionOutcome, BirthActions};
 pub use draft::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
-pub use face::{BirthFaceBasis, BirthFaceRefusal};
+pub use face::{BirthFaceBasis, BirthFaceRefusal, HostOwnedBirthFaceBasis};
 pub use presentation::BirthPresentation;
