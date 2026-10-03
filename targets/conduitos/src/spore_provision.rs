@@ -6,7 +6,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const MAGIC: &[u8] = b"CONDUIT_SPORE_MEDIA@1\0";
-pub const REGION_BYTES: usize = 4096;
+// Four admitted TLS routes may each carry a bounded 1024-byte DER leaf. The
+// provision also binds the exact Body, image, and invitation identities.
+pub const REGION_BYTES: usize = 32 * 1024;
 const HEADER_BYTES: usize = 32;
 const MAX_ID_BYTES: usize = 192;
 const MAX_RENDEZVOUS_CANDIDATES: usize = 4;
