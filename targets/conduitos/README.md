@@ -49,6 +49,11 @@ reachable from QEMU's user network; replace the example address with the
 address on your machine. It is not a discovered or authorized owner. The
 command validates the exact ISO's image digest,
 invitation, selected candidate, expiry, and certificate pin before launching.
+For a screenshot of that same running attempt, add
+`--qmp-socket /absolute/private-directory/monitor.sock`. The parent directory
+must already exist with mode 0700, and the socket path must be unused. The
+optional QMP channel permits a local capture client; it does not prove
+membership or start a second guest.
 The selected candidate must be the first authenticated TLS route in the
 invitation, matching the current product boot's bounded attempt order.
 It forwards only the candidate's numeric `wss://10.0.2.x:port/conduit` route

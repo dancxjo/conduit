@@ -13,6 +13,7 @@ pub(super) fn execute(
     spore: &Path,
     candidate_id: &str,
     owner_forward: SocketAddr,
+    qmp_socket: Option<&Path>,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
     let SocketAddr::V4(owner_forward) = owner_forward else {
@@ -27,6 +28,7 @@ pub(super) fn execute(
             "the owner forward must be an explicit private IPv4 owner listener with a nonzero port",
         ));
     }
+    let qmp = qmp_socket.map(qmp_arg).transpose()?;
     let route = acceptance::owner_boot_route(spore, candidate_id)?;
     let (guest_address, guest_port) = guest_forward(&route.reachability)?;
     let netdev = netdev(guest_address, guest_port, owner_forward);
@@ -36,7 +38,67 @@ pub(super) fn execute(
         println!("Forwarded to private owner listener: {owner_forward}");
         println!("The guest must validate the provisioned TLS identity and owner receipt.");
     }
-    demo::boot_visible_image_with_network(spore, Some(&route.artifact_sha256), Some(&netdev), opts)
+    demo::boot_visible_image_with_network(
+        spore,
+        Some(&route.artifact_sha256),
+        Some(&netdev),
+        qmp.as_deref(),
+        opts,
+    )
+}
+
+#[cfg(unix)]
+fn qmp_arg(path: &Path) -> Result<String, ConduitosError> {
+    use std::{io::ErrorKind, os::unix::fs::PermissionsExt};
+
+    let value = path.to_str().ok_or_else(|| {
+        ConduitosError::refusal("owner-boot-qmp-invalid", "QMP socket path must be UTF-8")
+    })?;
+    if !path.is_absolute()
+        || value.len() > 96
+        || value.bytes().any(|byte| byte == b',' || byte < b' ')
+    {
+        return Err(ConduitosError::refusal(
+            "owner-boot-qmp-invalid",
+            "QMP socket path must be absolute, short, and contain no QEMU separators",
+        ));
+    }
+    let parent = path.parent().ok_or_else(|| {
+        ConduitosError::refusal("owner-boot-qmp-invalid", "QMP socket has no private parent")
+    })?;
+    let parent_meta = std::fs::metadata(parent).map_err(|error| {
+        ConduitosError::refusal("owner-boot-qmp-invalid", format!("QMP parent: {error}"))
+    })?;
+    if !parent_meta.is_dir() || parent_meta.permissions().mode() & 0o077 != 0 {
+        return Err(ConduitosError::refusal(
+            "owner-boot-qmp-invalid",
+            "QMP socket parent must be an existing private directory",
+        ));
+    }
+    match std::fs::symlink_metadata(path) {
+        Err(error) if error.kind() == ErrorKind::NotFound => {}
+        Ok(_) => {
+            return Err(ConduitosError::refusal(
+                "owner-boot-qmp-invalid",
+                "QMP socket path already exists",
+            ));
+        }
+        Err(error) => {
+            return Err(ConduitosError::refusal(
+                "owner-boot-qmp-invalid",
+                format!("QMP socket path: {error}"),
+            ));
+        }
+    }
+    Ok(format!("unix:{value},server=on,wait=off"))
+}
+
+#[cfg(not(unix))]
+fn qmp_arg(_path: &Path) -> Result<String, ConduitosError> {
+    Err(ConduitosError::refusal(
+        "owner-boot-qmp-unsupported",
+        "this QMP socket capture is available only on Unix hosts",
+    ))
 }
 
 fn guest_forward(reachability: &str) -> Result<(Ipv4Addr, u16), ConduitosError> {
@@ -89,6 +151,42 @@ fn netdev(guest_address: Ipv4Addr, guest_port: u16, owner: SocketAddrV4) -> Stri
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    #[test]
+    fn qmp_capture_requires_a_new_socket_in_a_private_directory() {
+        use std::{os::unix::fs::PermissionsExt, time::SystemTime};
+
+        let nonce = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let private =
+            std::env::temp_dir().join(format!("conduit-owner-qmp-{}-{nonce}", std::process::id()));
+        std::fs::create_dir(&private).unwrap();
+        std::fs::set_permissions(&private, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let socket = private.join("monitor.sock");
+        assert_eq!(
+            qmp_arg(&socket).unwrap(),
+            format!("unix:{},server=on,wait=off", socket.display())
+        );
+        std::fs::write(&socket, b"occupied").unwrap();
+        assert_eq!(
+            qmp_arg(&socket).unwrap_err().reason,
+            "owner-boot-qmp-invalid"
+        );
+        std::fs::remove_file(&socket).unwrap();
+        std::fs::set_permissions(&private, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(
+            qmp_arg(&socket).unwrap_err().reason,
+            "owner-boot-qmp-invalid"
+        );
+        std::fs::remove_dir(&private).unwrap();
+        assert_eq!(
+            qmp_arg(Path::new("relative.sock")).unwrap_err().reason,
+            "owner-boot-qmp-invalid"
+        );
+    }
+
     #[test]
     fn forward_is_derived_from_exact_numeric_candidate_and_explicit_owner_listener() {
         let (guest, port) = guest_forward("wss://10.0.2.100:9000/conduit").unwrap();
@@ -112,6 +210,7 @@ mod tests {
                 Path::new("absent.iso"),
                 "candidate/owner",
                 address,
+                None,
                 &GlobalOpts::default(),
             )
             .unwrap_err();
@@ -121,6 +220,7 @@ mod tests {
             Path::new("absent.iso"),
             "candidate/owner",
             "172.17.0.1:19000".parse().unwrap(),
+            None,
             &GlobalOpts::default(),
         )
         .unwrap_err();

@@ -270,6 +270,10 @@ struct LiveOwnerBootArgs {
     /// Explicit private IPv4 TLS owner listener to receive QEMU guestfwd traffic.
     #[arg(long)]
     owner_forward: std::net::SocketAddr,
+
+    /// Optional QMP socket under an existing private directory for live capture.
+    #[arg(long)]
+    qmp_socket: Option<PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -467,9 +471,13 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Live(args) => live_media::build(args.host, opts),
         ConduitosCommand::LiveBoot(args) => live_media::boot(args.host, opts),
-        ConduitosCommand::LiveOwnerBoot(args) => {
-            owner_boot::execute(&args.spore, &args.candidate_id, args.owner_forward, opts)
-        }
+        ConduitosCommand::LiveOwnerBoot(args) => owner_boot::execute(
+            &args.spore,
+            &args.candidate_id,
+            args.owner_forward,
+            args.qmp_socket.as_deref(),
+            opts,
+        ),
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),

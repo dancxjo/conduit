@@ -34,13 +34,14 @@ pub(crate) fn boot_visible_image(
     image_sha256: Option<&str>,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
-    boot_visible_image_with_network(image, image_sha256, None, opts)
+    boot_visible_image_with_network(image, image_sha256, None, None, opts)
 }
 
 pub(crate) fn boot_visible_image_with_network(
     image: &std::path::Path,
     image_sha256: Option<&str>,
     netdev: Option<&str>,
+    qmp: Option<&str>,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
     let args = qemu_args(
@@ -48,6 +49,7 @@ pub(crate) fn boot_visible_image_with_network(
             ConduitosError::refusal("demo-image-path-invalid", "image path is not UTF-8")
         })?,
         netdev,
+        qmp,
     );
     if opts.dry_run {
         println!("qemu-system-x86_64 {}", args.join(" "));
@@ -64,6 +66,9 @@ pub(crate) fn boot_visible_image_with_network(
         println!("  profile: {DEMO_PROFILE}");
         if netdev.is_some() {
             println!("  network: explicit provisioned owner route over VirtIO-net");
+        }
+        if let Some(qmp) = qmp {
+            println!("  QMP: {qmp}");
         }
         println!("Close the QEMU window or press Ctrl-C to exit.");
     }
@@ -94,7 +99,7 @@ pub(crate) fn boot_visible_image_with_network(
     Ok(())
 }
 
-fn qemu_args<'a>(iso: &'a str, netdev: Option<&'a str>) -> Vec<&'a str> {
+fn qemu_args<'a>(iso: &'a str, netdev: Option<&'a str>, qmp: Option<&'a str>) -> Vec<&'a str> {
     let mut args = vec![
         "-M",
         "q35",
@@ -124,6 +129,9 @@ fn qemu_args<'a>(iso: &'a str, netdev: Option<&'a str>) -> Vec<&'a str> {
     } else {
         args.extend(["-net", "none"]);
     }
+    if let Some(qmp) = qmp {
+        args.extend(["-qmp", qmp]);
+    }
     args.extend([
         "-device",
         "qemu-xhci,id=conduitos-xhci,p2=2,p3=0",
@@ -145,7 +153,7 @@ mod tests {
 
     #[test]
     fn visible_profile_keeps_the_accepted_machine_and_keyboard_shape() {
-        let args = qemu_args("conduitos.iso", None);
+        let args = qemu_args("conduitos.iso", None, None);
         assert!(args.windows(2).any(|pair| pair == ["-display", "gtk"]));
         assert!(args.windows(2).any(|pair| pair == ["-serial", "stdio"]));
         assert!(args.windows(2).any(|pair| pair == ["-M", "q35"]));
@@ -161,11 +169,18 @@ mod tests {
     fn owner_profile_attaches_virtio_without_altering_visible_product_boot() {
         let netdev =
             "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-tcp:172.17.0.1:19000";
-        let args = qemu_args("spore.iso", Some(netdev));
+        let args = qemu_args(
+            "spore.iso",
+            Some(netdev),
+            Some("unix:/private/qmp.sock,server=on,wait=off"),
+        );
         assert!(args.windows(2).any(|pair| pair == ["-netdev", netdev]));
         assert!(args.contains(&"virtio-net-pci,netdev=conduit-owner,disable-modern=on,rx_queue_size=256,tx_queue_size=256"));
         assert!(args.windows(2).any(|pair| pair == ["-display", "gtk"]));
         assert!(!args.windows(2).any(|pair| pair == ["-net", "none"]));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-qmp", "unix:/private/qmp.sock,server=on,wait=off"]));
     }
 
     #[test]
