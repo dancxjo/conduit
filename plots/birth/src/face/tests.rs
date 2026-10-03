@@ -23,6 +23,13 @@ fn basis() -> BirthFaceBasis {
         producer_plan_id: plan.plan_id,
     }
 }
+fn host_owned_basis() -> HostOwnedBirthFaceBasis {
+    HostOwnedBirthFaceBasis {
+        host_id: "host/birth".into(),
+        boot_id: "boot/birth".into(),
+        encounter_id: "arrival/one".into(),
+    }
+}
 fn draft() -> BirthDraft {
     BirthDraft::new(
         "550e8400-e29b-41d4-a716-446655440000".into(),
@@ -76,6 +83,51 @@ fn apply(
 ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
     let (show, input) = input(draft, id, value).map_err(BirthFaceRefusal::Interaction)?;
     draft.apply_face_interaction(&basis(), &show, &input)
+}
+#[test]
+fn host_owned_birth_face_has_no_partial_producer_identity_and_refuses_stale_action() {
+    let mut draft = draft();
+    let host_basis = host_owned_basis();
+    let face = draft.host_owned_face(&host_basis).unwrap();
+    assert!(face.basis.body_id.is_none());
+    assert!(face.basis.source_document_id.is_none());
+    assert!(face.basis.checked_plot_id.is_none());
+    assert!(face.basis.expanded_plot_id.is_none());
+    assert!(face.basis.plan_id.is_none());
+    let show = fixtures::acknowledged_fixture_show(&face);
+    let action = face
+        .actions
+        .iter()
+        .find(|a| a.identity == "creche.name")
+        .unwrap();
+    let edit = FaceInteraction::new(
+        &face,
+        &show,
+        &action.identity,
+        &action.target,
+        vec![FaceInteractionArgument {
+            name: "value".into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: b"Ada".to_vec(),
+        }],
+        1,
+    )
+    .unwrap();
+    assert_eq!(
+        draft.apply_host_owned_face_interaction(&host_basis, &show, &edit),
+        Ok(BirthActionOutcome::Changed)
+    );
+    assert_eq!(
+        draft.apply_host_owned_face_interaction(&host_basis, &show, &edit),
+        Err(BirthFaceRefusal::Interaction(
+            FaceInteractionRefusal::StaleFace
+        ))
+    );
+    let planned = draft.face(&basis()).unwrap();
+    assert!(planned.basis.source_document_id.is_some());
+    assert!(planned.basis.checked_plot_id.is_some());
+    assert!(planned.basis.expanded_plot_id.is_some());
+    assert!(planned.basis.plan_id.is_some());
 }
 #[test]
 fn one_draft_and_action_sequence_match_widget_adapter_through_planned_mask_fixture() {

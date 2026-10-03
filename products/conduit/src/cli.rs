@@ -302,7 +302,11 @@ pub(crate) enum HostServiceCommand {
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
     /// Enter the birth encounter for a Host that does not yet belong to a Body.
-    Birth,
+    Birth {
+        /// Use a terminal and nonvisual command input for the zero-Body Crèche.
+        #[arg(long)]
+        screen_free: bool,
+    },
     /// Own a retained Body on an installed Linux Host in the foreground.
     ///
     /// Run the installed product executable with its service stopped. Standard
@@ -408,6 +412,26 @@ mod public_surface_tests {
             .expect("bare product entrance parses")
             .command
             .is_none());
+    }
+
+    #[test]
+    fn screen_free_birth_is_an_explicit_product_entrance() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "body", "birth", "--screen-free"])
+                .expect("screen-free Birth parses")
+                .command,
+            Some(Command::Body {
+                command: Some(BodyCommand::Birth { screen_free: true })
+            })
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "body", "birth"])
+                .expect("browser Birth remains default")
+                .command,
+            Some(Command::Body {
+                command: Some(BodyCommand::Birth { screen_free: false })
+            })
+        ));
     }
 
     #[test]

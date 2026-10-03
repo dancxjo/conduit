@@ -22,6 +22,41 @@ pub struct BirthFaceBasis {
     pub producer_plan_id: PlanId,
 }
 
+/// A Birth encounter presented directly by its Host, before any producer
+/// Plot or Plan exists. All producer identities are absent together.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HostOwnedBirthFaceBasis {
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub encounter_id: String,
+}
+
+pub(super) enum FaceBasis<'a> {
+    Planned(&'a BirthFaceBasis),
+    HostOwned(&'a HostOwnedBirthFaceBasis),
+}
+
+impl FaceBasis<'_> {
+    fn host_id(&self) -> &HostId {
+        match self {
+            Self::Planned(basis) => &basis.host_id,
+            Self::HostOwned(basis) => &basis.host_id,
+        }
+    }
+    fn boot_id(&self) -> &BootId {
+        match self {
+            Self::Planned(basis) => &basis.boot_id,
+            Self::HostOwned(basis) => &basis.boot_id,
+        }
+    }
+    fn encounter_id(&self) -> &str {
+        match self {
+            Self::Planned(basis) => &basis.encounter_id,
+            Self::HostOwned(basis) => &basis.encounter_id,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BirthFaceRefusal {
     InvalidProjection,
@@ -35,7 +70,14 @@ pub enum BirthFaceRefusal {
 
 impl BirthDraft {
     pub fn face(&self, basis: &BirthFaceBasis) -> Result<Presentation, BirthFaceRefusal> {
-        projection::project(self, basis).map(|(face, _)| face)
+        projection::project(self, FaceBasis::Planned(basis)).map(|(face, _)| face)
+    }
+
+    pub fn host_owned_face(
+        &self,
+        basis: &HostOwnedBirthFaceBasis,
+    ) -> Result<Presentation, BirthFaceRefusal> {
+        projection::project(self, FaceBasis::HostOwned(basis)).map(|(face, _)| face)
     }
 
     /// Validate against the current draft, never against a caller-supplied Face.
@@ -43,6 +85,24 @@ impl BirthDraft {
     pub fn apply_face_interaction(
         &mut self,
         basis: &BirthFaceBasis,
+        show: &MaskShow,
+        input: &FaceInteraction,
+    ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
+        self.apply_projected_interaction(FaceBasis::Planned(basis), show, input)
+    }
+
+    pub fn apply_host_owned_face_interaction(
+        &mut self,
+        basis: &HostOwnedBirthFaceBasis,
+        show: &MaskShow,
+        input: &FaceInteraction,
+    ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
+        self.apply_projected_interaction(FaceBasis::HostOwned(basis), show, input)
+    }
+
+    fn apply_projected_interaction(
+        &mut self,
+        basis: FaceBasis<'_>,
         show: &MaskShow,
         input: &FaceInteraction,
     ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
