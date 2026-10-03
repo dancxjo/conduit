@@ -24,10 +24,10 @@ impl MaskShowId {
 pub struct MaskShow {
     pub show_id: MaskShowId,
     pub mask_plot: PlotIdentity,
-    /// The application/tutorial Plot that produced the Face Presentation.
-    pub presentation_plot: PlotIdentity,
-    /// The application Plan is deliberately distinct from the Mask Plan.
-    pub presentation_plan_id: PlanId,
+    /// Producing Plot, when this Face represents a planned execution.
+    pub presentation_plot: Option<PlotIdentity>,
+    /// A resting Body Face can have no current Plan. The Mask Plan remains exact.
+    pub presentation_plan_id: Option<PlanId>,
     pub presentation_id: PresentationContentId,
     pub presentation_revision: u64,
     pub planned_mask: PlannedMaskPlot,
@@ -46,7 +46,6 @@ pub struct MaskInteractionCorrelation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MaskShowError {
     StalePresentation,
-    MissingPresentationBasis,
     StalePlan,
     InvalidManifestation(ManifestationError),
     StaleShowIdentity,
@@ -153,27 +152,28 @@ impl MaskShow {
     }
 }
 
-fn validate_basis(presentation: &Presentation) -> Result<(PlotIdentity, PlanId), MaskShowError> {
+fn validate_basis(
+    presentation: &Presentation,
+) -> Result<(Option<PlotIdentity>, Option<PlanId>), MaskShowError> {
     presentation
         .validate()
         .map_err(|_| MaskShowError::StalePresentation)?;
     let basis = &presentation.basis;
-    let (Some(source_document_id), Some(checked_plot_id), Some(expanded_plot_id), Some(plan_id)) = (
+    let plot = match (
         basis.source_document_id.clone(),
         basis.checked_plot_id.clone(),
         basis.expanded_plot_id.clone(),
-        basis.plan_id.clone(),
-    ) else {
-        return Err(MaskShowError::MissingPresentationBasis);
+    ) {
+        (Some(source_document_id), Some(checked_plot_id), Some(expanded_plot_id)) => {
+            Some(PlotIdentity {
+                source_document_id,
+                checked_plot_id,
+                expanded_plot_id,
+            })
+        }
+        _ => None,
     };
-    Ok((
-        PlotIdentity {
-            source_document_id,
-            checked_plot_id,
-            expanded_plot_id,
-        },
-        plan_id,
-    ))
+    Ok((plot, basis.plan_id.clone()))
 }
 
 fn bind_show(
@@ -189,14 +189,12 @@ fn bind_show(
             .basis
             .checked_plot_id
             .as_ref()
-            .expect("validated Mask Presentation retains its application Plot")
-            .as_str(),
+            .map_or("<none>", |id| id.as_str()),
         presentation
             .basis
             .plan_id
             .as_ref()
-            .expect("validated Mask Presentation retains its application Plan")
-            .as_str(),
+            .map_or("<none>", |id| id.as_str()),
         presentation.identity.as_str(),
         presentation.revision,
         planned_mask.plan.plan_id.as_str(),

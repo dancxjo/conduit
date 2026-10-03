@@ -62,11 +62,16 @@ impl NativeFaceSnapshotProducer {
             .validate()
             .map_err(|_| FaceSnapshotRefusal::Presentation)?;
         let basis = &presentation.basis;
-        if basis.source_document_id.as_ref() != Some(&self.plan.source_document_id)
-            || basis.checked_plot_id.as_ref() != Some(&self.plan.checked_plot_id)
-            || basis.expanded_plot_id.as_ref() != Some(&self.plan.expanded_plot_id)
-            || basis.plan_id.as_ref() != Some(&self.plan.plan_id)
-            || basis.active_play_id.is_some()
+        // A zero-Body Birth Face is produced by this forwarding Plot. Once a
+        // Body exists, its Face records the actual Body workload provenance;
+        // forwarding must preserve that basis rather than claiming our relay
+        // Plot made the Body's Plan or Play. This API has a trusted local caller.
+        if basis.body_id.is_none()
+            && (basis.source_document_id.as_ref() != Some(&self.plan.source_document_id)
+                || basis.checked_plot_id.as_ref() != Some(&self.plan.checked_plot_id)
+                || basis.expanded_plot_id.as_ref() != Some(&self.plan.expanded_plot_id)
+                || basis.plan_id.as_ref() != Some(&self.plan.plan_id)
+                || basis.active_play_id.is_some())
         {
             return Err(FaceSnapshotRefusal::ProducerBasis);
         }
@@ -86,6 +91,7 @@ impl NativeFaceSnapshotProducer {
             play_sequence,
         );
         let receipt = FaceSnapshotReceipt {
+            observed_face_basis: basis.clone(),
             producer_plot: self.plot_identity(),
             producer_plan_id: self.plan.plan_id.clone(),
             producer_active_play_id: active.active_play_id,

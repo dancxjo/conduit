@@ -86,6 +86,7 @@ impl NativeFaceScene {
             .ok_or(FaceSceneError::UnknownControl)?
             .page;
         self.showing_details = primary.is_none();
+        self.showing_diagram = false;
         self.focus = Some(control);
         self.page = page;
         Ok(())
@@ -165,12 +166,14 @@ impl NativeFaceScene {
                     self.input.keymap.reset();
                     return Ok(FaceSceneInput::Changed);
                 }
-                59 | 75 | 78 => {
+                59 | 60 | 75 | 78 => {
                     if self.input.action.is_some() {
                         return self.commit(show, sequence, None);
                     }
                     if event.usage() == 59 {
-                        self.show_details(!self.showing_details);
+                        self.show_details(self.showing_diagram || !self.showing_details);
+                    } else if event.usage() == 60 {
+                        self.show_diagram(!self.showing_diagram);
                     } else {
                         self.turn_page(event.usage() == 78);
                     }

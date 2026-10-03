@@ -114,10 +114,14 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub mod spoken_face_mask;
+pub mod spoken_face_stream_execution;
 pub mod spoken_mask_journey;
 pub mod spoken_mask_runtime;
 #[cfg(test)]
 mod spoken_mask_runtime_tests;
+pub mod terminal_face_mask;
+pub mod terminal_mask_execution;
 mod vision_ocr;
 mod vision_tracker;
 

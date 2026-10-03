@@ -50,17 +50,23 @@ jobs:
           for archive in target/incoming/*.tar; do
             tar -xf "$archive" -C target/bundle
           done
+      - name: Compose the verified ConduitOS journey into Pages
+        env:
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          cp -a target/bundle/browser/site target/published-site
+          node tools/ci/stage-conduitos-pages-evidence.mjs target/bundle/conduitos-x86_64/evidence/journey-frames target/published-site "$SOURCE_SHA"
       - name: Verify, promote through PR, and publish without rebuilding
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
         run: cargo xtask ci pipeline publish "$RUN_ID" target/bundle
-      - name: Upload the tested website
+      - name: Upload the verified website and journey composition
         if: steps.release.outputs.site-current == 'true'
         uses: actions/upload-pages-artifact@v5.0.0
         with:
-          path: target/bundle/browser/site
+          path: target/published-site
       - name: Deploy the tested website
         if: steps.release.outputs.site-current == 'true'
         id: deployment

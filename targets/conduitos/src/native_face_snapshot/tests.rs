@@ -66,6 +66,7 @@ fn real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts() 
     let published = producer.forward(face.clone(), 7, 11).unwrap();
     assert!(conduit_core::verify_plan(producer.plan()));
     assert_eq!(published.presentation, face);
+    assert_eq!(published.receipt.observed_face_basis, face.basis);
     assert!(published.presentation.basis.body_id.is_none());
     assert!(published.presentation.basis.wake_id.is_none());
     assert!(published.presentation.basis.active_play_id.is_none());
@@ -111,12 +112,9 @@ fn resting_body_snapshot_forwarding_does_not_wake_the_body() {
     )
     .unwrap()
     .presentation;
-    let mut bound = basis(&producer);
-    bound.body_id = Some(body.body_id.clone());
-    bound.sign_ids = face.basis.sign_ids.clone();
-    let face = face.with_basis(bound).unwrap();
     let published = producer.forward(face.clone(), 2, 1).unwrap();
     assert_eq!(published.presentation, face);
+    assert_eq!(published.receipt.observed_face_basis, face.basis);
     assert_eq!(
         published.presentation.basis.body_id,
         Some(body.body_id.clone())

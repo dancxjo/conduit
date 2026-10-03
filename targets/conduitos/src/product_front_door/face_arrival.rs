@@ -28,6 +28,12 @@ pub(super) enum FaceArrivalInput {
 }
 
 impl FaceArrival {
+    /// The post-birth Mask uses the same planned relay and Mask identities.
+    /// Continue their publication sequences so active Play IDs do not repeat.
+    pub(super) const fn next_publication_sequences(&self) -> (u64, u64) {
+        (self.next_observation, self.next_play)
+    }
+
     pub(super) fn prepare(
         host_id: HostId,
         boot_id: BootId,

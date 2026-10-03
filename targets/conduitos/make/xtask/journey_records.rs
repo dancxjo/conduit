@@ -21,28 +21,37 @@ pub(super) fn decode(serial: &str) -> Result<Vec<Value>, ConduitosError> {
         .collect()
 }
 
-pub(super) fn tour(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+#[cfg(test)]
+fn tour(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, TOUR_PREFIX, "conduitos-tour-sign-invalid")
 }
-
-pub(super) fn pointer(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+#[cfg(test)]
+fn pointer(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, POINTER_PREFIX, "conduitos-pointer-sign-invalid")
 }
-
-pub(super) fn transient(serial: &str) -> Result<Vec<Value>, ConduitosError> {
-    decode_prefix(serial, TRANSIENT_PREFIX, "conduitos-transient-sign-invalid")
-}
-
-pub(super) fn resize(serial: &str) -> Result<Vec<Value>, ConduitosError> {
-    decode_prefix(serial, RESIZE_PREFIX, "conduitos-resize-sign-invalid")
-}
-
-pub(super) fn usb_line(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+#[cfg(test)]
+fn usb_line(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, USB_LINE_PREFIX, "conduitos-usb-line-sign-invalid")
 }
-
-pub(super) fn mask(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+#[cfg(test)]
+fn mask(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, MASK_PREFIX, "conduitos-mask-sign-invalid")
+}
+#[cfg(test)]
+fn decode_prefix(
+    serial: &str,
+    prefix: &str,
+    reason: &'static str,
+) -> Result<Vec<Value>, ConduitosError> {
+    serial
+        .split_inclusive('\n')
+        .filter(|line| line.ends_with('\n'))
+        .filter_map(|line| line.strip_prefix(prefix))
+        .map(|json| {
+            serde_json::from_str(json)
+                .map_err(|error| ConduitosError::refusal(reason, error.to_string()))
+        })
+        .collect()
 }
 
 pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, ConduitosError> {
@@ -83,22 +92,6 @@ pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, Conduitos
         })
         .next_back()
         .transpose()
-}
-
-fn decode_prefix(
-    serial: &str,
-    prefix: &str,
-    reason: &'static str,
-) -> Result<Vec<Value>, ConduitosError> {
-    serial
-        .split_inclusive('\n')
-        .filter(|line| line.ends_with('\n'))
-        .filter_map(|line| line.strip_prefix(prefix))
-        .map(|json| {
-            serde_json::from_str(json)
-                .map_err(|error| ConduitosError::refusal(reason, error.to_string()))
-        })
-        .collect()
 }
 
 pub(super) fn boot(serial: &str) -> Result<Option<Value>, ConduitosError> {

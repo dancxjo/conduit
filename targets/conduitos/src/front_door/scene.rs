@@ -70,6 +70,7 @@ impl FrontDoor {
                     .ok_or(Error::Scene)?,
                 self.application_view.as_ref(),
                 self.application_viewport,
+                self.patchbay_graph.is_some(),
                 self.refusal.as_ref().map(|refusal| refusal.reason()),
                 display,
             );

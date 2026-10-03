@@ -554,3 +554,68 @@ fn exact_properties_survive_both_linear_and_aural_masks() {
     assert_ne!(aural.source_face_identity, changed.source_face_identity);
     assert_ne!(aural.digest, changed.digest);
 }
+
+#[test]
+fn read_all_includes_disclosure_and_temporal_context_with_exact_provenance() {
+    use conduit_presentation::{
+        PresentationDisclosure, PresentationTemporalFact, PresentationTemporalRole,
+        TemporalInstant, TemporalReference, TemporalScale,
+    };
+    let instant = |ticks| TemporalInstant {
+        ticks,
+        scale: TemporalScale::Seconds,
+        clock_basis: "clock/scene".into(),
+        resolution_ticks: 1,
+        uncertainty_ticks: 0,
+    };
+    let reference = TemporalReference {
+        identity: "reference/current".into(),
+        instant: instant(20),
+    };
+    let fact = PresentationTemporalFact::new(
+        "event".into(),
+        PresentationTemporalRole::Observation,
+        None,
+        instant(10),
+        &reference,
+    )
+    .unwrap();
+    let face = Presentation::new_with_semantics_and_temporal(
+        3,
+        basis(),
+        vec![subject("event", "Arrived", "journey/event")],
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        vec![PresentationDisclosure {
+            subject: "event".into(),
+            level: PresentationDisclosureLevel::Primary,
+        }],
+        vec![reference],
+        vec![fact],
+    )
+    .unwrap();
+    let plan = plan_face_utterances(&face).unwrap();
+    for (kind, provenance, wording) in [
+        (
+            FaceUtteranceClauseKind::Disclosure,
+            FaceUtteranceProvenance::disclosure(0).unwrap(),
+            "Primary content: Arrived",
+        ),
+        (
+            FaceUtteranceClauseKind::TemporalReference,
+            FaceUtteranceProvenance::temporal_reference(0).unwrap(),
+            "reference/current is tick 20",
+        ),
+        (
+            FaceUtteranceClauseKind::TemporalFact,
+            FaceUtteranceProvenance::temporal_fact(0).unwrap(),
+            "Arrived was observed at tick 10",
+        ),
+    ] {
+        assert!(plan.clauses.iter().any(|clause| {
+            clause.kind == kind && clause.provenance == provenance && clause.text.contains(wording)
+        }));
+    }
+}

@@ -1,10 +1,10 @@
 # Try Conduit
 
 Start with the [body Workspace](https://dancxjo.github.io/conduit/workspace/) or the
-[ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
-to see the project before building it. The journey shows a bounded sequence of
-checkpoints from a real QEMU session, including body lifecycle, a hot-plugged line, every
-resident tutorial checkpoint, foreground plot switching, and Patchbay.
+[ConduitOS visual journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)
+to see the project before building it. The ten-step journey captures a real
+QEMU session from zero-Body Crèche arrival through Birth, Play, Patchbay Face
+inspection, its live diagram, and Stop.
 
 The commands below run from a checkout. You do not need an installed `conduit`
 binary or `just`. See [contributor setup](../CONTRIBUTING.md) for prerequisites.
@@ -48,7 +48,7 @@ Look for `HELLO, WORLD.` and the terminal execution result. The plot chooses
 text operations; the host supplies their implementations and the plan records
 that selection. Explore more examples in [Try plots](try-plots.md).
 
-## Explore the workbench and Tour
+## Explore Patchbay
 
 ```bash
 cargo xtask prove journey patchbay --on native
@@ -83,16 +83,14 @@ cargo xtask make conduitos live-boot x86_64
 The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`.
 The second verifies and boots that artifact in visible QEMU. The graphical
 session stays open until QEMU closes. It includes the normal front door,
-compositor, keyboard, and pointer paths. Birth a body from the Crèche, then use
-the resident Tour and Patchbay: they are plots in the same body-wide plan and
-play, not special programs outside Conduit.
-
-In the native Tour, `F3`/`F4` move between stages, `F5`/`F6` move between
-chapters, `F10` runs the current exercise, and `F11` opens Patchbay. Patchbay
-shows the active plots on the present body and their exact current identities.
-The browser, Linux, Windows, and ConduitOS presentations consume the same
-portable Tour application state and action identities; each host supplies its
-own presentation implementation.
+compositor, and keyboard path. At Crèche, name and birth a Body with a locally
+available plot. Wake it with `F4`, plan with `F5`, start Play with `F6`, and
+return Home with Escape. Open resident Patchbay, inspect its current semantic
+Face with `F2`, show the live gear-and-cord diagram with `F3`, and request Stop
+with `F8`. The [captured journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)
+shows each action and resulting screen. Browser, hosted terminal, and spoken
+Masks consume the same Face meaning, but the complete shared-Body journey
+across those hosts remains open in [#4807](https://github.com/dancxjo/conduit/issues/4807).
 
 ```bash
 cargo xtask make conduitos live-matrix

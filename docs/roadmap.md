@@ -33,11 +33,11 @@ The paired vocabulary is `type -> form` and `plot -> plan -> play`.
 
 ## ConduitOS shell
 
-The [QEMU visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
-already shows the graphical product. Retained compositor surfaces and input
-routing exist beneath it; the Tour journey now checks distinct retained
-workspace/status identities. The shell series completes product proof and
-improves everyday interaction:
+The [QEMU visual journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)
+shows the graphical product from Crèche through Birth, Play, Patchbay Face
+inspection, and Stop. Retained compositor surfaces and input routing exist
+beneath it. The shell series extends product proof and improves everyday
+interaction:
 
 | Work | Issue |
 |---|---|

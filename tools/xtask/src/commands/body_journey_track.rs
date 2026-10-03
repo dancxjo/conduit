@@ -61,17 +61,10 @@ pub(crate) struct ConstructionTruth {
 #[derive(Serialize)]
 #[serde(tag = "disposition", rename_all = "kebab-case")]
 pub(crate) enum ConstructionStage {
-    Exact { identity: String },
     Omitted { reason: String },
 }
 
 impl ConstructionStage {
-    pub(crate) fn exact(identity: impl Into<String>) -> Self {
-        Self::Exact {
-            identity: identity.into(),
-        }
-    }
-
     pub(crate) fn omitted(reason: impl Into<String>) -> Self {
         Self::Omitted {
             reason: reason.into(),
@@ -311,50 +304,4 @@ pub(crate) fn write_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
         .open(path)
         .and_then(|mut file| file.write_all(bytes))
         .map_err(|error| format!("create {}: {error}", path.display()))
-}
-
-/// Retain documentary pixels from the same producer run beside its semantic receipts.
-pub(crate) fn attach_screenshots(
-    output: &Path,
-    frames: &Path,
-    captures: &[(&str, &str, &str)],
-) -> Result<(), String> {
-    let manifest = output.join("track.json");
-    let mut track: Value = serde_json::from_slice(
-        &fs::read(&manifest).map_err(|error| format!("read track: {error}"))?,
-    )
-    .map_err(|error| format!("decode track: {error}"))?;
-    let track_id = track["track_id"]
-        .as_str()
-        .ok_or("missing track id")?
-        .to_owned();
-    let receipts = track["receipts"]
-        .as_array_mut()
-        .ok_or("missing track receipts")?;
-    for &(step_id, frame, caption) in captures {
-        let step = receipts
-            .iter_mut()
-            .find(|step| step["step_id"] == step_id)
-            .ok_or_else(|| format!("unknown captured step {step_id}"))?;
-        let bytes = fs::read(frames.join(format!("{frame}.png")))
-            .map_err(|error| format!("read captured frame {frame}: {error}"))?;
-        if !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
-            return Err(format!("captured frame {frame} is not PNG"));
-        }
-        let relative = format!("artifacts/{step_id}.png");
-        write_new(&output.join(&relative), &bytes)?;
-        step["evidence"]
-            .as_array_mut()
-            .ok_or("missing evidence")?
-            .push(serde_json::json!({
-                "artifact_id": format!("{track_id}/{step_id}/screen"),
-                "evidence_class": "screenshot",
-                "assertion_rung": "deterministic-observation",
-                "documentary_description": caption,
-                "path": relative,
-                "sha256": format!("sha256:{:x}", Sha256::digest(&bytes)),
-            }));
-    }
-    let bytes = serde_json::to_vec_pretty(&track).map_err(|error| error.to_string())?;
-    fs::write(manifest, bytes).map_err(|error| format!("retain screenshot references: {error}"))
 }

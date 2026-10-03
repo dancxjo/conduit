@@ -1,6 +1,6 @@
-//! Current Workspace keyboard journey over the retained product IMAGE; never rebuilds it.
+//! Current Face journey over the retained product IMAGE; never rebuilds it.
 use super::{
-    profile::Paths, report::git_head, target_build::verify_artifact_digest, workspace_proof,
+    journey_proof, profile::Paths, report::git_head, target_build::verify_artifact_digest,
     ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
@@ -28,9 +28,9 @@ pub(crate) fn prove(
         ));
     }
     verify_artifact_digest(image, digest)?;
-    workspace_proof::execute_supplied(opts, image, digest.to_owned())?;
+    journey_proof::execute_supplied(opts, image, digest.to_owned())?;
     verify_artifact_digest(image, digest)?;
-    let proof = fs::read(paths.target.join("workspace-proof.json"))
+    let proof = fs::read(paths.target.join("journey-proof.json"))
         .map_err(|error| refusal(error.to_string()))?;
     let receipt: Value =
         serde_json::from_slice(&proof).map_err(|error| refusal(error.to_string()))?;
@@ -62,8 +62,8 @@ fn validate_binding(
     image_binding: &str,
 ) -> Result<(), ConduitosError> {
     for (field, expected) in [
-        ("schema", "conduit.conduitos/workspace-journey-proof@1"),
-        ("base_commit", source),
+        ("schema", "conduit.conduitos/face-journey-proof@1"),
+        ("source_commit", source),
         ("image_sha256", digest),
         ("profile_id", profile),
         ("build_id", build),
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn a_successful_journey_cannot_substitute_another_product_or_driver() {
         let receipt = serde_json::json!({
-            "schema":"conduit.conduitos/workspace-journey-proof@1", "base_commit":"source",
+            "schema":"conduit.conduitos/face-journey-proof@1", "source_commit":"source",
             "image_sha256":"digest", "profile_id":"profile", "build_id":"build", "image_id":"binding"
         });
         let check = |value: &Value| {
@@ -97,7 +97,7 @@ mod tests {
         assert!(check(&receipt).is_ok());
         for field in [
             "schema",
-            "base_commit",
+            "source_commit",
             "image_sha256",
             "profile_id",
             "build_id",

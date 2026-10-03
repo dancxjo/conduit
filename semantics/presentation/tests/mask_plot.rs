@@ -16,7 +16,7 @@ use conduit_plot::{
 };
 use conduit_presentation::{
     install_mask_plot_value_aliases, AdmittedMaskPlotRoutes, ManifestationLifecycle, MaskPlot,
-    MaskPlotError, MaskRouteAdmissionError, MaskShow, PlannedMaskPlot, Presentation,
+    MaskPlotError, MaskRouteAdmissionError, MaskShow, MaskShowError, PlannedMaskPlot, Presentation,
     PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
     SealedMaskPlotRoute, FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
@@ -657,9 +657,12 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
     assert_eq!(show.mask_plot, mask.plot_identity);
     assert_eq!(
         show.presentation_plan_id,
-        PlanId::from("plan/application-face-source")
+        Some(PlanId::from("plan/application-face-source"))
     );
-    assert_ne!(show.presentation_plan_id, show.planned_mask.plan.plan_id);
+    assert_ne!(
+        show.presentation_plan_id,
+        Some(show.planned_mask.plan.plan_id.clone())
+    );
     assert_eq!(show.planned_mask.plan.plan_id, plan.plan_id);
     assert_eq!(
         presentation.basis.plan_id.as_ref().unwrap().as_str(),
@@ -670,4 +673,29 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
         Some(&show.planned_mask.plan.plan_id),
         "the application Plan that produced Face truth remains distinct from the Mask Plan that realized its Show"
     );
+
+    let mut resting_basis = presentation.basis.clone();
+    resting_basis.wake_id = None;
+    resting_basis.source_document_id = None;
+    resting_basis.checked_plot_id = None;
+    resting_basis.expanded_plot_id = None;
+    resting_basis.plan_id = None;
+    resting_basis.active_play_id = None;
+    resting_basis.sign_ids.clear();
+    let resting = presentation.with_basis(resting_basis).unwrap();
+    let next_play = bind_active_play(&plan.plan_id, &terminal.host_id, &terminal.boot_id, 2);
+    let resting_show = MaskShow::prepared(
+        &planned,
+        &resting,
+        next_play,
+        "mask/plot".into(),
+        "browser/document".into(),
+        SignId::from("sign/resting-show-prepared"),
+    )
+    .unwrap();
+    resting_show.validate(&resting).unwrap();
+    assert_eq!(resting_show.presentation_plot, None);
+    assert_eq!(resting_show.presentation_plan_id, None);
+    assert_ne!(resting_show.show_id, show.show_id);
+    assert_eq!(show.validate(&resting), Err(MaskShowError::StalePlan));
 }

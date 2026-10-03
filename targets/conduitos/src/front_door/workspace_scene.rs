@@ -21,6 +21,7 @@ pub(super) fn scene(
     foreground_title: &str,
     application_view: Option<&ApplicationView>,
     viewport: ApplicationViewport,
+    patchbay_graph_available: bool,
     refusal: Option<&str>,
     display: &impl PixelTarget,
 ) -> Result<GraphicsScene, Error> {
@@ -138,11 +139,19 @@ pub(super) fn scene(
         &mut scene,
         screen,
         footer_y,
-        &format!(
-            "{}  ·  F2 details  ·  F9 Tutorial{}",
-            journey.status.as_str(),
-            lifecycle_action
-        ),
+        &if patchbay_graph_available {
+            format!(
+                "{}  ·  F2 inspect Face  ·  F3 diagram there{}",
+                journey.status.as_str(),
+                lifecycle_action
+            )
+        } else {
+            format!(
+                "{}  ·  F2 details  ·  F9 Tutorial{}",
+                journey.status.as_str(),
+                lifecycle_action
+            )
+        },
         GraphicsPaintRole::Foreground,
         GraphicsTextRole::Body,
     )?;
