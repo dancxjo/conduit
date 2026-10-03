@@ -251,15 +251,6 @@ plot speech/pause (
     result: I32 >>
 ) = (. is word ? 240 : . is phrase ? 1200 : 2000)
 
-plot speech/pitch-period (
-    >> value: EnglishStress
-    result: I32 >>
-) {
-    prepare: speech/pitch-prepare
-    value >> ({stress: ., frame: 0, total: 0}) >> prepare.value
-    prepare.result >> (.base_period) >> result
-}
-
 # Composition is authored connectivity, not a Rust sequence of DSP calls.
 plot speech/filter-limit (
     >> value: ResonatorInput

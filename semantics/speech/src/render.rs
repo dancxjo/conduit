@@ -128,17 +128,11 @@ impl RenderCursor {
                         relation: previous.relation,
                     })
                     .ok_or(RenderRefusal::Arithmetic)?;
-                    let period = speech_pitch(SpeechPitchContext {
+                    let frame = speech_prosodic_frame(SpeechProsodyInput {
                         stress: value.stress,
-                        frame: self.event_frame,
-                        total: target.frames,
-                    })
-                    .ok_or(RenderRefusal::Arithmetic)?;
-                    let frame = speech_frame(SpeechFrameInput {
                         attack: connected.attack,
                         release: connected.release,
                         target,
-                        period,
                         frame: self.event_frame,
                         state: self.state,
                     })

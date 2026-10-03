@@ -61,7 +61,7 @@ pub(super) fn integers(ty: &StructuredInfoType, values: &[(&str, i32)]) -> Struc
             .collect::<Vec<_>>(),
     )
 }
-fn state(ty: &StructuredInfoType, value: SpeechFrameState) -> StructuredInfoValue {
+pub(super) fn state(ty: &StructuredInfoType, value: SpeechFrameState) -> StructuredInfoValue {
     integers(
         ty,
         &[
@@ -122,7 +122,7 @@ fn input(ty: &StructuredInfoType, value: SpeechFrameInput) -> Vec<u8> {
     .canonical_bytes()
     .unwrap()
 }
-fn result(ty: &StructuredInfoType, value: SpeechFrameResult) -> Vec<u8> {
+pub(super) fn result(ty: &StructuredInfoType, value: SpeechFrameResult) -> Vec<u8> {
     record(
         ty,
         &[

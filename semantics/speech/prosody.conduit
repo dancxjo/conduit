@@ -1,36 +1,46 @@
-# Profile pitch motion does not infer a stress specification or change a phone.
-# Unknown/unspecified stress retain the existing neutral profile period. The
-# integer-period contour is a small acoustic model, not measured intonation.
-type SpeechPitchInput = {
+# Pitch carries the actual synthesis context, never an independent value
+# implicitly synchronized with a called result. Unknown/unspecified stress
+# remains neutral; this profile does not infer stress or measured intonation.
+type SpeechProsodyInput = {
     stress: EnglishStress
-    base_period: I32
+    attack: Boolean
+    release: Boolean
+    target: SpeechAcousticTarget
     frame: I32
-    total: I32
+    state: SpeechFrameState
 }
-plot speech/pitch-contour (
-    >> value: SpeechPitchInput
-    result: I32 >>
-) = (.stress is primary ? .base_period - 3 + .frame * 8 / (.total - 1) : .stress is secondary ? .base_period - 2 + .frame * 5 / (.total - 1) : (.stress is unstressed || .stress is reduced) ? .base_period + .frame * 2 / (.total - 1) : .base_period)
-
-# Context travels as one value; no independent input is implicitly joined back
-# to a called result. Base-period policy has one authored owner.
-type SpeechPitchContext = {
-    stress: EnglishStress
-    frame: I32
-    total: I32
+type SpeechProsodyWorking = {
+    input: SpeechProsodyInput
+    base_period: I32
 }
 plot speech/pitch-prepare (
-    >> value: SpeechPitchContext
-    result: SpeechPitchInput >>
-) = ({stress: .stress, base_period: .stress is primary ? 61 : .stress is secondary ? 64 : 67, frame: .frame, total: .total})
+    >> value: SpeechProsodyInput
+    result: SpeechProsodyWorking >>
+) = ({input: ., base_period: .stress is primary ? 61 : .stress is secondary ? 64 : 67})
+
+plot speech/pitch-contour (
+    >> value: SpeechProsodyWorking
+    result: SpeechFrameInput >>
+) = ({attack: .input.attack, release: .input.release, target: .input.target, frame: .input.frame, state: .input.state, period: .input.stress is primary ? .base_period - 3 + .input.frame * 8 / (.input.target.frames - 1) : .input.stress is secondary ? .base_period - 2 + .input.frame * 5 / (.input.target.frames - 1) : (.input.stress is unstressed || .input.stress is reduced) ? .base_period + .input.frame * 2 / (.input.target.frames - 1) : .base_period})
 
 plot speech/pitch (
-    >> value: SpeechPitchContext
-    result: I32 >>
+    >> value: SpeechProsodyInput
+    result: SpeechFrameInput >>
 ) {
     prepare: speech/pitch-prepare
     contour: speech/pitch-contour
     value >> prepare.value
     prepare.result >> contour.value
     contour.result >> result
+}
+
+plot speech/prosodic-frame (
+    >> value: SpeechProsodyInput
+    result: SpeechFrameResult >>
+) {
+    pitch: speech/pitch
+    frame: speech/frame
+    value >> pitch.value
+    pitch.result >> frame.value
+    frame.result >> result
 }
