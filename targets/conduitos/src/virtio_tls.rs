@@ -16,7 +16,10 @@ use crate::{
 };
 
 pub const TCP_BUFFER_BYTES: usize = 4096;
-pub const TLS_RECORD_BUFFER_BYTES: usize = 4096;
+// A peer may send one full TLS record even when our ClientHello asks for
+// smaller fragments. Reserve the library's maximum encrypted record bound.
+pub const TLS_RECEIVE_BUFFER_BYTES: usize = 16_640;
+pub const TLS_TRANSMIT_BUFFER_BYTES: usize = 4096;
 const MAXIMUM_CERTIFICATE_BYTES: usize = 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -181,8 +184,8 @@ pub(crate) fn with_websocket_deadline<T, E>(
         &mut socket_storage,
     )
     .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Tcp(error)))?;
-    let mut tls_receive = [0; TLS_RECORD_BUFFER_BYTES];
-    let mut tls_transmit = [0; TLS_RECORD_BUFFER_BYTES];
+    let mut tls_receive = [0; TLS_RECEIVE_BUFFER_BYTES];
+    let mut tls_transmit = [0; TLS_TRANSMIT_BUFFER_BYTES];
     let config = TlsConfig::new()
         .with_server_name(server_name)
         .with_max_fragment_length(MaxFragmentLength::Bits11);
