@@ -9,7 +9,8 @@ use std::{
     path::Path,
 };
 const MAXIMUM_SOURCE: u64 = 256 * 1024;
-const MAXIMUM_REQUEST: u64 = 4096;
+const MAXIMUM_CONTROL_REQUEST: u64 = 4096;
+const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
@@ -18,6 +19,10 @@ enum Request {
         expected_host_id: String,
         new_host_verifying_key: Option<[u8; 32]>,
         maximum_millis: u64,
+    },
+    AdmitInvited {
+        expected_host_id: String,
+        request: Box<conduit_body::PortableSpawnAdmissionRequest>,
     },
     Plan,
     Run {
@@ -63,7 +68,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
         loop {
             let mut bytes = Vec::new();
             let length = (&mut input)
-                .take(MAXIMUM_REQUEST + 1)
+                .take(MAXIMUM_ADMISSION_REQUEST + 1)
                 .read_until(b'\n', &mut bytes)
                 .map_err(|e| e.to_string())?;
             if length == 0 {
@@ -71,14 +76,19 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                 owner.persist(&root)?;
                 break;
             }
-            if length as u64 > MAXIMUM_REQUEST {
+            if length as u64 > MAXIMUM_ADMISSION_REQUEST {
                 owner.lull()?;
                 owner.persist(&root)?;
-                return Err("owner request exceeds 4096 bytes".into());
+                return Err("owner admission request exceeds 512 KiB".into());
             }
             let result = serde_json::from_slice::<Request>(&bytes)
                 .map_err(|e| format!("invalid owner request: {e}"))
                 .and_then(|request| {
+                    if length as u64 > MAXIMUM_CONTROL_REQUEST
+                        && !matches!(request, Request::AdmitInvited { .. })
+                    {
+                        return Err("owner control request exceeds 4096 bytes".into());
+                    }
                     match request {
                         Request::Inspect => {}
                         Request::AdmitBrowser {
@@ -92,6 +102,14 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                                 new_host_verifying_key,
                                 maximum_millis,
                             )?;
+                        }
+                        Request::AdmitInvited {
+                            expected_host_id,
+                            request,
+                        } => {
+                            let receipt =
+                                owner.admit_invited(&root, *request, &expected_host_id)?;
+                            emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
                         Request::Plan => owner.plan(&checked)?,
                         Request::Run { maximum_millis } => {

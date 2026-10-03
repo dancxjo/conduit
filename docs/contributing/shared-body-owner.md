@@ -65,7 +65,15 @@ bounded run, send these lines:
 ```
 
 `inspect`, `plan`, `run`, `lull`, and `close` are the supported operations.
-Each request is at most 4096 bytes. Runs are synchronous and accept deadlines
+Ordinary control requests are at most 4096 bytes. The internal `admit-invited`
+operation accepts at most 512 KiB because it carries one portable signed
+`conduit.body/spawn-admission-request@1` document and an exact authorized
+`expected_host_id`. It emits the canonical admission receipt only after the
+single-use invitation and new membership biography have been retained together.
+This operation does not establish or authenticate a carrier; its caller must
+authorize the exact Host separately. A native guest must receive and validate
+the receipt over its admitted return route before it may regard itself as joined.
+Runs are synchronous and accept deadlines
 from 1 through 60000 milliseconds; cancellation uses the production runtime's
 cooperative stop control. Captured output is bounded to 32 KiB. There is no
 concurrent interactive controller while a run is executing.
@@ -89,9 +97,13 @@ membership mutations while the owner is running.
   advertised backs are not all supported by the Body dispatcher: `text/upper`
   can currently plan but is refused before Play. That refusal has a regression
   test; this slice does not claim complete local effect support.
-- Browser/QEMU guest admission, Lines, shared presentation, and a terminal Mask
-  are not implemented by this entrance. Existing invitation mutations cannot
-  run concurrently with the owner.
+- The owner can admit a browser participant during a bounded lulled window and
+  consume a preissued portable native invitation request. The ConduitOS product
+  does not yet complete that request-and-receipt exchange over a live duplex
+  Line. Shared presentation, remote execution, and a terminal Mask are not
+  implemented by this entrance. Invitation issue remains outside the running
+  owner; the owner now restores the same retained single-use authority after
+  reopening.
 - The retained workset is fixed to the checked source at birth. This entrance
   does not yet provide source replacement or resident-workset editing.
 - Biography compaction requires an admitted archive store. This slice has none

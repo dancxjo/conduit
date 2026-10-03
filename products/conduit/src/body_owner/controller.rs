@@ -1,5 +1,7 @@
 //! Body lifecycle truth; all execution identities come from the installed kernel.
 use super::state;
+#[path = "participants/invited.rs"]
+mod invited;
 #[path = "participants/mod.rs"]
 mod participants;
 use conduit_body::{

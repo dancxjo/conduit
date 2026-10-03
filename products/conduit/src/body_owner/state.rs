@@ -84,7 +84,13 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
         }),
     )?;
     if let Some(manager) = &transaction.admissions {
-        write_json_atomic(&root.join("body/owner-admissions.json"), manager)?;
+        // The installed Host's invitation entrance and its foreground owner
+        // must consume the same single-use admission authority.
+        write_json_atomic(&root.join("body/admission.json"), manager)?;
+        let legacy = root.join("body/owner-admissions.json");
+        if legacy.exists() {
+            fs::remove_file(legacy).map_err(|error| error.to_string())?;
+        }
     }
     write_json_atomic(&root.join("installation.json"), &transaction.installation)
 }
@@ -202,12 +208,23 @@ pub(super) fn admissions(
     root: &Path,
     body: &conduit_body::BodyId,
 ) -> Result<Option<conduit_body::AdmissionManager>, String> {
-    let path = root.join("body/owner-admissions.json");
-    if !path.exists() {
+    let path = root.join("body/admission.json");
+    let legacy = root.join("body/owner-admissions.json");
+    if !path.exists() && !legacy.exists() {
         return Ok(None);
     }
-    let manager: conduit_body::AdmissionManager =
-        serde_json::from_slice(&bounded_read(&path, MAXIMUM_STATE)?).map_err(|e| e.to_string())?;
+    let read = |path: &Path| -> Result<conduit_body::AdmissionManager, String> {
+        serde_json::from_slice(&bounded_read(path, MAXIMUM_STATE)?).map_err(|e| e.to_string())
+    };
+    let manager = if path.exists() {
+        let current = read(&path)?;
+        if legacy.exists() && read(&legacy)? != current {
+            return Err("owner and installed Host admission authorities conflict".into());
+        }
+        current
+    } else {
+        read(&legacy)?
+    };
     if &manager.body_id != body {
         return Err("retained admissions belong to another Body".into());
     }
@@ -250,10 +267,31 @@ mod tests {
         .unwrap();
         let manager = conduit_body::AdmissionManager::new(body.body_id.clone()).unwrap();
         retain(&root, &evidence, None, Some(&manager)).unwrap();
+        assert!(root.join("body/admission.json").exists());
+        assert!(!root.join("body/owner-admissions.json").exists());
         assert_eq!(
             admissions(&root, &body.body_id).unwrap(),
             Some(manager.clone())
         );
+        write_json_atomic(&root.join("body/owner-admissions.json"), &manager).unwrap();
+        assert_eq!(
+            admissions(&root, &body.body_id).unwrap(),
+            Some(manager.clone())
+        );
+        let mut conflicting = manager.clone();
+        conflicting
+            .issue_spawn_invitation(
+                conduit_body::SpawnInvitationSecret::from_csprng_bytes([13; 32]).unwrap(),
+                [17; 32],
+                1_000,
+                2_000,
+            )
+            .unwrap();
+        write_json_atomic(&root.join("body/owner-admissions.json"), &conflicting).unwrap();
+        assert!(admissions(&root, &body.body_id).is_err());
+        write_json_atomic(&root.join("body/owner-admissions.json"), &manager).unwrap();
+        retain(&root, &evidence, None, Some(&manager)).unwrap();
+        assert!(!root.join("body/owner-admissions.json").exists());
         let retained_installation = read_installation(&root.join("installation.json")).unwrap();
         write_json_atomic(
             &root.join("body/owner-transaction.json"),
