@@ -361,7 +361,7 @@ and unknown/unspecified/alternative durations are not silently selected.
 The supported native-speech proof also retains `duration-default`,
 `duration-faster` and `duration-slower` WAVs of the same “Hello, world!” event
 sequence. The faster/slower listening fixtures explicitly author duration
-factors of 2/3 and 3/2. Shared pitch and intensity intake remains unfinished.
+factors of 2/3 and 3/2. Resolved pitch and output-relative intensity can be added before play as described below.
 
 An explicit compact `VoiceEvent.selected` carries a `RealizationResult`: the
 source phoneme/stress/position, selected phone, and derivation remain separate.
@@ -370,4 +370,32 @@ adjacent-segment models, instead of running the English allophone selector again
 Existing `segment` and `pronounced` inputs still run the authored selector.
 Supplied selection is an input, not an attestation that its derivation or
 external provenance was validated. Rich utterance/reference admission and
-shared pitch/intensity intake remain unfinished.
+rich prosody-state selection remain unfinished.
+
+
+Resolved native cycles and relative intensities enter through the optional
+`control::prepare_voice_control` adapter. The source ratios and exact projection
+remainders remain in checked native receipts. Cycles project to 1/256-frame
+coordinates, and relative amplitude projects to 1/32768 precision. A requested
+120 Hz cycle at 8 kHz yields 17,066 Q8 units with remainder 80/120 of one Q8
+unit; retained subframe phase avoids rounding every cycle to 66 whole frames.
+Plots admit periods of 8 through 512 frames and relative amplitudes of 0 through
+2. Unsupported controls and checked arithmetic overflow refuse explicitly.
+
+`Renderer::prepare_controlled` borrows one projected control per event.
+`Renderer::with_controls` can add controls to a prepared duration renderer before
+play; replacement after the first produced frame refuses. Duration, exact phone
+selection, and cycle phase share one bounded cursor. Boundaries freeze the
+fractional phase. Relative amplitude scales the complete realized PCM, including
+voicing and frication, then saturates at the existing signed PCM limits. Zero
+amplitude still advances the admitted speech; it is distinct from a boundary or
+cancellation. Unity amplitude with explicit profile selection preserves the
+existing waveform. The explicit-cycle source uses the existing cubic flow,
+noise balance, and resonators; its open duration remains a declared whole-frame
+profile approximation.
+
+The supported proof retains profile-half, 120 Hz, 200 Hz, and 120 Hz half-amplitude
+listening fixtures. These controls do not select unknown, unspecified,
+not-applicable, or alternative prosody states, validate rich utterance references,
+or expose rich controls through the public kernel input. Those integrations and
+FARGAN conditioning remain unfinished.
