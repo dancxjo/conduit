@@ -32,5 +32,7 @@ test('curated caches exclude product evidence, installed system packages and arb
   assert.ok(acquisitionIdentity('browser', options).paths.includes('/test/home/.cache/ms-playwright'));
   assert.ok(!acquisitionIdentity('rp2040', options).paths.includes('/test/home/.cache/ms-playwright'));
   assert.equal(acquisitionIdentity('hosted-windows', options).cacheable, false);
+  assert.equal(acquisitionIdentity('preflight', options).cacheable, false);
+  assert.equal(acquisitionIdentity('unit', options).cacheable, false);
   assert.throws(() => acquisitionIdentity('../../escape', options));
 });
