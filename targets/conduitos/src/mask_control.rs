@@ -346,7 +346,7 @@ pub(super) fn patchbay_partition_selector(
             resident.source_document_id,
             resident.checked_plot_id,
         )),
-        source_placement_id: placement.placement_id.clone(),
+        source_placement_id: Some(placement.placement_id.clone()),
     })
 }
 
@@ -738,7 +738,7 @@ mod tests {
         let topology = control
             .topology(BodyFaceSelector {
                 plot: None,
-                source_placement_id: conduit_core::PlacementId::from("application/presentation"),
+                source_placement_id: None,
             })
             .unwrap();
         assert_eq!(topology.chains.len(), 1);

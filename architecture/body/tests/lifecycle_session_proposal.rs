@@ -103,7 +103,7 @@ fn invalid_mask_proposal_preserves_evidence_and_archive_obligations() {
     let invalid = BodyMaskTopology {
         face: BodyFaceSelector {
             plot: Some(partition.plot.clone()),
-            source_placement_id: "face".into(),
+            source_placement_id: None,
         },
         chains: vec![],
     };

@@ -1,0 +1,19 @@
+# Private numeric carrier for already-admitted exact-duration/cycle requests.
+# Public preparation uses the refined native timing Types. This arithmetic
+# carrier is not an alternative semantic duration or a public admission path.
+type SpeechTimeProjectionInput = {
+    numerator_seconds: U64
+    denominator: U64
+    sample_rate_hz: U64
+}
+type SpeechTimeProjectionResult = {
+    whole_frames: U64
+    remainder_numerator: U64
+}
+
+# Floor plus exact fractional-frame remainder; never silently rounds. Product
+# overflow and division by zero retain the checked arithmetic refusal.
+plot speech/time-at-rate (
+    >> value: SpeechTimeProjectionInput
+    result: SpeechTimeProjectionResult >>
+) = ({whole_frames: .numerator_seconds * .sample_rate_hz / .denominator, remainder_numerator: (.numerator_seconds * .sample_rate_hz) % .denominator})

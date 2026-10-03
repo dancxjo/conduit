@@ -1,0 +1,43 @@
+# Exact rate-independent quantities. Fractions are not silently normalized;
+# equivalent numeric values may retain different authored representations.
+type SpeechExactDuration = {
+    numerator_seconds: U64
+    denominator: U64 in 1..=18446744073709551615
+}
+
+# A fundamental cycle is a strictly positive duration, not renderer samples.
+# Its reciprocal is fundamental frequency in Hz.
+type SpeechFundamentalCycle = {
+    numerator_seconds: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+}
+
+# Relative amplitude, distinct from probability, power, dB or filter gain.
+type SpeechRelativeIntensity = {
+    numerator: U64
+    denominator: U64 in 1..=18446744073709551615
+}
+
+type SpeechDurationAtRateRequest = {
+    duration: SpeechExactDuration
+    sample_rate_hz: U64 in 1..=192000
+}
+type SpeechDurationAtRate = {
+    request: SpeechDurationAtRateRequest
+    whole_frames: U64
+    remainder_numerator: U64
+    where .remainder_numerator < .request.duration.denominator
+    where .whole_frames * .request.duration.denominator + .remainder_numerator == .request.duration.numerator_seconds * .request.sample_rate_hz
+}
+
+type SpeechCycleAtRateRequest = {
+    cycle: SpeechFundamentalCycle
+    sample_rate_hz: U64 in 1..=192000
+}
+type SpeechCycleAtRate = {
+    request: SpeechCycleAtRateRequest
+    whole_frames: U64
+    remainder_numerator: U64
+    where .remainder_numerator < .request.cycle.denominator
+    where .whole_frames * .request.cycle.denominator + .remainder_numerator == .request.cycle.numerator_seconds * .request.sample_rate_hz
+}
