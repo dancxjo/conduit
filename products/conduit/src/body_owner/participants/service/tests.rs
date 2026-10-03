@@ -152,8 +152,9 @@ fn signed_browser_proof_uses_latest_owner_after_interleaved_native_admission() {
                 .as_ref()
                 .is_some_and(|current| current.host_id == native.host_id
                     && current.boot_id == native.boot_id)));
+    // Simulate a worker terminating after proof but before ordinary leave.
     owner
-        .browser_leave(&root, &authorized.window_id, &snapshot.credential)
+        .browser_cancel_window(&root, &authorized.window_id)
         .unwrap();
     assert!(owner
         .session
@@ -162,6 +163,13 @@ fn signed_browser_proof_uses_latest_owner_after_interleaved_native_admission() {
         .parts
         .iter()
         .any(|part| part.part_id == native_receipt.credential.part_id && part.current.is_some()));
+    assert!(owner
+        .session
+        .evidence()
+        .membership
+        .parts
+        .iter()
+        .any(|part| part.part_id == snapshot.credential.part_id && part.current.is_none()));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -173,7 +181,9 @@ fn aborted_challenge_is_not_retained_across_service_restart() {
         .unwrap();
     let first = advertise(&mut owner, &authorized.window_id);
     owner.browser_abort(&authorized.window_id).unwrap();
-    owner.browser_cancel_window(&authorized.window_id).unwrap();
+    owner
+        .browser_cancel_window(&root, &authorized.window_id)
+        .unwrap();
     let mut resumed = Owner::open(
         host("host/owner-test", "boot/owner/second"),
         resident,
