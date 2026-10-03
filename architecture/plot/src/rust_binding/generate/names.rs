@@ -43,6 +43,7 @@ fn rust_identifier(value: &str, pascal: bool) -> Result<String, RustBindingGener
     }
     if output.is_empty()
         || output.as_bytes()[0].is_ascii_digit()
+        || output == "Self"
         || (!pascal && matches!(output.as_str(), "self" | "super" | "crate"))
     {
         return Err(RustBindingGenerationError::InvalidRustIdentifier(
@@ -81,5 +82,6 @@ mod tests {
         assert_eq!(rust_screaming_identifier("final").unwrap(), "FINAL");
         assert_eq!(rust_pascal_identifier("final").unwrap(), "Final");
         assert!(rust_snake_identifier("self").is_err());
+        assert!(rust_pascal_identifier("self").is_err());
     }
 }
