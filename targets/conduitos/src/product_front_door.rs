@@ -60,9 +60,9 @@ pub fn run(
     rescue_matcher: &mut LocalRescueMatcher,
     pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
-    let (pending_join, owner_receipt) = match pending_join {
-        Some(join) => (Some(join.pending), join.receipt),
-        None => (None, None),
+    let (pending_join, owner_receipt, owner_face) = match pending_join {
+        Some(join) => (Some(join.pending), join.receipt, join.face),
+        None => (None, None, None),
     };
     let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
         .map_err(|_| "product-base-provider-invalid")?;
@@ -119,19 +119,21 @@ pub fn run(
             + u64::from(offer.pc_speaker.is_some()),
         !provisioned_guest,
     );
-    if let Some(pending) = pending_join {
+    let owner_face = if let Some(pending) = pending_join {
         guest_join::enter(
             &mut front_door,
             journey.projection(),
             pending,
             owner_receipt,
+            owner_face,
             &host_id,
             &boot_id,
             generation,
-        )?;
+        )?
     } else {
         arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
-    }
+        None
+    };
     let mut face_arrival = FaceArrival::prepare(
         host_id.clone(),
         boot_id.clone(),
@@ -158,7 +160,10 @@ pub fn run(
         make.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
-    let receipt = if provisioned_guest {
+    let owner_face_presented = owner_face.is_some();
+    let receipt = if let Some(owner_face) = owner_face {
+        face_arrival.present_owner_face(owner_face.into_presentation(), display)?
+    } else if provisioned_guest {
         face_arrival.present_pending_join(&front_door, display)?
     } else {
         face_arrival.present_first(&front_door, display)?
@@ -183,8 +188,14 @@ pub fn run(
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
             if provisioned_guest {
-                if let ProductInputEvent::LocalRescue(local) = input {
-                    rescue_guest::observe(identities, rescue_matcher, local, true);
+                match input {
+                    ProductInputEvent::LocalRescue(local) => {
+                        rescue_guest::observe(identities, rescue_matcher, local, true);
+                    }
+                    ProductInputEvent::Key(event) if owner_face_presented => {
+                        face_arrival.accept_guest_key(event, display)?;
+                    }
+                    _ => {}
                 }
                 return Ok(ProductInputControl::Continue);
             }
