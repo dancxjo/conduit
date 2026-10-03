@@ -1,5 +1,6 @@
 #![cfg(feature = "semantic-bindings")]
-use conduit_plot::rust_binding::NativeRustBinding;
+use conduit_core::IeeeF32;
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 use conduit_speech::{semantic::*, timing::*};
 
 #[test]
@@ -53,4 +54,41 @@ fn checked_projection_overflow_refuses_without_mutating_the_basis() {
             .unwrap();
     assert_eq!(duration_at_rate(&request), Err(TimingRefusal::Arithmetic));
     assert_eq!(*request.duration().numerator_seconds(), u64::MAX);
+}
+
+#[test]
+fn shared_prosody_retains_all_six_specification_states() {
+    let duration = SpeechExactDuration::new(1000, 120).unwrap();
+    let states = [
+        SpeechDurationSpecification::known(1000, 120).unwrap(),
+        SpeechDurationSpecification::unknown(),
+        SpeechDurationSpecification::unspecified(),
+        SpeechDurationSpecification::not_applicable(),
+        SpeechDurationSpecification::variable(
+            BoundedSequence::try_from_iter([duration.clone()]).unwrap(),
+        )
+        .unwrap(),
+        SpeechDurationSpecification::gradient(
+            SpeechConfidence::new(IeeeF32::from_value(0.25)).unwrap(),
+            duration,
+        )
+        .unwrap(),
+    ];
+    for (index, state) in states.iter().enumerate() {
+        let encoded = state.clone().into_structured().unwrap();
+        assert_eq!(
+            SpeechDurationSpecification::from_structured(encoded.clone()).unwrap(),
+            *state
+        );
+        for other in &states[..index] {
+            assert_ne!(encoded, other.clone().into_structured().unwrap());
+        }
+        let intent = SpeechSegmentProsodyIntent::new(
+            state.clone(),
+            SpeechCycleSpecification::unspecified(),
+            SpeechIntensitySpecification::unknown(),
+        )
+        .unwrap();
+        assert_eq!(intent.duration(), state);
+    }
 }
