@@ -129,6 +129,10 @@ pub(super) fn serve(
         .saturating_sub(current_time_millis()?);
     let grant_deadline = Instant::now() + Duration::from_millis(remaining);
     let deadline = grant_deadline;
+    // Prepare the complete finite reassembly envelope before any return
+    // action is accepted. Reuse it for every admitted action on this route.
+    let mut frame = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
+    let mut assembled = ChunkAssembly::default();
     for sequence in 1..=grant.maximum_actions {
         let Some(left) = deadline.checked_duration_since(Instant::now()) else {
             break;
@@ -146,7 +150,7 @@ pub(super) fn serve(
         };
         line.set_read_timeout(Some(left.min(Duration::from_secs(5))))
             .map_err(|error| format!("bound native return read: {error:?}"))?;
-        let response = match receive_action(&mut line) {
+        let response = match receive_action(&mut line, &mut frame, &mut assembled) {
             Ok(_) if current_time_millis()? >= grant.expires_at_millis => Response {
                 schema: RESPONSE_SCHEMA,
                 accepted: false,
@@ -188,15 +192,16 @@ pub(super) fn serve(
 
 fn receive_action(
     line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
+    frame: &mut [u8],
+    assembled: &mut ChunkAssembly,
 ) -> Result<Action, String> {
-    let mut frame = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
-    let mut assembled = ChunkAssembly::default();
+    assembled.reset();
     // Each frame carries the same finite total and digest plus its exact offset.
     // The WebSocket Line provides ordering and pinned TLS; these checks keep
     // malformed or interrupted multi-frame actions distinct from submission.
     for _ in 0..=MAX_RETURN_ACTION_BYTES / (MAX_OWNER_FACE_RESPONSE_BYTES - CHUNK_HEADER_BYTES) {
         let length = line
-            .receive_binary(&mut frame)
+            .receive_binary(frame)
             .map_err(|error| format!("receive native return: {error:?}"))?;
         if assembled.push(&frame[..length])? {
             let action = serde_json::from_slice(&assembled.bytes)
@@ -207,13 +212,26 @@ fn receive_action(
     Err("native return chunk count exceeded".into())
 }
 
-#[derive(Default)]
 struct ChunkAssembly {
     bytes: Vec<u8>,
     expected: Option<(usize, [u8; 32])>,
 }
 
+impl Default for ChunkAssembly {
+    fn default() -> Self {
+        Self {
+            bytes: Vec::with_capacity(MAX_RETURN_ACTION_BYTES),
+            expected: None,
+        }
+    }
+}
+
 impl ChunkAssembly {
+    fn reset(&mut self) {
+        self.bytes.clear();
+        self.expected = None;
+    }
+
     fn push(&mut self, frame: &[u8]) -> Result<bool, String> {
         if frame.len() <= CHUNK_HEADER_BYTES || frame.len() > MAX_OWNER_FACE_RESPONSE_BYTES {
             return Err("native return chunk size invalid".into());
@@ -232,7 +250,6 @@ impl ChunkAssembly {
                 return Err("native return chunk identity changed".into());
             }
         } else {
-            self.bytes.reserve_exact(total);
             self.expected = Some((total, digest));
         }
         if frame.len() - CHUNK_HEADER_BYTES > total - offset {
@@ -366,6 +383,12 @@ mod tests {
         let frames = chunks(&payload);
         assert_eq!(frames.len(), 3);
         let mut assembly = ChunkAssembly::default();
+        assert!(!assembly.push(&frames[0]).unwrap());
+        assert!(!assembly.push(&frames[1]).unwrap());
+        assert!(assembly.push(&frames[2]).unwrap());
+        assert_eq!(assembly.bytes, payload);
+        assert!(assembly.bytes.capacity() >= MAX_RETURN_ACTION_BYTES);
+        assembly.reset();
         assert!(!assembly.push(&frames[0]).unwrap());
         assert!(!assembly.push(&frames[1]).unwrap());
         assert!(assembly.push(&frames[2]).unwrap());
