@@ -92,3 +92,6 @@ mod frication_parity;
 
 #[cfg(test)]
 mod source_balance;
+
+#[cfg(test)]
+mod frication_transfer;

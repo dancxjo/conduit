@@ -192,16 +192,30 @@ iy. This does not yet implement nasal pole/zero insertion or adjacent-vowel
 nasalization, and subjective improvement remains unverified.
 
 For v, dh, z and zh, the first resonator receives pure voicing while the upper
-two receive pure turbulent noise. The authored selection requires voiced and
+noise path receives pure turbulent noise. The authored selection requires voiced and
 frication flags both equal to one and no closure; stops and affricates retain
 their release policy. Four self-authored models use a 250 Hz, 140 Hz-bandwidth
-low voicing bar and retain the corresponding unvoiced phones' upper noise bands.
+low voicing bar and the same noise transfer as their unvoiced partners.
 This follows the separate-source motivation in [Klatt (1980), section II.F](https://www.fon.hum.uva.nl/david/ma_ssp/doc/Klatt-1980-JAS000971.pdf),
 using a compact low-band approximation rather than a full separate voiced
 cascade. It adds no retained history or runtime allocation. Selected phone,
 derivation, stress and duration remain exact. `voiced-frication.wav` compares
 f/v, th/dh, s/z and sh/zh before aa. Independent source-isolation and decoded-pole
 laws accompany portable frame parity; listening-quality improvement is unverified.
+
+Diffuse f/v and th/dh noise uses a direct Q8 bypass with self-authored gains
+64/256 and 48/256. Their upper resonator gains are zero; unvoiced partners also
+have zero low-band drive, while voiced partners retain the low voicing bar.
+For s/sh, the low noise drive is zero; z/zh retain their low voiced source and
+share the corresponding upper noise bands. Other classes have zero bypass,
+including closure/release profiles. The bypass is added before the existing
+output gain, envelope and limiter. A zero bypass skips its arithmetic entirely.
+It adds one I32 to the transient acoustic target, with no new retained history.
+These transfer choices are informed by [Klatt (1980), section II.F](https://www.fon.hum.uva.nl/david/ma_ssp/doc/Klatt-1980-JAS000971.pdf),
+without reproducing its full parallel bank, high-frequency range or tables.
+Phone identity, duration and uncertainty remain unchanged. Source-role and
+spectral-window tests accompany portable parity; general listening quality
+remains unverified.
 
 The raw modulo turbulence is scaled by one third before filtering, so its
 mean-square excitation energy is below that of the glottal source throughout
