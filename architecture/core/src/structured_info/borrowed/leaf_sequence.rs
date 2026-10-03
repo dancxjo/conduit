@@ -54,7 +54,6 @@ impl<'a> ValidatedCanonicalStructuredValue<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{kind_id, validate_canonical_structured_value, PreparedLeafSequenceEncoder};
 
     #[test]
