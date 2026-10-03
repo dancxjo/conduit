@@ -14,11 +14,11 @@ pub struct I801PortWindow {
 
 impl I801Registers for I801PortWindow {
     fn read(&mut self, offset: u16) -> u8 {
-        assert!(offset <= 5, "fixed controller register window");
+        assert!(offset <= 7, "fixed controller register window");
         unsafe { inb(self.base + offset) }
     }
     fn write(&mut self, offset: u16, value: u8) {
-        assert!(offset <= 5, "fixed controller register window");
+        assert!(offset <= 7, "fixed controller register window");
         unsafe { outb(self.base + offset, value) }
     }
 }
@@ -43,4 +43,19 @@ pub unsafe fn admitted_i801_ports(
         return Err(I2cDisposition::Refused);
     }
     I801Controller::new(I801PortWindow { base }, maximum_polls)
+}
+
+/// Add I2C block-read geometry only after native controller validation.
+///
+/// # Safety
+/// All requirements of `admitted_i801_ports` apply. The owner must additionally
+/// establish ICH5-or-later block-read support, auxiliary CRC and block-buffer
+/// mode both disabled, and the actual PCI SPD Write Disable bit supplied here.
+pub unsafe fn admitted_i801_block_read_ports(
+    base: u16,
+    maximum_polls: u32,
+    spd_write_disabled: bool,
+) -> Result<I801Controller<I801PortWindow>, I2cDisposition> {
+    let controller = unsafe { admitted_i801_ports(base, maximum_polls)? };
+    Ok(unsafe { controller.with_i2c_block_reads(spd_write_disabled) })
 }

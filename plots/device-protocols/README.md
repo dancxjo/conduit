@@ -23,8 +23,13 @@ footprint claim.
 `i2c-types.conduit` defines exact finite requests and typed bus outcomes;
 `i2c.conduit` invokes the class-neutral transaction Kind. The ConduitOS provider
 binds the exact selected Plan/Play and opaque Base possession before effects.
-Its I801 primitive supports SMBus send/receive byte and byte-data operations,
-refuses other transaction geometries before traffic, and bounds native polling.
+Its I801 primitive supports SMBus send/receive byte and byte-data operations.
+An independently validated ICH5-or-later profile additionally supports one
+prefix byte followed by 2–32 I2C read bytes, with no SMBus count-byte assumption.
+The native owner must establish block-read support, disabled auxiliary CRC and
+buffer modes, and the actual SPD Write Disable configuration. Other transaction
+geometries refuse before traffic. Native polling has one finite budget across
+the complete block, with separately bounded stop work.
 It preserves another controller semaphore owner, distinguishes controller error,
 arbitration loss and timeout, and quarantines a controller that cannot stop.
 An I801 device-error bit combines several hardware causes and is not reported

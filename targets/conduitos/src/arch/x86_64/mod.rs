@@ -53,7 +53,7 @@ pub use hid_pointer::{
     HidPointerError, HidPointerReady, HidPointerSession, prepare_boot_pointer,
     start_pointer_session,
 };
-pub use i2c_ports::{I801PortWindow, admitted_i801_ports};
+pub use i2c_ports::{I801PortWindow, admitted_i801_block_read_ports, admitted_i801_ports};
 pub use opl2::Opl2;
 pub use pc_speaker::PcSpeaker;
 #[cfg(feature = "conduitos-isolation-proof")]

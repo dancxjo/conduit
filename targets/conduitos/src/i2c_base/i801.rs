@@ -2,7 +2,8 @@
 //!
 //! The supported transaction subset is send/receive byte and byte-data (two
 //! written bytes, or one prefix byte plus one read byte under repeated START).
-//! Other geometry refuses before traffic. There is no device-specific fallback.
+//! An explicitly validated ICH5-or-later profile also permits bounded I2C block
+//! reads. Other geometry refuses before traffic. No device fallback is implicit.
 use super::{I2cDisposition, I2cProvider, I2cTransaction};
 
 const STATUS: u16 = 0;
@@ -21,6 +22,8 @@ const KILL: u8 = 2;
 const START: u8 = 64;
 const BYTE: u8 = 4;
 const BYTE_DATA: u8 = 8;
+const BYTE_DONE: u8 = 128;
+mod block_read;
 
 /// Access is restricted to the selected controller's small physical register
 /// window. Native mapping/port possession belongs to its trusted owner.
@@ -33,6 +36,7 @@ pub struct I801Controller<R> {
     registers: R,
     maximum_polls: u32,
     revoked: bool,
+    block_read_address_bit: Option<bool>,
 }
 
 impl<R: I801Registers> I801Controller<R> {
@@ -46,16 +50,35 @@ impl<R: I801Registers> I801Controller<R> {
             registers,
             maximum_polls,
             revoked: false,
+            block_read_address_bit: None,
         })
     }
 
+    /// Enable only the native controller's independently established geometry.
+    ///
+    /// # Safety
+    /// The owner must have validated ICH5-or-later I2C block-read support,
+    /// disabled auxiliary CRC and 32-byte buffer mode, and retained exclusive
+    /// register ownership. `spd_write_disabled` must match the actual retained
+    /// PCI host configuration; it determines the controller's read address bit.
+    /// Neither a peripheral probe nor a request establishes these facts.
+    pub unsafe fn with_i2c_block_reads(mut self, spd_write_disabled: bool) -> Self {
+        self.block_read_address_bit = Some(spd_write_disabled);
+        self
+    }
+
     fn stop_timed_out(&mut self) -> I2cDisposition {
+        self.stop_after(I2cDisposition::TimedOut)
+    }
+
+    fn stop_after(&mut self, disposition: I2cDisposition) -> I2cDisposition {
         self.registers.write(CONTROL, KILL);
         for _ in 0..self.maximum_polls {
             if self.registers.read(STATUS) & BUSY == 0 {
                 self.registers.write(CONTROL, 0);
-                self.registers.write(STATUS, CLEAR_STATUS | IN_USE);
-                return I2cDisposition::TimedOut;
+                self.registers
+                    .write(STATUS, CLEAR_STATUS | IN_USE | BYTE_DONE);
+                return disposition;
             }
             core::hint::spin_loop();
         }
@@ -74,6 +97,15 @@ impl<R: I801Registers> I2cProvider for I801Controller<R> {
     ) -> Result<usize, I2cDisposition> {
         if self.revoked {
             return Err(I2cDisposition::ProviderLost);
+        }
+        if let ([prefix], 2..=32) = (request.write(), request.read_length()) {
+            let Some(address_read_bit) = self.block_read_address_bit else {
+                return Err(I2cDisposition::Unsupported);
+            };
+            if input.len() != usize::from(request.read_length()) {
+                return Err(I2cDisposition::Refused);
+            }
+            return self.read_block(request.address(), *prefix, address_read_bit, input);
         }
         let (protocol, prefix, data) = match (request.write(), request.read_length()) {
             ([], 1) => (BYTE, None, None),
