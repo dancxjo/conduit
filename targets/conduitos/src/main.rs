@@ -71,7 +71,9 @@ extern "C" fn conduitos_start() -> ! {
                             record.timestamp,
                             record.image_physical_start,
                         );
-                        inspect_spore_provision(&record, identities);
+                        if inspect_spore_provision(&record, identities).is_some() {
+                            emit_refusal("spore-join-awaits-owner-receipt");
+                        }
                         headless_startup::run(record);
                     }
                 }
@@ -121,7 +123,7 @@ fn initialize_runtime_arena(record: &boot::BootRecord) {
 fn inspect_spore_provision(
     _record: &boot::BootRecord,
     identities: conduitos::identity::BootIdentities,
-) {
+) -> Option<spore_join::PendingNativeJoin> {
     let Some(region) = boot::spore_module() else {
         emit_refusal("spore-boot-module-missing");
     };
@@ -130,11 +132,16 @@ fn inspect_spore_provision(
         Err(error) => emit_refusal(error.as_str()),
     };
     let mut sign = sign_format::FixedText::new();
-    let result = match provision {
+    let (result, pending) = match provision {
         Some(provision) => {
             let spore_id = provision.spore.spore_id.clone();
             let body_id = provision.spore.body_id.clone();
             let invitation_id = provision.invitation_provision.invitation_id.clone();
+            let pending = spore_join::PendingNativeJoin {
+                spore_id: spore_id.clone(),
+                body_id: body_id.clone(),
+                invitation_id: invitation_id.clone(),
+            };
             let expires_at_millis = provision.invitation_provision.expires_at_millis;
             if let Err(error) = spore_provision::validate_image_binding(
                 &provision,
@@ -151,21 +158,26 @@ fn inspect_spore_provision(
             arch::early_write(b"CONDUIT_SPORE_JOIN ");
             arch::early_write(&join);
             arch::early_write(b"\n");
-            writeln!(
+            let result = writeln!(
                 sign,
                 "CONDUIT_SPORE_PROVISION {{\"schema\":\"conduit.conduitos/spore-provision@1\",\"status\":\"join-emitted\",\"line_id\":\"conduit-line/serial-text@1\",\"spore_id\":\"{}\",\"body_id\":\"{}\",\"invitation_id\":\"{}\",\"expires_at_millis\":{},\"secret_logged\":false,\"membership_claimed\":false}}",
                 spore_id, body_id, invitation_id, expires_at_millis,
-            )
+            );
+            (result, Some(pending))
         }
-        None => writeln!(
-            sign,
-            "CONDUIT_SPORE_PROVISION {{\"schema\":\"conduit.conduitos/spore-provision@1\",\"status\":\"absent\",\"membership_claimed\":false}}"
+        None => (
+            writeln!(
+                sign,
+                "CONDUIT_SPORE_PROVISION {{\"schema\":\"conduit.conduitos/spore-provision@1\",\"status\":\"absent\",\"membership_claimed\":false}}"
+            ),
+            None,
         ),
     };
     if result.is_err() {
         emit_refusal("spore-provision-sign-storage-full");
     }
     arch::early_write(sign.as_bytes());
+    pending
 }
 
 #[cfg(all(target_os = "none", feature = "conduitos-isolation-proof"))]
