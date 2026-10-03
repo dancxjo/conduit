@@ -7,7 +7,7 @@
 use crate::usb_base::control_request::{ControlRequestRefusal, ControlTransferRequest};
 use core::ptr::write_volatile;
 
-use super::transfer::{setup_transfer_type, transferred_bytes, validate_transfer_event};
+use super::transfer::{ControlCompletion, setup_transfer_type};
 use super::{MAX_CONFIGURATION_BYTES, TRANSFER_TRBS, UsbDma, UsbError};
 use crate::arch::x86_64::xhci::XhciReady;
 
@@ -77,6 +77,8 @@ pub(super) fn control_raw(
     }
     stage_output(ring.dma, &request)?;
     let octets = request.setup();
+    let setup_pointer = ring.physical + (ring.enqueue * 16) as u64;
+    let data_pointer = (length != 0).then_some(setup_pointer + 16);
     let setup = [
         u32::from_le_bytes(octets[..4].try_into().expect("fixed setup low")),
         u32::from_le_bytes(octets[4..].try_into().expect("fixed setup high")),
@@ -90,7 +92,7 @@ pub(super) fn control_raw(
             ring.buffer_physical as u32,
             (ring.buffer_physical >> 32) as u32,
             u32::from(length),
-            (3 << 10) | (u32::from(input) << 16) | ring.cycle,
+            (3 << 10) | (u32::from(input) << 16) | (u32::from(input) << 2) | ring.cycle,
         ];
         put_transfer(ring.dma, ring.enqueue, data);
         ring.enqueue += 1;
@@ -107,21 +109,28 @@ pub(super) fn control_raw(
         ],
     );
     ring.enqueue += 1;
+    let mut completion = ControlCompletion::new(
+        slot,
+        setup_pointer,
+        data_pointer,
+        ring.physical + (status_index * 16) as u64,
+        length,
+        input,
+    );
     controller.ring_endpoint(slot, 1);
-    let mut event = controller.next_event()?;
     for _ in 0..TRANSFER_TRBS {
-        if event.event_type != 34 {
-            break;
+        let event = controller.next_event()?;
+        if let Some(result) = completion.observe(event)? {
+            if result.short {
+                ring.short_packets = ring.short_packets.saturating_add(1);
+            }
+            if controller.port_status(ring.root_port) & 1 == 0 {
+                return Err(UsbError::DeviceVanished);
+            }
+            return Ok(result.bytes);
         }
-        event = controller.next_event()?;
     }
-    if validate_transfer_event(event, slot, ring.physical + (status_index * 16) as u64)? {
-        ring.short_packets = ring.short_packets.saturating_add(1);
-    }
-    if controller.port_status(ring.root_port) & 1 == 0 {
-        return Err(UsbError::DeviceVanished);
-    }
-    transferred_bytes(length, event.residual)
+    Err(UsbError::ControlTimeout)
 }
 
 fn put_transfer(dma: *mut UsbDma, index: usize, trb: [u32; 4]) {

@@ -182,7 +182,10 @@ fn enumerate_root_port_at_epoch(
             request: 6,
             value: 0x0100,
             index: 0,
-            length: 18,
+            // Legacy enumeration overrequests one bounded packet; the device
+            // descriptor still must complete with exactly 18 actual octets.
+            // This exercises short Data Stage + final Status Stage handling.
+            length: 64,
             input: true,
         },
     )?;
