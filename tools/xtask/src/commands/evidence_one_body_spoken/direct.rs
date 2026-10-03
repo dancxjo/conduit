@@ -1,4 +1,4 @@
-//! Mechanical full-Face reading through the ordinary terminal and spoken Masks.
+//! Mechanical full-Face reading from a terminal Mask Show into a speech Plot/Play.
 //! Every WAV is a produced audio artifact; no speaker playback is asserted.
 
 use super::{check_current, finish_manifest, LiveContext};
@@ -16,8 +16,8 @@ use sha2::{Digest, Sha256};
 use super::retention::{declare, retain, retain_json};
 
 // Each Play must remain below the stream Back's 30-second PCM admission.
-// Four outputs per batch plus five common receipts fit the 64-output bound.
-const MAX_BATCHES: usize = 14;
+// Two outputs per batch plus four common outputs fit the 64-output bound.
+const MAX_BATCHES: usize = 29;
 const SEGMENTS_PER_BATCH: usize = 2;
 const TEXT_BYTES_PER_SEGMENT: usize = 96;
 
@@ -92,13 +92,14 @@ pub(super) fn run(
     let mut completed_turn = None;
     let mut batch_count = 0;
     let mut batch_receipt_ids = Vec::new();
+    let mut full_transcript = String::new();
     while let Some(batch) = reader
         .next_batch_with_limits(SEGMENTS_PER_BATCH, TEXT_BYTES_PER_SEGMENT)
         .map_err(|error| format!("spoken Face pressure/refusal: {error:?}"))?
     {
         if batch_count == MAX_BATCHES {
             manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
-            return Err("full Face reading exceeded fourteen admitted speech batches".into());
+            return Err("full Face reading exceeded 29 admitted speech batches".into());
         }
         batch_count += 1;
         let stem = format!("direct-batch-{batch_count}");
@@ -127,56 +128,21 @@ pub(super) fn run(
             .iter()
             .map(|item| item.segment.text.as_str())
             .collect::<String>();
-        let transcript = json!({
-            "schema": "conduit.journey/speech-transcript@1",
-            "source_commit": context.source_commit,
-            "run_id": context.run_id,
-            "body_id": body_id.as_str(),
-            "chapter_id": "hear",
-            "show_id": show.show_id.as_str(),
-            "face_revision": face.revision.to_string(),
-            "text": words,
-        });
-        let transcript_bytes = serde_json::to_vec_pretty(&transcript)?;
-        retain(
-            manifest,
-            &format!("{stem}-transcript"),
-            &format!("{stem}-transcript.json"),
-            EvidenceKind::MachineReadableManifest,
-            "application/json",
-            &transcript_bytes,
-            context.run_id,
-            context.face,
-            None,
-        )?;
-        retain_json(
-            manifest,
-            &format!("{stem}-segments"),
-            &format!("{stem}-segments.json"),
-            &json!({
-                "schema": "conduit.journey/direct-source-segments@1",
-                "source_commit": context.source_commit,
-                "run_id": context.run_id,
-                "action_id": context.action_id,
-                "body_id": body_id.as_str(),
-                "face_id": face.identity,
-                "face_revision": face.revision,
-                "source_show_id": batch.source_show_id,
-                "stream_identity": batch.stream_identity,
-                "source_segments_sha256": batch.source_segments_sha256,
-                "segments": batch.segments.iter().map(|item| json!({
+        full_transcript.push_str(&words);
+        let source_segments = batch
+            .segments
+            .iter()
+            .map(|item| {
+                json!({
                     "sequence": item.segment.sequence,
                     "text": item.segment.text,
                     "text_sha256": item.text_sha256,
                     "commit_reason": format!("{:?}", item.segment.reason),
                     "clause_index": item.clause_index,
                     "clause_provenance": format!("{:?}", item.clause_provenance),
-                })).collect::<Vec<_>>(),
-            }),
-            context.run_id,
-            context.face,
-            None,
-        )?;
+                })
+            })
+            .collect::<Vec<_>>();
         declare(
             manifest,
             &format!("{stem}-wav"),
@@ -218,8 +184,9 @@ pub(super) fn run(
                 "wav_bytes": output.receipt.wav_bytes,
                 "pcm_bytes": output.receipt.pcm_bytes,
                 "pcm_blocks": output.receipt.pcm_blocks,
-                "transcript_id": format!("{stem}-transcript"),
-                "transcript_sha256": format!("{:x}", Sha256::digest(&transcript_bytes)),
+                "transcript_text": words,
+                "transcript_text_sha256": format!("{:x}", Sha256::digest(words.as_bytes())),
+                "source_segments": source_segments,
                 "wav_artifact_id": format!("{stem}-wav"),
                 "voice_id": context.voice,
                 "playback_observed": false,
@@ -248,6 +215,28 @@ pub(super) fn run(
         return Err("full Face reading did not complete on the exact Show".into());
     }
     check_current(context, manifest)?;
+    let transcript = json!({
+        "schema": "conduit.journey/speech-transcript@1",
+        "source_commit": context.source_commit,
+        "run_id": context.run_id,
+        "body_id": body_id.as_str(),
+        "chapter_id": "hear",
+        "show_id": show.show_id.as_str(),
+        "face_revision": face.revision.to_string(),
+        "text": full_transcript,
+    });
+    let transcript_bytes = serde_json::to_vec_pretty(&transcript)?;
+    retain(
+        manifest,
+        "speech-transcript",
+        "speech-transcript.json",
+        EvidenceKind::MachineReadableManifest,
+        "application/json",
+        &transcript_bytes,
+        context.run_id,
+        context.face,
+        None,
+    )?;
     retain_json(
         manifest,
         "speech-receipt",
@@ -276,6 +265,8 @@ pub(super) fn run(
             "owner_sealed_spoken_mask_route_observed": false,
             "batch_count": batch_count,
             "batch_receipt_ids": batch_receipt_ids,
+            "transcript_id": "speech-transcript",
+            "transcript_sha256": format!("{:x}", Sha256::digest(&transcript_bytes)),
             "completed_segments": turn.completed_segments,
             "produced_pcm_bytes": turn.produced_pcm_bytes,
             "provider_sha256": turn.provider_sha256,
