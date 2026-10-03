@@ -1,0 +1,17 @@
+[package]
+name = "conduit-native-speech-footprint"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-speech = { path = "../../../semantics/speech" }
+
+[profile.release]
+opt-level = "z"
+panic = "abort"
+lto = true
+codegen-units = 1
+strip = "debuginfo"

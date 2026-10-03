@@ -1,8 +1,11 @@
+mod names;
 use crate::prelude::*;
 use crate::{CheckedNativeType, CheckedTypeForm};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
+use names::{byte_literals, rust_screaming_identifier};
+pub(super) use names::{rust_pascal_identifier, rust_snake_identifier};
 
 pub use super::generate_options::RustBindingOptions;
 
@@ -875,60 +878,3 @@ pub(super) fn data_reference_content_kind(identity: &str) -> Option<&str> {
 pub(super) fn unit_type(value_type: &StructuredInfoType) -> bool {
     matches!(value_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::UNIT_INFO_ID)
 }
-
-pub(super) fn rust_pascal_identifier(value: &str) -> Result<String, RustBindingGenerationError> {
-    rust_identifier(value, true)
-}
-
-pub(super) fn rust_snake_identifier(value: &str) -> Result<String, RustBindingGenerationError> {
-    rust_identifier(value, false)
-}
-
-fn rust_screaming_identifier(value: &str) -> Result<String, RustBindingGenerationError> {
-    rust_identifier(value, false).map(|value| value.to_ascii_uppercase())
-}
-
-fn rust_identifier(value: &str, pascal: bool) -> Result<String, RustBindingGenerationError> {
-    let mut output = String::new();
-    for part in value.split(|character: char| !character.is_ascii_alphanumeric()) {
-        if part.is_empty() {
-            continue;
-        }
-        if pascal {
-            let mut characters = part.chars();
-            if let Some(first) = characters.next() {
-                output.push(first.to_ascii_uppercase());
-                output.extend(characters);
-            }
-        } else {
-            if !output.is_empty() {
-                output.push('_');
-            }
-            output.push_str(&part.to_ascii_lowercase());
-        }
-    }
-    if output.is_empty()
-        || output.as_bytes()[0].is_ascii_digit()
-        || (!pascal && RUST_KEYWORDS.contains(&output.as_str()))
-    {
-        return Err(RustBindingGenerationError::InvalidRustIdentifier(
-            value.into(),
-        ));
-    }
-    Ok(output)
-}
-
-fn byte_literals(bytes: &[u8]) -> String {
-    bytes
-        .iter()
-        .map(|byte| format!("0x{byte:02x}"))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-const RUST_KEYWORDS: &[&str] = &[
-    "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for",
-    "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
-    "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
-    "while", "async", "await", "dyn",
-];

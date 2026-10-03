@@ -9,6 +9,7 @@ use crate::{
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
 
+mod construction;
 mod entry;
 mod graph;
 mod identity;

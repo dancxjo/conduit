@@ -409,7 +409,12 @@ fn isolate_nested_semantic_call(
 
 pub(super) fn contains_semantic_call(expression: &crate::ExpressionSyntax) -> bool {
     match expression {
-        crate::ExpressionSyntax::SemanticCall { .. } => true,
+        crate::ExpressionSyntax::SemanticCall {
+            kind, arguments, ..
+        } => {
+            !matches!(kind.text.as_str(), "variant/is" | "variant/tag")
+                || arguments.iter().any(contains_semantic_call)
+        }
         crate::ExpressionSyntax::Projection { value, .. }
         | crate::ExpressionSyntax::Unary { operand: value, .. } => contains_semantic_call(value),
         crate::ExpressionSyntax::Binary { left, right, .. } => {

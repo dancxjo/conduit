@@ -1369,6 +1369,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-speech"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-ssd1306"
 version = "0.1.0"
 

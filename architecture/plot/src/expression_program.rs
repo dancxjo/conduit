@@ -135,6 +135,21 @@ fn node(
     let operation = match syntax {
         ExpressionSyntax::Input(_) => PortableExpressionOperation::Input,
         ExpressionSyntax::Atomic(value) => PortableExpressionOperation::Literal(value.text.clone()),
+        ExpressionSyntax::Projection { value, member, .. }
+            if matches!(
+                value_type.shape(),
+                conduit_core::StructuredInfoTypeShape::Variant { .. }
+            ) && matches!(value.as_ref(), ExpressionSyntax::Atomic(_))
+                && !checked
+                    .node_types
+                    .iter()
+                    .any(|node| same_span(node.span, value.span())) =>
+        {
+            let ExpressionProjection::Field(case) = member else {
+                return Err(PortableExpressionProgramRefusal::InvalidTupleIndex);
+            };
+            PortableExpressionOperation::Literal(case.text.clone())
+        }
         ExpressionSyntax::Projection { value, member, .. } => {
             PortableExpressionOperation::Projection {
                 value: Box::new(node(value, checked)?),
@@ -201,7 +216,7 @@ fn node(
                 .collect::<Result<_, _>>()?,
         ),
         ExpressionSyntax::Variant { tag, payload, .. } => PortableExpressionOperation::Variant {
-            tag: tag.text.clone(),
+            tag: tag.text.rsplit('.').next().expect("checked tag").into(),
             payload: Box::new(node(payload, checked)?),
         },
         ExpressionSyntax::SemanticCall {
