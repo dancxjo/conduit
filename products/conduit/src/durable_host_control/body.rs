@@ -290,6 +290,14 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        #[cfg(unix)]
+        if self
+            .terminal_route
+            .as_ref()
+            .is_some_and(|route| route.show.show_id == show.show_id)
+        {
+            return Err("terminal-owner-route-read-only".into());
+        }
         let HostSource::Body {
             owner,
             root,

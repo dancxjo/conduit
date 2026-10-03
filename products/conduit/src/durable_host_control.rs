@@ -40,11 +40,11 @@ mod body_birth;
 #[path = "durable_host_control/body_run.rs"]
 mod body_run;
 #[cfg(unix)]
-#[path = "durable_host_control/terminal_attach.rs"]
-mod terminal_attach;
-#[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
+#[cfg(unix)]
+#[path = "durable_host_control/terminal_attach.rs"]
+pub(crate) mod terminal_attach;
 pub(crate) use body::start_browser_window;
 use body::HostSource;
 #[allow(unused_imports)]

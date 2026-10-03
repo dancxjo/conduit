@@ -82,8 +82,7 @@ pub(crate) fn attach_and_show(
         || show.show.offer_generation != advertisement.offer_generation
         || advertisement.host_id != before.host_id
         || advertisement.boot_id != before.boot_id
-        || effect.show_sha256
-            != <[u8; 32]>::from(Sha256::digest(show.show_id.as_str().as_bytes()))
+        || effect.show_sha256 != <[u8; 32]>::from(Sha256::digest(show.show_id.as_str().as_bytes()))
     {
         return Err(CONTROL_OUTCOME_UNKNOWN.into());
     }

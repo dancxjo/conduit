@@ -5,10 +5,10 @@ use super::{body::HostSource, constant_time_equal, DurableHostRuntime, PROTOCOL}
 use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow};
 use std::os::unix::net::UnixStream;
 
-#[path = "terminal_attach/wire.rs"]
-mod wire;
 #[path = "terminal_attach/client.rs"]
 mod client;
+#[path = "terminal_attach/wire.rs"]
+mod wire;
 pub(crate) use client::attach_and_show;
 pub(super) use wire::MAGIC;
 use wire::{AttachReply, AttachRequest};
@@ -46,7 +46,10 @@ pub(super) fn serve(
         let (face, seal) = owner.seal_attached_terminal_route()?;
         wire::write_reply(stream, &AttachReply::Attached { protocol: PROTOCOL })?;
         attached_reply_sent = true;
-        let show = owner.host.current_mut().present_attached_terminal_face(&face)?;
+        let show = owner
+            .host
+            .current_mut()
+            .present_attached_terminal_face(&face)?;
         owner.validate_attached_terminal_route(&seal, &show)?;
         let advertisement = owner.host.advertisement().clone();
         runtime.terminal_route = Some(AttachedTerminalRoute {
@@ -135,7 +138,11 @@ pub(super) fn retire_closed_attachment(runtime: &mut DurableHostRuntime) -> Resu
     let HostSource::Body { owner, .. } = &runtime.host else {
         unreachable!("only an installed Body can attach a terminal");
     };
-    let live = owner.host.current().terminal_attachment_is_live().unwrap_or(false);
+    let live = owner
+        .host
+        .current()
+        .terminal_attachment_is_live()
+        .unwrap_or(false);
     let valid = runtime.terminal_route.as_ref().is_some_and(|route| {
         owner
             .validate_attached_terminal_route(&route.seal, &route.show)
@@ -157,3 +164,7 @@ fn retire(runtime: &mut DurableHostRuntime) -> Result<(), String> {
     };
     owner.host.current_mut().detach_terminal_mask()
 }
+
+#[cfg(test)]
+#[path = "terminal_attach/tests.rs"]
+mod tests;

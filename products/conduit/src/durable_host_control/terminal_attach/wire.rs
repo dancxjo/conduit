@@ -12,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub(super) const MAGIC: &[u8; 8] = b"CDTERM01";
+pub(crate) const MAGIC: &[u8; 8] = b"CDTERM01";
 const MAX_HANDSHAKE_BYTES: usize = 4_096;
 const MAX_REPLY_BYTES: usize = 512 * 1024;
 const HANDSHAKE_DEADLINE: Duration = Duration::from_secs(2);
@@ -30,17 +30,22 @@ pub(super) struct AttachRequest {
     pub face_revision: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "outcome", rename_all = "kebab-case", deny_unknown_fields)]
 pub(super) enum AttachReply {
-    Attached { protocol: u16 },
+    Attached {
+        protocol: u16,
+    },
     Show {
         protocol: u16,
         route_plan_id: PlanId,
         show: Box<MaskShow>,
         advertisement: HostAdvertisement,
     },
-    Refused { protocol: u16, code: String },
+    Refused {
+        protocol: u16,
+        code: String,
+    },
 }
 
 pub(super) fn read_request(stream: &mut UnixStream, first: u8) -> Result<AttachRequest, String> {
@@ -54,7 +59,10 @@ pub(super) fn read_request(stream: &mut UnixStream, first: u8) -> Result<AttachR
     read_json(stream, MAX_HANDSHAKE_BYTES, deadline)
 }
 
-pub(super) fn write_request(stream: &mut UnixStream, request: &AttachRequest) -> Result<(), String> {
+pub(super) fn write_request(
+    stream: &mut UnixStream,
+    request: &AttachRequest,
+) -> Result<(), String> {
     let deadline = Instant::now() + HANDSHAKE_DEADLINE;
     write_all_until(stream, MAGIC, deadline)?;
     write_json(stream, request, MAX_HANDSHAKE_BYTES, deadline)
@@ -99,21 +107,25 @@ fn write_json<T: Serialize>(
     limit: usize,
     deadline: Instant,
 ) -> Result<(), String> {
-    let mut bytes = serde_json::to_vec(value)
-        .map_err(|_| "terminal-attachment-frame-encoding".to_string())?;
+    let mut bytes =
+        serde_json::to_vec(value).map_err(|_| "terminal-attachment-frame-encoding".to_string())?;
     if bytes.is_empty() || bytes.len() > limit {
         bytes.fill(0);
         return Err("terminal-attachment-frame-pressure".into());
     }
-    let length = u32::try_from(bytes.len())
-        .map_err(|_| "terminal-attachment-frame-pressure".to_string())?;
+    let length =
+        u32::try_from(bytes.len()).map_err(|_| "terminal-attachment-frame-pressure".to_string())?;
     let result = write_all_until(stream, &length.to_le_bytes(), deadline)
         .and_then(|()| write_all_until(stream, &bytes, deadline));
     bytes.fill(0);
     result
 }
 
-fn read_exact_until(stream: &mut UnixStream, mut bytes: &mut [u8], deadline: Instant) -> Result<(), String> {
+fn read_exact_until(
+    stream: &mut UnixStream,
+    mut bytes: &mut [u8],
+    deadline: Instant,
+) -> Result<(), String> {
     while !bytes.is_empty() {
         stream
             .set_read_timeout(Some(remaining(deadline)?))
@@ -122,7 +134,10 @@ fn read_exact_until(stream: &mut UnixStream, mut bytes: &mut [u8], deadline: Ins
             Ok(0) => return Err("terminal-attachment-EOF".into()),
             Ok(count) => bytes = &mut bytes[count..],
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
-            Err(error) if error.kind() == std::io::ErrorKind::TimedOut || error.kind() == std::io::ErrorKind::WouldBlock => {
+            Err(error)
+                if error.kind() == std::io::ErrorKind::TimedOut
+                    || error.kind() == std::io::ErrorKind::WouldBlock =>
+            {
                 return Err("terminal-attachment-timeout".into());
             }
             Err(_) => return Err("terminal-attachment-I/O".into()),
@@ -131,7 +146,11 @@ fn read_exact_until(stream: &mut UnixStream, mut bytes: &mut [u8], deadline: Ins
     Ok(())
 }
 
-fn write_all_until(stream: &mut UnixStream, mut bytes: &[u8], deadline: Instant) -> Result<(), String> {
+fn write_all_until(
+    stream: &mut UnixStream,
+    mut bytes: &[u8],
+    deadline: Instant,
+) -> Result<(), String> {
     while !bytes.is_empty() {
         stream
             .set_write_timeout(Some(remaining(deadline)?))
@@ -140,7 +159,10 @@ fn write_all_until(stream: &mut UnixStream, mut bytes: &[u8], deadline: Instant)
             Ok(0) => return Err("terminal-attachment-EOF".into()),
             Ok(count) => bytes = &bytes[count..],
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
-            Err(error) if error.kind() == std::io::ErrorKind::TimedOut || error.kind() == std::io::ErrorKind::WouldBlock => {
+            Err(error)
+                if error.kind() == std::io::ErrorKind::TimedOut
+                    || error.kind() == std::io::ErrorKind::WouldBlock =>
+            {
                 return Err("terminal-attachment-timeout".into());
             }
             Err(_) => return Err("terminal-attachment-I/O".into()),
