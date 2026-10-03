@@ -216,6 +216,25 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         });
       }, { retireInput: true });
     },
+    ownerFaceInteract(proposed) {
+      const input = encoder.encode(JSON.stringify(proposed));
+      return withInput(api, input, {
+        pointerExport: "conduit_browser_owner_face_input_ptr",
+        capacityExport: "conduit_browser_owner_face_input_capacity",
+        label: "owner Face interaction input",
+      }, length => {
+        const status = call("conduit_browser_owner_face_interact", length);
+        if (status < 0) throw new Error(`owner Face interaction refused (${status})`);
+        return readBytes(api, {
+          pointerExport: "conduit_browser_owner_face_output_ptr",
+          lengthExport: "conduit_browser_owner_face_output_len",
+          capacityExport: "conduit_browser_owner_face_output_capacity",
+          minimum: 1,
+          maximum: 64 * 1024,
+          label: "owner Face interaction emission",
+        });
+      }, { retireInput: true });
+    },
     ownerFaceClear() { call("conduit_browser_owner_face_clear"); },
     crecheCurrent() {
       const status = call("conduit_creche_current");

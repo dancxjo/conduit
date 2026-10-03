@@ -29,8 +29,8 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
                 OwnerFaceSnapshotResponse::Snapshot {
                     schema,
                     presentation,
-                    interactions_admitted,
-                } if schema == OWNER_FACE_RESPONSE_SCHEMA && !interactions_admitted => {
+                    ..
+                } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
                     presentation
                         .validate()
                         .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?;
@@ -43,6 +43,19 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
                         && !code.is_empty()
                         && code.len() <= 128 => {}
                 _ => return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot),
+            }
+            protocol
+        }
+        BrowserAdmissionEgress::FaceInteractionResponse {
+            protocol,
+            accepted,
+            code,
+        } => {
+            if code.len() > 128
+                || (*accepted && !code.is_empty())
+                || (!*accepted && code.is_empty())
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
             }
             protocol
         }

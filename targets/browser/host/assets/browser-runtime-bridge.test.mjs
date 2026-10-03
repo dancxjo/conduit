@@ -135,6 +135,27 @@ test("owner Face Mask bridge forwards exact u64 response bytes into WASM", () =>
   assert.ok(new Uint8Array(api.memory.buffer, inputPointer, rawFrame.length).every(byte => byte === 0));
 });
 
+test("owner Face interaction bridge retains exact u64 emission bytes", () => {
+  const api = runtime();
+  const inputPointer = 2048;
+  const outputPointer = 32768;
+  const emission = new TextEncoder().encode('{"show":{"presentation_revision":9007199254740993},"interaction":{"face_revision":9007199254740993}}');
+  api.conduit_browser_owner_face_input_ptr = () => inputPointer;
+  api.conduit_browser_owner_face_input_capacity = () => 16 * 1024;
+  api.conduit_browser_owner_face_output_ptr = () => outputPointer;
+  api.conduit_browser_owner_face_output_capacity = () => 64 * 1024;
+  api.conduit_browser_owner_face_output_len = () => emission.length;
+  api.conduit_browser_owner_face_interact = length => {
+    assert.match(new TextDecoder().decode(new Uint8Array(api.memory.buffer, inputPointer, length)), /9007199254740993/);
+    new Uint8Array(api.memory.buffer, outputPointer, emission.length).set(emission);
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "owner action proof" });
+  const raw = bridge.ownerFaceInteract({ face_revision: "9007199254740993" });
+  assert.deepEqual(raw, emission);
+  assert.ok(new Uint8Array(api.memory.buffer, inputPointer, 32).every(byte => byte === 0));
+});
+
 test("rejects malformed workspace input capacity", () => {
   const api = runtime();
   api.conduit_workspace_input_capacity = () => Number.NaN;

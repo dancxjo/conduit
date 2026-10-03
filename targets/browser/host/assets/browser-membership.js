@@ -160,6 +160,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let webRtcRefusal = null;
   let pendingMediaPlan = null;
   let pendingFaceSnapshot = null;
+  let pendingFaceInteraction = null;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
     scheduling: "best-effort-browser-event-loop",
@@ -279,6 +280,24 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         // Keep the exact u64 revision bytes. JSON.parse rounds them in JS;
         // the production WASM Mask decodes and validates this original frame.
         pending.resolve(frameBytes.slice());
+      }
+    } else if (frame.kind === "face-interaction-response" && frame.protocol === 1) {
+      const pending = pendingFaceInteraction;
+      if (!pending) throw new Error("unsolicited owner interaction response");
+      clearTimeout(pending.timeout);
+      pendingFaceInteraction = null;
+      if (frame.accepted === true && frame.code === "") {
+        pending.resolve(Object.freeze({ accepted: true }));
+      } else if (frame.accepted === false && typeof frame.code === "string" &&
+          frame.code.length > 0 && frame.code.length <= 128) {
+        const uncertain = frame.code === "control-outcome-unknown";
+        const error = new Error(uncertain
+          ? "Body owner control outcome unknown; do not retry this interaction"
+          : `Body owner refused interaction: ${frame.code}`);
+        error.code = frame.code;
+        pending.reject(error);
+      } else {
+        pending.reject(new Error("invalid owner interaction response"));
       }
     } else if (frame.kind === "media-use-plan" && frame.protocol === 1) {
       if (!pendingMediaPlan || frame.resource_handle !== pendingMediaPlan.resourceHandle) {
@@ -518,6 +537,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingFaceSnapshot.reject(new Error("owner Face Line closed"));
         pendingFaceSnapshot = null;
       }
+      if (pendingFaceInteraction) {
+        clearTimeout(pendingFaceInteraction.timeout);
+        pendingFaceInteraction.reject(new Error("owner interaction Line closed"));
+        pendingFaceInteraction = null;
+      }
       if (state.startsWith("refused:")) return;
       if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
         reconnectAttempts += 1;
@@ -629,6 +653,43 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       catch (error) { clearTimeout(timeout); pendingFaceSnapshot = null; reject(error); }
     });
   }
+  function submitFaceInteraction(submissionBytes) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for owner interaction"));
+    }
+    if (pendingFaceInteraction) return Promise.reject(new Error("one owner interaction is already pending"));
+    if (!(submissionBytes instanceof Uint8Array) || submissionBytes.length < 1 || submissionBytes.length > 64 * 1024) {
+      return Promise.reject(new Error("owner Mask interaction emission violates its finite bound"));
+    }
+    // The WASM Mask serialized Show and FaceInteraction with exact u64 fields.
+    // Embed those bytes without a JavaScript JSON number round trip.
+    const request = {
+      schema: OWNER_FACE_REQUEST_SCHEMA,
+      credential_id: credential.credential_id,
+      body_id: credential.body_id,
+      part_id: credential.part_id,
+      host_id: credential.host_id,
+      boot_id: credential.boot_id,
+      last_seen_revision: null,
+      last_seen_identity: null,
+    };
+    const emission = decoder.decode(submissionBytes);
+    if (!emission.startsWith('{"show":') || !emission.endsWith('}')) {
+      return Promise.reject(new Error("invalid owner Mask interaction emission"));
+    }
+    const bytes = encoder.encode(`{"kind":"face-interaction-request","protocol":1,"request":${JSON.stringify(request)},${emission.slice(1)}`);
+    if (bytes.length > 193 * 1024) return Promise.reject(new Error("owner interaction frame exceeds its admitted bound"));
+    socket.send(bytes);
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingFaceInteraction?.resolve === resolve) {
+          pendingFaceInteraction = null;
+          reject(new Error("owner interaction timed out"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingFaceInteraction = { resolve, reject, timeout };
+    });
+  }
   return Object.freeze({
     hostId,
     bootId,
@@ -659,6 +720,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     closeWebRtcLine: (negotiationId) => webRtcSessions.closeLine(negotiationId),
     replanWebRtc: () => webRtcSessions.replan(),
     advertisement: Object.freeze(advertisement),
+    submitFaceInteraction,
     publishMediaResource,
     close: () => {
       clearTimeout(renewalTimer);

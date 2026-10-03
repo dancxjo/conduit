@@ -238,7 +238,7 @@ fn serve_presence(
                 // The carrier and lease prove reachability. The serialized
                 // owner checks this credential and its current Part again
                 // against authoritative admission before projecting a Face.
-                let response = state_dir
+                let mut response = state_dir
                     .ok_or_else(|| "owner Face requires the installed service actor".to_string())
                     .and_then(|dir| crate::durable_host_control::face_snapshot(dir, request))
                     .unwrap_or_else(|error| OwnerFaceSnapshotResponse::Refused {
@@ -253,6 +253,16 @@ fn serve_presence(
                         }
                         .into(),
                     });
+                if let OwnerFaceSnapshotResponse::Snapshot {
+                    presentation,
+                    interactions_admitted,
+                    ..
+                } = &mut response
+                {
+                    *interactions_admitted = presentation.actions.iter().any(|action| {
+                        action.intent == crate::durable_host::owner::clock_interval_action()
+                    });
+                }
                 socket.send(&Out::FaceSnapshotResponse {
                     protocol: PROTOCOL,
                     response,
@@ -269,6 +279,75 @@ fn serve_presence(
                     },
                 })?;
                 return Err("owner Face request differs from this admitted browser carrier".into());
+            }
+            In::FaceInteractionRequest {
+                protocol: PROTOCOL,
+                request,
+                show,
+                interaction,
+            } if request.credential_id == credential.credential_id.as_str()
+                && request.body_id == credential.body_id
+                && request.part_id == credential.part_id
+                && request.host_id == credential.host_id
+                && request.boot_id == credential.boot_id =>
+            {
+                let result = state_dir
+                    .ok_or_else(|| {
+                        "owner interaction requires the installed service actor".to_string()
+                    })
+                    .and_then(|dir| {
+                        crate::durable_host_control::submit_browser_face_interaction(
+                            dir,
+                            request,
+                            *show,
+                            interaction,
+                        )
+                    });
+                let (accepted, code) = match result {
+                    Ok(_) => (true, String::new()),
+                    Err(error) => (
+                        false,
+                        if error == "control-outcome-unknown" {
+                            "control-outcome-unknown"
+                        } else if error == "body-play-active"
+                            || error.contains("retired Play")
+                            || error == "clock-play-must-lull"
+                        {
+                            "clock-play-must-lull"
+                        } else if error.contains("StaleFace")
+                            || error.contains("StaleShow")
+                            || error.contains("stale owner Mask Show")
+                        {
+                            "stale-face-or-show"
+                        } else if error.contains("UnavailableAction") {
+                            "action-unavailable"
+                        } else if error.contains("RefusedAction") {
+                            "action-refused"
+                        } else if error == "owner-face-credential-not-admitted" {
+                            "credential-not-admitted"
+                        } else if error == "owner-face-current-part-unavailable" {
+                            "current-part-unavailable"
+                        } else {
+                            "interaction-refused"
+                        }
+                        .into(),
+                    ),
+                };
+                socket.send(&Out::FaceInteractionResponse {
+                    protocol: PROTOCOL,
+                    accepted,
+                    code,
+                })?;
+            }
+            In::FaceInteractionRequest {
+                protocol: PROTOCOL, ..
+            } => {
+                socket.send(&Out::FaceInteractionResponse {
+                    protocol: PROTOCOL,
+                    accepted: false,
+                    code: "credential-mismatch".into(),
+                })?;
+                return Err("owner interaction differs from admitted browser carrier".into());
             }
             In::WebRtcGrantRequest {
                 protocol: PROTOCOL,

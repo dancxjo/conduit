@@ -26,7 +26,7 @@ impl OwnerBrowserMask {
             } else {
                 "prepared"
             },
-            interactions_admitted: false,
+            interactions_admitted: self.interactions_admitted,
             subjects: face
                 .subjects
                 .iter()
@@ -83,12 +83,48 @@ impl OwnerBrowserMask {
                         ),
                     };
                     ActionView {
+                        identity: action.identity.clone(),
                         name: action.name.clone(),
                         intent: action.intent.clone(),
                         target: action.target.clone(),
                         availability: availability.into(),
                         explanation,
                         reason_code,
+                        arguments: action
+                            .arguments
+                            .iter()
+                            .map(|argument| ArgumentView {
+                                name: argument.name.clone(),
+                                value_name: argument.value_name.clone(),
+                                choices: argument
+                                    .contract
+                                    .constraints
+                                    .iter()
+                                    .find_map(|constraint| match constraint {
+                                        ValueConstraint::CanonicalMembership {
+                                            members,
+                                            negated: false,
+                                        } => Some(
+                                            members
+                                                .iter()
+                                                .filter_map(|value| {
+                                                    String::from_utf8(value.clone()).ok()
+                                                })
+                                                .collect(),
+                                        ),
+                                        _ => None,
+                                    })
+                                    .unwrap_or_default(),
+                            })
+                            .collect(),
+                        current_value: face.properties.iter().find_map(|property| {
+                            if property.subject == action.target && property.name == "interval-ms" {
+                                if let PresentationPropertyValue::Count(value) = &property.value {
+                                    return Some(value.to_string());
+                                }
+                            }
+                            None
+                        }),
                     }
                 })
                 .collect(),
