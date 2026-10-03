@@ -165,12 +165,13 @@ impl<'a> Renderer<'a> {
 
 impl VoiceEvent {
     fn model(self) -> Option<SpeechSegmentModel> {
-        match self {
-            Self::selected(value) => speech_selected_segment_model(value),
-            Self::segment(value) => speech_segment_model(value),
-            Self::pronounced(value) => speech_segment_model(value.realization),
-            Self::boundary(_) => None,
-        }
+        let realization = match self {
+            Self::selected(value) => value,
+            Self::segment(value) => speech_realize(value)?,
+            Self::pronounced(value) => speech_realize(value.realization)?,
+            Self::boundary(_) => return None,
+        };
+        speech_selected_segment_model(realization)
     }
     /// Representation projection; pronunciation and realization policy stay in plots.
     pub fn realization(self) -> Option<RealizationInput> {
