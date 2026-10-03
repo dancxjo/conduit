@@ -1623,6 +1623,7 @@ dependencies = [
  "conduit-text",
  "conduit-time",
  "conduit-tour-model",
+ "conduit-tutorial-plot",
  "conduit-web",
  "conduit-wire",
  "ed25519-dalek",

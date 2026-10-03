@@ -99,6 +99,16 @@ LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
 emulators before boot because their large-page translation can corrupt the
 bootloader's module handoff.
 
+The x86_64 lane also exercises the current Workspace against the same retained
+product IMAGE: zero-Body arrival, naming and plot selection, birth into rest,
+explicit Wake, Memory Lantern input, the shared Tutorial, pagination, lull and
+fulfillment. `cargo xtask make host verify OUTPUT --journey` verifies the image
+digest before and after execution and correlates the guest's source, profile,
+build and image identities. It does not rebuild a demonstration image. The
+lane retains the action records and QMP screenshots with the product. This
+keyboard journey is separate from retained Tour chapter, USB carrier, pointer,
+and screen-free proofs; those claims require their own actual interactions.
+
 ## Publication
 
 Only a successful, repository-owned `push` integration run can publish. The

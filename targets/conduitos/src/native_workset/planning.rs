@@ -1,6 +1,6 @@
 //! Separate exact plot partitions, one body Plan, and combined resource bounds.
 use alloc::{collections::BTreeMap, vec::Vec};
-use conduit_body::{BodyMaskTopology, BodyPlan, BodyPlotPlan, Wake};
+use conduit_body::{BodyPlan, BodyPlotPlan, Wake};
 use conduit_core::{
     HostAdvertisement, KindId, PlacementId, Plan, PortId, ResourceClassId, ResourcePoolId,
 };
@@ -49,16 +49,32 @@ impl PreparedNativeWorkset {
     pub fn into_plan(self) -> BodyPlan {
         self.plan
     }
+}
 
-    pub(crate) fn with_masks(
-        mut self,
-        wake: &Wake,
-        mask_topologies: Vec<BodyMaskTopology>,
-    ) -> Result<Self, WorksetRefusal> {
-        self.plan = BodyPlan::seal_with_masks(wake, self.plan.plots.clone(), mask_topologies)
-            .map_err(|_| WorksetRefusal::Plan)?;
-        Ok(self)
+/// Validate complete workload partitions and fixed kernel bounds before Wake.
+pub(crate) fn propose_partitions(
+    workset: &conduit_body::BodyWorkset,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<Vec<BodyPlotPlan>, WorksetRefusal> {
+    let profile = super::profile();
+    if workset.is_empty() || workset.len() > profile.capacity {
+        return Err(WorksetRefusal::WorksetBound);
     }
+    for plot in workset.plots() {
+        if !profile.contains(plot)? {
+            return Err(WorksetRefusal::UnknownPlot);
+        }
+    }
+    let (advertisement, _) = host(identities, offer, build_id)?;
+    let plots = plan_plots(workset.plots(), &advertisement)?;
+    for plot in &plots {
+        admitted_plot_input(plot)?;
+    }
+    validate_combined(&advertisement, plots.iter().map(|plot| &plot.plan))?;
+    lower_plots(&plots)?;
+    Ok(plots)
 }
 
 pub fn prepare(
@@ -67,28 +83,34 @@ pub fn prepare(
     offer: &HostOffer<'_>,
     build_id: &str,
 ) -> Result<PreparedNativeWorkset, WorksetRefusal> {
-    let profile = super::profile();
-    if wake.workset.is_empty() || wake.workset.len() > profile.capacity {
-        return Err(WorksetRefusal::WorksetBound);
-    }
-    for plot in wake.workset.plots() {
-        if !profile.contains(plot)? {
-            return Err(WorksetRefusal::UnknownPlot);
-        }
+    let plots = propose_partitions(&wake.workset, identities, offer, build_id)?;
+    let plan = BodyPlan::seal(wake, plots).map_err(|_| WorksetRefusal::Plan)?;
+    prepare_exact(wake, &plan, identities, offer, build_id)
+}
+
+/// Prepare only the proposal already owned by the canonical lifecycle session.
+pub(crate) fn prepare_exact(
+    wake: &Wake,
+    plan: &BodyPlan,
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<PreparedNativeWorkset, WorksetRefusal> {
+    plan.validate_for(wake).map_err(|_| WorksetRefusal::Plan)?;
+    let plots = propose_partitions(&wake.workset, identities, offer, build_id)?;
+    if plots != plan.plots {
+        return Err(WorksetRefusal::Plan);
     }
     let (advertisement, keyboard) = host(identities, offer, build_id)?;
-    let plots = plan_plots(wake.workset.plots(), &advertisement)?;
-    let plan = BodyPlan::seal(wake, plots).map_err(|_| WorksetRefusal::Plan)?;
     let input_owners = plan
         .plots
         .iter()
         .map(admitted_plot_input)
         .collect::<Result<Vec<_>, _>>()?;
-    validate_combined(&advertisement, plan.plots.iter().map(|plot| &plot.plan))?;
     let lowered = lower_plots(&plan.plots)?;
     Ok(PreparedNativeWorkset {
         advertisement,
-        plan,
+        plan: plan.clone(),
         lowered,
         keyboard,
         input_owners,

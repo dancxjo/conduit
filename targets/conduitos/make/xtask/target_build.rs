@@ -1,5 +1,7 @@
 //! PROFILE-authoritative lowering into a final ConduitOS target artifact.
 
+pub(crate) use super::product_journey_gate::prove as prove_profile_journey;
+
 use std::{
     fs,
     path::PathBuf,

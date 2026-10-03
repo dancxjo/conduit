@@ -1,5 +1,8 @@
 //! Quiet foreground surface for the born Body, projected from its current journey.
-use super::Error;
+use super::{
+    Error,
+    application_layout::{self, ApplicationViewport, PAGE_ROWS},
+};
 use crate::{
     display::{PixelTarget, SPACE_LG, SPACE_SM, SPACE_XL},
     product_journey::{JourneyProjection, JourneyStatus},
@@ -7,7 +10,6 @@ use crate::{
 
 const TEXT_STEP: i16 = (SPACE_XL + SPACE_SM) as i16;
 const TEXT_BOX_HEIGHT: u16 = SPACE_XL + SPACE_SM * 2;
-const FOOTER_RESERVE: u16 = TEXT_BOX_HEIGHT + TEXT_STEP as u16;
 use alloc::format;
 use conduit_presentation::{
     ApplicationComponent, ApplicationView, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
@@ -18,6 +20,7 @@ pub(super) fn scene(
     journey: &JourneyProjection,
     foreground_title: &str,
     application_view: Option<&ApplicationView>,
+    viewport: ApplicationViewport,
     refusal: Option<&str>,
     display: &impl PixelTarget,
 ) -> Result<GraphicsScene, Error> {
@@ -89,7 +92,7 @@ pub(super) fn scene(
     )?;
     let mut result_notice_y = 248;
     if let Some(view) = application_view {
-        result_notice_y = application_text(&mut scene, screen, 192, view)?;
+        result_notice_y = application_text(&mut scene, screen, 192, view, viewport)?;
     } else if let Some(result) = &journey.result {
         result_notice_y = result_text(&mut scene, screen, 208, result)?;
     }
@@ -136,7 +139,7 @@ pub(super) fn scene(
         screen,
         footer_y,
         &format!(
-            "{}  ·  F2 details  ·  F9 Tour{}",
+            "{}  ·  F2 details  ·  F9 Tutorial{}",
             journey.status.as_str(),
             lifecycle_action
         ),
@@ -149,53 +152,82 @@ pub(super) fn scene(
 fn application_text(
     scene: &mut GraphicsScene,
     screen: LayoutRect,
-    mut y: i16,
+    y: i16,
     view: &ApplicationView,
+    viewport: ApplicationViewport,
 ) -> Result<i16, Error> {
     view.validate().map_err(|_| Error::Presentation)?;
-    for node in &view.nodes {
-        let (role, typography) = match node.component {
-            ApplicationComponent::Heading => (GraphicsPaintRole::Accent, GraphicsTextRole::Heading),
-            ApplicationComponent::Status => {
+    let total = application_layout::rows(view, |_, _| {});
+    let page = viewport.page.min(total.saturating_sub(1) / PAGE_ROWS);
+    let mut rendered = Ok(());
+    application_layout::rows(view, |index, row| {
+        if index / PAGE_ROWS != page || rendered.is_err() {
+            return;
+        }
+        let row_y = y + (index % PAGE_ROWS) as i16 * TEXT_STEP;
+        let selected = viewport.selected_node == Some(row.node_index);
+        let (role, typography) = match row.node.component {
+            ApplicationComponent::Heading
+            | ApplicationComponent::Panel
+            | ApplicationComponent::Masthead => {
+                (GraphicsPaintRole::Accent, GraphicsTextRole::Heading)
+            }
+            ApplicationComponent::Status
+            | ApplicationComponent::SuccessStatus
+            | ApplicationComponent::SuccessfulEvidence => {
                 (GraphicsPaintRole::Foreground, GraphicsTextRole::Status)
             }
-            ApplicationComponent::Definition | ApplicationComponent::CodeBlock => {
-                (GraphicsPaintRole::Foreground, GraphicsTextRole::Code)
+            ApplicationComponent::FailureStatus
+            | ApplicationComponent::WarningStatus
+            | ApplicationComponent::FailedEvidence
+            | ApplicationComponent::RefusedEvidence => {
+                (GraphicsPaintRole::Status, GraphicsTextRole::Warning)
             }
-            ApplicationComponent::Paragraph => {
-                (GraphicsPaintRole::Foreground, GraphicsTextRole::Body)
-            }
-            ApplicationComponent::Button => (GraphicsPaintRole::Accent, GraphicsTextRole::Body),
-            _ => continue,
+            ApplicationComponent::Definition
+            | ApplicationComponent::CodeBlock
+            | ApplicationComponent::Code => (GraphicsPaintRole::Foreground, GraphicsTextRole::Code),
+            ApplicationComponent::Button => (
+                if selected {
+                    GraphicsPaintRole::Status
+                } else {
+                    GraphicsPaintRole::Accent
+                },
+                GraphicsTextRole::Action,
+            ),
+            _ => (GraphicsPaintRole::Foreground, GraphicsTextRole::Body),
         };
-        let value = if node.value.is_empty() {
-            node.text.as_str()
-        } else if node.text.is_empty() {
-            node.value.as_str()
-        } else {
-            // Definition values carry the exact inspected identity. Prefer them
-            // over their short semantic label on the finite native surface.
-            node.value.as_str()
-        };
-        let limit = i16::try_from(screen.height.saturating_sub(FOOTER_RESERVE))
-            .map_err(|_| Error::Scene)?;
-        let mut remaining = value;
-        while !remaining.is_empty() && y < limit {
-            let mut split = remaining
-                .len()
-                .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
-            while !remaining.is_char_boundary(split) {
-                split -= 1;
+        rendered = (|| {
+            if row.node.component == ApplicationComponent::Button {
+                let bounds = LayoutRect {
+                    x: SPACE_XL as i16 - 4,
+                    y: row_y - 2,
+                    width: screen.width.saturating_sub(SPACE_XL * 2) + 8,
+                    height: TEXT_STEP as u16 - 4,
+                };
+                scene
+                    .push(
+                        GraphicsCommand::rect(bounds, screen, role, GraphicsShapeStyle::Stroke)
+                            .map_err(|_| Error::Scene)?,
+                    )
+                    .map_err(|_| Error::Scene)?;
             }
-            text(scene, screen, y, &remaining[..split], role, typography)?;
-            remaining = &remaining[split..];
-            y = y.checked_add(TEXT_STEP).ok_or(Error::Scene)?;
-        }
-        if y >= limit {
-            break;
-        }
-    }
-    Ok(y)
+            text(scene, screen, row_y, row.text, role, typography)
+        })();
+    });
+    rendered?;
+    text(
+        scene,
+        screen,
+        y + PAGE_ROWS as i16 * TEXT_STEP,
+        &format!(
+            "Page {}/{} · PgUp/PgDn read · Up/Down choose · Enter use",
+            page + 1,
+            total.div_ceil(PAGE_ROWS).max(1)
+        ),
+        GraphicsPaintRole::Muted,
+        GraphicsTextRole::Muted,
+    )?;
+    Ok(y + PAGE_ROWS as i16 * TEXT_STEP)
 }
 
 fn result_text(
@@ -321,6 +353,7 @@ mod tests {
             },
             100,
             &view,
+            ApplicationViewport::default(),
         )
         .unwrap();
         assert!(
