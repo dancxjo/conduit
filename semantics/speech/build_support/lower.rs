@@ -41,9 +41,15 @@ pub fn function(
     name: &str,
     program: &PortableExpressionProgram,
     types: &[(StructuredInfoType, String)],
+    inline: bool,
 ) -> Result<String, String> {
+    let attribute = if inline && context_only(&program.root) {
+        "#[inline(always)]\n"
+    } else {
+        ""
+    };
     Ok(format!(
-        "pub fn {name}(input: {}) -> Option<{}> {{ let _ = input; Some({}) }}\n",
+        "{attribute}pub fn {name}(input: {}) -> Option<{}> {{ let _ = input; Some({}) }}\n",
         ty(&program.input_type, types)?,
         ty(&program.output_type, types)?,
         node(&program.root, types)?
@@ -227,4 +233,56 @@ fn node(value: &Node, types: &[(StructuredInfoType, String)]) -> Result<String, 
         }
         other => return Err(format!("unsupported operation {other:?}")),
     })
+}
+
+// Preparation-only code-generation hint. Numeric equations keep the compiler's
+// normal sharing decisions; projections/selectors can erase carrier copies.
+fn context_only(value: &Node) -> bool {
+    context_node(value, &mut 128)
+}
+
+fn context_node(value: &Node, remaining: &mut usize) -> bool {
+    if *remaining == 0 {
+        return false;
+    }
+    *remaining -= 1;
+    match &value.operation {
+        Op::Input | Op::Literal(_) => true,
+        Op::Projection { value, .. } => context_node(value, remaining),
+        Op::Unary {
+            operator: UnaryOperator::Not,
+            operand,
+        } => context_node(operand, remaining),
+        Op::Binary {
+            operator:
+                B::Equal
+                | B::NotEqual
+                | B::Less
+                | B::LessOrEqual
+                | B::Greater
+                | B::GreaterOrEqual
+                | B::BooleanAnd
+                | B::BooleanOr,
+            left,
+            right,
+            ..
+        } => context_node(left, remaining) && context_node(right, remaining),
+        Op::Conditional {
+            condition,
+            when_true,
+            when_false,
+        } => {
+            context_node(condition, remaining)
+                && context_node(when_true, remaining)
+                && context_node(when_false, remaining)
+        }
+        Op::Record(fields) => fields
+            .iter()
+            .all(|(_, value)| context_node(value, remaining)),
+        Op::Variant { payload, .. } => context_node(payload, remaining),
+        Op::SemanticCall { kind, arguments } if kind == "variant/is" => {
+            arguments.iter().all(|value| context_node(value, remaining))
+        }
+        _ => false,
+    }
 }

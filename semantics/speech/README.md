@@ -128,6 +128,10 @@ neighbor and temporal-frame calls. Consolidating that entire
 chain into one authored graph needs explicit pairing of retained frame context
 with called results. The current unary pure-value compiler does not invent
 implicit synchronization or erase a Flow join's temporal contract.
+The pack's lowering asks Rust to inline only small (at most 128 expression nodes)
+context projections/selectors inside composed graphs. Numeric equations and
+standalone helpers retain normal compiler sharing decisions. This is a code
+layout hint; checked operations, refusals and identities remain exact.
 Whole-frame differential proof covers every phone at envelope edges and compares
 full-duration state/sample history against the checked scalar composition
 with temporal targets. A separate portable-graph differential checks every

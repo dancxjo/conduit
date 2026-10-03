@@ -123,7 +123,12 @@ pub fn function(
         } else {
             format!("{name}_step_{index}")
         };
-        source.push_str(&lower::function(&member, program, types)?);
+        source.push_str(&lower::function(
+            &member,
+            program,
+            types,
+            programs.len() > 1,
+        )?);
         recorded.push((member, encoded_programs[index].clone()));
     }
     let mut available = vec![false; programs.len()];

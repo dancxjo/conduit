@@ -26,6 +26,7 @@ fn checked_connections_determine_static_order_and_front_result() {
         [usize::MAX, 0, 1]
     );
     assert_eq!(lowered.result, 2);
+    assert_eq!(lowered.source.matches("#[inline(always)]").count(), 3);
     assert_eq!(lowered.programs.len(), 3);
     assert!(lowered
         .source
@@ -97,4 +98,40 @@ fn generic_context_carriers_expand_to_closed_exact_expression_graphs() {
         checked.native_types[0].value_type.shape(),
         conduit_core::StructuredInfoTypeShape::Record { .. }
     ));
+}
+
+#[test]
+fn numeric_stages_and_standalone_helpers_keep_normal_inlining() {
+    let source = "plot increment (\n >> value: I32\n result: I32 >>\n) = (. + 1)\nplot two (\n >> value: I32\n result: I32 >>\n) {\n a: increment\n b: increment\n value >> a.value\n a.result >> b.value\n b.result >> result\n}\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    for name in ["increment", "two"] {
+        let plot =
+            expand_canonical_plot_for_authoring(&checked, name, &ProfileCatalog::new()).unwrap();
+        let lowered = graph::function(name, &plot, &[]).unwrap();
+        assert!(!lowered.source.contains("#[inline(always)]"));
+    }
+}
+
+#[test]
+fn large_context_selectors_keep_normal_compiler_sharing() {
+    let names: Vec<_> = ('a'..='p').collect();
+    let fields = names
+        .iter()
+        .map(|name| format!(" {name}: Boolean\n"))
+        .collect::<String>();
+    // Sixteen fields with eight nodes each plus the record exceed the hint's
+    // 128-node budget, while remaining an ordinary admitted typed expression.
+    let values = names
+        .iter()
+        .map(|name| format!("{name}: .{name} || .{name} || .{name}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let source = format!("type Flags = {{\n{fields}}}\nplot select (\n >> value: Flags\n result: Flags >>\n) = ({{{values}}})\nplot copy (\n >> value: Flags\n result: Flags >>\n) = (.)\nplot large (\n >> value: Flags\n result: Flags >>\n) {{\n a: select\n b: copy\n value >> a.value\n a.result >> b.value\n b.result >> result\n}}\n");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let plot =
+        expand_canonical_plot_for_authoring(&checked, "large", &ProfileCatalog::new()).unwrap();
+    let lowered = graph::function("large", &plot, &[]).unwrap();
+    assert_eq!(lowered.source.matches("#[inline(always)]").count(), 1);
 }
