@@ -329,6 +329,19 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Start the retained Plot on the installed owner's current Host Boot.
+    Start {
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Finite execution deadline; the Play can be lulled earlier.
+        #[arg(long, default_value_t = 300_000, value_parser = clap::value_parser!(u64).range(1..=900_000))]
+        maximum_millis: u64,
+    },
+    /// Request that the current service-owned Body Play stop and lull.
+    Lull {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Issue one bounded invitation from the body owned by this installed host.
     Invite {
         /// Installed durable host state that owns the body.

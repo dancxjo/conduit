@@ -2,6 +2,7 @@ use super::*;
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_std_host::StdHostConfig;
 const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
 fn source() -> conduit_plot::ExpandedAuthoringPlot {
     crate::plot_source::parse(SOURCE)
         .unwrap()
@@ -95,6 +96,95 @@ fn ordinary_kernel_execution_supplies_actual_play_and_output_then_retains_lull()
         owner.session.evidence().body.state,
         conduit_body::BodyState::Lulled
     );
+}
+
+#[test]
+fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
+    use std::time::{Duration, Instant};
+
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-clock-service-test",
+        "continuing",
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = super::super::super::Installation {
+        schema: super::super::super::INSTALL_SCHEMA.into(),
+        host_id: "host/owner-test".into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: super::super::super::digest(b"bundle/test"),
+        product_executable: "fixture-unused".into(),
+        body_state: None,
+        joined_body_state: None,
+    };
+    super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let plot = crate::plot_source::parse(CLOCK_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let mut owner =
+        Owner::open(host("boot/clock-service"), resident(&plot), None, "Clock").unwrap();
+    owner.persist(&root).unwrap();
+    std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
+
+    let mut worker = owner.start_service_run(&root, 5000).unwrap();
+    assert!(owner.host.is_playing());
+    assert!(owner.start_service_run(&root, 5000).is_err());
+    let start = Instant::now();
+    while owner.current_play_id().is_none() {
+        assert!(
+            start.elapsed() < Duration::from_secs(3),
+            "clock Play did not start"
+        );
+        assert!(!worker.progress(&mut owner, &root).unwrap());
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let play = owner.current_play_id().unwrap().clone();
+    assert_eq!(
+        owner.truth()["realization"]["play"]["active_play_id"],
+        play.as_str()
+    );
+    assert!(matches!(
+        state::load(&root).unwrap().unwrap().body.state,
+        conduit_body::BodyState::Awake { .. }
+    ));
+    std::thread::sleep(Duration::from_millis(2200));
+    worker.request_lull().unwrap();
+    assert!(worker.request_lull().is_err());
+    let stopping = Instant::now();
+    while !worker.progress(&mut owner, &root).unwrap() {
+        assert!(
+            stopping.elapsed() < Duration::from_secs(3),
+            "clock Play did not stop"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(!owner.host.is_playing());
+    assert!(owner.current_play_id().is_none());
+    assert_eq!(
+        state::load(&root).unwrap().unwrap().body.state,
+        conduit_body::BodyState::Lulled
+    );
+    let receipt = owner.last_execution.as_ref().unwrap();
+    assert_eq!(receipt["play"]["active_play_id"], play.as_str());
+    assert_eq!(
+        receipt["terminal"],
+        serde_json::to_value(conduit_core::TerminalDisposition::Cancelled {
+            reason: conduit_core::CancellationReason::OperatorRequested,
+        })
+        .unwrap()
+    );
+    assert!(
+        receipt["output_utf8"]
+            .as_str()
+            .unwrap()
+            .contains("tick sequence="),
+        "{receipt:?}"
+    );
+
+    std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
+    assert!(owner.start_service_run(&root, 5000).is_err());
+    assert!(owner.session.realization().is_none());
+    std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
 fn independent_births_on_same_host_and_source_get_distinct_bodies() {

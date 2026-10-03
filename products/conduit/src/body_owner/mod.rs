@@ -5,7 +5,7 @@ mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
 pub(crate) use controller::{
-    run_service_window, BrowserAdmittedSnapshot, BrowserWindowAuthorization, Owner,
+    run_service_window, BrowserAdmittedSnapshot, BrowserWindowAuthorization, Owner, RunWorker,
 };
 use serde::Deserialize;
 use std::{
@@ -194,3 +194,5 @@ fn emit(value: &serde_json::Value) -> Result<(), String> {
 
 #[cfg(all(test, target_os = "linux"))]
 mod cli_smoke;
+#[cfg(all(test, target_os = "linux"))]
+mod service_clock_smoke;

@@ -32,6 +32,8 @@ const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
 #[path = "durable_host_control/body.rs"]
 mod body;
+#[path = "durable_host_control/body_run.rs"]
+mod body_run;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
@@ -40,6 +42,7 @@ use body::HostSource;
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
 };
+pub(crate) use body_run::{lull_owned_body, start_owned_body};
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
@@ -940,6 +943,15 @@ enum Request {
         token: Vec<u8>,
         request: OwnerFaceSnapshotRequest,
     },
+    BodyStart {
+        protocol: u16,
+        token: Vec<u8>,
+        maximum_millis: u64,
+    },
+    BodyLull {
+        protocol: u16,
+        token: Vec<u8>,
+    },
     Join {
         protocol: u16,
         token: Vec<u8>,
@@ -1036,6 +1048,14 @@ enum Response {
     BodyFace {
         protocol: u16,
         response: Box<OwnerFaceSnapshotResponse>,
+    },
+    BodyRunRequested {
+        protocol: u16,
+        maximum_millis: u64,
+    },
+    BodyLullRequested {
+        protocol: u16,
+        active_play_id: Option<String>,
     },
     Join {
         protocol: u16,
@@ -1135,14 +1155,34 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
         .map_err(|error| format!("bind durable host control endpoint: {error}"))?;
     fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))
         .map_err(|error| format!("restrict durable host control endpoint: {error}"))?;
-    let mut token = read_secret(&state_dir.join("control.token"))?;
-    for incoming in listener.incoming() {
-        let mut stream = incoming.map_err(|error| format!("accept local host control: {error}"))?;
+    let token = read_secret(&state_dir.join("control.token"))?;
+    let mut polling_play = false;
+    loop {
+        let running = runtime.host.body_is_running();
+        if running != polling_play {
+            listener
+                .set_nonblocking(running)
+                .map_err(|error| format!("set Body owner control responsiveness: {error}"))?;
+            polling_play = running;
+        }
+        runtime.progress_owned_body()?;
+        let mut stream = match listener.accept() {
+            Ok((stream, _)) => stream,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+                continue;
+            }
+            Err(error) => return Err(format!("accept local host control: {error}")),
+        };
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+            .map_err(|error| format!("bound local host control read: {error}"))?;
+        stream
+            .set_write_timeout(Some(std::time::Duration::from_secs(2)))
+            .map_err(|error| format!("bound local host control write: {error}"))?;
         let response = handle(read_frame(&mut stream)?, &token, &mut runtime);
         write_frame(&mut stream, &response)?;
     }
-    token.fill(0);
-    Ok(())
 }
 
 #[cfg(not(unix))]
@@ -1531,6 +1571,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
+        | Request::BodyStart { token, .. }
+        | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
         | Request::ObserveLocalModelPool { token, .. }
@@ -1543,6 +1585,20 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
     offered.fill(0);
     if !authenticated {
         return refused("unauthorized");
+    }
+    if runtime.host.body_is_running()
+        && !matches!(
+            &request,
+            Request::Status { .. }
+                | Request::BodyInspect { .. }
+                | Request::BodyFace { .. }
+                | Request::BodyLull { .. }
+                | Request::BodyBrowserAbort { .. }
+                | Request::BodyBrowserCancel { .. }
+                | Request::BodyBrowserLeave { .. }
+        )
+    {
+        return refused("body-play-active");
     }
     let truth = runtime.truth();
     match request {
@@ -1657,6 +1713,24 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|response| Response::BodyFace {
                 protocol: PROTOCOL,
                 response: Box::new(response),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyStart {
+            protocol,
+            maximum_millis,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .start_owned_body(maximum_millis)
+            .map(|()| Response::BodyRunRequested {
+                protocol: PROTOCOL,
+                maximum_millis,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyLull { protocol, .. } if protocol == PROTOCOL => runtime
+            .request_owned_body_lull()
+            .map(|active_play_id| Response::BodyLullRequested {
+                protocol: PROTOCOL,
+                active_play_id,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::Join {

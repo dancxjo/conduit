@@ -8,6 +8,7 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
+use conduit_core::HostAdvertisement;
 use conduit_core::{bind_sign, BaseImplementationId};
 use conduit_presentation::{Face, FaceContext, FaceFocus, OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::body_execution::BodyRunRequest;
@@ -18,12 +19,91 @@ pub(crate) use participants::{
 use std::{
     collections::BTreeMap,
     io::Write,
+    ops::{Deref, DerefMut},
     path::Path,
     time::{Duration, Instant},
 };
 
+#[path = "continuing.rs"]
+mod continuing;
+pub(crate) use continuing::RunWorker;
+
+/// The owner keeps its Boot advertisement while its one Host executes the
+/// admitted Body Play on a worker. No second Host is constructed.
+pub(crate) struct OwnerHost {
+    current: Option<StdHost>,
+    advertised: HostAdvertisement,
+}
+
+impl OwnerHost {
+    fn new(host: StdHost) -> Self {
+        Self {
+            advertised: host.advertisement().clone(),
+            current: Some(host),
+        }
+    }
+
+    pub(crate) fn advertisement(&self) -> &HostAdvertisement {
+        self.current
+            .as_ref()
+            .map(StdHost::advertisement)
+            .unwrap_or(&self.advertised)
+    }
+
+    pub(crate) fn take_for_play(&mut self) -> Result<StdHost, String> {
+        let host = self
+            .current
+            .take()
+            .ok_or("Body Play already owns the Host")?;
+        self.advertised = host.advertisement().clone();
+        Ok(host)
+    }
+
+    pub(crate) fn restore_after_play(&mut self, host: StdHost) -> Result<(), String> {
+        if self.current.is_some()
+            || host.advertisement().host_id != self.advertised.host_id
+            || host.advertisement().boot_id != self.advertised.boot_id
+        {
+            return Err("Body Play returned a different or duplicate Host Boot".into());
+        }
+        self.advertised = host.advertisement().clone();
+        self.current = Some(host);
+        Ok(())
+    }
+
+    pub(crate) fn current(&self) -> &StdHost {
+        self.current
+            .as_ref()
+            .expect("Host effects require an idle owner")
+    }
+
+    pub(crate) fn current_mut(&mut self) -> &mut StdHost {
+        self.current
+            .as_mut()
+            .expect("Host effects require an idle owner")
+    }
+
+    pub(crate) fn is_playing(&self) -> bool {
+        self.current.is_none()
+    }
+}
+
+impl Deref for OwnerHost {
+    type Target = StdHost;
+
+    fn deref(&self) -> &Self::Target {
+        self.current()
+    }
+}
+
+impl DerefMut for OwnerHost {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.current_mut()
+    }
+}
+
 pub(crate) struct Owner {
-    pub(crate) host: StdHost,
+    pub(crate) host: OwnerHost,
     session: BodyLifecycleSession,
     resident: Option<ResidentPlot>,
     last_execution: Option<serde_json::Value>,
@@ -104,7 +184,7 @@ impl Owner {
             BodyLifecycleSession::open(evidence).map_err(debug)?
         };
         Ok(Self {
-            host,
+            host: OwnerHost::new(host),
             session,
             resident: Some(resident),
             last_execution: None,
@@ -120,7 +200,7 @@ impl Owner {
                 .map_err(debug)?;
         let resident = session.evidence().body.workset.plots().first().cloned();
         Ok(Self {
-            host,
+            host: OwnerHost::new(host),
             session,
             resident,
             last_execution: None,
@@ -301,7 +381,7 @@ impl Owner {
             }
         }
     }
-    pub(super) fn lull(&mut self) -> Result<(), String> {
+    pub(crate) fn lull(&mut self) -> Result<(), String> {
         if let Some(realization) = self.session.realization() {
             let play = realization.play.clone();
             let host = self.host.advertisement();
@@ -335,7 +415,8 @@ struct DeadlineTimer {
 impl TimerAdapter for DeadlineTimer {
     fn wait(&mut self, duration: Duration) {
         let end = Instant::now() + duration;
-        while Instant::now() < end && Instant::now() < self.until {
+        while Instant::now() < end && Instant::now() < self.until && !self.control.stop_requested()
+        {
             std::thread::sleep(
                 Duration::from_millis(10).min(end.saturating_duration_since(Instant::now())),
             );

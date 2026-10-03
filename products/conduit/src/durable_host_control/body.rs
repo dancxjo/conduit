@@ -28,7 +28,27 @@ pub(super) enum HostSource {
     Body {
         owner: Box<crate::durable_host::owner::Owner>,
         root: PathBuf,
+        running: Option<crate::durable_host::owner::RunWorker>,
     },
+}
+
+impl HostSource {
+    pub(super) fn advertisement(&self) -> &conduit_core::HostAdvertisement {
+        match self {
+            Self::Bare(host) => host.advertisement(),
+            Self::Body { owner, .. } => owner.host.advertisement(),
+        }
+    }
+
+    pub(super) fn body_is_running(&self) -> bool {
+        matches!(
+            self,
+            Self::Body {
+                running: Some(_),
+                ..
+            }
+        )
+    }
 }
 
 impl Deref for HostSource {
@@ -37,7 +57,7 @@ impl Deref for HostSource {
     fn deref(&self) -> &StdHost {
         match self {
             Self::Bare(host) => host,
-            Self::Body { owner, .. } => &owner.host,
+            Self::Body { owner, .. } => owner.host.current(),
         }
     }
 }
@@ -46,7 +66,7 @@ impl DerefMut for HostSource {
     fn deref_mut(&mut self) -> &mut StdHost {
         match self {
             Self::Bare(host) => host,
-            Self::Body { owner, .. } => &mut owner.host,
+            Self::Body { owner, .. } => owner.host.current_mut(),
         }
     }
 }
@@ -64,7 +84,7 @@ impl DurableHostRuntime {
         ),
         String,
     > {
-        let HostSource::Body { owner, root } = &mut self.host else {
+        let HostSource::Body { owner, root, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
         let authorization = owner.browser_authorize_window(
@@ -111,7 +131,7 @@ impl DurableHostRuntime {
         frame: BrowserAdmissionIngress,
     ) -> Result<crate::durable_host::owner::BrowserAdmittedSnapshot, String> {
         match &mut self.host {
-            HostSource::Body { owner, root } => owner.browser_complete(root, window_id, frame),
+            HostSource::Body { owner, root, .. } => owner.browser_complete(root, window_id, frame),
             HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
         }
     }
@@ -125,7 +145,7 @@ impl DurableHostRuntime {
 
     pub(super) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
-            HostSource::Body { owner, root } => owner.browser_cancel_window(root, window_id),
+            HostSource::Body { owner, root, .. } => owner.browser_cancel_window(root, window_id),
             HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
         }
     }
@@ -136,7 +156,9 @@ impl DurableHostRuntime {
         credential: &MembershipCredential,
     ) -> Result<BodyBiographyEvidence, String> {
         match &mut self.host {
-            HostSource::Body { owner, root } => owner.browser_leave(root, window_id, credential),
+            HostSource::Body { owner, root, .. } => {
+                owner.browser_leave(root, window_id, credential)
+            }
             HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
         }
     }
@@ -161,6 +183,7 @@ impl DurableHostRuntime {
             host: HostSource::Body {
                 owner: Box::new(owner),
                 root: root.to_path_buf(),
+                running: None,
             },
             remote_fragment,
             pool_member,
@@ -220,7 +243,7 @@ impl DurableHostRuntime {
         candidates: Option<Vec<RendezvousCandidate>>,
     ) -> Result<PortableInvitation, String> {
         match &mut self.host {
-            HostSource::Body { owner, root } => {
+            HostSource::Body { owner, root, .. } => {
                 owner.issue_invitation(root, ttl_seconds, candidates)
             }
             HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
@@ -232,7 +255,7 @@ impl DurableHostRuntime {
         request: PortableSpawnAdmissionRequest,
     ) -> Result<PortableAdmissionReceipt, String> {
         match &mut self.host {
-            HostSource::Body { owner, root } => {
+            HostSource::Body { owner, root, .. } => {
                 // Possession of the retained single-use invitation is the routed
                 // authorization. The ordinary signed request must still name
                 // its exact candidate Host and current Boot.
@@ -245,7 +268,7 @@ impl DurableHostRuntime {
 }
 
 #[cfg(unix)]
-fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
+pub(super) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
     use std::os::unix::net::UnixStream;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
         .map_err(|error| format!("connect to current Body owner service: {error}"))?;
@@ -255,7 +278,9 @@ fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
-        | Request::BodyFace { token, .. } => token.fill(0),
+        | Request::BodyFace { token, .. }
+        | Request::BodyStart { token, .. }
+        | Request::BodyLull { token, .. } => token.fill(0),
         _ => unreachable!("Body control client only sends Body requests"),
     }
     sent?;
@@ -319,7 +344,7 @@ pub(crate) fn start_browser_window(
 }
 
 #[cfg(unix)]
-fn token(state_dir: &Path) -> Result<Vec<u8>, String> {
+pub(super) fn token(state_dir: &Path) -> Result<Vec<u8>, String> {
     let mut secret = read_secret(&state_dir.join("control.token"))?;
     let value = secret.to_vec();
     secret.fill(0);
