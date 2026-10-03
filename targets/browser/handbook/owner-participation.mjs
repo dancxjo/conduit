@@ -205,7 +205,7 @@ export async function startOwnerParticipation(application, root) {
         : participation.acknowledgeOwnerFaceMask(prepared);
       faceView = shown;
       renderFace(shown);
-      faceStatus.textContent = `The browser Mask showed the owner’s Face at revision ${shown.face_revision}.`;
+      faceStatus.textContent = 'The browser is showing the owner’s current Face.';
       delete faceStatus.dataset.refused;
       faceEvidence.textContent = JSON.stringify({ body_id: shown.body_id, face_id: shown.face_id,
         face_revision: shown.face_revision, mask_plot_id: shown.mask_plot_id,
@@ -225,7 +225,7 @@ export async function startOwnerParticipation(application, root) {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
     if (state === 'offline' || state.startsWith('refused:')) {
-      if (faceView) faceStatus.textContent = `The browser lost the owner route. Last shown Face revision ${faceView.face_revision} is now historical.`;
+      if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
       for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
