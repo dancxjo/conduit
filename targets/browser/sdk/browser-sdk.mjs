@@ -120,7 +120,10 @@ export class BrowserHost {
       expectedBodyId,
       retainedCredential,
       onCredential,
-      onState,
+      onState: state => {
+        if (state === "offline" || state.startsWith("refused:")) this.#state.bridge.ownerFaceClear?.();
+        onState?.(state);
+      },
       onBiographyEvidence,
       onOfferEvidence,
       renewPresence,
@@ -195,6 +198,45 @@ export class BrowserBodyParticipation {
   pageLifecycle() { return this.#state.membership.pageLifecycle(); }
   freshnessProfile() { return this.#state.membership.freshnessProfile(); }
   requestOfferEvidence(options) { return this.#state.membership.requestOfferEvidence(options); }
+  /** One bounded owner-produced Face on this exact admitted browser carrier. */
+  ownerFaceSnapshot(options) { return this.#state.membership.requestFaceSnapshot(options); }
+  /** Run the exact owner Face through this Host's checked browser Mask Plot. */
+  async prepareOwnerFaceMask(options) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential) {
+      throw new Error("current browser presence is required for the owner Face Mask");
+    }
+    const frame = await this.ownerFaceSnapshot(options);
+    if (this.presenceState() !== "available") throw new Error("owner Face became stale before Mask preparation");
+    const view = this.#state.host.bridge.ownerFacePrepare({
+      body_id: credential.body_id, host_id: this.hostId, boot_id: this.bootId,
+    }, frame);
+    if (view?.schema === "conduit.browser/owner-face-refusal@1") {
+      throw new Error(`owner Face refused: ${view.code}`);
+    }
+    if (view?.schema !== "conduit.browser/owner-face-mask@1" ||
+        view.body_id !== credential.body_id || !["prepared", "available"].includes(view.show_state) ||
+        view.interactions_admitted !== false) {
+      throw new Error("owner Face Mask did not prepare one exact read-only Show");
+    }
+    return view;
+  }
+  acknowledgeOwnerFaceMask(view) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential ||
+        view?.body_id !== credential.body_id || view?.show_state !== "prepared") {
+      throw new Error("owner Face Show no longer has current browser presence");
+    }
+    const shown = this.#state.host.bridge.ownerFaceAcknowledge({
+      show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
+    });
+    if (shown?.show_id !== view.show_id || shown?.face_id !== view.face_id ||
+        shown?.face_revision !== view.face_revision || shown?.show_state !== "available" ||
+        shown?.interactions_admitted !== false) {
+      throw new Error("browser Mask acknowledged another owner Face Show");
+    }
+    return shown;
+  }
   signalWebRtc(options) { return this.#state.membership.signalWebRtc(options); }
   requestWebRtcGrant(index, generation = 0) { return this.#state.membership.requestWebRtcGrant(index, generation); }
   webRtcSessions() { return this.#state.membership.webRtcSessions(); }
@@ -206,7 +248,10 @@ export class BrowserBodyParticipation {
   closeWebRtcLine(identity) { return this.#state.membership.closeWebRtcLine(identity); }
   replanWebRtc() { return this.#state.membership.replanWebRtc(); }
   publishMediaResource(evidence) { return this.#state.membership.publishMediaResource(evidence); }
-  close() { return this.#state.membership.close(); }
+  close() {
+    this.#state.host.bridge.ownerFaceClear?.();
+    return this.#state.membership.close();
+  }
 
   /** Exact capability identities executable by this SDK Host runtime. */
   executionCapabilities() {

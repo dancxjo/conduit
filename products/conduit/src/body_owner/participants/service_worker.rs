@@ -80,7 +80,14 @@ fn serve(
             let (proof, _) = socket.receive(remaining(deadline)?.min(Duration::from_secs(2)))?;
             let snapshot = browser::complete(state_dir, window_id, proof)?;
             active = Some(snapshot.credential.clone());
-            serve_presence(&snapshot, &mut socket, &binding, clock, deadline)
+            serve_presence(
+                &snapshot,
+                &mut socket,
+                &binding,
+                clock,
+                deadline,
+                Some(state_dir),
+            )
         })();
         if let Some(credential) = active {
             match browser::leave(state_dir, window_id, credential) {
