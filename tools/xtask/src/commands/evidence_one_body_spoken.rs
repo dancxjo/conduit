@@ -154,7 +154,13 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         &first,
         None,
     )?;
-    let model_proof = local_model_proof::run(adapter, &[request.clone()])?;
+    let model_proof = match local_model_proof::run(adapter, &[request.clone()]) {
+        Ok(proof) => proof,
+        Err(error) => {
+            manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
+            return Err(error);
+        }
+    };
     retain_json(
         &mut manifest,
         "model-proof",
@@ -263,7 +269,11 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         candidate.clone(),
         speech.clone(),
         &wav,
-    )?;
+    )
+    .map_err(|error| {
+        let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
+        error
+    })?;
     let show_id = mask.execution.shown.show.show_id.as_str();
     let transcript = json!({
         "schema": "conduit.journey/speech-transcript@1",
@@ -319,11 +329,19 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         &first,
         Some(&model_proof.proof_class),
     )?;
-    let last_bytes = face_bytes(&bin, &state_dir)?;
-    let last = parse_snapshot(&last_bytes)?;
-    if last != first {
+    let last = match face_bytes(&bin, &state_dir).and_then(|bytes| parse_snapshot(&bytes)) {
+        Ok(snapshot) => snapshot,
+        Err(error) => {
+            manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
+            return Err(error.into());
+        }
+    };
+    if last != first || hash_file(&bin)? != bin_sha256 {
         manifest.finish(EvidenceResult::DiagnosticIncomplete)?;
-        return Err("owner Face or Host/Boot changed during Presenter and spoken Mask Play".into());
+        return Err(
+            "owner executable, Face, or Host/Boot changed during Presenter and spoken Mask Play"
+                .into(),
+        );
     }
     retain_json(
         &mut manifest,
@@ -338,6 +356,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             "run_id": run_id,
             "installed_owner_executable": bin,
             "installed_owner_executable_sha256": bin_sha256,
+            "owner_snapshot_before_after_equal": true,
             "host_id": first.advertisement.host_id,
             "boot_id": first.advertisement.boot_id,
             "body_id": body_id.as_str(),
