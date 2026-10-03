@@ -63,7 +63,7 @@ fn low_voicing_is_noise_independent_and_upper_noise_is_phase_independent() {
                 };
                 let noise = speech_excitation(source).unwrap();
                 assert_eq!(excited.upper_excitation, noise);
-                assert!(noise.abs() <= 512);
+                assert!(noise.abs() <= 683);
                 let first = speech_frame_first(excited).unwrap().first;
                 assert_eq!(*first_for_phase.get_or_insert(first), first);
                 first_values.insert(first);

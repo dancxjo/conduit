@@ -175,7 +175,7 @@ derivation, stress and duration remain exact. `voiced-frication.wav` compares
 f/v, th/dh, s/z and sh/zh before aa. Independent source-isolation and decoded-pole
 laws accompany portable frame parity; listening-quality improvement is unverified.
 
-The raw modulo turbulence is scaled by one quarter before filtering, so its
+The raw modulo turbulence is scaled by one third before filtering, so its
 mean-square excitation energy is below that of the glottal source throughout
 the admitted pitch range. The authored mixer applies a fixed output gain of
 16 before its explicit limiter. This balances the previously overpowering noise
