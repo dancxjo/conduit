@@ -193,6 +193,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
         return Err("journey evidence includes an optional or foreign-run output".into());
     }
     let mut used = BTreeSet::new();
+    let mut used_actions = BTreeSet::new();
     let mut all_sources = BTreeSet::new();
     let mut audio_modes = BTreeSet::new();
     let mut chapters = Vec::with_capacity(CHAPTERS.len());
@@ -236,6 +237,16 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
         {
             return Err(format!(
                 "chapter '{}' has no correlated completed action receipt",
+                chapter.id
+            ));
+        }
+        if receipt
+            .action_ids
+            .iter()
+            .any(|id| !used_actions.insert(id.clone()))
+        {
+            return Err(format!(
+                "chapter '{}' repeats an action from an earlier chapter",
                 chapter.id
             ));
         }

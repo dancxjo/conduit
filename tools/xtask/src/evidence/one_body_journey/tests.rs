@@ -69,7 +69,12 @@ fn json_output(root: &Path, manifest: &mut EvidenceManifest, id: &str, value: &V
     )
 }
 
-fn fixture(mixed_run: bool, stale_transcript: bool, omit_chapter: bool) -> Fixture {
+fn fixture(
+    mixed_run: bool,
+    stale_transcript: bool,
+    omit_chapter: bool,
+    repeat_action: bool,
+) -> Fixture {
     let root = std::env::temp_dir().join(format!(
         "conduit-one-body-render-test-{}-{}",
         std::process::id(),
@@ -95,7 +100,11 @@ fn fixture(mixed_run: bool, stale_transcript: bool, omit_chapter: bool) -> Fixtu
         if omit_chapter && index == 6 {
             continue;
         }
-        let action = format!("action-{chapter}");
+        let action = if repeat_action && index == 1 {
+            "action-birth".to_owned()
+        } else {
+            format!("action-{chapter}")
+        };
         let chapter_receipt = format!("receipt-{chapter}");
         json_output(
             &root,
@@ -232,7 +241,7 @@ fn run(fixture: &Fixture) -> Result<(), String> {
 
 #[test]
 fn renders_only_complete_correlated_synthetic_fixture() {
-    let fixture = fixture(false, false, false);
+    let fixture = fixture(false, false, false, false);
     run(&fixture).unwrap();
     let page = fs::read_to_string(fixture.output.join("index.html")).unwrap();
     assert!(page.contains("Chapter 8 of 8"));
@@ -243,7 +252,7 @@ fn renders_only_complete_correlated_synthetic_fixture() {
 
 #[test]
 fn rejects_mixed_run_before_rendering() {
-    let fixture = fixture(true, false, false);
+    let fixture = fixture(true, false, false, false);
     assert!(run(&fixture)
         .unwrap_err()
         .contains("does not match its run"));
@@ -251,19 +260,28 @@ fn rejects_mixed_run_before_rendering() {
 }
 
 #[test]
+fn rejects_action_reused_as_a_later_chapter() {
+    let fixture = fixture(false, false, false, true);
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("repeats an action from an earlier chapter"));
+    assert!(!fixture.output.exists());
+}
+
+#[test]
 fn rejects_stale_speech_and_missing_chapter() {
-    let stale = fixture(false, true, false);
+    let stale = fixture(false, true, false, false);
     assert!(run(&stale)
         .unwrap_err()
         .contains("speech/Show/Plan/Play correlation"));
-    let missing = fixture(false, false, true);
+    let missing = fixture(false, false, true, false);
     assert!(run(&missing).unwrap_err().contains("chapter count"));
     assert!(!stale.output.exists() && !missing.output.exists());
 }
 
 #[test]
 fn rejects_tampered_media_hash() {
-    let fixture = fixture(false, false, false);
+    let fixture = fixture(false, false, false, false);
     fs::write(
         fixture.root.join("media-join-0.png"),
         b"\x89PNG\r\n\x1a\ncorrupted",
@@ -277,7 +295,7 @@ fn rejects_tampered_media_hash() {
 
 #[test]
 fn rejects_missing_media_before_creating_a_page() {
-    let fixture = fixture(false, false, false);
+    let fixture = fixture(false, false, false, false);
     fs::remove_file(fixture.root.join("media-join-0.png")).unwrap();
     assert!(run(&fixture).is_err());
     assert!(!fixture.output.exists());
@@ -285,7 +303,7 @@ fn rejects_missing_media_before_creating_a_page() {
 
 #[test]
 fn rejects_optional_capture_in_complete_manifest() {
-    let fixture = fixture(false, false, false);
+    let fixture = fixture(false, false, false, false);
     let path = fixture.root.join("manifest.json");
     let mut manifest: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     let outputs = manifest["outputs"].as_array_mut().unwrap();
