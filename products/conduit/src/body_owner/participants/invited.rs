@@ -14,6 +14,7 @@ impl Owner {
         &mut self,
         root: &Path,
         ttl_seconds: u64,
+        candidates: Option<Vec<conduit_body::RendezvousCandidate>>,
     ) -> Result<PortableInvitation, String> {
         if self.session.evidence().body.state != BodyState::Lulled
             || self.session.realization().is_some()
@@ -25,8 +26,11 @@ impl Owner {
             None => AdmissionManager::new(self.session.evidence().body_id.clone())
                 .map_err(|error| format!("initialize Body admission: {error:?}"))?,
         };
-        let invitation =
-            super::super::super::invitation::issue_from_manager(&mut manager, ttl_seconds, None)?;
+        let invitation = super::super::super::invitation::issue_from_manager(
+            &mut manager,
+            ttl_seconds,
+            candidates,
+        )?;
         state::retain(
             root,
             self.session.evidence(),
