@@ -15,8 +15,13 @@ Publish the complete directory through a static HTTP host. HTTPS, or a trusted l
 The optional `?participate=owner` entrance admits this browser Host into an
 already running Linux-owned Body on the same computer. It opens no local Body:
 the page shows its exact Host ID and public verifying key, then accepts the
-short-lived `ws://127.0.0.1:PORT/conduit` window that the foreground Body owner
-explicitly authorizes for that Host. The production SDK and WASM runtime prove
+short-lived `ws://127.0.0.1:PORT/conduit` window that the installed Body owner
+explicitly authorizes for that Host. With the owner service running, use
+`conduit body browser-window --state-dir … --expected-host-id … --new-host-verifying-key … --authorize-window`;
+quote the copied JSON key array as one argument. The command prints the exact
+Body ID and window URL to enter on the page. For a returning browser Host,
+omit `--new-host-verifying-key` and retain its credential in browser storage.
+The production SDK and WASM runtime prove
 admission and display the owner's biography. This local window proves membership
 and presence, not a transferred Plan, Play, or remotely executed Plot. A public
 HTTPS deployment cannot use this loopback window to reach a different computer;
