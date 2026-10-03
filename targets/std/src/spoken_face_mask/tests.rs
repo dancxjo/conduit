@@ -100,6 +100,107 @@ fn receipt(packet: &SpokenSegment) -> SpokenAudioReceipt {
     }
 }
 
+fn fixture_batch_receipt(batch: &SpokenBatch) -> SpokenBatchAudioReceipt {
+    SpokenBatchAudioReceipt {
+        stream_identity: batch.stream_identity.clone(),
+        source_show_id: batch.source_show_id.clone(),
+        source_segments_sha256: batch.source_segments_sha256.clone(),
+        speech_plan_id: "plan/fixture-speech".into(),
+        speech_play_id: "play/fixture-speech".into(),
+        provider_sha256: "b".repeat(64),
+        wav_sha256: "a".repeat(64),
+        wav_bytes: 300,
+        pcm_bytes: 256,
+        pcm_blocks: 1,
+    }
+}
+
+#[test]
+fn smaller_closing_flows_preserve_all_face_text_and_cancel_between_batches() {
+    let (face, show) = face_with_action();
+    let mut reference = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reference
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let expected = reference
+        .take_text_readout()
+        .unwrap()
+        .unwrap()
+        .clauses
+        .join("");
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    assert_eq!(
+        reader.next_batch_with_limits(0, 64),
+        Err(SpokenFaceRefusal::InvalidValue)
+    );
+    assert_eq!(
+        reader.next_batch_with_limits(2, 3),
+        Err(SpokenFaceRefusal::InvalidValue)
+    );
+    let mut actual = String::new();
+    let mut identities = std::collections::BTreeSet::new();
+    let mut terminal = None;
+    while let Some(batch) = reader.next_batch_with_limits(2, 64).unwrap() {
+        batch.validate(&face, &show).unwrap();
+        assert!(identities.insert(batch.stream_identity.clone()));
+        assert_eq!(
+            reader.next_batch_with_limits(2, 64),
+            Err(SpokenFaceRefusal::SpeechPressure)
+        );
+        for (index, segment) in batch.segments.iter().enumerate() {
+            assert_eq!(segment.segment.sequence as usize, index);
+            assert!(segment.segment.text.len() <= 64);
+            actual.push_str(&segment.segment.text);
+        }
+        terminal = reader
+            .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+                &batch,
+            )))
+            .unwrap();
+    }
+    assert!(identities.len() > 1);
+    assert_eq!(actual, expected);
+    assert_eq!(terminal.unwrap().outcome, SpokenTurnOutcome::Completed);
+
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 2)
+        .unwrap();
+    let first = reader.next_batch_with_limits(2, 64).unwrap().unwrap();
+    assert!(reader
+        .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+            &first
+        )))
+        .unwrap()
+        .is_none());
+    let stopped = reader
+        .command(&face, &show, ReaderCommand::Stop, 3)
+        .unwrap();
+    assert_eq!(
+        stopped.interrupted.unwrap().outcome,
+        SpokenTurnOutcome::Cancelled
+    );
+    assert!(reader.next_batch_with_limits(2, 64).unwrap().is_none());
+
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 4)
+        .unwrap();
+    let failed = reader.next_batch_with_limits(2, 64).unwrap().unwrap();
+    assert_eq!(failed.segments.len(), 2);
+    let terminal = reader
+        .acknowledge_batch(SpokenBatchDelivery::Failed("output capacity".into()))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        terminal.outcome,
+        SpokenTurnOutcome::Failed("output capacity".into())
+    );
+    assert_eq!(terminal.produced_pcm_bytes, 0);
+    assert!(reader.next_batch_with_limits(2, 64).unwrap().is_none());
+}
+
 fn focus_action(session: &mut SpokenFaceSession, face: &Presentation, show: &MaskShow, id: &str) {
     let target = session
         .plan
