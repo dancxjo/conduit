@@ -25,6 +25,10 @@ impl DurableHostRuntime {
     }
 
     pub(super) fn start_owned_body(&mut self, maximum_millis: u64) -> Result<(), String> {
+        #[cfg(unix)]
+        if super::terminal_attach::is_attached(self) {
+            return Err("terminal-attachment-must-detach-before-start".into());
+        }
         let HostSource::Body {
             owner,
             root,
