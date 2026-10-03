@@ -346,11 +346,7 @@ fn boot_once(
 }
 
 fn complete_line<'a>(transcript: &'a str, prefix: &str) -> Option<&'a str> {
-    transcript.lines().find_map(|line| {
-        line.find(prefix)
-            .map(|offset| &line[offset + prefix.len()..])
-            .filter(|json| json.ends_with('}'))
-    })
+    super::emitted_line::complete_json_line(transcript, prefix)
 }
 
 fn validate_observatory(
