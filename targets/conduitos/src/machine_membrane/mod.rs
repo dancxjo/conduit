@@ -11,6 +11,7 @@ use core::ptr::{read_volatile, write_volatile};
 mod ordering;
 mod register_binding;
 pub mod register_call;
+pub(crate) mod selected_operation;
 
 pub const MAX_REGISTER_WINDOW_BYTES: u32 = 65536;
 pub const REGISTER_KIND: &str = "machine/memory/mmio/register32";
