@@ -56,6 +56,7 @@ jobs:
         run: |
           cp -a target/bundle/browser/site target/published-site
           node tools/ci/stage-conduitos-pages-evidence.mjs target/bundle/conduitos-x86_64/evidence/journey-frames target/published-site "$SOURCE_SHA"
+          node tools/ci/verify-site-links.mjs target/published-site
       - name: Verify, promote through PR, and publish without rebuilding
         id: release
         env:

@@ -7,7 +7,7 @@ capability. You do not need to understand the whole system first.
 ## Get something running
 
 Start with the [body Workspace](https://dancxjo.github.io/conduit/workspace/) or the
-[ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
+[ConduitOS visual journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)
 to see what we are building.
 
 For local work, install Git and [Rust through rustup](https://rustup.rs/).
