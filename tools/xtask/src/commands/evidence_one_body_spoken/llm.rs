@@ -274,6 +274,8 @@ pub(super) fn run(
             "model_boot_id": model_proof.boot_id,
             "mask_host_id": mask.execution.shown.show.show.host_id,
             "mask_boot_id": mask.execution.shown.show.show.boot_id,
+            "local_spoken_mask_show_observed": true,
+            "owner_sealed_spoken_mask_route_observed": false,
             "body_id": body_id.as_str(),
             "face_id": first.presentation.identity,
             "face_revision": first.presentation.revision,
