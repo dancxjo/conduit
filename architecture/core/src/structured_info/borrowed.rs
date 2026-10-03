@@ -9,6 +9,7 @@ use super::{
 use sha2::{Digest, Sha256};
 
 mod leaf_sequence;
+mod record;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ValidatedCanonicalStructuredValue<'a> {
@@ -57,8 +58,11 @@ fn split_type<'a>(
     depth: usize,
     nodes: &mut usize,
 ) -> Result<(&'a [u8], &'a [u8]), StructuredInfoRefusal> {
-    if depth > MAXIMUM_STRUCTURED_INFO_DEPTH || *nodes == 0 {
-        return Err(malformed());
+    if depth > MAXIMUM_STRUCTURED_INFO_DEPTH {
+        return Err(StructuredInfoRefusal::TooDeep);
+    }
+    if *nodes == 0 {
+        return Err(StructuredInfoRefusal::TooManyNodes);
     }
     *nodes -= 1;
     let mut cursor = Cursor::new(input);
@@ -125,8 +129,11 @@ fn validate_value(
     depth: usize,
     nodes: &mut usize,
 ) -> Result<(), StructuredInfoRefusal> {
-    if depth > MAXIMUM_STRUCTURED_INFO_DEPTH || *nodes == 0 {
-        return Err(malformed());
+    if depth > MAXIMUM_STRUCTURED_INFO_DEPTH {
+        return Err(StructuredInfoRefusal::TooDeep);
+    }
+    if *nodes == 0 {
+        return Err(StructuredInfoRefusal::TooManyNodes);
     }
     *nodes -= 1;
     let mut kind = Cursor::new(type_bytes);

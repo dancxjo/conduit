@@ -1,6 +1,8 @@
 //! Canonical bounded octets at the class-neutral control-transfer boundary.
 
-use conduit_core::{StructuredInfoRefusal, validate_canonical_structured_value};
+use conduit_core::{
+    StructuredInfoRefusal, ValidatedCanonicalStructuredValue, validate_canonical_structured_value,
+};
 
 use super::control_request::{ControlRequestRefusal, ControlTransferRequest};
 
@@ -15,6 +17,12 @@ pub struct ControlOutputPayload {
 impl ControlOutputPayload {
     pub fn decode(encoded: &[u8]) -> Result<Self, StructuredInfoRefusal> {
         let value = validate_canonical_structured_value(encoded)?;
+        Self::from_validated(value)
+    }
+
+    pub(super) fn from_validated(
+        value: ValidatedCanonicalStructuredValue<'_>,
+    ) -> Result<Self, StructuredInfoRefusal> {
         let mut payload = Self {
             bytes: [0; 256],
             length: 0,
