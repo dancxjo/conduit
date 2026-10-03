@@ -360,6 +360,11 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
                         first: current[0],
                         second: current[1],
                         third: current[2],
+                        bypass: if target.bypass_gain == 0 {
+                            0
+                        } else {
+                            upper * target.bypass_gain / 256
+                        },
                         envelope,
                     })
                     .unwrap(),
