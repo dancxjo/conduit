@@ -12,7 +12,7 @@ use crate::{
     arch::{CandidateDeadline, VirtioNetReady},
     bounded_websocket::{BinaryWebSocketIo, BoundedWebSocket, WebSocketError},
     virtio_tcp::{VirtioTcpEndpoint, VirtioTcpError},
-    virtio_tcp_stream::VirtioTcpStream,
+    virtio_tcp_stream::{VirtioTcpConnectOptions, VirtioTcpStream},
 };
 
 pub const TCP_BUFFER_BYTES: usize = 4096;
@@ -175,10 +175,12 @@ pub(crate) fn with_websocket_deadline<T, E>(
     let mut socket_storage = [SocketStorage::EMPTY];
     let stream = VirtioTcpStream::connect(
         device,
-        tcp_seed,
-        endpoint,
-        maximum_polls,
-        deadline,
+        VirtioTcpConnectOptions {
+            random_seed: tcp_seed,
+            endpoint,
+            maximum_polls,
+            deadline,
+        },
         &mut tcp_receive,
         &mut tcp_transmit,
         &mut socket_storage,
