@@ -30,14 +30,7 @@ pub fn execute(cross: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "--lib",
             "machine_membrane",
         ],
-        &[
-            "test",
-            "--locked",
-            "-p",
-            "conduitos",
-            "--lib",
-            "usb_base",
-        ],
+        &["test", "--locked", "-p", "conduitos", "--lib", "usb_base"],
     ];
     for arguments in checks {
         if opts.dry_run {

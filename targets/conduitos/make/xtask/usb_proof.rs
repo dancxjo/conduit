@@ -11,7 +11,7 @@ use super::{
     run, usb_run, ConduitosArch, ConduitosError,
 };
 
-const NEGATIVE_CASES: [&str; 13] = [
+const NEGATIVE_CASES: [&str; 14] = [
     "device-absent",
     "port-reset-timeout-or-failure",
     "malformed-descriptor-chain",
@@ -25,6 +25,7 @@ const NEGATIVE_CASES: [&str; 13] = [
     "device-vanished",
     "stale-device-instance",
     "malformed-transfer-completion-residual",
+    "native-control-dma-buffer-envelope",
 ];
 
 #[derive(Serialize)]
@@ -55,13 +56,7 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
     let positive = run::boot_once(&paths, opts)?;
     let absent = usb_run::prove_absent(&paths)?;
     let status = Command::new("cargo")
-        .args([
-            "test",
-            "-p",
-            "conduitos",
-            "--lib",
-            "arch::x86_64::usb::tests",
-        ])
+        .args(["test", "-p", "conduitos", "--lib", "arch::x86_64::usb"])
         .current_dir(&paths.root)
         .status()
         .map_err(|error| {
@@ -82,7 +77,7 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
         qemu_device: "usb-kbd,bus=conduitos-xhci.0,port=1",
         positive: positive.usb,
         device_absent_refusal: absent,
-        deterministic_negative_command: "cargo test -p conduitos --lib arch::x86_64::usb::tests",
+        deterministic_negative_command: "cargo test -p conduitos --lib arch::x86_64::usb",
         deterministic_negative_cases: &NEGATIVE_CASES,
         semantic_keyboard_offer: false,
         existing_conduitos_run_remained_green: true,
