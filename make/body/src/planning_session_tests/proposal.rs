@@ -227,6 +227,18 @@ fn mask_replan_changes_plan_play_without_changing_body_or_authored_plots() {
     assert_ne!(body_scoped_plan.plan_id, current.plan_id);
     assert!(body_scoped_plan.verify_seal().is_ok());
 
+    let mut planned_source = current.mask_topologies[0].clone();
+    planned_source.face.source_placement_id = Some(
+        current.plots[0].plan.fragments[0].placements[0]
+            .placement_id
+            .clone(),
+    );
+    let planned_source_plan =
+        BodyPlan::seal_with_masks(session.wake(), current.plots.clone(), vec![planned_source])
+            .unwrap();
+    assert_ne!(planned_source_plan.plan_id, current.plan_id);
+    assert!(planned_source_plan.verify_seal().is_ok());
+
     let mut forged = body_scoped_plan.clone();
     forged.mask_topologies[0].face.source_placement_id = Some("invented/body-placement".into());
     assert_eq!(forged.verify_seal(), Err(BodyPlanError::InvalidMaskChain));

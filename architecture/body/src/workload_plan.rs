@@ -255,7 +255,7 @@ fn bind_body_plan(
     mask_topologies: &[BodyMaskTopology],
 ) -> PlanId {
     let mut bytes = Vec::new();
-    push(&mut bytes, "conduit.body/body-plan@2");
+    push(&mut bytes, "conduit.body/body-plan@3");
     push(&mut bytes, body_id.as_str());
     push(&mut bytes, wake_id.as_str());
     bytes.extend_from_slice(&workload_revision.to_le_bytes());
@@ -274,14 +274,13 @@ fn bind_body_plan(
         } else {
             push(&mut bytes, "body");
         }
-        push(
-            &mut bytes,
-            topology
-                .face
-                .source_placement_id
-                .as_ref()
-                .map_or("", |placement| placement.as_str()),
-        );
+        match &topology.face.source_placement_id {
+            Some(placement) => {
+                push(&mut bytes, "plot-placement");
+                push(&mut bytes, placement.as_str());
+            }
+            None => push(&mut bytes, "owner-composed"),
+        }
         bytes.extend_from_slice(&(topology.chains.len() as u32).to_le_bytes());
         for chain in &topology.chains {
             push(&mut bytes, chain.plan.plan_id.as_str());
