@@ -11,7 +11,7 @@ use conduit_body::{
     RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA, ROUTED_ADMISSION_RESPONSE_SCHEMA,
 };
 use conduit_presentation::{
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES,
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
     OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::secure_websocket::{
@@ -135,7 +135,7 @@ fn serve_optional_face_snapshot(
     use std::io::ErrorKind;
     line.set_read_timeout(Some(Duration::from_secs(15)))
         .map_err(|error| format!("set owner Face deadline: {error:?}"))?;
-    let mut bytes = vec![0; MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES];
+    let mut bytes = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
     let length = match line.receive_binary(&mut bytes) {
         Ok(length) => length,
         Err(SecureWebSocketError::Disconnected)

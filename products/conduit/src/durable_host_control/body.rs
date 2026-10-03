@@ -12,7 +12,7 @@ use conduit_body::{
     RendezvousCandidate,
 };
 use conduit_presentation::{
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES,
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
     OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::StdHost;
@@ -117,7 +117,7 @@ impl DurableHostRuntime {
         };
         let encoded = serde_json::to_vec(&response)
             .map_err(|error| format!("encode owner Face snapshot: {error}"))?;
-        if encoded.len() > MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES {
+        if encoded.len() > MAX_OWNER_FACE_RESPONSE_BYTES {
             return Err("face-frame-pressure".into());
         }
         Ok(response)
