@@ -6,6 +6,7 @@ import { acquire, command, digest, xtask } from './common.mjs';
 // Retain the last documentary publication as history, never as new execution.
 const HISTORY = 'd9b79319bd78c72e4a6b48ef524e269300a82bdf';
 const HISTORY_DIGEST = '0218a50406761390aba1f00f84ccd178018782dfa89527f293d8ac66b9aa76c2';
+const RECORDED_THREE_BODIES = '8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa';
 const escape = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const styles = () => readFileSync('targets/browser/host/assets/conduit.css', 'utf8') + '\n' + readFileSync('site/chrome.css', 'utf8');
 const navigation = () => readFileSync('site/navigation.html', 'utf8');
@@ -33,13 +34,21 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   // Replace it with this build's complete captured walkthrough afterwards.
   renderFieldStation('target/journeys/field-station-clock', path.join(directory, 'journeys/verticals/field-station-clock'), sourceCommit);
   xtask('prove', 'render-recorded-three-body', path.join(directory, 'journeys/current/three-bodies'));
+  // The retained recording was authored two levels below Journeys. Its
+  // commit-addressed copy is three levels below, so fix its two back links.
+  const retainedThreeBodies = path.join(directory, 'journeys/commits', RECORDED_THREE_BODIES, 'three-bodies/index.html');
+  const retainedHtml = readFileSync(retainedThreeBodies, 'utf8');
+  if (retainedHtml.split('href="../../"').length !== 3) {
+    throw new Error('Retained Three Bodies back-link shape changed');
+  }
+  writeFileSync(retainedThreeBodies, retainedHtml.replaceAll('href="../../"', 'href="../../../"'));
   // Keep technical examples in the same shell without changing their evidence.
   const littleLife = path.join(directory, 'journeys/current/little-life/index.html');
   if (existsSync(littleLife)) {
     let html = readFileSync(littleLife, 'utf8');
     html = html.replaceAll('Little Life Form', 'Little Life plot')
       .replaceAll('Form · Plan · Play · Presentation', 'Plot · Plan · Play · scalar-field presentation')
-      .replace('<h1>Little Life</h1>', '<h1>Little Life</h1><p class="recording-source">Retained technical recording from source <code>8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa</code>. This publication updates the explanation; it does not record a new execution.</p>');
+      .replace('<h1>Little Life</h1>', `<h1>Little Life</h1><p class="recording-source">Retained technical recording from source <code>${RECORDED_THREE_BODIES}</code>. This publication updates the explanation; it does not record a new execution.</p>`);
     html = html.replace('</head>', `<style>${styles()}
       body { max-width: none; padding: 0; }
       .little-life-content { max-width: 96rem; margin: auto; padding: clamp(1rem,4vw,4rem); }
@@ -57,7 +66,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     recordedHistoryCommit: HISTORY,
     handbook: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/handbook/' },
     fieldStation: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/field-station-clock/' },
-    threeBodies: { sourceCommit: '8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa', path: 'journeys/current/three-bodies/', refreshedExecution: false },
+    threeBodies: { sourceCommit: RECORDED_THREE_BODIES, path: 'journeys/current/three-bodies/', refreshedExecution: false },
   }, null, 2));
 }
 
