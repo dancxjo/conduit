@@ -162,7 +162,12 @@ fn routed_invitation_joins_two_installed_hosts_without_manual_protocol_phases() 
         "--authorize-join",
     ]);
     assert_success(&joined, "join through exact owner route");
-    assert!(owner_route.wait().unwrap().success());
+    let route_result = owner_route.wait_with_output().unwrap();
+    assert!(
+        route_result.status.success(),
+        "owner route failed: {}",
+        String::from_utf8_lossy(&route_result.stderr)
+    );
 
     let joining_status = product(&["body", "status", "--state-dir", path(&joining), "--json"]);
     assert_success(&joining_status, "inspect retained joined membership");
