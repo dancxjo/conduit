@@ -82,6 +82,18 @@ fn installed_cli_runs_and_recovers_same_body_on_new_boot() {
     assert_ne!(second[0]["host"]["boot_id"], last["host"]["boot_id"]);
     assert_eq!(second[0]["last_execution"], last["last_execution"]);
     assert!(second[0]["realization"].is_null());
+    let standalone = Command::new(&installation.product_executable)
+        .args(["body", "invite", "--state-dir"])
+        .arg(&state)
+        .output()
+        .unwrap();
+    assert!(
+        standalone.status.success(),
+        "{}",
+        String::from_utf8_lossy(&standalone.stderr)
+    );
+    let standalone_invitation: PortableInvitation =
+        serde_json::from_slice(&standalone.stdout).unwrap();
     let issued = run(
         &installation.product_executable,
         &state,
@@ -96,6 +108,10 @@ fn installed_cli_runs_and_recovers_same_body_on_new_boot() {
             .clone(),
     )
     .unwrap();
+    assert_ne!(
+        invitation.claim.invitation_id,
+        standalone_invitation.claim.invitation_id
+    );
     let guest = StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from("host/installed-native-guest"),
         boot_id: BootId::from("boot/installed-native-guest/1"),
