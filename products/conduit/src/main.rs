@@ -2,6 +2,8 @@ mod birth_identity;
 mod body_face_json;
 mod body_product;
 mod body_terminal;
+#[cfg(unix)]
+mod body_terminal_owner;
 mod cli;
 mod deployment_carrier;
 mod diagnostics;
@@ -275,8 +277,25 @@ fn main() {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Terminal { state_dir }),
-        }) => body_terminal::run(&state_dir, &mut io::stdin().lock(), &mut io::stdout().lock()),
+            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show }),
+        }) => {
+            if owner_show {
+                #[cfg(unix)]
+                {
+                    body_terminal_owner::run(
+                        &state_dir,
+                        &mut io::stdin().lock(),
+                        &mut io::stdout().lock(),
+                    )
+                }
+                #[cfg(not(unix))]
+                {
+                    Err("owner terminal attachment requires a local Unix Host".into())
+                }
+            } else {
+                body_terminal::run(&state_dir, &mut io::stdin().lock(), &mut io::stdout().lock())
+            }
+        }
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Invite {

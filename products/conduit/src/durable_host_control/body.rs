@@ -195,6 +195,8 @@ impl DurableHostRuntime {
             pool_member,
             cancellation_signal,
             next_observation_sequence,
+            #[cfg(unix)]
+            terminal_route,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
@@ -214,6 +216,8 @@ impl DurableHostRuntime {
             pool_member,
             cancellation_signal,
             next_observation_sequence,
+            #[cfg(unix)]
+            terminal_route,
         })
     }
 
@@ -286,6 +290,14 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        #[cfg(unix)]
+        if self
+            .terminal_route
+            .as_ref()
+            .is_some_and(|route| route.show.show_id == show.show_id)
+        {
+            return Err("terminal-owner-route-read-only".into());
+        }
         let HostSource::Body {
             owner,
             root,
@@ -540,6 +552,34 @@ pub(crate) fn submit_local_face_interaction(
     interaction: FaceInteraction,
 ) -> Result<serde_json::Value, String> {
     submit_local_face_interaction_with_expiry(state_dir, show, interaction, None)
+}
+
+#[cfg(unix)]
+pub(crate) fn submit_attached_terminal_interaction(
+    state_dir: &Path,
+    route_plan_id: conduit_core::PlanId,
+    show: MaskShow,
+    interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    match call(
+        state_dir,
+        Request::BodyAttachedTerminalInteraction {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            route_plan_id,
+            show: Box::new(show),
+            interaction,
+        },
+    )? {
+        Response::BodyInteraction {
+            protocol: PROTOCOL,
+            result,
+        } => Ok(*result),
+        Response::Refused { code, .. } => {
+            Err(format!("Body owner refused terminal action: {code}"))
+        }
+        _ => Err("Body owner returned the wrong terminal action response".into()),
+    }
 }
 
 #[cfg(unix)]

@@ -11,12 +11,12 @@ conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-human = { path = "../human" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 sha2 = { version = "0.10", default-features = false }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 conduit-plot = { path = "../../architecture/plot" }
 conduit-planner = { path = "../../architecture/planner" }
-serde_json = "1"
-postcard = { version = "1", features = ["alloc"] }
+postcard = { version = "1", default-features = false, features = ["alloc"] }
 
 [build-dependencies]
 conduit-plot = { path = "../../architecture/plot" }

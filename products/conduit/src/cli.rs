@@ -365,6 +365,9 @@ pub(crate) enum BodyCommand {
     Terminal {
         #[arg(long)]
         state_dir: PathBuf,
+        /// Attach this terminal to the owner Host for an acknowledged Show and typed action.
+        #[arg(long)]
+        owner_show: bool,
     },
     /// Issue one bounded invitation from the body owned by this installed host.
     Invite {

@@ -221,6 +221,48 @@ fn installed_service_start_inspect_lull_and_restart_clock() {
         );
         thread::sleep(Duration::from_millis(20));
     }
+    let mut owner_terminal = Command::new(binary)
+        .args(["body", "terminal", "--owner-show", "--state-dir"])
+        .arg(&state)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    owner_terminal
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"apply 3000\napply 250\nquit\n")
+        .unwrap();
+    let owner_terminal = owner_terminal.wait_with_output().unwrap();
+    assert!(
+        owner_terminal.status.success(),
+        "{}",
+        String::from_utf8_lossy(&owner_terminal.stderr)
+    );
+    let owner_text = String::from_utf8(owner_terminal.stdout).unwrap();
+    assert!(
+        owner_text.contains("Owner terminal Show ")
+            && owner_text.contains("route Plan ")
+            && owner_text.contains("bytes written and flushed")
+            && owner_text.contains("Action refused:")
+            && owner_text.contains("\"interval_ms\":250")
+            && owner_text.matches("Owner terminal Show ").count() == 2,
+        "{owner_text}"
+    );
+    let after_show = status(binary, &state);
+    assert_eq!(after_show["biography"]["body_id"], body_id);
+    assert_eq!(
+        after_show["biography"]["body"]["workload_revision"],
+        changed["biography"]["body"]["workload_revision"]
+            .as_u64()
+            .unwrap()
+            + 2
+    );
+    assert!(after_show["realization"].is_null());
+    assert!(fs::read_to_string(state.join("body/source.conduit"))
+        .unwrap()
+        .contains("time/every(250ms)"));
     drop(service);
     let _ = fs::remove_file(state.join("control.sock"));
     service = Service(
