@@ -12,7 +12,7 @@ impl ProductJourney {
         // Crèche owns the zero-body birth selection. It does not need to open a
         // candidate Plot first: reviewed inventory plus explicit BirthSelection
         // is the authority-bearing handoff from World into a born Body.
-        if self.body.is_none() && self.status != JourneyStatus::World {
+        if self.body().is_none() && self.status != JourneyStatus::World {
             return Err(JourneyError::InvalidTransition);
         }
         let request_id = format!(
@@ -30,7 +30,7 @@ impl ProductJourney {
     }
 
     pub(super) fn birth(&mut self) -> Result<(), JourneyError> {
-        if self.body.is_some() {
+        if self.body().is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
         // The legacy direct Plot action still means "birth from this opened
@@ -89,7 +89,7 @@ impl ProductJourney {
         {
             return Err(JourneyError::InvalidTransition);
         }
-        if self.body.is_some() {
+        if self.body().is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
         let born_sign = SignId::from(format!(
@@ -105,6 +105,12 @@ impl ProductJourney {
             .map_err(|_| JourneyError::Membership)?;
         let mut membership =
             BodyMembership::new(body.body_id.clone()).map_err(|_| JourneyError::Membership)?;
+        let mut biography = conduit_body::BodyBiographyEvidence::born(
+            body.clone(),
+            membership.clone(),
+            name.clone(),
+        )
+        .map_err(|_| JourneyError::InvalidTransition)?;
         membership
             .admit(
                 &body.body_id,
@@ -129,18 +135,29 @@ impl ProductJourney {
                 SignId::from("conduitos/product/host-attached"),
             )
             .map_err(|_| JourneyError::Membership)?;
-        self.friendly_name = Some(name);
+        let events = membership
+            .events
+            .iter()
+            .enumerate()
+            .map(|(index, event)| (event.change_id.clone(), sequence + index as u64 + 1))
+            .collect::<Vec<_>>();
+        biography
+            .append_membership_events(membership, &events)
+            .map_err(JourneyError::Biography)?;
+        let mut session =
+            BodyLifecycleSession::open_admitted(biography, &self.host_id, &self.boot_id)
+                .map_err(JourneyError::Lifecycle)?;
+        let selected = session.evidence().body.workset.plots()[foreground].clone();
+        session
+            .select_plot(&selected)
+            .map_err(JourneyError::Lifecycle)?;
         self.plots = plots;
-        self.foreground = foreground;
         self.plot = Some(KeyboardTextPlotIdentity {
             source_document_id: first.source_document_id,
             checked_plot_id: first.checked_plot_id,
             expanded_plot_id: first.expanded_plot_id,
         });
-        self.body = Some(body);
-        self.born_sign_id = Some(born_sign);
-        self.membership = Some(membership);
-        self.part_id = Some(part);
+        self.session = Some(session);
         self.status = JourneyStatus::BornLulled;
         Ok(())
     }
@@ -168,15 +185,15 @@ mod tests {
         assert_eq!(first.status(), JourneyStatus::World);
         let selection = selection();
         first.birth_from_creche(selection.clone()).unwrap();
-        assert_eq!(first.body.as_ref().unwrap().workset, selection.workset);
+        assert_eq!(first.body().unwrap().workset, selection.workset);
         assert_eq!(first.projection().friendly_name.as_deref(), Some("Roseau"));
         assert_eq!(first.status(), JourneyStatus::BornLulled);
-        assert!(first.plan.is_none() && first.play.is_none());
+        assert!(first.current_plan().is_none() && first.current_play().is_none());
         let mut second = journey("boot-b");
         second.birth_from_creche(selection.clone()).unwrap();
         assert_ne!(
-            first.body.as_ref().unwrap().body_id,
-            second.body.as_ref().unwrap().body_id
+            first.body().unwrap().body_id,
+            second.body().unwrap().body_id
         );
         assert_eq!(
             first.birth_from_creche(selection),
@@ -215,11 +232,11 @@ mod tests {
             zero.birth_from_creche(empty),
             Err(JourneyError::WrongTarget)
         );
-        assert!(zero.body.is_none());
+        assert!(zero.body().is_none());
 
         let mut one = journey("boot-one");
         one.birth_from_creche(selection()).unwrap();
-        assert_eq!(one.body.as_ref().unwrap().workset.len(), 1);
+        assert_eq!(one.body().unwrap().workset.len(), 1);
 
         let mut maximum = journey("boot-maximum");
         let mut full = selection();
@@ -232,7 +249,7 @@ mod tests {
         .unwrap();
         maximum.birth_from_creche(full).unwrap();
         assert_eq!(
-            maximum.body.as_ref().unwrap().workset.len(),
+            maximum.body().unwrap().workset.len(),
             native_workset::profile().capacity
         );
     }
@@ -241,7 +258,7 @@ mod tests {
     fn direct_plot_birth_still_requires_an_explicit_open() {
         let mut journey = journey("boot");
         assert_eq!(journey.birth(), Err(JourneyError::PlotNotOpened));
-        assert!(journey.body.is_none());
+        assert!(journey.body().is_none());
         journey.open_plot().unwrap();
         journey.birth().unwrap();
         assert_eq!(journey.status(), JourneyStatus::BornLulled);

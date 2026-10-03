@@ -1,5 +1,5 @@
 //! Composition of Crèche birth with the existing admitted native lifecycle.
-use super::{emit_journey_sign, refresh};
+use super::emit_journey_sign;
 use crate::{
     arch,
     display::PixelTarget,
@@ -8,7 +8,7 @@ use crate::{
     make::MakeRecord,
     native_workset,
     offer::HostOffer,
-    product_journey::{JourneyAction, ProductJourney},
+    product_journey::ProductJourney,
 };
 use alloc::format;
 use conduit_birth_plot::BirthSelection;
@@ -44,57 +44,32 @@ pub(super) fn open(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn birth_and_wake(
+pub(super) fn birth_and_arrive(
     selection: BirthSelection,
     door: &mut FrontDoor,
     journey: &mut ProductJourney,
     presenter: &mut FrontDoorPresenter,
     display: &mut impl PixelTarget,
-    identities: &BootIdentities,
-    offer: &HostOffer<'_>,
     make: &MakeRecord,
 ) -> Result<(), &'static str> {
     journey
         .birth_from_creche(selection)
         .map_err(|e| e.as_str())?;
-    door.observe_body(
-        journey.projection(),
+    let tutorial =
+        native_workset::resident(native_workset::NativePlot::Tour).map_err(|e| e.as_str())?;
+    if journey
+        .biography()
+        .is_some_and(|evidence| evidence.body.workset.contains(&tutorial))
+    {
         journey
-            .workspace_projection()
-            .ok_or("born-body-workset-absent")?,
-    )
-    .map_err(|e| e.as_str())?;
+            .select_plot(&tutorial, journey.revision())
+            .map_err(|e| e.as_str())?;
+    }
+    door.observe_product(journey).map_err(|e| e.as_str())?;
     door.close_creche().map_err(|e| e.as_str())?;
     let receipt = presenter.present(door, display).map_err(|e| e.as_str())?;
     emit_journey_sign(&journey.projection(), make, &receipt);
-    for action in [
-        JourneyAction::Wake,
-        JourneyAction::Plan,
-        JourneyAction::Play,
-    ] {
-        let semantic = door
-            .resolve_action(action, door.revision())
-            .map_err(|e| e.as_str())?;
-        let request = journey
-            .next_request(action, semantic.target, door.revision())
-            .map_err(|e| e.as_str())?;
-        if let Err(error) =
-            journey.apply(request, identities, offer, make.build_id, door.revision())
-        {
-            door.startup_refused(error.as_str())
-                .map_err(|e| e.as_str())?;
-            let receipt = refresh(door, journey, presenter, display)?;
-            emit_journey_sign(&journey.projection(), make, &receipt);
-            arch::early_write(format!("CONDUIT_CRECHE_REFUSAL {}\n", error.as_str()).as_bytes());
-            return Ok(());
-        }
-        let receipt = refresh(door, journey, presenter, display)?;
-        emit_journey_sign(&journey.projection(), make, &receipt);
-    }
-    door.open_home().map_err(|e| e.as_str())?;
-    let receipt = refresh(door, journey, presenter, display)?;
-    emit_journey_sign(&journey.projection(), make, &receipt);
-    arch::early_write(b"CONDUIT_HOME_CHECKPOINT ready\n");
-    arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT body-awake\n");
+    super::workspace_view_sign::emit(door, journey, &receipt)?;
+    arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT body-born-lulled\n");
     Ok(())
 }

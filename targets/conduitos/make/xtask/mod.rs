@@ -66,6 +66,7 @@ mod orange_pi_5_image;
 mod orange_pi_5_media;
 mod pc_speaker_proof;
 mod prepared_proof_image;
+mod product_journey_gate;
 mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
@@ -96,6 +97,7 @@ mod timing_profile;
 mod usb_proof;
 mod usb_run;
 mod virtio_net_proof;
+mod workspace_proof;
 mod x86_64_product_boot;
 mod xhci_proof;
 

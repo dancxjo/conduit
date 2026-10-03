@@ -54,6 +54,7 @@ export default defineConfig({
     "creche-rendezvous.spec.mjs",
     "creche-browser-configuration.spec.mjs",
     "workspace-arrival.spec.mjs",
+    "workspace-shared-journey.spec.mjs",
     "workspace-birth-naming.spec.mjs",
     "workspace-mixed-membership.spec.mjs",
     "workspace-membership.spec.mjs",

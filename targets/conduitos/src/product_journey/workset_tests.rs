@@ -1,8 +1,5 @@
 use super::test_support::{fixture, invoke, key};
 use super::*;
-use crate::machine::{
-    BaseError, IdleBase, InterruptBase, InterruptState, MonotonicClockBase, SerialBase,
-};
 use alloc::{collections::BTreeSet, vec::Vec};
 use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
@@ -313,42 +310,21 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
 }
 
 #[test]
-fn returning_to_resident_tour_preserves_state_and_body_execution_identity() {
+fn returning_to_resident_tutorial_preserves_biography_and_body_execution_identity() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     let execution = journey.projection();
     select(&mut journey, NativePlot::Tour);
     let initial = journey.foreground_application_view().unwrap().clone();
-    assert!(
-        journey
-            .accept_application_event(&conduit_presentation::ApplicationEvent {
-                revision: initial.revision,
-                action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
-                kind: conduit_presentation::ApplicationEventKind::Activate,
-                value: alloc::vec::Vec::new(),
-            })
-            .unwrap()
-    );
-    let tour_revision = initial.revision + 1;
-    assert!(
-        journey
-            .foreground_application_view()
-            .unwrap()
-            .nodes
-            .iter()
-            .any(|node| node.key == "plot" && node.text == "tour")
-    );
     select(&mut journey, NativePlot::MemoryLantern);
     type_key(&mut journey, 5);
     select(&mut journey, NativePlot::Tour);
+    assert_eq!(journey.foreground_application_view().unwrap(), &initial);
+    assert_eq!(journey.projection().body_id, execution.body_id);
     assert_eq!(
-        journey.foreground_application_view().unwrap().revision,
-        tour_revision
+        journey.projection().active_play_id,
+        execution.active_play_id
     );
-    let returned = journey.projection();
-    assert_eq!(returned.body_id, execution.body_id);
-    assert_eq!(returned.plan_id, execution.plan_id);
-    assert_eq!(returned.active_play_id, execution.active_play_id);
 }
 
 #[test]
@@ -388,135 +364,49 @@ fn resident_patchbay_opens_the_previously_used_exact_plot_and_plan() {
 }
 
 #[test]
-fn resident_tour_run_crosses_the_real_plan_play_and_returns_proof_to_the_same_body() {
+fn current_tutorial_refuses_retired_chapter_actions_without_changing_play() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     select(&mut journey, NativePlot::Tour);
-    let execution = journey.projection();
+    let before = journey.projection();
     let view = journey.foreground_application_view().unwrap().clone();
-    journey
-        .accept_application_event(&conduit_presentation::ApplicationEvent {
+    assert_eq!(
+        journey.accept_application_event(&conduit_presentation::ApplicationEvent {
             revision: view.revision,
             action: conduit_tour_model::RUN_ACTION_ID.into(),
             kind: conduit_presentation::ApplicationEventKind::Activate,
             value: Vec::new(),
-        })
-        .unwrap();
-    assert_eq!(
-        journey.take_application_request(),
-        Some(native_workset::NativeApplicationRequest::RunTour {
-            chapter: 0,
-            stage: 0
-        })
+        }),
+        Err(JourneyError::WrongTarget)
     );
-    let mut prepared = crate::tour_play::prepare(&ids, &offer, "build").unwrap();
-    let mut clock = TestClock::default();
-    let mut serial = TestSerial::default();
-    let mut interrupts = TestInterrupts::default();
-    let mut idle = TestIdle::default();
-    let evidence = crate::tour_play::run(
-        &mut prepared,
-        &mut clock,
-        &mut serial,
-        &mut interrupts,
-        &mut idle,
-    )
-    .unwrap();
-    journey.complete_tour_run(&evidence).unwrap();
-    assert_eq!(serial.0, [conduit_tour_model::CANONICAL_RESULT.as_bytes()]);
-    assert!(
-        journey
-            .foreground_application_view()
-            .unwrap()
-            .nodes
-            .iter()
-            .any(|node| { node.key == "result" && node.text.contains("Result visible") })
-    );
-    let after = journey.projection();
-    assert_eq!(after.body_id, execution.body_id);
-    assert_eq!(after.plan_id, execution.plan_id);
-    assert_eq!(after.active_play_id, execution.active_play_id);
+    assert_eq!(journey.projection(), before);
 }
 
 #[test]
-fn resident_tour_retains_the_exact_requested_stage_across_the_application_seam() {
+fn current_tutorial_request_comes_from_shared_biography_guidance() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     select(&mut journey, NativePlot::Tour);
-    let initial = journey.foreground_application_view().unwrap().clone();
-    journey
-        .accept_application_event(&conduit_presentation::ApplicationEvent {
-            revision: initial.revision,
-            action: conduit_tour_model::NEXT_CHAPTER_ACTION_ID.into(),
-            kind: conduit_presentation::ApplicationEventKind::Activate,
-            value: Vec::new(),
-        })
+    let view = journey.foreground_application_view().unwrap().clone();
+    let action = view
+        .actions
+        .iter()
+        .find(|action| action.id == "body.use-current")
         .unwrap();
-    let comparison = journey.foreground_application_view().unwrap().clone();
     journey
         .accept_application_event(&conduit_presentation::ApplicationEvent {
-            revision: comparison.revision,
-            action: conduit_tour_model::RUN_ACTION_ID.into(),
-            kind: conduit_presentation::ApplicationEventKind::Activate,
+            revision: view.revision,
+            action: action.id.clone(),
+            kind: action.event,
             value: Vec::new(),
         })
         .unwrap();
     assert_eq!(
         journey.take_application_request(),
-        Some(native_workset::NativeApplicationRequest::RunTour {
-            chapter: 1,
-            stage: 0
-        })
+        Some(native_workset::NativeApplicationRequest::Tutorial(
+            native_workset::TutorialAction::UseCurrent
+        ))
     );
-}
-
-#[derive(Default)]
-struct TestClock(u64);
-impl MonotonicClockBase for TestClock {
-    fn now(&mut self) -> u64 {
-        self.0 += 1;
-        self.0
-    }
-}
-#[derive(Default)]
-struct TestSerial(Vec<Vec<u8>>);
-impl SerialBase for TestSerial {
-    fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
-        self.0.push(bytes.into());
-        Ok(())
-    }
-    fn presentation_count(&self) -> u32 {
-        self.0.len() as u32
-    }
-}
-#[derive(Default)]
-struct TestInterrupts(bool);
-impl InterruptBase for TestInterrupts {
-    fn enable(&mut self) {
-        self.0 = true;
-    }
-    fn disable(&mut self) -> InterruptState {
-        let state = InterruptState { enabled: self.0 };
-        self.0 = false;
-        state
-    }
-    fn restore(&mut self, state: InterruptState) {
-        self.0 = state.enabled;
-    }
-    fn is_enabled(&self) -> bool {
-        self.0
-    }
-}
-#[derive(Default)]
-struct TestIdle(u32);
-impl IdleBase for TestIdle {
-    fn wait_for_interrupt(&mut self) -> Result<(), BaseError> {
-        self.0 += 1;
-        Ok(())
-    }
-    fn idle_count(&self) -> u32 {
-        self.0
-    }
 }
 
 #[test]
@@ -581,5 +471,5 @@ fn foreground_selection_before_admission_does_not_invent_a_plan_or_play() {
     select(&mut journey, NativePlot::KeyboardCanvas);
     let waiting = journey.projection();
     assert_eq!(waiting.status, JourneyStatus::Awake);
-    assert!(waiting.plan_id.is_none() && waiting.active_play_id.is_none());
+    assert!(waiting.plan_id.is_some() && waiting.active_play_id.is_none());
 }

@@ -123,7 +123,38 @@ impl NativeWorksetPlay {
         self.pending
     }
     pub fn prepare(prepared: &PreparedNativeWorkset) -> Result<Self, WorksetRefusal> {
-        preparation::prepare(prepared)
+        preparation::prepare(prepared, None)
+    }
+    pub fn prepare_with_biography(
+        prepared: &PreparedNativeWorkset,
+        evidence: &conduit_body::BodyBiographyEvidence,
+    ) -> Result<Self, WorksetRefusal> {
+        preparation::prepare(prepared, Some(evidence))
+    }
+    pub fn refresh_tutorial(
+        &mut self,
+        evidence: &conduit_body::BodyBiographyEvidence,
+    ) -> Result<(), PlayRefusal> {
+        for plot in 0..self.plot_count {
+            if !matches!(
+                self.applications[plot],
+                Some(NativeApplication::Tutorial(_))
+            ) {
+                continue;
+            }
+            let application = super::tutorial_application::TutorialApplication::prepare(
+                evidence,
+                conduit_tutorial_plot::TutorialPlayback::Playing,
+            )
+            .map_err(|_| PlayRefusal::Kernel)?;
+            self.applications[plot] = Some(NativeApplication::Tutorial(application));
+            if let Some(request) = self.pending[plot].take() {
+                let _ = self.take_application_view(plot);
+                self.output(request, Some(&[]))?;
+                self.drive()?;
+            }
+        }
+        Ok(())
     }
     pub fn start(&mut self) -> Result<(), PlayRefusal> {
         self.drive()

@@ -76,7 +76,10 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert!(born.wake_id.is_none() && born.plan_id.is_none());
     front_door.observe_journey(born.clone()).unwrap();
     let born_presentation = front_door.presentation().unwrap();
-    assert!(born_presentation.basis.body_id.is_none());
+    assert_eq!(born_presentation.basis.body_id, born.body_id);
+    assert!(born_presentation.basis.wake_id.is_none());
+    assert!(born_presentation.basis.plan_id.is_none());
+    assert!(born_presentation.basis.active_play_id.is_none());
     assert_current_action(&front_door, JourneyAction::Wake);
     assert!(
         born_presentation
@@ -91,7 +94,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
 
     invoke(&mut journey, JourneyAction::Wake, &identities, &offer).unwrap();
     let awake = journey.projection();
-    assert!(awake.wake_id.is_some() && awake.plan_id.is_none());
+    assert!(awake.wake_id.is_some() && awake.plan_id.is_some());
     assert!(awake.wake_sign_id.is_some());
     assert!(awake.plan_sign_id.is_none() && awake.play_sign_id.is_none());
     front_door.observe_journey(awake.clone()).unwrap();
@@ -107,7 +110,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     invoke(&mut journey, JourneyAction::Plan, &identities, &offer).unwrap();
     let planned = journey.projection();
     assert!(planned.plan_id.is_some() && planned.active_play_id.is_none());
-    assert!(planned.wake_sign_id.is_some() && planned.plan_sign_id.is_some());
+    assert!(planned.wake_sign_id.is_some() && planned.plan_sign_id.is_none());
     assert!(planned.play_sign_id.is_none());
     front_door.observe_journey(planned.clone()).unwrap();
     let planned_presentation = front_door.presentation().unwrap();
@@ -167,7 +170,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert_eq!(lulled.status, JourneyStatus::Lulled);
     assert_eq!(lulled.body_id, body_id);
     assert_eq!(
-        journey.wake.as_ref().unwrap().lifecycle,
+        journey.biography().unwrap().wakes.last().unwrap().lifecycle,
         WakeLifecycle::Lulled
     );
     invoke(&mut journey, JourneyAction::Fulfill, &identities, &offer).unwrap();
@@ -227,7 +230,7 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
         journey.apply(born_without_open, &identities, &offer, "build", 1),
         Err(JourneyError::PlotNotOpened)
     );
-    assert!(journey.body.is_none());
+    assert!(journey.body().is_none());
 
     let wake_without_body = JourneyRequest {
         request_id: "request/wake".into(),
@@ -263,8 +266,8 @@ fn missing_current_keyboard_offer_refuses_plan_before_kernel_admission() {
         invoke(&mut journey, JourneyAction::Plan, &identities, &absent),
         Err(JourneyError::Workset(native_workset::WorksetRefusal::Host))
     );
-    assert!(journey.plan.is_none() && journey.kernel.is_none());
-    assert!(journey.body.is_some());
+    assert!(journey.current_plan().is_some() && journey.kernel.is_none());
+    assert!(journey.body().is_some());
     assert_eq!(journey.status(), JourneyStatus::Awake);
     assert!(journey.projection().wake_sign_id.is_some());
 }

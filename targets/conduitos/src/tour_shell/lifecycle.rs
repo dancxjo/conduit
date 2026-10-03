@@ -72,14 +72,14 @@ pub(super) fn with_status(
     } else {
         "Absent"
     };
-    let wake = if basis.wake_id.is_none() {
-        "Absent"
-    } else {
-        match snapshot.status {
-            JourneyStatus::BornLulled | JourneyStatus::Lulled => "Lulled",
-            JourneyStatus::Fulfilled => "Fulfilled",
-            _ => "Awake",
-        }
+    let wake = match snapshot.status {
+        JourneyStatus::BornLulled
+        | JourneyStatus::Lulled
+        | JourneyStatus::Stopped
+        | JourneyStatus::InputUnavailable => "Lulled",
+        JourneyStatus::Fulfilled => "Fulfilled",
+        _ if basis.wake_id.is_none() => "Absent",
+        _ => "Awake",
     };
     let plan = if basis.plan_id.is_none() {
         "Absent"
@@ -90,18 +90,15 @@ pub(super) fn with_status(
             _ => "Retained",
         }
     };
-    let play = if basis.active_play_id.is_none() {
-        "Inactive"
-    } else {
-        match snapshot.status {
-            JourneyStatus::QuiescentAwaitingInput => "Quiescent",
-            JourneyStatus::SemanticCompleted => "Completed",
-            JourneyStatus::Stopped => "Stopped",
-            JourneyStatus::InputUnavailable => "Input unavailable",
-            JourneyStatus::Lulled => "Ended",
-            JourneyStatus::Fulfilled => "Fulfilled",
-            _ => "Recorded",
-        }
+    let play = match snapshot.status {
+        JourneyStatus::Stopped => "Stopped",
+        JourneyStatus::InputUnavailable => "Input unavailable",
+        JourneyStatus::Lulled => "Ended",
+        JourneyStatus::Fulfilled => "Fulfilled",
+        _ if basis.active_play_id.is_none() => "Inactive",
+        JourneyStatus::QuiescentAwaitingInput => "Quiescent",
+        JourneyStatus::SemanticCompleted => "Completed",
+        _ => "Recorded",
     };
     for (key, value) in [
         ("body", body),

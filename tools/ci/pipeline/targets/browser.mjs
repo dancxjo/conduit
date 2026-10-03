@@ -1,7 +1,8 @@
-import { cpSync, existsSync, readdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { cargo, command, digest, xtask } from './common.mjs';
 import { assembleSite } from './site.mjs';
+import { retainWorkspaceEvidence } from './workspace-evidence.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
 // Cross-target deployment tests require another lane's artifacts and are not
@@ -9,7 +10,7 @@ import { assembleSite } from './site.mjs';
 const SPECS = [
   'workspace-arrival', 'workspace-birth-naming', 'sdk-external-body-execution',
   'workspace-membership', 'workspace-library', 'workspace-resident-applications',
-  'workspace-continuity',
+  'workspace-continuity', 'workspace-shared-journey',
   'field-station-clock',
   'sdk-body-participation',
   'static-body-application',
@@ -63,6 +64,8 @@ export function browser(directory) {
       CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product },
   });
   command('node', ['tools/ci/pipeline/targets/browser-smoke.mjs', product, path.join(directory, 'accessibility.json')]);
+  retainWorkspaceEvidence('proof/browser/test-results', path.join(directory, 'workspace-journey'),
+    JSON.parse(readFileSync('proof/journeys/workspace.json', 'utf8')).actions);
   if (JSON.stringify(before) !== JSON.stringify(inventory(product))) throw new Error('Browser proof modified its staged product');
   cpSync(product, path.join(directory, 'workspace'), { recursive: true, errorOnExist: true, force: false });
   if (JSON.stringify(before) !== JSON.stringify(inventory(path.join(directory, 'workspace')))) throw new Error('Browser product copy changed bytes');

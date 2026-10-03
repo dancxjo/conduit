@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.proof/workspace-actions@1",
+  "name": "workspace",
+  "plots": ["Memory Lantern", "Tutorial"],
+  "input": "hello",
+  "actions": [
+    {"id": "arrive", "capture": "01-arrive-without-a-body", "description": "Arrive without a Body and discover how to create one."},
+    {"id": "configure-birth", "capture": "02-review-name-and-plots", "description": "Choose a name, Memory Lantern, and Tutorial; review the selection."},
+    {"id": "birth", "capture": "03-born-and-resting", "description": "Create the Body. It remains resting until you explicitly wake it."},
+    {"id": "wake", "capture": "04-wake-the-retained-body", "description": "Use the Tutorial's Wake action to start the selected plots."},
+    {"id": "use-current", "capture": "05-use-memory-lantern", "description": "Use the current working plot and type hello. Observe the actual result."},
+    {"id": "tutorial", "capture": "06-read-current-tutorial", "description": "Return to the Tutorial and read guidance based on this Body's actual history."},
+    {"id": "read-all", "capture": "07-read-below-the-first-page", "description": "Read all the current Tutorial content, including content beyond the first viewport."},
+    {"id": "lull", "capture": "08-rest-the-same-body", "description": "Rest the Body and retain its identity and installed plots."},
+    {"id": "fulfill", "capture": "09-finish-and-inspect", "description": "Finish the Body and retain its closed biography for inspection."}
+  ]
+}

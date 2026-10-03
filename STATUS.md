@@ -161,13 +161,15 @@ Their presence is not an additional physical or release acceptance claim:
   Tour now reports distinct retained workspace/status surfaces, and its journey
   verifier checks their identities. The broader shell proof and interaction
   polish remain tracked in [#3043–#3049](docs/roadmap.md#conduitos-shell).
-- **Shared hosted/native chapter corpus (#3359):** the development tree carries
-  one portable seven-chapter Plot corpus through browser, Linux, Windows, and
-  ConduitOS Masks. Deterministic model tests and the pinned local
-  x86_64 QEMU journey cover every current page and runnable exercise, including
-  direct/recursive comparison, standing timer lifecycle, explicit fan-out, and
-  two-host execution. This source-level record does not claim accepted release,
-  physical hardware, or unattended human usability evidence.
+- **Retained chapter corpus (#3359):** the seven-chapter Tour model and its
+  focused exercise proofs remain available as historical implementation and
+  conformance material. They do not prove the current browser Workspace's
+  living Tutorial. Native Workspace parity must honor the canonical
+  `application = "tutorial"` configuration, project actual Body biography,
+  and expose the same lifecycle actions. The complete screen-free path,
+  including zero-Body arrival and user-driven birth, remains part of
+  [#4807](https://github.com/dancxjo/conduit/issues/4807); produced speech alone
+  does not establish interactive accessibility.
 - **House speech:** recorded-audio recognition, address detection, model context,
   and conversation components exist. The attended, live named-house speech
   experience remains open in [#2297](https://github.com/dancxjo/conduit/issues/2297).

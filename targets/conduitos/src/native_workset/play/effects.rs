@@ -62,6 +62,7 @@ impl NativeWorksetPlay {
                     .as_mut()
                     .ok_or(PlayRefusal::Kernel)?;
                 let (view, authority_request) = match application {
+                    NativeApplication::Tutorial(application) => application.apply(input)?,
                     NativeApplication::Tour(application) => {
                         let output = application.apply(input).map_err(|_| PlayRefusal::Kernel)?;
                         let request = match output.request {

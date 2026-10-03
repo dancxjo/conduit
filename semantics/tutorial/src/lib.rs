@@ -250,6 +250,9 @@ pub fn presentation_from_evidence(
     let readiness = derive_fulfillment_readiness(&purpose)
         .expect("validated tutorial purpose must derive readiness");
     let readiness_text = match &readiness {
+        _ if matches!(evidence.body.state, BodyState::Fulfilled { .. }) => {
+            "This Body is fulfilled. Inspect its retained biography to see which Tutorial exercises were completed.".into()
+        }
         FulfillmentReadiness::Ready { .. } => {
             "The recorded lifecycle evidence supports fulfillment.".into()
         }

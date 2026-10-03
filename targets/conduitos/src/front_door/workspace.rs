@@ -29,17 +29,40 @@ impl WorkspaceRefusal {
 }
 
 impl FrontDoor {
+    pub fn inspect_lifecycle(&mut self) -> Result<(), Error> {
+        self.exact_details_open = true;
+        self.advance()
+    }
+
     /// Refresh from the authoritative lifecycle and its exact resident workset.
     pub fn observe_product(
         &mut self,
         journey: &crate::product_journey::ProductJourney,
     ) -> Result<(), Error> {
         if let Some(workspace) = journey.workspace_projection() {
-            let application_view = journey.foreground_application_view().cloned();
+            let application_view = if journey.foreground_is_tutorial() {
+                Some(journey.tutorial_view().map_err(|_| Error::Presentation)?)
+            } else {
+                journey.foreground_application_view().cloned()
+            };
             if let Some(view) = &application_view {
                 view.validate().map_err(|_| Error::Presentation)?;
             }
+            let changed = self.application_view != application_view
+                || self
+                    .workspace
+                    .as_ref()
+                    .and_then(|prior| prior.plots.iter().find(|plot| plot.foreground))
+                    .map(|plot| &plot.plot)
+                    != workspace
+                        .plots
+                        .iter()
+                        .find(|plot| plot.foreground)
+                        .map(|plot| &plot.plot);
             self.observe_body(journey.projection(), workspace)?;
+            if changed {
+                self.reset_application_navigation();
+            }
             self.application_view = application_view;
             Ok(())
         } else {

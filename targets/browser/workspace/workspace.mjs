@@ -247,7 +247,7 @@ export async function startApplication(application) {
       const plot = catalog.plots.find(item => item.checked_plot_id === selected);
       const partition = session.evidence()?.realization?.plan.plots.find(item => item.plot.checked_plot_id === selected);
       root.querySelector('#surface-title').textContent = plot?.title ?? 'No Plots installed';
-      root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition);
+      root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition, playback.detail);
       root.querySelector('.current-plot').textContent = plot?.title ?? 'Your plots';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       for (const button of activities.querySelectorAll('[data-checked-plot-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedPlotId === selected));
