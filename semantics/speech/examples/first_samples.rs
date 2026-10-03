@@ -13,6 +13,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             vec![P::h, P::eh, P::l, P::ow, P::w, P::er, P::l, P::d],
         ),
         (
+            "diphthong-inventory",
+            vec![P::ey, P::ow, P::ay, P::aw, P::oy],
+        ),
+        (
+            "stop-release",
+            vec![
+                P::b,
+                P::aa,
+                P::p,
+                P::aa,
+                P::d,
+                P::aa,
+                P::t,
+                P::aa,
+                P::g,
+                P::aa,
+                P::k,
+                P::aa,
+            ],
+        ),
+        (
             "vowel-inventory",
             vec![
                 P::iy,

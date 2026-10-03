@@ -6,7 +6,10 @@ use conduit_core::{
 use conduit_plot::PortableExpressionProgram;
 use std::{vec, vec::Vec};
 
-fn record(ty: &StructuredInfoType, values: &[(&str, StructuredInfoValue)]) -> StructuredInfoValue {
+pub(super) fn record(
+    ty: &StructuredInfoType,
+    values: &[(&str, StructuredInfoValue)],
+) -> StructuredInfoValue {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
         panic!("record")
     };
@@ -30,7 +33,7 @@ fn record(ty: &StructuredInfoType, values: &[(&str, StructuredInfoValue)]) -> St
     )
     .unwrap()
 }
-fn field_type<'a>(ty: &'a StructuredInfoType, name: &str) -> &'a StructuredInfoType {
+pub(super) fn field_type<'a>(ty: &'a StructuredInfoType, name: &str) -> &'a StructuredInfoType {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
         panic!("record")
     };
@@ -40,7 +43,7 @@ fn field_type<'a>(ty: &'a StructuredInfoType, name: &str) -> &'a StructuredInfoT
         .unwrap()
         .value_type()
 }
-fn integers(ty: &StructuredInfoType, values: &[(&str, i64)]) -> StructuredInfoValue {
+pub(super) fn integers(ty: &StructuredInfoType, values: &[(&str, i64)]) -> StructuredInfoValue {
     record(
         ty,
         &values
@@ -205,6 +208,12 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
     for (phone, _) in PHONES {
         let target = speech_voice_target(*phone).unwrap();
         for frame in 0..target.frames {
+            let target = speech_phone_frame_target(SpeechTrajectoryInput {
+                phone: *phone,
+                frame,
+                target,
+            })
+            .unwrap();
             let noise = speech_noise(history.noise).unwrap();
             let excitation = speech_excitation(ExcitationInput {
                 phase: history.phase,

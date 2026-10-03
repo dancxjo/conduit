@@ -2,8 +2,8 @@ use conduit_speech::{
     EnglishPhoneme as P, EnglishPosition as W, EnglishStress as S, RealizationInput, RenderRefusal,
     Renderer, VoiceEvent,
 };
-fn events() -> [VoiceEvent; 3] {
-    [P::h, P::eh, P::l].map(|phoneme| {
+fn events() -> [VoiceEvent; 9] {
+    [P::h, P::eh, P::l, P::p, P::ay, P::t, P::ow, P::k, P::oy].map(|phoneme| {
         VoiceEvent::segment(RealizationInput {
             phoneme,
             position: W::medial,
@@ -25,7 +25,10 @@ fn render(events: &[VoiceEvent], block: usize) -> Vec<i16> {
 #[test]
 fn output_is_invariant_to_block_boundaries_and_pressure_can_discard_a_candidate() {
     let events = events();
-    assert_eq!(render(&events, 1), render(&events, 128));
+    let expected = render(&events, 128);
+    for block in [1, 63, 96, 127] {
+        assert_eq!(render(&events, block), expected);
+    }
     let mut committed = Renderer::prepare(&events).unwrap();
     let mut candidate = committed;
     let mut refused = [0; 128];
