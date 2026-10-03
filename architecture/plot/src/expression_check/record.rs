@@ -11,7 +11,7 @@ pub(super) fn record(
     let named = expected
         .and_then(|ty| ty.value_kind())
         .and_then(|kind| context.structured_types.get(kind));
-    let expanded = named.map(CheckedExpressionType::from_structured);
+    let expanded = expected.map(|ty| value::expand(ty, context));
     let expected_shape = expanded.as_ref().or(expected);
     let mut checked = Vec::with_capacity(fields.len());
     for field in fields {

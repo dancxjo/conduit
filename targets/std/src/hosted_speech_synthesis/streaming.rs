@@ -177,13 +177,13 @@ impl<'a> StreamingSpeech<'a> {
             {
                 return Err(EspeakFailure::InvalidWav);
             }
-            self.adapter.discovery.verify()?;
-            if cancelled() {
-                self.process.take();
-                return Err(EspeakFailure::Cancelled);
-            }
             // Keep the completed handle until the caller pulls the segment terminal.
             if count == 0 {
+                self.adapter.discovery.verify()?;
+                if cancelled() {
+                    self.process.take();
+                    return Err(EspeakFailure::Cancelled);
+                }
                 self.process.take();
                 return Ok(None);
             }

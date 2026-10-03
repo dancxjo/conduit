@@ -93,6 +93,7 @@ use super::wav_artifact_back::WavArtifactBack;
 use conduit_data::FlowCollectBack;
 
 pub(super) enum InstalledBack {
+    NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
     DistanceFrequency(DistanceFrequencyBack),
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech(super::recorded_speech_back::RecordedSpeechBack),

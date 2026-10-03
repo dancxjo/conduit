@@ -1,10 +1,10 @@
 use super::*;
 
 const MASK_PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-pub(super) type MaskScheduler =
+pub(crate) type MaskScheduler =
     FixedScheduler<MaskBack, HostedValueStore, HostedSignLog, 1, 3, MASK_PORTS, 12, 48, 3, 1, 1>;
 
-pub(super) struct MaskBack {
+pub(crate) struct MaskBack {
     pending: bool,
 }
 
@@ -76,7 +76,7 @@ fn failure(detail: u16) -> StepOutcome {
     })
 }
 
-pub(super) fn exact_boundary<'a>(
+pub(crate) fn exact_boundary<'a>(
     ports: &'a [LoweredForePort],
     name: &str,
     direction: PortDirection,
@@ -93,7 +93,7 @@ pub(super) fn exact_boundary<'a>(
     Ok(port)
 }
 
-pub(super) fn mask_scheduler(
+pub(crate) fn mask_scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
 ) -> Result<MaskScheduler, String> {

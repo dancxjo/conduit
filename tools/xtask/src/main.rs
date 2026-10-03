@@ -114,6 +114,7 @@ fn run_journey(args: cli::DemoArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
         DemoCommand::Tongues => commands::tongues::run(opts),
         DemoCommand::TonguesResearch => commands::tongues::run_research(opts),
         DemoCommand::TonguesAnalysis => commands::tongues::run_analysis(opts),
+        DemoCommand::NativeSpeech(args) => commands::native_speech::run(args, opts),
     }
 }
 

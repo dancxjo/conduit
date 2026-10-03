@@ -174,6 +174,49 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         return { status, outputBytes: null, outputJson: null };
       }, { retireInput: true });
     },
+    ownerFacePrepare(basis, frameBytes) {
+      if (!(frameBytes instanceof Uint8Array)) throw new TypeError("owner Face frame must retain exact bytes");
+      const basisBytes = encoder.encode(JSON.stringify(basis));
+      const input = new Uint8Array(basisBytes.length + frameBytes.length);
+      input.set(basisBytes);
+      input.set(frameBytes, basisBytes.length);
+      return withInput(api, input, {
+        pointerExport: "conduit_browser_owner_face_input_ptr",
+        capacityExport: "conduit_browser_owner_face_input_capacity",
+        label: "owner Face Mask input",
+      }, () => {
+        const status = call("conduit_browser_owner_face_prepare", basisBytes.length, frameBytes.length);
+        if (status < 0) throw new Error(`owner Face Mask refused (${status})`);
+        return readJson(api, {
+          pointerExport: "conduit_browser_owner_face_output_ptr",
+          lengthExport: "conduit_browser_owner_face_output_len",
+          capacityExport: "conduit_browser_owner_face_output_capacity",
+          minimum: 1,
+          maximum: 64 * 1024,
+          label: "owner Face Mask output",
+        });
+      }, { retireInput: true });
+    },
+    ownerFaceAcknowledge(acknowledgement) {
+      const input = encoder.encode(JSON.stringify(acknowledgement));
+      return withInput(api, input, {
+        pointerExport: "conduit_browser_owner_face_input_ptr",
+        capacityExport: "conduit_browser_owner_face_input_capacity",
+        label: "owner Face Show acknowledgement",
+      }, length => {
+        const status = call("conduit_browser_owner_face_ack", length);
+        if (status < 0) throw new Error(`owner Face Show refused (${status})`);
+        return readJson(api, {
+          pointerExport: "conduit_browser_owner_face_output_ptr",
+          lengthExport: "conduit_browser_owner_face_output_len",
+          capacityExport: "conduit_browser_owner_face_output_capacity",
+          minimum: 1,
+          maximum: 64 * 1024,
+          label: "owner Face Show output",
+        });
+      }, { retireInput: true });
+    },
+    ownerFaceClear() { call("conduit_browser_owner_face_clear"); },
     crecheCurrent() {
       const status = call("conduit_creche_current");
       return { status, outputJson: status === 1 ? null : readJson(api, {

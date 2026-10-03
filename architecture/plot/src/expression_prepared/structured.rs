@@ -12,6 +12,7 @@ pub(super) struct PreparedStructuredExpression {
 
 enum PreparedShape {
     Input,
+    Constant(Vec<u8>),
     Selected(super::member_selection::PreparedMemberSelection),
     Record(Vec<PreparedField>),
     Collection(Vec<PreparedChild>),
@@ -43,6 +44,17 @@ impl PreparedStructuredExpression {
         let shape = match &program.root.operation {
             PortableExpressionOperation::Input if program.input_type == program.output_type => {
                 PreparedShape::Input
+            }
+            PortableExpressionOperation::Literal(_) => {
+                let constant = PortableExpressionProgram {
+                    input_type: StructuredInfoType::leaf(conduit_core::kind_id(
+                        conduit_core::UNIT_INFO_ID,
+                    ))
+                    .map_err(|_| Refusal::InvalidProgram)?,
+                    output_type: program.output_type.clone(),
+                    root: program.root.clone(),
+                };
+                PreparedShape::Constant(constant.evaluate(&[])?)
             }
             PortableExpressionOperation::Projection { .. } => {
                 PreparedShape::Selected(super::member_selection::prepare(&program.root)?)
@@ -133,6 +145,7 @@ impl PreparedStructuredExpression {
     pub(super) fn evaluate(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
         match &mut self.shape {
             PreparedShape::Input => return append(output, input),
+            PreparedShape::Constant(bytes) => return append(output, bytes),
             PreparedShape::Selected(selection) => {
                 return append(output, selection.evaluate(input)?)
             }
@@ -154,7 +167,7 @@ impl PreparedStructuredExpression {
         }
         append(output, &self.type_prefix)?;
         match &mut self.shape {
-            PreparedShape::Input | PreparedShape::Selected(_) => {
+            PreparedShape::Input | PreparedShape::Constant(_) | PreparedShape::Selected(_) => {
                 unreachable!("identity selection handled before prefix")
             }
             PreparedShape::Record(fields) => {

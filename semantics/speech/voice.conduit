@@ -1,0 +1,422 @@
+type EnglishPhoneme =
+    iy
+    | ih
+    | ey
+    | eh
+    | ae
+    | aa
+    | ao
+    | ow
+    | uh
+    | uw
+    | ah
+    | ax
+    | er
+    | ay
+    | aw
+    | oy
+    | p
+    | b
+    | t
+    | d
+    | k
+    | g
+    | f
+    | v
+    | th
+    | dh
+    | s
+    | z
+    | sh
+    | zh
+    | ch
+    | jh
+    | m
+    | n
+    | ng
+    | l
+    | r
+    | w
+    | y
+    | h
+
+type EnglishPhone =
+    iy
+    | ih
+    | ey
+    | eh
+    | ae
+    | aa
+    | ao
+    | ow
+    | uh
+    | uw
+    | ah
+    | ax
+    | er
+    | ay
+    | aw
+    | oy
+    | p
+    | b
+    | t
+    | d
+    | k
+    | g
+    | f
+    | v
+    | th
+    | dh
+    | s
+    | z
+    | sh
+    | zh
+    | ch
+    | jh
+    | m
+    | n
+    | ng
+    | l
+    | r
+    | w
+    | y
+    | h
+    | p_aspirated
+    | t_aspirated
+    | k_aspirated
+    | alveolar_flap
+
+type EnglishStress =
+    primary
+    | secondary
+    | unstressed
+    | reduced
+    | unknown
+    | unspecified
+
+type EnglishPosition =
+    initial
+    | medial
+    | final
+    | isolated
+    | unknown
+
+type EnglishDerivation =
+    allophone_rule
+    | voice_profile
+
+# All excitation, resonator, limiting and spelling policy lives in checked plots.
+# Q14 coefficients; explicit state in/out, no ambient clock or random source.
+type ResonatorInput = {
+    drive: I32
+    b: I32
+    c: I32
+    y1: I32
+    y2: I32
+}
+plot speech/resonator (
+    >> value: ResonatorInput
+    result: I32 >>
+) = ((.drive + .b * .y1 + .c * .y2) / 16384)
+
+plot speech/limit (
+    >> value: I32
+    result: I32 >>
+) = (. < -32767 ? -32767 : . > 32767 ? 32767 : .)
+
+plot speech/lowercase (
+    >> value: I32
+    result: I32 >>
+) = (. >= 65 && . <= 90 ? . + 32 : .)
+
+type ExcitationInput = {
+    phase: I32
+    period: I32
+    noise: I32
+    voiced: I32
+    frication: I32
+}
+
+plot speech/noise (
+    >> value: I32
+    result: I32 >>
+) = ((. * 25173 + 13849) % 65536)
+
+type PhaseInput = {
+    phase: I32
+    period: I32
+}
+plot speech/phase (
+    >> value: PhaseInput
+    result: I32 >>
+) = (.phase + 1 >= .period ? 0 : .phase + 1)
+
+type MixInput = {
+    first: I32
+    second: I32
+    third: I32
+    envelope: I32
+}
+plot speech/mix (
+    >> value: MixInput
+    result: I32 >>
+) = ((.first + .second / 2 + .third / 4) * .envelope / 256)
+
+# Phoneme identity is never a Phone identity. This is the selected English
+# realization policy, not an acoustic observation or inventory universal.
+type RealizationInput = {
+    phoneme: EnglishPhoneme
+    stress: EnglishStress
+    position: EnglishPosition
+}
+type RealizationResult = {
+    input: RealizationInput
+    phone: EnglishPhone
+    derivation: EnglishDerivation
+}
+plot speech/realize (
+    >> value: RealizationInput
+    result: RealizationResult >>
+) = ({input: ., phone: (((((.phoneme is iy || .phoneme is ih) || (.phoneme is ey || (.phoneme is eh || .phoneme is ae))) || ((.phoneme is aa || .phoneme is ao) || (.phoneme is ow || (.phoneme is uh || .phoneme is uw)))) || (((.phoneme is ah || .phoneme is ax) || (.phoneme is er || (.phoneme is ay || .phoneme is aw))) || ((.phoneme is oy || .phoneme is p) || (.phoneme is b || (.phoneme is t || .phoneme is d))))) ? ((((.phoneme is iy || .phoneme is ih) || (.phoneme is ey || (.phoneme is eh || .phoneme is ae))) || ((.phoneme is aa || .phoneme is ao) || (.phoneme is ow || (.phoneme is uh || .phoneme is uw)))) ? (((.phoneme is iy || .phoneme is ih) || (.phoneme is ey || (.phoneme is eh || .phoneme is ae))) ? ((.phoneme is iy || .phoneme is ih) ? (.phoneme is iy ? EnglishPhone.iy : EnglishPhone.ih) : (.phoneme is ey ? EnglishPhone.ey : (.phoneme is eh ? EnglishPhone.eh : EnglishPhone.ae))) : ((.phoneme is aa || .phoneme is ao) ? (.phoneme is aa ? EnglishPhone.aa : EnglishPhone.ao) : (.phoneme is ow ? EnglishPhone.ow : (.phoneme is uh ? EnglishPhone.uh : EnglishPhone.uw)))) : (((.phoneme is ah || .phoneme is ax) || (.phoneme is er || (.phoneme is ay || .phoneme is aw))) ? ((.phoneme is ah || .phoneme is ax) ? (.phoneme is ah ? EnglishPhone.ah : EnglishPhone.ax) : (.phoneme is er ? EnglishPhone.er : (.phoneme is ay ? EnglishPhone.ay : EnglishPhone.aw))) : ((.phoneme is oy || .phoneme is p) ? (.phoneme is oy ? EnglishPhone.oy : (.position is initial && .stress is primary ? EnglishPhone.p_aspirated : EnglishPhone.p)) : (.phoneme is b ? EnglishPhone.b : (.phoneme is t ? (.position is initial && .stress is primary ? EnglishPhone.t_aspirated : EnglishPhone.t) : EnglishPhone.d))))) : ((((.phoneme is k || .phoneme is g) || (.phoneme is f || (.phoneme is v || .phoneme is th))) || ((.phoneme is dh || .phoneme is s) || (.phoneme is z || (.phoneme is sh || .phoneme is zh)))) ? (((.phoneme is k || .phoneme is g) || (.phoneme is f || (.phoneme is v || .phoneme is th))) ? ((.phoneme is k || .phoneme is g) ? (.phoneme is k ? (.position is initial && .stress is primary ? EnglishPhone.k_aspirated : EnglishPhone.k) : EnglishPhone.g) : (.phoneme is f ? EnglishPhone.f : (.phoneme is v ? EnglishPhone.v : EnglishPhone.th))) : ((.phoneme is dh || .phoneme is s) ? (.phoneme is dh ? EnglishPhone.dh : EnglishPhone.s) : (.phoneme is z ? EnglishPhone.z : (.phoneme is sh ? EnglishPhone.sh : EnglishPhone.zh)))) : (((.phoneme is ch || .phoneme is jh) || (.phoneme is m || (.phoneme is n || .phoneme is ng))) ? ((.phoneme is ch || .phoneme is jh) ? (.phoneme is ch ? EnglishPhone.ch : EnglishPhone.jh) : (.phoneme is m ? EnglishPhone.m : (.phoneme is n ? EnglishPhone.n : EnglishPhone.ng))) : ((.phoneme is l || .phoneme is r) ? (.phoneme is l ? EnglishPhone.l : EnglishPhone.r) : (.phoneme is w ? EnglishPhone.w : (.phoneme is y ? EnglishPhone.y : EnglishPhone.h)))))), derivation: .position is initial && .stress is primary && (.phoneme is p || .phoneme is t || .phoneme is k) ? EnglishDerivation.allophone_rule : EnglishDerivation.voice_profile})
+
+type SpeechAcousticTarget = {
+    f1: I32
+    f2: I32
+    f3: I32
+    b1: I32
+    b2: I32
+    b3: I32
+    c1: I32
+    c2: I32
+    c3: I32
+    gain1: I32
+    gain2: I32
+    gain3: I32
+    voiced: I32
+    frication: I32
+    frames: I32
+    closure: I32
+}
+
+# Stop spectra are self-authored reduced-bandwidth models. Q14 coefficients
+# are rounded from radius=exp(-pi*bandwidth/8000), b=2*radius*cos(2*pi*f/8000),
+# c=-radius*radius; gain sets each parallel branch's relative level. Plain
+# voiceless stops release near their end; voiced releases leave a voiced tail.
+# Models (Hz bandwidths, relative branch levels): p/b 350,650,1000; 1,.6,.35;
+# t/d 450,500,700; .15,1,1.2; k/g 300,250,400; .25,1.1,.65.
+# These profile defaults are not context-dependent phonetic measurements.
+# A model-only query and a realized-segment query share one table policy.
+type SpeechPhoneCarry<C> = {
+    phone: EnglishPhone
+    context: C
+}
+type SpeechPhoneModel<C> = {
+    input: SpeechPhoneCarry<C>
+    target: SpeechAcousticTarget
+}
+type SpeechPhoneOnlyRequest = SpeechPhoneCarry<SpeechEndpointContext>
+type SpeechPhoneOnlyModel = SpeechPhoneModel<SpeechEndpointContext>
+type SpeechRealizedRequest = SpeechPhoneCarry<RealizationResult>
+type SpeechRealizedModel = SpeechPhoneModel<RealizationResult>
+type SpeechSegmentModel = {
+    realization: RealizationResult
+    target: SpeechAcousticTarget
+}
+plot speech/voice-model (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: ., target: (((((.phone is iy || .phone is ih) || (.phone is ey || (.phone is eh || .phone is ae))) || ((.phone is aa || (.phone is ao || .phone is ow)) || (.phone is uh || (.phone is uw || .phone is ah)))) || (((.phone is ax || .phone is er) || (.phone is ay || (.phone is aw || .phone is oy))) || ((.phone is p || (.phone is b || .phone is t)) || (.phone is d || (.phone is k || .phone is g))))) ? ((((.phone is iy || .phone is ih) || (.phone is ey || (.phone is eh || .phone is ae))) || ((.phone is aa || (.phone is ao || .phone is ow)) || (.phone is uh || (.phone is uw || .phone is ah)))) ? (((.phone is iy || .phone is ih) || (.phone is ey || (.phone is eh || .phone is ae))) ? ((.phone is iy || .phone is ih) ? (.phone is iy ? { f1: 270, f2: 2290, f3: 3010, b1: 31165, b2: -7114, b3: -22103, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 390, f2: 1990, f3: 2550, b1: 30396, b2: 247, b3: -12985, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }) : (.phone is ey ? { f1: 450, f2: 2050, f3: 2700, b1: 29909, b2: -1237, b3: -16205, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (.phone is eh ? { f1: 530, f2: 1840, f3: 2480, b1: 29157, b2: 3949, b3: -11417, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 660, f2: 1720, f3: 2410, b1: 27692, b2: 6873, b3: -9816, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }))) : ((.phone is aa || (.phone is ao || .phone is ow)) ? (.phone is aa ? { f1: 730, f2: 1090, f3: 2440, b1: 26782, b2: 20649, b3: -10506, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (.phone is ao ? { f1: 570, f2: 840, f3: 2410, b1: 28738, b2: 24895, b3: -9816, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 500, f2: 900, f3: 2400, b1: 29453, b2: 23957, b3: -9584, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 })) : (.phone is uh ? { f1: 440, f2: 1020, f3: 2240, b1: 29995, b2: 21926, b3: -5812, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (.phone is uw ? { f1: 300, f2: 870, f3: 2240, b1: 30999, b2: 24433, b3: -5812, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 640, f2: 1190, f3: 2390, b1: 27936, b2: 18718, b3: -9352, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 })))) : (((.phone is ax || .phone is er) || (.phone is ay || (.phone is aw || .phone is oy))) ? ((.phone is ax || .phone is er) ? (.phone is ax ? { f1: 500, f2: 1500, f3: 2500, b1: 29453, b2: 12057, b3: -11869, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 490, f2: 1350, f3: 1690, b1: 29548, b2: 15395, b3: 7477, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }) : (.phone is ay ? { f1: 730, f2: 1090, f3: 2440, b1: 26782, b2: 20649, b3: -10506, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (.phone is aw ? { f1: 730, f2: 1090, f3: 2440, b1: 26782, b2: 20649, b3: -10506, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 570, f2: 840, f3: 2410, b1: 28738, b2: 24895, b3: -9816, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }))) : ((.phone is p || (.phone is b || .phone is t)) ? (.phone is p ? { f1: 500, f2: 1300, f3: 2400, b1: 26386, b2: 13264, b3: -6837, c1: -12446, c2: -9834, c3: -7470, gain1: 2104, gain2: 2215, gain3: 1862, voiced: 0, frication: 0, frames: 640, closure: 512 } : (.phone is b ? { f1: 500, f2: 1300, f3: 2400, b1: 26386, b2: 13264, b3: -6837, c1: -12446, c2: -9834, c3: -7470, gain1: 2104, gain2: 2215, gain3: 1862, voiced: 1, frication: 0, frames: 640, closure: 256 } : { f1: 1000, f2: 3000, f3: 3700, b1: 19417, b2: -19040, b3: -24205, c1: -11506, c2: -11063, c3: -9455, gain1: 398, gain2: 2921, gain3: 4725, voiced: 0, frication: 0, frames: 640, closure: 512 })) : (.phone is d ? { f1: 1000, f2: 3000, f3: 3700, b1: 19417, b2: -19040, b3: -24205, c1: -11506, c2: -11063, c3: -9455, gain1: 398, gain2: 2921, gain3: 4725, voiced: 1, frication: 0, frames: 640, closure: 256 } : (.phone is k ? { f1: 600, f2: 2000, f3: 2700, b1: 25952, b2: 0, b3: -14632, c1: -12945, c2: -13463, c3: -11967, gain1: 455, gain2: 1685, gain3: 1548, voiced: 0, frication: 0, frames: 640, closure: 512 } : { f1: 600, f2: 2000, f3: 2700, b1: 25952, b2: 0, b3: -14632, c1: -12945, c2: -13463, c3: -11967, gain1: 455, gain2: 1685, gain3: 1548, voiced: 1, frication: 0, frames: 640, closure: 256 }))))) : ((((.phone is f || .phone is v) || (.phone is th || (.phone is dh || .phone is s))) || ((.phone is z || (.phone is sh || .phone is zh)) || (.phone is ch || (.phone is jh || .phone is m)))) ? (((.phone is f || .phone is v) || (.phone is th || (.phone is dh || .phone is s))) ? ((.phone is f || .phone is v) ? (.phone is f ? { f1: 1000, f2: 2800, f3: 3600, b1: 20195, b2: -15827, b3: -24144, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : { f1: 1000, f2: 2800, f3: 3600, b1: 20195, b2: -15827, b3: -24144, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 }) : (.phone is th ? { f1: 900, f2: 2500, f3: 3300, b1: 21717, b2: -10304, b3: -21645, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : (.phone is dh ? { f1: 900, f2: 2500, f3: 3300, b1: 21717, b2: -10304, b3: -21645, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 } : { f1: 1200, f2: 3200, f3: 3800, b1: 16787, b2: -21784, b3: -25073, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 }))) : ((.phone is z || (.phone is sh || .phone is zh)) ? (.phone is z ? { f1: 1200, f2: 3200, f3: 3800, b1: 16787, b2: -21784, b3: -25073, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 } : (.phone is sh ? { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 })) : (.phone is ch ? { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 180 } : (.phone is jh ? { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 180 } : { f1: 250, f2: 1000, f3: 2200, b1: 30901, b2: 21759, b3: -4702, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 332, gain3: 339, voiced: 1, frication: 0, frames: 640, closure: 0 })))) : (((.phone is n || .phone is ng) || (.phone is l || (.phone is r || .phone is w))) ? ((.phone is n || .phone is ng) ? (.phone is n ? { f1: 270, f2: 1700, f3: 2600, b1: 30800, b2: 7184, b3: -13645, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 332, gain3: 339, voiced: 1, frication: 0, frames: 640, closure: 0 } : { f1: 300, f2: 1800, f3: 2500, b1: 30636, b2: 4814, b3: -11502, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 332, gain3: 339, voiced: 1, frication: 0, frames: 640, closure: 0 }) : (.phone is l ? { f1: 400, f2: 1200, f3: 2600, b1: 29964, b2: 18088, b3: -13645, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 } : (.phone is r ? { f1: 350, f2: 1300, f3: 1600, b1: 30323, b2: 16079, b3: 9288, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 } : { f1: 300, f2: 700, f3: 2200, b1: 30636, b2: 26238, b3: -4702, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 }))) : ((.phone is y || (.phone is h || .phone is p_aspirated)) ? (.phone is y ? { f1: 270, f2: 2200, f3: 3000, b1: 30800, b2: -4814, b3: -21253, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 } : (.phone is h ? { f1: 500, f2: 1500, f3: 2500, b1: 26386, b2: 10304, b3: -9715, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : { f1: 500, f2: 1300, f3: 2400, b1: 26386, b2: 13264, b3: -6837, c1: -12446, c2: -9834, c3: -7470, gain1: 2104, gain2: 2215, gain3: 1862, voiced: 0, frication: 1, frames: 640, closure: 240 })) : (.phone is t_aspirated ? { f1: 1000, f2: 3000, f3: 3700, b1: 19417, b2: -19040, b3: -24205, c1: -11506, c2: -11063, c3: -9455, gain1: 398, gain2: 2921, gain3: 4725, voiced: 0, frication: 1, frames: 640, closure: 240 } : (.phone is k_aspirated ? { f1: 600, f2: 2000, f3: 2700, b1: 25952, b2: 0, b3: -14632, c1: -12945, c2: -13463, c3: -11967, gain1: 455, gain2: 1685, gain3: 1548, voiced: 0, frication: 1, frames: 640, closure: 240 } : { f1: 400, f2: 1600, f3: 2600, b1: 27162, b2: 8321, b3: -11525, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 0, frames: 640, closure: 0 }))))))})
+
+plot speech/voice-target (
+    >> value: EnglishPhone
+    result: SpeechAcousticTarget >>
+) {
+    lookup: speech/voice-model(item = SpeechPhoneOnlyRequest, output = SpeechPhoneOnlyModel)
+    value >> ({phone: ., context: SpeechEndpointContext.model_only}) >> lookup.value
+    lookup.result >> (.target) >> result
+}
+
+plot speech/segment-model (
+    >> value: RealizationInput
+    result: SpeechSegmentModel >>
+) {
+    realize: speech/realize
+    lookup: speech/voice-model(item = SpeechRealizedRequest, output = SpeechRealizedModel)
+    value >> realize.value
+    realize.result >> ({phone: .phone, context: .}) >> lookup.value
+    lookup.result >> ({realization: .input.context, target: .target}) >> result
+}
+
+
+type DriveInput = {
+    sample: I32
+    gain: I32
+}
+plot speech/drive (
+    >> value: DriveInput
+    result: I32 >>
+) = (.sample * .gain)
+
+type EnvelopeInput = {
+    attack: Boolean
+    release: Boolean
+    frame: I32
+    total: I32
+    closure: I32
+}
+plot speech/envelope (
+    >> value: EnvelopeInput
+    result: I32 >>
+) = (.frame < .closure ? 0 : .closure > 0 ? (.release && .total - .frame < 64 ? (.total - .frame) * 4 : 256) : .attack && .frame - .closure < 64 ? (.frame - .closure) * 4 : .release && .total - .frame < 64 ? (.total - .frame) * 4 : 256)
+
+# A boundary is not a phone and an absence is not silence.
+type VoiceBoundary =
+    word
+    | phrase
+    | turn
+
+type VoiceEvent =
+    segment RealizationInput
+    | pronounced TextSpeechSegment
+    | boundary VoiceBoundary
+
+plot speech/pause (
+    >> value: VoiceBoundary
+    result: I32 >>
+) = (. is word ? 240 : . is phrase ? 1200 : 2000)
+
+# Composition is authored connectivity, not a Rust sequence of DSP calls.
+plot speech/filter-limit (
+    >> value: ResonatorInput
+    result: I32 >>
+) {
+    filter: speech/resonator
+    limit: speech/limit
+    value >> filter.value
+    filter.result >> limit.value
+    limit.result >> result
+}
+
+# State is an exact value carried through one bounded sample transition.
+type SpeechFrameState = {
+    voicing: I32
+    phase: I32
+    noise: I32
+    first1: I32
+    first2: I32
+    second1: I32
+    second2: I32
+    third1: I32
+    third2: I32
+}
+type SpeechFrameInput = {
+    attack: Boolean
+    release: Boolean
+    target: SpeechAcousticTarget
+    period: I32
+    frame: I32
+    state: SpeechFrameState
+}
+type SpeechFrameWorking = {
+    input: SpeechFrameInput
+    voicing: I32
+    upper_excitation: I32
+    phase: I32
+    noise: I32
+    excitation: I32
+    first: I32
+    second: I32
+    third: I32
+    envelope: I32
+}
+type SpeechFrameResult = {
+    state: SpeechFrameState
+    sample: I32
+}
+type SpeechFrameSourceRequest = SpeechSourceCarry<SpeechFrameInput>
+type SpeechFrameSourcePhase = SpeechSourcePhase<SpeechFrameInput>
+type SpeechFrameSourceFlow = SpeechSourceFlow<SpeechFrameInput>
+type SpeechFrameSourceResult = SpeechSourceResult<SpeechFrameInput>
+plot speech/frame-source-result (
+    >> value: SpeechFrameSourceResult
+    result: SpeechFrameWorking >>
+) = ({input: .input.context, voicing: .voicing, upper_excitation: (.input.context.target.voiced == 1 && .input.context.target.frication == 0) ? .voicing - .input.context.state.voicing : .sample, phase: .input.context.state.phase + 1 >= .input.context.period ? 0 : .input.context.state.phase + 1, noise: .input.source.noise, excitation: .sample, first: 0, second: 0, third: 0, envelope: (.input.context.frame < .input.context.target.closure ? 0 : .input.context.target.closure > 0 ? (.input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256) : .input.context.attack && .input.context.frame - .input.context.target.closure < 64 ? (.input.context.frame - .input.context.target.closure) * 4 : .input.context.release && .input.context.target.frames - .input.context.frame < 64 ? (.input.context.target.frames - .input.context.frame) * 4 : 256)})
+plot speech/frame-excite (
+    >> value: SpeechFrameInput
+    result: SpeechFrameWorking >>
+) {
+    phase: speech/source-phase(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
+    flow: speech/source-flow(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
+    mix: speech/source-mix(item = SpeechFrameSourceFlow, output = SpeechFrameSourceResult)
+    finish: speech/frame-source-result
+    value >> ({source: {phase: .state.phase, period: .period, noise: (.state.noise * 25173 + 13849) % 65536, voiced: .target.voiced, frication: .target.frication}, context: .}) >> phase.value
+    phase.result >> flow.value
+    flow.result >> mix.value
+    mix.result >> finish.value
+    finish.result >> result
+}
+plot speech/frame-first (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameWorking >>
+) = ({input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: (((.excitation * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) < -32767 ? -32767 : ((.excitation * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384) > 32767 ? 32767 : ((.excitation * .input.target.gain1 + .input.target.b1 * .input.state.first1 + .input.target.c1 * .input.state.first2) / 16384)), second: .second, third: .third, envelope: .envelope})
+plot speech/frame-second (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameWorking >>
+) = ({input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: (((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain2 + .input.target.b2 * .input.state.second1 + .input.target.c2 * .input.state.second2) / 16384)), third: .third, envelope: .envelope})
+plot speech/frame-third (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameWorking >>
+) = ({input: .input, voicing: .voicing, upper_excitation: .upper_excitation, phase: .phase, noise: .noise, excitation: .excitation, first: .first, second: .second, third: (((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) < -32767 ? -32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384) > 32767 ? 32767 : ((.upper_excitation * .input.target.gain3 + .input.target.b3 * .input.state.third1 + .input.target.c3 * .input.state.third2) / 16384)), envelope: .envelope})
+plot speech/frame-result (
+    >> value: SpeechFrameWorking
+    result: SpeechFrameResult >>
+) = ({state: {voicing: .voicing, phase: .phase, noise: .noise, first1: .first, first2: .input.state.first1, second1: .second, second2: .input.state.second1, third1: .third, third2: .input.state.third1}, sample: ((.first + .second / 2 + .third / 4) * .envelope / 256) < -32767 ? -32767 : ((.first + .second / 2 + .third / 4) * .envelope / 256) > 32767 ? 32767 : ((.first + .second / 2 + .third / 4) * .envelope / 256)})
+
+plot speech/frame (
+    >> value: SpeechFrameInput
+    result: SpeechFrameResult >>
+) {
+    excite: speech/frame-excite
+    first: speech/frame-first
+    second: speech/frame-second
+    third: speech/frame-third
+    finish: speech/frame-result
+    value >> excite.value
+    excite.result >> first.value
+    first.result >> second.value
+    second.result >> third.value
+    third.result >> finish.value
+    finish.result >> result
+}
+
+# Starting excitation history is source policy, not an ambient random seed.
+type SpeechStart =
+    begin
+    | reset
+plot speech/initial-state (
+    >> value: SpeechStart
+    result: SpeechFrameState >>
+) = ({voicing: 0, phase: 0, noise: 1, first1: 0, first2: 0, second1: 0, second2: 0, third1: 0, third2: 0})
+
+# Pauses preserve phase and filter history; silence is an explicit output.
+plot speech/boundary-frame (
+    >> value: SpeechFrameState
+    result: SpeechFrameResult >>
+) = ({state: ., sample: 0})
+
+# These are this compact voice profile's preparation and block admission limits.
+# The acoustic coefficients above are authored for exactly this sample rate.
+type SpeechRenderProfile = {
+    sample_rate_hz: U32
+    maximum_events: U32
+    maximum_block_frames: U32
+    maximum_utterance_frames: U64
+    maximum_text_bytes: U32
+    maximum_word_bytes: U32
+}
+plot speech/profile (
+    >> value: SpeechStart
+    result: SpeechRenderProfile >>
+) = ({sample_rate_hz: 8000, maximum_events: 256, maximum_block_frames: 128, maximum_utterance_frames: 240000, maximum_text_bytes: 512, maximum_word_bytes: 32})

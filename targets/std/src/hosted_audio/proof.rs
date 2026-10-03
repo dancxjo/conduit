@@ -18,6 +18,10 @@ impl ExplicitPlaybackAuthorization {
             grant_id: grant_id.to_owned(),
         })
     }
+
+    pub fn grant_id(&self) -> &str {
+        &self.grant_id
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

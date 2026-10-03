@@ -35,13 +35,13 @@ use std::collections::BTreeMap;
 const MASK_OPERATION: &str = "browser.host/dom-mask@1";
 const MASK_BYTES: u32 = 512 * 1024;
 #[path = "workspace_mask_execution.rs"]
-mod execution;
+pub(crate) mod execution;
 #[path = "workspace_mask_interaction.rs"]
 mod interaction;
 #[path = "workspace_mask_journey.rs"]
 mod journey;
 #[path = "workspace_mask_plan.rs"]
-mod plan;
+pub(crate) mod plan;
 pub use interaction::{BrowserMaskInteraction, BrowserMaskInteractionReceipt};
 pub use journey::BrowserMaskJourneyOutcome;
 

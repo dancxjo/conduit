@@ -8,8 +8,12 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
+use conduit_core::HostAdvertisement;
 use conduit_core::{bind_sign, BaseImplementationId};
-use conduit_presentation::{Face, FaceContext, FaceFocus, OwnerFaceSnapshotRequest, Presentation};
+use conduit_presentation::{
+    Face, FaceContext, FaceFocus, FaceNames, FaceResidentPlotName, OwnerFaceSnapshotRequest,
+    Presentation,
+};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
 #[cfg(unix)]
@@ -18,14 +22,100 @@ pub(crate) use participants::{BrowserAdmittedSnapshot, BrowserWindowAuthorizatio
 use std::{
     collections::BTreeMap,
     io::Write,
+    ops::{Deref, DerefMut},
     path::Path,
     time::{Duration, Instant},
 };
 
+#[path = "continuing.rs"]
+mod continuing;
+pub(crate) use continuing::RunWorker;
+#[path = "clock_interval.rs"]
+mod clock_interval;
+pub(crate) fn clock_interval_action() -> &'static str {
+    clock_interval::CLOCK_INTERVAL_ACTION
+}
+
+/// The owner keeps its Boot advertisement while its one Host executes the
+/// admitted Body Play on a worker. No second Host is constructed.
+pub(crate) struct OwnerHost {
+    current: Option<StdHost>,
+    advertised: HostAdvertisement,
+}
+
+impl OwnerHost {
+    fn new(host: StdHost) -> Self {
+        Self {
+            advertised: host.advertisement().clone(),
+            current: Some(host),
+        }
+    }
+
+    pub(crate) fn advertisement(&self) -> &HostAdvertisement {
+        self.current
+            .as_ref()
+            .map(StdHost::advertisement)
+            .unwrap_or(&self.advertised)
+    }
+
+    pub(crate) fn take_for_play(&mut self) -> Result<StdHost, String> {
+        let host = self
+            .current
+            .take()
+            .ok_or("Body Play already owns the Host")?;
+        self.advertised = host.advertisement().clone();
+        Ok(host)
+    }
+
+    pub(crate) fn restore_after_play(&mut self, host: StdHost) -> Result<(), String> {
+        if self.current.is_some()
+            || host.advertisement().host_id != self.advertised.host_id
+            || host.advertisement().boot_id != self.advertised.boot_id
+        {
+            return Err("Body Play returned a different or duplicate Host Boot".into());
+        }
+        self.advertised = host.advertisement().clone();
+        self.current = Some(host);
+        Ok(())
+    }
+
+    pub(crate) fn current(&self) -> &StdHost {
+        self.current
+            .as_ref()
+            .expect("Host effects require an idle owner")
+    }
+
+    pub(crate) fn current_mut(&mut self) -> &mut StdHost {
+        self.current
+            .as_mut()
+            .expect("Host effects require an idle owner")
+    }
+
+    pub(crate) fn is_playing(&self) -> bool {
+        self.current.is_none()
+    }
+}
+
+impl Deref for OwnerHost {
+    type Target = StdHost;
+
+    fn deref(&self) -> &Self::Target {
+        self.current()
+    }
+}
+
+impl DerefMut for OwnerHost {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.current_mut()
+    }
+}
+
 pub(crate) struct Owner {
-    pub(crate) host: StdHost,
+    pub(crate) host: OwnerHost,
     session: BodyLifecycleSession,
     resident: Option<ResidentPlot>,
+    resident_name: Option<String>,
+    clock_interval_ms: Option<u64>,
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
@@ -104,9 +194,11 @@ impl Owner {
             BodyLifecycleSession::open(evidence).map_err(debug)?
         };
         Ok(Self {
-            host,
+            host: OwnerHost::new(host),
             session,
             resident: Some(resident),
+            resident_name: None,
+            clock_interval_ms: None,
             last_execution: None,
             admissions: None,
             pending_browser: None,
@@ -120,9 +212,11 @@ impl Owner {
                 .map_err(debug)?;
         let resident = session.evidence().body.workset.plots().first().cloned();
         Ok(Self {
-            host,
+            host: OwnerHost::new(host),
             session,
             resident,
+            resident_name: None,
+            clock_interval_ms: None,
             last_execution: None,
             admissions: None,
             pending_browser: None,
@@ -140,6 +234,24 @@ impl Owner {
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
         )
+    }
+    /// A readable name may enter only with the checked source for the exact
+    /// resident identity. It is rederived after Boot, never treated as a
+    /// second retained authority.
+    pub(crate) fn set_resident_plot_name(
+        &mut self,
+        checked: &conduit_plot::ExpandedAuthoringPlot,
+    ) -> Result<(), String> {
+        let resident = ResidentPlot::new(
+            checked.expanded.source_document_id.clone(),
+            checked.expanded.checked_plot_id.clone(),
+        );
+        if self.resident.as_ref() != Some(&resident) {
+            return Err("checked source differs from the Body's resident Plot".into());
+        }
+        self.resident_name = Some(checked.expanded.name.clone());
+        self.clock_interval_ms = clock_interval::recognized_interval(&resident);
+        Ok(())
     }
     pub(super) fn restore_execution(&mut self, root: &Path) -> Result<(), String> {
         self.last_execution = state::execution(root)?;
@@ -178,7 +290,24 @@ impl Owner {
         if !present || self.session.evidence().body_id != request.body_id {
             return Err("owner-face-current-part-unavailable".into());
         }
-        let face = Face::project(
+        self.local_face_snapshot()
+    }
+
+    /// The installed owner's current Face. Only the authenticated local
+    /// control service calls this; remote callers still need an exact admitted
+    /// credential and current Part above.
+    pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
+        let plot_name = self
+            .resident
+            .as_ref()
+            .zip(self.resident_name.as_deref())
+            .map(|(resident, name)| FaceResidentPlotName {
+                source_document_id: &resident.source_document_id,
+                checked_plot_id: &resident.checked_plot_id,
+                name,
+            });
+        let plot_names: Vec<_> = plot_name.into_iter().collect();
+        let face = Face::project_with_names(
             &self.session.evidence().body,
             self.session
                 .realization()
@@ -187,18 +316,35 @@ impl Owner {
             FaceContext::Overview,
             FaceFocus::Body,
             vec![],
+            FaceNames {
+                body_name: Some(&self.session.evidence().friendly_name),
+                resident_plots: &plot_names,
+            },
         )
         .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
         face.presentation
             .validate()
             .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
-        Ok(face.presentation)
+        clock_interval::with_clock_action(self, face.presentation)
     }
     pub(super) fn plan(
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
         let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
+        let partition = self.plan_partition(plot, resident)?;
+        let hosts = [self.host.advertisement().clone()];
+        self.session
+            .propose(vec![partition], &hosts[0].host_id, &hosts[0].boot_id)
+            .map_err(debug)?;
+        Ok(())
+    }
+
+    fn plan_partition(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+    ) -> Result<BodyPlotPlan, String> {
         let hosts = [self.host.advertisement().clone()];
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
@@ -219,17 +365,10 @@ impl Owner {
             &BTreeMap::new(),
         )
         .map_err(debug)?;
-        self.session
-            .propose(
-                vec![BodyPlotPlan {
-                    plot: resident.clone(),
-                    plan,
-                }],
-                &hosts[0].host_id,
-                &hosts[0].boot_id,
-            )
-            .map_err(debug)?;
-        Ok(())
+        Ok(BodyPlotPlan {
+            plot: resident.clone(),
+            plan,
+        })
     }
     pub(super) fn execute(&mut self, maximum_millis: u64) -> Result<(), String> {
         if !(1..=60_000).contains(&maximum_millis) {
@@ -301,7 +440,7 @@ impl Owner {
             }
         }
     }
-    pub(super) fn lull(&mut self) -> Result<(), String> {
+    pub(crate) fn lull(&mut self) -> Result<(), String> {
         if let Some(realization) = self.session.realization() {
             let play = realization.play.clone();
             let host = self.host.advertisement();
@@ -335,7 +474,8 @@ struct DeadlineTimer {
 impl TimerAdapter for DeadlineTimer {
     fn wait(&mut self, duration: Duration) {
         let end = Instant::now() + duration;
-        while Instant::now() < end && Instant::now() < self.until {
+        while Instant::now() < end && Instant::now() < self.until && !self.control.stop_requested()
+        {
             std::thread::sleep(
                 Duration::from_millis(10).min(end.saturating_duration_since(Instant::now())),
             );

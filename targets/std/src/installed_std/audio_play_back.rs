@@ -214,9 +214,7 @@ pub(super) fn prepare_session(
     {
         return Err("planned audio/play resource is stale or differs from selection".to_string());
     }
-    Ok(crate::hosted_audio::PlaybackSession::resolved(
-        selected.clone(),
-    ))
+    crate::hosted_audio::PlaybackSession::resolved(selected.clone())
 }
 
 pub(super) fn execute(
@@ -260,6 +258,11 @@ fn failure_outcome(error: crate::hosted_audio::PlaybackFailure) -> conduit_kerne
             conduit_kernel::HostCallDisposition::Failed,
             conduit_kernel::FailureCode::InvalidInput,
             73,
+        ),
+        PlaybackFailure::StagingExceeded => (
+            conduit_kernel::HostCallDisposition::Failed,
+            conduit_kernel::FailureCode::WorkBudgetExhausted,
+            80,
         ),
         PlaybackFailure::Underrun => (
             conduit_kernel::HostCallDisposition::Failed,

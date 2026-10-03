@@ -108,6 +108,33 @@ test("workspace request snapshots a shared input/output arena before retiring in
   assert.deepEqual([...new Uint8Array(api.memory.buffer, pointer, 16)], new Array(16).fill(0));
 });
 
+test("owner Face Mask bridge forwards exact u64 response bytes into WASM", () => {
+  const api = runtime();
+  const inputPointer = 2048;
+  const outputPointer = 32768;
+  let outputLength = 0;
+  let observedFrame = "";
+  api.conduit_browser_owner_face_input_ptr = () => inputPointer;
+  api.conduit_browser_owner_face_input_capacity = () => 16 * 1024;
+  api.conduit_browser_owner_face_output_ptr = () => outputPointer;
+  api.conduit_browser_owner_face_output_capacity = () => 64 * 1024;
+  api.conduit_browser_owner_face_output_len = () => outputLength;
+  api.conduit_browser_owner_face_prepare = (basisLength, frameLength) => {
+    const bytes = new Uint8Array(api.memory.buffer, inputPointer + basisLength, frameLength);
+    observedFrame = new TextDecoder().decode(bytes);
+    const output = new TextEncoder().encode(JSON.stringify({ schema: "conduit.browser/owner-face-mask@1", face_revision: "9007199254740993" }));
+    new Uint8Array(api.memory.buffer, outputPointer, output.length).set(output);
+    outputLength = output.length;
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "owner Face proof" });
+  const rawFrame = new TextEncoder().encode('{"kind":"face-snapshot-response","protocol":1,"response":{"revision":9007199254740993}}');
+  const view = bridge.ownerFacePrepare({ body_id: "body/one", host_id: "host/browser", boot_id: "boot/current" }, rawFrame);
+  assert.match(observedFrame, /9007199254740993/);
+  assert.equal(view.face_revision, "9007199254740993");
+  assert.ok(new Uint8Array(api.memory.buffer, inputPointer, rawFrame.length).every(byte => byte === 0));
+});
+
 test("rejects malformed workspace input capacity", () => {
   const api = runtime();
   api.conduit_workspace_input_capacity = () => Number.NaN;

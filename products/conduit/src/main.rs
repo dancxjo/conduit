@@ -1,4 +1,5 @@
 mod body_product;
+mod body_terminal;
 mod cli;
 mod deployment_carrier;
 mod diagnostics;
@@ -262,6 +263,15 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Status { state_dir, json }),
         }) => durable_host::body_status(&state_dir, json),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Start { state_dir, maximum_millis }),
+        }) => durable_host_control::start_owned_body(&state_dir, maximum_millis),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Lull { state_dir }),
+        }) => durable_host_control::lull_owned_body(&state_dir),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Terminal { state_dir }),
+        }) => body_terminal::run(&state_dir, &mut io::stdin().lock(), &mut io::stdout().lock()),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Invite {

@@ -51,6 +51,7 @@ package_test_shard!(
         "conduit-host-make",
         "conduit-planner",
         "conduit-signal",
+        "conduit-speech",
         "conduit-signal-conformance",
         "conduit-alife-distributed-conformance",
         "conduit-r1-network-conformance",
@@ -78,7 +79,7 @@ package_test_shard!(
         "patchbay-application",
         "patchbay-svg-mask",
     ],
-    []
+    ["--features", "conduit-speech/semantic-bindings"]
 );
 
 // Host tests launch real local providers and device-discovery subprocesses.
@@ -282,12 +283,24 @@ mod tests {
                     step.id
                 );
             } else if package_end < options.len() {
-                assert_eq!(
-                    &options[package_end..],
-                    ["--features", "conduit-tongues/speech"],
-                    "{} trailing options",
-                    step.id
-                );
+                let ["--features", features] = &options[package_end..] else {
+                    panic!("{} has unsupported trailing options", step.id);
+                };
+                for feature in features.split(',') {
+                    let (package, feature) = feature
+                        .split_once('/')
+                        .expect("feature names its owning package");
+                    assert!(!feature.is_empty());
+                    assert!(
+                        packages
+                            .as_chunks::<2>()
+                            .0
+                            .iter()
+                            .any(|pair| pair[1] == package),
+                        "{} enables a feature outside its package shard",
+                        step.id
+                    );
+                }
             }
         }
     }
