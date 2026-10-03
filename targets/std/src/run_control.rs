@@ -70,7 +70,7 @@ impl RunControl {
 
     /// Observe cancellation during a Host effect without consuming the exact
     /// request that the runner must acknowledge in its lifecycle evidence.
-    pub(crate) fn stop_requested(&self) -> bool {
+    pub fn stop_requested(&self) -> bool {
         let state = self.state.0.lock().expect("run control lock poisoned");
         state.requested.is_some() || state.accepted
     }

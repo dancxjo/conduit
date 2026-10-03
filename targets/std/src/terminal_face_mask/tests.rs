@@ -119,6 +119,35 @@ fn full_document_preserves_words_relationships_and_inspection() {
     assert!(exact.contains("opaque/sha256:producer"));
     assert!(mask.show().is_none());
 }
+
+#[test]
+fn read_only_owner_face_can_be_read_but_never_submitted() {
+    let mut mask = TerminalFaceMask::prepare_read_only(face(7), 60, 12).unwrap();
+    let show = bind(&mut mask);
+    let frame = document::frame(&mask);
+    assert!(frame.contains("Read only"));
+    assert!(!frame.contains("Enter apply"));
+    assert_eq!(
+        mask.input(TerminalInput::NextControl, &show, 1).unwrap(),
+        TerminalInputOutcome::Unchanged
+    );
+    assert_eq!(mask.focused(), None);
+    assert_eq!(
+        mask.input(TerminalInput::Apply, &show, 2),
+        Err(TerminalError::UnsupportedInput)
+    );
+    assert_eq!(
+        mask.input(TerminalInput::Text('x'), &show, 2),
+        Err(TerminalError::UnsupportedInput)
+    );
+    assert_eq!(mask.show(), Some(&show));
+    assert_eq!(
+        mask.input(TerminalInput::NextClause, &show, 3).unwrap(),
+        TerminalInputOutcome::Redraw
+    );
+    assert_eq!(mask.focused(), None);
+    assert!(mask.show().is_none());
+}
 #[test]
 fn flush_failure_cannot_produce_receipt_or_leave_input_active() {
     struct FailFlush;
