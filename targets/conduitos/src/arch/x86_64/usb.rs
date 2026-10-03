@@ -29,7 +29,7 @@ use descriptor::{
 pub use dma::USB_DEVICE_DMA_SLOTS;
 use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
-use transfer::{transferred_bytes, validate_transfer_event};
+use transfer::{setup_transfer_type, transferred_bytes, validate_transfer_event};
 pub const MAX_CONTROL_TRANSFERS: u8 = 5;
 pub const MAX_OUTSTANDING_CONTROL_TRANSFERS: u8 = 1;
 pub const MAX_ENUMERATION_RETRIES: u8 = 0;
@@ -440,7 +440,7 @@ fn control(
         u32::from(request_type) | (u32::from(request) << 8) | (u32::from(value) << 16),
         u32::from(index) | (u32::from(length) << 16),
         8,
-        (2 << 10) | (1 << 6) | (if input { 3 << 16 } else { 0 }) | ring.cycle,
+        (2 << 10) | (1 << 6) | setup_transfer_type(input, length) | ring.cycle,
     ];
     put_transfer(ring.dma, ring.enqueue, setup);
     ring.enqueue += 1;
