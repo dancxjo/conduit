@@ -126,3 +126,79 @@ fn unsupported_controls_and_arithmetic_have_distinct_refusals() {
             .unwrap();
     assert_eq!(cycle_q8(&request), Err(ControlRefusal::Arithmetic));
 }
+
+#[test]
+fn exact_duration_and_selected_phone_survive_combined_controls() {
+    let realization = realize(RealizationInput {
+        phoneme: EnglishPhoneme::t,
+        stress: EnglishStress::unstressed,
+        position: EnglishPosition::medial,
+    })
+    .unwrap();
+    let events = [
+        VoiceEvent::selected(realization),
+        VoiceEvent::boundary(VoiceBoundary::word),
+        events()[0],
+    ];
+    let counts = [511, 0, 1001];
+    let cycle = SpeechFundamentalCycle::new(120, 1).unwrap();
+    let control =
+        prepare_voice_control(Some(&cycle), &SpeechRelativeIntensity::new(2, 1).unwrap()).unwrap();
+    let controls = [control.compact(); 3];
+    let prepared = Renderer::prepare_timed(&events, &counts)
+        .unwrap()
+        .with_controls(&controls)
+        .unwrap();
+    assert_eq!(prepared.total_frames(), 1512);
+    let expected = render(prepared, 128);
+    assert_eq!(expected.len(), 1512);
+    assert_eq!(render(prepared, 1), expected);
+    let identity = [SpeechEventVoiceControl {
+        cycle_mode: SpeechCycleControlMode::profile,
+        period_q8: 0,
+        amplitude_q15: 32768,
+    }; 3];
+    assert_eq!(
+        render(
+            Renderer::prepare_timed(&events, &counts)
+                .unwrap()
+                .with_controls(&identity)
+                .unwrap(),
+            63
+        ),
+        render(Renderer::prepare_timed(&events, &counts).unwrap(), 128)
+    );
+    let mut candidate = prepared;
+    candidate.render(&mut [0; 128]).unwrap();
+    assert_eq!(prepared.rendered_frames(), 0);
+    assert_eq!(render(prepared, 63), expected);
+}
+
+#[test]
+fn quantization_receipts_refuse_changed_coordinates_and_remainders() {
+    let request =
+        SpeechCycleAtRateRequest::new(SpeechFundamentalCycle::new(120, 1).unwrap(), 8000).unwrap();
+    assert!(SpeechCycleQ8AtRate::new(79, request.clone(), 17066).is_err());
+    assert!(SpeechCycleQ8AtRate::new(80, request.clone(), 17067).is_err());
+    assert!(SpeechCycleQ8AtRate::new(120, request, 17066).is_err());
+    let request = SpeechRelativeIntensity::new(1000, 1).unwrap();
+    assert!(SpeechAmplitudeQ15::new(767, request.clone(), 32).is_err());
+    assert!(SpeechAmplitudeQ15::new(768, request.clone(), 33).is_err());
+    assert!(SpeechAmplitudeQ15::new(1000, request, 32).is_err());
+}
+
+#[test]
+fn controls_cannot_replace_the_admitted_realization_after_play_starts() {
+    let events = events();
+    let controls = [SpeechEventVoiceControl {
+        cycle_mode: SpeechCycleControlMode::profile,
+        period_q8: 0,
+        amplitude_q15: 32768,
+    }; 4];
+    let mut started = Renderer::prepare_controlled(&events, &controls).unwrap();
+    started.render(&mut [0; 1]).unwrap();
+    assert!(matches!(
+        started.with_controls(&controls),
+        Err(RenderRefusal::ControlAfterStart)
+    ));
+}

@@ -15,6 +15,7 @@ pub enum RenderRefusal {
     OutputBound,
     ControlCount,
     ControlDomain,
+    ControlAfterStart,
     TimingCount,
     TimingDomain,
 }
@@ -260,12 +261,15 @@ impl<'a> Renderer<'a> {
             cursor,
         })
     }
-    /// Add immutable controls after validating every event. Existing exact
+    /// Add immutable controls before play, after validating every event. Existing exact
     /// duration spans and the selected-phone tape remain paired with this cursor.
     pub fn with_controls(
         mut self,
         controls: &'a [SpeechEventVoiceControl],
     ) -> Result<Self, RenderRefusal> {
+        if self.rendered_frames() != 0 {
+            return Err(RenderRefusal::ControlAfterStart);
+        }
         if controls.len() != self.events.len() {
             return Err(RenderRefusal::ControlCount);
         }
