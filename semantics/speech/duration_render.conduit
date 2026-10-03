@@ -1,0 +1,22 @@
+# Exact admitted PCM-grid spans, distinct from rate-independent source durations.
+# Segment DSP needs at least two frames; a boundary may have zero duration.
+type SpeechEventDurationCheck = {
+    boundary: Boolean
+    frames: I32
+}
+plot speech/event-duration-admitted (
+    >> value: SpeechEventDurationCheck
+    result: Boolean >>
+) = (.frames >= 0 && .frames <= 240000 && (.boundary || .frames >= 2))
+
+type SpeechDurationTargetInput = {
+    target: SpeechAcousticTarget
+    frames: I32
+}
+# Duration scales stop closure proportionally, retaining a nonzero closure for
+# a stop and at least one post-closure frame. The profile's default is exact.
+# Acoustic coefficients and source gains do not change with duration.
+plot speech/duration-target (
+    >> value: SpeechDurationTargetInput
+    result: SpeechAcousticTarget >>
+) = (.frames == .target.frames ? .target : {f1: .target.f1, f2: .target.f2, f3: .target.f3, b1: .target.b1, b2: .target.b2, b3: .target.b3, c1: .target.c1, c2: .target.c2, c3: .target.c3, gain1: .target.gain1, gain2: .target.gain2, gain3: .target.gain3, bypass_gain: .target.bypass_gain, voiced: .target.voiced, frication: .target.frication, frames: .frames, closure: .target.closure == 0 ? 0 : .target.closure * .frames / .target.frames < 1 ? 1 : .target.closure * .frames / .target.frames})

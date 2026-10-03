@@ -59,3 +59,14 @@ type SpeechAmplitudeQ15 = {
     where .remainder_numerator < .request.denominator
     where .whole_q15 * .request.denominator + .remainder_numerator == .request.numerator * 32768
 }
+
+# One renderer-independent source duration and its projected absolute endpoint.
+# The frame count is a difference of cumulative floors, not an independently
+# rounded duration. Timeline ordering is a preparation law across the sequence.
+type SpeechEventFrameSpan = {
+    duration: SpeechExactDuration
+    cumulative_end: SpeechDurationAtRate
+    start_frame: U64
+    frame_count: U64
+    where .start_frame + .frame_count == .cumulative_end.whole_frames
+}
