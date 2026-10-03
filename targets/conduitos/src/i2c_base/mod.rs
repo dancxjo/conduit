@@ -3,6 +3,7 @@
 pub mod contract;
 pub mod decode;
 pub mod i801;
+pub mod installation;
 pub mod owner;
 pub mod result;
 pub mod transaction;
