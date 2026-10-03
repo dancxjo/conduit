@@ -88,6 +88,9 @@ impl PendingJoinView {
                 property(&candidate, "target-body-id", PresentationPropertyValue::Identity(self.0.body_id.clone())),
                 property(&candidate, "invitation-id", PresentationPropertyValue::Identity(self.0.invitation_id.clone())),
                 property(&candidate, "spore-id", PresentationPropertyValue::Identity(self.0.spore_id.clone())),
+                property(&candidate, "owner-route-candidates", PresentationPropertyValue::Count(
+                    self.0.rendezvous.as_ref().map_or(0, |route| route.candidates.len()) as u64,
+                )),
                 property(&candidate, "membership-admitted", PresentationPropertyValue::Flag(false)),
             ],
             vec![
@@ -97,7 +100,11 @@ impl PendingJoinView {
                 },
                 PresentationText {
                     subject: candidate.clone(),
-                    text: "Waiting for an authenticated owner route and admission receipt. Local Birth is unavailable; this guest will not create a different Body.".into(),
+                    text: if self.0.rendezvous.is_some() {
+                        "A candidate route to the owner is recorded, but no connection or admission receipt has completed. Local Birth is unavailable; this guest will not create a different Body."
+                    } else {
+                        "Waiting for an authenticated owner route and admission receipt. Local Birth is unavailable; this guest will not create a different Body."
+                    }.into(),
                 },
             ],
             Vec::new(),
@@ -150,6 +157,7 @@ mod tests {
             spore_id: "spore/one".into(),
             body_id: "body/invited".into(),
             invitation_id: "invitation/one".into(),
+            rendezvous: None,
         })
         .unwrap();
         assert!(door.joining_pending());
@@ -182,5 +190,57 @@ mod tests {
             .unwrap();
         assert_eq!(published.basis.plan_id, Some(PlanId::from("producer/plan")));
         assert!(published.basis.body_id.is_none());
+    }
+
+    #[test]
+    fn provisioned_owner_route_remains_visible_without_claiming_a_connection() {
+        let route = serde_json::from_value(serde_json::json!({
+            "protocol": 1,
+            "body_id": "body/invited",
+            "invitation_id": "invitation/one",
+            "candidates": [{
+                "candidate_id": "candidate/owner",
+                "line_family": "authenticated-tls-stream",
+                "reachability": "wss://owner.example:443/conduit",
+                "authentication": {
+                    "server_identity": "owner.example",
+                    "transport_binding_sha256": vec![7; 32]
+                },
+                "expires_at_millis": 1_800_000_000_000_u64,
+                "maximum_attempts": 1,
+                "attempt_timeout_millis": 2_000
+            }]
+        }))
+        .unwrap();
+        let mut door = FrontDoor::new(
+            HostId::from("host/native"),
+            BootId::from("boot/native"),
+            OfferGeneration(1),
+            "profile/native",
+            "build/native",
+            "image/native",
+            SourceDocumentId::from("source/native"),
+            CheckedPlotId::from("checked/native"),
+            1,
+            true,
+        );
+        door.await_join(PendingNativeJoin {
+            spore_id: "spore/one".into(),
+            body_id: "body/invited".into(),
+            invitation_id: "invitation/one".into(),
+            rendezvous: Some(route),
+        })
+        .unwrap();
+        let face = door.presentation().unwrap();
+        face.validate().unwrap();
+        assert!(face.basis.body_id.is_none());
+        assert!(face.properties.iter().any(|property| {
+            property.name == "owner-route-candidates"
+                && property.value == PresentationPropertyValue::Count(1)
+        }));
+        assert!(face.text.iter().any(|text| {
+            text.text
+                .contains("no connection or admission receipt has completed")
+        }));
     }
 }

@@ -1,7 +1,7 @@
 //! Bounded boot-time join proof emitted on the admitted early serial Line.
 
 use alloc::{string::String, vec::Vec};
-use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret};
+use conduit_body::{SpawnInvitationClaim, SpawnInvitationSecret, SpawnRendezvousDescriptor};
 use serde::Serialize;
 
 use crate::spore_provision::NativeMediaProvision;
@@ -16,6 +16,19 @@ pub struct PendingNativeJoin {
     pub spore_id: String,
     pub body_id: String,
     pub invitation_id: String,
+    /// Public, bounded owner reachability. This is not admission authority.
+    pub rendezvous: Option<SpawnRendezvousDescriptor>,
+}
+
+impl PendingNativeJoin {
+    pub fn from_provision(provision: &NativeMediaProvision) -> Self {
+        Self {
+            spore_id: provision.spore.spore_id.clone(),
+            body_id: provision.spore.body_id.clone(),
+            invitation_id: provision.invitation_provision.invitation_id.clone(),
+            rendezvous: provision.invitation_provision.rendezvous.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -149,7 +162,11 @@ mod tests {
     use conduit_core::{BootId, HostId};
 
     fn provision() -> NativeMediaProvision {
-        serde_json::from_value(serde_json::json!({
+        serde_json::from_value(provision_value()).unwrap()
+    }
+
+    fn provision_value() -> serde_json::Value {
+        serde_json::json!({
             "schema":"conduit.spore/native-media-provision@1", "image_bytes":8192,
             "spore": {"schema":"conduit.body/spore-manifest@2", "spore_id":"spore/one",
                 "body_id":"body/one", "binding":{"mode":"self-joining","invitation_id":"invitation/one"},
@@ -159,8 +176,7 @@ mod tests {
                 "output":"disk-image", "make":{}, "source_identity":"source/one"},
             "invitation_provision":{"invitation_id":"invitation/one", "nonce":vec![17;32],
                 "expires_at_millis":1_800_000_000_000_u64, "secret":vec![13;32]}
-        }))
-        .unwrap()
+        })
     }
 
     #[test]
@@ -180,5 +196,32 @@ mod tests {
         assert_eq!(value["expiry_checked_by_body"], true);
         assert_eq!(value["signature"].as_array().unwrap().len(), 64);
         assert!(!encoded.windows(32).any(|window| window == [13; 32]));
+    }
+
+    #[test]
+    fn pending_join_retains_public_route_but_no_invitation_secret() {
+        let mut value = provision_value();
+        value["invitation_provision"]["rendezvous"] = serde_json::json!({
+            "protocol": 1,
+            "body_id": "body/one",
+            "invitation_id": "invitation/one",
+            "candidates": [{
+                "candidate_id": "candidate/owner",
+                "line_family": "authenticated-tls-stream",
+                "reachability": "wss://owner.example:443/conduit",
+                "authentication": {
+                    "server_identity": "owner.example",
+                    "transport_binding_sha256": vec![7; 32]
+                },
+                "expires_at_millis": 1_800_000_000_000_u64,
+                "maximum_attempts": 1,
+                "attempt_timeout_millis": 2_000
+            }]
+        });
+        let provision: NativeMediaProvision = serde_json::from_value(value).unwrap();
+        let pending = PendingNativeJoin::from_provision(&provision);
+        assert_eq!(pending.body_id, "body/one");
+        assert_eq!(pending.rendezvous.as_ref().unwrap().candidates.len(), 1);
+        assert!(!format!("{pending:?}").contains(&format!("{:?}", [13_u8; 32])));
     }
 }
