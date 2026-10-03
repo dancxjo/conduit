@@ -22,6 +22,19 @@ export function targetPackages(target) {
   else if (target.id === 'orange-pi') packages.push('dosfstools');
   return packages;
 }
+
+// espup can leave its named toolchain partially installed after a download failure.
+// A plain second install then fails on files from the first attempt. The name is
+// dedicated to this pipeline, so use espup's own uninstall before one retry.
+export function acquireXtensa(espup, args, run = command) {
+  try { return run(espup, args); }
+  catch (error) {
+    console.warn(`Xtensa acquisition failed; cleaning the pipeline toolchain before one final attempt: ${error.message}`);
+    run(espup, ['uninstall', '--name', 'esp-conduit-1.91.1']);
+    return run(espup, args);
+  }
+}
+
 export function setup(target) {
   // Resolve the pinned browser package before deriving its platform libraries.
   if (target.family === 'browser') acquire('npm', ['ci', '--prefix', 'proof/browser']);
@@ -51,7 +64,7 @@ export function setup(target) {
       let warm = false;
       try { warm = JSON.stringify(JSON.parse(readFileSync(receipt, 'utf8'))) === JSON.stringify(identity); if (warm) activateXtensa(); } catch { warm = false; }
       if (!warm) {
-        acquire(espup, ['install', '--name', 'esp-conduit-1.91.1', '--toolchain-version', identity.rust,
+        acquireXtensa(espup, ['install', '--name', 'esp-conduit-1.91.1', '--toolchain-version', identity.rust,
           '--crosstool-toolchain-version', identity.gcc, '--targets', selected,
           '--export-file', path.resolve('target/pipeline-esp-export.sh')]);
         activateXtensa();
