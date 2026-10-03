@@ -3,13 +3,40 @@
 //! this operation performs membership only, not a Line, Plan, or remote Play.
 use super::{state, Owner};
 use conduit_body::{
-    BodyState, PortableAdmissionReceipt, PortableSpawnAdmissionRequest,
-    SPAWN_ADMISSION_RECEIPT_SCHEMA,
+    AdmissionManager, BodyState, PortableAdmissionReceipt, PortableInvitation,
+    PortableSpawnAdmissionRequest, SPAWN_ADMISSION_RECEIPT_SCHEMA,
 };
 use conduit_core::{HostId, PROTOCOL_VERSION};
 use std::path::Path;
 
 impl Owner {
+    pub(crate) fn issue_invitation(
+        &mut self,
+        root: &Path,
+        ttl_seconds: u64,
+    ) -> Result<PortableInvitation, String> {
+        if self.session.evidence().body.state != BodyState::Lulled
+            || self.session.realization().is_some()
+        {
+            return Err("invitation requires a lulled Body without a proposal".into());
+        }
+        let mut manager = match &self.admissions {
+            Some(manager) => manager.clone(),
+            None => AdmissionManager::new(self.session.evidence().body_id.clone())
+                .map_err(|error| format!("initialize Body admission: {error:?}"))?,
+        };
+        let invitation =
+            super::super::super::invitation::issue_from_manager(&mut manager, ttl_seconds, None)?;
+        state::retain(
+            root,
+            self.session.evidence(),
+            self.last_execution.as_ref(),
+            Some(&manager),
+        )?;
+        self.admissions = Some(manager);
+        Ok(invitation)
+    }
+
     pub(crate) fn admit_invited(
         &mut self,
         root: &Path,

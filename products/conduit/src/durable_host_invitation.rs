@@ -85,6 +85,19 @@ pub(super) fn issue_body_invitation_document(
         AdmissionManager::new(body_id)
             .map_err(|error| format!("initialize Body admission: {error:?}"))?
     };
+    let portable = issue_from_manager(&mut manager, ttl_seconds, candidates)?;
+    write_json_atomic(&admission_path, &manager)?;
+    Ok(portable)
+}
+
+pub(super) fn issue_from_manager(
+    manager: &mut AdmissionManager,
+    ttl_seconds: u64,
+    candidates: Option<Vec<conduit_body::RendezvousCandidate>>,
+) -> Result<PortableInvitation, String> {
+    if !(1..=600).contains(&ttl_seconds) {
+        return Err("invitation lifetime must be between 1 and 600 seconds".into());
+    }
     let now_millis = current_time_millis()?;
     let expires_at_millis = now_millis
         .checked_add(ttl_seconds.saturating_mul(1_000))
@@ -99,7 +112,6 @@ pub(super) fn issue_body_invitation_document(
     let invitation = manager
         .issue_spawn_invitation(secret, nonce, now_millis, expires_at_millis)
         .map_err(|error| format!("issue Body invitation: {error:?}"))?;
-    write_json_atomic(&admission_path, &manager)?;
     let claim = invitation.claim();
     let rendezvous = candidates.map(|candidates| conduit_body::SpawnRendezvousDescriptor {
         protocol: conduit_body::RENDEZVOUS_DESCRIPTOR_PROTOCOL,

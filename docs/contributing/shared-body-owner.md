@@ -65,6 +65,9 @@ bounded run, send these lines:
 ```
 
 `inspect`, `plan`, `run`, `lull`, and `close` are the supported operations.
+`invite` with `ttl_seconds` from 1 through 600 issues the same single-use
+portable Body invitation while this foreground owner holds the installation
+lock; it retains the invitation before emitting the provisioning secret.
 Ordinary control requests are at most 4096 bytes. The internal `admit-invited`
 operation accepts at most 512 KiB because it carries one portable signed
 `conduit.body/spawn-admission-request@1` document and an exact authorized

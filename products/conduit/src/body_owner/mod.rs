@@ -19,6 +19,9 @@ pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
     Inspect,
+    Invite {
+        ttl_seconds: u64,
+    },
     AdmitBrowser {
         expected_host_id: String,
         new_host_verifying_key: Option<[u8; 32]>,
@@ -95,6 +98,10 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                     }
                     match request {
                         Request::Inspect => {}
+                        Request::Invite { ttl_seconds } => {
+                            let invitation = owner.issue_invitation(&root, ttl_seconds)?;
+                            emit(&serde_json::to_value(invitation).map_err(|e| e.to_string())?)?;
+                        }
                         Request::AdmitBrowser {
                             expected_host_id,
                             new_host_verifying_key,
