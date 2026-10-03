@@ -216,7 +216,7 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
         .and_then(|_| fs::create_dir_all(&efi_boot))
         .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     copy(&paths.kernel, &boot.join("conduitos"))?;
-    let mut spore = vec![0xff; 4096];
+    let mut spore = vec![0xff; conduitos::spore_provision::REGION_BYTES];
     let magic = b"CONDUIT_SPORE_MEDIA@1\0";
     spore[..magic.len()].copy_from_slice(magic);
     spore[24..32].fill(0);

@@ -320,7 +320,7 @@ fn sha256(bytes: &[u8]) -> String {
 mod tests {
     use super::{
         blank_region, certificates_for_route, encode_region, locate_blank_region,
-        write_private_new, REGION_BYTES,
+        write_private_new, HEADER_BYTES, REGION_BYTES,
     };
     use conduit_body::{
         RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily,
@@ -346,11 +346,17 @@ mod tests {
         let region = encode_region(br#"{"schema":"example"}"#).unwrap();
         image[512..512 + REGION_BYTES].copy_from_slice(&region);
         assert!(locate_blank_region(&image).is_err());
+        // A normal valid routed invitation was measured at 4,151 bytes with
+        // an ordinary Ed25519 TLS leaf; it must fit without certificate tricks.
+        assert!(encode_region(&vec![0; 4_151]).is_ok());
         assert_eq!(
             encode_region(&vec![0; REGION_BYTES])
                 .unwrap_err()
                 .to_string(),
-            "native spore provision uses 4096 bytes; finite media region permits at most 4064"
+            format!(
+                "native spore provision uses {REGION_BYTES} bytes; finite media region permits at most {}",
+                REGION_BYTES - HEADER_BYTES
+            )
         );
     }
 
