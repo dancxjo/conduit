@@ -115,7 +115,7 @@ fn mask_participant_requires_exact_current_membership_before_wake() {
     let mask = conduit_body::BodyMaskTopology {
         face: conduit_body::BodyFaceSelector {
             plot: Some(partitions[0].plot.clone()),
-            source_placement_id: "face".into(),
+            source_placement_id: None,
         },
         chains: alloc::vec![conduit_body::BodyMaskChainPlan {
             plan: mask_plan,

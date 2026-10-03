@@ -56,6 +56,7 @@ impl MaskControlSession {
             None => {
                 presentation.basis.source_document_id.is_none()
                     && presentation.basis.checked_plot_id.is_none()
+                    && selector.source_placement_id.is_none()
             }
         };
         if !selector_matches {

@@ -301,7 +301,7 @@ fn body_plan_for(planned_masks: &[PlannedMaskPlot]) -> BodyPlan {
                         planned.mask.plot_identity.source_document_id.clone(),
                         planned.mask.plot_identity.checked_plot_id.clone(),
                     )),
-                    source_placement_id: first.clone(),
+                    source_placement_id: None,
                 },
                 chains: vec![BodyMaskChainPlan {
                     plan: planned.plan.clone(),

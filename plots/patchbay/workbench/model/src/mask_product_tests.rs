@@ -196,7 +196,7 @@ fn fixture(available: bool) -> Fixture {
         vec![BodyMaskTopology {
             face: BodyFaceSelector {
                 plot: Some(resident),
-                source_placement_id: first_placement.clone(),
+                source_placement_id: None,
             },
             chains: vec![BodyMaskChainPlan {
                 plan: plan.clone(),

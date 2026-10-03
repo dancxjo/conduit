@@ -1,8 +1,9 @@
 use conduit_body::{
-    Body, BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlanningSession,
-    BodyPlanningTransition, BodyPlotPlan, BodyWorkset, ResidentPlot, WakeLifecycle, WakePlanState,
+    Body, BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, BodyPlanError,
+    BodyPlanningSession, BodyPlanningTransition, BodyPlotPlan, BodyWorkset, ResidentPlot,
+    WakeLifecycle, WakePlanState,
 };
-use conduit_core::{BaseImplementationId, BootId, HostId, PlacementId, SignId};
+use conduit_core::{BaseImplementationId, BootId, HostId, SignId};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_host::StdHost;
 
@@ -172,7 +173,7 @@ fn mask_replan_changes_plan_play_without_changing_body_or_authored_plots() {
     };
     let selector = BodyFaceSelector {
         plot: Some(resident),
-        source_placement_id: PlacementId::from("hello/presentation"),
+        source_placement_id: None,
     };
     let graphical = BodyMaskChainPlan {
         stage_placement_ids: vec![renderer(&mask_plans.direct)],
@@ -210,4 +211,38 @@ fn mask_replan_changes_plan_play_without_changing_body_or_authored_plots() {
     assert_ne!(session.current_plan().plan_id, initial_plan.plan_id);
     assert_eq!(session.current_plan().mask_topologies[0].chains.len(), 2);
     assert_eq!(session.plan(&initial_plan.plan_id), Some(&initial_plan));
+
+    let current = session.current_plan();
+    let mut body_scoped = current.mask_topologies[0].clone();
+    body_scoped.face = BodyFaceSelector {
+        plot: None,
+        source_placement_id: None,
+    };
+    let body_scoped_plan = BodyPlan::seal_with_masks(
+        session.wake(),
+        current.plots.clone(),
+        vec![body_scoped.clone()],
+    )
+    .unwrap();
+    assert_ne!(body_scoped_plan.plan_id, current.plan_id);
+    assert!(body_scoped_plan.verify_seal().is_ok());
+
+    let mut forged = body_scoped_plan.clone();
+    forged.mask_topologies[0].face.source_placement_id = Some("invented/body-placement".into());
+    assert_eq!(forged.verify_seal(), Err(BodyPlanError::InvalidMaskChain));
+
+    body_scoped.face.source_placement_id = Some("invented/body-placement".into());
+    assert_eq!(
+        BodyPlan::seal_with_masks(
+            session.wake(),
+            current.plots.clone(),
+            vec![body_scoped.clone()]
+        ),
+        Err(BodyPlanError::InvalidMaskChain)
+    );
+    body_scoped.face.plot = Some(current.plots[0].plot.clone());
+    assert_eq!(
+        BodyPlan::seal_with_masks(session.wake(), current.plots.clone(), vec![body_scoped]),
+        Err(BodyPlanError::InvalidMaskChain)
+    );
 }
