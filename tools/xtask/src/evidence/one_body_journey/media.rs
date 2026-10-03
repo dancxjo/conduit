@@ -5,9 +5,28 @@ use std::{
 };
 
 pub(super) fn png(path: &Path) -> Result<bool, String> {
-    Ok(fs::read(path)
-        .map_err(|error| error.to_string())?
-        .starts_with(b"\x89PNG\r\n\x1a\n"))
+    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    if bytes.len() < 33
+        || !bytes.starts_with(b"\x89PNG\r\n\x1a\n")
+        || bytes[8..12] != 13_u32.to_be_bytes()
+        || &bytes[12..16] != b"IHDR"
+    {
+        return Ok(false);
+    }
+    let width = u32::from_be_bytes(bytes[16..20].try_into().unwrap());
+    let height = u32::from_be_bytes(bytes[20..24].try_into().unwrap());
+    if width == 0
+        || height == 0
+        || width > 16_384
+        || height > 16_384
+        || width
+            .checked_mul(height)
+            .is_none_or(|pixels| pixels > 20_000_000)
+    {
+        return Ok(false);
+    }
+    Ok(resvg::tiny_skia::Pixmap::decode_png(&bytes)
+        .is_ok_and(|image| image.width() == width && image.height() == height))
 }
 
 pub(super) fn wav(path: &Path) -> Result<bool, String> {

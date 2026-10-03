@@ -128,7 +128,7 @@ fn document(
                     let transcript = item.transcript.ok_or("validated audio lost transcript")?;
                     let transcript_href = safe_asset_path(&transcript.path)?;
                     let mode = item.mode.ok_or("validated audio lost speech mode")?;
-                    media.push_str(&format!("<figure><figcaption>{}</figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download produced speech</a></audio><p><strong>Words spoken ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
+                    media.push_str(&format!("<figure><figcaption>{}</figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download produced speech</a></audio><p><strong>Words in produced audio ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
                         escape(item.alt), escape(&href), escape(&href), escape(mode),
                         escape(item.transcript_text.as_deref().unwrap_or("")), escape(&transcript_href)));
                     if let Some(validation) = item.validation {
