@@ -54,17 +54,29 @@ pub(crate) struct VirtioTcpStream<'a> {
     deadline: Option<CandidateDeadline>,
 }
 
+/// The admitted route and bounded polling basis for one TCP connection.
+#[derive(Clone, Copy)]
+pub(crate) struct VirtioTcpConnectOptions {
+    pub random_seed: u64,
+    pub endpoint: VirtioTcpEndpoint,
+    pub maximum_polls: u32,
+    pub deadline: Option<CandidateDeadline>,
+}
+
 impl<'a> VirtioTcpStream<'a> {
     pub(crate) fn connect(
         device: VirtioNetReady,
-        random_seed: u64,
-        endpoint: VirtioTcpEndpoint,
-        maximum_polls: u32,
-        deadline: Option<CandidateDeadline>,
+        options: VirtioTcpConnectOptions,
         receive_storage: &'a mut [u8],
         transmit_storage: &'a mut [u8],
         socket_storage: &'a mut [SocketStorage<'a>],
     ) -> Result<Self, VirtioTcpError> {
+        let VirtioTcpConnectOptions {
+            random_seed,
+            endpoint,
+            maximum_polls,
+            deadline,
+        } = options;
         if maximum_polls == 0
             || receive_storage.is_empty()
             || transmit_storage.is_empty()
