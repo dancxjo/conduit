@@ -305,9 +305,13 @@ mod tests {
         )
         .unwrap();
         fs::write(root.join("body/biography.json"), b"interrupted write").unwrap();
+        let invited =
+            super::super::super::invitation::issue_body_invitation_document(&root, 60, None)
+                .unwrap();
+        assert_eq!(invited.claim.body_id, body.body_id);
         assert_eq!(load(&root).unwrap().unwrap().body_id, body.body_id);
         assert!(!root.join("body/owner-transaction.json").exists());
-        assert_eq!(admissions(&root, &body.body_id).unwrap(), Some(manager));
+        assert_ne!(admissions(&root, &body.body_id).unwrap(), Some(manager));
         fs::write(root.join("body/biography.json"), b"corrupt").unwrap();
         assert!(load(&root).is_err());
         let raw: Installation =

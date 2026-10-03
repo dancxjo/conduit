@@ -11,6 +11,10 @@ use std::{
 const MAXIMUM_SOURCE: u64 = 256 * 1024;
 const MAXIMUM_CONTROL_REQUEST: u64 = 4096;
 const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
+
+pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
+    state::recover(root)
+}
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
