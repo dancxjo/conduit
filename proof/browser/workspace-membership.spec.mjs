@@ -11,6 +11,15 @@ test.beforeEach(async () => { entrance = await startStaticProduct("target/worksp
 test.afterEach(() => entrance?.child.kill());
 
 test.use({ video: { mode: "on", size: { width: 1280, height: 800 } }, viewport: { width: 1280, height: 800 } });
+async function waitForBornBodyEvidence(page) {
+  await expect.poll(() => page.evaluate(() => {
+    const workspace = globalThis.__conduitWorkspace;
+    const bodyId = workspace?.current()?.body_id;
+    const evidence = workspace?.evidence()?.evidence;
+    return bodyId && evidence?.body?.body_id === bodyId && evidence?.membership ? bodyId : null;
+  })).not.toBeNull();
+}
+
 test("the ordinary face binds and admits one compiler-free reviewed browser Host", async ({ page, context }, testInfo) => {
   test.setTimeout(120_000);
   const captures = {};
@@ -494,8 +503,7 @@ test("an unavailable running host leaves the current body and browser Host intac
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await expect.poll(async () => page.evaluate(() => globalThis.__conduitWorkspace.evidence()?.evidence?.body?.body_id))
-    .toBe(await page.evaluate(() => globalThis.__conduitWorkspace.current().body_id));
+  await waitForBornBodyEvidence(page);
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
 
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
@@ -522,6 +530,7 @@ test("an already-running host joins without displacing the browser Host or its b
     await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
     await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
     await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+    await waitForBornBodyEvidence(page);
     const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
     await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
@@ -564,6 +573,7 @@ test("loss of a joined Host Line removes only its current offers and keeps the b
     await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
     await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
     await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+    await waitForBornBodyEvidence(page);
     const bodyId = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
 
     await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
