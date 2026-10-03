@@ -302,6 +302,24 @@ impl FrontDoor {
                 level: PresentationDisclosureLevel::Primary,
             });
         }
+        if let (Some(graph), Some(body)) = (
+            &self.patchbay_graph,
+            self.journey
+                .as_ref()
+                .and_then(|journey| journey.body_id.as_ref()),
+        ) {
+            super::graph_projection::append(
+                graph,
+                &format!("body/{}", body.as_str()),
+                &mut super::graph_projection::Content {
+                    subjects: &mut subjects,
+                    relationships: &mut relationships,
+                    properties: &mut properties,
+                    texts: &mut texts,
+                    disclosures: &mut disclosures,
+                },
+            );
+        }
         Presentation::new_with_semantics(
             self.revision,
             basis,

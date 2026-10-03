@@ -24,6 +24,10 @@ pub(super) struct PatchbayTargets {
 }
 
 impl PatchbayTargets {
+    pub(super) fn selected_graph(&self) -> Option<&patchbay_graph::PatchbayGraph> {
+        Some(self.ports.get(self.selected)?.as_ref()?.graph())
+    }
+
     pub(super) fn prepare(
         prepared: &super::PreparedNativeWorkset,
         patchbay: usize,

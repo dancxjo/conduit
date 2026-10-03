@@ -118,6 +118,7 @@ pub mod spoken_mask_journey;
 pub mod spoken_mask_runtime;
 #[cfg(test)]
 mod spoken_mask_runtime_tests;
+pub mod terminal_face_mask;
 mod vision_ocr;
 mod vision_tracker;
 
