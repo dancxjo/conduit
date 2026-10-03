@@ -17,8 +17,9 @@ pub const MAX_CANDIDATE_TOTAL_BYTES: u32 = 4 * MAX_CANDIDATE_ADVERTISEMENT_BYTES
 pub const MAX_CANDIDATE_LABEL_BYTES: usize = 128;
 pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// Finite discovery envelope, including the portable application seam, tutorial Presenter,
-/// the browser's exact bounded two-axis audio realization, and Ratio normalization.
-pub const MAX_CANDIDATE_CAPABILITIES: usize = 124;
+/// the browser's exact bounded two-axis audio realization, Ratio normalization,
+/// and its separately admitted DOM Mask Back.
+pub const MAX_CANDIDATE_CAPABILITIES: usize = 125;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

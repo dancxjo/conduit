@@ -4,9 +4,9 @@ use conduit_body::{
     BodyPlayIdentity, MembershipProofId, PartId,
 };
 use conduit_core::{
-    bind_sign, encode_count, CheckedPlotId, CheckedValueContract, ExpandedPlotId, IntervalEndpoint,
-    PlanId, Quantity, QuantityUnit, SourceDocumentId, ValueConstraint, COUNT_ENCODED_LEN,
-    COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
+    bind_sign, encode_count, kind_id, CheckedPlotId, CheckedValueContract, ExpandedPlotId,
+    IntervalEndpoint, OfferGeneration, PlanId, Quantity, QuantityUnit, SourceDocumentId,
+    ValueConstraint, COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
 use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
@@ -270,13 +270,11 @@ fn contextual_presentation(context: &str) -> Presentation {
 }
 
 fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
-    let planned = plan::planned_mask(
+    let host = crate::installed_browser::membership_advertisement(
         HostId::from("host/browser"),
         BootId::from("boot/browser"),
-        plan::MASK_SOURCE,
-        "browser-graphical",
-    )
-    .unwrap();
+    );
+    let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical").unwrap();
     let resident = conduit_body::ResidentPlot::new(
         planned.mask.plot_identity.source_document_id.clone(),
         planned.mask.plot_identity.checked_plot_id.clone(),
@@ -308,13 +306,8 @@ fn production_tutorial_basis() -> (
 ) {
     let host_id = HostId::from("host/browser");
     let boot_id = BootId::from("boot/browser");
-    let planned = plan::planned_mask(
-        host_id.clone(),
-        boot_id.clone(),
-        plan::MASK_SOURCE,
-        "browser-graphical",
-    )
-    .unwrap();
+    let host = crate::installed_browser::membership_advertisement(host_id.clone(), boot_id.clone());
+    let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical").unwrap();
     let resident = conduit_body::ResidentPlot::new(
         planned.mask.plot_identity.source_document_id.clone(),
         planned.mask.plot_identity.checked_plot_id.clone(),
