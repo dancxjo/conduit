@@ -57,6 +57,13 @@ try {
       errors.length = 0;
       const response = await page.goto(url);
       assert(response?.ok(), `${layout} ${id}: navigation failed`);
+      if (id === "handbook") {
+        const shell = await response.text();
+        assert(shell.includes('<header class="site-header">'), "Handbook navigation must be in its static HTML");
+        for (const stylesheet of ["conduit.css", "chrome.css", "application.css"]) {
+          assert(shell.includes(`href="${stylesheet}"`), `Handbook shell lacks ${stylesheet}`);
+        }
+      }
       if (id === "handbook-journey") {
         const captures = page.locator('.journey-steps img');
         assert.equal(await captures.count(), 7, "Handbook journey retains every captured action");

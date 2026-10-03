@@ -2,8 +2,6 @@
 import { startOwnerParticipation } from "./owner-participation.mjs";
 
 export async function startApplication(application) {
-  const navigation = document.querySelector('[data-site-navigation]');
-  if (navigation) navigation.innerHTML = application.text('site-navigation');
   const root = document.querySelector('[data-handbook-application]') ?? document.createElement('section');
   if (!root.isConnected) document.querySelector('main').append(root);
   root.className = 'handbook-application';

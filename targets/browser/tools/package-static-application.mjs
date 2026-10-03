@@ -81,6 +81,19 @@ try {
     await copyFile(source, file);
   }
   if (!paths.has('index.html')) throw new Error('Application template must include its index.html shell');
+  // The Handbook shell must have the same navigation before its runtime starts.
+  // Use the already copied and package-hashed site resource as the sole source.
+  if (template.application_id === 'conduit.application/handbook') {
+    const marker = '<!-- conduit-site-navigation -->';
+    const shellPath = path.join(staging, 'index.html');
+    const shell = await readFile(shellPath, 'utf8');
+    const resource = template.resources.find(resource => resource.role === 'site-navigation');
+    if (!resource || shell.split(marker).length !== 2) throw new Error('Handbook shell needs one shared navigation marker and resource');
+    const navigation = (await readFile(path.join(staging, resource.path), 'utf8'))
+      .replace('data-section="handbook"', 'data-section="handbook" aria-current="page"');
+    if (!navigation.includes('aria-current="page"')) throw new Error('Handbook navigation has no active section');
+    await writeFile(shellPath, shell.replace(marker, navigation));
+  }
   // Only application/documentary documents exist here. Add policy before hashing
   // their manifests and before copying immutable reviewed SDK/release payloads.
   async function secureDocuments(directory) {
