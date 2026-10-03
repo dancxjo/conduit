@@ -2,6 +2,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { acquire, command, digest, xtask } from './common.mjs';
+import { retainedOneBodyEvidence } from '../one-body-evidence.mjs';
 
 // Retain the last documentary publication as history, never as new execution.
 const HISTORY = 'd9b79319bd78c72e4a6b48ef524e269300a82bdf';
@@ -29,6 +30,16 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     cpSync(path.join(temporary, `conduit-${HISTORY}`, 'journeys'), path.join(directory, 'journeys'), { recursive: true });
   } finally { rmSync(temporary, { recursive: true, force: true }); }
   renderFieldStation('target/journeys/handbook', path.join(directory, 'journeys/verticals/handbook'), sourceCommit, true);
+  // An attended, multi-host capture cannot be recreated by the browser CI
+  // runner. Carry its complete raw evidence in source, then render it only
+  // after preflight checks source ancestry and the strict renderer checks media.
+  const oneBodyEvidence = retainedOneBodyEvidence();
+  if (oneBodyEvidence) {
+    xtask('prove', 'render-one-body-journey',
+      '--evidence-root', oneBodyEvidence.root,
+      '--output', path.join(directory, 'journeys/current/one-body-five-masks'),
+      '--commit', oneBodyEvidence.sourceCommit);
+  }
   xtask('prove', 'refresh-gallery', path.join(directory, 'journeys'));
   // The catalogue refresh writes the historical Field Station introduction.
   // Replace it with this build's complete captured walkthrough afterwards.
@@ -67,6 +78,8 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     handbook: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/handbook/' },
     fieldStation: { sourceCommit, environment: 'Chromium', path: 'journeys/verticals/field-station-clock/' },
     threeBodies: { sourceCommit: RECORDED_THREE_BODIES, path: 'journeys/current/three-bodies/', refreshedExecution: false },
+    ...(oneBodyEvidence && { oneBody: { captureSourceCommit: oneBodyEvidence.sourceCommit, publicationSourceCommit: sourceCommit,
+      path: 'journeys/current/one-body-five-masks/', proof: 'producer-owned-complete-evidence' } }),
   }, null, 2));
 }
 
