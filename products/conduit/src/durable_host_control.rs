@@ -11,7 +11,9 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_presentation::{OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation};
+use conduit_presentation::{
+    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
+};
 use conduit_std_host::{
     browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
     hosted_local_model::LocalModelAdapterTerminal,
@@ -41,7 +43,7 @@ pub(crate) use body::start_browser_window;
 use body::HostSource;
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
-    local_face_snapshot,
+    local_face_snapshot, submit_local_face_interaction,
 };
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
 
@@ -948,6 +950,12 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1058,6 +1066,10 @@ enum Response {
         protocol: u16,
         presentation: Box<Presentation>,
         advertisement: HostAdvertisement,
+    },
+    BodyInteraction {
+        protocol: u16,
+        result: Box<serde_json::Value>,
     },
     BodyRunRequested {
         protocol: u16,
@@ -1582,6 +1594,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
@@ -1733,6 +1746,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 presentation: Box::new(presentation),
                 advertisement,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyInteraction {
+            protocol,
+            show,
+            interaction,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_local_interaction(&show, &interaction)
+            .map(|result| Response::BodyInteraction {
+                protocol: PROTOCOL,
+                result: Box::new(result),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyStart {

@@ -2,6 +2,7 @@
 use crate::durable_host::{bundle_digest, digest, fresh_identity, ReleaseFile, RELEASE_SCHEMA};
 use std::{
     fs,
+    io::Write,
     path::Path,
     process::{Child, Command, Stdio},
     thread,
@@ -154,6 +155,72 @@ fn installed_service_start_inspect_lull_and_restart_clock() {
         .as_str()
         .unwrap()
         .contains("tick sequence="));
+    let first_plan = live["realization"]["plan"]["plan_id"].clone();
+    let first_plot = stopped["biography"]["body"]["workset"]["plots"][0]["checked_plot_id"].clone();
+    let mut terminal = Command::new(binary)
+        .args(["body", "terminal", "--state-dir"])
+        .arg(&state)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    terminal
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"control next\ntype 500\napply\nquit\n")
+        .unwrap();
+    let terminal = terminal.wait_with_output().unwrap();
+    assert!(
+        terminal.status.success(),
+        "{}",
+        String::from_utf8_lossy(&terminal.stderr)
+    );
+    let terminal_output = String::from_utf8(terminal.stdout).unwrap();
+    assert!(
+        terminal_output.contains("conduit.body/clock-interval-changed@1")
+            && terminal_output.contains("\"interval_ms\":500"),
+        "{terminal_output}"
+    );
+    let changed = status(binary, &state);
+    assert_eq!(changed["biography"]["body_id"], body_id);
+    assert_eq!(changed["biography"]["body"]["workload_revision"], 2);
+    assert_ne!(
+        changed["biography"]["body"]["workset"]["plots"][0]["checked_plot_id"],
+        first_plot
+    );
+    assert!(fs::read_to_string(state.join("body/source.conduit"))
+        .unwrap()
+        .contains("time/every(500ms)"));
+    let started_again = call(binary, &state, "start", &["--maximum-millis", "10000"]);
+    assert!(
+        started_again.status.success(),
+        "{}",
+        String::from_utf8_lossy(&started_again.stderr)
+    );
+    let second_deadline = Instant::now() + Duration::from_secs(5);
+    let second_live = loop {
+        let truth = status(binary, &state);
+        if truth["realization"]["play"]["active_play_id"].is_string() {
+            break truth;
+        }
+        assert!(
+            Instant::now() < second_deadline,
+            "replacement clock did not start"
+        );
+        thread::sleep(Duration::from_millis(20));
+    };
+    assert_eq!(second_live["biography"]["body_id"], body_id);
+    assert_ne!(second_live["realization"]["plan"]["plan_id"], first_plan);
+    let second_lull = call(binary, &state, "lull", &[]);
+    assert!(second_lull.status.success());
+    while status(binary, &state)["realization"].is_object() {
+        assert!(
+            Instant::now() < second_deadline,
+            "replacement clock did not lull"
+        );
+        thread::sleep(Duration::from_millis(20));
+    }
     drop(service);
     let _ = fs::remove_file(state.join("control.sock"));
     service = Service(

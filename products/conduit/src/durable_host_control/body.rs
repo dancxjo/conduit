@@ -13,7 +13,7 @@ use conduit_body::{
 };
 use conduit_core::LinkBindingId;
 use conduit_presentation::{
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
+    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
     MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
@@ -254,6 +254,25 @@ impl DurableHostRuntime {
         Ok((presentation, owner.host.advertisement().clone()))
     }
 
+    pub(super) fn owned_body_local_interaction(
+        &mut self,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        let HostSource::Body {
+            owner,
+            root,
+            running,
+        } = &mut self.host
+        else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        if running.is_some() {
+            return Err("clock interval change requires a retired Play".into());
+        }
+        owner.apply_clock_interval_interaction(root, show, interaction)
+    }
+
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -297,6 +316,7 @@ pub(super) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
         | Request::BodyBrowserStart { token, .. }
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. } => token.fill(0),
         _ => unreachable!("Body control client only sends Body requests"),
@@ -476,10 +496,43 @@ pub(crate) fn local_face_snapshot(
     }
 }
 
+#[cfg(unix)]
+pub(crate) fn submit_local_face_interaction(
+    state_dir: &Path,
+    show: MaskShow,
+    interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    match call(
+        state_dir,
+        Request::BodyInteraction {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            show: Box::new(show),
+            interaction,
+        },
+    )? {
+        Response::BodyInteraction {
+            protocol: PROTOCOL,
+            result,
+        } => Ok(*result),
+        Response::Refused { code, .. } => Err(format!("Body owner refused interaction: {code}")),
+        _ => Err("Body owner returned the wrong interaction response".into()),
+    }
+}
+
 #[cfg(not(unix))]
 pub(crate) fn local_face_snapshot(
     _state_dir: &Path,
 ) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn submit_local_face_interaction(
+    _state_dir: &Path,
+    _show: MaskShow,
+    _interaction: FaceInteraction,
+) -> Result<serde_json::Value, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 

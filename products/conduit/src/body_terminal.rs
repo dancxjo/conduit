@@ -1,6 +1,6 @@
 //! Local terminal Mask for the installed owner's current authoritative Face.
-//! Local navigation is only presentation state. No typed interaction return
-//! route is admitted here, so application actions are deliberately read only.
+//! Local navigation is presentation state. Actions cross the ordinary terminal
+//! Mask interaction Fore and then the authenticated current owner control route.
 
 use std::{
     io::{BufRead, Read, Write},
@@ -26,7 +26,7 @@ pub(crate) fn run(
     let (mut face, mut host) = crate::durable_host_control::local_face_snapshot(state_dir)?;
     let (mut mask, mut execution) = prepare(&face, &host)?;
     present(&mut mask, &mut execution, output, &host)?;
-    writeln!(output, "Commands: next, previous, page down, page up, inspect, refresh, help, quit. Application actions await an admitted return route.")
+    writeln!(output, "Commands: next, previous, page down, page up, inspect, control next, control previous, type TEXT, apply, refresh, help, quit. The clock interval action is available after lull.")
         .map_err(io_error)?;
     let mut sequence = 0_u64;
     loop {
@@ -64,7 +64,7 @@ pub(crate) fn run(
                 return Ok(());
             }
             "help" => {
-                writeln!(output, "Next/previous read the Face; page down/up scroll; inspect shows precise facts; refresh requests the owner's current revision; quit closes this Mask. This route cannot submit actions.")
+                writeln!(output, "Next/previous read the Face; page down/up scroll; inspect shows precise facts; control next/previous focuses an available action; type TEXT edits its value; apply submits its exact Face and Show through the owner; refresh requests the current revision; quit closes this Mask.")
                     .map_err(io_error)?;
             }
             "refresh" => {
@@ -91,7 +91,8 @@ pub(crate) fn run(
                 (mask, execution) = prepare(&face, &host)?;
                 present(&mut mask, &mut execution, output, &host)?;
             }
-            "next" | "previous" | "page down" | "page up" | "inspect" => {
+            "next" | "previous" | "page down" | "page up" | "inspect" | "control next"
+            | "control previous" => {
                 sequence = sequence
                     .checked_add(1)
                     .ok_or("terminal input sequence exhausted")?;
@@ -100,6 +101,8 @@ pub(crate) fn run(
                     "previous" => TerminalInput::PreviousClause,
                     "page down" => TerminalInput::PageDown,
                     "page up" => TerminalInput::PageUp,
+                    "control next" => TerminalInput::NextControl,
+                    "control previous" => TerminalInput::PreviousControl,
                     _ => TerminalInput::Inspect,
                 };
                 let show = mask
@@ -113,9 +116,63 @@ pub(crate) fn run(
                     present(&mut mask, &mut execution, output, &host)?;
                 }
             }
-            "activate" | "apply" => {
-                writeln!(output, "Action refused: this owner Face has no admitted typed interaction return route.")
-                    .map_err(io_error)?;
+            "apply" => {
+                sequence = sequence
+                    .checked_add(1)
+                    .ok_or("terminal input sequence exhausted")?;
+                let show = mask
+                    .show()
+                    .ok_or("terminal has no acknowledged Show")?
+                    .clone();
+                match mask.input(TerminalInput::Apply, &show, sequence) {
+                    Ok(TerminalInputOutcome::Interaction(interaction)) => {
+                        let correlated = execution.interact(interaction).map_err(debug_error)?;
+                        match crate::durable_host_control::submit_local_face_interaction(
+                            state_dir,
+                            show,
+                            correlated.interaction,
+                        ) {
+                            Ok(result) => writeln!(output, "{}", result).map_err(io_error)?,
+                            Err(refusal) => {
+                                writeln!(output, "Action refused: {refusal}").map_err(io_error)?
+                            }
+                        }
+                        (face, host) = crate::durable_host_control::local_face_snapshot(state_dir)?;
+                        (mask, execution) = prepare(&face, &host)?;
+                        present(&mut mask, &mut execution, output, &host)?;
+                    }
+                    Ok(_) => writeln!(output, "No action was submitted.").map_err(io_error)?,
+                    Err(refusal) => {
+                        writeln!(output, "Action refused: {refusal}").map_err(io_error)?
+                    }
+                }
+            }
+            value if value.starts_with("type ") => {
+                let typed = &value[5..];
+                if typed.is_empty() || typed.len() > 32 {
+                    writeln!(output, "Type 1 to 32 UTF-8 bytes.").map_err(io_error)?;
+                    continue;
+                }
+                for ch in typed.chars() {
+                    sequence = sequence
+                        .checked_add(1)
+                        .ok_or("terminal input sequence exhausted")?;
+                    let show = mask
+                        .show()
+                        .ok_or("terminal has no acknowledged Show")?
+                        .clone();
+                    match mask.input(TerminalInput::Text(ch), &show, sequence) {
+                        Ok(TerminalInputOutcome::Redraw) => {
+                            execution.close_without_input().map_err(debug_error)?;
+                            present(&mut mask, &mut execution, output, &host)?;
+                        }
+                        Ok(_) => {}
+                        Err(refusal) => {
+                            writeln!(output, "Input refused: {refusal}").map_err(io_error)?;
+                            break;
+                        }
+                    }
+                }
             }
             _ => {
                 writeln!(output, "Unknown command; enter help.").map_err(io_error)?;
@@ -128,8 +185,16 @@ fn prepare(
     face: &Presentation,
     host: &HostAdvertisement,
 ) -> Result<(TerminalFaceMask, HostedTerminalMaskExecution), String> {
-    let mask =
-        TerminalFaceMask::prepare_read_only(face.clone(), COLUMNS, ROWS).map_err(debug_error)?;
+    let admitted = face.actions.iter().any(|action| {
+        action.intent == crate::durable_host::owner::clock_interval_action()
+            && action.availability.is_available()
+    });
+    let mask = if admitted {
+        TerminalFaceMask::prepare(face.clone(), COLUMNS, ROWS)
+    } else {
+        TerminalFaceMask::prepare_read_only(face.clone(), COLUMNS, ROWS)
+    }
+    .map_err(debug_error)?;
     let execution = HostedTerminalMaskExecution::new(host).map_err(debug_error)?;
     Ok((mask, execution))
 }
@@ -144,7 +209,7 @@ fn present(
     let show = mask.show().ok_or("terminal did not acknowledge a Show")?;
     let status = writeln!(
         output,
-        "\r\nOwner Face revision {} · Show {} · Host {} · Boot {} · read only",
+        "\r\nOwner Face revision {} · Show {} · Host {} · Boot {}",
         mask.presentation().revision,
         show.show_id.as_str(),
         host.host_id.as_str(),

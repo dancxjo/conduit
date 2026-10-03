@@ -30,6 +30,11 @@ use std::{
 #[path = "continuing.rs"]
 mod continuing;
 pub(crate) use continuing::RunWorker;
+#[path = "clock_interval.rs"]
+mod clock_interval;
+pub(crate) fn clock_interval_action() -> &'static str {
+    clock_interval::CLOCK_INTERVAL_ACTION
+}
 
 /// The owner keeps its Boot advertisement while its one Host executes the
 /// admitted Body Play on a worker. No second Host is constructed.
@@ -110,6 +115,7 @@ pub(crate) struct Owner {
     session: BodyLifecycleSession,
     resident: Option<ResidentPlot>,
     resident_name: Option<String>,
+    clock_interval_ms: Option<u64>,
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
@@ -192,6 +198,7 @@ impl Owner {
             session,
             resident: Some(resident),
             resident_name: None,
+            clock_interval_ms: None,
             last_execution: None,
             admissions: None,
             pending_browser: None,
@@ -209,6 +216,7 @@ impl Owner {
             session,
             resident,
             resident_name: None,
+            clock_interval_ms: None,
             last_execution: None,
             admissions: None,
             pending_browser: None,
@@ -242,6 +250,7 @@ impl Owner {
             return Err("checked source differs from the Body's resident Plot".into());
         }
         self.resident_name = Some(checked.expanded.name.clone());
+        self.clock_interval_ms = clock_interval::recognized_interval(&resident);
         Ok(())
     }
     pub(super) fn restore_execution(&mut self, root: &Path) -> Result<(), String> {
@@ -316,13 +325,26 @@ impl Owner {
         face.presentation
             .validate()
             .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
-        Ok(face.presentation)
+        clock_interval::with_clock_action(self, face.presentation)
     }
     pub(super) fn plan(
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
         let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
+        let partition = self.plan_partition(plot, resident)?;
+        let hosts = [self.host.advertisement().clone()];
+        self.session
+            .propose(vec![partition], &hosts[0].host_id, &hosts[0].boot_id)
+            .map_err(debug)?;
+        Ok(())
+    }
+
+    fn plan_partition(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+    ) -> Result<BodyPlotPlan, String> {
         let hosts = [self.host.advertisement().clone()];
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
@@ -343,17 +365,10 @@ impl Owner {
             &BTreeMap::new(),
         )
         .map_err(debug)?;
-        self.session
-            .propose(
-                vec![BodyPlotPlan {
-                    plot: resident.clone(),
-                    plan,
-                }],
-                &hosts[0].host_id,
-                &hosts[0].boot_id,
-            )
-            .map_err(debug)?;
-        Ok(())
+        Ok(BodyPlotPlan {
+            plot: resident.clone(),
+            plan,
+        })
     }
     pub(super) fn execute(&mut self, maximum_millis: u64) -> Result<(), String> {
         if !(1..=60_000).contains(&maximum_millis) {
