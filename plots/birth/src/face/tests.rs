@@ -383,6 +383,20 @@ fn birth_face_groups_are_semantic_and_changed_draft_stales_old_focus() {
             .target,
         navigation.identity
     );
+    let clauses = plan_face_utterances(&face).unwrap().clauses;
+    let action_index = |identity: &str| {
+        clauses
+            .iter()
+            .position(|clause| {
+                matches!(
+                    &clause.provenance,
+                    FaceUtteranceProvenance::Action(action) if action.identity() == identity
+                )
+            })
+            .unwrap()
+    };
+    assert!(action_index("creche.birth") < action_index("creche.suggest"));
+    assert!(action_index("creche.suggest") < action_index("creche.name"));
 
     let mut reader = FaceReadingCursor::new(&face).unwrap();
     reader

@@ -58,6 +58,14 @@ pub(super) fn project(
             contains(&root, &main),
             contains(&main, &article),
             contains(&main, &navigation),
+            // The initial name field is the native Mask's focused control.
+            // Put the actions first in every Mask's semantic reading order so
+            // reverse navigation reaches Suggest and then Birth.
+            PresentationRelationship {
+                source: navigation.clone(),
+                target: article.clone(),
+                kind: PresentationRelationshipKind::Semantic(kind_id("document/precedes")),
+            },
         ],
         text: vec![],
         actions: vec![],
