@@ -1,112 +1,20 @@
-//! Native-QEMU acceptance for one ordinary in-guest product lifecycle.
+//! A user-driven Crèche → Body → Patchbay → Face journey in the real x86 guest.
+//! Every image is captured after an observed guest transition, never fabricated
+//! from a fixture or a retired Tour surface.
 
 use std::{
-    collections::BTreeMap,
     fs,
     path::Path,
     process::{Command, Stdio},
-    thread,
-    time::Duration,
 };
 
-use serde::Serialize;
-use serde_json::Value;
-
-use crate::cli::GlobalOpts;
+use serde_json::{json, Value};
 
 use super::{
-    hid_qmp, image, journey_input, profile::Paths, report::git_head, ConduitosArch, ConduitosError,
+    hid_qmp, image, journey_input, journey_records, profile::Paths, report::git_head,
+    ConduitosArch, ConduitosError,
 };
-
-use super::journey_records::decode as journey_records;
-
-#[path = "journey_run_control.rs"]
-mod run_control;
-
-#[derive(Serialize)]
-struct JourneyProof {
-    schema: &'static str,
-    base_commit: String,
-    image_sha256: String,
-    profile_id: String,
-    build_id: String,
-    image_id: String,
-    host_id: String,
-    profile: &'static str,
-    boot_id: String,
-    source_document_id: String,
-    checked_plot_id: String,
-    expanded_plot_id: String,
-    body_id: String,
-    born_sign_id: String,
-    wake_sign_id: String,
-    workload_sign_id: String,
-    play_sign_id: String,
-    loss_sign_id: String,
-    lull_sign_id: String,
-    fulfilled_sign_id: String,
-    part_id: String,
-    wake_id: String,
-    plan_id: String,
-    active_play_id: String,
-    gear_ids: Vec<String>,
-    port_ids: Vec<String>,
-    cord_ids: Vec<String>,
-    presentation_id: String,
-    manifestation_id: String,
-    presenter_implementation_id: String,
-    input_sign_id: String,
-    result_sign_id: String,
-    result: String,
-    workset: super::journey_workset::WorksetProof,
-    tour_specimen_id: String,
-    tour_source_document_id: String,
-    tour_checked_plot_id: String,
-    tour_expanded_plot_id: String,
-    tour_plan_id: String,
-    tour_active_play_id: String,
-    tour_result: String,
-    tour_pages_visited: Vec<u64>,
-    tour_exercises: Vec<Value>,
-    tour_workspace_presentation_id: String,
-    tour_workspace_manifestation_id: String,
-    tour_status_presentation_id: String,
-    tour_status_manifestation_id: String,
-    pointer_hover_subject: String,
-    pointer_selected_subject: String,
-    pointer_press_sequence: u64,
-    pointer_release_sequence: u64,
-    inspector_presentation_id: String,
-    inspector_manifestation_id: String,
-    inspector_focused_manifestation_id: String,
-    transient_kinds: Vec<String>,
-    transient_refusal_cause: String,
-    chooser_manifestation_id: String,
-    transient_stale_input_refused: bool,
-    resized_surface_id: String,
-    resize_invalidated_manifestation_id: String,
-    resize_current_manifestation_id: String,
-    resize_input_refused_while_invalidated: bool,
-    usb_line_id: String,
-    usb_line_binding_id: String,
-    usb_line_plan_id: String,
-    usb_line_source_active_play_id: String,
-    usb_line_sink_active_play_id: String,
-    usb_line_peer_host_id: String,
-    usb_line_peer_boot_id: String,
-    usb_line_value: String,
-    usb_line_values: u64,
-    usb_line_acknowledgements: u64,
-    usb_line_membership: String,
-    usb_line_final_membership: String,
-    usb_line_body_unchanged: bool,
-    open_effects: u8,
-    body_retained_after_lull: bool,
-    body_fulfilled: bool,
-    remained_alive: bool,
-    stopped_by_harness: bool,
-    native_mask: Value,
-}
+use crate::cli::GlobalOpts;
 
 pub(super) struct JourneyIdentity {
     pub profile_id: String,
@@ -118,16 +26,13 @@ pub(super) struct JourneyIdentity {
 
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
-        return Err(ConduitosError::refusal(
-            "dry-run-has-no-product-journey-proof",
-            "product journey proof requires a real normal IMAGE and QEMU lifecycle",
+        return Err(refusal(
+            "a live product journey needs a real image and guest",
         ));
     }
+    let built = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    let image = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
-    let image_path = paths.iso.clone();
-    run_control::execute(&paths, &image_path, &image.iso_sha256)?;
-    execute_image(opts, paths, &image_path, image.iso_sha256).map(|_| ())
+    execute_supplied(opts, &paths.iso, built.iso_sha256).map(|_| ())
 }
 
 pub(super) fn execute_supplied(
@@ -136,41 +41,14 @@ pub(super) fn execute_supplied(
     image_sha256: String,
 ) -> Result<JourneyIdentity, ConduitosError> {
     if opts.dry_run {
-        return Err(ConduitosError::refusal(
-            "dry-run-has-no-spore-acceptance",
-            "Crèche spore acceptance requires a real supplied artifact and QEMU lifecycle",
-        ));
+        return Err(refusal("a live product journey needs a real guest"));
     }
-    execute_image(
-        opts,
-        Paths::new(ConduitosArch::X86_64)?,
-        image_path,
-        image_sha256,
-    )
-}
-
-fn execute_image(
-    opts: &GlobalOpts,
-    paths: Paths,
-    image_path: &Path,
-    image_sha256: String,
-) -> Result<JourneyIdentity, ConduitosError> {
+    let paths = Paths::new(ConduitosArch::X86_64)?;
+    fs::create_dir_all(&paths.target).map_err(io_error)?;
     let monitor_socket = paths.target.join("journey-monitor.sock");
     let serial_path = paths.target.join("journey-serial.log");
-    let line_socket = paths.target.join("journey-usb-line.sock");
-    let proof_path = paths.target.join("journey-proof.json");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
-    let _ = fs::remove_file(&line_socket);
-    let monitor = format!(
-        "unix:{},server=on,wait=off",
-        monitor_socket.to_string_lossy()
-    );
-    let serial = format!("file:{}", serial_path.to_string_lossy());
-    let line_chardev = format!(
-        "socket,id=conduitos-usb-line-chardev,path={},server=on,wait=off",
-        line_socket.to_string_lossy()
-    );
     let mut command = Command::new("qemu-system-x86_64");
     command
         .args([
@@ -189,9 +67,9 @@ fn execute_image(
             "-monitor",
             "none",
             "-qmp",
-            &monitor,
+            &format!("unix:{},server=on,wait=off", monitor_socket.display()),
             "-serial",
-            &serial,
+            &format!("file:{}", serial_path.display()),
             "-no-reboot",
             "-net",
             "none",
@@ -201,793 +79,265 @@ fn execute_image(
             "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
             "-device",
             "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
-            "-chardev",
-            &line_chardev,
-            "-device",
-            "usb-serial,id=conduitos-usb-line,bus=conduitos-xhci.0,port=3,chardev=conduitos-usb-line-chardev",
             "-cdrom",
-            image_path.to_str().ok_or_else(|| {
-                ConduitosError::refusal("product-journey-image-path-invalid", "non-UTF-8 ISO path")
-            })?,
+            image_path
+                .to_str()
+                .ok_or_else(|| refusal("non-UTF-8 image path"))?,
             "-boot",
             "d",
         ])
         .current_dir(&paths.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(
-            fs::File::create(paths.target.join("journey-qemu-stderr.log"))
-                .map_err(|error| ConduitosError::refusal("qemu-stderr-io", error.to_string()))?,
-        );
+        .stderr(fs::File::create(paths.target.join("journey-qemu-stderr.log")).map_err(io_error)?);
+    let source = git_head(&paths.root)?;
     let mut artifacts = super::qemu_artifacts::Artifacts::new(
         paths.target.join("journey-frames"),
         serial_path.clone(),
-        serde_json::json!({"source_commit":git_head(&paths.root)?,"image_sha256":image_sha256.clone(),
-            "qemu_argv":command.get_args().map(|value|value.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
+        json!({"source_commit":source,"image_sha256":image_sha256,
+            "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
-
     let result = (|| {
-        let interaction = (|| {
-            let (mut qmp, mut reader) = super::qmp::connect_traced(
-                &monitor_socket,
-                &mut child,
-                Some(&paths.target.join("journey-qmp.log")),
-            )?;
-            let pending_line_peer = super::journey_usb_line::PendingPeer::connect(&line_socket)?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE front-door-ready",
-                "product-journey-front-door-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
-            for _ in 0..7 {
-                journey_input::key_pair(&mut qmp, &mut reader, "tab", "creche-select-plot")?;
+        let (mut qmp, mut reader) = super::qmp::connect_traced(
+            &monitor_socket,
+            &mut child,
+            Some(&paths.target.join("journey-qmp.log")),
+        )?;
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_BOOT_STAGE front-door-ready",
+            "journey-arrival-timeout",
+        )?;
+        artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
+
+        journey_input::birth_from_creche(&mut qmp, &mut reader)?;
+        journey_input::wait_status(&serial_path, &mut child, "born-lulled")?;
+        artifacts.capture(&mut qmp, &mut reader, "body-born", true)?;
+        for (key, status, frame) in [
+            ("f4", "awake", "body-woken"),
+            ("f5", "planned", "body-planned"),
+            ("f6", "quiescent-awaiting-input", "body-playing"),
+        ] {
+            journey_input::key_pair(&mut qmp, &mut reader, key, "journey-lifecycle")?;
+            journey_input::wait_status(&serial_path, &mut child, status)?;
+            artifacts.capture(&mut qmp, &mut reader, frame, true)?;
+        }
+
+        journey_input::key_pair(&mut qmp, &mut reader, "esc", "journey-home")?;
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_HOME_CHECKPOINT returned",
+            "journey-home-timeout",
+        )?;
+        artifacts.capture(&mut qmp, &mut reader, "home", true)?;
+        journey_input::key_pair(&mut qmp, &mut reader, "tab", "journey-select-patchbay")?;
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_HOME_STATE launcher 1",
+            "journey-patchbay-selection-timeout",
+        )?;
+        journey_input::key_pair(&mut qmp, &mut reader, "ret", "journey-open-patchbay")?;
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_HOME_CHECKPOINT patchbay-opened",
+            "journey-patchbay-timeout",
+        )?;
+        artifacts.capture(&mut qmp, &mut reader, "patchbay-workspace", true)?;
+
+        journey_input::key_pair(&mut qmp, &mut reader, "f2", "journey-open-face")?;
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_WORKSPACE_FACE shown",
+            "journey-face-timeout",
+        )?;
+        artifacts.capture(&mut qmp, &mut reader, "patchbay-face", true)?;
+        let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
+        journey_input::key_pair(&mut qmp, &mut reader, "f3", "journey-open-diagram")?;
+        hid_qmp::wait_for_stage_count(
+            &serial_path,
+            &mut child,
+            "CONDUIT_WORKSPACE_VIEW ",
+            before + 1,
+            "journey-diagram-timeout",
+        )?;
+        artifacts.capture(&mut qmp, &mut reader, "patchbay-diagram", true)?;
+
+        journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
+        journey_input::wait_status(&serial_path, &mut child, "stopped")?;
+        artifacts.capture(&mut qmp, &mut reader, "body-stopped", true)?;
+        let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
+        let records = journey_records::decode(&serial)?;
+        let identity = validate(&records, &serial)?;
+        if child.try_wait().map_err(io_error)?.is_some() {
+            return Err(refusal("guest exited before the journey finished"));
+        }
+        let proof = json!({
+            "schema":"conduit.conduitos/face-journey-proof@1",
+            "proof_class":"freestanding-emulator",
+            "source_commit":source, "image_sha256":image_sha256,
+            "profile_id":identity.profile_id, "build_id":identity.build_id,
+            "image_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["image_id"],
+            "host_id":identity.host_id, "boot_id":identity.boot_id,
+            "body_id":records.iter().find(|r|r["status"]=="born-lulled").unwrap()["body_id"],
+            "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",
+            "steps":["arrive","birth","wake","plan","play","home","patchbay","face","diagram","stop"],
+            "physical_evidence":false, "human_enactment":false,
+        });
+        fs::write(
+            paths.target.join("journey-proof.json"),
+            serde_json::to_vec_pretty(&proof).map_err(|e| refusal(e.to_string()))?,
+        )
+        .map_err(io_error)?;
+        if !opts.quiet && !opts.json {
+            println!(
+                "ConduitOS Face journey proof: {}",
+                paths.target.join("journey-proof.json").display()
+            );
+        }
+        Ok(identity)
+    })();
+    if result.is_err() {
+        if let Ok((mut qmp, mut reader)) = hid_qmp::connect(&monitor_socket, &mut child) {
+            if let Err(error) = artifacts.capture(&mut qmp, &mut reader, "failure", false) {
+                artifacts.diagnostic_failure(&error);
             }
-            journey_input::key_pair(&mut qmp, &mut reader, "spc", "creche-omit-plot")?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f3", "creche-birth")?;
-            journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
-            artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
-            for _ in 0..2 {
-                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-plots")?;
-            }
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_STATE launcher 2",
-                "product-journey-home-plots-selection-timeout",
-            )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-plots")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_STATE plots 2",
-                "product-journey-home-plots-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "home-plots", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-leave-plots")?;
-            for _ in 0..3 {
-                journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-prompt")?;
-            }
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-prompt")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_STATE prompt 5",
-                "product-journey-home-prompt-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "home-prompt", true)?;
-            for (index, key) in [
-                "r", "u", "n", "spc", "k", "e", "y", "b", "o", "a", "r", "d", "spc", "c", "a", "n",
-                "v", "a", "s",
-            ]
-            .into_iter()
-            .enumerate()
-            {
-                journey_input::key_pair(&mut qmp, &mut reader, key, "home-type-run-plot")?;
-                hid_qmp::wait_for_stage_count(
-                    &serial_path,
-                    &mut child,
-                    "CONDUIT_HOME_STATE prompt 5",
-                    index + 2,
-                    "product-journey-home-command-input-timeout",
-                )?;
-            }
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-run-plot")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_CHECKPOINT plot-run conduitos-keyboard-upper",
-                "product-journey-home-run-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "home-play-observed", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "home-return-after-play")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_CHECKPOINT returned",
-                "product-journey-home-post-play-return-timeout",
-            )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "tab", "home-select-patchbay")?;
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-patchbay")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_CHECKPOINT patchbay-opened",
-                "product-journey-home-patchbay-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "home-patchbay-open", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "patchbay-return-home")?;
-            hid_qmp::wait_for_stage_count(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_CHECKPOINT returned",
-                2,
-                "product-journey-home-return-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "home-returned", true)?;
-            for _ in 0..2 {
-                journey_input::key_pair(&mut qmp, &mut reader, "right", "home-select-plots-again")?;
-            }
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-plots-again")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_STATE plots 2",
-                "product-journey-home-plots-return-timeout",
-            )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "home-open-keyboard")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_HOME_CHECKPOINT plot-opened conduitos-keyboard-upper",
-                "product-journey-home-keyboard-timeout",
-            )?;
-            for label in [
-                "PROFILE ID",
-                "BUILD ID",
-                "IMAGE BINDING",
-                "HOST ID",
-                "BOOT ID",
-                "CURRENT OFFERS",
-                "PLOT SUBJECT",
-                "SOURCE DOCUMENT ID",
-                "CHECKED PLOT ID",
-                "EXPANDED PLOT ID",
-                "BODY ID",
-                "WAKE ID",
-                "PLAN ID",
-            ] {
-                journey_input::key_pair(&mut qmp, &mut reader, "f2", "planned-detail")?;
-                hid_qmp::wait_for_stage(
-                    &serial_path,
-                    &mut child,
-                    &format!("\"label\":\"{label}\""),
-                    "product-journey-plan-inspection-timeout",
-                )?;
-                if label == "CURRENT OFFERS" {
-                    artifacts.capture(&mut qmp, &mut reader, "host-current-offers", true)?;
-                }
-            }
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
-            journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
-            artifacts.capture(&mut qmp, &mut reader, "quiescent-awaiting-input", true)?;
-            super::journey_standing::type_hello(
-                &mut qmp,
-                &mut reader,
-                &serial_path,
-                &mut child,
-                0,
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "input-continued", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f8", "admit-plot")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "\"workload_revision\":1",
-                "product-journey-workload-revision-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "workload-revised", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f5", "replan-workload")?;
-            hid_qmp::wait_for_stage_count(
-                &serial_path,
-                &mut child,
-                "\"status\":\"planned\"",
-                2,
-                "product-journey-workload-plan-timeout",
-            )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f6", "resume-replanned-workload")?;
-            hid_qmp::wait_for_stage_count(
-                &serial_path,
-                &mut child,
-                "conduitos/product-interaction/play/",
-                2,
-                "product-journey-workload-play-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "workload-replanned", true)?;
-            // The replacement Plan creates a distinct Play, so establish its
-            // own standing-input baseline before exercising all four Plots.
-            super::journey_standing::type_hello(
-                &mut qmp,
-                &mut reader,
-                &serial_path,
-                &mut child,
-                1,
-            )?;
-            super::journey_workset::exercise(
-                &mut qmp,
-                &mut reader,
-                &serial_path,
-                &mut child,
-                &mut artifacts,
-            )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f12", "usb-line")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE usb-line-current",
-                "product-journey-usb-line-current-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "usb-line-current", true)?;
-            let mut line_peer = pending_line_peer.activate()?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE peer-attached",
-                "product-journey-usb-line-peer-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "peer-attached", true)?;
-            line_peer.receive_values_and_acknowledge()?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE line-value-visible",
-                "product-journey-usb-line-value-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "line-value-visible", true)?;
-            super::qmp::request_value(
-                &mut qmp,
-                &mut reader,
-                br#"{"execute":"device_del","arguments":{"id":"conduitos-usb-line"}}"#,
-                "usb-line-remove",
-            )?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE line-lost",
-                "product-journey-usb-line-loss-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "line-lost", true)?;
-            drop(line_peer);
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE keyboard-resumed-after-line",
-                "product-journey-keyboard-resume-timeout",
-            )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f8", "stop")?;
-            journey_input::wait_status(&serial_path, &mut child, "stopped")?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f7", "lull")?;
-            journey_input::wait_status(&serial_path, &mut child, "lulled")?;
-            artifacts.capture(&mut qmp, &mut reader, "lulled", false)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
-            journey_input::wait_tour_status(&serial_path, &mut child, "tour-opened")?;
-            artifacts.capture(&mut qmp, &mut reader, "tour-opened", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
-            journey_input::wait_tour_status(&serial_path, &mut child, "result-visible")?;
-            artifacts.capture(&mut qmp, &mut reader, "tour-result-visible", true)?;
-            journey_input::wait_transient_status(&serial_path, &mut child, "shown")?;
-            artifacts.capture(&mut qmp, &mut reader, "confirmation-transient", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-confirmation")?;
-            journey_input::wait_transient_status(&serial_path, &mut child, "dismissed")?;
-            artifacts.capture(&mut qmp, &mut reader, "confirmation-dismissed", true)?;
-            super::journey_tour::exercise_remaining(
-                &mut qmp,
-                &mut reader,
-                &serial_path,
-                &mut child,
-                &mut artifacts,
-            )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f10", "refused-repeat-run")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_TOUR_CHECKPOINT refusal-transient-shown",
-                "product-journey-refusal-transient-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "refusal-transient", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-refusal")?;
-            journey_input::wait_transient_status_count(&serial_path, &mut child, "dismissed", 9)?;
-            artifacts.capture(&mut qmp, &mut reader, "refusal-dismissed", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f8", "fulfill")?;
-            journey_input::wait_status(&serial_path, &mut child, "fulfilled")?;
-            artifacts.capture(&mut qmp, &mut reader, "fulfilled", false)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
-            journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_TOUR_CHECKPOINT chooser-transient-shown",
-                "product-journey-chooser-transient-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "tour-patchbay-open", true)?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE pointer-awaiting-report",
-                "product-journey-pointer-ready-timeout",
-            )?;
-            journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-chooser")?;
-            journey_input::wait_pointer_status(&serial_path, &mut child, "transient-focused")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_TOUR_CHECKPOINT chooser-gear-selected",
-                "product-journey-chooser-selection-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "chooser-pointer-focused", true)?;
-            journey_input::primary_button(&mut qmp, &mut reader, false, "pointer-chooser-release")?;
-            journey_input::relative_motion(&mut qmp, &mut reader, 0, -100, "pointer-hover")?;
-            journey_input::wait_pointer_status(&serial_path, &mut child, "hovered")?;
-            artifacts.capture(&mut qmp, &mut reader, "pointer-hover-or-focus", true)?;
-            journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-select")?;
-            journey_input::wait_pointer_status(&serial_path, &mut child, "selected")?;
-            artifacts.capture(&mut qmp, &mut reader, "pointer-selected", true)?;
-            journey_input::primary_button(&mut qmp, &mut reader, false, "pointer-release")?;
-            journey_input::wait_pointer_status_count(&serial_path, &mut child, "hovered", 2)?;
-            journey_input::relative_motion(&mut qmp, &mut reader, 120, 0, "pointer-inspector")?;
-            journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-focus-inspector")?;
-            journey_input::wait_pointer_status(&serial_path, &mut child, "auxiliary-focused")?;
-            artifacts.capture(&mut qmp, &mut reader, "inspector-focused", true)?;
-            artifacts.capture(&mut qmp, &mut reader, "inspector-long-text", false)?;
-            journey_input::primary_button(
-                &mut qmp,
-                &mut reader,
-                false,
-                "pointer-release-inspector",
-            )?;
-            journey_input::relative_motion(
-                &mut qmp,
-                &mut reader,
-                0,
-                -20,
-                "pointer-close-inspector",
-            )?;
-            journey_input::primary_button(&mut qmp, &mut reader, true, "activate-close-inspector")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_TOUR_CHECKPOINT inspector-close-activated",
-                "product-journey-inspector-close-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, "inspector-closed", false)?;
-            journey_input::primary_button(&mut qmp, &mut reader, false, "release-close-inspector")?;
-            thread::sleep(Duration::from_millis(250));
-            if child
-                .try_wait()
-                .map_err(|error| {
-                    ConduitosError::refusal("product-journey-qemu-wait-failed", error.to_string())
-                })?
-                .is_some()
-            {
-                return Err(ConduitosError::refusal(
-                    "product-journey-not-long-lived",
-                    "normal IMAGE exited after the ordinary product lifecycle",
-                ));
-            }
-            Ok(())
-        })();
-        interaction?;
-        child.kill().map_err(|error| {
-            ConduitosError::refusal("product-journey-qemu-stop-failed", error.to_string())
-        })?;
-        let stopped = child.wait().map_err(|error| {
-            ConduitosError::refusal("product-journey-qemu-wait-failed", error.to_string())
-        })?;
-        artifacts.stopped(&stopped, "harness-kill-after-interaction");
-        let serial = fs::read_to_string(&serial_path).map_err(|error| {
-            ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
-        })?;
-        let spore_join = decode_spore_join(&serial)?;
-        let records = journey_records(&serial)?;
-        let tour_records = super::journey_records::tour(&serial)?;
-        let pointer_records = super::journey_records::pointer(&serial)?;
-        let transient_records = super::journey_records::transient(&serial)?;
-        let resize_records = super::journey_records::resize(&serial)?;
-        let usb_line_records = super::journey_records::usb_line(&serial)?;
-        let mask_records = super::journey_records::mask(&serial)?;
-        let by_status = records
+        }
+    }
+    let _ = child.kill();
+    if let Ok(status) = child.wait() {
+        artifacts.stopped(
+            &status,
+            if result.is_ok() {
+                "harness-stop-after-success"
+            } else {
+                "harness-stop-after-failure"
+            },
+        );
+    }
+    if let Err(error) = artifacts.finish(result.as_ref().err()) {
+        if result.is_ok() {
+            return Err(error);
+        }
+        eprintln!("journey evidence error: {error}");
+    }
+    result
+}
+
+fn stage_count(path: &Path, marker: &str) -> Result<usize, ConduitosError> {
+    Ok(fs::read_to_string(path)
+        .map_err(io_error)?
+        .matches(marker)
+        .count())
+}
+
+fn validate(records: &[Value], serial: &str) -> Result<JourneyIdentity, ConduitosError> {
+    let stages = [
+        "world",
+        "born-lulled",
+        "awake",
+        "planned",
+        "quiescent-awaiting-input",
+        "stopped",
+    ];
+    let mut previous = None;
+    let mut body = None;
+    for status in stages {
+        let (index, record) = records
             .iter()
-            .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
-            .collect::<BTreeMap<_, _>>();
-        for status in [
+            .enumerate()
+            .find(|(index, record)| {
+                previous.is_none_or(|last| *index > last) && record["status"] == status
+            })
+            .ok_or_else(|| refusal(format!("missing ordered {status} lifecycle sign")))?;
+        if status == "world" {
+            if !record["body_id"].is_null() {
+                return Err(refusal("arrival already has a Body"));
+            }
+        } else {
+            let current = record["body_id"]
+                .as_str()
+                .filter(|id| !id.is_empty())
+                .ok_or_else(|| refusal("post-birth Body identity absent"))?;
+            if body.is_some_and(|known| known != current) {
+                return Err(refusal("journey changed Body identity"));
+            }
+            body = Some(current);
+        }
+        if status == "planned"
+            && (record["gear_ids"].as_array().is_none_or(Vec::is_empty)
+                || record["port_ids"].as_array().is_none_or(Vec::is_empty)
+                || record["cord_ids"].as_array().is_none_or(Vec::is_empty))
+        {
+            return Err(refusal("the Patchbay diagram has no planned graph"));
+        }
+        previous = Some(index);
+    }
+    for marker in [
+        "CONDUIT_HOME_CHECKPOINT patchbay-opened",
+        "CONDUIT_WORKSPACE_FACE shown",
+        "CONDUIT_WORKSPACE_VIEW ",
+    ] {
+        if !serial.contains(marker) {
+            return Err(refusal(format!("missing guest Face checkpoint {marker}")));
+        }
+    }
+    let boot = journey_records::boot(serial)?.ok_or_else(|| refusal("boot identity absent"))?;
+    let text = |field: &str| -> Result<String, ConduitosError> {
+        boot[field]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| refusal(format!("boot {field} absent")))
+    };
+    let spore_join = serial
+        .lines()
+        .filter_map(|line| line.strip_prefix("CONDUIT_SPORE_JOIN "))
+        .map(serde_json::from_str)
+        .collect::<Result<Vec<Value>, _>>()
+        .map_err(|error| refusal(error.to_string()))?;
+    if spore_join.len() > 1 {
+        return Err(refusal("ambiguous spore join"));
+    }
+    Ok(JourneyIdentity {
+        profile_id: text("profile_id")?,
+        build_id: text("build_id")?,
+        host_id: text("host_id")?,
+        boot_id: text("boot_id")?,
+        spore_join: spore_join.into_iter().next(),
+    })
+}
+
+fn refusal(detail: impl Into<String>) -> ConduitosError {
+    ConduitosError::refusal("face-journey-refused", detail)
+}
+fn io_error(error: std::io::Error) -> ConduitosError {
+    ConduitosError::refusal("face-journey-io", error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn proof_rejects_a_body_that_changes_after_birth() {
+        let stages = [
             "world",
             "born-lulled",
             "awake",
             "planned",
             "quiescent-awaiting-input",
             "stopped",
-            "lulled",
-            "fulfilled",
-        ] {
-            if !by_status.contains_key(status) {
-                return Err(ConduitosError::refusal(
-                    "product-journey-stage-missing",
-                    status,
-                ));
-            }
-        }
-        let opened = by_status["world"];
-        let tour_by_status = tour_records
-            .iter()
-            .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
-            .collect::<BTreeMap<_, _>>();
-        super::journey_tour::validate(&tour_records, opened)?;
-        super::journey_tour::validate_complete_tour(&tour_records)?;
-        let tour_opened = tour_by_status["tour-opened"];
-        let tour_result = tour_by_status["result-visible"];
-        if usb_line_records.len() != 4 {
-            return Err(ConduitosError::refusal(
-                "product-journey-usb-line-record-count",
-                "current, peer, value, and loss must produce exactly four Line records",
-            ));
-        }
-        for ((record, status), membership) in usb_line_records
-            .iter()
-            .zip([
-                "usb-line-current",
-                "peer-attached",
-                "line-value-visible",
-                "line-lost",
-            ])
-            .zip([
-                "not-requested",
-                "admitted-present",
-                "admitted-present",
-                "admitted-offline",
-            ])
-        {
-            if record.get("status").and_then(Value::as_str) != Some(status)
-                || record.get("proof_class").and_then(Value::as_str)
-                    != Some("freestanding-emulator")
-                || record.get("membership").and_then(Value::as_str) != Some(membership)
-            {
-                return Err(ConduitosError::refusal(
-                    "product-journey-usb-line-stage-invalid",
-                    status,
-                ));
-            }
-        }
-        for identity in [
-            "line_id",
-            "binding_id",
-            "base_instance_id",
-            "plan_id",
-            "source_active_play_id",
-            "sink_active_play_id",
-            "source_host_id",
-            "source_boot_id",
-            "sink_host_id",
-            "sink_boot_id",
-            "body_id",
-        ] {
-            if usb_line_records
-                .iter()
-                .any(|record| record.get(identity) != usb_line_records[0].get(identity))
-            {
-                return Err(ConduitosError::refusal(
-                    "product-journey-usb-line-identity-drift",
-                    identity,
-                ));
-            }
-        }
-        if usb_line_records[2].get("value").and_then(Value::as_str) != Some("HELLO USB LINE")
-            || usb_line_records[2]
-                .get("lifetime_values")
-                .and_then(Value::as_u64)
-                != Some(conduitos::product_usb_line::LINE_LIFETIME_VALUES)
-            || usb_line_records[0].get("body_id") != by_status["lulled"].get("body_id")
-        {
-            return Err(ConduitosError::refusal(
-                "product-journey-usb-line-causality-invalid",
-                "value or unchanged Body correlation did not match",
-            ));
-        }
-        let ordinary_pointer_records = pointer_records
-            .iter()
-            .filter(|record| {
-                record.get("status").and_then(Value::as_str) != Some("transient-focused")
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-        let pointer = super::journey_pointer::validate(&ordinary_pointer_records, opened)?;
-        let transient =
-            super::journey_transient::validate(&transient_records, &pointer_records, opened)?;
-        let resize = super::journey_resize::validate(&resize_records, &pointer_records, opened)?;
-        if opened.get("body_id") != Some(&Value::Null)
-            || opened.get("wake_id") != Some(&Value::Null)
-            || opened.get("plan_id") != Some(&Value::Null)
-            || opened.get("active_play_id") != Some(&Value::Null)
-        {
-            return Err(ConduitosError::refusal(
-                "product-journey-open-had-effects",
-                "OPEN created lifecycle truth before explicit BIRTH",
-            ));
-        }
-        let born = by_status["born-lulled"];
-        let planned = by_status["planned"];
-        let quiescent = by_status["quiescent-awaiting-input"];
-        let (result, workset) = super::journey_workset::validate(&records)?;
-        let lulled = by_status["lulled"];
-        let fulfilled = by_status["fulfilled"];
-        let plan_id = text(planned, "plan_id")?;
-        let native_mask = mask_records.last().ok_or_else(|| {
-            ConduitosError::refusal(
-                "product-journey-mask-sign-missing",
-                "native runtime did not retain its Body-scoped Mask disposition",
-            )
-        })?;
-        let mask_application_plan = text(native_mask, "application_plan_id")?;
-        let mask_application_plan_is_observed = records.iter().any(|record| {
-            record.get("plan_id").and_then(Value::as_str) == Some(mask_application_plan.as_str())
-        });
-        if text(native_mask, "schema")? != "conduit.conduitos/native-mask-control@1"
-            || text(native_mask, "body_id")? != text(born, "body_id")?
-            || !mask_application_plan_is_observed
-            || text(native_mask, "route_disposition")? != "selected-executed-route"
-            || text(native_mask, "planning_disposition")? != "not-required"
-            || text(native_mask, "show_id")?.is_empty()
-            || text(native_mask, "manifestation_id")?.is_empty()
-            || text(native_mask, "presentation_id")?.is_empty()
-            || number(native_mask, "kernel_signs")? == 0
-            || number(native_mask, "fore_endpoints")? < 3
-            || native_mask
-                .get("shows")
-                .and_then(Value::as_array)
-                .is_none_or(|shows| {
-                    shows.is_empty()
-                        || shows.iter().enumerate().any(|(index, show)| {
-                            show.get("mask_plan_id")
-                                .and_then(Value::as_str)
-                                .is_none_or(str::is_empty)
-                                || show
-                                    .get("mask_active_play_id")
-                                    .and_then(Value::as_str)
-                                    .is_none_or(str::is_empty)
-                                || show.get("presentation_id") != native_mask.get("presentation_id")
-                                || show
-                                    .get("show_value_id")
-                                    .and_then(Value::as_str)
-                                    .is_none_or(str::is_empty)
-                                || (index == 0
-                                    && (show.get("mask_show_id") != native_mask.get("show_id")
-                                        || show.get("manifestation_id")
-                                            != native_mask.get("manifestation_id")))
-                        })
-                })
-            || native_mask
-                .get("actions")
-                .and_then(Value::as_array)
-                .is_none_or(|actions| {
-                    !actions.iter().any(|action| action == "wear")
-                        || !actions.iter().any(|action| action == "prefer")
-                })
-            || native_mask
-                .get("mask_plan_ids")
-                .and_then(Value::as_array)
-                .is_none_or(|plans| {
-                    plans.is_empty()
-                        || plans
-                            .iter()
-                            .any(|mask_plan| mask_plan.as_str() == Some(&plan_id))
-                })
-        {
-            return Err(ConduitosError::refusal(
-                "product-journey-mask-sign-invalid",
-                "native Mask receipt does not prove one plan-sealed Fore execution and correlated Show",
-            ));
-        }
-        super::journey_workset::validate_causality(
-            &serial, &records, opened, born, planned, quiescent, lulled,
-        )?;
-        if serial.contains("CONDUIT_KERNEL_SIGN") || serial.contains("body-patchbay-open") {
-            return Err(ConduitosError::refusal(
-                "product-journey-used-proof-entrance",
-                "normal product lifecycle emitted scripted proof entrance evidence",
-            ));
-        }
-        let proof = JourneyProof {
-            schema: "conduit.conduitos/product-journey-proof@4",
-            base_commit: git_head(&paths.root)?,
-            image_sha256,
-            profile_id: text(opened, "profile_id")?,
-            build_id: text(opened, "build_id")?,
-            image_id: text(opened, "image_id")?,
-            host_id: text(opened, "host_id")?,
-            profile: "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib",
-            boot_id: text(opened, "boot_id")?,
-            source_document_id: text(born, "source_document_id")?,
-            checked_plot_id: text(born, "checked_plot_id")?,
-            expanded_plot_id: text(born, "expanded_plot_id")?,
-            body_id: text(born, "body_id")?,
-            born_sign_id: text(born, "born_sign_id")?,
-            wake_sign_id: text(by_status["awake"], "wake_sign_id")?,
-            workload_sign_id: text(quiescent, "workload_sign_id")?,
-            play_sign_id: text(quiescent, "play_sign_id")?,
-            loss_sign_id: resize.loss_sign_id.clone(),
-            lull_sign_id: text(lulled, "lull_sign_id")?,
-            fulfilled_sign_id: text(fulfilled, "fulfilled_sign_id")?,
-            part_id: text(born, "part_id")?,
-            wake_id: text(by_status["awake"], "wake_id")?,
-            plan_id,
-            active_play_id: text(quiescent, "active_play_id")?,
-            gear_ids: strings(planned, "gear_ids")?,
-            port_ids: strings(planned, "port_ids")?,
-            cord_ids: strings(planned, "cord_ids")?,
-            presentation_id: text(result, "presentation_id")?,
-            manifestation_id: text(result, "manifestation_id")?,
-            presenter_implementation_id: text(result, "presenter_implementation_id")?,
-            input_sign_id: text(result, "input_sign_id")?,
-            result_sign_id: text(result, "result_sign_id")?,
-            result: text(result, "result")?,
-            workset,
-            tour_specimen_id: text(tour_opened, "specimen_id")?,
-            tour_source_document_id: text(tour_result, "source_document_id")?,
-            tour_checked_plot_id: text(tour_result, "checked_plot_id")?,
-            tour_expanded_plot_id: text(tour_result, "expanded_plot_id")?,
-            tour_plan_id: text(tour_result, "plan_id")?,
-            tour_active_play_id: text(tour_result, "active_play_id")?,
-            tour_result: text(tour_result, "result")?,
-            tour_pages_visited: (0..7).collect(),
-            tour_exercises: tour_records
-                .iter()
-                .filter(|record| {
-                    record.get("status").and_then(Value::as_str) == Some("result-visible")
-                })
-                .cloned()
-                .collect(),
-            tour_workspace_presentation_id: text(tour_result, "workspace_presentation_id")?,
-            tour_workspace_manifestation_id: text(tour_result, "workspace_manifestation_id")?,
-            tour_status_presentation_id: text(tour_result, "status_presentation_id")?,
-            tour_status_manifestation_id: text(tour_result, "status_manifestation_id")?,
-            pointer_hover_subject: pointer.hover_subject,
-            pointer_selected_subject: pointer.selected_subject,
-            pointer_press_sequence: pointer.press_sequence,
-            pointer_release_sequence: pointer.release_sequence,
-            inspector_presentation_id: pointer.inspector_presentation_id,
-            inspector_manifestation_id: pointer.inspector_manifestation_id,
-            inspector_focused_manifestation_id: pointer.focused_manifestation_id,
-            transient_kinds: transient.kinds,
-            transient_refusal_cause: transient.refusal_cause,
-            chooser_manifestation_id: transient.chooser_manifestation_id,
-            transient_stale_input_refused: transient.stale_input_refused,
-            resized_surface_id: resize.surface_id,
-            resize_invalidated_manifestation_id: resize.invalidated_manifestation_id,
-            resize_current_manifestation_id: resize.current_manifestation_id,
-            resize_input_refused_while_invalidated: resize.input_refused_while_invalidated,
-            usb_line_id: text(&usb_line_records[0], "line_id")?,
-            usb_line_binding_id: text(&usb_line_records[0], "binding_id")?,
-            usb_line_plan_id: text(&usb_line_records[0], "plan_id")?,
-            usb_line_source_active_play_id: text(&usb_line_records[0], "source_active_play_id")?,
-            usb_line_sink_active_play_id: text(&usb_line_records[0], "sink_active_play_id")?,
-            usb_line_peer_host_id: text(&usb_line_records[0], "sink_host_id")?,
-            usb_line_peer_boot_id: text(&usb_line_records[0], "sink_boot_id")?,
-            usb_line_value: text(&usb_line_records[2], "value")?,
-            usb_line_values: conduitos::product_usb_line::LINE_LIFETIME_VALUES,
-            usb_line_acknowledgements: conduitos::product_usb_line::LINE_LIFETIME_VALUES * 2,
-            usb_line_membership: text(&usb_line_records[1], "membership")?,
-            usb_line_final_membership: text(&usb_line_records[3], "membership")?,
-            usb_line_body_unchanged: true,
-            open_effects: 0,
-            body_retained_after_lull: true,
-            body_fulfilled: true,
-            remained_alive: true,
-            stopped_by_harness: true,
-            native_mask: native_mask.clone(),
-        };
-        fs::write(
-            &proof_path,
-            serde_json::to_vec_pretty(&proof).map_err(|error| {
-                ConduitosError::refusal("product-journey-proof-invalid", error.to_string())
-            })?,
-        )
-        .map_err(|error| {
-            ConduitosError::refusal("product-journey-proof-unavailable", error.to_string())
-        })?;
-        body_track::write(&paths.target, &proof)?;
-        if !opts.quiet && !opts.json {
-            println!("ConduitOS product journey proof: {}", proof_path.display());
-        }
-        Ok(JourneyIdentity {
-            profile_id: proof.profile_id.clone(),
-            build_id: proof.build_id.clone(),
-            host_id: proof.host_id.clone(),
-            boot_id: proof.boot_id.clone(),
-            spore_join,
-        })
-    })();
-    if result.is_err() {
-        if let Some(status) = child.try_wait().ok().flatten() {
-            artifacts.stopped(&status, "exited-before-failure-diagnostics");
-        } else {
-            let diagnostic = hid_qmp::connect(&monitor_socket, &mut child).and_then(|(mut stream, mut reader)| {
-                artifacts.registers(super::qmp::request_value(&mut stream, &mut reader,
-                    br#"{"execute":"human-monitor-command","arguments":{"command-line":"info registers"}}"#,
-                    "failure-registers"));
-                artifacts.capture(&mut stream, &mut reader, "failure", false)
-            });
-            if let Err(error) = diagnostic {
-                artifacts.diagnostic_failure(&error);
-            }
-            let _ = child.kill();
-            if let Ok(status) = child.wait() {
-                artifacts.stopped(&status, "harness-kill-after-failure");
-            }
-        }
+        ];
+        let records: Vec<_> = stages.iter().enumerate().map(|(i,status)| {
+            json!({"status":status,"body_id":if i==0 {Value::Null} else if i==5 {json!("other")} else {json!("body")},
+                "gear_ids":["g"],"port_ids":["p"],"cord_ids":["c"]})
+        }).collect();
+        assert!(validate(&records, "").is_err());
     }
-    // Artifact errors never replace the original runtime/proof refusal.
-    if let Err(error) = artifacts.finish(result.as_ref().err()) {
-        if result.is_ok() {
-            return Err(error);
-        }
-        eprintln!("failure artifact error: {error}");
-    }
-    if result.is_ok() {
-        super::home_front_evidence::retain(&paths.target)?;
-    }
-    result
-}
-
-#[path = "journey_body_track.rs"]
-mod body_track;
-fn decode_spore_join(serial: &str) -> Result<Option<Value>, ConduitosError> {
-    const PREFIX: &str = "CONDUIT_SPORE_JOIN ";
-    let values = serial
-        .lines()
-        .filter_map(|line| line.strip_prefix(PREFIX))
-        .map(|encoded| {
-            serde_json::from_str(encoded).map_err(|error| {
-                ConduitosError::refusal("creche-spore-join-invalid", error.to_string())
-            })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    match values.len() {
-        0 => Ok(None),
-        1 => Ok(values.into_iter().next()),
-        _ => Err(ConduitosError::refusal(
-            "creche-spore-join-ambiguous",
-            "guest emitted more than one boot-time spore join",
-        )),
-    }
-}
-
-fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {
-    record
-        .get(field)
-        .and_then(Value::as_str)
-        .map(ToOwned::to_owned)
-        .ok_or_else(|| ConduitosError::refusal("product-journey-identity-missing", field))
-}
-
-fn number(record: &Value, field: &str) -> Result<u64, ConduitosError> {
-    record
-        .get(field)
-        .and_then(Value::as_u64)
-        .ok_or_else(|| ConduitosError::refusal("product-journey-number-missing", field))
-}
-
-fn strings(record: &Value, field: &str) -> Result<Vec<String>, ConduitosError> {
-    record
-        .get(field)
-        .and_then(Value::as_array)
-        .and_then(|values| {
-            values
-                .iter()
-                .map(|value| value.as_str().map(ToOwned::to_owned))
-                .collect()
-        })
-        .ok_or_else(|| ConduitosError::refusal("product-journey-identity-missing", field))
 }

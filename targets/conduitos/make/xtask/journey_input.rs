@@ -21,6 +21,21 @@ pub(super) fn key_pair(
     hid_qmp::send_named_keys(qmp, reader, &[key], false, label)
 }
 
+/// Birth the selected zero-Body Crèche plan through the ordinary keyboard Face.
+/// Keep the separate journey boots on the same authored interaction sequence.
+pub(super) fn birth_from_creche(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+) -> Result<(), ConduitosError> {
+    // The initial Face focuses the name argument. Three reverse controls in
+    // the current semantic Face lead to Birth without traversing plot choices.
+    for _ in 0..3 {
+        hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], true, "creche-focus-birth")?;
+        hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], false, "creche-focus-birth")?;
+    }
+    key_pair(qmp, reader, "ret", "creche-birth")
+}
+
 pub(super) fn relative_motion(
     stream: &mut UnixStream,
     reader: &mut qmp::Reader,
@@ -78,135 +93,6 @@ pub(super) fn wait_status(
                 records
                     .iter()
                     .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
-            })
-        },
-    )
-}
-
-pub(super) fn wait_tour_status(
-    serial: &Path,
-    child: &mut Child,
-    status: &str,
-) -> Result<(), ConduitosError> {
-    wait_for_record(
-        serial,
-        child,
-        "product-journey-tour-stage-timeout",
-        status,
-        |text| {
-            journey_records::tour(text).map(|records| {
-                records
-                    .iter()
-                    .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
-            })
-        },
-    )
-}
-
-pub(super) fn wait_tour_status_count(
-    serial: &Path,
-    child: &mut Child,
-    status: &str,
-    count: usize,
-) -> Result<(), ConduitosError> {
-    wait_for_record(
-        serial,
-        child,
-        "product-journey-tour-stage-timeout",
-        status,
-        |text| {
-            journey_records::tour(text).map(|records| {
-                records
-                    .iter()
-                    .filter(|record| record.get("status").and_then(Value::as_str) == Some(status))
-                    .count()
-                    >= count
-            })
-        },
-    )
-}
-
-pub(super) fn wait_pointer_status(
-    serial: &Path,
-    child: &mut Child,
-    status: &str,
-) -> Result<(), ConduitosError> {
-    wait_for_record(
-        serial,
-        child,
-        "product-journey-pointer-stage-timeout",
-        status,
-        |text| {
-            journey_records::pointer(text).map(|records| {
-                records
-                    .iter()
-                    .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
-            })
-        },
-    )
-}
-
-pub(super) fn wait_transient_status(
-    serial: &Path,
-    child: &mut Child,
-    status: &str,
-) -> Result<(), ConduitosError> {
-    wait_for_record(
-        serial,
-        child,
-        "product-journey-transient-stage-timeout",
-        status,
-        |text| {
-            journey_records::transient(text).map(|records| {
-                records
-                    .iter()
-                    .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
-            })
-        },
-    )
-}
-
-pub(super) fn wait_transient_status_count(
-    serial: &Path,
-    child: &mut Child,
-    status: &str,
-    count: usize,
-) -> Result<(), ConduitosError> {
-    wait_for_record(
-        serial,
-        child,
-        "product-journey-transient-stage-timeout",
-        status,
-        |text| {
-            journey_records::transient(text).map(|records| {
-                records
-                    .iter()
-                    .filter(|record| record.get("status").and_then(Value::as_str) == Some(status))
-                    .count()
-                    >= count
-            })
-        },
-    )
-}
-
-pub(super) fn wait_pointer_status_count(
-    serial: &Path,
-    child: &mut Child,
-    status: &str,
-    count: usize,
-) -> Result<(), ConduitosError> {
-    wait_for_record(
-        serial,
-        child,
-        "product-journey-pointer-stage-timeout",
-        status,
-        |text| {
-            journey_records::pointer(text).map(|records| {
-                records
-                    .iter()
-                    .filter(|record| record.get("status").and_then(Value::as_str) == Some(status))
-                    .count()
-                    >= count
             })
         },
     )

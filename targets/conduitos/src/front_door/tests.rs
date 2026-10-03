@@ -267,3 +267,83 @@ fn resting_and_fulfilled_faces_keep_body_identity_without_live_execution() {
         assert!(face.basis.active_play_id.is_none());
     }
 }
+
+#[test]
+fn selected_patchbay_graph_becomes_exact_face_subjects_for_the_native_mask() {
+    use conduit_core::{
+        GearId, KindIdentity, PortDescriptor, PortDirection, PortTemporal, kind_id, port_id,
+    };
+    use patchbay_graph::{PatchbayCord, PatchbayGear, PatchbayGraph, PatchbayPort};
+
+    let port = |identity: &str, gear: &str, direction| PatchbayPort {
+        identity: identity.into(),
+        gear_id: GearId::from(gear),
+        descriptor: PortDescriptor {
+            port_id: port_id(identity),
+            value_kind: kind_id("text/value"),
+            direction,
+            temporal: PortTemporal::Value,
+            abnormal_kind: None,
+        },
+        value_contract: None,
+    };
+    let gear = |identity: &str, direction, port_identity: &str| PatchbayGear {
+        identity: identity.into(),
+        gear_id: GearId::from(identity),
+        kind_id: kind_id("text/transform"),
+        kind_contract_revision: KindIdentity::from("text/transform@1"),
+        source_plot: "example".into(),
+        plot_path: vec!["example".into()],
+        inputs: if direction == PortDirection::Input {
+            vec![port(port_identity, identity, direction)]
+        } else {
+            vec![]
+        },
+        outputs: if direction == PortDirection::Output {
+            vec![port(port_identity, identity, direction)]
+        } else {
+            vec![]
+        },
+        controls: vec![],
+    };
+    let mut door = door();
+    let body = body_id(9);
+    door.observe_journey(born_projection(body)).unwrap();
+    door.patchbay_graph = Some(PatchbayGraph {
+        source_document_id: SourceDocumentId::from("source/graph"),
+        checked_plot_id: CheckedPlotId::from("checked/graph"),
+        expanded_plot_id: conduit_core::ExpandedPlotId::from("expanded/graph"),
+        plot_name: "Connected example".into(),
+        front_inputs: vec![],
+        front_outputs: vec![],
+        compositions: vec![],
+        gears: vec![
+            gear("source", PortDirection::Output, "source/out"),
+            gear("sink", PortDirection::Input, "sink/in"),
+        ],
+        cords: vec![PatchbayCord {
+            identity: "source-to-sink".into(),
+            source_port: "source/out".into(),
+            sink_port: "sink/in".into(),
+            value_kind: kind_id("text/value"),
+            temporal: PortTemporal::Value,
+        }],
+    });
+    let face = door.presentation().unwrap();
+    #[cfg(feature = "native-compositor")]
+    {
+        let scene =
+            crate::native_face_scene::NativeFaceScene::prepare(face.clone(), 800, 600).unwrap();
+        assert!(scene.has_diagram());
+    }
+    assert!(face.relationships.iter().any(|relation| {
+        relation.source == "cord/source-to-sink"
+            && relation.target == "port/sink/in"
+            && relation.kind == PresentationRelationshipKind::Connects
+    }));
+    assert!(face.properties.iter().any(|property| {
+        property.subject == "port/source/out"
+            && property.name == "direction"
+            && property.value == PresentationPropertyValue::Text("outgoing".into())
+    }));
+}

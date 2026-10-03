@@ -1,28 +1,28 @@
 # Visual evidence
 
-**[Explore the current ConduitOS visual journey →](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
+**[Follow the ConduitOS journey →](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)**
 
 The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
 names the exact accepted release and publication behind this journey, states
 whether they lag development, and links the latest proof receipts.
 
-Thirty-two real QEMU screenshots show boot, current host offers, body and play lifecycle, a
-hot-plugged line, Tour, and Patchbay interaction. Each checkpoint explains the
-action, visible result, concepts, and asserted behavior, with links to the exact
-capture provenance. This is the published accepted journey, not a fresh capture
-from this documentation review. It demonstrates emulator execution; physical
-hardware has a separate proof boundary.
+Ten real QEMU screenshots follow a keyboard-driven user from zero-Body Crèche
+arrival through Birth, Wake, Plan, Play, Home, Patchbay, Face inspection, a live
+graph diagram, and Stop. Each step names the action, visible result, and
+behavior it establishes, with links to the exact capture provenance. The
+walkthrough demonstrates emulator execution; physical hardware has a separate
+proof boundary. The retired Tour chapter captures remain historical evidence,
+not the current product walkthrough.
 
 ## Reproduce the ConduitOS journey
 
 Publication verifies a complete, correlated 1280 by 800 RGBA8 journey from the
-exact Crèche-produced Spore, then includes it in the accepted Pages carrier.
+retained ConduitOS product image, then composes it into the accepted Pages site.
 
-The journey page presents all thirty-two real screenshots inline in transition
-order. Each checkpoint separately explains what a user can see, the action that
-led there, the semantic behavior the harness proved, and the Conduit concepts in
-view. Its image also links to a focused provenance page with exact manifest
-correlation.
+The journey page presents all ten screens inline in action order. The same
+session records its source commit, image digest, Boot and Body identities, and
+step-by-step QMP input and screenshot hashes. The live Patchbay diagram comes
+from the current semantic Face rather than a prepared gallery image.
 
 Refresh the source artifacts by running the ordinary repository-development
 entrance:
@@ -38,11 +38,11 @@ refuses an incomplete journey, a missing, duplicated, or renamed checkpoint,
 unexpected dimensions or pixel format, and PNG bytes that do not match the
 manifest. There is no separately maintained documentation screenshot set.
 
-The published walkthrough is available at the
-[current ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/).
-The gallery also retains the same narrated walkthrough and focused provenance
-pages under the commit-addressed journey index. Emulator pixels remain
-documentary evidence and never imply physical hardware acceptance.
+The accepted walkthrough is available at the
+[current ConduitOS journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)
+after the normal release and Pages deployment. The gallery retains the exact
+screens and receipts under the commit-addressed journey index. Emulator pixels
+remain documentary evidence and never imply physical hardware acceptance.
 
 ## Evidence manifests
 

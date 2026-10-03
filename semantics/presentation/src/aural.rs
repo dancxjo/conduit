@@ -7,11 +7,12 @@
 use alloc::{format, string::String, vec::Vec};
 use sha2::{Digest, Sha256};
 
-use conduit_core::{IntervalEndpoint, ValueConstraint};
+use conduit_core::{IntervalEndpoint, TemporalRelation, ValueConstraint};
 
 use crate::{
     FaceUtteranceClauseKind, FaceUtteranceProvenance, Presentation, PresentationActionAvailability,
-    PresentationCompositionKind, PresentationError, PresentationRelationshipKind, PresentationRole,
+    PresentationCompositionKind, PresentationDisclosureLevel, PresentationError,
+    PresentationRelationshipKind, PresentationRole, PresentationTemporalRole,
 };
 
 pub const MAX_FACE_UTTERANCE_CLAUSES: usize = 10_256;
@@ -134,6 +135,53 @@ pub fn plan_face_utterances(
         })?;
     }
 
+    for (index, disclosure) in face.disclosures.iter().enumerate() {
+        builder.push(FaceUtteranceClause {
+            kind: FaceUtteranceClauseKind::Disclosure,
+            text: format!(
+                "{}: {}.",
+                disclosure_token(disclosure.level),
+                subject_name(face, &disclosure.subject)
+            ),
+            provenance: FaceUtteranceProvenance::disclosure(index as u32).unwrap(),
+        })?;
+    }
+
+    for (index, reference) in face.temporal_references.iter().enumerate() {
+        builder.push(FaceUtteranceClause {
+            kind: FaceUtteranceClauseKind::TemporalReference,
+            text: format!(
+                "Time reference {} is tick {} on {} at {:?} scale, resolution {} ticks, uncertainty {} ticks.",
+                reference.identity,
+                reference.instant.ticks,
+                reference.instant.clock_basis,
+                reference.instant.scale,
+                reference.instant.resolution_ticks,
+                reference.instant.uncertainty_ticks,
+            ),
+            provenance: FaceUtteranceProvenance::temporal_reference(index as u32).unwrap(),
+        })?;
+    }
+
+    for (index, fact) in face.temporal_facts.iter().enumerate() {
+        builder.push(FaceUtteranceClause {
+            kind: FaceUtteranceClauseKind::TemporalFact,
+            text: format!(
+                "{} {} at tick {} on {}. {} relative to {}{}.",
+                subject_name(face, &fact.subject),
+                temporal_role_token(fact.role),
+                fact.source.ticks,
+                fact.source.clock_basis,
+                temporal_relation_token(fact.relation),
+                fact.reference,
+                fact.sign_id
+                    .as_ref()
+                    .map_or_else(String::new, |sign| format!("; Sign {}", sign.as_str())),
+            ),
+            provenance: FaceUtteranceProvenance::temporal_fact(index as u32).unwrap(),
+        })?;
+    }
+
     let mut actions = face.actions.iter().collect::<Vec<_>>();
     actions.sort_by_key(|action| {
         (
@@ -246,6 +294,43 @@ fn role_token(role: &PresentationRole) -> String {
         PresentationRole::TextEntry => "Text entry".into(),
         PresentationRole::Status => "Status".into(),
         PresentationRole::Action => "Action".into(),
+    }
+}
+
+fn disclosure_token(level: PresentationDisclosureLevel) -> &'static str {
+    match level {
+        PresentationDisclosureLevel::Primary => "Primary content",
+        PresentationDisclosureLevel::CurrentAction => "Current action",
+        PresentationDisclosureLevel::Context => "Context",
+        PresentationDisclosureLevel::SelectedDetail => "Selected detail",
+        PresentationDisclosureLevel::ExactProvenance => "Exact provenance",
+    }
+}
+
+fn temporal_role_token(role: PresentationTemporalRole) -> &'static str {
+    match role {
+        PresentationTemporalRole::Event => "happened",
+        PresentationTemporalRole::Observation => "was observed",
+        PresentationTemporalRole::Ingestion => "was received",
+    }
+}
+
+fn temporal_relation_token(relation: TemporalRelation) -> String {
+    match relation {
+        TemporalRelation::Past {
+            minimum_ticks,
+            maximum_ticks,
+        } => {
+            format!("Between {minimum_ticks} and {maximum_ticks} ticks before")
+        }
+        TemporalRelation::Present => "At the same instant as".into(),
+        TemporalRelation::Future {
+            minimum_ticks,
+            maximum_ticks,
+        } => {
+            format!("Between {minimum_ticks} and {maximum_ticks} ticks after")
+        }
+        TemporalRelation::Indeterminate => "Overlaps in time with".into(),
     }
 }
 
@@ -631,6 +716,18 @@ fn hash_provenance(digest: &mut Sha256, provenance: &FaceUtteranceProvenance) {
             digest.update([5]);
             hash_bytes(digest, value.action_identity().as_bytes());
             hash_bytes(digest, value.argument_name().as_bytes());
+        }
+        FaceUtteranceProvenance::Disclosure(value) => {
+            digest.update([7]);
+            digest.update(value.index().to_le_bytes());
+        }
+        FaceUtteranceProvenance::TemporalReference(value) => {
+            digest.update([8]);
+            digest.update(value.index().to_le_bytes());
+        }
+        FaceUtteranceProvenance::TemporalFact(value) => {
+            digest.update([9]);
+            digest.update(value.index().to_le_bytes());
         }
     }
 }

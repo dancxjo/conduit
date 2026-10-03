@@ -32,9 +32,9 @@ use serde::Serialize;
 #[cfg(any(test, feature = "native-compositor"))]
 use sha2::{Digest, Sha256};
 
-// The current complete Tutorial Face is 11,550 encoded bytes. This finite
-// native profile admits it whole; larger Faces still require a new admission.
-pub const MAX_MASK_VALUE_BYTES: usize = 16 * 1024;
+// The current complete resident Patchbay Face is about 21 KiB encoded. This
+// finite native profile admits it whole; larger Faces require a new admission.
+pub const MAX_MASK_VALUE_BYTES: usize = 32 * 1024;
 #[cfg(any(test, feature = "native-compositor"))]
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 #[cfg(any(test, feature = "native-compositor"))]

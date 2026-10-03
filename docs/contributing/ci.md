@@ -99,15 +99,15 @@ LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
 emulators before boot because their large-page translation can corrupt the
 bootloader's module handoff.
 
-The x86_64 lane also exercises the current Workspace against the same retained
-product IMAGE: zero-Body arrival, naming and plot selection, birth into rest,
-explicit Wake, Memory Lantern input, the shared Tutorial, pagination, lull and
-fulfillment. `cargo xtask make host verify OUTPUT --journey` verifies the image
-digest before and after execution and correlates the guest's source, profile,
-build and image identities. It does not rebuild a demonstration image. The
-lane retains the action records and QMP screenshots with the product. This
-keyboard journey is separate from retained Tour chapter, USB carrier, pointer,
-and screen-free proofs; those claims require their own actual interactions.
+The x86_64 lane exercises the Face journey against the same retained product
+image: zero-Body Crèche arrival, Birth into rest, Wake, Plan, Play, Home,
+Patchbay, Face inspection, a live graph diagram, and Stop. The command
+`cargo xtask make host verify OUTPUT --journey` verifies the digest before and after the
+QMP-driven keyboard session and correlates the guest's source, profile, build,
+image, Boot, and Body identities. It does not rebuild a demonstration image.
+The lane retains ten actual screen captures, their manifest, and the journey
+receipt with the product. This emulator journey does not establish physical
+hardware operation, screen-free use, or human enactment.
 
 ## Publication
 
@@ -138,9 +138,12 @@ check identities.
 
 The browser lane assembles and checks the public website, including the tested
 Workspace and fresh Field Station Clock screenshots. Its sealed receipt includes
-the site and desktop/mobile browser checks. Publication deploys those same bytes
-to GitHub Pages after release acceptance; resuming an older release cannot replace
-the current site. No website build runs during publication.
+the site and desktop/mobile browser checks. After restoring the verified product
+bundles, publication copies that site and adds the x86_64 journey pages from the
+retained QMP frames. The composition validates the exact source and screenshot
+hashes; it never changes the sealed browser bundle. The derived site goes to
+GitHub Pages only after release acceptance, and an older release cannot replace
+the current site. No product or website build runs during publication.
 
 Older Three Bodies and technical recordings retain their original identities,
 media, and explicit capture limits. Updating their presentation does not turn

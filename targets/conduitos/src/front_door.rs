@@ -15,6 +15,7 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 mod application_layout;
 mod arrival;
+mod graph_projection;
 mod home;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
@@ -62,6 +63,7 @@ pub struct FrontDoor {
     refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
     application_view: Option<conduit_presentation::ApplicationView>,
+    patchbay_graph: Option<patchbay_graph::PatchbayGraph>,
     application_viewport: application_layout::ApplicationViewport,
 }
 
@@ -159,6 +161,7 @@ impl FrontDoor {
             refusal: None,
             workspace: None,
             application_view: None,
+            patchbay_graph: None,
             application_viewport: application_layout::ApplicationViewport::default(),
         }
     }
