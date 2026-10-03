@@ -11,7 +11,7 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_presentation::{OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse};
+use conduit_presentation::{OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation};
 use conduit_std_host::{
     browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
     hosted_local_model::LocalModelAdapterTerminal,
@@ -41,6 +41,7 @@ pub(crate) use body::start_browser_window;
 use body::HostSource;
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
+    local_face_snapshot,
 };
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
 
@@ -943,6 +944,10 @@ enum Request {
         token: Vec<u8>,
         request: OwnerFaceSnapshotRequest,
     },
+    BodyLocalFace {
+        protocol: u16,
+        token: Vec<u8>,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1048,6 +1053,11 @@ enum Response {
     BodyFace {
         protocol: u16,
         response: Box<OwnerFaceSnapshotResponse>,
+    },
+    BodyLocalFace {
+        protocol: u16,
+        presentation: Box<Presentation>,
+        advertisement: HostAdvertisement,
     },
     BodyRunRequested {
         protocol: u16,
@@ -1571,6 +1581,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
+        | Request::BodyLocalFace { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
@@ -1592,6 +1603,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             Request::Status { .. }
                 | Request::BodyInspect { .. }
                 | Request::BodyFace { .. }
+                | Request::BodyLocalFace { .. }
                 | Request::BodyLull { .. }
                 | Request::BodyBrowserAbort { .. }
                 | Request::BodyBrowserCancel { .. }
@@ -1713,6 +1725,14 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|response| Response::BodyFace {
                 protocol: PROTOCOL,
                 response: Box::new(response),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyLocalFace { protocol, .. } if protocol == PROTOCOL => runtime
+            .owned_body_local_face()
+            .map(|(presentation, advertisement)| Response::BodyLocalFace {
+                protocol: PROTOCOL,
+                presentation: Box::new(presentation),
+                advertisement,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyStart {

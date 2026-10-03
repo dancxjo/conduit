@@ -342,6 +342,11 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         state_dir: PathBuf,
     },
+    /// Read the installed owner's live Face through the terminal Mask.
+    Terminal {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Issue one bounded invitation from the body owned by this installed host.
     Invite {
         /// Installed durable host state that owns the body.

@@ -1,4 +1,5 @@
 mod body_product;
+mod body_terminal;
 mod cli;
 mod deployment_carrier;
 mod diagnostics;
@@ -268,6 +269,9 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Terminal { state_dir }),
+        }) => body_terminal::run(&state_dir, &mut io::stdin().lock(), &mut io::stdout().lock()),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Invite {

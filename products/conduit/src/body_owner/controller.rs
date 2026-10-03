@@ -258,6 +258,13 @@ impl Owner {
         if !present || self.session.evidence().body_id != request.body_id {
             return Err("owner-face-current-part-unavailable".into());
         }
+        self.local_face_snapshot()
+    }
+
+    /// The installed owner's current Face. Only the authenticated local
+    /// control service calls this; remote callers still need an exact admitted
+    /// credential and current Part above.
+    pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
         let face = Face::project(
             &self.session.evidence().body,
             self.session
