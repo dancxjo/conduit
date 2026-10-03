@@ -2,7 +2,7 @@
 
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 use conduit_body::{Body, BodyState, Wake};
-use conduit_core::{ActivePlayId, CheckedPlotId, PlanId};
+use conduit_core::{ActivePlayId, CheckedPlotId, PlanId, SourceDocumentId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -23,6 +23,22 @@ use validation::{validate_contributions, validate_wake};
 
 pub const MAX_FACE_CONTRIBUTIONS: usize = 5;
 pub const MAX_FACE_TRANSIENTS: usize = 2;
+
+/// Human names supplied by the owner of the exact Body and checked resident Plots.
+/// These change only wording; Body and Plot identities remain in the Face basis,
+/// subject identities, and inspectable properties.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FaceNames<'a> {
+    pub body_name: Option<&'a str>,
+    pub resident_plots: &'a [FaceResidentPlotName<'a>],
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FaceResidentPlotName<'a> {
+    pub source_document_id: &'a SourceDocumentId,
+    pub checked_plot_id: &'a CheckedPlotId,
+    pub name: &'a str,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FaceContext {
@@ -121,6 +137,10 @@ pub enum FaceRefusal {
     InvalidContext,
     InvalidFocus,
     InvalidPresentation(PresentationError),
+    InvalidBodyName,
+    InvalidPlotName,
+    PlotNameNotResident,
+    DuplicatePlotName,
     StaleAction,
     UnknownAction,
     UnavailableAction,
@@ -135,10 +155,33 @@ impl Face {
         revision: u64,
         context: FaceContext,
         focus: FaceFocus,
+        contributions: Vec<FaceContribution>,
+    ) -> Result<Self, FaceRefusal> {
+        Self::project_with_names(
+            body,
+            wake,
+            revision,
+            context,
+            focus,
+            contributions,
+            FaceNames::default(),
+        )
+    }
+
+    /// Projects the same exact Face while using names from authoritative Body
+    /// biography and checked Plot source when the caller has them available.
+    pub fn project_with_names(
+        body: &Body,
+        wake: Option<&Wake>,
+        revision: u64,
+        context: FaceContext,
+        focus: FaceFocus,
         mut contributions: Vec<FaceContribution>,
+        names: FaceNames<'_>,
     ) -> Result<Self, FaceRefusal> {
         body.validate().map_err(|_| FaceRefusal::InvalidBody)?;
         validate_wake(body, wake)?;
+        validation::validate_names(body, names)?;
         contributions.sort_by(|left, right| {
             (left.role.token(), left.active_play_id.as_str())
                 .cmp(&(right.role.token(), right.active_play_id.as_str()))
@@ -151,7 +194,7 @@ impl Face {
             PresentationSubject {
                 identity: body_subject.clone(),
                 role: PresentationRole::Body,
-                name: "Current body".into(),
+                name: names.body_name.unwrap_or("Current body").into(),
             },
             PresentationSubject {
                 identity: context_subject.clone(),
@@ -188,11 +231,15 @@ impl Face {
                 value: PresentationPropertyValue::Text(focus_label(&focus)),
             },
         ];
+        let body_phrase = names
+            .body_name
+            .map(String::from)
+            .unwrap_or_else(|| format!("Body {}", body.body_id.as_str()));
         let mut text = vec![PresentationText {
             subject: body_subject.clone(),
             text: format!(
-                "Body {} is {} with {} resident Plot(s) at workload revision {}.",
-                body.body_id.as_str(),
+                "{} is {} with {} resident Plot(s) at workload revision {}.",
+                body_phrase,
                 lifecycle_label(&body.state),
                 body.workset.len(),
                 body.workload_revision
@@ -224,10 +271,20 @@ impl Face {
 
         for plot in body.workset.plots() {
             let plot_subject = format!("plot/{}", plot.checked_plot_id.as_str());
+            let plot_name = names
+                .resident_plots
+                .iter()
+                .find(|entry| {
+                    entry.source_document_id == &plot.source_document_id
+                        && entry.checked_plot_id == &plot.checked_plot_id
+                })
+                .map(|entry| entry.name);
             subjects.push(PresentationSubject {
                 identity: plot_subject.clone(),
                 role: PresentationRole::Plot,
-                name: format!("Resident Plot {}", plot.checked_plot_id.as_str()),
+                name: plot_name
+                    .map(String::from)
+                    .unwrap_or_else(|| format!("Resident Plot {}", plot.checked_plot_id.as_str())),
             });
             relationships.push(PresentationRelationship {
                 source: body_subject.clone(),

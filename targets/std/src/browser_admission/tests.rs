@@ -6,6 +6,10 @@ use conduit_core::{
     PROTOCOL_VERSION,
 };
 use conduit_human::{MediaConstraints, MediaFlowBounds};
+use conduit_presentation::{
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, OWNER_FACE_REQUEST_SCHEMA,
+    OWNER_FACE_RESPONSE_SCHEMA,
+};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
     SessionEndpointIdentity, SessionFrame, SessionLimits, SessionMessage,
@@ -124,6 +128,51 @@ fn bounded_advertisement_round_trips_without_creating_membership() {
     assert_eq!(
         decode_browser_admission_frame(&encoded),
         Ok(advertisement())
+    );
+}
+
+#[test]
+fn owner_face_frames_require_one_exact_credential_basis_and_bounded_response() {
+    let request = OwnerFaceSnapshotRequest {
+        schema: OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: "credential/current".into(),
+        body_id: serde_json::from_str("\"body/current\"").unwrap(),
+        part_id: serde_json::from_str("\"part/current\"").unwrap(),
+        host_id: HostId::from("host/browser"),
+        boot_id: BootId::from("boot/browser"),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    let frame = BrowserAdmissionIngress::FaceSnapshotRequest {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        request: request.clone(),
+    };
+    let bytes = serde_json::to_vec(&frame).unwrap();
+    assert_eq!(decode_browser_admission_frame(&bytes), Ok(frame));
+    let mut stale = request;
+    stale.last_seen_revision = Some(2);
+    assert_eq!(
+        decode_browser_admission_frame(
+            &serde_json::to_vec(&BrowserAdmissionIngress::FaceSnapshotRequest {
+                protocol: BROWSER_ADMISSION_PROTOCOL,
+                request: stale,
+            })
+            .unwrap()
+        ),
+        Err(BrowserAdmissionFrameError::InvalidFaceSnapshot)
+    );
+    let response = BrowserAdmissionEgress::FaceSnapshotResponse {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        response: OwnerFaceSnapshotResponse::Refused {
+            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+            code: "face-unavailable".into(),
+        },
+    };
+    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let length = encode_browser_admission_frame(&response, &mut output).unwrap();
+    assert_eq!(
+        serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
+        response
     );
 }
 

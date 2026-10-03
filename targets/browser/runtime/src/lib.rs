@@ -43,6 +43,7 @@ pub mod human_media;
 mod installed_browser;
 pub mod membership;
 mod membership_abi;
+mod owner_face_mask;
 #[cfg(feature = "plot-runner")]
 mod plot_runner;
 pub mod presentation_nucleus;

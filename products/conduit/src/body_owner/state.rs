@@ -17,6 +17,10 @@ struct Transaction {
     last_execution: Option<serde_json::Value>,
     #[serde(default)]
     admissions: Option<conduit_body::AdmissionManager>,
+    /// A checked source replacement travels with the matching biography.
+    /// Older owner transactions did not carry source and remain replayable.
+    #[serde(default)]
+    source: Option<Vec<u8>>,
 }
 
 pub(super) fn recover(root: &Path) -> Result<(), String> {
@@ -73,6 +77,10 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     {
         return Err("owner transaction biography identity differs".into());
     }
+    if let Some(source) = &transaction.source {
+        validate_source(&transaction.biography, source)?;
+        write_bytes_atomic(&root.join("body/source.conduit"), source)?;
+    }
     write_bytes_atomic(&root.join("body/biography.json"), &bytes)?;
     write_json_atomic(
         &root.join("body/owner-execution.json"),
@@ -100,6 +108,19 @@ pub(super) fn retain(
     last_execution: Option<&serde_json::Value>,
     admissions: Option<&conduit_body::AdmissionManager>,
 ) -> Result<(), String> {
+    retain_with_source(root, biography, last_execution, admissions, None)
+}
+
+pub(super) fn retain_with_source(
+    root: &Path,
+    biography: &BodyBiographyEvidence,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+) -> Result<(), String> {
+    if let Some(source) = source {
+        validate_source(biography, source)?;
+    }
     if serde_json::to_vec(&last_execution)
         .map_err(|e| e.to_string())?
         .len()
@@ -137,6 +158,7 @@ pub(super) fn retain(
         installation,
         last_execution: last_execution.cloned(),
         admissions: admissions.cloned(),
+        source: source.map(Vec::from),
     };
     if serde_json::to_vec(&transaction)
         .map_err(|e| e.to_string())?
@@ -147,6 +169,23 @@ pub(super) fn retain(
     }
     write_json_atomic(&directory.join("owner-transaction.json"), &transaction)?;
     recover(root)
+}
+
+fn validate_source(biography: &BodyBiographyEvidence, source: &[u8]) -> Result<(), String> {
+    if source.len() > super::MAXIMUM_SOURCE as usize {
+        return Err("owner source storage bound exhausted".into());
+    }
+    let text = std::str::from_utf8(source)
+        .map_err(|_| "owner transaction source is not UTF-8".to_string())?;
+    let checked = crate::plot_source::parse(text)?.expand_entry_for_authoring()?;
+    let resident = conduit_body::ResidentPlot::new(
+        checked.expanded.source_document_id,
+        checked.expanded.checked_plot_id,
+    );
+    if !biography.body.workset.plots().contains(&resident) {
+        return Err("owner transaction source differs from the retained workset".into());
+    }
+    Ok(())
 }
 pub(super) fn load(root: &Path) -> Result<Option<BodyBiographyEvidence>, String> {
     recover(root)?;
@@ -235,6 +274,97 @@ pub(super) fn admissions(
 mod tests {
     use super::*;
     #[test]
+    fn checked_source_and_biography_replay_as_one_owner_transaction() {
+        use conduit_body::{Body, BodyBiographyEvidence, BodyMembership, ResidentPlot};
+        use conduit_core::bind_sign;
+
+        const SOURCE: &str =
+            "plot retained-clock {\n clock: time/every(2s)\n clock >> presentation/tick\n}\n";
+        let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+            "owner-source-journal",
+            "checked-clock",
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let installation = Installation {
+            schema: super::super::super::INSTALL_SCHEMA.into(),
+            host_id: "host/source-journal".into(),
+            release_source_identity: "source/test".into(),
+            release_bundle_sha256: digest(b"bundle/test"),
+            product_executable: "fixture-unused".into(),
+            body_state: None,
+            joined_body_state: None,
+        };
+        write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+        let checked = crate::plot_source::parse(SOURCE)
+            .unwrap()
+            .expand_entry_for_authoring()
+            .unwrap();
+        let body = Body::born(
+            checked.expanded.source_document_id.clone(),
+            checked.expanded.checked_plot_id.clone(),
+            1,
+            bind_sign(
+                &"host/source-journal".into(),
+                &"boot/source-journal".into(),
+                None,
+                1,
+            )
+            .sign_id,
+        )
+        .unwrap();
+        let evidence = BodyBiographyEvidence::born(
+            body.clone(),
+            BodyMembership::new(body.body_id.clone()).unwrap(),
+            "Clock".into(),
+        )
+        .unwrap();
+        let wrong_source = include_bytes!("../../../../plots/clock/main.conduit");
+        retain_with_source(&root, &evidence, None, None, Some(SOURCE.as_bytes())).unwrap();
+        let committed = read_installation(&root.join("installation.json")).unwrap();
+        let transaction = Transaction {
+            schema: "conduit.body/owner-transaction@1".into(),
+            biography: evidence.clone(),
+            installation: committed,
+            last_execution: None,
+            admissions: None,
+            source: Some(SOURCE.as_bytes().to_vec()),
+        };
+        write_json_atomic(&root.join("body/owner-transaction.json"), &transaction).unwrap();
+        fs::write(root.join("body/source.conduit"), wrong_source).unwrap();
+        fs::write(root.join("body/biography.json"), b"interrupted").unwrap();
+        recover(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join("body/source.conduit")).unwrap(),
+            SOURCE.as_bytes()
+        );
+        assert_eq!(load(&root).unwrap().unwrap(), evidence);
+        assert!(!root.join("body/owner-transaction.json").exists());
+
+        let wrong = crate::plot_source::parse(std::str::from_utf8(wrong_source).unwrap())
+            .unwrap()
+            .expand_entry_for_authoring()
+            .unwrap();
+        assert_ne!(
+            ResidentPlot::new(
+                wrong.expanded.source_document_id,
+                wrong.expanded.checked_plot_id
+            ),
+            body.workset.plots()[0]
+        );
+        assert!(
+            retain_with_source(&root, &evidence, None, None, Some(wrong_source))
+                .unwrap_err()
+                .contains("source differs")
+        );
+        assert_eq!(load(&root).unwrap().unwrap(), evidence);
+        assert_eq!(
+            fs::read(root.join("body/source.conduit")).unwrap(),
+            SOURCE.as_bytes()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn interrupted_publication_recovers_and_corruption_never_becomes_birth() {
         use conduit_body::{Body, BodyMembership};
         let root = std::env::temp_dir().join(super::super::super::fresh_identity(
@@ -307,6 +437,7 @@ mod tests {
                 installation: retained_installation,
                 last_execution: None,
                 admissions: Some(manager.clone()),
+                source: None,
             },
         )
         .unwrap();

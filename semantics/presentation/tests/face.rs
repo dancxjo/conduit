@@ -5,14 +5,14 @@ use conduit_core::{
 };
 use conduit_presentation::{
     render_linear_presentation, Face, FaceContext, FaceContribution, FaceContributionRole,
-    FaceFocus, FaceOperatorActionKind, FaceRefusal, GenerativeNarratorRole,
-    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
-    NavigationAspect, NavigationPlace, PresentationAction, PresentationActionAvailability,
-    PresentationAspect, PresentationCompositionKind, PresentationCompositionRelation,
-    PresentationContributionBasis, PresentationCursor, PresentationDepth, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationFragment, PresentationNavigation, PresentationPlace,
-    PresentationProjection, PresentationPropertyValue, PresentationRole, PresentationSubject,
-    ProjectionItem, ProjectionMembership,
+    FaceFocus, FaceNames, FaceOperatorActionKind, FaceRefusal, FaceResidentPlotName,
+    GenerativeNarratorRole, GenerativePresenterBounds, GenerativePresenterPolicy,
+    GenerativePresenterRequest, NavigationAspect, NavigationPlace, PresentationAction,
+    PresentationActionAvailability, PresentationAspect, PresentationCompositionKind,
+    PresentationCompositionRelation, PresentationContributionBasis, PresentationCursor,
+    PresentationDepth, PresentationDisclosure, PresentationDisclosureLevel, PresentationFragment,
+    PresentationNavigation, PresentationPlace, PresentationProjection, PresentationPropertyValue,
+    PresentationRole, PresentationSubject, ProjectionItem, ProjectionMembership,
 };
 
 fn born_body() -> Body {
@@ -23,6 +23,129 @@ fn born_body() -> Body {
         SignId::from("sign/born"),
     )
     .unwrap()
+}
+
+#[test]
+fn owner_names_are_human_facing_while_exact_body_and_plot_truth_remain_inspectable() {
+    let body = born_body();
+    let resident = &body.workset.plots()[0];
+    let plot_names = [FaceResidentPlotName {
+        source_document_id: &resident.source_document_id,
+        checked_plot_id: &resident.checked_plot_id,
+        name: "Field Station Clock",
+    }];
+    let face = Face::project_with_names(
+        &body,
+        None,
+        7,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+        FaceNames {
+            body_name: Some("North Station"),
+            resident_plots: &plot_names,
+        },
+    )
+    .unwrap();
+
+    let body_subject = face
+        .presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.role == PresentationRole::Body)
+        .unwrap();
+    let plot_subject = face
+        .presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.role == PresentationRole::Plot)
+        .unwrap();
+    assert_eq!(body_subject.name, "North Station");
+    assert_eq!(plot_subject.name, "Field Station Clock");
+    assert_eq!(
+        body_subject.identity,
+        format!("body/{}", body.body_id.as_str())
+    );
+    assert_eq!(
+        plot_subject.identity,
+        format!("plot/{}", resident.checked_plot_id.as_str())
+    );
+    assert!(face.presentation.properties.iter().any(|property| {
+        property.subject == plot_subject.identity
+            && property.name == "checked-plot-id"
+            && property.value
+                == PresentationPropertyValue::Identity(resident.checked_plot_id.as_str().into())
+    }));
+    assert!(face.presentation.text.iter().any(|text| {
+        text.subject == body_subject.identity
+            && text
+                .text
+                .starts_with("North Station is lulled with 1 resident Plot")
+    }));
+    face.presentation.validate().unwrap();
+}
+
+#[test]
+fn owner_names_refuse_stale_or_ambiguous_plot_labels() {
+    let body = born_body();
+    let resident = &body.workset.plots()[0];
+    let stale_checked = CheckedPlotId::from("checked/old-plot");
+    let stale = [FaceResidentPlotName {
+        source_document_id: &resident.source_document_id,
+        checked_plot_id: &stale_checked,
+        name: "Old clock",
+    }];
+    let project = |names| {
+        Face::project_with_names(
+            &body,
+            None,
+            7,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+            names,
+        )
+    };
+    assert_eq!(
+        project(FaceNames {
+            body_name: None,
+            resident_plots: &stale,
+        }),
+        Err(FaceRefusal::PlotNameNotResident)
+    );
+    let stale_source = SourceDocumentId::from("source/old-plot");
+    let wrong_source = [FaceResidentPlotName {
+        source_document_id: &stale_source,
+        checked_plot_id: &resident.checked_plot_id,
+        name: "Old clock",
+    }];
+    assert_eq!(
+        project(FaceNames {
+            body_name: None,
+            resident_plots: &wrong_source,
+        }),
+        Err(FaceRefusal::PlotNameNotResident)
+    );
+    let valid = FaceResidentPlotName {
+        source_document_id: &resident.source_document_id,
+        checked_plot_id: &resident.checked_plot_id,
+        name: "Clock",
+    };
+    let duplicated = [valid, valid];
+    assert_eq!(
+        project(FaceNames {
+            body_name: None,
+            resident_plots: &duplicated,
+        }),
+        Err(FaceRefusal::DuplicatePlotName)
+    );
+    assert_eq!(
+        project(FaceNames {
+            body_name: Some("  "),
+            resident_plots: &[],
+        }),
+        Err(FaceRefusal::InvalidBodyName)
+    );
 }
 
 fn playing() -> (Body, Wake, conduit_core::PlanId, conduit_core::ActivePlayId) {

@@ -41,6 +41,9 @@ impl TerminalFaceMask {
         self.check_show(expected)?;
         match input {
             TerminalInput::Apply => {
+                if !self.interaction_admitted {
+                    return Err(TerminalError::UnsupportedInput);
+                }
                 let control = self.focus.ok_or(TerminalError::UnknownControl)?;
                 let action = &self.face.actions[control.action];
                 let arguments = action
@@ -88,6 +91,9 @@ impl TerminalFaceMask {
                 self.focus = None;
             }
             TerminalInput::NextControl | TerminalInput::PreviousControl => {
+                if !self.interaction_admitted {
+                    return Ok(TerminalInputOutcome::Unchanged);
+                }
                 self.inspect = false;
                 let mut controls = Vec::new();
                 for (i, row) in self.document.iter().enumerate() {
@@ -127,7 +133,10 @@ impl TerminalFaceMask {
                 };
                 if let Some(next) = next {
                     self.reading = next;
-                    self.focus = self.current_rows()[next].control;
+                    self.focus = self
+                        .interaction_admitted
+                        .then(|| self.current_rows()[next].control)
+                        .flatten();
                     self.reveal();
                 }
             }
@@ -141,6 +150,9 @@ impl TerminalFaceMask {
                 self.focus = None;
             }
             TerminalInput::Text(_) | TerminalInput::Backspace | TerminalInput::Toggle => {
+                if !self.interaction_admitted {
+                    return Err(TerminalError::UnsupportedInput);
+                }
                 self.edit(input)?
             }
         }

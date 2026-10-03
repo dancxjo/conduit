@@ -89,6 +89,7 @@ pub trait TerminalMaskExecution {
 
 pub struct TerminalFaceMask {
     face: Presentation,
+    interaction_admitted: bool,
     columns: usize,
     rows: usize,
     document: Vec<document::Row>,
@@ -105,6 +106,26 @@ pub struct TerminalFaceMask {
 }
 impl TerminalFaceMask {
     pub fn prepare(face: Presentation, columns: usize, rows: usize) -> Result<Self, TerminalError> {
+        Self::prepare_with_interactions(face, columns, rows, true)
+    }
+
+    /// Render an authoritative Face whose typed interaction return route has
+    /// not yet been admitted. Local reading remains available, but control
+    /// focus and submission cannot imply an executable action.
+    pub fn prepare_read_only(
+        face: Presentation,
+        columns: usize,
+        rows: usize,
+    ) -> Result<Self, TerminalError> {
+        Self::prepare_with_interactions(face, columns, rows, false)
+    }
+
+    fn prepare_with_interactions(
+        face: Presentation,
+        columns: usize,
+        rows: usize,
+        interaction_admitted: bool,
+    ) -> Result<Self, TerminalError> {
         face.validate().map_err(|_| TerminalError::InvalidFace)?;
         if !(40..=240).contains(&columns) || !(8..=100).contains(&rows) {
             return Err(TerminalError::InvalidExtent);
@@ -120,6 +141,7 @@ impl TerminalFaceMask {
             .collect();
         Ok(Self {
             face,
+            interaction_admitted,
             columns,
             rows,
             document,

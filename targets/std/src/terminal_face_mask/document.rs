@@ -164,7 +164,11 @@ pub(super) fn frame(mask: &TerminalFaceMask) -> String {
     frame.push_str(&clipped(&status, mask.columns));
     frame.push_str("\r\n");
     frame.push_str(&clipped(
-        "Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel",
+        if mask.interaction_admitted {
+            "Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel"
+        } else {
+            "Read only · ↑↓ read · PgUp/PgDn · F2 inspect · Esc close"
+        },
         mask.columns,
     ));
     frame

@@ -1,7 +1,9 @@
 use super::*;
 use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_presentation::PresentationRole;
 use conduit_std_host::StdHostConfig;
 const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
 fn source() -> conduit_plot::ExpandedAuthoringPlot {
     crate::plot_source::parse(SOURCE)
         .unwrap()
@@ -20,6 +22,72 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
         plot.expanded.source_document_id.clone(),
         plot.expanded.checked_plot_id.clone(),
     )
+}
+
+#[test]
+fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-face-names",
+        "retained-source",
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = super::super::super::Installation {
+        schema: super::super::super::INSTALL_SCHEMA.into(),
+        host_id: "host/owner-test".into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: super::super::super::digest(b"bundle/test"),
+        product_executable: "fixture-unused".into(),
+        body_state: None,
+        joined_body_state: None,
+    };
+    super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let checked = source();
+    let mut born = Owner::open(
+        host("boot/name-first"),
+        resident(&checked),
+        None,
+        "North Station",
+    )
+    .unwrap();
+    born.set_resident_plot_name(&checked).unwrap();
+    born.persist(&root).unwrap();
+    let names = |owner: &Owner| {
+        let face = owner.local_face_snapshot().unwrap();
+        let body = face
+            .subjects
+            .iter()
+            .find(|subject| subject.role == PresentationRole::Body)
+            .unwrap()
+            .name
+            .clone();
+        let plot = face
+            .subjects
+            .iter()
+            .find(|subject| subject.role == PresentationRole::Plot)
+            .unwrap()
+            .name
+            .clone();
+        (body, plot, face.basis.body_id)
+    };
+    let original = names(&born);
+    assert_eq!(original.0, "North Station");
+    assert_eq!(original.1, checked.expanded.name);
+    std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
+    let resumed = super::super::resume_service(host("boot/name-next"), &root).unwrap();
+    assert_eq!(names(&resumed), original);
+
+    // A legacy or interrupted source write preserves the biography and exact
+    // Plot identity, but cannot claim a checked human Plot name.
+    std::fs::remove_file(root.join("body/source.conduit")).unwrap();
+    let legacy = super::super::resume_service(host("boot/name-legacy"), &root).unwrap();
+    let legacy_names = names(&legacy);
+    assert_eq!(legacy_names.0, "North Station");
+    assert_eq!(legacy_names.2, original.2);
+    assert!(legacy_names.1.starts_with("Resident Plot "));
+
+    std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
+    assert!(super::super::resume_service(host("boot/name-wrong"), &root).is_err());
+    std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
 fn checked_birth_and_fresh_boot_recovery_preserve_body_without_replaying_proposal() {
@@ -95,6 +163,284 @@ fn ordinary_kernel_execution_supplies_actual_play_and_output_then_retains_lull()
         owner.session.evidence().body.state,
         conduit_body::BodyState::Lulled
     );
+}
+
+#[test]
+fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
+    use std::time::{Duration, Instant};
+
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-clock-service-test",
+        "continuing",
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = super::super::super::Installation {
+        schema: super::super::super::INSTALL_SCHEMA.into(),
+        host_id: "host/owner-test".into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: super::super::super::digest(b"bundle/test"),
+        product_executable: "fixture-unused".into(),
+        body_state: None,
+        joined_body_state: None,
+    };
+    super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let plot = crate::plot_source::parse(CLOCK_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let mut owner =
+        Owner::open(host("boot/clock-service"), resident(&plot), None, "Clock").unwrap();
+    owner.persist(&root).unwrap();
+    std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
+
+    let mut worker = owner.start_service_run(&root, 5000).unwrap();
+    assert!(owner.host.is_playing());
+    assert!(owner.start_service_run(&root, 5000).is_err());
+    let start = Instant::now();
+    while owner.current_play_id().is_none() {
+        assert!(
+            start.elapsed() < Duration::from_secs(3),
+            "clock Play did not start"
+        );
+        assert!(!worker.progress(&mut owner, &root).unwrap());
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let play = owner.current_play_id().unwrap().clone();
+    assert_eq!(
+        owner.truth()["realization"]["play"]["active_play_id"],
+        play.as_str()
+    );
+    assert!(matches!(
+        state::load(&root).unwrap().unwrap().body.state,
+        conduit_body::BodyState::Awake { .. }
+    ));
+    std::thread::sleep(Duration::from_millis(2200));
+    worker.request_lull().unwrap();
+    assert!(worker.request_lull().is_err());
+    let stopping = Instant::now();
+    while !worker.progress(&mut owner, &root).unwrap() {
+        assert!(
+            stopping.elapsed() < Duration::from_secs(3),
+            "clock Play did not stop"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(!owner.host.is_playing());
+    assert!(owner.current_play_id().is_none());
+    assert_eq!(
+        state::load(&root).unwrap().unwrap().body.state,
+        conduit_body::BodyState::Lulled
+    );
+    let receipt = owner.last_execution.as_ref().unwrap();
+    assert_eq!(receipt["play"]["active_play_id"], play.as_str());
+    assert_eq!(
+        receipt["terminal"],
+        serde_json::to_value(conduit_core::TerminalDisposition::Cancelled {
+            reason: conduit_core::CancellationReason::OperatorRequested,
+        })
+        .unwrap()
+    );
+    assert!(
+        receipt["output_utf8"]
+            .as_str()
+            .unwrap()
+            .contains("tick sequence="),
+        "{receipt:?}"
+    );
+
+    std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
+    assert!(owner.start_service_run(&root, 5000).is_err());
+    assert!(owner.session.realization().is_none());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth() {
+    use std::time::{Duration, Instant};
+
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-clock-interval-test",
+        "checked-replacement",
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = super::super::super::Installation {
+        schema: super::super::super::INSTALL_SCHEMA.into(),
+        host_id: "host/owner-test".into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: super::super::super::digest(b"bundle/test"),
+        product_executable: "fixture-unused".into(),
+        body_state: None,
+        joined_body_state: None,
+    };
+    super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let initial = crate::plot_source::parse(CLOCK_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let initial_resident = resident(&initial);
+    let mut owner = Owner::open(
+        host("boot/clock-interval"),
+        initial_resident.clone(),
+        None,
+        "Clock",
+    )
+    .unwrap();
+    owner.persist(&root).unwrap();
+    std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
+    let body_id = owner.session.evidence().body_id.clone();
+    let original_plan = owner
+        .plan_partition(&initial, &initial_resident)
+        .unwrap()
+        .plan
+        .plan_id;
+    assert!(owner.replace_lulled_clock_interval(&root, 1_000).is_err());
+    assert!(owner.replace_lulled_clock_interval(&root, 42).is_err());
+    owner.replace_lulled_clock_interval(&root, 500).unwrap();
+    let replacement = super::super::checked_retained_source(&root)
+        .unwrap()
+        .unwrap();
+    let replacement_resident = resident(&replacement);
+    assert_eq!(owner.session.evidence().body_id, body_id);
+    assert_eq!(owner.session.evidence().body.workload_revision, 2);
+    assert_eq!(
+        owner.session.evidence().body.workset.plots(),
+        std::slice::from_ref(&replacement_resident)
+    );
+    assert_ne!(replacement_resident, initial_resident);
+    assert_ne!(
+        owner
+            .plan_partition(&replacement, &replacement_resident)
+            .unwrap()
+            .plan
+            .plan_id,
+        original_plan
+    );
+    assert_eq!(
+        state::load(&root).unwrap().unwrap(),
+        *owner.session.evidence()
+    );
+    let mut worker = owner.start_service_run(&root, 5_000).unwrap();
+    let started = Instant::now();
+    while owner.current_play_id().is_none() {
+        assert!(started.elapsed() < Duration::from_secs(3));
+        assert!(!worker.progress(&mut owner, &root).unwrap());
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let current = owner.session.realization().unwrap();
+    assert_eq!(current.plan.plots[0].plot, replacement_resident);
+    assert_ne!(current.plan.plots[0].plan.plan_id, original_plan);
+    assert!(owner.replace_lulled_clock_interval(&root, 250).is_err());
+    worker.request_lull().unwrap();
+    let stopped = Instant::now();
+    while !worker.progress(&mut owner, &root).unwrap() {
+        assert!(stopped.elapsed() < Duration::from_secs(3));
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(owner.session.evidence().body_id, body_id);
+    assert_eq!(
+        owner.session.evidence().body.state,
+        conduit_body::BodyState::Lulled
+    );
+    let resumed = super::super::resume_service(host("boot/clock-interval-next"), &root).unwrap();
+    assert_eq!(resumed.session.evidence().body_id, body_id);
+    assert_eq!(
+        resumed.session.evidence().body.workset.plots(),
+        &[replacement_resident]
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
+    use conduit_presentation::{
+        FaceInteraction, FaceInteractionArgument, PresentationActionAvailability,
+    };
+    use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
+    use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
+
+    let root = std::env::temp_dir().join(super::super::super::fresh_identity(
+        "owner-clock-interaction-test",
+        "terminal-show",
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let installation = super::super::super::Installation {
+        schema: super::super::super::INSTALL_SCHEMA.into(),
+        host_id: "host/owner-test".into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: super::super::super::digest(b"bundle/test"),
+        product_executable: "fixture-unused".into(),
+        body_state: None,
+        joined_body_state: None,
+    };
+    super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    let checked = crate::plot_source::parse(CLOCK_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let mut owner =
+        Owner::open(host("boot/interaction"), resident(&checked), None, "Clock").unwrap();
+    owner.persist(&root).unwrap();
+    std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
+    owner.set_resident_plot_name(&checked).unwrap();
+    let face = owner.local_face_snapshot().unwrap();
+    let action = face
+        .actions
+        .iter()
+        .find(|action| action.intent == super::clock_interval_action())
+        .unwrap();
+    assert_eq!(
+        action.availability,
+        PresentationActionAvailability::Available
+    );
+    assert_eq!(action.arguments.len(), 1);
+    let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24).unwrap();
+    let mut execution = HostedTerminalMaskExecution::new(owner.host.advertisement()).unwrap();
+    let mut output = Vec::new();
+    mask.present(&mut execution, &mut output).unwrap();
+    let show = mask.show().unwrap().clone();
+    let interaction = FaceInteraction::new(
+        &face,
+        &show,
+        &action.identity,
+        &action.target,
+        vec![FaceInteractionArgument {
+            name: action.arguments[0].name.clone(),
+            value_kind: action.arguments[0].contract.value_kind.as_str().into(),
+            value: b"500".to_vec(),
+        }],
+        1,
+    )
+    .unwrap();
+    assert!(FaceInteraction::new(
+        &face,
+        &show,
+        &action.identity,
+        &action.target,
+        vec![FaceInteractionArgument {
+            name: action.arguments[0].name.clone(),
+            value_kind: action.arguments[0].contract.value_kind.as_str().into(),
+            value: b"3000".to_vec(),
+        }],
+        2,
+    )
+    .is_err());
+    let correlated = execution.interact(interaction.clone()).unwrap();
+    assert_eq!(correlated.interaction, interaction);
+    let result = owner
+        .apply_clock_interval_interaction(&root, &show, &correlated.interaction)
+        .unwrap();
+    assert_eq!(result["interval_ms"], 500);
+    assert_eq!(result["next_step"], "start-replacement-plan");
+    assert_eq!(result["prior_show_id"], show.show_id.as_str());
+    assert!(owner
+        .apply_clock_interval_interaction(&root, &show, &correlated.interaction)
+        .is_err());
+    assert_eq!(owner.session.evidence().body.workload_revision, 2);
+    assert_eq!(
+        state::load(&root).unwrap().unwrap(),
+        *owner.session.evidence()
+    );
+    std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
 fn independent_births_on_same_host_and_source_get_distinct_bodies() {
