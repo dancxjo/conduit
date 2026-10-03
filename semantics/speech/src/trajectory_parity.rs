@@ -164,7 +164,7 @@ fn plain_stops_have_silent_closure_and_audible_finite_release() {
             .unwrap();
             assert_eq!(
                 target.frication,
-                i64::from(frame >= base.closure && frame < base.closure + 96)
+                i32::from(frame >= base.closure && frame < base.closure + 96)
             );
             let result = speech_frame(SpeechFrameInput {
                 attack: true,
@@ -178,7 +178,7 @@ fn plain_stops_have_silent_closure_and_audible_finite_release() {
             if frame < base.closure {
                 assert_eq!(result.sample, 0);
             } else if frame < base.closure + 96 {
-                release_energy += result.sample.abs();
+                release_energy += i64::from(result.sample).abs();
             }
             state = result.state;
         }
@@ -253,7 +253,7 @@ fn released_samples(phone: EnglishPhone) -> Vec<i64> {
         })
         .unwrap();
         if frame >= base.closure {
-            samples.push(result.sample);
+            samples.push(i64::from(result.sample));
         }
         state = result.state;
     }

@@ -13,7 +13,7 @@ pub(super) fn program(name: &str) -> PortableExpressionProgram {
     )
     .unwrap()
 }
-fn record(program: &PortableExpressionProgram, values: &[(&str, i64)]) -> Vec<u8> {
+fn record(program: &PortableExpressionProgram, values: &[(&str, i32)]) -> Vec<u8> {
     let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
         panic!("record")
     };
@@ -45,13 +45,13 @@ fn record(program: &PortableExpressionProgram, values: &[(&str, i64)]) -> Vec<u8
 }
 #[test]
 fn compiled_integer_operations_match_checked_overflow_and_boundary_behavior() {
-    for value in [i64::MIN, -65536, -1, 0, 1, 65535, i64::MAX] {
+    for value in [i32::MIN, -65536, -1, 0, 1, 65535, i32::MAX] {
         let noise = program("speech_noise");
         assert_eq!(
             noise
                 .evaluate(&value.to_le_bytes())
                 .ok()
-                .map(|out| i64::from_le_bytes(out.try_into().unwrap())),
+                .map(|out| i32::from_le_bytes(out.try_into().unwrap())),
             speech_noise(value)
         );
         let limit = program("speech_limit");
@@ -59,16 +59,16 @@ fn compiled_integer_operations_match_checked_overflow_and_boundary_behavior() {
             limit
                 .evaluate(&value.to_le_bytes())
                 .ok()
-                .map(|out| i64::from_le_bytes(out.try_into().unwrap())),
+                .map(|out| i32::from_le_bytes(out.try_into().unwrap())),
             speech_limit(value)
         );
     }
     let resonance = program("speech_resonator");
     for (drive, b, c, y1, y2) in [
         (1000, 16300, -12000, 500, -200),
-        (i64::MAX, 1, 1, 0, 0),
-        (0, i64::MAX, 0, 2, 0),
-        (0, 0, i64::MIN, 0, -1),
+        (i32::MAX, 1, 1, 0, 0),
+        (0, i32::MAX, 0, 2, 0),
+        (0, 0, i32::MIN, 0, -1),
     ] {
         let bytes = record(
             &resonance,
@@ -78,7 +78,7 @@ fn compiled_integer_operations_match_checked_overflow_and_boundary_behavior() {
             resonance
                 .evaluate(&bytes)
                 .ok()
-                .map(|out| i64::from_le_bytes(out.try_into().unwrap())),
+                .map(|out| i32::from_le_bytes(out.try_into().unwrap())),
             speech_resonator(ResonatorInput {
                 drive,
                 b,
@@ -120,7 +120,7 @@ fn all_compiled_phone_targets_match_the_portable_typed_program() {
                 panic!("integer")
             };
             assert_eq!(
-                i64::from_le_bytes(bytes.try_into().unwrap()),
+                i32::from_le_bytes(bytes.try_into().unwrap()),
                 number,
                 "{tag}/{name}"
             );

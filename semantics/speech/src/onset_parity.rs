@@ -73,7 +73,7 @@ fn onset_graph_matches_portable_models_for_every_phone_place_and_window_edge() {
             (SpeechStopPlace::alveolar, "alveolar"),
             (SpeechStopPlace::velar, "velar"),
         ] {
-            for frame in [0i64, 159, 160, i64::MIN, i64::MAX] {
+            for frame in [0i32, 159, 160, i32::MIN, i32::MAX] {
                 let input = record(
                     ty,
                     &[

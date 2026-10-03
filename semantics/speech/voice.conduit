@@ -108,20 +108,20 @@ type EnglishDerivation =
 # All excitation, resonator, limiting and spelling policy lives in checked plots.
 # Q14 coefficients; explicit state in/out, no ambient clock or random source.
 type ResonatorInput = {
-    drive: I64
-    b: I64
-    c: I64
-    y1: I64
-    y2: I64
+    drive: I32
+    b: I32
+    c: I32
+    y1: I32
+    y2: I32
 }
 plot speech/resonator (
     >> value: ResonatorInput
-    result: I64 >>
+    result: I32 >>
 ) = ((.drive + .b * .y1 + .c * .y2) / 16384)
 
 plot speech/limit (
-    >> value: I64
-    result: I64 >>
+    >> value: I32
+    result: I32 >>
 ) = (. < -32767 ? -32767 : . > 32767 ? 32767 : .)
 
 plot speech/lowercase (
@@ -130,40 +130,40 @@ plot speech/lowercase (
 ) = (. >= 65 && . <= 90 ? . + 32 : .)
 
 type ExcitationInput = {
-    phase: I64
-    period: I64
-    noise: I64
-    voiced: I64
-    frication: I64
+    phase: I32
+    period: I32
+    noise: I32
+    voiced: I32
+    frication: I32
 }
 plot speech/excitation (
     >> value: ExcitationInput
-    result: I64 >>
+    result: I32 >>
 ) = ((.phase < .period / 4 ? 1600 - .phase * 6400 / .period : -500 + .phase * 500 / .period) * .voiced + (.noise % 4096 - 2048) * .frication)
 
 plot speech/noise (
-    >> value: I64
-    result: I64 >>
+    >> value: I32
+    result: I32 >>
 ) = ((. * 25173 + 13849) % 65536)
 
 type PhaseInput = {
-    phase: I64
-    period: I64
+    phase: I32
+    period: I32
 }
 plot speech/phase (
     >> value: PhaseInput
-    result: I64 >>
+    result: I32 >>
 ) = (.phase + 1 >= .period ? 0 : .phase + 1)
 
 type MixInput = {
-    first: I64
-    second: I64
-    third: I64
-    envelope: I64
+    first: I32
+    second: I32
+    third: I32
+    envelope: I32
 }
 plot speech/mix (
     >> value: MixInput
-    result: I64 >>
+    result: I32 >>
 ) = ((.first + .second / 2 + .third / 4) * .envelope / 256)
 
 # Phoneme identity is never a Phone identity. This is the selected English
@@ -184,22 +184,22 @@ plot speech/realize (
 ) = ({input: ., phone: (((((.phoneme is iy || .phoneme is ih) || (.phoneme is ey || (.phoneme is eh || .phoneme is ae))) || ((.phoneme is aa || .phoneme is ao) || (.phoneme is ow || (.phoneme is uh || .phoneme is uw)))) || (((.phoneme is ah || .phoneme is ax) || (.phoneme is er || (.phoneme is ay || .phoneme is aw))) || ((.phoneme is oy || .phoneme is p) || (.phoneme is b || (.phoneme is t || .phoneme is d))))) ? ((((.phoneme is iy || .phoneme is ih) || (.phoneme is ey || (.phoneme is eh || .phoneme is ae))) || ((.phoneme is aa || .phoneme is ao) || (.phoneme is ow || (.phoneme is uh || .phoneme is uw)))) ? (((.phoneme is iy || .phoneme is ih) || (.phoneme is ey || (.phoneme is eh || .phoneme is ae))) ? ((.phoneme is iy || .phoneme is ih) ? (.phoneme is iy ? EnglishPhone.iy : EnglishPhone.ih) : (.phoneme is ey ? EnglishPhone.ey : (.phoneme is eh ? EnglishPhone.eh : EnglishPhone.ae))) : ((.phoneme is aa || .phoneme is ao) ? (.phoneme is aa ? EnglishPhone.aa : EnglishPhone.ao) : (.phoneme is ow ? EnglishPhone.ow : (.phoneme is uh ? EnglishPhone.uh : EnglishPhone.uw)))) : (((.phoneme is ah || .phoneme is ax) || (.phoneme is er || (.phoneme is ay || .phoneme is aw))) ? ((.phoneme is ah || .phoneme is ax) ? (.phoneme is ah ? EnglishPhone.ah : EnglishPhone.ax) : (.phoneme is er ? EnglishPhone.er : (.phoneme is ay ? EnglishPhone.ay : EnglishPhone.aw))) : ((.phoneme is oy || .phoneme is p) ? (.phoneme is oy ? EnglishPhone.oy : (.position is initial && .stress is primary ? EnglishPhone.p_aspirated : EnglishPhone.p)) : (.phoneme is b ? EnglishPhone.b : (.phoneme is t ? (.position is initial && .stress is primary ? EnglishPhone.t_aspirated : EnglishPhone.t) : EnglishPhone.d))))) : ((((.phoneme is k || .phoneme is g) || (.phoneme is f || (.phoneme is v || .phoneme is th))) || ((.phoneme is dh || .phoneme is s) || (.phoneme is z || (.phoneme is sh || .phoneme is zh)))) ? (((.phoneme is k || .phoneme is g) || (.phoneme is f || (.phoneme is v || .phoneme is th))) ? ((.phoneme is k || .phoneme is g) ? (.phoneme is k ? (.position is initial && .stress is primary ? EnglishPhone.k_aspirated : EnglishPhone.k) : EnglishPhone.g) : (.phoneme is f ? EnglishPhone.f : (.phoneme is v ? EnglishPhone.v : EnglishPhone.th))) : ((.phoneme is dh || .phoneme is s) ? (.phoneme is dh ? EnglishPhone.dh : EnglishPhone.s) : (.phoneme is z ? EnglishPhone.z : (.phoneme is sh ? EnglishPhone.sh : EnglishPhone.zh)))) : (((.phoneme is ch || .phoneme is jh) || (.phoneme is m || (.phoneme is n || .phoneme is ng))) ? ((.phoneme is ch || .phoneme is jh) ? (.phoneme is ch ? EnglishPhone.ch : EnglishPhone.jh) : (.phoneme is m ? EnglishPhone.m : (.phoneme is n ? EnglishPhone.n : EnglishPhone.ng))) : ((.phoneme is l || .phoneme is r) ? (.phoneme is l ? EnglishPhone.l : EnglishPhone.r) : (.phoneme is w ? EnglishPhone.w : (.phoneme is y ? EnglishPhone.y : EnglishPhone.h)))))), derivation: .position is initial && .stress is primary && (.phoneme is p || .phoneme is t || .phoneme is k) ? EnglishDerivation.allophone_rule : EnglishDerivation.voice_profile})
 
 type SpeechAcousticTarget = {
-    f1: I64
-    f2: I64
-    f3: I64
-    b1: I64
-    b2: I64
-    b3: I64
-    c1: I64
-    c2: I64
-    c3: I64
-    gain1: I64
-    gain2: I64
-    gain3: I64
-    voiced: I64
-    frication: I64
-    frames: I64
-    closure: I64
+    f1: I32
+    f2: I32
+    f3: I32
+    b1: I32
+    b2: I32
+    b3: I32
+    c1: I32
+    c2: I32
+    c3: I32
+    gain1: I32
+    gain2: I32
+    gain3: I32
+    voiced: I32
+    frication: I32
+    frames: I32
+    closure: I32
 }
 
 # Stop spectra are self-authored reduced-bandwidth models. Q14 coefficients
@@ -215,24 +215,24 @@ plot speech/voice-target (
 ) = (((((. is iy || . is ih) || (. is ey || (. is eh || . is ae))) || ((. is aa || (. is ao || . is ow)) || (. is uh || (. is uw || . is ah)))) || (((. is ax || . is er) || (. is ay || (. is aw || . is oy))) || ((. is p || (. is b || . is t)) || (. is d || (. is k || . is g))))) ? ((((. is iy || . is ih) || (. is ey || (. is eh || . is ae))) || ((. is aa || (. is ao || . is ow)) || (. is uh || (. is uw || . is ah)))) ? (((. is iy || . is ih) || (. is ey || (. is eh || . is ae))) ? ((. is iy || . is ih) ? (. is iy ? { f1: 270, f2: 2290, f3: 3010, b1: 31165, b2: -7114, b3: -22103, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 390, f2: 1990, f3: 2550, b1: 30396, b2: 247, b3: -12985, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }) : (. is ey ? { f1: 450, f2: 2050, f3: 2700, b1: 29909, b2: -1237, b3: -16205, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (. is eh ? { f1: 530, f2: 1840, f3: 2480, b1: 29157, b2: 3949, b3: -11417, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 660, f2: 1720, f3: 2410, b1: 27692, b2: 6873, b3: -9816, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }))) : ((. is aa || (. is ao || . is ow)) ? (. is aa ? { f1: 730, f2: 1090, f3: 2440, b1: 26782, b2: 20649, b3: -10506, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (. is ao ? { f1: 570, f2: 840, f3: 2410, b1: 28738, b2: 24895, b3: -9816, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 500, f2: 900, f3: 2400, b1: 29453, b2: 23957, b3: -9584, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 })) : (. is uh ? { f1: 440, f2: 1020, f3: 2240, b1: 29995, b2: 21926, b3: -5812, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (. is uw ? { f1: 300, f2: 870, f3: 2240, b1: 30999, b2: 24433, b3: -5812, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 640, f2: 1190, f3: 2390, b1: 27936, b2: 18718, b3: -9352, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 })))) : (((. is ax || . is er) || (. is ay || (. is aw || . is oy))) ? ((. is ax || . is er) ? (. is ax ? { f1: 500, f2: 1500, f3: 2500, b1: 29453, b2: 12057, b3: -11869, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 490, f2: 1350, f3: 1690, b1: 29548, b2: 15395, b3: 7477, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }) : (. is ay ? { f1: 730, f2: 1090, f3: 2440, b1: 26782, b2: 20649, b3: -10506, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : (. is aw ? { f1: 730, f2: 1090, f3: 2440, b1: 26782, b2: 20649, b3: -10506, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 } : { f1: 570, f2: 840, f3: 2410, b1: 28738, b2: 24895, b3: -9816, c1: -15508, c2: -15146, c3: -14678, gain1: 444, gain2: 631, gain3: 876, voiced: 1, frication: 0, frames: 960, closure: 0 }))) : ((. is p || (. is b || . is t)) ? (. is p ? { f1: 500, f2: 1300, f3: 2400, b1: 26386, b2: 13264, b3: -6837, c1: -12446, c2: -9834, c3: -7470, gain1: 2104, gain2: 2215, gain3: 1862, voiced: 0, frication: 0, frames: 640, closure: 512 } : (. is b ? { f1: 500, f2: 1300, f3: 2400, b1: 26386, b2: 13264, b3: -6837, c1: -12446, c2: -9834, c3: -7470, gain1: 2104, gain2: 2215, gain3: 1862, voiced: 1, frication: 0, frames: 640, closure: 256 } : { f1: 1000, f2: 3000, f3: 3700, b1: 19417, b2: -19040, b3: -24205, c1: -11506, c2: -11063, c3: -9455, gain1: 398, gain2: 2921, gain3: 4725, voiced: 0, frication: 0, frames: 640, closure: 512 })) : (. is d ? { f1: 1000, f2: 3000, f3: 3700, b1: 19417, b2: -19040, b3: -24205, c1: -11506, c2: -11063, c3: -9455, gain1: 398, gain2: 2921, gain3: 4725, voiced: 1, frication: 0, frames: 640, closure: 256 } : (. is k ? { f1: 600, f2: 2000, f3: 2700, b1: 25952, b2: 0, b3: -14632, c1: -12945, c2: -13463, c3: -11967, gain1: 455, gain2: 1685, gain3: 1548, voiced: 0, frication: 0, frames: 640, closure: 512 } : { f1: 600, f2: 2000, f3: 2700, b1: 25952, b2: 0, b3: -14632, c1: -12945, c2: -13463, c3: -11967, gain1: 455, gain2: 1685, gain3: 1548, voiced: 1, frication: 0, frames: 640, closure: 256 }))))) : ((((. is f || . is v) || (. is th || (. is dh || . is s))) || ((. is z || (. is sh || . is zh)) || (. is ch || (. is jh || . is m)))) ? (((. is f || . is v) || (. is th || (. is dh || . is s))) ? ((. is f || . is v) ? (. is f ? { f1: 1000, f2: 2800, f3: 3600, b1: 20195, b2: -15827, b3: -24144, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : { f1: 1000, f2: 2800, f3: 3600, b1: 20195, b2: -15827, b3: -24144, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 }) : (. is th ? { f1: 900, f2: 2500, f3: 3300, b1: 21717, b2: -10304, b3: -21645, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : (. is dh ? { f1: 900, f2: 2500, f3: 3300, b1: 21717, b2: -10304, b3: -21645, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 } : { f1: 1200, f2: 3200, f3: 3800, b1: 16787, b2: -21784, b3: -25073, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 }))) : ((. is z || (. is sh || . is zh)) ? (. is z ? { f1: 1200, f2: 3200, f3: 3800, b1: 16787, b2: -21784, b3: -25073, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 } : (. is sh ? { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 0 })) : (. is ch ? { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 180 } : (. is jh ? { f1: 1000, f2: 2100, f3: 3000, b1: 20195, b2: -2113, b3: -17951, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 1, frames: 640, closure: 180 } : { f1: 250, f2: 1000, f3: 2200, b1: 30901, b2: 21759, b3: -4702, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 332, gain3: 339, voiced: 1, frication: 0, frames: 640, closure: 0 })))) : (((. is n || . is ng) || (. is l || (. is r || . is w))) ? ((. is n || . is ng) ? (. is n ? { f1: 270, f2: 1700, f3: 2600, b1: 30800, b2: 7184, b3: -13645, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 332, gain3: 339, voiced: 1, frication: 0, frames: 640, closure: 0 } : { f1: 300, f2: 1800, f3: 2500, b1: 30636, b2: 4814, b3: -11502, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 332, gain3: 339, voiced: 1, frication: 0, frames: 640, closure: 0 }) : (. is l ? { f1: 400, f2: 1200, f3: 2600, b1: 29964, b2: 18088, b3: -13645, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 } : (. is r ? { f1: 350, f2: 1300, f3: 1600, b1: 30323, b2: 16079, b3: 9288, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 } : { f1: 300, f2: 700, f3: 2200, b1: 30636, b2: 26238, b3: -4702, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 }))) : ((. is y || (. is h || . is p_aspirated)) ? (. is y ? { f1: 270, f2: 2200, f3: 3000, b1: 30800, b2: -4814, b3: -21253, c1: -15146, c2: -14449, c3: -13784, gain1: 631, gain2: 998, gain3: 1356, voiced: 1, frication: 0, frames: 640, closure: 0 } : (. is h ? { f1: 500, f2: 1500, f3: 2500, b1: 26386, b2: 10304, b3: -9715, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 0, frication: 1, frames: 640, closure: 0 } : { f1: 500, f2: 1300, f3: 2400, b1: 26386, b2: 13264, b3: -6837, c1: -12446, c2: -9834, c3: -7470, gain1: 2104, gain2: 2215, gain3: 1862, voiced: 0, frication: 1, frames: 640, closure: 240 })) : (. is t_aspirated ? { f1: 1000, f2: 3000, f3: 3700, b1: 19417, b2: -19040, b3: -24205, c1: -11506, c2: -11063, c3: -9455, gain1: 398, gain2: 2921, gain3: 4725, voiced: 0, frication: 1, frames: 640, closure: 240 } : (. is k_aspirated ? { f1: 600, f2: 2000, f3: 2700, b1: 25952, b2: 0, b3: -14632, c1: -12945, c2: -13463, c3: -11967, gain1: 455, gain2: 1685, gain3: 1548, voiced: 0, frication: 1, frames: 640, closure: 240 } : { f1: 400, f2: 1600, f3: 2600, b1: 27162, b2: 8321, b3: -11525, c1: -12446, c2: -11063, c3: -9834, gain1: 2104, gain2: 2921, gain3: 3691, voiced: 1, frication: 0, frames: 640, closure: 0 }))))))
 
 type DriveInput = {
-    sample: I64
-    gain: I64
+    sample: I32
+    gain: I32
 }
 plot speech/drive (
     >> value: DriveInput
-    result: I64 >>
+    result: I32 >>
 ) = (.sample * .gain)
 
 type EnvelopeInput = {
     attack: Boolean
     release: Boolean
-    frame: I64
-    total: I64
-    closure: I64
+    frame: I32
+    total: I32
+    closure: I32
 }
 plot speech/envelope (
     >> value: EnvelopeInput
-    result: I64 >>
+    result: I32 >>
 ) = (.frame < .closure ? 0 : .closure > 0 ? (.release && .total - .frame < 64 ? (.total - .frame) * 4 : 256) : .attack && .frame - .closure < 64 ? (.frame - .closure) * 4 : .release && .total - .frame < 64 ? (.total - .frame) * 4 : 256)
 
 # A boundary is not a phone and an absence is not silence.
@@ -248,18 +248,18 @@ type VoiceEvent =
 
 plot speech/pause (
     >> value: VoiceBoundary
-    result: I64 >>
+    result: I32 >>
 ) = (. is word ? 240 : . is phrase ? 1200 : 2000)
 
 plot speech/pitch-period (
     >> value: EnglishStress
-    result: I64 >>
+    result: I32 >>
 ) = (. is primary ? 61 : . is secondary ? 64 : 67)
 
 # Composition is authored connectivity, not a Rust sequence of DSP calls.
 plot speech/filter-limit (
     >> value: ResonatorInput
-    result: I64 >>
+    result: I32 >>
 ) {
     filter: speech/resonator
     limit: speech/limit
@@ -270,36 +270,36 @@ plot speech/filter-limit (
 
 # State is an exact value carried through one bounded sample transition.
 type SpeechFrameState = {
-    phase: I64
-    noise: I64
-    first1: I64
-    first2: I64
-    second1: I64
-    second2: I64
-    third1: I64
-    third2: I64
+    phase: I32
+    noise: I32
+    first1: I32
+    first2: I32
+    second1: I32
+    second2: I32
+    third1: I32
+    third2: I32
 }
 type SpeechFrameInput = {
     attack: Boolean
     release: Boolean
     target: SpeechAcousticTarget
-    period: I64
-    frame: I64
+    period: I32
+    frame: I32
     state: SpeechFrameState
 }
 type SpeechFrameWorking = {
     input: SpeechFrameInput
-    phase: I64
-    noise: I64
-    excitation: I64
-    first: I64
-    second: I64
-    third: I64
-    envelope: I64
+    phase: I32
+    noise: I32
+    excitation: I32
+    first: I32
+    second: I32
+    third: I32
+    envelope: I32
 }
 type SpeechFrameResult = {
     state: SpeechFrameState
-    sample: I64
+    sample: I32
 }
 plot speech/frame-excite (
     >> value: SpeechFrameInput

@@ -65,3 +65,6 @@ mod prosody_parity;
 
 #[cfg(test)]
 mod onset_parity;
+
+#[cfg(test)]
+mod arithmetic_bounds;

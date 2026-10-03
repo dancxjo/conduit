@@ -3,11 +3,11 @@
 # integer-period contour is a small acoustic model, not measured intonation.
 type SpeechPitchInput = {
     stress: EnglishStress
-    base_period: I64
-    frame: I64
-    total: I64
+    base_period: I32
+    frame: I32
+    total: I32
 }
 plot speech/pitch-contour (
     >> value: SpeechPitchInput
-    result: I64 >>
+    result: I32 >>
 ) = (.stress is primary ? .base_period - 3 + .frame * 8 / (.total - 1) : .stress is secondary ? .base_period - 2 + .frame * 5 / (.total - 1) : (.stress is unstressed || .stress is reduced) ? .base_period + .frame * 2 / (.total - 1) : .base_period)

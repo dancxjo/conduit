@@ -27,7 +27,7 @@ pub struct Renderer<'a> {
 #[derive(Clone, Copy)]
 pub(crate) struct RenderCursor {
     event_index: usize,
-    event_frame: i64,
+    event_frame: i32,
     state: SpeechFrameState,
     rendered_frames: u64,
     total_frames: u64,

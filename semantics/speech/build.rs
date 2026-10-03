@@ -138,7 +138,7 @@ fn main() {
     let StructuredInfoTypeShape::Record { fields, .. } = target.value_type.shape() else {
         panic!("target")
     };
-    generated.push_str(&format!("#[cfg(test)] pub fn target_fields(value: SpeechAcousticTarget) -> [(&'static str, i64); {}] {{ [{}] }}\n", fields.len(), fields.iter().map(|field| format!("({:?}, value.{})", field.name(), field.name())).collect::<Vec<_>>().join(",")));
+    generated.push_str(&format!("#[cfg(test)] pub fn target_fields(value: SpeechAcousticTarget) -> [(&'static str, i32); {}] {{ [{}] }}\n", fields.len(), fields.iter().map(|field| format!("({:?}, value.{})", field.name(), field.name())).collect::<Vec<_>>().join(",")));
     let mut programs = Vec::new();
     let mut graphs = Vec::new();
     for plot in &checked.plots {

@@ -43,7 +43,7 @@ pub(super) fn field_type<'a>(ty: &'a StructuredInfoType, name: &str) -> &'a Stru
         .unwrap()
         .value_type()
 }
-pub(super) fn integers(ty: &StructuredInfoType, values: &[(&str, i64)]) -> StructuredInfoValue {
+pub(super) fn integers(ty: &StructuredInfoType, values: &[(&str, i32)]) -> StructuredInfoValue {
     record(
         ty,
         &values
@@ -221,7 +221,7 @@ fn composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges() {
         }
     }
     let target = speech_voice_target(EnglishPhone::iy).unwrap();
-    for (noise, period) in [(i64::MAX, 61), (1, 0)] {
+    for (noise, period) in [(i32::MAX, 61), (1, 0)] {
         let value = SpeechFrameInput {
             attack: true,
             release: true,

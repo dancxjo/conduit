@@ -4,13 +4,13 @@
 # quarter. This approximate coefficient interpolation is not coarticulation.
 type SpeechTrajectoryInput = {
     phone: EnglishPhone
-    frame: I64
+    frame: I32
     target: SpeechAcousticTarget
 }
 type SpeechAcousticTransition = {
     input: SpeechTrajectoryInput
     destination: SpeechAcousticTarget
-    progress: I64
+    progress: I32
 }
 plot speech/trajectory-prepare (
     >> value: SpeechTrajectoryInput

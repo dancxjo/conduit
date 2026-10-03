@@ -23,8 +23,8 @@ fn pitch_contours_match_portable_arithmetic_for_all_stress_states() {
             (61, 959, 960),
             (67, 639, 640),
             (61, 0, 1),
-            (i64::MAX, 959, 960),
-            (61, i64::MAX, 960),
+            (i32::MAX, 959, 960),
+            (61, i32::MAX, 960),
         ] {
             let value = SpeechPitchInput {
                 stress: *stress,
@@ -75,7 +75,7 @@ fn pitch_contours_match_portable_arithmetic_for_all_stress_states() {
             assert_eq!(
                 p.evaluate(&input)
                     .ok()
-                    .map(|out| i64::from_le_bytes(out.try_into().unwrap())),
+                    .map(|out| i32::from_le_bytes(out.try_into().unwrap())),
                 speech_pitch_contour(value),
                 "{stress:?}, {frame}/{total}"
             );

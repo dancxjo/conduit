@@ -58,7 +58,10 @@ realization rule, or DSP equation substitutes for the plots.
 This first voice accepts a closed English phoneme profile with explicit stress
 and position. It retains the input and realization derivation with the selected
 phone. It uses three parallel Q14 resonators at 8 kHz, bounded excitation/noise,
-closure/envelope, and pauses. `trajectory.conduit` owns a finite stop-release
+closure/envelope, and pauses. Private DSP values use signed 32-bit integers.
+Conservative profile bounds cover any admitted clamped filter history, source
+excitation, noise update, interpolation and mixing intermediates. This compact
+arithmetic choice does not narrow the rich segment/listening evidence types. `trajectory.conduit` owns a finite stop-release
 noise window and within-phone diphthong coefficient glides. The acoustic
 endpoints model spectra; they do not split one diphthong into phoneme or phone
 occurrences, infer stress, or claim measured alignment. Plain stops have a
@@ -103,7 +106,12 @@ intonation or establish measured prosody. The checked `speech/frame`
 plot composes excitation, three resonator transitions and output mixing through
 exact authored cords. Initial history and
 boundary silence also come from checked plots. Rust traversal handles bounded
-event/frame iteration and caller-owned output; it does not sequence DSP stages.
+event/frame iteration and caller-owned output. The `speech/frame` graph owns
+its DSP stage sequence; Rust currently connects the typed realization, target,
+trajectory, neighbor, onset, pitch and frame calls. Consolidating that entire
+chain into one authored graph needs explicit pairing of retained frame context
+with called results. The current unary pure-value compiler does not invent
+implicit synchronization or erase a Flow join's temporal contract.
 Whole-frame differential proof covers every phone at envelope edges and compares
 full-duration state/sample history against the checked scalar composition
 with temporal targets. A separate portable-graph differential checks every
