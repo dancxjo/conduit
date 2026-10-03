@@ -40,6 +40,7 @@ mod body_run;
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
 pub(crate) use body::start_browser_window;
+pub(crate) use body::submit_browser_face_interaction;
 use body::HostSource;
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
@@ -956,6 +957,13 @@ enum Request {
         show: Box<MaskShow>,
         interaction: FaceInteraction,
     },
+    BodyBrowserInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1595,6 +1603,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyInteraction { token, .. }
+        | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
@@ -1755,6 +1764,19 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => runtime
             .owned_body_local_interaction(&show, &interaction)
+            .map(|result| Response::BodyInteraction {
+                protocol: PROTOCOL,
+                result: Box::new(result),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserInteraction {
+            protocol,
+            request,
+            show,
+            interaction,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_browser_interaction(&request, &show, &interaction)
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),

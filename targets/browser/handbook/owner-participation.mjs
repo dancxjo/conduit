@@ -51,8 +51,9 @@ export async function startOwnerParticipation(application, root) {
       <details><summary>Exact owner biography evidence</summary><pre data-owner-evidence>No biography received.</pre></details></section>
     <section class="owner-face" aria-labelledby="owner-face-title" data-owner-face>
       <header><p class="eyebrow">Same Body · another view</p><h3 id="owner-face-title">What your Body says now</h3>
-        <p>The owner supplies the meaning. This browser runs its own graphical Mask for that exact Face. Actions appear as read-only until a return route is admitted.</p></header>
+        <p>The owner supplies the meaning. This browser runs its own graphical Mask for that exact Face. A current joined window can return the reviewed clock action to the owner.</p></header>
       <p role="status" data-owner-face-status>Join the Body to see its current Face.</p>
+      <p role="status" data-owner-action-result>No clock action submitted.</p>
       <div data-owner-face-document></div>
       <button type="button" data-owner-face-refresh disabled>Refresh this Face</button>
       <details><summary>Face and Show identities</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
@@ -65,10 +66,11 @@ export async function startOwnerParticipation(application, root) {
   const evidence = root.querySelector('[data-owner-evidence]');
   const leave = root.querySelector('[data-owner-leave]');
   const faceStatus = root.querySelector('[data-owner-face-status]');
+  const actionResult = root.querySelector('[data-owner-action-result]');
   const faceDocument = root.querySelector('[data-owner-face-document]');
   const faceEvidence = root.querySelector('[data-owner-face-evidence]');
   const faceRefresh = root.querySelector('[data-owner-face-refresh]');
-  let host, participation, expectedBodyId = null, faceView = null, faceBusy = false;
+  let host, participation, expectedBodyId = null, faceView = null, faceBusy = false, actionSequence = 0;
   const faceNode = (tag, text, className) => {
     const node = document.createElement(tag);
     node.textContent = text;
@@ -111,8 +113,7 @@ export async function startOwnerParticipation(application, root) {
     }
     if (view.actions.length) {
       const actions = document.createElement('section');
-      actions.append(faceNode('h4', 'What this Face describes'));
-      actions.append(faceNode('p', 'These actions are visible, but this browser has no admitted interaction return to the owner yet.'));
+      actions.append(faceNode('h4', 'What you can do'));
       const list = document.createElement('ul');
       for (const action of view.actions) {
         const item = document.createElement('li');
@@ -120,6 +121,53 @@ export async function startOwnerParticipation(application, root) {
         list.append(item);
       }
       actions.append(list); documentNode.append(actions);
+      const clock = view.actions.find(action => action.intent === 'conduit.intent/change-clock-interval@1');
+      if (clock) {
+        const interval = clock.arguments?.[0];
+        const control = document.createElement('form');
+        control.dataset.ownerClockAction = '';
+        const label = faceNode('label', interval?.value_name ?? 'Clock interval ');
+        const select = document.createElement('select');
+        select.name = 'interval';
+        for (const ms of interval?.choices ?? []) {
+          const option = document.createElement('option');
+          option.value = ms;
+          option.textContent = `${ms} milliseconds`;
+          select.append(option);
+        }
+        if (interval?.choices?.includes(clock.current_value)) select.value = clock.current_value;
+        label.append(select);
+        const button = faceNode('button', 'Change interval on the Body');
+        button.type = 'submit';
+        button.disabled = !view.interactions_admitted || view.show_state !== 'available'
+          || !interval?.choices?.length
+          || clock.availability !== 'available';
+        control.append(label, button);
+        if (button.disabled) control.append(faceNode('p', clock.explanation ?? 'This owner action is unavailable.'));
+        control.addEventListener('submit', async event => {
+          event.preventDefault();
+          if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
+          faceBusy = true;
+          button.disabled = true;
+          try {
+            const outcome = await participation.submitOwnerFaceInteraction({
+              view: faceView, actionId: clock.identity, target: clock.target,
+              intervalMs: select.value, sequence: ++actionSequence,
+            });
+            if (outcome.accepted !== true) throw new Error('owner did not accept the interaction');
+            actionResult.textContent = 'The owner accepted the clock interval change. The next start needs a replacement Plan.';
+            delete actionResult.dataset.refused;
+          } catch (error) {
+            actionResult.textContent = `Clock interval refused: ${error.message}`;
+            actionResult.dataset.refused = 'true';
+          } finally {
+            faceBusy = false;
+            faceView = null;
+            await refreshFace();
+          }
+        });
+        documentNode.append(control);
+      }
     }
     faceDocument.replaceChildren(documentNode);
     faceDocument.dataset.faceId = view.face_id;
@@ -134,15 +182,16 @@ export async function startOwnerParticipation(application, root) {
       const prepared = await participation.prepareOwnerFaceMask(faceView ? {
         lastSeenRevision: faceView.face_revision, lastSeenIdentity: faceView.face_id,
       } : undefined);
-      renderFace(prepared);
       const shown = prepared.show_state === 'available' ? prepared
         : participation.acknowledgeOwnerFaceMask(prepared);
       faceView = shown;
+      renderFace(shown);
       faceStatus.textContent = `The browser Mask showed the owner’s Face at revision ${shown.face_revision}.`;
       faceEvidence.textContent = JSON.stringify({ body_id: shown.body_id, face_id: shown.face_id,
         face_revision: shown.face_revision, mask_plot_id: shown.mask_plot_id,
         mask_plan_id: shown.mask_plan_id, mask_play_id: shown.mask_play_id,
-        show_id: shown.show_id, show_state: shown.show_state, interactions_admitted: false }, null, 2);
+        show_id: shown.show_id, show_state: shown.show_state,
+        interactions_admitted: shown.interactions_admitted }, null, 2);
       root.dataset.ownerFaceShown = 'true';
     } catch (error) {
       faceStatus.textContent = `Owner Face refused: ${error.message}`;
@@ -155,6 +204,14 @@ export async function startOwnerParticipation(application, root) {
   const showState = state => {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
+    if (state === 'offline' || state.startsWith('refused:')) {
+      if (faceView) faceStatus.textContent = `The browser lost the owner route. Last shown Face revision ${faceView.face_revision} is now historical.`;
+      faceView = null;
+      faceRefresh.disabled = true;
+      for (const button of faceDocument.querySelectorAll('[data-owner-clock-action] button')) button.disabled = true;
+      actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
+      actionResult.dataset.refused = 'true';
+    }
   };
   const showBiography = biography => {
     const credential = participation?.membershipCredential();
@@ -211,7 +268,6 @@ export async function startOwnerParticipation(application, root) {
           if (state === 'offline' || state.startsWith('refused:')) {
             leave.disabled = true;
             faceRefresh.disabled = true;
-            if (faceView) faceStatus.textContent = `The browser lost the owner route. Last shown Face revision ${faceView.face_revision} is now historical.`;
           } else if (state === 'admitted' && participation?.presenceState() === 'available') {
             faceRefresh.disabled = false;
             if (!faceView) queueMicrotask(refreshFace);
