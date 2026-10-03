@@ -21,15 +21,19 @@ mod child;
 pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};
 mod definition;
 mod flow_select;
+mod flow_zip;
 mod kernel_executor;
 mod operation;
 mod planned_activation;
+#[cfg(test)]
+mod test_support;
 
 pub use bounded_activation::*;
 pub use bounded_fold_activation::*;
 pub use bounded_scan_activation::*;
 pub use definition::*;
 pub use flow_select::*;
+pub use flow_zip::FlowZipBack;
 pub use kernel_executor::*;
 pub use operation::*;
 pub use planned_activation::*;

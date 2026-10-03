@@ -129,7 +129,7 @@ impl ChildKernel {
             .ok_or_else(|| "kernel composite remote Sign byte bound overflow".to_string())?,
         )
         .map_err(debug)?;
-        let scheduler = ChildScheduler::new_with_active_counts_and_host_calls(
+        let mut scheduler = ChildScheduler::new_with_active_counts_and_host_calls(
             active_nodes,
             active_cords,
             nodes,
@@ -141,6 +141,26 @@ impl ChildKernel {
             signs,
         )
         .map_err(debug)?;
+        let mut terminal_contracts = [[None; PORTS]; MAX_NODES];
+        for node in &lowered.nodes {
+            let contracts = terminal_contracts
+                .get_mut(usize::from(node.node.0))
+                .ok_or_else(|| "terminal contract node exceeds the admitted profile".to_string())?;
+            for contract in &node.terminal_transductions {
+                let assigned = contract.assigned();
+                let slot = contracts
+                    .get_mut(usize::from(assigned.input.0))
+                    .ok_or_else(|| {
+                        "terminal contract input exceeds the admitted profile".to_string()
+                    })?;
+                if slot.replace(assigned).is_some() {
+                    return Err("duplicate lowered terminal contract input".to_string());
+                }
+            }
+        }
+        scheduler
+            .bind_terminal_transductions(terminal_contracts)
+            .map_err(debug)?;
         Ok(Self {
             scheduler,
             boundaries: boundaries

@@ -1,20 +1,10 @@
 //! Kernel completion ownership and zero-extent canonical values.
 use super::*;
+use crate::test_support::{allocation, common, single_child};
 use conduit_core::*;
 use conduit_kernel::scheduler::{HostCallBack, SchedulerError, StepBack};
 use conduit_kernel::{HostedValueStore, RequestId};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-use conduit_plot::CompositeFrontTerminal;
-
-#[path = "../../../tests/support/allocation.rs"]
-mod allocation;
-mod common {
-    use alloc::vec::Vec;
-    include!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../core/tests/common/sealed_state.rs"
-    ));
-}
 
 struct CallFactory(ImplementationId);
 impl crate::KernelOperationFactory for CallFactory {
@@ -41,13 +31,6 @@ impl crate::KernelOperationFactory for CallFactory {
 
 fn pending_call() -> (KernelCompositeHost, AdmittedKernelCompositeHostRequest) {
     let mut fragment = common::fragment();
-    fragment.states.clear();
-    fragment.expected_sign = vec![
-        ExpectedSign::PlanFragmentReceived,
-        ExpectedSign::PlanTerminal,
-    ];
-    fragment.sign_storage_budget =
-        mandatory_sign_storage_requirement(&fragment.expected_sign).unwrap();
     let placement = &mut fragment.placements[0];
     placement.inputs[0].value_kind = kind_id(BOOL_INFO_ID);
     placement.outputs[0].value_kind = kind_id(UNIT_INFO_ID);
@@ -58,42 +41,9 @@ fn pending_call() -> (KernelCompositeHost, AdmittedKernelCompositeHostRequest) {
         maximum_input_bytes: 1,
         maximum_output_bytes: 1,
     }];
-    let front = |port: &PortDescriptor| crate::KernelCompositeFrontBinding {
-        external_port: port.clone(),
-        internal_child: fragment.host_id.clone(),
-        internal_placement_id: placement.placement_id.clone(),
-        internal_port_id: port.port_id.clone(),
-        terminal: CompositeFrontTerminal::Independent,
-    };
-    let input = placement.inputs[0].clone();
-    let output = placement.outputs[0].clone();
-    let boundary = crate::KernelCompositeBoundary {
-        input_fronts: vec![front(&input)],
-        output_fronts: vec![front(&output)],
-    };
     let implementation = placement.implementation_id.clone();
-    let definition = crate::KernelCompositeDefinition {
-        host_id: fragment.host_id.clone(),
-        boot_id: fragment.boot_id.clone(),
-        offer_generation: fragment.offer_generation,
-        profile: "fixture/completion".into(),
-        external_capability: capability_offer_from_parts! {
-            semantic_contract: Default::default(), startup_parameters: vec![], shorthand: None,
-            capability_id: "fixture/completion".into(), kind_id: kind_id("fixture/completion"),
-            kind_contract_revision: "fixture/completion@1".into(),
-            implementation: ImplementationOffer {
-                execution_profile_id: "fixture/completion@1".into(),
-                implementation_id: "fixture/completion@1".into(), artifact_id: "fixture/completion@1".into(),
-            },
-            inputs: vec![input.clone()], outputs: vec![output], host_calls: vec![],
-            resource_requirements: vec![], authority_requirements: vec![],
-            limits: CapabilityLimits { max_active_instances: 1, max_queue_items: 1, max_queue_bytes: 1 },
-        },
-        internal_plan: common::seal(fragment),
-        boundary,
-        failure_translation: FailureReason::CompositeCapabilityFailed,
-    };
-    assert!(verify_plan(&definition.internal_plan));
+    let input = placement.inputs[0].clone();
+    let definition = single_child(fragment, 1);
     let mut registry = KernelOperationRegistry::new();
     registry.install(CallFactory(implementation)).unwrap();
     let mut host = KernelCompositeHost::prepare(definition, &registry).unwrap();
