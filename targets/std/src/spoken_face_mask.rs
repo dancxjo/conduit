@@ -19,6 +19,8 @@ use sha2::{Digest, Sha256};
 
 mod speech;
 pub use speech::*;
+mod batch;
+pub use batch::*;
 mod voice;
 use voice::voice_clauses;
 #[cfg(test)]
@@ -90,6 +92,7 @@ pub struct SpokenFaceSession {
     drafts: BTreeMap<(String, String), Vec<u8>>,
     reading: Option<Reading>,
     pending: Option<SpokenSegment>,
+    pending_batch: Option<SpokenBatch>,
     completed_segments: u32,
     produced_pcm_bytes: u64,
     provider_sha256: Option<String>,
@@ -117,6 +120,7 @@ impl SpokenFaceSession {
             drafts: BTreeMap::new(),
             reading: None,
             pending: None,
+            pending_batch: None,
             completed_segments: 0,
             produced_pcm_bytes: 0,
             provider_sha256: None,
@@ -147,7 +151,7 @@ impl SpokenFaceSession {
     /// Replace the exact Face/Show after the producer has accepted a change.
     /// The old local focus survives only if its provenance still exists.
     pub fn refresh(&mut self, face: Presentation, show: MaskShow) -> Result<(), SpokenFaceRefusal> {
-        if self.pending.is_some() {
+        if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
         check_show(&face, &show)?;
@@ -183,7 +187,9 @@ impl SpokenFaceSession {
         if command != ReaderCommand::Stop {
             self.check_current(current_face, current_show)?;
         }
-        if self.pending.is_some() && command != ReaderCommand::Stop {
+        if (self.pending.is_some() || self.pending_batch.is_some())
+            && command != ReaderCommand::Stop
+        {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
         let mut interrupted = None;
@@ -210,7 +216,8 @@ impl SpokenFaceSession {
                 cancel_stream_identity = self
                     .pending
                     .as_ref()
-                    .map(|packet| packet.segment.stream_identity.clone());
+                    .map(|packet| packet.segment.stream_identity.clone())
+                    .or_else(|| self.pending_batch.as_ref().map(|batch| batch.stream_identity.clone()));
                 self.cancel_requested = cancel_stream_identity.is_some();
                 if cancel_stream_identity.is_none() {
                     interrupted = Some(self.finish_turn(SpokenTurnOutcome::Cancelled));
@@ -264,7 +271,7 @@ impl SpokenFaceSession {
     /// audio outcome before another one is offered. Read-all needs no giant
     /// assembled speech string or whole-view PCM allocation.
     pub fn next_segment(&mut self) -> Result<Option<SpokenSegment>, SpokenFaceRefusal> {
-        if self.pending.is_some() {
+        if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
         let Some(reading) = &mut self.reading else {
