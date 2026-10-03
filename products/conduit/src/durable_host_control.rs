@@ -46,6 +46,8 @@ pub(crate) mod browser;
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
 pub(crate) use body::start_browser_window;
+#[cfg(unix)]
+pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
 #[allow(unused_imports)]
 // Native return consumes the expiry-bearing entrance after its route lands.
@@ -988,6 +990,14 @@ enum Request {
         #[serde(default)]
         not_after_millis: Option<u64>,
     },
+    #[cfg(unix)]
+    BodyAttachedTerminalInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        route_plan_id: conduit_core::PlanId,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
+    },
     BodyBrowserInteraction {
         protocol: u16,
         token: Vec<u8>,
@@ -1678,6 +1688,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::PreparePoolMember { token, .. }
         | Request::ExchangeRemote { token, .. }
         | Request::ReleaseRemote { token, .. } => token,
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalInteraction { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
     offered.fill(0);
@@ -1868,6 +1880,20 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => check_action_expiry(not_after_millis)
             .and_then(|()| runtime.owned_body_local_interaction(&show, &interaction))
+            .map(|result| Response::BodyInteraction {
+                protocol: PROTOCOL,
+                result: Box::new(result),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalInteraction {
+            protocol,
+            route_plan_id,
+            show,
+            interaction,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .attached_terminal_interaction(&route_plan_id, &show, interaction)
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),

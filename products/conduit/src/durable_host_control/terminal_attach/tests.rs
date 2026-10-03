@@ -77,7 +77,7 @@ fn state(runtime: &DurableHostRuntime) -> PathBuf {
 }
 
 #[test]
-fn current_lulled_owner_attaches_actual_host_and_acknowledges_one_read_only_show() {
+fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
     let mut runtime = runtime();
     let state = state(&runtime);
     let token = [7; 32];
@@ -132,6 +132,7 @@ fn current_lulled_owner_attaches_actual_host_and_acknowledges_one_read_only_show
     let route = runtime.terminal_route.as_ref().unwrap();
     assert_eq!(route.seal.route_plan_id, route_plan_id);
     assert_eq!(route.show, show);
+    assert!(route.execution.has_pending_play());
     assert!(matches!(
         route.show.show.lifecycle,
         conduit_presentation::ManifestationLifecycle::Available
