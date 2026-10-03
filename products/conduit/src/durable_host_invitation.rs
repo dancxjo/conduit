@@ -34,6 +34,16 @@ pub(super) struct PendingBodyJoin {
     pub(super) request: PortableSpawnAdmissionRequest,
 }
 
+fn refuse_legacy_owner_admissions(state_dir: &Path) -> Result<(), String> {
+    if state_dir.join("body/owner-admissions.json").exists() {
+        return Err(
+            "legacy owner admission authority must be migrated by reopening the foreground Body owner"
+                .into(),
+        );
+    }
+    Ok(())
+}
+
 pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Result<(), String> {
     let portable = issue_body_invitation_document(state_dir, ttl_seconds, None)?;
     let encoded = serde_json::to_string(&portable)
@@ -58,6 +68,7 @@ pub(super) fn issue_body_invitation_document(
         .as_ref()
         .ok_or("this installed host does not own a body")?;
     recover_admission_transaction(state_dir, Path::new(&body.biography_path))?;
+    refuse_legacy_owner_admissions(state_dir)?;
     let biography_bytes = bounded_read(Path::new(&body.biography_path), 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
         return Err("retained body biography no longer matches its exact identity".into());
@@ -180,6 +191,7 @@ pub(super) fn admit_body_request_document(
         .ok_or("this installed host does not own a body")?;
     let biography_path = std::path::PathBuf::from(&body.biography_path);
     recover_admission_transaction(state_dir, &biography_path)?;
+    refuse_legacy_owner_admissions(state_dir)?;
     let biography_bytes = bounded_read(&biography_path, 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
         return Err("retained body biography no longer matches its exact identity".into());

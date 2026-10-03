@@ -278,6 +278,12 @@ mod tests {
             admissions(&root, &body.body_id).unwrap(),
             Some(manager.clone())
         );
+        assert!(
+            super::super::super::invitation::issue_body_invitation_document(&root, 60, None)
+                .err()
+                .unwrap()
+                .contains("legacy owner admission authority")
+        );
         let mut conflicting = manager.clone();
         conflicting
             .issue_spawn_invitation(
