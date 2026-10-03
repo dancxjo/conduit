@@ -247,6 +247,17 @@ fn wait_for_action(
         let serial = bounded_serial(serial_path)?;
         let actions = records(&serial, OWNER_ACTION)?;
         let faces = records(&serial, OWNER_FACE)?;
+        if let Some(action) = actions.last() {
+            if action.get("status").and_then(Value::as_str) != Some("accepted") {
+                return Err(ConduitosError::refusal(
+                    "native-owner-action-not-accepted",
+                    action
+                        .get("code")
+                        .and_then(Value::as_str)
+                        .unwrap_or("owner returned no finite refusal code"),
+                ));
+            }
+        }
         if let (Some(action), Some(after)) = (actions.last(), faces.get(1)) {
             return Ok((action.clone(), after.clone()));
         }

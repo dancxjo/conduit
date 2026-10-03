@@ -18,7 +18,7 @@ use crate::{
     native_guest_face::NativeGuestFace,
     native_owner_admission::NativeOwnerReturnGrant,
     virtio_tcp::VirtioTcpEndpoint,
-    virtio_tls,
+    virtio_tls::{self, VirtioWebSocketRunError},
 };
 
 const ACTION_SCHEMA: &str = "conduit.body/native-owner-return-action@1";
@@ -175,7 +175,18 @@ impl NativeOwnerReturnRoute {
             Some(deadline),
             |line| exchange(line, encoded, &mut self.frame_storage),
         )
-        .map_err(|_| "control-outcome-unknown")?;
+        .map_err(|error| {
+            let (phase, code) = match error {
+                VirtioWebSocketRunError::Transport(error) => ("transport", error.as_str()),
+                VirtioWebSocketRunError::Operation(code) => ("exchange", code),
+            };
+            crate::arch::early_write(b"CONDUIT_NATIVE_OWNER_RETURN_DIAGNOSTIC {\"phase\":\"");
+            crate::arch::early_write(phase.as_bytes());
+            crate::arch::early_write(b"\",\"code\":\"");
+            crate::arch::early_write(code.as_bytes());
+            crate::arch::early_write(b"\"}\n");
+            "control-outcome-unknown"
+        })?;
         self.device = Some(device);
         if response.schema != RESPONSE_SCHEMA
             || response.code.is_empty()
