@@ -4,7 +4,7 @@
 use super::{wire, AttachReply, AttachRequest};
 use crate::durable_host_control::{body, CONTROL_OUTCOME_UNKNOWN, PROTOCOL};
 use conduit_core::{HostAdvertisement, PlanId};
-use conduit_presentation::MaskShow;
+use conduit_presentation::{ManifestationLifecycle, MaskShow};
 use conduit_std_host::hosted_terminal_mask_host::{
     receive_terminal_frame_and_ack, TerminalFrameReceipt,
 };
@@ -77,6 +77,8 @@ pub(crate) fn attach_and_show(
         return Err(CONTROL_OUTCOME_UNKNOWN.into());
     };
     if show.validate(&face).is_err()
+        || show.show.lifecycle != ManifestationLifecycle::Available
+        || show.show.failure.is_some()
         || show.show.host_id != advertisement.host_id
         || show.show.boot_id != advertisement.boot_id
         || show.show.offer_generation != advertisement.offer_generation

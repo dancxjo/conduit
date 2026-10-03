@@ -3,7 +3,7 @@
 
 use super::{body::HostSource, constant_time_equal, DurableHostRuntime, PROTOCOL};
 use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow};
-use std::os::unix::net::UnixStream;
+use std::{os::unix::net::UnixStream, path::Path};
 
 #[path = "terminal_attach/client.rs"]
 mod client;
@@ -21,6 +21,7 @@ pub(super) struct AttachedTerminalRoute {
 /// The ordinary control listener has already consumed the discriminating byte.
 /// Malformed or refused attachment requests never terminate the owner service.
 pub(super) fn serve(
+    state_dir: &Path,
     stream: &mut UnixStream,
     runtime: &mut DurableHostRuntime,
     token: &[u8; 32],
@@ -40,6 +41,7 @@ pub(super) fn serve(
         }
         attach(stream, runtime, &request)?;
         attached_here = true;
+        refresh_marker(state_dir, runtime)?;
         let HostSource::Body { owner, .. } = &mut runtime.host else {
             unreachable!("only an installed Body can attach a terminal");
         };
@@ -69,7 +71,9 @@ pub(super) fn serve(
     })();
     if let Err(code) = result {
         if attached_here {
-            let _ = retire(runtime);
+            // A marker update failure must stop the service; silently
+            // publishing a different offer generation would be false truth.
+            retire(state_dir, runtime)?;
         }
         if !attached_reply_sent {
             let _ = wire::write_reply(
@@ -130,7 +134,10 @@ pub(super) fn is_attached(runtime: &mut DurableHostRuntime) -> bool {
 
 /// The service checks the selected provider and the semantic seal even while
 /// the workload is lulled and there are no incoming control requests.
-pub(super) fn retire_closed_attachment(runtime: &mut DurableHostRuntime) -> Result<(), String> {
+pub(super) fn retire_closed_attachment(
+    state_dir: &Path,
+    runtime: &mut DurableHostRuntime,
+) -> Result<(), String> {
     if !is_attached(runtime) {
         runtime.terminal_route = None;
         return Ok(());
@@ -149,12 +156,12 @@ pub(super) fn retire_closed_attachment(runtime: &mut DurableHostRuntime) -> Resu
             .is_ok()
     });
     if !live || !valid {
-        retire(runtime)?;
+        retire(state_dir, runtime)?;
     }
     Ok(())
 }
 
-fn retire(runtime: &mut DurableHostRuntime) -> Result<(), String> {
+fn retire(state_dir: &Path, runtime: &mut DurableHostRuntime) -> Result<(), String> {
     runtime.terminal_route = None;
     if !is_attached(runtime) {
         return Ok(());
@@ -162,7 +169,18 @@ fn retire(runtime: &mut DurableHostRuntime) -> Result<(), String> {
     let HostSource::Body { owner, .. } = &mut runtime.host else {
         unreachable!("only an installed Body can attach a terminal");
     };
-    owner.host.current_mut().detach_terminal_mask()
+    owner.host.current_mut().detach_terminal_mask()?;
+    refresh_marker(state_dir, runtime)
+}
+
+fn refresh_marker(state_dir: &Path, runtime: &DurableHostRuntime) -> Result<(), String> {
+    let advertised = runtime.host.advertisement();
+    crate::durable_host::refresh_offer_generation(
+        state_dir,
+        &advertised.host_id,
+        &advertised.boot_id,
+        advertised.offer_generation,
+    )
 }
 
 #[cfg(test)]

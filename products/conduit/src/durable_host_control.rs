@@ -1236,7 +1236,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
     let token = read_secret(&state_dir.join("control.token"))?;
     let mut polling_play = false;
     loop {
-        terminal_attach::retire_closed_attachment(&mut runtime)?;
+        terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
         let running = runtime.host.body_is_running() || terminal_attach::is_attached(&mut runtime);
         if running != polling_play {
             listener
@@ -1248,7 +1248,12 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
         let mut stream = match listener.accept() {
             Ok((stream, _)) => stream,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                std::thread::sleep(std::time::Duration::from_millis(10));
+                let pause = if runtime.host.body_is_running() {
+                    10
+                } else {
+                    100
+                };
+                std::thread::sleep(std::time::Duration::from_millis(pause));
                 continue;
             }
             Err(error) => return Err(format!("accept local host control: {error}")),
@@ -1264,7 +1269,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             .read_exact(&mut first)
             .map_err(|error| format!("read local host control prefix: {error}"))?;
         if first[0] == terminal_attach::MAGIC[0] {
-            terminal_attach::serve(&mut stream, &mut runtime, &token, first[0])?;
+            terminal_attach::serve(state_dir, &mut stream, &mut runtime, &token, first[0])?;
         } else {
             let mut request = std::io::Cursor::new(first).chain(&mut stream);
             let response = handle(read_frame(&mut request)?, &token, &mut runtime);

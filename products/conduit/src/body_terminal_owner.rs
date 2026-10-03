@@ -36,6 +36,17 @@ pub(crate) fn run(
             .read_until(b'\n', &mut bytes)
             .map_err(|error| format!("read owner terminal command: {error}"))?;
         if length == 0 || bytes == b"quit\n" || bytes == b"quit\r\n" {
+            let attached_host = attached.advertisement.host_id.clone();
+            let attached_boot = attached.advertisement.boot_id.clone();
+            let attached_generation = attached.advertisement.offer_generation;
+            drop(attached);
+            let (_, retired) = crate::durable_host_control::local_face_snapshot(state_dir)?;
+            if retired.host_id != attached_host
+                || retired.boot_id != attached_boot
+                || retired.offer_generation <= attached_generation
+            {
+                return Err("owner terminal detachment was not acknowledged".into());
+            }
             return Ok(());
         }
         if length as u64 > MAX_COMMAND_BYTES {

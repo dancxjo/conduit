@@ -221,6 +221,36 @@ fn installed_service_start_inspect_lull_and_restart_clock() {
         );
         thread::sleep(Duration::from_millis(20));
     }
+    let mut owner_terminal = Command::new(binary)
+        .args(["body", "terminal", "--owner-show", "--state-dir"])
+        .arg(&state)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    owner_terminal
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"quit\n")
+        .unwrap();
+    let owner_terminal = owner_terminal.wait_with_output().unwrap();
+    assert!(
+        owner_terminal.status.success(),
+        "{}",
+        String::from_utf8_lossy(&owner_terminal.stderr)
+    );
+    let owner_text = String::from_utf8(owner_terminal.stdout).unwrap();
+    assert!(
+        owner_text.contains("Owner terminal Show ")
+            && owner_text.contains("route Plan ")
+            && owner_text.contains("bytes written and flushed")
+            && owner_text.contains("read-only"),
+        "{owner_text}"
+    );
+    let after_show = status(binary, &state);
+    assert_eq!(after_show["biography"]["body_id"], body_id);
+    assert!(after_show["realization"].is_null());
     drop(service);
     let _ = fs::remove_file(state.join("control.sock"));
     service = Service(

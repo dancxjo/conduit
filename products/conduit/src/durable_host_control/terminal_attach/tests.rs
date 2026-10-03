@@ -2,7 +2,15 @@ use super::*;
 use crate::durable_host::owner::Owner;
 use conduit_body::ResidentPlot;
 use conduit_std_host::{hosted_terminal_mask_host::receive_terminal_frame_and_ack, StdHost};
-use std::{io::Read, path::PathBuf, thread};
+use std::{
+    fs,
+    io::Read,
+    path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
+    thread,
+};
+
+static NEXT_STATE: AtomicU64 = AtomicU64::new(0);
 
 fn runtime() -> DurableHostRuntime {
     let checked =
@@ -43,9 +51,35 @@ fn request(runtime: &DurableHostRuntime, token: &[u8; 32]) -> AttachRequest {
     }
 }
 
+fn state(runtime: &DurableHostRuntime) -> PathBuf {
+    let path = std::env::temp_dir().join(format!(
+        "conduit-terminal-attachment-{}-{}",
+        std::process::id(),
+        NEXT_STATE.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir_all(&path).unwrap();
+    let advertised = runtime.host.advertisement();
+    fs::write(
+        path.join("runtime.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema":"conduit.install/durable-host-runtime@1",
+            "host_id":advertised.host_id.as_str(),
+            "boot_id":advertised.boot_id.as_str(),
+            "offer_generation":advertised.offer_generation.0,
+            "process_id":std::process::id(),
+            "release_bundle_sha256":"test",
+            "body_id":null
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    path
+}
+
 #[test]
 fn current_lulled_owner_attaches_actual_host_and_acknowledges_one_read_only_show() {
     let mut runtime = runtime();
+    let state = state(&runtime);
     let token = [7; 32];
     let before = runtime.host.advertisement().clone();
     let expected = before.clone();
@@ -86,9 +120,15 @@ fn current_lulled_owner_attaches_actual_host_and_acknowledges_one_read_only_show
     });
     let mut first = [0];
     server.read_exact(&mut first).unwrap();
-    serve(&mut server, &mut runtime, &token, first[0]).unwrap();
+    serve(&state, &mut server, &mut runtime, &token, first[0]).unwrap();
     let (client, route_plan_id, show) = worker.join().unwrap();
     assert!(is_attached(&mut runtime));
+    let marker: serde_json::Value =
+        serde_json::from_slice(&fs::read(state.join("runtime.json")).unwrap()).unwrap();
+    assert_eq!(
+        marker["offer_generation"],
+        runtime.host.advertisement().offer_generation.0
+    );
     let route = runtime.terminal_route.as_ref().unwrap();
     assert_eq!(route.seal.route_plan_id, route_plan_id);
     assert_eq!(route.show, show);
@@ -96,16 +136,37 @@ fn current_lulled_owner_attaches_actual_host_and_acknowledges_one_read_only_show
         route.show.show.lifecycle,
         conduit_presentation::ManifestationLifecycle::Available
     ));
+    let HostSource::Body { owner, .. } = &runtime.host else {
+        unreachable!()
+    };
+    let current_face = owner.local_face_snapshot().unwrap();
+    assert!(current_face.basis.wake_id.is_none());
+    assert!(current_face.actions.iter().any(|action| {
+        action.intent == crate::durable_host::owner::clock_interval_action()
+            && action.availability.is_available()
+    }));
+    assert_eq!(
+        runtime.start_owned_body(1_000).unwrap_err(),
+        "terminal-attachment-must-detach-before-start"
+    );
     drop(client);
-    retire_closed_attachment(&mut runtime).unwrap();
+    retire_closed_attachment(&state, &mut runtime).unwrap();
     assert!(!is_attached(&mut runtime));
     assert!(runtime.terminal_route.is_none());
     assert!(runtime.host.advertisement().offer_generation > before.offer_generation);
+    let marker: serde_json::Value =
+        serde_json::from_slice(&fs::read(state.join("runtime.json")).unwrap()).unwrap();
+    assert_eq!(
+        marker["offer_generation"],
+        runtime.host.advertisement().offer_generation.0
+    );
+    fs::remove_dir_all(state).unwrap();
 }
 
 #[test]
 fn wrong_token_cannot_attach_or_advertise_terminal_output() {
     let mut runtime = runtime();
+    let state = state(&runtime);
     let before = runtime.host.advertisement().clone();
     let token = [7; 32];
     let request = request(&runtime, &[8; 32]);
@@ -119,15 +180,17 @@ fn wrong_token_cannot_attach_or_advertise_terminal_output() {
     });
     let mut first = [0];
     server.read_exact(&mut first).unwrap();
-    serve(&mut server, &mut runtime, &token, first[0]).unwrap();
+    serve(&state, &mut server, &mut runtime, &token, first[0]).unwrap();
     worker.join().unwrap();
     assert!(!is_attached(&mut runtime));
     assert_eq!(runtime.host.advertisement(), &before);
+    fs::remove_dir_all(state).unwrap();
 }
 
 #[test]
 fn stale_offer_generation_cannot_attach_a_terminal() {
     let mut runtime = runtime();
+    let state = state(&runtime);
     let before = runtime.host.advertisement().clone();
     let token = [7; 32];
     let mut request = request(&runtime, &token);
@@ -144,15 +207,17 @@ fn stale_offer_generation_cannot_attach_a_terminal() {
     });
     let mut first = [0];
     server.read_exact(&mut first).unwrap();
-    serve(&mut server, &mut runtime, &token, first[0]).unwrap();
+    serve(&state, &mut server, &mut runtime, &token, first[0]).unwrap();
     worker.join().unwrap();
     assert!(!is_attached(&mut runtime));
     assert_eq!(runtime.host.advertisement(), &before);
+    fs::remove_dir_all(state).unwrap();
 }
 
 #[test]
 fn closed_provider_before_ack_never_retains_an_available_show() {
     let mut runtime = runtime();
+    let state = state(&runtime);
     let token = [7; 32];
     let before = runtime.host.advertisement().clone();
     let request = request(&runtime, &token);
@@ -168,9 +233,10 @@ fn closed_provider_before_ack_never_retains_an_available_show() {
     });
     let mut first = [0];
     server.read_exact(&mut first).unwrap();
-    serve(&mut server, &mut runtime, &token, first[0]).unwrap();
+    serve(&state, &mut server, &mut runtime, &token, first[0]).unwrap();
     worker.join().unwrap();
     assert!(!is_attached(&mut runtime));
     assert!(runtime.terminal_route.is_none());
     assert!(runtime.host.advertisement().offer_generation > before.offer_generation);
+    fs::remove_dir_all(state).unwrap();
 }
