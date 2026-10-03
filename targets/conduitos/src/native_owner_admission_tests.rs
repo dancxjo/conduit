@@ -6,6 +6,9 @@ use conduit_body::{
 };
 use conduit_body::{RendezvousAuthentication, RendezvousCandidate};
 use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
+use conduit_presentation::{
+    Face, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse,
+};
 use sha2::{Digest, Sha256};
 
 const NOW: u64 = 10_000;
@@ -122,6 +125,115 @@ fn exact_owner_receipt_correlates_with_the_single_sent_request() {
         .expect("authenticated owner receipt is exact");
     assert_eq!(result.credential, receipt.credential);
     assert_eq!(line.sent, serde_json::to_vec(&request).unwrap());
+}
+
+fn owner_face(source: &str) -> conduit_presentation::Presentation {
+    let body = Body::born(
+        source.into(),
+        "checked/native-route".into(),
+        1,
+        SignId::from("sign/native-route-born"),
+    )
+    .unwrap();
+    Face::project(
+        &body,
+        None,
+        7,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .unwrap()
+    .presentation
+}
+
+#[test]
+fn exact_owner_face_follows_receipt_on_the_authenticated_line() {
+    let (_, receipt) = admitted_exchange();
+    let face = owner_face("source/native-route");
+    assert_eq!(
+        face.basis.body_id.as_ref(),
+        Some(&receipt.credential.body_id)
+    );
+    let mut line = ScriptedLine {
+        response: serde_json::to_vec(&OwnerFaceSnapshotResponse::Snapshot {
+            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+            presentation: Box::new(face.clone()),
+            interactions_admitted: false,
+        })
+        .unwrap(),
+        sent: Vec::new(),
+    };
+    let accepted = exchange_face(&mut line, &receipt).unwrap();
+    assert_eq!(accepted.presentation(), &face);
+    let request: OwnerFaceSnapshotRequest = serde_json::from_slice(&line.sent).unwrap();
+    assert!(request.has_exact_basis());
+    assert_eq!(
+        request.credential_id,
+        receipt.credential.credential_id.as_str()
+    );
+    assert_eq!(request.body_id, receipt.credential.body_id);
+    assert_eq!(request.host_id, receipt.credential.host_id);
+    assert_eq!(request.boot_id, receipt.credential.boot_id);
+    assert!(request.last_seen_revision.is_none());
+}
+
+#[test]
+fn foreign_body_or_unadmitted_interaction_route_cannot_become_shared_face() {
+    let (_, receipt) = admitted_exchange();
+    let mut line = ScriptedLine {
+        response: serde_json::to_vec(&OwnerFaceSnapshotResponse::Snapshot {
+            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+            presentation: Box::new(owner_face("source/other-route")),
+            interactions_admitted: false,
+        })
+        .unwrap(),
+        sent: Vec::new(),
+    };
+    assert!(matches!(
+        exchange_face(&mut line, &receipt),
+        Err(NativeOwnerFaceExchangeRefusal::Face(
+            GuestFaceRefusal::BodyBasis
+        ))
+    ));
+    line.response = serde_json::to_vec(&OwnerFaceSnapshotResponse::Snapshot {
+        schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+        presentation: Box::new(owner_face("source/native-route")),
+        interactions_admitted: true,
+    })
+    .unwrap();
+    assert!(matches!(
+        exchange_face(&mut line, &receipt),
+        Err(NativeOwnerFaceExchangeRefusal::Face(
+            GuestFaceRefusal::InteractionRoute
+        ))
+    ));
+}
+
+#[test]
+fn owner_face_refusal_and_frame_pressure_leave_admission_receipt_independent() {
+    let (_, receipt) = admitted_exchange();
+    let mut line = ScriptedLine {
+        response: serde_json::to_vec(&OwnerFaceSnapshotResponse::Refused {
+            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+            code: "face-frame-pressure".into(),
+        })
+        .unwrap(),
+        sent: Vec::new(),
+    };
+    assert!(matches!(
+        exchange_face(&mut line, &receipt),
+        Err(NativeOwnerFaceExchangeRefusal::Face(GuestFaceRefusal::OwnerRefused(code)))
+            if code == "face-frame-pressure"
+    ));
+    line.response = vec![0; MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES + 1];
+    assert!(matches!(
+        exchange_face(&mut line, &receipt),
+        Err(NativeOwnerFaceExchangeRefusal::Receive(
+            WebSocketError::ResponseTooLarge
+        ))
+    ));
+    assert!(receipt.membership_admitted);
 }
 
 #[test]
