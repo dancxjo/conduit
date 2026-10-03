@@ -19,6 +19,7 @@ pub struct I2cContract {
     request: StructuredInfoType,
     result: StructuredInfoType,
     kind: Kind,
+    types: Vec<conduit_plot::CheckedNativeType>,
 }
 
 impl I2cContract {
@@ -99,6 +100,7 @@ impl I2cContract {
             request,
             result,
             kind,
+            types: checked.native_types,
         })
     }
 
@@ -111,10 +113,10 @@ impl I2cContract {
     pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
         let mut startup = StartupCatalog::new();
         startup
-            .insert_structured_type("machine/i2c/transact/request", self.request.clone())
+            .insert_checked_native_type("machine/i2c/transact/request", &self.types[0])
             .expect("request Type");
         startup
-            .insert_structured_type("machine/i2c/transact/result", self.result.clone())
+            .insert_checked_native_type("machine/i2c/transact/result", &self.types[1])
             .expect("result Type");
         startup
             .insert(conduit_plot::KindSignature {

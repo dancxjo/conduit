@@ -12,6 +12,14 @@ must handle overflow before using the word; the overflow path supplies no usable
 encoded value. CRC-8 and reflected CRC-16 bit steps take their polynomial and
 accumulator explicitly. They have no hidden device profile or retry policy.
 
+`frames.conduit` supplies fixed four/eight-byte storage with explicit actual
+length, concatenation and indexed access. Concatenation excludes source padding
+and clears unused destination bytes; access distinguishes short input from a
+malformed length. All branches are ordinary checked expressions. Preparation
+for the current concatenation topology peaks below 2 MiB; repeated prepared
+evaluation allocates nothing. This finite preparation cost is not a firmware
+footprint claim.
+
 `i2c-types.conduit` defines exact finite requests and typed bus outcomes;
 `i2c.conduit` invokes the class-neutral transaction Kind. The ConduitOS provider
 binds the exact selected Plan/Play and opaque Base possession before effects.
@@ -30,8 +38,15 @@ callers must handle it before using a numeric result. Humidity correction clamps
 to the specified physical range. Compensation stages retain their exact declared
 record schemas and use checked I128 arithmetic on every Host.
 
-These are arithmetic and bus foundations. They do not yet supply a bounded byte/frame
-library, a complete device state machine or an installed hardware Back.
+`bme280-calibration.conduit` decodes signed and unsigned calibration fields,
+including packed signed twelve-bit humidity coefficients, and raw sample bytes.
+`i2c-register.conduit` supplies source-owned read/write register request idioms.
+Imported checked Types retain their refinement metadata. Construction may
+forward an identical field contract or use a valid constant; it cannot silently
+discard a law or justify arithmetic changes from shape alone.
+
+These remain arithmetic, finite frame and bus foundations. They do not yet
+supply a complete device state machine or an installed hardware Back.
 CRC check-vector tests compose the steps in a deterministic test harness; they
 do not yet establish a complete authored CRC flow through the production kernel.
 

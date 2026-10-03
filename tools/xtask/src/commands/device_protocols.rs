@@ -20,6 +20,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduit-plot",
                     "--test",
                     "device_binary",
+                    "--test",
+                    "device_frames",
                 ],
             ),
             Step::new(
@@ -33,6 +35,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduit-plot",
                     "--test",
                     "named_record_expression",
+                    "--test",
+                    "native_expression_construction",
                     "--test",
                     "bme280_compensation",
                 ],
