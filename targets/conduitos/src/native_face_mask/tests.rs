@@ -4,7 +4,7 @@ use super::*;
 use alloc::vec;
 use conduit_birth_plot::{BirthDraft, BirthPlotChoice};
 use conduit_human::{KeyModifiers, KeyTransition};
-use conduit_presentation::ManifestationLifecycle;
+use conduit_presentation::{Face, FaceContext, FaceFocus, ManifestationLifecycle};
 
 struct CountingDisplay {
     writes: u32,
@@ -133,4 +133,86 @@ fn failed_scanout_does_not_publish_a_mask_show() {
         Err(NativeFaceMaskError::Compositor(_))
     ));
     assert!(service.show().is_none());
+}
+
+#[test]
+fn owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation() {
+    let (mut service, _) = fixture();
+    let body = conduit_body::Body::born(
+        "source/shared-clock".into(),
+        "checked/shared-clock".into(),
+        1,
+        "sign/owner-born".into(),
+    )
+    .unwrap();
+    let face = Face::project(
+        &body,
+        None,
+        7,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .unwrap()
+    .presentation;
+    assert!(
+        face.subjects
+            .iter()
+            .all(|subject| subject.role != conduit_presentation::PresentationRole::Host)
+    );
+    let wake_action = face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/wake@1")
+        .unwrap();
+    let mut display = CountingDisplay {
+        writes: 0,
+        fail: false,
+    };
+    let composition = service
+        .present_read_only(face.clone(), 1, 1, &mut display)
+        .unwrap();
+    assert_eq!(composition.presentation_id, face.identity);
+    assert_eq!(service.scene().unwrap().presentation(), &face);
+    assert!(service.show().is_some());
+    assert!(service.route_keyboard().unwrap());
+    let enter = KeyEvent::new(40, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
+    assert!(matches!(
+        service.key(enter, 1, &mut display).unwrap(),
+        NativeFaceMaskInput::Unchanged
+    ));
+    let details = KeyEvent::new(59, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
+    assert!(matches!(
+        service.key(details, 2, &mut display).unwrap(),
+        NativeFaceMaskInput::Redrawn(_)
+    ));
+    assert!(service.scene().unwrap().showing_details());
+    let show = service.show().unwrap().clone();
+    assert_eq!(
+        service.scene().unwrap().interaction(
+            &face.identity,
+            face.revision,
+            crate::native_face_scene::FaceControl {
+                action: 0,
+                argument: None
+            },
+            &show,
+            vec![],
+            3,
+        ),
+        Err(crate::native_face_scene::FaceSceneError::InputUnavailable)
+    );
+    let interaction = FaceInteraction::new(
+        &face,
+        &show,
+        &wake_action.identity,
+        &wake_action.target,
+        vec![],
+        3,
+    )
+    .unwrap();
+    assert!(matches!(
+        service.submit(interaction),
+        Err(NativeFaceMaskError::InputUnavailable)
+    ));
 }
