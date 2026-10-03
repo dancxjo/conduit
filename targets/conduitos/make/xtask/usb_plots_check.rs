@@ -6,14 +6,7 @@ use crate::cli::GlobalOpts;
 
 pub fn execute(cross: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let checks: &[&[&str]] = &[
-        &[
-            "test",
-            "--locked",
-            "-p",
-            "conduit-core",
-            "--lib",
-            "leaf_sequence",
-        ],
+        &["test", "--locked", "-p", "conduit-core"],
         &[
             "test",
             "--locked",

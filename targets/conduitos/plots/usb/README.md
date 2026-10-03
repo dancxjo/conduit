@@ -64,7 +64,21 @@ device compatibility. Those require the remaining stack work below.
 256 bytes of native-owned storage without allocation. It uses borrowed core
 access rather than a USB-specific serializer; element identity, full canonical
 validity, destination capacity and transfer geometry are independent checks.
-This payload bridge does not yet define or install the complete typed USB Kind.
+The exact control Kind derives its port Types from `control-types.conduit`
+during preparation. `control.conduit` calls it through ordinary checked topology.
+The request carries setup and at most 256 OUT octets; its native decoder checks
+the exact reviewed schema before reading fields, then checks transfer geometry.
+The result is a closed variant: completed with actual count, shortness and
+bounded IN octets, or stalled, provider-lost or unsupported. Kernel cancellation
+remains cancellation control/terminal truth. Result encoding refuses impossible
+counts, mismatched IN bytes and input data attached to an OUT completion.
+
+Core borrowed record access and prepared canonical leaf/record/variant
+composition support this boundary without a USB serializer. Composition checks
+exact child Types, its prepared byte envelope and aggregate depth/node limits.
+Preparation may allocate; these request/result hot paths use finite storage.
+Definition and encoding do not yet install a selected native USB Host Call or
+prove device execution, cancellation or DMA quiescence.
 
 Native control completion retains a short Data Stage residue until the final
 Status Stage succeeds; status success cannot replace the actual data count.
