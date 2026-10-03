@@ -51,9 +51,9 @@ export async function startOwnerParticipation(application, root) {
       <details><summary>Exact owner biography evidence</summary><pre data-owner-evidence>No biography received.</pre></details></section>
     <section class="owner-face" aria-labelledby="owner-face-title" data-owner-face>
       <header><p class="eyebrow">Same Body · another view</p><h3 id="owner-face-title">What your Body says now</h3>
-        <p>The owner supplies the meaning. This browser runs its own graphical Mask for that exact Face. A current joined window can return the reviewed clock action to the owner.</p></header>
+        <p>The owner supplies the meaning. This browser shows its current Face and sends your available actions back for the owner to check.</p></header>
       <p role="status" data-owner-face-status>Join the Body to see its current Face.</p>
-      <p role="status" data-owner-action-result>No clock action submitted.</p>
+      <p role="status" data-owner-action-result>No Face action submitted.</p>
       <div data-owner-face-document></div>
       <button type="button" data-owner-face-refresh disabled>Refresh this Face</button>
       <details><summary>Face and Show identities</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
@@ -114,36 +114,53 @@ export async function startOwnerParticipation(application, root) {
     if (view.actions.length) {
       const actions = document.createElement('section');
       actions.append(faceNode('h4', 'What you can do'));
-      const list = document.createElement('ul');
       for (const action of view.actions) {
-        const item = document.createElement('li');
-        item.textContent = `${action.name} · ${action.availability}${action.explanation ? ` — ${action.explanation}` : ''}`;
-        list.append(item);
-      }
-      actions.append(list); documentNode.append(actions);
-      const clock = view.actions.find(action => action.intent === 'conduit.intent/change-clock-interval@1');
-      if (clock) {
-        const interval = clock.arguments?.[0];
         const control = document.createElement('form');
-        control.dataset.ownerClockAction = '';
-        const label = faceNode('label', interval?.value_name ?? 'Clock interval ');
-        const select = document.createElement('select');
-        select.name = 'interval';
-        for (const ms of interval?.choices ?? []) {
-          const option = document.createElement('option');
-          option.value = ms;
-          option.textContent = `${ms} milliseconds`;
-          select.append(option);
+        control.dataset.ownerAction = action.identity;
+        control.append(faceNode('h5', action.name));
+        const inputs = [];
+        let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
+        for (const argument of action.arguments ?? []) {
+          const label = faceNode('label', argument.value_name);
+          let input;
+          if (Array.isArray(argument.choices) && argument.choices.length) {
+            if (argument.choices.length > 64 || argument.choices.includes('')) {
+              supported = false;
+              continue;
+            }
+            input = document.createElement('select');
+            const prompt = document.createElement('option');
+            prompt.value = ''; prompt.textContent = 'Choose an option';
+            input.append(prompt);
+            for (const choice of argument.choices) {
+              const option = document.createElement('option');
+              option.value = choice; option.textContent = choice;
+              input.append(option);
+            }
+            input.required = true;
+          } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text'
+            && Number.isSafeInteger(argument.maximum_bytes) && argument.maximum_bytes <= 4096) {
+            input = document.createElement('input');
+            input.type = 'text'; input.maxLength = argument.maximum_bytes;
+            input.addEventListener('input', () => input.setCustomValidity(
+              encoder.encode(input.value).length > argument.maximum_bytes
+                ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : ''));
+          } else {
+            supported = false;
+            continue;
+          }
+          label.append(input);
+          control.append(label);
+          inputs.push({ name: argument.name, input });
         }
-        if (interval?.choices?.includes(clock.current_value)) select.value = clock.current_value;
-        label.append(select);
-        const button = faceNode('button', 'Change interval on the Body');
+        const button = faceNode('button', action.name);
         button.type = 'submit';
         button.disabled = !view.interactions_admitted || view.show_state !== 'available'
-          || !interval?.choices?.length
-          || clock.availability !== 'available';
-        control.append(label, button);
-        if (button.disabled) control.append(faceNode('p', clock.explanation ?? 'This owner action is unavailable.'));
+          || !supported || inputs.length !== action.arguments.length
+          || action.availability !== 'available';
+        control.append(button);
+        if (button.disabled) control.append(faceNode('p', action.explanation ??
+          (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
         control.addEventListener('submit', async event => {
           event.preventDefault();
           if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
@@ -151,14 +168,15 @@ export async function startOwnerParticipation(application, root) {
           button.disabled = true;
           try {
             const outcome = await participation.submitOwnerFaceInteraction({
-              view: faceView, actionId: clock.identity, target: clock.target,
-              intervalMs: select.value, sequence: ++actionSequence,
+              view: faceView, actionId: action.identity, target: action.target,
+              arguments: inputs.map(({ name, input }) => ({ name, value: input.value })),
+              sequence: ++actionSequence,
             });
             if (outcome.accepted !== true) throw new Error('owner did not accept the interaction');
-            actionResult.textContent = 'The owner accepted the clock interval change. The next start needs a replacement Plan.';
+            actionResult.textContent = `The owner accepted ${action.name}.`;
             delete actionResult.dataset.refused;
           } catch (error) {
-            actionResult.textContent = `Clock interval refused: ${error.message}`;
+            actionResult.textContent = `${action.name} refused: ${error.message}`;
             actionResult.dataset.refused = 'true';
           } finally {
             faceBusy = false;
@@ -166,8 +184,9 @@ export async function startOwnerParticipation(application, root) {
             await refreshFace();
           }
         });
-        documentNode.append(control);
+        actions.append(control);
       }
+      documentNode.append(actions);
     }
     faceDocument.replaceChildren(documentNode);
     faceDocument.dataset.faceId = view.face_id;
@@ -187,6 +206,7 @@ export async function startOwnerParticipation(application, root) {
       faceView = shown;
       renderFace(shown);
       faceStatus.textContent = `The browser Mask showed the owner’s Face at revision ${shown.face_revision}.`;
+      delete faceStatus.dataset.refused;
       faceEvidence.textContent = JSON.stringify({ body_id: shown.body_id, face_id: shown.face_id,
         face_revision: shown.face_revision, mask_plot_id: shown.mask_plot_id,
         mask_plan_id: shown.mask_plan_id, mask_play_id: shown.mask_play_id,
@@ -208,7 +228,7 @@ export async function startOwnerParticipation(application, root) {
       if (faceView) faceStatus.textContent = `The browser lost the owner route. Last shown Face revision ${faceView.face_revision} is now historical.`;
       faceView = null;
       faceRefresh.disabled = true;
-      for (const button of faceDocument.querySelectorAll('[data-owner-clock-action] button')) button.disabled = true;
+      for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
       actionResult.dataset.refused = 'true';
     }

@@ -1,5 +1,6 @@
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
+import { checkedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
@@ -238,20 +239,20 @@ export class BrowserBodyParticipation {
     return shown;
   }
   /** Emit one typed Mask interaction on this still-live owner window. */
-  submitOwnerFaceInteraction({ view, actionId, target, intervalMs, sequence = 1 }) {
+  submitOwnerFaceInteraction({ view, actionId, target, arguments: actionArguments, sequence = 1 }) {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential ||
         view?.body_id !== credential.body_id || view?.show_state !== "available" ||
         view?.interactions_admitted !== true) {
       throw new Error("current browser Show and owner presence are required for interaction");
     }
-    if (typeof intervalMs !== "string" || intervalMs.length < 1 || intervalMs.length > 4 ||
-        !Number.isSafeInteger(sequence) || sequence < 1) {
-      throw new Error("choose one reviewed clock interval");
+    if (!Number.isSafeInteger(sequence) || sequence < 1) {
+      throw new Error("choose one valid Face action sequence");
     }
+    const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
     const submission = this.#state.host.bridge.ownerFaceInteract({
       show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
-      action_id: actionId, target, interval_ms: intervalMs, sequence,
+      action_id: actionId, target, arguments: checked, sequence,
     });
     return this.#state.membership.submitFaceInteraction(submission);
   }
