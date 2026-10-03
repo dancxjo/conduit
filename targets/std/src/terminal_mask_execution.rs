@@ -21,7 +21,7 @@ mod backs;
 #[path = "terminal_mask_execution/kernel.rs"]
 mod kernel;
 #[path = "terminal_mask_execution/planning.rs"]
-mod planning;
+pub(crate) mod planning;
 #[cfg(test)]
 #[path = "terminal_mask_execution/tests.rs"]
 mod tests;
@@ -73,8 +73,21 @@ impl Drop for Play {
 
 impl HostedTerminalMaskExecution {
     pub fn new(host: &HostAdvertisement) -> Result<Self, TerminalError> {
+        Self::with_plan(host, planning::plan(host)?)
+    }
+
+    /// Execute only the terminal Back offered by this exact current Host.
+    /// The caller must retain the attached I/O provider through the Show.
+    pub fn new_attached(host: &HostAdvertisement) -> Result<Self, TerminalError> {
+        Self::with_plan(host, planning::plan_attached(host)?)
+    }
+
+    fn with_plan(
+        host: &HostAdvertisement,
+        planned: PlannedMaskPlot,
+    ) -> Result<Self, TerminalError> {
         Ok(Self {
-            planned: planning::plan(host)?,
+            planned,
             host: host.clone(),
             next_sequence: 0,
             pending: None,

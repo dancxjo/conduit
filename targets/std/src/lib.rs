@@ -107,6 +107,8 @@ pub mod hosted_speech_recognition;
 pub mod hosted_speech_synthesis;
 mod hosted_spoken_output_host;
 pub mod hosted_synth;
+#[cfg(unix)]
+mod hosted_terminal_mask_host;
 pub mod hosted_vector_index;
 pub mod hosted_vector_search;
 pub mod hosted_vision;
@@ -461,6 +463,8 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 
 pub struct StdHost {
     advertisement: HostAdvertisement,
+    #[cfg(unix)]
+    terminal_attachment: Option<std::os::unix::net::UnixStream>,
     image_identity: Option<conduit_host_make::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
     wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
@@ -633,6 +637,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         }
     }
 
@@ -700,6 +706,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -778,6 +786,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -820,6 +830,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -862,6 +874,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -918,6 +932,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -975,6 +991,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -1089,6 +1107,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -1140,6 +1160,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -1186,6 +1208,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -1221,6 +1245,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
@@ -1269,6 +1295,8 @@ impl StdHost {
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
+            #[cfg(unix)]
+            terminal_attachment: None,
         })
     }
 
