@@ -116,6 +116,7 @@ pub mod protection_domain;
 pub mod rendezvous_descriptor;
 #[cfg(feature = "virtio-net-proof")]
 pub mod secure_rendezvous_support;
+pub mod usb_base;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]
