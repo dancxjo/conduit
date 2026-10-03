@@ -73,7 +73,7 @@ impl DurableHostRuntime {
             match super::browser::spawn_window(root, authorization.clone()) {
                 Ok(url) => Ok((authorization, url)),
                 Err(error) => {
-                    let _ = owner.browser_cancel_window(&authorization.window_id);
+                    let _ = owner.browser_cancel_window(root, &authorization.window_id);
                     Err(error)
                 }
             }
@@ -81,7 +81,7 @@ impl DurableHostRuntime {
         #[cfg(not(unix))]
         {
             let _ = root;
-            let _ = owner.browser_cancel_window(&authorization.window_id);
+            let _ = owner.browser_cancel_window(root, &authorization.window_id);
             Err("browser admission worker requires local Unix control".into())
         }
     }
@@ -121,7 +121,7 @@ impl DurableHostRuntime {
 
     pub(super) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
-            HostSource::Body { owner, .. } => owner.browser_cancel_window(window_id),
+            HostSource::Body { owner, root } => owner.browser_cancel_window(root, window_id),
             HostSource::Bare(_) => Err("installed Host does not own a live Body session".into()),
         }
     }
