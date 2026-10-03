@@ -591,7 +591,8 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(index.contains("conduit-three-body-flagship@2"));
     assert!(index.contains("Main navigation"));
     assert!(index.contains("Read a clock, reload, then rest"));
-    assert!(index.contains("Start, use, inspect, and stop a body"));
+    assert!(index.contains("No substitute recording is shown."));
+    assert!(!index.contains("Follow the Handbook walkthrough"));
     assert!(index.contains("Browse goals and capture availability"));
     let catalogue: serde_json::Value =
         serde_json::from_slice(&fs::read(site_root.join("catalogue.json")).unwrap()).unwrap();

@@ -27,7 +27,10 @@ pub use verification::{
 };
 
 pub const EVIDENCE_SCHEMA: &str = "conduit.evidence-manifest/v1";
-pub const MAX_EVIDENCE_OUTPUTS: usize = 64;
+/// One complete multi-host Journey can retain every original speech batch,
+/// capture, and receipt without replacing them with a stitched derivative.
+pub const MAX_EVIDENCE_OUTPUTS: usize = 128;
+pub const LEGACY_MAX_EVIDENCE_OUTPUTS: usize = 64;
 pub const MAX_EVIDENCE_BYTES: u64 = 16 * 1024 * 1024;
 const MANIFEST_FILE: &str = "manifest.json";
 const CAPTURE_DECLARATION_SCHEMA: &str = "conduit.capture-declarations/v1";
@@ -430,5 +433,7 @@ fn sha256_file(path: &Path) -> Result<String, String> {
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+#[cfg(test)]
+mod capacity_tests;
 #[cfg(test)]
 mod tests;

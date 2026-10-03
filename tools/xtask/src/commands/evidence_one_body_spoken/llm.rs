@@ -178,15 +178,14 @@ pub(super) fn run(
     let wav = manifest.root().join("speech.wav");
     let mask = spoken_mask_journey::execute_retained_manifestation_mask_with_streaming_espeak(
         "one-body-journey-spoken",
-        &execution_id,
+        execution_id,
         first.presentation.clone(),
         candidate.clone(),
         speech.clone(),
         &wav,
     )
-    .map_err(|error| {
+    .inspect_err(|_| {
         let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
-        error
     })?;
     let show_id = mask.execution.shown.show.show_id.as_str();
     let transcript = json!({
