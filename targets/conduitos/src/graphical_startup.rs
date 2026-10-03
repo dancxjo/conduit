@@ -40,7 +40,7 @@ pub fn run(record: boot::BootRecord) -> ! {
     arch::initialize_machine(&record, boot::executable_physical_address);
     let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
     let identities = identity::derive(entropy, record.timestamp, record.image_physical_start);
-    crate::inspect_spore_provision(&record, identities);
+    let pending_join = crate::inspect_spore_provision(&record, identities);
     let mut presentation_display = match boot::framebuffer_display() {
         Ok(display) => display,
         Err(error) => emit_machine_refusal(error.as_str()),
@@ -372,6 +372,7 @@ pub fn run(record: boot::BootRecord) -> ! {
             line_usb.as_ref(),
             ps2_input.as_mut(),
             &mut rescue_matcher,
+            pending_join,
         ) {
             emit_machine_refusal(reason);
         }
