@@ -3,7 +3,12 @@ use conduit_core::HostAdvertisement;
 use conduit_presentation::Presentation;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use std::{fs, io::Read, path::Path, process::Command};
+use std::{
+    fs,
+    io::Read,
+    path::Path,
+    process::{Command, Stdio},
+};
 
 const SNAPSHOT_SCHEMA: &str = "conduit.body/local-face-snapshot@1";
 const MAX_FACE_BYTES: usize = 1024 * 1024;
@@ -17,22 +22,31 @@ pub(super) struct OwnerSnapshot {
 }
 
 pub(super) fn face_bytes(bin: &Path, state_dir: &Path) -> Result<Vec<u8>, String> {
-    let result = Command::new(bin)
+    let mut owner = Command::new(bin)
         .args(["body", "face", "--state-dir"])
         .arg(state_dir)
         .arg("--json")
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .spawn()
         .map_err(|error| error.to_string())?;
-    if !result.status.success() {
-        return Err(format!(
-            "installed owner Face snapshot failed: {}",
-            String::from_utf8_lossy(&result.stderr)
-        ));
-    }
-    if result.stdout.len() > MAX_FACE_BYTES {
+    let mut bytes = Vec::new();
+    owner
+        .stdout
+        .take()
+        .ok_or("owner stdout was not piped")?
+        .take((MAX_FACE_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| error.to_string())?;
+    if bytes.len() > MAX_FACE_BYTES {
+        let _ = owner.kill();
+        let _ = owner.wait();
         return Err("owner Face snapshot exceeded byte bound".into());
     }
-    Ok(result.stdout)
+    if !owner.wait().map_err(|error| error.to_string())?.success() {
+        return Err("installed owner Face snapshot failed".into());
+    }
+    Ok(bytes)
 }
 
 pub(super) fn parse_snapshot(bytes: &[u8]) -> Result<OwnerSnapshot, String> {
