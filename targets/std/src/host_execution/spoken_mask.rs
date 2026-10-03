@@ -49,6 +49,7 @@ impl StdHost {
                 external_fore: Some(ExternalForeRun {
                     inputs,
                     output: output_adapter,
+                    sequential: false,
                 }),
                 spoken_mask: Some(preparation),
                 durable_state: None,
