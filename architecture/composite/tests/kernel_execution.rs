@@ -1013,76 +1013,6 @@ fn direct_composite_pressure_and_retry_allocate_nothing_during_play() {
 }
 
 #[test]
-fn child_refusal_is_distinct_and_occurs_before_play() {
-    assert!(matches!(
-        KernelCompositeHost::prepare(definition(), &KernelOperationRegistry::new()),
-        Err(KernelCompositeError::ChildRefused { .. })
-    ));
-}
-
-#[test]
-fn child_failure_is_a_machine_readable_kernel_execution_terminal() {
-    let mut failed = KernelCompositeHost::prepare(definition(), &failing_registry()).unwrap();
-    failed.start().unwrap();
-    assert!(matches!(
-        failed.step(),
-        Err(KernelCompositeError::Execution { .. })
-    ));
-}
-
-#[test]
-fn stale_child_identity_refuses_before_any_kernel_is_started() {
-    let mut stale = definition();
-    stale.boundary.input_fronts[0].internal_child = HostId::from("stale-child");
-    assert!(matches!(
-        KernelCompositeHost::prepare(stale, &registry()),
-        Err(KernelCompositeError::StaleChild(_))
-    ));
-}
-
-#[test]
-fn malformed_boundary_binding_and_value_kind_refuse_distinctly() {
-    let mut malformed = definition();
-    malformed.boundary.input_fronts[0].internal_port_id = conduit_core::port_id("missing");
-    assert!(matches!(
-        KernelCompositeHost::prepare(malformed, &registry()),
-        Err(KernelCompositeError::InvalidBoundary(_))
-    ));
-
-    let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
-    assert_eq!(host.step(), Err(KernelCompositeError::InvalidLifecycle));
-    host.start().unwrap();
-    assert!(matches!(
-        host.admit_input(
-            &conduit_core::port_id("input"),
-            0,
-            &ValuePayload {
-                value_kind: kind_id("value/wrong"),
-                encoded: vec![1],
-            }
-        ),
-        Err(KernelCompositeError::MalformedBoundary(_))
-    ));
-}
-
-#[test]
-fn cancellation_is_terminal_and_rejects_late_kernel_work() {
-    let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
-    let input_port = conduit_core::port_id("input");
-    let late = value(b"late");
-    host.start().unwrap();
-    let allocations = allocations_during(|| {
-        host.cancel().unwrap();
-        assert_eq!(host.step().unwrap(), KernelCompositeStatus::Cancelled);
-        assert!(matches!(
-            host.admit_input(&input_port, 0, &late),
-            Err(KernelCompositeError::InvalidLifecycle)
-        ));
-    });
-    assert_eq!(allocations, 0, "cancellation allocated {allocations} times");
-}
-
-#[test]
 fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
     let mut activations = BoundedActivationHost::prepare(
         definition(),
@@ -1230,11 +1160,21 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         2,
     )
     .unwrap();
-    failed.activate(3, &value(b"fault")).unwrap();
-    assert!(matches!(
-        failed.step().unwrap(),
-        BoundedActivationState::Faulted { sequence: 3, .. }
-    ));
+    assert_eq!(failed.child_identity(0).unwrap().as_str(), "first-child");
+    let input = value(b"fault");
+    let allocations = allocations_during(|| {
+        failed.activate(3, &input).unwrap();
+        assert!(matches!(
+            failed.step().unwrap(),
+            BoundedActivationState::Faulted { sequence: 3, .. }
+        ));
+        assert_eq!(failed.child_identity(0).unwrap().as_str(), "first-child");
+        assert!(failed.child_identity(2).is_none());
+    });
+    assert_eq!(
+        allocations, 0,
+        "lifted failure and identity inspection allocated"
+    );
 
     let mut cancelled = BoundedActivationHost::prepare(
         definition(),
@@ -1308,3 +1248,6 @@ fn bounded_activation_drains_one_owed_value_before_normal_close() {
         "each completion allocated {allocations} times"
     );
 }
+
+#[path = "kernel_execution/refusals.rs"]
+mod refusals;

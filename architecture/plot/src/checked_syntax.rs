@@ -1,3 +1,4 @@
+mod type_catalog;
 use crate::prelude::*;
 use crate::{PlotCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
@@ -153,112 +154,6 @@ impl StartupCatalog {
             })
             .collect()
     }
-
-    pub fn insert_structured_type(
-        &mut self,
-        name: impl Into<String>,
-        value_type: conduit_core::StructuredInfoType,
-    ) -> Result<(), String> {
-        let name = name.into();
-        if name.is_empty() {
-            return Err("structured startup type name must not be empty".into());
-        }
-        if self.structured_types.contains_key(&name) || self.value_kind_aliases.contains_key(&name)
-        {
-            return Err(format!("duplicate structured startup type '{name}'"));
-        }
-        self.structured_types.insert(name, value_type);
-        Ok(())
-    }
-
-    /// Returns the authored semantic Type name for an exact structured value Kind.
-    ///
-    /// Presentation surfaces use this to keep the stable human-facing Type name
-    /// while preserving the profile identity as the executable contract.
-    pub fn structured_type_name(&self, value_kind: &conduit_core::KindId) -> Option<&str> {
-        self.structured_types.iter().find_map(|(name, value_type)| {
-            (value_type
-                .profile()
-                .is_ok_and(|profile| profile.value_kind() == value_kind))
-            .then_some(name.as_str())
-        })
-    }
-
-    pub(crate) fn insert_native_type(
-        &mut self,
-        name: impl Into<String>,
-        value_type: conduit_core::StructuredInfoType,
-        contracts: Vec<NativeTypeValueContract>,
-        invariants: Vec<crate::PortableExpressionProgram>,
-    ) -> Result<(), String> {
-        let name = name.into();
-        self.insert_structured_type(name.clone(), value_type)?;
-        self.structured_type_contracts
-            .insert(name.clone(), contracts);
-        self.structured_type_invariants.insert(name, invariants);
-        Ok(())
-    }
-
-    pub fn insert_value_kind_alias(
-        &mut self,
-        name: impl Into<String>,
-        value_kind: conduit_core::KindId,
-    ) -> Result<(), String> {
-        let name = name.into();
-        if name.is_empty() {
-            return Err("startup value Kind alias must not be empty".into());
-        }
-        if self.value_kind_aliases.get(&name) == Some(&value_kind) {
-            return Ok(());
-        }
-        if self.value_kind_aliases.contains_key(&name) || self.structured_types.contains_key(&name)
-        {
-            return Err(format!("duplicate startup value type '{name}'"));
-        }
-        self.value_kind_aliases.insert(name, value_kind);
-        Ok(())
-    }
-
-    pub(crate) fn structured_type(&self, name: &str) -> Option<&conduit_core::StructuredInfoType> {
-        self.structured_types.get(name)
-    }
-
-    pub(crate) fn structured_type_contracts(
-        &self,
-        name: &str,
-    ) -> Option<&[NativeTypeValueContract]> {
-        self.structured_type_contracts.get(name).map(Vec::as_slice)
-    }
-
-    pub(crate) fn structured_type_invariants(
-        &self,
-        name: &str,
-    ) -> Option<&[crate::PortableExpressionProgram]> {
-        self.structured_type_invariants.get(name).map(Vec::as_slice)
-    }
-
-    pub(crate) fn structured_types_by_value_kind(
-        &self,
-    ) -> Result<
-        BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
-        conduit_core::StructuredInfoRefusal,
-    > {
-        let mut checked = BTreeMap::new();
-        for value_type in self.structured_types.values() {
-            let value_kind = value_type.profile()?.value_kind().clone();
-            if checked
-                .insert(value_kind.clone(), value_type.clone())
-                .is_some_and(|prior| prior != *value_type)
-            {
-                return Err(conduit_core::StructuredInfoRefusal::WrongType);
-            }
-        }
-        Ok(checked)
-    }
-
-    pub(crate) fn value_kind_alias(&self, name: &str) -> Option<&conduit_core::KindId> {
-        self.value_kind_aliases.get(name)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -409,6 +304,7 @@ pub struct CheckedCanonicalPlot {
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
     pub native_types: Vec<CheckedNativeType>,
+    pub(crate) retained_native_types: Vec<CheckedNativeType>,
     pub type_forms: Vec<CheckedTypeForm>,
     pub plots: Vec<CheckedCanonicalPlot>,
     /// Authored shorthand correlated with the ordinary meaning established by

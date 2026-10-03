@@ -1,11 +1,24 @@
 //! Kernel-backed execution for exact composite definitions.
 
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+#[cfg(test)]
+extern crate std;
+
+mod prelude {
+    pub use alloc::boxed::Box;
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec::Vec;
+}
+
 mod boundary;
 mod bounded_activation;
 mod bounded_fold_activation;
 mod bounded_scan_activation;
 mod child;
-pub use child::{ChildTerminalError, ChildTransportError};
+pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};
 mod definition;
 mod flow_select;
 mod kernel_executor;

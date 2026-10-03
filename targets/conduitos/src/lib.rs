@@ -32,6 +32,7 @@ pub mod functional_offers;
 pub mod hotplug_guest;
 #[cfg(any(test, feature = "native-http-client"))]
 pub mod http;
+pub mod i2c_base;
 pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;

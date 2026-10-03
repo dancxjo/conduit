@@ -14,11 +14,24 @@ pub(super) fn input_payload<'a>(
     )
 }
 
-pub(super) fn append_output(out: &mut Vec<u8>, value_type: &[u8], value: &PrimitiveValue<'_>) {
+pub(super) fn append_output(
+    out: &mut Vec<u8>,
+    value_type: &[u8],
+    value: &PrimitiveValue<'_>,
+) -> Result<(), Refusal> {
+    if value_type
+        .len()
+        .saturating_add(5)
+        .saturating_add(value.length)
+        > out.capacity()
+    {
+        return Err(Refusal::InvalidProgram);
+    }
     out.extend_from_slice(value_type);
     out.push(0);
     out.extend_from_slice(&(value.length as u32).to_le_bytes());
     out.extend_from_slice(value.as_slice());
+    Ok(())
 }
 
 fn leaf_payload(encoded: &[u8]) -> Result<&[u8], Refusal> {

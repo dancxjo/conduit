@@ -3061,7 +3061,7 @@ fn remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth()
     assert_eq!(source.values().reference_count(first).unwrap(), 1);
     assert_eq!(
         source.discard_host_value(first),
-        Err(SchedulerError::ValueOwnershipViolation)
+        Err(super::HostValueDiscardRefusal::ValueOwned)
     );
     let first_bytes = *source
         .host_value(offer.value)

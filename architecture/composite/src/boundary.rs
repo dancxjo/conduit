@@ -1,9 +1,10 @@
 use crate::child::BoundaryEndpoint;
+use crate::prelude::*;
+use alloc::collections::BTreeMap;
 use conduit_core::PortDirection;
 use conduit_kernel::scheduler::{CordCapacity, CordSpec};
 use conduit_kernel::{NodeId, PortId, RouteRange, RouteTarget};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
-use std::collections::BTreeMap;
 
 pub(crate) fn augment_boundary_cords(
     lowered: &mut LoweredPlanFragment,

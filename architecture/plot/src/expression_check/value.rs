@@ -16,17 +16,7 @@ pub(super) fn expand(
             fields
                 .iter()
                 .map(|field| {
-                    let kind = field
-                        .value_type()
-                        .profile()
-                        .expect("checked field profile")
-                        .value_kind()
-                        .clone();
-                    let field_type = if context.structured_types.contains_key(&kind) {
-                        CheckedExpressionType::Semantic(kind)
-                    } else {
-                        CheckedExpressionType::from_structured(field.value_type())
-                    };
+                    let field_type = structures::member(field.value_type());
                     (field.name().into(), field_type)
                 })
                 .collect(),
@@ -47,6 +37,13 @@ pub(super) fn atomic(
     }
     if let Some(value_type) = context.literal_types.get(text) {
         return expected_or_exact(value_type.clone(), expected, span);
+    }
+    if text == "unit" {
+        return expected_or_exact(
+            CheckedExpressionType::semantic(conduit_core::UNIT_INFO_ID),
+            expected,
+            span,
+        );
     }
     if matches!(text, "true" | "false") {
         return expected_or_exact(boolean(), expected, span);
@@ -102,29 +99,6 @@ pub(super) fn atomic(
         return Ok(expected.clone());
     }
     refuse(span, "literal is incompatible with its exact expected type")
-}
-
-pub(super) fn projection(
-    source: &CheckedExpressionType,
-    member: &ExpressionProjection,
-    span: Span,
-    context: &ExpressionTypeContext<'_>,
-) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
-    let expanded = expand(source, context);
-    match (expanded, member) {
-        (CheckedExpressionType::Record(fields), ExpressionProjection::Field(field)) => fields
-            .into_iter()
-            .find(|(name, _)| name == &field.text)
-            .map(|(_, value_type)| value_type)
-            .ok_or_else(|| diagnostic(field.span, "record has no such field")),
-        (CheckedExpressionType::Tuple(values), ExpressionProjection::TupleIndex(index)) => index
-            .text
-            .parse::<usize>()
-            .ok()
-            .and_then(|index| values.get(index).cloned())
-            .ok_or_else(|| diagnostic(index.span, "tuple index is outside the exact tuple")),
-        _ => refuse(span, "projection does not match the exact input type"),
-    }
 }
 
 pub(super) fn qualified_variant(
@@ -206,17 +180,7 @@ pub(super) fn variant(
     let Some(case) = cases.iter().find(|case| case.tag() == case_name) else {
         return refuse(span, "variant type has no such case");
     };
-    let payload_kind = case
-        .payload_type()
-        .profile()
-        .expect("checked payload profile")
-        .value_kind()
-        .clone();
-    let payload_type = if context.structured_types.get(&payload_kind) == Some(case.payload_type()) {
-        CheckedExpressionType::Semantic(payload_kind)
-    } else {
-        CheckedExpressionType::from_structured(case.payload_type())
-    };
+    let payload_type = structures::member(case.payload_type());
     let actual = infer(payload, Some(&payload_type), context, node_types)?;
     require(
         actual,

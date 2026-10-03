@@ -1,0 +1,77 @@
+# Device protocols in plots
+
+Owner: [#4833](https://github.com/dancxjo/conduit/issues/4833).
+USB integration: [#4831](https://github.com/dancxjo/conduit/issues/4831).
+
+Rust owns physics-facing primitives and invariants; reviewed checked plots own
+ordinary protocols. Add device support by composing a protocol plot over an
+already capable base. A new register map, opcode, checksum, calibration formula
+or probe sequence is not a reason to add a device driver to ConduitOS.
+
+This is the implementation direction authorized by #4833. Existing device Rust
+remains temporary debt until replacement plot execution is implemented. This
+contract does not claim current device coverage or physical compatibility.
+
+A base owns bounded bus or endpoint operations, exact resource possession,
+controller limitations, electrical ownership, interrupts, DMA lifetime and
+mandatory local safety. It returns truthful typed refusals and provider loss.
+It neither recognizes a peripheral nor invents discovery, retries, authority,
+attachment or connectivity. A probe consumes an already admitted attachment;
+its protocol-level recognition cannot grant permission to use the device.
+
+A protocol plot owns register and packet meaning, initialization, framing,
+checksums, byte-order interpretation, finite request/response state, calibration
+and conversion into typed observations. It retains explicit bounds and exact
+malformed, short, overflow and protocol-refusal outcomes. It cannot suppress a
+mandatory local stop when stalled, cancelled, failed or removed.
+
+The same protocol source must work with every honest implementation of its
+required low-level Fore. Planning selects controller, resource, provider and
+Host/Boot truth. Source contains no MMIO address, controller name, device path,
+GPIO assignment or constructible authority. Protocol register numbers and wire
+fields describe the exchange; they cannot select an attachment or exercise an
+effect outside the exact selected base. The canon's prohibition on authored
+addresses and device/resource binding facts still applies to realization facts;
+#4833 explicitly requires protocol-level addressing inside a bounded exchange.
+
+## Existing Rust responsibility audit
+
+The categories below describe responsibilities, not whole-file exemptions.
+“Temporary debt” means retained production behavior awaiting an equivalent
+plot path. “Fixture/history” is proof material, never an available production
+Back. No package should acquire permanent parallel protocol implementations.
+
+| Existing surface | Base/invariant responsibilities | Protocol responsibilities retained as temporary debt | Fixture/history |
+|---|---|---|---|
+| `mechanisms/devices/mpu6050/src/device.rs` | Provider execution and platform deadlines belong to the selected I2C base; the device-named provider traits are migration debt, not the final generic bus contract. | Address/identity validation, wake/configuration register writes, sample reads, initialized state, big-endian decoding and scale conversion. | The module's providers, expected transaction sequences and refusal tests are deterministic fixtures. |
+| `mechanisms/devices/mpu6050/src/derive.rs` | A mandatory local hazard consumer must retain fresh trusted safety input independently of ordinary plot scheduling. The calibration and derivation routines themselves do not establish that enforcement. | Gravity calibration, orientation/tilt/impact interpretation and arithmetic are candidates for ordinary bounded plots. Exact calibration authority/generation remains Host/Plan truth in `bodies/pete`. | Derivation tests prove arithmetic and refusal cases; they do not qualify a mounting, threshold or physical safety envelope. |
+| `mechanisms/devices/ssd1306/src/lib.rs` | The selected I2C provider owns electrical/resource access, deadlines and bounded transaction delivery. | Device address restrictions, command/data control bytes, initialization and addressing sequences, frame chunking and initialized state. | In-module framebuffer/transaction providers are deterministic fixtures. A delivered frame is distinct from a human seeing the display. |
+| `mechanisms/devices/create-oi/src/device.rs`, `stream.rs`, `observation.rs`, `battery.rs`, `presentation.rs` | An actuator provider must independently fence unsafe traffic; generic UART ownership, bounded send/receive, closure and loss remain below plots. | OI packet/opcode tables, frame synchronization/checksum, packet decode, observation and battery interpretation, music/indicator commands. `presentation.rs` also contains a motion-free byte invariant: preserve that protection at the trusted boundary when migrating the ordinary sequence. | Device, stream and observation tests are deterministic protocol fixtures. Existing physical records remain evidence of their named Rust implementation. |
+| `mechanisms/devices/create-oi/src/drive.rs`, `safety.rs`, `safety_latch.rs` | Mandatory stop on hazard, stale control, provider/link loss and expiry; fresh local safety observations, persistent hazard latches, conditional clear, authority and finite motion accounting. These cannot become author-wirable safety gears. | Ordinary requested wheel-command framing may migrate, but the trusted stop path and any protocol bytes indispensable to non-bypassable stopping stay below plots. | Drive/safety tests prove their specified enforcement cases, not all future hardware safety. |
+| `mechanisms/devices/create-oi/src/mode.rs`, `power.rs`, `contact_withdrawal.rs` | Stop-first ordering where required for safe mode changes, electrical power-toggle bounds, and non-bypassable withdrawal limits/preemption remain below plots. | Ordinary mode queries/transitions, power requests and withdrawal policy are migration candidates only after preserving their local stop line. | Existing tests remain fixtures for exact current transitions, timing and refusals. |
+
+The current consumers include `bodies/pete`, `targets/std/src/std_create_uart.rs`,
+the Pico W Pete capstone and the AVR Brainstem. Retain their working paths until
+equivalent plotted behavior is integrated; changing a README does not migrate a
+consumer. The [Pete migration contract](pete-brainstem-migration.md) continues to
+own its attachment and motion-safety obligations.
+
+The [USB groundwork](../../targets/conduitos/plots/usb/README.md) separately
+classifies xHCI resource/ring ownership and protocol interpretation. USB class
+plots must consume bounded class-neutral endpoint/control operations rather
+than arbitrary register-programming authority.
+
+## Implementation validation and hardware evidence
+
+#4833's owner revised closure to code completion on 3 October 2026. Normal code
+validation remains required; physical/HIL enactment and accepted-release
+receipts are not closure gates. Source-level completion cannot be reported as
+physical compatibility. Deterministic parsing/calculation, production kernel
+execution, emulator devices and physical devices remain separate proof classes.
+
+A future hardware campaign should correlate source and checked plot identities,
+selected low-level implementation/resource, Plan/Play and attachment identities,
+bounded transaction transcript, probe/observation/refusal and lifecycle outcome.
+Removal/substitution must distinguish missing hardware, wrong protocol identity,
+malformed data, bus refusal, provider loss and stale attachment without default
+observations. Preserve old evidence under the implementation it actually tested.

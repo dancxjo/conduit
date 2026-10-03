@@ -1,0 +1,9 @@
+with machine/i2c/transact/request as I2cTransaction
+with machine/i2c/transact/result as I2cResult
+
+plot i2c-transaction (
+    requests: I2cTransaction...| >> results: I2cResult...|
+) {
+    transfer: machine/i2c/transact
+    requests >> transfer >> results
+}

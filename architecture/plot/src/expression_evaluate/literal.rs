@@ -19,6 +19,7 @@ pub(super) fn literal_value(
     }
     let kind = leaf_kind(value_type)?;
     let encoded = match primitive_info_kind(kind) {
+        Some(PrimitiveInfoKind::Unit) if literal == "unit" => Vec::new(),
         Some(PrimitiveInfoKind::Bool) => match literal {
             "true" => InfoBool::TRUE.encode().to_vec(),
             "false" => InfoBool::FALSE.encode().to_vec(),

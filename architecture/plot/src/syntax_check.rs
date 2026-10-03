@@ -203,6 +203,7 @@ pub(crate) fn check_document(
             document.round_trip()
         ))),
         native_types,
+        retained_native_types: catalog.retained_native_types(),
         type_forms,
         plots: checked_plots,
         source_sugar_expansions,
