@@ -8,7 +8,7 @@ use conduit_plot::{
 const SOURCE: &str = concat!(
     include_str!("../../../plots/device-protocols/bme280-compensation.conduit"),
     "\n",
-    include_str!("../../../plots/device-protocols/bme280-calibration.conduit"),
+    include_str!("../../../plots/device-protocols/main.conduit"),
 );
 fn program(entry: &str) -> PortableExpressionProgram {
     let syntax = parse_syntax_document(SOURCE);

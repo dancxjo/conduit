@@ -11,11 +11,7 @@ use conduit_plot::{
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
-const SOURCE: &str = concat!(
-    include_str!("../../../plots/device-protocols/bme280-calibration.conduit"),
-    "\n",
-    include_str!("../../../plots/device-protocols/bme280-observation.conduit")
-);
+const SOURCE: &str = include_str!("../../../plots/device-protocols/main.conduit");
 const STAGES: &[&str] = &[
     "begin",
     "fine",

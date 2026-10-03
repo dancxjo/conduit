@@ -38,7 +38,7 @@ callers must handle it before using a numeric result. Humidity correction clamps
 to the specified physical range. Compensation stages retain their exact declared
 record schemas and use checked I128 arithmetic on every Host.
 
-`bme280-calibration.conduit` decodes signed and unsigned calibration fields,
+The canonical `main.conduit` decodes signed and unsigned calibration fields,
 including packed signed twelve-bit humidity coefficients, and raw sample bytes.
 `i2c-register.conduit` supplies source-owned read/write register request idioms.
 Imported checked Types retain their refinement metadata. Construction may
@@ -54,11 +54,15 @@ protocol addresses, refusal preservation, deadlines and finite poll exhaustion.
 Prepared transition reuse allocates nothing. The source initializer owns the
 initial state; the test harness supplies events and bus responses.
 
-`bme280-observation.conduit` assembles one typed fixed-point temperature,
+Its `bme280-observation` entry assembles one typed fixed-point temperature,
 pressure and humidity observation from decoded calibration and samples.
 Malformed input, disabled samples and invalid calibration yield explicit
 unavailable results; their numeric scratch is never published. Its staged
 topology uses checked arithmetic and capacity-stable prepared storage.
+
+The reviewed inventory registers this reusable observation entry with workspace
+discovery disabled. Its oracle proves checked arithmetic and prepared reuse;
+it does not advertise a sensor provider or claim hardware execution.
 
 These remain arithmetic, finite frame and bus foundations. They do not yet
 supply an integrated production device lifecycle or an installed hardware Back.

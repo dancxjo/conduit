@@ -1,3 +1,51 @@
+# Exact BME280 wire interpretation; no host or attachment facts.
+# The 24 octets are registers 0x88..0x9f. H1 is 0xa1; skip reserved 0xa0.
+# The seven humidity octets are registers 0xe1..0xe7.
+type BmeCalibrationBytes = {
+    temperature_pressure: collection U8 = 24
+    humidity_first: U8
+    humidity: collection U8 = 7
+}
+type BmeCalibration = {
+    t1: I128
+    t2: I128
+    t3: I128
+    p1: I128
+    p2: I128
+    p3: I128
+    p4: I128
+    p5: I128
+    p6: I128
+    p7: I128
+    p8: I128
+    p9: I128
+    h1: I128
+    h2: I128
+    h3: I128
+    h4: I128
+    h5: I128
+    h6: I128
+}
+plot bme280-decode-calibration (
+    bytes: BmeCalibrationBytes >> calibration: BmeCalibration
+) = ({     t1: (value/i128(.temperature_pressure.0) + (value/i128(.temperature_pressure.1) <<< 8)), t2: ((value/i128(.temperature_pressure.2) + (value/i128(.temperature_pressure.3) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.2) + (value/i128(.temperature_pressure.3) <<< 8)) : (value/i128(.temperature_pressure.2) + (value/i128(.temperature_pressure.3) <<< 8)) - 65536), t3: ((value/i128(.temperature_pressure.4) + (value/i128(.temperature_pressure.5) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.4) + (value/i128(.temperature_pressure.5) <<< 8)) : (value/i128(.temperature_pressure.4) + (value/i128(.temperature_pressure.5) <<< 8)) - 65536), p1: (value/i128(.temperature_pressure.6) + (value/i128(.temperature_pressure.7) <<< 8)), p2: ((value/i128(.temperature_pressure.8) + (value/i128(.temperature_pressure.9) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.8) + (value/i128(.temperature_pressure.9) <<< 8)) : (value/i128(.temperature_pressure.8) + (value/i128(.temperature_pressure.9) <<< 8)) - 65536), p3: ((value/i128(.temperature_pressure.10) + (value/i128(.temperature_pressure.11) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.10) + (value/i128(.temperature_pressure.11) <<< 8)) : (value/i128(.temperature_pressure.10) + (value/i128(.temperature_pressure.11) <<< 8)) - 65536), p4: ((value/i128(.temperature_pressure.12) + (value/i128(.temperature_pressure.13) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.12) + (value/i128(.temperature_pressure.13) <<< 8)) : (value/i128(.temperature_pressure.12) + (value/i128(.temperature_pressure.13) <<< 8)) - 65536), p5: ((value/i128(.temperature_pressure.14) + (value/i128(.temperature_pressure.15) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.14) + (value/i128(.temperature_pressure.15) <<< 8)) : (value/i128(.temperature_pressure.14) + (value/i128(.temperature_pressure.15) <<< 8)) - 65536), p6: ((value/i128(.temperature_pressure.16) + (value/i128(.temperature_pressure.17) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.16) + (value/i128(.temperature_pressure.17) <<< 8)) : (value/i128(.temperature_pressure.16) + (value/i128(.temperature_pressure.17) <<< 8)) - 65536), p7: ((value/i128(.temperature_pressure.18) + (value/i128(.temperature_pressure.19) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.18) + (value/i128(.temperature_pressure.19) <<< 8)) : (value/i128(.temperature_pressure.18) + (value/i128(.temperature_pressure.19) <<< 8)) - 65536), p8: ((value/i128(.temperature_pressure.20) + (value/i128(.temperature_pressure.21) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.20) + (value/i128(.temperature_pressure.21) <<< 8)) : (value/i128(.temperature_pressure.20) + (value/i128(.temperature_pressure.21) <<< 8)) - 65536), p9: ((value/i128(.temperature_pressure.22) + (value/i128(.temperature_pressure.23) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.22) + (value/i128(.temperature_pressure.23) <<< 8)) : (value/i128(.temperature_pressure.22) + (value/i128(.temperature_pressure.23) <<< 8)) - 65536), h1: value/i128(.humidity_first), h2: ((value/i128(.humidity.0) + (value/i128(.humidity.1) <<< 8)) < 32768 ? (value/i128(.humidity.0) + (value/i128(.humidity.1) <<< 8)) : (value/i128(.humidity.0) + (value/i128(.humidity.1) <<< 8)) - 65536), h3: value/i128(.humidity.2), h4: (((value/i128(.humidity.3) <<< 4) + (value/i128(.humidity.4) & 15)) < 2048 ? ((value/i128(.humidity.3) <<< 4) + (value/i128(.humidity.4) & 15)) : ((value/i128(.humidity.3) <<< 4) + (value/i128(.humidity.4) & 15)) - 4096), h5: (((value/i128(.humidity.5) <<< 4) + (value/i128(.humidity.4) >>> 4)) < 2048 ? ((value/i128(.humidity.5) <<< 4) + (value/i128(.humidity.4) >>> 4)) : ((value/i128(.humidity.5) <<< 4) + (value/i128(.humidity.4) >>> 4)) - 4096), h6: (value/i128(.humidity.6) < 128 ? value/i128(.humidity.6) : value/i128(.humidity.6) - 256) })
+
+# Eight sample octets in register order 0xf7..0xfe; lower xlsb nibbles ignored.
+type BmeRawSample = {
+    pressure: I128
+    temperature: I128
+    humidity: I128
+}
+type BmeSampleBytes = {
+    wire: collection U8 = 8
+}
+plot bme280-decode-sample (
+    bytes: BmeSampleBytes >> sample: BmeRawSample
+) = ({     pressure: (value/i128(.wire.0) <<< 12) + (value/i128(.wire.1) <<< 4) + (value/i128(.wire.2) >>> 4), temperature: (value/i128(.wire.3) <<< 12) + (value/i128(.wire.4) <<< 4) + (value/i128(.wire.5) >>> 4), humidity: (value/i128(.wire.6) <<< 8) + value/i128(.wire.7) })
+plot bme280-sample-disabled (
+    sample: BmeRawSample >> disabled: Boolean
+) = (.pressure == 524288 || .temperature == 524288 || .humidity == 32768)
+
 # Source-owned fixed-point observation assembly. Inputs are decoded wire values.
 # Arithmetic remains checked I128. A failed stage cannot publish its numeric scratch.
 # Units are explicit in the observation fields; disabled raw samples are refused.
