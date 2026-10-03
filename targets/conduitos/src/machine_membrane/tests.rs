@@ -16,15 +16,15 @@ fn scope() -> BaseCapabilityScope {
         plan_id: PlanId::from("plan/one"),
         active_play_id: ActivePlayId::from("play/one"),
         authority_grant_id: AuthorityGrantId::from("grant/visible"),
-        authority_contract_id: AuthorityContractId::from("authority/machine-register32@1"),
+        authority_contract_id: AuthorityContractId::from("authority/machine-register32@2"),
         capability_id: CapabilityId::from("machine/registers/read-write"),
         implementation_id: ImplementationId::from("implementation/file-copy@1"),
-        operation_contract_id: HostCallContractId::from("conduit.host/machine-register32@1"),
+        operation_contract_id: HostCallContractId::from("conduit.host/machine-register32@2"),
         subject_kind: KindId::from("machine/memory/mmio/register32"),
         resource_pool_id: ResourcePoolId::from("registers/controller"),
         resource_generation_id: ResourceGenerationId("resource-generation/7".into()),
         envelope_id: CapabilityEnvelopeId::from("registers/controller/window-8"),
-        maximum_parameter_bytes: 8,
+        maximum_parameter_bytes: 16,
         maximum_result_bytes: 4,
         maximum_work_units: 8,
         maximum_in_flight: 2,
@@ -36,8 +36,8 @@ fn authority() -> BaseCapabilityAuthority {
     BaseCapabilityAuthority {
         grant: AuthorityGrant {
             grant_id: AuthorityGrantId::from("grant/visible"),
-            contract_id: AuthorityContractId::from("authority/machine-register32@1"),
-            host_call_contract_id: HostCallContractId::from("conduit.host/machine-register32@1"),
+            contract_id: AuthorityContractId::from("authority/machine-register32@2"),
+            host_call_contract_id: HostCallContractId::from("conduit.host/machine-register32@2"),
             subject_kind: KindId::from("machine/memory/mmio/register32"),
             host_id: HostId::from("host/one"),
             boot_id: BootId::from("boot/one"),
@@ -47,7 +47,7 @@ fn authority() -> BaseCapabilityAuthority {
         base_provider_generation: 4,
         resource_pool_id: ResourcePoolId::from("registers/controller"),
         resource_generation_id: ResourceGenerationId("resource-generation/7".into()),
-        operation_contract_id: HostCallContractId::from("conduit.host/machine-register32@1"),
+        operation_contract_id: HostCallContractId::from("conduit.host/machine-register32@2"),
         envelope_id: CapabilityEnvelopeId::from("registers/controller/window-8"),
         maximum_parameter_bytes: 256,
         maximum_result_bytes: 512,
@@ -91,7 +91,7 @@ fn claim() -> BaseOperationClaim {
         resource_pool_id: scope.resource_pool_id,
         resource_generation_id: scope.resource_generation_id,
         envelope_id: scope.envelope_id,
-        parameter_bytes: 8,
+        parameter_bytes: 16,
         work_units: 1,
     }
 }
@@ -242,3 +242,9 @@ fn wrong_plan_play_provider_and_envelope_refuse_before_effect() {
         assert_eq!(registers, [7]);
     }
 }
+
+#[path = "register_call_tests.rs"]
+mod register_call_tests;
+
+#[path = "register_binding_tests.rs"]
+mod register_binding_tests;

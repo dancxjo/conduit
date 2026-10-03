@@ -9,10 +9,12 @@ use conduit_core::{
 use core::ptr::{read_volatile, write_volatile};
 
 mod ordering;
+mod register_binding;
+pub mod register_call;
 
 pub const MAX_REGISTER_WINDOW_BYTES: u32 = 65536;
 pub const REGISTER_KIND: &str = "machine/memory/mmio/register32";
-pub const REGISTER_CALL: &str = "conduit.host/machine-register32@1";
+pub const REGISTER_CALL: &str = "conduit.host/machine-register32@2";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RegisterOperation {
@@ -23,6 +25,8 @@ pub enum RegisterOperation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RegisterRefusal {
     Possession,
+    InvalidRequest,
+    WrongBinding,
     Alignment,
     Range,
     ReadOnly,
@@ -58,7 +62,12 @@ impl RegisterLeaf {
     /// register in the envelope must permit aligned 32-bit access. The mapping
     /// and envelope must be the exact resource/generation and permissions
     /// already authorized by the claim; this constructor cannot mint mapping
-    /// authority or broaden the trusted authority ceiling.
+    /// authority or broaden the trusted authority ceiling. Permitted writes
+    /// must not bypass mandatory safety or program access outside that ceiling:
+    /// a DMA-controlling window requires independently enforced confinement to
+    /// admitted DMA storage. A scoped window/Plan alone does not provide that
+    /// confinement. USB class plots use a bounded endpoint transfer base; they
+    /// must not receive arbitrary controller-register programming authority.
     #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) unsafe fn from_admitted_mapping(
         table: BaseCapabilityTable,
@@ -87,7 +96,7 @@ impl RegisterLeaf {
                 || entry.scope.maximum_result_bytes < 4
                 || claim.operation_contract_id.as_str() != REGISTER_CALL
                 || claim.subject_kind.as_str() != REGISTER_KIND
-                || claim.parameter_bytes != 8
+                || claim.parameter_bytes != register_call::REGISTER_REQUEST_BYTES
                 || claim.work_units != 1
             {
                 return Err(RegisterRefusal::Possession);
