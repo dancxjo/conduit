@@ -292,7 +292,11 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
-        let heading = if !self.interaction_admitted {
+        let heading = if !self.interaction_admitted && self.showing_diagram {
+            "OWNER FACE / PATCHBAY"
+        } else if !self.interaction_admitted && self.showing_details {
+            "OWNER FACE / DETAILS"
+        } else if !self.interaction_admitted {
             "OWNER FACE / SNAPSHOT"
         } else if self.showing_diagram {
             "PATCHBAY"
@@ -394,8 +398,10 @@ impl NativeFaceScene {
             }
         }
         let footer = self.input.preview(self.focus).unwrap_or_else(|| {
-            if !self.interaction_admitted {
+            if !self.interaction_admitted && self.has_diagram() {
                 "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
+            } else if !self.interaction_admitted {
+                "Read only · PgUp/PgDn pages · F2 facts".into()
             } else if self.showing_diagram {
                 "Visible links only · F2 all facts · F3 return".into()
             } else if self.showing_details {

@@ -12,10 +12,15 @@ use conduit_body::{
     SpawnRendezvousDescriptor,
 };
 use conduit_core::HostAdvertisement;
+use conduit_presentation::{
+    MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse,
+};
 
 use crate::{
     arch::{CandidateDeadline, VirtioNetReady},
     bounded_websocket::{BinaryWebSocketIo, MAXIMUM_BINARY_MESSAGE_BYTES, WebSocketError},
+    native_guest_face::{GuestFaceRefusal, NativeGuestFace},
     spore_provision::RouteCertificate,
     virtio_tcp::VirtioTcpEndpoint,
     virtio_tls::{self, VirtioTlsError, VirtioWebSocketRunError},
@@ -26,6 +31,34 @@ pub struct OwnerRouteSeeds {
     pub tcp: u64,
     pub tls: [u8; 32],
     pub websocket: [u8; 32],
+}
+
+/// Admission remains installed even if the subsequent read-only Face request
+/// refuses or the owner closes the Line. A Face refusal cannot erase a Part.
+pub struct NativeOwnerAdmissionExchange {
+    pub receipt: PortableAdmissionReceipt,
+    pub face: Result<NativeGuestFace, NativeOwnerFaceExchangeRefusal>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum NativeOwnerFaceExchangeRefusal {
+    Send(WebSocketError),
+    Receive(WebSocketError),
+    Encoding,
+    FramePressure,
+    Face(GuestFaceRefusal),
+}
+
+impl NativeOwnerFaceExchangeRefusal {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Send(_) => "native-owner-face-send-refused",
+            Self::Receive(_) => "native-owner-face-receive-refused",
+            Self::Encoding => "native-owner-face-response-encoding-invalid",
+            Self::FramePressure => "native-owner-face-frame-pressure",
+            Self::Face(refusal) => refusal.as_str(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -82,7 +115,7 @@ pub fn exchange_over_candidate(
     certificate: &RouteCertificate,
     request: &RoutedAdmissionRequest,
     current: &HostAdvertisement,
-) -> Result<(PortableAdmissionReceipt, u32), NativeOwnerAdmissionRefusal> {
+) -> Result<(NativeOwnerAdmissionExchange, u32), NativeOwnerAdmissionRefusal> {
     let encoded = prepare_request(request, current)?;
     let candidate = validate_candidate(route, certificate, request, endpoint, maximum_polls)?;
     let deadline = CandidateDeadline::admit(candidate.attempt_timeout_millis)
@@ -97,12 +130,54 @@ pub fn exchange_over_candidate(
         &certificate.certificate_der,
         maximum_polls,
         Some(deadline),
-        |line| exchange_prepared(line, &encoded, request),
+        |line| {
+            let receipt = exchange_prepared(line, &encoded, request)?;
+            let face = exchange_face(line, &receipt);
+            Ok(NativeOwnerAdmissionExchange { receipt, face })
+        },
     )
     .map_err(|error| match error {
         VirtioWebSocketRunError::Transport(error) => NativeOwnerAdmissionRefusal::Transport(error),
         VirtioWebSocketRunError::Operation(error) => error,
     })
+}
+
+fn exchange_face(
+    line: &mut dyn BinaryWebSocketIo,
+    receipt: &PortableAdmissionReceipt,
+) -> Result<NativeGuestFace, NativeOwnerFaceExchangeRefusal> {
+    let credential = &receipt.credential;
+    let request = OwnerFaceSnapshotRequest {
+        schema: OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: credential.credential_id.as_str().into(),
+        body_id: credential.body_id.clone(),
+        part_id: credential.part_id.clone(),
+        host_id: credential.host_id.clone(),
+        boot_id: credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    if !request.has_exact_basis() {
+        return Err(NativeOwnerFaceExchangeRefusal::Encoding);
+    }
+    let encoded =
+        serde_json::to_vec(&request).map_err(|_| NativeOwnerFaceExchangeRefusal::Encoding)?;
+    if encoded.len() > MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES {
+        return Err(NativeOwnerFaceExchangeRefusal::FramePressure);
+    }
+    line.send_binary(&encoded)
+        .map_err(NativeOwnerFaceExchangeRefusal::Send)?;
+    let mut response = vec![0; MAX_OWNER_FACE_SNAPSHOT_FRAME_BYTES];
+    let received = line
+        .receive_binary(&mut response)
+        .map_err(NativeOwnerFaceExchangeRefusal::Receive)?;
+    if received == 0 || received > response.len() {
+        return Err(NativeOwnerFaceExchangeRefusal::FramePressure);
+    }
+    let response: OwnerFaceSnapshotResponse = serde_json::from_slice(&response[..received])
+        .map_err(|_| NativeOwnerFaceExchangeRefusal::Encoding)?;
+    NativeGuestFace::from_owner_response(receipt, response)
+        .map_err(NativeOwnerFaceExchangeRefusal::Face)
 }
 
 fn validate_candidate<'a>(
