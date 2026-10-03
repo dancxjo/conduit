@@ -15,7 +15,7 @@ const tree = 'd'.repeat(40);
 const repository = 'example/conduit';
 const targets = [{ id: 'hosted-linux', proofClass: 'executable' }];
 
-async function fixture(t) {
+async function fixture(t, repositoryName = null) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'pipeline-publish-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const directory = path.join(root, 'bundle');
@@ -54,7 +54,7 @@ async function fixture(t) {
       return response('');
     }
     assert.equal(args[0], 'api');
-    const endpoint = args[1].replace(`repos/${repository}/`, '');
+    const endpoint = args[1].replace(`repos/${repositoryName || repository}/`, '');
     const method = args.includes('--method') ? args[args.indexOf('--method') + 1] : 'GET';
     const fields = Object.fromEntries(args.flatMap((arg, i) => ['-F', '-f'].includes(arg) ? [args[i + 1].split(/=(.*)/s).slice(0, 2)] : []));
     let result;
@@ -118,7 +118,7 @@ async function fixture(t) {
     return response(args.includes('--slurp') ? [result] : result);
   };
   const output = path.join(root, 'output');
-  const publish = createPublisher({ command, targets, output });
+  const publish = createPublisher({ command, targets, output, repositoryName });
   return { state, directory, product, output, storage, publish: () => publish('123', directory) };
 }
 
@@ -147,6 +147,18 @@ test('promotes a release PR and publishes verified artifacts with separate sourc
   assert.equal(await readFile(f.output, 'utf8'), `main-sha=${accepted}\nsource-sha=${source}\nsite-current=true\n`);
   assert.ok(!f.state.calls.some(call => call.includes('--clobber') || call.includes('cargo')));
   assert.ok(!f.state.calls.some(call => call.includes('PATCH') && call[2].includes('git/refs')));
+});
+
+test('uses Actions repository identity without a GraphQL repository lookup', async t => {
+  const f = await fixture(t, repository);
+  await f.publish();
+  assert.equal(f.state.calls.some(call => call[0] === 'gh' && call[1] === 'repo'), false);
+});
+
+test('refuses an Actions repository identity inconsistent with the integration run', async t => {
+  const f = await fixture(t, 'other/conduit');
+  await assert.rejects(f.publish(), /successful dev integration run/);
+  assert.equal(mutations(f.state).length, 0);
 });
 
 for (const [name, mutate] of [
