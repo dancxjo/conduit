@@ -49,26 +49,29 @@ cargo xtask make conduitos acceptance --spore path/to/new-private-spore.iso
 
 The producer verifies the exact target BUILD and ISO digest, uses the checked
 Body/make binding to seal the actual ISO content digest, and replaces exactly
-one blank 4096-byte media region. It refuses an existing output, ambiguous or
+one blank 32 KiB media region. It refuses an existing output, ambiguous or
 already provisioned media, a mismatched Body or invitation, and an expired
 invitation. The created ISO has mode `0600` on Unix. Its receipt records the
 source identity and exact image/artifact digests without serializing the secret.
 
-The current foreground owner issues an unrouted invitation. When an owner
+The foreground owner can issue an unrouted invitation. When an owner
 issues a canonical routed invitation, the producer retains its exact ordered
 candidates and transport authentication binding; the guest decoder and QEMU
 acceptance validator refuse a relabeled or weakened descriptor. The boot path
 keeps the public route and certificate pins in pending state, reports its
-candidate count in the Face, and emits a signed serial observation, but does
-not attempt a connection.
+candidate count in the Face, and emits a signed serial observation. With a
+supported network and calibrated deadline clock it attempts one bounded,
+authenticated owner exchange; a verified receipt is not yet installed as
+guest Body membership.
 For each distinct TLS leaf named by a routed invitation, also pass
 `--route-tls-cert path/to/owner-certificate.pem` to the producer. It retains
 only the first public certificate from that PEM file, checks its SHA-256 against
 the exact candidate binding, and refuses a missing, extra, duplicate, or
 oversized certificate. Unrouted invitations require no certificate.
-The next join slice must use that binding to establish a protected duplex Line
-and deliver the owner's receipt to the guest. The acceptance command proves a
-QEMU boot and the invitation-signed serial observation only; its receipt
-explicitly says guest membership is false.
+The acceptance command proves a QEMU boot and the invitation-signed serial
+observation only; its receipt explicitly says guest membership is false. An
+actual routed owner exchange needs the visible owner-route launcher and a
+reachable, pinned TLS listener. The guest still needs a canonical Part
+transition before the shared Body can be presented there.
 For #4807 publication, build and capture from one clean source revision and
 record the owner, model, and voice inputs separately.
