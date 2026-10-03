@@ -1,7 +1,12 @@
 use super::*;
+use crate::hosted_audio::{
+    AlsaPlaybackObservation, ExplicitPlaybackAuthorization, FakePlaybackBehavior,
+    HostedPlaybackSelection, PlaybackLifecycle,
+};
 use crate::spoken_face_mask::{
     ReaderCommand, SpokenBatchDelivery, SpokenFaceRefusal, SpokenFaceSession, SpokenTurnOutcome,
 };
+use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_presentation::{PresentationRole, PresentationSubject};
 
 // Both spoken contracts share the one established presentation fixture source.
@@ -112,6 +117,201 @@ fn multiple_real_committed_segments_pass_preflight_without_creating_artifact() {
         Ok(())
     );
     assert!(!destination.exists());
+}
+
+fn selected_fake_playback(
+    behavior: FakePlaybackBehavior,
+) -> (
+    StdHostConfig,
+    HostedPlaybackSelection,
+    ExplicitPlaybackAuthorization,
+) {
+    let config = StdHostConfig {
+        host_id: HostId::from("spoken-playback-fixture-host"),
+        boot_id: BootId::from("spoken-playback-fixture-boot"),
+        offer_generation: OfferGeneration(4),
+    };
+    let selection = HostedPlaybackSelection::deterministic_fake(
+        AlsaPlaybackObservation {
+            card_index: 3,
+            card_id: "SPEECH_TEST".into(),
+            card_name: "Selected fake speaker".into(),
+            device: 2,
+            device_name: "Finite PCM sink".into(),
+            base_identity: "fixture-speaker".into(),
+        },
+        config.boot_id.clone(),
+        config.offer_generation,
+        behavior,
+    );
+    let authorization = ExplicitPlaybackAuthorization::new("grant/spoken-test-speaker").unwrap();
+    (config, selection, authorization)
+}
+
+fn deterministic_playback(
+    behavior: FakePlaybackBehavior,
+    control: &crate::RunControl,
+) -> Result<(SpokenFaceSession, SpokenPlaybackExecution), SpokenStreamExecutionRefusal> {
+    // The deterministic proof synthesizer restarts its PCM clock for each
+    // separate text segment; the real stream provider keeps a continuous one.
+    let (face, show) = source(1);
+    let (reader, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(behavior);
+    let host = StdHost::new_with_playback(
+        config.clone(),
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    let execution = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &"00".repeat(32),
+        config,
+        selection,
+        &authorization,
+        control,
+        host,
+    )?;
+    Ok((reader, execution))
+}
+
+#[test]
+fn selected_speaker_play_is_distinct_from_wav_and_drains_ordered_segments() {
+    let (mut reader, result) =
+        deterministic_playback(FakePlaybackBehavior::Success, &crate::RunControl::default())
+            .unwrap();
+    assert_eq!(result.outcome, SpokenPlaybackOutcome::Completed);
+    assert_eq!(result.playback.lifecycle, PlaybackLifecycle::StoppedClosed);
+    assert!(result.playback.metrics.blocks_committed > 1);
+    assert_eq!(result.playback.metrics.underruns, 0);
+    assert_eq!(result.playback.backend, "deterministic-playback-fixture@1");
+    assert!(result.selected_resource_pool_id.contains("fixture-speaker"));
+    assert_eq!(result.authority_grant_id, "grant/spoken-test-speaker");
+    assert!(!result.playback_plan_id.is_empty());
+    assert!(!result.playback_play_id.is_empty());
+    assert!(!result.source_segments_sha256.is_empty());
+    let finished = reader
+        .acknowledge_batch(result.delivery())
+        .unwrap()
+        .unwrap();
+    assert_eq!(finished.outcome, SpokenTurnOutcome::Completed);
+    assert_eq!(finished.completed_segments, 1);
+}
+
+#[test]
+fn spoken_turn_rejects_undrained_speaker_receipt_without_losing_pending_batch() {
+    let (mut reader, result) =
+        deterministic_playback(FakePlaybackBehavior::Success, &crate::RunControl::default())
+            .unwrap();
+    let mut incomplete = result.delivery();
+    let SpokenBatchDelivery::Played(receipt) = &mut incomplete else {
+        panic!("completed speaker Play must have a playback receipt");
+    };
+    receipt.playback.lifecycle = PlaybackLifecycle::Active;
+    assert_eq!(
+        reader.acknowledge_batch(incomplete),
+        Err(SpokenFaceRefusal::SpeechReceipt)
+    );
+    assert_eq!(
+        reader
+            .acknowledge_batch(result.delivery())
+            .unwrap()
+            .unwrap()
+            .outcome,
+        SpokenTurnOutcome::Completed
+    );
+}
+
+#[test]
+fn stopped_spoken_play_does_not_report_completed_playback() {
+    let control = crate::RunControl::default();
+    control
+        .request_stop(crate::RunControlRequestId::new("stop/spoken-before-open").unwrap())
+        .unwrap();
+    let (mut reader, result) =
+        deterministic_playback(FakePlaybackBehavior::Success, &control).unwrap();
+    assert_eq!(result.outcome, SpokenPlaybackOutcome::Cancelled);
+    assert_eq!(result.playback.metrics.blocks_committed, 0);
+    assert_eq!(
+        reader
+            .acknowledge_batch(result.delivery())
+            .unwrap()
+            .unwrap()
+            .outcome,
+        SpokenTurnOutcome::Cancelled
+    );
+}
+
+#[test]
+fn selected_speaker_loss_is_not_a_completed_spoken_show() {
+    let error = deterministic_playback(
+        FakePlaybackBehavior::ProviderLossAfterFirstBlock,
+        &crate::RunControl::default(),
+    )
+    .err()
+    .expect("speaker loss must refuse the Play");
+    assert!(
+        matches!(error, SpokenStreamExecutionRefusal::PlaybackPlay { detail, source_show_id, source_segments_sha256, plan_id, .. }
+        if detail.contains("HostCallFailed") && detail.contains("detail: 75")
+            && !source_show_id.is_empty() && !source_segments_sha256.is_empty() && !plan_id.is_empty())
+    );
+}
+
+/// Explicit local device proof. The caller must name an exact currently
+/// discovered card and device; no default or first-device fallback is allowed.
+#[test]
+#[ignore = "requires installed eSpeak NG, explicit ALSA card/device, and speaker output"]
+fn installed_espeak_stream_drains_selected_alsa_speaker() {
+    let card = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_CARD").unwrap();
+    let device = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_DEVICE")
+        .unwrap()
+        .parse::<u16>()
+        .unwrap();
+    let observed = crate::hosted_audio::discover_alsa_playback()
+        .unwrap()
+        .into_iter()
+        .find(|item| item.card_id == card && item.device == device)
+        .expect("explicitly selected speaker is absent from current discovery");
+    let config = StdHostConfig {
+        host_id: HostId::from("local-spoken-playback-host"),
+        boot_id: BootId::from(format!("local-spoken-playback-boot-{}", std::process::id())),
+        offer_generation: OfferGeneration(1),
+    };
+    let selected = HostedPlaybackSelection::from_observation(
+        observed,
+        config.boot_id.clone(),
+        config.offer_generation,
+    );
+    let discovery = EspeakDiscovery::inspect(
+        Path::new("/usr/bin/espeak-ng"),
+        Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
+        "en-us",
+        &[PathBuf::from(
+            "/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1.1.51",
+        )],
+    )
+    .unwrap();
+    let (face, show) = source(2);
+    let (_, batch) = batch(&face, &show);
+    let authorization = ExplicitPlaybackAuthorization::new("grant/local-spoken-speaker").unwrap();
+    let result = execute_real_spoken_batch_to_selected_playback(
+        &face,
+        &show,
+        &batch,
+        discovery,
+        config,
+        selected,
+        &authorization,
+        &crate::RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(result.outcome, SpokenPlaybackOutcome::Completed);
+    assert_eq!(result.playback.lifecycle, PlaybackLifecycle::StoppedClosed);
+    assert!(result.playback.metrics.blocks_committed > 1);
+    assert_eq!(result.source_segments_sha256, batch.source_segments_sha256);
+    eprintln!("selected spoken playback receipt: {result:?}");
 }
 
 /// Installed eSpeak is a platform proof, kept explicit and run only where its

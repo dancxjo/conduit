@@ -26,6 +26,13 @@ use crate::{
     TimerAdapter,
 };
 
+#[path = "spoken_face_stream_execution/playback.rs"]
+mod playback;
+pub use playback::{
+    execute_real_spoken_batch_to_selected_playback, SpokenPlaybackExecution, SpokenPlaybackOutcome,
+    SPOKEN_PLAYBACK_PLOT,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpokenStreamExecutionRefusal {
     StaleFace,
@@ -36,6 +43,13 @@ pub enum SpokenStreamExecutionRefusal {
     Check(String),
     Plan(String),
     Play(String),
+    PlaybackPlay {
+        source_show_id: String,
+        source_segments_sha256: String,
+        plan_id: String,
+        selected_resource_pool_id: String,
+        detail: String,
+    },
     IncompletePlay,
     IncompleteArtifact,
 }
@@ -228,6 +242,21 @@ pub fn validate_batch_for_installed_fore(
     batch: &SpokenBatch,
     wav_path: &Path,
 ) -> Result<(), SpokenStreamExecutionRefusal> {
+    validate_spoken_source(face, source_show, batch)?;
+    if wav_path.exists() {
+        return Err(SpokenStreamExecutionRefusal::ExistingOutput);
+    }
+    if !wav_path.parent().is_some_and(Path::is_dir) {
+        return Err(SpokenStreamExecutionRefusal::InvalidOutput);
+    }
+    Ok(())
+}
+
+fn validate_spoken_source(
+    face: &Presentation,
+    source_show: &MaskShow,
+    batch: &SpokenBatch,
+) -> Result<(), SpokenStreamExecutionRefusal> {
     if face.identity.as_str() != batch.face_id || face.revision != batch.face_revision {
         return Err(SpokenStreamExecutionRefusal::StaleFace);
     }
@@ -240,12 +269,6 @@ pub fn validate_batch_for_installed_fore(
     batch
         .validate(face, source_show)
         .map_err(|_| SpokenStreamExecutionRefusal::InvalidBatch)?;
-    if wav_path.exists() {
-        return Err(SpokenStreamExecutionRefusal::ExistingOutput);
-    }
-    if !wav_path.parent().is_some_and(Path::is_dir) {
-        return Err(SpokenStreamExecutionRefusal::InvalidOutput);
-    }
     Ok(())
 }
 
