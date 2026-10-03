@@ -18,13 +18,13 @@ pub(super) fn execute(
     let SocketAddr::V4(owner_forward) = owner_forward else {
         return Err(ConduitosError::refusal(
             "owner-boot-forward-invalid",
-            "the owner forward must be an explicit IPv4 loopback listener",
+            "the owner forward must be an explicit private IPv4 owner listener",
         ));
     };
-    if !owner_forward.ip().is_loopback() || owner_forward.port() == 0 {
+    if !owner_forward.ip().is_private() || owner_forward.port() == 0 {
         return Err(ConduitosError::refusal(
             "owner-boot-forward-invalid",
-            "the owner forward must be an explicit IPv4 loopback listener with a nonzero port",
+            "the owner forward must be an explicit private IPv4 owner listener with a nonzero port",
         ));
     }
     let route = acceptance::owner_boot_route(spore, candidate_id)?;
@@ -33,7 +33,7 @@ pub(super) fn execute(
     if !opts.quiet && !opts.json {
         println!("Provisioned owner candidate: {}", route.candidate_id);
         println!("Guest route: {}", route.reachability);
-        println!("Forwarded to local owner: {owner_forward}");
+        println!("Forwarded to private owner listener: {owner_forward}");
         println!("The guest must validate the provisioned TLS identity and owner receipt.");
     }
     demo::boot_visible_image_with_network(spore, Some(&route.artifact_sha256), Some(&netdev), opts)
@@ -93,9 +93,38 @@ mod tests {
     fn forward_is_derived_from_exact_numeric_candidate_and_explicit_owner_listener() {
         let (guest, port) = guest_forward("wss://10.0.2.100:9000/conduit").unwrap();
         assert_eq!(
-            netdev(guest, port, "127.0.0.1:19000".parse().unwrap()),
-            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-tcp:127.0.0.1:19000"
+            netdev(guest, port, "172.17.0.1:19000".parse().unwrap()),
+            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-tcp:172.17.0.1:19000"
         );
+    }
+
+    #[test]
+    fn owner_forward_requires_a_private_nonloopback_ipv4_listener() {
+        for address in [
+            "127.0.0.1:19000",
+            "0.0.0.0:19000",
+            "192.0.2.1:19000",
+            "172.17.0.1:0",
+            "[::1]:19000",
+        ] {
+            let address: SocketAddr = address.parse().unwrap();
+            let refusal = execute(
+                Path::new("absent.iso"),
+                "candidate/owner",
+                address,
+                &GlobalOpts::default(),
+            )
+            .unwrap_err();
+            assert_eq!(refusal.reason, "owner-boot-forward-invalid", "{address}");
+        }
+        let later_refusal = execute(
+            Path::new("absent.iso"),
+            "candidate/owner",
+            "172.17.0.1:19000".parse().unwrap(),
+            &GlobalOpts::default(),
+        )
+        .unwrap_err();
+        assert_ne!(later_refusal.reason, "owner-boot-forward-invalid");
     }
 
     #[test]

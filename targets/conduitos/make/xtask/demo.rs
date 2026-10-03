@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn owner_profile_attaches_virtio_without_altering_visible_product_boot() {
         let netdev =
-            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-tcp:127.0.0.1:19000";
+            "user,id=conduit-owner,restrict=on,guestfwd=tcp:10.0.2.100:9000-tcp:172.17.0.1:19000";
         let args = qemu_args("spore.iso", Some(netdev));
         assert!(args.windows(2).any(|pair| pair == ["-netdev", netdev]));
         assert!(args.contains(&"virtio-net-pci,netdev=conduit-owner,disable-modern=on,rx_queue_size=256,tx_queue_size=256"));

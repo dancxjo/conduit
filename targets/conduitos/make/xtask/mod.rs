@@ -267,7 +267,7 @@ struct LiveOwnerBootArgs {
     #[arg(long)]
     candidate_id: String,
 
-    /// Explicit local TLS owner listener to receive QEMU guestfwd traffic.
+    /// Explicit private IPv4 TLS owner listener to receive QEMU guestfwd traffic.
     #[arg(long)]
     owner_forward: std::net::SocketAddr,
 }
@@ -621,7 +621,7 @@ mod tests {
                 "--candidate-id",
                 "candidate/owner",
                 "--owner-forward",
-                "127.0.0.1:19000",
+                "172.17.0.1:19000",
             ],
             vec!["xtask", "make", "conduitos", "ia32-legacy-bios-proof"],
             vec!["xtask", "make", "conduitos", "live-matrix"],
