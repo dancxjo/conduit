@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{collections::BTreeSet, fs, path::Path};
 
 use super::{safe_asset_path, Journey, OneBodyJourneyRequest, ValidatedChapter};
 use crate::evidence::{
@@ -165,10 +165,92 @@ fn document(
             escape(&chapter.story.intention), escape(&chapter.story.action), escape(&chapter.story.result),
             escape(&chapter.story.why), escape(&chapter.story.next), escape(&receipt)));
     }
-    Ok(format!("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>One Body, five ways to meet it — Conduit</title><style>{}\n{CSS}</style></head><body data-application-theme=\"conduit.presentation/phosphor@1\">{}<main class=\"journey\"><header><p class=\"step\">A real user journey · eight chapters</p><h1>One Body, five ways to meet it</h1><p class=\"lede\">Start a clock, move between browser, ConduitOS and terminal, hear its current state, then see what happens when a place or provider disappears. Every capture below belongs to one recorded run.</p><p class=\"boundary\">The captured run proves only the actions and effects named in its receipts. QEMU is emulator evidence; audio production and playback are separate from attended human listening.</p></header><nav aria-label=\"Journey chapters\"><ol class=\"chapter-links\">{links}</ol></nav><div class=\"chapter-run\">{content}</div><details><summary>Source and complete evidence inventory</summary><p>Source commit: <code>{}</code></p><p>Run: <code>{}</code> · Body: <code>{}</code></p><p><a href=\"{}\">Journey document</a> · <a href=\"manifest.json\">Digest-bound evidence manifest</a></p></details></main></body></html>",
+    let inventory = complete_evidence_inventory(evidence, chapters)?;
+    Ok(format!("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>One Body, five ways to meet it — Conduit</title><style>{}\n{CSS}</style></head><body data-application-theme=\"conduit.presentation/phosphor@1\">{}<main class=\"journey\"><header><p class=\"step\">A real user journey · eight chapters</p><h1>One Body, five ways to meet it</h1><p class=\"lede\">Start a clock, move between browser, ConduitOS and terminal, hear its current state, then see what happens when a place or provider disappears. Every capture below belongs to one recorded run.</p><p class=\"boundary\">The captured run proves only the actions and effects named in its receipts. QEMU is emulator evidence; audio production and playback are separate from attended human listening.</p></header><nav aria-label=\"Journey chapters\"><ol class=\"chapter-links\">{links}</ol></nav><div class=\"chapter-run\">{content}</div><details><summary>Source and complete evidence inventory</summary><p>Source commit: <code>{}</code></p><p>Run: <code>{}</code> · Body: <code>{}</code></p><p><a href=\"{}\">Journey document</a> · <a href=\"manifest.json\">Digest-bound evidence manifest</a></p>{inventory}</details></main></body></html>",
         crate::site::styles(), crate::site::navigation("journeys"), escape(&evidence.commit),
         escape(&journey.run_id), escape(&journey.body_id),
         escape(&safe_asset_path(&evidence.outputs.iter().find(|output| output.id == "journey").ok_or("missing journey document")?.path)?)))
+}
+
+fn complete_evidence_inventory(
+    evidence: &VerifiedEvidence,
+    chapters: &[ValidatedChapter<'_>],
+) -> Result<String, String> {
+    let featured = chapters
+        .iter()
+        .flat_map(|chapter| chapter.media.iter().map(|media| media.output.id.as_str()))
+        .collect::<BTreeSet<_>>();
+    let mut audio = evidence
+        .outputs
+        .iter()
+        .filter(|output| {
+            output.kind == EvidenceKind::Audio && !featured.contains(output.id.as_str())
+        })
+        .collect::<Vec<_>>();
+    audio.sort_by_key(|output| {
+        (
+            batch_number(&output.id).unwrap_or(u32::MAX),
+            output.id.as_str(),
+        )
+    });
+    let mut list = String::new();
+    for output in audio {
+        let href = safe_asset_path(&output.path)?;
+        let label = batch_number(&output.id).map_or_else(
+            || format!("Original speech clip {}", output.id),
+            |number| format!("Direct full-Face reading, batch {number}"),
+        );
+        let receipt = output.id.strip_suffix("-wav").and_then(|stem| {
+            evidence
+                .outputs
+                .iter()
+                .find(|item| item.id == format!("{stem}-receipt"))
+        });
+        let receipt_link = if let Some(item) = receipt {
+            format!(
+                " · <a href=\"{}\">Batch Plan/Play receipt</a>",
+                escape(&safe_asset_path(&item.path)?)
+            )
+        } else {
+            String::new()
+        };
+        list.push_str(&format!(
+            "<li><a href=\"{}\">{}</a>{} · <code>{}</code></li>",
+            escape(&href),
+            escape(&label),
+            receipt_link,
+            escape(&output.sha256),
+        ));
+    }
+    let audio_list = if list.is_empty() {
+        String::new()
+    } else {
+        format!("<h3>Original speech clips beyond the featured examples</h3><p>Each link is one retained runtime WAV; batch receipts identify its source segments and speech Plan/Play.</p><ol>{list}</ol>")
+    };
+    let mut other = String::new();
+    for output in &evidence.outputs {
+        if output.id != "journey"
+            && output.kind != EvidenceKind::Audio
+            && !featured.contains(output.id.as_str())
+        {
+            other.push_str(&format!(
+                "<li><a href=\"{}\">{}</a></li>",
+                escape(&safe_asset_path(&output.path)?),
+                escape(&output.id),
+            ));
+        }
+    }
+    Ok(format!(
+        "{audio_list}<h3>All other retained outputs</h3><ul>{other}</ul>"
+    ))
+}
+
+fn batch_number(id: &str) -> Option<u32> {
+    id.rsplit_once("direct-batch-")?
+        .1
+        .strip_suffix("-wav")?
+        .parse()
+        .ok()
 }
 
 fn escape(value: &str) -> String {
