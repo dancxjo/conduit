@@ -20,14 +20,20 @@ pub enum RenderRefusal {
 #[derive(Clone, Copy)]
 pub struct Renderer<'a> {
     events: &'a [VoiceEvent],
+    cursor: RenderCursor,
+}
+
+/// Private traversal state, always paired with one immutable prepared event tape.
+#[derive(Clone, Copy)]
+pub(crate) struct RenderCursor {
     event_index: usize,
     event_frame: i64,
     state: SpeechFrameState,
     rendered_frames: u64,
     total_frames: u64,
 }
-impl<'a> Renderer<'a> {
-    pub fn prepare(events: &'a [VoiceEvent]) -> Result<Self, RenderRefusal> {
+impl RenderCursor {
+    pub(crate) fn prepare(events: &[VoiceEvent]) -> Result<Self, RenderRefusal> {
         if events.len() > MAXIMUM_EVENTS {
             return Err(RenderRefusal::EventBound);
         }
@@ -53,7 +59,6 @@ impl<'a> Renderer<'a> {
             return Err(RenderRefusal::DurationBound);
         }
         Ok(Self {
-            events,
             event_index: 0,
             event_frame: 0,
             state: speech_initial_state(SpeechStart::begin).ok_or(RenderRefusal::Arithmetic)?,
@@ -72,13 +77,17 @@ impl<'a> Renderer<'a> {
     }
     /// Produces at most one finite block. Commit this copy only after atomic
     /// output acceptance; pressure leaves the original state untouched.
-    pub fn render(&mut self, output: &mut [i16]) -> Result<usize, RenderRefusal> {
+    pub(crate) fn render(
+        &mut self,
+        events: &[VoiceEvent],
+        output: &mut [i16],
+    ) -> Result<usize, RenderRefusal> {
         if output.len() > MAXIMUM_BLOCK_FRAMES {
             return Err(RenderRefusal::OutputBound);
         }
         let mut written = 0;
-        while written < output.len() && self.event_index < self.events.len() {
-            let (sample, frames) = match self.events[self.event_index] {
+        while written < output.len() && self.event_index < events.len() {
+            let (sample, frames) = match events[self.event_index] {
                 VoiceEvent::boundary(boundary) => {
                     let frame =
                         speech_boundary_frame(self.state).ok_or(RenderRefusal::Arithmetic)?;
@@ -119,6 +128,28 @@ impl<'a> Renderer<'a> {
             }
         }
         Ok(written)
+    }
+}
+
+impl<'a> Renderer<'a> {
+    pub fn prepare(events: &'a [VoiceEvent]) -> Result<Self, RenderRefusal> {
+        Ok(Self {
+            events,
+            cursor: RenderCursor::prepare(events)?,
+        })
+    }
+    pub fn total_frames(&self) -> u64 {
+        self.cursor.total_frames()
+    }
+    pub fn rendered_frames(&self) -> u64 {
+        self.cursor.rendered_frames()
+    }
+    pub fn is_complete(&self) -> bool {
+        self.cursor.is_complete()
+    }
+    /// Advances only this caller-owned copy; commit it after output acceptance.
+    pub fn render(&mut self, output: &mut [i16]) -> Result<usize, RenderRefusal> {
+        self.cursor.render(self.events, output)
     }
 }
 

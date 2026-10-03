@@ -1372,7 +1372,11 @@ dependencies = [
 name = "conduit-speech"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-planner",
  "conduit-plot",
 ]
 

@@ -42,7 +42,7 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
         "-p",
         "conduit-speech",
         "--features",
-        "semantic-bindings",
+        "semantic-bindings,kernel",
         "--tests",
     ])?;
     let status = Command::new("cargo")
