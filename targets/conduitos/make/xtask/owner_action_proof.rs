@@ -136,23 +136,7 @@ fn prove(
     if let Some(error) = health {
         return Err(error);
     }
-    if action.get("status").and_then(Value::as_str) != Some("accepted")
-        || action.get("face_refreshed").and_then(Value::as_bool) != Some(true)
-        || action.get("requested_interval_ms").and_then(Value::as_u64) != Some(500)
-        || !action
-            .get("action_id")
-            .and_then(Value::as_str)
-            .is_some_and(|id| id.starts_with("body/action/change-clock-interval/"))
-        || after.get("status").and_then(Value::as_str) != Some("shown")
-        || after.get("show_acknowledged").and_then(Value::as_bool) != Some(true)
-        || action.get("prior_show_id") != before.get("show_id")
-        || action.get("face_id") != before.get("face_id")
-        || action.get("face_revision") != before.get("face_revision")
-        || before.get("show_id") == after.get("show_id")
-        || before.get("face_id") == after.get("face_id")
-    {
-        return Err(refusal("native-owner-action-not-accepted-and-refreshed"));
-    }
+    validate_success(&before, &action, &after)?;
     if child
         .try_wait()
         .map_err(|error| ConduitosError::refusal("native-owner-proof-qemu", error.to_string()))?
@@ -176,6 +160,27 @@ fn prove(
         "screenshots":[before_image,after_image],
         "qemu_alive_at_capture":true,
     }))
+}
+
+fn validate_success(before: &Value, action: &Value, after: &Value) -> Result<(), ConduitosError> {
+    if action.get("status").and_then(Value::as_str) != Some("accepted")
+        || action.get("face_refreshed").and_then(Value::as_bool) != Some(true)
+        || action.get("requested_interval_ms").and_then(Value::as_u64) != Some(500)
+        || !action
+            .get("action_id")
+            .and_then(Value::as_str)
+            .is_some_and(|id| id.starts_with("body/action/change-clock-interval/"))
+        || after.get("status").and_then(Value::as_str) != Some("shown")
+        || after.get("show_acknowledged").and_then(Value::as_bool) != Some(true)
+        || action.get("prior_show_id") != before.get("show_id")
+        || action.get("face_id") != before.get("face_id")
+        || action.get("face_revision") != before.get("face_revision")
+        || before.get("show_id") == after.get("show_id")
+        || before.get("face_id") == after.get("face_id")
+    {
+        return Err(refusal("native-owner-action-not-accepted-and-refreshed"));
+    }
+    Ok(())
 }
 
 fn clean_source(root: &std::path::Path) -> Result<bool, ConduitosError> {
@@ -326,5 +331,27 @@ mod tests {
         assert_eq!(args[2], "none");
         assert_eq!(args[4], "file:/tmp/guest.serial.log");
         assert!(replace_qemu_option(&mut args, "-qmp", "bad").is_err());
+    }
+
+    #[test]
+    fn action_proof_rejects_stale_basis_and_unaccepted_return() {
+        let before =
+            json!({"status":"shown","show_id":"show/one","face_id":"face/one","face_revision":1});
+        let accepted = json!({
+            "status":"accepted","face_refreshed":true,"requested_interval_ms":500,
+            "action_id":"body/action/change-clock-interval/1",
+            "prior_show_id":"show/one","face_id":"face/one","face_revision":1,
+        });
+        let after = json!({"status":"shown","show_acknowledged":true,"show_id":"show/two","face_id":"face/two"});
+        assert!(validate_success(&before, &accepted, &after).is_ok());
+        let mut stale = accepted.clone();
+        stale["prior_show_id"] = json!("show/older");
+        assert!(validate_success(&before, &stale, &after).is_err());
+        let mut refused = accepted.clone();
+        refused["status"] = json!("refused");
+        assert!(validate_success(&before, &refused, &after).is_err());
+        let mut wrong_value = accepted;
+        wrong_value["requested_interval_ms"] = json!(250);
+        assert!(validate_success(&before, &wrong_value, &after).is_err());
     }
 }
