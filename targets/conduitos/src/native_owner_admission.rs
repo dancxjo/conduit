@@ -14,12 +14,12 @@ use conduit_body::{
 use conduit_core::HostAdvertisement;
 
 use crate::{
-    arch::VirtioNetReady,
+    arch::{CandidateDeadline, VirtioNetReady},
     bounded_websocket::{BinaryWebSocketIo, MAXIMUM_BINARY_MESSAGE_BYTES, WebSocketError},
     spore_provision::RouteCertificate,
     virtio_tcp::VirtioTcpEndpoint,
     virtio_tls::{self, VirtioTlsError, VirtioWebSocketRunError},
-    wss_candidate_support::{certificate_matches, locator_matches},
+    wss_candidate_support::{certificate_matches, literal_ipv4_locator, locator_matches},
 };
 
 pub struct OwnerRouteSeeds {
@@ -35,6 +35,7 @@ pub enum NativeOwnerAdmissionRefusal {
     UnsupportedLine,
     EndpointBinding,
     CertificateBinding,
+    ClockUnavailable,
     RequestBasis,
     RequestPressure,
     Send(WebSocketError),
@@ -44,6 +45,28 @@ pub enum NativeOwnerAdmissionRefusal {
     OwnerRefused(String),
     Receipt(AdmissionDocumentRefusal),
     Transport(VirtioTlsError),
+}
+
+impl NativeOwnerAdmissionRefusal {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::RouteIdentity => "owner-route-identity-invalid",
+            Self::CandidateMissing => "owner-route-candidate-missing",
+            Self::UnsupportedLine => "owner-route-line-unsupported",
+            Self::EndpointBinding => "owner-route-endpoint-invalid",
+            Self::CertificateBinding => "owner-route-certificate-invalid",
+            Self::ClockUnavailable => "owner-route-deadline-clock-unavailable",
+            Self::RequestBasis => "owner-admission-request-invalid",
+            Self::RequestPressure => "owner-admission-request-pressure",
+            Self::Send(_) => "owner-admission-send-refused",
+            Self::Receive(_) => "owner-admission-receive-refused",
+            Self::ResponseEncoding => "owner-admission-response-invalid",
+            Self::ResponseSchema => "owner-admission-response-schema-invalid",
+            Self::OwnerRefused(_) => "owner-admission-refused",
+            Self::Receipt(_) => "owner-admission-receipt-invalid",
+            Self::Transport(error) => error.as_str(),
+        }
+    }
 }
 
 /// Consume one candidate in one bounded attempt. Neither candidate discovery
@@ -61,9 +84,10 @@ pub fn exchange_over_candidate(
     current: &HostAdvertisement,
 ) -> Result<(PortableAdmissionReceipt, u32), NativeOwnerAdmissionRefusal> {
     let encoded = prepare_request(request, current)?;
-    let (candidate, attempt_polls) =
-        validate_candidate(route, certificate, request, endpoint, maximum_polls)?;
-    virtio_tls::with_websocket(
+    let candidate = validate_candidate(route, certificate, request, endpoint, maximum_polls)?;
+    let deadline = CandidateDeadline::admit(candidate.attempt_timeout_millis)
+        .ok_or(NativeOwnerAdmissionRefusal::ClockUnavailable)?;
+    virtio_tls::with_websocket_deadline(
         device,
         seeds.tcp,
         seeds.tls,
@@ -71,7 +95,8 @@ pub fn exchange_over_candidate(
         endpoint,
         &candidate.authentication.server_identity,
         &certificate.certificate_der,
-        attempt_polls,
+        maximum_polls,
+        Some(deadline),
         |line| exchange_prepared(line, &encoded, request),
     )
     .map_err(|error| match error {
@@ -86,7 +111,7 @@ fn validate_candidate<'a>(
     request: &RoutedAdmissionRequest,
     endpoint: VirtioTcpEndpoint,
     maximum_polls: u32,
-) -> Result<(&'a RendezvousCandidate, u32), NativeOwnerAdmissionRefusal> {
+) -> Result<&'a RendezvousCandidate, NativeOwnerAdmissionRefusal> {
     if route.protocol != RENDEZVOUS_DESCRIPTOR_PROTOCOL
         || route.body_id != request.request.body_id.as_str()
         || route.invitation_id != request.invitation_id
@@ -101,11 +126,13 @@ fn validate_candidate<'a>(
     if candidate.line_family != RendezvousLineFamily::AuthenticatedTlsStream {
         return Err(NativeOwnerAdmissionRefusal::UnsupportedLine);
     }
+    let numeric_endpoint = literal_ipv4_locator(&candidate.reachability);
     if !locator_matches(
         &candidate.reachability,
         &candidate.authentication.server_identity,
         endpoint.remote_port,
-    ) {
+    ) && numeric_endpoint != Some((endpoint.remote_address, endpoint.remote_port))
+    {
         return Err(NativeOwnerAdmissionRefusal::EndpointBinding);
     }
     if !certificate_matches(
@@ -114,11 +141,13 @@ fn validate_candidate<'a>(
     ) {
         return Err(NativeOwnerAdmissionRefusal::CertificateBinding);
     }
-    let attempt_polls = maximum_polls.min(candidate.attempt_timeout_millis);
-    if candidate.maximum_attempts == 0 || attempt_polls == 0 {
+    if candidate.maximum_attempts == 0
+        || candidate.attempt_timeout_millis == 0
+        || maximum_polls == 0
+    {
         return Err(NativeOwnerAdmissionRefusal::EndpointBinding);
     }
-    Ok((candidate, attempt_polls))
+    Ok(candidate)
 }
 
 /// Exercise exact owner wire forms over a scripted authenticated carrier.

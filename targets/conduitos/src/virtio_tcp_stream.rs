@@ -9,9 +9,13 @@ use smoltcp::{
 };
 
 use crate::{
-    arch::{VirtioNetError, VirtioNetReady},
+    arch::{CandidateDeadline, VirtioNetError, VirtioNetReady},
     virtio_tcp::{VirtioDevice, VirtioTcpEndpoint, VirtioTcpError},
 };
+
+/// Proof sessions without an admitted clock advance smoltcp's internal timer
+/// conservatively. Product admission uses a measured candidate deadline.
+const PROOF_POLLS_PER_PROTOCOL_TICK: u32 = 100;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct VirtioTcpIoError(pub VirtioTcpError);
@@ -47,6 +51,7 @@ pub(crate) struct VirtioTcpStream<'a> {
     handle: SocketHandle,
     maximum_polls: u32,
     polls: u32,
+    deadline: Option<CandidateDeadline>,
 }
 
 impl<'a> VirtioTcpStream<'a> {
@@ -55,6 +60,7 @@ impl<'a> VirtioTcpStream<'a> {
         random_seed: u64,
         endpoint: VirtioTcpEndpoint,
         maximum_polls: u32,
+        deadline: Option<CandidateDeadline>,
         receive_storage: &'a mut [u8],
         transmit_storage: &'a mut [u8],
         socket_storage: &'a mut [SocketStorage<'a>],
@@ -116,6 +122,7 @@ impl<'a> VirtioTcpStream<'a> {
             handle,
             maximum_polls,
             polls: 0,
+            deadline,
         };
         for _ in 0..maximum_polls {
             stream.poll()?;
@@ -148,8 +155,12 @@ impl<'a> VirtioTcpStream<'a> {
 
     fn poll(&mut self) -> Result<(), VirtioTcpError> {
         self.polls = self.polls.checked_add(1).ok_or(VirtioTcpError::Timeout)?;
+        let now_millis = match self.deadline {
+            Some(deadline) => deadline.elapsed_millis().ok_or(VirtioTcpError::Timeout)?,
+            None => i64::from(self.polls / PROOF_POLLS_PER_PROTOCOL_TICK),
+        };
         self.interface.poll(
-            Instant::from_millis(i64::from(self.polls)),
+            Instant::from_millis(now_millis),
             &mut self.adapter,
             &mut self.sockets,
         );

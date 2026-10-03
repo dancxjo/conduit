@@ -17,6 +17,12 @@ use conduitos::{spore_join, spore_provision};
 #[cfg(all(target_os = "none", not(feature = "virtio-net-proof")))]
 use core::fmt::Write;
 
+#[cfg(all(target_os = "none", not(feature = "virtio-net-proof")))]
+struct InspectedSpore {
+    pending: spore_join::PendingNativeJoin,
+    routed_request: Option<conduit_body::RoutedAdmissionRequest>,
+}
+
 #[cfg(all(
     target_os = "none",
     feature = "native-compositor",
@@ -123,7 +129,7 @@ fn initialize_runtime_arena(record: &boot::BootRecord) {
 fn inspect_spore_provision(
     _record: &boot::BootRecord,
     identities: conduitos::identity::BootIdentities,
-) -> Option<spore_join::PendingNativeJoin> {
+) -> Option<InspectedSpore> {
     let Some(region) = boot::spore_module() else {
         emit_refusal("spore-boot-module-missing");
     };
@@ -147,19 +153,25 @@ fn inspect_spore_provision(
             ) {
                 emit_refusal(error.as_str());
             }
-            let join = match spore_join::encode_native(provision, identities) {
+            let join = match spore_join::prepare_native(provision, identities) {
                 Ok(join) => join,
                 Err(error) => emit_refusal(error.as_str()),
             };
             arch::early_write(b"CONDUIT_SPORE_JOIN ");
-            arch::early_write(&join);
+            arch::early_write(&join.serial_observation);
             arch::early_write(b"\n");
             let result = writeln!(
                 sign,
                 "CONDUIT_SPORE_PROVISION {{\"schema\":\"conduit.conduitos/spore-provision@1\",\"status\":\"join-emitted\",\"line_id\":\"conduit-line/serial-text@1\",\"spore_id\":\"{}\",\"body_id\":\"{}\",\"invitation_id\":\"{}\",\"expires_at_millis\":{},\"secret_logged\":false,\"membership_claimed\":false}}",
                 spore_id, body_id, invitation_id, expires_at_millis,
             );
-            (result, Some(pending))
+            (
+                result,
+                Some(InspectedSpore {
+                    pending,
+                    routed_request: join.routed_request,
+                }),
+            )
         }
         None => (
             writeln!(

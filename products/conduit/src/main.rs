@@ -18,6 +18,7 @@ mod release_obtain;
 #[path = "rendezvous_relay.rs"]
 mod rendezvous_relay;
 mod report_artifact;
+mod screen_free_birth;
 mod source_expansion;
 mod std_websocket_line;
 #[cfg(test)]
@@ -324,7 +325,13 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(command),
         }) => match command {
-            cli::BodyCommand::Birth => enter_birth(),
+            cli::BodyCommand::Birth { screen_free } => {
+                if screen_free {
+                    screen_free_birth::run(&mut io::stdin().lock(), &mut io::stdout().lock())
+                } else {
+                    enter_birth()
+                }
+            }
             cli::BodyCommand::Own { source, state_dir, name } => durable_host::run_body_owner(&source, &state_dir, &name),
             _ => unreachable!("durable Body operations are dispatched above"),
         },

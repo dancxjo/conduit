@@ -172,11 +172,14 @@ default = []
 hosted-tools = []
 hotplug-proof = []
 scripted-keyboard-proof = []
-native-compositor = ["dep:fontdue"]
+native-compositor = ["dep:fontdue", "native-owner-network"]
+# The product's invitation-bound owner exchange uses the same bounded network
+# machinery as the isolated transport proof, without selecting its entrypoint.
+native-owner-network = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
 native-http-client = []
 conduitos-isolation-proof = []
 emergency-halt-proof = []
-virtio-net-proof = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
+virtio-net-proof = ["native-owner-network"]
 ps2-input = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
 # proof/appliances tree and remains absent from an ordinary product build.

@@ -57,8 +57,15 @@ pub fn run(
     usb_line_device: Option<&UsbDevice>,
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
-    pending_join: Option<crate::spore_join::PendingNativeJoin>,
+    pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
+    // A verified receipt remains local to this product service. There is no
+    // guest-side Part installation transition yet, so it must not enter Face
+    // truth or enable application actions merely by being present.
+    let (pending_join, _owner_receipt) = match pending_join {
+        Some(join) => (Some(join.pending), join.receipt),
+        None => (None, None),
+    };
     let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
         .map_err(|_| "product-base-provider-invalid")?;
     effect_bases

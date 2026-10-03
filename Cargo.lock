@@ -555,6 +555,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "conduit-alife",
+ "conduit-birth-plot",
  "conduit-body",
  "conduit-body-make",
  "conduit-chat",
@@ -566,6 +567,7 @@ dependencies = [
  "conduit-language",
  "conduit-net",
  "conduit-observatory",
+ "conduit-patchbay-workbench",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
@@ -581,6 +583,7 @@ dependencies = [
  "conduit-wire",
  "conduit-workspace-make",
  "getrandom 0.3.4",
+ "patchbay-hosted",
  "patchbay-svg-mask",
  "rcgen",
  "serde",

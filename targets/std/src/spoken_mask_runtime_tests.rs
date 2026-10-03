@@ -92,6 +92,8 @@ impl HostedLocalModelAdapter for FixturePresenter {
                     subject: request.semantic_data.presentation.text[0].subject.clone(),
                 },
             ],
+            raw_provider_output: None,
+            wording_proposal: None,
         };
         manifestation.candidate_identity = manifestation.digest();
         let manifestation = serde_json::to_vec(&manifestation).unwrap();
@@ -417,6 +419,8 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
                 subject: "body/current".into(),
             },
         ],
+        raw_provider_output: None,
+        wording_proposal: None,
     };
     retained.candidate_identity = retained.digest();
     let executed = crate::spoken_mask_journey::execute_retained_manifestation_mask(
