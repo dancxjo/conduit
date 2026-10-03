@@ -2,10 +2,12 @@
 use super::*;
 use alloc::string::String;
 
-pub(super) const FOOTER: u16 = 80;
+pub(super) const HEADER: u16 = 56;
+pub(super) const FOOTER: u16 = 56;
 pub(super) const MAX_PAGE_ROWS: usize = 20;
 const MAX_ROWS: usize = 32_768;
 const MAX_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
+const INDENT_STEP: u16 = 14;
 
 pub(super) struct Row {
     pub text: String,
@@ -32,12 +34,14 @@ pub(super) fn admit(
     screen: LayoutRect,
 ) -> Result<Vec<Row>, FaceSceneError> {
     let width = screen.width - SPACE_XL * 2;
-    let text_width = width - SPACE_SM * 2;
     let bottom = screen.height - FOOTER;
-    let maximum_height = bottom - SPACE_XL - SPACE_SM * 2;
+    let maximum_height = bottom - HEADER - SPACE_SM * 2;
     let mut rows = Vec::new();
-    let (mut page, mut count, mut y, mut bytes) = (0, 0, SPACE_XL, 0usize);
+    let (mut page, mut count, mut y, mut bytes) = (0, 0, HEADER, 0usize);
     for item in items {
+        let inset = u16::from(item.indent) * INDENT_STEP;
+        let item_width = width - inset;
+        let text_width = item_width - SPACE_SM * 2;
         bytes = bytes
             .checked_add(item.text.len())
             .ok_or(FaceSceneError::DocumentBound)?;
@@ -71,7 +75,7 @@ pub(super) fn admit(
             if y + box_height > bottom || count == MAX_PAGE_ROWS {
                 page += 1;
                 count = 0;
-                y = SPACE_XL;
+                y = HEADER;
             }
             if rows.len() == MAX_ROWS {
                 return Err(FaceSceneError::DocumentBound);
@@ -83,9 +87,9 @@ pub(super) fn admit(
                 control: item.control,
                 page,
                 bounds: LayoutRect {
-                    x: SPACE_XL as i16,
+                    x: (SPACE_XL + inset) as i16,
                     y: y as i16,
-                    width,
+                    width: item_width,
                     height: box_height,
                 },
             });
