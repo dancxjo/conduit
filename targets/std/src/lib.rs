@@ -114,6 +114,7 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub mod spoken_face_mask;
 pub mod spoken_mask_journey;
 pub mod spoken_mask_runtime;
 #[cfg(test)]
