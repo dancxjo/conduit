@@ -32,6 +32,11 @@ pub(super) struct KernelResourceReservation {
 }
 
 impl KernelResourceLedger {
+    pub(super) fn is_idle(&self) -> bool {
+        self.pools.iter().all(|pool| pool.used_units == 0)
+            && self.instances.iter().all(|(_, active)| *active == 0)
+    }
+
     pub(super) fn new(advertisement: &HostAdvertisement) -> Result<Self, String> {
         if advertisement.protocol_version != PROTOCOL_VERSION {
             return Err("kernel host advertisement uses the wrong protocol version".to_string());

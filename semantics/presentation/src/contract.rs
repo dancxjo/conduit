@@ -271,6 +271,24 @@ pub fn face_interaction_offer(realization: FaceInteractionRealizationOffer) -> C
     )
 }
 
+/// An ordinary Face-interaction Back that deliberately closes its Flow with
+/// no value. A read-only Mask can therefore retain the typed interaction Fore
+/// without advertising a user-input resource or an unserviceable Host Call.
+pub fn face_interaction_close_offer(
+    capability_id: CapabilityId,
+    implementation: ImplementationOffer,
+    limits: CapabilityLimits,
+) -> CapabilityOffer {
+    build_offer(
+        interaction_contract(),
+        capability_id,
+        implementation,
+        alloc::vec::Vec::new(),
+        alloc::vec::Vec::new(),
+        limits,
+    )
+}
+
 pub fn presentation_tee_offer(
     capability_id: CapabilityId,
     implementation: ImplementationOffer,

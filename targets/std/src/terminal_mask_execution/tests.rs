@@ -2,6 +2,8 @@
 //! The producer fixture supplies only the Face basis, never a successful Mask Show.
 use super::*;
 use crate::terminal_face_mask::TerminalFaceMask;
+#[cfg(unix)]
+use crate::{hosted_terminal_mask_host::receive_terminal_frame_and_ack, StdHost};
 use conduit_presentation::*;
 #[allow(
     dead_code,
@@ -68,6 +70,90 @@ fn show(execution: &mut HostedTerminalMaskExecution, face: &Presentation) -> Mas
     renderer.present(execution, &mut fixture_terminal).unwrap();
     assert!(!fixture_terminal.is_empty());
     renderer.show().unwrap().clone()
+}
+#[cfg(unix)]
+#[test]
+fn attached_owner_host_waits_for_actual_foreground_flush_before_available_show() {
+    use std::os::unix::net::UnixStream;
+    let mut host = StdHost::new();
+    let (service, mut foreground) = UnixStream::pair().unwrap();
+    host.attach_terminal_mask(service).unwrap();
+    let current = host.advertisement().clone();
+    assert!(current
+        .resources
+        .iter()
+        .all(|resource| resource.pool_id.as_str() != "terminal/input"));
+    assert!(current.capabilities.iter().any(|offer| {
+        offer.implementation.implementation_id.as_str()
+            == planning::READ_ONLY_INTERACTION_IMPLEMENTATION
+    }));
+    let face = face(7);
+    let (finished, release) = std::sync::mpsc::sync_channel::<()>(1);
+    let client = std::thread::spawn(move || {
+        let mut output = Vec::new();
+        let receipt = receive_terminal_frame_and_ack(&mut foreground, &mut output).unwrap();
+        release.recv().unwrap();
+        (receipt, output)
+    });
+    let available = host.present_attached_terminal_face(&face).unwrap();
+    finished.send(()).unwrap();
+    let (receipt, output) = client.join().unwrap();
+    assert!(!output.is_empty());
+    assert_eq!(receipt.bytes_written as usize, output.len());
+    assert_eq!(available.show.lifecycle, ManifestationLifecycle::Available);
+    assert_eq!(available.show.host_id, current.host_id);
+    assert_eq!(available.show.boot_id, current.boot_id);
+    assert_eq!(
+        available.planned_mask.plan.fragments[0].offer_generation,
+        current.offer_generation
+    );
+    assert_eq!(available.presentation_id, face.identity);
+    assert_eq!(available.presentation_revision, face.revision);
+    assert_eq!(
+        lower_plan_fragment(&available.planned_mask.plan.fragments[0])
+            .unwrap()
+            .host_calls
+            .len(),
+        1,
+        "read-only terminal route has only its real output Host Call"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn disconnected_foreground_cannot_produce_an_available_terminal_show() {
+    use std::os::unix::net::UnixStream;
+    let mut host = StdHost::new();
+    let (service, foreground) = UnixStream::pair().unwrap();
+    host.attach_terminal_mask(service).unwrap();
+    let attached_generation = host.advertisement().offer_generation;
+    drop(foreground);
+    assert!(host.present_attached_terminal_face(&face(8)).is_err());
+    assert!(host.terminal_attachment_mut().is_none());
+    assert_ne!(host.advertisement().offer_generation, attached_generation);
+}
+
+#[cfg(unix)]
+#[test]
+fn failed_foreground_flush_never_acknowledges_a_show() {
+    use std::{io::Write, os::unix::net::UnixStream};
+    struct FailFlush;
+    impl Write for FailFlush {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe))
+        }
+    }
+    let mut host = StdHost::new();
+    let (service, mut foreground) = UnixStream::pair().unwrap();
+    host.attach_terminal_mask(service).unwrap();
+    let client =
+        std::thread::spawn(move || receive_terminal_frame_and_ack(&mut foreground, &mut FailFlush));
+    assert!(host.present_attached_terminal_face(&face(9)).is_err());
+    assert!(client.join().unwrap().is_err());
+    assert!(host.terminal_attachment_mut().is_none());
 }
 #[test]
 fn ordinary_mask_runs_to_real_renderer_call_then_show_and_interaction_fore() {

@@ -8,6 +8,7 @@ pub(super) enum MaskBack {
     Tee,
     Renderer { pending: bool, emitted: bool },
     Interaction { seen_face: bool, pending: bool },
+    InteractionClose { seen_face: bool },
 }
 
 impl StepBack<PORTS> for MaskBack {
@@ -20,8 +21,26 @@ impl StepBack<PORTS> for MaskBack {
             Self::Tee => pass_one(io),
             Self::Renderer { pending, emitted } => render(pending, emitted, io),
             Self::Interaction { seen_face, pending } => interact(seen_face, pending, io),
+            Self::InteractionClose { seen_face } => close_interaction(seen_face, io),
         }
     }
+}
+
+fn close_interaction(seen_face: &mut bool, io: &mut StepIo<PORTS>) -> StepOutcome {
+    if !*seen_face && io.input(PortId(0)).is_some() {
+        if io.consume(PortId(0)).is_err() {
+            return failure();
+        }
+        *seen_face = true;
+        return StepOutcome::Progress;
+    }
+    if *seen_face && io.input(PortId(1)).is_some() {
+        if io.consume(PortId(1)).is_err() {
+            return failure();
+        }
+        return StepOutcome::Complete;
+    }
+    StepOutcome::Await
 }
 
 fn pass_one(io: &mut StepIo<PORTS>) -> StepOutcome {
