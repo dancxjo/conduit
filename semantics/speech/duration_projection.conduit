@@ -1,0 +1,45 @@
+# Private numeric carriers. Strict duration admission and retained source ratios
+# use timing.conduit. These carriers never substitute for semantic Types.
+type SpeechDurationSumInput = {
+    left_numerator: U64
+    left_denominator: U64
+    right_numerator: U64
+    right_denominator: U64
+}
+type SpeechDurationSumWorking = {
+    input: SpeechDurationSumInput
+    denominator: U64
+}
+type SpeechDurationSumResult = {
+    numerator_seconds: U64
+    denominator: U64
+}
+# Prefer an existing divisible basis, otherwise use the checked product. This
+# chooses an exact common multiple, not necessarily the least one. Overflow is
+# refusal; no approximate replacement or silent normalization is permitted.
+plot speech/duration-sum-basis (
+    >> value: SpeechDurationSumInput
+    result: SpeechDurationSumWorking >>
+) = ({input: ., denominator: .left_denominator % .right_denominator == 0 ? .left_denominator : .right_denominator % .left_denominator == 0 ? .right_denominator : .left_denominator * .right_denominator})
+plot speech/duration-sum-value (
+    >> value: SpeechDurationSumWorking
+    result: SpeechDurationSumResult >>
+) = ({denominator: .denominator, numerator_seconds: .input.left_numerator * (.denominator / .input.left_denominator) + .input.right_numerator * (.denominator / .input.right_denominator)})
+plot speech/duration-sum (
+    >> value: SpeechDurationSumInput
+    result: SpeechDurationSumResult >>
+) {
+    basis: speech/duration-sum-basis
+    sum: speech/duration-sum-value
+    value >> basis.value
+    basis.result >> sum.value
+    sum.result >> result
+}
+type SpeechFrameSpanInput = {
+    start_frame: U64
+    end_frame: U64
+}
+plot speech/frame-span (
+    >> value: SpeechFrameSpanInput
+    result: U64 >>
+) = (.end_frame - .start_frame)

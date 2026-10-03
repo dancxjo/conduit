@@ -337,3 +337,27 @@ compact segment admission, cardinal/ordinal/decimal/date normalization and broad
 broader consonant-vowel transitions and vowel-dependent stop-burst spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.
+
+Explicit exact durations enter through the optional preparation adapter
+`duration::prepare_duration_render`. It retains every original duration ratio
+and projects cumulative event ends with floor at the formant profile's fixed
+8 kHz grid. Per-event counts are differences of those endpoints: three
+one-third-second events produce 2,666, 2,667 and 2,667 frames, totaling exactly
+8,000. Fractions remain in the timing receipts. Common-denominator arithmetic
+uses checked U64 multiples; overflow refuses rather than approximating.
+
+`Renderer::prepare_timed` also accepts already projected caller-owned frame
+counts, with exactly one count per event. Plots admit the profile domain and
+scale stop closure with the segment's duration; their acoustic coefficients
+remain unchanged. Segments need at least two frames. Boundaries may have zero
+frames and continue to separate neighboring segment contexts without adding
+samples. The existing event/utterance/block bounds still apply. Preparation
+refusal leaves caller grid storage unchanged. Rendering borrows fixed storage
+and allocates nothing; rich timing receipts allocate only during preparation.
+These receipts do not attest commitment, language references or provenance,
+and unknown/unspecified/alternative durations are not silently selected.
+
+The supported native-speech proof also retains `duration-default`,
+`duration-faster` and `duration-slower` WAVs of the same “Hello, world!” event
+sequence. The faster/slower listening fixtures explicitly author duration
+factors of 2/3 and 3/2. Shared pitch and intensity intake remains unfinished.

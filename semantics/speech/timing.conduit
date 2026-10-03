@@ -41,3 +41,14 @@ type SpeechCycleAtRate = {
     where .remainder_numerator < .request.cycle.denominator
     where .whole_frames * .request.cycle.denominator + .remainder_numerator == .request.cycle.numerator_seconds * .request.sample_rate_hz
 }
+
+# One renderer-independent source duration and its projected absolute endpoint.
+# The frame count is a difference of cumulative floors, not an independently
+# rounded duration. Timeline ordering is a preparation law across the sequence.
+type SpeechEventFrameSpan = {
+    duration: SpeechExactDuration
+    cumulative_end: SpeechDurationAtRate
+    start_frame: U64
+    frame_count: U64
+    where .start_frame + .frame_count == .cumulative_end.whole_frames
+}

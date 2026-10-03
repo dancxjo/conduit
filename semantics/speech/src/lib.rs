@@ -36,6 +36,8 @@ pub mod admission;
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]
 pub mod timing;
+#[cfg(feature = "semantic-bindings")]
+pub mod duration;
 /// Preparation/inspection bindings. The compact rendering Back does not carry
 /// rich inventories or a heap. Bounds and local laws are checked here; resolving
 /// artifact references remains an admission responsibility.
@@ -56,6 +58,8 @@ mod differential;
 mod realization_parity;
 #[cfg(test)]
 mod timing_parity;
+#[cfg(test)]
+mod duration_parity;
 
 #[cfg(test)]
 mod frame_parity;
