@@ -37,10 +37,18 @@ silently truncated. Provider attributes retain bounded JSON text (format validat
 without treating it as typed semantic truth. Native constructors enforce local
 bounds and declared laws. Resolving references against retained artifacts,
 checking text ranges against their exact revision, and checking a stability
-snapshot's byte prefix against its actual UTF-8 text, ordering floating-second
-spans, and checking feature-map uniqueness are **additional admission
-work**, not established by a round trip through these types. Existing Tongues
-runtime recognition/provider adapters have not yet switched to these contracts.
+snapshot's byte prefix against its actual UTF-8 text and checking feature-map
+uniqueness are **additional admission work**, not established by a round trip
+through these types. Existing Tongues runtime recognition/provider adapters
+have not yet switched to these contracts.
+
+The optional `admission` module checks ordered floating-second spans and finite
+unit-interval scores explicitly marked as probabilities. These borrowed checks
+preserve exact F64 bits and leave log/provider score domains unchanged. Callers
+must invoke them during preparation, including after decoding: current native
+Type laws do not support F64 ordering, so construction alone does not prove
+these relationships. They do not establish artifact-reference validity or
+complete rich-to-compact admission.
 
 The optional `semantic-bindings` feature generates ordinary rich native Rust
 bindings for preparation and inspection. It uses allocation and is separate
