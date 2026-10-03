@@ -5,6 +5,7 @@ const decoder = new TextDecoder();
 const MAGIC = encoder.encode("CONDUIT_SPORE_MEDIA@1\0");
 const HEADER_BYTES = 32;
 const TRAILER_BYTES = 4096;
+const CONDUITOS_REGION_BYTES = 32 * 1024;
 const MAXIMUM_ARTIFACT_BYTES = 80 * 1024 * 1024;
 
 export async function bindBodyProvisionedMedia({ prepared, imageBytes, filename, format, mediaType, provisionRegion = null }) {
@@ -31,19 +32,20 @@ export async function bindBodyProvisionedMedia({ prepared, imageBytes, filename,
       }),
     },
   }));
-  if (provision.byteLength > TRAILER_BYTES - HEADER_BYTES) {
+  const regionBytes = provisionRegion === null ? TRAILER_BYTES : CONDUITOS_REGION_BYTES;
+  if (provision.byteLength > regionBytes - HEADER_BYTES) {
     throw new RangeError("native media provision exceeds its reserved trailer");
   }
   const embedded = provisionRegion !== null;
   const offset = embedded ? requireProvisionRegion(provisionRegion, image) : image.byteLength;
-  const bytes = new Uint8Array(image.byteLength + (embedded ? 0 : TRAILER_BYTES));
+  const bytes = new Uint8Array(image.byteLength + (embedded ? 0 : regionBytes));
   bytes.set(image);
   if (!embedded) bytes.fill(0xff, offset);
   bytes.set(MAGIC, offset);
-  const view = new DataView(bytes.buffer, bytes.byteOffset + offset, TRAILER_BYTES);
+  const view = new DataView(bytes.buffer, bytes.byteOffset + offset, regionBytes);
   view.setUint32(24, 1, true);
   view.setUint32(28, provision.byteLength, true);
-  bytes.fill(0xff, offset + HEADER_BYTES, offset + TRAILER_BYTES);
+  bytes.fill(0xff, offset + HEADER_BYTES, offset + regionBytes);
   bytes.set(provision, offset + HEADER_BYTES);
   const contentDigest = await sha256(bytes);
   return Object.freeze({
@@ -56,7 +58,7 @@ export async function bindBodyProvisionedMedia({ prepared, imageBytes, filename,
     image_content_digest: prepared.image_content_digest,
     image_bytes: image.byteLength,
     provision_offset: offset,
-    provision_bytes: TRAILER_BYTES,
+    provision_bytes: regionBytes,
     provision_embedded: embedded,
   });
 }
@@ -65,15 +67,15 @@ function requireProvisionRegion(region, image) {
   if (region?.schema !== "conduit.conduitos/spore-region@1"
     || region.encoding !== "conduit.spore/native-media-provision@1"
     || !Number.isSafeInteger(region.offset) || region.offset < 0
-    || region.bytes !== TRAILER_BYTES || region.offset + region.bytes > image.byteLength) {
+    || region.bytes !== CONDUITOS_REGION_BYTES || region.offset + region.bytes > image.byteLength) {
     throw new TypeError("native media provision region is missing or outside its exact IMAGE bound");
   }
   if (!MAGIC.every((byte, index) => image[region.offset + index] === byte)) {
     throw new TypeError("native media IMAGE lost its reviewed provision region marker");
   }
-  const view = new DataView(image.buffer, image.byteOffset + region.offset, TRAILER_BYTES);
+  const view = new DataView(image.buffer, image.byteOffset + region.offset, CONDUITOS_REGION_BYTES);
   if (view.getUint32(24, true) !== 0 || view.getUint32(28, true) !== 0
-    || image.subarray(region.offset + HEADER_BYTES, region.offset + TRAILER_BYTES).some((byte) => byte !== 0xff)) {
+    || image.subarray(region.offset + HEADER_BYTES, region.offset + CONDUITOS_REGION_BYTES).some((byte) => byte !== 0xff)) {
     throw new TypeError("native media IMAGE provision region is not blank");
   }
   return region.offset;
@@ -91,10 +93,12 @@ export function readBodyProvisionedMedia(value) {
   if (offset < 0) {
     throw new TypeError("native media artifact omitted its body provision trailer");
   }
-  const view = new DataView(bytes.buffer, bytes.byteOffset + offset, TRAILER_BYTES);
+  const embedded = offset !== trailingOffset;
+  const regionBytes = embedded ? CONDUITOS_REGION_BYTES : TRAILER_BYTES;
+  const view = new DataView(bytes.buffer, bytes.byteOffset + offset, regionBytes);
   const version = view.getUint32(24, true);
   const length = view.getUint32(28, true);
-  if (version !== 1 || length < 1 || length > TRAILER_BYTES - HEADER_BYTES) {
+  if (version !== 1 || length < 1 || length > regionBytes - HEADER_BYTES) {
     throw new TypeError("native media provision header is malformed");
   }
   let provision;
@@ -103,20 +107,19 @@ export function readBodyProvisionedMedia(value) {
   } catch (error) {
     throw new TypeError("native media provision is not valid JSON", { cause: error });
   }
-  const embedded = offset !== trailingOffset;
   requireProvision(provision, embedded ? bytes.byteLength : offset);
   const image = embedded ? new Uint8Array(bytes) : bytes.slice(0, offset);
   if (embedded) {
-    image.fill(0xff, offset, offset + TRAILER_BYTES);
+    image.fill(0xff, offset, offset + regionBytes);
     image.set(MAGIC, offset);
-    new DataView(image.buffer, image.byteOffset + offset, TRAILER_BYTES).setUint32(24, 0, true);
-    new DataView(image.buffer, image.byteOffset + offset, TRAILER_BYTES).setUint32(28, 0, true);
+    new DataView(image.buffer, image.byteOffset + offset, regionBytes).setUint32(24, 0, true);
+    new DataView(image.buffer, image.byteOffset + offset, regionBytes).setUint32(28, 0, true);
   }
   return Object.freeze({
     provision: Object.freeze(provision),
     image,
     provision_offset: offset,
-    provision_bytes: TRAILER_BYTES,
+    provision_bytes: regionBytes,
     provision_embedded: embedded,
   });
 }
@@ -127,13 +130,13 @@ function hasMagic(bytes, offset) {
 
 function findUniqueProvision(bytes) {
   let found = -1;
-  for (let offset = 0; offset + TRAILER_BYTES <= bytes.byteLength; offset += 1) {
+  for (let offset = 0; offset + CONDUITOS_REGION_BYTES <= bytes.byteLength; offset += 1) {
     if (!hasMagic(bytes, offset)) continue;
-    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, TRAILER_BYTES);
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, CONDUITOS_REGION_BYTES);
     const version = view.getUint32(24, true);
     const length = view.getUint32(28, true);
-    if (version !== 1 || length < 1 || length > TRAILER_BYTES - HEADER_BYTES
-      || bytes.subarray(offset + HEADER_BYTES + length, offset + TRAILER_BYTES).some((byte) => byte !== 0xff)) continue;
+    if (version !== 1 || length < 1 || length > CONDUITOS_REGION_BYTES - HEADER_BYTES
+      || bytes.subarray(offset + HEADER_BYTES + length, offset + CONDUITOS_REGION_BYTES).some((byte) => byte !== 0xff)) continue;
     if (found >= 0) throw new TypeError("native media artifact contains ambiguous Body provision regions");
     found = offset;
   }
@@ -194,3 +197,4 @@ async function sha256(bytes) {
 }
 
 export const NATIVE_MEDIA_PROVISION_BYTES = TRAILER_BYTES;
+export const CONDUITOS_MEDIA_PROVISION_BYTES = CONDUITOS_REGION_BYTES;
