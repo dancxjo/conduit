@@ -7,6 +7,7 @@ import { TARGETS, setupTarget, runTarget } from './targets.mjs';
 import { setupCi, setupUnit } from './setup.mjs';
 import { assertSourceCheckout } from './source.mjs';
 import { emitAcquisitionKey, measureAcquisition } from './acquisition/metrics.mjs';
+import { retainedOneBodyEvidence } from './one-body-evidence.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -57,6 +58,12 @@ try {
     }
     case 'preflight': {
       if (args.length !== 1) throw new Error('usage: preflight <base-sha>');
+      const oneBodyEvidence = retainedOneBodyEvidence();
+      if (oneBodyEvidence) {
+        // The browser target has a shallow checkout. Verify ancestry here,
+        // where CI retains the full history, before any expensive target work.
+        run('git', ['merge-base', '--is-ancestor', oneBodyEvidence.sourceCommit, 'HEAD']);
+      }
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
       run('cargo', ['fmt', '--all', '--check']);
       run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true);

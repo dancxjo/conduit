@@ -102,6 +102,67 @@ pub(super) fn retained(presentation: Presentation) -> GeneratedManifestationCand
 }
 
 #[test]
+fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
+    let face = presentation();
+    let mut candidate = retained(face.clone());
+    let proposal = GeneratedWordingProposal {
+        source_presentation_identity: face.identity.as_str().into(),
+        source_presentation_revision: face.revision,
+        clauses: vec![GeneratedWordingClause::Text {
+            index: 0,
+            subject: face.text[0].subject.clone(),
+            value: face.text[0].text.clone(),
+            style: GeneratedWordingStyle::Direct,
+        }],
+    };
+    candidate.template_contract_revision = FINITE_FACE_WORDING_TEMPLATE_REVISION.into();
+    candidate.raw_provider_output = Some(
+        serde_json::json!({"proposal": proposal, "suggested_action_identities": []}).to_string(),
+    );
+    candidate.wording_proposal = Some(proposal);
+    candidate.candidate_identity = candidate.digest();
+    let shown = execute_retained_manifestation_mask(
+        "finite-replay-fixture",
+        "finite-replay-fixture",
+        face.clone(),
+        candidate.clone(),
+    )
+    .expect("the exact finite wording proposal must reach an acknowledged Show");
+    assert_eq!(
+        shown.shown.show.show.lifecycle,
+        ManifestationLifecycle::Available
+    );
+    assert_eq!(shown.shown.show.show.presentation_id, face.identity);
+
+    let mut invented = candidate.clone();
+    let GeneratedWordingClause::Text { value, .. } =
+        &mut invented.wording_proposal.as_mut().unwrap().clauses[0]
+    else {
+        unreachable!()
+    };
+    *value = "An invented state.".into();
+    invented.candidate_identity = invented.digest();
+    assert!(execute_retained_manifestation_mask(
+        "invented-replay-fixture",
+        "invented-replay-fixture",
+        face.clone(),
+        invented,
+    )
+    .is_err());
+
+    candidate.template_contract_revision = "unknown/policy".into();
+    candidate.candidate_identity = candidate.digest();
+    let refused = execute_retained_manifestation_mask(
+        "unknown-replay-fixture",
+        "unknown-replay-fixture",
+        face,
+        candidate,
+    )
+    .unwrap_err();
+    assert!(refused.contains("unsupported spoken Mask template"));
+}
+
+#[test]
 #[ignore = "requires explicitly installed eSpeak NG, English data and shared library; produces WAV only, no playback"]
 fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
     let engine = std::fs::canonicalize("/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1").unwrap();
