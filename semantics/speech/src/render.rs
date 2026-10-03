@@ -119,6 +119,13 @@ impl RenderCursor {
                     let target = connected.target;
                     let period =
                         speech_pitch_period(value.stress).ok_or(RenderRefusal::Arithmetic)?;
+                    let period = speech_pitch_contour(SpeechPitchInput {
+                        stress: value.stress,
+                        base_period: period,
+                        frame: self.event_frame,
+                        total: target.frames,
+                    })
+                    .ok_or(RenderRefusal::Arithmetic)?;
                     let frame = speech_frame(SpeechFrameInput {
                         attack: connected.attack,
                         release: connected.release,

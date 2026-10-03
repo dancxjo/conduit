@@ -59,3 +59,6 @@ mod trajectory_parity;
 
 #[cfg(test)]
 mod connection_parity;
+
+#[cfg(test)]
+mod prosody_parity;

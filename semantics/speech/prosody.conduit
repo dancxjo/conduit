@@ -1,0 +1,13 @@
+# Profile pitch motion does not infer a stress specification or change a phone.
+# Unknown/unspecified stress retain the existing neutral profile period. The
+# integer-period contour is a small acoustic model, not measured intonation.
+type SpeechPitchInput = {
+    stress: EnglishStress
+    base_period: I64
+    frame: I64
+    total: I64
+}
+plot speech/pitch-contour (
+    >> value: SpeechPitchInput
+    result: I64 >>
+) = (.stress is primary ? .base_period - 3 + .frame * 8 / (.total - 1) : .stress is secondary ? .base_period - 2 + .frame * 5 / (.total - 1) : (.stress is unstressed || .stress is reduced) ? .base_period + .frame * 2 / (.total - 1) : .base_period)

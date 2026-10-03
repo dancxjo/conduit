@@ -83,7 +83,13 @@ word/phrase/turn boundaries remain distinct and block the join. The adjacent
 models come only from the retained event tape; the traversal never skips a
 boundary to find a different neighbor. Consonant-vowel loci, separate aspiration
 and broader coarticulation remain unfinished. These are modeled transitions,
-not measured acoustic alignment. The checked `speech/frame`
+not measured acoustic alignment. `prosody.conduit` adds a bounded within-segment
+pitch-period contour for known primary, secondary, unstressed and reduced stress.
+Unknown and unspecified stress retain the neutral period throughout; the contour
+never changes the segment's stress specification. Portable differential checks
+cover checked arithmetic refusals and all stress states; admitted contours stay
+within 58–69 sample periods. These profile defaults do not model phrase-level
+intonation or establish measured prosody. The checked `speech/frame`
 plot composes excitation, three resonator transitions and output mixing through
 exact authored cords. Initial history and
 boundary silence also come from checked plots. Rust traversal handles bounded
