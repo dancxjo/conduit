@@ -180,8 +180,14 @@ mod tests {
             .subjects
             .iter()
             .any(|subject| subject.role == PresentationRole::Body));
-        assert_eq!(snapshot.presentation.actions.len(), 3);
-        assert_eq!(snapshot.presentation.disclosures.len(), 2);
+        let plot_count = snapshot
+            .presentation
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == PresentationRole::Plot)
+            .count();
+        assert_eq!(snapshot.presentation.actions.len(), 2 * plot_count + 1);
+        assert_eq!(snapshot.presentation.disclosures.len(), plot_count + 1);
         let plot = snapshot
             .presentation
             .subjects
