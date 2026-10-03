@@ -7,7 +7,7 @@
 
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, OfferGeneration, Plan, PlanId, PlotIdentity};
-use conduit_presentation::Presentation;
+use conduit_presentation::{Presentation, PresentationBasis};
 use serde::Serialize;
 
 mod execution;
@@ -18,7 +18,7 @@ pub use execution::PreparedFaceSnapshot;
 
 /// Explicit native forwarding profile: one value on each of two Fore cords.
 /// Larger semantic Faces need a separately admitted storage profile.
-pub const MAX_SNAPSHOT_BYTES: usize = 16 * 1024;
+pub const MAX_SNAPSHOT_BYTES: usize = 32 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FaceSnapshotRefusal {
@@ -47,6 +47,8 @@ pub struct NativeFaceSnapshotProducer {
 /// proof that the forwarding Plot itself computed the supplied facts.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct FaceSnapshotReceipt {
+    /// Basis supplied by the trusted Face owner, distinct from this forwarding Plot.
+    pub observed_face_basis: PresentationBasis,
     pub producer_plot: PlotIdentity,
     pub producer_plan_id: PlanId,
     pub producer_active_play_id: ActivePlayId,
