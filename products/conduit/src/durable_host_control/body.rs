@@ -12,6 +12,10 @@ use conduit_body::{
     PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
 use conduit_core::LinkBindingId;
+use conduit_presentation::{
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES,
+    OWNER_FACE_RESPONSE_SCHEMA,
+};
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
 use std::{
@@ -179,6 +183,37 @@ impl DurableHostRuntime {
         }
     }
 
+    pub(super) fn owned_body_face(
+        &self,
+        request: &OwnerFaceSnapshotRequest,
+    ) -> Result<OwnerFaceSnapshotResponse, String> {
+        let HostSource::Body { owner, .. } = &self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let presentation = owner.face_snapshot(request)?;
+        let response = if request.last_seen_revision == Some(presentation.revision)
+            && request.last_seen_identity.as_ref() == Some(&presentation.identity)
+        {
+            OwnerFaceSnapshotResponse::Unchanged {
+                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                revision: presentation.revision,
+                identity: presentation.identity,
+            }
+        } else {
+            OwnerFaceSnapshotResponse::Snapshot {
+                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                presentation: Box::new(presentation),
+                interactions_admitted: false,
+            }
+        };
+        let encoded = serde_json::to_vec(&response)
+            .map_err(|error| format!("encode owner Face snapshot: {error}"))?;
+        if encoded.len() > MAX_OWNER_FACE_RESPONSE_BYTES {
+            return Err("face-frame-pressure".into());
+        }
+        Ok(response)
+    }
+
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -219,7 +254,8 @@ fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
         Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
-        | Request::BodyBrowserStart { token, .. } => token.fill(0),
+        | Request::BodyBrowserStart { token, .. }
+        | Request::BodyFace { token, .. } => token.fill(0),
         _ => unreachable!("Body control client only sends Body requests"),
     }
     sent?;
@@ -352,6 +388,36 @@ pub(crate) fn admit_owned_request(
         Response::Refused { code, .. } => Err(format!("Body owner refused admission: {code}")),
         _ => Err("Body owner returned the wrong admission response".into()),
     }
+}
+
+#[cfg(unix)]
+pub(crate) fn face_snapshot(
+    state_dir: &Path,
+    request: OwnerFaceSnapshotRequest,
+) -> Result<OwnerFaceSnapshotResponse, String> {
+    match call(
+        state_dir,
+        Request::BodyFace {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            request,
+        },
+    )? {
+        Response::BodyFace {
+            protocol: PROTOCOL,
+            response,
+        } => Ok(*response),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong Face response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn face_snapshot(
+    _state_dir: &Path,
+    _request: OwnerFaceSnapshotRequest,
+) -> Result<OwnerFaceSnapshotResponse, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(not(unix))]

@@ -9,6 +9,7 @@ use conduit_body::{
     BodyMembership, BodyPlotPlan, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
 use conduit_core::{bind_sign, BaseImplementationId};
+use conduit_presentation::{Face, FaceContext, FaceFocus, OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
 pub(crate) use participants::{
@@ -147,6 +148,51 @@ impl Owner {
     }
     pub(crate) fn truth(&self) -> serde_json::Value {
         serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution})
+    }
+    /// Project one canonical Face from the current retained owner session.
+    /// Credential matching and current incarnation are checked here, even
+    /// though the routed caller has already authenticated the same Line.
+    pub(crate) fn face_snapshot(
+        &self,
+        request: &OwnerFaceSnapshotRequest,
+    ) -> Result<Presentation, String> {
+        let admitted = self.admissions.as_ref().is_some_and(|manager| {
+            manager.receipts.iter().any(|receipt| {
+                request.has_exact_basis()
+                    && request.credential_id == receipt.credential.credential_id.as_str()
+                    && request.body_id == receipt.credential.body_id
+                    && request.part_id == receipt.credential.part_id
+                    && request.host_id == receipt.credential.host_id
+                    && request.boot_id == receipt.credential.boot_id
+            })
+        });
+        if !admitted {
+            return Err("owner-face-credential-not-admitted".into());
+        }
+        let present = self.session.evidence().membership.parts.iter().any(|part| {
+            part.part_id == request.part_id
+                && part.current.as_ref().is_some_and(|current| {
+                    current.host_id == request.host_id && current.boot_id == request.boot_id
+                })
+        });
+        if !present || self.session.evidence().body_id != request.body_id {
+            return Err("owner-face-current-part-unavailable".into());
+        }
+        let face = Face::project(
+            &self.session.evidence().body,
+            self.session
+                .realization()
+                .map(|realization| &realization.wake),
+            self.session.evidence().last_sequence(),
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
+        face.presentation
+            .validate()
+            .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
+        Ok(face.presentation)
     }
     pub(super) fn plan(
         &mut self,
