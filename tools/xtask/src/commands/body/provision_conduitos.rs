@@ -267,7 +267,12 @@ fn locate_blank_region(bytes: &[u8]) -> Result<usize, Box<dyn std::error::Error>
 
 fn encode_region(encoded: &[u8]) -> Result<[u8; REGION_BYTES], Box<dyn std::error::Error>> {
     if encoded.is_empty() || encoded.len() > REGION_BYTES - HEADER_BYTES {
-        return Err("native spore provision exceeds the finite media region".into());
+        return Err(format!(
+            "native spore provision uses {} bytes; finite media region permits at most {}",
+            encoded.len(),
+            REGION_BYTES - HEADER_BYTES
+        )
+        .into());
     }
     let mut region = blank_region();
     region[24..28].copy_from_slice(&1_u32.to_le_bytes());
@@ -341,7 +346,12 @@ mod tests {
         let region = encode_region(br#"{"schema":"example"}"#).unwrap();
         image[512..512 + REGION_BYTES].copy_from_slice(&region);
         assert!(locate_blank_region(&image).is_err());
-        assert!(encode_region(&vec![0; REGION_BYTES]).is_err());
+        assert_eq!(
+            encode_region(&vec![0; REGION_BYTES])
+                .unwrap_err()
+                .to_string(),
+            "native spore provision uses 4096 bytes; finite media region permits at most 4064"
+        );
     }
 
     #[test]
