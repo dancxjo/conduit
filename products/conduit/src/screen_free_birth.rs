@@ -16,7 +16,20 @@ use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 use conduit_std_host::StdHost;
 use patchbay_hosted::HostedPatchbayAdapter;
 
+mod audio;
+use audio::BirthSpeechOutput;
+
 pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(), String> {
+    run_with_output(input, output, None)
+}
+
+/// The installed speech Host is supplied by an explicit, separately admitted
+/// caller. The public text entrance has no voice/output selection yet.
+fn run_with_output(
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+    mut speech: Option<&mut BirthSpeechOutput>,
+) -> Result<(), String> {
     let host = StdHost::new();
     let advertisement = host.advertisement().clone();
     let door = ZeroBodyFrontDoor::from_model(
@@ -33,7 +46,9 @@ pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(
     let mut execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
     let (mut face, mut show) = present(&draft, &basis, &mut execution, output)?;
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
-    writeln!(output, "Text readout; no speech audio has been produced. Commands: help, read all, next, previous, repeat, focus ACTION, edit value TEXT, activate, stop, quit.").map_err(io_error)?;
+    if speech.is_none() {
+        writeln!(output, "Text readout; no speech audio has been produced. Commands: help, read all, next, previous, repeat, focus ACTION, edit value TEXT, activate, stop, quit.").map_err(io_error)?;
+    }
     let mut sequence = 1_u64;
     read(
         &mut reader,
@@ -41,6 +56,7 @@ pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(
         &show,
         ReaderCommand::ReadAll,
         sequence,
+        speech.as_deref_mut(),
         output,
     )?;
 
@@ -72,7 +88,7 @@ pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(
                 continue;
             }
         };
-        emit_readout(&mut reader, output)?;
+        emit_readout(&mut reader, &face, &show, speech.as_deref_mut(), output)?;
         let Some(interaction) = result.interaction else {
             continue;
         };
@@ -100,7 +116,7 @@ pub(crate) fn run(input: &mut impl BufRead, output: &mut impl Write) -> Result<(
                 reader
                     .refresh(face.clone(), show.clone())
                     .map_err(debug_error)?;
-                emit_readout(&mut reader, output)?;
+                emit_readout(&mut reader, &face, &show, speech.as_deref_mut(), output)?;
             }
             BirthActionOutcome::Birth(selection) => {
                 writeln!(
@@ -152,15 +168,41 @@ fn read(
     show: &conduit_presentation::MaskShow,
     command: ReaderCommand,
     sequence: u64,
+    speech: Option<&mut BirthSpeechOutput>,
     output: &mut impl Write,
 ) -> Result<(), String> {
     reader
         .command(face, show, command, sequence)
         .map_err(debug_error)?;
-    emit_readout(reader, output)
+    emit_readout(reader, face, show, speech, output)
 }
 
-fn emit_readout(reader: &mut SpokenFaceSession, output: &mut impl Write) -> Result<(), String> {
+fn emit_readout(
+    reader: &mut SpokenFaceSession,
+    face: &Presentation,
+    show: &conduit_presentation::MaskShow,
+    speech: Option<&mut BirthSpeechOutput>,
+    output: &mut impl Write,
+) -> Result<(), String> {
+    if let Some(speech) = speech {
+        while let Some(step) = speech.advance(reader, face, show)? {
+            writeln!(
+                output,
+                "Produced audio: {} ({} PCM bytes, {} ordered segments, Face revision={}, Show={}; no speaker playback)",
+                step.execution.wav_path.display(),
+                step.execution.receipt.pcm_bytes,
+                step.batch.segments.len(),
+                face.revision,
+                show.show_id.as_str()
+            )
+            .map_err(io_error)?;
+            if let Some(terminal) = step.terminal {
+                writeln!(output, "Spoken turn: {:?}", terminal.outcome).map_err(io_error)?;
+                break;
+            }
+        }
+        return Ok(());
+    }
     if let Some(readout) = reader.take_text_readout().map_err(debug_error)? {
         writeln!(
             output,
@@ -281,5 +323,128 @@ mod tests {
                 .unwrap()
                 .contains("Body born in this encounter"));
         }
+    }
+
+    /// Explicit local-provider proof. This uses the actual zero-Body draft,
+    /// current Face, acknowledged terminal Show, planned speech Fore, and WAV
+    /// effect. It does not establish audible playback or a retained Body.
+    #[test]
+    #[ignore = "requires installed eSpeak NG and retains a real WAV"]
+    fn zero_body_face_produces_real_ordered_speech() {
+        use conduit_std_host::hosted_speech_synthesis::EspeakDiscovery;
+
+        let host = StdHost::new();
+        let advertisement = host.advertisement().clone();
+        let door = ZeroBodyFrontDoor::from_model(
+            Arc::new(HostedPatchbayAdapter),
+            PatchbayModel::from_advertisement(advertisement.clone()),
+        )
+        .unwrap();
+        let basis = HostOwnedBirthFaceBasis {
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            encounter_id: random_uuid().unwrap(),
+        };
+        let draft = door.creche_draft(basis.encounter_id.clone()).unwrap();
+        let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+        let (face, show) = present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+        assert!(face.basis.body_id.is_none());
+        let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        reader
+            .command(&face, &show, ReaderCommand::ReadAll, 1)
+            .unwrap();
+        let mut reference = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        reference
+            .command(&face, &show, ReaderCommand::ReadAll, 1)
+            .unwrap();
+        let expected = reference
+            .take_text_readout()
+            .unwrap()
+            .unwrap()
+            .clauses
+            .join("");
+
+        let provider = EspeakDiscovery::inspect(
+            std::path::Path::new("/usr/bin/espeak-ng"),
+            std::path::Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
+            "en-us",
+            &[std::path::PathBuf::from(
+                "/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1.1.51",
+            )],
+        )
+        .unwrap();
+        let directory = std::env::temp_dir().join(format!(
+            "conduit-zero-body-spoken-{}",
+            random_uuid().unwrap()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let mut speech = BirthSpeechOutput::new(provider, &directory).unwrap();
+        let mut actual = String::new();
+        let mut produced = Vec::new();
+        let mut terminal = None;
+        while let Some(step) = speech.advance(&mut reader, &face, &show).unwrap() {
+            assert_eq!(step.batch.face_id, face.identity.as_str());
+            assert_eq!(step.batch.source_show_id, show.show_id.as_str());
+            assert_eq!(step.batch.segments.len(), 1);
+            for (index, segment) in step.batch.segments.iter().enumerate() {
+                assert_eq!(segment.segment.sequence as usize, index);
+                assert!(segment.segment.text.len() <= 64);
+                actual.push_str(&segment.segment.text);
+            }
+            assert_eq!(
+                step.execution.receipt.source_segments_sha256,
+                step.batch.source_segments_sha256
+            );
+            assert_eq!(
+                step.execution.receipt.wav_bytes,
+                std::fs::metadata(&step.execution.wav_path).unwrap().len()
+            );
+            let wav = std::fs::read(&step.execution.wav_path).unwrap();
+            assert_eq!(&wav[..4], b"RIFF");
+            assert!(wav[44..].iter().any(|sample| *sample != 0));
+            produced.push(serde_json::json!({
+                "wav": step.execution.wav_path,
+                "segments": step.batch.segments.iter().map(|segment| serde_json::json!({
+                    "sequence": segment.segment.sequence,
+                    "text": segment.segment.text,
+                    "reason": format!("{:?}", segment.segment.reason),
+                })).collect::<Vec<_>>(),
+                "sourceSegmentsSha256": step.execution.receipt.source_segments_sha256,
+                "providerSha256": step.execution.receipt.provider_sha256,
+                "speechPlanId": step.execution.receipt.speech_plan_id,
+                "speechPlayId": step.execution.receipt.speech_play_id,
+                "wavSha256": step.execution.receipt.wav_sha256,
+                "pcmBytes": step.execution.receipt.pcm_bytes,
+                "pcmBlocks": step.execution.receipt.pcm_blocks,
+            }));
+            if let Some(receipt) = step.terminal {
+                terminal = Some(receipt);
+                break;
+            }
+        }
+        assert_eq!(actual, expected);
+        assert!(produced.len() > 1);
+        assert!(produced
+            .iter()
+            .any(|item| item["pcmBlocks"].as_u64().unwrap() > 1));
+        assert_eq!(
+            terminal.unwrap().outcome,
+            conduit_std_host::spoken_face_mask::SpokenTurnOutcome::Completed
+        );
+        std::fs::write(
+            directory.join("receipt.json"),
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "faceId": face.identity.as_str(),
+                "faceRevision": face.revision,
+                "showId": show.show_id.as_str(),
+                "bodyId": serde_json::Value::Null,
+                "audioProduced": true,
+                "speakerPlayback": false,
+                "batches": produced,
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        eprintln!("zero-Body spoken audio: {}", directory.display());
     }
 }
