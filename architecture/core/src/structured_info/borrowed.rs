@@ -8,6 +8,8 @@ use super::{
 };
 use sha2::{Digest, Sha256};
 
+mod leaf_sequence;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ValidatedCanonicalStructuredValue<'a> {
     type_bytes: &'a [u8],
