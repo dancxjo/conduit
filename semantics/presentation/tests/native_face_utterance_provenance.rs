@@ -19,6 +19,9 @@ fn face_utterance_provenance_round_trips_every_payload_shape() {
         FaceUtteranceProvenance::text(5).unwrap(),
         FaceUtteranceProvenance::action("action".into()).unwrap(),
         FaceUtteranceProvenance::action_argument("action".into(), "argument".into()).unwrap(),
+        FaceUtteranceProvenance::disclosure(6).unwrap(),
+        FaceUtteranceProvenance::temporal_reference(7).unwrap(),
+        FaceUtteranceProvenance::temporal_fact(8).unwrap(),
     ] {
         assert_round_trip(value);
     }

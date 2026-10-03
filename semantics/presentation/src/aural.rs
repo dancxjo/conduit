@@ -134,6 +134,53 @@ pub fn plan_face_utterances(
         })?;
     }
 
+    for (index, disclosure) in face.disclosures.iter().enumerate() {
+        builder.push(FaceUtteranceClause {
+            kind: FaceUtteranceClauseKind::Disclosure,
+            text: format!(
+                "{} is {:?} content.",
+                subject_name(face, &disclosure.subject),
+                disclosure.level
+            ),
+            provenance: FaceUtteranceProvenance::disclosure(index as u32).unwrap(),
+        })?;
+    }
+
+    for (index, reference) in face.temporal_references.iter().enumerate() {
+        builder.push(FaceUtteranceClause {
+            kind: FaceUtteranceClauseKind::TemporalReference,
+            text: format!(
+                "Time reference {} is tick {} on {} at {:?} scale, resolution {} ticks, uncertainty {} ticks.",
+                reference.identity,
+                reference.instant.ticks,
+                reference.instant.clock_basis,
+                reference.instant.scale,
+                reference.instant.resolution_ticks,
+                reference.instant.uncertainty_ticks,
+            ),
+            provenance: FaceUtteranceProvenance::temporal_reference(index as u32).unwrap(),
+        })?;
+    }
+
+    for (index, fact) in face.temporal_facts.iter().enumerate() {
+        builder.push(FaceUtteranceClause {
+            kind: FaceUtteranceClauseKind::TemporalFact,
+            text: format!(
+                "{} has {:?} time at tick {} on {}: {:?} relative to {}{}.",
+                subject_name(face, &fact.subject),
+                fact.role,
+                fact.source.ticks,
+                fact.source.clock_basis,
+                fact.relation,
+                fact.reference,
+                fact.sign_id
+                    .as_ref()
+                    .map_or_else(String::new, |sign| format!("; Sign {}", sign.as_str())),
+            ),
+            provenance: FaceUtteranceProvenance::temporal_fact(index as u32).unwrap(),
+        })?;
+    }
+
     let mut actions = face.actions.iter().collect::<Vec<_>>();
     actions.sort_by_key(|action| {
         (
@@ -631,6 +678,18 @@ fn hash_provenance(digest: &mut Sha256, provenance: &FaceUtteranceProvenance) {
             digest.update([5]);
             hash_bytes(digest, value.action_identity().as_bytes());
             hash_bytes(digest, value.argument_name().as_bytes());
+        }
+        FaceUtteranceProvenance::Disclosure(value) => {
+            digest.update([7]);
+            digest.update(value.index().to_le_bytes());
+        }
+        FaceUtteranceProvenance::TemporalReference(value) => {
+            digest.update([8]);
+            digest.update(value.index().to_le_bytes());
+        }
+        FaceUtteranceProvenance::TemporalFact(value) => {
+            digest.update([9]);
+            digest.update(value.index().to_le_bytes());
         }
     }
 }

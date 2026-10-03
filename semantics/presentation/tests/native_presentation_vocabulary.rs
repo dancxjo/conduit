@@ -85,6 +85,9 @@ fn presentation_vocabularies_round_trip_through_exact_native_types() {
         FaceUtteranceClauseKind::Text,
         FaceUtteranceClauseKind::Action,
         FaceUtteranceClauseKind::ActionArgument,
+        FaceUtteranceClauseKind::Disclosure,
+        FaceUtteranceClauseKind::TemporalReference,
+        FaceUtteranceClauseKind::TemporalFact,
     ] {
         assert_round_trip(value);
     }
