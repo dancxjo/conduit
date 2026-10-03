@@ -103,11 +103,11 @@ pub(super) fn installed_release(
     if release.schema != "conduit.install/durable-host@1"
         || release.release_source_identity != source_commit
         || release.host_id != owner_host_id
-        || release.release_bundle_sha256.len() != 64
-        || !release
-            .release_bundle_sha256
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit())
+        || release.release_bundle_sha256.len() != 71
+        || !release.release_bundle_sha256.starts_with("sha256:")
+        || !release.release_bundle_sha256.as_bytes()[7..]
+            .iter()
+            .all(u8::is_ascii_hexdigit)
         || fs::canonicalize(&release.product_executable).map_err(|error| error.to_string())? != bin
     {
         return Err(
@@ -169,7 +169,7 @@ mod tests {
                     "schema": "conduit.install/durable-host@1",
                     "host_id": host,
                     "release_source_identity": source,
-                    "release_bundle_sha256": "0".repeat(64),
+                    "release_bundle_sha256": format!("sha256:{}", "0".repeat(64)),
                     "product_executable": bin,
                     "body_state": {"not": "included in retained proof"},
                 }))
