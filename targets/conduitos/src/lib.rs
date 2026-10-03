@@ -7,7 +7,7 @@ pub mod arch;
 pub mod boot;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod bounded_host_calls;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 pub(crate) mod bounded_websocket;
 pub mod composition;
 pub mod cooperative_timer_lane;
@@ -63,6 +63,8 @@ pub mod machine_membrane;
     feature = "hosted-tools"
 ))]
 pub mod make;
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
+pub mod native_boot_join;
 mod native_components;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
@@ -72,7 +74,7 @@ pub mod native_face_mask;
 pub mod native_face_scene;
 pub mod native_face_snapshot;
 pub mod native_network_bounds;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 pub mod native_owner_admission;
 pub mod native_workset;
 pub mod observatory;
@@ -112,12 +114,12 @@ pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
 pub mod protected_line_support;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
 pub mod protected_wire_session;
 pub mod protection_domain;
 pub mod rendezvous_descriptor;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 pub mod secure_rendezvous_support;
 pub mod usb_base;
 #[cfg(any(test, target_arch = "x86_64"))]
@@ -126,18 +128,18 @@ pub mod usb_line_offer;
 pub mod usb_line_session;
 #[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
 pub mod virtio_net_proof;
-#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod virtio_tcp;
-#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(crate) mod virtio_tcp_stream;
-#[cfg(all(target_arch = "x86_64", feature = "virtio-net-proof"))]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod virtio_tls;
 #[cfg(all(
     target_arch = "x86_64",
     any(feature = "virtio-net-proof", feature = "hosted-tools")
 ))]
 pub mod virtio_tls_fixture;
-#[cfg(feature = "virtio-net-proof")]
+#[cfg(feature = "native-owner-network")]
 mod wss_candidate_support;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.

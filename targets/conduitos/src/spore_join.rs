@@ -26,6 +26,15 @@ pub struct PendingNativeJoin {
     pub rendezvous: Option<SpawnRendezvousDescriptor>,
     /// Exact public TLS leaves checked against the candidate bindings.
     pub route_certificates: Vec<RouteCertificate>,
+    /// Owner exchange evidence, never a claim that this Host installed a Part.
+    pub owner_exchange: OwnerExchange,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OwnerExchange {
+    NotAttempted,
+    Refused(&'static str),
+    ReceiptVerified,
 }
 
 impl PendingNativeJoin {
@@ -36,6 +45,7 @@ impl PendingNativeJoin {
             invitation_id: provision.invitation_provision.invitation_id.clone(),
             rendezvous: provision.invitation_provision.rendezvous.clone(),
             route_certificates: provision.invitation_provision.route_certificates.clone(),
+            owner_exchange: OwnerExchange::NotAttempted,
         }
     }
 }

@@ -217,7 +217,7 @@ fn route_candidate_must_match_the_invitation_endpoint_and_certificate() {
     };
     assert!(matches!(
         validate_candidate(&route, &certificate, &request, endpoint, 50),
-        Ok((_, 50))
+        Ok(_)
     ));
     let mut wrong = route.clone();
     wrong.body_id = "body/other".into();
@@ -241,6 +241,37 @@ fn route_candidate_must_match_the_invitation_endpoint_and_certificate() {
     ));
     assert!(matches!(
         validate_candidate(&route, &certificate, &request, endpoint, 0),
+        Err(NativeOwnerAdmissionRefusal::EndpointBinding)
+    ));
+
+    let mut numeric = route.clone();
+    numeric.candidates[0].reachability = "wss://10.0.2.100:8443/conduit".into();
+    let numeric_endpoint = VirtioTcpEndpoint {
+        remote_address: [10, 0, 2, 100],
+        ..endpoint
+    };
+    assert!(matches!(
+        validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 50),
+        Ok(_)
+    ));
+    assert!(matches!(
+        validate_candidate(&numeric, &certificate, &request, endpoint, 50),
+        Err(NativeOwnerAdmissionRefusal::EndpointBinding)
+    ));
+
+    // Poll pressure is an independent work cap, not an elapsed millisecond.
+    numeric.candidates[0].attempt_timeout_millis = 1;
+    assert!(matches!(
+        validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 1_000),
+        Ok(_)
+    ));
+    assert!(matches!(
+        validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 50),
+        Ok(_)
+    ));
+    numeric.candidates[0].attempt_timeout_millis = 0;
+    assert!(matches!(
+        validate_candidate(&numeric, &certificate, &request, numeric_endpoint, 1_000),
         Err(NativeOwnerAdmissionRefusal::EndpointBinding)
     ));
 }
