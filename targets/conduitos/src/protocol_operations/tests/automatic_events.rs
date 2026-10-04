@@ -27,7 +27,7 @@ pub(super) fn prepare_with_body_edit<
 ) -> (
     Result<
         crate::protocol_source::PreparedProtocolBodyPlay<P, C>,
-        alloc::boxed::Box<crate::protocol_source::ProtocolBodyPreparationRefusal>,
+        alloc::boxed::Box<crate::protocol_source::NativeProtocolPreparationRefusal>,
     >,
     StructuredInfoType,
     StructuredInfoType,
@@ -247,6 +247,7 @@ pub(super) fn prepare_with_body_edit<
         )
     }
     .unwrap();
+    let native_advertisement = host.clone();
     bus.append_to_advertisement(&mut host, &i2c).unwrap();
     timer.append_to_advertisement(&mut host, &clock).unwrap();
     source.publish_pure_backs(&mut host).unwrap();
@@ -344,65 +345,65 @@ pub(super) fn prepare_with_body_edit<
         ),
         Err(conduit_planner::PlannerError::QueueRequirementAboveHostLimit(_))
     ));
-    let artifact = source
-        .plan(
-            &hosts,
-            &placements,
-            &[BaseImplementationId::from("conduit.base/local@1")],
-            options,
-        )
-        .unwrap();
-    let plan = &artifact.artifact().definition().internal_plan;
-    assert_eq!(plan.fragments.len(), 1);
-    assert_eq!(plan.fragments[0].placements.len(), 52);
-    assert_eq!(
-        plan.fragments[0]
-            .placements
-            .iter()
-            .filter(|gear| gear.base.is_some())
-            .count(),
-        2
-    );
-    let (table, handle, claim) = super::automatic_admission::possession(plan, false, &grants[0]);
-    let (clock_table, clock_handle, clock_claim) =
-        super::automatic_admission::possession(plan, true, &grants[1]);
-    let identity = artifact.artifact().identity().clone();
-    for altered in 0..4 {
-        let mut stale = identity.clone();
-        match altered {
-            0 => stale.source = SourceDocumentId::from("stale/source"),
-            1 => stale.checked = CheckedPlotId::from("stale/checked"),
-            2 => stale.expanded = ExpandedPlotId::from("stale/expanded"),
-            _ => stale.artifact = ArtifactId::from(""),
-        }
-        assert!(
-            crate::protocol_artifact::AdmittedProtocolArtifact::admit(stale, plan.clone()).is_err()
-        );
-    }
-    assert_eq!(artifact.artifact().identity(), &identity);
-    let mut session = crate::protocol_test_support::protocol_body_session(
-        artifact.body_partition(),
+    let identity = crate::protocol_artifact::ProtocolArtifactIdentity {
+        source: source.expanded().expanded.source_document_id.clone(),
+        checked: source.expanded().expanded.checked_plot_id.clone(),
+        expanded: source.expanded().expanded.expanded_plot_id.clone(),
+        artifact: source.artifact_id().clone(),
+    };
+    let mut session = crate::protocol_test_support::protocol_body_for_resident(
+        &source.resident(),
         &hosts[0].host_id,
         &hosts[0].boot_id,
     );
     edit(&mut session);
-    let play = crate::protocol_source::PreparedProtocolBodyPlay::prepare(
-        artifact,
+    let play = crate::protocol_source::prepare_native_protocol(
+        source,
         session,
-        0,
-        crate::protocol_play::I2cAdmission {
-            ready: bus,
-            table,
-            handle,
-            claim,
+        native_advertisement,
+        crate::protocol_source::NativeProtocolOwners {
+            bus,
+            clock: timer,
+            bus_issuer: super::automatic_admission::native_issuer(false, &grants[0]),
+            clock_issuer: super::automatic_admission::native_issuer(true, &grants[1]),
         },
-        crate::protocol_play::ClockAdmission {
-            ready: timer,
-            table: clock_table,
-            handle: clock_handle,
-            claim: clock_claim,
+        crate::protocol_source::NativeProtocolPreparationLimits {
+            body_play_sequence: 0,
+            bus_work_units: 1,
+            clock_work_units: crate::monotonic_clock::owner::MAXIMUM_POLL_STEPS,
         },
     );
+    if let Ok(play) = &play {
+        let plan = &play.kernel().unwrap().definition().internal_plan;
+        assert_eq!(plan.fragments.len(), 1);
+        assert_eq!(plan.fragments[0].placements.len(), 52);
+        assert_eq!(
+            plan.fragments[0]
+                .placements
+                .iter()
+                .filter(|gear| gear.base.is_some())
+                .count(),
+            2
+        );
+        assert_eq!(plan.source_document_id, identity.source);
+        assert_eq!(plan.checked_plot_id, identity.checked);
+        assert_eq!(plan.expanded_plot_id, identity.expanded);
+        super::automatic_admission::possession(plan, false, &grants[0]);
+        super::automatic_admission::possession(plan, true, &grants[1]);
+        for altered in 0..4 {
+            let mut stale = identity.clone();
+            match altered {
+                0 => stale.source = SourceDocumentId::from("stale/source"),
+                1 => stale.checked = CheckedPlotId::from("stale/checked"),
+                2 => stale.expanded = ExpandedPlotId::from("stale/expanded"),
+                _ => stale.artifact = ArtifactId::from(""),
+            }
+            assert!(
+                crate::protocol_artifact::AdmittedProtocolArtifact::admit(stale, plan.clone())
+                    .is_err()
+            );
+        }
+    }
     (
         play,
         schema("BmeProtocolBegin").clone(),

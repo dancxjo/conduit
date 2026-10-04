@@ -38,21 +38,29 @@ fn unstarted_protocol_body_retires_without_native_effects_or_play_evidence() {
 }
 
 #[test]
-fn refused_protocol_body_preparation_returns_the_unchanged_biography() {
+fn refused_native_protocol_preparation_returns_the_unchanged_biography() {
     let mut before = None;
     let (result, _, _) = prepare_with_body_edit(InertBus, InertClock, |session| {
-        let fragment = &session.realization().unwrap().plan.plots[0].plan.fragments[0];
-        let (host, boot) = (fragment.host_id.clone(), fragment.boot_id.clone());
-        session.lull(&host, &boot, None).unwrap();
+        session
+            .admit_plot(
+                session.evidence().body.workload_revision,
+                conduit_body::ResidentPlot::new(
+                    "fixture/other-source".into(),
+                    "fixture/other-checked".into(),
+                ),
+                &"fixture/automatic".into(),
+                &"fixture/automatic-boot".into(),
+            )
+            .unwrap();
         before = Some(session.evidence().clone());
     });
     let Err(refusal) = result else {
-        panic!("missing proposal must refuse preparation")
+        panic!("omitted resident must refuse preparation")
     };
     assert!(matches!(
         refusal.reason,
-        crate::protocol_source::ProtocolBodyRefusal::Lifecycle(
-            conduit_body::BodyLifecycleSessionError::NoProposal
+        crate::protocol_source::NativeProtocolPreparationReason::Lifecycle(
+            conduit_body::BodyLifecycleSessionError::Plan(conduit_body::BodyPlanError::MissingPlot)
         )
     ));
     assert_eq!(refusal.session.evidence(), before.as_ref().unwrap());

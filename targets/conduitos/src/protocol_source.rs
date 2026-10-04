@@ -299,3 +299,9 @@ mod body_play;
 pub use body_play::{
     PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal, ProtocolBodyRefusal,
 };
+
+mod native_preparation;
+pub use native_preparation::{
+    NativeProtocolOwners, NativeProtocolPreparationLimits, NativeProtocolPreparationReason,
+    NativeProtocolPreparationRefusal, prepare_native_protocol,
+};

@@ -23,8 +23,17 @@ pub(crate) fn protocol_body_session(
     host: &conduit_core::HostId,
     boot: &conduit_core::BootId,
 ) -> conduit_body::BodyLifecycleSession {
+    let mut session = protocol_body_for_resident(&partition.plot, host, boot);
+    session.propose(alloc::vec![partition], host, boot).unwrap();
+    session
+}
+
+pub(crate) fn protocol_body_for_resident(
+    resident: &conduit_body::ResidentPlot,
+    host: &conduit_core::HostId,
+    boot: &conduit_core::BootId,
+) -> conduit_body::BodyLifecycleSession {
     use conduit_body::*;
-    let resident = &partition.plot;
     let body = Body::born(
         resident.source_document_id.clone(),
         resident.checked_plot_id.clone(),
@@ -64,7 +73,5 @@ pub(crate) fn protocol_body_session(
     evidence
         .append_membership_events(membership, &[(admitted, 2), (present, 3)])
         .unwrap();
-    let mut session = BodyLifecycleSession::open_admitted(evidence, host, boot).unwrap();
-    session.propose(alloc::vec![partition], host, boot).unwrap();
-    session
+    BodyLifecycleSession::open_admitted(evidence, host, boot).unwrap()
 }

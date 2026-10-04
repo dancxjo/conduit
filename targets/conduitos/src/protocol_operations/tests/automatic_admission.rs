@@ -40,17 +40,8 @@ fn issuer(authority: BaseCapabilityAuthority) -> NativeProtocolIssuer {
     unsafe { NativeProtocolIssuer::admit(authority, &mut entropy) }.unwrap()
 }
 
-pub(super) fn possession(
-    plan: &Plan,
-    clock: bool,
-    grant: &AuthorityGrant,
-) -> (
-    BaseCapabilityTable,
-    BaseCapabilityHandle,
-    BaseOperationClaim,
-) {
-    let fragment = &plan.fragments[0];
-    let (name, implementation, operation, work, bytes) = if clock {
+fn authority(clock: bool, grant: &AuthorityGrant) -> BaseCapabilityAuthority {
+    let (name, _, operation, work, bytes) = if clock {
         (
             "clock",
             crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION,
@@ -69,7 +60,7 @@ pub(super) fn possession(
     };
     // The fixture Root supplied this grant before planning, independently of
     // Source and the resulting selected placement.
-    let authority = BaseCapabilityAuthority {
+    BaseCapabilityAuthority {
         grant: grant.clone(),
         base_instance_id: alloc::format!("fixture/{name}-provider").into(),
         base_provider_generation: 1,
@@ -82,6 +73,29 @@ pub(super) fn possession(
         maximum_work_units: work,
         maximum_in_flight: 1,
         maximum_operations: 256,
+    }
+}
+
+pub(super) fn native_issuer(clock: bool, grant: &AuthorityGrant) -> NativeProtocolIssuer {
+    issuer(authority(clock, grant))
+}
+
+pub(super) fn possession(
+    plan: &Plan,
+    clock: bool,
+    grant: &AuthorityGrant,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
+    let fragment = &plan.fragments[0];
+    let authority = authority(clock, grant);
+    let work = authority.maximum_work_units;
+    let implementation = if clock {
+        crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION
+    } else {
+        crate::i2c_base::installation::I2C_IMPLEMENTATION
     };
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     let implementation = ImplementationId::from(implementation);

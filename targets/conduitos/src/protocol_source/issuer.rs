@@ -52,6 +52,12 @@ impl NativeProtocolIssuer {
         Ok(Self { authority, table })
     }
 
+    /// Publish descriptive grant facts already retained by the admitted Root.
+    /// Reading this metadata neither transfers possession nor issues a handle.
+    pub fn grant(&self) -> &AuthorityGrant {
+        &self.authority.grant
+    }
+
     /// Consume this issuer for one exact planned native operation. The supplied
     /// active identity must be the actual retained fragment Play identity;
     /// this preparation does not create or start a Play.
