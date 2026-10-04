@@ -144,3 +144,18 @@ owner's Host and Boot identities; this run does not establish speech realized
 by the owner instance. The three speech provider options may also be used without a
 speaker selection to retain the same-run direct speech artifact after the
 three-Host actions; that does not turn the Birth readout into audio.
+
+For a same-run finite model explanation, add `--model ALREADY_LOCAL_MODEL` with
+the three speech provider options. The optional `--ollama-endpoint` defaults to
+`http://127.0.0.1:11434`; `--admitted-memory-mib` defaults to 2048. The
+producer opens its own loopback forwarding route to the selected, already-local
+Ollama service, calls the existing `one-body-spoken-chapter --mode llm-assisted`
+while the QMP guest and Chromium remain live, and checks the original provider
+output, accepted finite wording, Face/Show, source/run/Body/Host/Boot identities,
+and real WAV. It then closes only that forwarding route and retains the next
+request's connection refusal and absence of audio. This demonstrates loss of
+the **configured model route**, not shutdown of Ollama, Host availability
+withdrawal, wardrobe replacement, speaker playback, or human hearing. The
+private walkthrough has a separate chapter with the produced explanation and
+expandable original output, validation, and route-refusal observations. No
+fixture or failed model request can stand in for a successful explanation.
