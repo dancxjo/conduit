@@ -104,3 +104,43 @@ actions in order with the actual screenshots, terminal session, and produced
 speech clips. It copies the exact Handbook build's shared theme and navigation;
 the report hashes that page and both style assets. This development artifact
 does not satisfy the full eight-chapter publication gate.
+
+## Start from zero Body without a screen
+
+For a correlated Birth chapter, install the exact Linux release into a **fresh**
+`OWNER_STATE` using `conduit host service install ... --no-start`. Do not run
+`body own`; the producer starts the installed service and drives its real
+`conduit body birth --screen-free` Crèche. It reads the available controls,
+edits the name, selects the reviewed Clock Plot, reviews the current Face, and
+explicitly activates Birth. The resulting Body is the one provisioned for QMP
+and joined by Chromium. Keep the TLS key and the entire new output directory
+private: it contains a live invitation and provisioned ISO.
+
+```sh
+cargo xtask make conduitos screen-free-three-host-proof \
+  --owner INSTALLED_CONDUIT --owner-state OWNER_STATE \
+  --handbook target/three-host-handbook \
+  --build target/conduitos/live/x86_64-pc \
+  --host-profile targets/conduitos/profiles/conduitos-native.host.conduit \
+  --route-tls-cert PRIVATE_CERT.pem --route-tls-key PRIVATE_KEY.pem \
+  --owner-forward OWNER_PRIVATE_IP:37471 \
+  --route-url wss://10.0.2.42:4433/conduit \
+  --output-dir PRIVATE_NEW_JOURNEY_DIR \
+  --playwright proof/browser/node_modules/playwright/index.mjs \
+  --body-name 'One Body Clock'
+```
+
+`three-host/report.json` binds the Birth input and actual transcript hashes to
+the same Body, owner Host/Boot, release source, and subsequent three-Host
+proof. `three-host/walkthrough.html` opens with the Birth action and explains
+what the transcript establishes. Without a selected speaker, the screen-free
+client emits text readout and this run does not prove audio. To select real
+device playback, first inspect `conduit body speech-options --json`, then add
+the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
+`--speech-data`, and `--speech-engine` options. The selected device's playback
+receipts are in the Birth transcript; this remains distinct from attended
+human listening. Current selected playback uses a second StdHost sharing the
+owner's Host and Boot identities; this run does not establish speech realized
+by the owner instance. The three speech provider options may also be used without a
+speaker selection to retain the same-run direct speech artifact after the
+three-Host actions; that does not turn the Birth readout into audio.
