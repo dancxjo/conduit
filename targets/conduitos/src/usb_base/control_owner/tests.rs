@@ -1,5 +1,6 @@
 use super::*;
 mod fixture;
+mod retirement;
 
 #[test]
 fn kernel_request_replay_cannot_repeat_a_completed_native_effect() {

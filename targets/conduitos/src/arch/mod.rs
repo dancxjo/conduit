@@ -16,7 +16,7 @@ pub use x86_64::{
     FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession, HidPointerError,
     HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle, Interrupts,
     NativeMonotonicDeadlineClock, Opl2, PcSpeaker, Ps2Error, Ps2Input, Ps2Ready, RdrandEntropy,
-    RebootBase, RebootError, Serial, Timer, UsbDevice, VirtioNetError, VirtioNetIdentity,
+    RebootBase, RebootError, Serial, Timer, UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection, UsbDevice, VirtioNetError, VirtioNetIdentity,
     VirtioNetReady, XhciReady, admitted_i801_block_read_ports, admitted_i801_pci_ports,
     admitted_i801_ports, admitted_monotonic_deadline_clock, append_boot_diagnostic, boot_entropy,
     deterministic_exit, early_write, emergency_halt, emergency_machine_profile,
