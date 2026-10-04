@@ -5,7 +5,8 @@ use conduit_composite::*;
 use conduit_plot::PreparedPortableExpressionEvaluator;
 
 fn inputs(address: u8, now: u64) -> (Vec<u8>, Vec<u8>) {
-    let (startup, profile) = I2cContract::prepare().unwrap().catalogs();
+    let (mut startup, profile) = I2cContract::prepare().unwrap().catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../../../../../plots/device-protocols/bme280-lifecycle.conduit"
@@ -103,6 +104,7 @@ fn retained_native_join_exposes_a_typed_pair_without_a_downstream_schema_owner()
 
 fn run_join(exposed: bool) {
     let (mut startup, mut profile) = I2cContract::prepare().unwrap().catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     let (offer, _) = install(&mut startup, &mut profile);
     let pair_bound = offer
         .semantic_contract

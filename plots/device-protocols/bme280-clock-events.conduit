@@ -34,3 +34,8 @@ plot bme280-clock-request (
 plot bme280-clock-event (
     completion: BmeClockCompletion...| >> outcome: BmeClockEvent...|
 ) = (.result is completed ? event(.context is bus ? bus({ result: .context.bus, now: .result.completed }) : tick(.result.completed)) : failed(.result))
+
+# Every clock refusal also advances Source to its explicit terminal state.
+plot bme280-clock-feedback-event (
+    outcome: BmeClockEvent...| >> event: BmeProtocolEvent...|
+) = (. is event ? .event : clock-failed(.failed))

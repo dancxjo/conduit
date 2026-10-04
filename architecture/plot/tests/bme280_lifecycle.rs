@@ -27,6 +27,23 @@ fn lifecycle_catalog() -> StartupCatalog {
             )
             .unwrap();
     }
+    let clock = check_syntax_document(
+        &parse_syntax_document(include_str!(
+            "../../../plots/device-protocols/clock-types.conduit"
+        )),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    catalog
+        .insert_checked_native_type(
+            "machine/clock/at/result",
+            clock
+                .native_types
+                .iter()
+                .find(|ty| ty.name == "MonotonicClockResult")
+                .unwrap(),
+        )
+        .unwrap();
     catalog
 }
 #[test]
@@ -79,10 +96,7 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
         &StartupCatalog::new(),
     )
     .unwrap();
-    for (name, path) in [
-        ("MonotonicClockRequest", "machine/clock/at/request"),
-        ("MonotonicClockResult", "machine/clock/at/result"),
-    ] {
+    for (name, path) in [("MonotonicClockRequest", "machine/clock/at/request")] {
         catalog
             .insert_checked_native_type(
                 path,
@@ -97,6 +111,7 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
     let lifecycle = include_str!("../../../plots/device-protocols/bme280-lifecycle.conduit");
     let events = include_str!("../../../plots/device-protocols/bme280-clock-events.conduit");
     let (imports, definitions) = events.split_once("type BmeClockContext").unwrap();
+    let lifecycle = lifecycle.replace("with machine/clock/at/result as ClockResult", "");
     let source = format!("{imports}\n{lifecycle}\ntype BmeClockContext{definitions}");
     let checked = check_syntax_document(&parse_syntax_document(&source), &catalog).unwrap();
     for name in [
