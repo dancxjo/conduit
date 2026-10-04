@@ -602,6 +602,28 @@ admission: source resolution, phonological consistency and commitment are still
 separate checks. The `intent-realization-hello-world` listening fixture uses
 explicit 120 Hz/unity controls and retains the approved acoustic profile.
 
+Standalone rule input patterns have native phone/phoneme identity laws and
+`speech/identity-pattern-compare`. `compare_phoneme_pattern` and
+`compare_phone_pattern` retain all six original specification states and their
+same-domain identity witness; only Unspecified is unconstrained. Known IDs use
+exact UTF-8 identity, without notation normalization or base-ID fallback.
+`compare_allophone_rule_input` retains the original rule, phoneme pattern and
+explicit observed feature bundle, combining decisions through the native
+context conjunction without dropping components after a mismatch. Missing
+features remain missing observations; definition features are not substituted.
+This prepares the input side of Tongues/Speaking-style standalone rules, not
+occurrence binding, context completion, output-feature inheritance, status
+permission, rule selection or linguistic commitment.
+`compare_allophone_rule_context` binds an original standalone rule to an
+exact intent occurrence and immediate event neighbors. Scalar requirements,
+before/after alternatives and condition receipts retain the original rule
+without constructing a temporary per-phoneme declaration. Matcher and stress
+views share the same neighbors; real boundaries are retained and unobserved
+endpoints remain unknown. Seven component decisions combine through the native
+context conjunction without dropping mismatch evidence. Unsupported syntax and
+occurrence failures remain typed refusals. Input matching, rule status policy,
+output-feature inheritance, selection and commitment remain separate.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
@@ -643,9 +665,37 @@ after a winner; excluded declarations are retained without evaluating context.
 
 `prepare_chosen_allophone_profile` resolves the selected original phone to one
 exact inventory definition and admitted formant binding without rewriting the
-intent. This is hosted preparation with fixed candidate storage, not complete
+intent. This is hosted preparation with at most eight candidate receipts allocated before play, not complete
 utterance admission or a whole MCU footprint claim. Standalone global rules,
 inheritance, syntax, timing/source admission and commitment remain separate.
 The native-speech journey emits `allophone-default-tata.wav` and
 `allophone-initial-aspiration-tata.wav` from manually supplied linguistic facts
 and the existing bounded renderer; acoustic parameters are unchanged.
+
+`prepare_contextual_intent` combines contextual choice, exact profile binding
+and quantitative timing into a frozen bounded event tape. Explicit context has
+one slot per original event (Some for segments, None for boundaries). Deferred
+or absent phone choices, incompatible profiles, unresolved quantitative facts
+and renderer-domain failures refuse preparation before playback. Original
+intent, choice and timing receipts remain inspectable; source resolution and
+linguistic commitment are still separate obligations. Rich candidate storage is
+reserved during hosted preparation within the native eight-rule bound rather
+than copied as a large inline stack value. Rendering adds no collection growth.
+
+`prepare_sourced_contextual_intent` requires complete ordered source coverage
+against explicitly supplied immutable text, phone, phoneme or recognition
+materials before preparing the contextual tape. Both receipts retain the same
+original intent; stale revisions, missing coverage and realization failures
+remain distinct typed refusals. No material search or revision substitution
+occurs. Source resolution proves reference identity and range, not causality,
+authority, segmentation or linguistic commitment. The sourced-contextual
+listening fixtures retain the exact manual text revision alongside choice and
+timing receipts.
+
+The native choice transition carrier is a sum with 26 meaningful states: none,
+default, and eight indices each for selection, requirement deferral and
+observation deferral. Its shape prevents contradictory deferral reasons and
+meaningless none/default indices. The public preparation receipt preserves
+outcome/index/reason accessors and validates their correlation through native
+laws. Pure choice Plots construct the sum; native preparation validates the
+refined receipt separately, preserving the admitted law-validator boundary.

@@ -1,5 +1,6 @@
 use super::*;
 use crate::durable_host::owner::Owner;
+use crate::durable_host_control::terminal_attach;
 use conduit_body::{ResidentPlot, SpawnInvitationSecret};
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_presentation::ManifestationLifecycle;
@@ -259,7 +260,14 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
             show.clone(),
         )
         .unwrap();
-    gate.wait(); // Worker now owns the exact Host but has not begun any Play.
+    // Worker now owns the exact Host but has not begun any Play.
+    gate.wait();
+    // Exercise the service loop while the selected speaker owns the sole Host.
+    // A lulled Body has no running Body worker, but that does not make its Host idle.
+    terminal_attach::retire_closed_attachment(&root, &mut runtime).unwrap();
+    assert!(!terminal_attach::is_attached(&mut runtime));
+    runtime.progress_owned_body().unwrap();
+    runtime.progress_browser_speech().unwrap();
     assert_eq!(
         runtime.browser_speech_status(&operation_id).unwrap()["state"],
         "running"
