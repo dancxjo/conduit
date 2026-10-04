@@ -121,6 +121,56 @@ fn full_document_preserves_words_relationships_and_inspection() {
 }
 
 #[test]
+fn terminal_face_names_small_exact_text_choices_without_changing_the_contract() {
+    let base = face(1);
+    let mut actions = base.actions.clone();
+    actions[0].arguments[0].contract = conduit_core::CheckedValueContract::new(
+        conduit_core::kind_id(UTF8_TEXT_VALUE_KIND),
+        4,
+        vec![conduit_core::ValueConstraint::CanonicalMembership {
+            members: ["1000", "2000", "250", "500"]
+                .map(|value| value.as_bytes().to_vec())
+                .into(),
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let changed = Presentation::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        base.subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        actions,
+        base.disclosures,
+    )
+    .unwrap();
+    let mask = TerminalFaceMask::prepare_read_only(changed, 60, 12).unwrap();
+    let document = mask
+        .document
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<String>();
+    assert!(document.contains("For Change name, choose Name: 1000, 2000, 250, 500."));
+    assert!(!document.contains("canonical values 0x"));
+    let inspection = mask
+        .inspect_document
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<String>();
+    assert!(inspection.contains("CanonicalMembership"));
+    assert!(mask.face.actions[0].arguments[0]
+        .contract
+        .validate(b"500")
+        .is_ok());
+    assert!(mask.face.actions[0].arguments[0]
+        .contract
+        .validate(b"750")
+        .is_err());
+}
+
+#[test]
 fn read_only_owner_face_can_be_read_but_never_submitted() {
     let mut mask = TerminalFaceMask::prepare_read_only(face(7), 60, 12).unwrap();
     let show = bind(&mut mask);

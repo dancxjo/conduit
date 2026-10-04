@@ -293,6 +293,7 @@ mod tests {
             product_executable: "fixture-unused".into(),
             body_state: None,
             joined_body_state: None,
+            selected_speech: None,
         };
         write_json_atomic(&root.join("installation.json"), &installation).unwrap();
         let checked = crate::plot_source::parse(SOURCE)
@@ -380,6 +381,7 @@ mod tests {
             product_executable: "fixture-unused".into(),
             body_state: None,
             joined_body_state: None,
+            selected_speech: None,
         };
         write_json_atomic(&root.join("installation.json"), &installation).unwrap();
         let body = Body::born(
