@@ -19,7 +19,9 @@ fn one_event_advances_one_phase_and_deadlines_use_monotonic_time() {
     request(&mut f, &state, &[0xe0, 0xb6], 0);
     state = f.advance(state, f.bus("completed", &[], 1));
     assert_eq!(byte(field(&state, "phase")), 2);
-    assert_eq!(tag(&f.action(&state)), "waiting");
+    let action = f.action(&state);
+    assert_eq!(tag(&action), "waiting");
+    assert_eq!(payload(&action), field(&state, "deadline"));
     state = f.advance(state, f.tick(2));
     assert_eq!(byte(field(&state, "phase")), 2);
     state = f.advance(state, f.tick(3));
@@ -51,6 +53,9 @@ fn one_event_advances_one_phase_and_deadlines_use_monotonic_time() {
     assert_eq!(bytes(field(&state, "humidity")), humidity);
     request(&mut f, &state, &[0xf4, 0x25], 0);
     state = f.advance(state, f.bus("completed", &[], 4));
+    let action = f.action(&state);
+    assert_eq!(tag(&action), "waiting");
+    assert_eq!(payload(&action), field(&state, "deadline"));
     state = f.advance(state, f.tick(23));
     assert_eq!(tag(&f.action(&state)), "waiting");
     state = f.advance(state, f.tick(24));
@@ -65,7 +70,7 @@ fn one_event_advances_one_phase_and_deadlines_use_monotonic_time() {
     assert_eq!(bytes(field(&state, "sample")), sample);
     assert_eq!(tag(field(&state, "failure")), "none");
     state = f.advance(state, f.tick(25));
-    assert_eq!(tag(&f.action(&state)), "waiting");
+    assert_eq!(tag(&f.action(&state)), "pending");
 }
 #[test]
 fn identity_short_bus_loss_and_unexpected_events_refuse_without_new_requests() {
@@ -120,11 +125,11 @@ fn clock_events_do_not_repeat_an_in_flight_transaction() {
     let initial = f.initial();
     request(&mut f, &initial, &[0xd0], 1);
     let mut state = f.advance(initial, f.tick(1));
-    assert_eq!(tag(&f.action(&state)), "waiting");
+    assert_eq!(tag(&f.action(&state)), "pending");
     state = f.advance(state, f.bus("completed", &[0x60], 2));
     request(&mut f, &state, &[0xe0, 0xb6], 0);
     state = f.advance(state, f.tick(3));
-    assert_eq!(tag(&f.action(&state)), "waiting");
+    assert_eq!(tag(&f.action(&state)), "pending");
     state = f.advance(state, f.bus("completed", &[], 4));
     state = f.advance(state, f.tick(6));
     request(&mut f, &state, &[0xf3], 1);

@@ -59,7 +59,11 @@ discard a law or justify arithmetic changes from shape alone.
 initialization, deadline and bounded polling policy, with calibration and sample
 capture. Each event is handled once. The staged topology stays within the
 existing expression-depth limit; it does not add a private protocol scheduler.
-The lifecycle helpers expose closing event streams. Native admission tests now
+The lifecycle helpers expose closing event streams. A timed `waiting` action
+carries the exact Source-owned monotonic deadline; `pending` means no new
+effect while a transaction is in flight or a terminal observation was already
+produced. A time provider must return its observed completion time, rather than
+counting repeated ticks. Native admission tests now
 execute initialization and action selection through the production kernel and
 issue the source-authored identity read through the retained I2C owner. The
 complete clock/feedback path and boot admission remain development work.
