@@ -2,61 +2,10 @@
 use conduit_core::IeeeF32;
 use conduit_plot::rust_binding::{BoundedSequence, NativeBindingRefusal};
 use conduit_speech::{inventory_admission::*, reference_admission::*, semantic::*};
+#[path = "common/native_phone.rs"]
+mod fixture;
+use fixture::*;
 
-fn material(spec: PhoneSpecification) -> (LanguageSegmentRef, SpeechPhoneSequence) {
-    let inventory = SpeechInventoryId::new("inventory".into()).unwrap();
-    let language = SpeechLanguageId::new("en".into()).unwrap();
-    let revision = SpeechSegmentRevisionId::new("revision".into()).unwrap();
-    let sequence = SpeechSegmentSequenceId::new("sequence".into()).unwrap();
-    let utterance = SpeechUtteranceId::new("utterance".into()).unwrap();
-    let reference = LanguageSegmentRef::phone(
-        inventory.clone(),
-        language.clone(),
-        0,
-        revision.clone(),
-        sequence.clone(),
-        utterance.clone(),
-    )
-    .unwrap();
-    let basis =
-        SpeechTokenSequenceBasis::new(inventory, language, revision, sequence, utterance).unwrap();
-    let token = SpeechPhoneToken::new(
-        BoundedSequence::new(),
-        SpeechConfidence::new(IeeeF32::from_value(0.75)).unwrap(),
-        SpeechFeatureBundle::new(BoundedSequence::new()).unwrap(),
-        spec,
-        SpeechEvidenceProvenance::new("original".into(), SpeechEvidenceSource::Manual, None)
-            .unwrap(),
-        None,
-    )
-    .unwrap();
-    (
-        reference,
-        SpeechPhoneSequence::new(basis, BoundedSequence::try_from_iter([token]).unwrap()).unwrap(),
-    )
-}
-fn id(s: &str) -> PhoneId {
-    PhoneId::new(s.into()).unwrap()
-}
-fn definition(identity: &str) -> SpeechPhone {
-    SpeechPhone::new(
-        BoundedSequence::new(),
-        SpeechFeatureBundle::new(BoundedSequence::new()).unwrap(),
-        id(identity),
-        "t".into(),
-        SpeechSegmentStatus::Allophonic,
-    )
-    .unwrap()
-}
-fn inventory(identity: &str, language: &str, phones: Vec<SpeechPhone>) -> SpeechInventory {
-    SpeechInventory::new(
-        SpeechInventoryId::new(identity.into()).unwrap(),
-        SpeechLanguageId::new(language.into()).unwrap(),
-        BoundedSequence::new(),
-        BoundedSequence::try_from_iter(phones).unwrap(),
-    )
-    .unwrap()
-}
 #[test]
 fn definition_resolution_retains_the_exact_material_and_inventory() {
     let (reference, snapshot) = material(PhoneSpecification::known(id("opaque/t")).unwrap());

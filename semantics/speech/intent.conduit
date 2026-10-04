@@ -59,3 +59,30 @@ type SpeechOccurrenceMembership = {
     where .occurrence.inventory_id == .inventory_id
     where .occurrence.language == .language
 }
+
+# An explicit compact realization relation, distinct from boundary meaning.
+# Other boundary kinds require a separately authored supported realization.
+type SpeechFormantBoundary =
+    word
+    | phrase
+    | turn
+
+type SpeechFormantBoundaryBinding = {
+    kind: SpeechBoundaryKind
+    realization: SpeechFormantBoundary
+    where .realization is word ? .kind is word : true
+    where .realization is phrase ? .kind is phrase : true
+    where .realization is turn ? .kind is turn : true
+}
+
+type SpeechBoundaryIntentMatch = {
+    requested: SpeechBoundaryKind
+    supplied: SpeechBoundaryKind
+    where .requested is phone ? .supplied is phone : true
+    where .requested is syllable ? .supplied is syllable : true
+    where .requested is morpheme ? .supplied is morpheme : true
+    where .requested is word ? .supplied is word : true
+    where .requested is phrase ? .supplied is phrase : true
+    where .requested is breath_group ? .supplied is breath_group : true
+    where .requested is turn ? .supplied is turn : true
+}
