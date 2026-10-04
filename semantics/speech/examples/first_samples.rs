@@ -143,6 +143,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         write_wav(&output, name, prepared.events())?;
         println!("{output}/{name}.wav: {text}");
     }
+    let mut direct_storage =
+        [VoiceEvent::boundary(VoiceBoundary::word); conduit_speech::MAXIMUM_EVENTS];
+    let pronounced = conduit_speech::pronounce("Hello, world!", &mut direct_storage)
+        .map_err(|error| format!("{error:?}"))?;
+    let direct: Vec<_> = pronounced
+        .events()
+        .iter()
+        .map(|event| match event.realization() {
+            Some(input) => conduit_speech::realize(input)
+                .map(|selected| {
+                    VoiceEvent::phone(conduit_speech::SpeechPhoneInput {
+                        phone: selected.phone,
+                        stress: input.stress,
+                    })
+                })
+                .ok_or("realization refused"),
+            None => Ok(*event),
+        })
+        .collect::<Result<_, _>>()?;
+    write_wav(&output, "direct-phone-hello-world", &direct)?;
+    println!("{output}/direct-phone-hello-world.wav: supplied phones; no source phoneme in renderer input");
     #[cfg(feature = "semantic-bindings")]
     duration_samples::write(&output)?;
     #[cfg(feature = "semantic-bindings")]
