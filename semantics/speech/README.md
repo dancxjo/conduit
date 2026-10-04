@@ -327,8 +327,8 @@ sites from embedded data. It does not sum entries into a call-chain bound:
 computed targets, body stack adjustments and call-chain liveness are unverified.
 Its machine-readable `full_stack_status` remains `unproven`, and unsupported
 entry shapes retain an explicit gap instead of a numeric reservation. The current
-default-profile renderer has five identified computed-control sites, and text plus synthesis has
-47; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
+default-profile renderer has seven identified computed-control sites, and text plus synthesis has
+49; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
 This is an entry-stack lower bound: callee frames, later body stack changes,
 boot and interrupts are excluded. It cannot establish total stack or device fit.
 A link is not device playback or proof of real-time performance. WAV generation
