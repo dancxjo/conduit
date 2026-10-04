@@ -112,6 +112,19 @@ cannot clear a genuine pending operation.
 The shared single-call Back's kernel request IDs remain the correlation source;
 replaying a completed request is refused rather than repeating a native effect.
 
+`src/usb_base/control_factory` prepares the exact selected control operation
+with the production kernel's shared single-call Back. The checked control plot
+states the same 4096-byte canonical input/output envelopes as the Kind; the
+256-octet transfer payload bound remains independent. Preparation rejects
+substituted profiles, ports, call bounds, Base mechanisms, resources and grants.
+A deterministic fixture checks and plans this source, issues explicit inert Base
+possession, and runs dispatch and completion through the production kernel and
+control owner. Two transfers preserve exact results, advance request identity and
+reuse the bounded output buffer. Wrong Boot, missing dispatch resources/authority, forged request
+tokens, duplicate completion and cancellation are refused. This is cooperative
+kernel execution proof with scripted quiescence, not an installed native offer,
+controller execution or a physical stop acknowledgement.
+
 The quiescence acknowledgement is currently a private unsafe native-provider
 boundary, exercised by cooperative fixtures. Its safety contract requires the
 exact final status or acknowledged endpoint/controller stop. Software timeout,
