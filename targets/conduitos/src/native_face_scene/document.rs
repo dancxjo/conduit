@@ -5,6 +5,7 @@ use alloc::{format, string::String};
 use conduit_presentation::{
     FaceUtteranceProvenance as Provenance, PresentationActionAvailability,
     PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole, plan_face_utterances,
+    readable_finite_text_choices,
 };
 
 pub(super) struct Item {
@@ -215,19 +216,15 @@ pub(super) fn prepare(
                 indent: 0,
             });
             for (argument_index, argument) in action.arguments.iter().enumerate() {
+                let hint = if !interaction_admitted {
+                    "view only on this host".into()
+                } else if argument.contract.value_kind.as_str() == "value/bool" {
+                    "0 false · 1 true · Enter applies".into()
+                } else {
+                    argument_hint(argument)
+                };
                 append(Item {
-                    text: format!(
-                        "{} · {} · {}",
-                        subject.name,
-                        argument.value_name,
-                        if !interaction_admitted {
-                            "view only on this host"
-                        } else if argument.contract.value_kind.as_str() == "value/bool" {
-                            "0 false · 1 true · Enter applies"
-                        } else {
-                            "enter a replacement value"
-                        }
-                    ),
+                    text: format!("{} · {} · {}", subject.name, argument.value_name, hint),
                     role: GraphicsTextRole::Label,
                     paint,
                     control: interaction_admitted.then_some(FaceControl {
@@ -240,4 +237,11 @@ pub(super) fn prepare(
         }
     }
     Ok((primary, details))
+}
+
+fn argument_hint(argument: &conduit_presentation::FaceActionArgument) -> String {
+    readable_finite_text_choices(&argument.contract).map_or_else(
+        || "enter a replacement value".into(),
+        |choices| format!("enter one of: {} · Enter applies", choices.join(", ")),
+    )
 }
