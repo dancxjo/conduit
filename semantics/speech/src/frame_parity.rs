@@ -77,10 +77,52 @@ pub(super) fn state(ty: &StructuredInfoType, value: SpeechFrameState) -> Structu
         ],
     )
 }
+pub(super) fn profile_cycle() -> SpeechFrameCycleControl {
+    SpeechFrameCycleControl {
+        mode: SpeechCycleControlMode::profile,
+        phase_q8: 0,
+        period_q8: 0,
+    }
+}
+pub(super) fn cycle_value(
+    ty: &StructuredInfoType,
+    value: SpeechFrameCycleControl,
+) -> StructuredInfoValue {
+    let tag = match value.mode {
+        SpeechCycleControlMode::profile => "profile",
+        SpeechCycleControlMode::resolved => "resolved",
+    };
+    record(
+        ty,
+        &[
+            (
+                "mode",
+                crate::onset_parity::variant(field_type(ty, "mode"), tag),
+            ),
+            (
+                "phase_q8",
+                StructuredInfoValue::leaf(
+                    field_type(ty, "phase_q8").clone(),
+                    value.phase_q8.to_le_bytes().to_vec(),
+                )
+                .unwrap(),
+            ),
+            (
+                "period_q8",
+                StructuredInfoValue::leaf(
+                    field_type(ty, "period_q8").clone(),
+                    value.period_q8.to_le_bytes().to_vec(),
+                )
+                .unwrap(),
+            ),
+        ],
+    )
+}
 pub(super) fn input(ty: &StructuredInfoType, value: SpeechFrameInput) -> Vec<u8> {
     record(
         ty,
         &[
+            ("cycle", cycle_value(field_type(ty, "cycle"), value.cycle)),
             (
                 "attack",
                 StructuredInfoValue::leaf(
@@ -127,6 +169,14 @@ pub(super) fn result(ty: &StructuredInfoType, value: SpeechFrameResult) -> Vec<u
     record(
         ty,
         &[
+            (
+                "phase_q8",
+                StructuredInfoValue::leaf(
+                    field_type(ty, "phase_q8").clone(),
+                    value.phase_q8.to_le_bytes().to_vec(),
+                )
+                .unwrap(),
+            ),
             ("state", state(field_type(ty, "state"), value.state)),
             (
                 "sample",
@@ -186,6 +236,7 @@ fn composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges() {
                 };
                 for &(attack, release) in modes {
                     let value = SpeechFrameInput {
+                        cycle: crate::frame_parity::profile_cycle(),
                         attack,
                         release,
                         target,
@@ -225,6 +276,7 @@ fn composed_frame_agrees_with_portable_graph_at_all_phone_and_envelope_edges() {
     let target = speech_voice_target(EnglishPhone::iy).unwrap();
     for (noise, period) in [(i32::MAX, 61), (1, 0)] {
         let value = SpeechFrameInput {
+            cycle: profile_cycle(),
             attack: true,
             release: true,
             target,
@@ -340,6 +392,12 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
             })
             .unwrap();
             let expected = SpeechFrameResult {
+                phase_q8: speech_phase(PhaseInput {
+                    phase: history.phase,
+                    period: 61,
+                })
+                .unwrap()
+                    * 256,
                 state: SpeechFrameState {
                     voicing,
                     phase: speech_phase(PhaseInput {
@@ -372,6 +430,7 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
                 .unwrap(),
             };
             let actual = speech_frame(SpeechFrameInput {
+                cycle: crate::frame_parity::profile_cycle(),
                 attack: true,
                 release: true,
                 target,
@@ -384,8 +443,13 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
             history = actual.state;
         }
         assert_eq!(
-            speech_boundary_frame(history).unwrap(),
+            speech_boundary_frame(SpeechBoundaryFrameInput {
+                state: history,
+                phase_q8: history.phase * 256
+            })
+            .unwrap(),
             SpeechFrameResult {
+                phase_q8: history.phase * 256,
                 state: history,
                 sample: 0
             }

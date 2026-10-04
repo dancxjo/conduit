@@ -21,6 +21,7 @@ conduit-kernel = { path = "../kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../plan-lowering", default-features = false }
 
 [dev-dependencies]
+conduit-kernel = { path = "../kernel", features = ["alloc", "step-test-support"] }
 conduit-planner = { path = "../planner" }
 conduit-signal = { path = "../../semantics/signal", default-features = false, features = ["host-profile"] }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["plot-catalog"] }

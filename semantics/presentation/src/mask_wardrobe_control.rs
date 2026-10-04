@@ -57,13 +57,26 @@ impl MaskWardrobeControl {
         if routes.plan_id() != &active_plan.plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
         }
+        Self::new_from_admitted_routes(scoped_wardrobe, routes, selected)
+    }
+
+    /// The admitted route may be sealed by a workload BodyPlan or by an
+    /// owner-issued presentation route while the workload Body is lulled.
+    pub fn new_from_admitted_routes(
+        scoped_wardrobe: BodyMaskWardrobe,
+        routes: &AdmittedMaskPlotRoutes,
+        selected: Option<SelectedMaskPlotRoute>,
+    ) -> Result<Self, MaskWardrobeControlError> {
+        if routes.body_id() != &scoped_wardrobe.body_id {
+            return Err(MaskWardrobeControlError::WrongBody);
+        }
         let reconciliation = scoped_wardrobe
             .wardrobe
-            .reconcile(&active_plan.plan_id, routes.routes(), selected.as_ref())
+            .reconcile(routes.plan_id(), routes.routes(), selected.as_ref())
             .map_err(MaskWardrobeControlError::Wardrobe)?;
         Ok(Self {
             scoped_wardrobe,
-            active_plan_id: active_plan.plan_id.clone(),
+            active_plan_id: routes.plan_id().clone(),
             selected: selection(&reconciliation.show),
         })
     }
@@ -74,6 +87,9 @@ impl MaskWardrobeControl {
         action: MaskWardrobeAction,
         routes: &AdmittedMaskPlotRoutes,
     ) -> Result<MaskWardrobeControlEvidence, MaskWardrobeControlError> {
+        if routes.body_id() != &self.scoped_wardrobe.body_id {
+            return Err(MaskWardrobeControlError::WrongBody);
+        }
         if routes.plan_id() != &self.active_plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
         }
@@ -116,6 +132,9 @@ impl MaskWardrobeControl {
         &mut self,
         routes: &AdmittedMaskPlotRoutes,
     ) -> Result<MaskReconciliation, MaskWardrobeControlError> {
+        if routes.body_id() != &self.scoped_wardrobe.body_id {
+            return Err(MaskWardrobeControlError::WrongBody);
+        }
         if routes.plan_id() != &self.active_plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
         }
@@ -142,6 +161,9 @@ impl MaskWardrobeControl {
             return Err(MaskWardrobeControlError::StalePlan);
         }
         if replacement_plan.body_id != self.scoped_wardrobe.body_id {
+            return Err(MaskWardrobeControlError::WrongBody);
+        }
+        if routes.body_id() != &replacement_plan.body_id {
             return Err(MaskWardrobeControlError::WrongBody);
         }
         if routes.plan_id() != &replacement_plan.plan_id {

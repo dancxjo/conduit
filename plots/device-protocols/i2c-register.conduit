@@ -1,0 +1,33 @@
+# Wire-register idioms. The address is protocol meaning; provider/resource
+# possession is supplied independently by the exact Plan.
+with machine/i2c/transact/request as I2cTransaction
+with machine/i2c/transact/result as I2cResult
+
+type I2cRegisterRead = {
+    address: U8 in 8..=119
+    register: U8
+}
+type I2cRegisterWrite = {
+    address: U8 in 8..=119
+    register: U8
+    value: U8
+}
+plot i2c-register-read-request (
+    query: I2cRegisterRead >> request: I2cTransaction
+) = ({ address: .address, write: [.register], read: 1 })
+plot i2c-register-write-request (
+    query: I2cRegisterWrite >> request: I2cTransaction
+) = ({ address: .address, write: [.register, .value], read: 0 })
+
+plot i2c-register-read (
+    query: I2cRegisterRead...| >> result: I2cResult...|
+) {
+    transaction: machine/i2c/transact
+    query >> ({ address: .address, write: [.register], read: 1 }) >> transaction >> result
+}
+plot i2c-register-write (
+    query: I2cRegisterWrite...| >> result: I2cResult...|
+) {
+    transaction: machine/i2c/transact
+    query >> ({ address: .address, write: [.register, .value], read: 0 }) >> transaction >> result
+}

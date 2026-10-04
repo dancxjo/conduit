@@ -4,8 +4,7 @@ use alloc::boxed::Box;
 
 pub(super) fn is_semantic_call(expression: &crate::ExpressionSyntax) -> bool {
     matches!(expression, crate::ExpressionSyntax::SemanticCall { kind, .. }
-        if crate::expression_semantic_call::integer_widening_target(&kind.text).is_none()
-            && !matches!(kind.text.as_str(), "variant/is" | "variant/tag"))
+        if !crate::expression_semantic_call::is_intrinsic(&kind.text))
 }
 
 /// Replaces the one dynamic semantic result in an outer pure expression with
@@ -25,14 +24,16 @@ pub(super) fn isolate_nested_semantic_call(
                 kind,
                 arguments,
                 span,
-            } if !is_semantic_call(expression) => ExpressionSyntax::SemanticCall {
-                kind: kind.clone(),
-                arguments: arguments
-                    .iter()
-                    .map(|argument| rewrite(argument, call))
-                    .collect::<Result<_, _>>()?,
-                span: *span,
-            },
+            } if crate::expression_semantic_call::is_intrinsic(&kind.text) => {
+                ExpressionSyntax::SemanticCall {
+                    kind: kind.clone(),
+                    arguments: arguments
+                        .iter()
+                        .map(|argument| rewrite(argument, call))
+                        .collect::<Result<_, _>>()?,
+                    span: *span,
+                }
+            }
             ExpressionSyntax::SemanticCall { span, .. } => {
                 if call.replace(expression.clone()).is_some() {
                     return Err(CanonicalExpansionDiagnostic::new(

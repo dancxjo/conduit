@@ -12,6 +12,7 @@ type SpeechNeighborModel = {
     model: SpeechAcousticTarget
 }
 type SpeechConnectedInput = {
+    cycle: SpeechFrameCycleControl
     phone: EnglishPhone
     stress: EnglishStress
     state: SpeechFrameState
@@ -74,7 +75,7 @@ plot speech/connected-target (
 plot speech/connected-onset-input (
     >> value: SpeechConnectedResult
     result: SpeechVowelOnsetInput >>
-) = ({phone: .input.phone, prosody: {stress: .input.stress, attack: .attack, release: .release, target: .target, frame: .input.frame, state: .input.state}, previous_place: .input.previous_place, relation: .input.previous.relation})
+) = ({phone: .input.phone, prosody: {cycle: .input.cycle, stress: .input.stress, attack: .attack, release: .release, target: .target, frame: .input.frame, state: .input.state}, previous_place: .input.previous_place, relation: .input.previous.relation})
 
 plot speech/connected-frame (
     >> value: SpeechConnectedInput

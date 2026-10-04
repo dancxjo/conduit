@@ -1,10 +1,32 @@
-use crate::boundary::augment_boundary_cords;
-use crate::{BoxedKernelBack, KernelOperationRegistry};
-use conduit_core::{PlanFragment, PortDirection, PortId as SemanticPortId, ValuePayload};
+//! Bounded child execution and exact composite boundary transport.
+use crate::prelude::*;
+mod preparation;
+use crate::BoxedKernelBack;
+use conduit_core::{PortDirection, PortId as SemanticPortId, ValuePayload};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerError,
-    SchedulerStatus,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerError, SchedulerStatus,
 };
+
+/// A finite execution refusal; formatting belongs outside Play.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChildExecutionError {
+    UnknownFront,
+    ValueKindMismatch,
+    BufferContractMismatch,
+    Scheduler(SchedulerError),
+}
+
+impl From<SchedulerError> for ChildExecutionError {
+    fn from(error: SchedulerError) -> Self {
+        Self::Scheduler(error)
+    }
+}
+
+impl From<conduit_kernel::StorageError> for ChildExecutionError {
+    fn from(error: conduit_kernel::StorageError) -> Self {
+        Self::Scheduler(error.into())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChildTransportError {
@@ -20,12 +42,12 @@ pub enum ChildTerminalError {
     BufferContractMismatch,
     Scheduler(SchedulerError),
 }
+use alloc::collections::BTreeMap;
 use conduit_kernel::{
-    CanonicalValue, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
-    KernelEvent, NodeId, RemoteEndpointId, RemoteTerminalDisposition, ValueStorage,
+    CanonicalValue, CordId, HostedSignLog, HostedValueStore, KernelEvent, NodeId, RemoteEndpointId,
+    RemoteTerminalDisposition, ValueStorage,
 };
-use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
-use std::collections::BTreeMap;
+use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 pub(crate) const MAX_NODES: usize = 16;
 pub(crate) const MAX_CORDS: usize = 32;
@@ -72,152 +94,8 @@ pub(crate) struct ChildKernel {
 }
 
 impl ChildKernel {
-    pub(crate) fn prepare(
-        fragment: &PlanFragment,
-        mut lowered: LoweredPlanFragment,
-        boundaries: Vec<BoundaryEndpoint>,
-        registry: &KernelOperationRegistry,
-    ) -> Result<Self, String> {
-        augment_boundary_cords(&mut lowered, &boundaries)?;
-        let active_nodes = lowered.nodes.len();
-        let active_cords = lowered.cords.len();
-        if active_nodes == 0
-            || active_nodes > MAX_NODES
-            || active_cords == 0
-            || active_cords > MAX_CORDS
-            || usize::from(lowered.cord_value_slots) > MAX_QUEUE_SLOTS
-            || lowered.host_calls.len() > HOST_BINDING_SLOTS
-        {
-            return Err("child exceeds the admitted kernel composite profile".into());
-        }
-
-        let mut value_items = lowered.cord_value_slots;
-        let mut value_bytes = lowered.cord_value_bytes;
-        let mut maximum_value_bytes = lowered
-            .cords
-            .iter()
-            .map(|cord| cord.spec.byte_capacity)
-            .max()
-            .unwrap_or(1);
-        let mut host_requests = 0u16;
-        let mut sign_items = lowered
-            .sign_items
-            .checked_add(u16::try_from(active_nodes * 8 + active_cords * 8).map_err(debug)?)
-            .ok_or_else(|| "kernel composite Sign bound overflow".to_string())?;
-        for placement in &fragment.placements {
-            let factory = registry.get(&placement.implementation_id).ok_or_else(|| {
-                format!(
-                    "implementation '{}' is not installed",
-                    placement.implementation_id.as_str()
-                )
-            })?;
-            let budget = factory.budget(placement)?;
-            value_items = value_items
-                .checked_add(budget.value_items)
-                .ok_or_else(|| "kernel composite value item bound overflow".to_string())?;
-            value_bytes = value_bytes
-                .checked_add(budget.value_bytes)
-                .ok_or_else(|| "kernel composite value byte bound overflow".to_string())?;
-            maximum_value_bytes = maximum_value_bytes.max(budget.maximum_value_bytes);
-            host_requests = host_requests
-                .checked_add(budget.host_requests)
-                .ok_or_else(|| "kernel composite host-request bound overflow".to_string())?;
-            sign_items = sign_items
-                .checked_add(budget.sign_items)
-                .ok_or_else(|| "kernel composite Sign bound overflow".to_string())?;
-        }
-        if usize::from(host_requests) > PENDING_REQUESTS {
-            return Err("child exceeds the admitted kernel host-request profile".into());
-        }
-        let mut values = HostedValueStore::new(
-            value_items.max(1),
-            maximum_value_bytes.max(1),
-            value_bytes.max(1),
-        )
-        .map_err(debug)?;
-        let mut backs = Vec::with_capacity(MAX_NODES);
-        for placement in &fragment.placements {
-            let factory = registry
-                .get(&placement.implementation_id)
-                .ok_or_else(|| "installed implementation disappeared".to_string())?;
-            backs.push(BoxedKernelBack::new(
-                factory.prepare(placement, &mut values)?,
-            ));
-        }
-        while backs.len() < MAX_NODES {
-            backs.push(BoxedKernelBack::inactive());
-        }
-        let backs = backs
-            .try_into()
-            .map_err(|_| "kernel composite Back capacity changed".to_string())?;
-
-        let inactive_node = conduit_kernel::scheduler::NodeSpec {
-            input_cords: [None; PORTS],
-            maximum_step_fuel: 1,
-        };
-        let mut nodes = [inactive_node; MAX_NODES];
-        nodes[..active_nodes].copy_from_slice(&lowered.node_specs);
-        let inactive_cord = CordSpec::inactive();
-        let mut cords = [inactive_cord; MAX_CORDS];
-        for (destination, source) in cords.iter_mut().zip(&lowered.cords) {
-            *destination = source.spec;
-        }
-        let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
-        for route in &lowered.routes {
-            routes
-                .install(
-                    route.source_node,
-                    route.source_port,
-                    route.range,
-                    &route.targets,
-                )
-                .map_err(debug)?;
-        }
-        routes.seal().map_err(debug)?;
-        let mut host_calls = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(HOST_CALLS_PER_NODE);
-        for operation in &lowered.host_calls {
-            host_calls
-                .install(operation.node, operation.binding)
-                .map_err(debug)?;
-        }
-        host_calls.seal().map_err(debug)?;
-        let sign_bytes = u32::from(sign_items)
-            .checked_mul(u32::try_from(core::mem::size_of::<KernelEvent>()).map_err(debug)?)
-            .ok_or_else(|| "kernel composite Sign byte bound overflow".to_string())?;
-        let signs = HostedSignLog::new_with_remote_storage(
-            sign_items,
-            sign_bytes,
-            u16::try_from(active_cords * 8).map_err(debug)?.max(1),
-            conduit_kernel::remote_sign_storage_bytes(
-                u16::try_from(active_cords * 8).map_err(debug)?.max(1),
-            )
-            .ok_or_else(|| "kernel composite remote Sign byte bound overflow".to_string())?,
-        )
-        .map_err(debug)?;
-        let scheduler = ChildScheduler::new_with_active_counts_and_host_calls(
-            active_nodes,
-            active_cords,
-            nodes,
-            cords,
-            routes,
-            host_calls,
-            backs,
-            values,
-            signs,
-        )
-        .map_err(debug)?;
-        Ok(Self {
-            scheduler,
-            boundaries: boundaries
-                .into_iter()
-                .map(|boundary| (boundary.external_port_id.clone(), boundary))
-                .collect(),
-            status: SchedulerStatus::Idle,
-        })
-    }
-
-    pub(crate) fn step(&mut self) -> Result<SchedulerStatus, String> {
-        self.status = self.scheduler.step().map_err(debug)?;
+    pub(crate) fn step(&mut self) -> Result<SchedulerStatus, ChildExecutionError> {
+        self.status = self.scheduler.step().map_err(ChildExecutionError::from)?;
         Ok(self.status)
     }
 
@@ -234,21 +112,35 @@ impl ChildKernel {
         node: NodeId,
         request: conduit_kernel::RequestId,
         outcome: conduit_kernel::HostCallOutcome,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildExecutionError> {
         self.scheduler
             .complete_host_call(node, request, outcome)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
-    pub(crate) fn host_value(&self, value: conduit_kernel::ValueRef) -> Result<&[u8], String> {
-        self.scheduler.host_value(value).map_err(debug)
+    pub(crate) fn host_value(
+        &self,
+        value: conduit_kernel::ValueRef,
+    ) -> Result<&[u8], ChildExecutionError> {
+        self.scheduler
+            .host_value(value)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn store_host_value(
         &mut self,
         bytes: &[u8],
-    ) -> Result<conduit_kernel::ValueRef, String> {
-        self.scheduler.store_host_value(bytes).map_err(debug)
+    ) -> Result<conduit_kernel::ValueRef, ChildExecutionError> {
+        self.scheduler
+            .store_host_value(bytes)
+            .map_err(ChildExecutionError::from)
+    }
+
+    pub(crate) fn discard_host_value(
+        &mut self,
+        value: conduit_kernel::ValueRef,
+    ) -> Result<(), conduit_kernel::scheduler::HostValueDiscardRefusal> {
+        self.scheduler.discard_host_value(value)
     }
 
     pub(crate) fn admit_boundary(
@@ -256,63 +148,66 @@ impl ChildKernel {
         port_id: &SemanticPortId,
         sequence: u64,
         value: &ValuePayload,
-    ) -> Result<RemoteIngressOutcome, String> {
+    ) -> Result<RemoteIngressOutcome, ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         if boundary.value_kind != value.value_kind {
-            return Err("composite input value kind differs from its exact front".into());
+            return Err(ChildExecutionError::ValueKindMismatch);
         }
         self.scheduler
             .admit_remote_input(boundary.endpoint, boundary.cord, sequence, &value.encoded)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
-    pub(crate) fn close_boundary(&mut self, port_id: &SemanticPortId) -> Result<(), String> {
+    pub(crate) fn close_boundary(
+        &mut self,
+        port_id: &SemanticPortId,
+    ) -> Result<(), ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         self.scheduler
             .close_remote_input(boundary.endpoint, boundary.cord)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn close_boundary_abnormal(
         &mut self,
         port_id: &SemanticPortId,
         terminal: &ValuePayload,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Input)
-            .ok_or_else(|| "unknown composite input front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         if boundary.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
-            return Err("composite abnormal input kind differs from its exact front".into());
+            return Err(ChildExecutionError::ValueKindMismatch);
         }
-        let terminal = CanonicalValue::new(&terminal.encoded).map_err(debug)?;
+        let terminal = CanonicalValue::new(&terminal.encoded).map_err(ChildExecutionError::from)?;
         self.scheduler
             .close_remote_input_abnormal(boundary.endpoint, boundary.cord, terminal)
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn boundary_output(
         &mut self,
         port_id: &SemanticPortId,
-    ) -> Result<Option<(u64, ValuePayload)>, String> {
+    ) -> Result<Option<(u64, ValuePayload)>, ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         let Some(offer) = self
             .scheduler
             .remote_egress_offer(boundary.endpoint, boundary.cord)
-            .map_err(debug)?
+            .map_err(ChildExecutionError::from)?
         else {
             return Ok(None);
         };
@@ -320,7 +215,7 @@ impl ChildKernel {
             .scheduler
             .values()
             .get(offer.value)
-            .map_err(debug)?
+            .map_err(ChildExecutionError::from)?
             .to_vec();
         Ok(Some((
             offer.sequence,
@@ -335,22 +230,26 @@ impl ChildKernel {
         &mut self,
         port_id: &SemanticPortId,
         output: &mut ValuePayload,
-    ) -> Result<Option<u64>, String> {
+    ) -> Result<Option<u64>, ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         let Some(offer) = self
             .scheduler
             .remote_egress_offer(boundary.endpoint, boundary.cord)
-            .map_err(debug)?
+            .map_err(ChildExecutionError::from)?
         else {
             return Ok(None);
         };
-        let bytes = self.scheduler.values().get(offer.value).map_err(debug)?;
+        let bytes = self
+            .scheduler
+            .values()
+            .get(offer.value)
+            .map_err(ChildExecutionError::from)?;
         if output.value_kind != boundary.value_kind || bytes.len() > output.encoded.capacity() {
-            return Err("prepared composite output buffer differs from its exact front".into());
+            return Err(ChildExecutionError::BufferContractMismatch);
         }
         output.encoded.clear();
         output.encoded.extend_from_slice(bytes);
@@ -361,19 +260,19 @@ impl ChildKernel {
         &mut self,
         port_id: &SemanticPortId,
         sequence: u64,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildExecutionError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output front".to_string())?;
+            .ok_or(ChildExecutionError::UnknownFront)?;
         self.scheduler
             .remote_egress_accept(boundary.endpoint, boundary.cord, sequence)
             .and_then(|()| {
                 self.scheduler
                     .remote_egress_delivered(boundary.endpoint, boundary.cord, sequence)
             })
-            .map_err(debug)
+            .map_err(ChildExecutionError::from)
     }
 
     pub(crate) fn boundary_terminal_into(
@@ -417,8 +316,8 @@ impl ChildKernel {
         }
     }
 
-    pub(crate) fn cancel(&mut self) -> Result<(), String> {
-        self.scheduler.cancel().map_err(debug)?;
+    pub(crate) fn cancel(&mut self) -> Result<(), SchedulerError> {
+        self.scheduler.cancel()?;
         self.status = SchedulerStatus::Cancelled;
         Ok(())
     }
@@ -520,8 +419,4 @@ impl ChildKernel {
             .close_remote_input_abnormal(endpoint, cord, terminal)
             .map_err(ChildTransportError::Scheduler)
     }
-}
-
-fn debug(error: impl core::fmt::Debug) -> String {
-    format!("{error:?}")
 }

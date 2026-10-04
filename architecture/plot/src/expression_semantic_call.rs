@@ -37,6 +37,35 @@ pub(super) fn check(
         }
         return Ok(CheckedExpressionType::semantic(target));
     }
+    if name.text == "sequence/length" {
+        let [argument] = arguments else {
+            return Err(diagnostic(
+                span,
+                "sequence length requires exactly one value",
+            ));
+        };
+        let source = check_argument(argument, None)?;
+        let ty = source
+            .value_kind()
+            .and_then(|kind| context.structured_types.get(kind))
+            .ok_or_else(|| {
+                diagnostic(
+                    argument.span(),
+                    "sequence length requires an exact finite collection Type",
+                )
+            })?;
+        if !matches!(
+            ty.shape(),
+            conduit_core::StructuredInfoTypeShape::Sequence { .. }
+                | conduit_core::StructuredInfoTypeShape::Collection { .. }
+        ) {
+            return Err(diagnostic(
+                argument.span(),
+                "sequence length requires an exact finite collection Type",
+            ));
+        }
+        return Ok(CheckedExpressionType::semantic("value/u64"));
+    }
     if name.text == "variant/tag" {
         if arguments.len() != 1 {
             return Err(diagnostic(span, "variant/tag requires exactly one value"));
@@ -222,4 +251,9 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
         span,
         message: message.to_string(),
     }
+}
+
+pub(crate) fn is_intrinsic(name: &str) -> bool {
+    integer_widening_target(name).is_some()
+        || matches!(name, "variant/tag" | "variant/is" | "sequence/length")
 }

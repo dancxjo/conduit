@@ -1,9 +1,10 @@
+use crate::prelude::*;
+use alloc::collections::BTreeMap;
+use alloc::sync::Arc;
 use conduit_core::{ImplementationId, PlannedGear};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-use std::collections::BTreeMap;
-use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KernelOperationBudget {
@@ -75,6 +76,20 @@ impl BoxedKernelBack {
 }
 
 impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for BoxedKernelBack {
+    fn terminal_transductions(
+        &self,
+    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;
+           FIXED_KERNEL_STORAGE_PORTS_PER_NODE] {
+        self.0.terminal_transductions()
+    }
+    fn terminal_transduction(
+        &self,
+    ) -> Option<conduit_kernel::scheduler::AssignedTerminalTransduction> {
+        self.0.terminal_transduction()
+    }
+    fn prepared_output(&self, port: conduit_kernel::PortId) -> Option<&[u8]> {
+        self.0.prepared_output(port)
+    }
     fn step_committed(&mut self) {
         self.0.step_committed();
     }
@@ -100,6 +115,9 @@ impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for BoxedKernelBack {
         self.0.cancel();
     }
 }
+
+#[cfg(test)]
+mod tests;
 
 struct Inactive;
 

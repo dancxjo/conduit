@@ -6,6 +6,18 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if kind == "sequence/length" {
+        let [argument] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let length = conduit_core::validate_canonical_structured_value(&argument.encoded)
+            .and_then(|value| value.collection_length())
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        return Ok(Value {
+            value_type: expected.clone(),
+            encoded: u64::from(length).to_le_bytes().to_vec(),
+        });
+    }
     if kind == "variant/tag" {
         let argument = arguments
             .pop()

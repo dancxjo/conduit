@@ -53,7 +53,7 @@ codec, delete the Rust duplicate, and retain exact compatibility proof.
 | `architecture/wire/**`, `architecture/protected-line/**` | Conduit transport and protected-line sessions are separately versioned mechanism contracts. Their semantic payload Types remain native. |
 | Body rendezvous CBOR/COSE | CBOR and COSE framing/interoperability are explicit protocol boundaries. |
 | `mechanisms/protocols/midi/**`, Bluetooth framing | MIDI and Bluetooth specifications own their wire values. |
-| Device packages under `mechanisms/devices/**` | Physical device protocols own registers and frames. |
+| Device packages under `mechanisms/devices/**` | External specifications own registers and frames. This classification does not assign their implementation permanently to Rust: [#4833 migrates ordinary protocols to checked plots](device-protocol-plots.md), retaining physical primitives and mandatory safety below them. |
 | `semantics/web/src/http/codec.rs` | HTTP syntax is externally standardized; native request/response meaning remains separate. |
 | Provider adapters under `targets/std/src/hosted_*` | Provider HTTP/JSON schemas are owned by those external services. |
 | Browser, firmware, and distributed ABI modules under `targets/**` | Exact target or cross-process ABI contracts remain adapters; domain mappings inside them must still refer to native Types or Forms. |

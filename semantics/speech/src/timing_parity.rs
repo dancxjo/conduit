@@ -2,7 +2,7 @@
 use crate::{differential::program, frame_parity, generated::*};
 use conduit_core::{StructuredInfoType, StructuredInfoValue};
 
-fn record(ty: &StructuredInfoType, values: &[(&str, u64)]) -> std::vec::Vec<u8> {
+pub(crate) fn record(ty: &StructuredInfoType, values: &[(&str, u64)]) -> std::vec::Vec<u8> {
     frame_parity::record(
         ty,
         &values

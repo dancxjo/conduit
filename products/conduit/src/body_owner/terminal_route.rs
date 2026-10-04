@@ -2,7 +2,9 @@
 //! workload Wake. A lulled Body remains able to disclose its current actions.
 
 use super::Owner;
-use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow, Presentation};
+use conduit_presentation::{
+    AdmittedMaskPlotRoutes, LocalOwnerMaskRouteSeal, MaskShow, Presentation,
+};
 
 impl Owner {
     pub(crate) fn seal_attached_terminal_route(
@@ -28,5 +30,21 @@ impl Owner {
         let face = self.local_face_snapshot()?;
         seal.validate_available_show(&self.session, &face, self.host.advertisement(), show)
             .map_err(|error| format!("stale local owner terminal route: {error:?}"))
+    }
+
+    pub(crate) fn admit_attached_terminal_show(
+        &self,
+        seal: &LocalOwnerMaskRouteSeal,
+        show: &MaskShow,
+    ) -> Result<AdmittedMaskPlotRoutes, String> {
+        let face = self.local_face_snapshot()?;
+        AdmittedMaskPlotRoutes::from_local_owner_show(
+            seal,
+            &self.session,
+            &face,
+            self.host.advertisement(),
+            show,
+        )
+        .map_err(|error| format!("admit attached terminal Mask route: {error:?}"))
     }
 }

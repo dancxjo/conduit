@@ -52,6 +52,7 @@ fn segment(model: SpeechAcousticTarget) -> SpeechNeighborModel {
 
 fn isolated_input(phone: EnglishPhone, target: SpeechAcousticTarget) -> SpeechConnectedInput {
     SpeechConnectedInput {
+        cycle: crate::frame_parity::profile_cycle(),
         phone,
         target,
         stress: EnglishStress::unspecified,
@@ -123,6 +124,10 @@ fn connected_target_graph_matches_portable_models_at_every_transition_edge() {
                 let input = record(
                     ty,
                     &[
+                        (
+                            "cycle",
+                            crate::frame_parity::cycle_value(field_type(ty, "cycle"), value.cycle),
+                        ),
                         ("phone", variant(field_type(ty, "phone"), phone_tag)),
                         (
                             "stress",

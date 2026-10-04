@@ -40,6 +40,7 @@ fn main() {
                             })
                         }
                         CheckScope::Pete => commands::pete_workload_check::run(&opts),
+                        CheckScope::DeviceProtocols => commands::device_protocols::run(&opts),
                     }
                 }
             } else {

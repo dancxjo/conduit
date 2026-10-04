@@ -17,8 +17,8 @@ mod render;
 pub use generated::speech_realize as realize;
 pub use generated::{
     EnglishDerivation, EnglishPhone, EnglishPhoneme, EnglishPosition, EnglishPronunciationOrigin,
-    EnglishStress, RealizationInput, RealizationResult, TextSpeechSegment, VoiceBoundary,
-    VoiceEvent, SOURCE_ID,
+    EnglishStress, RealizationInput, RealizationResult, SpeechCycleControlMode,
+    SpeechEventVoiceControl, TextSpeechSegment, VoiceBoundary, VoiceEvent, SOURCE_ID,
 };
 pub use pronounce::{
     pronounce, PronouncedText, TextRefusal, MAXIMUM_TEXT_BYTES, MAXIMUM_WORD_BYTES,
@@ -32,6 +32,10 @@ pub use render::{
 extern crate alloc;
 #[cfg(feature = "semantic-bindings")]
 pub mod admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod control;
+#[cfg(feature = "semantic-bindings")]
+pub mod duration;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]
@@ -51,7 +55,11 @@ pub mod semantic {
 #[cfg(test)]
 extern crate std;
 #[cfg(test)]
+mod control_parity;
+#[cfg(test)]
 mod differential;
+#[cfg(test)]
+mod duration_parity;
 #[cfg(test)]
 mod realization_parity;
 #[cfg(test)]

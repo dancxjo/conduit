@@ -4,9 +4,16 @@ use conduit_speech::{
     VoiceBoundary, VoiceEvent, SAMPLE_RATE_HZ,
 };
 use std::{fs, io::Write};
+#[cfg(feature = "semantic-bindings")]
+#[path = "first_samples/control.rs"]
+mod control_samples;
+#[cfg(feature = "semantic-bindings")]
+#[path = "first_samples/duration.rs"]
+mod duration_samples;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output = std::env::args().nth(1).ok_or("output directory required")?;
     fs::create_dir_all(&output)?;
+    println!("checked speech source: {}", conduit_speech::SOURCE_ID);
     for (name, phones) in [
         (
             "hello-world",
@@ -136,6 +143,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         write_wav(&output, name, prepared.events())?;
         println!("{output}/{name}.wav: {text}");
     }
+    #[cfg(feature = "semantic-bindings")]
+    duration_samples::write(&output)?;
+    #[cfg(feature = "semantic-bindings")]
+    control_samples::write(&output)?;
     Ok(())
 }
 
@@ -144,7 +155,15 @@ fn write_wav(
     name: &str,
     events: &[VoiceEvent],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut renderer = Renderer::prepare(events).map_err(|error| format!("{error:?}"))?;
+    let renderer = Renderer::prepare(events).map_err(|error| format!("{error:?}"))?;
+    write_rendered(output, name, renderer)
+}
+
+fn write_rendered(
+    output: &str,
+    name: &str,
+    mut renderer: Renderer<'_>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let bytes = u32::try_from(renderer.total_frames() * 2)?;
     let mut file = fs::File::create(format!("{output}/{name}.wav"))?;
     file.write_all(b"RIFF")?;

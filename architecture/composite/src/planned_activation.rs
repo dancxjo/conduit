@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::{
     BoundedActivationError, BoundedActivationHost, BoundedFoldActivationHost, BoundedFoldError,
     BoundedScanActivationHost, BoundedScanError, KernelCompositeDefinition,
