@@ -15,4 +15,3 @@ type LinguisticSyntacticLinkKind =
     | vocative
     | apposition
     | parenthetical
-
