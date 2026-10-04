@@ -156,3 +156,7 @@ mod execution;
 mod automatic_events;
 
 mod automatic_admission;
+
+mod automatic_execution;
+
+mod automatic_capture;

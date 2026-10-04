@@ -4,6 +4,22 @@ use super::*;
 use alloc::vec::Vec;
 #[test]
 fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
+    let (mut play, _, _) = prepare(InertBus, InertClock);
+    play.start().unwrap();
+    play.cancel().unwrap();
+}
+
+pub(super) fn prepare<
+    P: crate::i2c_base::I2cProvider,
+    C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
+>(
+    provider: P,
+    clock_provider: C,
+) -> (
+    crate::protocol_play::PreparedTimedProtocolPlay<P, C>,
+    StructuredInfoType,
+    StructuredInfoType,
+) {
     let i2c = crate::i2c_base::contract::I2cContract::prepare().unwrap();
     let (mut startup, mut profile) = i2c.catalogs();
     let clock = crate::monotonic_clock::contract::MonotonicClockContract::prepare().unwrap();
@@ -188,7 +204,7 @@ fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
         owner::I2cAttachment,
     };
     use crate::monotonic_clock::installation::{ClockNativeIdentity, ReadyClockBase};
-    // SAFETY: these fixture providers cannot access hardware or issue effects.
+    // SAFETY: callers retain only scripted or inert fixture providers, with no hardware access.
     let bus = unsafe {
         ReadyI2cBase::new(
             I2cNativeIdentity {
@@ -208,11 +224,11 @@ fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
                 maximum_address: 119,
                 resource_bytes: 32,
             },
-            InertBus,
+            provider,
         )
     }
     .unwrap();
-    // SAFETY: the inert clock never observes a counter or arms a timer.
+    // SAFETY: callers retain only a scripted or inert fixture clock, with no native timer access.
     let timer = unsafe {
         ReadyClockBase::new(
             ClockNativeIdentity {
@@ -226,7 +242,7 @@ fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
                 envelope_id: "fixture/clock-envelope".into(),
                 artifact_id: "fixture/clock-artifact".into(),
             },
-            InertClock,
+            clock_provider,
         )
     }
     .unwrap();
@@ -309,7 +325,79 @@ fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
             )
         })
         .collect();
-    let plan = plan_expanded_authoring_with_options(
+    let connection_limits: BTreeMap<conduit_planner::ConnectionEndpoints, ConnectionQueueLimits> =
+        expanded
+            .expanded
+            .connections
+            .iter()
+            .map(|cord| {
+                let offer = |gear: &GearId| {
+                    hosts[0]
+                        .capabilities
+                        .iter()
+                        .find(|offer| offer.capability_id == placements.by_gear[gear].capability_id)
+                        .unwrap()
+                };
+                let bytes = offer(&cord.source_gear_id)
+                    .limits
+                    .max_queue_bytes
+                    .min(offer(&cord.sink_gear_id).limits.max_queue_bytes);
+                (
+                    (
+                        cord.source_gear_id.clone(),
+                        cord.source_port_id.clone(),
+                        cord.sink_gear_id.clone(),
+                        cord.sink_port_id.clone(),
+                    ),
+                    ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: bytes,
+                    },
+                )
+            })
+            .collect();
+    let mut excessive = connection_limits.clone();
+    let clock_cord = expanded
+        .expanded
+        .connections
+        .iter()
+        .find(|cord| {
+            expanded.expanded.gears.iter().any(|gear| {
+                gear.gear_id == cord.source_gear_id && gear.kind_id.as_str() == "machine/clock/at"
+            })
+        })
+        .unwrap();
+    excessive
+        .get_mut(&(
+            clock_cord.source_gear_id.clone(),
+            clock_cord.source_port_id.clone(),
+            clock_cord.sink_gear_id.clone(),
+            clock_cord.sink_port_id.clone(),
+        ))
+        .unwrap()
+        .byte_capacity = crate::monotonic_clock::contract::CLOCK_MAXIMUM_BYTES + 1;
+    let options = PlanningOptions {
+        connection_bases: &BTreeMap::new(),
+        line_candidates: &BTreeMap::new(),
+        connection_item_capacity: 1,
+        connection_byte_capacity: 512,
+        authority_grants: &grants,
+        protected_resource_grants: &[],
+        line_offers: &[],
+    };
+    assert!(matches!(
+        conduit_planner::plan_expanded_authoring_with_connection_limits(
+            &expanded,
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            options,
+            &excessive,
+            &boundaries
+        ),
+        Err(conduit_planner::PlannerError::QueueRequirementAboveHostLimit(_))
+    ));
+    let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
         &expanded,
         &hosts,
         &placements,
@@ -324,6 +412,7 @@ fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
             protected_resource_grants: &[],
             line_offers: &[],
         },
+        &connection_limits,
         &boundaries,
     )
     .unwrap();
@@ -345,7 +434,7 @@ fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
     let (clock_table, clock_handle, clock_claim) =
         super::automatic_admission::possession(&plan, true);
     let definition = crate::protocol_kernel_fixture::definition(plan, external);
-    let mut play = crate::protocol_play::PreparedTimedProtocolPlay::prepare(
+    let play = crate::protocol_play::PreparedTimedProtocolPlay::prepare(
         definition,
         bus,
         table,
@@ -360,8 +449,11 @@ fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
         },
     )
     .unwrap();
-    play.start().unwrap();
-    play.cancel().unwrap();
+    (
+        play,
+        schema("BmeProtocolBegin").clone(),
+        schema("BmeProtocolFailure").clone(),
+    )
 }
 
 struct InertBus;

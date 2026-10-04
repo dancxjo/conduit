@@ -91,8 +91,13 @@ after both inputs drain. The graph plans against separately retained I2C and
 clock offers with exact authority. Deterministic fixtures prepare, start and
 cancel its 32-gear native play without provider effects. The composite profile
 admits at most 32 gears and 64 cords; its fixed scheduler is allocated during
-preparation. Actual automatic bus/time execution, semantic-observation
-integration, terminal closure and boot admission remain development work.
+preparation. A wrong-identity fixture executes a bus completion and clock observation through
+the actual Source feedback loop, emits the exact refusal and issues no retry.
+Each Cord has its own finite queue admission; an oversized clock queue is
+rejected. A complete transcript fixture also executes probe, reset, configuration,
+calibration reads, both deadline waits and sample capture through those owners.
+Semantic-observation integration, terminal closure and boot admission remain
+development work.
 
 The x86_64 clock provider reuses the calibrated invariant-TSC or ACPI HPET
 counter with an explicit finite provider lifetime. Each poll observes the counter
