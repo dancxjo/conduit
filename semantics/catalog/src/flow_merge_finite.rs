@@ -33,7 +33,7 @@ pub fn flow_merge_finite_semantic_contract(
             TerminalTransductionProfile {
                 input_port_id: port_id(input),
                 output_port_id: port_id("merged"),
-                normal_close: NormalCloseTransduction::PropagateAfterDrain,
+                normal_close: NormalCloseTransduction::PropagateWhenAllClose,
                 abnormal: AbnormalTerminalTransduction::NotAccepted,
                 cancellation: CancellationTransduction::NotCancellable,
             },
@@ -41,7 +41,7 @@ pub fn flow_merge_finite_semantic_contract(
     }
     Ok(Kind {
         kind_id: kind_id(FLOW_MERGE_FINITE_KIND),
-        kind_contract_revision: KindIdentity::from("conduit.flow/merge-finite@1"),
+        kind_contract_revision: KindIdentity::from("conduit.flow/merge-finite@2"),
         startup_parameters: Vec::new(),
         shorthand: None,
         inputs: vec![

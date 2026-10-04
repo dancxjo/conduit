@@ -111,6 +111,16 @@ fn wrong_identity_traverses_actual_bus_clock_and_source_feedback_without_retry()
     }
     assert_eq!(bus_effects.load(Ordering::SeqCst), 1);
     assert_eq!(clock_effects.load(Ordering::SeqCst), 1);
-    // Explicit cancellation is quiescence evidence, not normal graph completion.
-    play.cancel().unwrap();
+    // The Source terminal state must close the whole admitted graph normally.
+    let mut complete = false;
+    for _ in 0..2000 {
+        if play.step().unwrap() == conduit_composite::KernelCompositeStatus::Complete {
+            complete = true;
+            break;
+        }
+    }
+    assert!(
+        complete,
+        "terminal Source state must drain and complete normally"
+    );
 }

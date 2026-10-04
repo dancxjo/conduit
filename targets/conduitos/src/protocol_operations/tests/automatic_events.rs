@@ -57,6 +57,8 @@ pub(super) fn prepare<
     let decoding = include_str!("../../../../../plots/device-protocols/main.conduit");
     let observation =
         include_str!("../../../../../plots/device-protocols/bme280-capture-observation.conduit");
+    let frames =
+        include_str!("../../../../../plots/device-protocols/bme280-protocol-frame.conduit");
     let automatic = include_str!("../../../../../plots/device-protocols/bme280-autonomous.conduit");
     let combine = |units: &[&str]| {
         let imports = units
@@ -76,7 +78,13 @@ pub(super) fn prepare<
         alloc::format!("{imports}\n{bodies}")
     };
     let types = check_syntax_document(
-        &parse_syntax_document(&combine(&[LIFECYCLE, events, decoding, observation])),
+        &parse_syntax_document(&combine(&[
+            LIFECYCLE,
+            events,
+            decoding,
+            observation,
+            frames,
+        ])),
         &startup,
     )
     .unwrap();
@@ -89,6 +97,7 @@ pub(super) fn prepare<
             .value_type
     };
     let state = schema("BmeProtocolState");
+    let frame = schema("BmeProtocolFrame");
     let event = schema("BmeProtocolEvent");
     let context = schema("BmeClockContext");
     let value = |ty: &StructuredInfoType, maximum| {
@@ -96,12 +105,21 @@ pub(super) fn prepare<
             .unwrap()
     };
     let state_value = value(state, 4096);
+    let frame_value = value(frame, 4096);
     let event_value = value(event, 4096);
     let context_value = value(context, 4096);
     let result_value = value(clock.result_type(), 512);
+    // The imported feedback unit also declares its ordinary finite-state plot.
     conduit_semantic_catalog::install_seeded_state_flow_kind(
         &state_value,
         state,
+        &mut startup,
+        &mut profile,
+    )
+    .unwrap();
+    conduit_semantic_catalog::install_seeded_state_until_kind(
+        &frame_value,
+        frame,
         &mut startup,
         &mut profile,
     )
@@ -133,7 +151,7 @@ pub(super) fn prepare<
     .unwrap();
     let mut owners = ProtocolOperations::default();
     let capabilities = vec![
-        owners.states.install_flow(&state_value, state).unwrap(),
+        owners.states.install_until(&frame_value, frame).unwrap(),
         owners
             .joins
             .install_feedback(&state_value, state, &event_value, event)
@@ -150,6 +168,7 @@ pub(super) fn prepare<
             LIFECYCLE,
             events,
             FEEDBACK,
+            frames,
             decoding,
             observation,
             automatic,
@@ -189,7 +208,7 @@ pub(super) fn prepare<
         "machine/clock/at",
         "flow/merge/finite",
         "flow/zip/feedback",
-        "state/seeded/flow/finite",
+        "state/seeded/flow/until",
     ] {
         assert!(
             expanded
@@ -442,7 +461,7 @@ pub(super) fn prepare<
     owners.joins.validate_plan(&plan).unwrap();
     owners.merges.validate_plan(&plan).unwrap();
     assert_eq!(plan.fragments.len(), 1);
-    assert_eq!(plan.fragments[0].placements.len(), 49);
+    assert_eq!(plan.fragments[0].placements.len(), 52);
     assert_eq!(
         plan.fragments[0]
             .placements

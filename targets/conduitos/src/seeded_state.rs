@@ -15,6 +15,7 @@ struct OfferedState {
     schema: StructuredInfoType,
     value: CheckedValueContract,
     offer: CapabilityOffer,
+    until: bool,
 }
 
 pub struct SeededStateOperationFactory {
@@ -39,7 +40,7 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
-        self.install_mode(value, schema, false)
+        self.install_mode(value, schema, false, false)
     }
 
     /// Retain a closing observation Flow with exactly one item per generation.
@@ -48,7 +49,15 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
-        self.install_mode(value, schema, true)
+        self.install_mode(value, schema, true, false)
+    }
+
+    pub fn install_until(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, &'static str> {
+        self.install_mode(value, schema, true, true)
     }
 
     fn install_mode(
@@ -56,11 +65,14 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
         flow: bool,
+        until: bool,
     ) -> Result<CapabilityOffer, &'static str> {
         if self.states.len() >= MAXIMUM_SPECIALIZATIONS || value.maximum_bytes > MAXIMUM_BYTES {
             return Err("native seeded state exceeds its finite prepared profile");
         }
-        let kind = if flow {
+        let kind = if until {
+            conduit_semantic_catalog::seeded_state_until_semantic_contract(value, schema)?
+        } else if flow {
             conduit_semantic_catalog::seeded_state_flow_semantic_contract(value, schema)?
         } else {
             conduit_semantic_catalog::seeded_state_semantic_contract(value, schema)?
@@ -70,7 +82,9 @@ impl SeededStateOperationFactory {
             Back {
                 capability_id: CapabilityId::from(format!(
                     "conduitos/{}/{}/{}@1",
-                    if flow {
+                    if until {
+                        "seeded-state-flow-until"
+                    } else if flow {
                         "seeded-state-flow-finite"
                     } else {
                         "seeded-state-finite"
@@ -98,6 +112,7 @@ impl SeededStateOperationFactory {
             schema: schema.clone(),
             value: value.clone(),
             offer: offer.clone(),
+            until,
         });
         Ok(offer)
     }
@@ -171,7 +186,9 @@ impl KernelOperationFactory for SeededStateOperationFactory {
         _: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
         let state = self.selected(gear)?;
-        let back = if state.offer.outputs[0].temporal == (PortTemporal::Flow { closes: true }) {
+        let back = if state.until {
+            SeededStateBack::prepare_until(&state.value, &state.schema)
+        } else if state.offer.outputs[0].temporal == (PortTemporal::Flow { closes: true }) {
             SeededStateBack::prepare_flow(&state.value, &state.schema)
         } else {
             SeededStateBack::prepare(&state.value, &state.schema)

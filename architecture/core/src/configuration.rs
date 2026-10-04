@@ -428,6 +428,8 @@ pub enum KindTerminalBehavior {
     CompletesWhenInputsClose,
     MirrorsInputTerminal,
     RetainsLatestUntilReleased,
+    /// Emit each Source state, including the first record whose terminal Boolean is true, then close.
+    EmitsThroughSourceTerminalFlag,
     EmitsCurrentAndCompletesWhenInputCloses,
     CoupledAtomicFanoutAndMirrorsInputTerminal,
     FirstReadyLeftTieCancelsLoserOrCompletesWithoutWinner,

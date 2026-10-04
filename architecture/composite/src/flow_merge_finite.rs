@@ -60,7 +60,7 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowMergeFiniteBack {
             *contract = Some(AssignedTerminalTransduction {
                 input: PortId(side as u16),
                 output: PortId(0),
-                normal_close: AssignedNormalCloseTransduction::PropagateAfterDrain,
+                normal_close: AssignedNormalCloseTransduction::PropagateWhenAllClose,
                 abnormal: AssignedAbnormalTransduction::NotAccepted,
                 cancellation: AssignedCancellationTransduction::NotCancellable,
             });
@@ -82,7 +82,11 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowMergeFiniteBack {
             if io.input_closed(port) {
                 io.consume_closed(port).expect("finite merge input close");
                 self.staged_close = Some(side);
-                return StepOutcome::Progress;
+                return if self.committed_close[1 - side] {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                };
             }
             let Some(reference) = io.input(port) else {
                 continue;
