@@ -285,3 +285,9 @@ pub use planning::ProtocolQueueLimits;
 
 mod admission;
 pub use admission::PreparedProtocolArtifact;
+
+mod entry;
+pub use entry::PreparedProtocolEntry;
+
+mod boot_source;
+pub use boot_source::{PROTOCOL_MODULE_COMMAND, ProtocolBootRefusal, prepare_boot_source};

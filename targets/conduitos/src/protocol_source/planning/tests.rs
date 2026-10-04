@@ -119,17 +119,12 @@ fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
             crate::protocol_host_calls::ProtocolCallRefusal::InvalidPlan
         ))
     ));
-    let prepared = source
-        .plan_artifact(
-            &expanded,
-            ArtifactId::from("fixture/fanout-source@1"),
-            &hosts,
-            &placements,
-            &bases,
-            options,
-        )
-        .unwrap();
+    let entry =
+        PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "fanout").unwrap();
+    let exact_artifact = entry.artifact_id().clone();
+    let prepared = entry.plan(&hosts, &placements, &bases, options).unwrap();
     let artifact = prepared.artifact();
+    assert_eq!(artifact.identity().artifact, exact_artifact);
     let partition = prepared.body_partition();
     assert_eq!(partition.plan, artifact.definition().internal_plan);
     let resident = partition.plot.clone();

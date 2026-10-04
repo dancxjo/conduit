@@ -74,6 +74,16 @@ A package's descriptive identities
 do not establish review, firmware release, attachment ownership or permission to
 use a controller.
 
+Boot preparation and the packaging command retain the same selected entry:
+checked Source, exact expansion, generic operation owners and a SHA-256 artifact
+identity for the package bytes. Repackaging the same Source can preserve its
+resident meaning while changing its artifact identity. Limine observation uses
+the exact module command `conduit.protocol/source@1`; absence remains absence,
+and duplicate or oversized modules are refused before Source preparation.
+The IA-32 boot entrance currently reports unsupported for this module path.
+The retained entry contributes its exact partition to ordinary body planning;
+successful preparation still does not start Play or authorize a controller.
+
 ## Existing Rust responsibility audit
 
 The categories below describe responsibilities, not whole-file exemptions.

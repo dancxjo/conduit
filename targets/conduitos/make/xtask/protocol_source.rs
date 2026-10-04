@@ -3,7 +3,7 @@ use super::ConduitosError;
 use crate::cli::GlobalOpts;
 use clap::Args;
 use conduitos::protocol_source::{
-    PreparedProtocolSource, ProtocolSourcePackage, MAXIMUM_PACKAGE_BYTES,
+    PreparedProtocolEntry, ProtocolSourceRefusal, MAXIMUM_PACKAGE_BYTES,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -51,25 +51,28 @@ pub(super) fn execute(args: PackageArgs, opts: &GlobalOpts) -> Result<(), Condui
 }
 
 fn check(bytes: &[u8], entry: &str) -> Result<Value, ConduitosError> {
-    let package = ProtocolSourcePackage::decode(bytes).map_err(|error| {
-        ConduitosError::refusal("protocol-source-package-refused", format!("{error:?}"))
+    let prepared = PreparedProtocolEntry::prepare(bytes, entry).map_err(|error| {
+        let code = match &error {
+            ProtocolSourceRefusal::Bounds
+            | ProtocolSourceRefusal::Encoding
+            | ProtocolSourceRefusal::UnsupportedSchema => "protocol-source-package-refused",
+            ProtocolSourceRefusal::Expansion(_) => "protocol-source-entry-refused",
+            _ => "protocol-source-check-refused",
+        };
+        ConduitosError::refusal(code, format!("{error:?}"))
     })?;
-    let source = PreparedProtocolSource::prepare(package).map_err(|error| {
-        ConduitosError::refusal("protocol-source-check-refused", format!("{error:?}"))
-    })?;
-    let expanded = source.expand(entry).map_err(|error| {
-        ConduitosError::refusal("protocol-source-entry-refused", format!("{error:?}"))
-    })?;
+    let expanded = &prepared.expanded().expanded;
     Ok(json!({
         "schema": "conduit.conduitos/protocol-source-receipt@1",
         "proof_class": "source-check-and-expansion",
         "package_sha256": format!("sha256:{:x}", Sha256::digest(bytes)),
         "package_bytes": bytes.len(),
         "entry": entry,
-        "source_document_id": source.checked.source_document_id.as_str(),
-        "checked_plot_id": expanded.expanded.checked_plot_id.as_str(),
-        "expanded_plot_id": expanded.expanded.expanded_plot_id.as_str(),
-        "gears": expanded.expanded.gears.len(),
+        "artifact_id": prepared.artifact_id().as_str(),
+        "source_document_id": expanded.source_document_id.as_str(),
+        "checked_plot_id": expanded.checked_plot_id.as_str(),
+        "expanded_plot_id": expanded.expanded_plot_id.as_str(),
+        "gears": expanded.gears.len(),
     }))
 }
 
@@ -80,6 +83,7 @@ fn io_error(error: std::io::Error) -> ConduitosError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduitos::protocol_source::ProtocolSourcePackage;
 
     fn package() -> Vec<u8> {
         serde_json::to_vec(&ProtocolSourcePackage {
@@ -101,6 +105,13 @@ mod tests {
         );
         assert_eq!(receipt["package_bytes"], bytes.len());
         assert_eq!(receipt["proof_class"], "source-check-and-expansion");
+        assert_eq!(
+            receipt["artifact_id"],
+            PreparedProtocolEntry::prepare(&bytes, "identity")
+                .unwrap()
+                .artifact_id()
+                .as_str()
+        );
         for key in ["source_document_id", "checked_plot_id", "expanded_plot_id"] {
             assert!(!receipt[key].as_str().unwrap().is_empty());
         }
