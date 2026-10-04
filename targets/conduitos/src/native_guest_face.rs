@@ -63,6 +63,7 @@ impl NativeGuestFace {
                 schema,
                 presentation,
                 interactions_admitted,
+                ..
             } if schema == OWNER_FACE_RESPONSE_SCHEMA => (*presentation, interactions_admitted),
             OwnerFaceSnapshotResponse::Refused { schema, code }
                 if schema == OWNER_FACE_RESPONSE_SCHEMA

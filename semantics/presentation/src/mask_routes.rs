@@ -2,11 +2,11 @@
 
 use alloc::vec::Vec;
 use conduit_body::{BodyId, BodyLifecycleSession, BodyPlan};
-use conduit_core::{verify_plan, HostAdvertisement, PlanId};
+use conduit_core::{verify_plan, HostAdvertisement, LineOffer, PlanId};
 
 use crate::{
     LocalOwnerMaskRouteError, LocalOwnerMaskRouteSeal, MaskShow, PlannedMaskPlot, Presentation,
-    SealedMaskPlotRoute,
+    RemoteOwnerMaskRouteError, RemoteOwnerMaskRouteSeal, SealedMaskPlotRoute,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,6 +25,7 @@ pub enum MaskRouteAdmissionError {
     MissingPlacement,
     MissingBoundary,
     OwnerRoute(LocalOwnerMaskRouteError),
+    RemoteOwnerRoute(RemoteOwnerMaskRouteError),
 }
 
 impl AdmittedMaskPlotRoutes {
@@ -103,8 +104,15 @@ impl AdmittedMaskPlotRoutes {
     ) -> Result<Self, MaskRouteAdmissionError> {
         seal.validate_available_show(session, face, current_owner_offer, show)
             .map_err(MaskRouteAdmissionError::OwnerRoute)?;
-        let placement_ids = seal
-            .planned_mask
+        Self::single_owner_route(&seal.body_id, &seal.route_plan_id, &seal.planned_mask)
+    }
+
+    fn single_owner_route(
+        body_id: &BodyId,
+        plan_id: &PlanId,
+        planned: &PlannedMaskPlot,
+    ) -> Result<Self, MaskRouteAdmissionError> {
+        let placement_ids = planned
             .plan
             .fragments
             .iter()
@@ -115,16 +123,42 @@ impl AdmittedMaskPlotRoutes {
             return Err(MaskRouteAdmissionError::MissingPlacement);
         }
         Ok(Self {
-            body_id: seal.body_id.clone(),
-            plan_id: seal.route_plan_id.clone(),
+            body_id: body_id.clone(),
+            plan_id: plan_id.clone(),
             routes: alloc::vec![SealedMaskPlotRoute {
-                route_id: alloc::format!("route/{}", seal.route_plan_id.as_str()),
-                mask_plot: seal.planned_mask.mask.plot_identity.clone(),
-                plan_id: seal.route_plan_id.clone(),
+                route_id: alloc::format!("route/{}", plan_id.as_str()),
+                mask_plot: planned.mask.plot_identity.clone(),
+                plan_id: plan_id.clone(),
                 placement_ids,
                 currently_available: true,
             }],
         })
+    }
+
+    /// Admit an acknowledged Show on an owner-sealed remote presentation
+    /// route. The route Plan remains separate from the Body workload Wake.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_remote_owner_show(
+        seal: &RemoteOwnerMaskRouteSeal,
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        owner_offer: &HostAdvertisement,
+        mask_host_offer: &HostAdvertisement,
+        face_line: &LineOffer,
+        return_line: &LineOffer,
+        show: &MaskShow,
+    ) -> Result<Self, MaskRouteAdmissionError> {
+        seal.validate_available_show(
+            session,
+            face,
+            owner_offer,
+            mask_host_offer,
+            face_line,
+            return_line,
+            show,
+        )
+        .map_err(MaskRouteAdmissionError::RemoteOwnerRoute)?;
+        Self::single_owner_route(&seal.body_id, &seal.route_plan_id, &seal.planned_mask)
     }
 
     pub fn body_id(&self) -> &BodyId {

@@ -91,6 +91,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyInteraction { token, .. }
         | Request::BodyAttachedTerminalInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
+        | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. } => token.fill(0),
         _ => unreachable!("Body control client only sends Body and Birth requests"),

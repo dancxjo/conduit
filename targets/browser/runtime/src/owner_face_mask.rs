@@ -1,11 +1,10 @@
 //! Owner Face and typed action through the ordinary checked browser Mask Plot.
 //!
 //! Membership and Face authority stay on the Linux owner. This browser Host
-//! plans and plays only its local DOM Mask. The owner validates semantic
-//! interactions on the authenticated carrier; an owner-sealed presentation
-//! Line remains separate work under #4922.
+//! plays the owner-selected DOM Mask Plan. The owner validates semantic
+//! interactions and the acknowledged Show on the authenticated carrier.
 
-use crate::workspace_mask::{execution, plan};
+use crate::workspace_mask::execution;
 use conduit_body::BodyId;
 use conduit_core::{bind_active_play, BootId, HostId, PortDirection, SignId, ValueConstraint};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
@@ -13,7 +12,7 @@ use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_presentation::{
     FaceInteraction, FaceInteractionArgument, ManifestationLifecycle, MaskShow,
-    OwnerFaceSnapshotResponse, Presentation, OWNER_FACE_RESPONSE_SCHEMA,
+    OwnerFaceSnapshotResponse, Presentation, RemoteOwnerMaskRouteSeal, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use serde::{Deserialize, Serialize};
 
@@ -148,6 +147,7 @@ impl OwnerBrowserMask {
     fn prepare(
         basis: HostBasis,
         presentation: Presentation,
+        route: RemoteOwnerMaskRouteSeal,
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
@@ -157,8 +157,62 @@ impl OwnerBrowserMask {
         if presentation.basis.body_id.as_ref() != Some(&basis.body_id) {
             return Err("owner Face belongs to another Body".into());
         }
-        let host = crate::installed_browser::membership_advertisement(basis.host_id, basis.boot_id);
-        let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical")?;
+        if route.body_id != basis.body_id
+            || route.face_id != presentation.identity
+            || route.face_revision != presentation.revision
+        {
+            return Err("owner route differs from the current Face".into());
+        }
+        let host = crate::installed_browser::membership_advertisement(
+            basis.host_id.clone(),
+            basis.boot_id.clone(),
+        );
+        route
+            .validate_mask_host_offer(&host)
+            .map_err(|error| format!("owner Mask route differs from this browser: {error:?}"))?;
+        Self::prepare_planned(
+            basis,
+            presentation,
+            route.planned_mask,
+            play_sequence,
+            interactions_admitted,
+        )
+    }
+
+    /// Component-only proof of the local Mask kernel and ABI, without an
+    /// owner-issued route or a live browser carrier.
+    #[cfg(test)]
+    fn prepare_component_fixture(
+        basis: HostBasis,
+        presentation: Presentation,
+        play_sequence: u64,
+        interactions_admitted: bool,
+    ) -> Result<Self, String> {
+        let host = crate::installed_browser::membership_advertisement(
+            basis.host_id.clone(),
+            basis.boot_id.clone(),
+        );
+        let planned = crate::workspace_mask::plan::planned_mask(
+            &host,
+            crate::workspace_mask::plan::MASK_SOURCE,
+            "browser-graphical",
+        )?;
+        Self::prepare_planned(
+            basis,
+            presentation,
+            planned,
+            play_sequence,
+            interactions_admitted,
+        )
+    }
+
+    fn prepare_planned(
+        basis: HostBasis,
+        presentation: Presentation,
+        planned: conduit_presentation::PlannedMaskPlot,
+        play_sequence: u64,
+        interactions_admitted: bool,
+    ) -> Result<Self, String> {
         let terminal = planned.show_placement();
         let play = bind_active_play(
             &planned.plan.plan_id,
