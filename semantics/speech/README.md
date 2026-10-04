@@ -700,6 +700,15 @@ phone. A late missing phoneme cannot produce a renderable aggregate even if a
 wildcard rule and output-phone binding would otherwise match. Definition features
 remain definition facts, without becoming observed token features or defaults.
 
+`prepare_sourced_global_intent` resolves every original segment and boundary
+source against explicitly supplied immutable materials in exact event/source
+order before global-rule realization. Its private aggregate retains both source
+coverage and the prepared realization of the same original intent. Missing,
+stale, foreign or wrong-kind materials refuse through the existing native source
+contracts; failed realization cannot return a playable aggregate. The renderer
+uses the frozen admitted events. Source resolution establishes reference
+coverage, not authenticity, causality, authority or linguistic commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
