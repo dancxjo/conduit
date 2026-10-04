@@ -17,7 +17,9 @@ use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
 };
-pub(crate) use service::{BrowserAdmittedSnapshot, BrowserWindow, BrowserWindowAuthorization};
+pub(crate) use service::{
+    BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindow, BrowserWindowAuthorization,
+};
 #[cfg(unix)]
 pub(crate) use service_worker::run_service_window;
 use std::{
@@ -82,16 +84,10 @@ impl Owner {
             let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
                 break;
             };
-            let Some(mut socket) = listener.accept(remaining)? else {
+            let Some(mut socket) = listener.accept(remaining, "line/owner-browser")? else {
                 break;
             };
-            let binding = LinkBindingId::from(format!(
-                "line/owner-browser/{}",
-                nonce()?
-                    .iter()
-                    .map(|b| format!("{b:02x}"))
-                    .collect::<String>()
-            ));
+            let binding = socket.binding().clone();
             let result = (|| {
                 let (credential, observation) = admission::admit(
                     self,
@@ -288,11 +284,13 @@ fn serve_presence(
                             "owner route requires the installed service actor".to_string()
                         })
                         .and_then(|(dir, window)| {
+                            let evidence = socket.line_evidence(snapshot, window)?;
                             crate::durable_host_control::browser::mask_route(
                                 dir,
                                 window,
                                 credential.clone(),
                                 binding.clone(),
+                                evidence,
                             )
                         });
                     #[cfg(not(unix))]

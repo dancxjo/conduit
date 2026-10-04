@@ -1,10 +1,8 @@
 //! Bounded loopback network wait outside the authoritative service actor.
 use super::{
-    admission::remaining, nonce, serve_presence, service::BrowserWindowAuthorization,
-    transport::Listener,
+    admission::remaining, serve_presence, service::BrowserWindowAuthorization, transport::Listener,
 };
 use crate::durable_host_control::browser;
-use conduit_core::LinkBindingId;
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
 };
@@ -54,16 +52,10 @@ fn serve(
         let Some(left) = deadline.checked_duration_since(Instant::now()) else {
             break;
         };
-        let Some(mut socket) = listener.accept(left)? else {
+        let Some(mut socket) = listener.accept(left, "line/service-browser")? else {
             break;
         };
-        let binding = LinkBindingId::from(format!(
-            "line/service-browser/{}",
-            nonce()?
-                .iter()
-                .map(|byte| format!("{byte:02x}"))
-                .collect::<String>()
-        ));
+        let binding = socket.binding().clone();
         let window_id = &authorization.window_id;
         let mut active = None;
         let result = (|| {

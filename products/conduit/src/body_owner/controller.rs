@@ -18,7 +18,9 @@ use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
 #[cfg(unix)]
 pub(crate) use participants::run_service_window;
-pub(crate) use participants::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
+pub(crate) use participants::{
+    BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindowAuthorization,
+};
 use std::{
     collections::BTreeMap,
     io::Write,

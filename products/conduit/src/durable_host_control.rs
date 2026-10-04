@@ -971,6 +971,8 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
         binding: LinkBindingId,
+        #[serde(default)]
+        evidence: Option<Box<crate::durable_host::owner::BrowserCarrierLineEvidence>>,
     },
     BodyBrowserShow {
         protocol: u16,
@@ -1911,9 +1913,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             window_id,
             credential,
             binding,
+            evidence,
             ..
         } if protocol == PROTOCOL => runtime
-            .browser_mask_route(&window_id, &credential, &binding)
+            .browser_mask_route(&window_id, &credential, &binding, evidence.as_deref())
             .map(|route| Response::BodyBrowserMaskRoute {
                 protocol: PROTOCOL,
                 route: Box::new(route),

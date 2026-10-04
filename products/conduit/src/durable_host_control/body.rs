@@ -175,10 +175,11 @@ impl DurableHostRuntime {
         window_id: &str,
         credential: &MembershipCredential,
         binding: &LinkBindingId,
+        evidence: Option<&crate::durable_host::owner::BrowserCarrierLineEvidence>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => {
-                owner.browser_mask_route(window_id, credential, binding)
+                owner.browser_mask_route(window_id, credential, binding, evidence)
             }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())

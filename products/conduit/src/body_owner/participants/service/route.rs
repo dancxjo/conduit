@@ -1,9 +1,8 @@
 //! Owner selection of the ordinary browser Mask on its current admitted carrier.
 use super::*;
 use conduit_core::{
-    AuthorityGrantId, BaseImplementationId, BaseInstanceId, CredentialReferenceId,
-    LineAvailability, LineAvailabilitySign, LineId, LineOffer, LinkAuthorityReference, LinkBinding,
-    LinkCredentialReference, LinkEndpoint, LinkEndpointId, LinkLimits, SignId,
+    BaseImplementationId, BaseInstanceId, CredentialReferenceId, LineAvailability,
+    LinkAuthorityReference, LinkCredentialReference, LinkLimits,
 };
 use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 
@@ -19,6 +18,7 @@ impl Owner {
         window_id: &str,
         credential: &MembershipCredential,
         binding: &LinkBindingId,
+        evidence: Option<&BrowserCarrierLineEvidence>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         let mut window = self.pending_browser.take().ok_or("window-not-active")?;
         let result = (|| {
@@ -26,6 +26,8 @@ impl Owner {
             let WindowState::Active {
                 credential: active,
                 observation,
+                line_authorization,
+                line_evidence,
                 route,
                 acknowledged_show,
                 ..
@@ -63,25 +65,34 @@ impl Owner {
                 return Err("browser-route-mask-back-unavailable".into());
             }
             let owner = self.host.advertisement();
+            let evidence = evidence.ok_or("browser-line-evidence-missing")?;
+            validate_carrier_evidence(
+                evidence,
+                line_authorization,
+                window_id,
+                binding,
+                credential,
+                owner,
+                browser,
+            )?;
             let planned = conduit_browser_mask_offer::planned_mask(
                 browser,
                 conduit_browser_mask_offer::MASK_SOURCE,
                 "browser-graphical",
             )?;
             let face = self.local_face_snapshot()?;
-            let forward = carrier_line("face", binding, window_id, credential, owner, browser);
-            let backward = carrier_line("return", binding, window_id, credential, browser, owner);
             let selected = RemoteOwnerMaskRouteSeal::seal_current(
                 &self.session,
                 &face,
                 owner,
                 browser,
                 &planned,
-                &forward,
-                &backward,
+                &evidence.face,
+                &evidence.returned,
             )
             .map_err(|error| format!("browser-route-refused:{error:?}"))?;
             *route = Some(Box::new(selected.clone()));
+            *line_evidence = Some(Box::new(evidence.clone()));
             *acknowledged_show = None;
             Ok(selected)
         })();
@@ -124,12 +135,17 @@ impl Owner {
         let WindowState::Active {
             credential,
             observation,
+            line_authorization,
+            line_evidence,
             route: Some(route),
             ..
         } = &window.state
         else {
             return Err("browser-mask-route-not-selected".into());
         };
+        let evidence = line_evidence
+            .as_deref()
+            .ok_or("browser-line-evidence-lost")?;
         if observation.observed_binding_id != *binding
             || request.credential_id != credential.credential_id.as_str()
             || request.body_id != credential.body_id
@@ -142,16 +158,23 @@ impl Owner {
         let face = self.face_snapshot(request)?;
         let owner = self.host.advertisement();
         let browser = &observation.advertisement;
-        let forward = carrier_line("face", binding, window_id, credential, owner, browser);
-        let backward = carrier_line("return", binding, window_id, credential, browser, owner);
+        validate_carrier_evidence(
+            evidence,
+            line_authorization,
+            window_id,
+            binding,
+            credential,
+            owner,
+            browser,
+        )?;
         route
             .validate_available_show(
                 &self.session,
                 &face,
                 owner,
                 browser,
-                &forward,
-                &backward,
+                &evidence.face,
+                &evidence.returned,
                 show,
             )
             .map_err(|error| format!("browser-mask-show-refused:{error:?}"))?;
@@ -178,50 +201,82 @@ impl Owner {
     }
 }
 
-fn carrier_line(
-    direction: &str,
-    carrier: &LinkBindingId,
+fn validate_carrier_evidence(
+    evidence: &BrowserCarrierLineEvidence,
+    issued: &BrowserLineAuthorization,
     window_id: &str,
+    binding: &LinkBindingId,
     credential: &MembershipCredential,
-    source: &HostAdvertisement,
-    sink: &HostAdvertisement,
-) -> LineOffer {
-    let carrier = carrier.as_str();
-    let line_id = LineId::from(format!("line/browser-mask/{carrier}/{direction}"));
-    let binding_id = LinkBindingId::from(format!("binding/browser-mask/{carrier}/{direction}"));
-    LineOffer {
-        availability: LineAvailabilitySign {
-            line_id: line_id.clone(),
-            binding_id: binding_id.clone(),
-            availability: LineAvailability::Ready,
-            sign_id: SignId::from(format!("sign/browser-mask/{carrier}/{direction}/ready")),
-        },
-        line_id,
-        binding: LinkBinding {
-            binding_id,
-            source: LinkEndpoint {
-                host_id: source.host_id.clone(),
-                boot_id: source.boot_id.clone(),
-                endpoint_id: LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/source")),
-            },
-            sink: LinkEndpoint {
-                host_id: sink.host_id.clone(),
-                boot_id: sink.boot_id.clone(),
-                endpoint_id: LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/sink")),
-            },
-            base: BaseImplementationId::from(WEBSOCKET.base_implementation_id),
-            base_instance_id: BaseInstanceId::from(format!("base-instance/{carrier}")),
-            credential: LinkCredentialReference::Opaque(CredentialReferenceId::from(
-                credential.credential_id.as_str(),
-            )),
-            authority: LinkAuthorityReference::Grant(AuthorityGrantId::from(window_id)),
-            limits: LinkLimits {
-                maximum_in_flight_items: WEBSOCKET.maximum_in_flight_items,
-                maximum_payload_bytes: WEBSOCKET.maximum_payload_bytes,
-                maximum_buffered_bytes: WEBSOCKET.maximum_buffered_bytes,
-                maximum_frame_bytes: WEBSOCKET.maximum_frame_bytes,
-            },
-        },
-        contract: WEBSOCKET.contract,
+    owner: &HostAdvertisement,
+    browser: &HostAdvertisement,
+) -> Result<(), String> {
+    if &evidence.authorization != issued
+        || &issued.carrier_binding != binding
+        || issued.credential_id != credential.credential_id.as_str()
+        || issued.window_id != window_id
+    {
+        return Err("browser-line-authority-missing-or-stale".into());
     }
+    let expected_base = BaseImplementationId::from(WEBSOCKET.base_implementation_id);
+    let expected_instance = BaseInstanceId::from(format!("base-instance/{}", binding.as_str()));
+    let expected_credential = LinkCredentialReference::Opaque(CredentialReferenceId::from(
+        credential.credential_id.as_str(),
+    ));
+    let limits = LinkLimits {
+        maximum_in_flight_items: WEBSOCKET.maximum_in_flight_items,
+        maximum_payload_bytes: WEBSOCKET.maximum_payload_bytes,
+        maximum_buffered_bytes: WEBSOCKET.maximum_buffered_bytes,
+        maximum_frame_bytes: WEBSOCKET.maximum_frame_bytes,
+    };
+    for (direction, offer, source, sink, grant) in [
+        (
+            "face",
+            &evidence.face,
+            owner,
+            browser,
+            &issued.face_grant_id,
+        ),
+        (
+            "return",
+            &evidence.returned,
+            browser,
+            owner,
+            &issued.return_grant_id,
+        ),
+    ] {
+        if grant.as_str().is_empty()
+            || !offer.validate_sign_identity()
+            || offer.availability.availability != LineAvailability::Ready
+            || offer.line_id.as_str()
+                != format!("line/browser-mask/{}/{direction}", binding.as_str())
+            || offer.binding.binding_id.as_str()
+                != format!("binding/browser-mask/{}/{direction}", binding.as_str())
+            || offer.binding.source.host_id != source.host_id
+            || offer.binding.source.boot_id != source.boot_id
+            || offer.binding.sink.host_id != sink.host_id
+            || offer.binding.sink.boot_id != sink.boot_id
+            || offer.binding.source.endpoint_id.as_str().is_empty()
+            || offer.binding.sink.endpoint_id.as_str().is_empty()
+            || offer.binding.source.endpoint_id.as_str()
+                != format!("endpoint/{}/{direction}/source", binding.as_str())
+            || offer.binding.sink.endpoint_id.as_str()
+                != format!("endpoint/{}/{direction}/sink", binding.as_str())
+            || offer.availability.sign_id.as_str()
+                != format!("sign/browser-mask/{}/{direction}/ready", binding.as_str())
+            || offer.binding.base != expected_base
+            || offer.binding.base_instance_id != expected_instance
+            || offer.binding.credential != expected_credential
+            || offer.binding.authority != LinkAuthorityReference::Grant(grant.clone())
+            || offer.binding.limits != limits
+            || offer.contract != WEBSOCKET.contract
+        {
+            return Err("browser-line-evidence-mismatch".into());
+        }
+    }
+    if evidence.face.line_id == evidence.returned.line_id
+        || evidence.face.binding.binding_id == evidence.returned.binding.binding_id
+    {
+        return Err("browser-line-evidence-mismatch".into());
+    }
+    Ok(())
 }
