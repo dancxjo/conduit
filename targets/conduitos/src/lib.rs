@@ -132,6 +132,7 @@ pub mod protection_domain;
 pub mod protocol_host_calls;
 pub mod protocol_operations;
 
+pub mod protocol_artifact;
 pub mod protocol_play;
 #[cfg(test)]
 mod protocol_test_support;

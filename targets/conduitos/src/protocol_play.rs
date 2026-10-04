@@ -241,7 +241,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     }
 }
 
-fn validate_fore(definition: &KernelCompositeDefinition) -> Result<(), ProtocolCallRefusal> {
+pub(crate) fn validate_fore(
+    definition: &KernelCompositeDefinition,
+) -> Result<(), ProtocolCallRefusal> {
     let plan = &definition.internal_plan;
     if !verify_plan(plan) || plan.fragments.len() != 1 {
         return Err(ProtocolCallRefusal::InvalidPlan);
