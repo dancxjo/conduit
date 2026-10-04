@@ -27,19 +27,38 @@ impl I2cProvider for Provider {
 }
 
 fn planned<P: I2cProvider>(provider: P) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
-    let contract = I2cContract::prepare().unwrap();
-    let (startup, profile) = contract.catalogs();
-    let checked = check_syntax_document(
-        &parse_syntax_document(include_str!(
-            "../../../../../plots/device-protocols/i2c-register.conduit"
-        )),
-        &startup,
+    planned_source(
+        provider,
+        include_str!("../../../../../plots/device-protocols/i2c-register.conduit"),
     )
-    .unwrap();
+}
+
+fn planned_source<P: I2cProvider>(
+    provider: P,
+    source: &str,
+) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
+    let contract = I2cContract::prepare().unwrap();
+    let (startup, mut profile) = contract.catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    for stage in checked
+        .plots
+        .iter()
+        .flat_map(|plot| &plot.cords)
+        .flat_map(|cord| &cord.stages)
+    {
+        if let conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } = stage {
+            profile
+                .insert(conduit_plot::structured_selector_definition(
+                    selector,
+                    PortTemporal::Flow { closes: true },
+                ))
+                .unwrap();
+        }
+    }
     let authoring =
         expand_canonical_plot_for_authoring(&checked, "i2c-register-read", &profile).unwrap();
     let expanded = &authoring.expanded;
-    assert_eq!(expanded.gears.len(), 2);
+    assert!(expanded.gears.len() >= 2);
     let identity = I2cNativeIdentity {
         host_id: HostId::from("host/native"),
         boot_id: BootId::from("boot/native"),
@@ -81,10 +100,24 @@ fn planned<P: I2cProvider>(provider: P) -> (Plan, ReadyI2cBase<P>, I2cNativeIden
         if let [entry] = gear.configuration.as_slice()
             && let ConfigurationValue::Text(encoded) = &entry.value
         {
-            let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-            host.capabilities.push(
-                expression_host_call::offer(&program, PortTemporal::Flow { closes: true }).unwrap(),
-            );
+            let temporal = PortTemporal::Flow { closes: true };
+            match entry.key.as_str() {
+                "program" => host.capabilities.push(
+                    expression_host_call::offer(
+                        &PortableExpressionProgram::from_canonical_hex(encoded).unwrap(),
+                        temporal,
+                    )
+                    .unwrap(),
+                ),
+                "selector" => host.capabilities.push(
+                    crate::structured_selector_host_call::offer(
+                        &StructuredSelector::from_canonical_hex(encoded).unwrap(),
+                        temporal,
+                    )
+                    .unwrap(),
+                ),
+                _ => panic!("unsupported checked native configuration"),
+            }
         }
     }
     let grants = [AuthorityGrant {

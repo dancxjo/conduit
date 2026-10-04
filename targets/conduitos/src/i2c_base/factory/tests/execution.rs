@@ -26,8 +26,55 @@ impl I2cProvider for Scripted {
 
 #[test]
 fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
+    run_register(Wrapping::None);
+}
+
+#[test]
+fn checked_selector_feeds_register_plot_through_the_same_native_kernel() {
+    run_register(Wrapping::Field);
+}
+
+#[test]
+fn checked_variant_routing_feeds_register_plot() {
+    run_register(Wrapping::Read);
+}
+#[test]
+fn checked_unmatched_variant_drains_without_a_bus_effect() {
+    run_register(Wrapping::Drop);
+}
+#[derive(Clone, Copy)]
+enum Wrapping {
+    None,
+    Field,
+    Read,
+    Drop,
+}
+fn run_register(wrapping: Wrapping) {
+    let wrapped = !matches!(wrapping, Wrapping::None);
+    let dropped = matches!(wrapping, Wrapping::Drop);
+
     let effects = Arc::new(AtomicUsize::new(0));
-    let (plan, ready, identity) = planned(Scripted(effects.clone()));
+    let source = include_str!("../../../../../../plots/device-protocols/i2c-register.conduit");
+    let declaration = if matches!(wrapping, Wrapping::Field) {
+        "type WrappedRead = {\n query: I2cRegisterRead\n}\ntype I2cRegisterWrite"
+    } else {
+        "type WrappedRead =\n read I2cRegisterRead\n | idle\ntype I2cRegisterWrite"
+    };
+    let selector = if matches!(wrapping, Wrapping::Field) {
+        "    query >> project(WrappedRead.query) >> ({"
+    } else {
+        "    query >> select(WrappedRead.read, unmatched=drop) >> ({"
+    };
+    let wrapped_source = source
+        .replace("type I2cRegisterWrite", declaration)
+        .replace("query: I2cRegisterRead...|", "query: WrappedRead...|")
+        .replacen("    query >> ({", selector, 1);
+    let source = if wrapped {
+        wrapped_source.as_str()
+    } else {
+        source
+    };
+    let (plan, ready, identity) = planned_source(Scripted(effects.clone()), source);
     let fragment = &plan.fragments[0];
     let gear = fragment
         .placements
@@ -113,6 +160,21 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
     external.limits.max_queue_items = 1;
     external.limits.max_queue_bytes = I2C_MAXIMUM_BYTES;
     // Fixture wrapper exposes only the exact sealed ordinary Source fore ports.
+    let selector_input = fragment
+        .placements
+        .iter()
+        .find(|gear| {
+            gear.implementation_id.as_str() == crate::structured_selector_host_call::IMPLEMENTATION
+        })
+        .map(|gear| {
+            let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
+                panic!("selector")
+            };
+            StructuredSelector::from_canonical_hex(encoded)
+                .unwrap()
+                .input_type()
+                .clone()
+        });
     let definition = KernelCompositeDefinition {
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),
@@ -133,7 +195,7 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
         .input_fronts
         .push(duplicated_front.boundary.input_fronts[0].clone());
     for refused in [wrong_route, stale_boot, duplicated_front] {
-        let (_, inert_ready, _) = planned(Scripted(effects.clone()));
+        let (_, inert_ready, _) = planned_source(Scripted(effects.clone()), source);
         let (refused_table, refused_handle, refused_claim) = possession(scope.clone());
         assert!(matches!(
             PreparedProtocolPlay::prepare(
@@ -171,10 +233,28 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
             .unwrap()
         })
         .collect();
-    let encoded = StructuredInfoValue::record(ty, values)
-        .unwrap()
-        .canonical_bytes()
-        .unwrap();
+    let query = StructuredInfoValue::record(ty, values).unwrap();
+    let query = if let Some(ty) = selector_input {
+        if matches!(wrapping, Wrapping::Field) {
+            StructuredInfoValue::record(
+                ty,
+                vec![StructuredFieldValue::new("query", query).unwrap()],
+            )
+            .unwrap()
+        } else if dropped {
+            let unit = StructuredInfoValue::leaf(
+                StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
+                vec![],
+            )
+            .unwrap();
+            StructuredInfoValue::variant(ty, "idle", unit).unwrap()
+        } else {
+            StructuredInfoValue::variant(ty, "read", query).unwrap()
+        }
+    } else {
+        query
+    };
+    let encoded = query.canonical_bytes().unwrap();
     play.admit_input(
         &input_port.port_id,
         0,
@@ -190,12 +270,21 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
         encoded: alloc::vec::Vec::with_capacity(I2C_MAXIMUM_BYTES as usize),
     };
     let mut sequence = None;
+    let mut status = KernelCompositeStatus::Active;
     for _ in 0..64 {
-        play.step().unwrap();
+        status = play.step().unwrap();
         sequence = play.output_into(&output_port.port_id, &mut output).unwrap();
         if sequence.is_some() {
             break;
         }
+    }
+    if dropped {
+        assert_eq!(sequence, None);
+        assert_eq!(status, KernelCompositeStatus::Complete);
+        assert_eq!(effects.load(Ordering::SeqCst), 0);
+        play.cancel().unwrap();
+        assert_eq!(effects.load(Ordering::SeqCst), 100);
+        return;
     }
     assert_eq!(sequence, Some(0));
     assert_eq!(effects.load(Ordering::SeqCst), 1);
