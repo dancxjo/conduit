@@ -16,11 +16,13 @@ use conduit_plot::{
 };
 
 use crate::{
-    annotation_bundle_four_type, dependency_edge_type, dependency_subtype_type,
+    analysis_revision_type, analysis_token_ref_type, annotation_bundle_four_type,
+    dependency_arc_type, dependency_edge_type, dependency_head_type, dependency_subtype_type,
     language_dependency_relation_type, linguistic_annotation_type,
     linguistic_annotations_four_type, linguistic_label_type, linguistic_segment_type,
     linguistic_token_type, linguistic_tokens_four_type, text_span_type,
-    universal_dependency_relation_type, ANNOTATION_BUNDLE_FOUR_TYPE, DEPENDENCY_EDGE_TYPE,
+    universal_dependency_relation_type, ANALYSIS_REVISION_TYPE, ANALYSIS_TOKEN_REF_TYPE,
+    ANNOTATION_BUNDLE_FOUR_TYPE, DEPENDENCY_ARC_TYPE, DEPENDENCY_EDGE_TYPE, DEPENDENCY_HEAD_TYPE,
     DEPENDENCY_SUBTYPE_TYPE, LANGUAGE_DEPENDENCY_RELATION_TYPE, LINGUISTIC_ANNOTATIONS_FOUR_TYPE,
     LINGUISTIC_ANNOTATION_TYPE, LINGUISTIC_LABEL_TYPE, LINGUISTIC_SEGMENT_TYPE,
     LINGUISTIC_TOKENS_FOUR_TYPE, LINGUISTIC_TOKEN_TYPE, MAXIMUM_LINGUISTIC_TEXT_BYTES,
@@ -156,6 +158,10 @@ fn linguistic_types() -> Vec<(&'static str, StructuredInfoType)> {
             language_dependency_relation_type(),
         ),
         (DEPENDENCY_SUBTYPE_TYPE, dependency_subtype_type()),
+        (ANALYSIS_REVISION_TYPE, analysis_revision_type()),
+        (ANALYSIS_TOKEN_REF_TYPE, analysis_token_ref_type()),
+        (DEPENDENCY_HEAD_TYPE, dependency_head_type()),
+        (DEPENDENCY_ARC_TYPE, dependency_arc_type()),
         (TEXT_SPAN_TYPE, text_span_type()),
         (LINGUISTIC_TOKEN_TYPE, linguistic_token_type()),
         (LINGUISTIC_TOKENS_FOUR_TYPE, linguistic_tokens_four_type()),

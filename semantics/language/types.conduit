@@ -138,3 +138,23 @@ type LanguageDependencyRelation = {
     base: LanguageUniversalDependencyRelation
     subtype: LanguageDependencySubtype?
 }
+
+# Analysis revision is distinct from source-text revision and commitment.
+type LanguageAnalysisRevisionId = Text <= 64B not in [""]
+type LanguageAnalysisTokenRef = {
+    revision: LanguageAnalysisRevisionId
+    token: LinguisticTokenIdentity
+}
+type LanguageDependencyHead =
+    root
+    | token LanguageAnalysisTokenRef
+
+type LanguageDependencyArc = {
+    dependent: LanguageAnalysisTokenRef
+    governor: LanguageDependencyHead
+    relation: LanguageDependencyRelation
+    where .governor is root ? .relation.base is root : !(.relation.base is root)
+    where .governor is token ? .governor.token.revision == .dependent.revision : true
+    where .governor is token ? .governor.token.token.text_identity == .dependent.token.text_identity : true
+    where .governor is token ? .governor.token.token.ordinal != .dependent.token.ordinal : true
+}
