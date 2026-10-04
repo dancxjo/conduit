@@ -22,7 +22,7 @@ const CONTRACT: LineContract = LineContract {
     security: LineSecurity::AuthenticatedEncrypted,
 };
 // The ConduitOS bounded WebSocket carries one 8 KiB wire frame with a
-// fourteen-byte envelope. Larger return documents use ordered chunks.
+// fourteen-byte envelope. Larger documents use ordered chunks.
 pub(super) const MAX_NATIVE_FRAME_BYTES: usize = 8192 - 14;
 
 pub(super) fn binding_reference(
@@ -107,11 +107,7 @@ fn line(
             ))),
             limits: LinkLimits {
                 maximum_in_flight_items: 1,
-                maximum_payload_bytes: if direction == "face" {
-                    MAX_NATIVE_FRAME_BYTES as u32
-                } else {
-                    64 * 1024
-                },
+                maximum_payload_bytes: 64 * 1024,
                 maximum_frame_bytes: MAX_NATIVE_FRAME_BYTES as u32,
                 maximum_buffered_bytes: 128 * 1024,
             },
@@ -170,7 +166,7 @@ mod tests {
         assert_eq!(returned.binding.source.host_id, guest.host_id);
         assert_eq!(returned.binding.sink.host_id, owner.host_id);
         assert_eq!(face.contract.security, LineSecurity::AuthenticatedEncrypted);
-        assert_eq!(face.binding.limits.maximum_payload_bytes, 8192 - 14);
+        assert_eq!(face.binding.limits.maximum_payload_bytes, 64 * 1024);
         assert_eq!(returned.binding.limits.maximum_frame_bytes, 8192 - 14);
         assert_eq!(returned.binding.limits.maximum_payload_bytes, 64 * 1024);
     }

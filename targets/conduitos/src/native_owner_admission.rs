@@ -22,6 +22,7 @@ use crate::{
     arch::{CandidateDeadline, VirtioNetReady},
     bounded_websocket::{BinaryWebSocketIo, MAXIMUM_BINARY_MESSAGE_BYTES, WebSocketError},
     native_guest_face::{GuestFaceRefusal, NativeGuestFace},
+    native_owner_document::{self, DocumentRefusal},
     spore_provision::RouteCertificate,
     virtio_tcp::VirtioTcpEndpoint,
     virtio_tls::{self, VirtioTlsError, VirtioWebSocketRunError},
@@ -212,18 +213,12 @@ fn exchange_face(
     }
     line.send_binary(&encoded)
         .map_err(NativeOwnerFaceExchangeRefusal::Send)?;
-    // BoundedWebSocket refuses an output slice larger than its frame storage,
-    // even when the incoming message itself is short.
-    let mut response_bytes = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
-    let received = line
-        .receive_binary(&mut response_bytes)
-        .map_err(NativeOwnerFaceExchangeRefusal::Receive)?;
-    if received == 0 || received > response_bytes.len() {
-        return Err(NativeOwnerFaceExchangeRefusal::FramePressure);
-    }
-    let response: OwnerFaceSnapshotResponse =
-        serde_json::from_slice(&response_bytes[..received])
-            .map_err(|_| NativeOwnerFaceExchangeRefusal::Encoding)?;
+    let response: OwnerFaceSnapshotResponse = native_owner_document::receive(line, 64 * 1024)
+        .map_err(|error| match error {
+            DocumentRefusal::Receive(error) => NativeOwnerFaceExchangeRefusal::Receive(error),
+            DocumentRefusal::Bound => NativeOwnerFaceExchangeRefusal::FramePressure,
+            DocumentRefusal::Decode => NativeOwnerFaceExchangeRefusal::Encoding,
+        })?;
     let admitted = matches!(
         &response,
         OwnerFaceSnapshotResponse::Snapshot {
@@ -234,6 +229,7 @@ fn exchange_face(
     let face = NativeGuestFace::from_owner_response(receipt, response)
         .map_err(NativeOwnerFaceExchangeRefusal::Face)?;
     let grant = if admitted {
+        let mut response_bytes = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
         let length = line
             .receive_binary(&mut response_bytes)
             .map_err(NativeOwnerFaceExchangeRefusal::Receive)?;

@@ -102,30 +102,7 @@ pub(super) fn serve_optional_face_snapshot(
     if !selected {
         grant = None;
     }
-    if serde_json::to_vec(&response)
-        .map_err(|error| format!("encode native owner Face: {error}"))?
-        .len()
-        > native_lines::MAX_NATIVE_FRAME_BYTES
-    {
-        if let OwnerFaceSnapshotResponse::Snapshot {
-            interactions_admitted,
-            route,
-            ..
-        } = &mut response
-        {
-            *interactions_admitted = false;
-            *route = None;
-        }
-        grant = None;
-        if serde_json::to_vec(&response)
-            .map_err(|error| format!("encode native owner Face: {error}"))?
-            .len()
-            > native_lines::MAX_NATIVE_FRAME_BYTES
-        {
-            return Err("face-frame-pressure".into());
-        }
-    }
-    send(line, &response)?;
+    response_document::send(line, &response)?;
     if let Some(grant) = &grant {
         send(line, grant)?;
     }

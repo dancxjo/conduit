@@ -214,7 +214,7 @@ pub(super) fn serve(
             "CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"responding\",\"code\":\"{}\"}}",
             response.code
         );
-        send(&mut line, &fit_response(response)?)?;
+        super::response_document::send(&mut line, &fit_response(response)?)?;
         if outcome_unknown {
             break;
         }
@@ -304,7 +304,7 @@ impl ChunkAssembly {
 fn fit_response(mut response: Response) -> Result<Response, String> {
     let bytes = serde_json::to_vec(&response)
         .map_err(|error| format!("encode native return response: {error}"))?;
-    if bytes.len() > super::native_lines::MAX_NATIVE_FRAME_BYTES {
+    if bytes.len() > super::response_document::MAX_OWNER_DOCUMENT_BYTES {
         response.face = None;
         if response.accepted {
             response.code = "accepted-face-pressure";
@@ -480,14 +480,14 @@ mod tests {
     }
 
     #[test]
-    fn oversized_refreshed_face_keeps_action_truth_and_refuses_guest_frame_pressure() {
+    fn oversized_refreshed_face_keeps_action_truth_and_refuses_document_pressure() {
         let response = Response {
             schema: RESPONSE_SCHEMA,
             accepted: true,
             code: "accepted",
             face: Some(OwnerFaceSnapshotResponse::Refused {
                 schema: "conduit.presentation/owner-face-response@1".into(),
-                code: "x".repeat(MAX_OWNER_FACE_RESPONSE_BYTES),
+                code: "x".repeat(super::super::response_document::MAX_OWNER_DOCUMENT_BYTES),
             }),
         };
         let fitted = fit_response(response).unwrap();

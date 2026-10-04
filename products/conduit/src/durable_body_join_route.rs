@@ -4,6 +4,8 @@
 mod face_snapshot;
 #[path = "durable_body_join_route/native_lines.rs"]
 mod native_lines;
+#[path = "durable_body_join_route/response_document.rs"]
+mod response_document;
 #[path = "durable_body_join_route/return_route.rs"]
 mod return_route;
 

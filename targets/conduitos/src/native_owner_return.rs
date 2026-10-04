@@ -17,6 +17,7 @@ use crate::{
     identity::BootIdentities,
     native_guest_face::NativeGuestFace,
     native_owner_admission::NativeOwnerReturnGrant,
+    native_owner_document,
     virtio_tcp::VirtioTcpEndpoint,
     virtio_tls::{self, VirtioWebSocketRunError},
 };
@@ -326,14 +327,8 @@ fn exchange(
     frame: &mut [u8],
 ) -> Result<Response, &'static str> {
     send_chunks(line, encoded, frame)?;
-    let mut bytes = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
-    let length = line
-        .receive_binary(&mut bytes)
-        .map_err(|_| "native-owner-return-receive-refused")?;
-    if length == 0 || length > bytes.len() {
-        return Err("control-outcome-unknown");
-    }
-    serde_json::from_slice(&bytes[..length]).map_err(|_| "control-outcome-unknown")
+    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES)
+        .map_err(|_| "control-outcome-unknown")
 }
 
 fn send_chunks(
