@@ -3,7 +3,10 @@
 
 use super::{body::HostSource, constant_time_equal, DurableHostRuntime, PROTOCOL};
 use conduit_core::PlanId;
-use conduit_presentation::{FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow};
+use conduit_presentation::{
+    BodyMaskWardrobe, FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobe,
+    MaskWardrobeControl, MaskWardrobeLifetime,
+};
 use conduit_std_host::{
     terminal_face_mask::TerminalMaskExecution, terminal_mask_execution::HostedTerminalMaskExecution,
 };
@@ -20,6 +23,7 @@ use wire::{AttachReply, AttachRequest};
 pub(super) struct AttachedTerminalRoute {
     pub seal: LocalOwnerMaskRouteSeal,
     pub show: MaskShow,
+    pub wardrobe: MaskWardrobeControl,
     pub execution: HostedTerminalMaskExecution,
 }
 
@@ -57,11 +61,25 @@ pub(super) fn serve(
             .host
             .current_mut()
             .present_attached_terminal_face_with_interaction(&face)?;
-        owner.validate_attached_terminal_route(&seal, &show)?;
+        let routes = owner.admit_attached_terminal_show(&seal, &show)?;
+        let mask = seal.planned_mask.mask.plot_identity.clone();
+        let wardrobe = MaskWardrobeControl::new_from_admitted_routes(
+            BodyMaskWardrobe::new(
+                seal.body_id.clone(),
+                None,
+                MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![mask.clone()], vec![mask])
+                    .map_err(|error| format!("wear attached terminal Mask: {error:?}"))?,
+            )
+            .map_err(|error| format!("scope attached terminal Mask: {error:?}"))?,
+            &routes,
+            None,
+        )
+        .map_err(|error| format!("select attached terminal Mask: {error:?}"))?;
         let advertisement = owner.host.advertisement().clone();
         runtime.terminal_route = Some(AttachedTerminalRoute {
             seal: seal.clone(),
             show: show.clone(),
+            wardrobe,
             execution,
         });
         wire::write_reply(
@@ -118,6 +136,12 @@ impl DurableHostRuntime {
         };
         if &route.seal.route_plan_id != route_plan_id || &route.show != show {
             return Err("attached terminal route or Show differs".into());
+        }
+        if route.wardrobe.selected.as_ref().is_none_or(|selected| {
+            selected.plan_id != *route_plan_id
+                || selected.mask_plot != route.seal.planned_mask.mask.plot_identity
+        }) {
+            return Err("attached terminal Mask is no longer selected".into());
         }
         owner.validate_attached_terminal_route(&route.seal, show)?;
         route
