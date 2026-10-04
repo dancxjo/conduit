@@ -139,22 +139,28 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
             ) {
                 (UTF8_TEXT_VALUE_KIND, [ValueConstraint::ByteLength { minimum, maximum }]) => {
                     format!(
-                        "{}. Enter {minimum} to {maximum} UTF-8 bytes, then activate {}.",
-                        argument.value_name, action.name
+                        "{}. Enter {minimum} to {maximum} UTF-8 bytes with edit {}, then activate {}.",
+                        argument.value_name, argument.name, action.name
                     )
                 }
                 ("value/bool", _) => format!(
-                    "{}. Choose true or false, then activate {}.",
-                    argument.value_name, action.name
+                    "{}. Choose true or false with edit {}, then activate {}.",
+                    argument.value_name, argument.name, action.name
                 ),
                 (UTF8_TEXT_VALUE_KIND, _) => readable_finite_text_choices(&argument.contract)
                     .map_or_else(
-                        || clause.text.clone(),
+                        || {
+                            format!(
+                                "{} Use edit {} to enter a valid value, then activate {}.",
+                                clause.text, argument.name, action.name
+                            )
+                        },
                         |choices| {
                             format!(
-                                "{}. Choose one of: {}. Then activate {}.",
+                                "{}. Choose one of: {}. Enter it with edit {}, then activate {}.",
                                 argument.value_name,
                                 choices.join(", "),
+                                argument.name,
                                 action.name
                             )
                         },
