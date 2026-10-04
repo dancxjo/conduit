@@ -418,3 +418,18 @@ and 25,332 bytes for text plus rendering, with 260/1,284 bytes BSS and no data.
 This adds 72 bytes relative to the pre-direct-phone measurements. All 19 listening
 WAVs remain byte-identical. These are default-profile link measurements with the
 exclusions above, not full-stack, device playback or realtime acceptance.
+
+Under `semantic-bindings`, `inventory_admission::resolve_inventory_phone` binds an
+already resolved material phone token to a unique definition in a supplied
+`SpeechInventory`. Native Conduit laws check the snapshot's inventory and language
+against that inventory, and check the requested and selected definition identities.
+The result borrows the original material, inventory and complete definition; it
+preserves features, aliases, status, confidence, acoustic evidence and provenance.
+
+Only a `known` phone ID permits lookup. Other specification states are returned
+unchanged in `InventoryRefusal::Unresolved`; no default or gradient/variable
+selection is implied. Missing and duplicate requested IDs are distinct refusals.
+Matching IPA or alias spelling does not substitute for identity. This is local
+snapshot/definition resolution, not registry authenticity, voice-profile eligibility,
+commitment admission or rich-to-compact realization. It adds no compact DSP policy
+or playback allocation.

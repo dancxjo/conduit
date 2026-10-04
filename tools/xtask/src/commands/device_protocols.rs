@@ -63,6 +63,19 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 ],
             ),
             Step::new(
+                "device-protocols.native-expressions",
+                "Check exact native expression admission and bounded kernel execution",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduitos",
+                    "--lib",
+                    "expression_host_call",
+                ],
+            ),
+            Step::new(
                 "device-protocols.i2c",
                 "Check exact I2C schemas, finite geometry and typed outcomes",
                 "cargo",

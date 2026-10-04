@@ -69,7 +69,9 @@ fn checked_i2c_topology_has_one_class_neutral_call() {
         .expanded;
     assert_eq!(expanded.gears.len(), 1);
     assert_eq!(expanded.gears[0].kind_id, contract.kind().kind_id);
-    assert_eq!(contract.kind().value_contracts().len(), 2);
+    // Canonical Type identity owns schema constraints; transport byte bounds belong
+    // to the selected Host Call, not an extra authored Fore refinement.
+    assert!(contract.kind().value_contracts().is_empty());
     assert_eq!(contract.kind().limits.max_queue_items, 1);
 }
 

@@ -1624,6 +1624,7 @@ dependencies = [
  "conduit-audio",
  "conduit-birth-plot",
  "conduit-body",
+ "conduit-composite",
  "conduit-core",
  "conduit-home-model",
  "conduit-human",
