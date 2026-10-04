@@ -414,6 +414,64 @@ mod tests {
         );
     }
 
+    #[test]
+    fn selected_speech_refused_input_does_not_interrupt_current_play() {
+        use command_input::{CommandInput, InputEvent, SpokenInput};
+        use std::sync::mpsc;
+
+        let host = StdHost::new();
+        let advertisement = host.advertisement().clone();
+        let door = ZeroBodyFrontDoor::from_model(
+            Arc::new(HostedPatchbayAdapter),
+            PatchbayModel::from_advertisement(advertisement.clone()),
+        )
+        .unwrap();
+        let basis = HostOwnedBirthFaceBasis {
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            encounter_id: crate::birth_identity::fresh_uuid().unwrap(),
+        };
+        let draft = door.creche_draft(basis.encounter_id.clone()).unwrap();
+        let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+        let (face, show) = present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+        let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        reader
+            .command(
+                &face,
+                &show,
+                ReaderCommand::FocusAction("creche.name".into()),
+                1,
+            )
+            .unwrap();
+        let batch = reader.next_batch_with_limits(1, 64).unwrap().unwrap();
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let mut input = SpokenInput::from_receiver(receiver);
+
+        for refused in [
+            "focus absent",
+            "focus subject absent",
+            "edit absent value",
+            "activate",
+            "unknown command",
+        ] {
+            sender.send(InputEvent::Line(refused.into())).unwrap();
+            assert!(!input.interrupting_command(&reader, &face, &show, 2));
+            assert!(matches!(input.next(), InputEvent::Line(line) if line == refused));
+            assert_eq!(
+                reader.next_batch_with_limits(1, 64).unwrap_err(),
+                conduit_std_host::spoken_face_mask::SpokenFaceRefusal::SpeechPressure
+            );
+        }
+        sender.send(InputEvent::Line("next".into())).unwrap();
+        assert!(input.interrupting_command(&reader, &face, &show, 2));
+        assert!(matches!(input.next(), InputEvent::Line(line) if line == "next"));
+        sender.send(InputEvent::Line("stop".into())).unwrap();
+        assert!(input.interrupting_command(&reader, &face, &show, 2));
+        sender.send(InputEvent::Eof).unwrap();
+        assert!(matches!(input.next(), InputEvent::Eof));
+        assert_eq!(batch.source_show_id, show.show_id.as_str());
+    }
+
     /// Explicit local-provider proof. This uses the actual zero-Body draft,
     /// current Face, acknowledged terminal Show, planned speech Fore, and WAV
     /// effect. It does not establish audible playback or a retained Body.
