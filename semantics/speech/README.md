@@ -492,6 +492,13 @@ reproducing the pinned upstream realization engine's omission of that field.
 These comparisons do not infer observations or establish neighbor, feature,
 style, syntax, source, commitment or complete allophone eligibility.
 
+`compare_allophone_scalar_context` binds those comparisons to the original
+allophone environment and four explicitly supplied observation specifications.
+Its immutable receipt retains the declaration, including neighbor alternatives,
+conditions, status and confidence. It reports each scalar decision separately;
+it does not collapse unresolved evidence into a mismatch or claim eligibility.
+The adapter allocates no storage and infers no occurrence or neighboring context.
+
 `resolve_declared_intent_realization` checks that the chosen opaque phone ID
 has at least one declaration in the exact requested phoneme definition of the
 supplied inventory. It retains every matching default, possible-phone entry and
