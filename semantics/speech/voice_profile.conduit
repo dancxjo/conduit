@@ -1,0 +1,64 @@
+# An explicitly supplied formant profile declares its realization relation.
+# No opaque ID, IPA spelling or feature uncertainty selects a voice implicitly.
+type SpeechFormantPhoneBinding = {
+    definition: SpeechPhone
+    phone: EnglishPhone
+    where .phone is iy ? .definition.ipa == "i" : true
+    where .phone is ih ? .definition.ipa == "ɪ" : true
+    where .phone is ey ? .definition.ipa == "eɪ" : true
+    where .phone is eh ? .definition.ipa == "ɛ" : true
+    where .phone is ae ? .definition.ipa == "æ" : true
+    where .phone is aa ? .definition.ipa == "ɑ" : true
+    where .phone is ao ? .definition.ipa == "ɔ" : true
+    where .phone is ow ? .definition.ipa == "oʊ" : true
+    where .phone is uh ? .definition.ipa == "ʊ" : true
+    where .phone is uw ? .definition.ipa == "u" : true
+    where .phone is ah ? .definition.ipa == "ʌ" : true
+    where .phone is ax ? .definition.ipa == "ə" : true
+    where .phone is er ? .definition.ipa == "ɝ" : true
+    where .phone is ay ? .definition.ipa == "aɪ" : true
+    where .phone is aw ? .definition.ipa == "aʊ" : true
+    where .phone is oy ? .definition.ipa == "ɔɪ" : true
+    where .phone is p ? .definition.ipa == "p" : true
+    where .phone is b ? .definition.ipa == "b" : true
+    where .phone is t ? .definition.ipa == "t" : true
+    where .phone is d ? .definition.ipa == "d" : true
+    where .phone is k ? .definition.ipa == "k" : true
+    where .phone is g ? .definition.ipa == "ɡ" : true
+    where .phone is f ? .definition.ipa == "f" : true
+    where .phone is v ? .definition.ipa == "v" : true
+    where .phone is th ? .definition.ipa == "θ" : true
+    where .phone is dh ? .definition.ipa == "ð" : true
+    where .phone is s ? .definition.ipa == "s" : true
+    where .phone is z ? .definition.ipa == "z" : true
+    where .phone is sh ? .definition.ipa == "ʃ" : true
+    where .phone is zh ? .definition.ipa == "ʒ" : true
+    where .phone is ch ? .definition.ipa == "tʃ" : true
+    where .phone is jh ? .definition.ipa == "dʒ" : true
+    where .phone is m ? .definition.ipa == "m" : true
+    where .phone is n ? .definition.ipa == "n" : true
+    where .phone is ng ? .definition.ipa == "ŋ" : true
+    where .phone is l ? .definition.ipa == "l" : true
+    where .phone is r ? .definition.ipa == "ɹ" : true
+    where .phone is w ? .definition.ipa == "w" : true
+    where .phone is y ? .definition.ipa == "j" : true
+    where .phone is h ? .definition.ipa == "h" : true
+    where .phone is p_aspirated ? .definition.ipa == "pʰ" : true
+    where .phone is t_aspirated ? .definition.ipa == "tʰ" : true
+    where .phone is k_aspirated ? .definition.ipa == "kʰ" : true
+    where .phone is alveolar_flap ? .definition.ipa == "ɾ" : true
+}
+type SpeechFormantVoiceProfile = {
+    identity: Text <= 64B not in [""]
+    inventory_id: SpeechInventoryId
+    language: SpeechLanguageId
+    phones: sequence SpeechFormantPhoneBinding <= 64
+}
+type SpeechFormantProfileBasis = {
+    inventory_id: SpeechInventoryId
+    language: SpeechLanguageId
+    profile_inventory_id: SpeechInventoryId
+    profile_language: SpeechLanguageId
+    where .inventory_id == .profile_inventory_id
+    where .language == .profile_language
+}
