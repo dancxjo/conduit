@@ -49,15 +49,16 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     for (const [index, wav] of report.direct_speech.wavs.entries()) {
       const receipt = JSON.parse(await readFile(path.join(output, 'speech-direct',
         `direct-batch-${index + 1}-receipt.json`)));
-      produced.push({ wav, receipt });
-      clips.push(`<li><p>${escape(receipt.transcript_text)}</p><audio controls preload="none" src="${wav.path}"><a href="${wav.path}">Download speech batch ${index + 1}</a></audio></li>`);
+      const readable = receipt.source_segments.map(segment => segment.text).join(' ');
+      produced.push({ wav, readable });
+      clips.push(`<li><p>${escape(readable)}</p><audio controls preload="none" src="${wav.path}"><a href="${wav.path}">Download speech batch ${index + 1}</a></audio></li>`);
     }
     const featured = produced.find(item =>
-      item.receipt.transcript_text.includes('The current clock interval is 500 milliseconds'))
+      item.readable.includes('The current clock interval is 500 milliseconds'))
       ?? produced[0];
     sections.push(chapter('direct-speech', 6, 'Hear the current Face',
       `Request a mechanical full-Face reading while the three Hosts remain live. The runtime committed ${report.direct_speech.batch_count} ordered speech batches and produced real PCM WAV files. This capture does not claim speaker playback or human listening.`,
-      `<figure class="audio-feature"><figcaption><strong>Listen to the current clock</strong><p>${escape(featured.receipt.transcript_text)}</p></figcaption><audio controls preload="metadata" src="${featured.wav.path}"><a href="${featured.wav.path}">Download this produced speech clip</a></audio></figure><details><summary>Hear the complete ${clips.length}-batch Face reading</summary><ol class="audio-list">${clips.join('')}</ol></details>`));
+      `<figure class="audio-feature"><figcaption><strong>Listen to the current clock</strong><p>${escape(featured.readable)}</p></figcaption><audio controls preload="metadata" src="${featured.wav.path}"><a href="${featured.wav.path}">Download this produced speech clip</a></audio></figure><details><summary>Hear the complete ${clips.length}-batch Face reading</summary><ol class="audio-list">${clips.join('')}</ol></details>`));
   }
   const ids = ['browser', 'native', 'native-action', 'browser-action', 'terminal-action'];
   if (report.direct_speech) ids.push('direct-speech');
