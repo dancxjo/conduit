@@ -50,7 +50,7 @@ impl<'a> FeatureReceipt<'a> {
 }
 pub struct FeatureBundleComparison<'a> {
     requirements: &'a SpeechFeatureBundle,
-    observations: &'a SpeechFeatureBundle,
+    observations: Option<&'a SpeechFeatureBundle>,
     receipts: [Option<FeatureReceipt<'a>>; 16],
     count: usize,
     decision: SpeechContextDecision,
@@ -62,7 +62,7 @@ impl<'a> FeatureBundleComparison<'a> {
     pub fn requirements(&self) -> &'a SpeechFeatureBundle {
         self.requirements
     }
-    pub fn observations(&self) -> &'a SpeechFeatureBundle {
+    pub fn observations(&self) -> Option<&'a SpeechFeatureBundle> {
         self.observations
     }
     pub fn comparisons(&self) -> impl Iterator<Item = &FeatureReceipt<'a>> {
@@ -75,22 +75,32 @@ pub fn compare_feature_bundle<'a>(
     requirements: &'a SpeechFeatureBundle,
     observations: &'a SpeechFeatureBundle,
 ) -> Result<FeatureBundleComparison<'a>, FeatureBundleRefusal> {
+    compare_feature_bundle_observation(requirements, Some(observations))
+}
+pub(crate) fn compare_feature_bundle_observation<'a>(
+    requirements: &'a SpeechFeatureBundle,
+    observations: Option<&'a SpeechFeatureBundle>,
+) -> Result<FeatureBundleComparison<'a>, FeatureBundleRefusal> {
     validate_feature_bundle(requirements).map_err(|reason| FeatureBundleRefusal::Bundle {
         side: FeatureBundleSide::Requirement,
         reason,
     })?;
-    validate_feature_bundle(observations).map_err(|reason| FeatureBundleRefusal::Bundle {
-        side: FeatureBundleSide::Observation,
-        reason,
-    })?;
+    if let Some(observations) = observations {
+        validate_feature_bundle(observations).map_err(|reason| FeatureBundleRefusal::Bundle {
+            side: FeatureBundleSide::Observation,
+            reason,
+        })?;
+    }
     let mut receipts = core::array::from_fn(|_| None);
     let mut accumulated = generated::SpeechContextDecision::matched;
     for (index, requirement) in requirements.get().as_slice().iter().enumerate() {
-        let observation = observations
-            .get()
-            .as_slice()
-            .iter()
-            .find(|feature| feature.identity() == requirement.identity());
+        let observation = observations.and_then(|bundle| {
+            bundle
+                .get()
+                .as_slice()
+                .iter()
+                .find(|feature| feature.identity() == requirement.identity())
+        });
         let checked_key = observation
             .map(|feature| {
                 SpeechFeatureIdentityMatch::new(

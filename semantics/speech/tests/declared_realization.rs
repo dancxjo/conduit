@@ -441,6 +441,7 @@ fn allophone_neighbor_receipt_keeps_original_rule_and_immediate_sides() {
     let observation = NeighborObservation::Segment {
         phone: &phone,
         phoneme: &phoneme,
+        features: None,
     };
     let compared = compare_allophone_neighbors(&declaration, observation, observation).unwrap();
     assert!(core::ptr::eq(compared.declaration(), &declaration));

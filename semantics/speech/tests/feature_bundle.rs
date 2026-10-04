@@ -32,7 +32,10 @@ fn exact_keys_and_missing_values_keep_original_receipts_without_defaults() {
     ]);
     let compared = compare_feature_bundle(&requirements, &observations).unwrap();
     assert!(core::ptr::eq(compared.requirements(), &requirements));
-    assert!(core::ptr::eq(compared.observations(), &observations));
+    assert!(core::ptr::eq(
+        compared.observations().unwrap(),
+        &observations
+    ));
     let receipts: Vec<_> = compared.comparisons().collect();
     for (index, receipt) in receipts.iter().enumerate() {
         assert!(core::ptr::eq(
