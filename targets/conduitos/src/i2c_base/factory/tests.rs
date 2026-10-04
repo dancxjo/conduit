@@ -27,19 +27,45 @@ impl I2cProvider for Provider {
 }
 
 fn planned<P: I2cProvider>(provider: P) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
-    let contract = I2cContract::prepare().unwrap();
-    let (startup, profile) = contract.catalogs();
-    let checked = check_syntax_document(
-        &parse_syntax_document(include_str!(
-            "../../../../../plots/device-protocols/i2c-register.conduit"
-        )),
-        &startup,
+    planned_source(
+        provider,
+        include_str!("../../../../../plots/device-protocols/i2c-register.conduit"),
     )
-    .unwrap();
-    let authoring =
-        expand_canonical_plot_for_authoring(&checked, "i2c-register-read", &profile).unwrap();
+}
+
+fn planned_source<P: I2cProvider>(
+    provider: P,
+    source: &str,
+) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
+    planned_named_source(provider, source, "i2c-register-read")
+}
+
+fn planned_named_source<P: I2cProvider>(
+    provider: P,
+    source: &str,
+    name: &str,
+) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
+    let contract = I2cContract::prepare().unwrap();
+    let (startup, mut profile) = contract.catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    for stage in checked
+        .plots
+        .iter()
+        .flat_map(|plot| &plot.cords)
+        .flat_map(|cord| &cord.stages)
+    {
+        if let conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } = stage {
+            profile
+                .insert(conduit_plot::structured_selector_definition(
+                    selector,
+                    PortTemporal::Flow { closes: true },
+                ))
+                .unwrap();
+        }
+    }
+    let authoring = expand_canonical_plot_for_authoring(&checked, name, &profile).unwrap();
     let expanded = &authoring.expanded;
-    assert_eq!(expanded.gears.len(), 2);
+    assert!(expanded.gears.len() >= 2);
     let identity = I2cNativeIdentity {
         host_id: HostId::from("host/native"),
         boot_id: BootId::from("boot/native"),
@@ -81,10 +107,24 @@ fn planned<P: I2cProvider>(provider: P) -> (Plan, ReadyI2cBase<P>, I2cNativeIden
         if let [entry] = gear.configuration.as_slice()
             && let ConfigurationValue::Text(encoded) = &entry.value
         {
-            let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-            host.capabilities.push(
-                expression_host_call::offer(&program, PortTemporal::Flow { closes: true }).unwrap(),
-            );
+            let temporal = PortTemporal::Flow { closes: true };
+            match entry.key.as_str() {
+                "program" => host.capabilities.push(
+                    expression_host_call::offer(
+                        &PortableExpressionProgram::from_canonical_hex(encoded).unwrap(),
+                        temporal,
+                    )
+                    .unwrap(),
+                ),
+                "selector" => host.capabilities.push(
+                    crate::structured_selector_host_call::offer(
+                        &StructuredSelector::from_canonical_hex(encoded).unwrap(),
+                        temporal,
+                    )
+                    .unwrap(),
+                ),
+                _ => panic!("unsupported checked native configuration"),
+            }
         }
     }
     let grants = [AuthorityGrant {
@@ -171,3 +211,58 @@ fn register_plot_selects_native_expression_and_capability_bound_i2c_backs() {
 }
 
 mod execution;
+
+const BME_FIRST_CALL_SOURCE: &str = concat!(
+    include_str!("../../../../../plots/device-protocols/bme280-lifecycle.conduit"),
+    "\nplot bme280-first-call (\n query: BmeProtocolBegin...| >> result: I2cResult...|\n) {\n bus: machine/i2c/transact\n query >> bme280-protocol-initialize() >> bme280-protocol-action() >> select(BmeProtocolAction.transact, unmatched=drop) >> bus >> result\n}\n"
+);
+
+#[test]
+fn bme280_source_initializer_and_action_plan_against_native_i2c() {
+    let (plan, _, _) = planned_named_source(Provider, BME_FIRST_CALL_SOURCE, "bme280-first-call");
+    assert!(verify_plan(&plan));
+    assert_eq!(plan.fragments[0].placements.len(), 4);
+}
+
+#[test]
+fn complete_bme280_transition_and_next_action_have_finite_native_admission() {
+    use conduit_composite::KernelOperationFactory;
+    let source = concat!(
+        include_str!("../../../../../plots/device-protocols/bme280-lifecycle.conduit"),
+        "\nplot bme280-next-call (\n transition: BmeProtocolTransition...| >> result: I2cResult...|\n) {\n bus: machine/i2c/transact\n transition >> bme280-protocol-transition() >> bme280-protocol-action() >> select(BmeProtocolAction.transact, unmatched=drop) >> bus >> result\n}\n"
+    );
+    let (plan, _, _) = planned_named_source(Provider, source, "bme280-next-call");
+    assert!(verify_plan(&plan));
+    let fragment = &plan.fragments[0];
+    // All twelve Source transition stages remain ordinary expression nodes.
+    // Action, selection and the one physical operation fit without expanding
+    // the native child's sixteen-node profile.
+    assert_eq!(fragment.placements.len(), 15);
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment).unwrap();
+    let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let expressions = expression_host_call::ExpressionOperationFactory::default();
+    let selectors = crate::structured_selector_host_call::SelectorOperationFactory::default();
+    let bus = I2cOperationFactory::prepare_contract().unwrap();
+    let mut expression_count = 0;
+    for gear in &fragment.placements {
+        let budget = match gear.implementation_id.as_str() {
+            expression_host_call::IMPLEMENTATION => {
+                expression_host_call::ExpressionHostCall::prepare(
+                    fragment,
+                    &lowered,
+                    &active,
+                    &gear.placement_id,
+                )
+                .unwrap();
+                expression_count += 1;
+                expressions.budget(gear).unwrap()
+            }
+            crate::structured_selector_host_call::IMPLEMENTATION => selectors.budget(gear).unwrap(),
+            I2C_IMPLEMENTATION => bus.budget(gear).unwrap(),
+            _ => panic!("unexpected native realization"),
+        };
+        assert!(budget.maximum_value_bytes <= I2C_MAXIMUM_BYTES);
+        assert_eq!(budget.host_requests, 1);
+    }
+    assert_eq!(expression_count, 13);
+}
