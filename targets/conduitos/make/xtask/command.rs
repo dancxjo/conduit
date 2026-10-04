@@ -12,6 +12,8 @@ pub struct ConduitosArgs {
 pub(super) enum ConduitosCommand {
     /// Boot one exact Crèche-exported ConduitOS spore through the product journey.
     Acceptance(AcceptanceArgs),
+    /// Check and package bounded Source without building the target.
+    ProtocolSource(protocol_source::PackageArgs),
     /// Verify and report the pinned Limine architecture/backend matrix.
     ArchitectureMatrix,
     /// Report exact earned Product Spine cells independently of A0-A4.
@@ -95,4 +97,32 @@ pub(super) enum ConduitosCommand {
     /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
     VirtioNetProof,
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::{Cli, Command, MakeArgs, MakeTarget};
+    use clap::Parser;
 
+    #[test]
+    fn protocol_source_command_requires_package_entry_and_output_directory() {
+        let command = ["xtask", "make", "conduitos", "protocol-source"];
+        assert!(Cli::try_parse_from(command).is_err());
+        let cli = Cli::try_parse_from(command.into_iter().chain([
+            "--package",
+            "source.json",
+            "--entry",
+            "protocol",
+            "--output-dir",
+            "checked",
+        ]))
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Conduitos(ConduitosArgs {
+                    command: ConduitosCommand::ProtocolSource(_),
+                }),
+            })
+        ));
+    }
+}

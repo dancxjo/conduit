@@ -49,6 +49,19 @@ expanded and artifact identities. Input fan-out retains the planner's atomic
 routing and exact common Fore contract. The resulting package owner consumes
 actual I2C and clock possession together when preparing Play.
 
+Package a reviewed JSON Source package through the repository entrance:
+
+```sh
+cargo xtask make conduitos protocol-source \
+  --package protocol-source.json --entry device-protocol \
+  --output-dir checked-protocol-package
+```
+
+The new output directory retains the exact package bytes and a receipt binding
+its SHA-256 digest, Source identity, checked plot identity and expanded plot
+identity. This is checking and expansion evidence; packaging neither rebuilds
+the target nor admits a controller or starts Play.
+
 This production preparation chain is exercised by deterministic native kernel
 conformance through `cargo xtask check device-protocols`. Ordinary boot media and
 controller admission are still unfinished. A package's descriptive identities
