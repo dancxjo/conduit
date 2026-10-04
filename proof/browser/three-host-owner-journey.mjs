@@ -100,10 +100,15 @@ try {
   assert.equal(arrived.show_ack.show_id, arrived.face.show_id);
   const threeHosts = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(threeHosts.biography.membership.parts.length, 3);
+  const ownerPart = threeHosts.biography.membership.parts.find(part =>
+    part.part_id !== arrived.guest_part.part_id && part.part_id !== joined.credential.part_id);
+  assert.ok(ownerPart?.current);
   for (const partId of [arrived.guest_part.part_id, joined.credential.part_id]) {
     assert.equal(threeHosts.biography.membership.parts.some(part =>
       part.part_id === partId && part.current !== null), true);
   }
+  assert.equal(new Set(threeHosts.biography.membership.parts.map(part => part.current.host_id)).size, 3);
+  assert.equal(new Set(threeHosts.biography.membership.parts.map(part => part.current.boot_id)).size, 3);
   await writeFile(path.join(native, 'resume-native-action'), 'continue\n');
   const nativeAction = await waitForFile(path.join(native, 'native-action.json'), 45_000);
   assert.equal(nativeAction.stage, 'action');
@@ -118,6 +123,8 @@ try {
   }, joined.face.face_revision, { timeout: 12_000 });
   const afterNative = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(afterNative.body_id, bodyId);
+  const browserAction = afterNative.actions.find(action => action.intent === 'conduit.intent/change-clock-interval@1');
+  assert.equal(browserAction?.availability, 'available');
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterNative.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-native.png') });
@@ -133,13 +140,19 @@ try {
   }, afterNative.face_revision, { timeout: 12_000 });
   const afterBrowser = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(afterBrowser.body_id, bodyId);
+  assert.notEqual(afterBrowser.face_id, afterNative.face_id);
+  assert.equal(await page.locator('[data-owner-action-result]').textContent(),
+    'The owner accepted Change clock interval.');
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterBrowser.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-browser.png') });
   const stillJoined = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(stillJoined.biography.membership.parts.length, 3);
-  assert.equal(stillJoined.biography.membership.parts.some(part =>
-    part.part_id === arrived.guest_part.part_id && part.current?.boot_id === arrived.guest_part.boot_id), true);
+  for (const partId of [ownerPart.part_id, arrived.guest_part.part_id, joined.credential.part_id]) {
+    assert.equal(stillJoined.biography.membership.parts.some(part =>
+      part.part_id === partId && part.current !== null), true);
+  }
+  assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(1000ms\)/);
   assert.deepEqual(errors, []);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
@@ -152,12 +165,19 @@ try {
   const packageManifest = await readFile(path.join(handbook, 'application.application.json'));
   const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json')));
   assert.equal(browserBundle.reviewed_distribution.source_commit, nativeReceipt.source_commit);
+  const screenshotPaths = ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
+    'native/owner-before.png', 'native/owner-after.png'];
+  const screenshots = await Promise.all(screenshotPaths.map(async file => {
+    const bytes = await readFile(path.join(output, file));
+    return { path: file, bytes: bytes.length, sha256: digest(bytes) };
+  }));
+  const nativeReceiptBytes = await readFile(path.join(native, 'owner-action-proof.json'));
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
     proof_class: 'live-local-installed-owner-qmp-pinned-chromium',
     body_id: bodyId,
-    owner_host_id: threeHosts.biography.membership.parts.find(part => part.current &&
-      part.part_id !== arrived.guest_part.part_id && part.part_id !== joined.credential.part_id)?.current?.host_id,
+    owner_host_id: ownerPart.current.host_id,
+    owner_boot_id: ownerPart.current.boot_id,
     guest_host_id: arrived.guest_part.host_id,
     guest_boot_id: arrived.guest_part.boot_id,
     guest_part_id: arrived.guest_part.part_id,
@@ -165,13 +185,18 @@ try {
     browser_boot_id: identity.bootId,
     browser_part_id: joined.credential.part_id,
     native_source_commit: nativeReceipt.source_commit,
+    native_receipt_sha256: digest(nativeReceiptBytes),
     handbook_manifest_sha256: digest(packageManifest),
     before_browser_face_id: joined.face.face_id,
     after_native_browser_face_id: afterNative.face_id,
     after_browser_face_id: afterBrowser.face_id,
-    native_action: nativeReceipt.action,
-    screenshots: ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
-      'native/owner-before.png', 'native/owner-after.png'],
+    native_action: {
+      action_id: nativeReceipt.action.action_id,
+      status: nativeReceipt.action.status,
+      requested_interval_ms: nativeReceipt.action.requested_interval_ms,
+    },
+    browser_action: { action_id: browserAction.identity, status: 'accepted', requested_interval_ms: 1000 },
+    screenshots,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,
   };
