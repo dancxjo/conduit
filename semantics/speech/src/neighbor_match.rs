@@ -1,7 +1,13 @@
 //! Immediate-neighbor comparisons. Pattern lists are alternatives, never a
 //! sequence of offsets. Identity equality is checked by native Conduit laws.
 pub use crate::semantic::SpeechNeighborDecision as NeighborDecision;
-use crate::{generated, semantic::*};
+use crate::{
+    feature_bundle::{
+        compare_feature_bundle_observation, FeatureBundleComparison, FeatureBundleRefusal,
+    },
+    generated,
+    semantic::*,
+};
 use conduit_plot::rust_binding::NativeBindingRefusal;
 
 /// Absence and missing observation remain different, including in receipts.
@@ -13,20 +19,26 @@ pub enum NeighborObservation<'a> {
     Segment {
         phone: &'a PhoneSpecification,
         phoneme: &'a PhonemeSpecification,
+        features: Option<&'a SpeechFeatureBundle>,
     },
 }
 #[derive(Debug)]
 pub enum NeighborComparisonRefusal {
     Native(NativeBindingRefusal),
     CompiledPlot,
+    Features(FeatureBundleRefusal),
     TooManyAlternatives { actual: usize },
 }
 pub struct NeighborComparison<'a> {
     requirement: &'a SpeechSegmentMatcher,
     observation: NeighborObservation<'a>,
     decision: NeighborDecision,
+    features: Option<FeatureBundleComparison<'a>>,
 }
 impl<'a> NeighborComparison<'a> {
+    pub fn features(&self) -> Option<&FeatureBundleComparison<'a>> {
+        self.features.as_ref()
+    }
     pub fn requirement(&self) -> &'a SpeechSegmentMatcher {
         self.requirement
     }
@@ -63,7 +75,7 @@ pub fn compare_neighbor<'a>(
         SpeechSegmentMatcher::Any => M::any,
         SpeechSegmentMatcher::Phone(_) | SpeechSegmentMatcher::Phoneme(_) => M::segment_identity,
         SpeechSegmentMatcher::Boundary(_) => M::boundary_identity,
-        SpeechSegmentMatcher::Features(_) => M::unsupported,
+        SpeechSegmentMatcher::Features(_) => M::segment_identity,
     };
     let presence = match &observation {
         NeighborObservation::Absent => P::absent,
@@ -73,6 +85,16 @@ pub fn compare_neighbor<'a>(
     };
     // Only exact Known identities cross the native equality law. Other states
     // retain their original borrowed evidence and project an unresolved fact.
+    let features = match (requirement, &observation) {
+        (
+            SpeechSegmentMatcher::Features(expected),
+            NeighborObservation::Segment { features, .. },
+        ) => Some(
+            compare_feature_bundle_observation(expected, *features)
+                .map_err(NeighborComparisonRefusal::Features)?,
+        ),
+        _ => None,
+    };
     let identity = match (requirement, &observation) {
         (
             SpeechSegmentMatcher::Phone(expected),
@@ -98,6 +120,16 @@ pub fn compare_neighbor<'a>(
             SpeechSegmentMatcher::Boundary(expected),
             NeighborObservation::Boundary(SpeechBoundarySpecification::Known(actual)),
         ) => identity_fact(SpeechBoundaryIntentMatch::new(*expected, *actual), 7)?,
+        (SpeechSegmentMatcher::Features(_), NeighborObservation::Segment { .. }) => match features
+            .as_ref()
+            .expect("feature comparison retained")
+            .decision()
+        {
+            SpeechContextDecision::Matched => I::matched,
+            SpeechContextDecision::Mismatched => I::mismatched,
+            SpeechContextDecision::RequirementUnresolved => I::requirement_unresolved,
+            SpeechContextDecision::ObservationUnresolved => I::unresolved,
+        },
         _ => I::unresolved,
     };
     let result = generated::speech_neighbor_compare(generated::SpeechNeighborComparisonInput {
@@ -111,6 +143,7 @@ pub fn compare_neighbor<'a>(
         requirement,
         observation,
         decision,
+        features,
     })
 }
 
@@ -120,6 +153,9 @@ fn decision_from_generated(result: generated::SpeechNeighborDecision) -> Neighbo
         generated::SpeechNeighborDecision::mismatched => NeighborDecision::Mismatched,
         generated::SpeechNeighborDecision::observation_unresolved => {
             NeighborDecision::ObservationUnresolved
+        }
+        generated::SpeechNeighborDecision::requirement_unresolved => {
+            NeighborDecision::RequirementUnresolved
         }
         generated::SpeechNeighborDecision::unsupported_matcher => {
             NeighborDecision::UnsupportedMatcher
@@ -162,6 +198,9 @@ pub fn compare_neighbor_alternatives<'a>(
             NeighborDecision::Mismatched => generated::SpeechNeighborDecision::mismatched,
             NeighborDecision::ObservationUnresolved => {
                 generated::SpeechNeighborDecision::observation_unresolved
+            }
+            NeighborDecision::RequirementUnresolved => {
+                generated::SpeechNeighborDecision::requirement_unresolved
             }
             NeighborDecision::UnsupportedMatcher => {
                 generated::SpeechNeighborDecision::unsupported_matcher

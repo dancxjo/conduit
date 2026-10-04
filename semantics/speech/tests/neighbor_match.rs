@@ -20,6 +20,7 @@ fn exact_neighbor_identity_and_missing_evidence_remain_distinct() {
             NeighborObservation::Segment {
                 phone: &actual,
                 phoneme: &unknown,
+                features: None,
             },
         )
         .unwrap();
@@ -46,6 +47,7 @@ fn phoneme_comparison_never_substitutes_same_spelled_phone() {
         NeighborObservation::Segment {
             phone: &actual_phone,
             phoneme: &actual_phoneme,
+            features: None,
         },
     )
     .unwrap();
@@ -53,7 +55,7 @@ fn phoneme_comparison_never_substitutes_same_spelled_phone() {
 }
 
 #[test]
-fn any_requires_observed_neighbor_and_features_remain_unsupported() {
+fn any_requires_observed_neighbor_and_empty_features_are_unconstrained() {
     use conduit_plot::rust_binding::BoundedSequence;
     let any = SpeechSegmentMatcher::any();
     let unknown_phone = PhoneSpecification::unknown();
@@ -75,7 +77,8 @@ fn any_requires_observed_neighbor_and_features_remain_unsupported() {
             &any,
             NeighborObservation::Segment {
                 phone: &unknown_phone,
-                phoneme: &unknown_phoneme
+                phoneme: &unknown_phoneme,
+                features: None,
             }
         )
         .unwrap()
@@ -85,17 +88,24 @@ fn any_requires_observed_neighbor_and_features_remain_unsupported() {
     let features =
         SpeechSegmentMatcher::features(SpeechFeatureBundle::new(BoundedSequence::new()).unwrap())
             .unwrap();
-    for observation in [
-        NeighborObservation::Absent,
-        NeighborObservation::Unknown,
-        NeighborObservation::Segment {
-            phone: &unknown_phone,
-            phoneme: &unknown_phoneme,
-        },
+    for (observation, expected) in [
+        (NeighborObservation::Absent, NeighborDecision::Mismatched),
+        (
+            NeighborObservation::Unknown,
+            NeighborDecision::ObservationUnresolved,
+        ),
+        (
+            NeighborObservation::Segment {
+                phone: &unknown_phone,
+                phoneme: &unknown_phoneme,
+                features: None,
+            },
+            NeighborDecision::Matched,
+        ),
     ] {
         assert_eq!(
             compare_neighbor(&features, observation).unwrap().decision(),
-            &NeighborDecision::UnsupportedMatcher
+            &expected
         );
     }
 }
@@ -108,6 +118,7 @@ fn bounded_alternatives_share_one_neighbor_and_preserve_every_receipt() {
     let observation = NeighborObservation::Segment {
         phone: &actual_phone,
         phoneme: &actual_phoneme,
+        features: None,
     };
     let requirements = [
         SpeechSegmentMatcher::phone(phone("d")).unwrap(),
@@ -119,7 +130,7 @@ fn bounded_alternatives_share_one_neighbor_and_preserve_every_receipt() {
     for (count, expected) in [
         (1, NeighborDecision::Mismatched),
         (2, NeighborDecision::ObservationUnresolved),
-        (3, NeighborDecision::UnsupportedMatcher),
+        (3, NeighborDecision::Matched),
         (4, NeighborDecision::Matched),
     ] {
         let compared = compare_neighbor_alternatives(&requirements[..count], observation).unwrap();
@@ -177,7 +188,8 @@ fn boundary_observations_keep_kind_uncertainty_and_segment_domains_separate() {
             &requirement,
             NeighborObservation::Segment {
                 phone: &unknown_phone,
-                phoneme: &unknown_phoneme
+                phoneme: &unknown_phoneme,
+                features: None,
             }
         )
         .unwrap()
@@ -221,4 +233,84 @@ fn all_boundary_kinds_follow_the_exact_native_equality_law() {
             );
         }
     }
+}
+
+#[test]
+fn feature_neighbors_retain_bundle_evidence_and_distinct_uncertainty() {
+    use conduit_plot::rust_binding::BoundedSequence;
+    let bundle = |specification| {
+        SpeechFeatureBundle::new(
+            BoundedSequence::try_from_iter([SpeechFeature::new(
+                SpeechFeatureId::new("voice".into()).unwrap(),
+                specification,
+            )
+            .unwrap()])
+            .unwrap(),
+        )
+        .unwrap()
+    };
+    let known =
+        |value| FeatureSpecification::known(SpeechFeatureValue::boolean(value).unwrap()).unwrap();
+    let observed_true = bundle(known(true));
+    let observed_false = bundle(known(false));
+    let observed_unknown = bundle(FeatureSpecification::unknown());
+    let phone = PhoneSpecification::unknown();
+    let phoneme = PhonemeSpecification::unknown();
+    let requirement = SpeechSegmentMatcher::features(bundle(known(true))).unwrap();
+    for (observed, expected) in [
+        (Some(&observed_true), NeighborDecision::Matched),
+        (Some(&observed_false), NeighborDecision::Mismatched),
+        (
+            Some(&observed_unknown),
+            NeighborDecision::ObservationUnresolved,
+        ),
+        (None, NeighborDecision::ObservationUnresolved),
+    ] {
+        let compared = compare_neighbor(
+            &requirement,
+            NeighborObservation::Segment {
+                phone: &phone,
+                phoneme: &phoneme,
+                features: observed,
+            },
+        )
+        .unwrap();
+        assert_eq!(compared.decision(), &expected);
+        let proof = compared.features().unwrap();
+        assert_eq!(proof.comparisons().count(), 1);
+        assert_eq!(
+            proof.observations().map(core::ptr::from_ref),
+            observed.map(core::ptr::from_ref)
+        );
+    }
+    let unresolved =
+        SpeechSegmentMatcher::features(bundle(FeatureSpecification::unknown())).unwrap();
+    assert_eq!(
+        compare_neighbor(
+            &unresolved,
+            NeighborObservation::Segment {
+                phone: &phone,
+                phoneme: &phoneme,
+                features: Some(&observed_true)
+            }
+        )
+        .unwrap()
+        .decision(),
+        &NeighborDecision::RequirementUnresolved
+    );
+    let wildcard =
+        SpeechSegmentMatcher::features(bundle(FeatureSpecification::unspecified())).unwrap();
+    assert_eq!(
+        compare_neighbor(
+            &wildcard,
+            NeighborObservation::Segment {
+                phone: &phone,
+                phoneme: &phoneme,
+                features: None
+            }
+        )
+        .unwrap()
+        .decision(),
+        &NeighborDecision::Matched
+    );
 }
