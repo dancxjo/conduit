@@ -11,6 +11,9 @@ use conduit_composite::{
 };
 use conduit_core::*;
 
+mod timed;
+pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
+
 /// Preparation owns the admitted kernel and the actual native owners together.
 /// The caller supplies the selected Plan and opaque possession; no grant is minted here.
 pub struct PreparedProtocolPlay<P> {
@@ -87,6 +90,31 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         claim: BaseOperationClaim,
         operations: crate::protocol_operations::ProtocolOperations,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_mode(definition, ready, table, handle, claim, operations, false)
+    }
+
+    fn prepare_mode(
+        definition: KernelCompositeDefinition,
+        ready: ReadyI2cBase<P>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        operations: crate::protocol_operations::ProtocolOperations,
+        allow_clock: bool,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        if !allow_clock
+            && definition
+                .internal_plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .any(|gear| {
+                    gear.implementation_id.as_str()
+                        == crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION
+                })
+        {
+            return Err(ProtocolCallRefusal::Unsupported);
+        }
         let crate::protocol_operations::ProtocolOperations { joins: zip, states } = operations;
         validate_fore(&definition)?;
         zip.validate_plan(&definition.internal_plan)
@@ -125,6 +153,14 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         registry
             .install(CurrentSampleOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        if allow_clock {
+            registry
+                .install(
+                    crate::monotonic_clock::factory::ClockOperationFactory::prepare_contract()
+                        .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
+                )
+                .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        }
         let kernel = KernelCompositeHost::prepare(definition, &registry)
             .map_err(ProtocolCallRefusal::Kernel)?;
         Ok(Self { kernel, calls })
