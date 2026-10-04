@@ -447,7 +447,30 @@ fn running_target_id() -> Result<&'static str, String> {
 
 fn status(state_dir: &Path, json: bool) -> Result<(), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
-    if let Some(status) = observe_current_runtime(state_dir, &installation)? {
+    if let Some(mut status) = observe_current_runtime(state_dir, &installation)? {
+        // The runtime marker records the Boot at startup. Birth can happen on
+        // that same Boot, so its body_id is not current owner truth.
+        let current_installation = read_installation(&state_dir.join("installation.json"))?;
+        if current_installation.host_id != status.host_id
+            || current_installation.release_bundle_sha256 != status.release_bundle_sha256
+        {
+            return Err("durable host installation changed during status".into());
+        }
+        status.body_id = if current_installation.body_state.is_some() {
+            let truth = crate::durable_host_control::inspect_owned_body(state_dir)?;
+            let body_id = truth["biography"]["body_id"]
+                .as_str()
+                .ok_or("live Body owner omitted its Body identity")?;
+            if Some(body_id) != current_body_id(&current_installation)
+                || truth["host"]["host_id"] != status.host_id
+                || truth["host"]["boot_id"] != status.boot_id
+            {
+                return Err("live Body owner disagrees with current Host status".into());
+            }
+            Some(body_id.to_owned())
+        } else {
+            current_body_id(&current_installation).map(str::to_owned)
+        };
         if json {
             println!(
                 "{}",
