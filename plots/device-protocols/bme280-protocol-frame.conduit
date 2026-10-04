@@ -9,4 +9,3 @@ plot bme280-protocol-frame (
 plot bme280-protocol-frame-value (
     frame: BmeProtocolFrame...| >> value: BmeProtocolState...|
 ) = (.value)
-
