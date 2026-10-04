@@ -505,3 +505,17 @@ as material-token profile preparation. Unsupported stress retains its exact
 specification; definition features are refused rather than discarded. This
 prepares a phone event only: source resolution, phonological consistency,
 quantitative prosody and utterance commitment remain separate admission work.
+`prepare_utterance_timing` retains one original `SpeechUtteranceIntent` and
+projects cumulative exact durations across both segments and boundaries.
+An explicitly supplied native boundary profile contains at most three bindings;
+missing and duplicate bindings refuse. Segment receipts retain their exact
+cycle/intensity quantization; boundary receipts retain their original sources,
+kind, binding and match law, with no invented cycle or intensity receipt. A
+checked Plot supplies the ignored compact control carrier for boundary slots.
+
+Its renderer checks event count, segment/boundary shape and exact compact
+boundary realization before borrowing the frozen timing/control tapes. Phone
+selection, occurrence/source resolution, phonological consistency and commitment
+remain separate checks; this timing preparation is not complete utterance
+admission. All unresolved quantitative values retain their original specification
+and global event index, and all durations share one cumulative grid.

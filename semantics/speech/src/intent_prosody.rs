@@ -87,41 +87,9 @@ pub fn prepare_segment_prosody(
     let mut durations = Vec::with_capacity(source.len());
     let mut controls = Vec::with_capacity(source.len());
     for (event, intent) in source.iter().enumerate() {
-        let semantic::SpeechDurationSpecification::Known(value) = intent.duration() else {
-            return Err(IntentProsodyRefusal::Duration {
-                event,
-                specification: intent.duration().clone(),
-            });
-        };
-        durations.push(
-            semantic::SpeechExactDuration::new(*value.denominator(), *value.numerator_seconds())
-                .map_err(|reason| IntentProsodyRefusal::Native { event, reason })?,
-        );
-        let semantic::SpeechCycleSpecification::Known(cycle) = intent.fundamental_cycle() else {
-            return Err(IntentProsodyRefusal::Cycle {
-                event,
-                specification: intent.fundamental_cycle().clone(),
-            });
-        };
-        let semantic::SpeechIntensitySpecification::Known(intensity) = intent.relative_intensity()
-        else {
-            return Err(IntentProsodyRefusal::Intensity {
-                event,
-                specification: intent.relative_intensity().clone(),
-            });
-        };
-        let cycle =
-            semantic::SpeechFundamentalCycle::new(*cycle.denominator(), *cycle.numerator_seconds())
-                .map_err(|reason| IntentProsodyRefusal::Native { event, reason })?;
-        let intensity = semantic::SpeechRelativeIntensity::new(
-            *intensity.denominator(),
-            *intensity.numerator(),
-        )
-        .map_err(|reason| IntentProsodyRefusal::Native { event, reason })?;
-        controls.push(
-            control::prepare_voice_control(Some(&cycle), &intensity)
-                .map_err(|reason| IntentProsodyRefusal::Control { event, reason })?,
-        );
+        let (duration, control) = known_segment_prosody(intent, event)?;
+        durations.push(duration);
+        controls.push(control);
     }
     let spans = duration::duration_spans(&durations, u64::from(SAMPLE_RATE_HZ))
         .map_err(IntentProsodyRefusal::Projection)?;
@@ -144,4 +112,42 @@ pub fn prepare_segment_prosody(
         frames,
         compact,
     })
+}
+
+/// Shared quantitative projection; retains the original global event index.
+pub(crate) fn known_segment_prosody(
+    intent: &semantic::SpeechSegmentProsodyIntent,
+    event: usize,
+) -> Result<(semantic::SpeechExactDuration, control::PreparedVoiceControl), IntentProsodyRefusal> {
+    let semantic::SpeechDurationSpecification::Known(value) = intent.duration() else {
+        return Err(IntentProsodyRefusal::Duration {
+            event,
+            specification: intent.duration().clone(),
+        });
+    };
+    let duration =
+        semantic::SpeechExactDuration::new(*value.denominator(), *value.numerator_seconds())
+            .map_err(|reason| IntentProsodyRefusal::Native { event, reason })?;
+    let semantic::SpeechCycleSpecification::Known(cycle) = intent.fundamental_cycle() else {
+        return Err(IntentProsodyRefusal::Cycle {
+            event,
+            specification: intent.fundamental_cycle().clone(),
+        });
+    };
+    let semantic::SpeechIntensitySpecification::Known(intensity) = intent.relative_intensity()
+    else {
+        return Err(IntentProsodyRefusal::Intensity {
+            event,
+            specification: intent.relative_intensity().clone(),
+        });
+    };
+    let cycle =
+        semantic::SpeechFundamentalCycle::new(*cycle.denominator(), *cycle.numerator_seconds())
+            .map_err(|reason| IntentProsodyRefusal::Native { event, reason })?;
+    let intensity =
+        semantic::SpeechRelativeIntensity::new(*intensity.denominator(), *intensity.numerator())
+            .map_err(|reason| IntentProsodyRefusal::Native { event, reason })?;
+    let control = control::prepare_voice_control(Some(&cycle), &intensity)
+        .map_err(|reason| IntentProsodyRefusal::Control { event, reason })?;
+    Ok((duration, control))
 }
