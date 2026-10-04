@@ -199,6 +199,14 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
         basis.utterance_id().clone(),
     )
     .unwrap();
+    let source_materials =
+        vec![
+            conduit_speech::intent_sources::IntentSourceMaterial::Phone(&snapshot);
+            intent.events().as_slice().len()
+        ];
+    let resolved_sources =
+        conduit_speech::intent_sources::resolve_intent_sources(&intent, &source_materials)
+            .map_err(|e| format!("{e:?}"))?;
     let resolved = (0..intent.events().as_slice().len())
         .map(|event| {
             conduit_speech::intent_inventory::resolve_intent_inventory_phone(
@@ -233,5 +241,11 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
         "intent-profile-hello-world",
         Renderer::prepare(&intent_events).map_err(|e| format!("{e:?}"))?,
     )?;
+    super::write_rendered(
+        output,
+        "intent-sources-hello-world",
+        Renderer::prepare(&intent_events).map_err(|e| format!("{e:?}"))?,
+    )?;
+    println!("{output}/intent-sources-hello-world.wav: {} original source references resolved; quantitative intent and commitment remain separate", resolved_sources.receipts().len());
     Ok(())
 }

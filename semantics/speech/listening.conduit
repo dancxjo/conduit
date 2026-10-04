@@ -294,3 +294,13 @@ type ListeningProviderAttribute = {
     name: Text <= 64B not in [""]
     json_text: Text <= 1024B
 }
+
+# Exact envelope identity is checked independently of recognition hypotheses,
+# commitment, event sequence ordering and permission to use the observation.
+type ListeningEventReferenceMatch = {
+    reference: ListeningEventRef
+    stream_id: ListeningStreamId
+    event_id: ListeningEventId
+    where .reference.stream_id == .stream_id
+    where .reference.event_id == .event_id
+}
