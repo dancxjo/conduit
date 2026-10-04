@@ -58,23 +58,8 @@ try {
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  nativeProof = spawn(xtask, [
-    'make', 'conduitos', 'live-owner-action-proof', '--spore', spore,
-    '--candidate-id', candidateId, '--owner-forward', ownerForward,
-    '--output-dir', native, '--coordinate',
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
-  nativeProof.stdout.on('data', chunk => nativeOutput.push(chunk.toString()));
-  nativeProof.stderr.on('data', chunk => nativeOutput.push(chunk.toString()));
-  const arrived = await waitForFile(path.join(native, 'native-arrived.json'));
-  assert.equal(arrived.stage, 'arrived');
-  assert.equal(arrived.guest_part.membership_installed, true);
-  assert.equal(arrived.face.interactions_admitted, true);
-  assert.equal(arrived.show_ack.show_id, arrived.face.show_id);
-  const bodyId = arrived.guest_part.body_id;
   const ownerBefore = run(['body', 'status', '--state-dir', state, '--json']);
-  assert.equal(ownerBefore.biography.body_id, bodyId);
-  assert.equal(ownerBefore.biography.membership.parts.some(part =>
-    part.part_id === arrived.guest_part.part_id && part.current?.boot_id === arrived.guest_part.boot_id), true);
+  const bodyId = ownerBefore.biography.body_id;
 
   await page.goto(`${server.url}?participate=owner#your-handbook`);
   await page.locator('[data-owner-key]').waitFor();
@@ -97,13 +82,28 @@ try {
   assert.equal(joined.credential.body_id, bodyId);
   assert.equal(joined.face.body_id, bodyId);
   assert.equal(joined.face.show_state, 'available');
+  await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
+  // Join the browser first: its membership changes the owner Face. The QMP
+  // guest must then receive that fresh revision before it submits an action.
+  nativeProof = spawn(xtask, [
+    'make', 'conduitos', 'live-owner-action-proof', '--spore', spore,
+    '--candidate-id', candidateId, '--owner-forward', ownerForward,
+    '--output-dir', native, '--coordinate',
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  nativeProof.stdout.on('data', chunk => nativeOutput.push(chunk.toString()));
+  nativeProof.stderr.on('data', chunk => nativeOutput.push(chunk.toString()));
+  const arrived = await waitForFile(path.join(native, 'native-arrived.json'));
+  assert.equal(arrived.stage, 'arrived');
+  assert.equal(arrived.guest_part.membership_installed, true);
+  assert.equal(arrived.guest_part.body_id, bodyId);
+  assert.equal(arrived.face.interactions_admitted, true);
+  assert.equal(arrived.show_ack.show_id, arrived.face.show_id);
   const threeHosts = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(threeHosts.biography.membership.parts.length, 3);
   for (const partId of [arrived.guest_part.part_id, joined.credential.part_id]) {
     assert.equal(threeHosts.biography.membership.parts.some(part =>
       part.part_id === partId && part.current !== null), true);
   }
-  await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
   await writeFile(path.join(native, 'resume-native-action'), 'continue\n');
   const nativeAction = await waitForFile(path.join(native, 'native-action.json'), 45_000);
   assert.equal(nativeAction.stage, 'action');
