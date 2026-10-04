@@ -21,7 +21,7 @@ pub(super) fn prepare<
     StructuredInfoType,
 ) {
     let i2c = crate::i2c_base::contract::I2cContract::prepare().unwrap();
-    let (mut startup, mut profile) = i2c.catalogs();
+    let (mut startup, _) = i2c.catalogs();
     let clock = crate::monotonic_clock::contract::MonotonicClockContract::prepare().unwrap();
     let clock_types = check_syntax_document(
         &parse_syntax_document(crate::monotonic_clock::contract::CLOCK_TYPES),
@@ -52,7 +52,6 @@ pub(super) fn prepare<
     startup
         .insert_fore("machine/clock/at", clock.kind().checked_front())
         .unwrap();
-    profile.insert_kind(clock.kind().clone()).unwrap();
     let events = include_str!("../../../../../plots/device-protocols/bme280-clock-events.conduit");
     let decoding = include_str!("../../../../../plots/device-protocols/main.conduit");
     let observation =
@@ -109,62 +108,16 @@ pub(super) fn prepare<
     let event_value = value(event, 4096);
     let context_value = value(context, 4096);
     let result_value = value(clock.result_type(), 512);
-    // The imported feedback unit also declares its ordinary finite-state plot.
-    conduit_semantic_catalog::install_seeded_state_flow_kind(
-        &state_value,
-        state,
-        &mut startup,
-        &mut profile,
-    )
-    .unwrap();
-    conduit_semantic_catalog::install_seeded_state_until_kind(
-        &frame_value,
-        frame,
-        &mut startup,
-        &mut profile,
-    )
-    .unwrap();
-    conduit_semantic_catalog::install_flow_zip_feedback_kind(
-        &state_value,
-        state,
-        &event_value,
-        event,
-        &mut startup,
-        &mut profile,
-    )
-    .unwrap();
-    conduit_semantic_catalog::install_flow_merge_finite_kind(
-        &context_value,
-        context,
-        &mut startup,
-        &mut profile,
-    )
-    .unwrap();
-    conduit_semantic_catalog::install_flow_zip_finite_kind(
-        &context_value,
-        context,
-        &result_value,
-        clock.result_type(),
-        &mut startup,
-        &mut profile,
-    )
-    .unwrap();
-    let mut owners = ProtocolOperations::default();
-    let capabilities = vec![
-        owners.states.install_until(&frame_value, frame).unwrap(),
-        owners
-            .joins
-            .install_feedback(&state_value, state, &event_value, event)
-            .unwrap(),
-        owners
-            .joins
-            .install(&context_value, context, &result_value, clock.result_type())
-            .unwrap(),
-        owners.merges.install(&context_value, context).unwrap(),
-    ];
-    // The feedback unit supplies the ordinary tuple-to-transition assembler.
-    let checked = check_syntax_document(
-        &parse_syntax_document(&combine(&[
+    use crate::protocol_source::{
+        ProtocolSourcePackage, ProtocolSpecialization as Specialization, ProtocolValue,
+    };
+    let typed = |schema: &StructuredInfoType, contract: &CheckedValueContract| ProtocolValue {
+        schema: schema.clone(),
+        contract: contract.clone(),
+    };
+    let package = ProtocolSourcePackage {
+        schema: crate::protocol_source::PACKAGE_SCHEMA.into(),
+        source: combine(&[
             LIFECYCLE,
             events,
             FEEDBACK,
@@ -172,27 +125,35 @@ pub(super) fn prepare<
             decoding,
             observation,
             automatic,
-        ])),
-        &startup,
-    )
-    .unwrap();
-    let mut selectors = alloc::collections::BTreeSet::new();
-    for stage in checked
-        .plots
-        .iter()
-        .flat_map(|plot| &plot.cords)
-        .flat_map(|cord| &cord.stages)
-    {
-        if let conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } = stage {
-            let definition = conduit_plot::structured_selector_definition(
-                selector,
-                PortTemporal::Flow { closes: true },
-            );
-            if selectors.insert(definition.kind_id.clone()) {
-                profile.insert(definition).unwrap();
-            }
-        }
-    }
+        ]),
+        specializations: vec![
+            Specialization::SeededFlow {
+                value: typed(state, &state_value),
+            },
+            Specialization::SeededUntil {
+                value: typed(frame, &frame_value),
+            },
+            Specialization::FeedbackZip {
+                left: typed(state, &state_value),
+                right: typed(event, &event_value),
+            },
+            Specialization::Merge {
+                value: typed(context, &context_value),
+            },
+            Specialization::Zip {
+                left: typed(context, &context_value),
+                right: typed(clock.result_type(), &result_value),
+            },
+        ],
+    };
+    let encoded_package = serde_json::to_vec(&package).unwrap();
+    let decoded_package = ProtocolSourcePackage::decode(&encoded_package).unwrap();
+    let crate::protocol_source::PreparedProtocolSource {
+        checked,
+        profile,
+        operations: owners,
+        capabilities,
+    } = crate::protocol_source::PreparedProtocolSource::prepare(decoded_package).unwrap();
     let expanded =
         expand_canonical_plot_for_authoring(&checked, "bme280-autonomous", &profile).unwrap();
     std::eprintln!(
