@@ -98,3 +98,9 @@ source, owner Host/Boot, Face, batch identities, and WAV hashes. This is
 produced audio from the current owner Face. The speech Plot does not yet have
 an owner-sealed spoken Mask Show; the receipt explicitly records no speaker
 playback or human listening.
+
+Open `walkthrough.html` in the private evidence directory to review the
+actions in order with the actual screenshots, terminal session, and produced
+speech clips. It copies the exact Handbook build's shared theme and navigation;
+the report hashes that page and both style assets. This development artifact
+does not satisfy the full eight-chapter publication gate.

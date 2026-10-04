@@ -9,6 +9,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
+import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
   candidateId, ownerForward, outputArgument, playwrightArgument,
@@ -314,6 +315,15 @@ try {
     screenshots,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,
+  };
+  const walkthrough = await writeThreeHostWalkthrough(output, handbook, report);
+  report.walkthrough = {
+    ...walkthrough,
+    sha256: digest(await readFile(path.join(output, walkthrough.path))),
+    assets: await Promise.all(['conduit.css', 'chrome.css'].map(async file => ({
+      path: file,
+      sha256: digest(await readFile(path.join(output, file))),
+    }))),
   };
   await writeFile(path.join(output, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`Three-host journey proof: ${path.join(output, 'report.json')}`);
