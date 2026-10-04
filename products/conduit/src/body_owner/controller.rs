@@ -126,6 +126,7 @@ pub(crate) struct Owner {
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
+    pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
 }
 impl Owner {
     pub(crate) fn open(
@@ -209,6 +210,7 @@ impl Owner {
             last_execution: None,
             admissions: None,
             pending_browser: None,
+            pending_native_mask: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -227,6 +229,7 @@ impl Owner {
             last_execution: None,
             admissions: None,
             pending_browser: None,
+            pending_native_mask: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {

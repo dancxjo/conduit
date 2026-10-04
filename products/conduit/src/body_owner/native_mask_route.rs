@@ -3,17 +3,33 @@
 //! membership and matching identifiers cannot create them.
 
 use super::Owner;
-use conduit_body::{PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA};
+use conduit_body::{
+    MembershipCredential, PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA,
+};
 use conduit_core::LineOffer;
-use conduit_presentation::RemoteOwnerMaskRouteSeal;
+use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
+
+pub(super) struct NativeMaskRoute {
+    credential: MembershipCredential,
+    host_offer: conduit_core::HostAdvertisement,
+    face_line: LineOffer,
+    return_line: LineOffer,
+    seal: RemoteOwnerMaskRouteSeal,
+    acknowledged_show: Option<MaskShow>,
+    expires_at_millis: u64,
+}
 
 impl Owner {
     pub(crate) fn seal_native_mask_route(
-        &self,
+        &mut self,
         receipt: &PortableAdmissionReceipt,
         face_line: &LineOffer,
         return_line: &LineOffer,
+        expires_at_millis: u64,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        if super::super::super::current_time_millis()? >= expires_at_millis {
+            return Err("native-mask-return-expired".into());
+        }
         let credential = &receipt.credential;
         let native_offer = &receipt.host_advertisement;
         let current = self.session.evidence().membership.parts.iter().any(|part| {
@@ -48,7 +64,7 @@ impl Owner {
         .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
         .planned_mask;
         let face = self.local_face_snapshot()?;
-        RemoteOwnerMaskRouteSeal::seal_current(
+        let seal = RemoteOwnerMaskRouteSeal::seal_current(
             &self.session,
             &face,
             self.host.advertisement(),
@@ -57,6 +73,83 @@ impl Owner {
             face_line,
             return_line,
         )
-        .map_err(|error| format!("native-mask-route-refused:{error:?}"))
+        .map_err(|error| format!("native-mask-route-refused:{error:?}"))?;
+        self.pending_native_mask = Some(NativeMaskRoute {
+            credential: credential.clone(),
+            host_offer: native_offer.clone(),
+            face_line: face_line.clone(),
+            return_line: return_line.clone(),
+            seal: seal.clone(),
+            acknowledged_show: None,
+            expires_at_millis,
+        });
+        Ok(seal)
+    }
+
+    pub(crate) fn acknowledge_native_mask_show(
+        &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        self.validate_native_mask_route_show(request, show)?;
+        let route = self
+            .pending_native_mask
+            .as_mut()
+            .ok_or("native-mask-route-not-selected")?;
+        route.acknowledged_show = Some(show.clone());
+        Ok(())
+    }
+
+    pub(crate) fn validate_native_mask_show(
+        &self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        self.validate_native_mask_route_show(request, show)?;
+        let route = self
+            .pending_native_mask
+            .as_ref()
+            .ok_or("native-mask-route-not-selected")?;
+        if route.acknowledged_show.as_ref() != Some(show) {
+            return Err("native-mask-show-not-acknowledged".into());
+        }
+        Ok(())
+    }
+
+    fn validate_native_mask_route_show(
+        &self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        let route = self
+            .pending_native_mask
+            .as_ref()
+            .ok_or("native-mask-route-not-selected")?;
+        if super::super::super::current_time_millis()? >= route.expires_at_millis {
+            return Err("native-mask-return-expired".into());
+        }
+        let credential = &route.credential;
+        if !request.has_exact_basis()
+            || request.credential_id != credential.credential_id.as_str()
+            || request.body_id != credential.body_id
+            || request.part_id != credential.part_id
+            || request.host_id != credential.host_id
+            || request.boot_id != credential.boot_id
+        {
+            return Err("native-mask-route-credential-mismatch".into());
+        }
+        let face = self.face_snapshot(request)?;
+        route
+            .seal
+            .validate_available_show(
+                &self.session,
+                &face,
+                self.host.advertisement(),
+                &route.host_offer,
+                &route.face_line,
+                &route.return_line,
+                show,
+            )
+            .map_err(|error| format!("native-mask-show-refused:{error:?}"))
     }
 }

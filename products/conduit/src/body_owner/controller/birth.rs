@@ -108,6 +108,7 @@ impl Owner {
             last_execution: None,
             admissions: None,
             pending_browser: None,
+            pending_native_mask: None,
         }
     }
 }

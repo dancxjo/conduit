@@ -338,6 +338,30 @@ impl DurableHostRuntime {
         Ok((presentation, owner.host.advertisement().clone()))
     }
 
+    pub(super) fn owned_body_native_mask_route(
+        &mut self,
+        receipt: &PortableAdmissionReceipt,
+        face_line: &conduit_core::LineOffer,
+        return_line: &conduit_core::LineOffer,
+        expires_at_millis: u64,
+    ) -> Result<conduit_presentation::RemoteOwnerMaskRouteSeal, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        owner.seal_native_mask_route(receipt, face_line, return_line, expires_at_millis)
+    }
+
+    pub(super) fn owned_body_native_mask_show(
+        &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        owner.acknowledge_native_mask_show(request, show)
+    }
+
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -516,6 +540,55 @@ pub(crate) fn face_snapshot(
         } => Ok(*response),
         Response::Refused { code, .. } => Err(code),
         _ => Err("Body owner returned the wrong Face response".into()),
+    }
+}
+
+#[cfg(unix)]
+pub(crate) fn select_native_mask_route(
+    state_dir: &Path,
+    receipt: PortableAdmissionReceipt,
+    face_line: conduit_core::LineOffer,
+    return_line: conduit_core::LineOffer,
+    expires_at_millis: u64,
+) -> Result<conduit_presentation::RemoteOwnerMaskRouteSeal, String> {
+    match call(
+        state_dir,
+        Request::BodyNativeMaskRoute {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            receipt: Box::new(receipt),
+            face_line: Box::new(face_line),
+            return_line: Box::new(return_line),
+            expires_at_millis,
+        },
+    )? {
+        Response::BodyNativeMaskRoute {
+            protocol: PROTOCOL,
+            route,
+        } => Ok(*route),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong native Mask route response".into()),
+    }
+}
+
+#[cfg(unix)]
+pub(crate) fn acknowledge_native_mask_show(
+    state_dir: &Path,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+) -> Result<(), String> {
+    match call(
+        state_dir,
+        Request::BodyNativeMaskShow {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            request,
+            show: Box::new(show),
+        },
+    )? {
+        Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL } => Ok(()),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong native Mask Show response".into()),
     }
 }
 
