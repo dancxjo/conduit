@@ -202,7 +202,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         .unwrap();
     let clauses = reader.take_text_readout().unwrap().unwrap().clauses;
     assert!(clauses.iter().any(|clause| clause
-        == "Interval in milliseconds. Choose one of: 1000, 2000, 250, 500. Then activate Change interval."));
+        == "Interval in milliseconds. Choose one of: 1000, 2000, 250, 500. Enter it with edit interval-ms, then activate Change interval."));
 
     reader
         .command(
@@ -261,7 +261,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         .unwrap();
     let boolean_clauses = boolean_reader.take_text_readout().unwrap().unwrap().clauses;
     assert!(boolean_clauses.iter().any(|clause| {
-        clause == "Include Plot. Choose true or false, then activate Change interval."
+        clause == "Include Plot. Choose true or false with edit interval-ms, then activate Change interval."
     }));
 
     // More than eight exact choices stay on the Face's generic bounded

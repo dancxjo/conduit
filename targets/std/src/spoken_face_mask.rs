@@ -175,7 +175,7 @@ impl SpokenFaceSession {
         let mut interaction = None;
         let mut cancel_stream_identity = None;
         match command {
-            ReaderCommand::Help => self.begin_message("Read all presents the entire current view. Use next, previous, or repeat for one item. Move by subject, action, or exact role such as main, article, or navigation. Focus a named subject or offered action by its exact ID. Edit a named value, then activate its action. Stop interrupts reading.".into()),
+            ReaderCommand::Help => self.begin_message("Enter one command per line. Type help to repeat this guide. Type read all for the current view; next, previous, or repeat to move. Type next action to find a control. Type focus followed by an offered action ID when you know it. Type edit followed by the announced argument name and new value, then type activate to apply it. Type stop to interrupt speech, or quit to leave.".into()),
             ReaderCommand::ReadAll | ReaderCommand::Next | ReaderCommand::Previous | ReaderCommand::Repeat | ReaderCommand::NextSubject | ReaderCommand::PreviousSubject | ReaderCommand::NextAction | ReaderCommand::PreviousAction | ReaderCommand::NextRole(_) | ReaderCommand::PreviousRole(_) | ReaderCommand::FocusSubject(_) | ReaderCommand::FocusAction(_) => {
                 let reading_command = match command {
                     ReaderCommand::ReadAll => FaceReadingCommand::ReadAll,

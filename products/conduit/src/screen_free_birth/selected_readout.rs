@@ -4,7 +4,9 @@ use std::{io::Write, path::Path, sync::mpsc, thread, time::Duration};
 
 use conduit_core::HostAdvertisement;
 use conduit_presentation::{MaskShow, Presentation};
-use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenBatchDelivery, SpokenFaceSession};
+use conduit_std_host::spoken_face_mask::{
+    ReaderCommand, SpokenBatchDelivery, SpokenFaceSession, SpokenTurnOutcome,
+};
 use conduit_std_host::{RunControl, RunControlRequestId};
 
 use super::{command_input::CommandInput, debug_error, selected_playback::SelectedPlayback};
@@ -33,6 +35,8 @@ fn verify_current_face(
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Return true when the current spoken turn was interrupted, so an opening
+/// guide cannot start a new ReadAll after the person stopped it.
 pub(super) fn emit_readout(
     state_dir: &Path,
     input: &mut impl CommandInput,
@@ -44,15 +48,15 @@ pub(super) fn emit_readout(
     sequence: &mut u64,
     phase: OutputPhase,
     output: &mut impl Write,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let Some(selected) = playback else {
-        return super::emit_readout(reader, face, show, None, output);
+        return super::emit_readout(reader, face, show, None, output).map(|_| false);
     };
     selected.verify_host(advertisement)?;
     loop {
         verify_current_face(state_dir, face, advertisement, phase)?;
         let Some(batch) = reader.next_batch_with_limits(1, 64).map_err(debug_error)? else {
-            return Ok(());
+            return Ok(false);
         };
         let control = RunControl::default();
         let stop_sequence = sequence.checked_add(1).ok_or("input sequence exhausted")?;
@@ -159,10 +163,14 @@ pub(super) fn emit_readout(
         }
         verify_current_face(state_dir, face, advertisement, phase)
             .map_err(|error| format!("spoken Face changed during selected Play: {error}"))?;
-        if terminal.is_some() {
-            return Ok(());
+        if let Some(terminal) = terminal {
+            return Ok(turn_interrupted(&terminal.outcome));
         }
     }
+}
+
+pub(super) fn turn_interrupted(outcome: &SpokenTurnOutcome) -> bool {
+    matches!(outcome, SpokenTurnOutcome::Cancelled)
 }
 
 fn write_turn(
