@@ -1,0 +1,185 @@
+// One installed owner, one live QMP guest, and one pinned Chromium Host.
+// The driver coordinates user actions; each participant creates its own
+// membership, Mask Play, Show, and semantic return through product entrances.
+import assert from 'node:assert/strict';
+import { spawn, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { startStaticProduct } from './static-product-server.mjs';
+
+const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
+  candidateId, ownerForward, outputArgument, playwrightArgument] = process.argv.slice(2);
+if (!playwrightArgument) {
+  throw new Error('usage: three-host-owner-journey.mjs XTASK INSTALLED-OWNER OWNER-STATE HANDBOOK SPORE CANDIDATE-ID OWNER-FORWARD NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT');
+}
+const xtask = path.resolve(xtaskArgument);
+const owner = path.resolve(ownerArgument);
+const state = path.resolve(stateArgument);
+const handbook = path.resolve(handbookArgument);
+const spore = path.resolve(sporeArgument);
+const output = path.resolve(outputArgument);
+assert.equal(existsSync(output), false, 'evidence directory must be new');
+await mkdir(output, { mode: 0o700 });
+const native = path.join(output, 'native');
+await mkdir(native, { mode: 0o700 });
+const installed = JSON.parse(await readFile(path.join(state, 'installation.json')));
+assert.equal(installed.product_executable, owner, 'owner binary must match the installed release');
+const expectedPlaywright = JSON.parse(await readFile(new URL('./package.json', import.meta.url)))
+  .devDependencies['@playwright/test'];
+const actualPlaywright = JSON.parse(await readFile(path.join(path.dirname(playwrightArgument), 'package.json'))).version;
+assert.equal(actualPlaywright, expectedPlaywright, 'browser proof must use the pinned Playwright release');
+const { chromium } = await import(pathToFileURL(path.resolve(playwrightArgument)));
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const waitForFile = async (file, timeoutMillis = 120_000) => {
+  const deadline = Date.now() + timeoutMillis;
+  while (Date.now() < deadline) {
+    if (existsSync(file)) return JSON.parse(await readFile(file, 'utf8'));
+    if (nativeProof && (nativeProof.exitCode !== null || nativeProof.signalCode !== null)) {
+      throw new Error(`native proof exited before ${path.basename(file)}: ${nativeOutput.join('')}`);
+    }
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error(`checkpoint deadline: ${path.basename(file)}`);
+};
+const run = (args) => {
+  const result = spawnSync(owner, args, { encoding: 'utf8', timeout: 10_000 });
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout);
+};
+let server, browser, nativeProof;
+const nativeOutput = [];
+try {
+  server = await startStaticProduct(handbook);
+  browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  nativeProof = spawn(xtask, [
+    'make', 'conduitos', 'live-owner-action-proof', '--spore', spore,
+    '--candidate-id', candidateId, '--owner-forward', ownerForward,
+    '--output-dir', native, '--coordinate',
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  nativeProof.stdout.on('data', chunk => nativeOutput.push(chunk.toString()));
+  nativeProof.stderr.on('data', chunk => nativeOutput.push(chunk.toString()));
+  const arrived = await waitForFile(path.join(native, 'native-arrived.json'));
+  assert.equal(arrived.stage, 'arrived');
+  assert.equal(arrived.guest_part.membership_installed, true);
+  assert.equal(arrived.face.interactions_admitted, true);
+  assert.equal(arrived.show_ack.show_id, arrived.face.show_id);
+  const bodyId = arrived.guest_part.body_id;
+  const ownerBefore = run(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(ownerBefore.biography.body_id, bodyId);
+  assert.equal(ownerBefore.biography.membership.parts.some(part =>
+    part.part_id === arrived.guest_part.part_id && part.current?.boot_id === arrived.guest_part.boot_id), true);
+
+  await page.goto(`${server.url}?participate=owner#your-handbook`);
+  await page.locator('[data-owner-key]').waitFor();
+  const identity = await page.evaluate(() => globalThis.__conduitOwnerParticipation.admissionIdentity());
+  const window = run(['body', 'browser-window', '--state-dir', state,
+    '--expected-host-id', identity.hostId,
+    '--new-host-verifying-key', JSON.stringify(identity.verifyingKey),
+    '--maximum-millis', '60000', '--authorize-window']);
+  assert.equal(window.body_id, bodyId);
+  await page.getByLabel('Body ID').fill(bodyId);
+  await page.getByLabel('Owner window URL').fill(window.url);
+  await page.getByRole('button', { name: 'Join this Body' }).click();
+  await page.waitForFunction(() => globalThis.__conduitOwnerParticipation?.presence() === 'available',
+    null, { timeout: 12_000 });
+  await page.locator('[data-owner-face-document] [data-owner-action]').first().waitFor();
+  const joined = await page.evaluate(() => ({
+    credential: globalThis.__conduitOwnerParticipation.credential(),
+    face: globalThis.__conduitOwnerParticipation.face(),
+  }));
+  assert.equal(joined.credential.body_id, bodyId);
+  assert.equal(joined.face.body_id, bodyId);
+  assert.equal(joined.face.show_state, 'available');
+  const threeHosts = run(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(threeHosts.biography.membership.parts.length, 3);
+  for (const partId of [arrived.guest_part.part_id, joined.credential.part_id]) {
+    assert.equal(threeHosts.biography.membership.parts.some(part =>
+      part.part_id === partId && part.current !== null), true);
+  }
+  await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
+  await writeFile(path.join(native, 'resume-native-action'), 'continue\n');
+  const nativeAction = await waitForFile(path.join(native, 'native-action.json'), 45_000);
+  assert.equal(nativeAction.stage, 'action');
+  assert.equal(nativeAction.action.status, 'accepted');
+  assert.equal(nativeAction.action.requested_interval_ms, 500);
+  assert.equal(nativeAction.show_ack.show_id, nativeAction.face.show_id);
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(prior => {
+    const face = globalThis.__conduitOwnerParticipation.face();
+    return face?.face_revision !== prior && face.subjects.some(subject =>
+      subject.text.some(text => text.includes('500 milliseconds')));
+  }, joined.face.face_revision, { timeout: 12_000 });
+  const afterNative = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(afterNative.body_id, bodyId);
+  assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
+    afterNative.show_id);
+  await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-native.png') });
+  const control = page.locator('[data-owner-action]').filter({
+    has: page.getByRole('button', { name: 'Change clock interval' }),
+  });
+  await control.getByRole('combobox').selectOption('1000');
+  await control.getByRole('button', { name: 'Change clock interval' }).click();
+  await page.waitForFunction(prior => {
+    const face = globalThis.__conduitOwnerParticipation.face();
+    return face?.face_revision !== prior && face.subjects.some(subject =>
+      subject.text.some(text => text.includes('1000 milliseconds')));
+  }, afterNative.face_revision, { timeout: 12_000 });
+  const afterBrowser = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(afterBrowser.body_id, bodyId);
+  assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
+    afterBrowser.show_id);
+  await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-browser.png') });
+  const stillJoined = run(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(stillJoined.biography.membership.parts.length, 3);
+  assert.equal(stillJoined.biography.membership.parts.some(part =>
+    part.part_id === arrived.guest_part.part_id && part.current?.boot_id === arrived.guest_part.boot_id), true);
+  assert.deepEqual(errors, []);
+  await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
+  const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
+  assert.equal(nativeReceipt.coordinated, true);
+  assert.equal(installed.release_source_identity, nativeReceipt.source_commit);
+  assert.equal(nativeReceipt.guest_part.body_id, bodyId);
+  assert.equal(nativeReceipt.qemu_alive_at_capture, true);
+  assert.equal(nativeReceipt.face_after.show_id, nativeAction.face.show_id);
+  assert.equal(nativeReceipt.action.status, 'accepted');
+  const packageManifest = await readFile(path.join(handbook, 'application.application.json'));
+  const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json')));
+  assert.equal(browserBundle.reviewed_distribution.source_commit, nativeReceipt.source_commit);
+  const report = {
+    schema: 'conduit.body/three-host-owner-journey@1',
+    proof_class: 'live-local-installed-owner-qmp-pinned-chromium',
+    body_id: bodyId,
+    owner_host_id: threeHosts.biography.membership.parts.find(part => part.current &&
+      part.part_id !== arrived.guest_part.part_id && part.part_id !== joined.credential.part_id)?.current?.host_id,
+    guest_host_id: arrived.guest_part.host_id,
+    guest_boot_id: arrived.guest_part.boot_id,
+    guest_part_id: arrived.guest_part.part_id,
+    browser_host_id: identity.hostId,
+    browser_boot_id: identity.bootId,
+    browser_part_id: joined.credential.part_id,
+    native_source_commit: nativeReceipt.source_commit,
+    handbook_manifest_sha256: digest(packageManifest),
+    before_browser_face_id: joined.face.face_id,
+    after_native_browser_face_id: afterNative.face_id,
+    after_browser_face_id: afterBrowser.face_id,
+    native_action: nativeReceipt.action,
+    screenshots: ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
+      'native/owner-before.png', 'native/owner-after.png'],
+    concurrent_part_count: threeHosts.biography.membership.parts.length,
+    qemu_alive_through_browser_actions: true,
+  };
+  await writeFile(path.join(output, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+  console.log(`Three-host journey proof: ${path.join(output, 'report.json')}`);
+} finally {
+  if (nativeProof?.exitCode === null) nativeProof.kill();
+  await browser?.close();
+  if (server) server.child.kill();
+  await writeFile(path.join(output, 'native-process.log'), nativeOutput.join(''));
+}
