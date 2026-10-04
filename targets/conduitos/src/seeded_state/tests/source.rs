@@ -113,10 +113,10 @@ fn actual_bme_source_initializer_seeds_exact_native_state_through_the_kernel() {
             .value()
     };
     assert!(
-        matches!(field("address").shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == &[118])
+        matches!(field("address").shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == [118])
     );
     assert!(
-        matches!(field("phase").shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == &[0])
+        matches!(field("phase").shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == [0])
     );
     play.complete_output(&port_id("current"), 0).unwrap();
     play.admit_input(&port_id("next"), 0, &output).unwrap();
