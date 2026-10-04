@@ -109,6 +109,7 @@ fn front(
         pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
         item_capacity: 1,
         byte_capacity,
+        selected_line: None,
     }
 }
 
