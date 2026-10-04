@@ -26,6 +26,7 @@ mod flow_zip;
 mod kernel_executor;
 mod operation;
 mod planned_activation;
+mod seeded_state;
 #[cfg(test)]
 mod test_support;
 
@@ -39,3 +40,4 @@ pub use flow_zip::FlowZipBack;
 pub use kernel_executor::*;
 pub use operation::*;
 pub use planned_activation::*;
+pub use seeded_state::SeededStateBack;

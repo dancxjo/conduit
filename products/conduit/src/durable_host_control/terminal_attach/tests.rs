@@ -147,6 +147,7 @@ fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
         unreachable!()
     };
     let current_face = owner.local_face_snapshot().unwrap();
+    assert!(show.validate(&current_face).is_ok());
     assert!(current_face.basis.wake_id.is_none());
     let admitted = owner
         .admit_attached_terminal_show(&route.seal, &route.show)

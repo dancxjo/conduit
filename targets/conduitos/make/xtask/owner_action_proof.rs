@@ -18,6 +18,10 @@ use super::{
     ConduitosArch, ConduitosError, LiveOwnerActionProofArgs,
 };
 
+#[path = "owner_action_coordination.rs"]
+mod coordination;
+use coordination::{wait_for_resume, write_checkpoint};
+
 const MAX_SERIAL_BYTES: u64 = 2 * 1024 * 1024;
 const OWNER_FACE: &str = "CONDUIT_NATIVE_OWNER_FACE ";
 const GUEST_PART: &str = "CONDUIT_NATIVE_GUEST_PART ";
@@ -89,6 +93,7 @@ pub(super) fn execute(
         &mut child,
         &route,
         &qemu_args,
+        args.coordinate,
     );
     let _ = child.kill();
     let _ = child.wait();
@@ -116,6 +121,7 @@ fn prove(
     child: &mut Child,
     route: &owner_boot::PreparedOwnerBoot,
     qemu_args: &[String],
+    coordinate: bool,
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
@@ -125,6 +131,20 @@ fn prove(
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
         return Err(error);
+    }
+    if coordinate {
+        write_checkpoint(
+            directory,
+            "native-arrived.json",
+            &json!({
+                "schema":"conduit.conduitos/native-owner-coordination@1",
+                "stage":"arrived",
+                "guest_part":part,
+                "face":before,
+                "show_ack":before_ack,
+            }),
+        )?;
+        wait_for_resume(directory, "resume-native-action", child)?;
     }
     // Keyboard traffic is the actual native Mask Fore: focus the only
     // available clock interval action, replace it with 500, then submit.
@@ -138,6 +158,20 @@ fn prove(
         return Err(error);
     }
     validate_success(&before, &before_ack, &action, &after, &after_ack)?;
+    if coordinate {
+        write_checkpoint(
+            directory,
+            "native-action.json",
+            &json!({
+                "schema":"conduit.conduitos/native-owner-coordination@1",
+                "stage":"action",
+                "action":action,
+                "face":after,
+                "show_ack":after_ack,
+            }),
+        )?;
+        wait_for_resume(directory, "resume-native-finish", child)?;
+    }
     if child
         .try_wait()
         .map_err(|error| ConduitosError::refusal("native-owner-proof-qemu", error.to_string()))?
@@ -162,6 +196,7 @@ fn prove(
         "show_ack_after":after_ack,
         "screenshots":[before_image,after_image],
         "qemu_alive_at_capture":true,
+        "coordinated":coordinate,
     }))
 }
 

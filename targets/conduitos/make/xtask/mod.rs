@@ -89,6 +89,7 @@ mod std_gap;
 pub(crate) mod target_backend;
 pub(crate) mod target_build;
 mod target_lowering;
+mod three_host_proof;
 mod timing_profile;
 mod usb_plots_check;
 mod usb_proof;
@@ -130,6 +131,8 @@ enum ConduitosCommand {
     LiveOwnerBoot(LiveOwnerBootArgs),
     /// Prove one typed native clock action through a live installed owner.
     LiveOwnerActionProof(LiveOwnerActionProofArgs),
+    /// Prove one Body across an installed owner, QMP guest, and pinned Chromium.
+    LiveThreeHostProof(three_host_proof::Args),
     /// Prove the canonical IA-32 live artifact through legacy BIOS only.
     Ia32LegacyBiosProof,
     /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.
@@ -293,6 +296,9 @@ struct LiveOwnerActionProofArgs {
     /// Existing empty private directory for QMP, receipts, and before/after PNGs.
     #[arg(long)]
     output_dir: PathBuf,
+    /// Pause at both Face checkpoints for a live browser participant.
+    #[arg(long)]
+    coordinate: bool,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -498,6 +504,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             opts,
         ),
         ConduitosCommand::LiveOwnerActionProof(args) => owner_action_proof::execute(&args, opts),
+        ConduitosCommand::LiveThreeHostProof(args) => three_host_proof::execute(&args, opts),
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),

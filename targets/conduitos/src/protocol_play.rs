@@ -44,16 +44,64 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         claim: BaseOperationClaim,
         zip: crate::flow_zip::FlowZipOperationFactory,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_with_operations(
+            definition,
+            ready,
+            table,
+            handle,
+            claim,
+            crate::protocol_operations::ProtocolOperations {
+                joins: zip,
+                states: crate::seeded_state::SeededStateOperationFactory::default(),
+            },
+        )
+    }
+
+    /// Consume retained Source state owners without supplying join specializations.
+    pub fn prepare_with_seeded_state(
+        definition: KernelCompositeDefinition,
+        ready: ReadyI2cBase<P>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        states: crate::seeded_state::SeededStateOperationFactory,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_with_operations(
+            definition,
+            ready,
+            table,
+            handle,
+            claim,
+            crate::protocol_operations::ProtocolOperations {
+                joins: crate::flow_zip::FlowZipOperationFactory::default(),
+                states,
+            },
+        )
+    }
+
+    pub fn prepare_with_operations(
+        definition: KernelCompositeDefinition,
+        ready: ReadyI2cBase<P>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        operations: crate::protocol_operations::ProtocolOperations,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        let crate::protocol_operations::ProtocolOperations { joins: zip, states } = operations;
         validate_fore(&definition)?;
         zip.validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        let calls = PreparedProtocolCalls::prepare_with_joins(
+        states
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        let calls = PreparedProtocolCalls::prepare_with_operations(
             &definition.internal_plan,
             ready,
             table,
             handle,
             claim,
             &zip,
+            &states,
         )?;
         let mut registry = KernelOperationRegistry::new();
         registry
@@ -70,6 +118,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(zip)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(states)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(CurrentSampleOperationFactory::default())

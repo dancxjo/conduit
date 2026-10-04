@@ -77,12 +77,18 @@ pub(crate) fn attach_and_show(
     else {
         return Err(CONTROL_OUTCOME_UNKNOWN.into());
     };
+    // Attachment changes the owner's offer generation. The Show was sealed
+    // against the Face after that change, not the Face used to request the
+    // attachment. Read the current owner snapshot before validating it.
+    let (face, current) =
+        body::local_face_snapshot(state_dir).map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())?;
     if show.validate(&face).is_err()
         || show.show.lifecycle != ManifestationLifecycle::Available
         || show.show.failure.is_some()
         || show.show.host_id != advertisement.host_id
         || show.show.boot_id != advertisement.boot_id
         || show.show.offer_generation != advertisement.offer_generation
+        || advertisement != current
         || advertisement.host_id != before.host_id
         || advertisement.boot_id != before.boot_id
         || effect.show_sha256 != <[u8; 32]>::from(Sha256::digest(show.show_id.as_str().as_bytes()))

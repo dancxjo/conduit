@@ -34,7 +34,11 @@ extern crate alloc;
 #[cfg(feature = "semantic-bindings")]
 pub mod admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod allophone_context;
+#[cfg(feature = "semantic-bindings")]
 pub mod boundary_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
@@ -55,6 +59,8 @@ pub mod intent_sources;
 pub mod inventory_admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
+#[cfg(feature = "semantic-bindings")]
+pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
@@ -131,3 +137,8 @@ mod source_balance;
 
 #[cfg(test)]
 mod frication_transfer;
+
+#[cfg(test)]
+mod context_match_parity;
+#[cfg(test)]
+mod neighbor_match_parity;

@@ -312,3 +312,147 @@ fn named_environment_specs_keep_six_states_through_native_round_trips() {
         assert_eq!(decoded, environment);
     }
 }
+
+#[test]
+fn allophone_scalar_context_retains_rule_and_unresolved_observations() {
+    use conduit_speech::allophone_context::*;
+    let declaration = allophone("phone/t");
+    let stress = StressSpecification::known(SpeechStress::Primary).unwrap();
+    let word = SpeechPositionSpecification::unknown();
+    let syllable = SpeechSyllablePositionSpecification::unknown();
+    let prosody = SpeechProsodicContextSpecification::unknown();
+    let compared = compare_allophone_scalar_context(
+        &declaration,
+        ScalarContextObservation {
+            stress: &stress,
+            word_position: &word,
+            syllable_position: &syllable,
+            prosodic_context: &prosody,
+        },
+    )
+    .unwrap();
+    assert!(core::ptr::eq(compared.declaration(), &declaration));
+    assert!(core::ptr::eq(
+        compared.stress().requirement(),
+        declaration.environment().stress_context()
+    ));
+    assert!(core::ptr::eq(compared.stress().observation(), &stress));
+    assert_eq!(
+        compared.stress().decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.word_position().decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.syllable_position().decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.prosodic_context().decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(compared.declaration().conditions().as_slice().len(), 1);
+}
+
+#[test]
+fn allophone_comparison_keeps_each_scalar_domain_separate() {
+    use conduit_speech::allophone_context::*;
+    let original = allophone("phone/t");
+    let declaration = SpeechPhonemeAllophone::new(
+        original.conditions().clone(),
+        original.confidence().clone(),
+        SpeechEnvironment::new(
+            BoundedSequence::new(),
+            BoundedSequence::new(),
+            SpeechProsodicContextSpecification::unspecified(),
+            StressSpecification::known(SpeechStress::Primary).unwrap(),
+            SpeechSyllablePositionSpecification::known(SpeechSyllablePosition::Onset).unwrap(),
+            SpeechPositionSpecification::unknown(),
+        )
+        .unwrap(),
+        original.phone().clone(),
+        None,
+        SpeechRuleStatus::Optional,
+    )
+    .unwrap();
+    let stress = StressSpecification::known(SpeechStress::Secondary).unwrap();
+    let word = SpeechPositionSpecification::known(SpeechWordPosition::Final).unwrap();
+    let syllable = SpeechSyllablePositionSpecification::unknown();
+    let prosody = SpeechProsodicContextSpecification::unknown();
+    let compared = compare_allophone_scalar_context(
+        &declaration,
+        ScalarContextObservation {
+            stress: &stress,
+            word_position: &word,
+            syllable_position: &syllable,
+            prosodic_context: &prosody,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        compared.stress().decision(),
+        &SpeechContextDecision::Mismatched
+    );
+    assert_eq!(
+        compared.word_position().decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.syllable_position().decision(),
+        &SpeechContextDecision::ObservationUnresolved
+    );
+    assert_eq!(
+        compared.prosodic_context().decision(),
+        &SpeechContextDecision::Matched
+    );
+}
+
+#[test]
+fn allophone_neighbor_receipt_keeps_original_rule_and_immediate_sides() {
+    use conduit_speech::{allophone_context::*, neighbor_match::*};
+    let original = allophone("phone/t");
+    let declaration = SpeechPhonemeAllophone::new(
+        original.conditions().clone(),
+        original.confidence().clone(),
+        SpeechEnvironment::new(
+            BoundedSequence::try_from_iter([
+                SpeechSegmentMatcher::phone(fixture::id("phone/t")).unwrap()
+            ])
+            .unwrap(),
+            BoundedSequence::try_from_iter([
+                SpeechSegmentMatcher::phone(fixture::id("phone/d")).unwrap()
+            ])
+            .unwrap(),
+            SpeechProsodicContextSpecification::unknown(),
+            StressSpecification::unknown(),
+            SpeechSyllablePositionSpecification::unknown(),
+            SpeechPositionSpecification::unknown(),
+        )
+        .unwrap(),
+        original.phone().clone(),
+        None,
+        SpeechRuleStatus::Optional,
+    )
+    .unwrap();
+    let phone = PhoneSpecification::known(fixture::id("phone/t")).unwrap();
+    let phoneme = PhonemeSpecification::unknown();
+    let observation = NeighborObservation::Segment {
+        phone: &phone,
+        phoneme: &phoneme,
+    };
+    let compared = compare_allophone_neighbors(&declaration, observation, observation).unwrap();
+    assert!(core::ptr::eq(compared.declaration(), &declaration));
+    assert_eq!(compared.before().decision(), &NeighborDecision::Mismatched);
+    assert_eq!(compared.after().decision(), &NeighborDecision::Matched);
+    assert!(core::ptr::eq(
+        compared
+            .before()
+            .comparisons()
+            .next()
+            .unwrap()
+            .requirement(),
+        &declaration.environment().before().as_slice()[0]
+    ));
+}
