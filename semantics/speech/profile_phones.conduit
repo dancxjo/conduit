@@ -43,4 +43,3 @@ type EnglishPhone =
     | t_aspirated
     | k_aspirated
     | alveolar_flap
-
