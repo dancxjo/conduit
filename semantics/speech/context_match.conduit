@@ -1,0 +1,30 @@
+# Mechanical specification carriers. Original values stay in their receipts;
+# value tags are projected only within one shared semantic enum domain.
+# Tags in non-Known slots are ignored; they are not invented observations.
+type SpeechSpecificationState =
+    known
+    | unknown
+    | unspecified
+    | not_applicable
+    | variable
+    | gradient
+
+type SpeechContextDecision =
+    matched
+    | mismatched
+    | requirement_unresolved
+    | observation_unresolved
+
+type SpeechContextComparisonInput = {
+    requirement: SpeechSpecificationState
+    observation: SpeechSpecificationState
+    requirement_value: I32 in 0..=8
+    observation_value: I32 in 0..=8
+}
+
+# In a rule pattern only Unspecified is unconstrained. Unsupported requirement
+# and observation states remain distinct rather than becoming a false match.
+plot speech/context-compare (
+    >> value: SpeechContextComparisonInput
+    result: SpeechContextDecision >>
+) = (.requirement is unspecified ? SpeechContextDecision.matched : !(.requirement is known) ? SpeechContextDecision.requirement_unresolved : !(.observation is known) ? SpeechContextDecision.observation_unresolved : .requirement_value == .observation_value ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
