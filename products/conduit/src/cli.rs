@@ -318,6 +318,14 @@ pub(crate) enum BodyCommand {
         #[command(flatten)]
         speech: BirthSpeechOptions,
     },
+    /// Reenter the installed owner's retained Body through nonvisual input.
+    ScreenFree {
+        /// Installed Host whose current Boot owns the retained Body.
+        #[arg(long)]
+        state_dir: Option<PathBuf>,
+        #[command(flatten)]
+        speech: BirthSpeechOptions,
+    },
     /// Read the installed owner's exact current Body Face and Host advertisement.
     Face {
         #[arg(long)]
@@ -459,11 +467,11 @@ pub(crate) enum BodyCommand {
     },
 }
 
-/// Explicit local synthesis and speaker selection for a screen-free Birth.
+/// Explicit local synthesis and speaker selection for a screen-free session.
 #[derive(Debug, Default, Args)]
 pub(crate) struct BirthSpeechOptions {
     /// Speak through one selected, currently discovered ALSA speaker.
-    #[arg(long, requires_all = ["screen_free", "speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine"])]
+    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine"])]
     pub(crate) speak: bool,
     /// ALSA card ID from `conduit body speech-options`.
     #[arg(long, requires = "speak")]
@@ -568,6 +576,32 @@ mod public_surface_tests {
             selected.command,
             Some(Command::Body {
                 command: Some(BodyCommand::Birth {
+                    speech: BirthSpeechOptions { speak: true, .. },
+                    ..
+                })
+            })
+        ));
+        let retained = Cli::try_parse_from([
+            "conduit",
+            "body",
+            "screen-free",
+            "--speak",
+            "--speaker-card",
+            "sofhdadsp",
+            "--speaker-device",
+            "0",
+            "--speech-executable",
+            "/usr/bin/espeak-ng",
+            "--speech-data",
+            "/usr/lib/espeak-ng-data",
+            "--speech-engine",
+            "/usr/lib/libespeak-ng.so.1",
+        ])
+        .unwrap();
+        assert!(matches!(
+            retained.command,
+            Some(Command::Body {
+                command: Some(BodyCommand::ScreenFree {
                     speech: BirthSpeechOptions { speak: true, .. },
                     ..
                 })

@@ -38,6 +38,7 @@ use input::MAX_SCREEN_FREE_COMMAND_BYTES;
 use input::{parse_command, read_command_line, SCREEN_FREE_COMMANDS};
 pub(crate) use installed::run_installed;
 pub(crate) use installed::run_installed_spoken;
+pub(crate) use installed::{run_retained, run_retained_spoken};
 mod selected_playback;
 mod selected_readout;
 mod speech_options;
