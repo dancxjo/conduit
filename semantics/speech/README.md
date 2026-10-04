@@ -690,6 +690,16 @@ Rendering borrows the admitted tapes. The
 path. Source-material coverage and linguistic commitment remain separate checks;
 the optional rich preparation receipts do not establish whole-device MCU fit.
 
+`resolve_intent_inventory_phoneme` retains the original occurrence and one exact
+phoneme definition from the supplied inventory. Native occurrence, inventory
+basis and phoneme-identity witnesses are retained; a matching notation is not
+membership. Missing or ambiguous definitions and all five non-Known states
+refuse without case, Unicode or base-ID fallback. Whole global-intent preparation
+now requires this receipt before rule choice and retains it alongside the chosen
+phone. A late missing phoneme cannot produce a renderable aggregate even if a
+wildcard rule and output-phone binding would otherwise match. Definition features
+remain definition facts, without becoming observed token features or defaults.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
