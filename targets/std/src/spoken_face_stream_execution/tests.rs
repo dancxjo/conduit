@@ -151,8 +151,8 @@ fn selected_fake_playback(
 
 #[test]
 fn selected_playback_block_admission_covers_its_declared_duration() {
-    let blocks = 16_384_u64;
-    let millis = 16_384_u64;
+    let blocks = 32_768_u64;
+    let millis = 30_000_u64;
     let source_frames_per_block = u64::from(conduit_std_offers::SPEECH_FRAMES_PER_BLOCK);
     let required = (millis * 22_050).div_ceil(source_frames_per_block * 1_000)
         + u64::try_from(conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS).unwrap();
@@ -162,9 +162,10 @@ fn selected_playback_block_admission_covers_its_declared_duration() {
     );
     assert!(blocks >= required);
     assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_BLOCKS));
+    assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS));
     assert_eq!(
         SPOKEN_PLAYBACK_PLOT
-            .matches("maximum-blocks = 16384, maximum-audio-millis = 16384")
+            .matches("maximum-blocks = 32768, maximum-audio-millis = 30000")
             .count(),
         2,
         "converter and speaker must admit the full declared duration"
@@ -180,7 +181,7 @@ fn deterministic_playback(
     let (face, show) = source(1);
     let (reader, batch) = batch(&face, &show);
     let (config, selection, authorization) = selected_fake_playback(behavior);
-    let host = StdHost::new_with_playback(
+    let mut host = StdHost::new_with_playback(
         config.clone(),
         StdHostComposition::minimal().with_text(),
         selection.clone(),
@@ -195,9 +196,77 @@ fn deterministic_playback(
         selection,
         &authorization,
         control,
-        host,
+        &mut host,
     )?;
     Ok((reader, execution))
+}
+
+#[test]
+fn selected_playback_keeps_the_same_host_across_two_plays() {
+    let (face, show) = source(1);
+    let (_, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(FakePlaybackBehavior::Success);
+    let mut host = StdHost::new_with_playback(
+        config.clone(),
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    let original = host.advertisement().clone();
+    let first = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &"00".repeat(32),
+        config.clone(),
+        selection.clone(),
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+    .unwrap();
+    let second = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &"00".repeat(32),
+        config,
+        selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+    .unwrap();
+    assert_eq!(host.advertisement(), &original);
+    assert_eq!(first.outcome, SpokenPlaybackOutcome::Completed);
+    assert_eq!(second.outcome, SpokenPlaybackOutcome::Completed);
+    assert_ne!(first.playback_play_id, second.playback_play_id);
+}
+
+#[test]
+fn attached_host_entrance_refuses_a_missing_speech_provider() {
+    let (face, show) = source(1);
+    let (_, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(FakePlaybackBehavior::Success);
+    let mut host = StdHost::new_with_playback(
+        config,
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    let before = host.advertisement().clone();
+    let refusal = super::playback::execute_spoken_batch_on_attached_host(
+        &face,
+        &show,
+        &batch,
+        &selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+    .unwrap_err();
+    assert!(matches!(refusal, SpokenStreamExecutionRefusal::Plan(_)));
+    assert_eq!(host.advertisement(), &before);
 }
 
 #[test]

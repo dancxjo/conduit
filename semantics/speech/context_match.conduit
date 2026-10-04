@@ -91,3 +91,36 @@ plot speech/context-conjunction (
     >> value: SpeechContextConjunction
     result: SpeechContextDecision >>
 ) = (.left is mismatched || .right is mismatched ? SpeechContextDecision.mismatched : .left is requirement_unresolved || .right is requirement_unresolved ? SpeechContextDecision.requirement_unresolved : .left is observation_unresolved || .right is observation_unresolved ? SpeechContextDecision.observation_unresolved : SpeechContextDecision.matched)
+
+type SpeechStyleConditionInput = {
+    observation: SpeechSpecificationState
+    careful: Boolean
+}
+plot speech/not-careful-style (
+    >> value: SpeechStyleConditionInput
+    result: SpeechContextDecision >>
+) = (!(.observation is known) ? SpeechContextDecision.observation_unresolved : .careful ? SpeechContextDecision.mismatched : SpeechContextDecision.matched)
+
+# Four stress tags are projected within the one SpeechStress domain.
+type SpeechStressConditionInput = {
+    presence: SpeechNeighborPresence
+    observation: SpeechSpecificationState
+    stress: I32 in 0..=3
+    allow0: Boolean
+    allow1: Boolean
+    allow2: Boolean
+    allow3: Boolean
+}
+plot speech/stress-condition (
+    >> value: SpeechStressConditionInput
+    result: SpeechContextDecision >>
+) = (.presence is absent || .presence is boundary ? SpeechContextDecision.mismatched : .presence is unknown || !(.observation is known) ? SpeechContextDecision.observation_unresolved : (.stress == 0 ? .allow0 : .stress == 1 ? .allow1 : .stress == 2 ? .allow2 : .allow3) ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
+
+type SpeechFeatureConditionInput = {
+    presence: SpeechNeighborPresence
+    feature: SpeechContextDecision
+}
+plot speech/feature-condition (
+    >> value: SpeechFeatureConditionInput
+    result: SpeechContextDecision >>
+) = (.presence is absent || .presence is boundary ? SpeechContextDecision.mismatched : .presence is unknown ? SpeechContextDecision.observation_unresolved : .feature)

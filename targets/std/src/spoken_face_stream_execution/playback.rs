@@ -15,7 +15,7 @@ use conduit_core::{OfferGeneration, SignId};
 /// even when every PCM block is full. A 3,072-block limit covers only 3.48 s.
 /// The selected Host adapter holds at most two seconds of PCM under pressure.
 /// Short utterances below its startup lead begin on input close.
-pub const SPOKEN_PLAYBACK_PLOT: &str = "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 16384, maximum-audio-millis = 16384)\n speaker: audio/play(maximum-blocks = 16384, maximum-audio-millis = 16384)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}.\n";
+pub const SPOKEN_PLAYBACK_PLOT: &str = "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}.\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpokenPlaybackOutcome {
@@ -118,6 +118,45 @@ pub fn execute_real_spoken_batch_to_selected_playback(
         selection,
         authorization,
         control,
+        &mut host,
+    )
+}
+
+/// Run a spoken batch on the actual already-attached Host. The caller retains
+/// that Host across batches and must keep its selected speaker and initialized
+/// speech provider attached. This entrance never creates a second Host with
+/// copied Host/Boot identifiers and does not mint a spoken Mask Show.
+pub fn execute_spoken_batch_on_attached_host(
+    face: &Presentation,
+    source_show: &MaskShow,
+    batch: &SpokenBatch,
+    selection: &HostedPlaybackSelection,
+    authorization: &ExplicitPlaybackAuthorization,
+    control: &RunControl,
+    host: &mut StdHost,
+) -> Result<SpokenPlaybackExecution, SpokenStreamExecutionRefusal> {
+    let offered = host.advertisement();
+    let config = StdHostConfig {
+        host_id: offered.host_id.clone(),
+        boot_id: offered.boot_id.clone(),
+        offer_generation: offered.offer_generation,
+    };
+    let provider = host.speech_synthesis.as_ref().ok_or_else(|| {
+        SpokenStreamExecutionRefusal::Plan("Host has no initialized speech provider".into())
+    })?;
+    provider
+        .validate_host(&config.host_id, &config.boot_id, config.offer_generation)
+        .map_err(|error| SpokenStreamExecutionRefusal::Plan(error.to_string()))?;
+    let provider_sha256 = provider.provider_sha256().to_owned();
+    run_selected_spoken_playback(
+        face,
+        source_show,
+        batch,
+        &provider_sha256,
+        config,
+        selection.clone(),
+        authorization,
+        control,
         host,
     )
 }
@@ -132,7 +171,7 @@ pub(super) fn run_selected_spoken_playback(
     selection: HostedPlaybackSelection,
     authorization: &ExplicitPlaybackAuthorization,
     control: &RunControl,
-    mut host: StdHost,
+    host: &mut StdHost,
 ) -> Result<SpokenPlaybackExecution, SpokenStreamExecutionRefusal> {
     validate_spoken_source(face, source_show, batch)?;
     if host.advertisement().host_id != config.host_id

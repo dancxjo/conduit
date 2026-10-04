@@ -73,7 +73,7 @@ pub const AUDIO_PLAY_ALSA_BUFFER_FRAMES: u16 = 1_024;
 /// Total Play admission for small streaming PCM blocks, including up to
 /// 16.384 seconds of 25-frame source speech blocks. In-flight hosted speech
 /// queue storage has a separate, smaller bound.
-pub const AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS: u16 = 16_384;
+pub const AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS: u16 = 32_768;
 pub const AUDIO_PLAY_ALSA_FRAME_BYTES: u32 = 4;
 pub const AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32
     + AUDIO_PLAY_ALSA_PERIOD_FRAMES as u32 * AUDIO_PLAY_ALSA_FRAME_BYTES;
