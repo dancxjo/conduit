@@ -115,10 +115,16 @@ try {
   assert.equal(joined.biography.membership.parts.length, 2);
   assert.equal(joined.offer.stage, 'AdmittedMembership');
   assert.equal(joined.offer.capabilities.length, 0);
-  const capability = await page.evaluate(() => {
-    const id = participant.advertisement.capabilities[0].capability_id;
-    participant.requestOfferEvidence({ capabilityIds: [id] });
-    return id;
+  const selected = await page.evaluate(() => {
+    const capability = participant.advertisement.capabilities.find(offer =>
+      offer.capability_id === 'capability/browser-dom-mask');
+    const resource = participant.advertisement.resources.find(offer =>
+      offer.pool_id === 'browser/presentation');
+    if (!capability || !resource) throw new Error('installed browser lacks the DOM Mask Back or presentation resource');
+    participant.requestOfferEvidence({
+      capabilityIds: [capability.capability_id], resourcePoolIds: [resource.pool_id],
+    });
+    return { capabilityId: capability.capability_id, resourcePoolId: resource.pool_id };
   });
   await page.waitForFunction(() => participant.offerEvidence()?.stage === 'Planning');
   const detailed = await page.evaluate(() => participant.offerEvidence());
@@ -126,7 +132,9 @@ try {
   assert.equal(detailed.host_id, first.host);
   assert.equal(detailed.boot_id, first.boot);
   assert.equal(detailed.capabilities.length, 1);
-  assert.equal(detailed.capabilities[0].capability_id, capability);
+  assert.equal(detailed.capabilities[0].capability_id, selected.capabilityId);
+  assert.equal(detailed.resources.length, 1);
+  assert.equal(detailed.resources[0].pool_id, selected.resourcePoolId);
   assert.equal(detailed.capability_summary.length, 0);
   assert.equal(detailed.offer_generation, joined.offer.offer_generation);
   const persisted = JSON.parse(await readFile(path.join(state, 'body/biography.json')));
