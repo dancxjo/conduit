@@ -18,7 +18,8 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
   assert.ok(masthead, 'exact-source Handbook has no shared site navigation');
   const navigation = masthead
     .replace('data-section="handbook" aria-current="page"', 'data-section="handbook"')
-    .replace('data-section="journeys"', 'data-section="journeys" aria-current="page"');
+    .replace('data-section="journeys"', 'data-section="journeys" aria-current="page"')
+    .replaceAll('href="/conduit/', 'href="https://dancxjo.github.io/conduit/');
   await Promise.all(['conduit.css', 'chrome.css'].map(name =>
     copyFile(path.join(handbook, name), path.join(output, name))));
 
