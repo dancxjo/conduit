@@ -555,3 +555,6 @@ fn selected_default_voice_retains_exact_inputs_and_refuses_foreign_defaults() {
 
 #[path = "common/global_default_intent_cases.rs"]
 mod default_intent_cases;
+
+#[path = "common/sourced_global_intent_cases.rs"]
+mod sourced_intent_cases;
