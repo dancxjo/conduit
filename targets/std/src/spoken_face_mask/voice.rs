@@ -1,5 +1,6 @@
 use super::*;
 use conduit_core::ValueConstraint;
+use conduit_presentation::readable_finite_text_choices;
 
 /// Keep the common Face's reading order and exact provenance; only the spoken
 /// phrasing changes. Unknown semantic roles remain readable as their human
@@ -143,9 +144,21 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
                     )
                 }
                 ("value/bool", _) => format!(
-                    "{}. Choose yes or no, then activate {}.",
+                    "{}. Choose true or false, then activate {}.",
                     argument.value_name, action.name
                 ),
+                (UTF8_TEXT_VALUE_KIND, _) => readable_finite_text_choices(&argument.contract)
+                    .map_or_else(
+                        || clause.text.clone(),
+                        |choices| {
+                            format!(
+                                "{}. Choose one of: {}. Then activate {}.",
+                                argument.value_name,
+                                choices.join(", "),
+                                action.name
+                            )
+                        },
+                    ),
                 _ => clause.text.clone(),
             }
         }

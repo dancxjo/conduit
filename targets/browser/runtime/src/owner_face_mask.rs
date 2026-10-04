@@ -120,6 +120,7 @@ struct FaceView {
     mask_plot_id: String,
     mask_plan_id: String,
     mask_play_id: String,
+    route: Option<RouteView>,
     show_id: String,
     show_state: &'static str,
     interactions_admitted: bool,
@@ -128,11 +129,21 @@ struct FaceView {
     actions: Vec<ActionView>,
 }
 
+#[derive(Serialize)]
+struct RouteView {
+    plan_id: String,
+    owner_host_id: String,
+    owner_boot_id: String,
+    mask_host_id: String,
+    mask_boot_id: String,
+}
+
 struct OwnerBrowserMask {
     body_id: BodyId,
     presentation: Presentation,
     planned: conduit_presentation::PlannedMaskPlot,
     play: conduit_core::ActivePlayIdentity,
+    route: Option<RouteView>,
     show: MaskShow,
     scheduler: execution::MaskScheduler,
     show_boundary: conduit_plan_lowering::lowering::LoweredForePort,
@@ -170,10 +181,18 @@ impl OwnerBrowserMask {
         route
             .validate_mask_host_offer(&host)
             .map_err(|error| format!("owner Mask route differs from this browser: {error:?}"))?;
+        let inspection = RouteView {
+            plan_id: route.route_plan_id.as_str().into(),
+            owner_host_id: route.owner_host.host_id.as_str().into(),
+            owner_boot_id: route.owner_host.boot_id.as_str().into(),
+            mask_host_id: route.mask_host.host_id.as_str().into(),
+            mask_boot_id: route.mask_host.boot_id.as_str().into(),
+        };
         Self::prepare_planned(
             basis,
             presentation,
             route.planned_mask,
+            Some(inspection),
             play_sequence,
             interactions_admitted,
         )
@@ -201,6 +220,7 @@ impl OwnerBrowserMask {
             basis,
             presentation,
             planned,
+            None,
             play_sequence,
             interactions_admitted,
         )
@@ -210,6 +230,7 @@ impl OwnerBrowserMask {
         basis: HostBasis,
         presentation: Presentation,
         planned: conduit_presentation::PlannedMaskPlot,
+        route: Option<RouteView>,
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
@@ -294,6 +315,7 @@ impl OwnerBrowserMask {
             presentation,
             planned,
             play,
+            route,
             show,
             scheduler,
             show_boundary,

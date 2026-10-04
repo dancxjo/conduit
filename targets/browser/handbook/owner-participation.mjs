@@ -22,6 +22,33 @@ export function checkedExpectedBodyId(value) {
   return bodyId;
 }
 
+export function checkedOwnerRouteEvidence(view, hostId, bootId) {
+  const route = view?.route;
+  if (view?.show_state !== 'available' || !route ||
+      route.mask_host_id !== hostId || route.mask_boot_id !== bootId ||
+      [view.body_id, view.face_id, view.face_revision, view.mask_plot_id, view.mask_plan_id,
+        view.mask_play_id, view.show_id, route.plan_id,
+        route.owner_host_id, route.owner_boot_id].some(value => typeof value !== 'string' || !value)) {
+    throw new Error('The owner Show has no current sealed browser route to inspect.');
+  }
+  return {
+    body_id: view.body_id,
+    face_id: view.face_id,
+    face_revision: view.face_revision,
+    selected_mask_plot_id: view.mask_plot_id,
+    route_plan_id: route.plan_id,
+    owner_host_id: route.owner_host_id,
+    owner_boot_id: route.owner_boot_id,
+    mask_host_id: route.mask_host_id,
+    mask_boot_id: route.mask_boot_id,
+    mask_plan_id: view.mask_plan_id,
+    mask_play_id: view.mask_play_id,
+    show_id: view.show_id,
+    show_state: view.show_state,
+    interactions_admitted: view.interactions_admitted,
+  };
+}
+
 export async function startOwnerParticipation(application, root) {
   document.title = 'Join a running Body · Conduit Handbook';
   document.querySelector('.handbook-introduction h1').textContent = 'Join the Body you already made.';
@@ -56,7 +83,7 @@ export async function startOwnerParticipation(application, root) {
       <p role="status" data-owner-action-result>No Face action submitted.</p>
       <div data-owner-face-document></div>
       <button type="button" data-owner-face-refresh disabled>Refresh this Face</button>
-      <details><summary>Face and Show identities</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
+      <details><summary>Inspect the current Face, route, Plan, and Show</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
     </section>
     <button type="button" data-owner-leave disabled>Leave this window</button>
     <p><a href="?">Return to my local Handbook</a>. Your local Body remains retained; this join mode does not open or change it.</p>`;
@@ -200,6 +227,7 @@ export async function startOwnerParticipation(application, root) {
     faceView = null;
     delete root.dataset.ownerFaceShown;
     delete root.dataset.ownerShowAcknowledged;
+    faceEvidence.textContent = 'Checking the current owner route and Show…';
     for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
@@ -208,20 +236,18 @@ export async function startOwnerParticipation(application, root) {
       } : undefined);
       renderFace(prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
+      const inspectedRoute = checkedOwnerRouteEvidence(shown, participation.hostId, participation.bootId);
       root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
       renderFace(shown);
       faceStatus.textContent = 'The browser is showing the owner’s current Face.';
       delete faceStatus.dataset.refused;
-      faceEvidence.textContent = JSON.stringify({ body_id: shown.body_id, face_id: shown.face_id,
-        face_revision: shown.face_revision, mask_plot_id: shown.mask_plot_id,
-        mask_plan_id: shown.mask_plan_id, mask_play_id: shown.mask_play_id,
-        show_id: shown.show_id, show_state: shown.show_state,
-        interactions_admitted: shown.interactions_admitted }, null, 2);
+      faceEvidence.textContent = JSON.stringify(inspectedRoute, null, 2);
       root.dataset.ownerFaceShown = 'true';
     } catch (error) {
       faceStatus.textContent = `Owner Face refused: ${error.message}`;
       faceStatus.dataset.refused = 'true';
+      faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
     } finally {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
@@ -234,6 +260,7 @@ export async function startOwnerParticipation(application, root) {
       if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
+      faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
       for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
       actionResult.dataset.refused = 'true';

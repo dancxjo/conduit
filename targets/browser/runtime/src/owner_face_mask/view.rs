@@ -20,6 +20,13 @@ impl OwnerBrowserMask {
                 .into(),
             mask_plan_id: self.planned.plan.plan_id.as_str().into(),
             mask_play_id: self.play.active_play_id.as_str().into(),
+            route: self.route.as_ref().map(|route| RouteView {
+                plan_id: route.plan_id.clone(),
+                owner_host_id: route.owner_host_id.clone(),
+                owner_boot_id: route.owner_boot_id.clone(),
+                mask_host_id: route.mask_host_id.clone(),
+                mask_boot_id: route.mask_boot_id.clone(),
+            }),
             show_id: self.show.show_id.as_str().into(),
             show_state: if self.show.show.lifecycle == ManifestationLifecycle::Available {
                 "available"
