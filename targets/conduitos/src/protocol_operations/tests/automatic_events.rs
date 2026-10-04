@@ -456,7 +456,6 @@ pub(super) fn prepare<
         &boundaries,
     )
     .unwrap();
-    let external = owners.states.offers().next().unwrap().clone();
     owners.states.validate_plan(&plan).unwrap();
     owners.joins.validate_plan(&plan).unwrap();
     owners.merges.validate_plan(&plan).unwrap();
@@ -473,7 +472,36 @@ pub(super) fn prepare<
     let (table, handle, claim) = super::automatic_admission::possession(&plan, false);
     let (clock_table, clock_handle, clock_claim) =
         super::automatic_admission::possession(&plan, true);
-    let definition = crate::protocol_kernel_fixture::definition(plan, external);
+    let identity = crate::protocol_artifact::ProtocolArtifactIdentity {
+        source: plan.source_document_id.clone(),
+        checked: plan.checked_plot_id.clone(),
+        expanded: plan.expanded_plot_id.clone(),
+        artifact: ArtifactId::from("fixture/reviewed-source-package@1"),
+    };
+    for altered in 0..4 {
+        let mut stale = identity.clone();
+        match altered {
+            0 => stale.source = SourceDocumentId::from("stale/source"),
+            1 => stale.checked = CheckedPlotId::from("stale/checked"),
+            2 => stale.expanded = ExpandedPlotId::from("stale/expanded"),
+            _ => stale.artifact = ArtifactId::from(""),
+        }
+        assert!(
+            crate::protocol_artifact::AdmittedProtocolArtifact::admit(stale, plan.clone()).is_err()
+        );
+    }
+    let artifact =
+        crate::protocol_artifact::AdmittedProtocolArtifact::admit(identity.clone(), plan).unwrap();
+    assert_eq!(artifact.identity(), &identity);
+    assert_eq!(
+        artifact
+            .definition()
+            .external_capability
+            .implementation
+            .artifact_id,
+        identity.artifact
+    );
+    let definition = artifact.into_definition();
     let play = crate::protocol_play::PreparedTimedProtocolPlay::prepare(
         definition,
         bus,
