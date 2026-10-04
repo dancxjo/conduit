@@ -38,17 +38,18 @@ macro_rules! comparison {
                 $spec::Variable(_) => S::variable,
                 $spec::Gradient(_) => S::gradient,
             };
-            // Exact equality only; variable/gradient values are never selected
-            // or promoted into Known observations by this projection.
-            let known_values_equal = match (requirement, observation) {
-                ($spec::Known(left), $spec::Known(right)) => left == right,
-                _ => false,
+            // Unit enum tags are a mechanical representation within this one
+            // specification domain. Non-Known slots carry an ignored zero.
+            let value_tag = |value: &$spec| match value {
+                $spec::Known(value) => *value as i32,
+                _ => 0,
             };
             let result =
                 generated::speech_context_compare(generated::SpeechContextComparisonInput {
                     requirement: state(requirement),
                     observation: state(observation),
-                    known_values_equal,
+                    requirement_value: value_tag(requirement),
+                    observation_value: value_tag(observation),
                 })
                 .ok_or(ContextComparisonRefusal::CompiledPlot)?;
             let decision = match result {
