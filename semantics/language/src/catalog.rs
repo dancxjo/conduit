@@ -145,6 +145,11 @@ fn linguistic_limits() -> CapabilityLimits {
 
 fn linguistic_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
+        (
+            "LinguisticSyntacticLinkKind",
+            crate::LinguisticSyntacticLinkKind::semantic_type()
+                .expect("checked language syntax Type"),
+        ),
         (TEXT_SPAN_TYPE, text_span_type()),
         (LINGUISTIC_TOKEN_TYPE, linguistic_token_type()),
         (LINGUISTIC_TOKENS_FOUR_TYPE, linguistic_tokens_four_type()),

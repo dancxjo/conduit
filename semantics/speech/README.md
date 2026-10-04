@@ -70,7 +70,8 @@ uncertain values have been committed, or that both voices already consume it.
 
 Language owns the legacy syntactic/discourse link vocabulary in
 `semantics/language/syntax.conduit`. Speech rule conditions consume that exact
-native Type through the checked catalog and external Rust bindings;
+native Type through the checked catalog and external Rust bindings. The ordinary
+language startup catalog exposes it to authored Plots;
 `SpeechSyntacticLinkKind` remains a Rust re-export for callers. The optional
 semantic-bindings profile carries this dependency, while the compact renderer
 keeps its existing runtime dependencies. This ownership seam under #4907 does
