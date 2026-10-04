@@ -677,6 +677,19 @@ refusals. Timing, source resolution and commitment remain separate obligations.
 The `global-rule-initial-aspiration-tata` fixture combines this bridge with native
 quantitative timing from the original manual intent through the existing renderer.
 
+`prepare_global_intent` combines global-rule choice, occurrence-bound default
+features, exact voice admission and quantitative timing for one immutable intent.
+Its evidence slots must align with the original events: segment evidence is
+required and boundaries have no segment evidence. All segment obligations and
+renderer admission must pass before a renderable result escapes. The private
+aggregate owns its frozen event tape and retains each choice, inherited feature
+receipt, definition/basis witnesses and profile binding. A late refusal returns
+no playable aggregate; boundary silence and original uncertainty remain explicit.
+Rendering borrows the admitted tapes. The
+`global-intent-initial-aspiration-tata` fixture exercises this whole preparation
+path. Source-material coverage and linguistic commitment remain separate checks;
+the optional rich preparation receipts do not establish whole-device MCU fit.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
