@@ -129,7 +129,7 @@ impl ChildKernel {
             .ok_or_else(|| "kernel composite remote Sign byte bound overflow".to_string())?,
         )
         .map_err(debug)?;
-        let mut scheduler = ChildScheduler::new_with_active_counts_and_host_calls(
+        let mut scheduler = ChildScheduler::new_boxed_with_active_counts_and_host_calls(
             active_nodes,
             active_cords,
             nodes,
@@ -162,7 +162,7 @@ impl ChildKernel {
             .bind_terminal_transductions(terminal_contracts)
             .map_err(debug)?;
         Ok(Self {
-            scheduler: Box::new(scheduler),
+            scheduler,
             boundaries: boundaries
                 .into_iter()
                 .map(|boundary| (boundary.external_port_id.clone(), boundary))

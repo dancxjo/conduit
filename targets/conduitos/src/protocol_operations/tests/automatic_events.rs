@@ -54,6 +54,9 @@ pub(super) fn prepare<
         .unwrap();
     profile.insert_kind(clock.kind().clone()).unwrap();
     let events = include_str!("../../../../../plots/device-protocols/bme280-clock-events.conduit");
+    let decoding = include_str!("../../../../../plots/device-protocols/main.conduit");
+    let observation =
+        include_str!("../../../../../plots/device-protocols/bme280-capture-observation.conduit");
     let automatic = include_str!("../../../../../plots/device-protocols/bme280-autonomous.conduit");
     let combine = |units: &[&str]| {
         let imports = units
@@ -73,7 +76,7 @@ pub(super) fn prepare<
         alloc::format!("{imports}\n{bodies}")
     };
     let types = check_syntax_document(
-        &parse_syntax_document(&combine(&[LIFECYCLE, events])),
+        &parse_syntax_document(&combine(&[LIFECYCLE, events, decoding, observation])),
         &startup,
     )
     .unwrap();
@@ -143,10 +146,18 @@ pub(super) fn prepare<
     ];
     // The feedback unit supplies the ordinary tuple-to-transition assembler.
     let checked = check_syntax_document(
-        &parse_syntax_document(&combine(&[LIFECYCLE, events, FEEDBACK, automatic])),
+        &parse_syntax_document(&combine(&[
+            LIFECYCLE,
+            events,
+            FEEDBACK,
+            decoding,
+            observation,
+            automatic,
+        ])),
         &startup,
     )
     .unwrap();
+    let mut selectors = alloc::collections::BTreeSet::new();
     for stage in checked
         .plots
         .iter()
@@ -154,12 +165,13 @@ pub(super) fn prepare<
         .flat_map(|cord| &cord.stages)
     {
         if let conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } = stage {
-            profile
-                .insert(conduit_plot::structured_selector_definition(
-                    selector,
-                    PortTemporal::Flow { closes: true },
-                ))
-                .unwrap();
+            let definition = conduit_plot::structured_selector_definition(
+                selector,
+                PortTemporal::Flow { closes: true },
+            );
+            if selectors.insert(definition.kind_id.clone()) {
+                profile.insert(definition).unwrap();
+            }
         }
     }
     let expanded =
@@ -252,7 +264,7 @@ pub(super) fn prepare<
         if let [entry] = gear.configuration.as_slice()
             && let ConfigurationValue::Text(encoded) = &entry.value
         {
-            let temporal = PortTemporal::Flow { closes: true };
+            let temporal = gear.checked_front().inputs()[0].temporal;
             host.capabilities.push(match entry.key.as_str() {
                 "program" => crate::expression_host_call::offer(
                     &conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap(),
@@ -268,6 +280,15 @@ pub(super) fn prepare<
             });
         }
     }
+    host.capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    host.capabilities.dedup_by(|left, right| {
+        if left.capability_id != right.capability_id {
+            return false;
+        }
+        assert_eq!(left, right, "one identity must retain one exact offer");
+        true
+    });
     let grants = [
         (
             crate::i2c_base::installation::I2C_AUTHORITY,
@@ -416,12 +437,12 @@ pub(super) fn prepare<
         &boundaries,
     )
     .unwrap();
-    let external = hosts[0].capabilities[0].clone();
+    let external = owners.states.offers().next().unwrap().clone();
     owners.states.validate_plan(&plan).unwrap();
     owners.joins.validate_plan(&plan).unwrap();
     owners.merges.validate_plan(&plan).unwrap();
     assert_eq!(plan.fragments.len(), 1);
-    assert_eq!(plan.fragments[0].placements.len(), 32);
+    assert_eq!(plan.fragments[0].placements.len(), 49);
     assert_eq!(
         plan.fragments[0]
             .placements

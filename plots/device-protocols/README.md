@@ -84,20 +84,22 @@ proves Source feedback execution with supplied events, while automatic bus/time
 event production and boot admission remain development work.
 
 `bme280-autonomous.conduit` now checks and expands the bus/time event topology
-into 32 gears. Source adapters request exact wait deadlines, timestamp bus
+into 49 gears including decoding and compensation. Source adapters request exact wait deadlines, timestamp bus
 results with the clock's observed time, and preserve clock failures separately.
 The generic `flow/merge/finite` retains both input lifetimes and closes only
 after both inputs drain. The graph plans against separately retained I2C and
 clock offers with exact authority. Deterministic fixtures prepare, start and
-cancel its 32-gear native play without provider effects. The composite profile
-admits at most 32 gears and 64 cords; its fixed scheduler is allocated during
-preparation. A wrong-identity fixture executes a bus completion and clock observation through
+cancel its native play without provider effects. The composite profile
+admits at most 64 gears and 128 cords; its fixed scheduler is allocated during
+preparation through the kernel’s allocated preparation entrance. A wrong-identity fixture executes a bus completion and clock observation through
 the actual Source feedback loop, emits the exact refusal and issues no retry.
 Each Cord has its own finite queue admission; an oversized clock queue is
 rejected. A complete transcript fixture also executes probe, reset, configuration,
-calibration reads, both deadline waits and sample capture through those owners.
-Semantic-observation integration, terminal closure and boot admission remain
-development work.
+calibration reads, both deadline waits, sample capture and the exact fixed-point
+temperature, pressure and humidity observation through those owners. Shared
+Source decoding stages retain companion data without duplicated wire formulas.
+Decoding and observation entrances use finite closing flows. Terminal closure
+and boot admission remain development work.
 
 The x86_64 clock provider reuses the calibrated invariant-TSC or ACPI HPET
 counter with an explicit finite provider lifetime. Each poll observes the counter

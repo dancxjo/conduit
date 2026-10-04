@@ -1,4 +1,4 @@
-# Exact BME280 wire interpretation; no host or attachment facts.
+# Exact BME280 wire interpretation over finite closing flows; no host or attachment facts.
 # The 24 octets are registers 0x88..0x9f. H1 is 0xa1; skip reserved 0xa0.
 # The seven humidity octets are registers 0xe1..0xe7.
 type BmeCalibrationBytes = {
@@ -27,7 +27,7 @@ type BmeCalibration = {
     h6: I128
 }
 plot bme280-decode-calibration (
-    bytes: BmeCalibrationBytes >> calibration: BmeCalibration
+    bytes: BmeCalibrationBytes...| >> calibration: BmeCalibration...|
 ) {
     begin: bme280-decode-calibration-begin
     decode: bme280-decode-calibration-work
@@ -45,7 +45,7 @@ type BmeSampleBytes = {
     wire: collection U8 = 8
 }
 plot bme280-decode-sample (
-    bytes: BmeSampleBytes >> sample: BmeRawSample
+    bytes: BmeSampleBytes...| >> sample: BmeRawSample...|
 ) {
     begin: bme280-decode-sample-begin
     decode: bme280-decode-sample-work
@@ -53,7 +53,7 @@ plot bme280-decode-sample (
     bytes >> begin >> decode >> finish >> sample
 }
 plot bme280-sample-disabled (
-    sample: BmeRawSample >> disabled: Boolean
+    sample: BmeRawSample...| >> disabled: Boolean...|
 ) = (.pressure == 524288 || .temperature == 524288 || .humidity == 32768)
 
 # Source-owned fixed-point observation assembly. Inputs are decoded wire values.
@@ -92,55 +92,55 @@ type BmeObservationWork = {
 }
 
 plot bme280-observation-begin (
-    input: BmeObservationInput >> output: BmeObservationWork
+    input: BmeObservationInput...| >> output: BmeObservationWork...|
 ) = ({ calibration: .calibration, sample: .sample, fine: 0, temperature: 0, v1: 0, v2: 0, numerator: 0, denominator: 0, pressure: 0, humidity: 0, failure: (((((.sample.pressure < 0 || .sample.pressure > 1048575) || (.sample.temperature < 0 || .sample.temperature > 1048575)) || ((.sample.humidity < 0 || .sample.humidity > 65535) || ((.calibration.t1 < 0 || .calibration.t1 > 65535) || (.calibration.p1 < 0 || .calibration.p1 > 65535)))) || (((.calibration.h1 < 0 || .calibration.h1 > 255) || (.calibration.h3 < 0 || .calibration.h3 > 255)) || ((.calibration.t2 < -32768 || .calibration.t2 > 32767) || ((.calibration.t3 < -32768 || .calibration.t3 > 32767) || (.calibration.p2 < -32768 || .calibration.p2 > 32767))))) || ((((.calibration.p3 < -32768 || .calibration.p3 > 32767) || (.calibration.p4 < -32768 || .calibration.p4 > 32767)) || ((.calibration.p5 < -32768 || .calibration.p5 > 32767) || ((.calibration.p6 < -32768 || .calibration.p6 > 32767) || (.calibration.p7 < -32768 || .calibration.p7 > 32767)))) || (((.calibration.p8 < -32768 || .calibration.p8 > 32767) || ((.calibration.p9 < -32768 || .calibration.p9 > 32767) || (.calibration.h2 < -32768 || .calibration.h2 > 32767))) || ((.calibration.h4 < -2048 || .calibration.h4 > 2047) || ((.calibration.h5 < -2048 || .calibration.h5 > 2047) || (.calibration.h6 < -128 || .calibration.h6 > 127)))))) ? malformed(unit) : .sample.pressure == 524288 || .sample.temperature == 524288 || .sample.humidity == 32768 ? sample-disabled(unit) : (.calibration.p1 == 0 ? invalid-calibration(unit) : none(unit)) })
 
 plot bme280-observation-fine (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: ((((.sample.temperature >>> 3) - (.calibration.t1 <<< 1)) * .calibration.t2) >>> 11) + (((((.sample.temperature >>> 4) - .calibration.t1) * ((.sample.temperature >>> 4) - .calibration.t1)) >>> 12) * .calibration.t3 >>> 14), temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
 
 plot bme280-observation-temperature (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: (.fine * 5 + 128) >>> 8, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
 
 plot bme280-observation-pressure-polynomial (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .fine - 128000, v2: (.fine - 128000) * (.fine - 128000) * .calibration.p6 + (((.fine - 128000) * .calibration.p5) <<< 17) + (.calibration.p4 <<< 35), numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
 
 plot bme280-observation-pressure-division (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: (((1048576 - .sample.pressure) <<< 31) - .v2) * 3125, denominator: (((1 <<< 47) + ((.v1 * .v1 * .calibration.p3) >>> 8) + ((.v1 * .calibration.p2) <<< 12)) * .calibration.p1) >>> 33, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
 
 plot bme280-observation-pressure-check (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .denominator == 0 ? invalid-calibration(unit) : .failure } : .)
 
 plot bme280-observation-pressure-quotient (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .numerator / .denominator, humidity: .humidity, failure: .failure } : .)
 
 plot bme280-observation-pressure-correction (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: ((.pressure + ((.calibration.p9 * (.pressure >>> 13) * (.pressure >>> 13)) >>> 25) + ((.calibration.p8 * .pressure) >>> 19)) >>> 8) + (.calibration.p7 <<< 4), humidity: .humidity, failure: .failure } : .)
 
 plot bme280-observation-humidity-polynomial (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: ((((.sample.humidity <<< 14) - (.calibration.h4 <<< 20) - .calibration.h5 * (.fine - 76800) + 16384) >>> 15) * (((((((.fine - 76800) * .calibration.h6) >>> 10) * ((((.fine - 76800) * .calibration.h3) >>> 11) + 32768)) >>> 10) + 2097152) * .calibration.h2 + 8192 >>> 14)), failure: .failure } : .)
 
 plot bme280-observation-humidity-correction (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity - (((((.humidity >>> 15) * (.humidity >>> 15)) >>> 7) * .calibration.h1) >>> 4), failure: .failure } : .)
 
 plot bme280-observation-humidity-clamp (
-    input: BmeObservationWork >> output: BmeObservationWork
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
 ) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity < 0 ? (.humidity & 0) : (.humidity > 419430400 ? ((.humidity & 0) + 102400) : .humidity >>> 12), failure: .failure } : .)
 
 plot bme280-observation-finish (
-    input: BmeObservationWork >> result: BmeObservationResult
+    input: BmeObservationWork...| >> result: BmeObservationResult...|
 ) = (variant/is(.failure, "none") ? observation({ temperature_centidegrees: .temperature, pressure_q24_8_pa: .pressure, humidity_q22_10_percent: .humidity }) : unavailable(.failure))
 
 plot bme280-observation (
-    input: BmeObservationInput >> result: BmeObservationResult
+    input: BmeObservationInput...| >> result: BmeObservationResult...|
 ) {
     begin: bme280-observation-begin
     fine: bme280-observation-fine
@@ -167,23 +167,23 @@ type BmeDecodeWork = {
     sample: BmeRawSample
 }
 plot bme280-decode-calibration-begin (
-    bytes: BmeCalibrationBytes >> work: BmeDecodeWork
+    bytes: BmeCalibrationBytes...| >> work: BmeDecodeWork...|
 ) = ({ bytes: ., wire: { wire: [0, 0, 0, 0, 0, 0, 0, 0] }, calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
 plot bme280-decode-sample-begin (
-    bytes: BmeSampleBytes >> work: BmeDecodeWork
+    bytes: BmeSampleBytes...| >> work: BmeDecodeWork...|
 ) = ({ bytes: { temperature_pressure: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], humidity_first: 0, humidity: [0, 0, 0, 0, 0, 0, 0] }, wire: ., calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
 plot bme280-decode-calibration-work (
-    work: BmeDecodeWork >> decoded: BmeDecodeWork
+    work: BmeDecodeWork...| >> decoded: BmeDecodeWork...|
 ) = ({ bytes: .bytes, wire: .wire, calibration: {     t1: (value/i128(.bytes.temperature_pressure.0) + (value/i128(.bytes.temperature_pressure.1) <<< 8)), t2: ((value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) : (value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) - 65536), t3: ((value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) : (value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) - 65536), p1: (value/i128(.bytes.temperature_pressure.6) + (value/i128(.bytes.temperature_pressure.7) <<< 8)), p2: ((value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) : (value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) - 65536), p3: ((value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) : (value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) - 65536), p4: ((value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) : (value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) - 65536), p5: ((value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) : (value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) - 65536), p6: ((value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) : (value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) - 65536), p7: ((value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) : (value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) - 65536), p8: ((value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) : (value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) - 65536), p9: ((value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) : (value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) - 65536), h1: value/i128(.bytes.humidity_first), h2: ((value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) < 32768 ? (value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) : (value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) - 65536), h3: value/i128(.bytes.humidity.2), h4: (((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) < 2048 ? ((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) : ((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) - 4096), h5: (((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) < 2048 ? ((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) : ((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) - 4096), h6: (value/i128(.bytes.humidity.6) < 128 ? value/i128(.bytes.humidity.6) : value/i128(.bytes.humidity.6) - 256) }, sample: .sample })
 plot bme280-decode-sample-work (
-    work: BmeDecodeWork >> decoded: BmeDecodeWork
+    work: BmeDecodeWork...| >> decoded: BmeDecodeWork...|
 ) = ({ bytes: .bytes, wire: .wire, calibration: .calibration, sample: {     pressure: (value/i128(.wire.wire.0) <<< 12) + (value/i128(.wire.wire.1) <<< 4) + (value/i128(.wire.wire.2) >>> 4), temperature: (value/i128(.wire.wire.3) <<< 12) + (value/i128(.wire.wire.4) <<< 4) + (value/i128(.wire.wire.5) >>> 4), humidity: (value/i128(.wire.wire.6) <<< 8) + value/i128(.wire.wire.7) } })
 plot bme280-decode-calibration-finish (
-    work: BmeDecodeWork >> calibration: BmeCalibration
+    work: BmeDecodeWork...| >> calibration: BmeCalibration...|
 ) = (.calibration)
 plot bme280-decode-sample-finish (
-    work: BmeDecodeWork >> sample: BmeRawSample
+    work: BmeDecodeWork...| >> sample: BmeRawSample...|
 ) = (.sample)
 plot bme280-decode-observation-finish (
-    work: BmeDecodeWork >> observation: BmeObservationInput
+    work: BmeDecodeWork...| >> observation: BmeObservationInput...|
 ) = ({ calibration: .calibration, sample: .sample })

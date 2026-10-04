@@ -18,6 +18,8 @@ use crate::{
 pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy};
 
 mod active_capacity;
+#[cfg(feature = "alloc")]
+mod boxed_preparation;
 mod debug_control;
 mod derived_value;
 mod retirement;

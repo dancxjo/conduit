@@ -10,6 +10,7 @@ plot bme280-clock-join (
 plot bme280-autonomous (
     >> begin: BmeProtocolBegin...|
     captured: BmeProtocolState...| >>
+    observation: BmeObservationResult...| >>
     refused: BmeProtocolFailure...| >>
     clock_failed: ClockResult...| >>
 ) {
@@ -27,6 +28,7 @@ plot bme280-autonomous (
     actions >> select(BmeProtocolAction.transact, unmatched=drop) >> bus.request
     actions >> bme280-clock-action-context() >> select(BmeOptionalClockContext.available, unmatched=drop) >> contexts.left
     actions >> select(BmeProtocolAction.captured, unmatched=drop) >> captured
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> bme280-observation-from-capture() >> observation
     actions >> select(BmeProtocolAction.refused, unmatched=drop) >> refused
     bus.result >> bme280-clock-bus-context() >> contexts.right
     contexts.merged >> timed.left

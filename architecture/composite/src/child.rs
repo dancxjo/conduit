@@ -50,10 +50,10 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 // The complete checked bus/time protocol already expands to 32 gears. Keep
-// finite backing for that graph; preparation
+// finite backing for that graph and its Source observation stages; preparation
 // still rejects plans beyond these bounds before execution begins.
-pub(crate) const MAX_NODES: usize = 32;
-pub(crate) const MAX_CORDS: usize = 64;
+pub(crate) const MAX_NODES: usize = 64;
+pub(crate) const MAX_CORDS: usize = 128;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 256;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;

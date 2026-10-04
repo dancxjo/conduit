@@ -143,9 +143,6 @@ fn complete_source_protocol_captures_calibration_and_sample_through_native_bus_a
         value_kind: begin.profile().unwrap().value_kind().clone(),
         encoded: input.canonical_bytes().unwrap(),
     };
-    play.start().unwrap();
-    play.admit_input(&port_id("begin"), 0, &input).unwrap();
-    play.close_input(&port_id("begin")).unwrap();
     // The output buffer is allocated before execution; its exact kind comes from the sealed Fore.
     let captured = play
         .kernel()
@@ -159,6 +156,22 @@ fn complete_source_protocol_captures_calibration_and_sample_through_native_bus_a
         value_kind: captured.value_kind.clone(),
         encoded: Vec::with_capacity(4096),
     };
+    let observation_port = play
+        .kernel()
+        .definition()
+        .external_capability
+        .outputs
+        .iter()
+        .find(|port| port.port_id == port_id("observation"))
+        .unwrap();
+    let mut observation = ValuePayload {
+        value_kind: observation_port.value_kind.clone(),
+        encoded: Vec::with_capacity(4096),
+    };
+    play.start().unwrap();
+    play.admit_input(&port_id("begin"), 0, &input).unwrap();
+    play.close_input(&port_id("begin")).unwrap();
+    let mut compensated = false;
     let mut observed = false;
     for _ in 0..20000 {
         play.step().unwrap();
@@ -173,9 +186,39 @@ fn complete_source_protocol_captures_calibration_and_sample_through_native_bus_a
             play.complete_output(&port_id("captured"), sequence)
                 .unwrap();
             observed = true;
+        }
+        if let Some(sequence) = play
+            .output_into(&port_id("observation"), &mut observation)
+            .unwrap()
+        {
+            let value = StructuredInfoValue::from_canonical_bytes(&observation.encoded).unwrap();
+            let StructuredInfoValueShape::Variant { tag, payload } = value.shape() else {
+                panic!("observation result")
+            };
+            assert_eq!(tag, "observation");
+            for (name, expected) in [
+                ("temperature_centidegrees", 2508_i128),
+                ("pressure_q24_8_pa", 25767233),
+                ("humidity_q22_10_percent", 55588),
+            ] {
+                assert_eq!(
+                    i128::from_le_bytes(bytes(field(payload, name)).try_into().unwrap()),
+                    expected,
+                    "{name}"
+                );
+            }
+            play.complete_output(&port_id("observation"), sequence)
+                .unwrap();
+            compensated = true;
+        }
+        if observed && compensated {
             break;
         }
     }
+    assert!(
+        compensated,
+        "the native Source graph must emit the exact semantic observation"
+    );
     assert!(observed, "complete protocol must capture one sample");
     assert_eq!(progress.load(Ordering::SeqCst), count);
     assert_eq!(waits.load(Ordering::SeqCst), 2);
