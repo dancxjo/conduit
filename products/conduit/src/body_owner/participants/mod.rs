@@ -12,7 +12,7 @@ use conduit_core::{HostId, LinkBindingId, SignId};
 use conduit_presentation::{OwnerFaceSnapshotResponse, OWNER_FACE_RESPONSE_SCHEMA};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
-    BROWSER_ADMISSION_PROTOCOL as PROTOCOL, MAX_BROWSER_ADMISSION_FRAME_BYTES,
+    BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
 };
 pub(crate) use service::{BrowserAdmittedSnapshot, BrowserWindow, BrowserWindowAuthorization};
 #[cfg(unix)]
@@ -372,42 +372,9 @@ fn serve_presence(
                 && host_id == credential.host_id
                 && boot_id == credential.boot_id =>
             {
-                let result = state_dir
-                    .zip(window_id)
-                    .ok_or_else(|| "planning offer requires installed owner".to_string())
-                    .and_then(|(dir, window_id)| {
-                        crate::durable_host_control::browser::planning_offer(
-                            dir,
-                            window_id,
-                            credential.clone(),
-                            request,
-                        )
-                    });
-                let response = match result {
-                    Ok(offer) => {
-                        let frame = Out::OfferEvidence {
-                            protocol: PROTOCOL,
-                            evidence: Box::new(offer),
-                        };
-                        if serde_json::to_vec(&frame)
-                            .map_err(|error| format!("encode planning offer: {error}"))?
-                            .len()
-                            > MAX_BROWSER_ADMISSION_FRAME_BYTES
-                        {
-                            Out::Refused {
-                                protocol: PROTOCOL,
-                                code: "offer-frame-pressure".into(),
-                            }
-                        } else {
-                            frame
-                        }
-                    }
-                    Err(error) => Out::Refused {
-                        protocol: PROTOCOL,
-                        code: planning_offer_refusal(&error).into(),
-                    },
-                };
-                socket.send(&response)?;
+                socket.send(&service::planning_offer_response(
+                    state_dir, window_id, credential, request,
+                )?)?;
             }
             In::OfferDisclosureRequest {
                 protocol: PROTOCOL, ..
@@ -489,17 +456,4 @@ fn signal(binding: &LinkBindingId, stage: &str) -> SignId {
 }
 fn debug(error: impl std::fmt::Debug) -> String {
     format!("browser participant: {error:?}")
-}
-
-fn planning_offer_refusal(error: &str) -> &'static str {
-    match error {
-        "unknown-capability" => "unknown-capability",
-        "unknown-resource" => "unknown-resource",
-        "invalid-offer-request" => "invalid-offer-request",
-        "credential-mismatch" => "credential-mismatch",
-        "part-unavailable" => "part-unavailable",
-        "window-not-active" => "window-not-active",
-        "owner-unavailable" => "owner-unavailable",
-        _ => "offer-unavailable",
-    }
 }

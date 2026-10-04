@@ -13,7 +13,7 @@ use conduit_body::{
 };
 use conduit_core::{HostAdvertisement, HostId, LinkBindingId};
 use conduit_std_host::browser_admission::{
-    BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
+    BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In, MAX_BROWSER_ADMISSION_FRAME_BYTES,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -75,6 +75,68 @@ enum WindowState {
         credential: MembershipCredential,
         observation: Box<CandidateObservation>,
     },
+}
+
+pub(super) fn planning_offer_response(
+    state_dir: Option<&Path>,
+    window_id: Option<&str>,
+    credential: &MembershipCredential,
+    request: OfferDisclosureRequest,
+) -> Result<Out, String> {
+    #[cfg(unix)]
+    let result = state_dir
+        .zip(window_id)
+        .ok_or_else(|| "owner-unavailable".to_string())
+        .and_then(|(dir, window_id)| {
+            crate::durable_host_control::browser::planning_offer(
+                dir,
+                window_id,
+                credential.clone(),
+                request,
+            )
+        });
+    #[cfg(not(unix))]
+    let result: Result<HostOfferProjection, String> = {
+        let _ = (state_dir, window_id, credential, request);
+        Err("owner-unavailable".into())
+    };
+    match result {
+        Ok(offer) => {
+            let frame = Out::OfferEvidence {
+                protocol: PROTOCOL,
+                evidence: Box::new(offer),
+            };
+            if serde_json::to_vec(&frame)
+                .map_err(|error| format!("encode planning offer: {error}"))?
+                .len()
+                > MAX_BROWSER_ADMISSION_FRAME_BYTES
+            {
+                Ok(Out::Refused {
+                    protocol: PROTOCOL,
+                    code: "offer-frame-pressure".into(),
+                })
+            } else {
+                Ok(frame)
+            }
+        }
+        Err(error) => Ok(Out::Refused {
+            protocol: PROTOCOL,
+            code: planning_offer_refusal(&error).into(),
+        }),
+    }
+}
+
+fn planning_offer_refusal(error: &str) -> &'static str {
+    match error {
+        "unknown-capability" => "unknown-capability",
+        "unknown-resource" => "unknown-resource",
+        "invalid-offer-request" => "invalid-offer-request",
+        "credential-mismatch" => "credential-mismatch",
+        "part-unavailable" => "part-unavailable",
+        "window-not-active" => "window-not-active",
+        "owner-unavailable" => "owner-unavailable",
+        _ => "offer-unavailable",
+    }
 }
 
 struct Pending {
