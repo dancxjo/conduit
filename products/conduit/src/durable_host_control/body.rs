@@ -29,6 +29,8 @@ mod clock_action;
 #[cfg(unix)]
 #[path = "body/control_client.rs"]
 mod control_client;
+#[path = "body/speech.rs"]
+pub(super) mod speech;
 #[cfg(unix)]
 pub(super) use control_client::call;
 
@@ -214,12 +216,16 @@ impl DurableHostRuntime {
     }
 
     pub(super) fn browser_cancel_window(&mut self, window_id: &str) -> Result<(), String> {
-        match &mut self.host {
+        let result = match &mut self.host {
             HostSource::Body { owner, root, .. } => owner.browser_cancel_window(root, window_id),
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }
+        };
+        if result.is_ok() {
+            self.stop_speech_from_window(window_id);
         }
+        result
     }
 
     pub(super) fn browser_leave(
@@ -227,14 +233,18 @@ impl DurableHostRuntime {
         window_id: &str,
         credential: &MembershipCredential,
     ) -> Result<BodyBiographyEvidence, String> {
-        match &mut self.host {
+        let result = match &mut self.host {
             HostSource::Body { owner, root, .. } => {
                 owner.browser_leave(root, window_id, credential)
             }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }
+        };
+        if result.is_ok() {
+            self.stop_speech_from_window(window_id);
         }
+        result
     }
 
     pub(crate) fn with_owned_body(self, root: &Path) -> Result<Self, String> {
@@ -250,6 +260,9 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
+            selected_speech_equipment,
+            speech_worker,
+            speech_terminal,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
@@ -271,6 +284,9 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
+            selected_speech_equipment,
+            speech_worker,
+            speech_terminal,
         })
     }
 

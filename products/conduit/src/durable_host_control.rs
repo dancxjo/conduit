@@ -48,6 +48,9 @@ mod body_run;
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
 #[cfg(unix)]
+#[path = "durable_host_control/speech_route.rs"]
+pub(crate) mod speech_route;
+#[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
 pub(crate) use body::start_browser_window;
@@ -90,6 +93,9 @@ pub(crate) struct DurableHostRuntime {
     next_observation_sequence: u64,
     #[cfg(unix)]
     terminal_route: Option<terminal_attach::AttachedTerminalRoute>,
+    selected_speech_equipment: Option<crate::durable_host::selected_speech::AttachedEquipment>,
+    speech_worker: Option<body::speech::SpeechWorker>,
+    speech_terminal: Option<serde_json::Value>,
 }
 
 impl DurableHostRuntime {
@@ -114,7 +120,18 @@ impl DurableHostRuntime {
             next_observation_sequence: 0,
             #[cfg(unix)]
             terminal_route: None,
+            selected_speech_equipment: None,
+            speech_worker: None,
+            speech_terminal: None,
         }
+    }
+
+    pub(crate) fn with_selected_speech_equipment(
+        mut self,
+        equipment: Option<crate::durable_host::selected_speech::AttachedEquipment>,
+    ) -> Self {
+        self.selected_speech_equipment = equipment;
+        self
     }
 
     fn install_cancellation_signal(&mut self, state_dir: &Path) {
@@ -1338,7 +1355,9 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
     let mut polling_play = false;
     loop {
         terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
-        let running = runtime.host.body_is_running() || terminal_attach::is_attached(&mut runtime);
+        let running = runtime.host.body_is_running()
+            || runtime.speech_worker.is_some()
+            || terminal_attach::is_attached(&mut runtime);
         if running != polling_play {
             listener
                 .set_nonblocking(running)
@@ -1346,10 +1365,11 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             polling_play = running;
         }
         runtime.progress_owned_body()?;
+        runtime.progress_browser_speech()?;
         let mut stream = match listener.accept() {
             Ok((stream, _)) => stream,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                let pause = if runtime.host.body_is_running() {
+                let pause = if runtime.host.body_is_running() || runtime.speech_worker.is_some() {
                     10
                 } else {
                     100
@@ -1371,6 +1391,8 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
             .map_err(|error| format!("read local host control prefix: {error}"))?;
         if first[0] == terminal_attach::MAGIC[0] {
             terminal_attach::serve(state_dir, &mut stream, &mut runtime, &token, first[0])?;
+        } else if first[0] == speech_route::MAGIC[0] {
+            speech_route::serve(&mut stream, &mut runtime, &token, first[0])?;
         } else {
             let mut request = std::io::Cursor::new(first).chain(&mut stream);
             let response = handle(read_frame(&mut request)?, &token, &mut runtime);
@@ -1816,6 +1838,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         )
     {
         return refused("body-play-active");
+    }
+    #[cfg(unix)]
+    if runtime.speech_worker.is_some() && !speech_route::ordinary_request_allowed(&request) {
+        return refused("selected-speech-active");
     }
     let truth = runtime.truth();
     match request {

@@ -30,7 +30,7 @@ const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
 #[path = "durable_host/selected_speech.rs"]
-mod selected_speech;
+pub(crate) mod selected_speech;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
@@ -408,9 +408,11 @@ fn prepare_runtime(
         offer_generation: OfferGeneration(1),
     };
     let mut host = StdHost::new_with_config(config);
-    if let Some(selection) = &installation.selected_speech {
-        selection.attach_to_fresh_host(&mut host)?;
-    }
+    let selected_equipment = installation
+        .selected_speech
+        .as_ref()
+        .map(|selection| selection.attach_to_fresh_host(&mut host))
+        .transpose()?;
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
         host_id: host.advertisement().host_id.as_str().into(),
@@ -427,7 +429,8 @@ fn prepare_runtime(
         running_target_id()?.into(),
         image_content_digest,
         host,
-    );
+    )
+    .with_selected_speech_equipment(selected_equipment);
     Ok((status, runtime))
 }
 
@@ -939,7 +942,7 @@ fn bounded_read(path: &Path, maximum: u64) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-fn fresh_identity(prefix: &str, basis: &str) -> String {
+pub(crate) fn fresh_identity(prefix: &str, basis: &str) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();

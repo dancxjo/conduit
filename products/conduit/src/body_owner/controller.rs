@@ -131,6 +131,10 @@ pub(crate) struct Owner {
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
 }
 impl Owner {
+    pub(crate) fn selected_speech_host_is_idle(&self) -> bool {
+        !self.host.is_playing() && self.session.realization().is_none()
+    }
+
     pub(crate) fn open(
         host: StdHost,
         resident: ResidentPlot,
