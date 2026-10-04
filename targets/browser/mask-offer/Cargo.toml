@@ -1,0 +1,10 @@
+[package]
+name = "conduit-browser-mask-offer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-planner = { path = "../../../architecture/planner" }

@@ -558,6 +558,7 @@ dependencies = [
  "conduit-birth-plot",
  "conduit-body",
  "conduit-body-make",
+ "conduit-browser-mask-offer",
  "conduit-chat",
  "conduit-core",
  "conduit-data",
@@ -746,6 +747,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-browser-mask-offer"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-presentation",
+]
+
+[[package]]
 name = "conduit-browser-patchbay-workbench"
 version = "0.1.0"
 dependencies = [
@@ -778,6 +789,7 @@ dependencies = [
  "conduit-body",
  "conduit-body-invitation-plot",
  "conduit-body-make",
+ "conduit-browser-mask-offer",
  "conduit-chat",
  "conduit-composite",
  "conduit-core",
