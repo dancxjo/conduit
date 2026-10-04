@@ -9,6 +9,7 @@ use conduit_plot::rust_binding::NativeBindingRefusal;
 pub enum NeighborObservation<'a> {
     Absent,
     Unknown,
+    Boundary(&'a SpeechBoundarySpecification),
     Segment {
         phone: &'a PhoneSpecification,
         phoneme: &'a PhonemeSpecification,
@@ -39,11 +40,14 @@ impl<'a> NeighborComparison<'a> {
 
 fn identity_fact<T>(
     checked: Result<T, NativeBindingRefusal>,
+    invariant_count: usize,
 ) -> Result<generated::SpeechNeighborIdentity, NeighborComparisonRefusal> {
     use generated::SpeechNeighborIdentity as I;
     match checked {
         Ok(_) => Ok(I::matched),
-        Err(NativeBindingRefusal::ViolatedInvariant { index: 0 }) => Ok(I::mismatched),
+        Err(NativeBindingRefusal::ViolatedInvariant { index }) if index < invariant_count => {
+            Ok(I::mismatched)
+        }
         Err(reason) => Err(NeighborComparisonRefusal::Native(reason)),
     }
 }
@@ -57,13 +61,15 @@ pub fn compare_neighbor<'a>(
     };
     let matcher = match requirement {
         SpeechSegmentMatcher::Any => M::any,
-        SpeechSegmentMatcher::Phone(_) | SpeechSegmentMatcher::Phoneme(_) => M::identity,
-        SpeechSegmentMatcher::Features(_) | SpeechSegmentMatcher::Boundary(_) => M::unsupported,
+        SpeechSegmentMatcher::Phone(_) | SpeechSegmentMatcher::Phoneme(_) => M::segment_identity,
+        SpeechSegmentMatcher::Boundary(_) => M::boundary_identity,
+        SpeechSegmentMatcher::Features(_) => M::unsupported,
     };
     let presence = match &observation {
         NeighborObservation::Absent => P::absent,
         NeighborObservation::Unknown => P::unknown,
-        NeighborObservation::Segment { .. } => P::present,
+        NeighborObservation::Segment { .. } => P::segment,
+        NeighborObservation::Boundary(_) => P::boundary,
     };
     // Only exact Known identities cross the native equality law. Other states
     // retain their original borrowed evidence and project an unresolved fact.
@@ -74,20 +80,24 @@ pub fn compare_neighbor<'a>(
                 phone: PhoneSpecification::Known(actual),
                 ..
             },
-        ) => identity_fact(SpeechPhoneDefinitionMatch::new(
-            actual.clone(),
-            expected.clone(),
-        ))?,
+        ) => identity_fact(
+            SpeechPhoneDefinitionMatch::new(actual.clone(), expected.clone()),
+            1,
+        )?,
         (
             SpeechSegmentMatcher::Phoneme(expected),
             NeighborObservation::Segment {
                 phoneme: PhonemeSpecification::Known(actual),
                 ..
             },
-        ) => identity_fact(SpeechPhonemeDefinitionMatch::new(
-            actual.clone(),
-            expected.clone(),
-        ))?,
+        ) => identity_fact(
+            SpeechPhonemeDefinitionMatch::new(actual.clone(), expected.clone()),
+            1,
+        )?,
+        (
+            SpeechSegmentMatcher::Boundary(expected),
+            NeighborObservation::Boundary(SpeechBoundarySpecification::Known(actual)),
+        ) => identity_fact(SpeechBoundaryIntentMatch::new(*expected, *actual), 7)?,
         _ => I::unresolved,
     };
     let result = generated::speech_neighbor_compare(generated::SpeechNeighborComparisonInput {

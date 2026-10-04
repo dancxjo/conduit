@@ -147,3 +147,78 @@ fn bounded_alternatives_share_one_neighbor_and_preserve_every_receipt() {
         Err(NeighborComparisonRefusal::TooManyAlternatives { actual: 5 })
     ));
 }
+
+#[test]
+fn boundary_observations_keep_kind_uncertainty_and_segment_domains_separate() {
+    let requirement = SpeechSegmentMatcher::boundary(SpeechBoundaryKind::Word).unwrap();
+    let unknown_phone = PhoneSpecification::unknown();
+    let unknown_phoneme = PhonemeSpecification::unknown();
+    for (kind, expected) in [
+        (SpeechBoundaryKind::Word, NeighborDecision::Matched),
+        (SpeechBoundaryKind::Phrase, NeighborDecision::Mismatched),
+    ] {
+        let observation = SpeechBoundarySpecification::known(kind).unwrap();
+        let compared =
+            compare_neighbor(&requirement, NeighborObservation::Boundary(&observation)).unwrap();
+        assert_eq!(compared.decision(), &expected);
+        assert!(
+            matches!(compared.observation(), NeighborObservation::Boundary(value) if core::ptr::eq(*value, &observation))
+        );
+    }
+    let boundary = SpeechBoundarySpecification::unknown();
+    assert_eq!(
+        compare_neighbor(&requirement, NeighborObservation::Boundary(&boundary))
+            .unwrap()
+            .decision(),
+        &NeighborDecision::ObservationUnresolved
+    );
+    assert_eq!(
+        compare_neighbor(
+            &requirement,
+            NeighborObservation::Segment {
+                phone: &unknown_phone,
+                phoneme: &unknown_phoneme
+            }
+        )
+        .unwrap()
+        .decision(),
+        &NeighborDecision::Mismatched
+    );
+    let phone_requirement = SpeechSegmentMatcher::phone(phone("t")).unwrap();
+    assert_eq!(
+        compare_neighbor(&phone_requirement, NeighborObservation::Boundary(&boundary))
+            .unwrap()
+            .decision(),
+        &NeighborDecision::Mismatched
+    );
+}
+
+#[test]
+fn all_boundary_kinds_follow_the_exact_native_equality_law() {
+    let kinds = [
+        SpeechBoundaryKind::Phone,
+        SpeechBoundaryKind::Syllable,
+        SpeechBoundaryKind::Morpheme,
+        SpeechBoundaryKind::Word,
+        SpeechBoundaryKind::Phrase,
+        SpeechBoundaryKind::BreathGroup,
+        SpeechBoundaryKind::Turn,
+    ];
+    for expected in kinds {
+        let requirement = SpeechSegmentMatcher::boundary(expected).unwrap();
+        for actual in kinds {
+            let observation = SpeechBoundarySpecification::known(actual).unwrap();
+            let compared =
+                compare_neighbor(&requirement, NeighborObservation::Boundary(&observation))
+                    .unwrap();
+            assert_eq!(
+                compared.decision(),
+                if expected == actual {
+                    &NeighborDecision::Matched
+                } else {
+                    &NeighborDecision::Mismatched
+                }
+            );
+        }
+    }
+}
