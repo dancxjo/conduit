@@ -72,6 +72,8 @@ pub mod reference_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_neighbors;
 #[cfg(feature = "semantic-bindings")]
+pub mod rule_stress;
+#[cfg(feature = "semantic-bindings")]
 pub mod rule_style;
 #[cfg(feature = "semantic-bindings")]
 pub mod text_admission;
