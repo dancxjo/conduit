@@ -1,5 +1,4 @@
 use super::*;
-use conduit_core::*;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(super) fn scope() -> BaseCapabilityScope {
