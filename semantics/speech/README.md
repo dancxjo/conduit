@@ -659,3 +659,13 @@ intent, choice and timing receipts remain inspectable; source resolution and
 linguistic commitment are still separate obligations. Rich candidate storage is
 reserved during hosted preparation within the native eight-rule bound rather
 than copied as a large inline stack value. Rendering adds no collection growth.
+
+`prepare_sourced_contextual_intent` requires complete ordered source coverage
+against explicitly supplied immutable text, phone, phoneme or recognition
+materials before preparing the contextual tape. Both receipts retain the same
+original intent; stale revisions, missing coverage and realization failures
+remain distinct typed refusals. No material search or revision substitution
+occurs. Source resolution proves reference identity and range, not causality,
+authority, segmentation or linguistic commitment. The sourced-contextual
+listening fixtures retain the exact manual text revision alongside choice and
+timing receipts.

@@ -339,3 +339,135 @@ fn deferred_or_missing_late_choice_returns_no_partially_playable_utterance() {
         }
     }
 }
+
+fn source_text(revision: &str) -> LanguageText {
+    LanguageText::new(
+        LanguageTextId::new("source".into()).unwrap(),
+        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageTextRevisionId::new(revision.into()).unwrap(),
+        "t".into(),
+    )
+    .unwrap()
+}
+#[test]
+fn sourced_choice_keeps_exact_materials_and_original_occurrences_through_pcm() {
+    use conduit_speech::intent_sources::{IntentSourceMaterial, ResolvedIntentSource};
+    let source = occurrence::intent([
+        segment(
+            0,
+            SpeechPositionSpecification::known(SpeechWordPosition::Initial).unwrap(),
+            SpeechDurationSpecification::known(30, 1).unwrap(),
+        ),
+        boundary(),
+        segment(
+            1,
+            SpeechPositionSpecification::known(SpeechWordPosition::Medial).unwrap(),
+            SpeechDurationSpecification::known(30, 1).unwrap(),
+        ),
+    ]);
+    let material = source_text("source revision");
+    let inventory = inventory();
+    let voice = voice(&inventory);
+    let boundaries = boundaries();
+    let context = Context::new();
+    let policy = policy(true, true);
+    let prepared = prepare_sourced_contextual_intent(
+        &source,
+        &[IntentSourceMaterial::Text(&material); 3],
+        &inventory,
+        &voice,
+        &boundaries,
+        &policy,
+        &[context.get(), None, context.get()],
+    )
+    .unwrap();
+    assert!(core::ptr::eq(prepared.source(), &source));
+    assert!(core::ptr::eq(
+        prepared.sources().intent(),
+        prepared.realization().source()
+    ));
+    for (event, receipt) in prepared.sources().receipts().iter().enumerate() {
+        assert_eq!(receipt.location().event, event);
+        assert_eq!(receipt.location().source, 0);
+        let ResolvedIntentSource::Text(resolved) = receipt.resolved() else {
+            panic!()
+        };
+        assert!(core::ptr::eq(resolved.material(), &material));
+        assert_eq!(resolved.text(), "t");
+        let reference = match &source.events().as_slice()[event] {
+            SpeechUtteranceIntentEvent::Segment(segment) => &segment.sources().as_slice()[0],
+            SpeechUtteranceIntentEvent::Boundary(boundary) => &boundary.sources().as_slice()[0],
+        };
+        assert!(core::ptr::eq(resolved.reference(), reference));
+    }
+    let expected = pcm(prepared.realization().renderer().unwrap(), 128);
+    assert_eq!(pcm(prepared.renderer().unwrap(), 1), expected);
+    assert!(expected[266..533].iter().all(|sample| *sample == 0));
+}
+#[test]
+fn stale_late_source_and_missing_coverage_cannot_return_a_playable_result() {
+    use conduit_speech::intent_sources::{IntentSourceMaterial, IntentSourcesRefusal};
+    let source = occurrence::intent([
+        segment(
+            0,
+            SpeechPositionSpecification::unknown(),
+            SpeechDurationSpecification::unknown(),
+        ),
+        boundary(),
+    ]);
+    let material = source_text("source revision");
+    let stale = source_text("stale revision");
+    let inventory = inventory();
+    let voice = voice(&inventory);
+    let boundaries = boundaries();
+    let context = Context::new();
+    let policy = policy(true, true);
+    assert!(matches!(
+        prepare_sourced_contextual_intent(
+            &source,
+            &[],
+            &inventory,
+            &voice,
+            &boundaries,
+            &policy,
+            &[context.get(), None]
+        ),
+        Err(SourcedContextualRefusal::Sources(
+            IntentSourcesRefusal::MaterialCount {
+                expected: 2,
+                supplied: 0
+            }
+        ))
+    ));
+    let Err(SourcedContextualRefusal::Sources(IntentSourcesRefusal::Source { location, .. })) =
+        prepare_sourced_contextual_intent(
+            &source,
+            &[
+                IntentSourceMaterial::Text(&material),
+                IntentSourceMaterial::Text(&stale),
+            ],
+            &inventory,
+            &voice,
+            &boundaries,
+            &policy,
+            &[context.get(), None],
+        )
+    else {
+        panic!()
+    };
+    assert_eq!(location.event, 1);
+    assert_eq!(location.source, 0);
+    let Err(SourcedContextualRefusal::Contextual(ContextualIntentRefusal::Timing(_))) =
+        prepare_sourced_contextual_intent(
+            &source,
+            &[IntentSourceMaterial::Text(&material); 2],
+            &inventory,
+            &voice,
+            &boundaries,
+            &policy,
+            &[context.get(), None],
+        )
+    else {
+        panic!()
+    };
+}

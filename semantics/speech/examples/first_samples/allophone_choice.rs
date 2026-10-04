@@ -205,6 +205,33 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
             &format!("contextual-intent-{name}"),
             combined.renderer().map_err(|e| format!("{e:?}"))?,
         )?;
+        let text = LanguageText::new(
+            LanguageTextId::new("choice/text".into()).unwrap(),
+            intent.language().clone(),
+            LanguageTextRevisionId::new("choice/text-revision".into()).unwrap(),
+            "tata".into(),
+        )
+        .unwrap();
+        let sourced =
+            conduit_speech::contextual_intent_realization::prepare_sourced_contextual_intent(
+                &intent,
+                &[conduit_speech::intent_sources::IntentSourceMaterial::Text(&text); 4],
+                &inventory,
+                &profile,
+                &boundaries,
+                &policy,
+                &contexts,
+            )
+            .map_err(|e| format!("{e:?}"))?;
+        super::write_rendered(
+            output,
+            &format!("sourced-contextual-{name}"),
+            sourced.renderer().map_err(|e| format!("{e:?}"))?,
+        )?;
+        println!(
+            "{name}: {} exact original source references retained",
+            sourced.sources().receipts().len()
+        );
     }
     Ok(())
 }

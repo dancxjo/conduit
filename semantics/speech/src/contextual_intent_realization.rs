@@ -164,3 +164,51 @@ pub fn prepare_contextual_intent<'a>(
         events,
     })
 }
+
+/// Complete source coverage and contextual rendering preparation from the same
+/// immutable intent. This does not establish causality, authority or commitment.
+pub struct PreparedSourcedContextualIntent<'a> {
+    sources: crate::intent_sources::PreparedIntentSources<'a>,
+    realization: PreparedContextualIntent<'a>,
+}
+impl<'a> PreparedSourcedContextualIntent<'a> {
+    pub fn source(&self) -> &'a SpeechUtteranceIntent {
+        self.sources.intent()
+    }
+    pub fn sources(&self) -> &crate::intent_sources::PreparedIntentSources<'a> {
+        &self.sources
+    }
+    pub fn realization(&self) -> &PreparedContextualIntent<'a> {
+        &self.realization
+    }
+    pub fn renderer(&self) -> Result<Renderer<'_>, UtteranceTimingRenderRefusal> {
+        self.realization.renderer()
+    }
+}
+#[derive(Debug)]
+pub enum SourcedContextualRefusal<'a> {
+    Sources(crate::intent_sources::IntentSourcesRefusal),
+    Contextual(ContextualIntentRefusal<'a>),
+}
+/// Materials are supplied in exact event/source order. All source and realization
+/// obligations must succeed before a playable result escapes preparation.
+#[allow(clippy::too_many_arguments)] // Explicit immutable bases, without ambient lookup.
+pub fn prepare_sourced_contextual_intent<'a>(
+    source: &'a SpeechUtteranceIntent,
+    materials: &[crate::intent_sources::IntentSourceMaterial<'a>],
+    inventory: &'a SpeechInventory,
+    profile: &'a SpeechFormantVoiceProfile,
+    boundaries: &'a SpeechFormantBoundaryProfile,
+    policy: &'a SpeechAllophoneChoicePolicy,
+    contexts: &[Option<ExplicitAllophoneContext<'a>>],
+) -> Result<PreparedSourcedContextualIntent<'a>, SourcedContextualRefusal<'a>> {
+    let sources = crate::intent_sources::resolve_intent_sources(source, materials)
+        .map_err(SourcedContextualRefusal::Sources)?;
+    let realization =
+        prepare_contextual_intent(source, inventory, profile, boundaries, policy, contexts)
+            .map_err(SourcedContextualRefusal::Contextual)?;
+    Ok(PreparedSourcedContextualIntent {
+        sources,
+        realization,
+    })
+}
