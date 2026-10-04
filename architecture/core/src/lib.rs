@@ -1008,9 +1008,45 @@ pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
         })
         && state_delay::verify_plan_states(plan)
         && verify_plan_shared_pools(plan)
+        && verify_plan_fore_lines(plan)
         && verify_plan_connections(plan)
         && planned_activation::verify_planned_activations(plan, depth)
         && planned_activation::verify_activation_preparations(plan)
+}
+
+fn verify_plan_fore_lines(plan: &Plan) -> bool {
+    verify_fore_line_capacity(
+        plan.fragments
+            .iter()
+            .flat_map(|fragment| fragment.fore_ports.iter()),
+    )
+}
+
+fn verify_fore_line_capacity<'a, I>(fores: I) -> bool
+where
+    I: Iterator<Item = &'a PlannedForePort> + Clone,
+{
+    fores.clone().all(|fore| {
+        let Some(line) = &fore.selected_line else {
+            return true;
+        };
+        let shared = fores.clone().filter(|other| {
+            other
+                .selected_line
+                .as_ref()
+                .is_some_and(|candidate| candidate.line_id == line.line_id)
+        });
+        let (items, bytes, same_identity) = shared.fold((0_u32, 0_u64, true), |acc, other| {
+            (
+                acc.0 + u32::from(other.item_capacity),
+                acc.1 + u64::from(other.byte_capacity),
+                acc.2 && other.selected_line.as_ref() == Some(line),
+            )
+        });
+        same_identity
+            && items <= u32::from(line.binding.limits.maximum_in_flight_items)
+            && bytes <= u64::from(line.binding.limits.maximum_buffered_bytes)
+    })
 }
 
 fn verify_plan_shared_pools(plan: &Plan) -> bool {
@@ -1345,27 +1381,7 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                         })
                 })
         })
-        && fragment.fore_ports.iter().all(|fore| {
-            let Some(line) = &fore.selected_line else {
-                return true;
-            };
-            let shared = fragment.fore_ports.iter().filter(|other| {
-                other
-                    .selected_line
-                    .as_ref()
-                    .is_some_and(|candidate| candidate.line_id == line.line_id)
-            });
-            let (items, bytes, same_identity) = shared.fold((0_u32, 0_u64, true), |acc, other| {
-                (
-                    acc.0 + u32::from(other.item_capacity),
-                    acc.1 + u64::from(other.byte_capacity),
-                    acc.2 && other.selected_line.as_ref() == Some(line),
-                )
-            });
-            same_identity
-                && items <= u32::from(line.binding.limits.maximum_in_flight_items)
-                && bytes <= u64::from(line.binding.limits.maximum_buffered_bytes)
-        })
+        && verify_fore_line_capacity(fragment.fore_ports.iter())
 }
 
 fn valid_fore_line(fragment: &PlanFragment, fore: &PlannedForePort, line: &AdmittedLine) -> bool {

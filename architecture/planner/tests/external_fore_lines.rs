@@ -204,3 +204,84 @@ fn shared_line_cannot_overbook_two_external_fores() {
         Err(PlannerError::InvalidLineOffer(_))
     ));
 }
+
+fn paired_fore_plan() -> Plan {
+    let first = fore_plan().fragments.remove(0);
+    let mut second = common::fragment();
+    second.host_id = HostId::from("peer");
+    second.boot_id = BootId::from("peer-boot");
+    second.placements[0].host_id = second.host_id.clone();
+    second.placements[0].boot_id = second.boot_id.clone();
+    second.placements[0].gear_id = GearId::from("peer-cell");
+    second.placements[0].placement_id = PlacementId::from("peer-placement");
+    second.placements[0].limits.max_queue_bytes = 2;
+    second.startup_order = vec![second.placements[0].placement_id.clone()];
+    second.states[0].state_id = StateId::from("peer-state");
+    second.states[0].gear_id = second.placements[0].gear_id.clone();
+    second.fore_ports.push(PlannedForePort {
+        front_port_id: port_id("in"),
+        direction: PortDirection::Input,
+        placement_id: second.placements[0].placement_id.clone(),
+        gear_port_id: port_id("next"),
+        value_kind: kind_id("fixture/byte@1"),
+        value_contract: None,
+        abnormal_kind: None,
+        track: ConnectionTrack::Payload,
+        temporal: PortTemporal::Value,
+        pressure_policy: DeliveryPressurePolicy::PreserveOrder,
+        item_capacity: 1,
+        byte_capacity: 2,
+        selected_line: None,
+    });
+    let plan = seal_plan(
+        PlotIdentity {
+            source_document_id: first.source_document_id.clone(),
+            checked_plot_id: first.checked_plot_id.clone(),
+            expanded_plot_id: first.expanded_plot_id.clone(),
+        },
+        vec![first, second],
+    );
+    assert!(verify_plan(&plan));
+    plan
+}
+
+#[test]
+fn two_host_fragments_account_for_one_lines_total_capacity() {
+    let plan = paired_fore_plan();
+    let mut peer_choice = choice();
+    peer_choice.host_id = HostId::from("peer");
+    peer_choice.boot_id = BootId::from("peer-boot");
+    peer_choice.direction = PortDirection::Input;
+    peer_choice.front_port_id = port_id("in");
+    peer_choice.peer_host_id = HostId::from("host");
+    peer_choice.peer_boot_id = BootId::from("boot");
+    let mut broad = offer();
+    broad.binding.limits.maximum_in_flight_items = 2;
+    broad.binding.limits.maximum_buffered_bytes = 4;
+    let admitted = bind(&plan, &[choice(), peer_choice.clone()], &[broad]).unwrap();
+    assert!(verify_plan(&admitted));
+
+    let narrow = offer();
+    assert!(matches!(
+        bind(
+            &plan,
+            &[choice(), peer_choice],
+            std::slice::from_ref(&narrow)
+        ),
+        Err(PlannerError::InvalidLineOffer(_))
+    ));
+    let mut overbooked = admitted;
+    for fragment in &mut overbooked.fragments {
+        fragment.fore_ports[0].selected_line = Some(narrow.admitted_line());
+    }
+    let overbooked = seal_plan(
+        PlotIdentity {
+            source_document_id: overbooked.source_document_id,
+            checked_plot_id: overbooked.checked_plot_id,
+            expanded_plot_id: overbooked.expanded_plot_id,
+        },
+        overbooked.fragments,
+    );
+    assert!(overbooked.fragments.iter().all(verify_plan_fragment));
+    assert!(!verify_plan(&overbooked));
+}
