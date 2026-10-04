@@ -3,7 +3,7 @@ use super::*;
 #[path = "../../../../semantics/presentation/tests/common/mod.rs"]
 mod common;
 
-use conduit_core::kind_id;
+use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
 use conduit_presentation::{
     FaceActionArgument, ManifestationLifecycle, PresentationAction, PresentationDisclosureLevel,
     PresentationProperty, PresentationPropertyValue, PresentationRelationship,
@@ -164,6 +164,141 @@ fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
         reader.take_text_readout().unwrap().unwrap().clauses,
         ["Body name, article."]
     );
+}
+
+#[test]
+fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
+    let (base, _) = face_with_action();
+    let mut actions = base.actions.clone();
+    actions[0].name = "Change interval".into();
+    actions[0].arguments[0].name = "interval-ms".into();
+    actions[0].arguments[0].value_name = "Interval in milliseconds".into();
+    actions[0].arguments[0].contract = CheckedValueContract::new(
+        kind_id(UTF8_TEXT_VALUE_KIND),
+        4,
+        vec![ValueConstraint::CanonicalMembership {
+            members: ["1000", "2000", "250", "500"]
+                .map(|value| value.as_bytes().to_vec())
+                .into(),
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let face = Presentation::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        base.subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        actions,
+        base.disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let clauses = reader.take_text_readout().unwrap().unwrap().clauses;
+    assert!(clauses.iter().any(|clause| clause
+        == "Interval in milliseconds. Choose one of: 1000, 2000, 250, 500. Then activate Change interval."));
+
+    reader
+        .command(
+            &face,
+            &show,
+            ReaderCommand::FocusAction("birth/set-name".into()),
+            2,
+        )
+        .unwrap();
+    reader.take_text_readout().unwrap();
+    assert_eq!(
+        reader.command(
+            &face,
+            &show,
+            ReaderCommand::Edit {
+                argument: "interval-ms".into(),
+                value: b"750".to_vec(),
+            },
+            3
+        ),
+        Err(SpokenFaceRefusal::InvalidValue)
+    );
+    reader
+        .command(
+            &face,
+            &show,
+            ReaderCommand::Edit {
+                argument: "interval-ms".into(),
+                value: b"500".to_vec(),
+            },
+            4,
+        )
+        .unwrap();
+    assert!(reader.take_text_readout().unwrap().unwrap().clauses[0].contains("ready"));
+
+    let mut boolean = face.actions.clone();
+    boolean[0].arguments[0].value_name = "Include Plot".into();
+    boolean[0].arguments[0].contract =
+        CheckedValueContract::new(kind_id("value/bool"), 1, vec![]).unwrap();
+    let boolean_face = Presentation::new_with_semantics(
+        face.revision + 1,
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+        boolean,
+        face.disclosures.clone(),
+    )
+    .unwrap();
+    let boolean_show = common::available_mask_show(&boolean_face);
+    let mut boolean_reader =
+        SpokenFaceSession::new(boolean_face.clone(), boolean_show.clone()).unwrap();
+    boolean_reader
+        .command(&boolean_face, &boolean_show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let boolean_clauses = boolean_reader.take_text_readout().unwrap().unwrap().clauses;
+    assert!(boolean_clauses.iter().any(|clause| {
+        clause == "Include Plot. Choose true or false, then activate Change interval."
+    }));
+
+    // More than eight exact choices stay on the Face's generic bounded
+    // contract phrasing rather than becoming an unwieldy spoken list.
+    let mut many = face.actions.clone();
+    many[0].arguments[0].contract = CheckedValueContract::new(
+        kind_id(UTF8_TEXT_VALUE_KIND),
+        2,
+        vec![ValueConstraint::CanonicalMembership {
+            members: (0..9).map(|value| value.to_string().into_bytes()).collect(),
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let crowded = Presentation::new_with_semantics(
+        face.revision + 1,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        many,
+        face.disclosures,
+    )
+    .unwrap();
+    let crowded_show = common::available_mask_show(&crowded);
+    let mut crowded_reader = SpokenFaceSession::new(crowded.clone(), crowded_show.clone()).unwrap();
+    crowded_reader
+        .command(&crowded, &crowded_show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let generic = crowded_reader.take_text_readout().unwrap().unwrap().clauses;
+    assert!(generic
+        .iter()
+        .any(|clause| clause.contains("canonical values")));
+    assert!(!generic
+        .iter()
+        .any(|clause| clause.contains("Choose one of:")));
 }
 
 fn receipt(packet: &SpokenSegment) -> SpokenAudioReceipt {
