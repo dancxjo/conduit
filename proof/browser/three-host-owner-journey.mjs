@@ -113,7 +113,7 @@ try {
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(prior => {
     const face = globalThis.__conduitOwnerParticipation.face();
-    return face?.face_revision !== prior && face.subjects.some(subject =>
+    return face && face.face_revision !== prior && face.subjects.some(subject =>
       subject.text.some(text => text.includes('500 milliseconds')));
   }, joined.face.face_revision, { timeout: 12_000 });
   const afterNative = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
@@ -128,7 +128,7 @@ try {
   await control.getByRole('button', { name: 'Change clock interval' }).click();
   await page.waitForFunction(prior => {
     const face = globalThis.__conduitOwnerParticipation.face();
-    return face?.face_revision !== prior && face.subjects.some(subject =>
+    return face && face.face_revision !== prior && face.subjects.some(subject =>
       subject.text.some(text => text.includes('1000 milliseconds')));
   }, afterNative.face_revision, { timeout: 12_000 });
   const afterBrowser = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
