@@ -13,6 +13,9 @@ mod duration_samples;
 #[cfg(feature = "semantic-bindings")]
 #[path = "first_samples/rich_phone.rs"]
 mod rich_phone_samples;
+#[cfg(feature = "semantic-bindings")]
+#[path = "first_samples/utterance_timing.rs"]
+mod utterance_timing_samples;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output = std::env::args().nth(1).ok_or("output directory required")?;
     fs::create_dir_all(&output)?;
@@ -173,6 +176,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     control_samples::write(&output)?;
     #[cfg(feature = "semantic-bindings")]
     rich_phone_samples::write(&output)?;
+    #[cfg(feature = "semantic-bindings")]
+    utterance_timing_samples::write(&output)?;
     Ok(())
 }
 
