@@ -1,8 +1,8 @@
 //! Explicit supplied formant-profile realization of an exact inventory phone.
 //! This retains source metadata and declarations; it infers no IPA or phonology.
 use crate::{
-    generated, inventory_admission::InventoryPhone, semantic, EnglishStress, SpeechPhoneInput,
-    VoiceEvent, SOURCE_ID,
+    generated, intent_inventory::ResolvedIntentPhone, inventory_admission::InventoryPhone,
+    semantic, EnglishStress, SpeechPhoneInput, VoiceEvent, SOURCE_ID,
 };
 use conduit_plot::rust_binding::NativeBindingRefusal;
 
@@ -54,9 +54,96 @@ pub fn prepare_profile_phone<'a, 'inventory, 'material>(
     profile: &'a semantic::SpeechFormantVoiceProfile,
     stress: &'a semantic::StressSpecification,
 ) -> Result<PreparedProfilePhone<'a, 'inventory, 'material>, ProfileRefusal> {
+    let (binding, basis, event) = prepare_binding(
+        source.inventory(),
+        source.definition(),
+        profile,
+        stress,
+        !source
+            .material()
+            .token()
+            .features()
+            .get()
+            .as_slice()
+            .is_empty(),
+    )?;
+    Ok(PreparedProfilePhone {
+        source,
+        profile,
+        binding,
+        stress,
+        basis,
+        event,
+    })
+}
+
+/// A profile realization of the original requested segment. This is not a
+/// whole-utterance admission or a claim that source references are resolved.
+pub struct PreparedIntentProfilePhone<'a, 'intent> {
+    source: &'a ResolvedIntentPhone<'intent>,
+    profile: &'a semantic::SpeechFormantVoiceProfile,
+    binding: &'a semantic::SpeechFormantPhoneBinding,
+    basis: semantic::SpeechFormantProfileBasis,
+    event: VoiceEvent,
+}
+impl<'a, 'intent> PreparedIntentProfilePhone<'a, 'intent> {
+    pub fn source(&self) -> &'a ResolvedIntentPhone<'intent> {
+        self.source
+    }
+    pub fn profile(&self) -> &'a semantic::SpeechFormantVoiceProfile {
+        self.profile
+    }
+    pub fn binding(&self) -> &'a semantic::SpeechFormantPhoneBinding {
+        self.binding
+    }
+    pub fn checked_basis(&self) -> &semantic::SpeechFormantProfileBasis {
+        &self.basis
+    }
+    pub fn event(&self) -> VoiceEvent {
+        self.event
+    }
+    pub fn compiled_source_id(&self) -> &'static str {
+        SOURCE_ID
+    }
+}
+
+pub fn prepare_intent_profile_phone<'a, 'intent>(
+    source: &'a ResolvedIntentPhone<'intent>,
+    profile: &'a semantic::SpeechFormantVoiceProfile,
+) -> Result<PreparedIntentProfilePhone<'a, 'intent>, ProfileRefusal> {
+    let (binding, basis, event) = prepare_binding(
+        source.inventory(),
+        source.definition(),
+        profile,
+        source.segment().stress(),
+        false,
+    )?;
+    Ok(PreparedIntentProfilePhone {
+        source,
+        profile,
+        binding,
+        basis,
+        event,
+    })
+}
+
+fn prepare_binding<'a>(
+    inventory: &semantic::SpeechInventory,
+    definition: &semantic::SpeechPhone,
+    profile: &'a semantic::SpeechFormantVoiceProfile,
+    stress: &semantic::StressSpecification,
+    token_has_features: bool,
+) -> Result<
+    (
+        &'a semantic::SpeechFormantPhoneBinding,
+        semantic::SpeechFormantProfileBasis,
+        VoiceEvent,
+    ),
+    ProfileRefusal,
+> {
     let basis = semantic::SpeechFormantProfileBasis::new(
-        source.inventory().identity().clone(),
-        source.inventory().language().clone(),
+        inventory.identity().clone(),
+        inventory.language().clone(),
         profile.inventory_id().clone(),
         profile.language().clone(),
     )
@@ -65,28 +152,21 @@ pub fn prepare_profile_phone<'a, 'inventory, 'material>(
         .phones()
         .as_slice()
         .iter()
-        .filter(|binding| binding.definition().identity() == source.definition().identity());
+        .filter(|binding| binding.definition().identity() == definition.identity());
     let binding = matches.next().ok_or(ProfileRefusal::UnsupportedPhone)?;
     if matches.next().is_some() {
         return Err(ProfileRefusal::AmbiguousBinding);
     }
     // A declared relation names a complete definition, not only a reusable ID.
-    if binding.definition() != source.definition() {
+    if binding.definition() != definition {
         return Err(ProfileRefusal::DefinitionSnapshot);
     }
     // Feature-to-acoustics lowering is unsupported by this exact compact profile.
     // Do not silently discard supplied feature constraints when realizing a phone.
-    if !source.definition().features().get().as_slice().is_empty() {
+    if !definition.features().get().as_slice().is_empty() {
         return Err(ProfileRefusal::UnsupportedDefinitionFeatures);
     }
-    if !source
-        .material()
-        .token()
-        .features()
-        .get()
-        .as_slice()
-        .is_empty()
-    {
+    if token_has_features {
         return Err(ProfileRefusal::UnsupportedTokenFeatures);
     }
     let compact_stress = match stress {
@@ -104,12 +184,5 @@ pub fn prepare_profile_phone<'a, 'inventory, 'material>(
         phone: generated::compact_profile_phone(binding.phone()),
         stress: compact_stress,
     });
-    Ok(PreparedProfilePhone {
-        source,
-        profile,
-        binding,
-        stress,
-        basis,
-        event,
-    })
+    Ok((binding, basis, event))
 }

@@ -150,5 +150,88 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
         Renderer::prepare(&events).map_err(|e| format!("{e:?}"))?,
     )?;
     println!("{output}/rich-phone-hello-world.wav: explicit rich definitions and native profile eligibility; source {}", prepared[0].compiled_source_id());
+    // Separate requested intent; no token confidence is manufactured for lookup.
+    let provenance = SpeechEvidenceProvenance::new(
+        "explicit intent listening fixture".into(),
+        SpeechEvidenceSource::Manual,
+        None,
+    )
+    .unwrap();
+    let basis = snapshot.basis();
+    let intent_events =
+        inventory
+            .phones()
+            .as_slice()
+            .iter()
+            .enumerate()
+            .map(|(ordinal, definition)| {
+                SpeechUtteranceIntentEvent::segment(
+                    LanguageSpeechTokenRef::new(
+                        basis.inventory_id().clone(),
+                        basis.language().clone(),
+                        ordinal as u32,
+                        basis.revision_id().clone(),
+                        basis.sequence_id().clone(),
+                        basis.utterance_id().clone(),
+                    )
+                    .unwrap(),
+                    PhoneSpecification::known(definition.identity().clone()).unwrap(),
+                    PhonemeSpecification::unspecified(),
+                    SpeechSegmentProsodyIntent::new(
+                        SpeechDurationSpecification::unknown(),
+                        SpeechCycleSpecification::unspecified(),
+                        SpeechIntensitySpecification::unspecified(),
+                    )
+                    .unwrap(),
+                    provenance.clone(),
+                    BoundedSequence::try_from_iter([references[ordinal].clone()]).unwrap(),
+                    stresses[ordinal].clone(),
+                    SpeechPositionSpecification::unspecified(),
+                )
+                .unwrap()
+            });
+    let intent = SpeechUtteranceIntent::new(
+        BoundedSequence::try_from_iter(intent_events).unwrap(),
+        basis.inventory_id().clone(),
+        basis.language().clone(),
+        provenance,
+        basis.revision_id().clone(),
+        basis.utterance_id().clone(),
+    )
+    .unwrap();
+    let resolved = (0..intent.events().as_slice().len())
+        .map(|event| {
+            conduit_speech::intent_inventory::resolve_intent_inventory_phone(
+                &intent, event, &inventory,
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let intent_prepared = resolved
+        .iter()
+        .map(|phone| {
+            conduit_speech::profile_admission::prepare_intent_profile_phone(phone, &profile)
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let mut phones = intent_prepared.iter();
+    let intent_events = pronounced
+        .events()
+        .iter()
+        .map(|event| {
+            if event.realization().is_some() {
+                phones.next().unwrap().event()
+            } else {
+                *event
+            }
+        })
+        .collect::<Vec<_>>();
+    // Fixture supplies boundaries and default renderer timing independently;
+    // unresolved quantitative intent is not claimed to be admitted here.
+    super::write_rendered(
+        output,
+        "intent-profile-hello-world",
+        Renderer::prepare(&intent_events).map_err(|e| format!("{e:?}"))?,
+    )?;
     Ok(())
 }
