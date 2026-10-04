@@ -40,6 +40,8 @@ pub mod duration;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod intent_prosody;
+#[cfg(feature = "semantic-bindings")]
 pub mod inventory_admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
