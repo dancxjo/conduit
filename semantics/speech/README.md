@@ -632,6 +632,18 @@ typed refusals; absent features preserve observation uncertainty. Both component
 receipts remain available after mismatch. Evaluation does not select a rule,
 resolve its output features or establish linguistic commitment.
 
+`select_global_allophone_rule` prepares at most eight ordered standalone rules
+from an explicit inventory/language profile. It checks the original occurrence,
+profile basis and supplied feature occurrence even for an empty rule list.
+Native status policy and choice laws select the first permitted match; an earlier
+unresolved requirement or observation blocks lower matches. A Known requested
+phone remains an exact constraint on the rule output. Every permitted candidate
+retains its input, context and phone-constraint receipts, including candidates
+after a winner; unsupported obligations refuse the profile with the rule index.
+Excluded statuses retain an explicit unevaluated candidate. Candidate storage is
+reserved once during preparation. This stage has no default candidate and does
+not resolve output features, bind a voice profile, render or commit a phone.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
