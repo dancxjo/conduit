@@ -2,7 +2,9 @@
 
 pub mod contract;
 pub mod decode;
+mod factory;
 pub mod i801;
+pub use factory::I2cOperationFactory;
 pub mod installation;
 pub mod owner;
 pub mod result;

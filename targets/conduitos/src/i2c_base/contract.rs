@@ -2,8 +2,7 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    CapabilityLimits, CheckedValueContract, FrontValueContract, FrontValueLocation, Kind,
-    KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal,
+    CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType, kind_id, port_id,
 };
 use conduit_plot::{ProfileCatalog, StartupCatalog, check_syntax_document, parse_syntax_document};
@@ -61,26 +60,6 @@ impl I2cContract {
         };
         let input = port("request", &request, PortDirection::Input)?;
         let output = port("result", &result, PortDirection::Output)?;
-        let contracts = vec![
-            FrontValueContract {
-                location: FrontValueLocation::Input(input.port_id.clone()),
-                contract: CheckedValueContract::new(
-                    input.value_kind.clone(),
-                    I2C_MAXIMUM_BYTES,
-                    Vec::new(),
-                )
-                .map_err(|_| StructuredInfoRefusal::WrongType)?,
-            },
-            FrontValueContract {
-                location: FrontValueLocation::Output(output.port_id.clone()),
-                contract: CheckedValueContract::new(
-                    output.value_kind.clone(),
-                    I2C_MAXIMUM_BYTES,
-                    Vec::new(),
-                )
-                .map_err(|_| StructuredInfoRefusal::WrongType)?,
-            },
-        ];
         let kind = Kind {
             kind_id: kind_id(I2C_KIND),
             kind_contract_revision: KindIdentity::from("machine/i2c/transact@1"),
@@ -89,7 +68,7 @@ impl I2cContract {
             inputs: vec![input],
             outputs: vec![output],
             configuration: vec![],
-            semantic_laws: vec![KindSemanticLaw::ValueContracts(contracts)],
+            semantic_laws: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,
