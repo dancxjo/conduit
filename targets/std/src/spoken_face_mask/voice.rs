@@ -143,7 +143,7 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
                     )
                 }
                 ("value/bool", _) => format!(
-                    "{}. Choose yes or no, then activate {}.",
+                    "{}. Choose true or false, then activate {}.",
                     argument.value_name, action.name
                 ),
                 (

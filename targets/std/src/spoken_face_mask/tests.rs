@@ -238,6 +238,32 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         .unwrap();
     assert!(reader.take_text_readout().unwrap().unwrap().clauses[0].contains("ready"));
 
+    let mut boolean = face.actions.clone();
+    boolean[0].arguments[0].value_name = "Include Plot".into();
+    boolean[0].arguments[0].contract =
+        CheckedValueContract::new(kind_id("value/bool"), 1, vec![]).unwrap();
+    let boolean_face = Presentation::new_with_semantics(
+        face.revision + 1,
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+        boolean,
+        face.disclosures.clone(),
+    )
+    .unwrap();
+    let boolean_show = common::available_mask_show(&boolean_face);
+    let mut boolean_reader =
+        SpokenFaceSession::new(boolean_face.clone(), boolean_show.clone()).unwrap();
+    boolean_reader
+        .command(&boolean_face, &boolean_show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let boolean_clauses = boolean_reader.take_text_readout().unwrap().unwrap().clauses;
+    assert!(boolean_clauses.iter().any(|clause| {
+        clause == "Include Plot. Choose true or false, then activate Change interval."
+    }));
+
     // More than eight exact choices stay on the Face's generic bounded
     // contract phrasing rather than becoming an unwieldy spoken list.
     let mut many = face.actions.clone();
