@@ -205,6 +205,15 @@ fn unresolved_phone_keeps_original_state_and_global_index() {
         PhoneSpecification::unknown(),
         PhoneSpecification::unspecified(),
         PhoneSpecification::not_applicable(),
+        PhoneSpecification::variable(
+            BoundedSequence::try_from_iter([fixture::id("opaque/t")]).unwrap(),
+        )
+        .unwrap(),
+        PhoneSpecification::gradient(
+            SpeechConfidence::new(conduit_core::IeeeF32::from_value(0.5)).unwrap(),
+            fixture::id("opaque/t"),
+        )
+        .unwrap(),
     ] {
         let SpeechUtteranceIntentEvent::Segment(original) = segment() else {
             panic!()
@@ -241,4 +250,57 @@ fn unresolved_phone_keeps_original_state_and_global_index() {
             _ => panic!("unresolved phone must refuse"),
         }
     }
+}
+
+fn segment_duration(frames: u64) -> SpeechUtteranceIntentEvent {
+    let SpeechUtteranceIntentEvent::Segment(original) = segment() else {
+        panic!()
+    };
+    SpeechUtteranceIntentEvent::segment(
+        original.occurrence().clone(),
+        original.phone().clone(),
+        original.phoneme().clone(),
+        SpeechSegmentProsodyIntent::new(
+            SpeechDurationSpecification::known(u64::from(conduit_speech::SAMPLE_RATE_HZ), frames)
+                .unwrap(),
+            original.prosody().fundamental_cycle().clone(),
+            original.prosody().relative_intensity().clone(),
+        )
+        .unwrap(),
+        original.provenance().clone(),
+        original.sources().clone(),
+        original.stress().clone(),
+        original.word_position().clone(),
+    )
+    .unwrap()
+}
+#[test]
+fn renderer_limits_refuse_during_preparation_before_a_receipt_escapes() {
+    use conduit_speech::{utterance_timing::UtteranceTimingRenderRefusal, RenderRefusal};
+    let inventory = inventory();
+    let voice = voice();
+    let boundaries = profile(vec![binding()]);
+    for frames in [0, 1, conduit_speech::MAXIMUM_UTTERANCE_FRAMES + 1] {
+        let source = utterance(vec![segment_duration(frames)]);
+        assert!(matches!(
+            prepare_intent_realization(&source, &inventory, &voice, &boundaries),
+            Err(IntentRealizationRefusal::Renderer(
+                UtteranceTimingRenderRefusal::Renderer(RenderRefusal::TimingDomain)
+            ))
+        ));
+    }
+    let source = utterance(vec![
+        segment_duration(conduit_speech::MAXIMUM_UTTERANCE_FRAMES),
+        segment_duration(2),
+    ]);
+    assert!(matches!(
+        prepare_intent_realization(&source, &inventory, &voice, &boundaries),
+        Err(IntentRealizationRefusal::Renderer(
+            UtteranceTimingRenderRefusal::Renderer(RenderRefusal::DurationBound)
+        ))
+    ));
+    let source = utterance(vec![segment_duration(2)]);
+    let prepared = prepare_intent_realization(&source, &inventory, &voice, &boundaries).unwrap();
+    assert_eq!(prepared.renderer().unwrap().total_frames(), 2);
+    assert_eq!(pcm(prepared.renderer().unwrap(), 1).len(), 2);
 }
