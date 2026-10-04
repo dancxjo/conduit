@@ -58,6 +58,8 @@ pub mod inventory_admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]
+pub mod neighbor_match;
+#[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod reference_admission;
