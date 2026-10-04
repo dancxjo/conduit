@@ -72,6 +72,10 @@ impl<'choice, 'source, 'profile> ChosenGlobalRuleProfile<'choice, 'source, 'prof
     pub fn event(&self) -> VoiceEvent {
         self.event
     }
+    /// Move the borrowed feature receipt into an owning preparation aggregate.
+    pub fn into_features(self) -> RuleOutputFeatures<'source> {
+        self.features
+    }
 }
 /// Default features are explicitly supplied occurrence evidence, not a guess
 /// from phoneme definitions. Their provenance is retained, not authenticated.

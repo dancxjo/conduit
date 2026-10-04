@@ -58,6 +58,8 @@ pub mod feature_bundle;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_match;
 #[cfg(feature = "semantic-bindings")]
+pub mod global_intent_realization;
+#[cfg(feature = "semantic-bindings")]
 pub mod global_rule_selection;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
