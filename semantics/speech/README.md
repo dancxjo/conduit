@@ -708,6 +708,14 @@ phone. The receipt retains the original choice, native phoneme membership and
 optional exact default-ID witness. It does not invent a phone from spelling,
 resolve phone membership, admit acoustics or establish commitment.
 
+`prepare_global_default_profile` admits an already selected phoneme default
+through the same inventory's unique exact phone definition and the voice's full
+definition snapshot. Explicit default features require the original occurrence
+witness; nonempty default or definition features remain typed unsupported input.
+The receipt retains the selection, definition, feature provenance and exact
+binding. It does not rewrite the intent or establish timing, source coverage or
+commitment. The supported sample writer includes a declared-default “tata”.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
