@@ -238,6 +238,8 @@ mod state_toggle;
 pub use state_toggle::*;
 mod current_sample;
 pub use current_sample::*;
+mod seeded_state;
+pub use seeded_state::*;
 mod combine_latest;
 pub use combine_latest::*;
 mod flow_zip;

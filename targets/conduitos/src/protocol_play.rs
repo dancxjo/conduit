@@ -24,9 +24,37 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         handle: BaseCapabilityHandle,
         claim: BaseOperationClaim,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_with_seeded_state(
+            definition,
+            ready,
+            table,
+            handle,
+            claim,
+            crate::seeded_state::SeededStateOperationFactory::default(),
+        )
+    }
+
+    /// Consume the exact initialized owners of Source-seeded state cells.
+    pub fn prepare_with_seeded_state(
+        definition: KernelCompositeDefinition,
+        ready: ReadyI2cBase<P>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        states: crate::seeded_state::SeededStateOperationFactory,
+    ) -> Result<Self, ProtocolCallRefusal> {
         validate_fore(&definition)?;
-        let calls =
-            PreparedProtocolCalls::prepare(&definition.internal_plan, ready, table, handle, claim)?;
+        states
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        let calls = PreparedProtocolCalls::prepare_with_seeded_state(
+            &definition.internal_plan,
+            ready,
+            table,
+            handle,
+            claim,
+            &states,
+        )?;
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(ExpressionOperationFactory::default())
@@ -39,6 +67,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(SelectorOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(states)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let kernel = KernelCompositeHost::prepare(definition, &registry)
             .map_err(ProtocolCallRefusal::Kernel)?;

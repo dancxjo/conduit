@@ -52,10 +52,31 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         handle: BaseCapabilityHandle,
         claim: BaseOperationClaim,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_with_seeded_state(
+            plan,
+            ready,
+            table,
+            handle,
+            claim,
+            &crate::seeded_state::SeededStateOperationFactory::default(),
+        )
+    }
+
+    pub(crate) fn prepare_with_seeded_state(
+        plan: &Plan,
+        ready: ReadyI2cBase<P>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        states: &crate::seeded_state::SeededStateOperationFactory,
+    ) -> Result<Self, ProtocolCallRefusal> {
         use ProtocolCallRefusal as Refusal;
         if !verify_plan(plan) || plan.fragments.len() != 1 {
             return Err(Refusal::InvalidPlan);
         }
+        states
+            .validate_plan(plan)
+            .map_err(|_| Refusal::InvalidPlan)?;
         let fragment = &plan.fragments[0];
         let lowered = lower_plan_fragment(fragment).map_err(|_| Refusal::InvalidPlan)?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
@@ -71,6 +92,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     I2C_IMPLEMENTATION
                         | expression_host_call::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
+                        | crate::seeded_state::IMPLEMENTATION
                 )
             })
         {

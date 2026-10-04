@@ -10,6 +10,22 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.seeded-state",
+                "Check exact Source initialization, retained state and finite feedback storage",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit-composite",
+                    "-p",
+                    "conduit-semantic-catalog",
+                    "-p",
+                    "conduitos",
+                    "seeded_state",
+                ],
+            ),
+            Step::new(
                 "device-protocols.borrowed-values",
                 "Check exact borrowed projections and prepared typed composition",
                 "cargo",
