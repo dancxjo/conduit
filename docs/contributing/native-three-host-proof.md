@@ -130,10 +130,13 @@ cargo xtask make conduitos screen-free-three-host-proof \
   --body-name 'One Body Clock'
 ```
 
-`three-host/report.json` binds the Birth input and actual transcript hashes to
-the same Body, owner Host/Boot, release source, and subsequent three-Host
-proof. `three-host/walkthrough.html` opens with the Birth action and explains
-what the transcript establishes. Without a selected speaker, the screen-free
+`three-host/report.json` binds the retained pre-Birth installation and live
+zero-Body service status, Birth input, and actual transcript hashes to the
+same Body, owner Host/Boot, release source, and subsequent three-Host proof.
+The run ID also binds that owner Host and Boot, so separate captures remain
+distinguishable even when identical Birth inputs yield the same Body ID.
+`three-host/walkthrough.html` opens with the Birth action and links the
+pre-Birth receipt. Without a selected speaker, the screen-free
 client emits text readout and this run does not prove audio. To select real
 device playback, first inspect `conduit body speech-options --json`, then add
 the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,

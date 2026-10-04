@@ -30,6 +30,7 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     assert.equal(birth.owner_host_id, report.owner_host_id);
     assert.equal(birth.owner_boot_id, report.owner_boot_id);
     assert.equal(birth.source_commit, report.native_source_commit);
+    assert.equal(birth.zero_body_receipt.path, '../zero-body-before.json');
     const transcript = await readFile(path.join(output, '..', 'birth-transcript.txt'), 'utf8');
     sections.push(chapter('birth', 1, 'Make the Body without a screen',
       'Start the freshly installed Linux Host with no Body. Its screen-free Crèche reads its available controls. Name the Body, select the reviewed clock Plot, review the current choices, and explicitly activate Birth. The installed Host retains the resulting Body on this same Boot.' +
@@ -37,7 +38,7 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
         ? ' An explicitly selected ALSA speaker drained the produced reading. The current playback path uses a second StdHost sharing owner Host and Boot identities, so this run does not establish owner-instance speech realization or human listening.'
         : ' This run used text readout; it does not claim speech audio or speaker playback.'),
       '<details><summary>Read the actual nonvisual Birth session</summary><pre>'
-      + escape(transcript) + '</pre></details>'));
+      + escape(transcript) + '</pre></details><p><a href="../zero-body-before.json">Inspect the live zero-Body Host and Boot before Birth</a></p>'));
   }
   const offset = report.birth ? 1 : 0;
   sections.push(...[
