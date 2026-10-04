@@ -162,3 +162,15 @@ type SpeechSequenceReferenceMatch = {
     token_count: U32 in 0..=256
     where .basis_match.reference.ordinal < .token_count
 }
+
+# A text reference binds to supplied immutable material, not a global registry.
+# scalar_count is derived from that material during preparation.
+type LanguageTextReferenceMatch = {
+    material: LanguageText
+    reference: LanguageTextSegmentRef
+    scalar_count: U32 in 0..=4096
+    where .reference.text_id == .material.identity
+    where .reference.revision_id == .material.revision
+    where .reference.language == .material.language
+    where .reference.range.end <= .scalar_count
+}
