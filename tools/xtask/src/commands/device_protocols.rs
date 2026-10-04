@@ -10,6 +10,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.source-package",
+                "Check bounded source packaging, exact schema decoding and refusal classes",
+                "cargo",
+                &["test", "--locked", "-p", "conduitos", "--lib", "protocol_source"],
+            ),
+            Step::new(
                 "device-protocols.state-startup",
                 "Check declared state boundaries, exact startup cuts and zero-delay cycle refusal",
                 "cargo",

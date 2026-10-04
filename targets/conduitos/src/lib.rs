@@ -134,6 +134,7 @@ pub mod protocol_operations;
 
 pub mod protocol_artifact;
 pub mod protocol_play;
+pub mod protocol_source;
 #[cfg(test)]
 mod protocol_test_support;
 pub mod rendezvous_descriptor;
