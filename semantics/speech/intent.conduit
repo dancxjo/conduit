@@ -89,3 +89,17 @@ type SpeechBoundaryIntentMatch = {
 
 # Finite explicitly supplied eligibility for the compact boundary realization.
 type SpeechFormantBoundaryProfile = sequence SpeechFormantBoundaryBinding <= 3
+
+# Consecutive segment occurrences share one exact revisioned sequence basis.
+# Event order alone cannot turn a skipped ordinal or foreign sequence into an
+# immediate segment neighbor. Guard subtraction at the U32 endpoints.
+type SpeechOccurrenceAdjacency = {
+    earlier: LanguageSpeechTokenRef
+    later: LanguageSpeechTokenRef
+    where .earlier.utterance_id == .later.utterance_id
+    where .earlier.sequence_id == .later.sequence_id
+    where .earlier.revision_id == .later.revision_id
+    where .earlier.inventory_id == .later.inventory_id
+    where .earlier.language == .later.language
+    where .later.ordinal > .earlier.ordinal ? .later.ordinal - .earlier.ordinal == 1 : false
+}

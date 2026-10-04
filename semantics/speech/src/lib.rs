@@ -42,6 +42,8 @@ pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
+pub mod declared_context;
+#[cfg(feature = "semantic-bindings")]
 pub mod declared_realization;
 #[cfg(feature = "semantic-bindings")]
 pub mod duration;
@@ -65,6 +67,8 @@ pub mod inventory_admission;
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
+#[cfg(feature = "semantic-bindings")]
+pub mod occurrence_context;
 #[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
