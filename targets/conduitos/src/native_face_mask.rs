@@ -10,6 +10,7 @@ use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_human::{KeyEvent, KeyTransition};
 use conduit_presentation::{
     FaceInteraction, MaskInteractionCorrelation, MaskShow, Presentation, PresentationRole,
+    RemoteOwnerMaskRouteSeal,
 };
 
 use crate::{
@@ -88,6 +89,29 @@ impl NativeFaceMask {
         surface_id: &str,
         provider: &NativeSurfaceProvider,
     ) -> Result<Self, NativeFaceMaskError> {
+        Self::prepare_with_owner_route(
+            host_id,
+            boot_id,
+            offer_generation,
+            build_id,
+            display_base_id,
+            surface_id,
+            provider,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_owner_route(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        build_id: &str,
+        display_base_id: HostBaseId,
+        surface_id: &str,
+        provider: &NativeSurfaceProvider,
+        route: Option<&RemoteOwnerMaskRouteSeal>,
+    ) -> Result<Self, NativeFaceMaskError> {
         let producer = NativeFaceSnapshotProducer::prepare(
             host_id.clone(),
             boot_id.clone(),
@@ -95,14 +119,29 @@ impl NativeFaceMask {
             build_id,
         )
         .map_err(NativeFaceMaskError::Producer)?;
-        let mask = prepare_stage(
-            Adapter::Native,
-            &host_id,
-            &boot_id,
-            1,
-            Some(&provider.entry),
-        )
-        .map_err(|_| NativeFaceMaskError::Plan)?;
+        let mask = if let Some(route) = route {
+            let offer = crate::product_bases::native_mask_host_advertisement(
+                &host_id,
+                &boot_id,
+                offer_generation.0,
+                provider,
+            );
+            route
+                .validate_mask_host_offer(&offer)
+                .map_err(|_| NativeFaceMaskError::Plan)?;
+            MaskStage {
+                planned_mask: route.planned_mask.clone(),
+            }
+        } else {
+            prepare_stage(
+                Adapter::Native,
+                &host_id,
+                &boot_id,
+                1,
+                Some(&provider.entry),
+            )
+            .map_err(|_| NativeFaceMaskError::Plan)?
+        };
         let show = mask.planned_mask.show_placement();
         let compositor = NativeCompositor::admitted(
             CompositorAdmission::new(

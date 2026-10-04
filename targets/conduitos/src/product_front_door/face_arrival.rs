@@ -13,7 +13,7 @@ use crate::{
 use conduit_birth_plot::{BirthActionOutcome, BirthFaceBasis};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_human::KeyEvent;
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation};
+use conduit_presentation::{FaceInteraction, MaskShow, Presentation, RemoteOwnerMaskRouteSeal};
 
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
@@ -43,8 +43,9 @@ impl FaceArrival {
         build_id: &str,
         display_base_id: HostBaseId,
         provider: &NativeSurfaceProvider,
+        owner_route: Option<&RemoteOwnerMaskRouteSeal>,
     ) -> Result<Self, &'static str> {
-        let mask = NativeFaceMask::prepare(
+        let mask = NativeFaceMask::prepare_with_owner_route(
             host_id,
             boot_id,
             generation,
@@ -52,6 +53,7 @@ impl FaceArrival {
             display_base_id,
             "conduitos/creche/face",
             provider,
+            owner_route,
         )
         .map_err(|error| error.as_str())?;
         let basis = mask.birth_basis("conduitos/creche/current");

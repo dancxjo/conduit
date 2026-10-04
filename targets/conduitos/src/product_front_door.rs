@@ -147,6 +147,7 @@ pub fn run(
         make.build_id,
         framebuffer_basis.base_id.clone(),
         &surface_provider,
+        owner_face.as_ref().and_then(|face| face.route()),
     )?;
     let mut face_workspace = FaceWorkspace::prepare(
         host_id.clone(),
