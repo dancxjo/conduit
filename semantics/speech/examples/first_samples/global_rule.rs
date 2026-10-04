@@ -169,5 +169,33 @@ pub fn write(
             .renderer()
             .map_err(|reason| format!("{reason:?}"))?,
     )?;
+    let text = LanguageText::new(
+        LanguageTextId::new("choice/text".into()).unwrap(),
+        intent.language().clone(),
+        LanguageTextRevisionId::new("choice/text-revision".into()).unwrap(),
+        "tata".into(),
+    )
+    .unwrap();
+    let materials = [conduit_speech::intent_sources::IntentSourceMaterial::Text(&text); 4];
+    let sourced = conduit_speech::sourced_global_intent::prepare_sourced_global_intent(
+        intent,
+        &materials,
+        inventory,
+        voice,
+        &boundaries,
+        &rules,
+        &policy,
+        &evidence,
+    )
+    .map_err(|reason| format!("{reason:?}"))?;
+    println!(
+        "sourced global-rule tata: {} exact source references retained",
+        sourced.sources().receipts().len()
+    );
+    super::super::write_rendered(
+        output,
+        "sourced-global-intent-initial-aspiration-tata",
+        sourced.renderer().map_err(|reason| format!("{reason:?}"))?,
+    )?;
     Ok(())
 }
