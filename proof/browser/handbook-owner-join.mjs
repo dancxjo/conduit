@@ -134,6 +134,76 @@ try {
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
   const changedScreenshot = path.join(output, 'browser-clock-changed.png');
   await page.screenshot({ path: changedScreenshot, fullPage: true });
+  const startAction = afterFace.actions.find(action => action.intent === 'conduit.intent/start-clock@1');
+  assert.equal(startAction?.availability, 'available');
+  await page.getByRole('button', { name: 'Start the clock' }).click();
+  await page.waitForFunction(() => document.querySelector('[data-owner-action-result]')?.textContent
+    === 'The owner accepted Start the clock.');
+  const status = () => {
+    const result = spawnSync(installation.product_executable,
+      ['body', 'status', '--state-dir', state, '--json'], { encoding: 'utf8', timeout: 5_000 });
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  let live;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    live = status();
+    if (live.realization?.play?.active_play_id) break;
+    await pause(25);
+  }
+  assert.equal(live.biography.body_id, initial.biography.body_id);
+  assert.equal(typeof live.realization?.play?.active_play_id, 'string');
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  try {
+    await page.waitForFunction(() => globalThis.__conduitOwnerParticipation.face()?.actions
+      .some(action => action.intent === 'conduit.intent/lull-clock@1' && action.availability === 'available'));
+  } catch (error) {
+    await page.screenshot({ path: path.join(output, 'browser-clock-playing-diagnostic.png'), fullPage: true });
+    const faceDiagnostic = await page.evaluate(() => ({
+      status: document.querySelector('[data-owner-face-status]')?.textContent,
+      actionResult: document.querySelector('[data-owner-action-result]')?.textContent,
+      presence: globalThis.__conduitOwnerParticipation?.presence(),
+      face: globalThis.__conduitOwnerParticipation?.face(),
+    }));
+    throw new Error(`playing Face did not expose Stop: ${JSON.stringify(faceDiagnostic)}`, { cause: error });
+  }
+  const playingScreenshot = path.join(output, 'browser-clock-playing.png');
+  await page.screenshot({ path: playingScreenshot, fullPage: true });
+  const playingFaceScreenshot = path.join(output, 'browser-clock-playing-face.png');
+  await page.locator('[data-owner-face]').screenshot({ path: playingFaceScreenshot });
+  const playingFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  await page.getByRole('button', { name: 'Stop the clock' }).click();
+  try {
+    await page.waitForFunction(() => document.querySelector('[data-owner-action-result]')?.textContent
+      === 'The owner accepted Stop the clock.');
+  } catch (error) {
+    await page.screenshot({ path: path.join(output, 'browser-clock-stop-diagnostic.png'), fullPage: true });
+    const actionDiagnostic = await page.evaluate(() => ({
+      status: document.querySelector('[data-owner-face-status]')?.textContent,
+      actionResult: document.querySelector('[data-owner-action-result]')?.textContent,
+      presence: globalThis.__conduitOwnerParticipation?.presence(),
+    }));
+    throw new Error(`Stop was not accepted: ${JSON.stringify(actionDiagnostic)}`, { cause: error });
+  }
+  let stopped;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    stopped = status();
+    if (stopped.realization === null) break;
+    await pause(25);
+  }
+  assert.equal(stopped.biography.body_id, initial.biography.body_id);
+  assert.equal(stopped.realization, null);
+  assert.equal(stopped.last_execution.play.active_play_id, live.realization.play.active_play_id);
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(previous => {
+    const face = globalThis.__conduitOwnerParticipation.face();
+    return face?.face_revision !== previous && face.actions.some(action =>
+      action.intent === 'conduit.intent/start-clock@1' && action.availability === 'available');
+  }, playingFace.face_revision);
+  const stoppedScreenshot = path.join(output, 'browser-clock-stopped.png');
+  await page.screenshot({ path: stoppedScreenshot, fullPage: true });
+  const stoppedFaceScreenshot = path.join(output, 'browser-clock-stopped-face.png');
+  await page.locator('[data-owner-face]').screenshot({ path: stoppedFaceScreenshot });
   await page.getByRole('button', { name: 'Leave this window' }).click();
   assert.deepEqual(pageErrors, []);
   let final;
@@ -155,6 +225,14 @@ try {
     actionId: clockAction.identity, priorFaceId: beforeFace.face_id, priorFaceRevision: beforeFace.face_revision,
     resultingFaceId: afterFace.face_id, resultingFaceRevision: afterFace.face_revision,
     resultingWorksetIntervalMs: 500,
+    startActionId: startAction.identity, playingFaceId: playingFace.face_id,
+    playId: live.realization.play.active_play_id, stopActionId: playingFace.actions.find(action =>
+      action.intent === 'conduit.intent/lull-clock@1').identity,
+    terminal: stopped.last_execution.terminal,
+    playingScreenshot: 'browser-clock-playing.png', playingScreenshotSha256: digest(await readFile(playingScreenshot)),
+    playingFaceScreenshot: 'browser-clock-playing-face.png', playingFaceScreenshotSha256: digest(await readFile(playingFaceScreenshot)),
+    stoppedScreenshot: 'browser-clock-stopped.png', stoppedScreenshotSha256: digest(await readFile(stoppedScreenshot)),
+    stoppedFaceScreenshot: 'browser-clock-stopped-face.png', stoppedFaceScreenshotSha256: digest(await readFile(stoppedFaceScreenshot)),
     ownerWindow: 'loopback', remoteExecution: false, serviceOwned: true,
   }, null, 2)}\n`);
   console.log(`PASS: ${path.join(output, 'report.json')}`);

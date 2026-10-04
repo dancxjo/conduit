@@ -7,7 +7,8 @@ use conduit_body::ResidentPlot;
 #[cfg(unix)]
 pub(crate) use controller::run_service_window;
 pub(crate) use controller::{
-    clock_interval_action, BrowserAdmittedSnapshot, BrowserWindowAuthorization, Owner, RunWorker,
+    clock_interval_action, BrowserAdmittedSnapshot, BrowserWindowAuthorization, ClockAction, Owner,
+    RunWorker, CLOCK_RUN_MAXIMUM_MILLIS,
 };
 use serde::Deserialize;
 use std::{

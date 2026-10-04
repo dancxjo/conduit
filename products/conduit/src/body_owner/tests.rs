@@ -190,6 +190,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         .unwrap();
     let mut owner =
         Owner::open(host("boot/clock-service"), resident(&plot), None, "Clock").unwrap();
+    owner.set_resident_plot_name(&plot).unwrap();
     owner.persist(&root).unwrap();
     std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
 
@@ -206,6 +207,30 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         std::thread::sleep(Duration::from_millis(10));
     }
     let play = owner.current_play_id().unwrap().clone();
+    let playing_face = owner.local_face_snapshot().unwrap();
+    let stop = playing_face
+        .actions
+        .iter()
+        .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
+        .unwrap();
+    assert_eq!(
+        stop.availability,
+        conduit_presentation::PresentationActionAvailability::Available
+    );
+    let response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
+        schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
+        presentation: Box::new(playing_face),
+        interactions_admitted: true,
+    };
+    let face_bytes = serde_json::to_vec(&response).unwrap().len();
+    assert!(
+        face_bytes > 8_178,
+        "playing Face is only {face_bytes} bytes"
+    );
+    assert!(
+        face_bytes <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES,
+        "playing Face needs {face_bytes} bytes"
+    );
     assert_eq!(
         owner.truth()["realization"]["play"]["active_play_id"],
         play.as_str()
@@ -393,11 +418,38 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         PresentationActionAvailability::Available
     );
     assert_eq!(action.arguments.len(), 1);
+    let start = face
+        .actions
+        .iter()
+        .find(|action| action.intent == super::clock_interval::CLOCK_START_ACTION)
+        .unwrap();
+    let stop = face
+        .actions
+        .iter()
+        .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
+        .unwrap();
+    assert_eq!(
+        start.availability,
+        PresentationActionAvailability::Available
+    );
+    assert!(start.arguments.is_empty());
+    assert!(matches!(
+        stop.availability,
+        PresentationActionAvailability::Unavailable { .. }
+    ));
     let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24).unwrap();
     let mut execution = HostedTerminalMaskExecution::new(owner.host.advertisement()).unwrap();
     let mut output = Vec::new();
     mask.present(&mut execution, &mut output).unwrap();
     let show = mask.show().unwrap().clone();
+    let start_interaction =
+        FaceInteraction::new(&face, &show, &start.identity, &start.target, vec![], 0).unwrap();
+    assert_eq!(
+        owner
+            .resolve_clock_interaction(&show, &start_interaction)
+            .unwrap(),
+        super::clock_interval::ClockAction::Start
+    );
     let interaction = FaceInteraction::new(
         &face,
         &show,
@@ -434,6 +486,9 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
     assert_eq!(result["prior_show_id"], show.show_id.as_str());
     assert!(owner
         .apply_clock_interval_interaction(&root, &show, &correlated.interaction)
+        .is_err());
+    assert!(owner
+        .resolve_clock_interaction(&show, &start_interaction)
         .is_err());
     assert_eq!(owner.session.evidence().body.workload_revision, 2);
     assert_eq!(
