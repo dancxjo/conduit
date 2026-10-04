@@ -52,22 +52,42 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         handle: BaseCapabilityHandle,
         claim: BaseOperationClaim,
     ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_with_seeded_state(
+        Self::prepare_with_joins(
             plan,
             ready,
             table,
             handle,
             claim,
-            &crate::seeded_state::SeededStateOperationFactory::default(),
+            &crate::flow_zip::FlowZipOperationFactory::default(),
         )
     }
 
-    pub(crate) fn prepare_with_seeded_state(
+    pub(crate) fn prepare_with_joins(
         plan: &Plan,
         ready: ReadyI2cBase<P>,
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,
         claim: BaseOperationClaim,
+        zip: &crate::flow_zip::FlowZipOperationFactory,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_with_operations(
+            plan,
+            ready,
+            table,
+            handle,
+            claim,
+            zip,
+            &crate::seeded_state::SeededStateOperationFactory::default(),
+        )
+    }
+
+    pub(crate) fn prepare_with_operations(
+        plan: &Plan,
+        ready: ReadyI2cBase<P>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        zip: &crate::flow_zip::FlowZipOperationFactory,
         states: &crate::seeded_state::SeededStateOperationFactory,
     ) -> Result<Self, ProtocolCallRefusal> {
         use ProtocolCallRefusal as Refusal;
@@ -92,6 +112,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     I2C_IMPLEMENTATION
                         | expression_host_call::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
+                        | crate::flow_zip::IMPLEMENTATION
                         | crate::seeded_state::IMPLEMENTATION
                         | crate::current_sample::IMPLEMENTATION
                 )
@@ -99,6 +120,8 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         {
             return Err(Refusal::Unsupported);
         }
+        // Validate pure typed storage before binding the physical owner.
+        zip.validate_plan(plan).map_err(|_| Refusal::InvalidPlan)?;
         for gear in &fragment.placements {
             if gear.implementation_id.as_str() == crate::current_sample::IMPLEMENTATION {
                 use conduit_composite::KernelOperationFactory;

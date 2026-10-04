@@ -38,6 +38,8 @@ pub mod boundary_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
+pub mod declared_realization;
+#[cfg(feature = "semantic-bindings")]
 pub mod duration;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
@@ -45,6 +47,10 @@ pub mod intent_admission;
 pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_prosody;
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_realization;
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_sources;
 #[cfg(feature = "semantic-bindings")]
 pub mod inventory_admission;
 #[cfg(feature = "kernel")]

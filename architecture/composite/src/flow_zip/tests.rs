@@ -209,3 +209,68 @@ fn typed_pair_preparation_requires_exact_member_kind_contracts() {
         Err(conduit_core::StructuredInfoRefusal::WrongType)
     ));
 }
+
+#[test]
+fn finite_typed_pair_close_flush_is_bounded_under_pressure_without_allocation() {
+    let ty = conduit_core::StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+    let contract = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let mut operation =
+        FlowZipBack::prepare_typed_finite(&contract, ty.clone(), &contract, ty.clone()).unwrap();
+    let left = conduit_core::encode_count(7);
+    let right = conduit_core::encode_count(8);
+    let mut encoder =
+        conduit_core::PreparedTypedTuplePairEncoder::new(ty.clone(), 8, ty, 8).unwrap();
+    let expected = encoder.encode(&left, &right).unwrap().to_vec();
+    assert_eq!(
+        <FlowZipBack as StepBack<2>>::terminal_transductions(&operation)[0]
+            .unwrap()
+            .abnormal,
+        AssignedAbnormalTransduction::NotAccepted
+    );
+    let allocations = crate::test_support::allocation::allocations_during(|| {
+        for (side, bytes) in [(0, left.as_slice()), (1, right.as_slice())] {
+            let mut references = [None; 2];
+            let mut inputs = [None; 2];
+            references[side] = Some(reference(side as u16, bytes));
+            inputs[side] = Some(bytes);
+            let mut io = StepIo::test_frame(references, [false; 2], [None; 2], None, 16);
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame(inputs, None)),
+                StepOutcome::Progress
+            );
+            <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        }
+        for _ in 0..1000 {
+            let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 16);
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+                StepOutcome::Await
+            );
+            assert!(!io.test_consumed_closed(PortId(0)));
+        }
+        let mut io = StepIo::test_frame(
+            [None; 2],
+            [true, false],
+            [Some(operation.output_maximum), None],
+            None,
+            16,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_consumed_closed(PortId(0)));
+        assert_eq!(
+            <FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)),
+            Some(expected.as_slice())
+        );
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Complete
+        );
+        assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+    });
+    assert_eq!(allocations, 0);
+}

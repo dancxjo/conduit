@@ -482,12 +482,39 @@ acoustic lowering is implemented; this profile does not silently discard them.
 Canonical IPA spelling here is a finite eligibility rule, not an IPA parser,
 feature-consistency proof, registry authentication or multilingual voice claim.
 
+`resolve_declared_intent_realization` checks that the chosen opaque phone ID
+has at least one declaration in the exact requested phoneme definition of the
+supplied inventory. It retains every matching default, possible-phone entry and
+allophone declaration, including original indices, conditions, environments,
+status and confidence. Native laws check the distinct phoneme and phone IDs;
+missing/duplicate definitions, unresolved specifications and undeclared phones
+remain distinct refusals with the original event index. There is no spelling or
+IPA inference and no declaration ranking. Declaration membership is necessary
+but does not establish contextual eligibility or choose an allophone; feature,
+neighbor, style and linguistic conditions still need explicit resolution before
+complete phonological admission. Preparation is bounded by at most 17 matching
+declarations and performs no playback.
+
 The supported proof writes `rich-phone-hello-world`. This declared listening
 fixture keeps its rich sources and receipts alive through rendering and matches
 the phoneme frontend PCM exactly. Complete utterance/source commitment admission
 and planner ownership of rich preparation receipts remain separate work. Hosted
 preparation may allocate within the native bounds; the compact rendering tape and
 playback retain their existing finite-storage contracts.
+
+`resolve_intent_sources` checks complete source coverage of one original native
+intent. Callers explicitly supply one immutable text, phone, phoneme or
+recognition-envelope material per source in event/source order. Native laws
+check text identity/revision/language/range, speech sequence basis/ordinal, and
+recognition stream/event identity. Receipts retain the original references and
+borrowed materials; mixed source languages and revisions remain intact.
+Missing or excess materials, wrong material kinds and failed native matches
+refuse with exact event/source locations. At most 2048 receipts are prepared
+from the native 256-event/eight-source bounds; the aggregate native structured
+value node and canonical encoding ceilings also apply and can refuse an intent
+before those collection maxima are reached. This establishes reference resolution
+only, not source authenticity, causality, authority, phonological
+consistency or commitment, and performs no playback or ambient lookup.
 
 Intent phone lookup also accepts an exact event in a `SpeechUtteranceIntent`
 and a caller-supplied inventory. Native laws check occurrence membership and
@@ -519,3 +546,14 @@ selection, occurrence/source resolution, phonological consistency and commitment
 remain separate checks; this timing preparation is not complete utterance
 admission. All unresolved quantitative values retain their original specification
 and global event index, and all durations share one cumulative grid.
+
+`prepare_intent_realization` composes chosen-phone lookup, explicit profile
+realization and ordered timing from one immutable native intent. It owns the
+compact event tape and retains original segment, inventory, profile and timing
+receipts. Its renderer accepts no replacement event tape. Preparation validates
+renderer domains and total frame bounds before returning, without playing PCM;
+all collection growth occurs during preparation within the native bounds.
+This remains chosen-phone quantitative preparation, not complete utterance
+admission: source resolution, phonological consistency and commitment are still
+separate checks. The `intent-realization-hello-world` listening fixture uses
+explicit 120 Hz/unity controls and retains the approved acoustic profile.
