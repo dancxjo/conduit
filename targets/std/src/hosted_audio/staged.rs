@@ -117,7 +117,10 @@ impl StagedPlaybackSession {
             .checked_add(u64::from(header.frame_count))
             .ok_or(PlaybackFailure::InvalidPcm)?;
         let next_total = self.total_frames + u64::from(header.frame_count);
-        if next_total > 16_384 * u64::from(SAMPLE_RATE_HZ) / 1000
+        if next_total
+            > u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_MILLIS)
+                * u64::from(SAMPLE_RATE_HZ)
+                / 1000
             || self.blocks_accepted >= MAXIMUM_TOTAL_BLOCKS as u32
         {
             return Err(PlaybackFailure::StagingExceeded);
@@ -332,6 +335,27 @@ mod tests {
 
     fn frame() -> Vec<u8> {
         frame_at(0)
+    }
+
+    #[test]
+    fn staged_speech_admits_declared_duration_and_refuses_the_next_frame() {
+        let mut session =
+            StagedPlaybackSession::prepare(selection(FakePlaybackBehavior::Success)).unwrap();
+        let maximum = u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_MILLIS)
+            * u64::from(SAMPLE_RATE_HZ)
+            / 1000;
+        session.total_frames = 20 * u64::from(SAMPLE_RATE_HZ);
+        session.write_frame(&frame()).unwrap();
+        session.total_frames = maximum - u64::from(PERIOD_FRAMES);
+        session
+            .write_frame(&frame_at(u64::from(PERIOD_FRAMES)))
+            .unwrap();
+        assert_eq!(session.total_frames, maximum);
+        assert_eq!(
+            session.write_frame(&frame_at(2 * u64::from(PERIOD_FRAMES))),
+            Err(PlaybackFailure::StagingExceeded)
+        );
+        assert_eq!(session.total_frames, maximum);
     }
 
     #[test]
