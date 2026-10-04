@@ -87,7 +87,7 @@ fn pressure_consumes_nothing_and_one_closed_input_does_not_retire_the_other() {
         let mut io = StepIo::test_frame([None; 2], [false, true], [Some(8), None], None, 16);
         assert_eq!(
             back.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
-            StepOutcome::Progress
+            StepOutcome::Complete
         );
         commit(&mut back);
         let mut io = StepIo::test_frame([None; 2], [false; 2], [Some(8), None], None, 16);

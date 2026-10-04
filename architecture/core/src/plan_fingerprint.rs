@@ -494,6 +494,7 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     Terminal::EvolvesAfterTicksAndCompletesWhenTickCloses => canonical.push(21),
                     Terminal::PresentsEachFieldAndCompletesWhenInputCloses => canonical.push(22),
                     Terminal::CompletesAfterDockedRefusedOrDeadline => canonical.push(23),
+                    Terminal::EmitsThroughSourceTerminalFlag => canonical.push(24),
                 }
             }
             Law::TerminalTransduction(value) => {

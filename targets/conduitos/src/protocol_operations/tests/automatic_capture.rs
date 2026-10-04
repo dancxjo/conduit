@@ -222,5 +222,15 @@ fn complete_source_protocol_captures_calibration_and_sample_through_native_bus_a
     assert!(observed, "complete protocol must capture one sample");
     assert_eq!(progress.load(Ordering::SeqCst), count);
     assert_eq!(waits.load(Ordering::SeqCst), 2);
-    play.cancel().unwrap();
+    let mut complete = false;
+    for _ in 0..2000 {
+        if play.step().unwrap() == conduit_composite::KernelCompositeStatus::Complete {
+            complete = true;
+            break;
+        }
+    }
+    assert!(
+        complete,
+        "terminal Source state must drain and complete normally"
+    );
 }
