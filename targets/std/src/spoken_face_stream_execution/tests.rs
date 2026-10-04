@@ -162,6 +162,7 @@ fn selected_playback_block_admission_covers_its_declared_duration() {
     );
     assert!(blocks >= required);
     assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_BLOCKS));
+    assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS));
     assert_eq!(
         SPOKEN_PLAYBACK_PLOT
             .matches("maximum-blocks = 32768, maximum-audio-millis = 30000")
