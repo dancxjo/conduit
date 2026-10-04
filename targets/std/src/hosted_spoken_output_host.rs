@@ -1,5 +1,53 @@
 //! Host-owned speech and artifact attachment, before ordinary planning.
 impl crate::StdHost {
+    /// Attach one explicitly selected speaker to this existing Host Boot.
+    /// Discovery alone never authorizes playback; the caller must supply a
+    /// separate grant to planning, and the adapter rechecks device availability
+    /// when the selected Play starts.
+    pub fn attach_selected_playback(
+        &mut self,
+        playback: crate::hosted_audio::HostedPlaybackSelection,
+    ) -> Result<(), String> {
+        if !self.kernel_resources.is_idle() {
+            return Err("selected playback cannot replace active Host reservations".into());
+        }
+        if self.playback.is_some()
+            || playback.boot_id != self.advertisement.boot_id
+            || playback.offer_generation != self.advertisement.offer_generation
+        {
+            return Err("selected playback is stale or already attached".into());
+        }
+        let offer = conduit_std_offers::audio_play_alsa_hw_offer();
+        let pool = playback.pool_id();
+        if self
+            .advertisement
+            .capabilities
+            .iter()
+            .any(|existing| existing.capability_id == offer.capability_id)
+            || self
+                .advertisement
+                .resources
+                .iter()
+                .any(|existing| existing.pool_id == pool)
+        {
+            return Err("selected playback offer or resource already exists".into());
+        }
+        let mut advertisement = self.advertisement.clone();
+        advertisement.capabilities.push(offer);
+        advertisement.resources.push(conduit_core::resource_offer(
+            pool.as_str(),
+            conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,
+            1,
+        ));
+        advertisement.resources.sort();
+        crate::normalize_capability_offers(&mut advertisement.capabilities)?;
+        let resources = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        self.advertisement = advertisement;
+        self.kernel_resources = resources;
+        self.playback = Some(playback);
+        Ok(())
+    }
+
     /// Attach deterministic proof PCM and an exact WAV artifact resource.
     /// This establishes an artifact effect, not intelligible speech or hearing.
     pub fn attach_deterministic_speech_and_wav_artifact(
@@ -72,6 +120,9 @@ impl crate::StdHost {
         artifact: Option<crate::hosted_wav_artifact::WavArtifactSelection>,
         adapter: Option<crate::hosted_speech_synthesis::EspeakSpeechAdapter>,
     ) -> Result<(), String> {
+        if !self.kernel_resources.is_idle() {
+            return Err("spoken output cannot replace active Host reservations".into());
+        }
         if self.wav_artifact.is_some()
             || self.speech_synthesis.is_some()
             || artifact.as_ref().is_some_and(|artifact| {
@@ -138,5 +189,88 @@ impl crate::StdHost {
         self.wav_artifact = artifact;
         self.speech_synthesis = adapter;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        hosted_audio::{AlsaPlaybackObservation, HostedPlaybackSelection},
+        StdHost,
+    };
+    use conduit_core::{BootId, OfferGeneration};
+
+    fn selection(boot_id: BootId, generation: OfferGeneration) -> HostedPlaybackSelection {
+        HostedPlaybackSelection::from_observation(
+            AlsaPlaybackObservation {
+                card_index: 1,
+                card_id: "SELECTED".into(),
+                card_name: "Selected speaker".into(),
+                device: 0,
+                device_name: "Playback".into(),
+                base_identity: "selected-test".into(),
+            },
+            boot_id,
+            generation,
+        )
+    }
+
+    #[test]
+    fn selected_speaker_attaches_to_existing_host_without_inventing_a_boot() {
+        let mut host = StdHost::new();
+        let before = host.advertisement().clone();
+        assert!(host.playback_authority_grant("grant/selected").is_err());
+        let selected = selection(before.boot_id.clone(), before.offer_generation);
+        let pool = selected.pool_id();
+        host.attach_selected_playback(selected.clone()).unwrap();
+        let after = host.advertisement();
+        assert_eq!(after.host_id, before.host_id);
+        assert_eq!(after.boot_id, before.boot_id);
+        assert_eq!(after.offer_generation, before.offer_generation);
+        assert!(after
+            .resources
+            .iter()
+            .any(|resource| resource.pool_id == pool));
+        let grant = host.playback_authority_grant("grant/selected").unwrap();
+        assert_eq!(grant.host_id, before.host_id);
+        assert_eq!(grant.boot_id, before.boot_id);
+        assert_eq!(grant.grant_id.as_str(), "grant/selected");
+        let admitted = after.clone();
+        assert!(host.attach_selected_playback(selected).is_err());
+        assert_eq!(host.advertisement(), &admitted);
+    }
+
+    #[test]
+    fn stale_speaker_never_changes_the_installed_host_offer() {
+        let mut host = StdHost::new();
+        let before = host.advertisement().clone();
+        let stale_boot = selection(BootId::from("other-boot"), before.offer_generation);
+        assert!(host.attach_selected_playback(stale_boot).is_err());
+        let stale_generation = selection(
+            before.boot_id.clone(),
+            OfferGeneration(before.offer_generation.0 + 1),
+        );
+        assert!(host.attach_selected_playback(stale_generation).is_err());
+        assert_eq!(host.advertisement(), &before);
+        assert!(host.playback_authority_grant("grant/selected").is_err());
+    }
+
+    #[test]
+    fn conflicting_resource_cannot_be_adopted_as_selected_playback() {
+        let original = StdHost::new();
+        let selected = selection(
+            original.advertisement().boot_id.clone(),
+            original.advertisement().offer_generation,
+        );
+        let mut conflicting = original.advertisement().clone();
+        conflicting.resources.push(conduit_core::resource_offer(
+            selected.pool_id().as_str(),
+            "conduit.resource/unrelated@1",
+            1,
+        ));
+        let mut host = StdHost::from_advertisement(conflicting.clone()).unwrap();
+        assert!(host.attach_selected_playback(selected).is_err());
+        assert_eq!(host.advertisement(), &conflicting);
+        assert!(host.playback_authority_grant("grant/selected").is_err());
     }
 }
