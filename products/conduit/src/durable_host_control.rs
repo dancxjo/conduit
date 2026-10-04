@@ -1743,6 +1743,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             Request::Status { .. }
                 | Request::BodyInspect { .. }
                 | Request::BodyFace { .. }
+                | Request::BodyBrowserMaskRoute { .. }
                 | Request::BodyLocalFace { .. }
                 | Request::BodyInteraction { .. }
                 | Request::BodyBrowserInteraction { .. }

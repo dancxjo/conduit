@@ -1,9 +1,8 @@
 //! Owner Face and typed action through the ordinary checked browser Mask Plot.
 //!
 //! Membership and Face authority stay on the Linux owner. This browser Host
-//! plans and plays only its local DOM Mask. The owner validates semantic
-//! interactions on the authenticated carrier; an owner-sealed presentation
-//! Line remains separate work under #4922.
+//! plays the owner-selected DOM Mask Plan. The owner validates semantic
+//! interactions and the acknowledged Show on the authenticated carrier.
 
 use crate::workspace_mask::execution;
 use conduit_body::BodyId;

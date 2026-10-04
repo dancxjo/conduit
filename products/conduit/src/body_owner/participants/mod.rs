@@ -1,6 +1,7 @@
 //! One explicitly authorized browser admission window while the Body is lulled.
 //! The window bounds admission authorization, not carrier handshake/close latency.
-//! This is membership and presence only, never admission of remote execution.
+//! The owner may issue a presentation-only browser Mask route on the admitted
+//! carrier; the Body workload remains on its authoritative Host.
 mod admission;
 mod service;
 #[cfg(unix)]

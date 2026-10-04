@@ -1,8 +1,8 @@
 //! An owner-issued presentation route for a remote, single-Host Mask Plot.
 //!
 //! The two directional Lines bind the Mask Fore to the owner while the
-//! workload remains lulled. A carrier must supply live Line offers; matching
-//! identifiers or browser membership alone do not supply them.
+//! workload may be lulled or have its own current Wake. A carrier must supply
+//! live Line offers; matching identifiers or browser membership alone do not.
 
 use alloc::{format, string::String};
 use conduit_body::{BodyId, BodyLifecycleSession, BodyState};

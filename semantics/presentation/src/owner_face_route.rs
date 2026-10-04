@@ -1,8 +1,8 @@
-//! One exact owner-produced Face snapshot on an already authenticated join Line.
+//! One exact owner-produced Face snapshot on an already authenticated carrier.
 //!
-//! This message does not grant an interaction return route or continuing
-//! reachability. The owner must check the credential against its retained
-//! admission before disclosing the current Face.
+//! A browser snapshot may include an owner-issued presentation route. Its
+//! admitted Lines and current availability remain distinct from the Face;
+//! the owner rechecks the credential and selected route before an action.
 
 use alloc::{boxed::Box, string::String};
 use conduit_body::{BodyId, PartId};
