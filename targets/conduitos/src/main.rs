@@ -240,6 +240,13 @@ fn panic(info: &PanicInfo<'_>) -> ! {
             location.column()
         );
     }
+    let _ = writeln!(diagnostic, "CONDUIT_PANIC_DETAIL {}", info.message());
+    let _ = writeln!(
+        diagnostic,
+        "CONDUIT_PANIC_ARENA live={} capacity={}",
+        BOOT_ARENA.live_bytes(),
+        BOOT_ARENA.capacity()
+    );
     if let Ok(sign) = sign_format::refused("panic") {
         let _ = diagnostic.write_str(core::str::from_utf8(sign.as_bytes()).unwrap_or(""));
     }
