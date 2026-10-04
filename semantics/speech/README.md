@@ -327,8 +327,8 @@ sites from embedded data. It does not sum entries into a call-chain bound:
 computed targets, body stack adjustments and call-chain liveness are unverified.
 Its machine-readable `full_stack_status` remains `unproven`, and unsupported
 entry shapes retain an explicit gap instead of a numeric reservation. The current
-default-profile renderer has seven identified computed-control sites, and text plus synthesis has
-49; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
+default-profile renderer has five identified computed-control sites, and text plus synthesis has
+47; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
 This is an entry-stack lower bound: callee frames, later body stack changes,
 boot and interrupts are excluded. It cannot establish total stack or device fit.
 A link is not device playback or proof of real-time performance. WAV generation
@@ -410,3 +410,11 @@ controls apply to it, with the same finite bounds and staged cursor behavior.
 The supported proof retains `direct-phone-hello-world`, whose supplied-phone
 PCM matches the ordinary phoneme frontend. This profile input is distinct from
 rich `PhoneId`/inventory resolution and does not attest external provenance.
+
+The direct-phone renderer and retained realizations share one lowered phone model
+through the plot-authored `speech/selected-phone` coordinate projection. The
+standalone Cortex-M0+ probes measured 13,587 bytes code/constants for rendering
+and 25,332 bytes for text plus rendering, with 260/1,284 bytes BSS and no data.
+This adds 72 bytes relative to the pre-direct-phone measurements. All 19 listening
+WAVs remain byte-identical. These are default-profile link measurements with the
+exclusions above, not full-stack, device playback or realtime acceptance.

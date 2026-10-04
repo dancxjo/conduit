@@ -288,6 +288,12 @@ plot speech/direct-phone-model (
     value >> ({phone: .phone, context: .}) >> lookup.value
     lookup.result >> ({phone: .input.phone, stress: .input.context.stress, target: .target}) >> result
 }
+# Rendering projects coordinates from a retained realization, without claiming
+# that directly supplied phones have a source phoneme or rerunning phonology.
+plot speech/selected-phone (
+    >> value: RealizationResult
+    result: SpeechPhoneInput >>
+) = ({phone: .phone, stress: .input.stress})
 plot speech/render-segment (
     >> value: SpeechSegmentModel
     result: SpeechRenderSegment >>
