@@ -1,0 +1,28 @@
+# Mechanical specification carriers. Original values stay in their receipts;
+# equality is supplied only for two known values of the same semantic domain.
+type SpeechSpecificationState =
+    known
+    | unknown
+    | unspecified
+    | not_applicable
+    | variable
+    | gradient
+
+type SpeechContextDecision =
+    matched
+    | mismatched
+    | requirement_unresolved
+    | observation_unresolved
+
+type SpeechContextComparisonInput = {
+    requirement: SpeechSpecificationState
+    observation: SpeechSpecificationState
+    known_values_equal: Boolean
+}
+
+# In a rule pattern only Unspecified is unconstrained. Unsupported requirement
+# and observation states remain distinct rather than becoming a false match.
+plot speech/context-compare (
+    >> value: SpeechContextComparisonInput
+    result: SpeechContextDecision >>
+) = (.requirement is unspecified ? SpeechContextDecision.matched : !(.requirement is known) ? SpeechContextDecision.requirement_unresolved : !(.observation is known) ? SpeechContextDecision.observation_unresolved : .known_values_equal ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
