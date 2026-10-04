@@ -35,6 +35,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-language"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-native-speech-footprint"
 version = "0.1.0"
 dependencies = [
@@ -55,6 +63,7 @@ name = "conduit-speech"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-language",
  "conduit-plot",
 ]
 
