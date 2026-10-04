@@ -92,7 +92,8 @@ pub(super) fn emit_readout(
                     return Err(reason.into());
                 }
                 Err(mpsc::RecvTimeoutError::Timeout)
-                    if !interrupted && input.interrupting_command() =>
+                    if !interrupted
+                        && input.interrupting_command(reader, face, show, stop_sequence) =>
                 {
                     *sequence = stop_sequence;
                     match reader.command(face, show, ReaderCommand::Stop, *sequence) {
