@@ -602,6 +602,19 @@ admission: source resolution, phonological consistency and commitment are still
 separate checks. The `intent-realization-hello-world` listening fixture uses
 explicit 120 Hz/unity controls and retains the approved acoustic profile.
 
+Standalone rule input patterns have native phone/phoneme identity laws and
+`speech/identity-pattern-compare`. `compare_phoneme_pattern` and
+`compare_phone_pattern` retain all six original specification states and their
+same-domain identity witness; only Unspecified is unconstrained. Known IDs use
+exact UTF-8 identity, without notation normalization or base-ID fallback.
+`compare_allophone_rule_input` retains the original rule, phoneme pattern and
+explicit observed feature bundle, combining decisions through the native
+context conjunction without dropping components after a mismatch. Missing
+features remain missing observations; definition features are not substituted.
+This prepares the input side of Tongues/Speaking-style standalone rules, not
+occurrence binding, context completion, output-feature inheritance, status
+permission, rule selection or linguistic commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
