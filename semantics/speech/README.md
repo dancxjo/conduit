@@ -400,3 +400,18 @@ listening fixtures. These controls do not select unknown, unspecified,
 not-applicable, or alternative prosody states, validate rich utterance references,
 or expose rich controls through the public kernel input. Those integrations and
 FARGAN conditioning remain unfinished.
+
+Under `semantic-bindings`, `inventory_admission::resolve_inventory_phone` binds an
+already resolved material phone token to a unique definition in a supplied
+`SpeechInventory`. Native Conduit laws check the snapshot's inventory and language
+against that inventory, and check the requested and selected definition identities.
+The result borrows the original material, inventory and complete definition; it
+preserves features, aliases, status, confidence, acoustic evidence and provenance.
+
+Only a `known` phone ID permits lookup. Other specification states are returned
+unchanged in `InventoryRefusal::Unresolved`; no default or gradient/variable
+selection is implied. Missing and duplicate requested IDs are distinct refusals.
+Matching IPA or alias spelling does not substitute for identity. This is local
+snapshot/definition resolution, not registry authenticity, voice-profile eligibility,
+commitment admission or rich-to-compact realization. It adds no compact DSP policy
+or playback allocation.

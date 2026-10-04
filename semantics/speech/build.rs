@@ -15,17 +15,19 @@ fn main() {
     println!("cargo:rerun-if-changed=translation.conduit");
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
+    println!("cargo:rerun-if-changed=inventory.conduit");
     println!("cargo:rerun-if-changed=timing_projection.conduit");
     println!("cargo:rerun-if-changed=duration_projection.conduit");
     println!("cargo:rerun-if-changed=duration_render.conduit");
     println!("cargo:rerun-if-changed=control_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("listening.conduit"),
         include_str!("translation.conduit"),
         include_str!("timing.conduit"),
-        include_str!("intent.conduit")
+        include_str!("intent.conduit"),
+        include_str!("inventory.conduit")
     );
     let semantic = check_syntax_document(
         &parse_syntax_document(&semantic_source),
