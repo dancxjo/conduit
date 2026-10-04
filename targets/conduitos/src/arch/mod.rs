@@ -9,9 +9,9 @@ mod x86_64;
 #[cfg(all(target_arch = "x86_64", feature = "conduitos-isolation-proof"))]
 pub use x86_64::run_isolation_proof;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-pub use x86_64::{
-    CandidateDeadline, NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock,
-};
+pub use x86_64::CandidateDeadline;
+#[cfg(target_arch = "x86_64")]
+pub use x86_64::{NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock};
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{
     Clock, FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,

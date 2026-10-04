@@ -157,8 +157,6 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "-p",
                     "conduitos",
                     "--lib",
-                    "--features",
-                    "native-owner-network",
                     "arch::x86_64::deadline",
                 ],
             ),

@@ -151,9 +151,9 @@ mod tests {
         let schema = StructuredInfoType::leaf(kind_id("value/u64")).unwrap();
         let value = CheckedValueContract::new(kind_id("value/u64"), 8, alloc::vec![]).unwrap();
         let offered = owner.install(&value, &schema).unwrap();
-        assert!(offered.implementation.host_calls.is_empty());
-        assert!(offered.implementation.authority_requirements.is_empty());
-        assert!(offered.implementation.resource_requirements.is_empty());
+        assert!(offered.host_calls.is_empty());
+        assert!(offered.authority_requirements.is_empty());
+        assert!(offered.resource_requirements.is_empty());
         assert!(owner.install(&value, &schema).is_err());
         let huge =
             CheckedValueContract::new(kind_id("value/u64"), MAXIMUM_BYTES + 1, alloc::vec![])

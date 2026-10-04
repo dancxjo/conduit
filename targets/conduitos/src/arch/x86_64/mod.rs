@@ -1,6 +1,5 @@
 mod acpi;
 mod cpu;
-#[cfg(feature = "native-owner-network")]
 mod deadline;
 mod entropy;
 mod ftdi_line;
@@ -31,9 +30,8 @@ mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, emergency_halt, feature_basis};
 #[cfg(feature = "native-owner-network")]
-pub use deadline::{
-    CandidateDeadline, NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock,
-};
+pub use deadline::CandidateDeadline;
+pub use deadline::{NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock};
 
 pub const fn emergency_machine_profile() -> crate::machine::EmergencyMachineProfile {
     crate::machine::EmergencyMachineProfile {
