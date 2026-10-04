@@ -5,18 +5,19 @@ use super::{body::HostSource, constant_time_equal, DurableHostRuntime, PROTOCOL}
 use conduit_core::PlanId;
 use conduit_presentation::{
     BodyMaskWardrobe, FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobe,
-    MaskWardrobeControl, MaskWardrobeLifetime,
+    MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeLifetime,
 };
 use conduit_std_host::{
     terminal_face_mask::TerminalMaskExecution, terminal_mask_execution::HostedTerminalMaskExecution,
 };
+use serde::{Deserialize, Serialize};
 use std::{os::unix::net::UnixStream, path::Path};
 
 #[path = "terminal_attach/client.rs"]
 mod client;
 #[path = "terminal_attach/wire.rs"]
 mod wire;
-pub(crate) use client::{attach_and_show, AttachedTerminalSession};
+pub(crate) use client::{attach_and_show, attached_wardrobe, AttachedTerminalSession};
 pub(super) use wire::MAGIC;
 use wire::{AttachReply, AttachRequest};
 
@@ -25,6 +26,18 @@ pub(super) struct AttachedTerminalRoute {
     pub show: MaskShow,
     pub wardrobe: MaskWardrobeControl,
     pub execution: HostedTerminalMaskExecution,
+    /// Doff retires this acknowledgement. Rewear selects a sealed route, but
+    /// cannot silently make the old Show current again.
+    pub acknowledged_show_selected: bool,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum TerminalWardrobeCommand {
+    Inspect,
+    Wear,
+    Doff,
+    Prefer,
 }
 
 /// The ordinary control listener has already consumed the discriminating byte.
@@ -81,6 +94,7 @@ pub(super) fn serve(
             show: show.clone(),
             wardrobe,
             execution,
+            acknowledged_show_selected: true,
         });
         wire::write_reply(
             stream,
@@ -113,6 +127,88 @@ pub(super) fn serve(
 }
 
 impl DurableHostRuntime {
+    pub(super) fn attached_terminal_wardrobe(
+        &mut self,
+        route_plan_id: &PlanId,
+        show: &MaskShow,
+        basis_revision: u64,
+        command: TerminalWardrobeCommand,
+    ) -> Result<serde_json::Value, String> {
+        let route = self
+            .terminal_route
+            .as_mut()
+            .ok_or("no current attached terminal route")?;
+        let HostSource::Body {
+            owner,
+            running: None,
+            ..
+        } = &mut self.host
+        else {
+            return Err("terminal wardrobe requires a lulled Body".into());
+        };
+        if &route.seal.route_plan_id != route_plan_id || &route.show != show {
+            return Err("attached terminal route or Show differs".into());
+        }
+        owner.validate_attached_terminal_route(&route.seal, show)?;
+        route
+            .execution
+            .validate_current_host(owner.host.advertisement())
+            .map_err(|error| format!("attached terminal Host changed: {error:?}"))?;
+        let routes = owner.admit_attached_terminal_show(&route.seal, show)?;
+        let mask = route.seal.planned_mask.mask.plot_identity.clone();
+        let transition = match command {
+            TerminalWardrobeCommand::Inspect => None,
+            TerminalWardrobeCommand::Wear => Some(MaskWardrobeAction::Wear(mask)),
+            TerminalWardrobeCommand::Doff => Some(MaskWardrobeAction::Doff(mask)),
+            TerminalWardrobeCommand::Prefer => Some(MaskWardrobeAction::Prefer(vec![mask])),
+        }
+        .map(|action| {
+            route
+                .wardrobe
+                .apply(basis_revision, action, &routes)
+                .map_err(|error| format!("attached terminal wardrobe refused: {error:?}"))
+        })
+        .transpose()?;
+        if matches!(command, TerminalWardrobeCommand::Doff) {
+            route.acknowledged_show_selected = false;
+        }
+        let reconciliation = route
+            .wardrobe
+            .scoped_wardrobe
+            .wardrobe
+            .reconcile(
+                &route.wardrobe.active_plan_id,
+                routes.routes(),
+                route.wardrobe.selected.as_ref(),
+            )
+            .map_err(|error| format!("inspect attached terminal wardrobe: {error:?}"))?;
+        let selected = route.wardrobe.selected.as_ref();
+        Ok(serde_json::json!({
+            "schema": "conduit.body/attached-terminal-wardrobe@1",
+            "scope": "foreground-terminal-attachment",
+            "durable": false,
+            "body_id": route.seal.body_id,
+            "face_id": route.seal.face_id,
+            "face_revision": route.seal.face_revision,
+            "host_id": route.seal.owner_offer.host_id,
+            "boot_id": route.seal.owner_offer.boot_id,
+            "offer_generation": route.seal.owner_offer.offer_generation.0,
+            "route_plan_id": route.seal.route_plan_id,
+            "wardrobe": route.wardrobe.scoped_wardrobe.wardrobe,
+            "admitted_routes": routes.routes(),
+            "selected": selected,
+            "show_id": if route.acknowledged_show_selected && selected.is_some() {
+                Some(show.show_id.as_str())
+            } else {
+                None
+            },
+            "fresh_show_required": selected.is_some() && !route.acknowledged_show_selected,
+            "reconciliation": reconciliation,
+            "transition": transition,
+            "unadmitted_masks": "not selectable through this attached terminal route",
+        }))
+    }
+
     /// Only the installed owner can consume the retained Mask's typed return.
     /// Taking the route first makes every attempted submission single-use;
     /// failure or a changed Face retires the provider on the next service step.
@@ -137,10 +233,12 @@ impl DurableHostRuntime {
         if &route.seal.route_plan_id != route_plan_id || &route.show != show {
             return Err("attached terminal route or Show differs".into());
         }
-        if route.wardrobe.selected.as_ref().is_none_or(|selected| {
-            selected.plan_id != *route_plan_id
-                || selected.mask_plot != route.seal.planned_mask.mask.plot_identity
-        }) {
+        if !route.acknowledged_show_selected
+            || route.wardrobe.selected.as_ref().is_none_or(|selected| {
+                selected.plan_id != *route_plan_id
+                    || selected.mask_plot != route.seal.planned_mask.mask.plot_identity
+            })
+        {
             return Err("attached terminal Mask is no longer selected".into());
         }
         owner.validate_attached_terminal_route(&route.seal, show)?;

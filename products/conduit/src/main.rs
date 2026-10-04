@@ -393,7 +393,9 @@ fn main() {
                 screen_free_birth::speech_options(json, &mut io::stdout().lock())
             }
             cli::BodyCommand::Birth { screen_free, state_dir, speech } => {
-                if screen_free {
+                if speech.speak && !screen_free {
+                    Err("--speak requires --screen-free for Birth".into())
+                } else if screen_free {
                     state_dir.map_or_else(current_state_dir, Ok).and_then(|state_dir| {
                         if speech.speak {
                             screen_free_birth::run_installed_spoken(&state_dir, &speech, &mut io::stdout().lock())
@@ -408,6 +410,23 @@ fn main() {
                 } else {
                     enter_birth()
                 }
+            }
+            cli::BodyCommand::ScreenFree { state_dir, speech } => {
+                state_dir.map_or_else(current_state_dir, Ok).and_then(|state_dir| {
+                    if speech.speak {
+                        screen_free_birth::run_retained_spoken(
+                            &state_dir,
+                            &speech,
+                            &mut io::stdout().lock(),
+                        )
+                    } else {
+                        screen_free_birth::run_retained(
+                            &state_dir,
+                            &mut io::stdin().lock(),
+                            &mut io::stdout().lock(),
+                        )
+                    }
+                })
             }
             cli::BodyCommand::Own { source, state_dir, name } => durable_host::run_body_owner(&source, &state_dir, &name),
             _ => unreachable!("durable Body operations are dispatched above"),

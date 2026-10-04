@@ -23,6 +23,19 @@ conduit host service install target/creche-host-releases/hosted-linux-x86_64.jso
   --state-dir /absolute/path/to/host-state --no-start
 ```
 
+To make a speaker and eSpeak NG provider part of the Host's **initial**
+inventory, first inspect `conduit body speech-options --json`, then add the
+exact `--selected-speech --speaker-card CARD --speaker-device DEVICE
+--speech-executable PATH --speech-data PATH --speech-engine PATH` values to
+the install command. Repeat `--speech-engine` for each reported engine library
+dependency; `--speech-voice` is optional. The selection is retained across
+reinstalls. Each fresh Boot rechecks the selected equipment and provider
+before publishing a runtime marker or admitting a Body. If they are absent or
+changed, startup fails explicitly. Reinstall with a new selection to recover,
+or use `--without-selected-speech` to remove it. Omit both selection flags to
+preserve the installed choice. Use an isolated state directory when trying
+this development entrance; a running service is not reconfigured in place.
+
 For a fresh installation, `--no-start` leaves the Host available for foreground
 ownership. Omitting it preserves the normal service activation behavior. It does
 not stop an already running service; use a fresh installation for this sequence.

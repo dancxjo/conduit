@@ -2,6 +2,7 @@
 //! The owner alone prepares and acknowledges the ordinary Mask Show and its
 //! typed action return through the retained Mask Play.
 
+use crate::durable_host_control::terminal_attach::TerminalWardrobeCommand;
 use conduit_presentation::{FaceInteraction, FaceInteractionArgument};
 use std::{
     io::{BufRead, Read, Write},
@@ -18,6 +19,13 @@ pub(crate) fn run(
     let mut attached =
         crate::durable_host_control::terminal_attach::attach_and_show(state_dir, output)?;
     report_show(output, &attached)?;
+    let mut wardrobe = crate::durable_host_control::attached_wardrobe(
+        state_dir,
+        &attached,
+        0,
+        TerminalWardrobeCommand::Inspect,
+    )?;
+    report_wardrobe(output, &wardrobe)?;
     loop {
         let mut bytes = Vec::new();
         let length = (&mut *input)
@@ -44,7 +52,35 @@ pub(crate) fn run(
         let command = std::str::from_utf8(&bytes)
             .map_err(|_| "owner terminal command must be UTF-8".to_string())?
             .trim();
+        let wardrobe_command = match command {
+            "wardrobe" => Some(TerminalWardrobeCommand::Inspect),
+            "wardrobe wear" => Some(TerminalWardrobeCommand::Wear),
+            "wardrobe doff" => Some(TerminalWardrobeCommand::Doff),
+            "wardrobe prefer" => Some(TerminalWardrobeCommand::Prefer),
+            _ => None,
+        };
+        if let Some(action) = wardrobe_command {
+            let revision = wardrobe["wardrobe"]["revision"]
+                .as_u64()
+                .ok_or("owner wardrobe report omitted revision")?;
+            match crate::durable_host_control::attached_wardrobe(
+                state_dir, &attached, revision, action,
+            ) {
+                Ok(report) => {
+                    wardrobe = report;
+                    report_wardrobe(output, &wardrobe)?;
+                }
+                Err(error) => writeln!(output, "Wardrobe refused: {error}")
+                    .map_err(|error| format!("write wardrobe refusal: {error}"))?,
+            }
+            continue;
+        }
         if let Some(value) = command.strip_prefix("apply ") {
+            if wardrobe["show_id"].is_null() {
+                writeln!(output, "Action refused: no current selected Mask Show. Detach and attach for a fresh Show.")
+                    .map_err(|error| format!("write stale Show refusal: {error}"))?;
+                continue;
+            }
             let mut available = attached
                 .face
                 .actions
@@ -98,14 +134,45 @@ pub(crate) fn run(
             attached =
                 crate::durable_host_control::terminal_attach::attach_and_show(state_dir, output)?;
             report_show(output, &attached)?;
+            wardrobe = crate::durable_host_control::attached_wardrobe(
+                state_dir,
+                &attached,
+                0,
+                TerminalWardrobeCommand::Inspect,
+            )?;
+            report_wardrobe(output, &wardrobe)?;
             continue;
         }
         writeln!(
             output,
-            "Enter apply <value> for the available action, or quit to detach."
+            "Enter wardrobe (inspect), wardrobe wear/doff/prefer (this terminal Mask only), apply <value>, or quit to detach."
         )
         .map_err(|error| format!("write owner terminal help: {error}"))?;
     }
+}
+
+fn report_wardrobe(output: &mut impl Write, report: &serde_json::Value) -> Result<(), String> {
+    let worn = report["wardrobe"]["worn"]
+        .as_array()
+        .ok_or("owner wardrobe omitted worn Masks")?;
+    let selected = report["selected"]["route_id"].as_str().unwrap_or("none");
+    let show = report["show_id"].as_str().unwrap_or("none");
+    let planning = &report["reconciliation"]["planning"];
+    writeln!(
+        output,
+        "Wardrobe (this foreground attachment only): {} worn terminal Mask, {} admitted route; selected route: {selected}; current Show: {show}; planning: {planning}. Preference: {}. Wear/doff/prefer address only this admitted terminal Mask; other Masks have no admitted route here.",
+        worn.len(),
+        report["admitted_routes"].as_array().map_or(0, Vec::len),
+        report["wardrobe"]["preference"],
+    )
+    .map_err(|error| format!("write owner wardrobe: {error}"))?;
+    if report["fresh_show_required"] == true {
+        writeln!(output, "The sealed terminal route is selected, but its prior Show was doffed. Detach and reattach for a fresh acknowledged Show.")
+            .map_err(|error| format!("write wardrobe Show status: {error}"))?;
+    }
+    output
+        .flush()
+        .map_err(|error| format!("flush owner wardrobe: {error}"))
 }
 
 fn report_show(

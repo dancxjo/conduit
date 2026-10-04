@@ -65,6 +65,9 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             },
         )
         .unwrap();
+    // The admission authorization may expire while this exact admitted
+    // carrier continues to realize and acknowledge its current Mask route.
+    owner.pending_browser.as_mut().unwrap().deadline = Instant::now() - Duration::from_millis(1);
     let request = OfferDisclosureRequest {
         stage: OfferDisclosureStage::Planning,
         capability_ids: vec![mask.capability_id.clone()],

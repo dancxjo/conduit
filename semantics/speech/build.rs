@@ -11,6 +11,8 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    println!("cargo:rerun-if-changed=rule_status.conduit");
+    println!("cargo:rerun-if-changed=selection.conduit");
     println!("cargo:rerun-if-changed=listening.conduit");
     println!("cargo:rerun-if-changed=translation.conduit");
     println!("cargo:rerun-if-changed=timing.conduit");
@@ -24,8 +26,10 @@ fn main() {
     println!("cargo:rerun-if-changed=control_projection.conduit");
     println!("cargo:rerun-if-changed=context_match.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
+        include_str!("rule_status.conduit"),
+        include_str!("selection.conduit"),
         include_str!("listening.conduit"),
         include_str!("translation.conduit"),
         include_str!("timing.conduit"),
@@ -62,8 +66,10 @@ fn main() {
     println!("cargo:rerun-if-changed=normalization.conduit");
     println!("cargo:rerun-if-changed=glottal.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("profile_phones.conduit"),
+        include_str!("rule_status.conduit"),
+        include_str!("selection.conduit"),
         fs::read_to_string(path).expect("native speech source"),
         include_str!("pronunciation.conduit"),
         include_str!("trajectory.conduit"),
