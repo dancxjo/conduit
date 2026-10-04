@@ -169,5 +169,45 @@ pub fn write(
             .renderer()
             .map_err(|reason| format!("{reason:?}"))?,
     )?;
+    let default_rules = SpeechAllophoneRuleProfile::new(
+        rules.inventory_id().clone(),
+        rules.language().clone(),
+        BoundedSequence::new(),
+    )
+    .unwrap();
+    let default_policy =
+        SpeechAllophoneChoicePolicy::new(true, false, false, false, true, false).unwrap();
+    let mut default_events = Vec::with_capacity(evidence.len());
+    for (event, supplied) in evidence.iter().enumerate() {
+        let supplied = supplied
+            .as_ref()
+            .ok_or("default fixture requires segment evidence")?;
+        let choice = select_global_allophone_rule(
+            intent,
+            event,
+            &default_rules,
+            &default_policy,
+            supplied.observed_features,
+            supplied.context,
+        )
+        .map_err(|reason| format!("{reason:?}"))?;
+        let selected =
+            conduit_speech::global_default_choice::finish_global_default_choice(&choice, inventory)
+                .map_err(|reason| format!("{reason:?}"))?;
+        let admitted = conduit_speech::global_default_profile::prepare_global_default_profile(
+            &selected,
+            voice,
+            supplied.default_features,
+        )
+        .map_err(|reason| format!("{reason:?}"))?;
+        default_events.push(admitted.event());
+    }
+    super::super::write_rendered(
+        output,
+        "global-declared-default-tata",
+        timing
+            .renderer(&default_events)
+            .map_err(|reason| format!("{reason:?}"))?,
+    )?;
     Ok(())
 }
