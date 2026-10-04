@@ -306,6 +306,15 @@ fn late_foreign_default_or_unselected_rule_cannot_return_a_renderable_result() {
             reason: ChosenGlobalProfileRefusal::DefaultOccurrence(_)
         })
     ));
+    let exact_default = default(11);
+    let mut foreign_observation = setup.evidence(&exact_default).unwrap();
+    foreign_observation.observed_features = Some(&defaults[1]);
+    assert!(
+        matches!(prepare_global_intent(&source, &setup.inventory, &setup.voice, &setup.boundaries, &setup.rules, &setup.policy,
+        &[setup.evidence(&defaults[0]), Some(foreign_observation)]),
+        Err(GlobalIntentRefusal::Choice { event: 1, reason })
+        if matches!(reason.as_ref(), conduit_speech::global_rule_selection::GlobalRuleSelectionRefusal::FeatureOccurrence(_)))
+    );
     let excluded =
         SpeechAllophoneChoicePolicy::new(true, false, false, false, false, false).unwrap();
     assert!(
