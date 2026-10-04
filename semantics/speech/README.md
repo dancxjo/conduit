@@ -546,3 +546,14 @@ selection, occurrence/source resolution, phonological consistency and commitment
 remain separate checks; this timing preparation is not complete utterance
 admission. All unresolved quantitative values retain their original specification
 and global event index, and all durations share one cumulative grid.
+
+`prepare_intent_realization` composes chosen-phone lookup, explicit profile
+realization and ordered timing from one immutable native intent. It owns the
+compact event tape and retains original segment, inventory, profile and timing
+receipts. Its renderer accepts no replacement event tape. Preparation validates
+renderer domains and total frame bounds before returning, without playing PCM;
+all collection growth occurs during preparation within the native bounds.
+This remains chosen-phone quantitative preparation, not complete utterance
+admission: source resolution, phonological consistency and commitment are still
+separate checks. The `intent-realization-hello-world` listening fixture uses
+explicit 120 Hz/unity controls and retains the approved acoustic profile.
