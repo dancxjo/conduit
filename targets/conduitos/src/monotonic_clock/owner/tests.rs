@@ -80,7 +80,7 @@ fn deadline_completion_uses_observed_time_and_retains_one_pending_lease() {
     };
     assert_eq!(tag, "completed");
     assert!(
-        matches!(payload.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == &12_u64.to_le_bytes())
+        matches!(payload.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == 12_u64.to_le_bytes())
     );
     assert_eq!(
         owner
