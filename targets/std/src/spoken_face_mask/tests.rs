@@ -552,6 +552,82 @@ fn host_owned_text_readout_and_focus_claim_no_audio() {
 }
 
 #[test]
+fn refused_navigation_or_input_preserves_the_current_read_all_turn() {
+    let (face, show) = face_with_action();
+    let mut reference = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reference
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let expected = reference.take_text_readout().unwrap().unwrap().clauses;
+
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    assert_eq!(
+        reader.command(
+            &face,
+            &show,
+            ReaderCommand::FocusSubject("absent".into()),
+            2,
+        ),
+        Err(SpokenFaceRefusal::UnknownSubject)
+    );
+    assert_eq!(
+        reader.command(&face, &show, ReaderCommand::FocusAction("absent".into()), 3,),
+        Err(SpokenFaceRefusal::UnknownAction)
+    );
+    assert_eq!(
+        reader.command(
+            &face,
+            &show,
+            ReaderCommand::Edit {
+                argument: "name".into(),
+                value: b"Ada".to_vec(),
+            },
+            4,
+        ),
+        Err(SpokenFaceRefusal::NoActionInFocus)
+    );
+    assert_eq!(
+        reader.command(&face, &show, ReaderCommand::Activate, 5),
+        Err(SpokenFaceRefusal::NoActionInFocus)
+    );
+    assert_eq!(reader.focused_index(), 0);
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        expected
+    );
+}
+
+#[test]
+fn accepted_navigation_retires_only_the_old_turn_and_reads_the_new_focus() {
+    let (face, show) = face_with_action();
+    let mut reference = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reference
+        .command(&face, &show, ReaderCommand::Next, 1)
+        .unwrap();
+    let expected = reference.take_text_readout().unwrap().unwrap().clauses;
+
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let moved = reader
+        .command(&face, &show, ReaderCommand::Next, 2)
+        .unwrap();
+    assert_eq!(
+        moved.interrupted.unwrap().outcome,
+        SpokenTurnOutcome::Cancelled
+    );
+    assert_eq!(moved.focused_clause, 1);
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        expected
+    );
+}
+
+#[test]
 fn inward_text_edit_and_birth_request_are_exact_typed_interactions() {
     let (face, show) = face_with_action();
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
