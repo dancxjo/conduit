@@ -1,5 +1,24 @@
 //! Host-owned speech and artifact attachment, before ordinary planning.
 impl crate::StdHost {
+    /// Check the preattached route without changing this Boot's offers.
+    pub fn selected_spoken_equipment_matches(
+        &self,
+        playback: &crate::hosted_audio::HostedPlaybackSelection,
+        provider_sha256: &str,
+    ) -> bool {
+        self.playback.as_ref() == Some(playback)
+            && self.speech_synthesis.as_ref().is_some_and(|adapter| {
+                adapter.provider_sha256() == provider_sha256
+                    && adapter
+                        .validate_host(
+                            &self.advertisement.host_id,
+                            &self.advertisement.boot_id,
+                            self.advertisement.offer_generation,
+                        )
+                        .is_ok()
+            })
+    }
+
     /// Attach one explicitly selected speaker to this existing Host Boot.
     /// Discovery alone never authorizes playback; the caller must supply a
     /// separate grant to planning, and the adapter rechecks device availability
