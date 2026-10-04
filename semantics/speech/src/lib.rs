@@ -36,6 +36,8 @@ pub mod admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod boundary_admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod context_match;
+#[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
 pub mod declared_realization;
@@ -129,3 +131,6 @@ mod source_balance;
 
 #[cfg(test)]
 mod frication_transfer;
+
+#[cfg(test)]
+mod context_match_parity;
