@@ -289,3 +289,5 @@ pub mod tour_workspace;
 
 #[cfg(test)]
 mod protocol_kernel_fixture;
+
+pub mod protocol_boot;

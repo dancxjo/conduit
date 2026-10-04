@@ -253,3 +253,19 @@ mod tests {
         assert_eq!(hpet_timeout_fs(0, 1, u32::MAX), None);
     }
 }
+
+/// Bootstrap Root spacing for a pending protocol deadline. Both counter reads
+/// and elapsed time are bounded; a stalled/regressed counter refuses.
+pub fn space_protocol_clock_poll() -> Result<(), &'static str> {
+    let counter = CandidateDeadline::admit(1000).ok_or("protocol-clock-spacing-unavailable")?;
+    for _ in 0..1000000 {
+        let elapsed = counter
+            .elapsed_millis()
+            .ok_or("protocol-clock-spacing-lost")?;
+        if elapsed >= 1 {
+            return Ok(());
+        }
+        core::hint::spin_loop();
+    }
+    Err("protocol-clock-spacing-no-progress")
+}

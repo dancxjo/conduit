@@ -14,22 +14,21 @@ pub use x86_64::run_isolation_proof;
 pub use x86_64::{
     Clock, FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
     FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession, HidPointerError,
-    HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle, Interrupts, Opl2,
-    PcSpeaker, Ps2Error, Ps2Input, Ps2Ready, RdrandEntropy, RebootBase, RebootError, Serial, Timer,
-    UsbDevice, VirtioNetError, VirtioNetIdentity, VirtioNetReady, XhciReady,
-    admitted_i801_block_read_ports, admitted_i801_ports, boot_entropy, deterministic_exit,
+    HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle, Interrupts,
+    NativeMonotonicDeadlineClock, Opl2, PcSpeaker, Ps2Error, Ps2Input, Ps2Ready, RdrandEntropy,
+    RebootBase, RebootError, Serial, Timer, UsbDevice, VirtioNetError, VirtioNetIdentity,
+    VirtioNetReady, XhciReady, admitted_i801_block_read_ports, admitted_i801_pci_ports,
+    admitted_i801_ports, admitted_monotonic_deadline_clock, boot_entropy, deterministic_exit,
     early_write, emergency_halt, emergency_machine_profile, enumerate_attached_at_epochs,
     enumerate_one_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard, initialize_machine,
     initialize_virtio_net, initialize_xhci, local_reboot_base, pc_speaker_input_hz,
     prepare_boot_keyboard, prepare_boot_pointer, prepare_ftdi_line, receive_boot_keyboard,
     receive_first_boot_keyboard_report, retire_removed_device, run_boot_keyboard,
-    start_boot_keyboard_session, start_ftdi_line_session, start_pointer_session,
-    wait_for_attachment_state,
+    space_protocol_clock_poll, start_boot_keyboard_session, start_ftdi_line_session,
+    start_pointer_session, wait_for_attachment_state,
 };
 #[cfg(target_arch = "x86_64")]
-pub use x86_64::{I801PciObservation, I801PciRefusal, admitted_i801_pci_ports, observe_i801_pci};
-#[cfg(target_arch = "x86_64")]
-pub use x86_64::{NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock};
+pub use x86_64::{I801PciObservation, I801PciRefusal, observe_i801_pci};
 
 #[cfg(target_arch = "x86_64")]
 pub const ARCHITECTURE: &str = "x86_64";
