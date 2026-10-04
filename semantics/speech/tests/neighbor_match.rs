@@ -51,3 +51,51 @@ fn phoneme_comparison_never_substitutes_same_spelled_phone() {
     .unwrap();
     assert_eq!(compared.decision(), &NeighborDecision::Mismatched);
 }
+
+#[test]
+fn any_requires_observed_neighbor_and_features_remain_unsupported() {
+    use conduit_plot::rust_binding::BoundedSequence;
+    let any = SpeechSegmentMatcher::any();
+    let unknown_phone = PhoneSpecification::unknown();
+    let unknown_phoneme = PhonemeSpecification::unknown();
+    assert_eq!(
+        compare_neighbor(&any, NeighborObservation::Absent)
+            .unwrap()
+            .decision(),
+        &NeighborDecision::Mismatched
+    );
+    assert_eq!(
+        compare_neighbor(&any, NeighborObservation::Unknown)
+            .unwrap()
+            .decision(),
+        &NeighborDecision::ObservationUnresolved
+    );
+    assert_eq!(
+        compare_neighbor(
+            &any,
+            NeighborObservation::Segment {
+                phone: &unknown_phone,
+                phoneme: &unknown_phoneme
+            }
+        )
+        .unwrap()
+        .decision(),
+        &NeighborDecision::Matched
+    );
+    let features =
+        SpeechSegmentMatcher::features(SpeechFeatureBundle::new(BoundedSequence::new()).unwrap())
+            .unwrap();
+    for observation in [
+        NeighborObservation::Absent,
+        NeighborObservation::Unknown,
+        NeighborObservation::Segment {
+            phone: &unknown_phone,
+            phoneme: &unknown_phoneme,
+        },
+    ] {
+        assert_eq!(
+            compare_neighbor(&features, observation).unwrap().decision(),
+            &NeighborDecision::UnsupportedMatcher
+        );
+    }
+}

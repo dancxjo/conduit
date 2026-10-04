@@ -28,3 +28,32 @@ plot speech/context-compare (
     >> value: SpeechContextComparisonInput
     result: SpeechContextDecision >>
 ) = (.requirement is unspecified ? SpeechContextDecision.matched : !(.requirement is known) ? SpeechContextDecision.requirement_unresolved : !(.observation is known) ? SpeechContextDecision.observation_unresolved : .requirement_value == .observation_value ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
+
+# Identity facts come from the exact native phone/phoneme equality laws.
+# Absent is an observed edge; unknown is missing observation.
+type SpeechNeighborMatcherKind =
+    any
+    | identity
+    | unsupported
+type SpeechNeighborPresence =
+    absent
+    | unknown
+    | present
+type SpeechNeighborIdentity =
+    matched
+    | mismatched
+    | unresolved
+type SpeechNeighborDecision =
+    matched
+    | mismatched
+    | observation_unresolved
+    | unsupported_matcher
+type SpeechNeighborComparisonInput = {
+    matcher: SpeechNeighborMatcherKind
+    presence: SpeechNeighborPresence
+    identity: SpeechNeighborIdentity
+}
+plot speech/neighbor-compare (
+    >> value: SpeechNeighborComparisonInput
+    result: SpeechNeighborDecision >>
+) = (.matcher is unsupported ? SpeechNeighborDecision.unsupported_matcher : .presence is absent ? SpeechNeighborDecision.mismatched : .presence is unknown ? SpeechNeighborDecision.observation_unresolved : .matcher is any ? SpeechNeighborDecision.matched : .identity is unresolved ? SpeechNeighborDecision.observation_unresolved : .identity is matched ? SpeechNeighborDecision.matched : SpeechNeighborDecision.mismatched)
