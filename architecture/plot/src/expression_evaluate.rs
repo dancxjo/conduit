@@ -1,5 +1,6 @@
 //! Portable semantic evaluation for one already checked expression program.
 
+mod equality;
 mod intrinsic;
 mod literal;
 mod structured;
@@ -189,6 +190,19 @@ fn binary(
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     if left.value_type != right.value_type {
         return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+    }
+    if matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual) {
+        let equal = equality::equal(left, right)?;
+        return primitive_value(
+            expected,
+            InfoBool::new(if matches!(operator, BinaryOperator::Equal) {
+                equal
+            } else {
+                !equal
+            })
+            .encode()
+            .to_vec(),
+        );
     }
     let comparison = matches!(
         operator,
