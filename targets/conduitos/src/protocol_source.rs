@@ -64,6 +64,8 @@ pub enum ProtocolSourceRefusal {
     Source(conduit_plot::SyntaxCheckDiagnostic),
     Expansion(conduit_plot::CanonicalExpansionDiagnostic),
     Offer,
+    Plan(conduit_planner::PlannerError),
+    Admission(crate::protocol_host_calls::ProtocolCallRefusal),
 }
 
 impl ProtocolSourcePackage {
@@ -280,3 +282,6 @@ mod tests;
 
 mod planning;
 pub use planning::ProtocolQueueLimits;
+
+mod admission;
+pub use admission::PreparedProtocolArtifact;

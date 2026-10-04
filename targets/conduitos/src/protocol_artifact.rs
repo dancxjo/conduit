@@ -47,13 +47,7 @@ impl AdmittedProtocolArtifact {
         let mut contracts = Vec::new();
         let mut maximum_bytes = 1;
         for fore in &fragment.fore_ports {
-            if fore.track != ConnectionTrack::Payload
-                || boundary
-                    .input_fronts
-                    .iter()
-                    .chain(&boundary.output_fronts)
-                    .any(|front| front.external_port.port_id == fore.front_port_id)
-            {
+            if fore.track != ConnectionTrack::Payload {
                 return Err(ProtocolCallRefusal::InvalidPlan);
             }
             let placement = fragment
@@ -93,6 +87,33 @@ impl AdmittedProtocolArtifact {
                     },
                     contract: contract.clone(),
                 });
+            }
+            if let Some(previous) = boundary
+                .input_fronts
+                .iter()
+                .chain(&boundary.output_fronts)
+                .find(|front| front.external_port.port_id == fore.front_port_id)
+            {
+                // One external input routes through the planner's already
+                // lowered atomic fan-out. The binding retains one exact representative.
+                if fore.direction != PortDirection::Input
+                    || previous.external_port != external_port
+                    || fragment
+                        .fore_ports
+                        .iter()
+                        .filter(|candidate| candidate.front_port_id == fore.front_port_id)
+                        .any(|candidate| {
+                            candidate.direction != fore.direction
+                                || candidate.value_contract != fore.value_contract
+                        })
+                {
+                    return Err(ProtocolCallRefusal::InvalidPlan);
+                }
+                // Value contracts describe external ports, not fan-out targets.
+                if fore.value_contract.is_some() {
+                    contracts.pop();
+                }
+                continue;
             }
             let binding = KernelCompositeFrontBinding {
                 external_port,

@@ -34,6 +34,27 @@ effect outside the exact selected base. The canon's prohibition on authored
 addresses and device/resource binding facts still applies to realization facts;
 #4833 explicitly requires protocol-level addressing inside a bounded exchange.
 
+## Source package preparation
+
+The development implementation accepts bounded packages using
+`conduit.conduitos/protocol-source@1`. A package contains Source and exact typed
+specializations of generic state, merge and pair Backs. It contains no controller
+selection, resource possession or authority. Preparation checks the Source and
+retains those Back owners before publishing their exact offers.
+
+The native caller supplies host offers, selected placements, bases and grants to
+`PreparedProtocolSource::plan_artifact`. Ordinary planning seals the exact Cords
+and finite queues; artifact admission binds the distinct Source, checked,
+expanded and artifact identities. Input fan-out retains the planner's atomic
+routing and exact common Fore contract. The resulting package owner consumes
+actual I2C and clock possession together when preparing Play.
+
+This production preparation chain is exercised by deterministic native kernel
+conformance through `cargo xtask check device-protocols`. Ordinary boot media and
+controller admission are still unfinished. A package's descriptive identities
+do not establish review, firmware release, attachment ownership or permission to
+use a controller.
+
 ## Existing Rust responsibility audit
 
 The categories below describe responsibilities, not whole-file exemptions.

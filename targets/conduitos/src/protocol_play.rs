@@ -14,6 +14,13 @@ use conduit_core::*;
 mod timed;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
+pub struct I2cAdmission<P> {
+    pub ready: ReadyI2cBase<P>,
+    pub table: BaseCapabilityTable,
+    pub handle: BaseCapabilityHandle,
+    pub claim: BaseOperationClaim,
+}
+
 /// Preparation owns the admitted kernel and the actual native owners together.
 /// The caller supplies the selected Plan and opaque possession; no grant is minted here.
 pub struct PreparedProtocolPlay<P> {
@@ -252,7 +259,12 @@ pub(crate) fn validate_fore(
     if definition.host_id != fragment.host_id
         || definition.boot_id != fragment.boot_id
         || definition.offer_generation != fragment.offer_generation
-        || fragment.fore_ports.len()
+        || fragment
+            .fore_ports
+            .iter()
+            .map(|fore| (&fore.front_port_id, fore.direction == PortDirection::Input))
+            .collect::<alloc::collections::BTreeSet<_>>()
+            .len()
             != definition.boundary.input_fronts.len() + definition.boundary.output_fronts.len()
     {
         return Err(ProtocolCallRefusal::InvalidPlan);
@@ -277,7 +289,14 @@ pub(crate) fn validate_fore(
                 fore.front_port_id == front.external_port.port_id && fore.direction == direction
             });
             let fore = matching.next().ok_or(ProtocolCallRefusal::InvalidPlan)?;
-            if matching.next().is_some()
+            if (matching.clone().next().is_some() && direction != PortDirection::Input)
+                || matching.any(|candidate| {
+                    candidate.track != fore.track
+                        || candidate.value_kind != fore.value_kind
+                        || candidate.temporal != fore.temporal
+                        || candidate.abnormal_kind != fore.abnormal_kind
+                        || candidate.value_contract != fore.value_contract
+                })
                 || fore.track != ConnectionTrack::Payload
                 || front.terminal != conduit_plot::CompositeFrontTerminal::Independent
                 || front.internal_child != fragment.host_id
