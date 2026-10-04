@@ -196,11 +196,15 @@ export async function startOwnerParticipation(application, root) {
   const refreshFace = async () => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
+    const priorFace = faceView;
+    faceView = null;
+    delete root.dataset.ownerFaceShown;
     delete root.dataset.ownerShowAcknowledged;
+    for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
-      const prepared = await participation.prepareOwnerFaceMask(faceView ? {
-        lastSeenRevision: faceView.face_revision, lastSeenIdentity: faceView.face_id,
+      const prepared = await participation.prepareOwnerFaceMask(priorFace ? {
+        lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
       } : undefined);
       renderFace(prepared);
       const shown = await participation.acknowledgeOwnerFaceMask(prepared);
