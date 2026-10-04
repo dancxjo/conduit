@@ -488,3 +488,12 @@ the phoneme frontend PCM exactly. Complete utterance/source commitment admission
 and planner ownership of rich preparation receipts remain separate work. Hosted
 preparation may allocate within the native bounds; the compact rendering tape and
 playback retain their existing finite-storage contracts.
+
+Intent phone lookup also accepts an exact event in a `SpeechUtteranceIntent`
+and a caller-supplied inventory. Native laws check occurrence membership and
+inventory/language agreement; only a known opaque phone ID resolves to a unique
+full definition. The preparation receipt borrows the original intent segment,
+including its sources and provenance. It creates no observed token, confidence,
+or material snapshot. Missing events, boundary events, unresolved specifications,
+and missing or duplicate definitions remain distinct refusals. This lookup does
+not yet select a voice profile or admit a whole utterance for playback.
