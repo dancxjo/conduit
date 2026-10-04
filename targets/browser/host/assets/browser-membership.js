@@ -9,6 +9,30 @@ const OWNER_FACE_REQUEST_SCHEMA = "conduit.presentation/owner-face-request@1";
 const OWNER_FACE_RESPONSE_SCHEMA = "conduit.presentation/owner-face-response@1";
 const MAX_OWNER_FACE_RESPONSE_BYTES = 32768;
 
+export function checkedSelectedSpeechResponse(frame, pending, frameLength) {
+  if (!pending || frame?.kind !== "selected-speech-response" || frame.protocol !== 1 ||
+      frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
+  const expected = { start: "started", status: "status", stop: "stop-requested" }[pending.kind];
+  const status = frame.status;
+  const statusValid = pending.kind !== "status" ||
+    (status?.operation_id === pending.operationId &&
+      ((status.schema === "conduit.body/selected-speech-status@1" && status.state === "running") ||
+       (status.schema === "conduit.body/selected-speech-terminal@1" &&
+         ["completed", "cancelled", "refused", "failed", "play-refused-unclassified"].includes(status.outcome))));
+  if (!Number.isSafeInteger(frameLength) || frameLength < 1 || frameLength > 64 * 1024 ||
+      ![expected, "refused"].includes(frame.outcome) ||
+      (frame.outcome === "refused" && (typeof frame.code !== "string" || !frame.code || frame.code.length > 128)) ||
+      (frame.outcome !== "refused" && frame.code !== null) ||
+      (frame.operation_id !== null && (typeof frame.operation_id !== "string" || !frame.operation_id || frame.operation_id.length > 256)) ||
+      (frame.outcome !== "refused" &&
+        (!frame.operation_id || (pending.operationId !== null && frame.operation_id !== pending.operationId) ||
+         (pending.kind !== "status" && status !== null) || !statusValid))) {
+    throw new Error("invalid selected speech response");
+  }
+  if (frame.outcome === "refused") throw new Error(`Owner refused selected speech: ${frame.code}`);
+  return Object.freeze(frame);
+}
+
 export function immutableWebRtcGrantFrame(frame) {
   if (frame?.grant !== null && (typeof frame?.grant !== "object" ||
       !Array.isArray(frame.grant.session_hello))) {
@@ -320,26 +344,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
       clearTimeout(pending.timeout);
       pendingSelectedSpeech = null;
-      const expected = { start: "started", status: "status", stop: "stop-requested" }[pending.kind];
-      const status = frame.status;
-      const statusValid = pending.kind !== "status" ||
-        (status?.operation_id === pending.operationId &&
-          ((status.schema === "conduit.body/selected-speech-status@1" && status.state === "running") ||
-           (status.schema === "conduit.body/selected-speech-terminal@1" &&
-             ["completed", "cancelled", "refused", "failed", "play-refused-unclassified"].includes(status.outcome))));
-      if (frameBytes.length > 64 * 1024 || ![expected, "refused"].includes(frame.outcome)
-          || (frame.outcome === "refused" && (typeof frame.code !== "string" || frame.code.length > 128))
-          || (frame.outcome !== "refused" && frame.code !== null)
-          || (frame.operation_id !== null && (typeof frame.operation_id !== "string" || frame.operation_id.length > 256))
-          || (frame.outcome !== "refused" &&
-              (!frame.operation_id || (pending.operationId !== null && frame.operation_id !== pending.operationId) ||
-               !statusValid))) {
-        pending.reject(new Error("invalid selected speech response"));
-      } else if (frame.outcome === "refused") {
-        pending.reject(new Error(`Owner refused selected speech: ${frame.code}`));
-      } else {
-        pending.resolve(Object.freeze(frame));
-      }
+      try { pending.resolve(checkedSelectedSpeechResponse(frame, pending, frameBytes.length)); }
+      catch (error) { pending.reject(error); }
     } else if (frame.kind === "media-use-plan" && frame.protocol === 1) {
       if (!pendingMediaPlan || frame.resource_handle !== pendingMediaPlan.resourceHandle) {
         throw new Error("stale or mismatched media use Plan");
