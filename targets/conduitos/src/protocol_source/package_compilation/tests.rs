@@ -28,7 +28,10 @@ fn named_type_preparation_preserves_exact_source_and_checks_the_final_plot_separ
         value.schema.profile().unwrap().value_kind(),
         &value.contract.value_kind
     );
-    let invalid = original.replace("= (.)", "= (missing-kind())");
+    let invalid = original.replace(
+        "= (.)",
+        "{\n missing: nonexistent/kind\n input >> missing >> output\n}",
+    );
     let package = ProtocolSourcePackage::compile(invalid, &[request("Packet", 128)]).unwrap();
     assert!(
         PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), "identity").is_err()
