@@ -307,7 +307,10 @@ impl Owner {
                 biography: Box::new(self.session.evidence().clone()),
                 offer: Box::new(offer),
             };
-            window.state = WindowState::Active(credential);
+            window.state = WindowState::Active {
+                credential,
+                observation: Box::new(pending.observation.clone()),
+            };
             Ok(snapshot)
         })();
         self.pending_browser = Some(window);

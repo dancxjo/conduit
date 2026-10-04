@@ -3,7 +3,9 @@
 //! admission, membership, authority, or elapsed authorization time.
 use super::{read_frame, read_secret, write_frame, Request, Response, PROTOCOL};
 use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
-use conduit_body::{BodyBiographyEvidence, MembershipCredential};
+use conduit_body::{
+    BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
+};
 use conduit_core::LinkBindingId;
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use std::path::Path;
@@ -26,6 +28,7 @@ fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Re
     match &mut request {
         Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
+        | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyBrowserCancel { token, .. } => token.fill(0),
@@ -81,6 +84,28 @@ pub(crate) fn complete(
         } => Ok(*snapshot),
         Response::Refused { code, .. } => Err(format!("Body owner refused browser proof: {code}")),
         _ => Err("Body owner returned the wrong browser proof response".into()),
+    }
+}
+
+pub(crate) fn planning_offer(
+    state_dir: &Path,
+    window_id: &str,
+    credential: MembershipCredential,
+    disclosure: OfferDisclosureRequest,
+) -> Result<HostOfferProjection, String> {
+    match call(state_dir, |token| Request::BodyBrowserOffer {
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        credential,
+        disclosure,
+    })? {
+        Response::BodyBrowserOffer {
+            protocol: PROTOCOL,
+            offer,
+        } => Ok(*offer),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong planning offer response".into()),
     }
 }
 

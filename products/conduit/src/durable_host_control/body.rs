@@ -8,8 +8,9 @@ use super::DurableHostRuntime;
 #[cfg(any(unix, test))]
 use super::{Request, Response, PROTOCOL};
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt, PortableInvitation,
-    PortableSpawnAdmissionRequest, RendezvousCandidate,
+    BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
+    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
+    RendezvousCandidate,
 };
 use conduit_core::LinkBindingId;
 use conduit_presentation::{
@@ -145,6 +146,22 @@ impl DurableHostRuntime {
     ) -> Result<crate::durable_host::owner::BrowserAdmittedSnapshot, String> {
         match &mut self.host {
             HostSource::Body { owner, root, .. } => owner.browser_complete(root, window_id, frame),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
+    pub(super) fn browser_planning_offer(
+        &self,
+        window_id: &str,
+        credential: &MembershipCredential,
+        disclosure: &OfferDisclosureRequest,
+    ) -> Result<HostOfferProjection, String> {
+        match &self.host {
+            HostSource::Body { owner, .. } => {
+                owner.browser_planning_offer(window_id, credential, disclosure)
+            }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }

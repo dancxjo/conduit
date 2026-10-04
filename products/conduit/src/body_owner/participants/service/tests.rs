@@ -3,7 +3,7 @@ use conduit_body::{
     PortableSpawnAdmissionRequest, ResidentPlot, SpawnInvitationSecret,
     SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
-use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_core::{BootId, CapabilityId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostConfig};
 use std::path::PathBuf;
 
@@ -79,6 +79,78 @@ fn advertise(owner: &mut Owner, window_id: &str) -> conduit_body::AdmissionChall
         panic!("expected ambient challenge")
     };
     challenge
+}
+
+#[test]
+fn current_browser_window_discloses_only_requested_planning_offer_detail() {
+    let (mut owner, root, _) = setup();
+    let browser = host("host/browser-test", "boot/browser/first")
+        .advertisement()
+        .clone();
+    let capability = browser.capabilities[0].capability_id.clone();
+    let authorized = owner
+        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .unwrap();
+    let challenge = advertise(&mut owner, &authorized.window_id);
+    let secret = SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap();
+    let snapshot = owner
+        .browser_complete(
+            &root,
+            &authorized.window_id,
+            In::AmbientProof {
+                protocol: PROTOCOL,
+                admission_id: challenge.admission_id.clone(),
+                body_id: challenge.body_id.clone(),
+                host_id: challenge.host_id.clone(),
+                boot_id: challenge.boot_id.clone(),
+                nonce: challenge.nonce.to_vec(),
+                signature: secret.sign(&challenge.signing_transcript()).to_vec(),
+            },
+        )
+        .unwrap();
+    assert!(snapshot.offer.capabilities.is_empty());
+    let request = OfferDisclosureRequest {
+        stage: OfferDisclosureStage::Planning,
+        capability_ids: vec![capability.clone()],
+        resource_pool_ids: vec![],
+    };
+    let detailed = owner
+        .browser_planning_offer(&authorized.window_id, &snapshot.credential, &request)
+        .unwrap();
+    assert_eq!(detailed.stage, OfferDisclosureStage::Planning);
+    assert_eq!(detailed.proof_class, RemoteProofClass::SelfReported);
+    assert_eq!(detailed.host_id, snapshot.credential.host_id);
+    assert_eq!(detailed.boot_id, snapshot.credential.boot_id);
+    assert_eq!(detailed.offer_generation, browser.offer_generation);
+    assert_eq!(detailed.capabilities.len(), 1);
+    assert_eq!(detailed.capabilities[0].capability_id, capability);
+    assert!(detailed.capability_summary.is_empty());
+    let mut unknown = request.clone();
+    unknown.capability_ids = vec![CapabilityId::from("capability/unknown")];
+    assert_eq!(
+        owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &unknown),
+        Err("unknown-capability".into())
+    );
+    let mut premature = request.clone();
+    premature.stage = OfferDisclosureStage::AdmittedMembership;
+    assert_eq!(
+        owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &premature),
+        Err("invalid-offer-request".into())
+    );
+    let mut altered = snapshot.credential.clone();
+    altered.issued_at_millis += 1;
+    assert_eq!(
+        owner.browser_planning_offer(&authorized.window_id, &altered, &request),
+        Err("credential-mismatch".into())
+    );
+    owner
+        .browser_cancel_window(&root, &authorized.window_id)
+        .unwrap();
+    assert_eq!(
+        owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &request),
+        Err("window-not-active".into())
+    );
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
