@@ -158,7 +158,7 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
     let output =
         StructuredInfoValue::from_canonical_bytes(request.evaluate(&encoded).unwrap()).unwrap();
     assert!(
-        matches!(fixture::field(&output, "deadline").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes.as_slice() == 123_u64.to_le_bytes())
+        matches!(fixture::field(&output, "deadline").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes == 123_u64.to_le_bytes())
     );
     let (completion_type, mut event) = evaluator("bme280-clock-event");
     let result_type = fixture::field_type(&completion_type, "result");
@@ -183,7 +183,7 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
     assert_eq!(fixture::tag(&output), "event");
     assert_eq!(fixture::tag(fixture::payload(&output)), "tick");
     assert!(
-        matches!(fixture::payload(fixture::payload(&output)).shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes.as_slice() == 125_u64.to_le_bytes())
+        matches!(fixture::payload(fixture::payload(&output)).shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes == 125_u64.to_le_bytes())
     );
     for tag in [
         "unavailable",
@@ -217,7 +217,7 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
             StructuredInfoValue::from_canonical_bytes(request.evaluate(&request_input).unwrap())
                 .unwrap();
         assert!(
-            matches!(fixture::field(&output, "deadline").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes.as_slice() == 0_u64.to_le_bytes())
+            matches!(fixture::field(&output, "deadline").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes == 0_u64.to_le_bytes())
         );
         let input = complete(
             bus_context,
@@ -233,7 +233,7 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
             expected
         );
         assert!(
-            matches!(fixture::field(bus, "now").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes.as_slice() == 125_u64.to_le_bytes())
+            matches!(fixture::field(bus, "now").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes == 125_u64.to_le_bytes())
         );
     }
 }

@@ -92,7 +92,7 @@ mod tests {
         kind.validate().unwrap();
         assert_eq!(kind.inputs.len(), 2);
         assert_eq!(kind.outputs.len(), 1);
-        assert_eq!(kind.terminal_transductions().len(), 2);
+        assert_eq!(kind.terminal_transductions().count(), 2);
         assert!(kind
             .value_contracts()
             .iter()
