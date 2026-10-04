@@ -12,3 +12,13 @@ type SpeechPhoneDefinitionMatch = {
     definition: PhoneId
     where .requested == .definition
 }
+
+# Intent is a requested realization, not an observed material token.
+type SpeechIntentInventoryBasis = {
+    intent_inventory_id: SpeechInventoryId
+    intent_language: SpeechLanguageId
+    inventory_id: SpeechInventoryId
+    inventory_language: SpeechLanguageId
+    where .intent_inventory_id == .inventory_id
+    where .intent_language == .inventory_language
+}
