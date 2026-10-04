@@ -57,6 +57,8 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                 joins: zip,
                 states: crate::seeded_state::SeededStateOperationFactory::default(),
                 merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
+                gates: crate::flow_take_until_finite::FlowTakeUntilFiniteOperationFactory::default(
+                ),
             },
         )
     }
@@ -80,6 +82,8 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                 joins: crate::flow_zip::FlowZipOperationFactory::default(),
                 states,
                 merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
+                gates: crate::flow_take_until_finite::FlowTakeUntilFiniteOperationFactory::default(
+                ),
             },
         )
     }
@@ -121,6 +125,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             joins: zip,
             states,
             merges,
+            gates,
         } = operations;
         validate_fore(&definition)?;
         zip.validate_plan(&definition.internal_plan)
@@ -129,6 +134,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         merges
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        gates
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let calls = PreparedProtocolCalls::prepare_with_operations(
@@ -164,6 +172,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(merges)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(gates)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         if allow_clock {
             registry

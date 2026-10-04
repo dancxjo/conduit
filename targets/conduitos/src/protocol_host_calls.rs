@@ -115,6 +115,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                         | structured_selector_host_call::IMPLEMENTATION
                         | crate::flow_zip::IMPLEMENTATION
                         | crate::flow_merge_finite::IMPLEMENTATION
+                        | crate::flow_take_until_finite::IMPLEMENTATION
                         | crate::seeded_state::IMPLEMENTATION
                         | crate::current_sample::IMPLEMENTATION
                         | crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION

@@ -519,3 +519,6 @@ pub use pure_expression::{pure_expression_contract, pure_filter_contract};
 mod pure_expression_back;
 #[cfg(feature = "kernel-step")]
 pub use pure_expression_back::PureExpressionBack;
+
+mod flow_take_until_finite;
+pub use flow_take_until_finite::*;
