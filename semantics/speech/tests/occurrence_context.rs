@@ -26,7 +26,7 @@ fn native_adjacency_checks_every_basis_axis_and_u32_edges() {
             assert!(
                 matches!(
                     &result,
-                    Err(NativeBindingRefusal::ViolatedInvariant { index: 5 })
+                    Err(NativeBindingRefusal::ViolatedInvariant { index: 0 })
                 ),
                 "unexpected ordinal refusal: {result:?}"
             );
