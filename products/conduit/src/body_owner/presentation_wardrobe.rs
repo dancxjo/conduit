@@ -147,6 +147,23 @@ impl OwnerPresentationWardrobe {
         Ok(reconciliation)
     }
 
+    /// Reuse an unchanged outer Plan; otherwise replace it explicitly on a
+    /// fresh Face, Host offer, or child route. Policy survives replacement.
+    pub(crate) fn admit_or_replace(
+        &mut self,
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        current: &[CurrentOwnerPresentationRoute<'_>],
+    ) -> Result<MaskReconciliation, OwnerPresentationWardrobeError> {
+        let next = OwnerPresentationPlan::seal_current(session, face, current)
+            .map_err(OwnerPresentationWardrobeError::Plan)?;
+        if next.plan_id == self.plan.plan_id {
+            self.reconcile(session, face, current)
+        } else {
+            self.replace(session, face, current)
+        }
+    }
+
     /// Record a real Mask Show only for the currently selected child route.
     /// The ordinary seal validates Face, Host, Boot, offer, Lines, and Show.
     pub(crate) fn acknowledge_selected_show(
@@ -208,6 +225,23 @@ impl OwnerPresentationWardrobe {
             .is_some_and(|ack| Some(&ack.selected) != selected)
         {
             self.acknowledged = None;
+        }
+    }
+
+    pub(crate) fn forget_show_for(&mut self, child_route_plan_id: &PlanId) {
+        if self
+            .acknowledged
+            .as_ref()
+            .is_some_and(|ack| &ack.child_route_plan_id == child_route_plan_id)
+        {
+            self.acknowledged = None;
+        }
+        if self.control.selected.as_ref().is_some_and(|selected| {
+            selected.route_id == format!("route/{}", child_route_plan_id.as_str())
+        }) {
+            // The provider was lost. Revocation does not change authored
+            // wardrobe policy or make any other route available.
+            self.control.selected = None;
         }
     }
 }

@@ -37,10 +37,10 @@ mod birth;
 mod clock_interval;
 #[path = "native_mask_route.rs"]
 mod native_mask_route;
-// Wired to live route witnesses after the browser carrier joins the owner.
-#[allow(dead_code)]
 #[path = "presentation_wardrobe.rs"]
 mod presentation_wardrobe;
+#[path = "presentation_wardrobe_runtime.rs"]
+mod presentation_wardrobe_runtime;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
@@ -133,7 +133,6 @@ pub(crate) struct Owner {
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
-    #[allow(dead_code)]
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
 }
 impl Owner {

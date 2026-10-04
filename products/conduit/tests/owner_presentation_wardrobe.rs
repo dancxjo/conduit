@@ -198,6 +198,23 @@ fn fallback_doff_rewear_and_replacement_require_fresh_show() {
             .unwrap(),
         &first
     );
+    let original_plan = wardrobe.plan().plan_id.clone();
+    wardrobe
+        .admit_or_replace(
+            &fixture.session,
+            &fixture.face,
+            &[fixture.first_witness(), fixture.second_witness()],
+        )
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, original_plan);
+    wardrobe.forget_show_for(&fixture.second_seal.route_plan_id);
+    assert!(wardrobe
+        .selected_show(
+            &fixture.session,
+            &fixture.face,
+            &[fixture.first_witness(), fixture.second_witness()]
+        )
+        .is_ok());
 
     let fallback = wardrobe
         .reconcile(&fixture.session, &fixture.face, &[fixture.second_witness()])
@@ -224,6 +241,12 @@ fn fallback_doff_rewear_and_replacement_require_fresh_show() {
             &second,
         )
         .unwrap();
+    wardrobe.forget_show_for(&fixture.second_seal.route_plan_id);
+    assert!(wardrobe.control().selected.is_none());
+    assert_eq!(
+        wardrobe.selected_show(&fixture.session, &fixture.face, &[fixture.second_witness()]),
+        Err(OwnerPresentationWardrobeError::ShowNotAcknowledged)
+    );
     let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
     wardrobe
         .apply(
