@@ -3,9 +3,9 @@
 use super::*;
 use alloc::{format, string::String};
 use conduit_presentation::{
-    plan_face_utterances, readable_finite_text_choices, FaceUtteranceProvenance as Provenance,
-    PresentationActionAvailability, PresentationDisclosureLevel, PresentationPropertyValue,
-    PresentationRole,
+    FaceUtteranceProvenance as Provenance, PresentationActionAvailability,
+    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole, plan_face_utterances,
+    readable_finite_text_choices,
 };
 
 pub(super) struct Item {
@@ -224,12 +224,7 @@ pub(super) fn prepare(
                     argument_hint(argument)
                 };
                 append(Item {
-                    text: format!(
-                        "{} · {} · {}",
-                        subject.name,
-                        argument.value_name,
-                        hint
-                    ),
+                    text: format!("{} · {} · {}", subject.name, argument.value_name, hint),
                     role: GraphicsTextRole::Label,
                     paint,
                     control: interaction_admitted.then_some(FaceControl {

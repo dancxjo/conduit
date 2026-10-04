@@ -1,6 +1,6 @@
 use super::*;
 use alloc::{string::String, vec};
-use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
+use conduit_core::{CheckedValueContract, ValueConstraint, kind_id};
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use conduit_presentation::*;
 #[path = "fixture.rs"]
@@ -352,9 +352,7 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         kind_id(UTF8_TEXT_VALUE_KIND),
         2,
         vec![ValueConstraint::CanonicalMembership {
-            members: (0u8..9)
-                .map(|value| value.to_string().into_bytes())
-                .collect(),
+            members: (0u8..9).map(|value| vec![b'0' + value]).collect(),
             negated: false,
         }],
     )
@@ -371,10 +369,12 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
     )
     .unwrap();
     let crowded_scene = NativeFaceScene::prepare(crowded, 640, 480).unwrap();
-    assert!(crowded_scene
-        .primary
-        .iter()
-        .any(|row| row.text.contains("enter a replacement value")));
+    assert!(
+        crowded_scene
+            .primary
+            .iter()
+            .any(|row| row.text.contains("enter a replacement value"))
+    );
 }
 
 #[test]
