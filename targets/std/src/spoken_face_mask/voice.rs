@@ -146,12 +146,49 @@ fn voice_clause(face: &Presentation, clause: &FaceUtteranceClause) -> String {
                     "{}. Choose yes or no, then activate {}.",
                     argument.value_name, action.name
                 ),
+                (
+                    UTF8_TEXT_VALUE_KIND,
+                    [ValueConstraint::CanonicalMembership {
+                        members,
+                        negated: false,
+                    }],
+                ) => readable_members(members).map_or_else(
+                    || clause.text.clone(),
+                    |choices| {
+                        format!(
+                            "{}. Choose one of: {choices}. Then activate {}.",
+                            argument.value_name, action.name
+                        )
+                    },
+                ),
                 _ => clause.text.clone(),
             }
         }
         FaceUtteranceProvenance::Text(_) => clause.text.clone(),
         _ => clause.text.clone(),
     }
+}
+
+/// A small finite UTF-8 membership set can be named in ordinary speech.
+/// Other exact contracts retain their generic, bounded Face clause.
+fn readable_members(members: &[Vec<u8>]) -> Option<String> {
+    if members.is_empty() || members.len() > 8 {
+        return None;
+    }
+    let mut choices = Vec::with_capacity(members.len());
+    let mut bytes = 0usize;
+    for member in members {
+        let value = std::str::from_utf8(member).ok()?;
+        if value.is_empty() || value.chars().any(char::is_control) {
+            return None;
+        }
+        bytes = bytes.checked_add(value.len())?;
+        if bytes > 128 {
+            return None;
+        }
+        choices.push(value);
+    }
+    Some(choices.join(", "))
 }
 
 fn spoken_role(role: &PresentationRole) -> String {
