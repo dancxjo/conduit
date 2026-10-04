@@ -9,7 +9,7 @@ use conduit_core::{
 };
 
 pub const SEEDED_STATE_KIND: &str = "state/seeded/finite";
-pub const SEEDED_STATE_REVISION: &str = "conduit.state/seeded-finite@1";
+pub const SEEDED_STATE_REVISION: &str = "conduit.state/seeded-finite@2";
 
 /// Initialization is exactly one ordinary seed value. A replacement presented
 /// before the seed waits; after seeding, a second seed is invalid. Replacements
@@ -72,20 +72,23 @@ pub fn seeded_state_semantic_contract(
             PortTemporal::Current,
         )],
         configuration: Vec::new(),
-        semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![
-            FrontValueContract {
-                location: FrontValueLocation::Input(port_id("seed")),
-                contract: value.clone(),
-            },
-            FrontValueContract {
-                location: FrontValueLocation::Input(port_id("next")),
-                contract: value.clone(),
-            },
-            FrontValueContract {
-                location: FrontValueLocation::Output(port_id("current")),
-                contract: value.clone(),
-            },
-        ])],
+        semantic_laws: vec![
+            KindSemanticLaw::TemporalState(conduit_core::TemporalStateBehavior::SourceSeededFinite),
+            KindSemanticLaw::ValueContracts(vec![
+                FrontValueContract {
+                    location: FrontValueLocation::Input(port_id("seed")),
+                    contract: value.clone(),
+                },
+                FrontValueContract {
+                    location: FrontValueLocation::Input(port_id("next")),
+                    contract: value.clone(),
+                },
+                FrontValueContract {
+                    location: FrontValueLocation::Output(port_id("current")),
+                    contract: value.clone(),
+                },
+            ]),
+        ],
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 2,
@@ -96,6 +99,51 @@ pub fn seeded_state_semantic_contract(
                 .max(1),
         },
     })
+}
+
+pub const SEEDED_STATE_FLOW_KIND: &str = "state/seeded/flow/finite";
+pub const SEEDED_STATE_FLOW_REVISION: &str = "conduit.state/seeded-flow-finite@1";
+
+/// Observe the seed and each committed replacement exactly once. Closing next
+/// drains these observations and closes current without an extra observation.
+/// A finite zip can consume one generation per event without resampling stale Current.
+pub fn seeded_state_flow_semantic_contract(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+) -> Result<Kind, &'static str> {
+    let mut kind = seeded_state_semantic_contract(value, schema)?;
+    kind.kind_id = kind_id(SEEDED_STATE_FLOW_KIND);
+    kind.kind_contract_revision = KindIdentity::from(SEEDED_STATE_FLOW_REVISION);
+    kind.outputs[0].temporal = PortTemporal::Flow { closes: true };
+    kind.semantic_laws[0] =
+        KindSemanticLaw::TemporalState(conduit_core::TemporalStateBehavior::SourceSeededFlowFinite);
+    kind.semantic_laws
+        .push(KindSemanticLaw::TerminalTransduction(
+            conduit_core::TerminalTransductionProfile {
+                input_port_id: port_id("next"),
+                output_port_id: port_id("current"),
+                normal_close: conduit_core::NormalCloseTransduction::PropagateAfterDrain,
+                abnormal: conduit_core::AbnormalTerminalTransduction::NotAccepted,
+                cancellation: conduit_core::CancellationTransduction::NotCancellable,
+            },
+        ));
+    Ok(kind)
+}
+
+#[cfg(feature = "plot-catalog")]
+pub fn install_seeded_state_flow_kind(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    let kind = seeded_state_flow_semantic_contract(value, schema).map_err(str::to_string)?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: SEEDED_STATE_FLOW_KIND.into(),
+        startup_parameters: Vec::new(),
+    })?;
+    startup.insert_fore(SEEDED_STATE_FLOW_KIND, kind.checked_front())?;
+    profile.insert_kind(kind).map_err(|error| error.to_string())
 }
 
 #[cfg(feature = "plot-catalog")]

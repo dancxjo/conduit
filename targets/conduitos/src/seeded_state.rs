@@ -39,15 +39,42 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
+        self.install_mode(value, schema, false)
+    }
+
+    /// Retain a closing observation Flow with exactly one item per generation.
+    pub fn install_flow(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, &'static str> {
+        self.install_mode(value, schema, true)
+    }
+
+    fn install_mode(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+        flow: bool,
+    ) -> Result<CapabilityOffer, &'static str> {
         if self.states.len() >= MAXIMUM_SPECIALIZATIONS || value.maximum_bytes > MAXIMUM_BYTES {
             return Err("native seeded state exceeds its finite prepared profile");
         }
-        let kind = conduit_semantic_catalog::seeded_state_semantic_contract(value, schema)?;
+        let kind = if flow {
+            conduit_semantic_catalog::seeded_state_flow_semantic_contract(value, schema)?
+        } else {
+            conduit_semantic_catalog::seeded_state_semantic_contract(value, schema)?
+        };
         let offer = BackOfferBuilder::new(
             kind,
             Back {
                 capability_id: CapabilityId::from(format!(
-                    "conduitos/seeded-state-finite/{}/{}@1",
+                    "conduitos/{}/{}/{}@1",
+                    if flow {
+                        "seeded-state-flow-finite"
+                    } else {
+                        "seeded-state-finite"
+                    },
                     value.value_kind.as_str(),
                     value.maximum_bytes
                 )),
@@ -144,9 +171,13 @@ impl KernelOperationFactory for SeededStateOperationFactory {
         _: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
         let state = self.selected(gear)?;
-        Ok(Box::new(
-            SeededStateBack::prepare(&state.value, &state.schema).map_err(String::from)?,
-        ))
+        let back = if state.offer.outputs[0].temporal == (PortTemporal::Flow { closes: true }) {
+            SeededStateBack::prepare_flow(&state.value, &state.schema)
+        } else {
+            SeededStateBack::prepare(&state.value, &state.schema)
+        }
+        .map_err(String::from)?;
+        Ok(Box::new(back))
     }
 }
 

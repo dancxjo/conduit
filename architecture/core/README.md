@@ -17,6 +17,7 @@ depends on semantic, application, target, or proof packages.
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, base, and observation characteristics. |
 | `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked plot meaning into plan and fragment identity. |
 | `configuration.rs` | universal architecture | Generic bounded configuration values carried by checked plots and plans. |
+| `flow_semantic_laws.rs` | universal architecture | Finite flow transformation laws and value contracts shared by checking, planning and realization. |
 | `control_loop.rs` | universal architecture | Generic plan satisfaction, recovery, and replan decisions over current truth. |
 | `execution.rs` | universal architecture | Generic execution-region and admitted execution-profile records. |
 | `execution_fusion.rs` | universal architecture | Exact optional fusion of ordinary planned placements without a second executor. |
@@ -36,6 +37,7 @@ depends on semantic, application, target, or proof packages.
 | `route.rs` | universal architecture | Exact planned/admitted line, base, endpoint, authority, and route truth. |
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |
 | `state_delay.rs` | universal architecture | Explicit typed computational-state identity, continuation, and retained-resource admission. |
+| `source_seeded_state.rs` | universal architecture | Exact declared Source-seeded state boundary validation; initialization remains a dependency and only the declared replacement input is a delay. |
 | `stream_sampling.rs` | universal architecture | Deterministic bounded source-item selection with exact selected/unselected ownership and accounting, distinct from pressure loss or coalescing. |
 | `terminal_info.rs` | universal architecture | Canonical bounded abnormal-terminal info, including exact category, causal evidence digest, and optional domain-owned fault identity. |
 | `deadline.rs` | generic mechanism | Exact bounded monotonic-deadline operation/resource contract; no clock implementation or scheduling policy. |

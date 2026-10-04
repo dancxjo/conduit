@@ -47,6 +47,50 @@ pub fn install_flow_zip_finite_kind(
 ) -> Result<(), alloc::string::String> {
     let kind = flow_zip_finite_semantic_contract(left, left_type, right, right_type)
         .map_err(alloc::string::String::from)?;
+    install_pair_kind(kind, left, left_type, right, right_type, startup, profile)
+}
+
+pub const FLOW_ZIP_FEEDBACK_KIND: &str = "flow/zip/feedback";
+
+/// Each published pair requires exactly one subsequent left state return.
+/// Right closure retains a pending event until that return arrives and waits
+/// for the last pair's state return before closing. Left loss remains closure.
+pub fn flow_zip_feedback_semantic_contract(
+    left: &CheckedValueContract,
+    left_type: &StructuredInfoType,
+    right: &CheckedValueContract,
+    right_type: &StructuredInfoType,
+) -> Result<Kind, &'static str> {
+    let mut kind = flow_zip_finite_semantic_contract(left, left_type, right, right_type)?;
+    kind.kind_id = kind_id(FLOW_ZIP_FEEDBACK_KIND);
+    kind.kind_contract_revision = KindIdentity::from("conduit.flow/zip-feedback@1");
+    Ok(kind)
+}
+
+#[cfg(feature = "plot-catalog")]
+pub fn install_flow_zip_feedback_kind(
+    left: &CheckedValueContract,
+    left_type: &StructuredInfoType,
+    right: &CheckedValueContract,
+    right_type: &StructuredInfoType,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    let kind = flow_zip_feedback_semantic_contract(left, left_type, right, right_type)
+        .map_err(alloc::string::String::from)?;
+    install_pair_kind(kind, left, left_type, right, right_type, startup, profile)
+}
+
+#[cfg(feature = "plot-catalog")]
+fn install_pair_kind(
+    kind: Kind,
+    left: &CheckedValueContract,
+    left_type: &StructuredInfoType,
+    right: &CheckedValueContract,
+    right_type: &StructuredInfoType,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
     let encoder = PreparedTypedTuplePairEncoder::new(
         left_type.clone(),
         left.maximum_bytes,
@@ -55,11 +99,14 @@ pub fn install_flow_zip_finite_kind(
     )
     .map_err(|error| alloc::format!("{error:?}"))?;
     startup.insert(conduit_plot::KindSignature {
-        kind: FLOW_ZIP_FINITE_KIND.into(),
+        kind: kind.kind_id.as_str().into(),
         startup_parameters: alloc::vec::Vec::new(),
     })?;
-    startup.insert_fore(FLOW_ZIP_FINITE_KIND, kind.checked_front())?;
-    startup.insert_structured_type("flow/zip/finite/paired", encoder.value_type().clone())?;
+    startup.insert_fore(kind.kind_id.as_str(), kind.checked_front())?;
+    startup.insert_structured_type(
+        alloc::format!("{}/paired", kind.kind_id.as_str()),
+        encoder.value_type().clone(),
+    )?;
     profile
         .insert_kind(kind)
         .map_err(|error| alloc::format!("{error:?}"))

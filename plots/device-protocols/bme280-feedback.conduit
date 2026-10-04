@@ -1,0 +1,19 @@
+with flow/zip/feedback/paired as BmePair
+
+plot bme280-join (
+ pair: BmePair...| >> transition: BmeProtocolTransition...|
+) = ({ state: .0, event: .1 })
+
+plot bme280-feedback (
+ >> begin: BmeProtocolBegin...|
+ >> event: BmeProtocolEvent...| <= 4096B
+ current: BmeProtocolState...| <= 4096B >>
+) {
+ cell: state/seeded/flow/finite
+ join: flow/zip/feedback
+ begin >> bme280-protocol-initialize() >> cell.seed
+ event >> join.right
+ cell.current >> join.left
+ join.paired >> bme280-join() >> bme280-protocol-transition() >> cell.next
+ cell.current >> current
+}

@@ -274,3 +274,85 @@ fn finite_typed_pair_close_flush_is_bounded_under_pressure_without_allocation() 
     });
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn finite_close_retires_queued_unmatched_values_one_per_step() {
+    let ty = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+    let contract = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let mut operation =
+        FlowZipBack::prepare_typed_finite(&contract, ty.clone(), &contract, ty).unwrap();
+    let bytes = conduit_core::encode_count(1);
+    for closing in [true, false] {
+        let mut io = StepIo::test_frame(
+            [Some(reference(0, &bytes)), None],
+            [false, closing],
+            [None; 2],
+            None,
+            16,
+        );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([Some(&bytes), None], None)
+            ),
+            StepOutcome::Progress
+        );
+        assert!(io.test_consumed(PortId(0)));
+        assert_eq!(io.test_consumed_closed(PortId(1)), closing);
+        assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+    }
+    let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Complete
+    );
+}
+
+#[test]
+fn empty_feedback_close_waits_for_initial_state_without_growth() {
+    let ty = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+    let contract = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let mut operation =
+        FlowZipBack::prepare_typed_feedback(&contract, ty.clone(), &contract, ty).unwrap();
+    let bytes = conduit_core::encode_count(1);
+    let allocations = crate::test_support::allocation::allocations_during(|| {
+        // An empty event stream still waits for its Source initialization.
+        let mut io = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_consumed_closed(PortId(1)));
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        for _ in 0..1000 {
+            let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+                StepOutcome::Await
+            );
+        }
+        let mut io = StepIo::test_frame(
+            [Some(reference(0, &bytes)), None],
+            [false; 2],
+            [None; 2],
+            None,
+            16,
+        );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([Some(&bytes), None], None)
+            ),
+            StepOutcome::Progress
+        );
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Complete
+        );
+        assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+    });
+    assert_eq!(allocations, 0);
+}
