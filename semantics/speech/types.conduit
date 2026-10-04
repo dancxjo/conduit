@@ -282,3 +282,6 @@ type PhonemeSpecification = SpeechSpec<PhonemeId>
 type StressSpecification = SpeechSpec<SpeechStress>
 
 type FeatureSpecification = SpeechSpec<SpeechFeatureValue>
+
+# Explicit realization-style evidence, distinct from prosodic context.
+type SpeechCarefulStyleSpecification = SpeechSpec<Boolean>
