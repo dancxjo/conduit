@@ -700,6 +700,14 @@ phone. A late missing phoneme cannot produce a renderable aggregate even if a
 wildcard rule and output-phone binding would otherwise match. Definition features
 remain definition facts, without becoming observed token features or defaults.
 
+`finish_global_default_choice` completes standalone-rule selection using only
+the exact original phoneme definition's declared default phone. The existing
+native finish law preserves winners and earlier deferral; default selection
+requires explicit policy permission and compatibility with any Known requested
+phone. The receipt retains the original choice, native phoneme membership and
+optional exact default-ID witness. It does not invent a phone from spelling,
+resolve phone membership, admit acoustics or establish commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed

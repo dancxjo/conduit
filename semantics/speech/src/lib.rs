@@ -196,3 +196,6 @@ pub mod contextual_intent_realization;
 
 #[cfg(test)]
 mod output_features_parity;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod global_default_choice;

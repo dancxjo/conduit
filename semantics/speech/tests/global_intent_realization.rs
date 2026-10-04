@@ -392,3 +392,85 @@ fn late_missing_phoneme_refuses_even_when_a_wildcard_rule_and_phone_would_match(
         if matches!(reason.as_ref(), conduit_speech::intent_phoneme_inventory::IntentPhonemeRefusal::MissingDefinition))
     );
 }
+
+#[test]
+fn declared_global_default_preserves_policy_constraints_winners_and_deferral() {
+    use conduit_speech::{
+        global_default_choice::*, global_rule_selection::select_global_allophone_rule,
+    };
+    let source = occurrence::intent([segment(10)]);
+    let setup = Setup::new();
+    let default = default(10);
+    let context = setup.evidence(&default).unwrap().context;
+    let empty = SpeechAllophoneRuleProfile::new(
+        setup.rules.inventory_id().clone(),
+        setup.rules.language().clone(),
+        BoundedSequence::new(),
+    )
+    .unwrap();
+    let allowed = SpeechAllophoneChoicePolicy::new(true, false, false, false, true, false).unwrap();
+    let choice = select_global_allophone_rule(&source, 0, &empty, &allowed, None, context).unwrap();
+    let finished = finish_global_default_choice(&choice, &setup.inventory).unwrap();
+    assert_eq!(
+        finished.state().outcome(),
+        &SpeechAllophoneChoiceOutcome::SelectedDefault
+    );
+    assert!(core::ptr::eq(finished.choice(), &choice));
+    assert!(core::ptr::eq(
+        finished.phoneme().occurrence().intent(),
+        &source
+    ));
+    assert!(core::ptr::eq(
+        finished.selected_default().unwrap(),
+        setup.inventory.phonemes().as_slice()[0]
+            .default_phone()
+            .as_ref()
+            .unwrap()
+    ));
+    let forbidden =
+        select_global_allophone_rule(&source, 0, &empty, &setup.policy, None, context).unwrap();
+    assert_eq!(
+        finish_global_default_choice(&forbidden, &setup.inventory)
+            .unwrap()
+            .state()
+            .outcome(),
+        &SpeechAllophoneChoiceOutcome::None
+    );
+    for profile in [
+        rules(StressSpecification::unspecified()),
+        rules(StressSpecification::unknown()),
+    ] {
+        let choice =
+            select_global_allophone_rule(&source, 0, &profile, &allowed, None, context).unwrap();
+        let finished = finish_global_default_choice(&choice, &setup.inventory).unwrap();
+        assert_eq!(finished.state(), choice.state());
+        assert!(finished.selected_default().is_none());
+    }
+    let SpeechUtteranceIntentEvent::Segment(original) = segment(10) else {
+        unreachable!()
+    };
+    for requested in ["phone/t", "phone/foreign"] {
+        let constrained = occurrence::intent([SpeechUtteranceIntentEvent::segment(
+            original.occurrence().clone(),
+            PhoneSpecification::known(native::id(requested)).unwrap(),
+            original.phoneme().clone(),
+            original.prosody().clone(),
+            original.provenance().clone(),
+            original.sources().clone(),
+            original.stress().clone(),
+            original.word_position().clone(),
+        )
+        .unwrap()]);
+        let choice =
+            select_global_allophone_rule(&constrained, 0, &empty, &allowed, None, context).unwrap();
+        let finished = finish_global_default_choice(&choice, &setup.inventory).unwrap();
+        assert_eq!(
+            finished.selected_default().is_some(),
+            requested == "phone/t"
+        );
+        assert_eq!(
+            finished.checked_default_identity().is_some(),
+            requested == "phone/t"
+        );
+    }
+}
