@@ -131,6 +131,12 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
         self.playing()?.step().map_err(ProtocolBodyRefusal::Call)
     }
 
+    pub fn has_pending_clock(&self) -> bool {
+        self.kernel
+            .as_ref()
+            .is_some_and(PreparedTimedProtocolPlay::has_pending_clock)
+    }
+
     pub fn cancel(&mut self) -> Result<(), ProtocolBodyRefusal> {
         let kernel = self
             .kernel
