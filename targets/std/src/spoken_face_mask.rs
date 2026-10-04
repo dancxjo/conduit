@@ -10,7 +10,8 @@ use std::collections::BTreeMap;
 use conduit_presentation::{
     FaceReadingCommand, FaceReadingCursor, FaceUtteranceClause, FaceUtterancePlan,
     FaceUtteranceProvenance, MaskShow, Presentation, PresentationActionAvailability,
-    PresentationPropertyValue, PresentationRelationshipKind, PresentationRole, UTF8_TEXT_VALUE_KIND,
+    PresentationPropertyValue, PresentationRelationshipKind, PresentationRole,
+    UTF8_TEXT_VALUE_KIND,
 };
 use conduit_tongues::{SpeakableSegment, SpeechCommitReason, MAXIMUM_SPEAKABLE_SEGMENT_BYTES};
 use sha2::{Digest, Sha256};
