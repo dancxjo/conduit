@@ -130,6 +130,36 @@ fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
         )
         .unwrap();
     let artifact = prepared.artifact();
+    let partition = prepared.body_partition();
+    assert_eq!(partition.plan, artifact.definition().internal_plan);
+    let resident = partition.plot.clone();
+    let workset = conduit_body::BodyWorkset::one(resident.clone()).unwrap();
+    let (_, wake) = conduit_body::Body::born_with_plots(workset, 1, "fixture/birth".into())
+        .unwrap()
+        .wake(2, "fixture/wake".into())
+        .unwrap();
+    let body_plan = conduit_body::BodyPlan::seal(&wake, vec![partition.clone()]).unwrap();
+    body_plan.validate_for(&wake).unwrap();
+    assert_eq!(body_plan.plots[0], partition);
+
+    // A protocol partition cannot silently omit another resident Plot.
+    let complete_workset = conduit_body::BodyWorkset::from_plots([
+        resident,
+        conduit_body::ResidentPlot::new(
+            "fixture/another-source".into(),
+            "fixture/another-checked".into(),
+        ),
+    ])
+    .unwrap();
+    let (_, complete_wake) =
+        conduit_body::Body::born_with_plots(complete_workset, 1, "fixture/complete-birth".into())
+            .unwrap()
+            .wake(2, "fixture/complete-wake".into())
+            .unwrap();
+    assert_eq!(
+        conduit_body::BodyPlan::seal(&complete_wake, vec![partition]),
+        Err(conduit_body::BodyPlanError::MissingPlot)
+    );
     assert!(verify_plan(&artifact.definition().internal_plan));
     assert_eq!(
         artifact.identity().source,

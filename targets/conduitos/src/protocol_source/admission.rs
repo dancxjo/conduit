@@ -65,6 +65,21 @@ impl PreparedProtocolArtifact {
         &self.artifact
     }
 
+    /// Contribute the exact retained protocol Plan to ordinary body admission.
+    /// The caller seals every current resident partition together with
+    /// `BodyPlan::seal`; this projection creates neither a Wake nor a Play and
+    /// leaves the operation owners retained by this artifact.
+    pub fn body_partition(&self) -> conduit_body::BodyPlotPlan {
+        let identity = self.artifact.identity();
+        conduit_body::BodyPlotPlan {
+            plot: conduit_body::ResidentPlot::new(
+                identity.source.clone(),
+                identity.checked.clone(),
+            ),
+            plan: self.artifact.definition().internal_plan.clone(),
+        }
+    }
+
     /// Consume the retained package owners together with actual native possession.
     pub fn prepare_timed<P, C>(
         self,
