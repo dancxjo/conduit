@@ -85,6 +85,12 @@ export async function startOwnerParticipation(application, root) {
       <button type="button" data-owner-face-refresh disabled>Refresh this Face</button>
       <details><summary>Inspect the current Face, route, Plan, and Show</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
     </section>
+    <section aria-labelledby="owner-speech-title"><h3 id="owner-speech-title">Hear this view</h3>
+      <p>Ask the installed Linux owner to read the current Face through its selected speaker. Playback happens on that Host; this browser shows its reported outcome.</p>
+      <button type="button" data-owner-speech-start disabled>Read this view aloud</button>
+      <button type="button" data-owner-speech-status disabled>Check reading</button>
+      <button type="button" data-owner-speech-stop disabled>Stop reading</button>
+      <p role="status" data-owner-speech-result>Join and show the Face first.</p></section>
     <button type="button" data-owner-leave disabled>Leave this window</button>
     <p><a href="?">Return to my local Handbook</a>. Your local Body remains retained; this join mode does not open or change it.</p>`;
   const status = root.querySelector('[data-owner-status]');
@@ -97,7 +103,24 @@ export async function startOwnerParticipation(application, root) {
   const faceDocument = root.querySelector('[data-owner-face-document]');
   const faceEvidence = root.querySelector('[data-owner-face-evidence]');
   const faceRefresh = root.querySelector('[data-owner-face-refresh]');
+  const speechStart = root.querySelector('[data-owner-speech-start]');
+  const speechStatus = root.querySelector('[data-owner-speech-status]');
+  const speechStop = root.querySelector('[data-owner-speech-stop]');
+  const speechResult = root.querySelector('[data-owner-speech-result]');
   let host, participation, expectedBodyId = null, faceView = null, faceBusy = false, actionSequence = 0;
+  let speechOperationId = null, speechBusy = false;
+  const speechControls = () => {
+    const current = participation?.presenceState() === 'available';
+    speechStart.disabled = !current || !faceView || faceBusy || speechBusy || Boolean(speechOperationId);
+    speechStatus.disabled = !current || !speechOperationId || speechBusy;
+    speechStop.disabled = !current || !speechOperationId || speechBusy;
+    if (speechOperationId) {
+      faceRefresh.disabled = true;
+      for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
+    } else if (current && !faceBusy) {
+      faceRefresh.disabled = false;
+    }
+  };
   const faceNode = (tag, text, className) => {
     const node = document.createElement(tag);
     node.textContent = text;
@@ -240,6 +263,7 @@ export async function startOwnerParticipation(application, root) {
       root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
       renderFace(shown);
+      speechControls();
       faceStatus.textContent = 'The browser is showing the owner’s current Face.';
       delete faceStatus.dataset.refused;
       faceEvidence.textContent = JSON.stringify(inspectedRoute, null, 2);
@@ -251,6 +275,7 @@ export async function startOwnerParticipation(application, root) {
     } finally {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
+      speechControls();
     }
   };
   const showState = state => {
@@ -264,6 +289,9 @@ export async function startOwnerParticipation(application, root) {
       for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
       actionResult.dataset.refused = 'true';
+      speechOperationId = null;
+      speechResult.textContent = 'The owner route was lost. The owner requests cancellation; return for a new current Show.';
+      speechControls();
     }
   };
   const showBiography = biography => {
@@ -348,6 +376,44 @@ export async function startOwnerParticipation(application, root) {
     showState('leaving');
   });
   faceRefresh.addEventListener('click', refreshFace);
+  speechStart.addEventListener('click', async () => {
+    if (!participation || !faceView || speechBusy || speechOperationId) return;
+    speechBusy = true; speechControls();
+    try {
+      const reply = await participation.selectedDirectSpeechStart(faceView);
+      if (reply.outcome !== 'started' || !reply.operation_id) throw new Error('owner did not report a started reading');
+      speechOperationId = reply.operation_id;
+      speechResult.textContent = 'The owner started reading this Show. Check its outcome or stop it.';
+      delete speechResult.dataset.refused;
+    } catch (error) {
+      speechResult.textContent = `Reading refused or uncertain: ${error.message}`;
+      speechResult.dataset.refused = 'true';
+    } finally { speechBusy = false; speechControls(); }
+  });
+  speechStatus.addEventListener('click', async () => {
+    if (!participation || !speechOperationId || speechBusy) return;
+    speechBusy = true; speechControls();
+    try {
+      const reply = await participation.selectedDirectSpeechStatus(speechOperationId);
+      if (reply.outcome !== 'status' || reply.operation_id !== speechOperationId) throw new Error('mismatched owner reading');
+      const status = reply.status;
+      speechResult.textContent = status?.state === 'running' ? 'The owner is still reading.'
+        : `Owner reading ended: ${status?.outcome ?? 'unknown'}.` +
+          (status?.source_show_still_current === false ? ' That source Show is now historical.' : '');
+      if (status?.state !== 'running') speechOperationId = null;
+    } catch (error) { speechResult.textContent = `Reading status unavailable: ${error.message}`; speechResult.dataset.refused = 'true'; }
+    finally { speechBusy = false; speechControls(); if (!speechOperationId) queueMicrotask(refreshFace); }
+  });
+  speechStop.addEventListener('click', async () => {
+    if (!participation || !speechOperationId || speechBusy) return;
+    speechBusy = true; speechControls();
+    try {
+      const reply = await participation.selectedDirectSpeechStop(speechOperationId);
+      if (reply.outcome !== 'stop-requested' || reply.operation_id !== speechOperationId) throw new Error('mismatched owner reading');
+      speechResult.textContent = 'Stop requested. Check reading for the terminal outcome.';
+    } catch (error) { speechResult.textContent = `Stop refused or uncertain: ${error.message}`; speechResult.dataset.refused = 'true'; }
+    finally { speechBusy = false; speechControls(); }
+  });
   globalThis.__conduitOwnerParticipation = Object.freeze({
     host: () => host.current(),
     admissionIdentity: () => host.admissionIdentity(),

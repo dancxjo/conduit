@@ -35,6 +35,15 @@ Plan, Play, or remotely executed Plot. A public
 HTTPS deployment cannot use this loopback window to reach a different computer;
 the ordinary static Handbook remains independent of it.
 
+When the Linux owner was installed with selected speech equipment, **Read this
+view aloud** asks that owner to read the browser's current acknowledged Show.
+**Check reading** reports the owner's running or terminal outcome, and **Stop
+reading** requests cancellation. The owner checks the current carrier, Face,
+Show, Host Boot, and selected equipment before starting. Sound comes from the
+Linux speaker; the browser does not synthesize it. This direct readout is a
+prerequisite for a spoken Mask, not yet an owner-spoken Mask Show or proof that a
+person heard the playback.
+
 Open the Handbook, choose **A clock you can stop** or **Turn keystrokes into text**, and edit the Plot source. Live highlighting comes from the packaged Rust/WASM syntax projection. **Try in my Handbook** checks and installs the exact source in your local Body; an invalid edit reports its refusal. **Lull** ends execution, and **Wake** admits another run.
 
 **Open in Patchbay** opens the resident Patchbay application. Select the example from its list to inspect the actual checked Plot and execution projection. DOM/SVG is the browser Mask realization of this Show, not a second semantic graph store.

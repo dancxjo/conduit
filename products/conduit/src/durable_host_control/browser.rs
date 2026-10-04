@@ -1,6 +1,7 @@
 //! Short authenticated owner operations used by the loopback browser worker.
 //! Network waits remain on that worker; this control carrier never decides
 //! admission, membership, authority, or elapsed authorization time.
+use super::speech_route::{SpeechReply, SpeechRequest, MAGIC};
 use super::{read_frame, read_secret, write_frame, Request, Response, PROTOCOL};
 use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
 use conduit_body::{
@@ -10,6 +11,87 @@ use conduit_core::LinkBindingId;
 use conduit_presentation::{OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use std::path::Path;
+use std::{io::Write, os::unix::net::UnixStream};
+
+fn speech_call(
+    state_dir: &Path,
+    request: impl FnOnce(Vec<u8>) -> SpeechRequest,
+) -> Result<SpeechReply, String> {
+    let mut secret = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to selected speech owner: {error}"))?;
+    stream.write_all(MAGIC).map_err(|error| error.to_string())?;
+    let mut request = request(secret.to_vec());
+    secret.fill(0);
+    let sent = write_frame(&mut stream, &request);
+    match &mut request {
+        SpeechRequest::Start { token, .. }
+        | SpeechRequest::Status { token, .. }
+        | SpeechRequest::Stop { token, .. } => token.fill(0),
+    }
+    sent?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| error.to_string())?;
+    read_frame(&mut stream)
+}
+
+pub(crate) fn selected_speech_start(
+    state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: conduit_presentation::MaskShow,
+) -> Result<String, String> {
+    match speech_call(state_dir, |token| SpeechRequest::Start {
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        binding,
+        request: Box::new(request),
+        show: Box::new(show),
+    })? {
+        SpeechReply::Started {
+            protocol: PROTOCOL,
+            operation_id,
+        } => Ok(operation_id),
+        SpeechReply::Refused { code, .. } => Err(code),
+        _ => Err("owner returned the wrong selected speech start response".into()),
+    }
+}
+
+pub(crate) fn selected_speech_status(
+    state_dir: &Path,
+    operation_id: &str,
+) -> Result<serde_json::Value, String> {
+    match speech_call(state_dir, |token| SpeechRequest::Status {
+        protocol: PROTOCOL,
+        token,
+        operation_id: operation_id.into(),
+    })? {
+        SpeechReply::Status {
+            protocol: PROTOCOL,
+            status,
+        } => Ok(*status),
+        SpeechReply::Refused { code, .. } => Err(code),
+        _ => Err("owner returned the wrong selected speech status response".into()),
+    }
+}
+
+pub(crate) fn selected_speech_stop(state_dir: &Path, operation_id: &str) -> Result<(), String> {
+    match speech_call(state_dir, |token| SpeechRequest::Stop {
+        protocol: PROTOCOL,
+        token,
+        operation_id: operation_id.into(),
+    })? {
+        SpeechReply::StopRequested {
+            protocol: PROTOCOL,
+            operation_id: returned,
+        } if returned == operation_id => Ok(()),
+        SpeechReply::Refused { code, .. } => Err(code),
+        _ => Err("owner returned the wrong selected speech stop response".into()),
+    }
+}
 
 pub(crate) fn spawn_window(
     state_dir: &Path,
