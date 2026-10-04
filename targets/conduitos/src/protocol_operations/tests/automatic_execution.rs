@@ -123,4 +123,10 @@ fn wrong_identity_traverses_actual_bus_clock_and_source_feedback_without_retry()
         complete,
         "terminal Source state must drain and complete normally"
     );
+    play.cancel().unwrap();
+    assert!(play.session().realization().is_none());
+    assert_eq!(
+        play.session().evidence().body.state,
+        conduit_body::BodyState::Lulled
+    );
 }

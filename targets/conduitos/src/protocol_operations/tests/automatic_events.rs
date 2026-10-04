@@ -2,13 +2,6 @@
 extern crate std;
 use super::*;
 use alloc::vec::Vec;
-#[test]
-fn automatic_bus_time_topology_plans_against_exact_retained_native_owners() {
-    let (mut play, _, _) = prepare(InertBus, InertClock);
-    play.start().unwrap();
-    play.cancel().unwrap();
-}
-
 pub(super) fn prepare<
     P: crate::i2c_base::I2cProvider,
     C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
@@ -16,7 +9,26 @@ pub(super) fn prepare<
     provider: P,
     clock_provider: C,
 ) -> (
-    crate::protocol_play::PreparedTimedProtocolPlay<P, C>,
+    crate::protocol_source::PreparedProtocolBodyPlay<P, C>,
+    StructuredInfoType,
+    StructuredInfoType,
+) {
+    let (play, begin, failure) = prepare_with_body_edit(provider, clock_provider, |_| {});
+    (play.unwrap(), begin, failure)
+}
+
+pub(super) fn prepare_with_body_edit<
+    P: crate::i2c_base::I2cProvider,
+    C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
+>(
+    provider: P,
+    clock_provider: C,
+    edit: impl FnOnce(&mut conduit_body::BodyLifecycleSession),
+) -> (
+    Result<
+        crate::protocol_source::PreparedProtocolBodyPlay<P, C>,
+        alloc::boxed::Box<crate::protocol_source::ProtocolBodyPreparationRefusal>,
+    >,
     StructuredInfoType,
     StructuredInfoType,
 ) {
@@ -368,22 +380,29 @@ pub(super) fn prepare<
         );
     }
     assert_eq!(artifact.artifact().identity(), &identity);
-    let play = artifact
-        .prepare_timed(
-            crate::protocol_play::I2cAdmission {
-                ready: bus,
-                table,
-                handle,
-                claim,
-            },
-            crate::protocol_play::ClockAdmission {
-                ready: timer,
-                table: clock_table,
-                handle: clock_handle,
-                claim: clock_claim,
-            },
-        )
-        .unwrap();
+    let mut session = crate::protocol_test_support::protocol_body_session(
+        artifact.body_partition(),
+        &hosts[0].host_id,
+        &hosts[0].boot_id,
+    );
+    edit(&mut session);
+    let play = crate::protocol_source::PreparedProtocolBodyPlay::prepare(
+        artifact,
+        session,
+        0,
+        crate::protocol_play::I2cAdmission {
+            ready: bus,
+            table,
+            handle,
+            claim,
+        },
+        crate::protocol_play::ClockAdmission {
+            ready: timer,
+            table: clock_table,
+            handle: clock_handle,
+            claim: clock_claim,
+        },
+    );
     (
         play,
         schema("BmeProtocolBegin").clone(),
@@ -391,7 +410,7 @@ pub(super) fn prepare<
     )
 }
 
-struct InertBus;
+pub(super) struct InertBus;
 impl crate::i2c_base::I2cProvider for InertBus {
     fn transact(
         &mut self,
@@ -402,7 +421,7 @@ impl crate::i2c_base::I2cProvider for InertBus {
     }
     fn revoke(&mut self) {}
 }
-struct InertClock;
+pub(super) struct InertClock;
 impl crate::monotonic_clock::owner::MonotonicDeadlineProvider for InertClock {
     fn poll_until(
         &mut self,

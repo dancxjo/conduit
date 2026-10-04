@@ -146,6 +146,7 @@ fn complete_source_protocol_captures_calibration_and_sample_through_native_bus_a
     // The output buffer is allocated before execution; its exact kind comes from the sealed Fore.
     let captured = play
         .kernel()
+        .unwrap()
         .definition()
         .external_capability
         .outputs
@@ -158,6 +159,7 @@ fn complete_source_protocol_captures_calibration_and_sample_through_native_bus_a
     };
     let observation_port = play
         .kernel()
+        .unwrap()
         .definition()
         .external_capability
         .outputs
@@ -232,5 +234,11 @@ fn complete_source_protocol_captures_calibration_and_sample_through_native_bus_a
     assert!(
         complete,
         "terminal Source state must drain and complete normally"
+    );
+    play.cancel().unwrap();
+    assert!(play.session().realization().is_none());
+    assert_eq!(
+        play.session().evidence().body.state,
+        conduit_body::BodyState::Lulled
     );
 }

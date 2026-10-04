@@ -130,5 +130,11 @@ fn unavailable_and_lost_clock_publish_exact_refusals_and_close_without_retry() {
         assert_eq!((refusals, failures), (1, 1));
         assert_eq!(bus_calls.load(Ordering::SeqCst), 1);
         assert_eq!(clock_calls.load(Ordering::SeqCst), 1);
+        play.cancel().unwrap();
+        assert!(play.session().realization().is_none());
+        assert_eq!(
+            play.session().evidence().body.state,
+            conduit_body::BodyState::Lulled
+        );
     }
 }

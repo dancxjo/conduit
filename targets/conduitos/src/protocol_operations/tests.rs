@@ -163,3 +163,5 @@ mod automatic_execution;
 mod automatic_capture;
 
 mod automatic_clock_failure;
+
+mod automatic_body;
