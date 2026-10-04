@@ -7,12 +7,13 @@ use super::{admission::remaining, debug, nonce, now, signal, Owner, PROTOCOL};
 use conduit_body::{
     disclose_host_offer, AdmissionChallenge, AdmissionManager, AmbientAdmissionProof,
     BodyBiographyEvidence, BodyId, BodyState, CandidateInventory, CandidateObservation,
-    DiscoveryProofId, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
-    OfferDisclosureStage, PartReturnChallenge, PartReturnProof, RemoteProofClass,
+    DiscoveryProofId, HostOfferProjection, MembershipCredential, OfferDisclosureRefusal,
+    OfferDisclosureRequest, OfferDisclosureStage, PartReturnChallenge, PartReturnProof,
+    RemoteProofClass,
 };
 use conduit_core::{HostAdvertisement, HostId, LinkBindingId};
 use conduit_std_host::browser_admission::{
-    BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
+    BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In, MAX_BROWSER_ADMISSION_FRAME_BYTES,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -70,7 +71,72 @@ pub(crate) struct BrowserWindow {
 enum WindowState {
     Ready,
     Pending(Box<Pending>),
-    Active(MembershipCredential),
+    Active {
+        credential: MembershipCredential,
+        observation: Box<CandidateObservation>,
+    },
+}
+
+pub(super) fn planning_offer_response(
+    state_dir: Option<&Path>,
+    window_id: Option<&str>,
+    credential: &MembershipCredential,
+    request: OfferDisclosureRequest,
+) -> Result<Out, String> {
+    #[cfg(unix)]
+    let result = state_dir
+        .zip(window_id)
+        .ok_or_else(|| "owner-unavailable".to_string())
+        .and_then(|(dir, window_id)| {
+            crate::durable_host_control::browser::planning_offer(
+                dir,
+                window_id,
+                credential.clone(),
+                request,
+            )
+        });
+    #[cfg(not(unix))]
+    let result: Result<HostOfferProjection, String> = {
+        let _ = (state_dir, window_id, credential, request);
+        Err("owner-unavailable".into())
+    };
+    match result {
+        Ok(offer) => {
+            let frame = Out::OfferEvidence {
+                protocol: PROTOCOL,
+                evidence: Box::new(offer),
+            };
+            if serde_json::to_vec(&frame)
+                .map_err(|error| format!("encode planning offer: {error}"))?
+                .len()
+                > MAX_BROWSER_ADMISSION_FRAME_BYTES
+            {
+                Ok(Out::Refused {
+                    protocol: PROTOCOL,
+                    code: "offer-frame-pressure".into(),
+                })
+            } else {
+                Ok(frame)
+            }
+        }
+        Err(error) => Ok(Out::Refused {
+            protocol: PROTOCOL,
+            code: planning_offer_refusal(&error).into(),
+        }),
+    }
+}
+
+fn planning_offer_refusal(error: &str) -> &'static str {
+    match error {
+        "unknown-capability" => "unknown-capability",
+        "unknown-resource" => "unknown-resource",
+        "invalid-offer-request" => "invalid-offer-request",
+        "credential-mismatch" => "credential-mismatch",
+        "part-unavailable" => "part-unavailable",
+        "window-not-active" => "window-not-active",
+        "owner-unavailable" => "owner-unavailable",
+        _ => "offer-unavailable",
+    }
 }
 
 struct Pending {
@@ -198,12 +264,68 @@ impl Owner {
         if window.id != window_id {
             return Err("browser admission window identity differs".into());
         }
-        if let WindowState::Active(credential) = &window.state {
+        if let WindowState::Active { credential, .. } = &window.state {
             let credential = credential.clone();
             self.browser_leave(root, window_id, &credential)?;
         }
         self.pending_browser = None;
         Ok(())
+    }
+
+    /// Disclose only the requested detail from the observation authenticated
+    /// for this current browser carrier. It remains self-reported offer truth;
+    /// planning and prepare must separately admit an actual Line and Back.
+    pub(crate) fn browser_planning_offer(
+        &self,
+        window_id: &str,
+        credential: &MembershipCredential,
+        request: &OfferDisclosureRequest,
+    ) -> Result<HostOfferProjection, String> {
+        let window = self.pending_browser.as_ref().ok_or("window-not-active")?;
+        window.check(window_id).map_err(|_| "window-not-active")?;
+        let WindowState::Active {
+            credential: active,
+            observation,
+        } = &window.state
+        else {
+            return Err("window-not-active".into());
+        };
+        if active != credential
+            || observation.advertisement.host_id != credential.host_id
+            || observation.advertisement.boot_id != credential.boot_id
+        {
+            return Err("credential-mismatch".into());
+        }
+        if request.stage != OfferDisclosureStage::Planning
+            || (request.capability_ids.is_empty() && request.resource_pool_ids.is_empty())
+        {
+            return Err("invalid-offer-request".into());
+        }
+        let current = self.session.evidence().membership.parts.iter().any(|part| {
+            part.part_id == credential.part_id
+                && part.current.as_ref().is_some_and(|host| {
+                    host.host_id == credential.host_id && host.boot_id == credential.boot_id
+                })
+        });
+        let admitted = self.admissions.as_ref().is_some_and(|manager| {
+            manager
+                .receipts
+                .iter()
+                .rev()
+                .find(|receipt| receipt.credential.part_id == credential.part_id)
+                .is_some_and(|receipt| receipt.credential == *credential)
+        });
+        if !current || !admitted || self.session.evidence().body_id != credential.body_id {
+            return Err("part-unavailable".into());
+        }
+        disclose_host_offer(observation, RemoteProofClass::SelfReported, request).map_err(|error| {
+            match error {
+                OfferDisclosureRefusal::UnknownCapability => "unknown-capability",
+                OfferDisclosureRefusal::UnknownResource => "unknown-resource",
+                _ => "invalid-offer-request",
+            }
+            .into()
+        })
     }
 
     pub(crate) fn browser_leave(
@@ -220,7 +342,10 @@ impl Owner {
             if window.id != window_id {
                 return Err("browser admission window identity differs".into());
             }
-            let WindowState::Active(active) = &window.state else {
+            let WindowState::Active {
+                credential: active, ..
+            } = &window.state
+            else {
                 return Err("browser admission window has no active carrier".into());
             };
             if active != credential {

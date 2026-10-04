@@ -98,7 +98,15 @@ impl Owner {
                 self.persist(root)?; // A credential is never acknowledged ahead of durable membership.
                 let snapshot =
                     BrowserAdmittedSnapshot::from_foreground(self, credential, observation)?;
-                serve_presence(&snapshot, &mut socket, &binding, clock, deadline, None)
+                serve_presence(
+                    &snapshot,
+                    &mut socket,
+                    &binding,
+                    clock,
+                    deadline,
+                    None,
+                    None,
+                )
             })();
             // Every exit fences the current browser incarnation, including failed acknowledgement.
             let current = self
@@ -144,6 +152,7 @@ fn serve_presence(
     clock: Instant,
     deadline: Instant,
     state_dir: Option<&Path>,
+    window_id: Option<&str>,
 ) -> Result<&'static str, String> {
     let credential = &snapshot.credential;
     let presence_clock = HostPresenceClock::new(
@@ -348,6 +357,33 @@ fn serve_presence(
                     code: "credential-mismatch".into(),
                 })?;
                 return Err("owner interaction differs from admitted browser carrier".into());
+            }
+            In::OfferDisclosureRequest {
+                protocol: PROTOCOL,
+                credential_id,
+                body_id,
+                part_id,
+                host_id,
+                boot_id,
+                request,
+            } if credential_id == credential.credential_id
+                && body_id == credential.body_id
+                && part_id == credential.part_id
+                && host_id == credential.host_id
+                && boot_id == credential.boot_id =>
+            {
+                socket.send(&service::planning_offer_response(
+                    state_dir, window_id, credential, request,
+                )?)?;
+            }
+            In::OfferDisclosureRequest {
+                protocol: PROTOCOL, ..
+            } => {
+                socket.send(&Out::Refused {
+                    protocol: PROTOCOL,
+                    code: "credential-mismatch".into(),
+                })?;
+                return Err("planning offer differs from admitted browser carrier".into());
             }
             In::WebRtcGrantRequest {
                 protocol: PROTOCOL,

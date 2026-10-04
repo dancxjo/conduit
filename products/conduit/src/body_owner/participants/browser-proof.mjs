@@ -4,12 +4,16 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createInterface } from 'node:readline';
+import { setTimeout as pause } from 'node:timers/promises';
 const [binary, sdk, output, playwrightModule] = process.argv.slice(2).map(value => path.resolve(value));
 if (!binary || !sdk || !output || !playwrightModule) throw new Error('binary, SDK directory, evidence directory and pinned Playwright module required');
+if (existsSync(output)) throw new Error(`evidence directory already exists: ${output}`);
+if (Buffer.byteLength(path.join(output, 'state', 'control.sock')) >= 108) throw new Error('evidence directory is too long for the installed owner control socket');
 const { chromium } = await import(pathToFileURL(playwrightModule));
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 await mkdir(output, { recursive: true });
@@ -42,6 +46,10 @@ const waitRecord = predicate => new Promise((resolve, reject) => {
   function check() { const record = records.find(predicate); if (record) { cleanup(); resolve(record); } }
   waiters.push(check); check();
 });
+const exitOf = child => child.exitCode !== null ? Promise.resolve(child.exitCode) : new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error('owner exit deadline')), 20000);
+  child.once('exit', code => { clearTimeout(timer); resolve(code); });
+});
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://localhost');
@@ -59,8 +67,19 @@ const context = await browser.newContext();
 const page = await context.newPage();
 const pageErrors = [];
 page.on('pageerror', error => pageErrors.push(error.message));
+let service;
 try {
   const initial = await waitRecord(record => record.schema === 'conduit.body/owner-truth@1');
+  owner.stdin.write('{"operation":"close"}\n');
+  owner.stdin.end();
+  assert.equal(await exitOf(owner), 0, errors.join(''));
+  service = spawn(installation.product_executable, ['host', 'service', 'run', '--state-dir', state], { stdio: ['ignore', 'ignore', 'pipe'] });
+  service.stderr.on('data', chunk => errors.push(chunk.toString()));
+  for (let attempt = 0; attempt < 100 && !existsSync(path.join(state, 'control.sock')); attempt++) {
+    if (service.exitCode !== null) throw new Error(`installed service exited: ${errors.join('')}`);
+    await pause(50);
+  }
+  assert.equal(existsSync(path.join(state, 'control.sock')), true, `installed service did not start: ${errors.join('')}`);
   const url = `http://127.0.0.1:${server.address().port}/`;
   const openHost = async () => {
     await page.goto(url);
@@ -71,8 +90,13 @@ try {
     });
   };
   const first = await openHost();
-  owner.stdin.write(`${JSON.stringify({ operation: 'admit-browser', expected_host_id: first.host, new_host_verifying_key: first.verifyingKey, maximum_millis: 12000 })}\n`);
-  const window = await waitRecord(record => record.schema === 'conduit.body/browser-admission-window@1');
+  const opened = spawnSync(installation.product_executable,
+    ['body', 'browser-window', '--state-dir', state, '--expected-host-id', first.host,
+      '--new-host-verifying-key', JSON.stringify(first.verifyingKey), '--maximum-millis', '60000', '--authorize-window'],
+    { encoding: 'utf8', timeout: 10_000 });
+  assert.equal(opened.status, 0, opened.stderr);
+  const window = JSON.parse(opened.stdout);
+  assert.equal(window.body_id, initial.biography.body_id);
   async function participate() {
     await page.evaluate(async ({ invitation, body }) => {
       globalThis.participant = await host.participate({ invitation, expectedBodyId: body,
@@ -89,13 +113,42 @@ try {
   assert.equal(joined.credential.host_id, first.host);
   assert.equal(joined.credential.boot_id, first.boot);
   assert.equal(joined.biography.membership.parts.length, 2);
+  assert.equal(joined.offer.stage, 'AdmittedMembership');
+  assert.equal(joined.offer.capabilities.length, 0);
+  const selected = await page.evaluate(() => {
+    const capability = participant.advertisement.capabilities.find(offer =>
+      offer.capability_id === 'capability/browser-dom-mask');
+    const resource = participant.advertisement.resources.find(offer =>
+      offer.pool_id === 'browser/presentation');
+    if (!capability || !resource) throw new Error('installed browser lacks the DOM Mask Back or presentation resource');
+    participant.requestOfferEvidence({
+      capabilityIds: [capability.capability_id], resourcePoolIds: [resource.pool_id],
+    });
+    return { capabilityId: capability.capability_id, resourcePoolId: resource.pool_id };
+  });
+  await page.waitForFunction(() => participant.offerEvidence()?.stage === 'Planning');
+  const detailed = await page.evaluate(() => participant.offerEvidence());
+  assert.equal(detailed.proof_class, 'SelfReported');
+  assert.equal(detailed.host_id, first.host);
+  assert.equal(detailed.boot_id, first.boot);
+  assert.equal(detailed.capabilities.length, 1);
+  assert.equal(detailed.capabilities[0].capability_id, selected.capabilityId);
+  assert.equal(detailed.resources.length, 1);
+  assert.equal(detailed.resources[0].pool_id, selected.resourcePoolId);
+  assert.equal(detailed.capability_summary.length, 0);
+  assert.equal(detailed.offer_generation, joined.offer.offer_generation);
   const persisted = JSON.parse(await readFile(path.join(state, 'body/biography.json')));
   assert.equal(persisted.body_id, initial.biography.body_id);
   assert.equal(persisted.membership.parts.find(part => part.part_id === joined.credential.part_id).current.boot_id, first.boot);
   // Real page teardown drops the first carrier; the owner must retain its Part offline.
   await page.goto('about:blank');
-  const lost = await waitRecord(record => record.schema === 'conduit.body/browser-session-ended@1');
-  assert.equal(lost.truth.biography.membership.parts.find(part => part.part_id === joined.credential.part_id).current, null);
+  let lost;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    lost = JSON.parse(await readFile(path.join(state, 'body/biography.json')));
+    if (lost.membership.parts.find(part => part.part_id === joined.credential.part_id)?.current === null) break;
+    await pause(50);
+  }
+  assert.equal(lost.membership.parts.find(part => part.part_id === joined.credential.part_id).current, null);
   const second = await openHost();
   assert.equal(second.host, first.host);
   assert.notEqual(second.boot, first.boot);
@@ -104,26 +157,26 @@ try {
   assert.equal(returned.credential.boot_id, second.boot);
   assert.equal(returned.biography.membership.parts.length, 2);
   // Keep this carrier open until the explicit finite admission window closes.
-  owner.stdin.write('{"operation":"close"}\n');
-  owner.stdin.end();
-  const code = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('owner exit deadline')), 20000);
-    owner.once('exit', code => { clearTimeout(timer); resolve(code); });
-  });
-  assert.equal(code, 0, errors.join(''));
-  const final = JSON.parse(await readFile(path.join(state, 'body/biography.json')));
+  await page.goto('about:blank');
+  let final;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    final = JSON.parse(await readFile(path.join(state, 'body/biography.json')));
+    if (final.membership.parts.find(part => part.part_id === joined.credential.part_id)?.current === null) break;
+    await pause(50);
+  }
   assert.equal(final.body_id, initial.biography.body_id);
   assert.equal(final.membership.parts.find(part => part.part_id === joined.credential.part_id).current, null);
   assert.deepEqual(pageErrors, []);
   const image = JSON.parse(await readFile(path.join(sdk, 'bundle/conduit-browser-image.json')));
   await writeFile(path.join(output, 'report.json'), JSON.stringify({ schema: 'conduit.body/browser-owner-proof@1',
     executableSha256: files[0].sha256, guestSource: image.reviewed_distribution.source_commit,
-    first, second, joined, returned, final, records, pageErrors,
-    remoteExecution: false, sameCommitClaim: false,
+    first, second, joined, planningOffer: detailed, returned, final, records, pageErrors,
+    remoteExecution: false, sameCommitClaim: false, serviceOwned: true,
   }, null, 2));
   console.log(`PASS: ${path.join(output, 'report.json')}`);
 } finally {
   if (owner.exitCode === null) owner.kill();
+  if (service?.exitCode === null) service.kill();
   await browser.close();
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));

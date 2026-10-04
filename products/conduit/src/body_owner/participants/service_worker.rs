@@ -87,6 +87,7 @@ fn serve(
                 clock,
                 deadline,
                 Some(state_dir),
+                Some(window_id),
             )
         })();
         if let Some(credential) = active {
