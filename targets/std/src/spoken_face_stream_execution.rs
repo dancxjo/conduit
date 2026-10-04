@@ -29,8 +29,8 @@ use crate::{
 #[path = "spoken_face_stream_execution/playback.rs"]
 mod playback;
 pub use playback::{
-    execute_real_spoken_batch_to_selected_playback, SpokenPlaybackExecution, SpokenPlaybackOutcome,
-    SPOKEN_PLAYBACK_PLOT,
+    execute_real_spoken_batch_to_selected_playback, execute_spoken_batch_on_attached_host,
+    SpokenPlaybackExecution, SpokenPlaybackOutcome, SPOKEN_PLAYBACK_PLOT,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

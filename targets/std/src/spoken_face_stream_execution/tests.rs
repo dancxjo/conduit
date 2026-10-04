@@ -181,7 +181,7 @@ fn deterministic_playback(
     let (face, show) = source(1);
     let (reader, batch) = batch(&face, &show);
     let (config, selection, authorization) = selected_fake_playback(behavior);
-    let host = StdHost::new_with_playback(
+    let mut host = StdHost::new_with_playback(
         config.clone(),
         StdHostComposition::minimal().with_text(),
         selection.clone(),
@@ -196,9 +196,77 @@ fn deterministic_playback(
         selection,
         &authorization,
         control,
-        host,
+        &mut host,
     )?;
     Ok((reader, execution))
+}
+
+#[test]
+fn selected_playback_keeps_the_same_host_across_two_plays() {
+    let (face, show) = source(1);
+    let (_, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(FakePlaybackBehavior::Success);
+    let mut host = StdHost::new_with_playback(
+        config.clone(),
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    let original = host.advertisement().clone();
+    let first = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &"00".repeat(32),
+        config.clone(),
+        selection.clone(),
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+    .unwrap();
+    let second = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &"00".repeat(32),
+        config,
+        selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+    .unwrap();
+    assert_eq!(host.advertisement(), &original);
+    assert_eq!(first.outcome, SpokenPlaybackOutcome::Completed);
+    assert_eq!(second.outcome, SpokenPlaybackOutcome::Completed);
+    assert_ne!(first.playback_play_id, second.playback_play_id);
+}
+
+#[test]
+fn attached_host_entrance_refuses_a_missing_speech_provider() {
+    let (face, show) = source(1);
+    let (_, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(FakePlaybackBehavior::Success);
+    let mut host = StdHost::new_with_playback(
+        config,
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    let before = host.advertisement().clone();
+    let refusal = super::playback::execute_spoken_batch_on_attached_host(
+        &face,
+        &show,
+        &batch,
+        &selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+    )
+    .unwrap_err();
+    assert!(matches!(refusal, SpokenStreamExecutionRefusal::Plan(_)));
+    assert_eq!(host.advertisement(), &before);
 }
 
 #[test]

@@ -136,6 +136,10 @@ impl EspeakDiscovery {
     }
 }
 impl EspeakSpeechAdapter {
+    pub fn provider_sha256(&self) -> &str {
+        &self.discovery.provider_sha256
+    }
+
     pub fn validate_host(
         &self,
         host: &HostId,
