@@ -5,6 +5,9 @@ use crate::{
     global_rule_selection::{
         select_global_allophone_rule, GlobalRuleChoice, GlobalRuleSelectionRefusal,
     },
+    intent_phoneme_inventory::{
+        resolve_intent_inventory_phoneme, IntentPhonemeRefusal, ResolvedIntentPhoneme,
+    },
     output_features::RuleOutputFeatures,
     semantic::*,
     utterance_timing::{
@@ -30,6 +33,10 @@ pub enum GlobalIntentRefusal<'a> {
         event: usize,
     },
     Timing(UtteranceTimingRefusal),
+    Phoneme {
+        event: usize,
+        reason: Box<IntentPhonemeRefusal<'a>>,
+    },
     Choice {
         event: usize,
         reason: Box<GlobalRuleSelectionRefusal<'a>>,
@@ -43,6 +50,7 @@ pub enum GlobalIntentRefusal<'a> {
 pub struct GlobalIntentPhoneReceipt<'a> {
     event: usize,
     choice: GlobalRuleChoice<'a>,
+    phoneme: ResolvedIntentPhoneme<'a>,
     default_features: &'a SpeechOccurrenceFeatureObservation,
     default_occurrence: SpeechOccurrenceObservationMatch,
     definition: &'a SpeechPhone,
@@ -55,6 +63,9 @@ pub struct GlobalIntentPhoneReceipt<'a> {
 impl<'a> GlobalIntentPhoneReceipt<'a> {
     pub fn event_index(&self) -> usize {
         self.event
+    }
+    pub fn phoneme(&self) -> &ResolvedIntentPhoneme<'a> {
+        &self.phoneme
     }
     pub fn choice(&self) -> &GlobalRuleChoice<'a> {
         &self.choice
@@ -153,6 +164,12 @@ pub fn prepare_global_intent<'a>(
             EventTimingReceipt::Segment { .. } => {
                 let supplied =
                     supplied.ok_or(GlobalIntentRefusal::MissingSegmentEvidence { event })?;
+                let phoneme = resolve_intent_inventory_phoneme(source, event, inventory).map_err(
+                    |reason| GlobalIntentRefusal::Phoneme {
+                        event,
+                        reason: Box::new(reason),
+                    },
+                )?;
                 let choice = select_global_allophone_rule(
                     source,
                     event,
@@ -183,6 +200,7 @@ pub fn prepare_global_intent<'a>(
                 phones.push(GlobalIntentPhoneReceipt {
                     event,
                     choice,
+                    phoneme,
                     default_features: supplied.default_features,
                     default_occurrence,
                     definition,
