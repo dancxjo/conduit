@@ -2,6 +2,9 @@
 //! The invariant TSC's CPUID frequency is preferred; ACPI-discovered HPET
 //! supplies the same elapsed-millisecond contract under QEMU TCG.
 
+mod monotonic;
+pub use monotonic::{NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock};
+
 use core::{
     arch::x86_64::__cpuid,
     ptr::{read_volatile, write_volatile},
