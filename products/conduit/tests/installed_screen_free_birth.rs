@@ -34,7 +34,16 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     ));
     fs::create_dir_all(&state).unwrap();
     seed_installation(&state);
+    let offline_zero_status = host_service_status(&state);
+    assert_eq!(offline_zero_status["presence"], "installed-offline");
+    assert!(offline_zero_status["body_id"].is_null());
     let mut service = start_service(&state);
+    let zero_body_status = host_service_status(&state);
+    assert_eq!(
+        zero_body_status["schema"],
+        "conduit.install/durable-host-runtime@1"
+    );
+    assert!(zero_body_status["body_id"].is_null());
 
     let before = product(&["body", "face", "--state-dir", path(&state), "--json"]);
     assert!(
@@ -95,6 +104,17 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
         1
     );
     assert!(spoken.contains(body_id));
+    let born_status = host_service_status(&state);
+    assert_eq!(born_status["body_id"], body_id);
+    for field in [
+        "host_id",
+        "boot_id",
+        "offer_generation",
+        "process_id",
+        "release_bundle_sha256",
+    ] {
+        assert_eq!(born_status[field], zero_body_status[field], "{field}");
+    }
 
     let face = product(&["body", "face", "--state-dir", path(&state), "--json"]);
     assert!(
@@ -150,8 +170,19 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     );
 
     stop_service(&mut service);
+    let offline_status = host_service_status(&state);
+    assert_eq!(
+        offline_status["schema"],
+        "conduit.install/durable-host-status@1"
+    );
+    assert_eq!(offline_status["presence"], "installed-offline");
+    assert_eq!(offline_status["body_id"], body_id);
     fs::remove_file(state.join("control.sock")).unwrap();
     service = start_service(&state);
+    let recovered_status = host_service_status(&state);
+    assert_eq!(recovered_status["body_id"], body_id);
+    assert_eq!(recovered_status["host_id"], born_status["host_id"]);
+    assert_ne!(recovered_status["boot_id"], born_status["boot_id"]);
     let recovered = product(&["body", "face", "--state-dir", path(&state), "--json"]);
     assert!(
         recovered.status.success(),
@@ -682,6 +713,23 @@ fn product(arguments: &[&str]) -> Output {
         .args(arguments)
         .output()
         .unwrap()
+}
+
+fn host_service_status(state: &Path) -> Value {
+    let output = product(&[
+        "host",
+        "service",
+        "status",
+        "--state-dir",
+        path(state),
+        "--json",
+    ]);
+    assert!(
+        output.status.success(),
+        "host service status failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
 }
 
 fn product_with_stdin(arguments: &[&str], input: &[u8]) -> Output {
