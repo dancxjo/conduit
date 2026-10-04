@@ -37,7 +37,7 @@ plot bme280-autonomous (
     contexts.merged >> bme280-clock-request() >> clock.request
     clock.result >> timed.right
     timed.paired >> bme280-clock-join() >> outcomes
-    outcomes >> select(BmeClockEvent.event, unmatched=drop) >> join.right
+    outcomes >> bme280-clock-feedback-event() >> join.right
     outcomes >> select(BmeClockEvent.failed, unmatched=drop) >> clock_failed
     join.paired >> bme280-join() >> bme280-protocol-transition() >> bme280-protocol-frame() >> cell.next
 }
