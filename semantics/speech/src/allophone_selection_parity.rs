@@ -253,12 +253,7 @@ fn every_status_mask_matches_portable_law_and_uses_the_original_native_type() {
             .unwrap();
             let actual =
                 speech_rule_status_choice(SpeechRuleStatusChoiceInput { status, policy }).unwrap();
-            assert_eq!(
-                checked.evaluate(&input).unwrap(),
-                leaf(&checked.output_type, &[u8::from(actual)])
-                    .canonical_bytes()
-                    .unwrap()
-            );
+            assert_eq!(checked.evaluate(&input).unwrap(), [u8::from(actual)]);
         }
     }
 }
@@ -293,12 +288,7 @@ fn eligibility_and_request_state_laws_match_checked_portable_evaluation() {
                 phone_compatible,
             })
             .unwrap();
-            assert_eq!(
-                checked.evaluate(&input).unwrap(),
-                leaf(&checked.output_type, &[u8::from(actual)])
-                    .canonical_bytes()
-                    .unwrap()
-            );
+            assert_eq!(checked.evaluate(&input).unwrap(), [u8::from(actual)]);
         }
     }
     let checked = program("speech_phone_choice_requirement_supported");
@@ -312,11 +302,6 @@ fn eligibility_and_request_state_laws_match_checked_portable_evaluation() {
     ] {
         let input = variant(&checked.input_type, tag).canonical_bytes().unwrap();
         let actual = speech_phone_choice_requirement_supported(state).unwrap();
-        assert_eq!(
-            checked.evaluate(&input).unwrap(),
-            leaf(&checked.output_type, &[u8::from(actual)])
-                .canonical_bytes()
-                .unwrap()
-        );
+        assert_eq!(checked.evaluate(&input).unwrap(), [u8::from(actual)]);
     }
 }
