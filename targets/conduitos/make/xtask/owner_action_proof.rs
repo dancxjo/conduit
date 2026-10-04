@@ -240,12 +240,10 @@ fn wait_for_arrival(
         let face = records(&serial, OWNER_FACE)?;
         let shown = face
             .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("shown"))
-            .last();
+            .rfind(|value| value.get("status").and_then(Value::as_str) == Some("shown"));
         let acknowledged = face
             .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("acknowledged"))
-            .last();
+            .rfind(|value| value.get("status").and_then(Value::as_str) == Some("acknowledged"));
         if serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
             && part
                 .last()
