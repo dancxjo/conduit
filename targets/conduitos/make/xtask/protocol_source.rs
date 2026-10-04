@@ -3,7 +3,8 @@ use super::ConduitosError;
 use crate::cli::GlobalOpts;
 use clap::Args;
 use conduitos::protocol_source::{
-    PreparedProtocolEntry, ProtocolSourceRefusal, MAXIMUM_PACKAGE_BYTES,
+    PreparedProtocolEntry, ProtocolSourcePackage, ProtocolSourceRefusal,
+    ProtocolSpecializationRequest, MAXIMUM_PACKAGE_BYTES, MAXIMUM_SOURCE_BYTES,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -12,8 +13,19 @@ use std::{fs, io::Read, path::PathBuf};
 #[derive(Args, Debug)]
 pub(super) struct PackageArgs {
     /// Bounded JSON Source package with generic typed Back specializations.
-    #[arg(long)]
-    package: PathBuf,
+    #[arg(long, required_unless_present = "source", conflicts_with = "source")]
+    package: Option<PathBuf>,
+    /// Combined ordinary Source; schemas are derived from its checked declarations.
+    #[arg(
+        long,
+        required_unless_present = "package",
+        conflicts_with = "package",
+        requires = "specializations"
+    )]
+    source: Option<PathBuf>,
+    /// JSON array of generic Back requests with named Source types and byte ceilings.
+    #[arg(long, requires = "source")]
+    specializations: Option<PathBuf>,
     /// Checked plot to expand as the protocol entrance.
     #[arg(long)]
     entry: String,
@@ -26,18 +38,36 @@ pub(super) fn execute(args: PackageArgs, opts: &GlobalOpts) -> Result<(), Condui
     if opts.dry_run {
         println!(
             "Check {} entry {} and package into {}",
-            args.package.display(),
+            args.package
+                .as_ref()
+                .or(args.source.as_ref())
+                .unwrap()
+                .display(),
             args.entry,
             args.output_dir.display()
         );
         return Ok(());
     }
-    let mut bytes = Vec::new();
-    fs::File::open(&args.package)
-        .map_err(io_error)?
-        .take(MAXIMUM_PACKAGE_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(io_error)?;
+    let bytes = if let Some(package) = &args.package {
+        read(package, MAXIMUM_PACKAGE_BYTES)?
+    } else {
+        let source_bytes = read(args.source.as_ref().unwrap(), MAXIMUM_SOURCE_BYTES)?;
+        let source = String::from_utf8(source_bytes).map_err(|error| {
+            ConduitosError::refusal("protocol-source-encoding", error.to_string())
+        })?;
+        let requests: Vec<ProtocolSpecializationRequest> =
+            serde_json::from_slice(&read(args.specializations.as_ref().unwrap(), 16384)?).map_err(
+                |error| {
+                    ConduitosError::refusal("protocol-source-specializations", error.to_string())
+                },
+            )?;
+        let package = ProtocolSourcePackage::compile(source, &requests).map_err(|error| {
+            ConduitosError::refusal("protocol-source-compilation", format!("{error:?}"))
+        })?;
+        serde_json::to_vec(&package).map_err(|error| {
+            ConduitosError::refusal("protocol-source-package-encoding", error.to_string())
+        })?
+    };
     let receipt = check(&bytes, &args.entry)?;
     let encoded_receipt = serde_json::to_vec_pretty(&receipt)
         .map_err(|error| ConduitosError::refusal("protocol-source-receipt", error.to_string()))?;
@@ -74,6 +104,22 @@ fn check(bytes: &[u8], entry: &str) -> Result<Value, ConduitosError> {
         "expanded_plot_id": expanded.expanded_plot_id.as_str(),
         "gears": expanded.gears.len(),
     }))
+}
+
+fn read(path: &std::path::Path, maximum: usize) -> Result<Vec<u8>, ConduitosError> {
+    let mut bytes = Vec::new();
+    fs::File::open(path)
+        .map_err(io_error)?
+        .take(maximum as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(io_error)?;
+    if bytes.is_empty() || bytes.len() > maximum {
+        return Err(ConduitosError::refusal(
+            "protocol-source-input-bounds",
+            path.display().to_string(),
+        ));
+    }
+    Ok(bytes)
 }
 
 fn io_error(error: std::io::Error) -> ConduitosError {

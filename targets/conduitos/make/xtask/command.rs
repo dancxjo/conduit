@@ -158,4 +158,31 @@ mod tests {
             })
         ));
     }
+    #[test]
+    fn source_compilation_requires_a_recipe_and_rejects_mixed_package_input() {
+        let args = [
+            "xtask",
+            "make",
+            "conduitos",
+            "protocol-source",
+            "--source",
+            "source.conduit",
+            "--entry",
+            "protocol",
+            "--output-dir",
+            "checked",
+        ];
+        assert!(Cli::try_parse_from(args).is_err());
+        assert!(
+            Cli::try_parse_from(args.into_iter().chain(["--specializations", "recipe.json"]))
+                .is_ok()
+        );
+        assert!(Cli::try_parse_from(args.into_iter().chain([
+            "--specializations",
+            "recipe.json",
+            "--package",
+            "old.json"
+        ]))
+        .is_err());
+    }
 }

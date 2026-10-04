@@ -57,6 +57,24 @@ cargo xtask make conduitos protocol-source \
   --output-dir checked-protocol-package
 ```
 
+To build the package from ordinary combined Source, supply a JSON array of
+requests for generic Backs. Each value reference names a checked Source type
+(including imported native type aliases) and its byte ceiling, for example
+`{"kind":"seeded-flow","value":{"type_name":"ProtocolState","maximum_bytes":4096}}`.
+Pair requests use `left` and `right`; supported requests are `seeded-flow`,
+`seeded-until`, `merge`, `zip` and `feedback-zip`. No device-specific compiler or
+Rust schema authoring is required:
+
+```sh
+cargo xtask make conduitos protocol-source \
+  --source protocol.conduit --specializations specializations.json \
+  --entry device-protocol --output-dir checked-protocol-package
+```
+
+Preparation derives schemas through the native Type checker, then checks and
+expands the complete Source with those generic contracts installed. Type-only
+preparation is not a checked plot or authorization to execute.
+
 The new output directory retains the exact package bytes and a receipt binding
 its SHA-256 digest, Source identity, checked plot identity and expanded plot
 identity. This is checking and expansion evidence; packaging neither rebuilds

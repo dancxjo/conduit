@@ -305,3 +305,6 @@ pub use native_preparation::{
     NativeProtocolOwners, NativeProtocolPreparationLimits, NativeProtocolPreparationReason,
     NativeProtocolPreparationRefusal, prepare_native_protocol,
 };
+
+mod package_compilation;
+pub use package_compilation::{ProtocolSpecializationRequest, ProtocolValueReference};

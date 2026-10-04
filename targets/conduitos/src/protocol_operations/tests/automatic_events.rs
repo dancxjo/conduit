@@ -107,29 +107,15 @@ pub(super) fn prepare_with_body_edit<
             .unwrap()
             .value_type
     };
-    let state = schema("BmeProtocolState");
-    let frame = schema("BmeProtocolFrame");
-    let event = schema("BmeProtocolEvent");
-    let context = schema("BmeClockContext");
-    let value = |ty: &StructuredInfoType, maximum| {
-        CheckedValueContract::new(ty.profile().unwrap().value_kind().clone(), maximum, vec![])
-            .unwrap()
-    };
-    let state_value = value(state, 4096);
-    let frame_value = value(frame, 4096);
-    let event_value = value(event, 4096);
-    let context_value = value(context, 4096);
-    let result_value = value(clock.result_type(), 512);
     use crate::protocol_source::{
-        ProtocolSourcePackage, ProtocolSpecialization as Specialization, ProtocolValue,
+        ProtocolSourcePackage, ProtocolSpecializationRequest as Request, ProtocolValueReference,
     };
-    let typed = |schema: &StructuredInfoType, contract: &CheckedValueContract| ProtocolValue {
-        schema: schema.clone(),
-        contract: contract.clone(),
+    let reference = |name: &str, maximum_bytes| ProtocolValueReference {
+        type_name: name.into(),
+        maximum_bytes,
     };
-    let package = ProtocolSourcePackage {
-        schema: crate::protocol_source::PACKAGE_SCHEMA.into(),
-        source: combine(&[
+    let package = ProtocolSourcePackage::compile(
+        combine(&[
             LIFECYCLE,
             events,
             FEEDBACK,
@@ -138,26 +124,27 @@ pub(super) fn prepare_with_body_edit<
             observation,
             automatic,
         ]),
-        specializations: vec![
-            Specialization::SeededFlow {
-                value: typed(state, &state_value),
+        &[
+            Request::SeededFlow {
+                value: reference("BmeProtocolState", 4096),
             },
-            Specialization::SeededUntil {
-                value: typed(frame, &frame_value),
+            Request::SeededUntil {
+                value: reference("BmeProtocolFrame", 4096),
             },
-            Specialization::FeedbackZip {
-                left: typed(state, &state_value),
-                right: typed(event, &event_value),
+            Request::FeedbackZip {
+                left: reference("BmeProtocolState", 4096),
+                right: reference("BmeProtocolEvent", 4096),
             },
-            Specialization::Merge {
-                value: typed(context, &context_value),
+            Request::Merge {
+                value: reference("BmeClockContext", 4096),
             },
-            Specialization::Zip {
-                left: typed(context, &context_value),
-                right: typed(clock.result_type(), &result_value),
+            Request::Zip {
+                left: reference("BmeClockContext", 4096),
+                right: reference("ClockResult", 512),
             },
         ],
-    };
+    )
+    .unwrap();
     let encoded_package = serde_json::to_vec(&package).unwrap();
     let source = crate::protocol_source::PreparedProtocolEntry::prepare(
         &encoded_package,
