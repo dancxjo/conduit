@@ -96,18 +96,16 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
         &StartupCatalog::new(),
     )
     .unwrap();
-    for (name, path) in [("MonotonicClockRequest", "machine/clock/at/request")] {
-        catalog
-            .insert_checked_native_type(
-                path,
-                clock_types
-                    .native_types
-                    .iter()
-                    .find(|ty| ty.name == name)
-                    .unwrap(),
-            )
-            .unwrap();
-    }
+    catalog
+        .insert_checked_native_type(
+            "machine/clock/at/request",
+            clock_types
+                .native_types
+                .iter()
+                .find(|ty| ty.name == "MonotonicClockRequest")
+                .unwrap(),
+        )
+        .unwrap();
     let lifecycle = include_str!("../../../plots/device-protocols/bme280-lifecycle.conduit");
     let events = include_str!("../../../plots/device-protocols/bme280-clock-events.conduit");
     let (imports, definitions) = events.split_once("type BmeClockContext").unwrap();
