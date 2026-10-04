@@ -7,6 +7,7 @@ use crate::{
         installation::{I2C_IMPLEMENTATION, ReadyI2cBase},
         owner::{I2cCallRefusal, I2cCallSelection, I2cHostCall},
     },
+    structured_selector_host_call::{self, SelectorCallRefusal, SelectorHostCall},
 };
 use alloc::{boxed::Box, vec::Vec};
 use conduit_composite::{KernelCompositeError, KernelCompositeHost, KernelCompositeHostRequest};
@@ -22,11 +23,13 @@ pub enum ProtocolCallRefusal {
     Unsupported,
     Kernel(KernelCompositeError),
     Expression(ExpressionCallRefusal),
+    Selector(SelectorCallRefusal),
     I2c(I2cCallRefusal),
 }
 
 enum Owner<P> {
     Expression(Box<ExpressionHostCall>),
+    Selector(Box<SelectorHostCall>),
     I2c(Box<I2cHostCall<P>>),
 }
 struct Binding<P> {
@@ -65,7 +68,9 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             || fragment.placements.iter().any(|gear| {
                 !matches!(
                     gear.implementation_id.as_str(),
-                    I2C_IMPLEMENTATION | expression_host_call::IMPLEMENTATION
+                    I2C_IMPLEMENTATION
+                        | expression_host_call::IMPLEMENTATION
+                        | structured_selector_host_call::IMPLEMENTATION
                 )
             })
         {
@@ -73,12 +78,17 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         let mut bindings = Vec::with_capacity(fragment.placements.len());
         for gear in &fragment.placements {
-            if gear.implementation_id.as_str() != expression_host_call::IMPLEMENTATION {
-                continue;
-            }
-            let native =
-                ExpressionHostCall::prepare(fragment, &lowered, &active, &gear.placement_id)
-                    .map_err(Refusal::Expression)?;
+            let owner = match gear.implementation_id.as_str() {
+                expression_host_call::IMPLEMENTATION => Owner::Expression(Box::new(
+                    ExpressionHostCall::prepare(fragment, &lowered, &active, &gear.placement_id)
+                        .map_err(Refusal::Expression)?,
+                )),
+                structured_selector_host_call::IMPLEMENTATION => Owner::Selector(Box::new(
+                    SelectorHostCall::prepare(fragment, &lowered, &active, &gear.placement_id)
+                        .map_err(Refusal::Selector)?,
+                )),
+                _ => continue,
+            };
             bindings.push(Binding {
                 node: lowered
                     .identity
@@ -86,7 +96,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     .ok_or(Refusal::InvalidPlan)?,
                 resources: gear.resources.clone(),
                 authorities: gear.authority.clone(),
-                owner: Owner::Expression(Box::new(native)),
+                owner,
             });
         }
         let contract = I2cContract::prepare().map_err(|_| Refusal::InvalidPlan)?;
@@ -149,6 +159,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .map_err(Refusal::Kernel)?;
         let expected = match binding.owner {
             Owner::Expression(_) => expression_host_call::CALL,
+            Owner::Selector(_) => structured_selector_host_call::CALL,
             Owner::I2c(_) => I2C_CALL,
         };
         if required.requirement.contract_id.as_str() != expected {
@@ -172,13 +183,28 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let result = match &mut binding.owner {
             Owner::Expression(owner) => owner
                 .invoke(node, call.call, call.request, input)
+                .map(Some)
                 .map_err(Refusal::Expression),
+            Owner::Selector(owner) => owner
+                .invoke(node, call.call, call.request, input)
+                .map_err(Refusal::Selector),
             Owner::I2c(owner) => owner
                 .invoke(node, call.call, call.request, input)
+                .map(Some)
                 .map_err(Refusal::I2c),
         };
         match result {
-            Ok(bytes) => kernel
+            Ok(None) => kernel
+                .complete_host_call(
+                    &admitted,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
+                        output: None,
+                        failure: None,
+                    },
+                )
+                .map_err(Refusal::Kernel),
+            Ok(Some(bytes)) => kernel
                 .complete_host_call_bytes(&admitted, bytes)
                 .map_err(Refusal::Kernel),
             Err(error) => {
@@ -224,6 +250,13 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     .map_err(Refusal::Expression)?;
             }
         }
+        for binding in &mut self.bindings {
+            if let Owner::Selector(owner) = &mut binding.owner {
+                owner
+                    .cancel(binding.node, HostCallId(0))
+                    .map_err(Refusal::Selector)?;
+            }
+        }
         cancelled
     }
 }
@@ -232,6 +265,7 @@ impl ProtocolCallRefusal {
     pub fn failure(&self) -> Failure {
         use ExpressionCallRefusal as Expression;
         use I2cCallRefusal as I2c;
+        use SelectorCallRefusal as Selector;
         let (code, detail) = match self {
             Self::InvalidPlan => (FailureCode::InvalidLifecycle, 1020),
             Self::Unsupported => (FailureCode::HostCallDenied, 1021),
@@ -245,6 +279,15 @@ impl ProtocolCallRefusal {
             }
             Self::Expression(Expression::Cancelled) => (FailureCode::Cancelled, 1026),
             Self::Expression(Expression::Evaluation(_)) => (FailureCode::HostCallFailed, 1027),
+            Self::Selector(
+                Selector::WrongBinding | Selector::InvalidSelector | Selector::StaleRequest,
+            ) => (FailureCode::InvalidLifecycle, 1040),
+            Self::Selector(Selector::InvalidInput) => (FailureCode::InvalidInput, 1041),
+            Self::Selector(Selector::SequenceExhausted) => {
+                (FailureCode::IdentityCapacityExhausted, 1042)
+            }
+            Self::Selector(Selector::Cancelled) => (FailureCode::Cancelled, 1043),
+            Self::Selector(Selector::Selection(_)) => (FailureCode::InvalidInput, 1044),
             Self::I2c(I2c::WrongBinding | I2c::StaleRequest) => {
                 (FailureCode::InvalidLifecycle, 1030)
             }

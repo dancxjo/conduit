@@ -12,18 +12,13 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredForePort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
-use conduit_plot::{
-    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-    KindSignature, ProfileCatalog, StartupCatalog,
-};
 use conduit_presentation::{
-    install_mask_plot_value_aliases, AdmittedMaskPlotRoutes, BodyMaskWardrobe, FaceInteraction,
-    FaceInteractionArgument, ManifestationLifecycle, MaskInteractionCorrelation, MaskPlot,
-    MaskShow, MaskWardrobe, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence,
-    MaskWardrobeLifetime, PlannedMaskPlot, Presentation, PresentationAction, SealedMaskPlotRoute,
+    AdmittedMaskPlotRoutes, BodyMaskWardrobe, FaceInteraction, FaceInteractionArgument,
+    ManifestationLifecycle, MaskInteractionCorrelation, MaskPlot, MaskShow, MaskWardrobe,
+    MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence, MaskWardrobeLifetime,
+    PlannedMaskPlot, Presentation, PresentationAction, SealedMaskPlotRoute,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 use crate::installed_browser::dom_mask::MASK_BYTES;
 #[path = "workspace_mask_execution.rs"]
