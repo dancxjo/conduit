@@ -25,9 +25,13 @@ pub struct FlowZipBack {
     encoder: PairEncoder,
     output_staged: bool,
     finish_after_commit: bool,
+    closing: bool,
     terminal: bool,
     output_maximum: u32,
     finite: bool,
+    feedback: bool,
+    return_owed: bool,
+    right_closed: bool,
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
@@ -58,6 +62,18 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
         if self.terminal {
             return StepOutcome::Complete;
         }
+        // A finite close discards already-admitted unmatched queue entries,
+        // one bounded consumption per step, before retiring this operation.
+        if self.closing {
+            for port in [PortId(0), PortId(1)] {
+                if io.input(port).is_some() {
+                    io.consume(port).expect("queued unmatched finite zip value");
+                    return StepOutcome::Progress;
+                }
+            }
+            self.terminal = true;
+            return StepOutcome::Complete;
+        }
 
         // Fault is not normal close: never emit a buffered pair as a side
         // effect of abnormal terminal truth.
@@ -76,10 +92,15 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
             }
         }
 
-        // A normal close may emit the one pair already fully formed. It never
-        // waits for a future counterpart; unmatched state is discarded.
+        // Ordinary zip closure flushes only an already formed pair. The
+        // feedback profile instead waits for the declared state return.
         for port in [PortId(0), PortId(1)] {
             if io.input_closed(port) {
+                if self.feedback && port == PortId(1) {
+                    io.consume_closed(port).expect("feedback event close");
+                    self.right_closed = true;
+                    return StepOutcome::Progress;
+                }
                 let pair_ready = self.left_len.is_some() && self.right_len.is_some();
                 if pair_ready && !io.output_ready(PortId(0)) {
                     return StepOutcome::Await;
@@ -99,9 +120,30 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
                 }
                 self.left_len = None;
                 self.right_len = None;
+                if self.finite {
+                    for other in [PortId(0), PortId(1)] {
+                        if io.input(other).is_some() {
+                            io.consume(other)
+                                .expect("queued unmatched finite zip value");
+                            self.closing = true;
+                            return StepOutcome::Progress;
+                        }
+                    }
+                }
                 self.terminal = true;
                 return StepOutcome::Complete;
             }
+        }
+
+        if self.feedback && self.right_closed && self.right_len.is_none() && !self.return_owed {
+            self.left_len = None;
+            if io.input(PortId(0)).is_some() {
+                io.consume(PortId(0)).expect("final feedback state");
+                self.closing = true;
+                return StepOutcome::Progress;
+            }
+            self.terminal = true;
+            return StepOutcome::Complete;
         }
 
         if self.left_len.is_some() && self.right_len.is_some() {
@@ -155,19 +197,25 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
             if side == 0 {
                 self.left[..len].copy_from_slice(&self.candidate[..len]);
                 self.left_len = Some(len);
+                self.return_owed = false;
             } else {
                 self.right[..len].copy_from_slice(&self.candidate[..len]);
                 self.right_len = Some(len);
             }
         }
         if self.output_staged {
+            self.return_owed = self.feedback;
             self.left_len = None;
             self.right_len = None;
             self.output_staged = false;
         }
         if self.finish_after_commit {
             self.finish_after_commit = false;
-            self.terminal = true;
+            if self.finite {
+                self.closing = true;
+            } else {
+                self.terminal = true;
+            }
         }
     }
 
@@ -198,6 +246,20 @@ impl FlowZipBack {
     ) -> Result<Self, StructuredInfoRefusal> {
         let mut back = Self::prepare_typed(left, left_type, right, right_type)?;
         back.finite = true;
+        Ok(back)
+    }
+
+    /// Pair events with successive returned state generations. Event closure
+    /// drains a pending event and waits for the final published pair's return.
+    pub fn prepare_typed_feedback(
+        left: &CheckedValueContract,
+        left_type: StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let mut back = Self::prepare_typed_finite(left, left_type, right, right_type)?;
+        back.feedback = true;
+        back.return_owed = true;
         Ok(back)
     }
 
@@ -235,8 +297,12 @@ impl FlowZipBack {
             encoder: PairEncoder::Typed(Box::new(encoder)),
             output_staged: false,
             finish_after_commit: false,
+            closing: false,
             terminal: false,
             finite: false,
+            feedback: false,
+            return_owed: false,
+            right_closed: false,
         })
     }
 
@@ -262,8 +328,12 @@ impl FlowZipBack {
             encoder: PairEncoder::Leaf(Box::new(encoder)),
             output_staged: false,
             finish_after_commit: false,
+            closing: false,
             terminal: false,
             finite: false,
+            feedback: false,
+            return_owed: false,
+            right_closed: false,
         })
     }
 }

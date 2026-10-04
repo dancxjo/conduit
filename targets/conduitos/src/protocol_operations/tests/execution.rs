@@ -123,6 +123,15 @@ fn field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a StructuredInfoVa
 
 #[test]
 fn two_queued_events_use_successive_source_state_generations_and_close_normally() {
+    run_queued_events(false);
+}
+
+#[test]
+fn queued_events_drain_when_input_closes_before_transition_completion() {
+    run_queued_events(true);
+}
+
+fn run_queued_events(close_early: bool) {
     let (plan, owners, offer) = planned();
     let (startup, _) = crate::i2c_base::contract::I2cContract::prepare()
         .unwrap()
@@ -218,6 +227,9 @@ fn two_queued_events_use_successive_source_state_generations_and_close_normally(
         accepted,
         "next event remains queued before the preceding transition completes"
     );
+    if close_early {
+        execution.play.close_input(&port_id("event")).unwrap();
+    }
     let first = execution.observation(1, &state_kind);
     assert!(
         matches!(field(&first, "clock").shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == 1_u64.to_le_bytes())
@@ -229,7 +241,9 @@ fn two_queued_events_use_successive_source_state_generations_and_close_normally(
     assert!(
         matches!(field(&second, "failure").shape(), StructuredInfoValueShape::Variant { tag, .. } if tag == "malformed")
     );
-    execution.play.close_input(&port_id("event")).unwrap();
+    if !close_early {
+        execution.play.close_input(&port_id("event")).unwrap();
+    }
     let mut status = KernelCompositeStatus::Active;
     for _ in 0..128 {
         status = execution.step();
@@ -237,5 +251,22 @@ fn two_queued_events_use_successive_source_state_generations_and_close_normally(
             break;
         }
     }
-    assert_eq!(status, KernelCompositeStatus::Complete);
+    assert_eq!(
+        status,
+        KernelCompositeStatus::Complete,
+        "terminal events: {:?}",
+        execution
+            .play
+            .signs()
+            .values()
+            .flatten()
+            .filter(|event| matches!(
+                event.kind,
+                conduit_kernel::KernelEventKind::BackCompleted
+                    | conduit_kernel::KernelEventKind::InputClosed
+                    | conduit_kernel::KernelEventKind::RemoteInputClosed
+                    | conduit_kernel::KernelEventKind::RemoteOutputClosed
+            ))
+            .collect::<Vec<_>>()
+    );
 }

@@ -17,14 +17,17 @@ fn offer(
     left_type: &StructuredInfoType,
     right: &CheckedValueContract,
     right_type: &StructuredInfoType,
+    feedback: bool,
 ) -> Result<CapabilityOffer, String> {
     if left.maximum_bytes > MAXIMUM_INPUT_BYTES || right.maximum_bytes > MAXIMUM_INPUT_BYTES {
         return Err("native finite zip input exceeds its prepared profile".into());
     }
-    let kind = conduit_semantic_catalog::flow_zip_finite_semantic_contract(
-        left, left_type, right, right_type,
-    )
-    .map_err(String::from)?;
+    let semantic = if feedback {
+        conduit_semantic_catalog::flow_zip_feedback_semantic_contract
+    } else {
+        conduit_semantic_catalog::flow_zip_finite_semantic_contract
+    };
+    let kind = semantic(left, left_type, right, right_type).map_err(String::from)?;
     let encoder = PreparedTypedTuplePairEncoder::new(
         left_type.clone(),
         left.maximum_bytes,
@@ -35,11 +38,17 @@ fn offer(
     if encoder.maximum_bytes() > MAXIMUM_PAIR_BYTES {
         return Err("native finite zip pair exceeds its prepared profile".into());
     }
+    let kind_name = if feedback {
+        "flow-zip-feedback"
+    } else {
+        "flow-zip-finite"
+    };
     Ok(BackOfferBuilder::new(
         kind,
         Back {
             capability_id: CapabilityId::from(format!(
-                "conduitos/flow-zip-finite/{}/{}/{}/{}@1",
+                "conduitos/{}/{}/{}/{}/{}@1",
+                kind_name,
                 left.value_kind.as_str(),
                 left.maximum_bytes,
                 right.value_kind.as_str(),
@@ -84,10 +93,31 @@ impl FlowZipOperationFactory {
         right: &CheckedValueContract,
         right_type: &StructuredInfoType,
     ) -> Result<CapabilityOffer, String> {
+        self.install_mode(left, left_type, right, right_type, false)
+    }
+
+    pub fn install_feedback(
+        &mut self,
+        left: &CheckedValueContract,
+        left_type: &StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, String> {
+        self.install_mode(left, left_type, right, right_type, true)
+    }
+
+    fn install_mode(
+        &mut self,
+        left: &CheckedValueContract,
+        left_type: &StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: &StructuredInfoType,
+        feedback: bool,
+    ) -> Result<CapabilityOffer, String> {
         if self.pairs.len() == MAXIMUM_SPECIALIZATIONS {
             return Err("native finite zip exceeds its admitted offer count".into());
         }
-        let offer = offer(left, left_type, right, right_type)?;
+        let offer = offer(left, left_type, right, right_type, feedback)?;
         if self.pairs.contains_key(&offer.capability_id) {
             return Err("native finite zip specialization is already installed".into());
         }
@@ -201,8 +231,13 @@ impl KernelOperationFactory for FlowZipOperationFactory {
         _: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
         let (types, left, right, _) = self.selected(gear)?;
+        let prepare = if gear.kind_id.as_str() == conduit_semantic_catalog::FLOW_ZIP_FEEDBACK_KIND {
+            FlowZipBack::prepare_typed_feedback
+        } else {
+            FlowZipBack::prepare_typed_finite
+        };
         Ok(Box::new(
-            FlowZipBack::prepare_typed_finite(left, types.left.clone(), right, types.right.clone())
+            prepare(left, types.left.clone(), right, types.right.clone())
                 .map_err(|error| format!("{error:?}"))?,
         ))
     }

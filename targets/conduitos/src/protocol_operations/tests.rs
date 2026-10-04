@@ -39,7 +39,7 @@ fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
         &mut profile,
     )
     .unwrap();
-    conduit_semantic_catalog::install_flow_zip_finite_kind(
+    conduit_semantic_catalog::install_flow_zip_feedback_kind(
         &state_value,
         state,
         &event_value,
@@ -54,7 +54,7 @@ fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
         state_offer.clone(),
         owners
             .joins
-            .install(&state_value, state, &event_value, event)
+            .install_feedback(&state_value, state, &event_value, event)
             .unwrap(),
     ];
     // Canonical imports precede definitions when these reviewed Source units are combined.

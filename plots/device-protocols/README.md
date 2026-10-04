@@ -68,6 +68,17 @@ protocol addresses, refusal preservation, deadlines and finite poll exhaustion.
 Prepared transition reuse allocates nothing. The source initializer owns the
 initial state; the test harness supplies events and bus responses.
 
+`bme280-feedback.conduit` connects Source initialization and transitions through
+an explicitly declared, finitely retained state boundary. Every accepted event
+uses the preceding committed state generation. The generic `flow/zip/feedback`
+contract requires one initial state and one returned state per published pair;
+event closure retains a pending event and waits for the last state return.
+Ordinary `flow/zip/finite` keeps its existing unmatched-value discard behavior.
+Native kernel tests exercise queued events, input closure during transition,
+and normal completion with the exact retained state and pairing owners. This
+proves Source feedback execution with supplied events, while automatic bus/time
+event production and boot admission remain development work.
+
 Its `bme280-observation` entry assembles one typed fixed-point temperature,
 pressure and humidity observation from decoded calibration and samples.
 Malformed input, disabled samples and invalid calibration yield explicit
