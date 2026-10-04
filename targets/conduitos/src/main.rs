@@ -66,6 +66,16 @@ extern "C" fn conduitos_start() -> ! {
                         emit_machine_refusal(error.as_str());
                     }
                     initialize_runtime_arena(&record);
+                    // SAFETY: ordinary native startup is the sole privileged Root.
+                    // Protocol modules are local administrator boot configuration;
+                    // that administrator must separately approve firmware handoff
+                    // and electrical attachment before installing this profile.
+                    // Admission checks actual hardware and permanently reserves it.
+                    if let Err(reason) =
+                        unsafe { conduitos::protocol_boot::run_if_selected(&record) }
+                    {
+                        emit_machine_refusal(reason);
+                    }
                     #[cfg(feature = "native-compositor")]
                     graphical_startup::run(record);
                     #[cfg(not(feature = "native-compositor"))]

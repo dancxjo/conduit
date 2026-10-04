@@ -38,6 +38,10 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
     {
         return Err("protocol-operation-envelope-exceeded");
     }
+    let required = crate::make::IMPL_I2C_TRANSACTION | crate::make::IMPL_MONOTONIC_DEADLINE;
+    if crate::make::EMBEDDED_MAKE.implementations & required != required {
+        return Err("protocol-native-implementations-not-compiled");
+    }
     arch::initialize_machine(record, boot::executable_physical_address);
     let identities = crate::identity::derive(
         arch::boot_entropy(record.timestamp, record.image_physical_start),

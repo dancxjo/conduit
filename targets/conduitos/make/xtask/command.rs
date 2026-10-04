@@ -14,6 +14,8 @@ pub(super) enum ConduitosCommand {
     Acceptance(AcceptanceArgs),
     /// Check and package bounded Source without building the target.
     ProtocolSource(protocol_source::PackageArgs),
+    /// Package a locally approved protocol over an existing capable product kernel.
+    ProtocolImage(protocol_image::ImageArgs),
     /// Verify and report the pinned Limine architecture/backend matrix.
     ArchitectureMatrix,
     /// Report exact earned Product Spine cells independently of A0-A4.
@@ -121,6 +123,37 @@ mod tests {
             Command::Make(MakeArgs {
                 target: MakeTarget::Conduitos(ConduitosArgs {
                     command: ConduitosCommand::ProtocolSource(_),
+                }),
+            })
+        ));
+    }
+    #[test]
+    fn protocol_image_requires_existing_kernel_record_and_both_exact_modules() {
+        let command = ["xtask", "make", "conduitos", "protocol-image"];
+        let pairs = [
+            ["--kernel", "product/conduitos"],
+            ["--build-record", "product/build.json"],
+            ["--package", "source.json"],
+            ["--root-request", "root.json"],
+            ["--output-dir", "media"],
+        ];
+        for missing in 0..pairs.len() {
+            let args = command.into_iter().chain(
+                pairs
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != missing)
+                    .flat_map(|(_, pair)| pair.iter().copied()),
+            );
+            assert!(Cli::try_parse_from(args).is_err());
+        }
+        let cli =
+            Cli::try_parse_from(command.into_iter().chain(pairs.into_iter().flatten())).unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Make(MakeArgs {
+                target: MakeTarget::Conduitos(ConduitosArgs {
+                    command: ConduitosCommand::ProtocolImage(_),
                 }),
             })
         ));

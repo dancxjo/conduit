@@ -90,6 +90,7 @@ pub(super) fn prepare(
             },
         });
     }
+    report_plan(&definition.internal_plan)?;
     Ok((play, outputs))
 }
 
@@ -122,6 +123,7 @@ pub(super) fn execute(
     }
     play.start().map_err(|_| "protocol-start-refused")?;
     let result = (|| {
+        report_play(play)?;
         for (port, value) in &inputs {
             play.admit_input(port, 0, value)
                 .map_err(|_| "protocol-input-refused")?;
@@ -177,4 +179,41 @@ fn report_output(port: &PortId, value: &ValuePayload) {
         arch::early_write(&[HEX[(byte >> 4) as usize], HEX[(byte & 15) as usize]]);
     }
     arch::early_write(b"\n");
+}
+
+fn report_plan(plan: &Plan) -> Result<(), &'static str> {
+    use core::fmt::Write;
+    let mut text = crate::sign_format::FixedText::new();
+    writeln!(
+        text,
+        "CONDUIT_PROTOCOL_PLAN source={} checked={} expanded={} plan={}",
+        plan.source_document_id.as_str(),
+        plan.checked_plot_id.as_str(),
+        plan.expanded_plot_id.as_str(),
+        plan.plan_id.as_str()
+    )
+    .map_err(|_| "protocol-plan-sign-envelope-exceeded")?;
+    arch::early_write(text.as_bytes());
+    Ok(())
+}
+
+fn report_play(play: &NativePlay) -> Result<(), &'static str> {
+    use core::fmt::Write;
+    let identity = play
+        .session()
+        .realization()
+        .and_then(|current| current.play.as_ref())
+        .ok_or("protocol-current-play-missing")?;
+    let mut text = crate::sign_format::FixedText::new();
+    writeln!(
+        text,
+        "CONDUIT_PROTOCOL_PLAY body={} wake={} plan={} play={}",
+        identity.body_id.as_str(),
+        identity.wake_id.as_str(),
+        identity.plan_id.as_str(),
+        identity.active_play_id.as_str()
+    )
+    .map_err(|_| "protocol-play-sign-envelope-exceeded")?;
+    arch::early_write(text.as_bytes());
+    Ok(())
 }

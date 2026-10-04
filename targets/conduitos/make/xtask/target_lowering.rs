@@ -114,6 +114,8 @@ pub(super) fn lower_x86_64_pc(
         | conduitos::make::IMPL_TEXT_UPPER
         | conduitos::make::IMPL_TEXT_PRESENTATION
         | conduitos::make::IMPL_KEYBOARD
+        | conduitos::make::IMPL_I2C_TRANSACTION
+        | conduitos::make::IMPL_MONOTONIC_DEADLINE
         | conduitos::make::IMPL_POINTER
         | conduitos::make::IMPL_PC_SPEAKER
         | conduitos::make::IMPL_OPL2;

@@ -63,9 +63,35 @@ identity. This is checking and expansion evidence; packaging neither rebuilds
 the target nor admits a controller or starts Play.
 
 This production preparation chain is exercised by deterministic native kernel
-conformance through `cargo xtask check device-protocols`. Ordinary boot media and
-controller admission are still unfinished. Native Limine observation can select
-one bounded, exactly named module without granting trust or execution authority.
+conformance through `cargo xtask check device-protocols`. The x86_64 product Root
+also has a standalone native boot entrance: a local administrator supplies an
+exact Source package and a separate bounded Root request. The request names the
+entry, approved package digest, selected PCI function, address interval, finite
+operation/poll/step budgets, clock lifetime and canonical Fore input bytes.
+Firmware handoff, electrical approval and exclusive machine ownership must be
+established independently by the administrator before installing this profile.
+Decoded flags and Source identities cannot establish those facts.
+
+Package those inputs over an already capable product kernel, without rebuilding:
+
+```sh
+cargo xtask make conduitos protocol-image \
+  --kernel product/conduitos --build-record product/build.json \
+  --package protocol-source.json --root-request protocol-root-request.json \
+  --output-dir protocol-media
+```
+
+This command checks the exact x86_64 product-kernel digest and Source binding,
+then retains the boot image and packaging receipt in a new directory. At boot,
+Root checks compiled implementation inventory, actual controller configuration
+and real calibrated clock availability before issuing narrowly bounded native
+possession. One canonical Body runs the admitted Source entry through the
+ordinary kernel; typed output bytes are diagnostic records. Retirement keeps
+its biography and resource reservations alive instead of starting a second Body.
+This path does not yet have a retained freestanding execution result. Packaging
+receipts establish preparation, not hardware compatibility or execution.
+Native Limine observation selects bounded, exactly named modules without itself
+granting trust or execution authority.
 The x86_64 ICH5–ICH9 realization validates an explicitly selected PCI function,
 its I/O window and live configuration before constructing the finite provider.
 It refuses busy hardware, SMI routing, I2C mode and auxiliary CRC/buffer modes;
