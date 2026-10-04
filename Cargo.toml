@@ -76,6 +76,7 @@ members = [
 	"targets/avr/make",
 	"targets/browser/host",
 	"targets/browser/make",
+	"targets/browser/mask-offer",
 	"targets/browser/runtime",
 	"targets/conduitos",
 	"targets/conduitos/make",

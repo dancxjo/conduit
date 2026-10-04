@@ -40,52 +40,6 @@ type EnglishPhoneme =
     | y
     | h
 
-type EnglishPhone =
-    iy
-    | ih
-    | ey
-    | eh
-    | ae
-    | aa
-    | ao
-    | ow
-    | uh
-    | uw
-    | ah
-    | ax
-    | er
-    | ay
-    | aw
-    | oy
-    | p
-    | b
-    | t
-    | d
-    | k
-    | g
-    | f
-    | v
-    | th
-    | dh
-    | s
-    | z
-    | sh
-    | zh
-    | ch
-    | jh
-    | m
-    | n
-    | ng
-    | l
-    | r
-    | w
-    | y
-    | h
-    | p_aspirated
-    | t_aspirated
-    | k_aspirated
-    | alveolar_flap
-
 type EnglishStress =
     primary
     | secondary

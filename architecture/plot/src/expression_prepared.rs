@@ -83,6 +83,13 @@ enum PreparedOperation {
     Inspection(inspection::PreparedInspection),
 }
 
+/// Finite canonical frame ceiling from an exact checked Type, including leaf framing.
+pub fn maximum_prepared_canonical_value_bytes(
+    ty: &conduit_core::StructuredInfoType,
+) -> Result<u32, Refusal> {
+    Ok(storage_bound::canonical(ty)? as u32)
+}
+
 impl PortableExpressionProgram {
     /// Conservative canonical transport ceiling, computed before Play from the exact input Type.
     pub fn maximum_prepared_input_bytes(&self) -> Result<u32, Refusal> {

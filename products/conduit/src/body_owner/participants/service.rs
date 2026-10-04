@@ -135,6 +135,7 @@ fn planning_offer_refusal(error: &str) -> &'static str {
         "part-unavailable" => "part-unavailable",
         "window-not-active" => "window-not-active",
         "owner-unavailable" => "owner-unavailable",
+        "browser-mask-offer-mismatch" => "browser-mask-offer-mismatch",
         _ => "offer-unavailable",
     }
 }
@@ -317,6 +318,27 @@ impl Owner {
         });
         if !current || !admitted || self.session.evidence().body_id != credential.body_id {
             return Err("part-unavailable".into());
+        }
+        if request
+            .capability_ids
+            .contains(&conduit_browser_mask_offer::offer().capability_id)
+        {
+            // Disclosure remains self-reported. Check that this current
+            // observation admits the reviewed ordinary browser Mask Plan.
+            // This alone does not admit a cross-Host presentation Line.
+            if !observation
+                .advertisement
+                .capabilities
+                .contains(&conduit_browser_mask_offer::offer())
+                || conduit_browser_mask_offer::planned_mask(
+                    &observation.advertisement,
+                    conduit_browser_mask_offer::MASK_SOURCE,
+                    "browser-graphical",
+                )
+                .is_err()
+            {
+                return Err("browser-mask-offer-mismatch".into());
+            }
         }
         disclose_host_offer(observation, RemoteProofClass::SelfReported, request).map_err(|error| {
             match error {
