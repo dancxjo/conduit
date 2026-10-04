@@ -3,8 +3,11 @@ use crate::{
     expression_host_call::ExpressionOperationFactory,
     i2c_base::{I2cOperationFactory, I2cProvider, installation::ReadyI2cBase},
     protocol_host_calls::{PreparedProtocolCalls, ProtocolCallRefusal},
+    structured_selector_host_call::SelectorOperationFactory,
 };
-use conduit_composite::{KernelCompositeDefinition, KernelCompositeHost, KernelOperationRegistry};
+use conduit_composite::{
+    KernelCompositeDefinition, KernelCompositeHost, KernelCompositeStatus, KernelOperationRegistry,
+};
 use conduit_core::*;
 
 /// Preparation owns the admitted kernel and the actual native owners together.
@@ -33,6 +36,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
                 I2cOperationFactory::prepare_contract()
                     .map_err(|_| ProtocolCallRefusal::InvalidPlan)?,
             )
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(SelectorOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let kernel = KernelCompositeHost::prepare(definition, &registry)
             .map_err(ProtocolCallRefusal::Kernel)?;
@@ -89,12 +95,12 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     }
 
     /// Advance the sole kernel once and service at most one surfaced Host Call.
-    pub fn step(&mut self) -> Result<(), ProtocolCallRefusal> {
-        self.kernel.step().map_err(ProtocolCallRefusal::Kernel)?;
+    pub fn step(&mut self) -> Result<KernelCompositeStatus, ProtocolCallRefusal> {
+        let status = self.kernel.step().map_err(ProtocolCallRefusal::Kernel)?;
         if let Some(request) = self.kernel.next_host_request() {
             self.calls.dispatch(&mut self.kernel, &request)?;
         }
-        Ok(())
+        Ok(status)
     }
 
     pub fn cancel(&mut self) -> Result<(), ProtocolCallRefusal> {

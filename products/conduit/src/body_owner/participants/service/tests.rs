@@ -82,6 +82,116 @@ fn advertise(owner: &mut Owner, window_id: &str) -> conduit_body::AdmissionChall
 }
 
 #[test]
+fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() {
+    let (mut owner, root, _) = setup();
+    let mut advertisement = host("host/browser-test", "boot/browser/first")
+        .advertisement()
+        .clone();
+    let mask = conduit_browser_mask_offer::offer();
+    advertisement.capabilities.push(mask.clone());
+    advertisement
+        .resources
+        .retain(|resource| resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS);
+    advertisement.resources.push(conduit_core::resource_offer(
+        "browser/presentation",
+        conduit_core::PRESENTATION_RESOURCE_CLASS,
+        1,
+    ));
+    advertisement
+        .capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    advertisement
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    conduit_browser_mask_offer::planned_mask(
+        &advertisement,
+        conduit_browser_mask_offer::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let authorized = owner
+        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .unwrap();
+    let Out::Challenge { challenge, .. } = owner
+        .browser_begin(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/browser-mask"),
+            In::Advertise {
+                protocol: PROTOCOL,
+                advertisement,
+                friendly_label: "Browser Mask test".into(),
+                verifying_key: BROWSER_KEY.to_vec(),
+                freshness_sequence: 1,
+            },
+            512,
+        )
+        .unwrap()
+    else {
+        panic!("expected browser admission challenge")
+    };
+    let secret = SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap();
+    let snapshot = owner
+        .browser_complete(
+            &root,
+            &authorized.window_id,
+            In::AmbientProof {
+                protocol: PROTOCOL,
+                admission_id: challenge.admission_id.clone(),
+                body_id: challenge.body_id.clone(),
+                host_id: challenge.host_id.clone(),
+                boot_id: challenge.boot_id.clone(),
+                nonce: challenge.nonce.to_vec(),
+                signature: secret.sign(&challenge.signing_transcript()).to_vec(),
+            },
+        )
+        .unwrap();
+    let request = OfferDisclosureRequest {
+        stage: OfferDisclosureStage::Planning,
+        capability_ids: vec![mask.capability_id.clone()],
+        resource_pool_ids: vec![conduit_core::ResourcePoolId::from("browser/presentation")],
+    };
+    owner
+        .browser_planning_offer(&authorized.window_id, &snapshot.credential, &request)
+        .unwrap();
+    let WindowState::Active { observation, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        panic!("expected active browser offer")
+    };
+    let offered = observation
+        .advertisement
+        .capabilities
+        .iter_mut()
+        .find(|offer| offer.capability_id == mask.capability_id)
+        .unwrap();
+    offered.implementation.artifact_id = conduit_core::ArtifactId::from("artifact/forged");
+    assert_eq!(
+        owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &request),
+        Err("browser-mask-offer-mismatch".into())
+    );
+    let WindowState::Active { observation, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    *observation
+        .advertisement
+        .capabilities
+        .iter_mut()
+        .find(|offer| offer.capability_id == mask.capability_id)
+        .unwrap() = mask.clone();
+    observation
+        .advertisement
+        .resources
+        .retain(|resource| resource.pool_id.as_str() != "browser/presentation");
+    assert_eq!(
+        owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &request),
+        Err("browser-mask-offer-mismatch".into())
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn current_browser_window_discloses_only_requested_planning_offer_detail() {
     let (mut owner, root, _) = setup();
     let browser = host("host/browser-test", "boot/browser/first")

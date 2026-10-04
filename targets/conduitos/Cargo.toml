@@ -235,7 +235,7 @@ patchbay-graph = { path = "../../plots/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
-conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["plot-catalog"] }
+conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["plot-catalog", "kernel-step"] }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-web = { path = "../../semantics/web", default-features = false }
