@@ -14,6 +14,7 @@ const mediaTypes = new Map([
   [".md", "text/markdown; charset=utf-8"],
   [".mjs", "text/javascript; charset=utf-8"],
   [".wasm", "application/wasm"],
+  [".wav", "audio/wav"],
 ]);
 
 if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) {

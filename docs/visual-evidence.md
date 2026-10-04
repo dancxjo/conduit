@@ -55,7 +55,9 @@ into proof.
 `--evidence-root <directory>` may select another root for local or CI consumers.
 Evidence declarations always name relative paths beneath that root; absolute paths,
 parent traversal, symlinks escaping the root, duplicate identities or paths, more
-than 64 outputs, and individual outputs larger than 16 MiB are refused.
+than 128 outputs, and individual outputs larger than 16 MiB are refused. The
+verifier also accepts retained manifests that declared the earlier 64-output
+bound; each manifest must remain within its own declared limit.
 
 The versioned `conduit.evidence-manifest/v1` envelope binds the exact Git commit,
 proof and suite identities, completion disposition, declared output metadata, byte

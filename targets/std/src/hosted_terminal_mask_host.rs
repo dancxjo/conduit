@@ -106,12 +106,18 @@ impl StdHost {
 
     /// Run the ordinary planned Mask through this Host's attached terminal.
     /// Only an actual foreground write+flush acknowledgement can make its
-    /// Show Available. This first entrance closes the typed input Fore without
-    /// an interaction; it is a read-only Show, not full terminal navigation.
-    pub fn present_attached_terminal_face(
+    /// Show Available. Retain the execution until its typed input Fore is
+    /// satisfied or the route is retired.
+    pub fn present_attached_terminal_face_with_interaction(
         &mut self,
         face: &conduit_presentation::Presentation,
-    ) -> Result<conduit_presentation::MaskShow, String> {
+    ) -> Result<
+        (
+            conduit_presentation::MaskShow,
+            terminal_mask_execution::HostedTerminalMaskExecution,
+        ),
+        String,
+    > {
         use crate::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
         let mut execution = match self.prepare_terminal_mask_execution() {
             Ok(execution) => execution,
@@ -122,7 +128,7 @@ impl StdHost {
                 return Err(error);
             }
         };
-        let mut mask = TerminalFaceMask::prepare_read_only(face.clone(), 80, 24)
+        let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24)
             .map_err(|error| format!("prepare attached terminal Face: {error:?}"))?;
         let result = (|| {
             let prepared = execution
@@ -146,13 +152,29 @@ impl StdHost {
                 .map_err(|error| format!("bind attached terminal Show: {error:?}"))?;
             Ok(available)
         })();
-        if result.is_err() {
-            let _ = execution.cancel();
-            // A failed output or missing acknowledgement must not leave an
-            // available terminal route under the old offer generation.
-            self.detach_terminal_mask()?;
+        match result {
+            Ok(show) => Ok((show, execution)),
+            Err(error) => {
+                let _ = execution.cancel();
+                self.detach_terminal_mask()?;
+                Err(error)
+            }
         }
-        result
+    }
+
+    /// Present once and close the interaction Fore for callers that only
+    /// requested a readable Show.
+    pub fn present_attached_terminal_face(
+        &mut self,
+        face: &conduit_presentation::Presentation,
+    ) -> Result<conduit_presentation::MaskShow, String> {
+        use crate::terminal_face_mask::TerminalMaskExecution;
+        let (show, mut execution) = self.present_attached_terminal_face_with_interaction(face)?;
+        if let Err(error) = execution.close_without_input() {
+            self.detach_terminal_mask()?;
+            return Err(format!("close attached terminal Mask input: {error:?}"));
+        }
+        Ok(show)
     }
 
     /// A non-consuming liveness check for the owner event loop. A false result

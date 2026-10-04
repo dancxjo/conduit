@@ -82,10 +82,9 @@ fn attached_owner_host_waits_for_actual_foreground_flush_before_available_show()
     assert!(current
         .resources
         .iter()
-        .all(|resource| resource.pool_id.as_str() != "terminal/input"));
+        .any(|resource| resource.pool_id.as_str() == "terminal/input"));
     assert!(current.capabilities.iter().any(|offer| {
-        offer.implementation.implementation_id.as_str()
-            == planning::READ_ONLY_INTERACTION_IMPLEMENTATION
+        offer.implementation.implementation_id.as_str() == "presentation/terminal-input@1"
     }));
     let face = face(7);
     let (finished, release) = std::sync::mpsc::sync_channel::<()>(1);
@@ -114,8 +113,8 @@ fn attached_owner_host_waits_for_actual_foreground_flush_before_available_show()
             .unwrap()
             .host_calls
             .len(),
-        1,
-        "read-only terminal route has only its real output Host Call"
+        2,
+        "attached terminal route plans both output and typed return Host Calls"
     );
 }
 
