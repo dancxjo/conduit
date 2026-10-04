@@ -39,6 +39,7 @@ fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
         product_executable: "fixture-unused".into(),
         body_state: None,
         joined_body_state: None,
+        selected_speech: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = source();
@@ -182,6 +183,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         product_executable: "fixture-unused".into(),
         body_state: None,
         joined_body_state: None,
+        selected_speech: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(CLOCK_SOURCE)
@@ -297,6 +299,7 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
         product_executable: "fixture-unused".into(),
         body_state: None,
         joined_body_state: None,
+        selected_speech: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let initial = crate::plot_source::parse(CLOCK_SOURCE)
@@ -397,6 +400,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         product_executable: "fixture-unused".into(),
         body_state: None,
         joined_body_state: None,
+        selected_speech: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = crate::plot_source::parse(CLOCK_SOURCE)
@@ -570,6 +574,7 @@ fn actual_execution_receipt_survives_fresh_boot_as_history_only() {
         product_executable: "fixture-unused".into(),
         body_state: None,
         joined_body_state: None,
+        selected_speech: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();
@@ -622,6 +627,7 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
         product_executable: "fixture-unused".into(),
         body_state: None,
         joined_body_state: None,
+        selected_speech: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();
