@@ -69,6 +69,7 @@ try {
   assert(listing.includes("browser-sdk-syntax.mjs"));
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));
+  assert(listing.includes("browser-sdk-face-actions.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
   assert(listing.includes("host/assets/browser-host-identity.mjs"));
   assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));
