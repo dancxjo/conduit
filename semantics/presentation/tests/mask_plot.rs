@@ -222,6 +222,7 @@ fn admit(source: &str, name: &str) -> MaskPlot {
 fn host_for(
     expanded: &conduit_plot::ExpandedCanonicalPlot,
     profiles: &ProfileCatalog,
+    host_id: &str,
 ) -> HostAdvertisement {
     let capabilities = expanded
         .gears
@@ -247,8 +248,11 @@ fn host_for(
         .collect();
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: HostId::from("host/mask-test"),
-        boot_id: BootId::from("boot/mask-test"),
+        host_id: HostId::from(host_id),
+        boot_id: BootId::from(format!(
+            "boot/{}",
+            host_id.strip_prefix("host/").unwrap_or(host_id)
+        )),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("mask/test@1"),
         bases: vec![],
@@ -318,11 +322,19 @@ fn plan_mask(source: &str, name: &str) -> PlannedMaskPlot {
 }
 
 fn plan_mask_with_host(source: &str, name: &str) -> (PlannedMaskPlot, HostAdvertisement) {
+    plan_mask_with_host_on(source, name, "host/mask-test")
+}
+
+fn plan_mask_with_host_on(
+    source: &str,
+    name: &str,
+    host_id: &str,
+) -> (PlannedMaskPlot, HostAdvertisement) {
     let (startup, profiles) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authoring = expand_canonical_plot_for_authoring(&checked, name, &profiles).unwrap();
     let mask = MaskPlot::admit(&authoring).unwrap();
-    let host = host_for(&authoring.expanded, &profiles);
+    let host = host_for(&authoring.expanded, &profiles, host_id);
     let placements = conduit_planner::default_expanded_placements(
         &authoring.expanded,
         core::slice::from_ref(&host),
@@ -520,7 +532,7 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
     let authoring =
         expand_canonical_plot_for_authoring(&checked, "browser-graphical", &profiles).unwrap();
     let mask = MaskPlot::admit(&authoring).unwrap();
-    let host = host_for(&authoring.expanded, &profiles);
+    let host = host_for(&authoring.expanded, &profiles, "host/mask-test");
     let placements = conduit_planner::default_expanded_placements(
         &authoring.expanded,
         core::slice::from_ref(&host),

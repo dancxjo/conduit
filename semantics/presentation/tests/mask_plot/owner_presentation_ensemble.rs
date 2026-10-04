@@ -158,3 +158,226 @@ fn owner_presentation_ensemble_preserves_child_plans_and_reconciles_sealed_alter
         Err(OwnerPresentationPlanError::StaleBodyOrFace)
     );
 }
+
+#[test]
+fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
+    use conduit_body::{AuthenticatedHostObservation, MembershipProofId, PartId};
+    use conduit_core::{
+        process_owned_line_offer_with_limits, AuthorityGrantId, BaseImplementationId,
+        CredentialReferenceId, LineAvailability, LineScope, LineSecurity, LinkAuthorityReference,
+        LinkCredentialReference, LinkLimits,
+    };
+    use conduit_presentation::{RemoteOwnerMaskRouteError, RemoteOwnerMaskRouteSeal};
+
+    let local_source = "plot terminal (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n";
+    let remote_source = local_source.replace("plot terminal", "plot browser");
+    let (terminal, owner_offer) = plan_mask_with_host_on(local_source, "terminal", "host/owner");
+    let (browser, browser_offer) =
+        plan_mask_with_host_on(&remote_source, "browser", "host/browser");
+    let body = Body::born(
+        terminal.mask.plot_identity.source_document_id.clone(),
+        terminal.mask.plot_identity.checked_plot_id.clone(),
+        1,
+        SignId::from("sign/mixed-born"),
+    )
+    .unwrap();
+    let body_id = body.body_id.clone();
+    let mut membership = BodyMembership::new(body_id.clone()).unwrap();
+    let part = PartId::bind(&body_id, browser_offer.host_id.as_str(), 1).unwrap();
+    let proof = MembershipProofId::bind("mixed-browser").unwrap();
+    let mut evidence =
+        BodyBiographyEvidence::born(body, membership.clone(), "Mixed".into()).unwrap();
+    let admitted = membership
+        .admit(
+            &body_id,
+            membership.revision,
+            part.clone(),
+            proof.clone(),
+            SignId::from("sign/mixed-admitted"),
+        )
+        .unwrap();
+    let present = membership
+        .observe_present(
+            &body_id,
+            membership.revision,
+            &part,
+            AuthenticatedHostObservation {
+                host_id: browser_offer.host_id.clone(),
+                boot_id: browser_offer.boot_id.clone(),
+                offer_generation: browser_offer.offer_generation,
+                proof_id: proof,
+                sequence: 1,
+            },
+            SignId::from("sign/mixed-present"),
+        )
+        .unwrap();
+    evidence
+        .append_membership_events(membership, &[(admitted, 2), (present, 3)])
+        .unwrap();
+    let session = BodyLifecycleSession::open(evidence).unwrap();
+    let face = Presentation::new(
+        3,
+        PresentationBasis {
+            body_id: Some(body_id.clone()),
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![PresentationSubject {
+            identity: "mixed/plot".into(),
+            role: PresentationRole::Plot,
+            name: "Mixed routes".into(),
+        }],
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap();
+    let limits = LinkLimits {
+        maximum_in_flight_items: 1,
+        maximum_payload_bytes: 64 * 1024,
+        maximum_buffered_bytes: 128 * 1024,
+        maximum_frame_bytes: 64 * 1024,
+    };
+    // Explicit contract fixtures: these do not prove a live browser carrier.
+    let line = |direction: &str, source: &HostAdvertisement, sink: &HostAdvertisement| {
+        let mut line = process_owned_line_offer_with_limits(
+            &format!("line/mixed/{direction}"),
+            &format!("binding/mixed/{direction}"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "base-instance/mixed",
+            source,
+            sink,
+            limits,
+        );
+        line.binding.credential =
+            LinkCredentialReference::Opaque(CredentialReferenceId::from("credential/mixed"));
+        line.binding.authority =
+            LinkAuthorityReference::Grant(AuthorityGrantId::from("grant/mixed"));
+        line.contract.scope = LineScope::RoutedNetwork;
+        line.contract.security = LineSecurity::PlaintextNetwork;
+        line
+    };
+    let face_line = line("face", &owner_offer, &browser_offer);
+    let return_line = line("return", &browser_offer, &owner_offer);
+    let local =
+        LocalOwnerMaskRouteSeal::seal_lulled(&session, &face, &owner_offer, &terminal).unwrap();
+    let remote = RemoteOwnerMaskRouteSeal::seal_lulled(
+        &session,
+        &face,
+        &owner_offer,
+        &browser_offer,
+        &browser,
+        &face_line,
+        &return_line,
+    )
+    .unwrap();
+    let witnesses = [
+        CurrentOwnerPresentationRoute::Local {
+            seal: &local,
+            owner_offer: &owner_offer,
+        },
+        CurrentOwnerPresentationRoute::Remote {
+            seal: &remote,
+            owner_offer: &owner_offer,
+            mask_host_offer: &browser_offer,
+            face_line: &face_line,
+            return_line: &return_line,
+        },
+    ];
+    let ensemble = OwnerPresentationPlan::seal_current(&session, &face, &witnesses).unwrap();
+    let both = ensemble
+        .admit_current_routes(&session, &face, &witnesses)
+        .unwrap();
+    assert_eq!(both.routes().len(), 2);
+    assert!(both
+        .routes()
+        .iter()
+        .any(
+            |route| route.child_mask_plan_id.as_ref() == Some(&browser.plan.plan_id)
+                && route.owner_route_seal_id.as_ref() == Some(&remote.route_plan_id)
+                && route.currently_available
+        ));
+    let wardrobe = MaskWardrobe::new(
+        MaskWardrobeLifetime::Body,
+        vec![
+            terminal.mask.plot_identity.clone(),
+            browser.mask.plot_identity.clone(),
+        ],
+        vec![
+            browser.mask.plot_identity.clone(),
+            terminal.mask.plot_identity.clone(),
+        ],
+    )
+    .unwrap();
+    let mut control = MaskWardrobeControl::new_from_admitted_routes(
+        BodyMaskWardrobe::new(body_id, None, wardrobe).unwrap(),
+        &both,
+        None,
+    )
+    .unwrap();
+    assert!(
+        matches!(control.selected.as_ref(), Some(selected) if selected.mask_plot == browser.mask.plot_identity)
+    );
+    let local_only = ensemble
+        .admit_current_routes(&session, &face, &witnesses[..1])
+        .unwrap();
+    assert!(local_only
+        .routes()
+        .iter()
+        .any(
+            |route| route.owner_route_seal_id.as_ref() == Some(&remote.route_plan_id)
+                && !route.currently_available
+        ));
+    assert!(
+        matches!(control.reconcile_routes(&local_only).unwrap().show,
+        MaskShowDisposition::SelectSealed { selected, .. }
+        if selected.mask_plot == terminal.mask.plot_identity)
+    );
+    let mut lost_return = return_line.clone();
+    lost_return.availability.availability = LineAvailability::Unavailable;
+    assert_eq!(
+        ensemble.admit_current_routes(
+            &session,
+            &face,
+            &[
+                witnesses[0],
+                CurrentOwnerPresentationRoute::Remote {
+                    seal: &remote,
+                    owner_offer: &owner_offer,
+                    mask_host_offer: &browser_offer,
+                    face_line: &face_line,
+                    return_line: &lost_return,
+                },
+            ]
+        ),
+        Err(OwnerPresentationPlanError::Remote(
+            RemoteOwnerMaskRouteError::LineUnavailable
+        ))
+    );
+    let mut wrong_boot = face_line.clone();
+    wrong_boot.binding.sink.boot_id = BootId::from("boot/browser-stale");
+    assert_eq!(
+        ensemble.admit_current_routes(
+            &session,
+            &face,
+            &[
+                witnesses[0],
+                CurrentOwnerPresentationRoute::Remote {
+                    seal: &remote,
+                    owner_offer: &owner_offer,
+                    mask_host_offer: &browser_offer,
+                    face_line: &wrong_boot,
+                    return_line: &return_line,
+                },
+            ]
+        ),
+        Err(OwnerPresentationPlanError::Remote(
+            RemoteOwnerMaskRouteError::StaleLine
+        ))
+    );
+}
