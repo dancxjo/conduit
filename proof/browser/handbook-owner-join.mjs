@@ -117,6 +117,12 @@ try {
   await page.locator('[data-owner-face-document] [data-owner-action]').first().waitFor();
   const beforeFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(beforeFace.body_id, initial.biography.body_id);
+  assert.equal(beforeFace.show_state, 'available');
+  assert.equal(typeof beforeFace.mask_plan_id, 'string');
+  assert.ok(beforeFace.mask_plan_id.length > 0);
+  assert.equal(typeof beforeFace.mask_play_id, 'string');
+  assert.ok(beforeFace.mask_play_id.length > 0);
+  assert.match(beforeFace.show_id, /^show\/[a-f0-9]{64}$/);
   const clockAction = beforeFace.actions.find(action => action.intent === 'conduit.intent/change-clock-interval@1');
   assert.equal(clockAction.availability, 'available');
   const clockControl = page.locator('[data-owner-action]').filter({ has: page.getByRole('button', { name: 'Change clock interval' }) });
@@ -131,6 +137,8 @@ try {
   const afterFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(afterFace.body_id, beforeFace.body_id);
   assert.notEqual(afterFace.face_revision, beforeFace.face_revision);
+  assert.equal(afterFace.show_state, 'available');
+  assert.notEqual(afterFace.show_id, beforeFace.show_id);
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
   const changedScreenshot = path.join(output, 'browser-clock-changed.png');
   await page.screenshot({ path: changedScreenshot, fullPage: true });
@@ -172,6 +180,8 @@ try {
   const playingFaceScreenshot = path.join(output, 'browser-clock-playing-face.png');
   await page.locator('[data-owner-face]').screenshot({ path: playingFaceScreenshot });
   const playingFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(playingFace.show_state, 'available');
+  assert.notEqual(playingFace.show_id, afterFace.show_id);
   await page.getByRole('button', { name: 'Stop the clock' }).click();
   try {
     await page.waitForFunction(() => document.querySelector('[data-owner-action-result]')?.textContent
@@ -259,7 +269,10 @@ try {
     screenshot: 'browser-admitted.png', screenshotSha256: digest(await readFile(screenshot)),
     actionScreenshot: 'browser-clock-changed.png', actionScreenshotSha256: digest(await readFile(changedScreenshot)),
     actionId: clockAction.identity, priorFaceId: beforeFace.face_id, priorFaceRevision: beforeFace.face_revision,
+    priorMaskPlanId: beforeFace.mask_plan_id, priorMaskPlayId: beforeFace.mask_play_id,
+    priorShowId: beforeFace.show_id, priorShowState: beforeFace.show_state,
     resultingFaceId: afterFace.face_id, resultingFaceRevision: afterFace.face_revision,
+    resultingMaskPlanId: afterFace.mask_plan_id, resultingShowId: afterFace.show_id,
     resultingWorksetIntervalMs: 500,
     startActionId: startAction.identity, playingFaceId: playingFace.face_id,
     playId: live.realization.play.active_play_id, stopActionId: playingFace.actions.find(action =>
