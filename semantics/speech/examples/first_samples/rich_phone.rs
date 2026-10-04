@@ -247,5 +247,95 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
         Renderer::prepare(&intent_events).map_err(|e| format!("{e:?}"))?,
     )?;
     println!("{output}/intent-sources-hello-world.wav: {} original source references resolved; quantitative intent and commitment remain separate", resolved_sources.receipts().len());
+    // Build an explicitly chosen-phone quantitative fixture from original
+    // segment declarations, retaining every source and stress specification.
+    let mut segment_index = 0;
+    let ordered = pronounced.events().iter().map(|event| {
+        let frames = Renderer::prepare(core::slice::from_ref(event))
+            .unwrap()
+            .total_frames();
+        let duration =
+            SpeechDurationSpecification::known(u64::from(conduit_speech::SAMPLE_RATE_HZ), frames)
+                .unwrap();
+        if let VoiceEvent::boundary(boundary) = event {
+            let kind = match boundary {
+                VoiceBoundary::word => SpeechBoundaryKind::Word,
+                VoiceBoundary::phrase => SpeechBoundaryKind::Phrase,
+                VoiceBoundary::turn => SpeechBoundaryKind::Turn,
+            };
+            SpeechUtteranceIntentEvent::boundary(
+                duration,
+                SpeechBoundarySpecification::known(kind).unwrap(),
+                intent.provenance().clone(),
+                BoundedSequence::try_from_iter([references[0].clone()]).unwrap(),
+            )
+            .unwrap()
+        } else {
+            let SpeechUtteranceIntentEvent::Segment(original) =
+                &intent.events().as_slice()[segment_index]
+            else {
+                panic!()
+            };
+            segment_index += 1;
+            SpeechUtteranceIntentEvent::segment(
+                original.occurrence().clone(),
+                original.phone().clone(),
+                original.phoneme().clone(),
+                SpeechSegmentProsodyIntent::new(
+                    duration,
+                    SpeechCycleSpecification::known(120, 1).unwrap(),
+                    SpeechIntensitySpecification::known(1, 1).unwrap(),
+                )
+                .unwrap(),
+                original.provenance().clone(),
+                original.sources().clone(),
+                original.stress().clone(),
+                original.word_position().clone(),
+            )
+            .unwrap()
+        }
+    });
+    let ordered = SpeechUtteranceIntent::new(
+        BoundedSequence::try_from_iter(ordered).unwrap(),
+        intent.inventory_id().clone(),
+        intent.language().clone(),
+        intent.provenance().clone(),
+        intent.revision_id().clone(),
+        intent.utterance_id().clone(),
+    )
+    .unwrap();
+    let boundaries = SpeechFormantBoundaryProfile::new(
+        BoundedSequence::try_from_iter([
+            SpeechFormantBoundaryBinding::new(
+                SpeechBoundaryKind::Word,
+                SpeechFormantBoundary::Word,
+            )
+            .unwrap(),
+            SpeechFormantBoundaryBinding::new(
+                SpeechBoundaryKind::Phrase,
+                SpeechFormantBoundary::Phrase,
+            )
+            .unwrap(),
+            SpeechFormantBoundaryBinding::new(
+                SpeechBoundaryKind::Turn,
+                SpeechFormantBoundary::Turn,
+            )
+            .unwrap(),
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+    let combined = conduit_speech::intent_realization::prepare_intent_realization(
+        &ordered,
+        &inventory,
+        &profile,
+        &boundaries,
+    )
+    .map_err(|e| format!("{e:?}"))?;
+    super::write_rendered(
+        output,
+        "intent-realization-hello-world",
+        combined.renderer().map_err(|e| format!("{e:?}"))?,
+    )?;
     Ok(())
 }
