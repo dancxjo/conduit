@@ -6,6 +6,7 @@ use crate::{
     onset_parity::variant,
 };
 use conduit_core::StructuredInfoValue;
+use std::vec;
 #[test]
 fn every_output_feature_layer_carrier_matches_portable_native_meaning() {
     let checked = program("speech_output_feature_layer");
