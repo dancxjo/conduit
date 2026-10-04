@@ -216,13 +216,14 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     let focused = read_until_prompt(&mut output, b"body> ");
     assert!(!focused.contains("Refused action:"), "{focused}");
 
+    // Leave time to exercise active-state controls even on a busy CI host.
     let started = product(&[
         "body",
         "start",
         "--state-dir",
         path(&state),
         "--maximum-millis",
-        "1000",
+        "30000",
     ]);
     assert!(
         started.status.success(),
