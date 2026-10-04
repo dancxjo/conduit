@@ -37,6 +37,9 @@ use descriptor::{
 pub use dma::USB_DEVICE_DMA_SLOTS;
 use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
+#[path = "usb_control_owner.rs"]
+mod control_owner;
+pub use control_owner::{UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection};
 #[cfg(test)]
 use transfer::{setup_transfer_type, transferred_bytes, validate_transfer_event};
 pub const MAX_CONTROL_TRANSFERS: u8 = 5;

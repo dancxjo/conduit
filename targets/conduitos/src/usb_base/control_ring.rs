@@ -52,12 +52,7 @@ impl ControlRingCursor {
         capacity: usize,
         count: usize,
     ) -> Result<RingReservation, RingRefusal> {
-        if self.uncertain {
-            return Err(RingRefusal::Uncertain);
-        }
-        if self.pending.is_some() {
-            return Err(RingRefusal::Pending);
-        }
+        self.ensure_idle()?;
         if capacity < 4 || !(2..=3).contains(&count) || self.enqueue >= capacity {
             return Err(RingRefusal::Geometry);
         }
@@ -81,6 +76,17 @@ impl ControlRingCursor {
         self.sequence = next;
         self.pending = Some(next);
         Ok(reservation)
+    }
+
+    /// A new selected owner cannot inherit an unacknowledged physical operation.
+    pub fn ensure_idle(&self) -> Result<(), RingRefusal> {
+        if self.uncertain {
+            Err(RingRefusal::Uncertain)
+        } else if self.pending.is_some() {
+            Err(RingRefusal::Pending)
+        } else {
+            Ok(())
+        }
     }
 
     /// # Safety

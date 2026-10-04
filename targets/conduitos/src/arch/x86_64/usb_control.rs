@@ -82,14 +82,14 @@ pub(super) fn control_raw(
     match result {
         Ok(bytes) => {
             // SAFETY: the exact TD's successful final Status Stage was observed.
-            unsafe { (&mut (*ring.dma).control_cursor).complete_quiesced(&reservation) }
+            unsafe { (*ring.dma).control_cursor.complete_quiesced(&reservation) }
                 .map_err(ring_refusal)?;
             Ok(bytes)
         }
         Err(error) => {
             // Failed/foreign events and timeout do not acknowledge DMA stop.
             unsafe {
-                (&mut (*ring.dma).control_cursor).retain_uncertain();
+                (*ring.dma).control_cursor.retain_uncertain();
             }
             Err(error)
         }
@@ -106,11 +106,11 @@ fn prepare_transfer(
         return Err(UsbError::TransferEnvelope);
     }
     let count = if length == 0 { 2 } else { 3 };
-    let reservation = unsafe { (&mut (*ring.dma).control_cursor).reserve(TRANSFER_TRBS, count) }
+    let reservation = unsafe { (*ring.dma).control_cursor.reserve(TRANSFER_TRBS, count) }
         .map_err(ring_refusal)?;
     if let Err(error) = stage_output(ring.dma, request) {
         unsafe {
-            (&mut (*ring.dma).control_cursor).retain_uncertain();
+            (*ring.dma).control_cursor.retain_uncertain();
         }
         return Err(error);
     }
@@ -186,7 +186,7 @@ fn wait_completion(
     Err(UsbError::ControlTimeout)
 }
 
-fn ring_refusal(refusal: RingRefusal) -> UsbError {
+pub(super) fn ring_refusal(refusal: RingRefusal) -> UsbError {
     match refusal {
         RingRefusal::Geometry => UsbError::TransferRingGeometry,
         RingRefusal::Pending => UsbError::TransferRingFull,
