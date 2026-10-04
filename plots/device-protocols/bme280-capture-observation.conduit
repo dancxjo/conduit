@@ -1,0 +1,14 @@
+# Convert protocol capture into semantic values through shared Source decoding.
+plot bme280-capture-decode-begin (
+    state: BmeProtocolState...| >> work: BmeDecodeWork...|
+) = ({ bytes: { temperature_pressure: .first, humidity_first: .humidity_first, humidity: .humidity }, wire: { wire: .sample }, calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
+plot bme280-observation-from-capture (
+    state: BmeProtocolState...| >> result: BmeObservationResult...|
+) {
+    begin: bme280-capture-decode-begin
+    calibration: bme280-decode-calibration-work
+    sample: bme280-decode-sample-work
+    decoded: bme280-decode-observation-finish
+    compensate: bme280-observation
+    state >> begin >> calibration >> sample >> decoded >> compensate >> result
+}

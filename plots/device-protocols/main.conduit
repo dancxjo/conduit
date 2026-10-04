@@ -28,7 +28,12 @@ type BmeCalibration = {
 }
 plot bme280-decode-calibration (
     bytes: BmeCalibrationBytes >> calibration: BmeCalibration
-) = ({     t1: (value/i128(.temperature_pressure.0) + (value/i128(.temperature_pressure.1) <<< 8)), t2: ((value/i128(.temperature_pressure.2) + (value/i128(.temperature_pressure.3) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.2) + (value/i128(.temperature_pressure.3) <<< 8)) : (value/i128(.temperature_pressure.2) + (value/i128(.temperature_pressure.3) <<< 8)) - 65536), t3: ((value/i128(.temperature_pressure.4) + (value/i128(.temperature_pressure.5) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.4) + (value/i128(.temperature_pressure.5) <<< 8)) : (value/i128(.temperature_pressure.4) + (value/i128(.temperature_pressure.5) <<< 8)) - 65536), p1: (value/i128(.temperature_pressure.6) + (value/i128(.temperature_pressure.7) <<< 8)), p2: ((value/i128(.temperature_pressure.8) + (value/i128(.temperature_pressure.9) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.8) + (value/i128(.temperature_pressure.9) <<< 8)) : (value/i128(.temperature_pressure.8) + (value/i128(.temperature_pressure.9) <<< 8)) - 65536), p3: ((value/i128(.temperature_pressure.10) + (value/i128(.temperature_pressure.11) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.10) + (value/i128(.temperature_pressure.11) <<< 8)) : (value/i128(.temperature_pressure.10) + (value/i128(.temperature_pressure.11) <<< 8)) - 65536), p4: ((value/i128(.temperature_pressure.12) + (value/i128(.temperature_pressure.13) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.12) + (value/i128(.temperature_pressure.13) <<< 8)) : (value/i128(.temperature_pressure.12) + (value/i128(.temperature_pressure.13) <<< 8)) - 65536), p5: ((value/i128(.temperature_pressure.14) + (value/i128(.temperature_pressure.15) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.14) + (value/i128(.temperature_pressure.15) <<< 8)) : (value/i128(.temperature_pressure.14) + (value/i128(.temperature_pressure.15) <<< 8)) - 65536), p6: ((value/i128(.temperature_pressure.16) + (value/i128(.temperature_pressure.17) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.16) + (value/i128(.temperature_pressure.17) <<< 8)) : (value/i128(.temperature_pressure.16) + (value/i128(.temperature_pressure.17) <<< 8)) - 65536), p7: ((value/i128(.temperature_pressure.18) + (value/i128(.temperature_pressure.19) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.18) + (value/i128(.temperature_pressure.19) <<< 8)) : (value/i128(.temperature_pressure.18) + (value/i128(.temperature_pressure.19) <<< 8)) - 65536), p8: ((value/i128(.temperature_pressure.20) + (value/i128(.temperature_pressure.21) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.20) + (value/i128(.temperature_pressure.21) <<< 8)) : (value/i128(.temperature_pressure.20) + (value/i128(.temperature_pressure.21) <<< 8)) - 65536), p9: ((value/i128(.temperature_pressure.22) + (value/i128(.temperature_pressure.23) <<< 8)) < 32768 ? (value/i128(.temperature_pressure.22) + (value/i128(.temperature_pressure.23) <<< 8)) : (value/i128(.temperature_pressure.22) + (value/i128(.temperature_pressure.23) <<< 8)) - 65536), h1: value/i128(.humidity_first), h2: ((value/i128(.humidity.0) + (value/i128(.humidity.1) <<< 8)) < 32768 ? (value/i128(.humidity.0) + (value/i128(.humidity.1) <<< 8)) : (value/i128(.humidity.0) + (value/i128(.humidity.1) <<< 8)) - 65536), h3: value/i128(.humidity.2), h4: (((value/i128(.humidity.3) <<< 4) + (value/i128(.humidity.4) & 15)) < 2048 ? ((value/i128(.humidity.3) <<< 4) + (value/i128(.humidity.4) & 15)) : ((value/i128(.humidity.3) <<< 4) + (value/i128(.humidity.4) & 15)) - 4096), h5: (((value/i128(.humidity.5) <<< 4) + (value/i128(.humidity.4) >>> 4)) < 2048 ? ((value/i128(.humidity.5) <<< 4) + (value/i128(.humidity.4) >>> 4)) : ((value/i128(.humidity.5) <<< 4) + (value/i128(.humidity.4) >>> 4)) - 4096), h6: (value/i128(.humidity.6) < 128 ? value/i128(.humidity.6) : value/i128(.humidity.6) - 256) })
+) {
+    begin: bme280-decode-calibration-begin
+    decode: bme280-decode-calibration-work
+    finish: bme280-decode-calibration-finish
+    bytes >> begin >> decode >> finish >> calibration
+}
 
 # Eight sample octets in register order 0xf7..0xfe; lower xlsb nibbles ignored.
 type BmeRawSample = {
@@ -41,7 +46,12 @@ type BmeSampleBytes = {
 }
 plot bme280-decode-sample (
     bytes: BmeSampleBytes >> sample: BmeRawSample
-) = ({     pressure: (value/i128(.wire.0) <<< 12) + (value/i128(.wire.1) <<< 4) + (value/i128(.wire.2) >>> 4), temperature: (value/i128(.wire.3) <<< 12) + (value/i128(.wire.4) <<< 4) + (value/i128(.wire.5) >>> 4), humidity: (value/i128(.wire.6) <<< 8) + value/i128(.wire.7) })
+) {
+    begin: bme280-decode-sample-begin
+    decode: bme280-decode-sample-work
+    finish: bme280-decode-sample-finish
+    bytes >> begin >> decode >> finish >> sample
+}
 plot bme280-sample-disabled (
     sample: BmeRawSample >> disabled: Boolean
 ) = (.pressure == 524288 || .temperature == 524288 || .humidity == 32768)
@@ -146,3 +156,34 @@ plot bme280-observation (
     finish: bme280-observation-finish
     input >> begin >> fine >> temperature >> pressure-polynomial >> pressure-division >> pressure-check >> pressure-quotient >> pressure-correction >> humidity-polynomial >> humidity-correction >> humidity-clamp >> finish >> result
 }
+
+
+# Shared decoding stages preserve the companion bytes and decoded values.
+# Standalone decoders and capture-to-observation use these same formulas.
+type BmeDecodeWork = {
+    bytes: BmeCalibrationBytes
+    wire: BmeSampleBytes
+    calibration: BmeCalibration
+    sample: BmeRawSample
+}
+plot bme280-decode-calibration-begin (
+    bytes: BmeCalibrationBytes >> work: BmeDecodeWork
+) = ({ bytes: ., wire: { wire: [0, 0, 0, 0, 0, 0, 0, 0] }, calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
+plot bme280-decode-sample-begin (
+    bytes: BmeSampleBytes >> work: BmeDecodeWork
+) = ({ bytes: { temperature_pressure: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], humidity_first: 0, humidity: [0, 0, 0, 0, 0, 0, 0] }, wire: ., calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
+plot bme280-decode-calibration-work (
+    work: BmeDecodeWork >> decoded: BmeDecodeWork
+) = ({ bytes: .bytes, wire: .wire, calibration: {     t1: (value/i128(.bytes.temperature_pressure.0) + (value/i128(.bytes.temperature_pressure.1) <<< 8)), t2: ((value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) : (value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) - 65536), t3: ((value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) : (value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) - 65536), p1: (value/i128(.bytes.temperature_pressure.6) + (value/i128(.bytes.temperature_pressure.7) <<< 8)), p2: ((value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) : (value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) - 65536), p3: ((value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) : (value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) - 65536), p4: ((value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) : (value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) - 65536), p5: ((value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) : (value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) - 65536), p6: ((value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) : (value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) - 65536), p7: ((value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) : (value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) - 65536), p8: ((value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) : (value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) - 65536), p9: ((value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) : (value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) - 65536), h1: value/i128(.bytes.humidity_first), h2: ((value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) < 32768 ? (value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) : (value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) - 65536), h3: value/i128(.bytes.humidity.2), h4: (((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) < 2048 ? ((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) : ((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) - 4096), h5: (((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) < 2048 ? ((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) : ((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) - 4096), h6: (value/i128(.bytes.humidity.6) < 128 ? value/i128(.bytes.humidity.6) : value/i128(.bytes.humidity.6) - 256) }, sample: .sample })
+plot bme280-decode-sample-work (
+    work: BmeDecodeWork >> decoded: BmeDecodeWork
+) = ({ bytes: .bytes, wire: .wire, calibration: .calibration, sample: {     pressure: (value/i128(.wire.wire.0) <<< 12) + (value/i128(.wire.wire.1) <<< 4) + (value/i128(.wire.wire.2) >>> 4), temperature: (value/i128(.wire.wire.3) <<< 12) + (value/i128(.wire.wire.4) <<< 4) + (value/i128(.wire.wire.5) >>> 4), humidity: (value/i128(.wire.wire.6) <<< 8) + value/i128(.wire.wire.7) } })
+plot bme280-decode-calibration-finish (
+    work: BmeDecodeWork >> calibration: BmeCalibration
+) = (.calibration)
+plot bme280-decode-sample-finish (
+    work: BmeDecodeWork >> sample: BmeRawSample
+) = (.sample)
+plot bme280-decode-observation-finish (
+    work: BmeDecodeWork >> observation: BmeObservationInput
+) = ({ calibration: .calibration, sample: .sample })
