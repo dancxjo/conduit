@@ -239,6 +239,8 @@ pub use state_toggle::*;
 mod current_sample;
 mod current_sample_finite;
 pub use current_sample::*;
+mod seeded_state;
+pub use seeded_state::*;
 pub use current_sample_finite::*;
 mod combine_latest;
 pub use combine_latest::*;
