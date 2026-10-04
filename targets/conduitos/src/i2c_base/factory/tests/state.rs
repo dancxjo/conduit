@@ -40,3 +40,5 @@ fn source_state_sampling_selects_exact_native_storage_without_effect_authority()
         assert!(factory.budget(&forged).is_err());
     }
 }
+
+mod execution;
