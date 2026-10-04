@@ -398,18 +398,27 @@ mod tests {
             "prior_show_id":"show/one","face_id":"face/one","face_revision":1,
         });
         let after = json!({"status":"shown","local_show_available":true,"owner_show_acknowledged":false,"show_id":"show/two","face_id":"face/two"});
-        assert!(validate_success(&before, &accepted, &after).is_ok());
+        let before_ack = json!({"status":"acknowledged","show_id":"show/one"});
+        let after_ack = json!({"status":"acknowledged","show_id":"show/two"});
+        assert!(validate_success(&before, &before_ack, &accepted, &after, &after_ack).is_ok());
         let mut invented_owner_ack = after.clone();
         invented_owner_ack["owner_show_acknowledged"] = json!(true);
-        assert!(validate_success(&before, &accepted, &invented_owner_ack).is_err());
+        assert!(validate_success(
+            &before,
+            &before_ack,
+            &accepted,
+            &invented_owner_ack,
+            &after_ack
+        )
+        .is_err());
         let mut stale = accepted.clone();
         stale["prior_show_id"] = json!("show/older");
-        assert!(validate_success(&before, &stale, &after).is_err());
+        assert!(validate_success(&before, &before_ack, &stale, &after, &after_ack).is_err());
         let mut refused = accepted.clone();
         refused["status"] = json!("refused");
-        assert!(validate_success(&before, &refused, &after).is_err());
+        assert!(validate_success(&before, &before_ack, &refused, &after, &after_ack).is_err());
         let mut wrong_value = accepted;
         wrong_value["requested_interval_ms"] = json!(250);
-        assert!(validate_success(&before, &wrong_value, &after).is_err());
+        assert!(validate_success(&before, &before_ack, &wrong_value, &after, &after_ack).is_err());
     }
 }
