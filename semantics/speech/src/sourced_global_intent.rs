@@ -1,7 +1,8 @@
 //! Complete native source coverage and global realization of one immutable intent.
 use crate::{
     global_intent_realization::{
-        prepare_global_intent, GlobalIntentRefusal, GlobalSegmentPreparation, PreparedGlobalIntent,
+        prepare_aspirated_global_intent, prepare_global_intent, GlobalIntentRefusal,
+        GlobalSegmentPreparation, PreparedGlobalIntent,
     },
     intent_sources::{
         resolve_intent_sources, IntentSourceMaterial, IntentSourcesRefusal, PreparedIntentSources,
@@ -51,6 +52,30 @@ pub fn prepare_sourced_global_intent<'a>(
     let sources =
         resolve_intent_sources(source, materials).map_err(SourcedGlobalRefusal::Sources)?;
     let realization = prepare_global_intent(
+        source, inventory, profile, boundaries, rules, policy, evidence,
+    )
+    .map_err(SourcedGlobalRefusal::Realization)?;
+    Ok(PreparedSourcedGlobalIntent {
+        sources,
+        realization,
+    })
+}
+
+/// Resolve every original source reference before admitting mapped features.
+#[allow(clippy::too_many_arguments)]
+pub fn prepare_sourced_aspirated_global_intent<'a>(
+    source: &'a SpeechUtteranceIntent,
+    materials: &[IntentSourceMaterial<'a>],
+    inventory: &'a SpeechInventory,
+    profile: &'a SpeechFormantAspirationProfile,
+    boundaries: &'a SpeechFormantBoundaryProfile,
+    rules: &'a SpeechAllophoneRuleProfile,
+    policy: &'a SpeechAllophoneChoicePolicy,
+    evidence: &[Option<GlobalSegmentPreparation<'a>>],
+) -> Result<PreparedSourcedGlobalIntent<'a>, SourcedGlobalRefusal<'a>> {
+    let sources =
+        resolve_intent_sources(source, materials).map_err(SourcedGlobalRefusal::Sources)?;
+    let realization = prepare_aspirated_global_intent(
         source, inventory, profile, boundaries, rules, policy, evidence,
     )
     .map_err(SourcedGlobalRefusal::Realization)?;

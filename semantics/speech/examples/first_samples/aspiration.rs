@@ -79,6 +79,90 @@ pub fn write(
                 .renderer()
                 .map_err(|reason| format!("{reason:?}"))?,
         )?;
+        let default_rules = SpeechAllophoneRuleProfile::new(
+            inventory.identity().clone(),
+            inventory.language().clone(),
+            BoundedSequence::new(),
+        )
+        .unwrap();
+        let default_policy =
+            SpeechAllophoneChoicePolicy::new(true, false, false, false, true, false).unwrap();
+        let defaults: Vec<_> = evidence
+            .iter()
+            .enumerate()
+            .map(|(event, supplied)| {
+                supplied.map(|supplied| {
+                    let original = supplied.default_features;
+                    let features = if event == 0 {
+                        SpeechFeatureBundle::new(
+                            BoundedSequence::try_from_iter([SpeechFeature::new(
+                                profile.feature_id().clone(),
+                                FeatureSpecification::known(
+                                    SpeechFeatureValue::boolean(enabled).unwrap(),
+                                )
+                                .unwrap(),
+                            )
+                            .unwrap()])
+                            .unwrap(),
+                        )
+                        .unwrap()
+                    } else {
+                        original.features().clone()
+                    };
+                    SpeechOccurrenceFeatureObservation::new(
+                        features,
+                        original.occurrence().clone(),
+                        original.provenance().clone(),
+                    )
+                    .unwrap()
+                })
+            })
+            .collect();
+        let default_evidence: Vec<_> = evidence
+            .iter()
+            .zip(&defaults)
+            .map(|(supplied, default)| match (supplied, default) {
+                (Some(supplied), Some(default_features)) => Some(
+                    conduit_speech::global_intent_realization::GlobalSegmentPreparation {
+                        context: supplied.context,
+                        observed_features: supplied.observed_features,
+                        default_features,
+                    },
+                ),
+                _ => None,
+            })
+            .collect();
+        let text = LanguageText::new(
+            LanguageTextId::new("choice/text".into()).unwrap(),
+            intent.language().clone(),
+            LanguageTextRevisionId::new("choice/text-revision".into()).unwrap(),
+            "tata".into(),
+        )
+        .unwrap();
+        let materials = [conduit_speech::intent_sources::IntentSourceMaterial::Text(&text); 4];
+        let prepared =
+            conduit_speech::sourced_global_intent::prepare_sourced_aspirated_global_intent(
+                intent,
+                &materials,
+                inventory,
+                &profile,
+                boundaries,
+                &default_rules,
+                &default_policy,
+                &default_evidence,
+            )
+            .map_err(|reason| format!("{reason:?}"))?;
+        super::super::super::write_rendered(
+            output,
+            if enabled {
+                "feature-default-aspiration-on-tata"
+            } else {
+                "feature-default-aspiration-off-tata"
+            },
+            prepared
+                .renderer()
+                .map_err(|reason| format!("{reason:?}"))?,
+        )?;
     }
     Ok(())
 }

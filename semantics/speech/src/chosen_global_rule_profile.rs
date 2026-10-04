@@ -4,7 +4,7 @@ use crate::{
     feature_realization::{realize_aspiration, AspirationRealization, FeatureRealizationRefusal},
     global_rule_selection::GlobalRuleChoice,
     output_features::{prepare_rule_output_features, OutputFeatureRefusal, RuleOutputFeatures},
-    profile_admission::{prepare_binding, ProfileRefusal},
+    profile_admission::{prepare_binding, prepare_feature_binding, ProfileRefusal},
     semantic::*,
     VoiceEvent,
 };
@@ -154,13 +154,21 @@ fn prepare_inner<'choice, 'source, 'profile>(
         .map_err(ChosenGlobalProfileRefusal::Identity)?;
     let features = prepare_rule_output_features(rule, Some(default.features()), Some(definition))
         .map_err(ChosenGlobalProfileRefusal::Features)?;
-    let (binding, profile_basis, event) = prepare_binding(
-        inventory,
-        definition,
-        profile,
-        choice.occurrence().segment().stress(),
-        aspiration_profile.is_none() && features.features().next().is_some(),
-    )
+    let (binding, profile_basis, event) = match aspiration_profile {
+        Some(_) => prepare_feature_binding(
+            inventory,
+            definition,
+            profile,
+            choice.occurrence().segment().stress(),
+        ),
+        None => prepare_binding(
+            inventory,
+            definition,
+            profile,
+            choice.occurrence().segment().stress(),
+            features.features().next().is_some(),
+        ),
+    }
     .map_err(ChosenGlobalProfileRefusal::Profile)?;
     let aspiration = aspiration_profile
         .map(|profile| realize_aspiration(&features, profile, event))

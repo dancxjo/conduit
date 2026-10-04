@@ -172,3 +172,14 @@ plot speech/aspiration-realize (
     >> value: SpeechAspirationInput
     result: SpeechAspirationResult >>
 ) = (!(.state is known) ? SpeechAspirationResult.unresolved : !.boolean_kind ? SpeechAspirationResult.unsupported_value : !(.phone is p || .phone is t || .phone is k) ? SpeechAspirationResult.unsupported_phone : SpeechAspirationResult.realized(.boolean_value ? (.phone is p ? EnglishPhone.p_aspirated : .phone is t ? EnglishPhone.t_aspirated : EnglishPhone.k_aspirated) : .phone))
+
+# Default-phone realization merges the definition then the explicitly supplied
+# occurrence features, replacing whole specifications (including Unknown).
+type SpeechDefaultFeatureLayerInput = {
+    definition_present: Boolean
+    default_present: Boolean
+}
+plot speech/default-feature-layer (
+    >> value: SpeechDefaultFeatureLayerInput
+    result: SpeechOutputFeatureLayer >>
+) = (.default_present ? SpeechOutputFeatureLayer.default_realization : .definition_present ? SpeechOutputFeatureLayer.phone_definition : SpeechOutputFeatureLayer.absent)

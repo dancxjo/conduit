@@ -1,7 +1,7 @@
 //! Whole-intent feature lowering uses the existing admission fixture.
 use super::*;
 use conduit_speech::feature_realization::FeatureRealizationRefusal;
-fn features(key: &str, value: FeatureSpecification) -> SpeechFeatureBundle {
+pub(super) fn features(key: &str, value: FeatureSpecification) -> SpeechFeatureBundle {
     SpeechFeatureBundle::new(
         BoundedSequence::try_from_iter([SpeechFeature::new(
             SpeechFeatureId::new(key.into()).unwrap(),
@@ -12,7 +12,10 @@ fn features(key: &str, value: FeatureSpecification) -> SpeechFeatureBundle {
     )
     .unwrap()
 }
-fn observation(ordinal: u32, bundle: SpeechFeatureBundle) -> SpeechOccurrenceFeatureObservation {
+pub(super) fn observation(
+    ordinal: u32,
+    bundle: SpeechFeatureBundle,
+) -> SpeechOccurrenceFeatureObservation {
     let original = default(ordinal);
     SpeechOccurrenceFeatureObservation::new(
         bundle,
@@ -21,7 +24,7 @@ fn observation(ordinal: u32, bundle: SpeechFeatureBundle) -> SpeechOccurrenceFea
     )
     .unwrap()
 }
-fn profile(setup: &Setup) -> SpeechFormantAspirationProfile {
+pub(super) fn profile(setup: &Setup) -> SpeechFormantAspirationProfile {
     SpeechFormantAspirationProfile::new(
         SpeechFeatureId::new("opaque cue 7".into()).unwrap(),
         setup.voice.clone(),

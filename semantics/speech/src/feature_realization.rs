@@ -36,12 +36,22 @@ pub(crate) fn realize_aspiration<'source, 'profile>(
     profile: &'profile SpeechFormantAspirationProfile,
     event: VoiceEvent,
 ) -> Result<AspirationRealization<'source, 'profile>, FeatureRealizationRefusal<'source>> {
+    realize_aspiration_features(
+        features.features().map(|entry| entry.feature()),
+        profile,
+        event,
+    )
+}
+pub(crate) fn realize_aspiration_features<'source, 'profile>(
+    features: impl Iterator<Item = &'source SpeechFeature>,
+    profile: &'profile SpeechFormantAspirationProfile,
+    event: VoiceEvent,
+) -> Result<AspirationRealization<'source, 'profile>, FeatureRealizationRefusal<'source>> {
     let mut selected = None;
     let mut identity = None;
     // Every inherited feature must be covered. No feature can be dropped while
     // returning a playable event, including a later unsupported key.
-    for entry in features.features() {
-        let feature = entry.feature();
+    for feature in features {
         if feature.identity() != profile.feature_id() {
             return Err(FeatureRealizationRefusal::UnsupportedFeature(feature));
         }

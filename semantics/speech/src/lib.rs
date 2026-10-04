@@ -52,6 +52,8 @@ pub mod declared_context;
 #[cfg(feature = "semantic-bindings")]
 pub mod declared_realization;
 #[cfg(feature = "semantic-bindings")]
+pub mod default_output_features;
+#[cfg(feature = "semantic-bindings")]
 pub mod duration;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_bundle;
