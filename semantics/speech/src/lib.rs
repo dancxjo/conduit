@@ -34,6 +34,8 @@ extern crate alloc;
 #[cfg(feature = "semantic-bindings")]
 pub mod admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod boundary_admission;
+#[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
 pub mod duration;

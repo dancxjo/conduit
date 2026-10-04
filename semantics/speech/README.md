@@ -50,6 +50,15 @@ refuse in this segment-only adapter; boundary intent remains a separate contract
 Rendering borrows fixed prepared storage. This does not establish source
 resolution, phone selection, language commitment or a whole utterance admission.
 
+`boundary_admission::prepare_boundary` uses an explicitly supplied native
+`SpeechFormantBoundaryBinding` to realize known word, phrase or turn intent.
+Native laws forbid mismatched kinds and unsupported compact relations; the
+adapter retains the original source references/provenance and exact duration.
+Every unresolved kind or duration state refuses with its original specification.
+Known durations compose with `duration::prepare_duration_render` for exact silent
+PCM spans. This is separate boundary preparation, not linguistic boundary
+inference, uncertainty selection, commitment or whole-utterance admission.
+
 This is the first shared-intent prerequisite for
 [#4898](https://github.com/dancxjo/conduit/issues/4898) and
 [#4907](https://github.com/dancxjo/conduit/issues/4907). The current compact
