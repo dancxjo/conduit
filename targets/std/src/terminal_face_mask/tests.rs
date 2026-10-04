@@ -152,7 +152,14 @@ fn terminal_face_names_small_exact_text_choices_without_changing_the_contract() 
         .iter()
         .map(|row| row.text.as_str())
         .collect::<String>();
-    assert!(document.contains("Available values: 1000, 2000, 250, 500."));
+    assert!(document.contains("For Change name, choose Name: 1000, 2000, 250, 500."));
+    assert!(!document.contains("canonical values 0x"));
+    let inspection = mask
+        .inspect_document
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<String>();
+    assert!(inspection.contains("CanonicalMembership"));
     assert!(mask.face.actions[0].arguments[0]
         .contract
         .validate(b"500")

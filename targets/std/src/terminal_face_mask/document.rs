@@ -44,24 +44,25 @@ pub(super) fn prepare(
                 Ok::<_, TerminalError>(TerminalControl { action, argument })
             })
             .transpose()?;
-        append(&mut rows, &clause.text, width, Some(index), control)?;
-        if let Some(TerminalControl {
-            action,
-            argument: Some(argument),
-        }) = control
-        {
-            if let Some(choices) =
-                readable_finite_text_choices(&face.actions[action].arguments[argument].contract)
-            {
-                append(
-                    &mut rows,
-                    &format!("Available values: {}.", choices.join(", ")),
-                    width,
-                    Some(index),
-                    control,
-                )?;
-            }
-        }
+        let readable_choice = control.and_then(|control| {
+            let argument = face.actions[control.action]
+                .arguments
+                .get(control.argument?)?;
+            let choices = readable_finite_text_choices(&argument.contract)?;
+            Some(format!(
+                "For {}, choose {}: {}.",
+                face.actions[control.action].name,
+                argument.value_name,
+                choices.join(", ")
+            ))
+        });
+        append(
+            &mut rows,
+            readable_choice.as_deref().unwrap_or(&clause.text),
+            width,
+            Some(index),
+            control,
+        )?;
     }
     let linear = render_linear_presentation(face).map_err(|_| TerminalError::DocumentPressure)?;
     let mut inspect = Vec::new();
