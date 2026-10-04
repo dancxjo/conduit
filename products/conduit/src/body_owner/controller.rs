@@ -33,6 +33,8 @@ pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
+#[path = "native_mask_route.rs"]
+mod native_mask_route;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
