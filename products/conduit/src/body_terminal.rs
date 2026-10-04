@@ -185,10 +185,10 @@ fn prepare(
     face: &Presentation,
     host: &HostAdvertisement,
 ) -> Result<(TerminalFaceMask, HostedTerminalMaskExecution), String> {
-    let admitted = face
-        .actions
-        .iter()
-        .any(|action| action.availability.is_available());
+    let admitted = face.actions.iter().any(|action| {
+        crate::durable_host::owner::is_clock_control_intent(&action.intent)
+            && action.availability.is_available()
+    });
     let mask = if admitted {
         TerminalFaceMask::prepare(face.clone(), COLUMNS, ROWS)
     } else {

@@ -18,6 +18,10 @@ pub(super) const CLOCK_START_ACTION: &str = "conduit.intent/start-clock@1";
 pub(super) const CLOCK_LULL_ACTION: &str = "conduit.intent/lull-clock@1";
 pub(crate) const CLOCK_RUN_MAXIMUM_MILLIS: u64 = 60_000;
 
+pub(crate) fn is_clock_control_intent(intent: &str) -> bool {
+    intent == CLOCK_INTERVAL_ACTION || intent == CLOCK_START_ACTION || intent == CLOCK_LULL_ACTION
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ClockAction {
     ChangeInterval,
