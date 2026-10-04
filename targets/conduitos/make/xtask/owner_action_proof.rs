@@ -171,7 +171,11 @@ fn validate_success(before: &Value, action: &Value, after: &Value) -> Result<(),
             .and_then(Value::as_str)
             .is_some_and(|id| id.starts_with("body/action/change-clock-interval/"))
         || after.get("status").and_then(Value::as_str) != Some("shown")
-        || after.get("show_acknowledged").and_then(Value::as_bool) != Some(true)
+        || after.get("local_show_available").and_then(Value::as_bool) != Some(true)
+        || after
+            .get("owner_show_acknowledged")
+            .and_then(Value::as_bool)
+            != Some(false)
         || action.get("prior_show_id") != before.get("show_id")
         || action.get("face_id") != before.get("face_id")
         || action.get("face_revision") != before.get("face_revision")
@@ -226,7 +230,8 @@ fn wait_for_arrival(
                 .last()
                 .is_some_and(|value| value.get("membership_installed") == Some(&Value::Bool(true)))
             && face.last().is_some_and(|value| {
-                value.get("show_acknowledged") == Some(&Value::Bool(true))
+                value.get("local_show_available") == Some(&Value::Bool(true))
+                    && value.get("owner_show_acknowledged") == Some(&Value::Bool(false))
                     && value.get("interactions_admitted") == Some(&Value::Bool(true))
                     && value.get("continuing_owner_route") == Some(&Value::Bool(true))
             })
@@ -353,8 +358,11 @@ mod tests {
             "action_id":"body/action/change-clock-interval/1",
             "prior_show_id":"show/one","face_id":"face/one","face_revision":1,
         });
-        let after = json!({"status":"shown","show_acknowledged":true,"show_id":"show/two","face_id":"face/two"});
+        let after = json!({"status":"shown","local_show_available":true,"owner_show_acknowledged":false,"show_id":"show/two","face_id":"face/two"});
         assert!(validate_success(&before, &accepted, &after).is_ok());
+        let mut invented_owner_ack = after.clone();
+        invented_owner_ack["owner_show_acknowledged"] = json!(true);
+        assert!(validate_success(&before, &accepted, &invented_owner_ack).is_err());
         let mut stale = accepted.clone();
         stale["prior_show_id"] = json!("show/older");
         assert!(validate_success(&before, &stale, &after).is_err());

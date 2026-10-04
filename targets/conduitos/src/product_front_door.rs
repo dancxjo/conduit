@@ -59,6 +59,8 @@ pub fn run(
     usb_line_device: Option<&UsbDevice>,
     mut ps2_input: Option<&mut crate::arch::Ps2Input>,
     rescue_matcher: &mut LocalRescueMatcher,
+    effect_bases: NativeProductBases,
+    surface_provider: crate::product_bases::NativeSurfaceProvider,
     pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
     let (pending_join, owner_receipt, owner_face, owner_route, owner_return_refusal) =
@@ -72,8 +74,6 @@ pub fn run(
             ),
             None => (None, None, None, None, None),
         };
-    let effect_bases = NativeProductBases::observe(offer, framebuffer_basis, usb_line_device)
-        .map_err(|_| "product-base-provider-invalid")?;
     effect_bases
         .require(EffectFamily::Framebuffer)
         .map_err(|_| "product-framebuffer-base-unavailable")?;
@@ -95,20 +95,14 @@ pub fn run(
     let generation = conduit_core::OfferGeneration(offer.generation);
     let mut journey = ProductJourney::new(host_id.clone(), boot_id.clone(), generation)
         .map_err(|error| error.as_str())?;
-    let entropy = arch::RdrandEntropy::detect(offer.generation)
-        .map_err(|_| "product-surface-authority-entropy-unavailable")?;
-    let mut entropy =
-        crate::cryptographic_entropy::CryptographicEntropyBase::<_, 1>::admit(entropy)
-            .map_err(|_| "product-surface-authority-entropy-invalid")?;
-    let mut surface_issuer_key = [0; 32];
-    entropy
-        .fill(&mut surface_issuer_key)
-        .map_err(|_| "product-surface-authority-key-unavailable")?;
-    let surface_provider = effect_bases
-        .framebuffer_provider(surface_issuer_key)
-        .map_err(|_| "product-framebuffer-provider-unavailable")?;
+    if effect_bases
+        .require(EffectFamily::Framebuffer)
+        .map_err(|_| "product-framebuffer-base-unavailable")?
+        != &surface_provider.entry
+    {
+        return Err("product-framebuffer-provider-changed");
+    }
     journey.admit_surface_provider(surface_provider.clone());
-    surface_issuer_key.fill(0);
     // The embedded defaults are Crèche inventory, not ProductJourney state.
     let plot = keyboard_text_plan::checked_plot_identity().map_err(|error| error.as_str())?;
     let provisioned_guest = pending_join.is_some();
