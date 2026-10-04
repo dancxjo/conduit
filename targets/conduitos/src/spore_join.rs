@@ -209,23 +209,17 @@ pub fn encode_region(
 #[cfg(target_arch = "x86_64")]
 pub fn encode_native(
     provision: NativeMediaProvision,
-    identities: crate::identity::BootIdentities,
+    advertisement: &conduit_core::HostAdvertisement,
 ) -> Result<Vec<u8>, JoinError> {
-    let host_id = conduit_core::HostId::from(crate::identity::hex(&identities.host));
-    let boot_id = conduit_core::BootId::from(crate::identity::hex(&identities.boot));
-    let advertisement = crate::mask_control::native_host_advertisement(&host_id, &boot_id, 1);
-    encode(provision, &advertisement)
+    encode(provision, advertisement)
 }
 
 #[cfg(target_arch = "x86_64")]
 pub fn prepare_native(
     provision: NativeMediaProvision,
-    identities: crate::identity::BootIdentities,
+    advertisement: &conduit_core::HostAdvertisement,
 ) -> Result<PreparedNativeJoin, JoinError> {
-    let host_id = conduit_core::HostId::from(crate::identity::hex(&identities.host));
-    let boot_id = conduit_core::BootId::from(crate::identity::hex(&identities.boot));
-    let advertisement = crate::mask_control::native_host_advertisement(&host_id, &boot_id, 1);
-    prepare(provision, &advertisement)
+    prepare(provision, advertisement)
 }
 
 #[cfg(test)]
@@ -260,6 +254,7 @@ mod tests {
             &HostId::from("host/one"),
             &BootId::from("boot/one"),
             1,
+            &crate::product_bases::fixture_surface_provider().entry,
         );
         let encoded = encode(provision(), &advertisement).unwrap();
         assert!(encoded.len() < MAXIMUM_JOIN_BYTES);
@@ -321,6 +316,7 @@ mod tests {
             &HostId::from("host/one"),
             &BootId::from("boot/one"),
             1,
+            &crate::product_bases::fixture_surface_provider().entry,
         );
         let prepared = prepare(provision, &advertisement).unwrap();
         let request = prepared.routed_request.unwrap();

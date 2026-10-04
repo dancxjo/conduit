@@ -666,13 +666,49 @@ pub fn native_host_advertisement(
     host_id: &HostId,
     boot_id: &conduit_core::BootId,
     generation: u64,
+    surface_provider: &conduit_core::BaseProviderEntry,
 ) -> HostAdvertisement {
-    renderer_host(Adapter::Native, host_id, boot_id, generation, None)
+    renderer_host(
+        Adapter::Native,
+        host_id,
+        boot_id,
+        generation,
+        Some(surface_provider),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn boot_offer_and_native_mask_use_the_same_observed_surface() {
+        let host = HostId::from("conduitos/test-host");
+        let boot = conduit_core::BootId::from("conduitos/test-boot");
+        let provider = crate::product_bases::fixture_surface_provider();
+        let offer = native_host_advertisement(&host, &boot, 1, &provider.entry);
+        let planned = prepare_stage(Adapter::Native, &host, &boot, 1, Some(&provider.entry))
+            .unwrap()
+            .planned_mask;
+
+        assert_eq!(offer.bases.len(), 1);
+        assert_eq!(offer.bases[0].base_id, provider.entry.base_id);
+        assert_eq!(
+            offer.bases[0].resource_pool_ids,
+            vec![provider.entry.resources[0].pool_id.clone()]
+        );
+        let reserved_surface = planned
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .find_map(|connection| connection.resource.as_ref())
+            .unwrap();
+        assert_eq!(
+            reserved_surface.source_binding.pool_id,
+            provider.entry.resources[0].pool_id
+        );
+    }
 
     #[test]
     fn native_mask_is_the_exact_ordinary_mask_plot_and_keeps_its_branched_plan() {
