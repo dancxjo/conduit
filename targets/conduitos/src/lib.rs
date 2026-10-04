@@ -19,6 +19,7 @@ pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
 pub mod expression_host_call;
+pub mod flow_zip;
 #[cfg(any(
     test,
     target_arch = "x86_64",
