@@ -158,8 +158,10 @@ try {
     input: 'inspect\nquit\n', encoding: 'utf8', timeout: 10_000,
   });
   assert.equal(terminal.status, 0, terminal.stderr);
-  assert.match(terminal.stdout, /Owner Face revision /);
-  assert.match(terminal.stdout, /Show /);
+  const terminalShow = terminal.stdout.match(/Owner Face revision (\d+) · Show (\S+) · Host (\S+) · Boot (\S+)/);
+  assert.ok(terminalShow, 'terminal Mask must acknowledge a Face and Show');
+  assert.equal(terminalShow[3], ownerPart.current.host_id);
+  assert.equal(terminalShow[4], ownerPart.current.boot_id);
   assert.match(terminal.stdout, /1000 milliseconds/);
   await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
@@ -205,6 +207,10 @@ try {
     },
     browser_action: { action_id: browserAction.identity, status: 'accepted', requested_interval_ms: 1000 },
     terminal_show: {
+      face_revision: terminalShow[1],
+      show_id: terminalShow[2],
+      host_id: terminalShow[3],
+      boot_id: terminalShow[4],
       path: 'terminal-face.txt',
       bytes: Buffer.byteLength(terminal.stdout),
       sha256: digest(Buffer.from(terminal.stdout)),
