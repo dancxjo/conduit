@@ -30,3 +30,15 @@ type SpeechPhonemeDefinitionMatch = {
     definition: PhonemeId
     where .requested == .definition
 }
+
+type SpeechFeatureValueMatch = {
+    requested: SpeechFeatureValue
+    observed: SpeechFeatureValue
+    where .requested == .observed
+}
+
+type SpeechFeatureIdentityMatch = {
+    requested: SpeechFeatureId
+    observed: SpeechFeatureId
+    where .requested == .observed
+}

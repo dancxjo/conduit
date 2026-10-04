@@ -6,8 +6,15 @@ use conduit_plot::{
 
 const SOURCE: &str = include_str!("../plots/usb/protocol.conduit");
 
+#[path = "usb_protocol_plots/descriptors.rs"]
+mod descriptors;
+
 fn program(entry: &str) -> PortableExpressionProgram {
-    let syntax = parse_syntax_document(SOURCE);
+    program_from(SOURCE, entry)
+}
+
+fn program_from(source: &str, entry: &str) -> PortableExpressionProgram {
+    let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new())
