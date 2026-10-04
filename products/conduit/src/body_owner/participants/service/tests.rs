@@ -115,6 +115,18 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
             },
         )
         .unwrap();
+    assert_eq!(
+        authorized.presence_maximum_millis,
+        MAX_BROWSER_PRESENCE_MILLIS
+    );
+    owner.pending_browser.as_mut().unwrap().deadline = Instant::now() - Duration::from_millis(1);
+    assert!(owner
+        .session
+        .evidence()
+        .membership
+        .parts
+        .iter()
+        .any(|part| part.part_id == snapshot.credential.part_id && part.current.is_some()));
     assert!(snapshot.offer.capabilities.is_empty());
     let request = OfferDisclosureRequest {
         stage: OfferDisclosureStage::Planning,
@@ -132,6 +144,20 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
     assert_eq!(detailed.capabilities.len(), 1);
     assert_eq!(detailed.capabilities[0].capability_id, capability);
     assert!(detailed.capability_summary.is_empty());
+    assert!(owner
+        .browser_begin(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/second-browser"),
+            In::Advertise {
+                protocol: PROTOCOL,
+                advertisement: browser.clone(),
+                friendly_label: "Late browser".into(),
+                verifying_key: BROWSER_KEY.to_vec(),
+                freshness_sequence: 2,
+            },
+            512,
+        )
+        .is_err());
     let mut unknown = request.clone();
     unknown.capability_ids = vec![CapabilityId::from("capability/unknown")];
     assert_eq!(
@@ -150,6 +176,41 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
         owner.browser_planning_offer(&authorized.window_id, &altered, &request),
         Err("credential-mismatch".into())
     );
+    let WindowState::Active {
+        presence_deadline, ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        panic!("expected admitted presence")
+    };
+    *presence_deadline = Instant::now() - Duration::from_millis(1);
+    assert_eq!(
+        owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &request),
+        Err("window-not-active".into())
+    );
+    owner
+        .browser_leave(&root, &authorized.window_id, &snapshot.credential)
+        .unwrap();
+    assert!(owner
+        .session
+        .evidence()
+        .membership
+        .parts
+        .iter()
+        .any(|part| part.part_id == snapshot.credential.part_id && part.current.is_none()));
+    assert!(owner
+        .browser_begin(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/late-browser"),
+            In::Advertise {
+                protocol: PROTOCOL,
+                advertisement: browser,
+                friendly_label: "Late browser".into(),
+                verifying_key: BROWSER_KEY.to_vec(),
+                freshness_sequence: 2,
+            },
+            512,
+        )
+        .is_err());
     owner
         .browser_cancel_window(&root, &authorized.window_id)
         .unwrap();
