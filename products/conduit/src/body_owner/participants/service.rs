@@ -4,7 +4,9 @@ mod admission;
 mod route;
 #[cfg(test)]
 mod tests;
-use super::{admission::remaining, debug, nonce, now, signal, Owner, PROTOCOL};
+use super::{
+    admission::remaining, debug, nonce, now, signal, Owner, MAX_BROWSER_PRESENCE_MILLIS, PROTOCOL,
+};
 use conduit_body::{
     disclose_host_offer, AdmissionChallenge, AdmissionManager, AmbientAdmissionProof,
     BodyBiographyEvidence, BodyId, BodyState, CandidateInventory, CandidateObservation,
@@ -28,6 +30,7 @@ pub(crate) struct BrowserWindowAuthorization {
     pub(crate) window_id: String,
     pub(crate) body_id: BodyId,
     pub(crate) maximum_millis: u64,
+    pub(crate) presence_maximum_millis: u64,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -74,6 +77,7 @@ enum WindowState {
     Ready,
     Pending(Box<Pending>),
     Active {
+        presence_deadline: Instant,
         credential: MembershipCredential,
         observation: Box<CandidateObservation>,
         route: Option<Box<RemoteOwnerMaskRouteSeal>>,
@@ -167,7 +171,13 @@ impl BrowserWindow {
         if self.id != id {
             return Err("browser admission window identity differs".into());
         }
-        remaining(self.deadline)?;
+        let deadline = match &self.state {
+            WindowState::Active {
+                presence_deadline, ..
+            } => *presence_deadline,
+            WindowState::Ready | WindowState::Pending(_) => self.deadline,
+        };
+        remaining(deadline)?;
         Ok(now(self.clock))
     }
 
@@ -233,6 +243,7 @@ impl Owner {
             window_id: id,
             body_id: self.session.evidence().body_id.clone(),
             maximum_millis,
+            presence_maximum_millis: MAX_BROWSER_PRESENCE_MILLIS,
         })
     }
 

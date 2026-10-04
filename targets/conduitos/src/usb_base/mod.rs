@@ -3,6 +3,7 @@
 
 pub mod control_contract;
 pub mod control_decode;
+pub mod control_factory;
 pub mod control_owner;
 pub mod control_payload;
 pub mod control_request;
