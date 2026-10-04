@@ -7,7 +7,7 @@ const MEDIA_PLAN_TIMEOUT_MILLIS = 10_000;
 const MAXIMUM_WEB_RTC_GRANTS = 16;
 const OWNER_FACE_REQUEST_SCHEMA = "conduit.presentation/owner-face-request@1";
 const OWNER_FACE_RESPONSE_SCHEMA = "conduit.presentation/owner-face-response@1";
-const MAX_OWNER_FACE_RESPONSE_BYTES = 8178;
+const MAX_OWNER_FACE_RESPONSE_BYTES = 32768;
 
 export function immutableWebRtcGrantFrame(frame) {
   if (frame?.grant !== null && (typeof frame?.grant !== "object" ||

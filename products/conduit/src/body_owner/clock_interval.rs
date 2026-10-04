@@ -1,6 +1,6 @@
-//! A bounded checked-source replacement for the installed owner's small clock.
-//! It changes the Body workset only while lulled; an active Play first needs
-//! its real terminal receipt, and the next start seals a new Plan.
+//! Checked Face controls for the installed owner's small clock.
+//! An interval change replaces the Body workset only while lulled; a start
+//! seals a new Plan and Play, and a stop requests a real terminal receipt.
 use super::{debug, state, Owner};
 use conduit_body::{BodyState, ResidentPlot};
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
@@ -14,6 +14,20 @@ use std::path::Path;
 const INITIAL_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
 const INTERVALS_MS: [u64; 4] = [250, 500, 1_000, 2_000];
 pub(super) const CLOCK_INTERVAL_ACTION: &str = "conduit.intent/change-clock-interval@1";
+pub(super) const CLOCK_START_ACTION: &str = "conduit.intent/start-clock@1";
+pub(super) const CLOCK_LULL_ACTION: &str = "conduit.intent/lull-clock@1";
+pub(crate) const CLOCK_RUN_MAXIMUM_MILLIS: u64 = 60_000;
+
+pub(crate) fn is_clock_control_intent(intent: &str) -> bool {
+    intent == CLOCK_INTERVAL_ACTION || intent == CLOCK_START_ACTION || intent == CLOCK_LULL_ACTION
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ClockAction {
+    ChangeInterval,
+    Start,
+    Lull,
+}
 
 fn source_for(interval_ms: u64) -> String {
     format!(
@@ -56,9 +70,13 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         .as_ref()
         .ok_or("clock has no resident Plot")?;
     let target = format!("plot/{}", resident.checked_plot_id.as_str());
-    let available = owner.session.evidence().body.state == BodyState::Lulled
+    let lulled = owner.session.evidence().body.state == BodyState::Lulled
         && owner.session.realization().is_none()
         && !owner.host.is_playing();
+    #[cfg(unix)]
+    let terminal_attached = lulled && owner.host.current().terminal_attachment_is_live()?;
+    #[cfg(not(unix))]
+    let terminal_attached = false;
     let mut members: Vec<_> = INTERVALS_MS
         .into_iter()
         .map(|interval| interval.to_string().into_bytes())
@@ -93,7 +111,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         action.availability = PresentationActionAvailability::Unavailable {
             reason_code: "owner-action-return-not-admitted".into(),
             explanation:
-                "This owner return route currently accepts only the checked clock interval action."
+                "This owner return route currently accepts only the checked clock control actions."
                     .into(),
         };
     }
@@ -103,16 +121,60 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
             owner.session.evidence().body.workload_revision
         ),
         intent: CLOCK_INTERVAL_ACTION.into(),
-        target,
+        target: target.clone(),
         name: "Change clock interval".into(),
         arguments: vec![argument],
         disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: if available {
+        availability: if lulled {
             PresentationActionAvailability::Available
         } else {
             PresentationActionAvailability::Unavailable {
                 reason_code: "clock-play-must-lull".into(),
                 explanation: "Lull the current clock Play before changing its checked interval. The next start will require a replacement Plan.".into(),
+            }
+        },
+    });
+    actions.push(PresentationAction {
+        identity: format!(
+            "body/action/start-clock/{}",
+            owner.session.evidence().body.workload_revision
+        ),
+        intent: CLOCK_START_ACTION.into(),
+        target: target.clone(),
+        name: "Start the clock".into(),
+        arguments: vec![],
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: if lulled && !terminal_attached {
+            PresentationActionAvailability::Available
+        } else if terminal_attached {
+            PresentationActionAvailability::Unavailable {
+                reason_code: "terminal-mask-attached".into(),
+                explanation: "Detach the terminal Mask before starting a new clock Play.".into(),
+            }
+        } else {
+            PresentationActionAvailability::Unavailable {
+                reason_code: "clock-already-started".into(),
+                explanation: "The clock needs to finish or be lulled before it starts again."
+                    .into(),
+            }
+        },
+    });
+    actions.push(PresentationAction {
+        identity: format!(
+            "body/action/lull-clock/{}",
+            owner.current_play_id().map_or("none", |play| play.as_str())
+        ),
+        intent: CLOCK_LULL_ACTION.into(),
+        target,
+        name: "Stop the clock".into(),
+        arguments: vec![],
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: if owner.current_play_id().is_some() {
+            PresentationActionAvailability::Available
+        } else {
+            PresentationActionAvailability::Unavailable {
+                reason_code: "clock-not-playing".into(),
+                explanation: "Start the clock before stopping it.".into(),
             }
         },
     });
@@ -136,14 +198,11 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
 }
 
 impl Owner {
-    /// The local control token authenticates the caller; the same current
-    /// Face and acknowledged Mask Show constrain the semantic action itself.
-    pub(crate) fn apply_clock_interval_interaction(
-        &mut self,
-        root: &Path,
+    pub(crate) fn resolve_clock_interaction(
+        &self,
         show: &MaskShow,
         interaction: &FaceInteraction,
-    ) -> Result<serde_json::Value, String> {
+    ) -> Result<ClockAction, String> {
         let face = self.local_face_snapshot()?;
         show.validate(&face)
             .map_err(|error| format!("stale owner Mask Show: {error:?}"))?;
@@ -153,7 +212,23 @@ impl Owner {
         let action = face
             .resolve_action(interaction.face_revision, &interaction.action_id)
             .map_err(debug)?;
-        if action.intent != CLOCK_INTERVAL_ACTION || interaction.arguments.len() != 1 {
+        match (action.intent.as_str(), interaction.arguments.len()) {
+            (CLOCK_INTERVAL_ACTION, 1) => Ok(ClockAction::ChangeInterval),
+            (CLOCK_START_ACTION, 0) => Ok(ClockAction::Start),
+            (CLOCK_LULL_ACTION, 0) => Ok(ClockAction::Lull),
+            _ => Err("owner action is not a current clock control".into()),
+        }
+    }
+
+    /// The local control token authenticates the caller; the same current
+    /// Face and acknowledged Mask Show constrain the semantic action itself.
+    pub(crate) fn apply_clock_interval_interaction(
+        &mut self,
+        root: &Path,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        if self.resolve_clock_interaction(show, interaction)? != ClockAction::ChangeInterval {
             return Err("owner action is not a clock interval change".into());
         }
         let interval_text = std::str::from_utf8(&interaction.arguments[0].value)

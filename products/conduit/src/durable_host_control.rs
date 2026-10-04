@@ -1718,6 +1718,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyInspect { .. }
                 | Request::BodyFace { .. }
                 | Request::BodyLocalFace { .. }
+                | Request::BodyInteraction { .. }
+                | Request::BodyBrowserInteraction { .. }
                 | Request::BodyLull { .. }
                 | Request::BodyBrowserAbort { .. }
                 | Request::BodyBrowserCancel { .. }
