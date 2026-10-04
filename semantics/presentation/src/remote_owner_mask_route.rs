@@ -155,7 +155,7 @@ impl RemoteOwnerMaskRouteSeal {
         validate_hosts(session, owner_offer, mask_host_offer)?;
         let owner_host = RemoteMaskHostBasis::bind(owner_offer)?;
         let mask_host = RemoteMaskHostBasis::bind(mask_host_offer)?;
-        validate_single_host_mask(mask_host_offer, planned_mask)
+        validate_single_host_mask(mask_host_offer, planned_mask, true)
             .map_err(RemoteOwnerMaskRouteError::InvalidMaskPlan)?;
         validate_line(face_line, &owner_host, &mask_host)?;
         validate_line(return_line, &mask_host, &owner_host)?;
@@ -218,7 +218,7 @@ impl RemoteOwnerMaskRouteSeal {
         if RemoteMaskHostBasis::bind(host)? != self.mask_host {
             return Err(RemoteOwnerMaskRouteError::StaleHost);
         }
-        validate_single_host_mask(host, &self.planned_mask)
+        validate_single_host_mask(host, &self.planned_mask, true)
             .map_err(RemoteOwnerMaskRouteError::InvalidMaskPlan)
     }
 
@@ -253,7 +253,7 @@ impl RemoteOwnerMaskRouteSeal {
             return Err(RemoteOwnerMaskRouteError::StaleHost);
         }
         validate_hosts(session, owner_offer, mask_host_offer)?;
-        validate_single_host_mask(mask_host_offer, &self.planned_mask)
+        validate_single_host_mask(mask_host_offer, &self.planned_mask, true)
             .map_err(RemoteOwnerMaskRouteError::InvalidMaskPlan)?;
         if face_line.admitted_line() != self.face_line
             || return_line.admitted_line() != self.return_line

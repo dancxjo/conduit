@@ -33,6 +33,9 @@ pub use infrared_framing::*;
 pub mod stream_framing;
 pub use stream_framing::*;
 
+mod bounded_document;
+pub use bounded_document::*;
+
 const MAGIC: [u8; 4] = *b"CNDW";
 const WIRE_FORMAT_VERSION: u8 = 1;
 pub const MAX_ID_BYTES: usize = 4_096;

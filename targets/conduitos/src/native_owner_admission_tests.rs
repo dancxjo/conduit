@@ -25,7 +25,7 @@ impl BinaryWebSocketIo for ScriptedLine {
     }
 
     fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, WebSocketError> {
-        if self.response.len() > output.len() {
+        if output.len() > MAXIMUM_BINARY_MESSAGE_BYTES || self.response.len() > output.len() {
             return Err(WebSocketError::ResponseTooLarge);
         }
         output[..self.response.len()].copy_from_slice(&self.response);
@@ -214,7 +214,9 @@ fn foreign_body_or_unproven_interaction_route_cannot_become_shared_face() {
     .unwrap();
     assert!(matches!(
         exchange_face(&mut line, &receipt),
-        Err(NativeOwnerFaceExchangeRefusal::Encoding)
+        Err(NativeOwnerFaceExchangeRefusal::Face(
+            GuestFaceRefusal::MaskRoute
+        ))
     ));
 }
 

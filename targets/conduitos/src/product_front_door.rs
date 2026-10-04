@@ -147,6 +147,7 @@ pub fn run(
         make.build_id,
         framebuffer_basis.base_id.clone(),
         &surface_provider,
+        owner_face.as_ref().and_then(|face| face.route()),
     )?;
     let mut face_workspace = FaceWorkspace::prepare(
         host_id.clone(),
@@ -167,7 +168,7 @@ pub fn run(
     )
     .map_err(|error| error.as_str())?;
     let owner_face_presented = owner_face.is_some();
-    let receipt = if let Some(owner_face) = owner_face {
+    let mut receipt = if let Some(owner_face) = owner_face {
         let admitted = owner_route.as_ref().is_some_and(|route| route.available());
         face_arrival.present_owner_face(owner_face.into_presentation(), admitted, display)?
     } else if provisioned_guest {
@@ -175,6 +176,13 @@ pub fn run(
     } else {
         face_arrival.present_first(&front_door, display)?
     };
+    if let Some(route) = owner_route.as_mut()
+        && let Err(reason) = face_arrival.acknowledge_owner_show(route, *identities)
+    {
+        owner_route = None;
+        receipt = face_arrival.retire_owner_route(display)?;
+        face_arrival.show_owner_result(false, false, reason, display)?;
+    }
     if let Some(reason) = owner_return_refusal {
         face_arrival.show_owner_result(false, false, reason, display)?;
     }
@@ -238,6 +246,17 @@ pub fn run(
                                             admitted,
                                             display,
                                         )?;
+                                        if admitted
+                                            && let Some(route) = owner_route.as_mut()
+                                            && let Err(reason) = face_arrival
+                                                .acknowledge_owner_show(route, *identities)
+                                        {
+                                            owner_route = None;
+                                            face_arrival.retire_owner_route(display)?;
+                                            face_arrival
+                                                .show_owner_result(false, false, reason, display)?;
+                                            return Ok(ProductInputControl::Continue);
+                                        }
                                     } else {
                                         face_arrival.retire_owner_route(display)?;
                                     }

@@ -1,14 +1,15 @@
 //! Authenticated local control plane into the durable installed host owner.
 
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableSpawnAdmissionRequest, RendezvousCandidate,
+    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt,
+    PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
 use conduit_body::{
     BodyConversationContext, HostOfferProjection, OfferDisclosureRequest, SpawnInvitationClaim,
     SpawnInvitationSecret,
 };
 use conduit_core::{
-    ActivePlayIdentity, HostAdvertisement, LinkBindingId, PlacementId, Plan,
+    ActivePlayIdentity, HostAdvertisement, LineOffer, LinkBindingId, PlacementId, Plan,
     PoolMemberSessionDirection, PoolRealizationEnvelope, PoolRealizationObservation,
     PoolSelectionEvidence, SignId,
 };
@@ -53,6 +54,8 @@ pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
+#[allow(unused_imports)]
+pub(crate) use body::{acknowledge_native_mask_show, select_native_mask_route};
 #[allow(unused_imports)]
 // Native return consumes the expiry-bearing entrance after its route lands.
 pub(crate) use body::{
@@ -1000,6 +1003,20 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyNativeMaskRoute {
+        protocol: u16,
+        token: Vec<u8>,
+        receipt: Box<PortableAdmissionReceipt>,
+        face_line: Box<LineOffer>,
+        return_line: Box<LineOffer>,
+        expires_at_millis: u64,
+    },
+    BodyNativeMaskShow {
+        protocol: u16,
+        token: Vec<u8>,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+    },
     BirthFace {
         protocol: u16,
         token: Vec<u8>,
@@ -1166,6 +1183,13 @@ enum Response {
         protocol: u16,
         presentation: Box<Presentation>,
         advertisement: HostAdvertisement,
+    },
+    BodyNativeMaskRoute {
+        protocol: u16,
+        route: Box<RemoteOwnerMaskRouteSeal>,
+    },
+    BodyNativeMaskShowAccepted {
+        protocol: u16,
     },
     BirthFace {
         protocol: u16,
@@ -1727,6 +1751,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyNativeMaskRoute { token, .. }
+        | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthFace { token, .. }
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
@@ -1758,6 +1784,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserMaskRoute { .. }
                 | Request::BodyBrowserShow { .. }
                 | Request::BodyLocalFace { .. }
+                | Request::BodyNativeMaskRoute { .. }
+                | Request::BodyNativeMaskShow { .. }
                 | Request::BodyInteraction { .. }
                 | Request::BodyBrowserInteraction { .. }
                 | Request::BodyNativeGuestInteraction { .. }
@@ -1928,6 +1956,29 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 presentation: Box::new(presentation),
                 advertisement,
             })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeMaskRoute {
+            protocol,
+            receipt,
+            face_line,
+            return_line,
+            expires_at_millis,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_native_mask_route(&receipt, &face_line, &return_line, expires_at_millis)
+            .map(|route| Response::BodyNativeMaskRoute {
+                protocol: PROTOCOL,
+                route: Box::new(route),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeMaskShow {
+            protocol,
+            request,
+            show,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_native_mask_show(&request, &show)
+            .map(|()| Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         Request::BirthFace { protocol, .. } if protocol == PROTOCOL => runtime
             .birth_root

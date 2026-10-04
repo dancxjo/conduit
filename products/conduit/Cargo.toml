@@ -23,6 +23,7 @@ conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-patchbay-workbench = { path = "../../plots/patchbay/workbench/model" }
 conduit-presentation = { path = "../../semantics/presentation" }
+conduit-conduitos-mask-offer = { path = "../../targets/conduitos/mask-offer" }
 conduit-browser-mask-offer = { path = "../../targets/browser/mask-offer" }
 conduit-host-browser-make = { path = "../../targets/browser/make" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
