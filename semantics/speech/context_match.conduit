@@ -115,3 +115,12 @@ plot speech/stress-condition (
     >> value: SpeechStressConditionInput
     result: SpeechContextDecision >>
 ) = (.presence is absent || .presence is boundary ? SpeechContextDecision.mismatched : .presence is unknown || !(.observation is known) ? SpeechContextDecision.observation_unresolved : (.stress == 0 ? .allow0 : .stress == 1 ? .allow1 : .stress == 2 ? .allow2 : .allow3) ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
+
+type SpeechFeatureConditionInput = {
+    presence: SpeechNeighborPresence
+    feature: SpeechContextDecision
+}
+plot speech/feature-condition (
+    >> value: SpeechFeatureConditionInput
+    result: SpeechContextDecision >>
+) = (.presence is absent || .presence is boundary ? SpeechContextDecision.mismatched : .presence is unknown ? SpeechContextDecision.observation_unresolved : .feature)
