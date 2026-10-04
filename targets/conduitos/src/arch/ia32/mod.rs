@@ -200,9 +200,12 @@ impl Timer {
 }
 impl TimerBase for Timer {
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
-        let token = self.slots.arm(interest)?;
+        let token = self
+            .slots
+            .arm(interest)
+            .map_err(|error| timer_refusal("arm-slot", error))?;
         if self.active.replace(token).is_some() {
-            return Err(BaseError::SlotFull);
+            return Err(timer_refusal("arm-active", BaseError::SlotFull));
         }
         TIMER_ARM_PENDING.store(true, Ordering::Release);
         Ok(token)
@@ -210,25 +213,50 @@ impl TimerBase for Timer {
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError> {
         self.active = None;
         TIMER_ARM_PENDING.store(false, Ordering::Release);
-        self.slots.cancel(token)
+        self.slots
+            .cancel(token)
+            .map_err(|error| timer_refusal("cancel-slot", error))
     }
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
         match pop_interrupt() {
             None => Ok(None),
             Some(InterruptFact::Timer) => {
-                let token = self.active.take().ok_or(BaseError::StaleWake)?;
-                let interest = self.slots.wake(token)?;
-                self.wakes = self.wakes.checked_add(1).ok_or(BaseError::Unavailable)?;
+                let token = self
+                    .active
+                    .take()
+                    .ok_or_else(|| timer_refusal("wake-active", BaseError::StaleWake))?;
+                let interest = self
+                    .slots
+                    .wake(token)
+                    .map_err(|error| timer_refusal("wake-slot", error))?;
+                self.wakes = self
+                    .wakes
+                    .checked_add(1)
+                    .ok_or_else(|| timer_refusal("wake-count", BaseError::Unavailable))?;
                 Ok(Some(interest))
             }
-            Some(InterruptFact::WrongSource(_) | InterruptFact::Overflow) => {
-                Err(BaseError::Unavailable)
+            Some(InterruptFact::WrongSource(_)) => {
+                Err(timer_refusal("wake-wrong-source", BaseError::Unavailable))
+            }
+            Some(InterruptFact::Overflow) => {
+                Err(timer_refusal("wake-overflow", BaseError::Unavailable))
             }
         }
     }
     fn wake_count(&self) -> u32 {
         self.wakes
     }
+}
+
+// Preserve the generic terminal failure while retaining the actual Base fault.
+// Static vocabulary only; no allocation, retry or reinterpretation of IRQ facts.
+fn timer_refusal(operation: &str, error: BaseError) -> BaseError {
+    present(b"CONDUIT_IA32_TIMER_BASE_REFUSAL {\"operation\":\"");
+    present(operation.as_bytes());
+    present(b"\",\"reason\":\"");
+    present(error.as_str().as_bytes());
+    present(b"\"}\n");
+    error
 }
 
 pub struct Serial(u32);

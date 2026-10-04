@@ -207,9 +207,7 @@ fn boot_once(
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Ia32)?;
     let transcript_path = paths.target.join(format!("ia32-product-{run}.log"));
-    let monitor_path = paths
-        .target
-        .join(format!("ia32-product-{run}-monitor.sock"));
+    let monitor_path = paths.target.join(format!("m-{}.sock", std::process::id()));
     let vga_path = paths.target.join(format!("ia32-product-{run}-vga.bin"));
     fs::write(&transcript_path, [])
         .map_err(|error| refusal("ia32-product-boot-failed", error.to_string()))?;
