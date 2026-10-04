@@ -133,7 +133,7 @@ pub fn plan(
             )
         })
         .collect();
-    Ok(plan_expanded_authoring_with_options(
+    plan_expanded_authoring_with_options(
         &authoring,
         &hosts,
         &placements,
@@ -149,5 +149,5 @@ pub fn plan(
         },
         &boundaries,
     )
-    .map_err(|_| "usb-control-proof-planning")?)
+    .map_err(|_| "usb-control-proof-planning")
 }
