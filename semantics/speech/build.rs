@@ -22,8 +22,9 @@ fn main() {
     println!("cargo:rerun-if-changed=duration_projection.conduit");
     println!("cargo:rerun-if-changed=duration_render.conduit");
     println!("cargo:rerun-if-changed=control_projection.conduit");
+    println!("cargo:rerun-if-changed=context_match.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("listening.conduit"),
         include_str!("translation.conduit"),
@@ -31,7 +32,8 @@ fn main() {
         include_str!("intent.conduit"),
         include_str!("inventory.conduit"),
         include_str!("profile_phones.conduit"),
-        include_str!("voice_profile.conduit")
+        include_str!("voice_profile.conduit"),
+        include_str!("context_match.conduit")
     );
     let semantic = check_syntax_document(
         &parse_syntax_document(&semantic_source),
@@ -60,7 +62,7 @@ fn main() {
     println!("cargo:rerun-if-changed=normalization.conduit");
     println!("cargo:rerun-if-changed=glottal.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("profile_phones.conduit"),
         fs::read_to_string(path).expect("native speech source"),
         include_str!("pronunciation.conduit"),
@@ -73,7 +75,8 @@ fn main() {
         include_str!("timing_projection.conduit"),
         include_str!("duration_projection.conduit"),
         include_str!("duration_render.conduit"),
-        include_str!("control_projection.conduit")
+        include_str!("control_projection.conduit"),
+        include_str!("context_match.conduit")
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);

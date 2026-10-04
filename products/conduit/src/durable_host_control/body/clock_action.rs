@@ -43,6 +43,10 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        let HostSource::Body { owner, .. } = &self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        owner.validate_native_mask_show(request, show)?;
         self.owned_body_clock_action(Some(request), show, interaction)
     }
 

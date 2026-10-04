@@ -3,17 +3,19 @@ use crate::{
     arch,
     display::PixelTarget,
     front_door::{FrontDoor, FrontDoorPresenter},
+    identity::BootIdentities,
     make::MakeRecord,
     native_compositor::CompositionReceipt,
     native_face_mask::{NativeFaceMask, NativeFaceMaskInput},
     native_face_scene::FaceFocusRequest,
+    native_owner_return::NativeOwnerReturnRoute,
     native_surface_provider::NativeSurfaceProvider,
     product_journey::ProductJourney,
 };
 use conduit_birth_plot::{BirthActionOutcome, BirthFaceBasis};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_human::KeyEvent;
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation};
+use conduit_presentation::{FaceInteraction, MaskShow, Presentation, RemoteOwnerMaskRouteSeal};
 
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
@@ -43,8 +45,9 @@ impl FaceArrival {
         build_id: &str,
         display_base_id: HostBaseId,
         provider: &NativeSurfaceProvider,
+        owner_route: Option<&RemoteOwnerMaskRouteSeal>,
     ) -> Result<Self, &'static str> {
-        let mask = NativeFaceMask::prepare(
+        let mask = NativeFaceMask::prepare_with_owner_route(
             host_id,
             boot_id,
             generation,
@@ -52,6 +55,7 @@ impl FaceArrival {
             display_base_id,
             "conduitos/creche/face",
             provider,
+            owner_route,
         )
         .map_err(|error| error.as_str())?;
         let basis = mask.birth_basis("conduitos/creche/current");
@@ -163,13 +167,25 @@ impl FaceArrival {
         }
     }
 
+    pub(super) fn acknowledge_owner_show(
+        &self,
+        route: &mut NativeOwnerReturnRoute,
+        identities: BootIdentities,
+    ) -> Result<(), &'static str> {
+        let show = self.mask.show().ok_or("owner-face-show-absent")?;
+        route.acknowledge_show(identities, show)?;
+        arch::early_write(b"CONDUIT_NATIVE_OWNER_FACE {\"schema\":\"conduit.conduitos/native-owner-face@1\",\"status\":\"acknowledged\",\"show_id\":\"");
+        arch::early_write(show.show_id.as_str().as_bytes());
+        arch::early_write(b"\"}\n");
+        Ok(())
+    }
+
     pub(super) fn retire_owner_route(
         &mut self,
         display: &mut impl PixelTarget,
-    ) -> Result<(), &'static str> {
+    ) -> Result<CompositionReceipt, &'static str> {
         let face = self.owner_face.clone().ok_or("owner-face-absent")?;
-        self.present_owner_face(face, false, display)?;
-        Ok(())
+        self.present_owner_face(face, false, display)
     }
 
     pub(super) fn show_owner_result(

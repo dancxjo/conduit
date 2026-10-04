@@ -2,6 +2,10 @@
 //! The grant is a fresh bearer on pinned TLS, not a second use of that invitation.
 
 use super::{current_time_millis, send};
+#[path = "return_route/action.rs"]
+mod action;
+#[path = "return_route/show_ack.rs"]
+mod show_ack;
 use conduit_body::PortableAdmissionReceipt;
 use conduit_presentation::{
     FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
@@ -23,6 +27,9 @@ const MAX_ACTIONS: u8 = 4;
 const MAX_LIFETIME_MILLIS: u64 = 60_000;
 const MAX_RETURN_ACTION_BYTES: usize = 64 * 1024;
 const CHUNK_HEADER_BYTES: usize = 40;
+// ConduitOS emits frames of at most 8 KiB; a 64 KiB Show or action may
+// therefore require nine chunks. Keep a finite margin for smaller frames.
+const MAX_RETURN_CHUNKS: usize = 16;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -58,6 +65,8 @@ pub(super) struct Grant {
     maximum_actions: u8,
     #[serde(skip)]
     expires_at_millis: u64,
+    #[serde(skip)]
+    receipt: PortableAdmissionReceipt,
 }
 
 impl Grant {
@@ -78,7 +87,21 @@ impl Grant {
             remaining_millis: remaining as u32,
             maximum_actions: MAX_ACTIONS,
             expires_at_millis: now + remaining,
+            receipt: receipt.clone(),
         })
+    }
+
+    pub(super) fn expires_at_millis(&self) -> u64 {
+        self.expires_at_millis
+    }
+
+    pub(super) fn binding_reference(&self, sequence: u8) -> String {
+        let digest = Sha256::digest(self.token);
+        let digest: String = digest[..12]
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        format!("{digest}/{sequence}")
     }
 
     fn basis_matches(&self, action: &Action) -> bool {
@@ -134,6 +157,9 @@ pub(super) fn serve(
     let mut frame = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
     let mut assembled = ChunkAssembly::default();
     for sequence in 1..=grant.maximum_actions {
+        if !show_ack::acknowledge_show(listener, state_dir, grant, sequence, grant_deadline)? {
+            break;
+        }
         let Some(left) = deadline.checked_duration_since(Instant::now()) else {
             break;
         };
@@ -151,7 +177,7 @@ pub(super) fn serve(
         eprintln!("CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"accepted\"}}");
         line.set_read_timeout(Some(left.min(Duration::from_secs(5))))
             .map_err(|error| format!("bound native return read: {error:?}"))?;
-        let response = match receive_action(&mut line, &mut frame, &mut assembled) {
+        let response = match receive_document::<Action>(&mut line, &mut frame, &mut assembled) {
             Ok(_) if current_time_millis()? >= grant.expires_at_millis => Response {
                 schema: RESPONSE_SCHEMA,
                 accepted: false,
@@ -168,11 +194,12 @@ pub(super) fn serve(
             }
             Ok(action) => {
                 line.complete_bounded_input();
-                apply(
+                action::apply(
+                    listener,
                     state_dir,
+                    grant,
                     action,
                     sequence < grant.maximum_actions,
-                    grant.expires_at_millis,
                 )
             }
             Err(_) => Response {
@@ -187,7 +214,7 @@ pub(super) fn serve(
             "CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"responding\",\"code\":\"{}\"}}",
             response.code
         );
-        send(&mut line, &fit_response(response)?)?;
+        super::response_document::send(&mut line, &fit_response(response)?)?;
         if outcome_unknown {
             break;
         }
@@ -195,16 +222,16 @@ pub(super) fn serve(
     Ok(())
 }
 
-fn receive_action(
+fn receive_document<T: serde::de::DeserializeOwned>(
     line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
     frame: &mut [u8],
     assembled: &mut ChunkAssembly,
-) -> Result<Action, String> {
+) -> Result<T, String> {
     assembled.reset();
     // Each frame carries the same finite total and digest plus its exact offset.
     // The WebSocket Line provides ordering and pinned TLS; these checks keep
     // malformed or interrupted multi-frame actions distinct from submission.
-    for _ in 0..=MAX_RETURN_ACTION_BYTES / (MAX_OWNER_FACE_RESPONSE_BYTES - CHUNK_HEADER_BYTES) {
+    for _ in 0..MAX_RETURN_CHUNKS {
         let length = line
             .receive_binary(frame)
             .map_err(|error| format!("receive native return: {error:?}"))?;
@@ -277,77 +304,13 @@ impl ChunkAssembly {
 fn fit_response(mut response: Response) -> Result<Response, String> {
     let bytes = serde_json::to_vec(&response)
         .map_err(|error| format!("encode native return response: {error}"))?;
-    if bytes.len() > MAX_OWNER_FACE_RESPONSE_BYTES {
+    if bytes.len() > super::response_document::MAX_OWNER_DOCUMENT_BYTES {
         response.face = None;
         if response.accepted {
             response.code = "accepted-face-pressure";
         }
     }
     Ok(response)
-}
-
-fn apply(
-    state_dir: &Path,
-    action: Action,
-    more_actions: bool,
-    grant_expires_at_millis: u64,
-) -> Response {
-    let request = action.request;
-    let result = crate::durable_host_control::submit_native_guest_face_interaction_until(
-        state_dir,
-        request.clone(),
-        action.show,
-        action.interaction,
-        grant_expires_at_millis,
-    );
-    let (accepted, code) = match &result {
-        Ok(_) => (true, "accepted"),
-        Err(error) if error == "control-outcome-unknown" => (false, "control-outcome-unknown"),
-        Err(error) if error.contains("control-grant-expired") => (false, "return-expired"),
-        Err(error)
-            if error.contains("StaleFace")
-                || error.contains("StaleShow")
-                || error.contains("stale owner Mask Show") =>
-        {
-            (false, "stale-face-or-show")
-        }
-        Err(error)
-            if error == "body-play-active"
-                || error.contains("retired Play")
-                || error.contains("clock-play-must-lull") =>
-        {
-            (false, "clock-play-must-lull")
-        }
-        Err(error) if error.contains("UnavailableAction") => (false, "action-unavailable"),
-        Err(error) if error.contains("RefusedAction") => (false, "action-refused"),
-        Err(error) if error.contains("credential-not-admitted") => {
-            (false, "credential-not-admitted")
-        }
-        Err(error) if error.contains("current-part-unavailable") => {
-            (false, "current-part-unavailable")
-        }
-        Err(_) => (false, "interaction-refused"),
-    };
-    let face = crate::durable_host_control::face_snapshot(state_dir, request)
-        .ok()
-        .map(|mut response| {
-            if let OwnerFaceSnapshotResponse::Snapshot {
-                interactions_admitted,
-                ..
-            } = &mut response
-            {
-                *interactions_admitted = more_actions
-                    && code != "control-outcome-unknown"
-                    && current_time_millis().is_ok_and(|now| now < grant_expires_at_millis);
-            }
-            response
-        });
-    Response {
-        schema: RESPONSE_SCHEMA,
-        accepted,
-        code,
-        face,
-    }
 }
 
 #[cfg(test)]
@@ -368,23 +331,70 @@ mod tests {
         }
     }
 
+    fn receipt() -> PortableAdmissionReceipt {
+        let request = request();
+        PortableAdmissionReceipt {
+            schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+            credential: conduit_body::MembershipCredential {
+                credential_id: serde_json::from_str("\"credential/guest\"").unwrap(),
+                body_id: request.body_id,
+                part_id: request.part_id,
+                host_id: request.host_id.clone(),
+                boot_id: request.boot_id.clone(),
+                issued_at_millis: 1,
+            },
+            host_advertisement: conduit_core::HostAdvertisement {
+                protocol_version: conduit_core::PROTOCOL_VERSION,
+                host_id: request.host_id,
+                boot_id: request.boot_id,
+                offer_generation: conduit_core::OfferGeneration(1),
+                profile: conduit_core::HostProfileId::from("test"),
+                bases: vec![],
+                resources: vec![],
+                capabilities: vec![],
+                planner_capabilities: vec![],
+            },
+            membership_admitted: true,
+            current_offers_available: false,
+            plan_created: false,
+            play_created: false,
+        }
+    }
+
     fn chunks(payload: &[u8]) -> Vec<Vec<u8>> {
+        chunks_at(payload, MAX_OWNER_FACE_RESPONSE_BYTES)
+    }
+
+    fn chunks_at(payload: &[u8], frame_bytes: usize) -> Vec<Vec<u8>> {
         let digest = Sha256::digest(payload);
         payload
-            .chunks(MAX_OWNER_FACE_RESPONSE_BYTES - CHUNK_HEADER_BYTES)
+            .chunks(frame_bytes - CHUNK_HEADER_BYTES)
             .enumerate()
             .map(|(index, chunk)| {
                 let mut frame = Vec::with_capacity(CHUNK_HEADER_BYTES + chunk.len());
                 frame.extend_from_slice(&(payload.len() as u32).to_le_bytes());
                 frame.extend_from_slice(
-                    &((index * (MAX_OWNER_FACE_RESPONSE_BYTES - CHUNK_HEADER_BYTES)) as u32)
-                        .to_le_bytes(),
+                    &((index * (frame_bytes - CHUNK_HEADER_BYTES)) as u32).to_le_bytes(),
                 );
                 frame.extend_from_slice(&digest);
                 frame.extend_from_slice(chunk);
                 frame
             })
             .collect()
+    }
+
+    #[test]
+    fn native_eight_kib_frames_cover_the_full_bounded_return() {
+        let payload = vec![0x5a; MAX_RETURN_ACTION_BYTES];
+        let frames = chunks_at(&payload, 8192 - 14);
+        assert!(frames.len() <= MAX_RETURN_CHUNKS);
+        assert!(frames.len() > 2);
+        let mut assembly = ChunkAssembly::default();
+        for frame in &frames[..frames.len() - 1] {
+            assert!(!assembly.push(frame).unwrap());
+        }
+        assert!(assembly.push(frames.last().unwrap()).unwrap());
+        assert_eq!(assembly.bytes, payload);
     }
 
     #[test]
@@ -457,6 +467,7 @@ mod tests {
             remaining_millis: 60_000,
             maximum_actions: MAX_ACTIONS,
             expires_at_millis: 60_000,
+            receipt: receipt(),
         };
         assert!(grant.matches_request([7; 32], &request()));
         assert!(!grant.matches_request([8; 32], &request()));
@@ -469,14 +480,14 @@ mod tests {
     }
 
     #[test]
-    fn oversized_refreshed_face_keeps_action_truth_and_refuses_guest_frame_pressure() {
+    fn oversized_refreshed_face_keeps_action_truth_and_refuses_document_pressure() {
         let response = Response {
             schema: RESPONSE_SCHEMA,
             accepted: true,
             code: "accepted",
             face: Some(OwnerFaceSnapshotResponse::Refused {
                 schema: "conduit.presentation/owner-face-response@1".into(),
-                code: "x".repeat(MAX_OWNER_FACE_RESPONSE_BYTES),
+                code: "x".repeat(super::super::response_document::MAX_OWNER_DOCUMENT_BYTES),
             }),
         };
         let fitted = fit_response(response).unwrap();

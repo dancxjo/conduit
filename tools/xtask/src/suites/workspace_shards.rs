@@ -96,6 +96,7 @@ package_test_shard!(
         "conduit-std-offers",
         "conduit-browser-runtime",
         "conduit-browser-mask-offer",
+        "conduit-conduitos-mask-offer",
         "conduit-little-seismograph-fixture",
         "conduitos",
         "patchbay-hosted",

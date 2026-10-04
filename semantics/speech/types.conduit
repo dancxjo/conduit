@@ -95,13 +95,16 @@ type SpeechSegmentMatcher =
     | boundary SpeechBoundaryKind
     | any
 
+type SpeechProsodicContextSpecification = SpeechSpec<SpeechProsodicContext>
+type SpeechSyllablePositionSpecification = SpeechSpec<SpeechSyllablePosition>
+
 type SpeechEnvironment = {
     before: sequence SpeechSegmentMatcher <= 4
     after: sequence SpeechSegmentMatcher <= 4
     word_position: SpeechSpec<SpeechWordPosition>
-    syllable_position: SpeechSpec<SpeechSyllablePosition>
+    syllable_position: SpeechSyllablePositionSpecification
     stress_context: StressSpecification
-    prosodic_context: SpeechSpec<SpeechProsodicContext>
+    prosodic_context: SpeechProsodicContextSpecification
 }
 
 type SpeechEvidenceSource =

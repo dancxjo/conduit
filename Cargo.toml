@@ -79,6 +79,7 @@ members = [
 	"targets/browser/mask-offer",
 	"targets/browser/runtime",
 	"targets/conduitos",
+	"targets/conduitos/mask-offer",
 	"targets/conduitos/make",
 	"targets/esp32/make",
 	"targets/orange-pi/make",

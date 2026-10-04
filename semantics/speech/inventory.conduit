@@ -22,3 +22,11 @@ type SpeechIntentInventoryBasis = {
     where .intent_inventory_id == .inventory_id
     where .intent_language == .inventory_language
 }
+
+# Phoneme and phone identity remain different domains even when their spelling
+# is identical. This law checks only exact supplied phoneme definition lookup.
+type SpeechPhonemeDefinitionMatch = {
+    requested: PhonemeId
+    definition: PhonemeId
+    where .requested == .definition
+}

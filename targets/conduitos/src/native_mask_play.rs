@@ -34,7 +34,8 @@ use sha2::{Digest, Sha256};
 
 // The current complete resident Patchbay Face is about 21 KiB encoded. This
 // finite native profile admits it whole; larger Faces require a new admission.
-pub const MAX_MASK_VALUE_BYTES: usize = 32 * 1024;
+#[cfg(any(test, feature = "native-compositor"))]
+pub const MAX_MASK_VALUE_BYTES: usize = conduit_conduitos_mask_offer::MASK_BYTES;
 #[cfg(any(test, feature = "native-compositor"))]
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 #[cfg(any(test, feature = "native-compositor"))]
