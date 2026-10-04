@@ -67,6 +67,41 @@ fn mixed_rules_defaults_and_boundary_are_admitted_as_one_immutable_intent() {
         pcm(prepared.renderer().unwrap(), 1),
         pcm(prepared.renderer().unwrap(), 128)
     );
+    let material = LanguageText::new(
+        LanguageTextId::new("source".into()).unwrap(),
+        source.language().clone(),
+        LanguageTextRevisionId::new("source revision".into()).unwrap(),
+        "t".into(),
+    )
+    .unwrap();
+    let sourced = conduit_speech::sourced_global_intent::prepare_sourced_global_intent(
+        &source,
+        &[conduit_speech::intent_sources::IntentSourceMaterial::Text(&material); 3],
+        &setup.inventory,
+        &setup.voice,
+        &setup.boundaries,
+        &setup.rules,
+        &setup.policy,
+        &evidence,
+    )
+    .unwrap();
+    assert!(core::ptr::eq(
+        sourced.sources().intent(),
+        sourced.realization().source()
+    ));
+    assert_eq!(sourced.sources().receipts().len(), 3);
+    assert!(matches!(
+        sourced.realization().phones()[0].realization(),
+        GlobalIntentRealization::Rule(_)
+    ));
+    assert!(matches!(
+        sourced.realization().phones()[1].realization(),
+        GlobalIntentRealization::Default { .. }
+    ));
+    assert_eq!(
+        pcm(sourced.renderer().unwrap(), 1),
+        pcm(prepared.renderer().unwrap(), 128)
+    );
     let late = default(99);
     assert!(matches!(
         prepare_global_intent(

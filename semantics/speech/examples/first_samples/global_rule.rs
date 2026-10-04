@@ -254,5 +254,27 @@ pub fn write(
         "sourced-global-intent-initial-aspiration-tata",
         sourced.renderer().map_err(|reason| format!("{reason:?}"))?,
     )?;
+    let mixed_rules = SpeechAllophoneRuleProfile::new(
+        rules.inventory_id().clone(),
+        rules.language().clone(),
+        BoundedSequence::try_from_iter([rules.rules().as_slice()[0].clone()]).unwrap(),
+    )
+    .unwrap();
+    let mixed = conduit_speech::sourced_global_intent::prepare_sourced_global_intent(
+        intent,
+        &materials,
+        inventory,
+        voice,
+        &boundaries,
+        &mixed_rules,
+        &default_policy,
+        &evidence,
+    )
+    .map_err(|reason| format!("{reason:?}"))?;
+    super::super::write_rendered(
+        output,
+        "sourced-global-rule-and-default-tata",
+        mixed.renderer().map_err(|reason| format!("{reason:?}"))?,
+    )?;
     Ok(())
 }
