@@ -1,7 +1,8 @@
 //! One shared semantic reading order, wrapped without dropping hidden content.
 use super::*;
 use conduit_presentation::{
-    plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance,
+    plan_face_utterances, readable_finite_text_choices, render_linear_presentation,
+    FaceUtteranceProvenance,
 };
 
 pub(super) struct Row {
@@ -44,6 +45,23 @@ pub(super) fn prepare(
             })
             .transpose()?;
         append(&mut rows, &clause.text, width, Some(index), control)?;
+        if let Some(TerminalControl {
+            action,
+            argument: Some(argument),
+        }) = control
+        {
+            if let Some(choices) =
+                readable_finite_text_choices(&face.actions[action].arguments[argument].contract)
+            {
+                append(
+                    &mut rows,
+                    &format!("Available values: {}.", choices.join(", ")),
+                    width,
+                    Some(index),
+                    control,
+                )?;
+            }
+        }
     }
     let linear = render_linear_presentation(face).map_err(|_| TerminalError::DocumentPressure)?;
     let mut inspect = Vec::new();
