@@ -3,6 +3,8 @@
 type SpeechDurationSpecification = SpeechSpec<SpeechExactDuration>
 type SpeechCycleSpecification = SpeechSpec<SpeechFundamentalCycle>
 type SpeechIntensitySpecification = SpeechSpec<SpeechRelativeIntensity>
+type SpeechPositionSpecification = SpeechSpec<SpeechWordPosition>
+type SpeechBoundarySpecification = SpeechSpec<SpeechBoundaryKind>
 
 type SpeechSegmentProsodyIntent = {
     duration: SpeechDurationSpecification
@@ -16,7 +18,7 @@ type SpeechPlannedSegmentIntent = {
     phoneme: PhonemeSpecification
     phone: PhoneSpecification
     stress: StressSpecification
-    word_position: SpeechSpec<SpeechWordPosition>
+    word_position: SpeechPositionSpecification
     prosody: SpeechSegmentProsodyIntent
     provenance: SpeechEvidenceProvenance
 }
@@ -24,7 +26,7 @@ type SpeechPlannedSegmentIntent = {
 # A boundary/pause remains a separate event; it is never an absent phone.
 type SpeechPlannedBoundaryIntent = {
     sources: sequence LanguageSegmentRef in 1..=8
-    kind: SpeechSpec<SpeechBoundaryKind>
+    kind: SpeechBoundarySpecification
     duration: SpeechDurationSpecification
     provenance: SpeechEvidenceProvenance
 }
@@ -40,4 +42,20 @@ type SpeechUtteranceIntent = {
     inventory_id: SpeechInventoryId
     events: sequence SpeechUtteranceIntentEvent <= 256
     provenance: SpeechEvidenceProvenance
+}
+
+# A requested membership relation is checked, never inferred from a matching
+# ordinal or token spelling. Sources may belong to other revisions; this receipt
+# binds only the explicitly supplied occurrence to the explicitly supplied basis.
+# Sequence identity and ordinal remain on the occurrence without reinterpretation.
+type SpeechOccurrenceMembership = {
+    utterance_id: SpeechUtteranceId
+    revision_id: SpeechSegmentRevisionId
+    inventory_id: SpeechInventoryId
+    language: SpeechLanguageId
+    occurrence: LanguageSpeechTokenRef
+    where .occurrence.utterance_id == .utterance_id
+    where .occurrence.revision_id == .revision_id
+    where .occurrence.inventory_id == .inventory_id
+    where .occurrence.language == .language
 }
