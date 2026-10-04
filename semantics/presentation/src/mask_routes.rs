@@ -1,13 +1,17 @@
 //! Fail-closed admission of Mask Plot routes already sealed by an ordinary Plan.
 
 use alloc::vec::Vec;
-use conduit_body::BodyPlan;
-use conduit_core::{verify_plan, PlanId};
+use conduit_body::{BodyId, BodyLifecycleSession, BodyPlan};
+use conduit_core::{verify_plan, HostAdvertisement, PlanId};
 
-use crate::{PlannedMaskPlot, SealedMaskPlotRoute};
+use crate::{
+    LocalOwnerMaskRouteError, LocalOwnerMaskRouteSeal, MaskShow, PlannedMaskPlot, Presentation,
+    SealedMaskPlotRoute,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedMaskPlotRoutes {
+    body_id: BodyId,
     plan_id: PlanId,
     routes: Vec<SealedMaskPlotRoute>,
 }
@@ -20,6 +24,7 @@ pub enum MaskRouteAdmissionError {
     UnsealedMaskPlot,
     MissingPlacement,
     MissingBoundary,
+    OwnerRoute(LocalOwnerMaskRouteError),
 }
 
 impl AdmittedMaskPlotRoutes {
@@ -80,9 +85,50 @@ impl AdmittedMaskPlotRoutes {
             }
         }
         Ok(Self {
+            body_id: body_plan.body_id.clone(),
             plan_id: body_plan.plan_id.clone(),
             routes,
         })
+    }
+
+    /// Admit a real owner-issued Mask Show while its workload Body is lulled.
+    /// The owner seal supplies the ordinary Mask Plan; no workload Wake or
+    /// BodyPlan is synthesized to make wardrobe selection possible.
+    pub fn from_local_owner_show(
+        seal: &LocalOwnerMaskRouteSeal,
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        current_owner_offer: &HostAdvertisement,
+        show: &MaskShow,
+    ) -> Result<Self, MaskRouteAdmissionError> {
+        seal.validate_available_show(session, face, current_owner_offer, show)
+            .map_err(MaskRouteAdmissionError::OwnerRoute)?;
+        let placement_ids = seal
+            .planned_mask
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .map(|placement| placement.placement_id.clone())
+            .collect::<Vec<_>>();
+        if placement_ids.is_empty() {
+            return Err(MaskRouteAdmissionError::MissingPlacement);
+        }
+        Ok(Self {
+            body_id: seal.body_id.clone(),
+            plan_id: seal.route_plan_id.clone(),
+            routes: alloc::vec![SealedMaskPlotRoute {
+                route_id: alloc::format!("route/{}", seal.route_plan_id.as_str()),
+                mask_plot: seal.planned_mask.mask.plot_identity.clone(),
+                plan_id: seal.route_plan_id.clone(),
+                placement_ids,
+                currently_available: true,
+            }],
+        })
+    }
+
+    pub fn body_id(&self) -> &BodyId {
+        &self.body_id
     }
 
     pub fn plan_id(&self) -> &PlanId {
