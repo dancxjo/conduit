@@ -189,6 +189,27 @@ fn owner_face_frames_require_one_exact_credential_basis_and_bounded_response() {
         encode_browser_admission_frame(&malformed, &mut output),
         Err(BrowserAdmissionFrameError::InvalidFaceSnapshot)
     );
+    let show_accepted = BrowserAdmissionEgress::FaceShowResponse {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        accepted: true,
+        code: String::new(),
+    };
+    assert!(encode_browser_admission_frame(&show_accepted, &mut output).is_ok());
+    let show_refused = BrowserAdmissionEgress::FaceShowResponse {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        accepted: false,
+        code: "stale-face-or-show".into(),
+    };
+    assert!(encode_browser_admission_frame(&show_refused, &mut output).is_ok());
+    let false_acknowledgement = BrowserAdmissionEgress::FaceShowResponse {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        accepted: true,
+        code: "stale-face-or-show".into(),
+    };
+    assert_eq!(
+        encode_browser_admission_frame(&false_acknowledgement, &mut output),
+        Err(BrowserAdmissionFrameError::InvalidFaceSnapshot)
+    );
 }
 
 #[test]

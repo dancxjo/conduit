@@ -1,15 +1,15 @@
-//! One exact owner-produced Face snapshot on an already authenticated join Line.
+//! One exact owner-produced Face snapshot on an already authenticated carrier.
 //!
-//! This message does not grant an interaction return route or continuing
-//! reachability. The owner must check the credential against its retained
-//! admission before disclosing the current Face.
+//! A browser snapshot may include an owner-issued presentation route. Its
+//! admitted Lines and current availability remain distinct from the Face;
+//! the owner rechecks the credential and selected route before an action.
 
 use alloc::{boxed::Box, string::String};
 use conduit_body::{BodyId, PartId};
 use conduit_core::{BootId, HostId};
 use serde::{Deserialize, Serialize};
 
-use crate::{Presentation, PresentationContentId};
+use crate::{Presentation, PresentationContentId, RemoteOwnerMaskRouteSeal};
 
 pub const OWNER_FACE_REQUEST_SCHEMA: &str = "conduit.presentation/owner-face-request@1";
 pub const OWNER_FACE_RESPONSE_SCHEMA: &str = "conduit.presentation/owner-face-response@1";
@@ -47,6 +47,8 @@ pub enum OwnerFaceSnapshotResponse {
         presentation: Box<Presentation>,
         /// False until a typed semantic-interaction return route is admitted.
         interactions_admitted: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        route: Option<Box<RemoteOwnerMaskRouteSeal>>,
     },
     Unchanged {
         schema: String,

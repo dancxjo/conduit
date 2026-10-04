@@ -75,7 +75,7 @@ impl LocalOwnerMaskRouteSeal {
         {
             return Err(LocalOwnerMaskRouteError::WrongFaceBasis);
         }
-        validate_local_mask(owner_offer, planned_mask)?;
+        validate_single_host_mask(owner_offer, planned_mask)?;
         let mut route = Self {
             route_plan_id: PlanId::from("unsealed"),
             body_id: body.body_id.clone(),
@@ -91,7 +91,7 @@ impl LocalOwnerMaskRouteSeal {
     }
 
     pub fn verify_seal(&self) -> Result<(), LocalOwnerMaskRouteError> {
-        validate_local_mask(&self.owner_offer, &self.planned_mask)?;
+        validate_single_host_mask(&self.owner_offer, &self.planned_mask)?;
         if self.face_basis.body_id.as_ref() != Some(&self.body_id)
             || self.face_basis.wake_id.is_some()
             || self.face_basis.plan_id.is_some()
@@ -182,14 +182,14 @@ impl LocalOwnerMaskRouteSeal {
     }
 }
 
-fn validate_local_mask(
-    owner: &HostAdvertisement,
+pub(crate) fn validate_single_host_mask(
+    host: &HostAdvertisement,
     planned: &PlannedMaskPlot,
 ) -> Result<(), LocalOwnerMaskRouteError> {
-    if owner.protocol_version != PROTOCOL_VERSION
-        || owner.host_id.as_str().is_empty()
-        || owner.boot_id.as_str().is_empty()
-        || owner.offer_generation.0 == 0
+    if host.protocol_version != PROTOCOL_VERSION
+        || host.host_id.as_str().is_empty()
+        || host.boot_id.as_str().is_empty()
+        || host.offer_generation.0 == 0
         || !verify_plan(&planned.plan)
         || PlannedMaskPlot::admit(&planned.mask, &planned.plan).is_err()
     {
@@ -199,16 +199,16 @@ fn validate_local_mask(
         return Err(LocalOwnerMaskRouteError::InvalidMaskPlan);
     }
     for fragment in &planned.plan.fragments {
-        if fragment.host_id != owner.host_id || fragment.boot_id != owner.boot_id {
+        if fragment.host_id != host.host_id || fragment.boot_id != host.boot_id {
             return Err(LocalOwnerMaskRouteError::RemoteLineRequired);
         }
-        if fragment.offer_generation != owner.offer_generation {
+        if fragment.offer_generation != host.offer_generation {
             return Err(LocalOwnerMaskRouteError::StaleOrMissingOffer);
         }
         for placement in &fragment.placements {
-            if placement.host_id != owner.host_id
-                || placement.boot_id != owner.boot_id
-                || placement.offer_generation != owner.offer_generation
+            if placement.host_id != host.host_id
+                || placement.boot_id != host.boot_id
+                || placement.offer_generation != host.offer_generation
             {
                 return Err(LocalOwnerMaskRouteError::StaleOrMissingOffer);
             }
@@ -221,7 +221,7 @@ fn validate_local_mask(
             {
                 return Err(LocalOwnerMaskRouteError::UnsupportedAuthority);
             }
-            let offered = owner.capabilities.iter().any(|offer| {
+            let offered = host.capabilities.iter().any(|offer| {
                 offer.capability_id == placement.capability_id
                     && offer.kind_id == placement.kind_id
                     && offer.kind_contract_revision == placement.kind_contract_revision
@@ -236,7 +236,7 @@ fn validate_local_mask(
             });
             if !offered
                 || placement.resources.iter().any(|binding| {
-                    !owner.resources.iter().any(|resource| {
+                    !host.resources.iter().any(|resource| {
                         resource.pool_id == binding.pool_id
                             && resource.class_id == binding.class_id
                             && resource.capacity_units >= binding.units

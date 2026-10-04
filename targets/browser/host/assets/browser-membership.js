@@ -160,6 +160,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let webRtcRefusal = null;
   let pendingMediaPlan = null;
   let pendingFaceSnapshot = null;
+  let pendingFaceShow = null;
   let pendingFaceInteraction = null;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
@@ -280,6 +281,19 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         // Keep the exact u64 revision bytes. JSON.parse rounds them in JS;
         // the production WASM Mask decodes and validates this original frame.
         pending.resolve(frameBytes.slice());
+      }
+    } else if (frame.kind === "face-show-response" && frame.protocol === 1) {
+      const pending = pendingFaceShow;
+      if (!pending) throw new Error("unsolicited owner Show response");
+      clearTimeout(pending.timeout);
+      pendingFaceShow = null;
+      if (frame.accepted === true && frame.code === "") {
+        pending.resolve(Object.freeze({ accepted: true }));
+      } else if (frame.accepted === false && typeof frame.code === "string" &&
+          frame.code.length > 0 && frame.code.length <= 128) {
+        pending.reject(new Error(`Body owner refused Show: ${frame.code}`));
+      } else {
+        pending.reject(new Error("invalid owner Show response"));
       }
     } else if (frame.kind === "face-interaction-response" && frame.protocol === 1) {
       const pending = pendingFaceInteraction;
@@ -537,6 +551,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingFaceSnapshot.reject(new Error("owner Face Line closed"));
         pendingFaceSnapshot = null;
       }
+      if (pendingFaceShow) {
+        clearTimeout(pendingFaceShow.timeout);
+        pendingFaceShow.reject(new Error("owner Show Line closed"));
+        pendingFaceShow = null;
+      }
       if (pendingFaceInteraction) {
         clearTimeout(pendingFaceInteraction.timeout);
         pendingFaceInteraction.reject(new Error("owner interaction Line closed"));
@@ -690,6 +709,42 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       pendingFaceInteraction = { resolve, reject, timeout };
     });
   }
+  function acknowledgeFaceShow(showBytes) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for owner Show"));
+    }
+    if (pendingFaceShow) return Promise.reject(new Error("one owner Show acknowledgement is already pending"));
+    if (!(showBytes instanceof Uint8Array) || showBytes.length < 1 || showBytes.length > 64 * 1024) {
+      return Promise.reject(new Error("owner Mask Show receipt violates its finite bound"));
+    }
+    const show = decoder.decode(showBytes);
+    if (!show.startsWith('{') || !show.endsWith('}')) {
+      return Promise.reject(new Error("invalid owner Mask Show receipt"));
+    }
+    const request = {
+      schema: OWNER_FACE_REQUEST_SCHEMA,
+      credential_id: credential.credential_id,
+      body_id: credential.body_id,
+      part_id: credential.part_id,
+      host_id: credential.host_id,
+      boot_id: credential.boot_id,
+      last_seen_revision: null,
+      last_seen_identity: null,
+    };
+    const bytes = encoder.encode(`{"kind":"face-show-acknowledgement","protocol":1,"request":${JSON.stringify(request)},"show":${show}}`);
+    if (bytes.length > 193 * 1024) return Promise.reject(new Error("owner Show frame exceeds its admitted bound"));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingFaceShow?.resolve === resolve) {
+          pendingFaceShow = null;
+          reject(new Error("owner Show acknowledgement timed out"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingFaceShow = { resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingFaceShow = null; reject(error); }
+    });
+  }
   return Object.freeze({
     hostId,
     bootId,
@@ -698,6 +753,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     offerEvidence: () => offerEvidence,
     requestOfferEvidence,
     requestFaceSnapshot,
+    acknowledgeFaceShow,
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,

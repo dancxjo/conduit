@@ -310,6 +310,8 @@ impl Owner {
             window.state = WindowState::Active {
                 credential,
                 observation: Box::new(pending.observation.clone()),
+                route: None,
+                acknowledged_show: None,
             };
             Ok(snapshot)
         })();
