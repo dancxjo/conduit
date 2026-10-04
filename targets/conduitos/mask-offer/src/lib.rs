@@ -52,6 +52,22 @@ pub fn prepare_stage(
     generation: u64,
     surface_provider: Option<&conduit_core::BaseProviderEntry>,
 ) -> Result<MaskStage, MaskOfferError> {
+    let advertisement = renderer_host(adapter, host_id, boot_id, generation, surface_provider);
+    prepare_stage_from_offer(adapter, &advertisement)
+}
+
+/// The owner plans against the exact current offer received and admitted from
+/// the native Host. The guest uses this same function after observing its Base.
+pub fn prepare_stage_from_offer(
+    adapter: Adapter,
+    advertisement: &HostAdvertisement,
+) -> Result<MaskStage, MaskOfferError> {
+    if advertisement.protocol_version != PROTOCOL_VERSION
+        || advertisement.profile.as_str() != "conduitos/mask-host@1"
+        || advertisement.offer_generation.0 == 0
+    {
+        return Err(MaskOfferError::InvalidPlan);
+    }
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
     install_mask_plot_value_aliases(&mut startup).map_err(|_| MaskOfferError::InvalidPlan)?;
@@ -96,9 +112,8 @@ pub fn prepare_stage(
     let authoring = expand_canonical_plot_for_authoring(&checked, entry, &catalog)
         .map_err(|_| MaskOfferError::InvalidPlan)?;
     let mask = MaskPlot::admit(&authoring).map_err(|_| MaskOfferError::InvalidPlan)?;
-    let advertisement = renderer_host(adapter, host_id, boot_id, generation, surface_provider);
     let placements =
-        default_expanded_placements(&authoring.expanded, core::slice::from_ref(&advertisement))
+        default_expanded_placements(&authoring.expanded, core::slice::from_ref(advertisement))
             .map_err(|_| MaskOfferError::InvalidPlan)?;
     let boundary_limits = [
         (conduit_core::PortDirection::Input, "face"),
@@ -132,8 +147,8 @@ pub fn prepare_stage(
         vec![authority_grant(
             "conduitos/native-mask/present",
             &requirement,
-            host_id.clone(),
-            boot_id.clone(),
+            advertisement.host_id.clone(),
+            advertisement.boot_id.clone(),
             CapabilityId::from("renderer-conduitos"),
         )]
     } else {
@@ -141,7 +156,7 @@ pub fn prepare_stage(
     };
     let plan = plan_expanded_authoring_with_options(
         &authoring,
-        &[advertisement],
+        core::slice::from_ref(advertisement),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
         PlanningOptions {
@@ -369,4 +384,42 @@ pub fn native_host_advertisement(
         generation,
         Some(surface_provider),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn owner_and_native_guest_plan_the_same_observed_surface_offer() {
+        let host = HostId::from("conduitos/test-host");
+        let boot = conduit_core::BootId::from("conduitos/test-boot");
+        let provider = conduit_core::BaseProviderEntry {
+            base_id: "conduitos/test/framebuffer".into(),
+            provider_instance_id: "conduitos/test/framebuffer/provider/1".into(),
+            provider_generation: 1,
+            implementation_id: "conduitos/framebuffer@1".into(),
+            mechanism_family: "conduitos.base/framebuffer@1".into(),
+            enforcement_class: conduit_core::BaseEnforcementClass::ConduitOsKernelEnforced,
+            lifecycle: conduit_core::BaseLifecycle::Ready,
+            capabilities: Vec::new(),
+            resources: vec![resource_offer(
+                "conduitos/test/framebuffer/surface",
+                conduit_presentation::SHOW_RESOURCE_CLASS,
+                1,
+            )],
+        };
+        let offer = native_host_advertisement(&host, &boot, 1, &provider);
+        let guest = prepare_stage(Adapter::Native, &host, &boot, 1, Some(&provider))
+            .unwrap()
+            .planned_mask;
+        let owner = prepare_stage_from_offer(Adapter::Native, &offer)
+            .unwrap()
+            .planned_mask;
+        assert_eq!(owner, guest);
+
+        let mut wrong_profile = offer;
+        wrong_profile.profile = "conduitos/other".into();
+        assert!(prepare_stage_from_offer(Adapter::Native, &wrong_profile).is_err());
+    }
 }
