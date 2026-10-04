@@ -497,3 +497,11 @@ including its sources and provenance. It creates no observed token, confidence,
 or material snapshot. Missing events, boundary events, unresolved specifications,
 and missing or duplicate definitions remain distinct refusals. This lookup does
 not yet select a voice profile or admit a whole utterance for playback.
+
+`prepare_intent_profile_phone` pairs that resolved intent phone with an explicit
+formant profile, retaining the original segment and profile binding. It uses the
+segment's own stress specification and the same definition and feature checks
+as material-token profile preparation. Unsupported stress retains its exact
+specification; definition features are refused rather than discarded. This
+prepares a phone event only: source resolution, phonological consistency,
+quantitative prosody and utterance commitment remain separate admission work.
