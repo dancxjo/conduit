@@ -3,6 +3,7 @@
 use crate::{
     admission::{validate_feature_bundle, LocalSemanticRefusal},
     feature_match::{compare_feature_observation, FeatureComparisonRefusal},
+    generated,
     semantic::*,
 };
 use conduit_plot::rust_binding::NativeBindingRefusal;
@@ -17,6 +18,7 @@ pub enum FeatureBundleRefusal {
         side: FeatureBundleSide,
         reason: LocalSemanticRefusal,
     },
+    CompiledPlot,
     Key {
         index: usize,
         reason: NativeBindingRefusal,
@@ -51,8 +53,12 @@ pub struct FeatureBundleComparison<'a> {
     observations: &'a SpeechFeatureBundle,
     receipts: [Option<FeatureReceipt<'a>>; 16],
     count: usize,
+    decision: SpeechContextDecision,
 }
 impl<'a> FeatureBundleComparison<'a> {
+    pub fn decision(&self) -> &SpeechContextDecision {
+        &self.decision
+    }
     pub fn requirements(&self) -> &'a SpeechFeatureBundle {
         self.requirements
     }
@@ -78,6 +84,7 @@ pub fn compare_feature_bundle<'a>(
         reason,
     })?;
     let mut receipts = core::array::from_fn(|_| None);
+    let mut accumulated = generated::SpeechContextDecision::matched;
     for (index, requirement) in requirements.get().as_slice().iter().enumerate() {
         let observation = observations
             .get()
@@ -98,6 +105,21 @@ pub fn compare_feature_bundle<'a>(
             observation.map(SpeechFeature::specification),
         )
         .map_err(|reason| FeatureBundleRefusal::Comparison { index, reason })?;
+        let right = match decision {
+            SpeechContextDecision::Matched => generated::SpeechContextDecision::matched,
+            SpeechContextDecision::Mismatched => generated::SpeechContextDecision::mismatched,
+            SpeechContextDecision::RequirementUnresolved => {
+                generated::SpeechContextDecision::requirement_unresolved
+            }
+            SpeechContextDecision::ObservationUnresolved => {
+                generated::SpeechContextDecision::observation_unresolved
+            }
+        };
+        accumulated = generated::speech_context_conjunction(generated::SpeechContextConjunction {
+            left: accumulated,
+            right,
+        })
+        .ok_or(FeatureBundleRefusal::CompiledPlot)?;
         receipts[index] = Some(FeatureReceipt {
             requirement,
             observation,
@@ -105,10 +127,21 @@ pub fn compare_feature_bundle<'a>(
             decision,
         });
     }
+    let decision = match accumulated {
+        generated::SpeechContextDecision::matched => SpeechContextDecision::Matched,
+        generated::SpeechContextDecision::mismatched => SpeechContextDecision::Mismatched,
+        generated::SpeechContextDecision::requirement_unresolved => {
+            SpeechContextDecision::RequirementUnresolved
+        }
+        generated::SpeechContextDecision::observation_unresolved => {
+            SpeechContextDecision::ObservationUnresolved
+        }
+    };
     Ok(FeatureBundleComparison {
         requirements,
         observations,
         receipts,
+        decision,
         count: requirements.get().as_slice().len(),
     })
 }
