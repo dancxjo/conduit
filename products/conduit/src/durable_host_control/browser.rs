@@ -117,6 +117,7 @@ pub(crate) fn mask_route(
     window_id: &str,
     credential: MembershipCredential,
     binding: LinkBindingId,
+    evidence: crate::durable_host::owner::BrowserCarrierLineEvidence,
 ) -> Result<RemoteOwnerMaskRouteSeal, String> {
     match call(state_dir, |token| Request::BodyBrowserMaskRoute {
         protocol: PROTOCOL,
@@ -124,6 +125,7 @@ pub(crate) fn mask_route(
         window_id: window_id.into(),
         credential,
         binding,
+        evidence: Some(Box::new(evidence)),
     })? {
         Response::BodyBrowserMaskRoute {
             protocol: PROTOCOL,
