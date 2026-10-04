@@ -1,0 +1,23 @@
+# Wire addressing is protocol meaning. Resource, provider and electrical
+# attachment selection are exact Plan truth and absent from these values.
+type I2cTransaction = {
+    address: U8 in 8..=119
+    write: sequence U8 <= 32
+    read: U8 in 0..=32
+}
+
+type I2cResult =
+    completed {
+        input: sequence U8 <= 32
+    }
+    | short {
+        input: sequence U8 <= 32
+    }
+    | device-error
+    | not-acknowledged
+    | arbitration-lost
+    | timed-out
+    | provider-lost
+    | unsupported
+    | stale-attachment
+    | refused

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 117
+maximum_plots = 118
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -560,3 +560,11 @@ entry = "patchbay"
 initial_body_order = 12
 deterministic = { package = "patchbay-application", test = "lib", case = "opens_the_exact_plot_and_plan_and_retains_inspection" }
 browser_safe = { spec = "proof/browser/workspace-resident-applications.spec.mjs", case = "resident Patchbay inspects and begins an exact edit in one browser Body Play" }
+
+[[plots]]
+slug = "device-protocols"
+title = "BME280 observation"
+entry = "bme280-observation"
+workspace_catalog = false
+deterministic = { package = "conduit-plot", test = "bme280_observation", case = "complete_compensation_yields_one_exact_typed_observation" }
+browser_safe_not_applicable = "reusable observation transformation requires exact calibration and sample inputs; device admission and production lifecycle integration remain open"

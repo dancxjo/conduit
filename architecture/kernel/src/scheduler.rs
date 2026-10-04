@@ -2,7 +2,9 @@
 
 mod host_call_back;
 mod host_input_ownership;
+mod host_values;
 pub use host_call_back::HostCallBack;
+pub use host_values::HostValueDiscardRefusal;
 
 use crate::{
     debug_observation::{
@@ -2031,36 +2033,6 @@ where
             KernelEventKind::HostCallCompleted,
         )?;
         Ok(())
-    }
-
-    pub fn store_host_value(&mut self, bytes: &[u8]) -> Result<ValueRef, SchedulerError> {
-        if self.cancelled {
-            return Err(SchedulerError::Cancelled);
-        }
-        Ok(self.values.store(bytes)?)
-    }
-
-    pub fn host_value(&self, value: ValueRef) -> Result<&[u8], SchedulerError> {
-        Ok(self.values.get(value)?)
-    }
-
-    pub fn discard_host_value(&mut self, value: ValueRef) -> Result<(), SchedulerError> {
-        if self.pending_host_calls.iter().flatten().any(|pending| {
-            pending.request.input.value == value
-                || pending
-                    .completion
-                    .and_then(|outcome| outcome.output)
-                    .map(|output| output.value)
-                    == Some(value)
-        }) || self
-            .queue_slots
-            .iter()
-            .flatten()
-            .any(|queued| *queued == value)
-        {
-            return Err(SchedulerError::ValueOwnershipViolation);
-        }
-        Ok(self.values.release(value)?)
     }
 
     pub fn pending_host_call_count(&self) -> usize {

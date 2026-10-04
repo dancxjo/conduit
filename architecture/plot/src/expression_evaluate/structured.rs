@@ -9,6 +9,10 @@ pub(super) fn projection(
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     let value = structured_value(source)?;
     let selected = match (value.shape(), member) {
+        (
+            StructuredInfoValueShape::Variant { tag, payload },
+            PortableExpressionProjection::Field(name),
+        ) if tag == name => Some(payload),
         (StructuredInfoValueShape::Record(fields), PortableExpressionProjection::Field(name)) => {
             fields
                 .iter()
@@ -76,4 +80,73 @@ pub(super) fn encoded_structured(
         value_type: value.value_type().clone(),
         encoded,
     })
+}
+
+pub(super) fn tuple(
+    values: &[PortableExpressionNode],
+    node: &PortableExpressionNode,
+    input: &[u8],
+    input_type: &StructuredInfoType,
+) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    let fields = values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            StructuredFieldValue::new(
+                alloc::format!("item-{index:05}"),
+                structured_value(evaluate_node(value, input, input_type)?)?,
+            )
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    structured_record(node.value_type.clone(), fields)
+}
+pub(super) fn record(
+    fields: &[(String, PortableExpressionNode)],
+    node: &PortableExpressionNode,
+    input: &[u8],
+    input_type: &StructuredInfoType,
+) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    let fields = fields
+        .iter()
+        .map(|(name, value)| {
+            StructuredFieldValue::new(
+                name.clone(),
+                structured_value(evaluate_node(value, input, input_type)?)?,
+            )
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    structured_record(node.value_type.clone(), fields)
+}
+pub(super) fn collection(
+    values: &[PortableExpressionNode],
+    node: &PortableExpressionNode,
+    input: &[u8],
+    input_type: &StructuredInfoType,
+) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    let values = values
+        .iter()
+        .map(|value| structured_value(evaluate_node(value, input, input_type)?))
+        .collect::<Result<Vec<_>, _>>()?;
+    let value = match node.value_type.shape() {
+        StructuredInfoTypeShape::Sequence { .. } => {
+            StructuredInfoValue::sequence(node.value_type.clone(), values)
+        }
+        _ => StructuredInfoValue::collection(node.value_type.clone(), values),
+    }
+    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+    encoded_structured(value)
+}
+pub(super) fn variant(
+    tag: &str,
+    payload: &PortableExpressionNode,
+    node: &PortableExpressionNode,
+    input: &[u8],
+    input_type: &StructuredInfoType,
+) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    let payload = structured_value(evaluate_node(payload, input, input_type)?)?;
+    let value = StructuredInfoValue::variant(node.value_type.clone(), tag, payload)
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+    encoded_structured(value)
 }

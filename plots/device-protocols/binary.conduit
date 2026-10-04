@@ -1,0 +1,203 @@
+# Portable finite binary arithmetic. Words are byte representations, never resources.
+
+plot binary-u8-le (
+    word: U64 >> value: U64
+) = (. & 255)
+
+plot binary-i8-le (
+    word: I128 >> value: I128
+) = ((. & 255) < 128 ? (. & 255) : (. & 255) - 256)
+
+plot binary-encode-i8-le-word (
+    value: I128 >> word: I128
+) = ((. < -128 || . > 127) ? (. & 0) : (. < 0 ? . + 256 : .))
+plot binary-encode-i8-le-overflow (
+    value: I128 >> overflow: Boolean
+) = (. < -128 || . > 127)
+plot binary-encode-i8-le (
+    >> value: I128
+    word: I128 >>
+    overflow: Boolean >>
+) {
+    encode: binary-encode-i8-le-word
+    refuse: binary-encode-i8-le-overflow
+    value >> encode >> word
+    value >> refuse >> overflow
+}
+
+plot binary-u16-le (
+    word: U64 >> value: U64
+) = (. & 65535)
+
+plot binary-u16-be (
+    word: U64 >> value: U64
+) = (((. / 1) & 255) * 256 + ((. / 256) & 255) * 1)
+
+plot binary-i16-le (
+    word: I128 >> value: I128
+) = ((. & 65535) < 32768 ? (. & 65535) : (. & 65535) - 65536)
+
+plot binary-i16-be (
+    word: I128 >> value: I128
+) = ((((. / 1) & 255) * 256 + ((. / 256) & 255) * 1) < 32768 ? (((. / 1) & 255) * 256 + ((. / 256) & 255) * 1) : (((. / 1) & 255) * 256 + ((. / 256) & 255) * 1) - 65536)
+
+plot binary-encode-i16-le-word (
+    value: I128 >> word: I128
+) = ((. < -32768 || . > 32767) ? (. & 0) : (. < 0 ? . + 65536 : .))
+plot binary-encode-i16-le-overflow (
+    value: I128 >> overflow: Boolean
+) = (. < -32768 || . > 32767)
+plot binary-encode-i16-le (
+    >> value: I128
+    word: I128 >>
+    overflow: Boolean >>
+) {
+    encode: binary-encode-i16-le-word
+    refuse: binary-encode-i16-le-overflow
+    value >> encode >> word
+    value >> refuse >> overflow
+}
+
+plot binary-encode-u16-be-word (
+    value: U64 >> word: U64
+) = (. > 65535 ? (. & 0) : (((. / 1) & 255) * 256 + ((. / 256) & 255) * 1))
+plot binary-encode-u16-be-overflow (
+    value: U64 >> overflow: Boolean
+) = (. > 65535)
+plot binary-encode-u16-be (
+    >> value: U64
+    word: U64 >>
+    overflow: Boolean >>
+) {
+    encode: binary-encode-u16-be-word
+    refuse: binary-encode-u16-be-overflow
+    value >> encode >> word
+    value >> refuse >> overflow
+}
+
+plot binary-u24-le (
+    word: U64 >> value: U64
+) = (. & 16777215)
+
+plot binary-u24-be (
+    word: U64 >> value: U64
+) = (((. / 1) & 255) * 65536 + ((. / 256) & 255) * 256 + ((. / 65536) & 255) * 1)
+
+plot binary-i24-le (
+    word: I128 >> value: I128
+) = ((. & 16777215) < 8388608 ? (. & 16777215) : (. & 16777215) - 16777216)
+
+plot binary-i24-be (
+    word: I128 >> value: I128
+) = ((((. / 1) & 255) * 65536 + ((. / 256) & 255) * 256 + ((. / 65536) & 255) * 1) < 8388608 ? (((. / 1) & 255) * 65536 + ((. / 256) & 255) * 256 + ((. / 65536) & 255) * 1) : (((. / 1) & 255) * 65536 + ((. / 256) & 255) * 256 + ((. / 65536) & 255) * 1) - 16777216)
+
+plot binary-encode-i24-le-word (
+    value: I128 >> word: I128
+) = ((. < -8388608 || . > 8388607) ? (. & 0) : (. < 0 ? . + 16777216 : .))
+plot binary-encode-i24-le-overflow (
+    value: I128 >> overflow: Boolean
+) = (. < -8388608 || . > 8388607)
+plot binary-encode-i24-le (
+    >> value: I128
+    word: I128 >>
+    overflow: Boolean >>
+) {
+    encode: binary-encode-i24-le-word
+    refuse: binary-encode-i24-le-overflow
+    value >> encode >> word
+    value >> refuse >> overflow
+}
+
+plot binary-encode-u24-be-word (
+    value: U64 >> word: U64
+) = (. > 16777215 ? (. & 0) : (((. / 1) & 255) * 65536 + ((. / 256) & 255) * 256 + ((. / 65536) & 255) * 1))
+plot binary-encode-u24-be-overflow (
+    value: U64 >> overflow: Boolean
+) = (. > 16777215)
+plot binary-encode-u24-be (
+    >> value: U64
+    word: U64 >>
+    overflow: Boolean >>
+) {
+    encode: binary-encode-u24-be-word
+    refuse: binary-encode-u24-be-overflow
+    value >> encode >> word
+    value >> refuse >> overflow
+}
+
+plot binary-u32-le (
+    word: U64 >> value: U64
+) = (. & 4294967295)
+
+plot binary-u32-be (
+    word: U64 >> value: U64
+) = (((. / 1) & 255) * 16777216 + ((. / 256) & 255) * 65536 + ((. / 65536) & 255) * 256 + ((. / 16777216) & 255) * 1)
+
+plot binary-i32-le (
+    word: I128 >> value: I128
+) = ((. & 4294967295) < 2147483648 ? (. & 4294967295) : (. & 4294967295) - 4294967296)
+
+plot binary-i32-be (
+    word: I128 >> value: I128
+) = ((((. / 1) & 255) * 16777216 + ((. / 256) & 255) * 65536 + ((. / 65536) & 255) * 256 + ((. / 16777216) & 255) * 1) < 2147483648 ? (((. / 1) & 255) * 16777216 + ((. / 256) & 255) * 65536 + ((. / 65536) & 255) * 256 + ((. / 16777216) & 255) * 1) : (((. / 1) & 255) * 16777216 + ((. / 256) & 255) * 65536 + ((. / 65536) & 255) * 256 + ((. / 16777216) & 255) * 1) - 4294967296)
+
+plot binary-encode-i32-le-word (
+    value: I128 >> word: I128
+) = ((. < -2147483648 || . > 2147483647) ? (. & 0) : (. < 0 ? . + 4294967296 : .))
+plot binary-encode-i32-le-overflow (
+    value: I128 >> overflow: Boolean
+) = (. < -2147483648 || . > 2147483647)
+plot binary-encode-i32-le (
+    >> value: I128
+    word: I128 >>
+    overflow: Boolean >>
+) {
+    encode: binary-encode-i32-le-word
+    refuse: binary-encode-i32-le-overflow
+    value >> encode >> word
+    value >> refuse >> overflow
+}
+
+plot binary-encode-u32-be-word (
+    value: U64 >> word: U64
+) = (. > 4294967295 ? (. & 0) : (((. / 1) & 255) * 16777216 + ((. / 256) & 255) * 65536 + ((. / 65536) & 255) * 256 + ((. / 16777216) & 255) * 1))
+plot binary-encode-u32-be-overflow (
+    value: U64 >> overflow: Boolean
+) = (. > 4294967295)
+plot binary-encode-u32-be (
+    >> value: U64
+    word: U64 >>
+    overflow: Boolean >>
+) {
+    encode: binary-encode-u32-be-word
+    refuse: binary-encode-u32-be-overflow
+    value >> encode >> word
+    value >> refuse >> overflow
+}
+
+type BinaryBitfield = {
+    word: U64
+    shift: U64 in 0..=63
+    mask: U64
+}
+plot binary-bitfield (
+    field: BinaryBitfield >> value: U64
+) = ((.word >>> .shift) & .mask)
+
+# One MSB-first CRC-8 polynomial step; profile selection is explicit input.
+type BinaryCrc8Step = {
+    accumulator: U64 in 0..=255
+    polynomial: U64 in 0..=255
+}
+plot binary-crc8-bit (
+    state: BinaryCrc8Step >> next: U64
+) = ((.accumulator & 128) != 0 ? ((.accumulator * 2) ^ .polynomial) & 255 : (.accumulator * 2) & 255)
+
+# One reflected CRC-16 polynomial step; no device-specific profile is implicit.
+type BinaryCrc16Step = {
+    accumulator: U64 in 0..=65535
+    polynomial: U64 in 0..=65535
+}
+plot binary-crc16-bit (
+    state: BinaryCrc16Step >> next: U64
+) = ((.accumulator & 1) != 0 ? (.accumulator / 2) ^ .polynomial : .accumulator / 2)

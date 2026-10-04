@@ -1,98 +1,18 @@
-use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, RemoteIngressOutcome, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::state_delay::{back::StateBack, StateDelay};
-use conduit_kernel::{
-    CordEndpoint, CordId, ExecutionDisposition, FixedRoutes, FixedSignLog, FixedValueStore,
-    KernelEvent, NodeId, PortId, RemoteEndpointId, RouteRange, RouteTarget, ValueStorage,
-};
-
-type Play =
-    FixedScheduler<StateBack<1>, FixedValueStore<4, 1>, FixedSignLog<512>, 1, 2, 1, 2, 1, 1>;
-
+use conduit_kernel::{CordId, ExecutionDisposition, PortId, RemoteEndpointId, ValueStorage};
+#[path = "common/state_play.rs"]
+mod common;
+use common::idle;
+type Play = common::Play<1>;
 fn play() -> Play {
     with_state(StateDelay::externally_continued(0, 1, &[0]).unwrap())
 }
-
 fn with_state(state: StateDelay<1>) -> Play {
-    let mut routes = FixedRoutes::<1, 1>::new(1);
-    routes
-        .install(
-            NodeId(0),
-            PortId(0),
-            RouteRange { start: 0, len: 1 },
-            &[RouteTarget {
-                cord: CordId(1),
-                sink: CordEndpoint::Remote(RemoteEndpointId(1)),
-            }],
-        )
-        .unwrap();
-    routes.seal().unwrap();
-    let signs = FixedSignLog::<512>::new_with_remote_storage(
-        (512 * core::mem::size_of::<KernelEvent>()) as u32,
-        512,
-        conduit_kernel::remote_sign_storage_bytes(512).unwrap(),
-    )
-    .unwrap();
-    Play::new(
-        [NodeSpec {
-            input_cords: [Some(CordId(0))],
-            maximum_step_fuel: 4,
-        }],
-        [
-            CordSpec::remote_ingress(
-                CordId(0),
-                RemoteEndpointId(0),
-                (NodeId(0), PortId(0)),
-                CordCapacity {
-                    slot_start: 0,
-                    item_capacity: 1,
-                    byte_capacity: 1,
-                    pressure_policy: Default::default(),
-                },
-            ),
-            CordSpec::remote_egress(
-                CordId(1),
-                (NodeId(0), PortId(0)),
-                RemoteEndpointId(1),
-                CordCapacity {
-                    slot_start: 1,
-                    item_capacity: 1,
-                    byte_capacity: 1,
-                    pressure_policy: Default::default(),
-                },
-            ),
-        ],
-        routes,
-        [StateBack::new(state, PortId(0), PortId(0)).unwrap()],
-        FixedValueStore::<4, 1>::new(4).unwrap(),
-        signs,
-    )
-    .unwrap()
+    common::with_back(StateBack::new(state, PortId(0), PortId(0)).unwrap())
 }
-
-fn idle(play: &mut Play) {
-    for _ in 0..8 {
-        match play.step().unwrap() {
-            SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Idle => return,
-            other => panic!("waiting is not terminal: {other:?}"),
-        }
-    }
-    panic!("bounded test failed to reach input wait");
-}
-
 fn deliver(play: &mut Play, sequence: u64, expected: u8) {
-    let offer = play
-        .remote_egress_offer(RemoteEndpointId(1), CordId(1))
-        .unwrap()
-        .unwrap();
-    assert_eq!(offer.sequence, sequence);
-    assert_eq!(play.host_value(offer.value).unwrap(), &[expected]);
-    play.remote_egress_accept(RemoteEndpointId(1), CordId(1), sequence)
-        .unwrap();
-    play.remote_egress_delivered(RemoteEndpointId(1), CordId(1), sequence)
-        .unwrap();
+    common::deliver(play, sequence, &[expected]);
 }
 
 #[test]

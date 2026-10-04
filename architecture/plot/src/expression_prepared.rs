@@ -6,14 +6,20 @@ use crate::{
 };
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{
-    primitive_info_kind, PrimitiveInfoKind, StructuredCanonicalSelection, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredSelector, BOOL_INFO_ID, COUNT_INFO_ID,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES, SCALAR_INFO_ID,
+    primitive_info_kind, PrimitiveInfoKind, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
+    SCALAR_INFO_ID,
 };
 
+mod inspection;
+mod shared_input;
+use shared_input::SharedBytes;
+mod member_selection;
 mod nominal;
+use member_selection::PreparedMemberSelection;
 mod primitive;
+mod storage_bound;
 mod structured;
+mod structured_contract;
 use primitive::{decode_bool, evaluate_binary, evaluate_unary, PrimitiveValue};
 use structured::PreparedStructuredExpression;
 
@@ -25,12 +31,20 @@ pub struct PreparedPortableExpressionEvaluator {
     output: Vec<u8>,
 }
 
+#[derive(Clone)]
 enum PreparedInput {
     Primitive {
         kind: PrimitiveInfoKind,
-        nominal_type: Option<Vec<u8>>,
+        nominal_type: Option<SharedBytes>,
     },
-    Structured(Vec<u8>),
+    Structured(SharedBytes),
+}
+
+#[derive(Clone, Copy)]
+struct ProgramView<'a> {
+    input_type: &'a conduit_core::StructuredInfoType,
+    output_type: &'a conduit_core::StructuredInfoType,
+    root: &'a PortableExpressionNode,
 }
 
 enum PreparedRoot {
@@ -64,20 +78,9 @@ enum PreparedOperation {
         when_true: Box<PreparedNode>,
         when_false: Box<PreparedNode>,
     },
-    Projection(PreparedProjection),
+    Projection(PreparedMemberSelection),
     Widen(Box<PreparedNode>),
-}
-
-struct PreparedProjection {
-    steps: Vec<PreparedProjectionStep>,
-    first: Vec<u8>,
-    second: Vec<u8>,
-}
-
-struct PreparedProjectionStep {
-    selector: StructuredSelector,
-    input_type: Vec<u8>,
-    output_type: Vec<u8>,
+    Inspection(inspection::PreparedInspection),
 }
 
 impl PreparedPortableExpressionEvaluator {
@@ -96,7 +99,8 @@ impl PreparedPortableExpressionEvaluator {
                         program
                             .input_type
                             .canonical_bytes()
-                            .map_err(|_| Refusal::InvalidProgram)?,
+                            .map_err(|_| Refusal::InvalidProgram)?
+                            .into(),
                     ),
                 }
             }
@@ -104,13 +108,25 @@ impl PreparedPortableExpressionEvaluator {
                 program
                     .input_type
                     .canonical_bytes()
-                    .map_err(|_| Refusal::InvalidProgram)?,
+                    .map_err(|_| Refusal::InvalidProgram)?
+                    .into(),
             ),
         };
+        Self::prepare(
+            ProgramView {
+                input_type: &program.input_type,
+                output_type: &program.output_type,
+                root: &program.root,
+            },
+            input,
+        )
+    }
+
+    fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. } => {
-                let root = prepare_node(&program.root)?;
-                if root.kind != leaf_kind(&program.output_type)? {
+                let root = prepare_node(program.root, program.input_type, &input)?;
+                if root.kind != leaf_kind(program.output_type)? {
                     return Err(Refusal::InvalidProgram);
                 }
                 PreparedRoot::Primitive {
@@ -128,12 +144,12 @@ impl PreparedPortableExpressionEvaluator {
                     .transpose()?,
                 }
             }
-            _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program)?),
+            _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program, &input)?),
         };
         Ok(Self {
             root,
             input,
-            output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+            output: Vec::with_capacity(storage_bound::output(program.output_type)?),
         })
     }
 
@@ -151,7 +167,7 @@ impl PreparedPortableExpressionEvaluator {
             PreparedInput::Structured(expected) => {
                 let validated = conduit_core::validate_canonical_structured_value(input)
                     .map_err(|_| Refusal::InvalidInput)?;
-                if validated.type_bytes() != expected {
+                if validated.type_bytes() != expected.as_ref() {
                     return Err(Refusal::InvalidInput);
                 }
                 None
@@ -162,8 +178,11 @@ impl PreparedPortableExpressionEvaluator {
             PreparedRoot::Primitive { node, nominal_type } => {
                 let value = evaluate_node(node, primitive_bytes, primitive_input)?;
                 if let Some(value_type) = nominal_type {
-                    nominal::append_output(&mut self.output, value_type, &value);
+                    nominal::append_output(&mut self.output, value_type, &value)?;
                 } else {
+                    if value.length > self.output.capacity() {
+                        return Err(Refusal::InvalidProgram);
+                    }
                     self.output.extend_from_slice(value.as_slice());
                 }
             }
@@ -177,7 +196,11 @@ impl PreparedPortableExpressionEvaluator {
     }
 }
 
-fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> {
+fn prepare_node(
+    node: &PortableExpressionNode,
+    input_type: &conduit_core::StructuredInfoType,
+    prepared_input: &PreparedInput,
+) -> Result<PreparedNode, Refusal> {
     let kind = leaf_kind(&node.value_type)?;
     let operation = match &node.operation {
         PortableExpressionOperation::Input => PreparedOperation::Input,
@@ -186,7 +209,7 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
         ),
         PortableExpressionOperation::Unary { operator, operand } => PreparedOperation::Unary {
             operator: *operator,
-            operand: Box::new(prepare_node(operand)?),
+            operand: Box::new(prepare_node(operand, input_type, prepared_input)?),
         },
         PortableExpressionOperation::Binary {
             operator,
@@ -196,17 +219,17 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
         } => PreparedOperation::Binary {
             operator: *operator,
             proven: *proven,
-            left: Box::new(prepare_node(left)?),
-            right: Box::new(prepare_node(right)?),
+            left: Box::new(prepare_node(left, input_type, prepared_input)?),
+            right: Box::new(prepare_node(right, input_type, prepared_input)?),
         },
         PortableExpressionOperation::Conditional {
             condition,
             when_true,
             when_false,
         } => PreparedOperation::Conditional {
-            condition: Box::new(prepare_node(condition)?),
-            when_true: Box::new(prepare_node(when_true)?),
-            when_false: Box::new(prepare_node(when_false)?),
+            condition: Box::new(prepare_node(condition, input_type, prepared_input)?),
+            when_true: Box::new(prepare_node(when_true, input_type, prepared_input)?),
+            when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
         },
         PortableExpressionOperation::SemanticCall {
             kind: call,
@@ -215,7 +238,7 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
             let [argument] = arguments.as_slice() else {
                 return Err(Refusal::InvalidProgram);
             };
-            let operand = prepare_node(argument)?;
+            let operand = prepare_node(argument, input_type, prepared_input)?;
             if call != kind_name(kind)
                 || !crate::expression_semantic_call::is_strict_widening(
                     kind_name(operand.kind),
@@ -226,8 +249,31 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
             }
             PreparedOperation::Widen(Box::new(operand))
         }
+        PortableExpressionOperation::SemanticCall {
+            kind: call,
+            arguments,
+        } if matches!(
+            call.as_str(),
+            "variant/is" | "variant/tag" | "sequence/length"
+        ) =>
+        {
+            let expected = match call.as_str() {
+                "variant/is" => PrimitiveInfoKind::Bool,
+                "variant/tag" => PrimitiveInfoKind::Text,
+                _ => PrimitiveInfoKind::U64,
+            };
+            if kind != expected {
+                return Err(Refusal::InvalidProgram);
+            }
+            PreparedOperation::Inspection(inspection::PreparedInspection::new(
+                call,
+                arguments,
+                input_type,
+                prepared_input,
+            )?)
+        }
         PortableExpressionOperation::Projection { .. } => {
-            PreparedOperation::Projection(prepare_projection(node)?)
+            PreparedOperation::Projection(member_selection::prepare(node, input_type)?)
         }
         _ => {
             return Err(Refusal::UnsupportedType(
@@ -236,99 +282,6 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
         }
     };
     Ok(PreparedNode { kind, operation })
-}
-
-fn prepare_projection(node: &PortableExpressionNode) -> Result<PreparedProjection, Refusal> {
-    fn collect(
-        node: &PortableExpressionNode,
-        steps: &mut Vec<PreparedProjectionStep>,
-    ) -> Result<StructuredInfoType, Refusal> {
-        match &node.operation {
-            PortableExpressionOperation::Input => Ok(node.value_type.clone()),
-            PortableExpressionOperation::Projection { value, member } => {
-                let input_type = collect(value, steps)?;
-                let selector = match member {
-                    crate::PortableExpressionProjection::Field(field) => {
-                        StructuredSelector::field(input_type.clone(), field.clone())
-                    }
-                    crate::PortableExpressionProjection::TupleIndex(index) => {
-                        StructuredSelector::field(
-                            input_type.clone(),
-                            alloc::format!("item-{index:05}"),
-                        )
-                    }
-                }
-                .map_err(|_| Refusal::InvalidProgram)?;
-                if selector.output_type() != &node.value_type {
-                    return Err(Refusal::InvalidProgram);
-                }
-                steps.push(PreparedProjectionStep {
-                    input_type: selector
-                        .input_type()
-                        .canonical_bytes()
-                        .map_err(|_| Refusal::InvalidProgram)?,
-                    output_type: selector
-                        .output_type()
-                        .canonical_bytes()
-                        .map_err(|_| Refusal::InvalidProgram)?,
-                    selector,
-                });
-                Ok(node.value_type.clone())
-            }
-            _ => Err(Refusal::UnsupportedType(
-                "projection must originate at the expression input".into(),
-            )),
-        }
-    }
-
-    let mut steps = Vec::new();
-    collect(node, &mut steps)?;
-    if steps.is_empty() {
-        return Err(Refusal::InvalidProgram);
-    }
-    Ok(PreparedProjection {
-        steps,
-        first: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
-        second: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
-    })
-}
-
-impl PreparedProjection {
-    fn evaluate<'a>(&'a mut self, input: &[u8]) -> Result<&'a [u8], Refusal> {
-        self.first.clear();
-        self.first.extend_from_slice(input);
-        for step in &self.steps {
-            self.second.clear();
-            let selection = step
-                .selector
-                .select_canonical_into(
-                    &self.first,
-                    &step.input_type,
-                    &step.output_type,
-                    &mut self.second,
-                )
-                .map_err(|_| Refusal::InvalidInput)?;
-            if selection != StructuredCanonicalSelection::Matched {
-                return Err(Refusal::InvalidInput);
-            }
-            core::mem::swap(&mut self.first, &mut self.second);
-        }
-        let value = conduit_core::validate_canonical_structured_value(&self.first)
-            .map_err(|_| Refusal::InvalidProgram)?
-            .value_node();
-        let [0, length @ ..] = value else {
-            return Err(Refusal::InvalidProgram);
-        };
-        if length.len() < 4 {
-            return Err(Refusal::InvalidProgram);
-        }
-        let encoded_length = u32::from_le_bytes(length[..4].try_into().unwrap()) as usize;
-        let encoded = length.get(4..).ok_or(Refusal::InvalidProgram)?;
-        if encoded.len() != encoded_length {
-            return Err(Refusal::InvalidProgram);
-        }
-        Ok(encoded)
-    }
 }
 
 fn evaluate_node<'a>(
@@ -376,6 +329,7 @@ fn evaluate_node<'a>(
             let operand = evaluate_node(operand, input, input_kind)?;
             primitive::evaluate_widen(expected, &operand)?
         }
+        PreparedOperation::Inspection(inspection) => inspection.evaluate(input)?,
         PreparedOperation::Projection(projection) => {
             PrimitiveValue::borrowed(expected, projection.evaluate(input)?)?
         }
@@ -442,6 +396,7 @@ const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
 
 const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
     match kind {
+        PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
         PrimitiveInfoKind::Bool => BOOL_INFO_ID,
         PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
         PrimitiveInfoKind::Count => COUNT_INFO_ID,

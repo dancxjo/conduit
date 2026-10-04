@@ -1,11 +1,9 @@
 //! Allocation-stable construction of anonymous structured expression results.
 
-use super::{PreparedPortableExpressionEvaluator, Refusal};
+use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
-use alloc::{string::String, vec::Vec};
-use conduit_core::{
-    StructuredInfoType, StructuredInfoTypeShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-};
+use alloc::{boxed::Box, string::String, vec::Vec};
+use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 
 pub(super) struct PreparedStructuredExpression {
     type_prefix: Vec<u8>,
@@ -13,8 +11,20 @@ pub(super) struct PreparedStructuredExpression {
 }
 
 enum PreparedShape {
+    Input,
+    Constant(Vec<u8>),
+    Selected(super::member_selection::PreparedMemberSelection),
     Record(Vec<PreparedField>),
     Collection(Vec<PreparedChild>),
+    Variant {
+        tag: String,
+        payload: Box<PreparedChild>,
+    },
+    Conditional {
+        condition: Box<PreparedChild>,
+        when_true: Box<PreparedChild>,
+        when_false: Box<PreparedChild>,
+    },
 }
 
 struct PreparedField {
@@ -29,8 +39,29 @@ struct PreparedChild {
 }
 
 impl PreparedStructuredExpression {
-    pub(super) fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
+    pub(super) fn new(
+        program: ProgramView<'_>,
+        prepared_input: &PreparedInput,
+    ) -> Result<Self, Refusal> {
+        super::structured_contract::validate(program)?;
         let shape = match &program.root.operation {
+            PortableExpressionOperation::Input if program.input_type == program.output_type => {
+                PreparedShape::Input
+            }
+            PortableExpressionOperation::Literal(_) => {
+                let constant = PortableExpressionProgram {
+                    input_type: StructuredInfoType::leaf(conduit_core::kind_id(
+                        conduit_core::UNIT_INFO_ID,
+                    ))
+                    .map_err(|_| Refusal::InvalidProgram)?,
+                    output_type: program.output_type.clone(),
+                    root: program.root.clone(),
+                };
+                PreparedShape::Constant(constant.evaluate(&[])?)
+            }
+            PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(
+                super::member_selection::prepare(program.root, program.input_type)?,
+            ),
             PortableExpressionOperation::Tuple(values) => {
                 let fields = values
                     .iter()
@@ -38,7 +69,7 @@ impl PreparedStructuredExpression {
                     .map(|(index, value)| {
                         Ok(PreparedField {
                             name: alloc::format!("item-{index:05}"),
-                            value: child(program, value)?,
+                            value: child(program, value, prepared_input)?,
                         })
                     })
                     .collect::<Result<Vec<_>, Refusal>>()?;
@@ -50,7 +81,7 @@ impl PreparedStructuredExpression {
                     .map(|(name, value)| {
                         Ok(PreparedField {
                             name: name.clone(),
-                            value: child(program, value)?,
+                            value: child(program, value, prepared_input)?,
                         })
                     })
                     .collect::<Result<Vec<_>, Refusal>>()?;
@@ -60,9 +91,45 @@ impl PreparedStructuredExpression {
             PortableExpressionOperation::Collection(values) => PreparedShape::Collection(
                 values
                     .iter()
-                    .map(|value| child(program, value))
+                    .map(|value| child(program, value, prepared_input))
                     .collect::<Result<Vec<_>, _>>()?,
             ),
+            PortableExpressionOperation::Variant { tag, payload } => {
+                let StructuredInfoTypeShape::Variant { cases, .. } = program.output_type.shape()
+                else {
+                    return Err(Refusal::InvalidProgram);
+                };
+                let case = cases
+                    .iter()
+                    .find(|case| case.tag() == tag)
+                    .ok_or(Refusal::InvalidProgram)?;
+                if case.payload_type() != &payload.value_type {
+                    return Err(Refusal::InvalidProgram);
+                }
+                PreparedShape::Variant {
+                    tag: tag.clone(),
+                    payload: Box::new(child(program, payload, prepared_input)?),
+                }
+            }
+            PortableExpressionOperation::Conditional {
+                condition,
+                when_true,
+                when_false,
+            } => {
+                if condition.value_type
+                    != StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID))
+                        .map_err(|_| Refusal::InvalidProgram)?
+                    || &when_true.value_type != program.output_type
+                    || &when_false.value_type != program.output_type
+                {
+                    return Err(Refusal::InvalidProgram);
+                }
+                PreparedShape::Conditional {
+                    condition: Box::new(child(program, condition, prepared_input)?),
+                    when_true: Box::new(child(program, when_true, prepared_input)?),
+                    when_false: Box::new(child(program, when_false, prepared_input)?),
+                }
+            }
             _ => {
                 return Err(Refusal::UnsupportedType(
                     "structured expression runtime".into(),
@@ -79,8 +146,33 @@ impl PreparedStructuredExpression {
     }
 
     pub(super) fn evaluate(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
+        match &mut self.shape {
+            PreparedShape::Input => return append(output, input),
+            PreparedShape::Constant(bytes) => return append(output, bytes),
+            PreparedShape::Selected(selection) => {
+                return append(output, selection.evaluate(input)?)
+            }
+            _ => (),
+        }
+        if let PreparedShape::Conditional {
+            condition,
+            when_true,
+            when_false,
+        } = &mut self.shape
+        {
+            let selected = match condition.evaluator.evaluate(input)? {
+                [1] => when_true,
+                [0] => when_false,
+                _ => return Err(Refusal::InvalidProgram),
+            };
+            append(output, selected.evaluator.evaluate(input)?)?;
+            return Ok(());
+        }
         append(output, &self.type_prefix)?;
         match &mut self.shape {
+            PreparedShape::Input | PreparedShape::Constant(_) | PreparedShape::Selected(_) => {
+                unreachable!("identity selection handled before prefix")
+            }
             PreparedShape::Record(fields) => {
                 push(output, 2)?;
                 push_len(output, fields.len())?;
@@ -95,6 +187,14 @@ impl PreparedStructuredExpression {
                 for value in values {
                     value.append_node(input, output)?;
                 }
+            }
+            PreparedShape::Variant { tag, payload } => {
+                push(output, 3)?;
+                push_text(output, tag)?;
+                payload.append_node(input, output)?;
+            }
+            PreparedShape::Conditional { .. } => {
+                unreachable!("conditional handled before canonical prefix")
             }
         }
         Ok(())
@@ -121,13 +221,14 @@ impl PreparedChild {
 }
 
 fn child(
-    program: &PortableExpressionProgram,
+    program: ProgramView<'_>,
     node: &PortableExpressionNode,
+    prepared_input: &PreparedInput,
 ) -> Result<PreparedChild, Refusal> {
-    let child = PortableExpressionProgram {
-        input_type: program.input_type.clone(),
-        output_type: node.value_type.clone(),
-        root: node.clone(),
+    let child = ProgramView {
+        input_type: program.input_type,
+        output_type: &node.value_type,
+        root: node,
     };
     Ok(PreparedChild {
         type_prefix: node
@@ -135,7 +236,7 @@ fn child(
             .canonical_bytes()
             .map_err(|_| Refusal::InvalidProgram)?,
         value_type: node.value_type.clone(),
-        evaluator: PreparedPortableExpressionEvaluator::new(&child)?,
+        evaluator: PreparedPortableExpressionEvaluator::prepare(child, prepared_input.clone())?,
     })
 }
 
@@ -150,7 +251,7 @@ fn push_len(output: &mut Vec<u8>, length: usize) -> Result<(), Refusal> {
 }
 
 fn push(output: &mut Vec<u8>, value: u8) -> Result<(), Refusal> {
-    if output.len() == MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+    if output.len() == output.capacity() {
         return Err(Refusal::InvalidProgram);
     }
     output.push(value);
@@ -161,7 +262,7 @@ fn append(output: &mut Vec<u8>, value: &[u8]) -> Result<(), Refusal> {
     if output
         .len()
         .checked_add(value.len())
-        .is_none_or(|length| length > MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+        .is_none_or(|length| length > output.capacity())
     {
         return Err(Refusal::InvalidProgram);
     }

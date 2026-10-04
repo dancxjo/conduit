@@ -240,9 +240,14 @@ impl StructuredSelector {
         input_type: StructuredInfoType,
         index: u16,
     ) -> Result<Self, StructuredSelectorRefusal> {
-        let StructuredInfoTypeShape::Collection { element, length } = selection_shape(&input_type)
-        else {
-            return Err(StructuredSelectorRefusal::NotACollection);
+        let (element, length) = match selection_shape(&input_type) {
+            StructuredInfoTypeShape::Collection { element, length } => (element, length),
+            StructuredInfoTypeShape::Sequence {
+                element,
+                maximum_items,
+                ..
+            } => (element, maximum_items),
+            _ => return Err(StructuredSelectorRefusal::NotACollection),
         };
         if index >= length {
             return Err(StructuredSelectorRefusal::IndexOutOfRange);
@@ -383,7 +388,7 @@ impl StructuredSelector {
                     .get(usize::from(*index))
                     .cloned()
                     .map(StructuredSelection::Matched)
-                    .ok_or(StructuredSelectorRefusal::MalformedCheckedValue)
+                    .ok_or(StructuredSelectorRefusal::IndexOutOfRange)
             }
             (
                 StructuredSelectorBack::Variant { tag, unmatched },

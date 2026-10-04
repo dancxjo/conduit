@@ -14,9 +14,10 @@ pub use x86_64::run_isolation_proof;
 pub use x86_64::{
     Clock, FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
     FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession, HidPointerError,
-    HidPointerReady, HidPointerSession, HidProof, Idle, Interrupts, Opl2, PcSpeaker, Ps2Error,
-    Ps2Input, Ps2Ready, RdrandEntropy, RebootBase, RebootError, Serial, Timer, UsbDevice,
-    VirtioNetError, VirtioNetIdentity, VirtioNetReady, XhciReady, boot_entropy, deterministic_exit,
+    HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle, Interrupts, Opl2,
+    PcSpeaker, Ps2Error, Ps2Input, Ps2Ready, RdrandEntropy, RebootBase, RebootError, Serial, Timer,
+    UsbDevice, VirtioNetError, VirtioNetIdentity, VirtioNetReady, XhciReady,
+    admitted_i801_block_read_ports, admitted_i801_ports, boot_entropy, deterministic_exit,
     early_write, emergency_halt, emergency_machine_profile, enumerate_attached_at_epochs,
     enumerate_one_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard, initialize_machine,
     initialize_virtio_net, initialize_xhci, local_reboot_base, pc_speaker_input_hz,

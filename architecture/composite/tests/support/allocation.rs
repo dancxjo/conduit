@@ -3,7 +3,7 @@ use std::cell::Cell;
 
 struct CountingAllocator;
 
-thread_local! {
+std::thread_local! {
     static ARMED: Cell<bool> = const { Cell::new(false) };
     static COUNT: Cell<usize> = const { Cell::new(0) };
 }

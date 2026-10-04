@@ -26,7 +26,15 @@ impl StructuredSelector {
             (
                 StructuredSelectorBack::Index(wanted),
                 crate::StructuredInfoTypeShape::Collection { element, length },
-            ) => select_index(*wanted, element, length, &mut cursor)?,
+            ) => select_index(*wanted, element, length, length, &mut cursor)?,
+            (
+                StructuredSelectorBack::Index(wanted),
+                crate::StructuredInfoTypeShape::Sequence {
+                    element,
+                    minimum_items,
+                    maximum_items,
+                },
+            ) => select_index(*wanted, element, minimum_items, maximum_items, &mut cursor)?,
             (
                 StructuredSelectorBack::Variant {
                     tag: wanted,
@@ -106,19 +114,23 @@ fn select_field<'a>(
 fn select_index<'a>(
     wanted: u16,
     element: &StructuredInfoType,
-    length: u16,
+    minimum: u16,
+    maximum: u16,
     cursor: &mut Cursor<'a>,
 ) -> Result<&'a [u8], StructuredSelectorRefusal> {
     expect_byte(cursor, 1)?;
-    expect_length(cursor, usize::from(length))?;
+    let length = cursor.length().map_err(malformed)?;
+    if length < usize::from(minimum) || length > usize::from(maximum) {
+        return Err(StructuredSelectorRefusal::MalformedCheckedValue);
+    }
     let mut selected = None;
     for index in 0..length {
         let value = take_value_node(element, cursor)?;
-        if index == wanted {
+        if index == usize::from(wanted) {
             selected = Some(value);
         }
     }
-    selected.ok_or(StructuredSelectorRefusal::MalformedCheckedValue)
+    selected.ok_or(StructuredSelectorRefusal::IndexOutOfRange)
 }
 
 fn finish(cursor: &Cursor<'_>) -> Result<(), StructuredSelectorRefusal> {

@@ -75,12 +75,16 @@ fn construction_cannot_bypass_native_refinements_or_record_laws() {
 }
 
 #[test]
-fn generic_play_preparation_refuses_unimplemented_variant_construction() {
+fn prepared_qualified_variants_match_portable_evaluation() {
     let program = compile(SOURCE).unwrap();
-    assert!(matches!(
-        conduit_plot::PreparedPortableExpressionEvaluator::new(&program),
-        Err(conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_))
-    ));
+    let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    for input in [-1_i64, 0, i64::MAX] {
+        let bytes = input.to_le_bytes();
+        assert_eq!(
+            prepared.evaluate(&bytes).unwrap(),
+            program.evaluate(&bytes).unwrap()
+        );
+    }
 }
 
 #[test]
@@ -156,4 +160,56 @@ fn variant_record_payload_keeps_its_native_schema_identity() {
         panic!("payload")
     };
     assert!(schema.as_str().starts_with("type/Payload@"));
+}
+
+#[test]
+fn refined_record_construction_preserves_exact_forwarded_field_contracts() {
+    let source = "type Query = {\n address: U8 in 8..=119\n}\ntype Request = {\n address: U8 in 8..=119\n read: U8 in 0..=32\n}\nplot choose (\n >> query: Query\n result: Request >>\n) = ({address: .address, read: 1})\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace("read: 1", "read: 33"))
+        .unwrap_err()
+        .contains("law validator"));
+    assert!(
+        compile(&source.replace("address: .address", "address: .address + 1"))
+            .unwrap_err()
+            .contains("law validator")
+    );
+    assert!(compile(&source.replacen("8..=119", "0..=255", 1))
+        .unwrap_err()
+        .contains("law validator"));
+}
+
+#[test]
+fn imported_checked_metadata_preserves_refinement_construction_rules() {
+    let native = check_syntax_document(
+        &parse_syntax_document("type External = {\n read: U8 in 0..=32\n}\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert_checked_native_type("external/request", &native.native_types[0])
+        .unwrap();
+    for (value, accepted) in [(32, true), (33, false)] {
+        let source = format!("with external/request as Request\nplot choose (\n >> input: U8\n result: Request >>\n) = ({{read: {value}}})\n");
+        let checked = check_syntax_document(&parse_syntax_document(&source), &catalog).unwrap();
+        assert_eq!(
+            expand_canonical_plot_for_authoring(&checked, "choose", &ProfileCatalog::new()).is_ok(),
+            accepted
+        );
+    }
+}
+
+#[test]
+fn nested_conditional_and_variant_fields_preserve_every_active_refinement() {
+    let source = "type Query = {\n address: U8 in 8..=119\n}\ntype Wrapped = {\n payload: Query\n}\nplot choose (\n >> query: Query\n result: Wrapped >>\n) = ({payload: .address == 8 ? . : {address: 8}})\n";
+    assert!(compile(source).is_ok());
+    assert!(compile(&source.replace("{address: 8}", "{address: 0}"))
+        .unwrap_err()
+        .contains("law validator"));
+    let variant = "type Query = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Query\n | missing\nplot choose (\n >> query: Query\n result: Choice >>\n) = (.address == 8 ? known(.) : missing(unit))\n";
+    assert!(compile(variant).is_ok());
+    assert!(compile(&variant.replace("known(.)", "known({address: 0})"))
+        .unwrap_err()
+        .contains("law validator"));
 }

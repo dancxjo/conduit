@@ -6,7 +6,7 @@ mod structured;
 use intrinsic::intrinsic_call;
 pub(super) use literal::literal_primitive_bytes;
 use literal::literal_value;
-use structured::{encoded_structured, projection, structured_record, structured_value};
+use structured::{encoded_structured, projection};
 
 use crate::{
     BinaryOperator, PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram,
@@ -105,47 +105,16 @@ fn evaluate_node(
             evaluate_node(selected, input, input_type)?
         }
         PortableExpressionOperation::Tuple(values) => {
-            let fields = values
-                .iter()
-                .enumerate()
-                .map(|(index, value)| {
-                    StructuredFieldValue::new(
-                        format!("item-{index:05}"),
-                        structured_value(evaluate_node(value, input, input_type)?)?,
-                    )
-                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
-                })
-                .collect::<Result<Vec<_>, PortableExpressionEvaluationRefusal>>()?;
-            structured_record(node.value_type.clone(), fields)?
+            structured::tuple(values, node, input, input_type)?
         }
         PortableExpressionOperation::Record(fields) => {
-            let fields = fields
-                .iter()
-                .map(|(name, value)| {
-                    StructuredFieldValue::new(
-                        name.clone(),
-                        structured_value(evaluate_node(value, input, input_type)?)?,
-                    )
-                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
-                })
-                .collect::<Result<Vec<_>, PortableExpressionEvaluationRefusal>>()?;
-            structured_record(node.value_type.clone(), fields)?
+            structured::record(fields, node, input, input_type)?
         }
         PortableExpressionOperation::Collection(values) => {
-            let values = values
-                .iter()
-                .map(|value| structured_value(evaluate_node(value, input, input_type)?))
-                .collect::<Result<Vec<_>, _>>()?;
-            let value = StructuredInfoValue::collection(node.value_type.clone(), values)
-                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-            encoded_structured(value)?
+            structured::collection(values, node, input, input_type)?
         }
         PortableExpressionOperation::Variant { tag, payload } => {
-            let payload = structured_value(evaluate_node(payload, input, input_type)?)?;
-            encoded_structured(
-                StructuredInfoValue::variant(node.value_type.clone(), tag, payload)
-                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
-            )?
+            structured::variant(tag, payload, node, input, input_type)?
         }
         PortableExpressionOperation::SemanticCall { kind, arguments } => {
             let arguments = arguments

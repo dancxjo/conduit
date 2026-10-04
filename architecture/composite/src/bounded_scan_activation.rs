@@ -1,5 +1,6 @@
 //! Kernel-backed execution of one exact planned bounded scan.
 
+use crate::prelude::*;
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
     AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
@@ -375,7 +376,18 @@ impl BoundedScanActivationHost {
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
     }
-    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+    /// Resolve a failure index against the exact prepared child identities.
+    pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
+        self.active
+            .as_ref()
+            .or_else(|| self.receipts.last())
+            .or_else(|| self.ready.last())
+            .and_then(|host| host.child_identity(child))
+    }
+
+    pub fn last_cancellation_failures(
+        &self,
+    ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
         self.receipts
             .last()
             .map_or(&[], KernelCompositeHost::cancellation_failures)
