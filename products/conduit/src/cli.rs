@@ -111,7 +111,6 @@ pub(crate) enum HostCommand {
         dry_run: bool,
     },
     /// Install, run, or inspect the durable local host owner.
-    #[command(hide = true)]
     Service {
         #[command(subcommand)]
         command: HostServiceCommand,
@@ -268,7 +267,6 @@ pub(crate) enum RendezvousCarrier {
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostServiceCommand {
     /// Verify and install one reviewed release bundle without replacing durable identity.
-    #[command(hide = true)]
     Install {
         manifest: PathBuf,
         #[arg(long)]
@@ -276,6 +274,8 @@ pub(crate) enum HostServiceCommand {
         /// Install without activating the service, for foreground Body ownership.
         #[arg(long)]
         no_start: bool,
+        #[command(flatten)]
+        speech: InstalledSpeechOptions,
     },
     /// Run the durable host in the foreground for a platform service manager.
     Run {
@@ -291,12 +291,36 @@ pub(crate) enum HostServiceCommand {
         json: bool,
     },
     /// Make this durable host retain one exact validated Body biography.
+    #[command(hide = true)]
     OwnBody {
         /// Exported `conduit.body/biography-evidence@2` document.
         evidence: PathBuf,
         #[arg(long)]
         state_dir: PathBuf,
     },
+}
+
+/// Exact local equipment selected for every fresh installed Host Boot.
+#[derive(Debug, Default, Args)]
+pub(crate) struct InstalledSpeechOptions {
+    /// Select a currently observed speaker and verified eSpeak NG provider.
+    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine"])]
+    pub(crate) selected_speech: bool,
+    /// Remove a previously retained speech selection on reinstall.
+    #[arg(long, conflicts_with = "selected_speech")]
+    pub(crate) without_selected_speech: bool,
+    #[arg(long, requires = "selected_speech")]
+    pub(crate) speaker_card: Option<String>,
+    #[arg(long, requires = "selected_speech")]
+    pub(crate) speaker_device: Option<u16>,
+    #[arg(long, requires = "selected_speech")]
+    pub(crate) speech_executable: Option<PathBuf>,
+    #[arg(long, requires = "selected_speech")]
+    pub(crate) speech_data: Option<PathBuf>,
+    #[arg(long, requires = "selected_speech", num_args = 1..)]
+    pub(crate) speech_engine: Vec<PathBuf>,
+    #[arg(long, requires = "selected_speech")]
+    pub(crate) speech_voice: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -734,5 +758,55 @@ mod public_surface_tests {
                     command: HostServiceCommand::Install { no_start, .. }
                 }) }) if no_start == expected));
         }
+    }
+
+    #[test]
+    fn service_install_selection_requires_complete_explicit_equipment() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        assert!(Cli::try_parse_from(base.iter().copied().chain(["--selected-speech"])).is_err());
+        assert!(
+            Cli::try_parse_from(base.iter().copied().chain(["--speaker-card", "card"])).is_err()
+        );
+        let selected = base.iter().copied().chain([
+            "--selected-speech",
+            "--speaker-card",
+            "card",
+            "--speaker-device",
+            "0",
+            "--speech-executable",
+            "/bin/espeak-ng",
+            "--speech-data",
+            "/data/espeak-ng-data",
+            "--speech-engine",
+            "/lib/libespeak-ng.so.1",
+        ]);
+        assert!(matches!(
+            Cli::try_parse_from(selected).unwrap().command,
+            Some(Command::Host {
+                command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install {
+                        speech: InstalledSpeechOptions {
+                            selected_speech: true,
+                            ..
+                        },
+                        ..
+                    }
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(
+            base.iter()
+                .copied()
+                .chain(["--without-selected-speech", "--selected-speech"])
+        )
+        .is_err());
     }
 }

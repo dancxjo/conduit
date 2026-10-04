@@ -29,6 +29,8 @@ const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
+#[path = "durable_host/selected_speech.rs"]
+mod selected_speech;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
@@ -65,6 +67,8 @@ struct Installation {
     body_state: Option<BodyBinding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     joined_body_state: Option<membership::JoinedBodyBinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    selected_speech: Option<selected_speech::Selection>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -91,10 +95,15 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             manifest,
             state_dir,
             no_start,
+            speech,
         } => (if no_start {
-            install_without_start(&manifest, &state_dir)
+            install_with_selection(&manifest, &state_dir, selected_speech::change(speech)?)
         } else {
-            install_and_activate(&manifest, &state_dir)
+            install_and_activate_with_selection(
+                &manifest,
+                &state_dir,
+                selected_speech::change(speech)?,
+            )
         })
         .map(|installation| {
             println!(
@@ -141,11 +150,29 @@ pub(crate) fn install_and_activate(
     Ok(installation)
 }
 
+fn install_and_activate_with_selection(
+    manifest: &Path,
+    state_dir: &Path,
+    change: selected_speech::Change,
+) -> Result<InstalledHostIdentity, String> {
+    let installation = install_with_selection(manifest, state_dir, change)?;
+    activate_service(state_dir)?;
+    Ok(installation)
+}
+
 pub(crate) fn install_without_start(
     manifest: &Path,
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install(manifest, state_dir)?;
+    install_with_selection(manifest, state_dir, selected_speech::Change::Preserve)
+}
+
+fn install_with_selection(
+    manifest: &Path,
+    state_dir: &Path,
+    change: selected_speech::Change,
+) -> Result<InstalledHostIdentity, String> {
+    let installation = install_configured(manifest, state_dir, change)?;
     Ok(InstalledHostIdentity {
         host_id: installation.host_id,
         release_bundle_sha256: installation.release_bundle_sha256,
@@ -191,7 +218,16 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
 fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, String> {
+    install_configured(manifest_path, state_dir, selected_speech::Change::Preserve)
+}
+
+fn install_configured(
+    manifest_path: &Path,
+    state_dir: &Path,
+    change: selected_speech::Change,
+) -> Result<Installation, String> {
     let manifest_bytes = bounded_read(manifest_path, 256 * 1024)?;
     let manifest: ReleaseManifest = serde_json::from_slice(&manifest_bytes)
         .map_err(|error| format!("release manifest: {error}"))?;
@@ -228,6 +264,16 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
         .as_ref()
         .map(|value| value.host_id.clone())
         .unwrap_or_else(|| fresh_identity("host/installed", &manifest.bundle_sha256));
+    let retained_selection = match change {
+        selected_speech::Change::Preserve => existing
+            .as_ref()
+            .and_then(|value| value.selected_speech.clone()),
+        selected_speech::Change::Replace(selection) => {
+            selection.validate()?;
+            Some(selection)
+        }
+        selected_speech::Change::Remove => None,
+    };
     let installation = Installation {
         schema: INSTALL_SCHEMA.into(),
         host_id,
@@ -236,6 +282,7 @@ fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, Strin
         product_executable: product_executable.display().to_string(),
         body_state: existing.as_ref().and_then(|value| value.body_state.clone()),
         joined_body_state: existing.and_then(|value| value.joined_body_state),
+        selected_speech: retained_selection,
     };
     write_json_atomic(&install_path, &installation)?;
     write_service_definition(state_dir, &installation)?;
@@ -360,7 +407,10 @@ fn prepare_runtime(
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
     };
-    let host = StdHost::new_with_config(config);
+    let mut host = StdHost::new_with_config(config);
+    if let Some(selection) = &installation.selected_speech {
+        selection.attach_to_fresh_host(&mut host)?;
+    }
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
         host_id: host.advertisement().host_id.as_str().into(),
@@ -627,6 +677,9 @@ fn read_installation(path: &Path) -> Result<Installation, String> {
         || !valid_digest(&value.release_bundle_sha256)
     {
         return Err("installation state is invalid".into());
+    }
+    if let Some(selection) = &value.selected_speech {
+        selection.validate()?;
     }
     if let Some(binding) = &value.body_state {
         if binding.body_id.is_empty()
@@ -995,6 +1048,7 @@ mod tests {
             manifest: manifest.clone(),
             state_dir: state.clone(),
             no_start: true,
+            speech: Default::default(),
         })
         .unwrap();
         let installed = read_installation(&state.join("installation.json")).unwrap();
@@ -1018,6 +1072,40 @@ mod tests {
         assert!(Path::new(&second.product_executable).is_file());
         assert!(Path::new(&second.product_executable).starts_with(state.join("releases")));
         assert!(!state.join("bin").exists());
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn selected_equipment_survives_reinstall_and_can_be_explicitly_removed() {
+        let (manifest, state) = fixture();
+        // Retained fixture represents previously reviewed equipment that has
+        // since gone missing. The ordinary explicit CLI path reviews it before
+        // persisting, and cannot manufacture this configuration from absence.
+        let selection: selected_speech::Selection = serde_json::from_value(serde_json::json!({
+            "card_id": "missing-card", "device": 0, "speaker_base_identity": "missing-card-identity",
+            "executable": "/missing/espeak-ng", "data_root": "/missing/espeak-ng-data",
+            "voice": "en-us", "engine_dependencies": ["/missing/libespeak-ng.so"],
+            "provider_sha256": "a".repeat(64),
+        })).unwrap();
+        let first = install_configured(
+            &manifest,
+            &state,
+            selected_speech::Change::Replace(selection),
+        )
+        .unwrap();
+        let second = install(&manifest, &state).unwrap();
+        assert_eq!(first.host_id, second.host_id);
+        assert_eq!(first.selected_speech, second.selected_speech);
+        assert!(second.selected_speech.is_some());
+        assert!(start_runtime(&state)
+            .unwrap_err()
+            .contains("configured speaker"));
+        assert!(!state.join("runtime.json").exists());
+
+        let third = install_configured(&manifest, &state, selected_speech::Change::Remove).unwrap();
+        assert_eq!(first.host_id, third.host_id);
+        assert!(third.selected_speech.is_none());
+        assert_eq!(start_runtime(&state).unwrap().host_id, third.host_id);
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
