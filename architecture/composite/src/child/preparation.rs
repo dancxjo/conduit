@@ -162,7 +162,7 @@ impl ChildKernel {
             .bind_terminal_transductions(terminal_contracts)
             .map_err(debug)?;
         Ok(Self {
-            scheduler,
+            scheduler: Box::new(scheduler),
             boundaries: boundaries
                 .into_iter()
                 .map(|boundary| (boundary.external_port_id.clone(), boundary))

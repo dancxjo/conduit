@@ -49,8 +49,11 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
-pub(crate) const MAX_NODES: usize = 16;
-pub(crate) const MAX_CORDS: usize = 32;
+// The complete checked bus/time protocol already expands to 32 gears. Keep
+// finite backing for that graph; preparation
+// still rejects plans beyond these bounds before execution begins.
+pub(crate) const MAX_NODES: usize = 32;
+pub(crate) const MAX_CORDS: usize = 64;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 256;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
@@ -88,7 +91,8 @@ pub(crate) struct BoundaryEndpoint {
 }
 
 pub(crate) struct ChildKernel {
-    scheduler: ChildScheduler,
+    // Hosted preparation allocates this finite scheduler before play.
+    scheduler: alloc::boxed::Box<ChildScheduler>,
     boundaries: BTreeMap<SemanticPortId, BoundaryEndpoint>,
     status: SchedulerStatus,
 }
