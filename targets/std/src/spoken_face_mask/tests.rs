@@ -299,6 +299,45 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
     assert!(!generic
         .iter()
         .any(|clause| clause.contains("Choose one of:")));
+
+    let mut disguised = crowded.actions.clone();
+    disguised[0].arguments[0].contract = CheckedValueContract::new(
+        kind_id(UTF8_TEXT_VALUE_KIND),
+        32,
+        vec![ValueConstraint::CanonicalMembership {
+            members: vec!["500\u{202e}0".as_bytes().to_vec()],
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let disguised = Presentation::new_with_semantics(
+        crowded.revision + 1,
+        crowded.basis,
+        crowded.subjects,
+        crowded.relationships,
+        crowded.properties,
+        crowded.text,
+        disguised,
+        crowded.disclosures,
+    )
+    .unwrap();
+    let disguised_show = common::available_mask_show(&disguised);
+    let mut disguised_reader =
+        SpokenFaceSession::new(disguised.clone(), disguised_show.clone()).unwrap();
+    disguised_reader
+        .command(&disguised, &disguised_show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let generic = disguised_reader
+        .take_text_readout()
+        .unwrap()
+        .unwrap()
+        .clauses;
+    assert!(generic
+        .iter()
+        .any(|clause| clause.contains("canonical values")));
+    assert!(!generic
+        .iter()
+        .any(|clause| clause.contains("Choose one of:")));
 }
 
 fn receipt(packet: &SpokenSegment) -> SpokenAudioReceipt {
