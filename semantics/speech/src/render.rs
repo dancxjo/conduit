@@ -316,7 +316,7 @@ impl VoiceEvent {
             Self::pronounced(value) => speech_realize(value.realization)?,
             Self::boundary(_) => return None,
         };
-        speech_realization_render_segment(realization)
+        speech_render_segment(speech_selected_segment_model(realization)?)
     }
     /// Representation projection; pronunciation and realization policy stay in plots.
     pub fn realization(self) -> Option<RealizationInput> {
