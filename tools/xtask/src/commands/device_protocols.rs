@@ -10,6 +10,19 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.source-feedback",
+                "Check exact Source feedback planning with retained native operation owners",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduitos",
+                    "--lib",
+                    "protocol_operations",
+                ],
+            ),
+            Step::new(
                 "device-protocols.seeded-state",
                 "Check exact Source initialization, retained state and finite feedback storage",
                 "cargo",

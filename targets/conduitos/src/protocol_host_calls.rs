@@ -70,7 +70,15 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         claim: BaseOperationClaim,
         zip: &crate::flow_zip::FlowZipOperationFactory,
     ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_with_operations(plan, ready, table, handle, claim, zip, &crate::seeded_state::SeededStateOperationFactory::default())
+        Self::prepare_with_operations(
+            plan,
+            ready,
+            table,
+            handle,
+            claim,
+            zip,
+            &crate::seeded_state::SeededStateOperationFactory::default(),
+        )
     }
 
     pub(crate) fn prepare_with_operations(
