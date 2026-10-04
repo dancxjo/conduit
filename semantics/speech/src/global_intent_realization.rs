@@ -2,6 +2,8 @@
 use crate::{
     chosen_global_rule_profile::{prepare_chosen_global_rule_profile, ChosenGlobalProfileRefusal},
     declared_context::ExplicitAllophoneContext,
+    global_default_choice::{finish_global_default_choice, GlobalDefaultRefusal},
+    global_default_profile::{prepare_global_default_profile, GlobalDefaultProfileRefusal},
     global_rule_selection::{
         select_global_allophone_rule, GlobalRuleChoice, GlobalRuleSelectionRefusal,
     },
@@ -45,7 +47,21 @@ pub enum GlobalIntentRefusal<'a> {
         event: usize,
         reason: ChosenGlobalProfileRefusal<'a>,
     },
+    DefaultChoice {
+        event: usize,
+        reason: Box<GlobalDefaultRefusal<'a>>,
+    },
+    DefaultProfile {
+        event: usize,
+        reason: GlobalDefaultProfileRefusal,
+    },
     Renderer(UtteranceTimingRenderRefusal),
+}
+pub enum GlobalIntentRealization<'a> {
+    Rule(RuleOutputFeatures<'a>),
+    Default {
+        identity: Option<SpeechPhonePatternIdentity>,
+    },
 }
 pub struct GlobalIntentPhoneReceipt<'a> {
     event: usize,
@@ -56,7 +72,8 @@ pub struct GlobalIntentPhoneReceipt<'a> {
     definition: &'a SpeechPhone,
     identity: SpeechPhoneDefinitionMatch,
     inventory_basis: SpeechIntentInventoryBasis,
-    features: RuleOutputFeatures<'a>,
+    realization: GlobalIntentRealization<'a>,
+    completed_choice: SpeechAllophoneChoiceState,
     binding: &'a SpeechFormantPhoneBinding,
     profile_basis: SpeechFormantProfileBasis,
 }
@@ -85,8 +102,17 @@ impl<'a> GlobalIntentPhoneReceipt<'a> {
     pub fn checked_inventory_basis(&self) -> &SpeechIntentInventoryBasis {
         &self.inventory_basis
     }
-    pub fn features(&self) -> &RuleOutputFeatures<'a> {
-        &self.features
+    pub fn features(&self) -> Option<&RuleOutputFeatures<'a>> {
+        match &self.realization {
+            GlobalIntentRealization::Rule(features) => Some(features),
+            GlobalIntentRealization::Default { .. } => None,
+        }
+    }
+    pub fn realization(&self) -> &GlobalIntentRealization<'a> {
+        &self.realization
+    }
+    pub fn completed_choice(&self) -> &SpeechAllophoneChoiceState {
+        &self.completed_choice
     }
     pub fn binding(&self) -> &'a SpeechFormantPhoneBinding {
         self.binding
@@ -182,21 +208,69 @@ pub fn prepare_global_intent<'a>(
                     event,
                     reason: Box::new(reason),
                 })?;
-                let projected = prepare_chosen_global_rule_profile(
-                    &choice,
-                    inventory,
-                    profile,
-                    supplied.default_features,
-                )
-                .map_err(|reason| GlobalIntentRefusal::Profile { event, reason })?;
-                let definition = projected.definition();
-                let identity = projected.checked_identity().clone();
-                let inventory_basis = projected.checked_inventory_basis().clone();
-                let default_occurrence = projected.checked_default_occurrence().clone();
-                let binding = projected.binding();
-                let profile_basis = projected.checked_profile_basis().clone();
-                events.push(projected.event());
-                let features = projected.into_features();
+                let completed =
+                    finish_global_default_choice(&choice, inventory).map_err(|reason| {
+                        GlobalIntentRefusal::DefaultChoice {
+                            event,
+                            reason: Box::new(reason),
+                        }
+                    })?;
+                let completed_choice = completed.state().clone();
+                let (
+                    definition,
+                    identity,
+                    inventory_basis,
+                    default_occurrence,
+                    binding,
+                    profile_basis,
+                    realization,
+                    voice_event,
+                ) = if completed.selected_default().is_some() {
+                    let projected = prepare_global_default_profile(
+                        &completed,
+                        profile,
+                        supplied.default_features,
+                    )
+                    .map_err(|reason| GlobalIntentRefusal::DefaultProfile { event, reason })?;
+                    (
+                        projected.definition(),
+                        projected.checked_identity().clone(),
+                        phoneme.checked_basis().clone(),
+                        projected.checked_default_occurrence().clone(),
+                        projected.binding(),
+                        projected.checked_basis().clone(),
+                        GlobalIntentRealization::Default {
+                            identity: completed.checked_default_identity().cloned(),
+                        },
+                        projected.event(),
+                    )
+                } else {
+                    let projected = prepare_chosen_global_rule_profile(
+                        &choice,
+                        inventory,
+                        profile,
+                        supplied.default_features,
+                    )
+                    .map_err(|reason| GlobalIntentRefusal::Profile { event, reason })?;
+                    let definition = projected.definition();
+                    let identity = projected.checked_identity().clone();
+                    let inventory_basis = projected.checked_inventory_basis().clone();
+                    let default_occurrence = projected.checked_default_occurrence().clone();
+                    let binding = projected.binding();
+                    let profile_basis = projected.checked_profile_basis().clone();
+                    let voice_event = projected.event();
+                    (
+                        definition,
+                        identity,
+                        inventory_basis,
+                        default_occurrence,
+                        binding,
+                        profile_basis,
+                        GlobalIntentRealization::Rule(projected.into_features()),
+                        voice_event,
+                    )
+                };
+                events.push(voice_event);
                 phones.push(GlobalIntentPhoneReceipt {
                     event,
                     choice,
@@ -206,7 +280,8 @@ pub fn prepare_global_intent<'a>(
                     definition,
                     identity,
                     inventory_basis,
-                    features,
+                    realization,
+                    completed_choice,
                     binding,
                     profile_basis,
                 });
