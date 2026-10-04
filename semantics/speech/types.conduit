@@ -211,13 +211,6 @@ type SpeechInventory = {
 }
 
 
-type SpeechRuleStatus =
-    productive
-    | lexicalized
-    | optional
-    | style_dependent
-    | experimental
-
 type SpeechFeatureCondition = {
     identity: SpeechFeatureId
     value: SpeechFeatureValue

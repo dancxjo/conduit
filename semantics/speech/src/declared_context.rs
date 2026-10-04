@@ -16,6 +16,7 @@ use crate::{
     semantic::*,
 };
 
+#[derive(Clone, Copy)]
 pub struct ExplicitAllophoneContext<'a> {
     pub syllable_position: &'a SpeechSyllablePositionSpecification,
     pub prosodic_context: &'a SpeechProsodicContextSpecification,
@@ -97,6 +98,29 @@ pub fn compare_declared_allophone_context<'a>(
     let occurrence =
         resolve_intent_occurrence_context(declared.source().intent(), declared.source().event())
             .map_err(DeclaredContextRefusal::Occurrence)?;
+    let compared = compare_allophone_requirements(declaration, &occurrence, explicit)?;
+    Ok(DeclaredAllophoneContext {
+        declared,
+        index,
+        occurrence,
+        scalar: compared.scalar,
+        neighbors: compared.neighbors,
+        conditions: compared.conditions,
+        decision: compared.decision,
+    })
+}
+
+pub(crate) struct AllophoneRequirements<'a> {
+    pub(crate) scalar: AllophoneScalarContext<'a>,
+    pub(crate) neighbors: AllophoneNeighborContext<'a>,
+    pub(crate) conditions: ConditionsComparison<'a>,
+    pub(crate) decision: SpeechContextDecision,
+}
+pub(crate) fn compare_allophone_requirements<'a>(
+    declaration: &'a SpeechPhonemeAllophone,
+    occurrence: &IntentOccurrenceContext<'a>,
+    explicit: ExplicitAllophoneContext<'a>,
+) -> Result<AllophoneRequirements<'a>, DeclaredContextRefusal> {
     let scalar = compare_allophone_scalar_context(
         declaration,
         ScalarContextObservation {
@@ -155,10 +179,7 @@ pub fn compare_declared_allophone_context<'a>(
             SpeechContextDecision::ObservationUnresolved
         }
     };
-    Ok(DeclaredAllophoneContext {
-        declared,
-        index,
-        occurrence,
+    Ok(AllophoneRequirements {
         scalar,
         neighbors,
         conditions,
