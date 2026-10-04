@@ -91,3 +91,12 @@ plot speech/context-conjunction (
     >> value: SpeechContextConjunction
     result: SpeechContextDecision >>
 ) = (.left is mismatched || .right is mismatched ? SpeechContextDecision.mismatched : .left is requirement_unresolved || .right is requirement_unresolved ? SpeechContextDecision.requirement_unresolved : .left is observation_unresolved || .right is observation_unresolved ? SpeechContextDecision.observation_unresolved : SpeechContextDecision.matched)
+
+type SpeechStyleConditionInput = {
+    observation: SpeechSpecificationState
+    careful: Boolean
+}
+plot speech/not-careful-style (
+    >> value: SpeechStyleConditionInput
+    result: SpeechContextDecision >>
+) = (!(.observation is known) ? SpeechContextDecision.observation_unresolved : .careful ? SpeechContextDecision.mismatched : SpeechContextDecision.matched)
