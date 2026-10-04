@@ -5,8 +5,8 @@ use conduit_body::{
     AdmissionManager, AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory,
     MembershipProofId, PartId, Wake,
 };
-use conduit_core::SignId;
-use std::sync::Arc;
+use conduit_core::{semantic_digest, SignId};
+use std::{fmt::Write, sync::Arc};
 
 use crate::{
     front_door_topology::FrontDoorTopology, BodyJoinCandidate, LocalFrontDoor, PatchbayModel,
@@ -46,7 +46,7 @@ impl LocalFrontDoor {
             plot.source_document_id,
             checked_plot_id.clone(),
             revision,
-            SignId::from(format!("patchbay/front-door/born/{revision}")),
+            host_bound_birth_sign(&model, "patchbay/front-door/born", revision),
         )
         .map_err(|error| error.to_string())?;
         let membership =
@@ -85,7 +85,7 @@ impl LocalFrontDoor {
         {
             return Err("Crèche selection evidence does not match reviewed plots".into());
         }
-        let sign_id = SignId::from(format!("patchbay/creche/born/{revision}"));
+        let sign_id = host_bound_birth_sign(&model, "patchbay/creche/born", revision);
         let body = Body::born_with_plots(selection.workset.clone(), revision, sign_id.clone())
             .map_err(|error| error.to_string())?;
         let membership =
@@ -196,4 +196,23 @@ impl LocalFrontDoor {
                 .ok_or("front-door presentation revision exhausted")?,
         })
     }
+}
+
+/// The exact birth Sign binds the creating Host Boot. Independent Crèche
+/// encounters with identical worksets and local sequence must not identify
+/// unrelated Bodies as the same one.
+fn host_bound_birth_sign(model: &PatchbayModel, path: &str, revision: u64) -> SignId {
+    let host = model.advertisement().host_id.as_str().as_bytes();
+    let boot = model.advertisement().boot_id.as_str().as_bytes();
+    let mut encoded = Vec::with_capacity(16 + host.len() + boot.len());
+    encoded.extend_from_slice(&(host.len() as u64).to_le_bytes());
+    encoded.extend_from_slice(host);
+    encoded.extend_from_slice(&(boot.len() as u64).to_le_bytes());
+    encoded.extend_from_slice(boot);
+    let digest = semantic_digest("patchbay/birth/host-boot@1", &encoded);
+    let mut hex = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut hex, "{byte:02x}").expect("write to String");
+    }
+    SignId::from(format!("{path}/{revision}/host-boot/{hex}"))
 }
