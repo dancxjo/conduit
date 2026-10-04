@@ -30,6 +30,8 @@ pub use x86_64::{
 
 #[cfg(target_arch = "x86_64")]
 pub const ARCHITECTURE: &str = "x86_64";
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+pub use x86_64::run_usb_control_kernel_proof;
 #[cfg(target_arch = "x86")]
 mod ia32;
 #[cfg(any(target_arch = "x86", all(test, target_arch = "x86_64")))]
