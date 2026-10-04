@@ -136,3 +136,21 @@ plot speech/identity-pattern-compare (
     >> value: SpeechIdentityPatternComparisonInput
     result: SpeechContextDecision >>
 ) = (.requirement is unspecified ? SpeechContextDecision.matched : !(.requirement is known) ? SpeechContextDecision.requirement_unresolved : !(.observation is known) ? SpeechContextDecision.observation_unresolved : .identical ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
+
+# Later layers replace whole specifications, including unresolved values.
+# Only a Known rule phone inherits default and phone-definition features.
+type SpeechOutputFeatureLayer =
+    absent
+    | default_realization
+    | phone_definition
+    | rule_output
+type SpeechOutputFeatureLayerInput = {
+    phone: SpeechSpecificationState
+    default_present: Boolean
+    definition_present: Boolean
+    output_present: Boolean
+}
+plot speech/output-feature-layer (
+    >> value: SpeechOutputFeatureLayerInput
+    result: SpeechOutputFeatureLayer >>
+) = (.output_present ? SpeechOutputFeatureLayer.rule_output : !(.phone is known) ? SpeechOutputFeatureLayer.absent : .definition_present ? SpeechOutputFeatureLayer.phone_definition : .default_present ? SpeechOutputFeatureLayer.default_realization : SpeechOutputFeatureLayer.absent)
