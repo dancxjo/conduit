@@ -83,6 +83,18 @@ enum PreparedOperation {
     Inspection(inspection::PreparedInspection),
 }
 
+impl PortableExpressionProgram {
+    /// Conservative canonical transport ceiling, computed before Play from the exact input Type.
+    pub fn maximum_prepared_input_bytes(&self) -> Result<u32, Refusal> {
+        Ok(storage_bound::output(&self.input_type)? as u32)
+    }
+
+    /// Conservative canonical transport ceiling, computed before Play from the exact output Type.
+    pub fn maximum_prepared_output_bytes(&self) -> Result<u32, Refusal> {
+        Ok(storage_bound::output(&self.output_type)? as u32)
+    }
+}
+
 impl PreparedPortableExpressionEvaluator {
     pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
         let input = match program.input_type.shape() {
