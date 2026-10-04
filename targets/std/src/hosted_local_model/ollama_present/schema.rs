@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 pub(in crate::hosted_local_model) fn wording_format(
     input: &GenerativePresenterInput,
     available_actions: &[String],
-) -> Value {
+) -> Result<Value, String> {
     let action_items = if available_actions.is_empty() {
         json!({ "type": "string" })
     } else {
@@ -50,7 +50,10 @@ pub(in crate::hosted_local_model) fn wording_format(
             ));
         }
     }
-    json!({
+    if clauses.is_empty() {
+        return Err("current Face has no renderable finite wording clause".into());
+    }
+    Ok(json!({
         "type": "object",
         "properties": {
             "proposal": {
@@ -88,7 +91,7 @@ pub(in crate::hosted_local_model) fn wording_format(
         },
         "required": ["proposal", "suggested_action_identities"],
         "additionalProperties": false,
-    })
+    }))
 }
 
 fn clause(kind: &str, index: usize, fields: &[(&str, &str)]) -> Value {
@@ -127,7 +130,7 @@ mod tests {
             name: "count".into(),
             value: PresentationPropertyValue::Count(2),
         });
-        let format = wording_format(&input, &["body.inspect".into()]);
+        let format = wording_format(&input, &["body.inspect".into()]).unwrap();
         assert_eq!(
             format["properties"]["proposal"]["properties"]["source_presentation_identity"]["const"],
             input.source_presentation_identity,
@@ -166,7 +169,7 @@ mod tests {
             "body.inspect"
         );
         assert_eq!(variants[3]["properties"]["name"]["const"], "Inspect Body");
-        let without_action = wording_format(&input, &[]);
+        let without_action = wording_format(&input, &[]).unwrap();
         assert_eq!(
             without_action["properties"]["proposal"]["properties"]["clauses"]["items"]["oneOf"]
                 .as_array()

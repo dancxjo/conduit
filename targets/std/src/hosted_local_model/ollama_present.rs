@@ -80,6 +80,17 @@ pub(super) fn prepare(input: &[u8]) -> Result<PreparedPresent, String> {
     } else {
         return Err("request does not select the reviewed Ollama presenter policy".into());
     };
+    if request.policy.template_contract_revision == WORDING_TEMPLATE_REVISION {
+        let available_actions = request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .filter(|action| action.availability.is_available())
+            .map(|action| action.identity.clone())
+            .collect::<Vec<_>>();
+        wording_format(&request.semantic_data, &available_actions)?;
+    }
     let semantic_data =
         serde_json::to_string(&request.semantic_data).map_err(|error| error.to_string())?;
     if semantic_data.len() > request.bounds.maximum_input_bytes as usize {
@@ -271,6 +282,37 @@ mod tests {
         assert_eq!(policy.instructions, WORDING_SYSTEM_POLICY);
         request.policy = policy;
         assert!(prepare(&serde_json::to_vec(&request).unwrap()).is_ok());
+    }
+
+    #[test]
+    fn valid_face_without_spoken_items_refuses_before_provider() {
+        let source = proof_request().unwrap().semantic_data.presentation;
+        let empty = Presentation::new_with_semantics(
+            source.revision,
+            source.basis,
+            source.subjects,
+            source.relationships,
+            vec![],
+            vec![],
+            vec![],
+            source.disclosures,
+        )
+        .unwrap();
+        let request = GenerativePresenterRequest::from_presentation(
+            "request/present/empty".into(),
+            finite_face_wording_presenter_policy(),
+            empty,
+            None,
+            GenerativePresenterBounds::reviewed_default(),
+        )
+        .unwrap();
+        assert!(request.validate().is_ok());
+        assert_eq!(
+            prepare(&serde_json::to_vec(&request).unwrap())
+                .err()
+                .unwrap(),
+            "current Face has no renderable finite wording clause"
+        );
     }
 
     fn request() -> GenerativePresenterRequest {

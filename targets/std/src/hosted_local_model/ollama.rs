@@ -332,7 +332,7 @@ impl OllamaLocalModelAdapter {
         // validates every Face identity, value, and available action after
         // inference; schema conformance alone grants no semantic authority.
         let format = if system == super::ollama_present::WORDING_SYSTEM_POLICY {
-            super::ollama_present::wording_format(&input, &available_actions)
+            super::ollama_present::wording_format(&input, &available_actions)?
         } else {
             json!({
                 "type": "object",
