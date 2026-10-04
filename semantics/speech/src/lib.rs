@@ -82,6 +82,8 @@ pub mod rule_conditions;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_features;
 #[cfg(feature = "semantic-bindings")]
+pub mod rule_input;
+#[cfg(feature = "semantic-bindings")]
 pub mod rule_neighbors;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_stress;
@@ -169,4 +171,10 @@ mod neighbor_match_parity;
 mod rule_conditions_parity;
 
 #[cfg(all(test, feature = "semantic-bindings"))]
+mod rule_input_parity;
+
+#[cfg(all(test, feature = "semantic-bindings"))]
 mod allophone_selection_parity;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod contextual_intent_realization;
