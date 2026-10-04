@@ -288,6 +288,16 @@ plot speech/direct-phone-model (
     value >> ({phone: .phone, context: .}) >> lookup.value
     lookup.result >> ({phone: .input.phone, stress: .input.context.stress, target: .target}) >> result
 }
+# Project rendering coordinates without discarding the event tape's realization.
+# The shared target lookup does not need phonemic input or derivation metadata.
+plot speech/realization-render-segment (
+    >> value: RealizationResult
+    result: SpeechRenderSegment >>
+) {
+    model: speech/direct-phone-model
+    value >> ({phone: .phone, stress: .input.stress}) >> model.value
+    model.result >> result
+}
 plot speech/render-segment (
     >> value: SpeechSegmentModel
     result: SpeechRenderSegment >>

@@ -135,3 +135,35 @@ fn every_realization_preserves_typed_input_phone_and_derivation() {
         }
     }
 }
+
+#[test]
+fn shared_render_coordinates_match_retained_models_for_every_phone_and_stress() {
+    let basis = speech_realize(RealizationInput {
+        phoneme: EnglishPhoneme::iy,
+        stress: EnglishStress::unspecified,
+        position: EnglishPosition::isolated,
+    })
+    .unwrap();
+    for (phone, _) in PHONES {
+        for (stress, _) in STRESSES {
+            let mut selected = basis;
+            selected.phone = *phone;
+            selected.input.stress = *stress;
+            let retained = speech_selected_segment_model(selected).unwrap();
+            let expected = speech_render_segment(retained).unwrap();
+            assert_eq!(
+                speech_realization_render_segment(selected).unwrap(),
+                expected
+            );
+            assert_eq!(
+                speech_direct_phone_model(SpeechPhoneInput {
+                    phone: *phone,
+                    stress: *stress,
+                })
+                .unwrap(),
+                expected
+            );
+            assert_eq!(retained.realization, selected);
+        }
+    }
+}
