@@ -34,6 +34,15 @@ pub(super) struct Args {
     /// Pinned Playwright module installed for the browser proof project.
     #[arg(long)]
     playwright: PathBuf,
+    /// Optional installed eSpeak executable for a same-run direct reading.
+    #[arg(long, requires_all = ["speech_data", "speech_engine"])]
+    speech_executable: Option<PathBuf>,
+    /// Exact installed eSpeak voice data tree.
+    #[arg(long, requires = "speech_executable")]
+    speech_data: Option<PathBuf>,
+    /// Exact installed eSpeak engine library, not a symlink.
+    #[arg(long, requires = "speech_executable")]
+    speech_engine: Option<PathBuf>,
 }
 
 pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -69,9 +78,34 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
             "provide a new private evidence directory",
         ));
     }
+    if let Some(executable) = &args.speech_executable {
+        for (name, path) in [
+            ("speech-executable", executable),
+            (
+                "speech-data",
+                args.speech_data
+                    .as_ref()
+                    .expect("Clap requires speech data"),
+            ),
+            (
+                "speech-engine",
+                args.speech_engine
+                    .as_ref()
+                    .expect("Clap requires speech engine"),
+            ),
+        ] {
+            if !path.exists() {
+                return Err(ConduitosError::refusal(
+                    "three-host-proof-speech-prerequisite",
+                    format!("{name} is unavailable: {}", path.display()),
+                ));
+            }
+        }
+    }
     let current = std::env::current_exe()
         .map_err(|error| ConduitosError::refusal("three-host-proof-xtask", error.to_string()))?;
-    let status = Command::new("node")
+    let mut command = Command::new("node");
+    command
         .arg(&script)
         .arg(current)
         .arg(&args.owner)
@@ -81,7 +115,22 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
         .arg(&args.candidate_id)
         .arg(args.owner_forward.to_string())
         .arg(&args.output_dir)
-        .arg(&args.playwright)
+        .arg(&args.playwright);
+    if let Some(executable) = &args.speech_executable {
+        command
+            .arg(executable)
+            .arg(
+                args.speech_data
+                    .as_ref()
+                    .expect("Clap requires speech data"),
+            )
+            .arg(
+                args.speech_engine
+                    .as_ref()
+                    .expect("Clap requires speech engine"),
+            );
+    }
+    let status = command
         .current_dir(&root)
         .status()
         .map_err(|error| ConduitosError::refusal("three-host-proof-launch", error.to_string()))?;
