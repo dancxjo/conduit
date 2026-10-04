@@ -275,6 +275,7 @@ fn serve_presence(
                     ..
                 } = &mut response
                 {
+                    #[cfg(unix)]
                     let selected = state_dir
                         .zip(window_id)
                         .ok_or_else(|| {
@@ -288,6 +289,10 @@ fn serve_presence(
                                 binding.clone(),
                             )
                         });
+                    #[cfg(not(unix))]
+                    let selected = Err::<conduit_presentation::RemoteOwnerMaskRouteSeal, String>(
+                        "owner route requires an installed Unix service actor".into(),
+                    );
                     match selected {
                         Ok(selected)
                             if selected.face_id == presentation.identity
@@ -343,6 +348,7 @@ fn serve_presence(
                 && request.host_id == credential.host_id
                 && request.boot_id == credential.boot_id =>
             {
+                #[cfg(unix)]
                 let result = state_dir
                     .zip(window_id)
                     .ok_or_else(|| "owner Show requires the installed service actor".to_string())
@@ -355,6 +361,9 @@ fn serve_presence(
                             *show,
                         )
                     });
+                #[cfg(not(unix))]
+                let result =
+                    Err::<(), String>("owner Show requires an installed Unix service actor".into());
                 socket.send(&Out::FaceShowResponse {
                     protocol: PROTOCOL,
                     accepted: result.is_ok(),
