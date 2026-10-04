@@ -41,6 +41,15 @@ for them. The private numeric carrier in `timing_projection.conduit` is not a
 public admission path. Rust only projects admitted fields into that carrier
 and reconstructs the law-checked native result.
 
+`intent_prosody::prepare_segment_prosody` lowers known segment duration, cycle
+and relative intensity through the existing checked projections. It retains
+borrowed source intent, cumulative timing and exact control remainders before
+pairing with an explicitly supplied ordered segment tape. All five unresolved
+states refuse with the original specification and event index. Boundary events
+refuse in this segment-only adapter; boundary intent remains a separate contract.
+Rendering borrows fixed prepared storage. This does not establish source
+resolution, phone selection, language commitment or a whole utterance admission.
+
 This is the first shared-intent prerequisite for
 [#4898](https://github.com/dancxjo/conduit/issues/4898) and
 [#4907](https://github.com/dancxjo/conduit/issues/4907). The current compact
