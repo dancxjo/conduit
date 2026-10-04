@@ -120,7 +120,7 @@ impl<'a> IntentAllophoneChoice<'a> {
         }
     }
 }
-fn policy_projection(
+pub(crate) fn policy_projection(
     value: &SpeechAllophoneChoicePolicy,
 ) -> generated::SpeechAllophoneChoicePolicy {
     generated::SpeechAllophoneChoicePolicy {
@@ -132,7 +132,7 @@ fn policy_projection(
         allow_default: *value.allow_default(),
     }
 }
-fn status_projection(value: &SpeechRuleStatus) -> generated::SpeechRuleStatus {
+pub(crate) fn status_projection(value: &SpeechRuleStatus) -> generated::SpeechRuleStatus {
     match value {
         SpeechRuleStatus::Productive => generated::SpeechRuleStatus::productive,
         SpeechRuleStatus::Lexicalized => generated::SpeechRuleStatus::lexicalized,
@@ -141,7 +141,9 @@ fn status_projection(value: &SpeechRuleStatus) -> generated::SpeechRuleStatus {
         SpeechRuleStatus::Experimental => generated::SpeechRuleStatus::experimental,
     }
 }
-fn decision_projection(value: &SpeechContextDecision) -> generated::SpeechContextDecision {
+pub(crate) fn decision_projection(
+    value: &SpeechContextDecision,
+) -> generated::SpeechContextDecision {
     match value {
         SpeechContextDecision::Matched => generated::SpeechContextDecision::matched,
         SpeechContextDecision::Mismatched => generated::SpeechContextDecision::mismatched,
