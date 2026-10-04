@@ -81,3 +81,14 @@ pub(crate) fn compare_feature_observation(
     };
     Ok(decision)
 }
+
+/// A condition's raw value is an explicit Known requirement, never a default
+/// for an observation. Its original condition is retained by the caller.
+pub(crate) fn compare_known_feature_value(
+    requirement: &SpeechFeatureValue,
+    observation: Option<&FeatureSpecification>,
+) -> Result<SpeechContextDecision, FeatureComparisonRefusal> {
+    let known = FeatureSpecification::known(requirement.clone())
+        .map_err(FeatureComparisonRefusal::Native)?;
+    compare_feature_observation(&known, observation)
+}
