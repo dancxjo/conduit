@@ -586,3 +586,12 @@ This remains chosen-phone quantitative preparation, not complete utterance
 admission: source resolution, phonological consistency and commitment are still
 separate checks. The `intent-realization-hello-world` listening fixture uses
 explicit 120 Hz/unity controls and retains the approved acoustic profile.
+
+Language owns the legacy syntactic/discourse link vocabulary in
+`semantics/language/syntax.conduit`. Speech rule conditions consume that exact
+native Type through the checked catalog and external Rust bindings;
+`SpeechSyntacticLinkKind` remains a Rust re-export for callers. The optional
+semantic-bindings profile carries this dependency, while the compact renderer
+keeps its existing runtime dependencies. This ownership seam under #4907 does
+not establish a complete dependency inventory, parser, revision basis, or
+commitment frontier.
