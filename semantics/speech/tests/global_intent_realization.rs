@@ -88,6 +88,26 @@ fn default(ordinal: u32) -> SpeechOccurrenceFeatureObservation {
     )
     .unwrap()
 }
+fn inventory() -> SpeechInventory {
+    let phoneme = SpeechPhoneme::new(
+        BoundedSequence::new(),
+        BoundedSequence::new(),
+        Some(native::id("phone/t")),
+        SpeechFeatureBundle::new(BoundedSequence::new()).unwrap(),
+        PhonemeId::new("phoneme/t".into()).unwrap(),
+        "t".into(),
+        BoundedSequence::try_from_iter([native::id("phone/t")]).unwrap(),
+        SpeechSegmentStatus::Core,
+    )
+    .unwrap();
+    SpeechInventory::new(
+        SpeechInventoryId::new("inventory".into()).unwrap(),
+        SpeechLanguageId::new("en".into()).unwrap(),
+        BoundedSequence::try_from_iter([phoneme]).unwrap(),
+        BoundedSequence::try_from_iter([native::definition("phone/t")]).unwrap(),
+    )
+    .unwrap()
+}
 struct Setup {
     inventory: SpeechInventory,
     voice: SpeechFormantVoiceProfile,
@@ -102,7 +122,7 @@ impl Setup {
     fn new() -> Self {
         let definition = native::definition("phone/t");
         Self {
-            inventory: native::inventory("inventory", "en", vec![definition.clone()]),
+            inventory: inventory(),
             voice: SpeechFormantVoiceProfile::new(
                 "voice".into(),
                 SpeechInventoryId::new("inventory".into()).unwrap(),
@@ -188,6 +208,14 @@ fn frozen_global_choices_timing_and_boundary_preserve_original_receipts_and_pcm(
         .zip([(0, &defaults[0]), (2, &defaults[1])])
     {
         assert_eq!(receipt.event_index(), event);
+        assert!(core::ptr::eq(
+            receipt.phoneme().definition(),
+            &setup.inventory.phonemes().as_slice()[0]
+        ));
+        assert!(core::ptr::eq(
+            receipt.phoneme().occurrence().segment(),
+            receipt.choice().occurrence().segment()
+        ));
         assert!(core::ptr::eq(receipt.default_features(), default));
         let SpeechUtteranceIntentEvent::Segment(original) = &source.events().as_slice()[event]
         else {
@@ -334,5 +362,33 @@ fn deferred_choice_preserves_its_exact_reason_in_the_utterance_refusal() {
         matches!(prepare_global_intent(&source, &setup.inventory, &setup.voice, &setup.boundaries, &unresolved, &setup.policy, &[setup.evidence(&defaults)]),
         Err(GlobalIntentRefusal::Profile { event: 0, reason: ChosenGlobalProfileRefusal::Unchosen(state) })
         if state.outcome() == &SpeechAllophoneChoiceOutcome::Deferred && state.reason() == &SpeechContextDecision::RequirementUnresolved)
+    );
+}
+
+#[test]
+fn late_missing_phoneme_refuses_even_when_a_wildcard_rule_and_phone_would_match() {
+    let first = segment(10);
+    let SpeechUtteranceIntentEvent::Segment(original) = segment(11) else {
+        unreachable!()
+    };
+    let second = SpeechUtteranceIntentEvent::segment(
+        original.occurrence().clone(),
+        original.phone().clone(),
+        PhonemeSpecification::known(PhonemeId::new("phoneme/foreign".into()).unwrap()).unwrap(),
+        original.prosody().clone(),
+        original.provenance().clone(),
+        original.sources().clone(),
+        original.stress().clone(),
+        original.word_position().clone(),
+    )
+    .unwrap();
+    let source = occurrence::intent([first, second]);
+    let setup = Setup::new();
+    let defaults = [default(10), default(11)];
+    assert!(
+        matches!(prepare_global_intent(&source, &setup.inventory, &setup.voice, &setup.boundaries, &setup.rules, &setup.policy,
+        &[setup.evidence(&defaults[0]), setup.evidence(&defaults[1])]),
+        Err(GlobalIntentRefusal::Phoneme { event: 1, reason })
+        if matches!(reason.as_ref(), conduit_speech::intent_phoneme_inventory::IntentPhonemeRefusal::MissingDefinition))
     );
 }
