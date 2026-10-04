@@ -85,6 +85,7 @@ mod riscv64_a3;
 mod riscv64_a4;
 mod riscv64_product_boot;
 mod run;
+mod screen_free_three_host_proof;
 mod std_gap;
 pub(crate) mod target_backend;
 pub(crate) mod target_build;
@@ -133,6 +134,8 @@ enum ConduitosCommand {
     LiveOwnerActionProof(LiveOwnerActionProofArgs),
     /// Prove one Body across an installed owner, QMP guest, and pinned Chromium.
     LiveThreeHostProof(Box<three_host_proof::Args>),
+    /// Birth one Body through the installed screen-free client, then prove three live Hosts.
+    ScreenFreeThreeHostProof(Box<screen_free_three_host_proof::Args>),
     /// Prove the canonical IA-32 live artifact through legacy BIOS only.
     Ia32LegacyBiosProof,
     /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.
@@ -505,6 +508,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ),
         ConduitosCommand::LiveOwnerActionProof(args) => owner_action_proof::execute(&args, opts),
         ConduitosCommand::LiveThreeHostProof(args) => three_host_proof::execute(&args, opts),
+        ConduitosCommand::ScreenFreeThreeHostProof(args) => {
+            screen_free_three_host_proof::execute(&args, opts)
+        }
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
