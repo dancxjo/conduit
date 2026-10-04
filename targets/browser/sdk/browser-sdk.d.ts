@@ -123,6 +123,10 @@ export class BrowserBodyParticipation {
   ownerFaceSnapshot(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Uint8Array>;
   prepareOwnerFaceMask(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Readonly<Record<string, unknown>>>;
   acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+  /** Direct readout of the current acknowledged graphical Show by installed owner equipment. */
+  selectedDirectSpeechStart(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+  selectedDirectSpeechStatus(operationId: string): Promise<Readonly<Record<string, unknown>>>;
+  selectedDirectSpeechStop(operationId: string): Promise<Readonly<Record<string, unknown>>>;
   /** Submit one checked Face action through this Host's Mask and current owner window. */
   submitOwnerFaceInteraction(options: {
     view: Readonly<Record<string, unknown>>;

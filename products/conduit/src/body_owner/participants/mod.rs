@@ -6,6 +6,8 @@ mod admission;
 mod service;
 #[cfg(unix)]
 mod service_worker;
+#[cfg(unix)]
+mod speech;
 mod transport;
 use super::Owner;
 use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
@@ -199,6 +201,8 @@ fn serve_presence(
         evidence: snapshot.offer.clone(),
     })?;
     acknowledge_presence(socket, &presence)?;
+    #[cfg(unix)]
+    let mut selected_speech = speech::CarrierSpeech::default();
     for _ in 0..MAX_PRESENCE_FRAMES {
         let lease = &presence.leases[0];
         let Some(window_left) = deadline.checked_duration_since(Instant::now()) else {
@@ -467,6 +471,18 @@ fn serve_presence(
                     code: "credential-mismatch".into(),
                 })?;
                 return Err("owner interaction differs from admitted browser carrier".into());
+            }
+            #[cfg(unix)]
+            frame @ (In::SelectedSpeechStart {
+                protocol: PROTOCOL, ..
+            }
+            | In::SelectedSpeechStatus {
+                protocol: PROTOCOL, ..
+            }
+            | In::SelectedSpeechStop {
+                protocol: PROTOCOL, ..
+            }) => {
+                selected_speech.handle(frame, snapshot, socket, binding, state_dir, window_id)?;
             }
             In::OfferDisclosureRequest {
                 protocol: PROTOCOL,
