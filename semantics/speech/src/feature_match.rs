@@ -38,10 +38,20 @@ pub fn compare_feature<'a>(
     requirement: &'a FeatureSpecification,
     observation: &'a FeatureSpecification,
 ) -> Result<FeatureComparison<'a>, FeatureComparisonRefusal> {
+    Ok(FeatureComparison {
+        requirement,
+        observation,
+        decision: compare_feature_observation(requirement, Some(observation))?,
+    })
+}
+pub(crate) fn compare_feature_observation(
+    requirement: &FeatureSpecification,
+    observation: Option<&FeatureSpecification>,
+) -> Result<SpeechContextDecision, FeatureComparisonRefusal> {
     // The binary carrier projects the checked native equality fact, rather than
     // reproducing feature-value equality in Rust. Non-Known values are ignored.
     let observation_value = match (requirement, observation) {
-        (FeatureSpecification::Known(expected), FeatureSpecification::Known(actual)) => {
+        (FeatureSpecification::Known(expected), Some(FeatureSpecification::Known(actual))) => {
             match SpeechFeatureValueMatch::new(actual.clone(), expected.clone()) {
                 Ok(_) => 0,
                 Err(NativeBindingRefusal::ViolatedInvariant { index: 0 }) => 1,
@@ -52,7 +62,9 @@ pub fn compare_feature<'a>(
     };
     let result = generated::speech_context_compare(generated::SpeechContextComparisonInput {
         requirement: state(requirement),
-        observation: state(observation),
+        observation: observation
+            .map(state)
+            .unwrap_or(generated::SpeechSpecificationState::unknown),
         requirement_value: 0,
         observation_value,
     })
@@ -67,9 +79,5 @@ pub fn compare_feature<'a>(
             SpeechContextDecision::ObservationUnresolved
         }
     };
-    Ok(FeatureComparison {
-        requirement,
-        observation,
-        decision,
-    })
+    Ok(decision)
 }
