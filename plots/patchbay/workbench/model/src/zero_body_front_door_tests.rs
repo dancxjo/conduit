@@ -290,6 +290,32 @@ fn creche_birth_uses_one_path_for_zero_one_and_many_reviewed_plots() {
 }
 
 #[test]
+fn independent_creche_births_bind_the_creating_host_boot() {
+    let birth = |session: ZeroBodyFrontDoor| {
+        let mut draft = session
+            .creche_draft("00112233-4455-6677-8899-000000000001".into())
+            .unwrap();
+        draft.select(draft.revision(), 0, true).unwrap();
+        let selection = draft.selection(draft.revision()).unwrap();
+        let revision = session.revision();
+        session
+            .birth_from_creche(selection, revision)
+            .unwrap()
+            .body()
+            .clone()
+    };
+    let first = birth(creche_session("first"));
+    let second = birth(creche_session("second"));
+    let replay = birth(creche_session("first"));
+    assert_eq!(first.workset, second.workset);
+    assert_eq!(first.birth_sequence, second.birth_sequence);
+    assert_ne!(first.sign_ids[0], second.sign_ids[0]);
+    assert_ne!(first.body_id, second.body_id);
+    assert_eq!(first.sign_ids[0], replay.sign_ids[0]);
+    assert_eq!(first.body_id, replay.body_id);
+}
+
+#[test]
 fn discovered_body_open_is_inert_and_explicit_proof_backed_join_is_exact() {
     let mut session = ZeroBodyFrontDoor::with_identity(
         crate::host_adapter::test_host_adapter_arc(),
