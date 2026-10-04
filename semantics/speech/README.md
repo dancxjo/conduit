@@ -716,6 +716,15 @@ The receipt retains the selection, definition, feature provenance and exact
 binding. It does not rewrite the intent or establish timing, source coverage or
 commitment. The supported sample writer includes a declared-default “tata”.
 
+Whole-intent global preparation now completes native default choice before voice
+admission. Each private phone receipt retains the original rule-choice state,
+completed state and an explicit rule/default realization. Rule output features
+are available only for rule realization; default features retain their explicit
+occurrence evidence. Mixed rule/default events and boundaries share the same
+frozen timing and renderer. Earlier deferral or a late default-admission failure
+prevents a playable aggregate escaping. This does not establish source coverage
+or linguistic commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed

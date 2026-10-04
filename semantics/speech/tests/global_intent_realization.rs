@@ -226,7 +226,7 @@ fn frozen_global_choices_timing_and_boundary_preserve_original_receipts_and_pcm(
             original
         ));
         assert!(core::ptr::eq(
-            receipt.features().rule(),
+            receipt.features().unwrap().rule(),
             &setup.rules.rules().as_slice()[0]
         ));
         assert_eq!(
@@ -245,7 +245,7 @@ fn frozen_global_choices_timing_and_boundary_preserve_original_receipts_and_pcm(
             receipt.binding(),
             &setup.voice.phones().as_slice()[0]
         ));
-        assert_eq!(receipt.features().features().count(), 0);
+        assert_eq!(receipt.features().unwrap().features().count(), 0);
     }
     let phone = VoiceEvent::phone(SpeechPhoneInput {
         phone: conduit_speech::EnglishPhone::t,
@@ -344,7 +344,7 @@ fn late_foreign_default_or_unselected_rule_cannot_return_a_renderable_result() {
         if matches!(reason.as_ref(), conduit_speech::global_rule_selection::GlobalRuleSelectionRefusal::FeatureOccurrence(_)))
     );
     let excluded =
-        SpeechAllophoneChoicePolicy::new(true, false, false, false, false, false).unwrap();
+        SpeechAllophoneChoicePolicy::new(false, false, false, false, false, false).unwrap();
     assert!(
         matches!(prepare_global_intent(&source, &setup.inventory, &setup.voice, &setup.boundaries, &setup.rules, &excluded, &[setup.evidence(&defaults[0]), setup.evidence(&defaults[0])]),
         Err(GlobalIntentRefusal::Profile { event: 0, reason: ChosenGlobalProfileRefusal::Unchosen(state) }) if state.outcome() == &SpeechAllophoneChoiceOutcome::None)
@@ -552,3 +552,6 @@ fn selected_default_voice_retains_exact_inputs_and_refuses_foreign_defaults() {
         Err(GlobalDefaultProfileRefusal::AmbiguousDefinition)
     ));
 }
+
+#[path = "common/global_default_intent_cases.rs"]
+mod default_intent_cases;

@@ -209,5 +209,22 @@ pub fn write(
             .renderer(&default_events)
             .map_err(|reason| format!("{reason:?}"))?,
     )?;
+    let default_intent = conduit_speech::global_intent_realization::prepare_global_intent(
+        intent,
+        inventory,
+        voice,
+        &boundaries,
+        &default_rules,
+        &default_policy,
+        &evidence,
+    )
+    .map_err(|reason| format!("{reason:?}"))?;
+    super::super::write_rendered(
+        output,
+        "global-default-intent-tata",
+        default_intent
+            .renderer()
+            .map_err(|reason| format!("{reason:?}"))?,
+    )?;
     Ok(())
 }
