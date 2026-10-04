@@ -77,9 +77,7 @@ extern "C" fn conduitos_start() -> ! {
                             record.timestamp,
                             record.image_physical_start,
                         );
-                        if inspect_spore_provision(&record, identities).is_some() {
-                            emit_refusal("spore-join-awaits-owner-receipt");
-                        }
+                        inspect_spore_provision(&record, None);
                         headless_startup::run(record);
                     }
                 }
@@ -128,7 +126,7 @@ fn initialize_runtime_arena(record: &boot::BootRecord) {
 #[cfg(all(target_os = "none", not(feature = "virtio-net-proof")))]
 fn inspect_spore_provision(
     _record: &boot::BootRecord,
-    identities: conduitos::identity::BootIdentities,
+    advertisement: Option<&conduit_core::HostAdvertisement>,
 ) -> Option<InspectedSpore> {
     let Some(region) = boot::spore_module() else {
         emit_refusal("spore-boot-module-missing");
@@ -153,7 +151,10 @@ fn inspect_spore_provision(
             ) {
                 emit_refusal(error.as_str());
             }
-            let join = match spore_join::prepare_native(provision, identities) {
+            let Some(advertisement) = advertisement else {
+                emit_refusal("spore-join-awaits-native-surface");
+            };
+            let join = match spore_join::prepare_native(provision, advertisement) {
                 Ok(join) => join,
                 Err(error) => emit_refusal(error.as_str()),
             };
