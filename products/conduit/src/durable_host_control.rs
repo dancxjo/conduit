@@ -68,6 +68,8 @@ pub(crate) use body::{
 pub(crate) use body_birth::BirthTransition;
 pub(crate) use body_birth::{face as birth_face, interact as submit_birth_interaction};
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
+#[cfg(unix)]
+pub(crate) use terminal_attach::attached_wardrobe;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
@@ -1043,6 +1045,15 @@ enum Request {
         show: Box<MaskShow>,
         interaction: FaceInteraction,
     },
+    #[cfg(unix)]
+    BodyAttachedTerminalWardrobe {
+        protocol: u16,
+        token: Vec<u8>,
+        route_plan_id: conduit_core::PlanId,
+        show: Box<MaskShow>,
+        basis_revision: u64,
+        command: terminal_attach::TerminalWardrobeCommand,
+    },
     BodyBrowserInteraction {
         protocol: u16,
         token: Vec<u8>,
@@ -1208,6 +1219,11 @@ enum Response {
     BodyInteraction {
         protocol: u16,
         result: Box<serde_json::Value>,
+    },
+    #[cfg(unix)]
+    BodyAttachedTerminalWardrobe {
+        protocol: u16,
+        report: Box<serde_json::Value>,
     },
     BodyRunRequested {
         protocol: u16,
@@ -1769,6 +1785,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::ReleaseRemote { token, .. } => token,
         #[cfg(unix)]
         Request::BodyAttachedTerminalInteraction { token, .. } => token,
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalWardrobe { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
     offered.fill(0);
@@ -2043,6 +2061,21 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalWardrobe {
+            protocol,
+            route_plan_id,
+            show,
+            basis_revision,
+            command,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .attached_terminal_wardrobe(&route_plan_id, &show, basis_revision, command)
+            .map(|report| Response::BodyAttachedTerminalWardrobe {
+                protocol: PROTOCOL,
+                report: Box::new(report),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserInteraction {

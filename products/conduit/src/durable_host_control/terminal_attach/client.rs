@@ -1,6 +1,7 @@
 //! The foreground terminal supplies actual output bytes to the installed
 //! owner's Host; it cannot mint the owner's Show or replace its Face.
 
+use super::TerminalWardrobeCommand;
 use super::{wire, AttachReply, AttachRequest};
 use crate::durable_host_control::{body, CONTROL_OUTCOME_UNKNOWN, PROTOCOL};
 use conduit_core::{HostAdvertisement, PlanId};
@@ -25,6 +26,32 @@ pub(crate) struct AttachedTerminalSession {
     pub route_plan_id: PlanId,
     pub advertisement: HostAdvertisement,
     pub effect: TerminalFrameReceipt,
+}
+
+pub(crate) fn attached_wardrobe(
+    state_dir: &Path,
+    attached: &AttachedTerminalSession,
+    basis_revision: u64,
+    command: TerminalWardrobeCommand,
+) -> Result<serde_json::Value, String> {
+    match body::call(
+        state_dir,
+        crate::durable_host_control::Request::BodyAttachedTerminalWardrobe {
+            protocol: PROTOCOL,
+            token: body::token(state_dir)?,
+            route_plan_id: attached.route_plan_id.clone(),
+            show: Box::new(attached.show.clone()),
+            basis_revision,
+            command,
+        },
+    )? {
+        crate::durable_host_control::Response::BodyAttachedTerminalWardrobe {
+            protocol: PROTOCOL,
+            report,
+        } => Ok(*report),
+        crate::durable_host_control::Response::Refused { code, .. } => Err(code),
+        _ => Err(CONTROL_OUTCOME_UNKNOWN.into()),
+    }
 }
 
 pub(crate) fn attach_and_show(
