@@ -624,6 +624,14 @@ context conjunction without dropping mismatch evidence. Unsupported syntax and
 occurrence failures remain typed refusals. Input matching, rule status policy,
 output-feature inheritance, selection and commitment remain separate.
 
+`evaluate_allophone_rule` combines those input and context receipts for the
+same original intent segment. Optional feature observations retain their
+provenance and must satisfy native equality across the occurrence's inventory,
+language, revision, sequence, utterance and ordinal. Foreign occurrences produce
+typed refusals; absent features preserve observation uncertainty. Both component
+receipts remain available after mismatch. Evaluation does not select a rule,
+resolve its output features or establish linguistic commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed

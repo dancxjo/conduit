@@ -15,9 +15,9 @@ use conduit_birth_plot::{BirthActionOutcome, HostOwnedBirthFaceBasis};
 #[cfg(test)]
 use conduit_patchbay_workbench::{PatchbayModel, ZeroBodyFrontDoor};
 use conduit_presentation::Presentation;
-#[cfg(test)]
-use conduit_std_host::spoken_face_mask::ReaderCommand;
 use conduit_std_host::spoken_face_mask::SpokenFaceSession;
+#[cfg(test)]
+use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenBatchDelivery};
 #[cfg(test)]
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
 #[cfg(test)]
@@ -324,6 +324,93 @@ mod tests {
         assert_eq!(
             read_command_line(&mut input).unwrap(),
             Ok(Some("quit".into()))
+        );
+    }
+
+    #[test]
+    fn selected_spoken_birth_opens_with_command_help_then_current_creche() {
+        let host = StdHost::new();
+        let advertisement = host.advertisement().clone();
+        let door = ZeroBodyFrontDoor::from_model(
+            Arc::new(HostedPatchbayAdapter),
+            PatchbayModel::from_advertisement(advertisement.clone()),
+        )
+        .unwrap();
+        let basis = HostOwnedBirthFaceBasis {
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            encounter_id: crate::birth_identity::fresh_uuid().unwrap(),
+        };
+        let draft = door.creche_draft(basis.encounter_id.clone()).unwrap();
+        let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+        let (face, show) = present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+        assert!(face.basis.body_id.is_none());
+        let mut first_batch = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        first_batch
+            .command(
+                &face,
+                &show,
+                installed::opening_commands(true).next().unwrap(),
+                1,
+            )
+            .unwrap();
+        let first = first_batch.next_batch_with_limits(1, 64).unwrap().unwrap();
+        assert_eq!(first.face_id, face.identity.as_str());
+        assert_eq!(first.source_show_id, show.show_id.as_str());
+        assert!(
+            first.segments[0]
+                .segment
+                .text
+                .starts_with("Enter one command"),
+            "{:?}",
+            first.segments[0].segment.text
+        );
+        let stopped = first_batch
+            .acknowledge_batch(SpokenBatchDelivery::Cancelled)
+            .unwrap()
+            .unwrap();
+        assert!(selected_readout::turn_interrupted(&stopped.outcome));
+        let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+        let readings = installed::opening_commands(true)
+            .enumerate()
+            .map(|(index, command)| {
+                reader
+                    .command(&face, &show, command, index as u64 + 1)
+                    .unwrap();
+                reader.take_text_readout().unwrap().unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(readings.len(), 2);
+        for reading in &readings {
+            assert_eq!(reading.face_id, face.identity.as_str());
+            assert_eq!(reading.show_id, show.show_id.as_str());
+        }
+        let help = &readings[0].clauses[0];
+        for command in [
+            "Type help",
+            "Type read all",
+            "Type focus",
+            "Type edit",
+            "type activate",
+            "Type stop",
+        ] {
+            assert!(help.contains(command), "missing command {command}");
+        }
+        assert!(readings[1]
+            .clauses
+            .iter()
+            .any(|clause| clause.contains("A body of your own")));
+        assert!(readings[1]
+            .clauses
+            .iter()
+            .any(|clause| clause.contains("Friendly Body name")));
+        assert!(readings[1]
+            .clauses
+            .iter()
+            .any(|clause| clause.contains("edit value")));
+        assert_eq!(
+            installed::opening_commands(false).collect::<Vec<_>>(),
+            vec![ReaderCommand::ReadAll]
         );
     }
 

@@ -106,22 +106,27 @@ fn run_with_input(
         }
     )
     .map_err(|error| error.to_string())?;
-    let mut sequence = 1_u64;
-    reader
-        .command(&face, &show, ReaderCommand::ReadAll, sequence)
-        .map_err(debug_error)?;
-    emit_readout(
-        state_dir,
-        input,
-        playback.as_ref(),
-        &mut reader,
-        &face,
-        &show,
-        &advertisement,
-        &mut sequence,
-        OutputPhase::Birth,
-        output,
-    )?;
+    let mut sequence = 0_u64;
+    for command in opening_commands(playback.is_some()) {
+        sequence += 1;
+        reader
+            .command(&face, &show, command, sequence)
+            .map_err(debug_error)?;
+        if emit_readout(
+            state_dir,
+            input,
+            playback.as_ref(),
+            &mut reader,
+            &face,
+            &show,
+            &advertisement,
+            &mut sequence,
+            OutputPhase::Birth,
+            output,
+        )? {
+            break;
+        }
+    }
 
     loop {
         write!(output, "birth> ").map_err(|error| error.to_string())?;
@@ -291,22 +296,27 @@ fn run_body(
         body_id.as_str()
     )
     .map_err(|error| error.to_string())?;
-    let mut sequence = 1_u64;
-    reader
-        .command(&face, &show, ReaderCommand::ReadAll, sequence)
-        .map_err(debug_error)?;
-    emit_readout(
-        state_dir,
-        input,
-        playback.as_ref(),
-        &mut reader,
-        &face,
-        &show,
-        &advertisement,
-        &mut sequence,
-        OutputPhase::Body,
-        output,
-    )?;
+    let mut sequence = 0_u64;
+    for command in opening_commands(playback.is_some()) {
+        sequence += 1;
+        reader
+            .command(&face, &show, command, sequence)
+            .map_err(debug_error)?;
+        if emit_readout(
+            state_dir,
+            input,
+            playback.as_ref(),
+            &mut reader,
+            &face,
+            &show,
+            &advertisement,
+            &mut sequence,
+            OutputPhase::Body,
+            output,
+        )? {
+            break;
+        }
+    }
     loop {
         write!(output, "body> ").map_err(|error| error.to_string())?;
         output.flush().map_err(|error| error.to_string())?;
@@ -448,4 +458,11 @@ fn present(
     mask.show()
         .cloned()
         .ok_or_else(|| "terminal did not acknowledge a Show".into())
+}
+
+pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
+    spoken
+        .then_some(ReaderCommand::Help)
+        .into_iter()
+        .chain(std::iter::once(ReaderCommand::ReadAll))
 }

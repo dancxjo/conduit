@@ -7,19 +7,25 @@ import { closeSync, existsSync, openSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
+import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
-  speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg] = process.argv.slice(2);
+  speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg,
+  modelArg, modelEndpoint, modelMemory] = process.argv.slice(2);
 const [speakerCard, speakerDevice, speechExecutable, speechData, speechEngine] =
   [speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg]
     .map(value => value === '-' ? undefined : value);
+const model = modelArg === '-' ? undefined : modelArg;
 assert.ok(bodyName && !bodyName.includes('\n') && !bodyName.includes('\r') &&
   Buffer.byteLength(bodyName) <= 120, 'Body name must be one bounded input line');
 assert.equal(Boolean(speakerCard), Boolean(speakerDevice));
 assert.ok(!speakerCard || speechExecutable, 'selected speaker needs a speech provider');
 assert.equal(Boolean(speechExecutable), Boolean(speechData));
 assert.equal(Boolean(speechExecutable), Boolean(speechEngine));
+assert.ok(!model || speechExecutable, 'model-assisted speech needs the selected speech provider');
+assert.equal(Boolean(model), Boolean(modelEndpoint));
+assert.equal(Boolean(model), Boolean(modelMemory));
 const [xtask, owner, state, handbook, build, profile, cert, key, output, playwright] =
   [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
     certArg, keyArg, outputArg, playwrightArg].map(value => path.resolve(value));
@@ -66,7 +72,11 @@ try {
       { encoding: 'utf8', timeout: 3000 });
     return status.status === 0 ? JSON.parse(status.stdout) : null;
   }, service, 'installed zero-Body service');
-  assert.equal(existsSync(path.join(state, 'body', 'biography.json')), false);
+  const preBirth = makeZeroBodyReceipt(installation, before,
+    existsSync(path.join(state, 'body', 'biography.json')),
+    existsSync(path.join(state, 'body', 'owner-transaction.json')));
+  const preBirthBytes = Buffer.from(`${JSON.stringify(preBirth, null, 2)}\n`);
+  await writeFile(path.join(output, 'zero-body-before.json'), preBirthBytes, { mode: 0o600 });
   const input = [
     'read all',
     'next main',
@@ -151,6 +161,8 @@ try {
     owner_boot_id: ownerPart.boot_id,
     source_commit: installation.release_source_identity,
     zero_body_observed: true,
+    zero_body_receipt: { path: '../zero-body-before.json',
+      bytes: preBirthBytes.length, sha256: digest(preBirthBytes) },
     confirmation_observed: true,
     speaker_playback_selected: Boolean(speakerCard),
     human_hearing_observed: false,
@@ -188,6 +200,8 @@ try {
     '--output-dir', live, '--playwright', playwright];
   if (speechExecutable) liveArgs.push('--speech-executable', speechExecutable,
     '--speech-data', speechData, '--speech-engine', speechEngine);
+  if (model) liveArgs.push('--model', model, '--ollama-endpoint', modelEndpoint,
+    '--admitted-memory-mib', modelMemory);
   invoke(xtask, liveArgs, { timeout: 180_000 });
   const reportFile = path.join(live, 'report.json');
   const report = await load(reportFile);
