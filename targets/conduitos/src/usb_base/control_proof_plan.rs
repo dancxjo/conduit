@@ -1,7 +1,11 @@
 //! Proof preparation binds actual native identities to the checked control Source.
 //! The grant is explicit proof-appliance authority, never discovered permission.
-use super::*;
+use super::{
+    control_contract::{CONTROL_CALL, CONTROL_MAXIMUM_BYTES, ControlContract},
+    control_factory::*,
+};
 use alloc::{collections::BTreeMap, vec};
+use conduit_core::*;
 use conduit_planner::{
     ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
     plan_expanded_authoring_with_options,
@@ -9,15 +13,26 @@ use conduit_planner::{
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
 };
-pub(super) fn plan(
+/// Observed identities supplied by the proof root; these data grant no authority.
+pub struct ControlProofSubject<'a> {
+    pub host_id: &'a str,
+    pub boot_id: &'a str,
+    pub controller_base_id: &'a str,
+    pub device_instance_id: &'a str,
+    pub root_port: u8,
+    pub slot: u8,
+    pub attachment_epoch: u32,
+}
+
+/// One explicit proof-appliance recipe shared by guest execution and host verification.
+/// Constructing its advertisement or Plan performs no physical effects.
+pub fn plan(
     contract: &ControlContract,
-    ids: &BootIdentities,
-    base: &[u8; 32],
-    device: &UsbDevice,
+    subject: &ControlProofSubject<'_>,
 ) -> Result<Plan, &'static str> {
     let (startup, profile) = contract.catalogs();
     let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("../../../../plots/usb/control.conduit")),
+        &parse_syntax_document(include_str!("../../plots/usb/control.conduit")),
         &startup,
     )
     .map_err(|_| "usb-control-proof-planning")?;
@@ -40,8 +55,8 @@ pub(super) fn plan(
     };
     let mut host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: identity::hex(&ids.host).into(),
-        boot_id: identity::hex(&ids.boot).into(),
+        host_id: subject.host_id.into(),
+        boot_id: subject.boot_id.into(),
         offer_generation: OfferGeneration(1),
         profile: "conduitos/usb-control-kernel-proof@1".into(),
         bases: vec![],
@@ -59,16 +74,9 @@ pub(super) fn plan(
     .map_err(|_| "usb-control-proof-planning")?;
     registry
         .register(BaseProviderEntry {
-            base_id: identity::hex(base).into(),
-            provider_instance_id: identity::hex(&identity::derive_usb_device(
-                &ids.boot,
-                base,
-                device.root_port,
-                device.slot,
-                device.attachment_epoch,
-            ))
-            .into(),
-            provider_generation: u64::from(device.attachment_epoch),
+            base_id: subject.controller_base_id.into(),
+            provider_instance_id: subject.device_instance_id.into(),
+            provider_generation: u64::from(subject.attachment_epoch),
             implementation_id: CONTROL_BASE.into(),
             mechanism_family: CONTROL_ATTACHMENT.into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
@@ -77,9 +85,9 @@ pub(super) fn plan(
             resources: vec![resource_offer(
                 &alloc::format!(
                     "usb-control-dma/{}/{}/{}",
-                    device.root_port,
-                    device.slot,
-                    device.attachment_epoch
+                    subject.root_port,
+                    subject.slot,
+                    subject.attachment_epoch
                 ),
                 CONTROL_ATTACHMENT,
                 1,

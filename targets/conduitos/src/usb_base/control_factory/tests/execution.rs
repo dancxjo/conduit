@@ -372,3 +372,73 @@ fn cancellation_invalidates_a_pending_kernel_dispatch() {
     assert!(kernel.complete_host_call_bytes(&admitted, &[]).is_err());
     assert!(kernel.next_host_request().is_none());
 }
+
+#[test]
+fn checked_control_plot_refuses_input_when_remote_sign_budget_is_exhausted() {
+    let contract = ControlContract::prepare().unwrap();
+    let (mut kernel, input_port, output_port) = prepared();
+    let input = ValuePayload {
+        value_kind: input_port.value_kind.clone(),
+        encoded: input(&contract),
+    };
+    let raw = crate::usb_base::control_request::ControlTransferRequest::new(
+        [128, 6, 0, 1, 0, 0, 8, 0],
+        &[],
+        256,
+    )
+    .unwrap();
+    let mut encoder =
+        crate::usb_base::control_result::PreparedControlResultEncoder::new(&contract).unwrap();
+    let result = encoder.completed(&raw, 0, &[]).unwrap().to_vec();
+    let mut output = ValuePayload {
+        value_kind: output_port.value_kind.clone(),
+        encoded: Vec::with_capacity(CONTROL_MAXIMUM_BYTES as usize),
+    };
+    kernel.start().unwrap();
+    for sequence in 0..4 {
+        kernel
+            .admit_input(&input_port.port_id, sequence, &input)
+            .unwrap();
+        let mut delivered = false;
+        for _ in 0..16 {
+            kernel.step().unwrap();
+            if let Some(request) = kernel.next_host_request() {
+                let obligation = kernel.host_request_obligation(&request).unwrap();
+                let admitted = kernel
+                    .admit_host_request(
+                        &request,
+                        &obligation.host,
+                        &obligation.resources,
+                        &obligation.authorities,
+                    )
+                    .unwrap();
+                kernel.complete_host_call_bytes(&admitted, &result).unwrap();
+            }
+            if let Some(actual) = kernel
+                .output_into(&output_port.port_id, &mut output)
+                .unwrap()
+            {
+                assert_eq!(actual, sequence);
+                assert_eq!(output.encoded, result);
+                kernel
+                    .complete_output(&output_port.port_id, actual)
+                    .unwrap();
+                delivered = true;
+                break;
+            }
+        }
+        assert!(delivered, "output {sequence}");
+    }
+    assert!(matches!(
+        kernel.admit_input(&input_port.port_id, 4, &input),
+        Err(KernelCompositeError::Execution {
+            reason: conduit_composite::ChildExecutionError::Scheduler(
+                conduit_kernel::scheduler::SchedulerError::Sign(
+                    conduit_kernel::SignError::RemoteItemCapacityExceeded
+                )
+            ),
+            ..
+        })
+    ));
+    assert!(kernel.next_host_request().is_none());
+}
