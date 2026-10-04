@@ -52,3 +52,10 @@ plot speech/amplitude-apply (
     scale.result >> limit.value
     limit.result >> result
 }
+
+# Transport filler for boundary slots, not a requested pitch or intensity.
+# Boundary rendering ignores voice controls and emits exact silent frames.
+plot speech/boundary-control (
+    >> value: SpeechStart
+    result: SpeechEventVoiceControl >>
+) = ({cycle_mode: SpeechCycleControlMode.profile, period_q8: 0, amplitude_q15: 0})

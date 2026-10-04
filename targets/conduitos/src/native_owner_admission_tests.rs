@@ -160,6 +160,7 @@ fn exact_owner_face_follows_receipt_on_the_authenticated_line() {
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
             presentation: Box::new(face.clone()),
             interactions_admitted: false,
+            route: None,
         })
         .unwrap(),
         sent: Vec::new(),
@@ -193,6 +194,7 @@ fn foreign_body_or_unproven_interaction_route_cannot_become_shared_face() {
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
             presentation: Box::new(owner_face("source/other-route")),
             interactions_admitted: false,
+            route: None,
         })
         .unwrap(),
         sent: Vec::new(),
@@ -207,6 +209,7 @@ fn foreign_body_or_unproven_interaction_route_cannot_become_shared_face() {
         schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
         presentation: Box::new(owner_face("source/native-route")),
         interactions_admitted: true,
+        route: None,
     })
     .unwrap();
     assert!(matches!(

@@ -15,7 +15,7 @@ use conduit_body::{
 use conduit_core::LinkBindingId;
 use conduit_presentation::{
     FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
-    MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
+    RemoteOwnerMaskRouteSeal, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
@@ -170,6 +170,39 @@ impl DurableHostRuntime {
         }
     }
 
+    pub(super) fn browser_mask_route(
+        &mut self,
+        window_id: &str,
+        credential: &MembershipCredential,
+        binding: &LinkBindingId,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => {
+                owner.browser_mask_route(window_id, credential, binding)
+            }
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
+    pub(super) fn browser_acknowledge_show(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => {
+                owner.acknowledge_browser_mask_show(window_id, binding, request, show)
+            }
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
     pub(super) fn browser_abort(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => owner.browser_abort(window_id),
@@ -277,6 +310,7 @@ impl DurableHostRuntime {
                 schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
                 presentation: Box::new(presentation),
                 interactions_admitted: false,
+                route: None,
             }
         };
         let encoded = serde_json::to_vec(&response)
@@ -583,41 +617,45 @@ fn submit_local_face_interaction_with_expiry(
 #[cfg(unix)]
 pub(crate) fn submit_browser_face_interaction(
     state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
     request: OwnerFaceSnapshotRequest,
     show: MaskShow,
     interaction: FaceInteraction,
 ) -> Result<serde_json::Value, String> {
-    submit_browser_face_interaction_with_expiry(state_dir, request, show, interaction, None)
+    match call(
+        state_dir,
+        Request::BodyBrowserInteraction {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            window_id: window_id.into(),
+            binding,
+            request,
+            show: Box::new(show),
+            interaction,
+            not_after_millis: None,
+        },
+    )? {
+        Response::BodyInteraction {
+            protocol: PROTOCOL,
+            result,
+        } => Ok(*result),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong browser interaction response".into()),
+    }
 }
 
 #[cfg(unix)]
-pub(crate) fn submit_browser_face_interaction_until(
+pub(crate) fn submit_native_guest_face_interaction_until(
     state_dir: &Path,
     request: OwnerFaceSnapshotRequest,
     show: MaskShow,
     interaction: FaceInteraction,
     not_after_millis: u64,
 ) -> Result<serde_json::Value, String> {
-    submit_browser_face_interaction_with_expiry(
-        state_dir,
-        request,
-        show,
-        interaction,
-        Some(not_after_millis),
-    )
-}
-
-#[cfg(unix)]
-fn submit_browser_face_interaction_with_expiry(
-    state_dir: &Path,
-    request: OwnerFaceSnapshotRequest,
-    show: MaskShow,
-    interaction: FaceInteraction,
-    not_after_millis: Option<u64>,
-) -> Result<serde_json::Value, String> {
     match call(
         state_dir,
-        Request::BodyBrowserInteraction {
+        Request::BodyNativeGuestInteraction {
             protocol: PROTOCOL,
             token: token(state_dir)?,
             request,
@@ -631,13 +669,15 @@ fn submit_browser_face_interaction_with_expiry(
             result,
         } => Ok(*result),
         Response::Refused { code, .. } => Err(code),
-        _ => Err("Body owner returned the wrong browser interaction response".into()),
+        _ => Err("Body owner returned the wrong native guest interaction response".into()),
     }
 }
 
 #[cfg(not(unix))]
 pub(crate) fn submit_browser_face_interaction(
     _state_dir: &Path,
+    _window_id: &str,
+    _binding: LinkBindingId,
     _request: OwnerFaceSnapshotRequest,
     _show: MaskShow,
     _interaction: FaceInteraction,
@@ -646,7 +686,7 @@ pub(crate) fn submit_browser_face_interaction(
 }
 
 #[cfg(not(unix))]
-pub(crate) fn submit_browser_face_interaction_until(
+pub(crate) fn submit_native_guest_face_interaction_until(
     _state_dir: &Path,
     _request: OwnerFaceSnapshotRequest,
     _show: MaskShow,

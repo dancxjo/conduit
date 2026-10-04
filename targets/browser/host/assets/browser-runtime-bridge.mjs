@@ -216,6 +216,18 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         });
       }, { retireInput: true });
     },
+    ownerFaceShowReceipt() {
+      const status = call("conduit_browser_owner_face_show_receipt");
+      if (status < 0) throw new Error(`owner Face Show receipt refused (${status})`);
+      return readBytes(api, {
+        pointerExport: "conduit_browser_owner_face_output_ptr",
+        lengthExport: "conduit_browser_owner_face_output_len",
+        capacityExport: "conduit_browser_owner_face_output_capacity",
+        minimum: 1,
+        maximum: 64 * 1024,
+        label: "owner Face Show receipt",
+      });
+    },
     ownerFaceInteract(proposed) {
       const input = encoder.encode(JSON.stringify(proposed));
       return withInput(api, input, {

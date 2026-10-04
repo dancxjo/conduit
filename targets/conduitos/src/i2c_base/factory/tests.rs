@@ -46,7 +46,42 @@ fn planned_named_source<P: I2cProvider>(
     name: &str,
 ) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
     let contract = I2cContract::prepare().unwrap();
-    let (startup, mut profile) = contract.catalogs();
+    let (mut startup, mut profile) = contract.catalogs();
+    let mut sampler_offer = None;
+    if source.contains("current/sample") {
+        let types = check_syntax_document(
+            &parse_syntax_document(include_str!(
+                "../../../../../plots/device-protocols/bme280-lifecycle.conduit"
+            )),
+            &startup,
+        )
+        .unwrap();
+        let state = &types
+            .native_types
+            .iter()
+            .find(|ty| ty.name == "BmeProtocolState")
+            .unwrap()
+            .value_type;
+        let value = CheckedValueContract::new(
+            state.profile().unwrap().value_kind().clone(),
+            crate::current_sample::MAXIMUM_BYTES,
+            vec![],
+        )
+        .unwrap();
+        assert!(
+            conduit_plot::maximum_prepared_canonical_value_bytes(state).unwrap()
+                <= crate::current_sample::MAXIMUM_BYTES
+        );
+        let trigger = CheckedValueContract::new(kind_id("value/u64"), 8, vec![]).unwrap();
+        conduit_semantic_catalog::install_current_sample_finite_kind(
+            &value,
+            &trigger,
+            &mut startup,
+            &mut profile,
+        )
+        .unwrap();
+        sampler_offer = Some(crate::current_sample::offer(&value, &trigger).unwrap());
+    }
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     for stage in checked
         .plots
@@ -103,6 +138,9 @@ fn planned_named_source<P: I2cProvider>(
         planner_capabilities: vec![],
     };
     ready.append_to_advertisement(&mut host, &contract).unwrap();
+    if let Some(offer) = sampler_offer {
+        host.capabilities.push(offer);
+    }
     for gear in &expanded.gears {
         if let [entry] = gear.configuration.as_slice()
             && let ConfigurationValue::Text(encoded) = &entry.value
@@ -266,3 +304,5 @@ fn complete_bme280_transition_and_next_action_have_finite_native_admission() {
     }
     assert_eq!(expression_count, 13);
 }
+
+mod state;

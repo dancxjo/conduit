@@ -42,6 +42,8 @@ pub mod duration;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod intent_inventory;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_prosody;
 #[cfg(feature = "semantic-bindings")]
 pub mod inventory_admission;
@@ -55,6 +57,8 @@ pub mod reference_admission;
 pub mod text_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod timing;
+#[cfg(feature = "semantic-bindings")]
+pub mod utterance_timing;
 /// Preparation/inspection bindings. The compact rendering Back does not carry
 /// rich inventories or a heap. Bounds and local laws are checked here; resolving
 /// artifact references remains an admission responsibility.

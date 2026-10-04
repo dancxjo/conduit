@@ -29,11 +29,25 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
                 OwnerFaceSnapshotResponse::Snapshot {
                     schema,
                     presentation,
+                    interactions_admitted,
+                    route,
                     ..
                 } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
                     presentation
                         .validate()
                         .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?;
+                    if let Some(route) = route {
+                        route
+                            .verify_seal()
+                            .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?;
+                        if route.face_id != presentation.identity
+                            || route.face_revision != presentation.revision
+                        {
+                            return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+                        }
+                    } else if *interactions_admitted {
+                        return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+                    }
                 }
                 OwnerFaceSnapshotResponse::Unchanged {
                     schema, identity, ..
@@ -47,6 +61,11 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             protocol
         }
         BrowserAdmissionEgress::FaceInteractionResponse {
+            protocol,
+            accepted,
+            code,
+        }
+        | BrowserAdmissionEgress::FaceShowResponse {
             protocol,
             accepted,
             code,
