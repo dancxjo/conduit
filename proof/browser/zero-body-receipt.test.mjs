@@ -11,4 +11,9 @@ test('pre-Birth receipt binds the installed Host and live zero-Body status', () 
   assert.throws(() => makeZeroBodyReceipt(installation, { ...status, host_id: 'host/other' }, false, false));
   assert.throws(() => makeZeroBodyReceipt(installation, status, true, false));
   assert.throws(() => makeZeroBodyReceipt(installation, status, false, true));
+  const omittedJoinedState = { host_id: 'host/fresh', body_state: null };
+  assert.equal(makeZeroBodyReceipt(omittedJoinedState, status, false, false).installation,
+    omittedJoinedState);
+  assert.throws(() => makeZeroBodyReceipt({ ...installation, joined_body_state: {} },
+    status, false, false));
 });
