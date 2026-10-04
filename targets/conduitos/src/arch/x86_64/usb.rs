@@ -22,6 +22,10 @@ mod error;
 #[path = "usb_transfer.rs"]
 mod transfer;
 
+#[cfg(feature = "scripted-keyboard-proof")]
+#[path = "usb_ring_proof.rs"]
+mod ring_proof;
+
 #[cfg(test)]
 use attachment::classify_port_reset;
 use attachment::{attached_root_port, reset_port};
@@ -81,6 +85,9 @@ fn enumerate_root_port_at_epoch(
         return Err(UsbError::NoDevice);
     }
     let dma = dma_pointer(dma_slot);
+    if unsafe { (*dma).owner_slot != 0 } {
+        return Err(UsbError::StaleDeviceInstance);
+    }
     let dma_virtual = dma as u64;
     let dma_physical = image_virtual_to_physical(dma_virtual).ok_or(UsbError::DmaAddressInvalid)?;
     if dma_physical & 0xfff != 0 {
@@ -95,6 +102,10 @@ fn enumerate_root_port_at_epoch(
             input_context: [0; 2112],
             transfer_ring: [[0; 4]; TRANSFER_TRBS],
             descriptor: [0; MAX_CONFIGURATION_BYTES],
+            control_cursor: crate::usb_base::control_ring::ControlRingCursor::new(),
+            owner_slot: 0,
+            owner_root_port: root_port,
+            owner_epoch: attachment_epoch,
         }
     };
     reset_port(controller, root_port)?;
@@ -112,6 +123,10 @@ fn enumerate_root_port_at_epoch(
         return Err(UsbError::EnableSlotFailed);
     }
     let slot = enable.slot;
+    // From here, storage remains owned until this exact slot is disabled.
+    unsafe {
+        (*dma).owner_slot = slot;
+    }
     let context = controller.context_bytes();
     let device_phys = dma_physical + core::mem::offset_of!(UsbDma, device_context) as u64;
     let input_phys = dma_physical + core::mem::offset_of!(UsbDma, input_context) as u64;
@@ -142,11 +157,10 @@ fn enumerate_root_port_at_epoch(
         return Err(UsbError::AddressDeviceFailed);
     }
     let mut ring = ControlRing {
-        enqueue: 0,
-        cycle: 1,
         physical: ring_phys,
         buffer_physical: buffer_phys,
         root_port,
+        slot,
         short_packets: 0,
         dma,
     };
@@ -260,6 +274,8 @@ fn enumerate_root_port_at_epoch(
     result.dma_bytes = core::mem::size_of::<UsbDma>() as u16;
     result.dma_alignment = core::mem::align_of::<UsbDma>() as u16;
     result.port_poll_steps = PORT_POLL_STEPS;
+    #[cfg(feature = "scripted-keyboard-proof")]
+    ring_proof::run(controller, &mut ring)?;
     Ok(result)
 }
 
@@ -312,11 +328,10 @@ pub(super) fn select_boot_protocol(
     let dma_virtual = dma as u64;
     let dma_physical = image_virtual_to_physical(dma_virtual).ok_or(UsbError::DmaAddressInvalid)?;
     let mut ring = ControlRing {
-        enqueue: 14,
-        cycle: 1,
         physical: dma_physical + core::mem::offset_of!(UsbDma, transfer_ring) as u64,
         buffer_physical: dma_physical + core::mem::offset_of!(UsbDma, descriptor) as u64,
         root_port: device.root_port,
+        slot: device.slot,
         short_packets: 0,
         dma,
     };
