@@ -351,9 +351,9 @@ pub(super) fn prepare<
             .count(),
         2
     );
-    let (table, handle, claim) = super::automatic_admission::possession(plan, false);
+    let (table, handle, claim) = super::automatic_admission::possession(plan, false, &grants[0]);
     let (clock_table, clock_handle, clock_claim) =
-        super::automatic_admission::possession(plan, true);
+        super::automatic_admission::possession(plan, true, &grants[1]);
     let identity = artifact.artifact().identity().clone();
     for altered in 0..4 {
         let mut stale = identity.clone();

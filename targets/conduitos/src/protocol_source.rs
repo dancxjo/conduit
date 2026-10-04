@@ -291,3 +291,6 @@ pub use entry::PreparedProtocolEntry;
 
 mod boot_source;
 pub use boot_source::{PROTOCOL_MODULE_COMMAND, ProtocolBootRefusal, prepare_boot_source};
+
+mod issuer;
+pub use issuer::{NativeProtocolIssueRefusal, NativeProtocolIssuer, NativeProtocolPossession};
