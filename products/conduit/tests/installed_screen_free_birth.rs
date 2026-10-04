@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
-    io::Write,
+    io::{Read, Write},
     path::Path,
     process::{Child, Command, Output, Stdio},
     thread,
@@ -162,6 +162,136 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     assert_eq!(recovered["presentation"]["basis"]["body_id"], body_id);
     stop_service(&mut service);
     fs::remove_dir_all(state).unwrap();
+}
+
+#[test]
+fn post_birth_pending_activation_is_refused_when_owner_face_changes() {
+    let state = std::env::temp_dir().join(format!(
+        "conduit-screen-free-stale-action-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&state).unwrap();
+    seed_installation(&state);
+    let mut service = start_service(&state);
+    let mut client = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .args([
+            "body",
+            "birth",
+            "--screen-free",
+            "--state-dir",
+            path(&state),
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = client.stdin.take().unwrap();
+    let mut output = client.stdout.take().unwrap();
+    input
+        .write_all(
+            b"focus creche.plot.1\nedit value true\nactivate\nfocus creche.birth\nactivate\n",
+        )
+        .unwrap();
+    let born = read_until_prompt(&mut output, b"body> ");
+    assert!(born.contains("Continuing retained Body"));
+
+    let before = local_face(&state);
+    let action = before["presentation"]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|action| action["intent"] == "conduit.intent/change-clock-interval@1")
+        .unwrap()["identity"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    input
+        .write_all(format!("focus {action}\n").as_bytes())
+        .unwrap();
+    let focused = read_until_prompt(&mut output, b"body> ");
+    assert!(!focused.contains("Refused action:"), "{focused}");
+
+    let started = product(&[
+        "body",
+        "start",
+        "--state-dir",
+        path(&state),
+        "--maximum-millis",
+        "1000",
+    ]);
+    assert!(
+        started.status.success(),
+        "{}",
+        String::from_utf8_lossy(&started.stderr)
+    );
+    let after = local_face(&state);
+    assert_ne!(before["presentation"], after["presentation"]);
+
+    input.write_all(b"activate\n").unwrap();
+    let stale = read_until_prompt(&mut output, b"body> ");
+    assert!(stale.contains("Refused the pending command"), "{stale}");
+    assert!(!stale.contains("Owner action result:"), "{stale}");
+    assert!(!stale.contains("Owner action refused:"), "{stale}");
+
+    // A new service Boot may retain the Body, but the command entered while
+    // the previous Boot's Show was current still needs a fresh decision.
+    stop_service(&mut service);
+    fs::remove_file(state.join("control.sock")).unwrap();
+    service = start_service(&state);
+    let rebooted = local_face(&state);
+    assert_eq!(
+        after["presentation"]["basis"]["body_id"],
+        rebooted["presentation"]["basis"]["body_id"]
+    );
+    assert_ne!(
+        after["advertisement"]["boot_id"],
+        rebooted["advertisement"]["boot_id"]
+    );
+    input.write_all(b"activate\n").unwrap();
+    let stale_boot = read_until_prompt(&mut output, b"body> ");
+    assert!(
+        stale_boot.contains("Refused the pending command"),
+        "{stale_boot}"
+    );
+    assert!(!stale_boot.contains("Owner action result:"), "{stale_boot}");
+    assert!(
+        !stale_boot.contains("Owner action refused:"),
+        "{stale_boot}"
+    );
+    input.write_all(b"quit\n").unwrap();
+    assert!(client.wait().unwrap().success());
+    stop_service(&mut service);
+    fs::remove_dir_all(state).unwrap();
+}
+
+fn local_face(state: &Path) -> Value {
+    let response = product(&["body", "face", "--state-dir", path(state), "--json"]);
+    assert!(
+        response.status.success(),
+        "{}",
+        String::from_utf8_lossy(&response.stderr)
+    );
+    serde_json::from_slice(&response.stdout).unwrap()
+}
+
+fn read_until_prompt(input: &mut impl Read, prompt: &[u8]) -> String {
+    let mut captured = Vec::new();
+    let mut byte = [0];
+    while !captured.ends_with(prompt) {
+        assert_eq!(
+            input.read(&mut byte).unwrap(),
+            1,
+            "client ended before prompt"
+        );
+        captured.push(byte[0]);
+        assert!(captured.len() < 2_000_000, "unbounded screen-free readout");
+    }
+    String::from_utf8(captured).unwrap()
 }
 
 #[test]
