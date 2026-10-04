@@ -121,3 +121,57 @@ fn empty_and_sixteen_feature_bundles_have_exact_fixed_receipt_counts() {
         ));
     }
 }
+
+#[test]
+fn every_bundle_conjunction_pair_retains_components_and_native_policy() {
+    fn component(
+        index: usize,
+    ) -> (
+        FeatureSpecification,
+        FeatureSpecification,
+        SpeechContextDecision,
+    ) {
+        match index {
+            0 => (known(true), known(true), SpeechContextDecision::Matched),
+            1 => (known(true), known(false), SpeechContextDecision::Mismatched),
+            2 => (
+                FeatureSpecification::unknown(),
+                known(true),
+                SpeechContextDecision::RequirementUnresolved,
+            ),
+            3 => (
+                known(true),
+                FeatureSpecification::unknown(),
+                SpeechContextDecision::ObservationUnresolved,
+            ),
+            _ => unreachable!(),
+        }
+    }
+    for left in 0..4 {
+        for right in 0..4 {
+            let (lr, lo, ld) = component(left);
+            let (rr, ro, rd) = component(right);
+            let requirements = bundle(&[("left", lr), ("right", rr)]);
+            let observations = bundle(&[("right", ro), ("left", lo)]);
+            let compared = compare_feature_bundle(&requirements, &observations).unwrap();
+            let expected = if left == 1 || right == 1 {
+                SpeechContextDecision::Mismatched
+            } else if left == 2 || right == 2 {
+                SpeechContextDecision::RequirementUnresolved
+            } else if left == 3 || right == 3 {
+                SpeechContextDecision::ObservationUnresolved
+            } else {
+                SpeechContextDecision::Matched
+            };
+            assert_eq!(compared.decision(), &expected);
+            let components: Vec<_> = compared.comparisons().collect();
+            assert_eq!(components[0].decision(), &ld);
+            assert_eq!(components[1].decision(), &rd);
+        }
+    }
+    let empty = bundle(&[]);
+    assert_eq!(
+        compare_feature_bundle(&empty, &empty).unwrap().decision(),
+        &SpeechContextDecision::Matched
+    );
+}
