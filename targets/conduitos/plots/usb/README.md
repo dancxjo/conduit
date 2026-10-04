@@ -128,6 +128,30 @@ requires an observed short transfer, followed by successful status and device
 configuration. This demonstrates native stage handling, not plotted enumeration
 or cancellation/quiescence proof.
 
+The native control producer retains one finite cursor in each DMA slot instead
+of reconstructing a presumed enumeration offset. One reservation holds pending
+storage until the exact final Status Stage succeeds. Uncertain failure, timeout
+or foreign completion poisons reuse; it does not claim endpoint stop. Slot and
+attachment-epoch checks reject stale device descriptions. Only acknowledged
+Disable Slot retirement releases the storage for new enumeration.
+
+Control TDs remain contiguous within the fixed ring. A Link TRB returns to the
+head and toggles producer/consumer ownership. Publication withholds the first
+TRB until all stages are ready, and withholds the next free slot before exposing
+the TD. This includes tail slots that were unused in a previous cycle. Link
+publication follows complete preparation of the new head. These x86 coherent
+DMA stores are controller invariants, not a portable coherence claim.
+
+The architecture proof appliance scripts 64 short descriptor transfers through
+this native primitive and requires exact ring geometry, cycle transitions and
+bounded storage in `cargo xtask make conduitos usb-proof`. Its separate ring Sign
+and receipt explicitly identify fixture protocol. That proof does not execute
+USB class plots or establish physical-device compatibility. Deterministic tests
+exercise 100,000 mixed reservations and 10,000 actual DMA publication cycles,
+including controller look-ahead, pressure, stale reservation and uncertain
+quiescence. The [xHCI specification](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
+defines Link TRB and Cycle-bit behavior.
+
 ## Check the groundwork
 
 ```sh

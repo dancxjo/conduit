@@ -1,6 +1,7 @@
 //! Three fixed, independently addressed USB enumeration DMA slots.
 
 use super::{MAX_CONFIGURATION_BYTES, TRANSFER_TRBS, UsbDevice, UsbError};
+use crate::usb_base::control_ring::ControlRingCursor;
 
 pub const USB_DEVICE_DMA_SLOTS: u8 = 3;
 
@@ -10,6 +11,10 @@ pub(in crate::arch::x86_64) struct UsbDma {
     pub(super) input_context: [u8; 2112],
     pub(super) transfer_ring: [[u32; 4]; TRANSFER_TRBS],
     pub(super) descriptor: [u8; MAX_CONFIGURATION_BYTES],
+    pub(super) control_cursor: ControlRingCursor,
+    pub(super) owner_slot: u8,
+    pub(super) owner_root_port: u8,
+    pub(super) owner_epoch: u32,
 }
 
 const EMPTY_DMA: UsbDma = UsbDma {
@@ -17,6 +22,10 @@ const EMPTY_DMA: UsbDma = UsbDma {
     input_context: [0; 2112],
     transfer_ring: [[0; 4]; TRANSFER_TRBS],
     descriptor: [0; MAX_CONFIGURATION_BYTES],
+    control_cursor: ControlRingCursor::new(),
+    owner_slot: 0,
+    owner_root_port: 0,
+    owner_epoch: 0,
 };
 
 static mut PRIMARY_DMA: UsbDma = EMPTY_DMA;
@@ -56,5 +65,23 @@ pub(super) fn dma_pointer(slot: UsbDmaSlot) -> *mut UsbDma {
 pub(in crate::arch::x86_64) fn device_dma_pointer(
     device: &UsbDevice,
 ) -> Result<*mut UsbDma, UsbError> {
-    Ok(dma_pointer(UsbDmaSlot::from_index(device.dma_slot)?))
+    let dma = dma_pointer(UsbDmaSlot::from_index(device.dma_slot)?);
+    if !unsafe { (&*dma).matches_device(device) } {
+        return Err(UsbError::StaleDeviceInstance);
+    }
+    Ok(dma)
 }
+
+impl UsbDma {
+    fn matches_device(&self, device: &UsbDevice) -> bool {
+        self.owner_slot != 0
+            && self.owner_epoch != 0
+            && self.owner_slot == device.slot
+            && self.owner_root_port == device.root_port
+            && self.owner_epoch == device.attachment_epoch
+    }
+}
+
+#[cfg(test)]
+#[path = "usb_dma_tests.rs"]
+mod tests;

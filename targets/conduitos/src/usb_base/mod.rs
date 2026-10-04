@@ -7,3 +7,4 @@ pub mod control_owner;
 pub mod control_payload;
 pub mod control_request;
 pub mod control_result;
+pub(crate) mod control_ring;
