@@ -111,7 +111,7 @@ try {
   assert.equal(admitted.biography.membership.parts.length, 2);
   assert.equal(admitted.biography.membership.parts.find(part => part.part_id === admitted.credential.part_id).current.boot_id, identity.bootId);
   assert.equal(await page.locator('[data-owner-result]').textContent(),
-    `Body ${window.body_id} admitted Part ${admitted.credential.part_id} on this Host and Boot. The Linux owner remains authoritative; no Plan or Play was transferred.`);
+    `Body ${window.body_id} admitted Part ${admitted.credential.part_id} on this Host and Boot. The Linux owner remains authoritative; this browser can present its Face through an owner-issued Mask Plan.`);
   const screenshot = path.join(output, 'browser-admitted.png');
   await page.screenshot({ path: screenshot, fullPage: true });
   await page.locator('[data-owner-face-document] [data-owner-action]').first().waitFor();

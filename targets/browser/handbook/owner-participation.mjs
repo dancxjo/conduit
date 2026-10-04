@@ -242,7 +242,7 @@ export async function startOwnerParticipation(application, root) {
     }
     const current = part.current;
     result.textContent = current?.host_id === host.id && current?.boot_id === host.bootId
-      ? `Body ${biography.body_id} admitted Part ${credential.part_id} on this Host and Boot. The Linux owner remains authoritative; no Plan or Play was transferred.`
+      ? `Body ${biography.body_id} admitted Part ${credential.part_id} on this Host and Boot. The Linux owner remains authoritative; this browser can present its Face through an owner-issued Mask Plan.`
       : `Part ${credential.part_id} is retained, but this browser Boot is no longer current.`;
     evidence.textContent = JSON.stringify(biography, null, 2);
     root.dataset.joinedBodyId = biography.body_id;
