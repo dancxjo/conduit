@@ -74,6 +74,8 @@ pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod occurrence_context;
 #[cfg(feature = "semantic-bindings")]
+pub mod output_features;
+#[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod reference_admission;
@@ -170,3 +172,5 @@ mod rule_conditions_parity;
 
 #[cfg(all(test, feature = "semantic-bindings"))]
 mod allophone_selection_parity;
+#[cfg(test)]
+mod output_features_parity;
