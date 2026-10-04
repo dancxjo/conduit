@@ -11,11 +11,7 @@ use conduit_plot::{
 };
 
 const LIFECYCLE: &str = include_str!("../../../../plots/device-protocols/bme280-lifecycle.conduit");
-const SOURCE: &str = concat!(
-    include_str!("../../../../plots/device-protocols/bme280-lifecycle.conduit"),
-    "\n",
-    include_str!("../../../../plots/device-protocols/bme280-feedback.conduit"),
-);
+const FEEDBACK: &str = include_str!("../../../../plots/device-protocols/bme280-feedback.conduit");
 
 #[test]
 fn source_feedback_plans_with_exact_retained_state_event_and_sampler_contracts() {
@@ -69,7 +65,10 @@ fn source_feedback_plans_with_exact_retained_state_event_and_sampler_contracts()
             .unwrap(),
         crate::current_sample::offer(&state_value, &event_value).unwrap(),
     ];
-    let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
+    // Canonical imports precede definitions when these reviewed Source units are combined.
+    let (import, body) = FEEDBACK.split_once('\n').unwrap();
+    let source = alloc::format!("{import}\n{LIFECYCLE}\n{body}");
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let authoring =
         expand_canonical_plot_for_authoring(&checked, "bme280-feedback", &profile).unwrap();
     for gear in &authoring.expanded.gears {
