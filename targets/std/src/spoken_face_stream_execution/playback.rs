@@ -118,6 +118,45 @@ pub fn execute_real_spoken_batch_to_selected_playback(
         selection,
         authorization,
         control,
+        &mut host,
+    )
+}
+
+/// Run a spoken batch on the actual already-attached Host. The caller retains
+/// that Host across batches and must keep its selected speaker and initialized
+/// speech provider attached. This entrance never creates a second Host with
+/// copied Host/Boot identifiers and does not mint a spoken Mask Show.
+pub fn execute_spoken_batch_on_attached_host(
+    face: &Presentation,
+    source_show: &MaskShow,
+    batch: &SpokenBatch,
+    selection: &HostedPlaybackSelection,
+    authorization: &ExplicitPlaybackAuthorization,
+    control: &RunControl,
+    host: &mut StdHost,
+) -> Result<SpokenPlaybackExecution, SpokenStreamExecutionRefusal> {
+    let offered = host.advertisement();
+    let config = StdHostConfig {
+        host_id: offered.host_id.clone(),
+        boot_id: offered.boot_id.clone(),
+        offer_generation: offered.offer_generation,
+    };
+    let provider = host.speech_synthesis.as_ref().ok_or_else(|| {
+        SpokenStreamExecutionRefusal::Plan("Host has no initialized speech provider".into())
+    })?;
+    provider
+        .validate_host(&config.host_id, &config.boot_id, config.offer_generation)
+        .map_err(|error| SpokenStreamExecutionRefusal::Plan(error.to_string()))?;
+    let provider_sha256 = provider.provider_sha256().to_owned();
+    run_selected_spoken_playback(
+        face,
+        source_show,
+        batch,
+        &provider_sha256,
+        config,
+        selection.clone(),
+        authorization,
+        control,
         host,
     )
 }
@@ -132,7 +171,7 @@ pub(super) fn run_selected_spoken_playback(
     selection: HostedPlaybackSelection,
     authorization: &ExplicitPlaybackAuthorization,
     control: &RunControl,
-    mut host: StdHost,
+    host: &mut StdHost,
 ) -> Result<SpokenPlaybackExecution, SpokenStreamExecutionRefusal> {
     validate_spoken_source(face, source_show, batch)?;
     if host.advertisement().host_id != config.host_id
