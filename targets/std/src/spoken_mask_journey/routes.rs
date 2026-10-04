@@ -128,6 +128,8 @@ fn admit_spoken_mask_routes_for_wake(
                 route_id: format!("route/{evidence_id}/{index}"),
                 mask_plot: item.mask.plot_identity.clone(),
                 plan_id: body_plan.plan_id.clone(),
+                child_mask_plan_id: None,
+                owner_route_seal_id: None,
                 placement_ids: item
                     .plan
                     .fragments

@@ -55,3 +55,16 @@ type SpeechPhonePatternIdentity = {
     observed: PhoneId
     where .required == .observed
 }
+
+# Explicit current-feature evidence remains occurrence-scoped and provenance-
+# bearing. This is an observation claim, not authenticity or authority.
+type SpeechOccurrenceFeatureObservation = {
+    occurrence: LanguageSpeechTokenRef
+    features: SpeechFeatureBundle
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechOccurrenceObservationMatch = {
+    expected: LanguageSpeechTokenRef
+    observed: LanguageSpeechTokenRef
+    where .expected == .observed
+}

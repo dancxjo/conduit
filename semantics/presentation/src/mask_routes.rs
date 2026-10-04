@@ -29,6 +29,20 @@ pub enum MaskRouteAdmissionError {
 }
 
 impl AdmittedMaskPlotRoutes {
+    pub(crate) fn from_verified_owner_presentation_routes(
+        body_id: BodyId,
+        plan_id: PlanId,
+        routes: Vec<SealedMaskPlotRoute>,
+    ) -> Self {
+        // Only OwnerPresentationPlan::admit_current_routes calls this after
+        // verifying every retained child seal and current witness.
+        Self {
+            body_id,
+            plan_id,
+            routes,
+        }
+    }
+
     pub fn new(
         body_plan: &BodyPlan,
         masks: &[PlannedMaskPlot],
@@ -129,6 +143,8 @@ impl AdmittedMaskPlotRoutes {
                 route_id: alloc::format!("route/{}", plan_id.as_str()),
                 mask_plot: planned.mask.plot_identity.clone(),
                 plan_id: plan_id.clone(),
+                child_mask_plan_id: None,
+                owner_route_seal_id: None,
                 placement_ids,
                 currently_available: true,
             }],

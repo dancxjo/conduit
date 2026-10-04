@@ -209,6 +209,8 @@ fn fixture(available: bool) -> Fixture {
         route_id: "route/browser-mask".into(),
         mask_plot: mask.plot_identity.clone(),
         plan_id: body_plan.plan_id.clone(),
+        child_mask_plan_id: None,
+        owner_route_seal_id: None,
         placement_ids: plan
             .fragments
             .iter()

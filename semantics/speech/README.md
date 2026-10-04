@@ -614,6 +614,23 @@ features remain missing observations; definition features are not substituted.
 This prepares the input side of Tongues/Speaking-style standalone rules, not
 occurrence binding, context completion, output-feature inheritance, status
 permission, rule selection or linguistic commitment.
+`compare_allophone_rule_context` binds an original standalone rule to an
+exact intent occurrence and immediate event neighbors. Scalar requirements,
+before/after alternatives and condition receipts retain the original rule
+without constructing a temporary per-phoneme declaration. Matcher and stress
+views share the same neighbors; real boundaries are retained and unobserved
+endpoints remain unknown. Seven component decisions combine through the native
+context conjunction without dropping mismatch evidence. Unsupported syntax and
+occurrence failures remain typed refusals. Input matching, rule status policy,
+output-feature inheritance, selection and commitment remain separate.
+
+`evaluate_allophone_rule` combines those input and context receipts for the
+same original intent segment. Optional feature observations retain their
+provenance and must satisfy native equality across the occurrence's inventory,
+language, revision, sequence, utterance and ordinal. Foreign occurrences produce
+typed refusals; absent features preserve observation uncertainty. Both component
+receipts remain available after mismatch. Evaluation does not select a rule,
+resolve its output features or establish linguistic commitment.
 
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
