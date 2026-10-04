@@ -148,6 +148,21 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 ],
             ),
             Step::new(
+                "device-protocols.clock-native",
+                "Check calibrated native counter observations, finite lifetime and revocation",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduitos",
+                    "--lib",
+                    "--features",
+                    "native-owner-network",
+                    "arch::x86_64::deadline",
+                ],
+            ),
+            Step::new(
                 "device-protocols.i2c",
                 "Check exact I2C schemas, finite geometry and typed outcomes",
                 "cargo",
