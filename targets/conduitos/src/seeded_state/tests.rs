@@ -6,8 +6,8 @@ use conduit_planner::{
     plan_expanded_authoring_with_options,
 };
 use conduit_plot::{
-    CompositeFrontTerminal, ProfileCatalog, StartupCatalog, check_syntax_document,
-    expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_plot_for_authoring,
+    parse_syntax_document,
 };
 
 fn planned() -> (Plan, SeededStateOperationFactory, CapabilityOffer) {

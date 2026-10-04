@@ -6,7 +6,7 @@ plot bme280-join (
 
 plot bme280-feedback (
  >> begin: BmeProtocolBegin...|
- >> event: BmeProtocolEvent...|
+ >> event: BmeProtocolEvent...| <= 4096B
  current: BmeProtocolState...| <= 4096B >>
 ) {
  cell: state/seeded/flow/finite
