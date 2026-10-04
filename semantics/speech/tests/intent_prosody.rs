@@ -1,6 +1,7 @@
 #![cfg(feature = "semantic-bindings")]
 use conduit_core::IeeeF32;
 use conduit_plot::rust_binding::BoundedSequence;
+use conduit_speech::EnglishPhone;
 use conduit_speech::{
     control::prepare_voice_control, duration::duration_spans, intent_prosody::*, semantic::*, *,
 };
