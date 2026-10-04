@@ -71,10 +71,19 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                     I2C_IMPLEMENTATION
                         | expression_host_call::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
+                        | crate::current_sample::IMPLEMENTATION
                 )
             })
         {
             return Err(Refusal::Unsupported);
+        }
+        for gear in &fragment.placements {
+            if gear.implementation_id.as_str() == crate::current_sample::IMPLEMENTATION {
+                use conduit_composite::KernelOperationFactory;
+                crate::current_sample::CurrentSampleOperationFactory::default()
+                    .budget(gear)
+                    .map_err(|_| Refusal::InvalidPlan)?;
+            }
         }
         let mut bindings = Vec::with_capacity(fragment.placements.len());
         for gear in &fragment.placements {

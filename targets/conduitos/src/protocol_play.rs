@@ -1,5 +1,6 @@
 //! Native admission of an exact ordinary Plot and its retained physical owner.
 use crate::{
+    current_sample::CurrentSampleOperationFactory,
     expression_host_call::ExpressionOperationFactory,
     i2c_base::{I2cOperationFactory, I2cProvider, installation::ReadyI2cBase},
     protocol_host_calls::{PreparedProtocolCalls, ProtocolCallRefusal},
@@ -39,6 +40,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(SelectorOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(CurrentSampleOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let kernel = KernelCompositeHost::prepare(definition, &registry)
             .map_err(ProtocolCallRefusal::Kernel)?;

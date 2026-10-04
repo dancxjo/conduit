@@ -19,6 +19,7 @@ pub struct CurrentSampleBack {
     candidate_len: Option<usize>,
     output_staged: bool,
     terminal: bool,
+    finite: bool,
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for CurrentSampleBack {
@@ -26,14 +27,28 @@ impl<const PORTS: usize> StepBack<PORTS> for CurrentSampleBack {
         Some(AssignedTerminalTransduction {
             input: PortId(1),
             output: PortId(0),
-            normal_close: AssignedNormalCloseTransduction::NotAccepted,
-            abnormal: AssignedAbnormalTransduction::PropagateAfterDrain,
+            normal_close: if self.finite {
+                AssignedNormalCloseTransduction::PropagateAfterDrain
+            } else {
+                AssignedNormalCloseTransduction::NotAccepted
+            },
+            abnormal: if self.finite {
+                AssignedAbnormalTransduction::NotAccepted
+            } else {
+                AssignedAbnormalTransduction::PropagateAfterDrain
+            },
             cancellation: AssignedCancellationTransduction::NotCancellable,
         })
     }
 
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.terminal {
+            return StepOutcome::Complete;
+        }
+        if self.finite && io.input_closed(PortId(1)) {
+            io.consume_closed(PortId(1))
+                .expect("observed finite sample closure");
+            self.terminal = true;
             return StepOutcome::Complete;
         }
         // A replacement presented with the trigger wins the tie. Commit it in
@@ -53,6 +68,9 @@ impl<const PORTS: usize> StepBack<PORTS> for CurrentSampleBack {
             return StepOutcome::Progress;
         }
         if let Some(terminal) = io.input_abnormal(PortId(1)) {
+            if self.finite {
+                return fail(905);
+            }
             io.consume_abnormal(PortId(1))
                 .expect("present current/sample trigger terminal");
             self.terminal = true;
@@ -107,6 +125,13 @@ impl<const PORTS: usize> StepBack<PORTS> for CurrentSampleBack {
 }
 
 impl CurrentSampleBack {
+    /// Prepare a fault-neutral closing trigger stream; closure owes no sample.
+    pub fn prepare_finite(maximum_bytes: u32) -> Self {
+        let mut back = Self::prepare(maximum_bytes);
+        back.finite = true;
+        back
+    }
+
     /// Allocate the exact retained and candidate buffers before Play.
     /// The installed factory admits the value contract and finite envelope.
     pub fn prepare(maximum_bytes: u32) -> Self {
@@ -119,6 +144,7 @@ impl CurrentSampleBack {
             candidate_len: None,
             output_staged: false,
             terminal: false,
+            finite: false,
         }
     }
 }
@@ -201,6 +227,32 @@ mod tests {
         assert_eq!(
             <CurrentSampleBack as StepBack<2>>::prepared_output(&operation, PortId(0)),
             Some(current.as_slice())
+        );
+    }
+
+    #[test]
+    fn finite_close_owes_no_sample_and_is_not_starved_by_current_replacements() {
+        let mut back = CurrentSampleBack::prepare_finite(64);
+        let bytes = [7_u8; 8];
+        let mut io = StepIo::test_frame(
+            [Some(reference(1, &bytes)), None],
+            [false, true],
+            [None, None],
+            None,
+            8,
+        );
+        let inputs = StepInputBytes::test_frame([Some(&bytes), None], None);
+        assert_eq!(back.step(&mut io, &inputs), StepOutcome::Complete);
+        assert_eq!(io.test_prepared_output(), None);
+        assert_eq!(
+            <CurrentSampleBack as StepBack<2>>::terminal_transduction(&back)
+                .unwrap()
+                .normal_close,
+            AssignedNormalCloseTransduction::PropagateAfterDrain,
+        );
+        assert_eq!(
+            <CurrentSampleBack as StepBack<2>>::prepared_output(&back, PortId(0)),
+            None,
         );
     }
 }
