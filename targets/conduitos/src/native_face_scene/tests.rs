@@ -1,5 +1,6 @@
 use super::*;
 use alloc::{string::String, vec};
+use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use conduit_presentation::*;
 #[path = "fixture.rs"]
@@ -294,6 +295,86 @@ fn primary_view_explains_face_relationships_and_composition_without_new_meaning(
             .iter()
             .any(|row| row.text.contains("opaque/sha256"))
     );
+}
+
+#[test]
+fn primary_action_names_bounded_text_choices_from_current_face_contract() {
+    let mut current = face(31);
+    current.actions[0].arguments[0].value_name = "Interval in milliseconds".into();
+    current.actions[0].arguments[0].contract = CheckedValueContract::new(
+        kind_id(UTF8_TEXT_VALUE_KIND),
+        4,
+        vec![ValueConstraint::CanonicalMembership {
+            members: ["1000", "2000", "250", "500"]
+                .map(|value| value.as_bytes().to_vec())
+                .into(),
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let current = Presentation::new_with_semantics(
+        current.revision + 1,
+        current.basis,
+        current.subjects,
+        current.relationships,
+        current.properties,
+        current.text,
+        current.actions,
+        current.disclosures,
+    )
+    .unwrap();
+    let scene = NativeFaceScene::prepare(current.clone(), 640, 480).unwrap();
+    assert!(scene.primary.iter().any(|row| row.text.contains(
+        "Interval in milliseconds · enter one of: 1000, 2000, 250, 500 · Enter applies"
+    )));
+    let show = fixture::show(&current);
+    let interaction = scene
+        .interaction(
+            &current.identity,
+            current.revision,
+            FaceControl {
+                action: 0,
+                argument: Some(0),
+            },
+            &show,
+            vec![FaceInteractionArgument {
+                name: "value".into(),
+                value_kind: UTF8_TEXT_VALUE_KIND.into(),
+                value: b"500".to_vec(),
+            }],
+            1,
+        )
+        .unwrap();
+    assert_eq!(interaction.arguments[0].value, b"500");
+
+    let mut many = current.actions.clone();
+    many[0].arguments[0].contract = CheckedValueContract::new(
+        kind_id(UTF8_TEXT_VALUE_KIND),
+        2,
+        vec![ValueConstraint::CanonicalMembership {
+            members: (0u8..9)
+                .map(|value| value.to_string().into_bytes())
+                .collect(),
+            negated: false,
+        }],
+    )
+    .unwrap();
+    let crowded = Presentation::new_with_semantics(
+        current.revision + 1,
+        current.basis,
+        current.subjects,
+        current.relationships,
+        current.properties,
+        current.text,
+        many,
+        current.disclosures,
+    )
+    .unwrap();
+    let crowded_scene = NativeFaceScene::prepare(crowded, 640, 480).unwrap();
+    assert!(crowded_scene
+        .primary
+        .iter()
+        .any(|row| row.text.contains("enter a replacement value")));
 }
 
 #[test]
