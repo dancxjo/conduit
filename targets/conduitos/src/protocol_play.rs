@@ -56,6 +56,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             crate::protocol_operations::ProtocolOperations {
                 joins: zip,
                 states: crate::seeded_state::SeededStateOperationFactory::default(),
+                merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
             },
         )
     }
@@ -78,6 +79,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             crate::protocol_operations::ProtocolOperations {
                 joins: crate::flow_zip::FlowZipOperationFactory::default(),
                 states,
+                merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
             },
         )
     }
@@ -115,11 +117,18 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         {
             return Err(ProtocolCallRefusal::Unsupported);
         }
-        let crate::protocol_operations::ProtocolOperations { joins: zip, states } = operations;
+        let crate::protocol_operations::ProtocolOperations {
+            joins: zip,
+            states,
+            merges,
+        } = operations;
         validate_fore(&definition)?;
         zip.validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         states
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        merges
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let calls = PreparedProtocolCalls::prepare_with_operations(
@@ -152,6 +161,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(CurrentSampleOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(merges)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         if allow_clock {
             registry

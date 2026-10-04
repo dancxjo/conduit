@@ -205,4 +205,35 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
             expected
         );
     }
+
+    for tag in ["not-acknowledged", "provider-lost", "refused"] {
+        let bus_type = case(&context_type, "bus");
+        let refusal = variant(bus_type, tag, &[]);
+        let expected = refusal.canonical_bytes().unwrap();
+        let bus_context =
+            StructuredInfoValue::variant(context_type.clone(), "bus", refusal).unwrap();
+        let request_input = bus_context.canonical_bytes().unwrap();
+        let output =
+            StructuredInfoValue::from_canonical_bytes(request.evaluate(&request_input).unwrap())
+                .unwrap();
+        assert!(
+            matches!(fixture::field(&output, "deadline").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes.as_slice() == 0_u64.to_le_bytes())
+        );
+        let input = complete(
+            bus_context,
+            variant(result_type, "completed", &125_u64.to_le_bytes()),
+        )
+        .canonical_bytes()
+        .unwrap();
+        let output =
+            StructuredInfoValue::from_canonical_bytes(event.evaluate(&input).unwrap()).unwrap();
+        let bus = fixture::payload(fixture::payload(&output));
+        assert_eq!(
+            fixture::field(bus, "result").canonical_bytes().unwrap(),
+            expected
+        );
+        assert!(
+            matches!(fixture::field(bus, "now").shape(), conduit_core::StructuredInfoValueShape::Leaf(bytes) if bytes.as_slice() == 125_u64.to_le_bytes())
+        );
+    }
 }
