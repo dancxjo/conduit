@@ -505,11 +505,26 @@ contains at most four alternatives for one neighbor, with four fixed receipt
 slots. Empty lists are unconstrained. Native phone, phoneme and boundary laws
 check exact identities; the neighbor Plot owns presence, domain and uncertainty
 policy, and its alternative Plot owns disjunction. A match wins; otherwise
-unsupported evidence takes precedence over unresolved evidence, then mismatch.
+unsupported evidence precedes unresolved requirements, then unresolved
+observations and mismatch.
 Every original comparison remains available, including unresolved alternatives.
-Absent neighbors and missing observation are distinct. Feature matchers remain
-unsupported, and these receipts establish neither occurrence adjacency nor rule
-conditions, source resolution, authority or complete allophone eligibility.
+Absent neighbors and missing observation are distinct. Feature matchers use
+explicitly supplied bundles, retaining every component receipt. These receipts
+establish neither occurrence adjacency nor rule conditions, source resolution,
+authority or complete allophone eligibility.
+
+`compare_feature_bundle` validates unique keys on both supplied bundles and
+retains at most 16 immutable fixed-slot receipts. Lookup preserves exact keys
+without normalization; a native law verifies each selected identity. Missing
+observations are explicit and preserve the original requirement. Native value
+equality covers boolean, category, F64, bounded F32 vector and text values;
+IEEE equality preserves encoded bits, including signed zero and NaN payloads.
+The scalar Plot handles all six specification states, and conjunction runs in
+Plot while retaining every component decision. Empty requirements are
+unconstrained. Neighbor feature observations distinguish missing evidence from
+a supplied empty bundle. No definition inheritance or feature inference occurs.
+Native contract checks run during preparation; this does not admit allocating
+structured equality during prepared play or establish a complete device budget.
 
 `resolve_declared_intent_realization` checks that the chosen opaque phone ID
 has at least one declaration in the exact requested phoneme definition of the
