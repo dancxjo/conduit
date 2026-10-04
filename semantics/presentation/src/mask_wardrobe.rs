@@ -34,7 +34,13 @@ pub struct BodyMaskWardrobe {
 pub struct SealedMaskPlotRoute {
     pub route_id: String,
     pub mask_plot: PlotIdentity,
+    /// The Plan that seals this selectable route. An owner presentation Plan
+    /// may contain several distinct child Mask Plot Plans.
     pub plan_id: PlanId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub child_mask_plan_id: Option<PlanId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_route_seal_id: Option<PlanId>,
     pub placement_ids: Vec<PlacementId>,
     pub currently_available: bool,
 }
@@ -252,6 +258,7 @@ fn validate_routes(
     }
     for (index, route) in routes.iter().enumerate() {
         if route.plan_id != *active_plan_id
+            || route.child_mask_plan_id.is_some() != route.owner_route_seal_id.is_some()
             || route.route_id.is_empty()
             || route.placement_ids.is_empty()
             || has_duplicates(&route.placement_ids)

@@ -19,9 +19,30 @@ fn route(mask_plot: &PlotIdentity, name: &str, available: bool) -> SealedMaskPlo
         route_id: format!("route/{name}"),
         mask_plot: mask_plot.clone(),
         plan_id: PlanId::from("plan/current"),
+        child_mask_plan_id: None,
+        owner_route_seal_id: None,
         placement_ids: vec![PlacementId::from(format!("placement/{name}"))],
         currently_available: available,
     }
+}
+
+#[test]
+fn owner_route_provenance_must_be_paired() {
+    let mask = mask("browser");
+    let wardrobe =
+        MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![mask.clone()], vec![]).unwrap();
+    let mut child_only = route(&mask, "browser", true);
+    child_only.child_mask_plan_id = Some(PlanId::from("plan/child"));
+    assert_eq!(
+        wardrobe.reconcile(&PlanId::from("plan/current"), &[child_only], None),
+        Err(MaskWardrobeError::InvalidRoute)
+    );
+    let mut seal_only = route(&mask, "browser", true);
+    seal_only.owner_route_seal_id = Some(PlanId::from("plan/owner-route"));
+    assert_eq!(
+        wardrobe.reconcile(&PlanId::from("plan/current"), &[seal_only], None),
+        Err(MaskWardrobeError::InvalidRoute)
+    );
 }
 
 fn selected(mask_plot: &PlotIdentity, name: &str) -> SelectedMaskPlotRoute {
@@ -126,6 +147,8 @@ fn an_unsealed_or_other_plan_route_cannot_be_selected_as_fallback() {
             &PlanId::from("plan/current"),
             &[SealedMaskPlotRoute {
                 plan_id: PlanId::from("plan/replacement"),
+                child_mask_plan_id: None,
+                owner_route_seal_id: None,
                 ..route(&spoken, "discovered", true)
             }],
             None,
