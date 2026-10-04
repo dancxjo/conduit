@@ -22,6 +22,10 @@ pub(super) fn input(ty: &StructuredInfoType, value: SpeechProsodyInput) -> Vec<u
         ty,
         &[
             (
+                "cycle",
+                crate::frame_parity::cycle_value(field_type(ty, "cycle"), value.cycle),
+            ),
+            (
                 "stress",
                 StructuredInfoValue::variant(
                     stress_type.clone(),
@@ -104,6 +108,7 @@ pub(super) fn context(
     frame: i32,
 ) -> SpeechProsodyInput {
     SpeechProsodyInput {
+        cycle: crate::frame_parity::profile_cycle(),
         stress,
         target,
         frame,

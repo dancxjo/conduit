@@ -1,0 +1,54 @@
+# Private numeric carriers for admitted native cycle/intensity quantities.
+# Subframe Q8 and amplitude Q15 are representation precisions, not source quantities.
+type SpeechCycleQ8Input = {
+    numerator_seconds: U64
+    denominator: U64
+    sample_rate_hz: U64
+}
+type SpeechControlQ8Result = {
+    whole_q8: U64
+    remainder_numerator: U64
+}
+plot speech/cycle-q8 (
+    >> value: SpeechCycleQ8Input
+    result: SpeechControlQ8Result >>
+) = ({whole_q8: .numerator_seconds * .sample_rate_hz * 256 / .denominator, remainder_numerator: (.numerator_seconds * .sample_rate_hz * 256) % .denominator})
+type SpeechAmplitudeQ15Result = {
+    whole_q15: U64
+    remainder_numerator: U64
+}
+type SpeechAmplitudeQ15Input = {
+    numerator: U64
+    denominator: U64
+}
+plot speech/amplitude-q15 (
+    >> value: SpeechAmplitudeQ15Input
+    result: SpeechAmplitudeQ15Result >>
+) = ({whole_q15: .numerator * 32768 / .denominator, remainder_numerator: (.numerator * 32768) % .denominator})
+type SpeechEventVoiceControl = {
+    cycle_mode: SpeechCycleControlMode
+    period_q8: I32
+    amplitude_q15: I32
+}
+plot speech/voice-control-admitted (
+    >> value: SpeechEventVoiceControl
+    result: Boolean >>
+) = (.amplitude_q15 >= 0 && .amplitude_q15 <= 65536 && (.cycle_mode is profile || (.period_q8 >= 2048 && .period_q8 <= 131072)))
+type SpeechAmplitudeApplyInput = {
+    sample: I32
+    amplitude_q15: I32
+}
+plot speech/amplitude-scale (
+    >> value: SpeechAmplitudeApplyInput
+    result: I32 >>
+) = (.sample * .amplitude_q15 / 32768)
+plot speech/amplitude-apply (
+    >> value: SpeechAmplitudeApplyInput
+    result: I32 >>
+) {
+    scale: speech/amplitude-scale
+    limit: speech/limit
+    value >> scale.value
+    scale.result >> limit.value
+    limit.result >> result
+}

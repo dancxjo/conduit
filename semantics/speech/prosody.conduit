@@ -2,6 +2,7 @@
 # implicitly synchronized with a called result. Unknown/unspecified stress
 # remains neutral; this profile does not infer stress or measured intonation.
 type SpeechProsodyInput = {
+    cycle: SpeechFrameCycleControl
     stress: EnglishStress
     attack: Boolean
     release: Boolean
@@ -21,7 +22,7 @@ plot speech/pitch-prepare (
 plot speech/pitch-contour (
     >> value: SpeechProsodyWorking
     result: SpeechFrameInput >>
-) = ({attack: .input.attack, release: .input.release, target: .input.target, frame: .input.frame, state: .input.state, period: .input.stress is primary ? .base_period - 3 + .input.frame * 8 / (.input.target.frames - 1) : .input.stress is secondary ? .base_period - 2 + .input.frame * 5 / (.input.target.frames - 1) : (.input.stress is unstressed || .input.stress is reduced) ? .base_period + .input.frame * 2 / (.input.target.frames - 1) : .base_period})
+) = ({cycle: .input.cycle, attack: .input.attack, release: .input.release, target: .input.target, frame: .input.frame, state: .input.state, period: .input.stress is primary ? .base_period - 3 + .input.frame * 8 / (.input.target.frames - 1) : .input.stress is secondary ? .base_period - 2 + .input.frame * 5 / (.input.target.frames - 1) : (.input.stress is unstressed || .input.stress is reduced) ? .base_period + .input.frame * 2 / (.input.target.frames - 1) : .base_period})
 
 plot speech/pitch (
     >> value: SpeechProsodyInput
@@ -54,7 +55,7 @@ plot speech/intensity-contour (
 plot speech/intensity-apply (
     >> value: SpeechIntensityWorking
     result: SpeechProsodyInput >>
-) = (.level == 256 ? .input : {stress: .input.stress, attack: .input.attack, release: .input.release, frame: .input.frame, state: .input.state, target: {f1: .input.target.f1, f2: .input.target.f2, f3: .input.target.f3, b1: .input.target.b1, b2: .input.target.b2, b3: .input.target.b3, c1: .input.target.c1, c2: .input.target.c2, c3: .input.target.c3, gain1: .input.target.gain1 * .level / 256, gain2: .input.target.gain2 * .level / 256, gain3: .input.target.gain3 * .level / 256, bypass_gain: .input.target.bypass_gain, voiced: .input.target.voiced, frication: .input.target.frication, frames: .input.target.frames, closure: .input.target.closure}})
+) = (.level == 256 ? .input : {cycle: .input.cycle, stress: .input.stress, attack: .input.attack, release: .input.release, frame: .input.frame, state: .input.state, target: {f1: .input.target.f1, f2: .input.target.f2, f3: .input.target.f3, b1: .input.target.b1, b2: .input.target.b2, b3: .input.target.b3, c1: .input.target.c1, c2: .input.target.c2, c3: .input.target.c3, gain1: .input.target.gain1 * .level / 256, gain2: .input.target.gain2 * .level / 256, gain3: .input.target.gain3 * .level / 256, bypass_gain: .input.target.bypass_gain, voiced: .input.target.voiced, frication: .input.target.frication, frames: .input.target.frames, closure: .input.target.closure}})
 plot speech/stress-intensity (
     >> value: SpeechProsodyInput
     result: SpeechProsodyInput >>
