@@ -40,7 +40,7 @@ pub fn write(
             output_features,
             original.phone().clone(),
             original.phoneme().clone(),
-            original.status().clone(),
+            *original.status(),
         )
         .unwrap();
         let rules = SpeechAllophoneRuleProfile::new(

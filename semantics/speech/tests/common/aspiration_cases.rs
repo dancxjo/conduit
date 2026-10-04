@@ -173,7 +173,7 @@ fn rule_override_is_realized_as_a_whole_specification_and_all_keys_need_coverage
         ),
         original.phone().clone(),
         original.phoneme().clone(),
-        original.status().clone(),
+        *original.status(),
     )
     .unwrap();
     setup.rules = SpeechAllophoneRuleProfile::new(
