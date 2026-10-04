@@ -2,7 +2,7 @@ with machine/usb/control/request as UsbControlRequest
 with machine/usb/control/result as UsbControlResult
 
 plot usb-control-call (
-    requests: UsbControlRequest...| >> results: UsbControlResult...|
+    requests: UsbControlRequest...| <= 4096B >> results: UsbControlResult...| <= 4096B
 ) {
     transfer: machine/usb/control
     requests >> transfer >> results
