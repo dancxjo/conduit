@@ -42,6 +42,8 @@ pub mod boundary_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod chosen_allophone_profile;
 #[cfg(feature = "semantic-bindings")]
+pub mod chosen_global_rule_profile;
+#[cfg(feature = "semantic-bindings")]
 pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
