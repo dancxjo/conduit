@@ -66,6 +66,14 @@ impl PreparedProtocolEntry {
             .map_err(ProtocolSourceRefusal::Plan)
     }
 
+    pub fn queue_limits(
+        &self,
+        hosts: &[HostAdvertisement],
+        placements: &PlacementChoices,
+    ) -> Result<ProtocolQueueLimits, ProtocolSourceRefusal> {
+        self.source.queue_limits(&self.expanded, hosts, placements)
+    }
+
     /// Consume the retained expansion and operations with selected native truth.
     pub fn plan(
         self,

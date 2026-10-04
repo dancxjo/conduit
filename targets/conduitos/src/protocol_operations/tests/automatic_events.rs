@@ -147,9 +147,12 @@ pub(super) fn prepare<
         ],
     };
     let encoded_package = serde_json::to_vec(&package).unwrap();
-    let decoded_package = ProtocolSourcePackage::decode(&encoded_package).unwrap();
-    let source = crate::protocol_source::PreparedProtocolSource::prepare(decoded_package).unwrap();
-    let expanded = source.expand("bme280-autonomous").unwrap();
+    let source = crate::protocol_source::PreparedProtocolEntry::prepare(
+        &encoded_package,
+        "bme280-autonomous",
+    )
+    .unwrap();
+    let expanded = source.expanded();
     std::eprintln!(
         "automatic BME280 Source topology: {} gears",
         expanded.expanded.gears.len()
@@ -234,15 +237,19 @@ pub(super) fn prepare<
     .unwrap();
     bus.append_to_advertisement(&mut host, &i2c).unwrap();
     timer.append_to_advertisement(&mut host, &clock).unwrap();
-    source.publish_pure_backs(&expanded, &mut host).unwrap();
+    source.publish_pure_backs(&mut host).unwrap();
     let before = host.clone();
-    source.publish_pure_backs(&expanded, &mut host).unwrap();
+    source.publish_pure_backs(&mut host).unwrap();
     assert_eq!(
         host, before,
         "republication retains the exact prepared offers"
     );
     let mut substituted = before.clone();
-    let pure = &source.capabilities[0];
+    let pure = host
+        .capabilities
+        .iter()
+        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::SEEDED_STATE_FLOW_KIND)
+        .unwrap();
     substituted
         .capabilities
         .iter_mut()
@@ -251,11 +258,7 @@ pub(super) fn prepare<
         .limits
         .max_queue_bytes += 1;
     let before_refusal = substituted.clone();
-    assert!(
-        source
-            .publish_pure_backs(&expanded, &mut substituted)
-            .is_err()
-    );
+    assert!(source.publish_pure_backs(&mut substituted).is_err());
     assert_eq!(
         substituted, before_refusal,
         "conflicting identity cannot partially publish offers"
@@ -284,8 +287,8 @@ pub(super) fn prepare<
         capability_id: capability.into(),
     });
     let hosts = [host];
-    let placements = default_expanded_placements(&expanded.expanded, &hosts).unwrap();
-    let limits = source.queue_limits(&expanded, &hosts, &placements).unwrap();
+    let placements = source.placements(&hosts).unwrap();
+    let limits = source.queue_limits(&hosts, &placements).unwrap();
     let boundaries = limits.boundaries;
     let connection_limits = limits.connections;
     let mut excessive = connection_limits.clone();
@@ -319,7 +322,7 @@ pub(super) fn prepare<
     };
     assert!(matches!(
         conduit_planner::plan_expanded_authoring_with_connection_limits(
-            &expanded,
+            expanded,
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -330,9 +333,7 @@ pub(super) fn prepare<
         Err(conduit_planner::PlannerError::QueueRequirementAboveHostLimit(_))
     ));
     let artifact = source
-        .plan_artifact(
-            &expanded,
-            ArtifactId::from("fixture/reviewed-source-package@1"),
+        .plan(
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -353,12 +354,7 @@ pub(super) fn prepare<
     let (table, handle, claim) = super::automatic_admission::possession(plan, false);
     let (clock_table, clock_handle, clock_claim) =
         super::automatic_admission::possession(plan, true);
-    let identity = crate::protocol_artifact::ProtocolArtifactIdentity {
-        source: plan.source_document_id.clone(),
-        checked: plan.checked_plot_id.clone(),
-        expanded: plan.expanded_plot_id.clone(),
-        artifact: ArtifactId::from("fixture/reviewed-source-package@1"),
-    };
+    let identity = artifact.artifact().identity().clone();
     for altered in 0..4 {
         let mut stale = identity.clone();
         match altered {
