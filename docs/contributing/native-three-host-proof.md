@@ -5,7 +5,8 @@ keeps one installed Linux Body owner, one ConduitOS x86_64 QMP guest, and one
 pinned Chromium Host live together. The guest changes the checked clock
 interval to 500 ms; the browser reads that new Face and changes it back to
 1000 ms. The Linux terminal then inspects the same current Face through its
-local Mask while the other two hosts remain live. The owner alone retains the
+local Mask, changes the interval to 500 ms, and the browser sees that result
+while the ConduitOS guest remains live. The owner alone retains the
 Body and workload truth. This proves the three-Host graphical and terminal
 presentation topology, not Mask preference, speech, physical hardware, or the
 published journey.
@@ -76,8 +77,9 @@ Face: a later membership change would correctly make an already shown native
 Face stale. It requires three distinct current Host/Boot pairs before either
 user action. QMP keyboard input, browser controls, both owner responses, and
 the browser's refreshed Face are real product paths. The terminal transcript
-comes from `conduit body terminal` and includes the current Face and an
-acknowledged local Show. The resulting `report.json` hashes five screenshots,
+comes from `conduit body terminal` and includes the current Face, acknowledged
+local Shows, and its semantic action. The resulting `report.json` hashes six
+screenshots,
 the terminal transcript, and the exact Rust native receipt;
 `native/owner-action-proof.json` retains the unrounded Face and Show revisions.
 Do not copy the invitation or private ISO into the evidence directory or onto

@@ -155,15 +155,43 @@ try {
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(1000ms\)/);
   assert.deepEqual(errors, []);
   const terminal = spawnSync(owner, ['body', 'terminal', '--state-dir', state], {
-    input: 'inspect\nquit\n', encoding: 'utf8', timeout: 10_000,
+    input: 'inspect\ncontrol next\ntype 500\napply\nquit\n', encoding: 'utf8', timeout: 10_000,
   });
   assert.equal(terminal.status, 0, terminal.stderr);
-  const terminalShow = terminal.stdout.match(/Owner Face revision (\d+) · Show (\S+) · Host (\S+) · Boot (\S+)/);
-  assert.ok(terminalShow, 'terminal Mask must acknowledge a Face and Show');
-  assert.equal(terminalShow[3], ownerPart.current.host_id);
-  assert.equal(terminalShow[4], ownerPart.current.boot_id);
+  const terminalShows = [...terminal.stdout.matchAll(/Owner Face revision (\d+) · Show (\S+) · Host (\S+) · Boot (\S+)/g)];
+  assert.ok(terminalShows.length >= 2, 'terminal Mask must acknowledge both Faces and Shows');
+  for (const show of terminalShows) {
+    assert.equal(show[3], ownerPart.current.host_id);
+    assert.equal(show[4], ownerPart.current.boot_id);
+  }
   assert.match(terminal.stdout, /1000 milliseconds/);
+  assert.match(terminal.stdout, /500 milliseconds/);
+  const terminalActionLine = terminal.stdout.split('\n').find(line =>
+    line.includes('"schema":"conduit.body/clock-interval-changed@1"'));
+  assert.ok(terminalActionLine, 'terminal must submit a semantic clock action');
+  const terminalAction = JSON.parse(terminalActionLine.slice(terminalActionLine.indexOf('{')));
+  assert.equal(terminalAction.body_id, bodyId);
+  assert.equal(terminalAction.interval_ms, 500);
+  assert.equal(terminalAction.prior_show_id, terminalShows.at(-2)[2]);
+  assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
   await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout);
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(prior => {
+    const face = globalThis.__conduitOwnerParticipation.face();
+    return face && face.face_revision !== prior && face.subjects.some(subject =>
+      subject.text.some(text => text.includes('500 milliseconds')));
+  }, afterBrowser.face_revision, { timeout: 12_000 });
+  const afterTerminal = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(afterTerminal.body_id, bodyId);
+  assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
+    afterTerminal.show_id);
+  await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-terminal.png') });
+  const afterTerminalStatus = run(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterTerminalStatus.biography.membership.parts.length, 3);
+  for (const partId of [ownerPart.part_id, arrived.guest_part.part_id, joined.credential.part_id]) {
+    assert.equal(afterTerminalStatus.biography.membership.parts.some(part =>
+      part.part_id === partId && part.current !== null), true);
+  }
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
   assert.equal(nativeReceipt.coordinated, true);
@@ -176,6 +204,7 @@ try {
   const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json')));
   assert.equal(browserBundle.reviewed_distribution.source_commit, nativeReceipt.source_commit);
   const screenshotPaths = ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
+    'browser-after-terminal.png',
     'native/owner-before.png', 'native/owner-after.png'];
   const screenshots = await Promise.all(screenshotPaths.map(async file => {
     const bytes = await readFile(path.join(output, file));
@@ -200,17 +229,26 @@ try {
     before_browser_face_id: joined.face.face_id,
     after_native_browser_face_id: afterNative.face_id,
     after_browser_face_id: afterBrowser.face_id,
+    after_terminal_browser_face_id: afterTerminal.face_id,
     native_action: {
       action_id: nativeReceipt.action.action_id,
       status: nativeReceipt.action.status,
       requested_interval_ms: nativeReceipt.action.requested_interval_ms,
     },
     browser_action: { action_id: browserAction.identity, status: 'accepted', requested_interval_ms: 1000 },
+    terminal_action: {
+      interaction_id: terminalAction.interaction_id,
+      status: 'accepted',
+      requested_interval_ms: terminalAction.interval_ms,
+      next_step: terminalAction.next_step,
+    },
     terminal_show: {
-      face_revision: terminalShow[1],
-      show_id: terminalShow[2],
-      host_id: terminalShow[3],
-      boot_id: terminalShow[4],
+      face_revision_before: terminalShows[0][1],
+      show_id_before: terminalShows[0][2],
+      face_revision_after: terminalShows.at(-1)[1],
+      show_id_after: terminalShows.at(-1)[2],
+      host_id: terminalShows[0][3],
+      boot_id: terminalShows[0][4],
       path: 'terminal-face.txt',
       bytes: Buffer.byteLength(terminal.stdout),
       sha256: digest(Buffer.from(terminal.stdout)),
