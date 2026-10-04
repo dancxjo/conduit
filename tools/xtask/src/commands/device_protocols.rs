@@ -35,6 +35,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduit-composite",
                     "-p",
                     "conduit-semantic-catalog",
+                    "-p",
+                    "conduitos",
                     "flow_zip",
                 ],
             ),
@@ -53,6 +55,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "device_frames",
                     "--test",
                     "typed_pair_expression",
+                    "--test",
+                    "typed_pair_refinements",
                 ],
             ),
             Step::new(
