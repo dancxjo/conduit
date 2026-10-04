@@ -1,6 +1,10 @@
 //! Allocation-prepared, host-independent realization of exact `flow/zip`.
 use crate::prelude::*;
-use conduit_core::{CheckedValueContract, PreparedTuplePairEncoder};
+use conduit_core::{
+    CheckedValueContract, PreparedTuplePairEncoder, PreparedTypedTuplePairEncoder,
+    StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
+};
+mod encoder;
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -9,6 +13,7 @@ use conduit_kernel::{
     },
     Failure, FailureCode, PortId,
 };
+use encoder::PairEncoder;
 
 pub struct FlowZipBack {
     left: Vec<u8>,
@@ -17,7 +22,7 @@ pub struct FlowZipBack {
     right_len: Option<usize>,
     candidate: Vec<u8>,
     candidate_side: Option<(usize, usize)>,
-    encoder: Box<PreparedTuplePairEncoder>,
+    encoder: PairEncoder,
     output_staged: bool,
     finish_after_commit: bool,
     terminal: bool,
@@ -177,6 +182,43 @@ impl FlowZipBack {
 impl FlowZipBack {
     /// Prepare all pair buffers before play. The caller must validate the
     /// selected semantic and implementation contracts separately.
+    pub fn prepare_typed(
+        left: &CheckedValueContract,
+        left_type: StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let transport_kind = |ty: &StructuredInfoType| match ty.shape() {
+            StructuredInfoTypeShape::Leaf(kind) => Ok(kind.clone()),
+            _ => ty.profile().map(|profile| profile.value_kind().clone()),
+        };
+        if transport_kind(&left_type)? != left.value_kind
+            || transport_kind(&right_type)? != right.value_kind
+        {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        let encoder = PreparedTypedTuplePairEncoder::new(
+            left_type,
+            left.maximum_bytes,
+            right_type,
+            right.maximum_bytes,
+        )?;
+        Ok(Self {
+            left: vec![0; left.maximum_bytes as usize],
+            left_len: None,
+            right: vec![0; right.maximum_bytes as usize],
+            right_len: None,
+            candidate: vec![0; left.maximum_bytes.max(right.maximum_bytes) as usize],
+            candidate_side: None,
+            output_maximum: encoder.maximum_bytes(),
+            encoder: PairEncoder::Typed(Box::new(encoder)),
+            output_staged: false,
+            finish_after_commit: false,
+            terminal: false,
+        })
+    }
+
+    /// Prepare primitive-leaf pairing with separately validated selected contracts.
     pub fn prepare(
         left: &CheckedValueContract,
         right: &CheckedValueContract,
@@ -195,7 +237,7 @@ impl FlowZipBack {
             candidate: vec![0; left.maximum_bytes.max(right.maximum_bytes) as usize],
             candidate_side: None,
             output_maximum: encoder.maximum_bytes(),
-            encoder: Box::new(encoder),
+            encoder: PairEncoder::Leaf(Box::new(encoder)),
             output_staged: false,
             finish_after_commit: false,
             terminal: false,
