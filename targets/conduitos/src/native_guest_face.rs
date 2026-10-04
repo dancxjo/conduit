@@ -100,6 +100,9 @@ impl NativeGuestFace {
         {
             return Err(GuestFaceRefusal::BodyBasis);
         }
+        if interactions_admitted != route.is_some() {
+            return Err(GuestFaceRefusal::MaskRoute);
+        }
         if let Some(route) = &route {
             route
                 .validate_mask_host_offer(&receipt.host_advertisement)

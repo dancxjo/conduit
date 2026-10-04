@@ -1,5 +1,9 @@
 //! Finite authenticated owner route for one portable Body invitation.
 
+#[path = "durable_body_join_route/face_snapshot.rs"]
+mod face_snapshot;
+#[path = "durable_body_join_route/native_lines.rs"]
+mod native_lines;
 #[path = "durable_body_join_route/return_route.rs"]
 mod return_route;
 
@@ -113,7 +117,9 @@ pub(crate) fn serve_body_invitation_route(
                         receipt: Box::new(receipt.clone()),
                     },
                 )?;
-                serve_optional_face_snapshot(&mut line, state_dir, &receipt)
+                face_snapshot::serve_optional_face_snapshot(
+                    &mut line, &listener, state_dir, &receipt,
+                )
             }
             Err(error) => {
                 send(
@@ -132,80 +138,6 @@ pub(crate) fn serve_body_invitation_route(
     } else {
         Ok(())
     }
-}
-
-/// Older guests may close after admission. A capable guest requests one Face
-/// on the same pinned carrier; the spent invitation is never a reconnect key.
-fn serve_optional_face_snapshot(
-    line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
-    state_dir: &Path,
-    receipt: &PortableAdmissionReceipt,
-) -> Result<Option<return_route::Grant>, String> {
-    use std::io::ErrorKind;
-    line.set_read_timeout(Some(Duration::from_secs(15)))
-        .map_err(|error| format!("set owner Face deadline: {error:?}"))?;
-    let mut bytes = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
-    let length = match line.receive_binary(&mut bytes) {
-        Ok(length) => length,
-        Err(SecureWebSocketError::Disconnected)
-        | Err(SecureWebSocketError::Transport(
-            ErrorKind::TimedOut
-            | ErrorKind::WouldBlock
-            | ErrorKind::UnexpectedEof
-            | ErrorKind::ConnectionReset,
-        )) => {
-            return Ok(None);
-        }
-        Err(error) => return Err(format!("receive owner Face request: {error:?}")),
-    };
-    let (request, return_requested) = return_route::decode_face_request(&bytes[..length])?;
-    let credential = &receipt.credential;
-    if !request.has_exact_basis()
-        || request.credential_id != credential.credential_id.as_str()
-        || request.body_id != credential.body_id
-        || request.part_id != credential.part_id
-        || request.host_id != credential.host_id
-        || request.boot_id != credential.boot_id
-    {
-        send(
-            line,
-            &OwnerFaceSnapshotResponse::Refused {
-                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                code: "face-credential-mismatch".into(),
-            },
-        )?;
-        return Err("owner Face request differs from the admitted guest".into());
-    }
-    let mut response = crate::durable_host_control::face_snapshot(state_dir, request)
-        .unwrap_or_else(|error| OwnerFaceSnapshotResponse::Refused {
-            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-            code: if error == "face-frame-pressure" {
-                "face-frame-pressure"
-            } else {
-                "face-unavailable"
-            }
-            .into(),
-        });
-    let grant = if return_requested
-        && matches!(&response, OwnerFaceSnapshotResponse::Snapshot { presentation, .. }
-            if presentation.actions.iter().any(|action| action.intent == crate::durable_host::owner::clock_interval_action()))
-    {
-        Some(return_route::Grant::issue(receipt)?)
-    } else {
-        None
-    };
-    if let OwnerFaceSnapshotResponse::Snapshot {
-        interactions_admitted,
-        ..
-    } = &mut response
-    {
-        *interactions_admitted = grant.is_some();
-    }
-    send(line, &response)?;
-    if let Some(grant) = &grant {
-        send(line, grant)?;
-    }
-    Ok(grant)
 }
 
 pub(crate) fn join_body_over_route(

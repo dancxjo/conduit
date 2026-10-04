@@ -214,7 +214,9 @@ fn foreign_body_or_unproven_interaction_route_cannot_become_shared_face() {
     .unwrap();
     assert!(matches!(
         exchange_face(&mut line, &receipt),
-        Err(NativeOwnerFaceExchangeRefusal::Encoding)
+        Err(NativeOwnerFaceExchangeRefusal::Face(
+            GuestFaceRefusal::MaskRoute
+        ))
     ));
 }
 

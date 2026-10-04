@@ -1,6 +1,6 @@
-//! One bounded semantic action from the graphical native Mask to its owner.
-//! A fresh TLS Line uses a grant received over the admitted invitation Line;
-//! the invitation itself is never replayed or treated as a reconnect key.
+//! An acknowledged graphical Show followed by one bounded semantic action.
+//! Each uses a fresh pinned TLS Line under the return grant; the spent
+//! invitation is never replayed or treated as a reconnect key.
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_body::PortableAdmissionReceipt;
@@ -23,6 +23,8 @@ use crate::{
 
 const ACTION_SCHEMA: &str = "conduit.body/native-owner-return-action@1";
 const RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-response@1";
+const SHOW_ACK_SCHEMA: &str = "conduit.body/native-owner-show-ack@1";
+const SHOW_ACK_RESPONSE_SCHEMA: &str = "conduit.body/native-owner-show-ack-response@1";
 // Two bounded actor calls (action and refreshed Face) may follow the accepted
 // submission. Their outcome window is separate from the grant's input cutoff.
 const MAX_ACTION_MILLIS: u32 = 10_000;
@@ -40,6 +42,7 @@ pub struct NativeOwnerReturnRoute {
     lifetime: CandidateDeadline,
     next_sequence: u8,
     active: bool,
+    acknowledged_show: Option<MaskShow>,
     action_storage: Vec<u8>,
     frame_storage: Vec<u8>,
 }
@@ -52,6 +55,23 @@ struct Action<'a> {
     request: OwnerFaceSnapshotRequest,
     show: &'a MaskShow,
     interaction: &'a FaceInteraction,
+}
+
+#[derive(Serialize)]
+struct ShowAcknowledgement<'a> {
+    schema: &'static str,
+    token: [u8; 32],
+    sequence: u8,
+    request: OwnerFaceSnapshotRequest,
+    show: &'a MaskShow,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ShowAcknowledgementResponse {
+    schema: String,
+    accepted: bool,
+    code: String,
 }
 
 #[derive(Deserialize)]
@@ -90,6 +110,7 @@ impl NativeOwnerReturnRoute {
             lifetime,
             next_sequence: 1,
             active: true,
+            acknowledged_show: None,
             action_storage: vec![0; MAX_RETURN_ACTION_BYTES],
             frame_storage: vec![0; MAXIMUM_BINARY_MESSAGE_BYTES],
         })
@@ -105,15 +126,82 @@ impl NativeOwnerReturnRoute {
                 .is_some_and(|elapsed| elapsed < i64::from(self.grant.remaining_millis))
     }
 
+    pub fn acknowledge_show(
+        &mut self,
+        identities: BootIdentities,
+        show: &MaskShow,
+    ) -> Result<(), &'static str> {
+        if !self.available() || self.acknowledged_show.is_some() {
+            return Err("native-owner-show-ack-unavailable");
+        }
+        self.active = false;
+        let sequence = self.next_sequence;
+        let deadline = CandidateDeadline::admit(MAX_ACTION_MILLIS)
+            .ok_or("native-owner-return-clock-unavailable")?;
+        let mut endpoint = self.endpoint;
+        endpoint.local_port = endpoint
+            .local_port
+            .checked_add(u16::from(sequence).saturating_mul(2).saturating_sub(1))
+            .ok_or("native-owner-return-port-bound")?;
+        let seeds = crate::native_boot_join::fresh_seeds()?;
+        let device = self
+            .device
+            .take()
+            .ok_or("native-owner-return-device-unavailable")?;
+        if device.identity().boot_id != identities.boot {
+            return Err("native-owner-return-stale-boot");
+        }
+        let request = owner_request(&self.receipt);
+        let length = serde_json_core::to_slice(
+            &ShowAcknowledgement {
+                schema: SHOW_ACK_SCHEMA,
+                token: self.grant.token,
+                sequence,
+                request,
+                show,
+            },
+            &mut self.action_storage,
+        )
+        .map_err(|_| "native-owner-show-ack-pressure")?;
+        if length == 0 || length > MAX_RETURN_ACTION_BYTES {
+            return Err("native-owner-show-ack-pressure");
+        }
+        let encoded = &self.action_storage[..length];
+        let (response, _, device) = virtio_tls::with_websocket_deadline_retain_device(
+            device,
+            seeds.tcp,
+            seeds.tls,
+            seeds.websocket,
+            endpoint,
+            &self.server_identity,
+            &self.certificate_der,
+            MAXIMUM_POLLS,
+            Some(deadline),
+            |line| exchange_show_ack(line, encoded, &mut self.frame_storage),
+        )
+        .map_err(|_| "control-outcome-unknown")?;
+        self.device = Some(device);
+        if response.schema != SHOW_ACK_RESPONSE_SCHEMA
+            || response.code != "accepted"
+            || !response.accepted
+        {
+            return Err("native-owner-show-ack-refused");
+        }
+        self.acknowledged_show = Some(show.clone());
+        self.active = true;
+        Ok(())
+    }
+
     pub fn submit(
         &mut self,
         identities: BootIdentities,
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<NativeReturnOutcome, &'static str> {
-        if !self.available() {
+        if !self.available() || self.acknowledged_show.as_ref() != Some(show) {
             return Err("native-owner-return-unavailable");
         }
+        self.acknowledged_show = None;
         let sequence = self.next_sequence;
         self.next_sequence = sequence
             .checked_add(1)
@@ -126,7 +214,7 @@ impl NativeOwnerReturnRoute {
         let mut endpoint = self.endpoint;
         endpoint.local_port = endpoint
             .local_port
-            .checked_add(u16::from(sequence))
+            .checked_add(u16::from(sequence).saturating_mul(2))
             .ok_or("native-owner-return-port-bound")?;
         let seeds = crate::native_boot_join::fresh_seeds()?;
         let device = self
@@ -136,17 +224,7 @@ impl NativeOwnerReturnRoute {
         if device.identity().boot_id != identities.boot {
             return Err("native-owner-return-stale-boot");
         }
-        let credential = &self.receipt.credential;
-        let request = OwnerFaceSnapshotRequest {
-            schema: OWNER_FACE_REQUEST_SCHEMA.into(),
-            credential_id: credential.credential_id.as_str().into(),
-            body_id: credential.body_id.clone(),
-            part_id: credential.part_id.clone(),
-            host_id: credential.host_id.clone(),
-            boot_id: credential.boot_id.clone(),
-            last_seen_revision: None,
-            last_seen_identity: None,
-        };
+        let request = owner_request(&self.receipt);
         let length = serde_json_core::to_slice(
             &Action {
                 schema: ACTION_SCHEMA,
@@ -213,6 +291,33 @@ impl NativeOwnerReturnRoute {
             face,
         })
     }
+}
+
+fn owner_request(receipt: &PortableAdmissionReceipt) -> OwnerFaceSnapshotRequest {
+    let credential = &receipt.credential;
+    OwnerFaceSnapshotRequest {
+        schema: OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: credential.credential_id.as_str().into(),
+        body_id: credential.body_id.clone(),
+        part_id: credential.part_id.clone(),
+        host_id: credential.host_id.clone(),
+        boot_id: credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    }
+}
+
+fn exchange_show_ack(
+    line: &mut dyn BinaryWebSocketIo,
+    encoded: &[u8],
+    frame: &mut [u8],
+) -> Result<ShowAcknowledgementResponse, &'static str> {
+    send_chunks(line, encoded, frame)?;
+    let mut response = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
+    let length = line
+        .receive_binary(&mut response)
+        .map_err(|_| "native-owner-show-ack-receive-refused")?;
+    serde_json::from_slice(&response[..length]).map_err(|_| "native-owner-show-ack-decode-refused")
 }
 
 fn exchange(
@@ -361,5 +466,26 @@ mod tests {
         assert_eq!(decoded.request, request);
         assert_eq!(decoded.show, show);
         assert_eq!(decoded.interaction, interaction);
+
+        let acknowledgement_length = serde_json_core::to_slice(
+            &ShowAcknowledgement {
+                schema: SHOW_ACK_SCHEMA,
+                token: [7; 32],
+                sequence: 1,
+                request: decoded.request,
+                show: &show,
+            },
+            &mut storage,
+        )
+        .unwrap();
+        assert!(acknowledgement_length <= MAX_RETURN_ACTION_BYTES);
+        let mut acknowledged_line = RecordedLine::default();
+        send_chunks(
+            &mut acknowledged_line,
+            &storage[..acknowledgement_length],
+            &mut frame,
+        )
+        .unwrap();
+        assert!(acknowledged_line.0.len() <= 16);
     }
 }
