@@ -5,6 +5,9 @@ use conduit_speech::{
 };
 use std::{fs, io::Write};
 #[cfg(feature = "semantic-bindings")]
+#[path = "first_samples/allophone_choice.rs"]
+mod allophone_choice_samples;
+#[cfg(feature = "semantic-bindings")]
 #[path = "first_samples/control.rs"]
 mod control_samples;
 #[cfg(feature = "semantic-bindings")]
@@ -178,6 +181,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     rich_phone_samples::write(&output)?;
     #[cfg(feature = "semantic-bindings")]
     utterance_timing_samples::write(&output)?;
+    #[cfg(feature = "semantic-bindings")]
+    allophone_choice_samples::write(&output)?;
     Ok(())
 }
 

@@ -36,6 +36,7 @@ fn setup() -> (Owner, PathBuf, ResidentPlot) {
         product_executable: "fixture-unused".into(),
         body_state: None,
         joined_body_state: None,
+        selected_speech: None,
     };
     crate::durable_host::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(SOURCE)
