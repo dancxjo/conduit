@@ -186,6 +186,23 @@ impl DurableHostRuntime {
         }
     }
 
+    pub(super) fn browser_acknowledge_show(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => {
+                owner.acknowledge_browser_mask_show(window_id, binding, request, show)
+            }
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
     pub(super) fn browser_abort(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => owner.browser_abort(window_id),

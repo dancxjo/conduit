@@ -967,6 +967,14 @@ enum Request {
         credential: MembershipCredential,
         binding: LinkBindingId,
     },
+    BodyBrowserShow {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+    },
     BodyBrowserAbort {
         protocol: u16,
         token: Vec<u8>,
@@ -1136,6 +1144,9 @@ enum Response {
     BodyBrowserMaskRoute {
         protocol: u16,
         route: Box<RemoteOwnerMaskRouteSeal>,
+    },
+    BodyBrowserShowAccepted {
+        protocol: u16,
     },
     BodyBrowserAborted {
         protocol: u16,
@@ -1710,6 +1721,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
+        | Request::BodyBrowserShow { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
@@ -1744,6 +1756,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyInspect { .. }
                 | Request::BodyFace { .. }
                 | Request::BodyBrowserMaskRoute { .. }
+                | Request::BodyBrowserShow { .. }
                 | Request::BodyLocalFace { .. }
                 | Request::BodyInteraction { .. }
                 | Request::BodyBrowserInteraction { .. }
@@ -1859,6 +1872,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 route: Box::new(route),
             })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserShow {
+            protocol,
+            window_id,
+            binding,
+            request,
+            show,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_acknowledge_show(&window_id, &binding, &request, &show)
+            .map(|()| Response::BodyBrowserShowAccepted { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserAbort {
             protocol,

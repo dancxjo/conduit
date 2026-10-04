@@ -196,13 +196,15 @@ export async function startOwnerParticipation(application, root) {
   const refreshFace = async () => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
+    delete root.dataset.ownerShowAcknowledged;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
       const prepared = await participation.prepareOwnerFaceMask(faceView ? {
         lastSeenRevision: faceView.face_revision, lastSeenIdentity: faceView.face_id,
       } : undefined);
-      const shown = prepared.show_state === 'available' ? prepared
-        : participation.acknowledgeOwnerFaceMask(prepared);
+      renderFace(prepared);
+      const shown = await participation.acknowledgeOwnerFaceMask(prepared);
+      root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
       renderFace(shown);
       faceStatus.textContent = 'The browser is showing the owner’s current Face.';

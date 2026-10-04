@@ -117,6 +117,7 @@ try {
   await page.locator('[data-owner-face-document] [data-owner-action]').first().waitFor();
   const beforeFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(beforeFace.body_id, initial.biography.body_id);
+  assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'), beforeFace.show_id);
   assert.equal(beforeFace.show_state, 'available');
   assert.equal(typeof beforeFace.mask_plan_id, 'string');
   assert.ok(beforeFace.mask_plan_id.length > 0);
@@ -136,6 +137,7 @@ try {
   }, beforeFace.face_revision);
   const afterFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
   assert.equal(afterFace.body_id, beforeFace.body_id);
+  assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'), afterFace.show_id);
   assert.notEqual(afterFace.face_revision, beforeFace.face_revision);
   assert.equal(afterFace.show_state, 'available');
   assert.notEqual(afterFace.show_id, beforeFace.show_id);
@@ -180,6 +182,7 @@ try {
   const playingFaceScreenshot = path.join(output, 'browser-clock-playing-face.png');
   await page.locator('[data-owner-face]').screenshot({ path: playingFaceScreenshot });
   const playingFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'), playingFace.show_id);
   assert.equal(playingFace.show_state, 'available');
   assert.notEqual(playingFace.show_id, afterFace.show_id);
   await page.getByRole('button', { name: 'Stop the clock' }).click();
@@ -271,6 +274,7 @@ try {
     actionId: clockAction.identity, priorFaceId: beforeFace.face_id, priorFaceRevision: beforeFace.face_revision,
     priorMaskPlanId: beforeFace.mask_plan_id, priorMaskPlayId: beforeFace.mask_play_id,
     priorShowId: beforeFace.show_id, priorShowState: beforeFace.show_state,
+    ownerShowAcknowledged: true,
     resultingFaceId: afterFace.face_id, resultingFaceRevision: afterFace.face_revision,
     resultingMaskPlanId: afterFace.mask_plan_id, resultingShowId: afterFace.show_id,
     resultingWorksetIntervalMs: 500,

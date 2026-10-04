@@ -77,6 +77,7 @@ enum WindowState {
         credential: MembershipCredential,
         observation: Box<CandidateObservation>,
         route: Option<Box<RemoteOwnerMaskRouteSeal>>,
+        acknowledged_show: Option<Box<conduit_presentation::MaskShow>>,
     },
 }
 

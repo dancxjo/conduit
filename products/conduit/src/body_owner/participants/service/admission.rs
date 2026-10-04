@@ -311,6 +311,7 @@ impl Owner {
                 credential,
                 observation: Box::new(pending.observation.clone()),
                 route: None,
+                acknowledged_show: None,
             };
             Ok(snapshot)
         })();

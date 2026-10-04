@@ -64,6 +64,11 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             protocol,
             accepted,
             code,
+        }
+        | BrowserAdmissionEgress::FaceShowResponse {
+            protocol,
+            accepted,
+            code,
         } => {
             if code.len() > 128
                 || (*accepted && !code.is_empty())

@@ -7,7 +7,7 @@ use conduit_body::{
     BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
 };
 use conduit_core::LinkBindingId;
-use conduit_presentation::RemoteOwnerMaskRouteSeal;
+use conduit_presentation::{OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use std::path::Path;
 
@@ -31,6 +31,7 @@ fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Re
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
+        | Request::BodyBrowserShow { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyBrowserCancel { token, .. } => token.fill(0),
@@ -130,6 +131,27 @@ pub(crate) fn mask_route(
         } => Ok(*route),
         Response::Refused { code, .. } => Err(code),
         _ => Err("Body owner returned the wrong browser Mask route response".into()),
+    }
+}
+
+pub(crate) fn acknowledge_show(
+    state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: conduit_presentation::MaskShow,
+) -> Result<(), String> {
+    match call(state_dir, |token| Request::BodyBrowserShow {
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        binding,
+        request,
+        show: Box::new(show),
+    })? {
+        Response::BodyBrowserShowAccepted { protocol: PROTOCOL } => Ok(()),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong browser Show response".into()),
     }
 }
 

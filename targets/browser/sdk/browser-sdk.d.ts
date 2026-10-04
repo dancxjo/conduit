@@ -122,7 +122,7 @@ export class BrowserBodyParticipation {
   /** Read the authoritative owner Face while this Host and Boot have current presence. */
   ownerFaceSnapshot(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Uint8Array>;
   prepareOwnerFaceMask(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Readonly<Record<string, unknown>>>;
-  acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
+  acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
   /** Submit one checked Face action through this Host's Mask and current owner window. */
   submitOwnerFaceInteraction(options: {
     view: Readonly<Record<string, unknown>>;

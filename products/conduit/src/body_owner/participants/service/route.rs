@@ -27,6 +27,7 @@ impl Owner {
                 credential: active,
                 observation,
                 route,
+                acknowledged_show,
             } = &mut window.state
             else {
                 return Err("window-not-active".into());
@@ -80,6 +81,7 @@ impl Owner {
             )
             .map_err(|error| format!("browser-route-refused:{error:?}"))?;
             *route = Some(Box::new(selected.clone()));
+            *acknowledged_show = None;
             Ok(selected)
         })();
         self.pending_browser = Some(window);
@@ -93,12 +95,36 @@ impl Owner {
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
     ) -> Result<(), String> {
+        self.validate_browser_mask_route_show(window_id, binding, request, show)?;
+        let Some(BrowserWindow {
+            state: WindowState::Active {
+                acknowledged_show, ..
+            },
+            ..
+        }) = self.pending_browser.as_ref()
+        else {
+            return Err("window-not-active".into());
+        };
+        if acknowledged_show.as_deref() != Some(show) {
+            return Err("browser-mask-show-not-acknowledged".into());
+        }
+        Ok(())
+    }
+
+    fn validate_browser_mask_route_show(
+        &self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
         let window = self.pending_browser.as_ref().ok_or("window-not-active")?;
         window.check(window_id).map_err(|_| "window-not-active")?;
         let WindowState::Active {
             credential,
             observation,
             route: Some(route),
+            ..
         } = &window.state
         else {
             return Err("browser-mask-route-not-selected".into());
@@ -127,7 +153,27 @@ impl Owner {
                 &backward,
                 show,
             )
-            .map_err(|error| format!("browser-mask-show-refused:{error:?}"))
+            .map_err(|error| format!("browser-mask-show-refused:{error:?}"))?;
+        Ok(())
+    }
+
+    pub(crate) fn acknowledge_browser_mask_show(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        self.validate_browser_mask_route_show(window_id, binding, request, show)?;
+        let window = self.pending_browser.as_mut().ok_or("window-not-active")?;
+        let WindowState::Active {
+            acknowledged_show, ..
+        } = &mut window.state
+        else {
+            return Err("window-not-active".into());
+        };
+        *acknowledged_show = Some(Box::new(show.clone()));
+        Ok(())
     }
 }
 

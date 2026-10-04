@@ -214,6 +214,21 @@ pub extern "C" fn conduit_browser_owner_face_ack(length: usize) -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_owner_face_show_receipt() -> i32 {
+    OUTPUT.with(|output| output.borrow_mut().clear());
+    CURRENT.with(|current| {
+        let current = current.borrow();
+        let Some(mask) = current.as_ref() else {
+            return -6;
+        };
+        if mask.show.show.lifecycle != ManifestationLifecycle::Available {
+            return -5;
+        }
+        write_output(&mask.show)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_owner_face_clear() {
     CURRENT.with(|current| {
         if let Some(mut mask) = current.borrow_mut().take() {

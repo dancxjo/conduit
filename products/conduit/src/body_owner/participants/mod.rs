@@ -333,6 +333,50 @@ fn serve_presence(
                 })?;
                 return Err("owner Face request differs from this admitted browser carrier".into());
             }
+            In::FaceShowAcknowledgement {
+                protocol: PROTOCOL,
+                request,
+                show,
+            } if request.credential_id == credential.credential_id.as_str()
+                && request.body_id == credential.body_id
+                && request.part_id == credential.part_id
+                && request.host_id == credential.host_id
+                && request.boot_id == credential.boot_id =>
+            {
+                let result = state_dir
+                    .zip(window_id)
+                    .ok_or_else(|| "owner Show requires the installed service actor".to_string())
+                    .and_then(|(dir, window)| {
+                        crate::durable_host_control::browser::acknowledge_show(
+                            dir,
+                            window,
+                            binding.clone(),
+                            request,
+                            *show,
+                        )
+                    });
+                socket.send(&Out::FaceShowResponse {
+                    protocol: PROTOCOL,
+                    accepted: result.is_ok(),
+                    code: result.err().map_or_else(String::new, |error| {
+                        if error.contains("Stale") || error.contains("stale") {
+                            "stale-face-or-show".into()
+                        } else {
+                            "mask-show-unavailable".into()
+                        }
+                    }),
+                })?;
+            }
+            In::FaceShowAcknowledgement {
+                protocol: PROTOCOL, ..
+            } => {
+                socket.send(&Out::FaceShowResponse {
+                    protocol: PROTOCOL,
+                    accepted: false,
+                    code: "credential-mismatch".into(),
+                })?;
+                return Err("owner Show differs from admitted browser carrier".into());
+            }
             In::FaceInteractionRequest {
                 protocol: PROTOCOL,
                 request,
