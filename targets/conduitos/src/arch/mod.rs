@@ -33,6 +33,8 @@ pub use x86_64::{I801PciObservation, I801PciRefusal, observe_i801_pci};
 
 #[cfg(target_arch = "x86_64")]
 pub const ARCHITECTURE: &str = "x86_64";
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+pub use x86_64::run_usb_control_kernel_proof;
 #[cfg(target_arch = "x86")]
 mod ia32;
 #[cfg(any(target_arch = "x86", test))]
