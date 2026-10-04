@@ -100,3 +100,18 @@ plot speech/not-careful-style (
     >> value: SpeechStyleConditionInput
     result: SpeechContextDecision >>
 ) = (!(.observation is known) ? SpeechContextDecision.observation_unresolved : .careful ? SpeechContextDecision.mismatched : SpeechContextDecision.matched)
+
+# Four stress tags are projected within the one SpeechStress domain.
+type SpeechStressConditionInput = {
+    presence: SpeechNeighborPresence
+    observation: SpeechSpecificationState
+    stress: I32 in 0..=3
+    allow0: Boolean
+    allow1: Boolean
+    allow2: Boolean
+    allow3: Boolean
+}
+plot speech/stress-condition (
+    >> value: SpeechStressConditionInput
+    result: SpeechContextDecision >>
+) = (.presence is absent || .presence is boundary ? SpeechContextDecision.mismatched : .presence is unknown || !(.observation is known) ? SpeechContextDecision.observation_unresolved : (.stress == 0 ? .allow0 : .stress == 1 ? .allow1 : .stress == 2 ? .allow2 : .allow3) ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
