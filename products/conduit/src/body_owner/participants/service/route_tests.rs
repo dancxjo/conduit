@@ -194,6 +194,33 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .unwrap();
+    assert_eq!(
+        owner
+            .browser_mask_route(
+                &authorized.window_id,
+                &snapshot.credential,
+                &LinkBindingId::from("line/test/browser-mask"),
+            )
+            .unwrap(),
+        selected
+    );
+    assert_eq!(
+        owner.validate_browser_mask_show(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/browser-mask"),
+            &face_request,
+            &available_show,
+        ),
+        Err("browser-mask-show-not-acknowledged".into())
+    );
+    owner
+        .acknowledge_browser_mask_show(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/browser-mask"),
+            &face_request,
+            &available_show,
+        )
+        .unwrap();
     assert!(owner
         .validate_browser_mask_show(
             &authorized.window_id,
