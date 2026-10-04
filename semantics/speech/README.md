@@ -433,3 +433,29 @@ Matching IPA or alias spelling does not substitute for identity. This is local
 snapshot/definition resolution, not registry authenticity, voice-profile eligibility,
 commitment admission or rich-to-compact realization. It adds no compact DSP policy
 or playback allocation.
+
+Rich material phones enter the formant renderer through
+`profile_admission::prepare_profile_phone` after exact material and inventory
+resolution. The caller supplies a native `SpeechFormantVoiceProfile`: its bounded
+bindings name complete phone definitions and typed compact phones. Conduit laws
+require the compact profile's exact IPA spelling for each binding and exact
+inventory/language membership. Lookup refuses missing or duplicate bindings and
+any difference between the resolved and bound definition metadata. Opaque phone
+IDs and aliases are never interpreted as IPA or compact enum names.
+
+The preparation receipt borrows the original resolved material, inventory,
+profile, binding and stress specification and names the checked DSP source. Its
+compact event contains a supplied phone, with no invented source phoneme or word
+position. Known stress, unknown and unspecified remain distinct. Not-applicable,
+variable and gradient stress are returned as typed unsupported states. Feature
+constraints on definitions or observed tokens also refuse explicitly until their
+acoustic lowering is implemented; this profile does not silently discard them.
+Canonical IPA spelling here is a finite eligibility rule, not an IPA parser,
+feature-consistency proof, registry authentication or multilingual voice claim.
+
+The supported proof writes `rich-phone-hello-world`. This declared listening
+fixture keeps its rich sources and receipts alive through rendering and matches
+the phoneme frontend PCM exactly. Complete utterance/source commitment admission
+and planner ownership of rich preparation receipts remain separate work. Hosted
+preparation may allocate within the native bounds; the compact rendering tape and
+playback retain their existing finite-storage contracts.
