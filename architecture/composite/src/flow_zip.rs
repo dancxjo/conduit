@@ -27,6 +27,7 @@ pub struct FlowZipBack {
     finish_after_commit: bool,
     terminal: bool,
     output_maximum: u32,
+    finite: bool,
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
@@ -42,7 +43,11 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
                 input: PortId(input as u16),
                 output: PortId(0),
                 normal_close: flush,
-                abnormal: AssignedAbnormalTransduction::PropagateAfterDrain,
+                abnormal: if self.finite {
+                    AssignedAbnormalTransduction::NotAccepted
+                } else {
+                    AssignedAbnormalTransduction::PropagateAfterDrain
+                },
                 cancellation: AssignedCancellationTransduction::NotCancellable,
             });
         }
@@ -58,6 +63,9 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
         // effect of abnormal terminal truth.
         for port in [PortId(0), PortId(1)] {
             if let Some(terminal) = io.input_abnormal(port) {
+                if self.finite {
+                    return fail(917);
+                }
                 io.consume_abnormal(port)
                     .expect("present flow/zip abnormal terminal");
                 self.terminal = true;
@@ -180,6 +188,19 @@ impl FlowZipBack {
 }
 
 impl FlowZipBack {
+    /// Prepare typed pairing for payload-only finite streams. Normal closure
+    /// flushes at most one already-formed pair, exactly as the shared zip law.
+    pub fn prepare_typed_finite(
+        left: &CheckedValueContract,
+        left_type: StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let mut back = Self::prepare_typed(left, left_type, right, right_type)?;
+        back.finite = true;
+        Ok(back)
+    }
+
     /// Prepare all pair buffers before play. The caller must validate the
     /// selected semantic and implementation contracts separately.
     pub fn prepare_typed(
@@ -215,6 +236,7 @@ impl FlowZipBack {
             output_staged: false,
             finish_after_commit: false,
             terminal: false,
+            finite: false,
         })
     }
 
@@ -241,6 +263,7 @@ impl FlowZipBack {
             output_staged: false,
             finish_after_commit: false,
             terminal: false,
+            finite: false,
         })
     }
 }

@@ -25,6 +25,20 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 ],
             ),
             Step::new(
+                "device-protocols.finite-joins",
+                "Check exact typed pairing, pressure and finite closure",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduit-composite",
+                    "-p",
+                    "conduit-semantic-catalog",
+                    "flow_zip",
+                ],
+            ),
+            Step::new(
                 "device-protocols.binary",
                 "Check and execute reviewed portable binary plots",
                 "cargo",
