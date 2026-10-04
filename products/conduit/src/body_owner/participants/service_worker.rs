@@ -80,12 +80,13 @@ fn serve(
             let (proof, _) = socket.receive(remaining(deadline)?.min(Duration::from_secs(2)))?;
             let snapshot = browser::complete(state_dir, window_id, proof)?;
             active = Some(snapshot.credential.clone());
+            let presence_clock = Instant::now();
             serve_presence(
                 &snapshot,
                 &mut socket,
                 &binding,
-                clock,
-                deadline,
+                presence_clock,
+                presence_clock + Duration::from_millis(authorization.presence_maximum_millis),
                 Some(state_dir),
                 Some(window_id),
             )
