@@ -602,6 +602,16 @@ admission: source resolution, phonological consistency and commitment are still
 separate checks. The `intent-realization-hello-world` listening fixture uses
 explicit 120 Hz/unity controls and retains the approved acoustic profile.
 
+`compare_allophone_rule_context` binds an original standalone rule to an
+exact intent occurrence and immediate event neighbors. Scalar requirements,
+before/after alternatives and condition receipts retain the original rule
+without constructing a temporary per-phoneme declaration. Matcher and stress
+views share the same neighbors; real boundaries are retained and unobserved
+endpoints remain unknown. Seven component decisions combine through the native
+context conjunction without dropping mismatch evidence. Unsupported syntax and
+occurrence failures remain typed refusals. Input matching, rule status policy,
+output-feature inheritance, selection and commitment remain separate.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
