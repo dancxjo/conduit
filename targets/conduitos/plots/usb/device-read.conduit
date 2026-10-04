@@ -1,6 +1,5 @@
-# Compose with descriptors.conduit so the decoded device Type has one owner.
+# Compose with control-types.conduit and descriptors.conduit for their Types.
 # The input is an acknowledged typed transfer, never a padded native buffer.
-with machine/usb/control/result as UsbControlResult
 
 type UsbDeviceReadResult =
     device UsbDeviceDescriptor

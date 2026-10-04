@@ -11,7 +11,8 @@ fn decoder() -> PortableExpressionProgram {
     let contract = ControlContract::prepare().unwrap();
     let (startup, profile) = contract.catalogs();
     let source = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
+        include_str!("../../plots/usb/control-types.conduit"),
         include_str!("../../plots/usb/descriptors.conduit"),
         include_str!("../../plots/usb/device-read.conduit")
     );
