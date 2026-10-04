@@ -18,7 +18,8 @@ pub use generated::speech_realize as realize;
 pub use generated::{
     EnglishDerivation, EnglishPhone, EnglishPhoneme, EnglishPosition, EnglishPronunciationOrigin,
     EnglishStress, RealizationInput, RealizationResult, SpeechCycleControlMode,
-    SpeechEventVoiceControl, TextSpeechSegment, VoiceBoundary, VoiceEvent, SOURCE_ID,
+    SpeechEventVoiceControl, SpeechPhoneInput, TextSpeechSegment, VoiceBoundary, VoiceEvent,
+    SOURCE_ID,
 };
 pub use pronounce::{
     pronounce, PronouncedText, TextRefusal, MAXIMUM_TEXT_BYTES, MAXIMUM_WORD_BYTES,
@@ -38,6 +39,8 @@ pub mod control;
 pub mod duration;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod inventory_admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]

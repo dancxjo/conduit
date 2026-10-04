@@ -1,0 +1,14 @@
+# Definition lookup binds an exact material basis to a supplied inventory.
+# A symbol, IPA string or identical ordinal does not establish membership.
+type SpeechPhoneInventoryBasis = {
+    basis: SpeechTokenSequenceBasis
+    inventory_id: SpeechInventoryId
+    inventory_language: SpeechLanguageId
+    where .basis.inventory_id == .inventory_id
+    where .basis.language == .inventory_language
+}
+type SpeechPhoneDefinitionMatch = {
+    requested: PhoneId
+    definition: PhoneId
+    where .requested == .definition
+}

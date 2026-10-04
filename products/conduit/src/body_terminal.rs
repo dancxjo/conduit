@@ -26,7 +26,7 @@ pub(crate) fn run(
     let (mut face, mut host) = crate::durable_host_control::local_face_snapshot(state_dir)?;
     let (mut mask, mut execution) = prepare(&face, &host)?;
     present(&mut mask, &mut execution, output, &host)?;
-    writeln!(output, "Commands: next, previous, page down, page up, inspect, control next, control previous, type TEXT, apply, refresh, help, quit. The clock interval action is available after lull.")
+    writeln!(output, "Commands: next, previous, page down, page up, inspect, control next, control previous, type TEXT, apply, refresh, help, quit. Available controls follow the current Face; refresh after lifecycle changes.")
         .map_err(io_error)?;
     let mut sequence = 0_u64;
     loop {
@@ -186,7 +186,7 @@ fn prepare(
     host: &HostAdvertisement,
 ) -> Result<(TerminalFaceMask, HostedTerminalMaskExecution), String> {
     let admitted = face.actions.iter().any(|action| {
-        action.intent == crate::durable_host::owner::clock_interval_action()
+        crate::durable_host::owner::is_clock_control_intent(&action.intent)
             && action.availability.is_available()
     });
     let mask = if admitted {

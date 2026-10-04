@@ -389,7 +389,7 @@ mod tests {
 
     #[test]
     fn chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pressure() {
-        let payload = vec![0x5a; 20_000];
+        let payload = vec![0x5a; 2 * (MAX_OWNER_FACE_RESPONSE_BYTES - CHUNK_HEADER_BYTES) + 1];
         let frames = chunks(&payload);
         assert_eq!(frames.len(), 3);
         let mut assembly = ChunkAssembly::default();
