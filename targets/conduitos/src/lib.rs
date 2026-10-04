@@ -12,6 +12,7 @@ pub(crate) mod bounded_websocket;
 pub mod composition;
 pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;
+pub mod current_sample;
 pub mod display;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
