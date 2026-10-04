@@ -58,11 +58,13 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
     }?;
     let (mut play, mut outputs) = super::runtime::prepare(entry, &request, host, boot, owners)?;
     match super::runtime::execute(&mut play, &mut outputs, &request) {
-        Ok(()) => arch::early_write(b"CONDUIT_PROTOCOL_RETIRED complete\n"),
+        Ok(()) => {
+            let _ = arch::append_boot_diagnostic(b"CONDUIT_PROTOCOL_RETIRED complete\n");
+        }
         Err(reason) => {
-            arch::early_write(b"CONDUIT_PROTOCOL_REFUSAL ");
-            arch::early_write(reason.as_bytes());
-            arch::early_write(b"\n");
+            let _ = arch::append_boot_diagnostic(b"CONDUIT_PROTOCOL_REFUSAL ");
+            let _ = arch::append_boot_diagnostic(reason.as_bytes());
+            let _ = arch::append_boot_diagnostic(b"\n");
         }
     }
     // Keep the canonical session and quarantined owners alive. Completion of

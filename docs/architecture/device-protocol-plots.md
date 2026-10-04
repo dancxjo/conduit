@@ -99,6 +99,22 @@ cargo xtask make conduitos protocol-image \
   --output-dir protocol-media
 ```
 
+The Root request input array uses canonical bytes with the checked entry's exact
+input kind. Prepare an item without implementing a device codec in Rust:
+
+```sh
+cargo xtask make conduitos protocol-input \
+  --package protocol-source.json --entry device-protocol --port begin \
+  --value begin.json --output begin-input.json
+```
+
+The JSON value uses record objects, collection/sequence arrays and single-key
+variant objects; scalar leaves are arrays of their canonical bytes. The command
+checks the entry schema and any declared Fore constraints, then writes a new
+input-item file for the Root request. External queue and output-copy storage are
+sealed into the native Plan with a per-boundary 4 KiB ceiling, independently of
+optional semantic Fore constraints.
+
 This command checks the exact x86_64 product-kernel digest and Source binding,
 then retains the boot image and packaging receipt in a new directory. At boot,
 Root checks compiled implementation inventory, actual controller configuration
@@ -106,8 +122,17 @@ and real calibrated clock availability before issuing narrowly bounded native
 possession. One canonical Body runs the admitted Source entry through the
 ordinary kernel; typed output bytes are diagnostic records. Retirement keeps
 its biography and resource reservations alive instead of starting a second Body.
-This path does not yet have a retained freestanding execution result. Packaging
-receipts establish preparation, not hardware compatibility or execution.
+Observe the exact packaged image through a bounded isolated emulator run:
+
+```sh
+cargo xtask make conduitos protocol-run \
+  --media protocol-media --output-dir protocol-run
+```
+
+The observer retains serial bytes and distinguishes boot refusal, Root refusal,
+execution refusal and observed retirement after Plan/Play. A timeout remains an
+observation failure. These records do not establish physical compatibility.
+Packaging receipts establish preparation, not hardware compatibility or execution.
 Native Limine observation selects bounded, exactly named modules without itself
 granting trust or execution authority.
 The x86_64 ICH5–ICH9 realization validates an explicitly selected PCI function,

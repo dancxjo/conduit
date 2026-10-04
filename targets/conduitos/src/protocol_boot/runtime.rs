@@ -70,16 +70,19 @@ pub(super) fn prepare(
     let mut outputs = Vec::with_capacity(definition.external_capability.outputs.len());
     for port in &definition.external_capability.outputs {
         let maximum = definition
-            .external_capability
-            .checked_front()
-            .value_contracts()
+            .internal_plan
+            .fragments
             .iter()
-            .find_map(|value| {
-                (value.location == FrontValueLocation::Output(port.port_id.clone()))
-                    .then_some(value.contract.maximum_bytes)
+            .flat_map(|fragment| &fragment.fore_ports)
+            .filter(|boundary| {
+                boundary.front_port_id == port.port_id
+                    && boundary.direction == PortDirection::Output
+                    && boundary.track == ConnectionTrack::Payload
             })
-            .ok_or("protocol-output-contract-missing")?;
-        if maximum > 4096 {
+            .map(|boundary| boundary.byte_capacity)
+            .min()
+            .ok_or("protocol-output-boundary-missing")?;
+        if maximum > crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES {
             return Err("protocol-output-envelope-unsupported");
         }
         outputs.push(Output {
@@ -139,7 +142,7 @@ pub(super) fn execute(
                 {
                     // Bootstrap diagnostics retain the exact typed bytes. This
                     // does not reinterpret device data or manufacture a Face.
-                    report_output(&output.port, &output.value);
+                    report_output(&output.port, &output.value)?;
                     play.complete_output(&output.port, sequence)
                         .map_err(|_| "protocol-output-close-refused")?;
                 }
@@ -160,25 +163,26 @@ pub(super) fn execute(
     result
 }
 
-fn report_output(port: &PortId, value: &ValuePayload) {
+fn report_output(port: &PortId, value: &ValuePayload) -> Result<(), &'static str> {
     use core::fmt::Write;
     let mut header = crate::sign_format::FixedText::new();
-    if writeln!(
+    writeln!(
         header,
         "CONDUIT_PROTOCOL_OUTPUT port={} kind={} bytes={}",
         port.as_str(),
         value.value_kind.as_str(),
         value.encoded.len()
     )
-    .is_ok()
-    {
-        arch::early_write(header.as_bytes());
-    }
+    .map_err(|_| "protocol-diagnostic-envelope-exceeded")?;
+    arch::append_boot_diagnostic(header.as_bytes())
+        .map_err(|_| "protocol-diagnostic-unavailable")?;
     const HEX: &[u8; 16] = b"0123456789abcdef";
     for byte in &value.encoded {
-        arch::early_write(&[HEX[(byte >> 4) as usize], HEX[(byte & 15) as usize]]);
+        arch::append_boot_diagnostic(&[HEX[(byte >> 4) as usize], HEX[(byte & 15) as usize]])
+            .map_err(|_| "protocol-diagnostic-unavailable")?;
     }
-    arch::early_write(b"\n");
+    arch::append_boot_diagnostic(b"\n").map_err(|_| "protocol-diagnostic-unavailable")?;
+    Ok(())
 }
 
 fn report_plan(plan: &Plan) -> Result<(), &'static str> {
@@ -193,7 +197,7 @@ fn report_plan(plan: &Plan) -> Result<(), &'static str> {
         plan.plan_id.as_str()
     )
     .map_err(|_| "protocol-plan-sign-envelope-exceeded")?;
-    arch::early_write(text.as_bytes());
+    arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
     Ok(())
 }
 
@@ -214,6 +218,6 @@ fn report_play(play: &NativePlay) -> Result<(), &'static str> {
         identity.active_play_id.as_str()
     )
     .map_err(|_| "protocol-play-sign-envelope-exceeded")?;
-    arch::early_write(text.as_bytes());
+    arch::append_boot_diagnostic(text.as_bytes()).map_err(|_| "protocol-diagnostic-unavailable")?;
     Ok(())
 }

@@ -68,6 +68,8 @@ mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
 mod protocol_image;
+mod protocol_input;
+mod protocol_run;
 mod protocol_source;
 mod prove;
 mod prove_many;
@@ -389,6 +391,8 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Acceptance(args) => acceptance::execute(&args.spore, opts),
         ConduitosCommand::ProtocolSource(args) => protocol_source::execute(args, opts),
         ConduitosCommand::ProtocolImage(args) => protocol_image::execute(args, opts),
+        ConduitosCommand::ProtocolInput(args) => protocol_input::execute(args, opts),
+        ConduitosCommand::ProtocolRun(args) => protocol_run::execute(args, opts),
         ConduitosCommand::ArchitectureMatrix => architecture_matrix::execute(opts),
         ConduitosCommand::ProductReadinessMatrix => product_readiness_matrix::execute(opts),
         ConduitosCommand::Build(target) => {

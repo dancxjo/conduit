@@ -228,6 +228,21 @@ fn emit_refusal(reason: &str) -> ! {
 
 #[panic_handler]
 #[cfg(target_os = "none")]
-fn panic(_info: &PanicInfo<'_>) -> ! {
-    emit_refusal("panic")
+fn panic(info: &PanicInfo<'_>) -> ! {
+    use core::fmt::Write;
+    let mut diagnostic = sign_format::FixedText::new();
+    if let Some(location) = info.location() {
+        let _ = writeln!(
+            diagnostic,
+            "CONDUIT_PANIC_LOCATION {}:{}:{}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+    }
+    if let Ok(sign) = sign_format::refused("panic") {
+        let _ = diagnostic.write_str(core::str::from_utf8(sign.as_bytes()).unwrap_or(""));
+    }
+    arch::early_write(diagnostic.as_bytes());
+    arch::deterministic_exit(false)
 }

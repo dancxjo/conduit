@@ -44,6 +44,24 @@ impl PreparedProtocolEntry {
         &self.expanded
     }
 
+    /// Resolve the checked Fore schema for preparation of one typed input.
+    pub fn input_schema(
+        &self,
+        port: &conduit_core::PortId,
+    ) -> Option<conduit_core::StructuredInfoType> {
+        let descriptor = self
+            .expanded
+            .front
+            .inputs()
+            .iter()
+            .find(|input| &input.port_id == port)?;
+        self.source
+            .checked
+            .structured_type(&descriptor.value_kind)
+            .cloned()
+            .or_else(|| conduit_core::StructuredInfoType::leaf(descriptor.value_kind.clone()).ok())
+    }
+
     pub fn resident(&self) -> conduit_body::ResidentPlot {
         conduit_body::ResidentPlot::new(
             self.expanded.expanded.source_document_id.clone(),

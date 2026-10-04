@@ -119,6 +119,7 @@ impl PreparedProtocolSource {
     }
 
     /// Queue policy is one item per Cord, within both exact selected Backs.
+    /// External boundaries also fit the native containing-machine Fore budget.
     /// Selection itself remains ordinary planner truth supplied by the caller.
     pub fn queue_limits(
         &self,
@@ -155,7 +156,10 @@ impl PreparedProtocolSource {
                 };
                 let limit = ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: selected.limits.max_queue_bytes,
+                    byte_capacity: selected
+                        .limits
+                        .max_queue_bytes
+                        .min(super::MAXIMUM_PROTOCOL_FORE_BYTES),
                 };
                 boundaries
                     .entry(key)

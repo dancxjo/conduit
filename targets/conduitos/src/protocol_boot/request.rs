@@ -94,7 +94,8 @@ impl ProtocolBootRequest {
                 input.port.is_empty()
                     || input.port.len() > 128
                     || input.canonical_bytes.is_empty()
-                    || input.canonical_bytes.len() > 4096
+                    || input.canonical_bytes.len()
+                        > crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES as usize
             })
             || request.inputs.iter().enumerate().any(|(index, input)| {
                 request.inputs[..index]

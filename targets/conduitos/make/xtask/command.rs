@@ -16,6 +16,10 @@ pub(super) enum ConduitosCommand {
     ProtocolSource(protocol_source::PackageArgs),
     /// Package a locally approved protocol over an existing capable product kernel.
     ProtocolImage(protocol_image::ImageArgs),
+    /// Encode one input with the exact checked entry schema.
+    ProtocolInput(protocol_input::InputArgs),
+    /// Observe a packaged protocol image in a bounded isolated emulator run.
+    ProtocolRun(protocol_run::RunArgs),
     /// Verify and report the pinned Limine architecture/backend matrix.
     ArchitectureMatrix,
     /// Report exact earned Product Spine cells independently of A0-A4.

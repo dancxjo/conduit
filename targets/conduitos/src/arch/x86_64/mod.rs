@@ -71,7 +71,7 @@ pub const fn pc_speaker_input_hz() -> u64 {
     pc_speaker::PIT_INPUT_HZ
 }
 pub use reboot::{RebootBase, RebootError, local_reboot_base};
-pub use serial::early_write;
+pub use serial::{append_boot_diagnostic, early_write};
 pub use usb::{
     UsbDevice, enumerate_attached_at_epochs, enumerate_one as enumerate_usb,
     enumerate_one_at_epoch, retire_removed_device, wait_for_attachment_state,
