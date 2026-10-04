@@ -2,6 +2,32 @@ use super::*;
 use conduit_core::*;
 
 #[test]
+fn source_admission_refuses_substituted_fore_bindings() {
+    let source = PreparedProtocolSource::prepare(ProtocolSourcePackage {
+        schema: PACKAGE_SCHEMA.into(),
+        source: "plot identity (\n >> input: Boolean...|\n output: Boolean...| >>\n) = (.)".into(),
+        specializations: vec![],
+    })
+    .unwrap();
+    let expanded = source.expand("identity").unwrap();
+    source.validate_expanded(&expanded).unwrap();
+    for direction in [PortDirection::Input, PortDirection::Output] {
+        let mut substituted = expanded.clone();
+        let bindings = match direction {
+            PortDirection::Input => &mut substituted.input_bindings,
+            PortDirection::Output => &mut substituted.output_bindings,
+        };
+        bindings[0].gear_port_id = port_id("substituted-port");
+        // The canonical expansion remains valid; the external binding does not.
+        substituted.expanded.validate_expansion().unwrap();
+        assert!(matches!(
+            source.validate_expanded(&substituted),
+            Err(ProtocolSourceRefusal::Offer)
+        ));
+    }
+}
+
+#[test]
 fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
     let boolean = ProtocolValue {
         schema: StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap(),

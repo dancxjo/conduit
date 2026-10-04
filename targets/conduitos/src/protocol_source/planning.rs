@@ -34,6 +34,12 @@ impl PreparedProtocolSource {
         {
             return Err(ProtocolSourceRefusal::Offer);
         }
+        // Canonical provenance does not cover the mutable authoring Fore
+        // bindings. Reconstruct the complete checked entry during preparation
+        // so callers cannot substitute a different external realization.
+        if &self.expand(&expanded.expanded.name)? != expanded {
+            return Err(ProtocolSourceRefusal::Offer);
+        }
         Ok(())
     }
 
