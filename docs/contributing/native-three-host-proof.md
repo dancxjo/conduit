@@ -4,9 +4,11 @@ This development proof for [#4807](https://github.com/dancxjo/conduit/issues/480
 keeps one installed Linux Body owner, one ConduitOS x86_64 QMP guest, and one
 pinned Chromium Host live together. The guest changes the checked clock
 interval to 500 ms; the browser reads that new Face and changes it back to
-1000 ms. The owner alone retains the Body and workload truth. This proves the
-three-Host graphical presentation topology, not a terminal Mask, Mask preference, speech,
-physical hardware, or the published journey.
+1000 ms. The Linux terminal then inspects the same current Face through its
+local Mask while the other two hosts remain live. The owner alone retains the
+Body and workload truth. This proves the three-Host graphical and terminal
+presentation topology, not Mask preference, speech, physical hardware, or the
+published journey.
 
 Start from a clean checkout at one commit. Check tools with
 `cargo xtask doctor browser` and the ConduitOS prerequisites in
@@ -73,8 +75,10 @@ have the same source commit. It admits the browser before sealing the guest's
 Face: a later membership change would correctly make an already shown native
 Face stale. It requires three distinct current Host/Boot pairs before either
 user action. QMP keyboard input, browser controls, both owner responses, and
-the browser's refreshed Face are real product paths. The resulting
-`report.json` hashes five screenshots and the exact Rust native receipt;
+the browser's refreshed Face are real product paths. The terminal transcript
+comes from `conduit body terminal` and includes the current Face and an
+acknowledged local Show. The resulting `report.json` hashes five screenshots,
+the terminal transcript, and the exact Rust native receipt;
 `native/owner-action-proof.json` retains the unrounded Face and Show revisions.
 Do not copy the invitation or private ISO into the evidence directory or onto
 the website. A successful local receipt is not CI, accepted-release, physical,

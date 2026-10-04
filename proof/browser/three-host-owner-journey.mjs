@@ -154,6 +154,14 @@ try {
   }
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(1000ms\)/);
   assert.deepEqual(errors, []);
+  const terminal = spawnSync(owner, ['body', 'terminal', '--state-dir', state], {
+    input: 'inspect\nquit\n', encoding: 'utf8', timeout: 10_000,
+  });
+  assert.equal(terminal.status, 0, terminal.stderr);
+  assert.match(terminal.stdout, /Owner Face revision /);
+  assert.match(terminal.stdout, /Show /);
+  assert.match(terminal.stdout, /1000 milliseconds/);
+  await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
   assert.equal(nativeReceipt.coordinated, true);
@@ -196,6 +204,11 @@ try {
       requested_interval_ms: nativeReceipt.action.requested_interval_ms,
     },
     browser_action: { action_id: browserAction.identity, status: 'accepted', requested_interval_ms: 1000 },
+    terminal_show: {
+      path: 'terminal-face.txt',
+      bytes: Buffer.byteLength(terminal.stdout),
+      sha256: digest(Buffer.from(terminal.stdout)),
+    },
     screenshots,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,
