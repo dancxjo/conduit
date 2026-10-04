@@ -8,7 +8,8 @@ mod generated {
 }
 
 pub use generated::{
-    AnnotationBundleFour, LinguisticAnnotation, LinguisticDependencyEdge,
+    AnnotationBundleFour, LanguageDependencyRelation, LanguageDependencySubtype,
+    LanguageUniversalDependencyRelation, LinguisticAnnotation, LinguisticDependencyEdge,
     LinguisticDependencyRelation, LinguisticDerivationProvenance, LinguisticEvidence,
     LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind,
     LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature, LinguisticTokenFeatureSlot,
@@ -22,3 +23,6 @@ mod reference;
 pub use catalog::*;
 pub use info::*;
 pub use reference::*;
+
+mod dependency;
+pub use dependency::*;
