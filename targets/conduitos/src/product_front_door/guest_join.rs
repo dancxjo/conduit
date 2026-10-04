@@ -67,5 +67,5 @@ pub(super) fn enter(
 fn face_refused(reason: &'static str) {
     arch::early_write(b"CONDUIT_NATIVE_OWNER_FACE {\"schema\":\"conduit.conduitos/native-owner-face@1\",\"status\":\"refused\",\"reason\":\"");
     arch::early_write(reason.as_bytes());
-    arch::early_write(b"\",\"show_acknowledged\":false}\n");
+    arch::early_write(b"\",\"local_show_available\":false,\"owner_show_acknowledged\":false}\n");
 }

@@ -126,7 +126,8 @@ impl FaceArrival {
             "face_id": face_id,
             "face_revision": revision,
             "show_id": show.show_id.as_str(),
-            "show_acknowledged": true,
+            "local_show_available": true,
+            "owner_show_acknowledged": false,
             "interactions_admitted": interactions_admitted,
             "continuing_owner_route": interactions_admitted,
         }))
