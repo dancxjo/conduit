@@ -125,3 +125,40 @@ type LocalizationRequest = {
     target_language: SpeechLanguageId
     locale: LocalizationLocaleId?
 }
+
+# Complete caller-supplied snapshots, not partial chunks. Ordinals are zero-based
+# positions in the snapshot's ordered token tape. Phone and phoneme material
+# retain distinct Types; neither is a selected compact waveform realization.
+type SpeechTokenSequenceBasis = {
+    utterance_id: SpeechUtteranceId
+    sequence_id: SpeechSegmentSequenceId
+    revision_id: SpeechSegmentRevisionId
+    inventory_id: SpeechInventoryId
+    language: SpeechLanguageId
+}
+type SpeechPhoneSequence = {
+    basis: SpeechTokenSequenceBasis
+    tokens: sequence SpeechPhoneToken <= 256
+}
+type SpeechPhonemeSequence = {
+    basis: SpeechTokenSequenceBasis
+    tokens: sequence SpeechPhonemeToken <= 256
+}
+
+# Preparation derives token_count from the supplied material. This local match
+# does not attest external authenticity, registry uniqueness or commitment.
+type SpeechSequenceBasisMatch = {
+    basis: SpeechTokenSequenceBasis
+    reference: LanguageSpeechTokenRef
+    where .reference.utterance_id == .basis.utterance_id
+    where .reference.sequence_id == .basis.sequence_id
+    where .reference.revision_id == .basis.revision_id
+    where .reference.inventory_id == .basis.inventory_id
+    where .reference.language == .basis.language
+}
+
+type SpeechSequenceReferenceMatch = {
+    basis_match: SpeechSequenceBasisMatch
+    token_count: U32 in 0..=256
+    where .basis_match.reference.ordinal < .token_count
+}
