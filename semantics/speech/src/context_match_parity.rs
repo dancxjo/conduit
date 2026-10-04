@@ -6,7 +6,6 @@ use crate::{
     onset_parity::variant,
 };
 use conduit_core::StructuredInfoValue;
-use std::vec;
 #[test]
 fn every_context_carrier_matches_the_checked_portable_program() {
     let checked = program("speech_context_compare");
@@ -20,7 +19,9 @@ fn every_context_carrier_matches_the_checked_portable_program() {
     ];
     for (requirement_tag, requirement) in states {
         for (observation_tag, observation) in states {
-            for known_values_equal in [false, true] {
+            for (requirement_value, observation_value) in
+                (0_i32..=8).flat_map(|a| (0_i32..=8).map(move |b| (a, b)))
+            {
                 let input = record(
                     &checked.input_type,
                     &[
@@ -39,10 +40,18 @@ fn every_context_carrier_matches_the_checked_portable_program() {
                             ),
                         ),
                         (
-                            "known_values_equal",
+                            "requirement_value",
                             StructuredInfoValue::leaf(
-                                field_type(&checked.input_type, "known_values_equal").clone(),
-                                vec![u8::from(known_values_equal)],
+                                field_type(&checked.input_type, "requirement_value").clone(),
+                                requirement_value.to_le_bytes().to_vec(),
+                            )
+                            .unwrap(),
+                        ),
+                        (
+                            "observation_value",
+                            StructuredInfoValue::leaf(
+                                field_type(&checked.input_type, "observation_value").clone(),
+                                observation_value.to_le_bytes().to_vec(),
                             )
                             .unwrap(),
                         ),
@@ -53,7 +62,8 @@ fn every_context_carrier_matches_the_checked_portable_program() {
                 let result = speech_context_compare(SpeechContextComparisonInput {
                     requirement,
                     observation,
-                    known_values_equal,
+                    requirement_value,
+                    observation_value,
                 })
                 .unwrap();
                 let tag = match result {
