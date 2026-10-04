@@ -46,6 +46,10 @@ pub mod declared_realization;
 #[cfg(feature = "semantic-bindings")]
 pub mod duration;
 #[cfg(feature = "semantic-bindings")]
+pub mod feature_bundle;
+#[cfg(feature = "semantic-bindings")]
+pub mod feature_match;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;

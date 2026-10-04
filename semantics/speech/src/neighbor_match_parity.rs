@@ -11,6 +11,7 @@ fn decision_tag(value: SpeechNeighborDecision) -> &'static str {
         SpeechNeighborDecision::mismatched => "mismatched",
         SpeechNeighborDecision::observation_unresolved => "observation_unresolved",
         SpeechNeighborDecision::unsupported_matcher => "unsupported_matcher",
+        SpeechNeighborDecision::requirement_unresolved => "requirement_unresolved",
     }
 }
 #[test]
@@ -38,6 +39,10 @@ fn every_neighbor_carrier_matches_portable_evaluation() {
         ("matched", SpeechNeighborIdentity::matched),
         ("mismatched", SpeechNeighborIdentity::mismatched),
         ("unresolved", SpeechNeighborIdentity::unresolved),
+        (
+            "requirement_unresolved",
+            SpeechNeighborIdentity::requirement_unresolved,
+        ),
     ];
     let mut count = 0;
     for (matcher_tag, matcher) in matchers {
@@ -78,7 +83,7 @@ fn every_neighbor_carrier_matches_portable_evaluation() {
             }
         }
     }
-    assert_eq!(count, 48);
+    assert_eq!(count, 64);
 }
 #[test]
 fn every_alternative_pair_matches_portable_evaluation() {
@@ -88,6 +93,7 @@ fn every_alternative_pair_matches_portable_evaluation() {
         SpeechNeighborDecision::mismatched,
         SpeechNeighborDecision::observation_unresolved,
         SpeechNeighborDecision::unsupported_matcher,
+        SpeechNeighborDecision::requirement_unresolved,
     ];
     for left in decisions {
         for right in decisions {
