@@ -83,6 +83,20 @@ and normal completion with the exact retained state and pairing owners. This
 proves Source feedback execution with supplied events, while automatic bus/time
 event production and boot admission remain development work.
 
+`bme280-autonomous.conduit` now checks and expands the bus/time event topology
+into 32 gears. Source adapters request exact wait deadlines, timestamp bus
+results with the clock's observed time, and preserve clock failures separately.
+The generic `flow/merge/finite` retains both input lifetimes and closes only
+after both inputs drain. This is checked topology and deterministic conformance;
+the current native composite profile admits 16 gears, so larger graph admission,
+semantic-observation integration and terminal closure remain development work.
+
+The x86_64 clock provider reuses the calibrated invariant-TSC or ACPI HPET
+counter with an explicit finite provider lifetime. Each poll observes the counter
+once; unsupported deadlines, expiry and revocation remain distinct. Clock
+availability is independent of networking. Counter conformance tests establish
+conversion and refusal behavior, not hardware compatibility.
+
 Its `bme280-observation` entry assembles one typed fixed-point temperature,
 pressure and humidity observation from decoded calibration and samples.
 Malformed input, disabled samples and invalid calibration yield explicit
