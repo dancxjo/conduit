@@ -186,11 +186,30 @@ physical behavior, or stable acceptance.
 
 ## Remaining implementation
 
+The native control owner binds an exact selected control Back, Boot, attachment,
+capability possession and retained DMA slot before dispatch. Cancellation keeps
+native storage until acknowledged Slot disable. An acknowledged normal transfer
+returns the device to the composition root without resetting its cursor or
+issuing a new grant.
+
+The x86_64 proof appliance requires two short control transfers through the
+checked `control.conduit` Source and production kernel, followed by normal closure.
+The host reconstructs its exact Source, checked/expanded plot, Plan, fragment and
+Play identities from the observed Boot/controller/attachment and verifies a
+separate bounded transcript receipt. Its explicit cooperative proof grant does
+not establish hostile-code confinement or authorize discovered devices for
+ordinary product use. This raw-transfer fixture does not interpret USB classes.
+
+The kernel profile's finite remote lifecycle-sign storage refuses a fifth input
+after four completed input/output pairs. A deterministic test preserves that
+machine-readable refusal. The checked proof uses two calls to reserve room for
+terminal signs; sustained kernel execution requires an independently reviewed
+bounded sign-budget or retirement seam. The separate 64-transfer native ring
+receipt proves raw ring reuse, not sustained checked class execution.
+
 The protocol calculations and register definition are not installed product
 device offers. Register calls execute through the production kernel in a
-cooperative mapping fixture; native composition has not bound a real admitted
-controller resource or installed its advertisement/dispatcher. The following
-work remains under the owning issue:
+cooperative mapping fixture. The following work remains under the owning issue:
 
 - product machine/USB offers, native dispatcher and actual resource integration;
 - a class-neutral bounded USB transfer base with distinct short/malformed,
