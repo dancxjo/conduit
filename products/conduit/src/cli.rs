@@ -704,17 +704,23 @@ mod public_surface_tests {
     }
 
     #[test]
-    fn host_install_is_public_while_protocol_stages_stay_hidden() {
+    fn host_install_and_service_are_public_while_protocol_stages_stay_hidden() {
         let host_help = HostCommand::augment_subcommands(clap::Command::new("host"))
             .render_long_help()
             .to_string();
         assert!(host_help.contains("install"));
-        for hidden in ["obtain", "carry", "service"] {
+        assert!(host_help.contains("service"));
+        for hidden in ["obtain", "carry"] {
             assert!(
                 !host_help.contains(hidden),
                 "hidden {hidden} leaked in:\n{host_help}"
             );
         }
+        let service_help = HostServiceCommand::augment_subcommands(clap::Command::new("service"))
+            .render_long_help()
+            .to_string();
+        assert!(service_help.contains("install"));
+        assert!(!service_help.contains("own-body"));
         assert!(matches!(
             Cli::try_parse_from([
                 "conduit",
