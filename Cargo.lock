@@ -1404,6 +1404,7 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-kernel",
+ "conduit-language",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",

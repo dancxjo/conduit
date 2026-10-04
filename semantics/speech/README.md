@@ -68,6 +68,15 @@ linguistic analysis, commitment and FARGAN execution remain unfinished. The
 new intent does not claim that artifact references have been resolved, that
 uncertain values have been committed, or that both voices already consume it.
 
+Language owns the legacy syntactic/discourse link vocabulary in
+`semantics/language/syntax.conduit`. Speech rule conditions consume that exact
+native Type through the checked catalog and external Rust bindings;
+`SpeechSyntacticLinkKind` remains a Rust re-export for callers. The optional
+semantic-bindings profile carries this dependency, while the compact renderer
+keeps its existing runtime dependencies. This ownership seam under #4907 does
+not establish a complete dependency inventory, parser, revision basis, or
+commitment frontier.
+
 `pronunciation.conduit` owns this first English orthography profile's case
 normalization, classification, small self-authored dictionary, ordered spelling
 rules, word position and punctuation decisions. `pronounce` prepares ordinary

@@ -1,0 +1,18 @@
+# Language-owned legacy syntactic/discourse link vocabulary consumed by speech.
+# These categories are not the complete UD dependency relation inventory.
+type LinguisticSyntacticLinkKind =
+    subject
+    | object
+    | complement
+    | infinitival_marker
+    | modifier
+    | determiner
+    | auxiliary
+    | preposition
+    | coordination
+    | contrast_pair
+    | noun_compound
+    | vocative
+    | apposition
+    | parenthetical
+
