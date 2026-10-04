@@ -385,6 +385,8 @@ pub enum TemporalStateBehavior {
     Retained,
     /// One explicit seed, a delayed replacement Flow, and committed Current.
     SourceSeededFinite,
+    /// One closing observation Flow containing exactly one value per committed generation.
+    SourceSeededFlowFinite,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

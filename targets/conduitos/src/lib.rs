@@ -277,3 +277,6 @@ mod tour_two_host_kernel;
 pub mod tour_two_host_plan;
 mod tour_two_host_play;
 pub mod tour_workspace;
+
+#[cfg(test)]
+mod protocol_kernel_fixture;

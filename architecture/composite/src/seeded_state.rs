@@ -24,6 +24,7 @@ pub struct SeededStateBack {
     held: Option<ValueRef>,
     staged: Option<ValueRef>,
     terminal: bool,
+    flow: bool,
 }
 
 impl SeededStateBack {
@@ -68,7 +69,17 @@ impl SeededStateBack {
             held: None,
             staged: None,
             terminal: false,
+            flow: false,
         })
+    }
+
+    pub fn prepare_flow(
+        contract: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<Self, &'static str> {
+        let mut back = Self::prepare(contract, schema)?;
+        back.flow = true;
+        Ok(back)
     }
 
     fn valid(&self, bytes: &[u8]) -> bool {
@@ -80,6 +91,19 @@ impl SeededStateBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
+    fn terminal_transduction(
+        &self,
+    ) -> Option<conduit_kernel::scheduler::AssignedTerminalTransduction> {
+        use conduit_kernel::scheduler::*;
+        self.flow.then_some(AssignedTerminalTransduction {
+            input: PortId(1),
+            output: PortId(0),
+            normal_close: AssignedNormalCloseTransduction::PropagateAfterDrain,
+            abnormal: AssignedAbnormalTransduction::NotAccepted,
+            cancellation: AssignedCancellationTransduction::NotCancellable,
+        })
+    }
+
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.terminal {
             return StepOutcome::Complete;

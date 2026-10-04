@@ -13,8 +13,7 @@ use conduit_plot::{
 const LIFECYCLE: &str = include_str!("../../../../plots/device-protocols/bme280-lifecycle.conduit");
 const FEEDBACK: &str = include_str!("../../../../plots/device-protocols/bme280-feedback.conduit");
 
-#[test]
-fn source_feedback_plans_with_exact_retained_state_event_and_sampler_contracts() {
+fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
     let contract = crate::i2c_base::contract::I2cContract::prepare().unwrap();
     let (mut startup, mut profile) = contract.catalogs();
     let types = check_syntax_document(&parse_syntax_document(LIFECYCLE), &startup).unwrap();
@@ -33,16 +32,9 @@ fn source_feedback_plans_with_exact_retained_state_event_and_sampler_contracts()
     };
     let state_value = value(state);
     let event_value = value(event);
-    conduit_semantic_catalog::install_seeded_state_kind(
+    conduit_semantic_catalog::install_seeded_state_flow_kind(
         &state_value,
         state,
-        &mut startup,
-        &mut profile,
-    )
-    .unwrap();
-    conduit_semantic_catalog::install_current_sample_finite_kind(
-        &state_value,
-        &event_value,
         &mut startup,
         &mut profile,
     )
@@ -57,13 +49,13 @@ fn source_feedback_plans_with_exact_retained_state_event_and_sampler_contracts()
     )
     .unwrap();
     let mut owners = ProtocolOperations::default();
+    let state_offer = owners.states.install_flow(&state_value, state).unwrap();
     let mut capabilities = vec![
-        owners.states.install(&state_value, state).unwrap(),
+        state_offer.clone(),
         owners
             .joins
             .install(&state_value, state, &event_value, event)
             .unwrap(),
-        crate::current_sample::offer(&state_value, &event_value).unwrap(),
     ];
     // Canonical imports precede definitions when these reviewed Source units are combined.
     let (import, body) = FEEDBACK.split_once('\n').unwrap();
@@ -139,10 +131,16 @@ fn source_feedback_plans_with_exact_retained_state_event_and_sampler_contracts()
         &boundary_limits,
     )
     .unwrap();
+    (plan, owners, state_offer)
+}
+
+#[test]
+fn source_feedback_plans_with_exact_retained_state_event_and_generation_contracts() {
+    let (plan, owners, _) = planned();
     owners.states.validate_plan(&plan).unwrap();
     owners.joins.validate_plan(&plan).unwrap();
     assert_eq!(plan.fragments.len(), 1);
-    assert_eq!(plan.fragments[0].placements.len(), 18);
+    assert_eq!(plan.fragments[0].placements.len(), 16);
     assert!(
         plan.fragments[0]
             .placements
@@ -152,3 +150,5 @@ fn source_feedback_plans_with_exact_retained_state_event_and_sampler_contracts()
                 && gear.authority.is_empty())
     );
 }
+
+mod execution;

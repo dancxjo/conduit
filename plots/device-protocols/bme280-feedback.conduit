@@ -4,25 +4,16 @@ plot bme280-join (
  pair: BmePair...| >> transition: BmeProtocolTransition...|
 ) = ({ state: .0, event: .1 })
 
-plot bme280-event-relay (
- event: BmeProtocolEvent...| >> output: BmeProtocolEvent...|
-) = (.)
-
 plot bme280-feedback (
  >> begin: BmeProtocolBegin...|
  >> event: BmeProtocolEvent...|
- current: $BmeProtocolState <= 4096B >>
+ current: BmeProtocolState...| <= 4096B >>
 ) {
- cell: state/seeded/finite
- sample: current/sample/finite
+ cell: state/seeded/flow/finite
  join: flow/zip/finite
- relay: bme280-event-relay
  begin >> bme280-protocol-initialize() >> cell.seed
- event >> relay
- relay.output >> sample.trigger
- relay.output >> join.right
- cell.current >> sample.current
- sample.value >> join.left
+ event >> join.right
+ cell.current >> join.left
  join.paired >> bme280-join() >> bme280-protocol-transition() >> cell.next
  cell.current >> current
 }

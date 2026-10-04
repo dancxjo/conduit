@@ -21,7 +21,10 @@ pub fn source_seeded_state_boundary<'a>(
     let declared = semantic.laws.iter().any(|law| {
         matches!(
             law,
-            KindSemanticLaw::TemporalState(TemporalStateBehavior::SourceSeededFinite)
+            KindSemanticLaw::TemporalState(
+                TemporalStateBehavior::SourceSeededFinite
+                    | TemporalStateBehavior::SourceSeededFlowFinite
+            )
         )
     });
     if !declared {
@@ -60,11 +63,21 @@ pub fn source_seeded_state_boundary<'a>(
         PortTemporal::Flow { closes: true },
     )
     .ok_or("Source-seeded state has no exact next Flow")?;
+    let flow = semantic.laws.iter().any(|law| {
+        matches!(
+            law,
+            KindSemanticLaw::TemporalState(TemporalStateBehavior::SourceSeededFlowFinite)
+        )
+    });
     let current = port(
         outputs,
         "current",
         PortDirection::Output,
-        PortTemporal::Current,
+        if flow {
+            PortTemporal::Flow { closes: true }
+        } else {
+            PortTemporal::Current
+        },
     )
     .ok_or("Source-seeded state has no exact committed Current")?;
     let mut values = semantic.laws.iter().filter_map(|law| match law {
