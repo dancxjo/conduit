@@ -666,6 +666,17 @@ refuse before returning output. This establishes feature inheritance over
 supplied inputs, not inventory membership, occurrence provenance, rule selection,
 output-phone resolution or commitment.
 
+`prepare_chosen_global_rule_profile` binds a selected standalone rule's Known
+output phone to one exact inventory definition and the admitted voice's complete
+definition snapshot. Default-realization feature evidence is explicit, retains
+its provenance, and must name the original occurrence. Native output-feature
+inheritance retains the three layers before compact profile admission; every
+nonempty inherited feature bundle is currently refused rather than discarded.
+Unchosen/deferred states and selected unresolved outputs remain distinct typed
+refusals. Timing, source resolution and commitment remain separate obligations.
+The `global-rule-initial-aspiration-tata` fixture combines this bridge with native
+quantitative timing from the original manual intent through the existing renderer.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
