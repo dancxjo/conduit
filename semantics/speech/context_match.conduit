@@ -124,3 +124,15 @@ plot speech/feature-condition (
     >> value: SpeechFeatureConditionInput
     result: SpeechContextDecision >>
 ) = (.presence is absent || .presence is boundary ? SpeechContextDecision.mismatched : .presence is unknown ? SpeechContextDecision.observation_unresolved : .feature)
+
+# Identical is a native same-domain identity-law fact, read only for two Known
+# specifications. Unspecified is the sole unconstrained pattern state.
+type SpeechIdentityPatternComparisonInput = {
+    requirement: SpeechSpecificationState
+    observation: SpeechSpecificationState
+    identical: Boolean
+}
+plot speech/identity-pattern-compare (
+    >> value: SpeechIdentityPatternComparisonInput
+    result: SpeechContextDecision >>
+) = (.requirement is unspecified ? SpeechContextDecision.matched : !(.requirement is known) ? SpeechContextDecision.requirement_unresolved : !(.observation is known) ? SpeechContextDecision.observation_unresolved : .identical ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
