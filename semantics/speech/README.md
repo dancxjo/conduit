@@ -499,6 +499,18 @@ conditions, status and confidence. It reports each scalar decision separately;
 it does not collapse unresolved evidence into a mismatch or claim eligibility.
 The adapter allocates no storage and infers no occurrence or neighboring context.
 
+`compare_allophone_neighbors` compares the original before and after pattern
+lists against explicitly supplied immediate-neighbor observations. Each list
+contains at most four alternatives for one neighbor, with four fixed receipt
+slots. Empty lists are unconstrained. Native phone, phoneme and boundary laws
+check exact identities; the neighbor Plot owns presence, domain and uncertainty
+policy, and its alternative Plot owns disjunction. A match wins; otherwise
+unsupported evidence takes precedence over unresolved evidence, then mismatch.
+Every original comparison remains available, including unresolved alternatives.
+Absent neighbors and missing observation are distinct. Feature matchers remain
+unsupported, and these receipts establish neither occurrence adjacency nor rule
+conditions, source resolution, authority or complete allophone eligibility.
+
 `resolve_declared_intent_realization` checks that the chosen opaque phone ID
 has at least one declaration in the exact requested phoneme definition of the
 supplied inventory. It retains every matching default, possible-phone entry and

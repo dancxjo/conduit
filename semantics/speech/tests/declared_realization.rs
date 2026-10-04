@@ -408,3 +408,51 @@ fn allophone_comparison_keeps_each_scalar_domain_separate() {
         &SpeechContextDecision::Matched
     );
 }
+
+#[test]
+fn allophone_neighbor_receipt_keeps_original_rule_and_immediate_sides() {
+    use conduit_speech::{allophone_context::*, neighbor_match::*};
+    let original = allophone("phone/t");
+    let declaration = SpeechPhonemeAllophone::new(
+        original.conditions().clone(),
+        original.confidence().clone(),
+        SpeechEnvironment::new(
+            BoundedSequence::try_from_iter([
+                SpeechSegmentMatcher::phone(fixture::id("phone/t")).unwrap()
+            ])
+            .unwrap(),
+            BoundedSequence::try_from_iter([
+                SpeechSegmentMatcher::phone(fixture::id("phone/d")).unwrap()
+            ])
+            .unwrap(),
+            SpeechProsodicContextSpecification::unknown(),
+            StressSpecification::unknown(),
+            SpeechSyllablePositionSpecification::unknown(),
+            SpeechPositionSpecification::unknown(),
+        )
+        .unwrap(),
+        original.phone().clone(),
+        None,
+        SpeechRuleStatus::Optional,
+    )
+    .unwrap();
+    let phone = PhoneSpecification::known(fixture::id("phone/t")).unwrap();
+    let phoneme = PhonemeSpecification::unknown();
+    let observation = NeighborObservation::Segment {
+        phone: &phone,
+        phoneme: &phoneme,
+    };
+    let compared = compare_allophone_neighbors(&declaration, observation, observation).unwrap();
+    assert!(core::ptr::eq(compared.declaration(), &declaration));
+    assert_eq!(compared.before().decision(), &NeighborDecision::Mismatched);
+    assert_eq!(compared.after().decision(), &NeighborDecision::Matched);
+    assert!(core::ptr::eq(
+        compared
+            .before()
+            .comparisons()
+            .next()
+            .unwrap()
+            .requirement(),
+        &declaration.environment().before().as_slice()[0]
+    ));
+}

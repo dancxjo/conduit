@@ -28,3 +28,53 @@ plot speech/context-compare (
     >> value: SpeechContextComparisonInput
     result: SpeechContextDecision >>
 ) = (.requirement is unspecified ? SpeechContextDecision.matched : !(.requirement is known) ? SpeechContextDecision.requirement_unresolved : !(.observation is known) ? SpeechContextDecision.observation_unresolved : .requirement_value == .observation_value ? SpeechContextDecision.matched : SpeechContextDecision.mismatched)
+
+# Identity facts come from the exact native phone/phoneme equality laws.
+# Absent is an observed edge; unknown is missing observation.
+type SpeechNeighborMatcherKind =
+    any
+    | segment_identity
+    | boundary_identity
+    | unsupported
+type SpeechNeighborPresence =
+    absent
+    | unknown
+    | segment
+    | boundary
+type SpeechNeighborIdentity =
+    matched
+    | mismatched
+    | unresolved
+type SpeechNeighborDecision =
+    matched
+    | mismatched
+    | observation_unresolved
+    | unsupported_matcher
+type SpeechNeighborComparisonInput = {
+    matcher: SpeechNeighborMatcherKind
+    presence: SpeechNeighborPresence
+    identity: SpeechNeighborIdentity
+}
+plot speech/neighbor-compare (
+    >> value: SpeechNeighborComparisonInput
+    result: SpeechNeighborDecision >>
+) = (.matcher is unsupported ? SpeechNeighborDecision.unsupported_matcher : .presence is absent ? SpeechNeighborDecision.mismatched : .presence is unknown ? SpeechNeighborDecision.observation_unresolved : .matcher is any ? SpeechNeighborDecision.matched : (.matcher is boundary_identity && .presence is segment) || (.matcher is segment_identity && .presence is boundary) ? SpeechNeighborDecision.mismatched : .identity is unresolved ? SpeechNeighborDecision.observation_unresolved : .identity is matched ? SpeechNeighborDecision.matched : SpeechNeighborDecision.mismatched)
+
+# Disjunction retains uncertainty unless another alternative establishes a match.
+# Unsupported and unresolved alternatives remain in the original receipts.
+type SpeechNeighborAlternativePair = {
+    left: SpeechNeighborDecision
+    right: SpeechNeighborDecision
+}
+plot speech/neighbor-alternative (
+    >> value: SpeechNeighborAlternativePair
+    result: SpeechNeighborDecision >>
+) = (.left is matched || .right is matched ? SpeechNeighborDecision.matched : .left is unsupported_matcher || .right is unsupported_matcher ? SpeechNeighborDecision.unsupported_matcher : .left is observation_unresolved || .right is observation_unresolved ? SpeechNeighborDecision.observation_unresolved : SpeechNeighborDecision.mismatched)
+type SpeechNeighborAlternativeFinish = {
+    empty: Boolean
+    accumulated: SpeechNeighborDecision
+}
+plot speech/neighbor-alternatives-finish (
+    >> value: SpeechNeighborAlternativeFinish
+    result: SpeechNeighborDecision >>
+) = (.empty ? SpeechNeighborDecision.matched : .accumulated)
