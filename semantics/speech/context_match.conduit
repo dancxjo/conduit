@@ -57,3 +57,22 @@ plot speech/neighbor-compare (
     >> value: SpeechNeighborComparisonInput
     result: SpeechNeighborDecision >>
 ) = (.matcher is unsupported ? SpeechNeighborDecision.unsupported_matcher : .presence is absent ? SpeechNeighborDecision.mismatched : .presence is unknown ? SpeechNeighborDecision.observation_unresolved : .matcher is any ? SpeechNeighborDecision.matched : .identity is unresolved ? SpeechNeighborDecision.observation_unresolved : .identity is matched ? SpeechNeighborDecision.matched : SpeechNeighborDecision.mismatched)
+
+# Disjunction retains uncertainty unless another alternative establishes a match.
+# Unsupported and unresolved alternatives remain in the original receipts.
+type SpeechNeighborAlternativePair = {
+    left: SpeechNeighborDecision
+    right: SpeechNeighborDecision
+}
+plot speech/neighbor-alternative (
+    >> value: SpeechNeighborAlternativePair
+    result: SpeechNeighborDecision >>
+) = (.left is matched || .right is matched ? SpeechNeighborDecision.matched : .left is unsupported_matcher || .right is unsupported_matcher ? SpeechNeighborDecision.unsupported_matcher : .left is observation_unresolved || .right is observation_unresolved ? SpeechNeighborDecision.observation_unresolved : SpeechNeighborDecision.mismatched)
+type SpeechNeighborAlternativeFinish = {
+    empty: Boolean
+    accumulated: SpeechNeighborDecision
+}
+plot speech/neighbor-alternatives-finish (
+    >> value: SpeechNeighborAlternativeFinish
+    result: SpeechNeighborDecision >>
+) = (.empty ? SpeechNeighborDecision.matched : .accumulated)

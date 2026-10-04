@@ -99,3 +99,51 @@ fn any_requires_observed_neighbor_and_features_remain_unsupported() {
         );
     }
 }
+
+#[test]
+fn bounded_alternatives_share_one_neighbor_and_preserve_every_receipt() {
+    use conduit_plot::rust_binding::BoundedSequence;
+    let actual_phone = PhoneSpecification::known(phone("t")).unwrap();
+    let actual_phoneme = PhonemeSpecification::unknown();
+    let observation = NeighborObservation::Segment {
+        phone: &actual_phone,
+        phoneme: &actual_phoneme,
+    };
+    let requirements = [
+        SpeechSegmentMatcher::phone(phone("d")).unwrap(),
+        SpeechSegmentMatcher::phoneme(phoneme("t")).unwrap(),
+        SpeechSegmentMatcher::features(SpeechFeatureBundle::new(BoundedSequence::new()).unwrap())
+            .unwrap(),
+        SpeechSegmentMatcher::phone(phone("t")).unwrap(),
+    ];
+    for (count, expected) in [
+        (1, NeighborDecision::Mismatched),
+        (2, NeighborDecision::ObservationUnresolved),
+        (3, NeighborDecision::UnsupportedMatcher),
+        (4, NeighborDecision::Matched),
+    ] {
+        let compared = compare_neighbor_alternatives(&requirements[..count], observation).unwrap();
+        assert_eq!(compared.decision(), &expected);
+        assert_eq!(compared.comparisons().count(), count);
+        for (receipt, original) in compared.comparisons().zip(&requirements) {
+            assert!(core::ptr::eq(receipt.requirement(), original));
+            match receipt.observation() {
+                NeighborObservation::Segment { phone, .. } => {
+                    assert!(core::ptr::eq(*phone, &actual_phone))
+                }
+                _ => panic!("original immediate neighbor lost"),
+            }
+        }
+    }
+    assert_eq!(
+        compare_neighbor_alternatives(&[], NeighborObservation::Absent)
+            .unwrap()
+            .decision(),
+        &NeighborDecision::Matched
+    );
+    let excessive = core::array::from_fn::<_, 5, _>(|_| SpeechSegmentMatcher::any());
+    assert!(matches!(
+        compare_neighbor_alternatives(&excessive, observation),
+        Err(NeighborComparisonRefusal::TooManyAlternatives { actual: 5 })
+    ));
+}

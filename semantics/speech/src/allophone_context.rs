@@ -62,3 +62,37 @@ pub fn compare_allophone_scalar_context<'a>(
         )?,
     })
 }
+
+/// Original before/after requirements compared against explicitly supplied
+/// immediate neighbors. Scalar and condition obligations remain separate.
+pub struct AllophoneNeighborContext<'a> {
+    declaration: &'a SpeechPhonemeAllophone,
+    before: crate::neighbor_match::NeighborAlternatives<'a>,
+    after: crate::neighbor_match::NeighborAlternatives<'a>,
+}
+impl<'a> AllophoneNeighborContext<'a> {
+    pub fn declaration(&self) -> &'a SpeechPhonemeAllophone {
+        self.declaration
+    }
+    pub fn before(&self) -> &crate::neighbor_match::NeighborAlternatives<'a> {
+        &self.before
+    }
+    pub fn after(&self) -> &crate::neighbor_match::NeighborAlternatives<'a> {
+        &self.after
+    }
+}
+pub fn compare_allophone_neighbors<'a>(
+    declaration: &'a SpeechPhonemeAllophone,
+    before: crate::neighbor_match::NeighborObservation<'a>,
+    after: crate::neighbor_match::NeighborObservation<'a>,
+) -> Result<AllophoneNeighborContext<'a>, crate::neighbor_match::NeighborComparisonRefusal> {
+    use crate::neighbor_match::compare_neighbor_alternatives;
+    Ok(AllophoneNeighborContext {
+        declaration,
+        before: compare_neighbor_alternatives(
+            declaration.environment().before().as_slice(),
+            before,
+        )?,
+        after: compare_neighbor_alternatives(declaration.environment().after().as_slice(), after)?,
+    })
+}
