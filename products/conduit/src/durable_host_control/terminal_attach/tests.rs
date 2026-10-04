@@ -1,10 +1,12 @@
 use super::*;
 use crate::durable_host::owner::Owner;
+use crate::durable_host_control::{Request, Response};
 use conduit_body::ResidentPlot;
 use conduit_std_host::{hosted_terminal_mask_host::receive_terminal_frame_and_ack, StdHost};
 use std::{
     fs,
     io::Read,
+    os::unix::net::UnixListener,
     path::PathBuf,
     sync::atomic::{AtomicU64, Ordering},
     thread,
@@ -196,6 +198,103 @@ fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
         marker["offer_generation"],
         runtime.host.advertisement().offer_generation.0
     );
+    fs::remove_dir_all(state).unwrap();
+}
+
+#[test]
+fn owner_wardrobe_doff_and_rewear_do_not_reuse_the_old_show() {
+    let mut runtime = runtime();
+    let state = state(&runtime);
+    let token = [7; 32];
+    let request = request(&runtime, &token);
+    let (mut client, mut server) = UnixStream::pair().unwrap();
+    let worker = thread::spawn(move || {
+        wire::write_request(&mut client, &request).unwrap();
+        assert!(matches!(
+            wire::read_reply(&mut client).unwrap(),
+            AttachReply::Attached { .. }
+        ));
+        receive_terminal_frame_and_ack(&mut client, &mut Vec::new()).unwrap();
+        let AttachReply::Show {
+            route_plan_id,
+            show,
+            ..
+        } = wire::read_reply(&mut client).unwrap()
+        else {
+            panic!("expected attached terminal Show");
+        };
+        (client, route_plan_id, *show)
+    });
+    let mut first = [0];
+    server.read_exact(&mut first).unwrap();
+    serve(&state, &mut server, &mut runtime, &token, first[0]).unwrap();
+    let (client, plan, show) = worker.join().unwrap();
+    fs::write(state.join("control.token"), token).unwrap();
+    let listener = UnixListener::bind(state.join("control.sock")).unwrap();
+    let server = thread::spawn(move || {
+        for _ in 0..4 {
+            let (mut stream, _) = listener.accept().unwrap();
+            let request: Request = crate::durable_host_control::read_frame(&mut stream).unwrap();
+            let response = crate::durable_host_control::handle(request, &token, &mut runtime);
+            crate::durable_host_control::write_frame(&mut stream, &response).unwrap();
+        }
+        runtime
+    });
+    let wardrobe_call = |plan: &PlanId, revision, command| {
+        crate::durable_host_control::body::call(
+            &state,
+            Request::BodyAttachedTerminalWardrobe {
+                protocol: PROTOCOL,
+                token: token.to_vec(),
+                route_plan_id: plan.clone(),
+                show: Box::new(show.clone()),
+                basis_revision: revision,
+                command,
+            },
+        )
+        .unwrap()
+    };
+    let Response::BodyAttachedTerminalWardrobe {
+        report: initial, ..
+    } = wardrobe_call(&plan, 0, TerminalWardrobeCommand::Inspect)
+    else {
+        panic!("owner must return a wardrobe report");
+    };
+    assert_eq!(initial["wardrobe"]["revision"], 0);
+    assert_eq!(initial["admitted_routes"].as_array().unwrap().len(), 1);
+    assert_eq!(initial["show_id"], show.show_id.as_str());
+    assert!(matches!(
+        wardrobe_call(
+            &PlanId::from("wrong-plan"),
+            0,
+            TerminalWardrobeCommand::Doff
+        ),
+        Response::Refused { .. }
+    ));
+    let Response::BodyAttachedTerminalWardrobe { report: doffed, .. } =
+        wardrobe_call(&plan, 0, TerminalWardrobeCommand::Doff)
+    else {
+        panic!("owner must return a doff report");
+    };
+    assert_eq!(doffed["wardrobe"]["revision"], 1);
+    assert!(doffed["wardrobe"]["worn"].as_array().unwrap().is_empty());
+    assert!(doffed["selected"].is_null());
+    assert!(doffed["show_id"].is_null());
+    assert_eq!(doffed["reconciliation"]["planning"], "NotRequired");
+    assert!(matches!(
+        wardrobe_call(&plan, 0, TerminalWardrobeCommand::Wear),
+        Response::Refused { .. }
+    ));
+    let mut runtime = server.join().unwrap();
+    let reworn = runtime
+        .attached_terminal_wardrobe(&plan, &show, 1, TerminalWardrobeCommand::Wear)
+        .unwrap();
+    assert_eq!(reworn["wardrobe"]["revision"], 2);
+    assert!(!reworn["selected"].is_null());
+    assert!(reworn["show_id"].is_null());
+    assert_eq!(reworn["fresh_show_required"], true);
+    drop(client);
+    retire_closed_attachment(&state, &mut runtime).unwrap();
     fs::remove_dir_all(state).unwrap();
 }
 
