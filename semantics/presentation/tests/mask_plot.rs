@@ -222,6 +222,7 @@ fn admit(source: &str, name: &str) -> MaskPlot {
 fn host_for(
     expanded: &conduit_plot::ExpandedCanonicalPlot,
     profiles: &ProfileCatalog,
+    host_id: &str,
 ) -> HostAdvertisement {
     let capabilities = expanded
         .gears
@@ -247,8 +248,11 @@ fn host_for(
         .collect();
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: HostId::from("host/mask-test"),
-        boot_id: BootId::from("boot/mask-test"),
+        host_id: HostId::from(host_id),
+        boot_id: BootId::from(format!(
+            "boot/{}",
+            host_id.strip_prefix("host/").unwrap_or(host_id)
+        )),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("mask/test@1"),
         bases: vec![],
@@ -314,11 +318,23 @@ fn body_plan_for(planned_masks: &[PlannedMaskPlot]) -> BodyPlan {
 }
 
 fn plan_mask(source: &str, name: &str) -> PlannedMaskPlot {
+    plan_mask_with_host(source, name).0
+}
+
+fn plan_mask_with_host(source: &str, name: &str) -> (PlannedMaskPlot, HostAdvertisement) {
+    plan_mask_with_host_on(source, name, "host/mask-test")
+}
+
+fn plan_mask_with_host_on(
+    source: &str,
+    name: &str,
+    host_id: &str,
+) -> (PlannedMaskPlot, HostAdvertisement) {
     let (startup, profiles) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authoring = expand_canonical_plot_for_authoring(&checked, name, &profiles).unwrap();
     let mask = MaskPlot::admit(&authoring).unwrap();
-    let host = host_for(&authoring.expanded, &profiles);
+    let host = host_for(&authoring.expanded, &profiles, host_id);
     let placements = conduit_planner::default_expanded_placements(
         &authoring.expanded,
         core::slice::from_ref(&host),
@@ -354,7 +370,7 @@ fn plan_mask(source: &str, name: &str) -> PlannedMaskPlot {
         .collect();
     let plan = conduit_planner::plan_expanded_authoring_with_options(
         &authoring,
-        &[host],
+        core::slice::from_ref(&host),
         &placements,
         &[],
         conduit_planner::PlanningOptions {
@@ -369,7 +385,7 @@ fn plan_mask(source: &str, name: &str) -> PlannedMaskPlot {
         &boundary_limits,
     )
     .unwrap();
-    PlannedMaskPlot::admit(&mask, &plan).unwrap()
+    (PlannedMaskPlot::admit(&mask, &plan).unwrap(), host)
 }
 
 fn route_for(body_plan: &BodyPlan, planned: &PlannedMaskPlot, name: &str) -> SealedMaskPlotRoute {
@@ -377,6 +393,8 @@ fn route_for(body_plan: &BodyPlan, planned: &PlannedMaskPlot, name: &str) -> Sea
         route_id: format!("route/{name}"),
         mask_plot: planned.mask.plot_identity.clone(),
         plan_id: body_plan.plan_id.clone(),
+        child_mask_plan_id: None,
+        owner_route_seal_id: None,
         placement_ids: planned
             .plan
             .fragments
@@ -441,6 +459,9 @@ fn two_mask_plots_share_one_body_plan_identity_and_unsealed_masks_refuse() {
         Err(MaskRouteAdmissionError::UnsealedMaskPlot)
     );
 }
+
+#[path = "mask_plot/owner_presentation_ensemble.rs"]
+mod owner_presentation_ensemble;
 
 #[test]
 fn graphical_browser_and_spoken_masks_are_ordinary_plots_with_one_role_boundary() {
@@ -511,7 +532,7 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
     let authoring =
         expand_canonical_plot_for_authoring(&checked, "browser-graphical", &profiles).unwrap();
     let mask = MaskPlot::admit(&authoring).unwrap();
-    let host = host_for(&authoring.expanded, &profiles);
+    let host = host_for(&authoring.expanded, &profiles, "host/mask-test");
     let placements = conduit_planner::default_expanded_placements(
         &authoring.expanded,
         core::slice::from_ref(&host),
@@ -568,6 +589,8 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
         route_id: "route/browser".into(),
         mask_plot: mask.plot_identity.clone(),
         plan_id: body_plan.plan_id.clone(),
+        child_mask_plan_id: None,
+        owner_route_seal_id: None,
         placement_ids: plan
             .fragments
             .iter()

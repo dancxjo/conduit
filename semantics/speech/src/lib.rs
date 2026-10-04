@@ -82,6 +82,8 @@ pub mod rule_conditions;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_context;
 #[cfg(feature = "semantic-bindings")]
+pub mod rule_evaluation;
+#[cfg(feature = "semantic-bindings")]
 pub mod rule_features;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_input;
