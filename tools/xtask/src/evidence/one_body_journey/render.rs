@@ -121,8 +121,11 @@ fn document(
                 EvidenceKind::ConsoleTranscript => {
                     let text = fs::read_to_string(source.join(&item.output.path))
                         .map_err(|error| format!("read terminal capture: {error}"))?;
-                    let excerpt: String = text.chars().take(8000).collect();
-                    let truncated = text.chars().count() > 8000;
+                    // Keep the original PTY capture as evidence, but present its
+                    // text without terminal control sequences in the web page.
+                    let readable = readable_terminal_text(&text);
+                    let excerpt: String = readable.chars().take(8000).collect();
+                    let truncated = readable.chars().count() > 8000;
                     media.push_str(&format!("<figure><figcaption>{}</figcaption><pre>{}</pre>{}</figure>",
                         escape(item.alt), escape(&excerpt),
                         if !truncated { format!("<a href=\"{}\">Open complete terminal capture</a>", escape(&href)) }
@@ -260,4 +263,61 @@ fn escape(value: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
+}
+
+fn readable_terminal_text(input: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\u{1b}' => match chars.next() {
+                Some('[') => {
+                    // CSI sequences end at a final byte in 0x40..=0x7e.
+                    for next in chars.by_ref() {
+                        if ('@'..='~').contains(&next) {
+                            break;
+                        }
+                    }
+                }
+                Some(']') | Some('P') | Some('^') | Some('_') => {
+                    // OSC and string controls end at BEL or ESC backslash.
+                    while let Some(next) = chars.next() {
+                        if next == '\u{7}' {
+                            break;
+                        }
+                        if next == '\u{1b}' && chars.peek() == Some(&'\\') {
+                            chars.next();
+                            break;
+                        }
+                    }
+                }
+                Some(_) | None => {}
+            },
+            '\r' => {
+                if chars.peek() != Some(&'\n') {
+                    output.push('\n');
+                }
+            }
+            '\n' | '\t' => output.push(ch),
+            ch if !ch.is_control() => output.push(ch),
+            _ => {}
+        }
+    }
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::readable_terminal_text;
+
+    #[test]
+    fn terminal_excerpt_is_readable_without_changing_original_capture() {
+        let capture =
+            "\u{1b}[32mClock\u{1b}[0m\r\n\u{1b}]0;Conduit\u{7}Interval: 2 s\rNext\u{1b}\\\n";
+        assert_eq!(
+            readable_terminal_text(capture),
+            "Clock\nInterval: 2 s\nNext\n"
+        );
+        assert!(capture.contains("\u{1b}[32m"));
+    }
 }
