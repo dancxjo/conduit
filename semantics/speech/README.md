@@ -817,3 +817,19 @@ aspiration rule and the remaining segments use exact declared phoneme defaults.
 Source coverage, default policy, original occurrence evidence and voice admission
 all finish before a renderer is returned; source coverage still does not imply
 linguistic commitment.
+
+The explicit `SpeechFormantAspirationProfile` encloses its exact base voice and
+maps one opaque feature ID to an aspiration cue. `prepare_aspirated_global_intent`
+realizes Known Boolean inherited values on selected rule outputs: plain p/t/k
+presets remain plain for false and become aspirated for true. A native Plot owns
+that decision. The original phone definition, whole inherited specification,
+layer, occurrence observation and declared profile remain inspectable; an
+acoustic preset change does not rewrite the semantic phone identity. Every
+inherited key must be covered before admission finishes. Other value kinds,
+all five non-Known states, unsupported base phones and unmapped keys produce
+typed refusals, including an exact event index for whole-intent preparation.
+Definition-feature and declared-default branches retain their existing strict
+refusals. This adds no inference, parser, commitment or physical-device claim.
+The native-speech proof writes `feature-aspiration-off-tata.wav` and
+`feature-aspiration-on-tata.wav`; the existing empty-feature samples retain their
+approved acoustic balance.

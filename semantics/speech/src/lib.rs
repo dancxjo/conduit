@@ -58,6 +58,8 @@ pub mod feature_bundle;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_match;
 #[cfg(feature = "semantic-bindings")]
+pub mod feature_realization;
+#[cfg(feature = "semantic-bindings")]
 pub mod global_intent_realization;
 #[cfg(feature = "semantic-bindings")]
 pub mod global_rule_selection;
@@ -205,3 +207,6 @@ pub mod global_default_profile;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod sourced_global_intent;
+
+#[cfg(test)]
+mod aspiration_parity;

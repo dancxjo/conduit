@@ -1,6 +1,7 @@
 //! Exact selected standalone-rule output, inheritance and compact voice binding.
 //! Timing, source resolution and commitment remain separate obligations.
 use crate::{
+    feature_realization::{realize_aspiration, AspirationRealization, FeatureRealizationRefusal},
     global_rule_selection::GlobalRuleChoice,
     output_features::{prepare_rule_output_features, OutputFeatureRefusal, RuleOutputFeatures},
     profile_admission::{prepare_binding, ProfileRefusal},
@@ -20,6 +21,7 @@ pub enum ChosenGlobalProfileRefusal<'a> {
     Identity(NativeBindingRefusal),
     Features(OutputFeatureRefusal),
     Profile(ProfileRefusal),
+    AcousticFeature(FeatureRealizationRefusal<'a>),
 }
 pub struct ChosenGlobalRuleProfile<'choice, 'source, 'profile> {
     choice: &'choice GlobalRuleChoice<'source>,
@@ -34,6 +36,7 @@ pub struct ChosenGlobalRuleProfile<'choice, 'source, 'profile> {
     binding: &'profile SpeechFormantPhoneBinding,
     profile_basis: SpeechFormantProfileBasis,
     event: VoiceEvent,
+    aspiration: Option<AspirationRealization<'source, 'profile>>,
 }
 impl<'choice, 'source, 'profile> ChosenGlobalRuleProfile<'choice, 'source, 'profile> {
     pub fn choice(&self) -> &'choice GlobalRuleChoice<'source> {
@@ -69,6 +72,17 @@ impl<'choice, 'source, 'profile> ChosenGlobalRuleProfile<'choice, 'source, 'prof
     pub fn checked_profile_basis(&self) -> &SpeechFormantProfileBasis {
         &self.profile_basis
     }
+    pub fn aspiration(&self) -> Option<&AspirationRealization<'source, 'profile>> {
+        self.aspiration.as_ref()
+    }
+    pub fn into_realization(
+        self,
+    ) -> (
+        RuleOutputFeatures<'source>,
+        Option<AspirationRealization<'source, 'profile>>,
+    ) {
+        (self.features, self.aspiration)
+    }
     pub fn event(&self) -> VoiceEvent {
         self.event
     }
@@ -85,6 +99,26 @@ pub fn prepare_chosen_global_rule_profile<'choice, 'source, 'profile>(
     inventory: &'source SpeechInventory,
     profile: &'profile SpeechFormantVoiceProfile,
     default: &'source SpeechOccurrenceFeatureObservation,
+) -> Result<ChosenGlobalRuleProfile<'choice, 'source, 'profile>, ChosenGlobalProfileRefusal<'source>>
+{
+    prepare_inner(choice, inventory, profile, default, None)
+}
+/// Realize inherited aspiration using the enclosed exact base voice profile.
+pub fn prepare_aspirated_global_rule_profile<'choice, 'source, 'profile>(
+    choice: &'choice GlobalRuleChoice<'source>,
+    inventory: &'source SpeechInventory,
+    profile: &'profile SpeechFormantAspirationProfile,
+    default: &'source SpeechOccurrenceFeatureObservation,
+) -> Result<ChosenGlobalRuleProfile<'choice, 'source, 'profile>, ChosenGlobalProfileRefusal<'source>>
+{
+    prepare_inner(choice, inventory, profile.voice(), default, Some(profile))
+}
+fn prepare_inner<'choice, 'source, 'profile>(
+    choice: &'choice GlobalRuleChoice<'source>,
+    inventory: &'source SpeechInventory,
+    profile: &'profile SpeechFormantVoiceProfile,
+    default: &'source SpeechOccurrenceFeatureObservation,
+    aspiration_profile: Option<&'profile SpeechFormantAspirationProfile>,
 ) -> Result<ChosenGlobalRuleProfile<'choice, 'source, 'profile>, ChosenGlobalProfileRefusal<'source>>
 {
     let rule = choice
@@ -125,9 +159,16 @@ pub fn prepare_chosen_global_rule_profile<'choice, 'source, 'profile>(
         definition,
         profile,
         choice.occurrence().segment().stress(),
-        features.features().next().is_some(),
+        aspiration_profile.is_none() && features.features().next().is_some(),
     )
     .map_err(ChosenGlobalProfileRefusal::Profile)?;
+    let aspiration = aspiration_profile
+        .map(|profile| realize_aspiration(&features, profile, event))
+        .transpose()
+        .map_err(ChosenGlobalProfileRefusal::AcousticFeature)?;
+    let event = aspiration
+        .as_ref()
+        .map_or(event, AspirationRealization::event);
     Ok(ChosenGlobalRuleProfile {
         choice,
         inventory,
@@ -141,5 +182,6 @@ pub fn prepare_chosen_global_rule_profile<'choice, 'source, 'profile>(
         binding,
         profile_basis,
         event,
+        aspiration,
     })
 }
