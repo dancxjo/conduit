@@ -274,6 +274,9 @@ fn run_body(
             || current.revision != face.revision
             || host != advertisement
         {
+            // The line was entered while the previous Face was on offer. Even
+            // a bare `activate` must never be reinterpreted after refreshing
+            // the reader's focus and Show against a different owner state.
             execution.close_without_input().map_err(debug_error)?;
             face = current;
             advertisement = host;
@@ -282,7 +285,11 @@ fn run_body(
             reader
                 .refresh(face.clone(), show.clone())
                 .map_err(debug_error)?;
-            writeln!(output, "Owner Face changed to revision {}.", face.revision)
+            writeln!(
+                output,
+                "Owner Face or Host Boot changed. Refused the pending command; Face revision {} is current. Enter read all or help, then choose an action again.",
+                face.revision
+            )
                 .map_err(|error| error.to_string())?;
             emit_readout(
                 state_dir,
@@ -296,6 +303,7 @@ fn run_body(
                 OutputPhase::Body,
                 output,
             )?;
+            continue;
         }
         if line == "refresh" {
             writeln!(output, "Owner Face revision {} is current.", face.revision)
