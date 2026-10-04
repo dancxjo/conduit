@@ -129,6 +129,14 @@ impl NativeFaceMask {
             route
                 .validate_mask_host_offer(&offer)
                 .map_err(|_| NativeFaceMaskError::Plan)?;
+            let local = conduit_conduitos_mask_offer::prepare_stage_from_offer(
+                conduit_conduitos_mask_offer::Adapter::Native,
+                &offer,
+            )
+            .map_err(|_| NativeFaceMaskError::Plan)?;
+            if route.planned_mask != local.planned_mask {
+                return Err(NativeFaceMaskError::Plan);
+            }
             MaskStage {
                 planned_mask: route.planned_mask.clone(),
             }

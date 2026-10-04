@@ -75,7 +75,7 @@ impl LocalOwnerMaskRouteSeal {
         {
             return Err(LocalOwnerMaskRouteError::WrongFaceBasis);
         }
-        validate_single_host_mask(owner_offer, planned_mask)?;
+        validate_single_host_mask(owner_offer, planned_mask, false)?;
         let mut route = Self {
             route_plan_id: PlanId::from("unsealed"),
             body_id: body.body_id.clone(),
@@ -91,7 +91,7 @@ impl LocalOwnerMaskRouteSeal {
     }
 
     pub fn verify_seal(&self) -> Result<(), LocalOwnerMaskRouteError> {
-        validate_single_host_mask(&self.owner_offer, &self.planned_mask)?;
+        validate_single_host_mask(&self.owner_offer, &self.planned_mask, false)?;
         if self.face_basis.body_id.as_ref() != Some(&self.body_id)
             || self.face_basis.wake_id.is_some()
             || self.face_basis.plan_id.is_some()
@@ -185,6 +185,7 @@ impl LocalOwnerMaskRouteSeal {
 pub(crate) fn validate_single_host_mask(
     host: &HostAdvertisement,
     planned: &PlannedMaskPlot,
+    allow_offered_authority: bool,
 ) -> Result<(), LocalOwnerMaskRouteError> {
     if host.protocol_version != PROTOCOL_VERSION
         || host.host_id.as_str().is_empty()
@@ -212,8 +213,8 @@ pub(crate) fn validate_single_host_mask(
             {
                 return Err(LocalOwnerMaskRouteError::StaleOrMissingOffer);
             }
-            if placement.base.is_some()
-                || !placement.authority.is_empty()
+            if (!allow_offered_authority
+                && (placement.base.is_some() || !placement.authority.is_empty()))
                 || placement
                     .resources
                     .iter()
@@ -233,6 +234,26 @@ pub(crate) fn validate_single_host_mask(
                     && offer.semantic_contract == placement.semantic_contract
                     && offer.host_calls == placement.host_calls
                     && offer.limits == placement.limits
+                    && placement.base.as_ref()
+                        == host
+                            .bases
+                            .iter()
+                            .find(|base| base.capability_ids.contains(&offer.capability_id))
+                            .map(|base| base.binding())
+                            .as_ref()
+                    && placement.authority.len() == offer.authority_requirements.len()
+                    && placement.authority.iter().all(|binding| {
+                        !binding.grant_id.as_str().is_empty()
+                            && binding.host_id == host.host_id
+                            && binding.boot_id == host.boot_id
+                            && binding.capability_id == offer.capability_id
+                            && offer.authority_requirements.iter().any(|requirement| {
+                                binding.contract_id == requirement.contract_id
+                                    && binding.host_call_contract_id
+                                        == requirement.host_call_contract_id
+                                    && binding.subject_kind == requirement.subject_kind
+                            })
+                    })
             });
             if !offered
                 || placement.resources.iter().any(|binding| {

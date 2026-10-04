@@ -84,6 +84,9 @@ fn advertise(owner: &mut Owner, window_id: &str) -> conduit_body::AdmissionChall
 #[path = "route_tests.rs"]
 mod route_tests;
 
+#[path = "native_route_tests.rs"]
+mod native_route_tests;
+
 #[test]
 fn current_browser_window_discloses_only_requested_planning_offer_detail() {
     let (mut owner, root, _) = setup();
