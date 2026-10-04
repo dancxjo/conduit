@@ -17,6 +17,13 @@ This USB slice does not absorb #4833's I2C/BME280 acceptance. Portable binary
 composition developed here should serve that later slice too: checked integer
 widening preserves the entire source domain, and packed-word helpers are bounded
 groundwork rather than a substitute for reusable bounded byte/frame contracts.
+Prepared pure expressions preserve complete structured values and select bounded
+byte-sequence fields through the generic exact-type selector. Their finite
+output and selection buffers are allocated before Play. Source checking and
+prepared execution agree for empty through maximum-length control payloads;
+malformed envelopes and substituted Types remain refusals. This is payload
+composition groundwork, not native transfer or class-device execution proof.
+
 Probe plots consume an already-admitted attachment; recognizing a class never
 mints authority or selects a host resource.
 
@@ -26,6 +33,18 @@ reusable ring positions/cycles, PCM packet cadence and completion correlation.
 Packed words contain little-endian wire octets. The U64 representation is a
 finite arithmetic representation, not a physical pointer or capability.
 Signed mouse motion is interpreted separately from octet extraction.
+
+`descriptors.conduit` owns bounded descriptor cursor advancement and device
+prefix decoding. Cursor results distinguish the end of received data, a short
+header/body, malformed geometry, and a transfer exceeding the 256-octet storage
+profile. A next offset is emitted only after checking that the complete record
+fits the actual transfer. Device decoding uses eighteen reusable storage octets
+and an independent actual count; padded storage cannot turn a short transfer
+into a complete descriptor. The endpoint-zero packet field remains exact wire
+truth, including a SuperSpeed exponent, pending speed-specific interpretation.
+These plots check and execute in the prepared expression fixtures. Native
+selection, full configuration enumeration and class-device execution remain
+unimplemented by this framing slice.
 
 The register-leaf groundwork in `src/machine_membrane` validates existing opaque
 Base possession before an aligned, bounded 32-bit access. Native composition
