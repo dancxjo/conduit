@@ -308,6 +308,8 @@ impl Owner {
                 offer: Box::new(offer),
             };
             window.state = WindowState::Active {
+                presence_deadline: Instant::now()
+                    + Duration::from_millis(MAX_BROWSER_PRESENCE_MILLIS),
                 credential,
                 observation: Box::new(pending.observation.clone()),
                 route: None,
