@@ -222,20 +222,22 @@ export class BrowserBodyParticipation {
     }
     return view;
   }
-  acknowledgeOwnerFaceMask(view) {
+  async acknowledgeOwnerFaceMask(view) {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential ||
-        view?.body_id !== credential.body_id || view?.show_state !== "prepared") {
+        view?.body_id !== credential.body_id || !["prepared", "available"].includes(view?.show_state)) {
       throw new Error("owner Face Show no longer has current browser presence");
     }
-    const shown = this.#state.host.bridge.ownerFaceAcknowledge({
-      show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
-    });
+    const shown = view.show_state === "available" ? view
+      : this.#state.host.bridge.ownerFaceAcknowledge({
+        show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
+      });
     if (shown?.show_id !== view.show_id || shown?.face_id !== view.face_id ||
         shown?.face_revision !== view.face_revision || shown?.show_state !== "available" ||
         shown?.interactions_admitted !== view.interactions_admitted) {
       throw new Error("browser Mask acknowledged another owner Face Show");
     }
+    await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
     return shown;
   }
   /** Emit one typed Mask interaction on this still-live owner window. */

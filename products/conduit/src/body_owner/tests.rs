@@ -221,6 +221,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
         presentation: Box::new(playing_face),
         interactions_admitted: true,
+        route: None,
     };
     let face_bytes = serde_json::to_vec(&response).unwrap().len();
     assert!(

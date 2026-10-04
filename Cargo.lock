@@ -563,6 +563,7 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-finance",
+ "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-kernel",
  "conduit-language",

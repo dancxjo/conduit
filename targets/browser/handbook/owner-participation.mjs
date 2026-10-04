@@ -196,13 +196,19 @@ export async function startOwnerParticipation(application, root) {
   const refreshFace = async () => {
     if (!participation || faceBusy || participation.presenceState() !== 'available') return;
     faceBusy = true; faceRefresh.disabled = true;
+    const priorFace = faceView;
+    faceView = null;
+    delete root.dataset.ownerFaceShown;
+    delete root.dataset.ownerShowAcknowledged;
+    for (const button of faceDocument.querySelectorAll('[data-owner-action] button')) button.disabled = true;
     try {
       faceStatus.textContent = 'Asking the owner for its current Face…';
-      const prepared = await participation.prepareOwnerFaceMask(faceView ? {
-        lastSeenRevision: faceView.face_revision, lastSeenIdentity: faceView.face_id,
+      const prepared = await participation.prepareOwnerFaceMask(priorFace ? {
+        lastSeenRevision: priorFace.face_revision, lastSeenIdentity: priorFace.face_id,
       } : undefined);
-      const shown = prepared.show_state === 'available' ? prepared
-        : participation.acknowledgeOwnerFaceMask(prepared);
+      renderFace(prepared);
+      const shown = await participation.acknowledgeOwnerFaceMask(prepared);
+      root.dataset.ownerShowAcknowledged = shown.show_id;
       faceView = shown;
       renderFace(shown);
       faceStatus.textContent = 'The browser is showing the owner’s current Face.';
@@ -242,7 +248,7 @@ export async function startOwnerParticipation(application, root) {
     }
     const current = part.current;
     result.textContent = current?.host_id === host.id && current?.boot_id === host.bootId
-      ? `Body ${biography.body_id} admitted Part ${credential.part_id} on this Host and Boot. The Linux owner remains authoritative; no Plan or Play was transferred.`
+      ? `Body ${biography.body_id} admitted Part ${credential.part_id} on this Host and Boot. The Linux owner remains authoritative; this browser can present its Face through an owner-issued Mask Plan.`
       : `Part ${credential.part_id} is retained, but this browser Boot is no longer current.`;
     evidence.textContent = JSON.stringify(biography, null, 2);
     root.dataset.joinedBodyId = biography.body_id;

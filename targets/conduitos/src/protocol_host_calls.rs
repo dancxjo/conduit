@@ -90,6 +90,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                         | expression_host_call::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
                         | crate::flow_zip::IMPLEMENTATION
+                        | crate::current_sample::IMPLEMENTATION
                 )
             })
         {
@@ -97,6 +98,14 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         // Validate pure typed storage before binding the physical owner.
         zip.validate_plan(plan).map_err(|_| Refusal::InvalidPlan)?;
+        for gear in &fragment.placements {
+            if gear.implementation_id.as_str() == crate::current_sample::IMPLEMENTATION {
+                use conduit_composite::KernelOperationFactory;
+                crate::current_sample::CurrentSampleOperationFactory::default()
+                    .budget(gear)
+                    .map_err(|_| Refusal::InvalidPlan)?;
+            }
+        }
         let mut bindings = Vec::with_capacity(fragment.placements.len());
         for gear in &fragment.placements {
             let owner = match gear.implementation_id.as_str() {

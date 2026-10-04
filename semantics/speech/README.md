@@ -488,3 +488,34 @@ the phoneme frontend PCM exactly. Complete utterance/source commitment admission
 and planner ownership of rich preparation receipts remain separate work. Hosted
 preparation may allocate within the native bounds; the compact rendering tape and
 playback retain their existing finite-storage contracts.
+
+Intent phone lookup also accepts an exact event in a `SpeechUtteranceIntent`
+and a caller-supplied inventory. Native laws check occurrence membership and
+inventory/language agreement; only a known opaque phone ID resolves to a unique
+full definition. The preparation receipt borrows the original intent segment,
+including its sources and provenance. It creates no observed token, confidence,
+or material snapshot. Missing events, boundary events, unresolved specifications,
+and missing or duplicate definitions remain distinct refusals. This lookup does
+not yet select a voice profile or admit a whole utterance for playback.
+
+`prepare_intent_profile_phone` pairs that resolved intent phone with an explicit
+formant profile, retaining the original segment and profile binding. It uses the
+segment's own stress specification and the same definition and feature checks
+as material-token profile preparation. Unsupported stress retains its exact
+specification; definition features are refused rather than discarded. This
+prepares a phone event only: source resolution, phonological consistency,
+quantitative prosody and utterance commitment remain separate admission work.
+`prepare_utterance_timing` retains one original `SpeechUtteranceIntent` and
+projects cumulative exact durations across both segments and boundaries.
+An explicitly supplied native boundary profile contains at most three bindings;
+missing and duplicate bindings refuse. Segment receipts retain their exact
+cycle/intensity quantization; boundary receipts retain their original sources,
+kind, binding and match law, with no invented cycle or intensity receipt. A
+checked Plot supplies the ignored compact control carrier for boundary slots.
+
+Its renderer checks event count, segment/boundary shape and exact compact
+boundary realization before borrowing the frozen timing/control tapes. Phone
+selection, occurrence/source resolution, phonological consistency and commitment
+remain separate checks; this timing preparation is not complete utterance
+admission. All unresolved quantitative values retain their original specification
+and global event index, and all durations share one cumulative grid.

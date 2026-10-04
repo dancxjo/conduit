@@ -86,3 +86,6 @@ type SpeechBoundaryIntentMatch = {
     where .requested is breath_group ? .supplied is breath_group : true
     where .requested is turn ? .supplied is turn : true
 }
+
+# Finite explicitly supplied eligibility for the compact boundary realization.
+type SpeechFormantBoundaryProfile = sequence SpeechFormantBoundaryBinding <= 3

@@ -89,6 +89,11 @@ pub enum BrowserAdmissionIngress {
         protocol: u16,
         request: OwnerFaceSnapshotRequest,
     },
+    FaceShowAcknowledgement {
+        protocol: u16,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+    },
     FaceInteractionRequest {
         protocol: u16,
         request: OwnerFaceSnapshotRequest,
@@ -179,6 +184,11 @@ pub enum BrowserAdmissionEgress {
     FaceSnapshotResponse {
         protocol: u16,
         response: OwnerFaceSnapshotResponse,
+    },
+    FaceShowResponse {
+        protocol: u16,
+        accepted: bool,
+        code: String,
     },
     FaceInteractionResponse {
         protocol: u16,
@@ -411,6 +421,24 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
                     .last_seen_identity
                     .as_ref()
                     .is_some_and(|id| id.as_str().is_empty() || id.as_str().len() > 256)
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::FaceShowAcknowledgement {
+            protocol,
+            request,
+            show,
+        } => {
+            if !request.has_exact_basis()
+                || show.show.host_id != request.host_id
+                || show.show.boot_id != request.boot_id
+                || show.show.body_id.as_ref() != Some(&request.body_id)
+                || serde_json::to_vec(show)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                    .len()
+                    > 64 * 1024
             {
                 return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
             }

@@ -20,6 +20,25 @@ impl DurableHostRuntime {
 
     pub(crate) fn owned_body_browser_interaction(
         &mut self,
+        window_id: &str,
+        binding: &conduit_core::LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        {
+            let HostSource::Body { owner, .. } = &self.host else {
+                return Err("installed Host does not own a live Body session".into());
+            };
+            owner.validate_browser_mask_show(window_id, binding, request, show)?;
+        }
+        self.owned_body_clock_action(Some(request), show, interaction)
+    }
+
+    /// The existing native guest return remains a distinct attended carrier;
+    /// it does not borrow the browser window's selected route.
+    pub(crate) fn owned_body_native_guest_interaction(
+        &mut self,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
         interaction: &FaceInteraction,
