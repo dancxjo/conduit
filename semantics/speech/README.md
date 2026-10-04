@@ -482,6 +482,19 @@ acoustic lowering is implemented; this profile does not silently discard them.
 Canonical IPA spelling here is a finite eligibility rule, not an IPA parser,
 feature-consistency proof, registry authentication or multilingual voice claim.
 
+`resolve_declared_intent_realization` checks that the chosen opaque phone ID
+has at least one declaration in the exact requested phoneme definition of the
+supplied inventory. It retains every matching default, possible-phone entry and
+allophone declaration, including original indices, conditions, environments,
+status and confidence. Native laws check the distinct phoneme and phone IDs;
+missing/duplicate definitions, unresolved specifications and undeclared phones
+remain distinct refusals with the original event index. There is no spelling or
+IPA inference and no declaration ranking. Declaration membership is necessary
+but does not establish contextual eligibility or choose an allophone; feature,
+neighbor, style and linguistic conditions still need explicit resolution before
+complete phonological admission. Preparation is bounded by at most 17 matching
+declarations and performs no playback.
+
 The supported proof writes `rich-phone-hello-world`. This declared listening
 fixture keeps its rich sources and receipts alive through rendering and matches
 the phoneme frontend PCM exactly. Complete utterance/source commitment admission
