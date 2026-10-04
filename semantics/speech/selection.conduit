@@ -1,0 +1,67 @@
+# Explicit semantic choice policy; it is not capture or execution authority.
+type SpeechAllophoneChoicePolicy = {
+    productive: Boolean
+    lexicalized: Boolean
+    optional: Boolean
+    style_dependent: Boolean
+    experimental: Boolean
+    allow_default: Boolean
+}
+type SpeechRuleStatusChoiceInput = {
+    status: SpeechRuleStatus
+    policy: SpeechAllophoneChoicePolicy
+}
+plot speech/rule-status-choice (
+    >> value: SpeechRuleStatusChoiceInput
+    result: Boolean >>
+) = (.status is productive ? .policy.productive : .status is lexicalized ? .policy.lexicalized : .status is optional ? .policy.optional : .status is style_dependent ? .policy.style_dependent : .policy.experimental)
+
+type SpeechAllophoneChoiceOutcome =
+    none
+    | selected_allophone
+    | deferred
+    | selected_default
+
+# Index/reason are ignored for none/default. Deferred retains the first
+# blocking candidate and distinguishes requirement from observation uncertainty.
+type SpeechAllophoneChoiceState = {
+    outcome: SpeechAllophoneChoiceOutcome
+    index: U32 in 0..=7
+    reason: SpeechContextDecision
+}
+type SpeechAllophoneChoiceInput = {
+    state: SpeechAllophoneChoiceState
+    index: U32 in 0..=7
+    admitted: Boolean
+    decision: SpeechContextDecision
+}
+plot speech/allophone-choice-step (
+    >> value: SpeechAllophoneChoiceInput
+    result: SpeechAllophoneChoiceState >>
+) = (!(.state.outcome is none) || !.admitted || .decision is mismatched ? .state : .decision is matched ? {outcome: SpeechAllophoneChoiceOutcome.selected_allophone, index: .index, reason: .decision} : {outcome: SpeechAllophoneChoiceOutcome.deferred, index: .index, reason: .decision})
+
+type SpeechAllophoneChoiceFinishInput = {
+    state: SpeechAllophoneChoiceState
+    allow_default: Boolean
+    default_available: Boolean
+}
+plot speech/allophone-choice-finish (
+    >> value: SpeechAllophoneChoiceFinishInput
+    result: SpeechAllophoneChoiceState >>
+) = (.state.outcome is none && .allow_default && .default_available ? {outcome: SpeechAllophoneChoiceOutcome.selected_default, index: 0, reason: SpeechContextDecision.matched} : .state)
+
+# A Known phone remains a constraint, not permission to replace it. Unspecified
+# is the explicit unconstrained request; other states are unresolved/refused.
+plot speech/phone-choice-requirement-supported (
+    >> value: SpeechSpecificationState
+    result: Boolean >>
+) = (. is known || . is unspecified)
+
+type SpeechAllophoneCandidateEligibility = {
+    status_allowed: Boolean
+    phone_compatible: Boolean
+}
+plot speech/allophone-candidate-eligible (
+    >> value: SpeechAllophoneCandidateEligibility
+    result: Boolean >>
+) = (.status_allowed && .phone_compatible)

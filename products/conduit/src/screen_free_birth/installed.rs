@@ -5,6 +5,7 @@ use std::{
     path::Path,
 };
 
+use conduit_core::HostAdvertisement;
 use conduit_presentation::{MaskShow, Presentation};
 use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
@@ -37,6 +38,49 @@ pub(crate) fn run_installed_spoken(
 ) -> Result<(), String> {
     let mut input = SpokenInput::from_stdin()?;
     run_with_input(state_dir, &mut input, output, Some(options))
+}
+
+pub(crate) fn run_retained(
+    state_dir: &Path,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+) -> Result<(), String> {
+    run_retained_with_input(state_dir, &mut DirectInput(input), output, None)
+}
+
+pub(crate) fn run_retained_spoken(
+    state_dir: &Path,
+    options: &BirthSpeechOptions,
+    output: &mut impl Write,
+) -> Result<(), String> {
+    let mut input = SpokenInput::from_stdin()?;
+    run_retained_with_input(state_dir, &mut input, output, Some(options))
+}
+
+fn run_retained_with_input(
+    state_dir: &Path,
+    input: &mut impl CommandInput,
+    output: &mut impl Write,
+    speech_options: Option<&BirthSpeechOptions>,
+) -> Result<(), String> {
+    let (face, advertisement) = durable_host_control::local_face_snapshot(state_dir)?;
+    let body_id = face
+        .basis
+        .body_id
+        .clone()
+        .ok_or("installed owner has no retained Body to read")?;
+    let playback = speech_options
+        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .transpose()?;
+    run_body(
+        state_dir,
+        body_id,
+        face,
+        Some(advertisement),
+        input,
+        playback,
+        output,
+    )
 }
 
 fn run_with_input(
@@ -203,7 +247,15 @@ fn run_with_input(
                     body_id.as_str()
                 )
                 .map_err(|error| error.to_string())?;
-                return run_body(state_dir, body_id, presentation, input, playback, output);
+                return run_body(
+                    state_dir,
+                    body_id,
+                    presentation,
+                    None,
+                    input,
+                    playback,
+                    output,
+                );
             }
         }
     }
@@ -213,13 +265,21 @@ fn run_body(
     state_dir: &Path,
     body_id: conduit_body::BodyId,
     mut face: Presentation,
+    expected_host: Option<HostAdvertisement>,
     input: &mut impl CommandInput,
     playback: Option<SelectedPlayback>,
     output: &mut impl Write,
 ) -> Result<(), String> {
     let (current, mut advertisement) = durable_host_control::local_face_snapshot(state_dir)?;
-    if current.basis.body_id.as_ref() != Some(&body_id) || current.identity != face.identity {
-        return Err("retained owner Face changed before the Body session began".into());
+    if current.basis.body_id.as_ref() != Some(&body_id)
+        || current.identity != face.identity
+        || expected_host
+            .as_ref()
+            .is_some_and(|host| host != &advertisement || current != face)
+    {
+        return Err(
+            "retained owner Body, Face, or Host Boot changed before the session began".into(),
+        );
     }
     face = current;
     let mut execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;

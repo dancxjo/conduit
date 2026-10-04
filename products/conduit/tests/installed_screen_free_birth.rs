@@ -165,7 +165,7 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
 }
 
 #[test]
-fn post_birth_pending_activation_is_refused_when_owner_face_changes() {
+fn post_birth_refuses_stale_activation_and_controls_clock() {
     let state = std::env::temp_dir().join(format!(
         "conduit-screen-free-stale-action-{}-{}",
         std::process::id(),
@@ -263,6 +263,175 @@ fn post_birth_pending_activation_is_refused_when_owner_face_changes() {
         !stale_boot.contains("Owner action refused:"),
         "{stale_boot}"
     );
+
+    // Reorient after the new Boot, then use only the current Face's typed
+    // controls for a real retained Play, lull, and fresh start.
+    let start = action_id(&rebooted, "conduit.intent/start-clock@1");
+    input
+        .write_all(format!("focus {start}\nactivate\n").as_bytes())
+        .unwrap();
+    let focused_start = read_until_prompt(&mut output, b"body> ");
+    assert!(
+        !focused_start.contains("Refused action:"),
+        "{focused_start}"
+    );
+    let started_from_face = read_until_prompt(&mut output, b"body> ");
+    assert!(
+        started_from_face.contains("Owner action result:"),
+        "{started_from_face}"
+    );
+    let playing = local_face(&state);
+    assert!(!action_available(&playing, "conduit.intent/start-clock@1"));
+    assert!(action_available(&playing, "conduit.intent/lull-clock@1"));
+    let lull = action_id(&playing, "conduit.intent/lull-clock@1");
+    input
+        .write_all(format!("focus {lull}\nactivate\n").as_bytes())
+        .unwrap();
+    let focused_lull = read_until_prompt(&mut output, b"body> ");
+    assert!(!focused_lull.contains("Refused action:"), "{focused_lull}");
+    let lulled = read_until_prompt(&mut output, b"body> ");
+    assert!(lulled.contains("Owner action result:"), "{lulled}");
+    let current = local_face(&state);
+    assert!(action_available(&current, "conduit.intent/start-clock@1"));
+    assert!(!action_available(&current, "conduit.intent/lull-clock@1"));
+    let wake = action_id(&current, "conduit.intent/start-clock@1");
+    input
+        .write_all(format!("focus {wake}\nactivate\n").as_bytes())
+        .unwrap();
+    let focused_wake = read_until_prompt(&mut output, b"body> ");
+    assert!(!focused_wake.contains("Refused action:"), "{focused_wake}");
+    let woke = read_until_prompt(&mut output, b"body> ");
+    assert!(woke.contains("Owner action result:"), "{woke}");
+    let resumed = local_face(&state);
+    assert!(!action_available(&resumed, "conduit.intent/start-clock@1"));
+    assert!(action_available(&resumed, "conduit.intent/lull-clock@1"));
+    input.write_all(b"read all\n").unwrap();
+    let reoriented = read_until_prompt(&mut output, b"body> ");
+    assert!(reoriented.contains("Text Face revision="), "{reoriented}");
+    assert!(reoriented.contains("clock interval"), "{reoriented}");
+
+    input.write_all(b"quit\n").unwrap();
+    assert!(client.wait().unwrap().success());
+    stop_service(&mut service);
+    fs::remove_dir_all(state).unwrap();
+}
+
+#[test]
+fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
+    let state = std::env::temp_dir().join(format!(
+        "conduit-screen-free-return-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&state).unwrap();
+    seed_installation(&state);
+    let mut service = start_service(&state);
+    let no_body = product_with_stdin(
+        &["body", "screen-free", "--state-dir", path(&state)],
+        b"quit\n",
+    );
+    assert!(!no_body.status.success());
+    assert!(!state.join("body/biography.json").exists());
+    let invalid_birth = product(&[
+        "body",
+        "birth",
+        "--state-dir",
+        path(&state),
+        "--speak",
+        "--speaker-card",
+        "sofhdadsp",
+        "--speaker-device",
+        "0",
+        "--speech-executable",
+        "/usr/bin/espeak-ng",
+        "--speech-data",
+        "/usr/lib/espeak-ng-data",
+        "--speech-engine",
+        "/usr/lib/libespeak-ng.so.1",
+    ]);
+    assert!(!invalid_birth.status.success());
+    assert!(String::from_utf8_lossy(&invalid_birth.stderr)
+        .contains("--speak requires --screen-free for Birth"));
+
+    let born = product_with_stdin(
+        &[
+            "body",
+            "birth",
+            "--screen-free",
+            "--state-dir",
+            path(&state),
+        ],
+        b"focus creche.plot.1\nedit value true\nactivate\nfocus creche.birth\nactivate\nquit\n",
+    );
+    assert!(
+        born.status.success(),
+        "{}",
+        String::from_utf8_lossy(&born.stderr)
+    );
+    let before = local_face(&state);
+    let body_id = before["presentation"]["basis"]["body_id"].as_str().unwrap();
+    let start = action_id(&before, "conduit.intent/start-clock@1");
+    let reopened = product_with_stdin(
+        &["body", "screen-free", "--state-dir", path(&state)],
+        format!("read all\nfocus {start}\nactivate\nquit\n").as_bytes(),
+    );
+    assert!(
+        reopened.status.success(),
+        "{}",
+        String::from_utf8_lossy(&reopened.stderr)
+    );
+    let readout = String::from_utf8(reopened.stdout).unwrap();
+    assert!(readout.contains(&format!("Continuing retained Body {body_id}")));
+    assert!(readout.contains("Text Face revision="));
+    assert!(readout.contains("clock interval"));
+    assert!(readout.contains("Owner action result:"));
+    assert!(!readout.contains("Body retained by this installed Host:"));
+    assert!(action_available(
+        &local_face(&state),
+        "conduit.intent/lull-clock@1"
+    ));
+
+    stop_service(&mut service);
+    fs::remove_file(state.join("control.sock")).unwrap();
+    service = start_service(&state);
+    let rebooted = local_face(&state);
+    assert_eq!(rebooted["presentation"]["basis"]["body_id"], body_id);
+    assert_ne!(
+        rebooted["advertisement"]["boot_id"],
+        before["advertisement"]["boot_id"]
+    );
+    let lull = action_id(&rebooted, "conduit.intent/lull-clock@1");
+    let mut client = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .args(["body", "screen-free", "--state-dir", path(&state)])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = client.stdin.take().unwrap();
+    let mut output = client.stdout.take().unwrap();
+    let arrival = read_until_prompt(&mut output, b"body> ");
+    assert!(arrival.contains(&format!("Continuing retained Body {body_id}")));
+    input
+        .write_all(format!("focus {lull}\n").as_bytes())
+        .unwrap();
+    let _focused = read_until_prompt(&mut output, b"body> ");
+    stop_service(&mut service);
+    fs::remove_file(state.join("control.sock")).unwrap();
+    service = start_service(&state);
+    let latest = local_face(&state);
+    assert_eq!(latest["presentation"]["basis"]["body_id"], body_id);
+    assert_ne!(
+        latest["advertisement"]["boot_id"],
+        rebooted["advertisement"]["boot_id"]
+    );
+    input.write_all(b"activate\n").unwrap();
+    let stale = read_until_prompt(&mut output, b"body> ");
+    assert!(stale.contains("Refused the pending command"), "{stale}");
+    assert!(!stale.contains("Owner action result:"), "{stale}");
     input.write_all(b"quit\n").unwrap();
     assert!(client.wait().unwrap().success());
     stop_service(&mut service);
@@ -277,6 +446,28 @@ fn local_face(state: &Path) -> Value {
         String::from_utf8_lossy(&response.stderr)
     );
     serde_json::from_slice(&response.stdout).unwrap()
+}
+
+fn action_id(face: &Value, intent: &str) -> String {
+    face["presentation"]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|action| action["intent"] == intent)
+        .unwrap_or_else(|| panic!("missing current action {intent}"))["identity"]
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
+fn action_available(face: &Value, intent: &str) -> bool {
+    face["presentation"]["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|action| action["intent"] == intent)
+        .unwrap_or_else(|| panic!("missing current action {intent}"))["availability"]
+        == "Available"
 }
 
 fn read_until_prompt(input: &mut impl Read, prompt: &[u8]) -> String {
