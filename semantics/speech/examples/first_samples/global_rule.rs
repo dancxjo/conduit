@@ -115,5 +115,59 @@ pub fn write(
             .renderer(&events)
             .map_err(|reason| format!("{reason:?}"))?,
     )?;
+    let defaults: Vec<_> = intent
+        .events()
+        .as_slice()
+        .iter()
+        .map(|event| match event {
+            SpeechUtteranceIntentEvent::Segment(segment) => Some(
+                SpeechOccurrenceFeatureObservation::new(
+                    SpeechFeatureBundle::new(BoundedSequence::new()).unwrap(),
+                    segment.occurrence().clone(),
+                    SpeechEvidenceProvenance::new(
+                        "manual empty default realization features".into(),
+                        SpeechEvidenceSource::Manual,
+                        None,
+                    )
+                    .unwrap(),
+                )
+                .unwrap(),
+            ),
+            SpeechUtteranceIntentEvent::Boundary(_) => None,
+        })
+        .collect();
+    let evidence: Vec<_> = defaults
+        .iter()
+        .map(|default| {
+            default.as_ref().map(|default_features| {
+                conduit_speech::global_intent_realization::GlobalSegmentPreparation {
+                    context: ExplicitAllophoneContext {
+                        careful_style: &style,
+                        syllable_position: &syllable,
+                        prosodic_context: &prosody,
+                    },
+                    observed_features: None,
+                    default_features,
+                }
+            })
+        })
+        .collect();
+    let prepared = conduit_speech::global_intent_realization::prepare_global_intent(
+        intent,
+        inventory,
+        voice,
+        &boundaries,
+        &rules,
+        &policy,
+        &evidence,
+    )
+    .map_err(|reason| format!("{reason:?}"))?;
+    super::super::write_rendered(
+        output,
+        "global-intent-initial-aspiration-tata",
+        prepared
+            .renderer()
+            .map_err(|reason| format!("{reason:?}"))?,
+    )?;
     Ok(())
 }
