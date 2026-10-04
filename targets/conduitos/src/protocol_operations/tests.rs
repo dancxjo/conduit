@@ -154,3 +154,5 @@ fn source_feedback_plans_with_exact_retained_state_event_and_generation_contract
 mod execution;
 
 mod automatic_events;
+
+mod automatic_admission;

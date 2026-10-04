@@ -9,9 +9,9 @@ plot bme280-clock-join (
 # Terminal branch closure is a separate explicit lifecycle contract.
 plot bme280-autonomous (
     >> begin: BmeProtocolBegin...|
-    captured: BmeProtocolState...| <= 4096B >>
-    refused: BmeProtocolFailure...| <= 4096B >>
-    clock_failed: ClockResult...| <= 512B >>
+    captured: BmeProtocolState...| >>
+    refused: BmeProtocolFailure...| >>
+    clock_failed: ClockResult...| >>
 ) {
     cell: state/seeded/flow/finite
     join: flow/zip/feedback
