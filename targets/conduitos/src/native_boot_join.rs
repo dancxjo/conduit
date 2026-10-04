@@ -40,6 +40,7 @@ pub fn attempt(
     mut pending: PendingNativeJoin,
     request: Option<RoutedAdmissionRequest>,
     identities: BootIdentities,
+    current_offer: &conduit_core::HostAdvertisement,
 ) -> BootJoinOutcome {
     let Some(route) = pending.rendezvous.as_ref() else {
         return BootJoinOutcome {
@@ -53,7 +54,15 @@ pub fn attempt(
     let result = request
         .as_ref()
         .ok_or("owner-admission-request-missing")
-        .and_then(|request| exchange(route, &pending.route_certificates, request, identities));
+        .and_then(|request| {
+            exchange(
+                route,
+                &pending.route_certificates,
+                request,
+                identities,
+                current_offer,
+            )
+        });
     let (receipt, face, return_route, return_refusal) = match result {
         Ok((exchange, return_route, return_refusal)) => {
             pending.owner_exchange = OwnerExchange::ReceiptVerified;
@@ -92,6 +101,7 @@ fn exchange(
     certificates: &[crate::spore_provision::RouteCertificate],
     request: &RoutedAdmissionRequest,
     identities: BootIdentities,
+    current_offer: &conduit_core::HostAdvertisement,
 ) -> Result<
     (
         native_owner_admission::NativeOwnerAdmissionExchange,
@@ -114,12 +124,7 @@ fn exchange(
     let device =
         arch::initialize_virtio_net(identities.boot, 1, crate::boot::executable_physical_address)
             .map_err(|error| error.as_str())?;
-    // Reconstruct current boot truth independently of the signed request.
-    let current = crate::mask_control::native_host_advertisement(
-        &conduit_core::HostId::from(crate::identity::hex(&identities.host)),
-        &conduit_core::BootId::from(crate::identity::hex(&identities.boot)),
-        1,
-    );
+    // Compare the request with the independently observed current surface offer.
     let (mut exchange, _, device) = native_owner_admission::exchange_over_candidate(
         device,
         seeds,
@@ -128,7 +133,7 @@ fn exchange(
         route,
         certificate,
         request,
-        &current,
+        current_offer,
     )
     .map_err(|error| error.as_str())?;
     let (return_route, return_refusal) = match exchange.return_grant.take() {

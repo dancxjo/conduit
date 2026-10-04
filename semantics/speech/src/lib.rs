@@ -34,6 +34,8 @@ extern crate alloc;
 #[cfg(feature = "semantic-bindings")]
 pub mod admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod boundary_admission;
+#[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
 pub mod duration;
@@ -49,6 +51,8 @@ pub mod kernel;
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod reference_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod text_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod timing;
 /// Preparation/inspection bindings. The compact rendering Back does not carry

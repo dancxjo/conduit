@@ -40,9 +40,6 @@ pub fn run(record: boot::BootRecord) -> ! {
     arch::initialize_machine(&record, boot::executable_physical_address);
     let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
     let identities = identity::derive(entropy, record.timestamp, record.image_physical_start);
-    let pending_join = crate::inspect_spore_provision(&record, identities).map(|join| {
-        conduitos::native_boot_join::attempt(join.pending, join.routed_request, identities)
-    });
     let mut presentation_display = match boot::framebuffer_display() {
         Ok(display) => display,
         Err(error) => emit_machine_refusal(error.as_str()),
@@ -318,6 +315,39 @@ pub fn run(record: boot::BootRecord) -> ! {
         }
         Err(_) => emit_refusal("boot-sign-storage-full"),
     }
+    let effect_bases = conduitos::product_bases::NativeProductBases::observe(
+        &offer,
+        &framebuffer_basis,
+        line_usb.as_ref(),
+    )
+    .unwrap_or_else(|_| emit_machine_refusal("product-base-provider-invalid"));
+    let entropy = arch::RdrandEntropy::detect(offer.generation)
+        .unwrap_or_else(|_| emit_machine_refusal("product-surface-authority-entropy-unavailable"));
+    let mut entropy =
+        conduitos::cryptographic_entropy::CryptographicEntropyBase::<_, 1>::admit(entropy)
+            .unwrap_or_else(|_| emit_machine_refusal("product-surface-authority-entropy-invalid"));
+    let mut surface_issuer_key = [0; 32];
+    entropy
+        .fill(&mut surface_issuer_key)
+        .unwrap_or_else(|_| emit_machine_refusal("product-surface-authority-key-unavailable"));
+    let surface_provider = effect_bases
+        .framebuffer_provider(surface_issuer_key)
+        .unwrap_or_else(|_| emit_machine_refusal("product-framebuffer-provider-unavailable"));
+    surface_issuer_key.fill(0);
+    let native_offer = conduitos::product_bases::native_mask_host_advertisement(
+        &conduit_core::HostId::from(identity::hex(&identities.host)),
+        &conduit_core::BootId::from(identity::hex(&identities.boot)),
+        offer.generation,
+        &surface_provider,
+    );
+    let pending_join = crate::inspect_spore_provision(&record, Some(&native_offer)).map(|join| {
+        conduitos::native_boot_join::attempt(
+            join.pending,
+            join.routed_request,
+            identities,
+            &native_offer,
+        )
+    });
     let mut hid_session = if cfg!(feature = "scripted-keyboard-proof") {
         match arch::receive_first_boot_keyboard_report(&mut xhci, &usb, hid_ready) {
             Ok(session) => session,
@@ -374,6 +404,8 @@ pub fn run(record: boot::BootRecord) -> ! {
             line_usb.as_ref(),
             ps2_input.as_mut(),
             &mut rescue_matcher,
+            effect_bases,
+            surface_provider,
             pending_join,
         ) {
             emit_machine_refusal(reason);

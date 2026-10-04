@@ -11,6 +11,17 @@ use conduit_core::{
 pub use crate::native_surface_provider::NativeSurfaceProvider;
 use crate::{arch::UsbDevice, identity, offer::HostOffer};
 
+/// Advertise the same observed framebuffer provider that the native Mask will
+/// use after admission. A synthetic Show pool cannot stand in for possession.
+pub fn native_mask_host_advertisement(
+    host_id: &conduit_core::HostId,
+    boot_id: &conduit_core::BootId,
+    generation: u64,
+    provider: &NativeSurfaceProvider,
+) -> conduit_core::HostAdvertisement {
+    crate::mask_control::native_host_advertisement(host_id, boot_id, generation, &provider.entry)
+}
+
 const MAXIMUM_EFFECT_BASES: u16 = 5;
 const INPUT_CONTROLLER_FAMILY: &str = "conduitos.base/input-controller@1";
 pub const FRAMEBUFFER_RESOURCE_CLASS: &str = conduit_presentation::SHOW_RESOURCE_CLASS;
