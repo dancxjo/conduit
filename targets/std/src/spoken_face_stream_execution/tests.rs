@@ -151,8 +151,8 @@ fn selected_fake_playback(
 
 #[test]
 fn selected_playback_block_admission_covers_its_declared_duration() {
-    let blocks = 16_384_u64;
-    let millis = 16_384_u64;
+    let blocks = 32_768_u64;
+    let millis = 30_000_u64;
     let source_frames_per_block = u64::from(conduit_std_offers::SPEECH_FRAMES_PER_BLOCK);
     let required = (millis * 22_050).div_ceil(source_frames_per_block * 1_000)
         + u64::try_from(conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS).unwrap();
@@ -162,9 +162,10 @@ fn selected_playback_block_admission_covers_its_declared_duration() {
     );
     assert!(blocks >= required);
     assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_BLOCKS));
+    assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS));
     assert_eq!(
         SPOKEN_PLAYBACK_PLOT
-            .matches("maximum-blocks = 16384, maximum-audio-millis = 16384")
+            .matches("maximum-blocks = 32768, maximum-audio-millis = 30000")
             .count(),
         2,
         "converter and speaker must admit the full declared duration"

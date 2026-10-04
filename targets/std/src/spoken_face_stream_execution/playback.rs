@@ -15,7 +15,7 @@ use conduit_core::{OfferGeneration, SignId};
 /// even when every PCM block is full. A 3,072-block limit covers only 3.48 s.
 /// The selected Host adapter holds at most two seconds of PCM under pressure.
 /// Short utterances below its startup lead begin on input close.
-pub const SPOKEN_PLAYBACK_PLOT: &str = "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 16384, maximum-audio-millis = 16384)\n speaker: audio/play(maximum-blocks = 16384, maximum-audio-millis = 16384)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}.\n";
+pub const SPOKEN_PLAYBACK_PLOT: &str = "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}.\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpokenPlaybackOutcome {

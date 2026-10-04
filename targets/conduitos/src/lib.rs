@@ -67,6 +67,7 @@ pub mod machine_membrane;
     feature = "hosted-tools"
 ))]
 pub mod make;
+pub mod monotonic_clock;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_boot_join;
 mod native_components;
@@ -279,3 +280,6 @@ mod tour_two_host_kernel;
 pub mod tour_two_host_plan;
 mod tour_two_host_play;
 pub mod tour_workspace;
+
+#[cfg(test)]
+mod protocol_kernel_fixture;

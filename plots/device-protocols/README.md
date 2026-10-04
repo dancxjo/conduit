@@ -59,7 +59,11 @@ discard a law or justify arithmetic changes from shape alone.
 initialization, deadline and bounded polling policy, with calibration and sample
 capture. Each event is handled once. The staged topology stays within the
 existing expression-depth limit; it does not add a private protocol scheduler.
-The lifecycle helpers expose closing event streams. Native admission tests now
+The lifecycle helpers expose closing event streams. A timed `waiting` action
+carries the exact Source-owned monotonic deadline; `pending` means no new
+effect while a transaction is in flight or a terminal observation was already
+produced. A time provider must return its observed completion time, rather than
+counting repeated ticks. Native admission tests now
 execute initialization and action selection through the production kernel and
 issue the source-authored identity read through the retained I2C owner. The
 complete clock/feedback path and boot admission remain development work.
@@ -67,6 +71,17 @@ Deterministic transcripts check exact register order, response lengths, both
 protocol addresses, refusal preservation, deadlines and finite poll exhaustion.
 Prepared transition reuse allocates nothing. The source initializer owns the
 initial state; the test harness supplies events and bus responses.
+
+`bme280-feedback.conduit` connects Source initialization and transitions through
+an explicitly declared, finitely retained state boundary. Every accepted event
+uses the preceding committed state generation. The generic `flow/zip/feedback`
+contract requires one initial state and one returned state per published pair;
+event closure retains a pending event and waits for the last state return.
+Ordinary `flow/zip/finite` keeps its existing unmatched-value discard behavior.
+Native kernel tests exercise queued events, input closure during transition,
+and normal completion with the exact retained state and pairing owners. This
+proves Source feedback execution with supplied events, while automatic bus/time
+event production and boot admission remain development work.
 
 Its `bme280-observation` entry assembles one typed fixed-point temperature,
 pressure and humidity observation from decoded calibration and samples.

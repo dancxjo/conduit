@@ -25,6 +25,7 @@ pub enum ProtocolCallRefusal {
     Expression(ExpressionCallRefusal),
     Selector(SelectorCallRefusal),
     I2c(I2cCallRefusal),
+    Clock(crate::monotonic_clock::owner::ClockCallRefusal),
 }
 
 enum Owner<P> {
@@ -115,6 +116,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                         | crate::flow_zip::IMPLEMENTATION
                         | crate::seeded_state::IMPLEMENTATION
                         | crate::current_sample::IMPLEMENTATION
+                        | crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION
                 )
             })
         {
@@ -317,6 +319,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
 
 impl ProtocolCallRefusal {
     pub fn failure(&self) -> Failure {
+        use crate::monotonic_clock::owner::ClockCallRefusal as Clock;
         use ExpressionCallRefusal as Expression;
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
@@ -342,6 +345,15 @@ impl ProtocolCallRefusal {
             }
             Self::Selector(Selector::Cancelled) => (FailureCode::Cancelled, 1043),
             Self::Selector(Selector::Selection(_)) => (FailureCode::InvalidInput, 1044),
+            Self::Clock(Clock::WrongBinding | Clock::StaleRequest | Clock::Pending) => {
+                (FailureCode::InvalidLifecycle, 1060)
+            }
+            Self::Clock(Clock::Possession | Clock::Capability(_)) => {
+                (FailureCode::HostCallDenied, 1061)
+            }
+            Self::Clock(Clock::SequenceExhausted) => (FailureCode::IdentityCapacityExhausted, 1062),
+            Self::Clock(Clock::Cancelled) => (FailureCode::Cancelled, 1063),
+            Self::Clock(Clock::Canonical(_)) => (FailureCode::InvalidInput, 1064),
             Self::I2c(I2c::WrongBinding | I2c::StaleRequest) => {
                 (FailureCode::InvalidLifecycle, 1030)
             }
