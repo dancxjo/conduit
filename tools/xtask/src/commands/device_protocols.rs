@@ -76,6 +76,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 ],
             ),
             Step::new(
+                "device-protocols.finite-merge",
+                "Check finite typed context merging, pressure, independent closure and cancellation",
+                "cargo",
+                &["test", "--locked", "-p", "conduit-composite", "-p", "conduit-semantic-catalog", "-p", "conduitos", "flow_merge_finite"],
+            ),
+            Step::new(
                 "device-protocols.binary",
                 "Check and execute reviewed portable binary plots",
                 "cargo",

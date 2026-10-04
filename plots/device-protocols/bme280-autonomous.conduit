@@ -1,0 +1,39 @@
+with flow/zip/feedback/paired as BmePair
+with flow/zip/finite/paired as BmeClockPair
+
+plot bme280-clock-join (
+    pair: BmeClockPair...| >> completion: BmeClockCompletion...|
+) = ({ context: .0, result: .1 })
+
+# Bus results and deadline completions feed the same Source transition loop.
+# Terminal branch closure is a separate explicit lifecycle contract.
+plot bme280-autonomous (
+    >> begin: BmeProtocolBegin...|
+    captured: BmeProtocolState...| <= 4096B >>
+    refused: BmeProtocolFailure...| <= 4096B >>
+    clock_failed: ClockResult...| <= 512B >>
+) {
+    cell: state/seeded/flow/finite
+    join: flow/zip/feedback
+    contexts: flow/merge/finite
+    timed: flow/zip/finite
+    bus: machine/i2c/transact
+    clock: machine/clock/at
+    actions: bme280-protocol-action
+    outcomes: bme280-clock-event
+    begin >> bme280-protocol-initialize() >> cell.seed
+    cell.current >> join.left
+    cell.current >> actions
+    actions >> select(BmeProtocolAction.transact, unmatched=drop) >> bus.request
+    actions >> select(BmeProtocolAction.waiting, unmatched=drop) >> bme280-clock-wait-context() >> contexts.left
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> captured
+    actions >> select(BmeProtocolAction.refused, unmatched=drop) >> refused
+    bus.result >> bme280-clock-bus-context() >> contexts.right
+    contexts.merged >> timed.left
+    contexts.merged >> bme280-clock-request() >> clock.request
+    clock.result >> timed.right
+    timed.paired >> bme280-clock-join() >> outcomes
+    outcomes >> select(BmeClockEvent.event, unmatched=drop) >> join.right
+    outcomes >> select(BmeClockEvent.failed, unmatched=drop) >> clock_failed
+    join.paired >> bme280-join() >> bme280-protocol-transition() >> cell.next
+}
