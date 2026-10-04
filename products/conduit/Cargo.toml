@@ -24,6 +24,7 @@ conduit-planner = { path = "../../architecture/planner" }
 conduit-patchbay-workbench = { path = "../../plots/patchbay/workbench/model" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-browser-mask-offer = { path = "../../targets/browser/mask-offer" }
+conduit-host-browser-make = { path = "../../targets/browser/make" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-protected-line = { path = "../../architecture/protected-line" }
 conduit-speech = { path = "../../semantics/speech", features = ["kernel"] }

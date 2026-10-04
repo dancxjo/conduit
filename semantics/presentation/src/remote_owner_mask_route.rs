@@ -116,22 +116,42 @@ impl RemoteOwnerMaskRouteSeal {
         face_line: &LineOffer,
         return_line: &LineOffer,
     ) -> Result<Self, RemoteOwnerMaskRouteError> {
-        let body = &session.evidence().body;
-        if body.state != BodyState::Lulled {
+        if session.evidence().body.state != BodyState::Lulled {
             return Err(RemoteOwnerMaskRouteError::WorkloadNotLulled);
         }
-        if session.realization().is_some() {
-            return Err(RemoteOwnerMaskRouteError::WorkloadRealizationPresent);
-        }
+        Self::seal_current(
+            session,
+            face,
+            owner_offer,
+            mask_host_offer,
+            planned_mask,
+            face_line,
+            return_line,
+        )
+    }
+
+    /// A presentation Play can continue across a workload Wake without
+    /// becoming that workload's Play. Each changed Face gets a fresh seal.
+    #[allow(clippy::too_many_arguments)]
+    pub fn seal_current(
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        owner_offer: &HostAdvertisement,
+        mask_host_offer: &HostAdvertisement,
+        planned_mask: &PlannedMaskPlot,
+        face_line: &LineOffer,
+        return_line: &LineOffer,
+    ) -> Result<Self, RemoteOwnerMaskRouteError> {
+        let body = &session.evidence().body;
         face.validate()
             .map_err(|_| RemoteOwnerMaskRouteError::InvalidFace)?;
         if face.basis.body_id.as_ref() != Some(&body.body_id)
-            || face.basis.wake_id.is_some()
             || face.basis.plan_id.is_some()
             || face.basis.active_play_id.is_some()
         {
             return Err(RemoteOwnerMaskRouteError::WrongFaceBasis);
         }
+        validate_workload_basis(session, face)?;
         validate_hosts(session, owner_offer, mask_host_offer)?;
         let owner_host = RemoteMaskHostBasis::bind(owner_offer)?;
         let mask_host = RemoteMaskHostBasis::bind(mask_host_offer)?;
@@ -168,7 +188,6 @@ impl RemoteOwnerMaskRouteSeal {
 
     pub fn verify_seal(&self) -> Result<(), RemoteOwnerMaskRouteError> {
         if self.face_basis.body_id.as_ref() != Some(&self.body_id)
-            || self.face_basis.wake_id.is_some()
             || self.face_basis.plan_id.is_some()
             || self.face_basis.active_play_id.is_some()
             || !self.owner_host.valid()
@@ -189,6 +208,20 @@ impl RemoteOwnerMaskRouteSeal {
         Ok(())
     }
 
+    /// The selected Mask Host checks the owner-issued basis against its own
+    /// current offer before preparing the supplied Plan.
+    pub fn validate_mask_host_offer(
+        &self,
+        host: &HostAdvertisement,
+    ) -> Result<(), RemoteOwnerMaskRouteError> {
+        self.verify_seal()?;
+        if RemoteMaskHostBasis::bind(host)? != self.mask_host {
+            return Err(RemoteOwnerMaskRouteError::StaleHost);
+        }
+        validate_single_host_mask(host, &self.planned_mask)
+            .map_err(RemoteOwnerMaskRouteError::InvalidMaskPlan)
+    }
+
     /// Recheck mutable Body, Face, Host, Part, and Line availability before
     /// each render, Show, and typed action. A changed Face needs a fresh seal.
     pub fn validate_current(
@@ -202,11 +235,7 @@ impl RemoteOwnerMaskRouteSeal {
     ) -> Result<(), RemoteOwnerMaskRouteError> {
         self.verify_seal()?;
         let body = &session.evidence().body;
-        if body.body_id != self.body_id
-            || body.workload_revision != self.workload_revision
-            || body.state != BodyState::Lulled
-            || session.realization().is_some()
-        {
+        if body.body_id != self.body_id || body.workload_revision != self.workload_revision {
             return Err(RemoteOwnerMaskRouteError::StaleBody);
         }
         face.validate()
@@ -217,6 +246,7 @@ impl RemoteOwnerMaskRouteSeal {
         {
             return Err(RemoteOwnerMaskRouteError::StaleFace);
         }
+        validate_workload_basis(session, face).map_err(|_| RemoteOwnerMaskRouteError::StaleBody)?;
         if RemoteMaskHostBasis::bind(owner_offer)? != self.owner_host
             || RemoteMaskHostBasis::bind(mask_host_offer)? != self.mask_host
         {
@@ -320,6 +350,28 @@ fn validate_hosts(
         return Err(RemoteOwnerMaskRouteError::WrongOrMissingPart);
     }
     Ok(())
+}
+
+fn validate_workload_basis(
+    session: &BodyLifecycleSession,
+    face: &Presentation,
+) -> Result<(), RemoteOwnerMaskRouteError> {
+    match (
+        &session.evidence().body.state,
+        session.realization(),
+        face.basis.wake_id.as_ref(),
+    ) {
+        (BodyState::Lulled, None, None) => Ok(()),
+        (BodyState::Lulled, Some(_), _) => {
+            Err(RemoteOwnerMaskRouteError::WorkloadRealizationPresent)
+        }
+        (BodyState::Awake { wake_id }, Some(realization), Some(face_wake))
+            if wake_id == face_wake && realization.wake.wake_id == *wake_id =>
+        {
+            Ok(())
+        }
+        _ => Err(RemoteOwnerMaskRouteError::WrongFaceBasis),
+    }
 }
 
 fn validate_host_pair(

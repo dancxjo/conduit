@@ -1,6 +1,7 @@
 //! Service-owned browser authorization. The carrier worker never owns membership
 //! truth: every challenge and completion is applied on the serialized owner actor.
 mod admission;
+mod route;
 #[cfg(test)]
 mod tests;
 use super::{admission::remaining, debug, nonce, now, signal, Owner, PROTOCOL};
@@ -12,6 +13,7 @@ use conduit_body::{
     RemoteProofClass,
 };
 use conduit_core::{HostAdvertisement, HostId, LinkBindingId};
+use conduit_presentation::RemoteOwnerMaskRouteSeal;
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In, MAX_BROWSER_ADMISSION_FRAME_BYTES,
 };
@@ -74,6 +76,7 @@ enum WindowState {
     Active {
         credential: MembershipCredential,
         observation: Box<CandidateObservation>,
+        route: Option<Box<RemoteOwnerMaskRouteSeal>>,
     },
 }
 
@@ -287,6 +290,7 @@ impl Owner {
         let WindowState::Active {
             credential: active,
             observation,
+            ..
         } = &window.state
         else {
             return Err("window-not-active".into());

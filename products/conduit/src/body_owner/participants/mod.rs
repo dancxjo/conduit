@@ -9,7 +9,9 @@ mod transport;
 use super::Owner;
 use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
 use conduit_core::{HostId, LinkBindingId, SignId};
-use conduit_presentation::{OwnerFaceSnapshotResponse, OWNER_FACE_RESPONSE_SCHEMA};
+use conduit_presentation::{
+    OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
+};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
@@ -247,9 +249,12 @@ fn serve_presence(
                 // The carrier and lease prove reachability. The serialized
                 // owner checks this credential and its current Part again
                 // against authoritative admission before projecting a Face.
+                let mut fresh_request = request;
+                fresh_request.last_seen_revision = None;
+                fresh_request.last_seen_identity = None;
                 let mut response = state_dir
                     .ok_or_else(|| "owner Face requires the installed service actor".to_string())
-                    .and_then(|dir| crate::durable_host_control::face_snapshot(dir, request))
+                    .and_then(|dir| crate::durable_host_control::face_snapshot(dir, fresh_request))
                     .unwrap_or_else(|error| OwnerFaceSnapshotResponse::Refused {
                         schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
                         code: match error.as_str() {
@@ -265,12 +270,50 @@ fn serve_presence(
                 if let OwnerFaceSnapshotResponse::Snapshot {
                     presentation,
                     interactions_admitted,
+                    route,
                     ..
                 } = &mut response
                 {
-                    *interactions_admitted = presentation.actions.iter().any(|action| {
-                        action.intent == crate::durable_host::owner::clock_interval_action()
-                    });
+                    let selected = state_dir
+                        .zip(window_id)
+                        .ok_or_else(|| {
+                            "owner route requires the installed service actor".to_string()
+                        })
+                        .and_then(|(dir, window)| {
+                            crate::durable_host_control::browser::mask_route(
+                                dir,
+                                window,
+                                credential.clone(),
+                                binding.clone(),
+                            )
+                        });
+                    match selected {
+                        Ok(selected)
+                            if selected.face_id == presentation.identity
+                                && selected.face_revision == presentation.revision =>
+                        {
+                            *interactions_admitted = presentation.actions.iter().any(|action| {
+                                action.intent == crate::durable_host::owner::clock_interval_action()
+                            });
+                            *route = Some(Box::new(selected));
+                        }
+                        _ => {
+                            response = OwnerFaceSnapshotResponse::Refused {
+                                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                                code: "owner-mask-route-unavailable".into(),
+                            };
+                        }
+                    }
+                }
+                if serde_json::to_vec(&response)
+                    .map_err(|error| format!("encode owner Mask route: {error}"))?
+                    .len()
+                    > MAX_OWNER_FACE_RESPONSE_BYTES
+                {
+                    response = OwnerFaceSnapshotResponse::Refused {
+                        schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                        code: "face-route-frame-pressure".into(),
+                    };
                 }
                 socket.send(&Out::FaceSnapshotResponse {
                     protocol: PROTOCOL,
@@ -307,6 +350,8 @@ fn serve_presence(
                     .and_then(|dir| {
                         crate::durable_host_control::submit_browser_face_interaction(
                             dir,
+                            window_id.ok_or("browser-route-window-unavailable")?,
+                            binding.clone(),
                             request,
                             *show,
                             interaction,
@@ -328,6 +373,11 @@ fn serve_presence(
                             || error.contains("stale owner Mask Show")
                         {
                             "stale-face-or-show"
+                        } else if error.contains("browser-mask-show-refused")
+                            || error.contains("browser-mask-route-not-selected")
+                            || error.contains("browser-route-carrier-mismatch")
+                        {
+                            "mask-route-unavailable"
                         } else if error.contains("UnavailableAction") {
                             "action-unavailable"
                         } else if error.contains("RefusedAction") {

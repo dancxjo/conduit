@@ -16,6 +16,7 @@ use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_presentation::{
     FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
+    RemoteOwnerMaskRouteSeal,
 };
 use conduit_std_host::{
     browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
@@ -58,7 +59,9 @@ pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
     local_face_snapshot, submit_local_face_interaction, submit_local_face_interaction_until,
 };
-pub(crate) use body::{submit_browser_face_interaction, submit_browser_face_interaction_until};
+pub(crate) use body::{
+    submit_browser_face_interaction, submit_native_guest_face_interaction_until,
+};
 pub(crate) use body_birth::BirthTransition;
 pub(crate) use body_birth::{face as birth_face, interact as submit_birth_interaction};
 pub(crate) use body_run::{lull_owned_body, start_owned_body};
@@ -957,6 +960,13 @@ enum Request {
         credential: MembershipCredential,
         disclosure: OfferDisclosureRequest,
     },
+    BodyBrowserMaskRoute {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        credential: MembershipCredential,
+        binding: LinkBindingId,
+    },
     BodyBrowserAbort {
         protocol: u16,
         token: Vec<u8>,
@@ -1011,11 +1021,21 @@ enum Request {
     BodyBrowserInteraction {
         protocol: u16,
         token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
         interaction: FaceInteraction,
         #[serde(default)]
         not_after_millis: Option<u64>,
+    },
+    BodyNativeGuestInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
+        not_after_millis: u64,
     },
     BodyStart {
         protocol: u16,
@@ -1112,6 +1132,10 @@ enum Response {
     BodyBrowserOffer {
         protocol: u16,
         offer: Box<HostOfferProjection>,
+    },
+    BodyBrowserMaskRoute {
+        protocol: u16,
+        route: Box<RemoteOwnerMaskRouteSeal>,
     },
     BodyBrowserAborted {
         protocol: u16,
@@ -1685,6 +1709,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserOffer { token, .. }
+        | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
@@ -1694,6 +1719,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
+        | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
@@ -1720,6 +1746,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyLocalFace { .. }
                 | Request::BodyInteraction { .. }
                 | Request::BodyBrowserInteraction { .. }
+                | Request::BodyNativeGuestInteraction { .. }
                 | Request::BodyLull { .. }
                 | Request::BodyBrowserAbort { .. }
                 | Request::BodyBrowserCancel { .. }
@@ -1817,6 +1844,19 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|offer| Response::BodyBrowserOffer {
                 protocol: PROTOCOL,
                 offer: Box::new(offer),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserMaskRoute {
+            protocol,
+            window_id,
+            credential,
+            binding,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_mask_route(&window_id, &credential, &binding)
+            .map(|route| Response::BodyBrowserMaskRoute {
+                protocol: PROTOCOL,
+                route: Box::new(route),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserAbort {
@@ -1931,13 +1971,39 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserInteraction {
             protocol,
+            window_id,
+            binding,
             request,
             show,
             interaction,
             not_after_millis,
             ..
         } if protocol == PROTOCOL => check_action_expiry(not_after_millis)
-            .and_then(|()| runtime.owned_body_browser_interaction(&request, &show, &interaction))
+            .and_then(|()| {
+                runtime.owned_body_browser_interaction(
+                    &window_id,
+                    &binding,
+                    &request,
+                    &show,
+                    &interaction,
+                )
+            })
+            .map(|result| Response::BodyInteraction {
+                protocol: PROTOCOL,
+                result: Box::new(result),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeGuestInteraction {
+            protocol,
+            request,
+            show,
+            interaction,
+            not_after_millis,
+            ..
+        } if protocol == PROTOCOL => check_action_expiry(Some(not_after_millis))
+            .and_then(|()| {
+                runtime.owned_body_native_guest_interaction(&request, &show, &interaction)
+            })
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),

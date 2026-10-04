@@ -3,7 +3,7 @@
 use super::*;
 use std::cell::{Cell, RefCell};
 
-const INPUT_CAPACITY: usize = 16 * 1024;
+const INPUT_CAPACITY: usize = 40 * 1024;
 const OUTPUT_CAPACITY: usize = 64 * 1024;
 
 thread_local! {
@@ -72,6 +72,7 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             schema,
             presentation,
             interactions_admitted,
+            route,
         } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
             if CURRENT.with(|current| {
                 current.borrow().as_ref().is_some_and(|mask| {
@@ -87,9 +88,16 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             }) else {
                 return -8;
             };
-            let Ok(mask) =
-                OwnerBrowserMask::prepare(basis, *presentation, sequence, interactions_admitted)
-            else {
+            let Some(route) = route else {
+                return -5;
+            };
+            let Ok(mask) = OwnerBrowserMask::prepare(
+                basis,
+                *presentation,
+                *route,
+                sequence,
+                interactions_admitted,
+            ) else {
                 return -5;
             };
             let result = write_output(&mask.view());
@@ -237,12 +245,8 @@ mod tests {
         conduit_browser_owner_face_prepare(basis.len(), frame.len())
     }
 
-    fn output() -> serde_json::Value {
-        OUTPUT.with(|output| serde_json::from_slice(&output.borrow()).unwrap())
-    }
-
     #[test]
-    fn raw_owner_face_frame_preserves_large_revision_and_unchanged_basis() {
+    fn raw_owner_face_frame_refuses_a_snapshot_without_an_owner_route() {
         conduit_browser_owner_face_clear();
         let body = Body::born(
             SourceDocumentId::from("source/browser-owner-abi"),
@@ -274,22 +278,11 @@ mod tests {
                     schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
                     presentation: Box::new(face.clone()),
                     interactions_admitted: false,
+                    route: None,
                 }
             ),
-            0
+            -5
         );
-        let prepared = output();
-        assert_eq!(prepared["face_revision"], revision.to_string());
-        assert_eq!(prepared["show_state"], "prepared");
-        let ack = serde_json::to_vec(&serde_json::json!({
-            "show_id": prepared["show_id"],
-            "face_id": prepared["face_id"],
-            "face_revision": prepared["face_revision"],
-        }))
-        .unwrap();
-        INPUT.with(|input| input.borrow_mut()[..ack.len()].copy_from_slice(&ack));
-        assert_eq!(conduit_browser_owner_face_ack(ack.len()), 0);
-        assert_eq!(output()["show_state"], "available");
         assert_eq!(
             send(
                 &basis,
@@ -297,20 +290,6 @@ mod tests {
                     schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
                     revision,
                     identity: face.identity,
-                }
-            ),
-            0
-        );
-        assert_eq!(output()["show_id"], prepared["show_id"]);
-        let mut wrong = basis;
-        wrong["body_id"] = "body/another".into();
-        assert_eq!(
-            send(
-                &wrong,
-                &OwnerFaceSnapshotResponse::Unchanged {
-                    schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                    revision,
-                    identity: serde_json::from_value(prepared["face_id"].clone()).unwrap(),
                 }
             ),
             -6

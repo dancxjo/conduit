@@ -154,6 +154,37 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     owner
         .browser_planning_offer(&authorized.window_id, &snapshot.credential, &request)
         .unwrap();
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &LinkBindingId::from("line/test/other-carrier"),
+        ),
+        Err("browser-route-carrier-mismatch".into())
+    );
+    let selected = owner
+        .browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &LinkBindingId::from("line/test/browser-mask"),
+        )
+        .unwrap();
+    assert_eq!(selected.mask_host.host_id, snapshot.credential.host_id);
+    let issued_face = owner.local_face_snapshot().unwrap();
+    let issued_response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
+        schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
+        presentation: Box::new(issued_face),
+        interactions_admitted: true,
+        route: Some(Box::new(selected.clone())),
+    };
+    assert!(
+        serde_json::to_vec(&issued_response).unwrap().len()
+            <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES
+    );
+    let WindowState::Active { route, .. } = &owner.pending_browser.as_ref().unwrap().state else {
+        panic!("expected active browser route")
+    };
+    assert_eq!(route.as_deref(), Some(&selected));
     // These explicit remote Line facts exercise the route contract only. A
     // live owner route must derive them from the retained browser carrier.
     let owner_offer = owner.host.advertisement().clone();
@@ -188,6 +219,53 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     let face_line = remote_line("face", &owner_offer, &browser_offer);
     let return_line = remote_line("return", &browser_offer, &owner_offer);
     let face = owner.local_face_snapshot().unwrap();
+    let placement = selected.planned_mask.show_placement();
+    let play = conduit_core::bind_active_play(
+        &selected.planned_mask.plan.plan_id,
+        &placement.host_id,
+        &placement.boot_id,
+        1,
+    );
+    let available_show = conduit_presentation::MaskShow::prepared(
+        &selected.planned_mask,
+        &face,
+        play,
+        face.subjects[0].identity.clone(),
+        "browser/document".into(),
+        conduit_core::SignId::from("sign/test/browser-mask-prepared"),
+    )
+    .unwrap()
+    .transition(
+        conduit_presentation::ManifestationLifecycle::Available,
+        conduit_core::SignId::from("sign/test/browser-mask-available"),
+    )
+    .unwrap();
+    let face_request = conduit_presentation::OwnerFaceSnapshotRequest {
+        schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: snapshot.credential.credential_id.as_str().into(),
+        body_id: snapshot.credential.body_id.clone(),
+        part_id: snapshot.credential.part_id.clone(),
+        host_id: snapshot.credential.host_id.clone(),
+        boot_id: snapshot.credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    owner
+        .validate_browser_mask_show(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/browser-mask"),
+            &face_request,
+            &available_show,
+        )
+        .unwrap();
+    assert!(owner
+        .validate_browser_mask_show(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/other-carrier"),
+            &face_request,
+            &available_show,
+        )
+        .is_err());
     let seal = conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
         &owner.session,
         &face,
@@ -314,6 +392,14 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         owner.browser_planning_offer(&authorized.window_id, &snapshot.credential, &request),
         Err("browser-mask-offer-mismatch".into())
     );
+    assert!(owner
+        .validate_browser_mask_show(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/browser-mask"),
+            &face_request,
+            &available_show,
+        )
+        .is_err());
     let WindowState::Active { observation, .. } =
         &mut owner.pending_browser.as_mut().unwrap().state
     else {

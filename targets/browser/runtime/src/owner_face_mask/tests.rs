@@ -35,7 +35,7 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
         host_id: HostId::from("host/browser-owner-face"),
         boot_id: BootId::from("boot/browser-owner-face"),
     };
-    let mut mask = OwnerBrowserMask::prepare(basis, face, 1, false).unwrap();
+    let mut mask = OwnerBrowserMask::prepare_component_fixture(basis, face, 1, false).unwrap();
     let prepared = mask.view();
     assert_eq!(prepared.face_revision, revision.to_string());
     assert_eq!(prepared.show_state, "prepared");
@@ -117,7 +117,7 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
         host_id: HostId::from("host/browser-owner-action"),
         boot_id: BootId::from("boot/browser-owner-action"),
     };
-    let mut mask = OwnerBrowserMask::prepare(basis, face, 1, true).unwrap();
+    let mut mask = OwnerBrowserMask::prepare_component_fixture(basis, face, 1, true).unwrap();
     let prepared = mask.view();
     assert_eq!(prepared.actions[0].arguments[0].choices, ["250", "500"]);
     assert_eq!(
