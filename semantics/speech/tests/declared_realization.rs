@@ -333,25 +333,78 @@ fn allophone_scalar_context_retains_rule_and_unresolved_observations() {
     .unwrap();
     assert!(core::ptr::eq(compared.declaration(), &declaration));
     assert!(core::ptr::eq(
-        compared.stress.requirement(),
+        compared.stress().requirement(),
         declaration.environment().stress_context()
     ));
-    assert!(core::ptr::eq(compared.stress.observation(), &stress));
+    assert!(core::ptr::eq(compared.stress().observation(), &stress));
     assert_eq!(
-        compared.stress.decision(),
+        compared.stress().decision(),
         &SpeechContextDecision::RequirementUnresolved
     );
     assert_eq!(
-        compared.word_position.decision(),
+        compared.word_position().decision(),
         &SpeechContextDecision::RequirementUnresolved
     );
     assert_eq!(
-        compared.syllable_position.decision(),
+        compared.syllable_position().decision(),
         &SpeechContextDecision::RequirementUnresolved
     );
     assert_eq!(
-        compared.prosodic_context.decision(),
+        compared.prosodic_context().decision(),
         &SpeechContextDecision::RequirementUnresolved
     );
     assert_eq!(compared.declaration().conditions().as_slice().len(), 1);
+}
+
+#[test]
+fn allophone_comparison_keeps_each_scalar_domain_separate() {
+    use conduit_speech::allophone_context::*;
+    let original = allophone("phone/t");
+    let declaration = SpeechPhonemeAllophone::new(
+        original.conditions().clone(),
+        original.confidence().clone(),
+        SpeechEnvironment::new(
+            BoundedSequence::new(),
+            BoundedSequence::new(),
+            SpeechProsodicContextSpecification::unspecified(),
+            StressSpecification::known(SpeechStress::Primary).unwrap(),
+            SpeechSyllablePositionSpecification::known(SpeechSyllablePosition::Onset).unwrap(),
+            SpeechPositionSpecification::unknown(),
+        )
+        .unwrap(),
+        original.phone().clone(),
+        None,
+        SpeechRuleStatus::Optional,
+    )
+    .unwrap();
+    let stress = StressSpecification::known(SpeechStress::Secondary).unwrap();
+    let word = SpeechPositionSpecification::known(SpeechWordPosition::Final).unwrap();
+    let syllable = SpeechSyllablePositionSpecification::unknown();
+    let prosody = SpeechProsodicContextSpecification::unknown();
+    let compared = compare_allophone_scalar_context(
+        &declaration,
+        ScalarContextObservation {
+            stress: &stress,
+            word_position: &word,
+            syllable_position: &syllable,
+            prosodic_context: &prosody,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        compared.stress().decision(),
+        &SpeechContextDecision::Mismatched
+    );
+    assert_eq!(
+        compared.word_position().decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.syllable_position().decision(),
+        &SpeechContextDecision::ObservationUnresolved
+    );
+    assert_eq!(
+        compared.prosodic_context().decision(),
+        &SpeechContextDecision::Matched
+    );
 }

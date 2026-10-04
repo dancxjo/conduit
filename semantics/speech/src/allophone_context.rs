@@ -12,12 +12,28 @@ pub struct ScalarContextObservation<'a> {
 
 pub struct AllophoneScalarContext<'a> {
     declaration: &'a SpeechPhonemeAllophone,
-    pub stress: ContextComparison<'a, StressSpecification>,
-    pub word_position: ContextComparison<'a, SpeechPositionSpecification>,
-    pub syllable_position: ContextComparison<'a, SpeechSyllablePositionSpecification>,
-    pub prosodic_context: ContextComparison<'a, SpeechProsodicContextSpecification>,
+    stress: ContextComparison<'a, StressSpecification>,
+    word_position: ContextComparison<'a, SpeechPositionSpecification>,
+    syllable_position: ContextComparison<'a, SpeechSyllablePositionSpecification>,
+    prosodic_context: ContextComparison<'a, SpeechProsodicContextSpecification>,
 }
 impl<'a> AllophoneScalarContext<'a> {
+    pub fn stress(&self) -> &ContextComparison<'a, StressSpecification> {
+        &self.stress
+    }
+
+    pub fn word_position(&self) -> &ContextComparison<'a, SpeechPositionSpecification> {
+        &self.word_position
+    }
+
+    pub fn syllable_position(&self) -> &ContextComparison<'a, SpeechSyllablePositionSpecification> {
+        &self.syllable_position
+    }
+
+    pub fn prosodic_context(&self) -> &ContextComparison<'a, SpeechProsodicContextSpecification> {
+        &self.prosodic_context
+    }
+
     /// Retains neighbor alternatives, conditions, confidence and rule status.
     pub fn declaration(&self) -> &'a SpeechPhonemeAllophone {
         self.declaration
