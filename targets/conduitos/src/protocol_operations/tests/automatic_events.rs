@@ -148,14 +148,8 @@ pub(super) fn prepare<
     };
     let encoded_package = serde_json::to_vec(&package).unwrap();
     let decoded_package = ProtocolSourcePackage::decode(&encoded_package).unwrap();
-    let crate::protocol_source::PreparedProtocolSource {
-        checked,
-        profile,
-        operations: owners,
-        capabilities,
-    } = crate::protocol_source::PreparedProtocolSource::prepare(decoded_package).unwrap();
-    let expanded =
-        expand_canonical_plot_for_authoring(&checked, "bme280-autonomous", &profile).unwrap();
+    let source = crate::protocol_source::PreparedProtocolSource::prepare(decoded_package).unwrap();
+    let expanded = source.expand("bme280-autonomous").unwrap();
     std::eprintln!(
         "automatic BME280 Source topology: {} gears",
         expanded.expanded.gears.len()
@@ -188,7 +182,7 @@ pub(super) fn prepare<
         profile: "conduitos/native@1".into(),
         bases: vec![],
         resources: vec![],
-        capabilities,
+        capabilities: vec![],
         planner_capabilities: vec![],
     };
     use crate::i2c_base::{
@@ -240,35 +234,32 @@ pub(super) fn prepare<
     .unwrap();
     bus.append_to_advertisement(&mut host, &i2c).unwrap();
     timer.append_to_advertisement(&mut host, &clock).unwrap();
-    for gear in &expanded.expanded.gears {
-        if let [entry] = gear.configuration.as_slice()
-            && let ConfigurationValue::Text(encoded) = &entry.value
-        {
-            let temporal = gear.checked_front().inputs()[0].temporal;
-            host.capabilities.push(match entry.key.as_str() {
-                "program" => crate::expression_host_call::offer(
-                    &conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap(),
-                    temporal,
-                )
-                .unwrap(),
-                "selector" => crate::structured_selector_host_call::offer(
-                    &StructuredSelector::from_canonical_hex(encoded).unwrap(),
-                    temporal,
-                )
-                .unwrap(),
-                _ => panic!("unsupported checked configuration"),
-            });
-        }
-    }
-    host.capabilities
-        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-    host.capabilities.dedup_by(|left, right| {
-        if left.capability_id != right.capability_id {
-            return false;
-        }
-        assert_eq!(left, right, "one identity must retain one exact offer");
-        true
-    });
+    source.publish_pure_backs(&expanded, &mut host).unwrap();
+    let before = host.clone();
+    source.publish_pure_backs(&expanded, &mut host).unwrap();
+    assert_eq!(
+        host, before,
+        "republication retains the exact prepared offers"
+    );
+    let mut substituted = before.clone();
+    let pure = &source.capabilities[0];
+    substituted
+        .capabilities
+        .iter_mut()
+        .find(|offer| offer.capability_id == pure.capability_id)
+        .unwrap()
+        .limits
+        .max_queue_bytes += 1;
+    let before_refusal = substituted.clone();
+    assert!(
+        source
+            .publish_pure_backs(&expanded, &mut substituted)
+            .is_err()
+    );
+    assert_eq!(
+        substituted, before_refusal,
+        "conflicting identity cannot partially publish offers"
+    );
     let grants = [
         (
             crate::i2c_base::installation::I2C_AUTHORITY,
@@ -294,69 +285,9 @@ pub(super) fn prepare<
     });
     let hosts = [host];
     let placements = default_expanded_placements(&expanded.expanded, &hosts).unwrap();
-    let boundaries = expanded
-        .input_bindings
-        .iter()
-        .map(|b| (PortDirection::Input, b))
-        .chain(
-            expanded
-                .output_bindings
-                .iter()
-                .map(|b| (PortDirection::Output, b)),
-        )
-        .map(|(direction, b)| {
-            (
-                ForeBoundaryKey {
-                    direction,
-                    front_port_id: b.front_port_id.clone(),
-                    track: b.track,
-                },
-                ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: hosts[0]
-                        .capabilities
-                        .iter()
-                        .find(|offer| {
-                            offer.capability_id == placements.by_gear[&b.gear_id].capability_id
-                        })
-                        .unwrap()
-                        .limits
-                        .max_queue_bytes,
-                },
-            )
-        })
-        .collect();
-    let connection_limits: BTreeMap<conduit_planner::ConnectionEndpoints, ConnectionQueueLimits> =
-        expanded
-            .expanded
-            .connections
-            .iter()
-            .map(|cord| {
-                let offer = |gear: &GearId| {
-                    hosts[0]
-                        .capabilities
-                        .iter()
-                        .find(|offer| offer.capability_id == placements.by_gear[gear].capability_id)
-                        .unwrap()
-                };
-                let bytes = offer(&cord.source_gear_id)
-                    .limits
-                    .max_queue_bytes
-                    .min(offer(&cord.sink_gear_id).limits.max_queue_bytes);
-                (
-                    (
-                        cord.source_gear_id.clone(),
-                        cord.source_port_id.clone(),
-                        cord.sink_gear_id.clone(),
-                        cord.sink_port_id.clone(),
-                    ),
-                    ConnectionQueueLimits {
-                        item_capacity: 1,
-                        byte_capacity: bytes,
-                    },
-                )
-            })
-            .collect();
+    let limits = source.queue_limits(&expanded, &hosts, &placements).unwrap();
+    let boundaries = limits.boundaries;
+    let connection_limits = limits.connections;
     let mut excessive = connection_limits.clone();
     let clock_cord = expanded
         .expanded
@@ -417,6 +348,7 @@ pub(super) fn prepare<
         &boundaries,
     )
     .unwrap();
+    let owners = source.operations;
     owners.states.validate_plan(&plan).unwrap();
     owners.joins.validate_plan(&plan).unwrap();
     owners.merges.validate_plan(&plan).unwrap();

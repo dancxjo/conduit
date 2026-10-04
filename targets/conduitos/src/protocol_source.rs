@@ -62,6 +62,8 @@ pub enum ProtocolSourceRefusal {
     Specialization(&'static str),
     Catalog(String),
     Source(conduit_plot::SyntaxCheckDiagnostic),
+    Expansion(conduit_plot::CanonicalExpansionDiagnostic),
+    Offer,
 }
 
 impl ProtocolSourcePackage {
@@ -275,3 +277,6 @@ mod schema_encoding {
 
 #[cfg(test)]
 mod tests;
+
+mod planning;
+pub use planning::ProtocolQueueLimits;
