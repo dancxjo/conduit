@@ -10,31 +10,56 @@ import path from 'node:path';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = async file => JSON.parse(await readFile(file));
 
+export async function awaitRouteReady(child, deadlineMillis = 5_000) {
+  try {
+    return await new Promise((resolve, reject) => {
+      let output = '';
+      const cleanup = () => {
+        clearTimeout(timer);
+        child.off('error', failed);
+        child.off('exit', exited);
+        child.stdout.off('data', received);
+      };
+      const fail = error => { cleanup(); reject(error); };
+      const failed = error => fail(error);
+      const exited = code => fail(new Error(`local model route exited: ${code}`));
+      const received = chunk => {
+        output += chunk.toString();
+        if (output.includes('\n')) {
+          try {
+            const endpoint = JSON.parse(output.split('\n')[0]).endpoint;
+            assert.match(endpoint, /^http:\/\/127\.0\.0\.1:\d+$/);
+            cleanup();
+            resolve(endpoint);
+          } catch (error) { fail(error); }
+        }
+      };
+      const timer = setTimeout(() => fail(new Error('local model route readiness deadline')),
+        deadlineMillis);
+      child.once('error', failed);
+      child.once('exit', exited);
+      child.stdout.on('data', received);
+    });
+  } catch (error) {
+    await stopRoute({ child });
+    throw error;
+  }
+}
+
 async function startRoute(endpoint) {
   const child = spawn(process.execPath,
     [new URL('./local-model-route.mjs', import.meta.url).pathname, endpoint],
     { stdio: ['ignore', 'pipe', 'pipe'] });
-  const ready = await new Promise((resolve, reject) => {
-    let output = '';
-    const timer = setTimeout(() => reject(new Error('local model route readiness deadline')), 5_000);
-    child.once('exit', code => reject(new Error(`local model route exited: ${code}`)));
-    child.stdout.on('data', chunk => {
-      output += chunk.toString();
-      if (output.includes('\n')) {
-        clearTimeout(timer);
-        try { resolve(JSON.parse(output.split('\n')[0]).endpoint); } catch (error) { reject(error); }
-      }
-    });
-  });
-  assert.match(ready, /^http:\/\/127\.0\.0\.1:\d+$/);
-  return { child, endpoint: ready };
+  return { child, endpoint: await awaitRouteReady(child) };
 }
 
 async function stopRoute(route) {
   if (route.child.exitCode !== null || route.child.signalCode !== null) return;
-  const stopped = new Promise(resolve => route.child.once('exit', resolve));
+  const stopped = new Promise(resolve => route.child.once('close', resolve));
   route.child.kill('SIGTERM');
+  const force = setTimeout(() => route.child.kill('SIGKILL'), 1_000);
   await stopped;
+  clearTimeout(force);
 }
 
 export async function captureLlmChapter({ xtask, owner, state, output, sourceCommit, runId,
