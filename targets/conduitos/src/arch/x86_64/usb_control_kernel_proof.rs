@@ -111,14 +111,20 @@ pub fn run(
     let mut transitions = 0;
     kernel.start().map_err(|_| "usb-control-proof-start")?;
     for sequence in 0..2 {
-        if let Err(error) = kernel.admit_input(&input_port.port_id, sequence, &input) {
-            let mut refusal = FixedText::new();
-            let _ = writeln!(
-                refusal,
-                "CONDUIT_USB_KERNEL_REFUSAL phase=input sequence={sequence} error={error:?}"
-            );
-            early_write(refusal.as_bytes());
-            return Err("usb-control-proof-input");
+        match kernel.admit_input(&input_port.port_id, sequence, &input) {
+            Ok(conduit_kernel::scheduler::RemoteIngressOutcome::Accepted {
+                sequence: accepted,
+            }) if accepted == sequence => {}
+            Ok(_) => return Err("usb-control-proof-input-pressure"),
+            Err(error) => {
+                let mut refusal = FixedText::new();
+                let _ = writeln!(
+                    refusal,
+                    "CONDUIT_USB_KERNEL_REFUSAL phase=input sequence={sequence} error={error:?}"
+                );
+                early_write(refusal.as_bytes());
+                return Err("usb-control-proof-input");
+            }
         }
         if sequence == 1 {
             kernel
