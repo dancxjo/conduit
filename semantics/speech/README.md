@@ -669,3 +669,11 @@ occurs. Source resolution proves reference identity and range, not causality,
 authority, segmentation or linguistic commitment. The sourced-contextual
 listening fixtures retain the exact manual text revision alongside choice and
 timing receipts.
+
+The native choice transition carrier is a sum with 26 meaningful states: none,
+default, and eight indices each for selection, requirement deferral and
+observation deferral. Its shape prevents contradictory deferral reasons and
+meaningless none/default indices. The public preparation receipt preserves
+outcome/index/reason accessors and validates their correlation through native
+laws. Pure choice Plots construct the sum; native preparation validates the
+refined receipt separately, preserving the admitted law-validator boundary.

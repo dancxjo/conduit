@@ -218,12 +218,7 @@ pub fn select_intent_allophone<'a>(
         .map_err(AllophoneSelectionRefusal::Phoneme)?;
     // Native collection bound is eight; reserve its exact size during preparation.
     let mut candidates = Vec::with_capacity(phoneme.allophones().as_slice().len());
-    // Identity of the native priority fold; ignored slots are not observations.
-    let mut state = generated::SpeechAllophoneChoiceState {
-        outcome: generated::SpeechAllophoneChoiceOutcome::none,
-        index: 0,
-        reason: generated::SpeechContextDecision::mismatched,
-    };
+    let mut state = generated::SpeechAllophoneChoiceFold::none;
     for (index, declaration) in phoneme.allophones().as_slice().iter().enumerate() {
         let status_allowed =
             generated::speech_rule_status_choice(generated::SpeechRuleStatusChoiceInput {
@@ -279,27 +274,35 @@ pub fn select_intent_allophone<'a>(
             default_available,
         })
         .ok_or(AllophoneSelectionRefusal::CompiledPlot)?;
-    let outcome = match state.outcome {
-        generated::SpeechAllophoneChoiceOutcome::none => SpeechAllophoneChoiceOutcome::None,
-        generated::SpeechAllophoneChoiceOutcome::selected_allophone => {
-            SpeechAllophoneChoiceOutcome::SelectedAllophone
-        }
-        generated::SpeechAllophoneChoiceOutcome::deferred => SpeechAllophoneChoiceOutcome::Deferred,
-        generated::SpeechAllophoneChoiceOutcome::selected_default => {
-            SpeechAllophoneChoiceOutcome::SelectedDefault
-        }
+    use generated::SpeechAllophoneChoiceFold as Fold;
+    let (index, outcome, reason) = match state {
+        Fold::none => (
+            0,
+            SpeechAllophoneChoiceOutcome::None,
+            SpeechContextDecision::Mismatched,
+        ),
+        Fold::selected_default => (
+            0,
+            SpeechAllophoneChoiceOutcome::SelectedDefault,
+            SpeechContextDecision::Matched,
+        ),
+        Fold::selected_allophone(candidate) => (
+            candidate.index,
+            SpeechAllophoneChoiceOutcome::SelectedAllophone,
+            SpeechContextDecision::Matched,
+        ),
+        Fold::requirement_deferred(candidate) => (
+            candidate.index,
+            SpeechAllophoneChoiceOutcome::Deferred,
+            SpeechContextDecision::RequirementUnresolved,
+        ),
+        Fold::observation_deferred(candidate) => (
+            candidate.index,
+            SpeechAllophoneChoiceOutcome::Deferred,
+            SpeechContextDecision::ObservationUnresolved,
+        ),
     };
-    let reason = match state.reason {
-        generated::SpeechContextDecision::matched => SpeechContextDecision::Matched,
-        generated::SpeechContextDecision::mismatched => SpeechContextDecision::Mismatched,
-        generated::SpeechContextDecision::requirement_unresolved => {
-            SpeechContextDecision::RequirementUnresolved
-        }
-        generated::SpeechContextDecision::observation_unresolved => {
-            SpeechContextDecision::ObservationUnresolved
-        }
-    };
-    let state = SpeechAllophoneChoiceState::new(state.index, outcome, reason)
+    let state = SpeechAllophoneChoiceState::new(index, outcome, reason)
         .map_err(AllophoneSelectionRefusal::State)?;
     Ok(IntentAllophoneChoice {
         occurrence,
