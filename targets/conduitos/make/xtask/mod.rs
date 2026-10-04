@@ -132,7 +132,7 @@ enum ConduitosCommand {
     /// Prove one typed native clock action through a live installed owner.
     LiveOwnerActionProof(LiveOwnerActionProofArgs),
     /// Prove one Body across an installed owner, QMP guest, and pinned Chromium.
-    LiveThreeHostProof(three_host_proof::Args),
+    LiveThreeHostProof(Box<three_host_proof::Args>),
     /// Prove the canonical IA-32 live artifact through legacy BIOS only.
     Ia32LegacyBiosProof,
     /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.
