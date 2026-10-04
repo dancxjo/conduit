@@ -88,6 +88,14 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowMergeFiniteBack {
                     StepOutcome::Progress
                 };
             }
+        }
+        // An exposed terminal must be consumed before unrelated payload work.
+        // Payload fairness cannot postpone the selected terminal contract.
+        for side in [self.preferred, 1 - self.preferred] {
+            if self.committed_close[side] {
+                continue;
+            }
+            let port = PortId(side as u16);
             let Some(reference) = io.input(port) else {
                 continue;
             };

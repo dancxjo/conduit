@@ -126,3 +126,58 @@ fn malformed_input_and_cancelled_work_never_publish_values() {
     );
     assert!(<FlowMergeFiniteBack as StepBack<2>>::prepared_output(&back, PortId(0)).is_none());
 }
+
+#[test]
+fn exposed_close_precedes_the_other_inputs_preferred_payload() {
+    let mut back = back();
+    let bytes = 1_u64.to_le_bytes();
+    let mut first = StepIo::test_frame(
+        [Some(reference(0)), None],
+        [false; 2],
+        [Some(8), None],
+        None,
+        16,
+    );
+    assert_eq!(
+        back.step(
+            &mut first,
+            &StepInputBytes::test_frame([Some(&bytes), None], None)
+        ),
+        StepOutcome::Progress
+    );
+    commit(&mut back);
+    // Right is now preferred, but left's exposed closure cannot be deferred.
+    let mut closed = StepIo::test_frame(
+        [None, Some(reference(1))],
+        [true, false],
+        [Some(8), None],
+        None,
+        16,
+    );
+    assert_eq!(
+        back.step(
+            &mut closed,
+            &StepInputBytes::test_frame([None, Some(&bytes)], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert!(closed.test_consumed_closed(PortId(0)));
+    assert!(!closed.test_consumed(PortId(1)));
+    assert!(<FlowMergeFiniteBack as StepBack<2>>::prepared_output(&back, PortId(0)).is_none());
+    commit(&mut back);
+    let mut next = StepIo::test_frame(
+        [None, Some(reference(1))],
+        [false; 2],
+        [Some(8), None],
+        None,
+        16,
+    );
+    assert_eq!(
+        back.step(
+            &mut next,
+            &StepInputBytes::test_frame([None, Some(&bytes)], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert!(next.test_consumed(PortId(1)));
+}
