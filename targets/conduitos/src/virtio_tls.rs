@@ -43,7 +43,6 @@ pub enum VirtioTlsError {
     Handshake,
     Write,
     Read,
-    Close,
     WebSocket(WebSocketError),
 }
 
@@ -69,7 +68,6 @@ impl VirtioTlsError {
             Self::Handshake => "virtio-tls-handshake-failed",
             Self::Write => "virtio-tls-write-failed",
             Self::Read => "virtio-tls-read-failed",
-            Self::Close => "virtio-tls-close-failed",
             Self::WebSocket(error) => error.as_str(),
         }
     }
@@ -248,13 +246,17 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
     .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::WebSocket(error)))?;
     let result = operation(&mut websocket);
     let websocket_close = websocket.close();
-    let tls_close = tls.close();
-    let tcp_close = match tls_close {
-        Ok(stream) => stream
-            .close_tcp_with_device()
-            .map_err(VirtioTlsError::CloseTcp),
-        Err(_) => Err(VirtioTlsError::Close),
+    // A complete authenticated operation remains known even if the peer has
+    // already retired TLS before our close-notify. The TLS API returns the
+    // underlying socket on this failure, so still require TCP retirement and
+    // retain the initialized device. Report the abnormal close separately.
+    let (stream, tls_close_refused) = match tls.close() {
+        Ok(stream) => (stream, false),
+        Err((stream, _)) => (stream, true),
     };
+    let tcp_close = stream
+        .close_tcp_with_device()
+        .map_err(VirtioTlsError::CloseTcp);
     let value = match result {
         Ok(value) => value,
         Err(error) => return Err(VirtioWebSocketRunError::Operation(error)),
@@ -267,6 +269,11 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
     websocket_close
         .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::WebSocket(error)))?;
     let (device, tcp_polls) = tcp_close.map_err(VirtioWebSocketRunError::Transport)?;
+    if tls_close_refused {
+        crate::arch::early_write(
+            b"CONDUIT_NATIVE_LINE_CLOSE {\"status\":\"tls-close-refused\",\"operation_complete\":true,\"tcp_retired\":true}\n",
+        );
+    }
     Ok((value, tcp_polls, device))
 }
 
