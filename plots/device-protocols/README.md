@@ -59,6 +59,10 @@ discard a law or justify arithmetic changes from shape alone.
 initialization, deadline and bounded polling policy, with calibration and sample
 capture. Each event is handled once. The staged topology stays within the
 existing expression-depth limit; it does not add a private protocol scheduler.
+The lifecycle helpers expose closing event streams. Native admission tests now
+execute initialization and action selection through the production kernel and
+issue the source-authored identity read through the retained I2C owner. The
+complete clock/feedback path and boot admission remain development work.
 Deterministic transcripts check exact register order, response lengths, both
 protocol addresses, refusal preservation, deadlines and finite poll exhaustion.
 Prepared transition reuse allocates nothing. The source initializer owns the

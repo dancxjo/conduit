@@ -5,22 +5,27 @@ use conduit_composite::*;
 use conduit_plot::CompositeFrontTerminal;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-struct Scripted(Arc<AtomicUsize>);
+struct Scripted {
+    effects: Arc<AtomicUsize>,
+    address: u8,
+    register: u8,
+    response: u8,
+}
 impl I2cProvider for Scripted {
     fn transact(
         &mut self,
         transaction: &I2cTransaction<'_>,
         input: &mut [u8],
     ) -> Result<usize, I2cDisposition> {
-        assert_eq!(transaction.address(), 0x55);
-        assert_eq!(transaction.write(), &[0x12]);
+        assert_eq!(transaction.address(), self.address);
+        assert_eq!(transaction.write(), &[self.register]);
         assert_eq!(input.len(), 1);
-        self.0.fetch_add(1, Ordering::SeqCst);
-        input[0] = 0xa5;
+        self.effects.fetch_add(1, Ordering::SeqCst);
+        input[0] = self.response;
         Ok(1)
     }
     fn revoke(&mut self) {
-        self.0.fetch_add(100, Ordering::SeqCst);
+        self.effects.fetch_add(100, Ordering::SeqCst);
     }
 }
 
@@ -48,12 +53,25 @@ enum Wrapping {
     Field,
     Read,
     Drop,
+    Bme,
 }
+#[test]
+fn bme280_source_initializer_and_action_issue_identity_read_through_native_kernel() {
+    run_register(Wrapping::Bme);
+}
+
 fn run_register(wrapping: Wrapping) {
-    let wrapped = !matches!(wrapping, Wrapping::None);
+    let wrapped = !matches!(wrapping, Wrapping::None | Wrapping::Bme);
+    let bme = matches!(wrapping, Wrapping::Bme);
     let dropped = matches!(wrapping, Wrapping::Drop);
 
     let effects = Arc::new(AtomicUsize::new(0));
+    let provider = || Scripted {
+        effects: effects.clone(),
+        address: if bme { 0x76 } else { 0x55 },
+        register: if bme { 0xd0 } else { 0x12 },
+        response: if bme { 0x60 } else { 0xa5 },
+    };
     let source = include_str!("../../../../../../plots/device-protocols/i2c-register.conduit");
     let declaration = if matches!(wrapping, Wrapping::Field) {
         "type WrappedRead = {\n query: I2cRegisterRead\n}\ntype I2cRegisterWrite"
@@ -69,12 +87,19 @@ fn run_register(wrapping: Wrapping) {
         .replace("type I2cRegisterWrite", declaration)
         .replace("query: I2cRegisterRead...|", "query: WrappedRead...|")
         .replacen("    query >> ({", selector, 1);
-    let source = if wrapped {
+    let source = if bme {
+        BME_FIRST_CALL_SOURCE
+    } else if wrapped {
         wrapped_source.as_str()
     } else {
         source
     };
-    let (plan, ready, identity) = planned_source(Scripted(effects.clone()), source);
+    let name = if bme {
+        "bme280-first-call"
+    } else {
+        "i2c-register-read"
+    };
+    let (plan, ready, identity) = planned_named_source(provider(), source, name);
     let fragment = &plan.fragments[0];
     let gear = fragment
         .placements
@@ -146,7 +171,14 @@ fn run_register(wrapping: Wrapping) {
     let expression = fragment
         .placements
         .iter()
-        .find(|gear| gear.implementation_id.as_str() == expression_host_call::IMPLEMENTATION)
+        .find(|gear| {
+            gear.implementation_id.as_str() == expression_host_call::IMPLEMENTATION
+                && (!bme
+                    || fragment.fore_ports.iter().any(|fore| {
+                        fore.direction == PortDirection::Input
+                            && fore.placement_id == gear.placement_id
+                    }))
+        })
         .unwrap();
     let ConfigurationValue::Text(encoded) = &expression.configuration[0].value else {
         panic!("program")
@@ -174,7 +206,8 @@ fn run_register(wrapping: Wrapping) {
                 .unwrap()
                 .input_type()
                 .clone()
-        });
+        })
+        .filter(|_| wrapped);
     let definition = KernelCompositeDefinition {
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),
@@ -195,7 +228,7 @@ fn run_register(wrapping: Wrapping) {
         .input_fronts
         .push(duplicated_front.boundary.input_fronts[0].clone());
     for refused in [wrong_route, stale_boot, duplicated_front] {
-        let (_, inert_ready, _) = planned_source(Scripted(effects.clone()), source);
+        let (_, inert_ready, _) = planned_named_source(provider(), source, name);
         let (refused_table, refused_handle, refused_claim) = possession(scope.clone());
         assert!(matches!(
             PreparedProtocolPlay::prepare(
@@ -223,7 +256,7 @@ fn run_register(wrapping: Wrapping) {
                 StructuredInfoValue::leaf(
                     field.value_type().clone(),
                     vec![if field.name() == "address" {
-                        0x55
+                        if bme { 0x76 } else { 0x55 }
                     } else {
                         0x12
                     }],
@@ -291,7 +324,12 @@ fn run_register(wrapping: Wrapping) {
     let mut encoder =
         crate::i2c_base::result::PreparedI2cResultEncoder::new(&I2cContract::prepare().unwrap())
             .unwrap();
-    assert_eq!(output.encoded, encoder.completed(1, &[0xa5]).unwrap());
+    assert_eq!(
+        output.encoded,
+        encoder
+            .completed(1, &[if bme { 0x60 } else { 0xa5 }])
+            .unwrap()
+    );
     let result = StructuredInfoValue::from_canonical_bytes(&output.encoded).unwrap();
     assert!(
         matches!(result.shape(), StructuredInfoValueShape::Variant { tag, .. } if tag == "completed")

@@ -37,6 +37,14 @@ fn planned_source<P: I2cProvider>(
     provider: P,
     source: &str,
 ) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
+    planned_named_source(provider, source, "i2c-register-read")
+}
+
+fn planned_named_source<P: I2cProvider>(
+    provider: P,
+    source: &str,
+    name: &str,
+) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
     let contract = I2cContract::prepare().unwrap();
     let (startup, mut profile) = contract.catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
@@ -55,8 +63,7 @@ fn planned_source<P: I2cProvider>(
                 .unwrap();
         }
     }
-    let authoring =
-        expand_canonical_plot_for_authoring(&checked, "i2c-register-read", &profile).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&checked, name, &profile).unwrap();
     let expanded = &authoring.expanded;
     assert!(expanded.gears.len() >= 2);
     let identity = I2cNativeIdentity {
@@ -204,3 +211,15 @@ fn register_plot_selects_native_expression_and_capability_bound_i2c_backs() {
 }
 
 mod execution;
+
+const BME_FIRST_CALL_SOURCE: &str = concat!(
+    include_str!("../../../../../plots/device-protocols/bme280-lifecycle.conduit"),
+    "\nplot bme280-first-call (\n query: BmeProtocolBegin...| >> result: I2cResult...|\n) {\n bus: machine/i2c/transact\n query >> bme280-protocol-initialize() >> bme280-protocol-action() >> select(BmeProtocolAction.transact, unmatched=drop) >> bus >> result\n}\n"
+);
+
+#[test]
+fn bme280_source_initializer_and_action_plan_against_native_i2c() {
+    let (plan, _, _) = planned_named_source(Provider, BME_FIRST_CALL_SOURCE, "bme280-first-call");
+    assert!(verify_plan(&plan));
+    assert_eq!(plan.fragments[0].placements.len(), 4);
+}
