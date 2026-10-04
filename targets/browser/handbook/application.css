@@ -65,9 +65,10 @@
 .owner-face-role { font: 700 .72rem var(--conduit-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--conduit-emphasis); }
 .owner-face-document > details, .owner-face-document > section:not(.owner-face-subject) { grid-column: 1/-1; padding: .8rem 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
 .owner-face li { margin-block: .3rem; overflow-wrap: anywhere; }
-.owner-face [data-owner-clock-action] { grid-column: 1/-1; display: flex; flex-wrap: wrap; align-items: end; gap: .75rem 1rem; padding: 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-surface); }
-.owner-face [data-owner-clock-action] label { display: grid; gap: .3rem; font-weight: 700; }
-.owner-face [data-owner-clock-action] select { font: inherit; padding: .4rem .6rem; }
-.owner-face [data-owner-clock-action] p { flex-basis: 100%; margin: 0; }
+.owner-face [data-owner-action] { grid-column: 1/-1; display: flex; flex-wrap: wrap; align-items: end; gap: .75rem 1rem; padding: 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-surface); }
+.owner-face [data-owner-action] h5 { flex-basis: 100%; margin: 0; }
+.owner-face [data-owner-action] label { display: grid; gap: .3rem; font-weight: 700; }
+.owner-face [data-owner-action] select, .owner-face [data-owner-action] input { font: inherit; padding: .4rem .6rem; }
+.owner-face [data-owner-action] p { flex-basis: 100%; margin: 0; }
 @media(max-width:900px) { .handbook-first-steps ol { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:540px) { .handbook-first-steps ol, .handbook-reading { grid-template-columns: 1fr; }.handbook-application { padding: 1rem; }.handbook-application select { max-width: 100%; }.handbook-controls button { flex: 1 1 8rem; } }

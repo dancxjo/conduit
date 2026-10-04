@@ -96,6 +96,8 @@ impl OwnerBrowserMask {
                             .map(|argument| ArgumentView {
                                 name: argument.name.clone(),
                                 value_name: argument.value_name.clone(),
+                                value_kind: argument.contract.value_kind.as_str().into(),
+                                maximum_bytes: argument.contract.maximum_bytes,
                                 choices: argument
                                     .contract
                                     .constraints
@@ -117,14 +119,6 @@ impl OwnerBrowserMask {
                                     .unwrap_or_default(),
                             })
                             .collect(),
-                        current_value: face.properties.iter().find_map(|property| {
-                            if property.subject == action.target && property.name == "interval-ms" {
-                                if let PresentationPropertyValue::Count(value) = &property.value {
-                                    return Some(value.to_string());
-                                }
-                            }
-                            None
-                        }),
                     }
                 })
                 .collect(),

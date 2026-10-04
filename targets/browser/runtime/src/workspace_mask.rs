@@ -1,13 +1,7 @@
 //! Browser realization of the tutorial Face through one ordinary Mask Plot.
 
 use conduit_body::{BodyFaceSelector, BodyId, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, Wake};
-use conduit_core::{
-    bind_active_play, kind_id, port_id, ActivePlayIdentity, ArtifactId, Back, BackOfferBuilder,
-    BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId, Kind,
-    KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId,
-    PROTOCOL_VERSION,
-};
+use conduit_core::{bind_active_play, ActivePlayIdentity, BootId, HostId, PortDirection, SignId};
 use conduit_kernel::scheduler::{
     FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
@@ -27,13 +21,11 @@ use conduit_presentation::{
     FaceInteractionArgument, ManifestationLifecycle, MaskInteractionCorrelation, MaskPlot,
     MaskShow, MaskWardrobe, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence,
     MaskWardrobeLifetime, PlannedMaskPlot, Presentation, PresentationAction, SealedMaskPlotRoute,
-    FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-const MASK_OPERATION: &str = "browser.host/dom-mask@1";
-const MASK_BYTES: u32 = 512 * 1024;
+use crate::installed_browser::dom_mask::MASK_BYTES;
 #[path = "workspace_mask_execution.rs"]
 pub(crate) mod execution;
 #[path = "workspace_mask_interaction.rs"]
@@ -164,15 +156,10 @@ impl BrowserMaskRuntime {
         base_plan: BodyPlan,
         select_alternate: bool,
     ) -> Result<(Self, BrowserMaskEffect), String> {
-        let planned = plan::planned_mask(
-            host_id.clone(),
-            boot_id.clone(),
-            plan::MASK_SOURCE,
-            "browser-graphical",
-        )?;
+        let host = crate::installed_browser::membership_advertisement(host_id, boot_id);
+        let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical")?;
         let alternate = plan::planned_mask(
-            host_id,
-            boot_id,
+            &host,
             plan::ALTERNATE_MASK_SOURCE,
             "browser-graphical-alternate",
         )?;

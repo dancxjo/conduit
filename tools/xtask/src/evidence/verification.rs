@@ -10,7 +10,8 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use super::{
-    EvidenceKind, EvidenceProvenance, EVIDENCE_SCHEMA, MAX_EVIDENCE_BYTES, MAX_EVIDENCE_OUTPUTS,
+    EvidenceKind, EvidenceProvenance, EVIDENCE_SCHEMA, LEGACY_MAX_EVIDENCE_OUTPUTS,
+    MAX_EVIDENCE_BYTES, MAX_EVIDENCE_OUTPUTS,
 };
 
 const MANIFEST_FILE: &str = "manifest.json";
@@ -56,6 +57,7 @@ pub struct VerifiedOutput {
     pub kind: EvidenceKind,
     pub path: PathBuf,
     pub media_type: String,
+    pub required: bool,
     pub bytes: u64,
     pub sha256: String,
     pub provenance: EvidenceProvenance,
@@ -135,9 +137,11 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
     {
         return Err("evidence manifest identity, disposition, or commit does not match".into());
     }
-    if manifest.limits.maximum_outputs != MAX_EVIDENCE_OUTPUTS
-        || manifest.limits.maximum_bytes_per_output != MAX_EVIDENCE_BYTES
-        || manifest.outputs.len() > MAX_EVIDENCE_OUTPUTS
+    if !matches!(
+        manifest.limits.maximum_outputs,
+        LEGACY_MAX_EVIDENCE_OUTPUTS | MAX_EVIDENCE_OUTPUTS
+    ) || manifest.limits.maximum_bytes_per_output != MAX_EVIDENCE_BYTES
+        || manifest.outputs.len() > manifest.limits.maximum_outputs
     {
         return Err("evidence manifest does not preserve the reviewed finite bounds".into());
     }
@@ -237,6 +241,7 @@ pub fn verify(request: &VerificationRequest) -> Result<VerifiedEvidence, String>
                 kind: output.kind,
                 path: output.path,
                 media_type: output.media_type,
+                required: output.required,
                 bytes: output.bytes,
                 sha256: output.sha256,
                 provenance: output.provenance,

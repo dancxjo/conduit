@@ -49,7 +49,8 @@ async function digest(filename) {
 
 // Injection keeps refusal and recovery tests offline. Production always uses gh
 // with the publication job's token, and performs no test or build commands.
-export function createPublisher({ command = spawnSync, targets = TARGETS, output = process.env.GITHUB_OUTPUT } = {}) {
+export function createPublisher({ command = spawnSync, targets = TARGETS, output = process.env.GITHUB_OUTPUT,
+  repositoryName = process.env.GITHUB_REPOSITORY } = {}) {
   const run = (program, args) => {
     const result = command(program, args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
     if (result.error || result.status !== 0) {
@@ -66,7 +67,9 @@ export function createPublisher({ command = spawnSync, targets = TARGETS, output
 
   return async function publish(runId, directory) {
     if (!/^[1-9][0-9]*$/.test(String(runId))) fail('A numeric integration run ID is required');
-    const repository = run('gh', ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner']);
+    // Actions supplies this identity directly. Avoid an extra GraphQL request
+    // before the REST integration-run check, while keeping local invocation.
+    const repository = repositoryName || run('gh', ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner']);
     if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) fail('Invalid repository identity');
     const base = `repos/${repository}`;
     const checkout = run('git', ['rev-parse', 'HEAD']);

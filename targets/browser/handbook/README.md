@@ -22,9 +22,11 @@ quote the copied JSON key array as one argument. The command prints the exact
 Body ID and window URL to enter on the page. For a returning browser Host,
 omit `--new-host-verifying-key` and retain its credential in browser storage.
 The production SDK and WASM runtime prove
-admission and display the owner's biography. While that exact authorized window
-and browser presence remain current, the browser Mask can return the Face's
-reviewed clock interval action to the installed owner. Lull a running clock
+admission and display the owner's biography. The browser builds native controls
+from the current Face's declared action names, bounded text inputs, and finite
+choices; WASM checks the selected bytes before emitting a typed interaction.
+The installed owner currently accepts the reviewed clock interval action while
+that authorized window and browser presence remain current. Lull a running clock
 first; the owner checks the current credential, Part, Face, Show, and typed
 argument, changes its checked workset, then supplies a fresh Face. The next
 start requires a replacement Plan. A closed window does not remain an action

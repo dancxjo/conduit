@@ -89,6 +89,7 @@ fn clear_token(request: &mut Request) {
         | Request::BirthFace { token, .. }
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
+        | Request::BodyAttachedTerminalInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. } => token.fill(0),

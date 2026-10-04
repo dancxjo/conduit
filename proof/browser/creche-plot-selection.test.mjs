@@ -53,7 +53,7 @@ test("browse, search, add, remove, and exact encoding share one bounded inventor
   assert.deepEqual(selected.map(({ name }) => name), ["desk_telegraph"]);
   assert.equal(
     selectedCanonicalSource([inventory.plots[0], inventory.plots[1]]),
-    "plot clock {}\n\nform desk_telegraph {}",
+    "plot clock {}\n\nplot desk_telegraph {}",
   );
   assert.equal(selectedCanonicalSource([]), "");
 });

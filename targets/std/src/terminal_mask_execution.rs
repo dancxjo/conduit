@@ -81,7 +81,7 @@ impl HostedTerminalMaskExecution {
     /// Execute only the terminal Back offered by this exact current Host.
     /// The caller must retain the attached I/O provider through the Show.
     pub fn new_attached(host: &HostAdvertisement) -> Result<Self, TerminalError> {
-        Self::with_plan(host, planning::plan_attached(host)?, true)
+        Self::with_plan(host, planning::plan_attached(host)?, false)
     }
 
     fn with_plan(

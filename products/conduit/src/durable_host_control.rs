@@ -42,7 +42,12 @@ mod body_run;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
+#[cfg(unix)]
+#[path = "durable_host_control/terminal_attach.rs"]
+pub(crate) mod terminal_attach;
 pub(crate) use body::start_browser_window;
+#[cfg(unix)]
+pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
 #[allow(unused_imports)]
 // Native return consumes the expiry-bearing entrance after its route lands.
@@ -72,6 +77,8 @@ pub(crate) struct DurableHostRuntime {
     pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
     next_observation_sequence: u64,
+    #[cfg(unix)]
+    terminal_route: Option<terminal_attach::AttachedTerminalRoute>,
 }
 
 impl DurableHostRuntime {
@@ -94,6 +101,8 @@ impl DurableHostRuntime {
             pool_member: None,
             cancellation_signal: None,
             next_observation_sequence: 0,
+            #[cfg(unix)]
+            terminal_route: None,
         }
     }
 
@@ -981,6 +990,14 @@ enum Request {
         #[serde(default)]
         not_after_millis: Option<u64>,
     },
+    #[cfg(unix)]
+    BodyAttachedTerminalInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        route_plan_id: conduit_core::PlanId,
+        show: Box<MaskShow>,
+        interaction: FaceInteraction,
+    },
     BodyBrowserInteraction {
         protocol: u16,
         token: Vec<u8>,
@@ -1229,7 +1246,8 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
     let token = read_secret(&state_dir.join("control.token"))?;
     let mut polling_play = false;
     loop {
-        let running = runtime.host.body_is_running();
+        terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
+        let running = runtime.host.body_is_running() || terminal_attach::is_attached(&mut runtime);
         if running != polling_play {
             listener
                 .set_nonblocking(running)
@@ -1240,7 +1258,12 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
         let mut stream = match listener.accept() {
             Ok((stream, _)) => stream,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                std::thread::sleep(std::time::Duration::from_millis(10));
+                let pause = if runtime.host.body_is_running() {
+                    10
+                } else {
+                    100
+                };
+                std::thread::sleep(std::time::Duration::from_millis(pause));
                 continue;
             }
             Err(error) => return Err(format!("accept local host control: {error}")),
@@ -1251,8 +1274,17 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
         stream
             .set_write_timeout(Some(std::time::Duration::from_secs(2)))
             .map_err(|error| format!("bound local host control write: {error}"))?;
-        let response = handle(read_frame(&mut stream)?, &token, &mut runtime);
-        write_frame(&mut stream, &response)?;
+        let mut first = [0_u8; 1];
+        stream
+            .read_exact(&mut first)
+            .map_err(|error| format!("read local host control prefix: {error}"))?;
+        if first[0] == terminal_attach::MAGIC[0] {
+            terminal_attach::serve(state_dir, &mut stream, &mut runtime, &token, first[0])?;
+        } else {
+            let mut request = std::io::Cursor::new(first).chain(&mut stream);
+            let response = handle(read_frame(&mut request)?, &token, &mut runtime);
+            write_frame(&mut stream, &response)?;
+        }
     }
 }
 
@@ -1656,6 +1688,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::PreparePoolMember { token, .. }
         | Request::ExchangeRemote { token, .. }
         | Request::ReleaseRemote { token, .. } => token,
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalInteraction { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
     offered.fill(0);
@@ -1846,6 +1880,20 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => check_action_expiry(not_after_millis)
             .and_then(|()| runtime.owned_body_local_interaction(&show, &interaction))
+            .map(|result| Response::BodyInteraction {
+                protocol: PROTOCOL,
+                result: Box::new(result),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalInteraction {
+            protocol,
+            route_plan_id,
+            show,
+            interaction,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .attached_terminal_interaction(&route_plan_id, &show, interaction)
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),

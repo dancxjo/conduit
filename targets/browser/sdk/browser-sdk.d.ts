@@ -123,12 +123,12 @@ export class BrowserBodyParticipation {
   ownerFaceSnapshot(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Uint8Array>;
   prepareOwnerFaceMask(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Readonly<Record<string, unknown>>>;
   acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
-  /** Submit one checked clock interval action while this authorized owner window is open. */
+  /** Submit one checked Face action through this Host's Mask and current owner window. */
   submitOwnerFaceInteraction(options: {
     view: Readonly<Record<string, unknown>>;
     actionId: string;
     target: string;
-    intervalMs: string;
+    arguments: readonly Readonly<{ name: string; value: string }>[];
     sequence?: number;
   }): Promise<Readonly<{ accepted: true }>>;
   signalWebRtc(options: Readonly<Record<string, unknown>>): void;

@@ -399,7 +399,7 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
         presenter_implementation_identity: "std/local-open-weight-model@1".into(),
         provider_identity: "fixture/live-provider".into(),
         model_identity: "fixture/live-model".into(),
-        template_contract_revision: "template/original@1".into(),
+        template_contract_revision: "template/spoken-mask@1".into(),
         mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
         generation_run_identity: "run/retained-live-result".into(),
         disposition: GeneratedManifestationDisposition::Produced,

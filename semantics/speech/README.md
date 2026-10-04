@@ -44,7 +44,8 @@ and reconstructs the law-checked native result.
 This is the first shared-intent prerequisite for
 [#4898](https://github.com/dancxjo/conduit/issues/4898) and
 [#4907](https://github.com/dancxjo/conduit/issues/4907). The current compact
-renderer still consumes its existing event tape; rich-to-compact realization,
+renderer consumes its existing event tape with optional exact-duration projection;
+full rich-to-compact segment realization,
 linguistic analysis, commitment and FARGAN execution remain unfinished. The
 new intent does not claim that artifact references have been resolved, that
 uncertain values have been committed, or that both voices already consume it.
@@ -314,7 +315,8 @@ This needs the `thumbv6m-none-eabi` toolchain target, GNU `size`
 and the pinned Rust `llvm-tools` component for section/entry inspection. The renderer probe includes constants and a 128-frame static output buffer.
 The text probe additionally retains 64 typed events in fixed storage and includes
 normalization, dictionary/rules and text traversal. Both exclude planner, kernel,
-boot, device drivers and rich preparation metadata. The probes render directly
+boot, device drivers and rich preparation metadata. They exercise default
+timing/pitch/intensity rather than explicit control tapes. The probes render directly
 into caller-owned static PCM storage, observing each produced sample with a
 volatile read and a small checksum; they avoid a second stack output buffer.
 The proof retains each `_start` disassembly and reports its register-save and
@@ -325,8 +327,8 @@ sites from embedded data. It does not sum entries into a call-chain bound:
 computed targets, body stack adjustments and call-chain liveness are unverified.
 Its machine-readable `full_stack_status` remains `unproven`, and unsupported
 entry shapes retain an explicit gap instead of a numeric reservation. The current
-renderer has four identified computed-control sites, and text plus synthesis has
-46; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
+default-profile renderer has five identified computed-control sites, and text plus synthesis has
+47; these are linked-code inventory facts, not execution or device-fit proof. Unsupported prologue shapes refuse inspection.
 This is an entry-stack lower bound: callee frames, later body stack changes,
 boot and interrupts are excluded. It cannot establish total stack or device fit.
 A link is not device playback or proof of real-time performance. WAV generation
@@ -338,11 +340,63 @@ broader consonant-vowel transitions and vowel-dependent stop-burst spectra,
 coarticulation and additional Klatt controls, a public CLI WAV-output route and device playback, and physical timing/footprint proof. The samples do
 not establish Klatt/eSpeak parity or multilingual voice coverage.
 
+Explicit exact durations enter through the optional preparation adapter
+`duration::prepare_duration_render`. It retains every original duration ratio
+and projects cumulative event ends with floor at the formant profile's fixed
+8 kHz grid. Per-event counts are differences of those endpoints: three
+one-third-second events produce 2,666, 2,667 and 2,667 frames, totaling exactly
+8,000. Fractions remain in the timing receipts. Common-denominator arithmetic
+uses checked U64 multiples; overflow refuses rather than approximating.
+
+`Renderer::prepare_timed` also accepts already projected caller-owned frame
+counts, with exactly one count per event. Plots admit the profile domain and
+scale stop closure with the segment's duration; their acoustic coefficients
+remain unchanged. Segments need at least two frames. Boundaries may have zero
+frames and continue to separate neighboring segment contexts without adding
+samples. The existing event/utterance/block bounds still apply. Preparation
+refusal leaves caller grid storage unchanged. Rendering borrows fixed storage
+and allocates nothing; rich timing receipts allocate only during preparation.
+These receipts do not attest commitment, language references or provenance,
+and unknown/unspecified/alternative durations are not silently selected.
+
+The supported native-speech proof also retains `duration-default`,
+`duration-faster` and `duration-slower` WAVs of the same “Hello, world!” event
+sequence. The faster/slower listening fixtures explicitly author duration
+factors of 2/3 and 3/2. Resolved pitch and output-relative intensity can be added before play as described below.
+
 An explicit compact `VoiceEvent.selected` carries a `RealizationResult`: the
 source phoneme/stress/position, selected phone, and derivation remain separate.
-The formant plots consume that phone directly, including adjacent-segment
-models, instead of running the English allophone selector again. Existing
-`segment` and `pronounced` inputs still run the authored selector. Supplied
-selection is an input, not an attestation that its derivation or external
-provenance was validated. This compact entry does not yet lower rich utterance
-intent, duration, pitch, or intensity into the rendering profile.
+The formant plots consume that phone directly, including timed segments and
+adjacent-segment models, instead of running the English allophone selector again.
+Existing `segment` and `pronounced` inputs still run the authored selector.
+Supplied selection is an input, not an attestation that its derivation or
+external provenance was validated. Rich utterance/reference admission and
+rich prosody-state selection remain unfinished.
+
+
+Resolved native cycles and relative intensities enter through the optional
+`control::prepare_voice_control` adapter. The source ratios and exact projection
+remainders remain in checked native receipts. Cycles project to 1/256-frame
+coordinates, and relative amplitude projects to 1/32768 precision. A requested
+120 Hz cycle at 8 kHz yields 17,066 Q8 units with remainder 80/120 of one Q8
+unit; retained subframe phase avoids rounding every cycle to 66 whole frames.
+Plots admit periods of 8 through 512 frames and relative amplitudes of 0 through
+2. Unsupported controls and checked arithmetic overflow refuse explicitly.
+
+`Renderer::prepare_controlled` borrows one projected control per event.
+`Renderer::with_controls` can add controls to a prepared duration renderer before
+play; replacement after the first produced frame refuses. Duration, exact phone
+selection, and cycle phase share one bounded cursor. Boundaries freeze the
+fractional phase. Relative amplitude scales the complete realized PCM, including
+voicing and frication, then saturates at the existing signed PCM limits. Zero
+amplitude still advances the admitted speech; it is distinct from a boundary or
+cancellation. Unity amplitude with explicit profile selection preserves the
+existing waveform. The explicit-cycle source uses the existing cubic flow,
+noise balance, and resonators; its open duration remains a declared whole-frame
+profile approximation.
+
+The supported proof retains profile-half, 120 Hz, 200 Hz, and 120 Hz half-amplitude
+listening fixtures. These controls do not select unknown, unspecified,
+not-applicable, or alternative prosody states, validate rich utterance references,
+or expose rich controls through the public kernel input. Those integrations and
+FARGAN conditioning remain unfinished.

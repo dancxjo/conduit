@@ -154,6 +154,18 @@ media, and explicit capture limits. Updating their presentation does not turn
 them into execution proof for the new release. The website publication manifest
 records current source and retained history separately.
 
+The One Body, five Masks page appears only when
+`site/evidence/one-body-five-masks/` contains one complete producer-owned
+manifest and all its declared outputs. Capture runs outside hosted CI where
+the browser, QEMU guest, local model, and speech device can actually operate.
+The captured source commit must be an ancestor of the later publication
+commit. Preflight checks that relationship, the browser lane renders and
+checks the exact media and common navigation, and the normal protected release
+train deploys the verified site. A diagnostic or partial run does not create
+the page. `site-publication.json` records the capture source and publication
+source separately; neither source identity implies human listening or physical
+hardware proof.
+
 ## Operation and validation
 
 The workflows are `candidate.yml`, `integration.yml`, `publish.yml`, and the

@@ -12,6 +12,7 @@ mod debounce;
 mod delay;
 mod deterministic_garden_source;
 mod distance_frequency;
+pub(crate) mod dom_mask;
 mod factory;
 mod final_normalized_pattern;
 mod flow_collect;

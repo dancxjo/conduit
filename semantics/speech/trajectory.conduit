@@ -12,6 +12,7 @@ type SpeechTrajectoryInput = {
 type SpeechEndpointContext =
     model_only
 type SpeechTemporalContext = {
+    cycle: SpeechFrameCycleControl
     stress: EnglishStress
     state: SpeechFrameState
     previous_place: SpeechStopPlace
@@ -74,7 +75,7 @@ plot speech/phone-frame-target (
 plot speech/temporal-connected-input (
     >> value: SpeechTemporalResult
     result: SpeechConnectedInput >>
-) = ({phone: .input.trajectory.phone, stress: .input.context.stress, state: .input.context.state, previous_place: .input.context.previous_place, target: .target, frame: .input.trajectory.frame, previous: {relation: .input.context.previous.relation, model: .input.context.previous.relation is segment ? .input.context.previous.model : .target}, next: {relation: .input.context.next.relation, model: .input.context.next.relation is segment ? .input.context.next.model : .target}})
+) = ({cycle: .input.context.cycle, phone: .input.trajectory.phone, stress: .input.context.stress, state: .input.context.state, previous_place: .input.context.previous_place, target: .target, frame: .input.trajectory.frame, previous: {relation: .input.context.previous.relation, model: .input.context.previous.relation is segment ? .input.context.previous.model : .target}, next: {relation: .input.context.next.relation, model: .input.context.next.relation is segment ? .input.context.next.model : .target}})
 
 plot speech/temporal-frame (
     >> value: SpeechTemporalRequest

@@ -405,7 +405,7 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   await expect(restored.locator('[data-application-key="review-basis"]')).toContainText(
     'current host OFFER(s); no permission or resource acquired; no Body Plan or Play created',
   );
-  await expect(restored.locator('[data-application-key="birth-status"]')).toHaveText('Ready to birth with 2 Plot(s).');
+  await expect(restored.locator('[data-application-key="birth-status"]')).toHaveText('Ready to birth with 2 plots.');
 
   await restored.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Lulled');

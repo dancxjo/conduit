@@ -33,6 +33,9 @@ pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
+#[cfg(unix)]
+#[path = "terminal_route.rs"]
+mod terminal_route;
 pub(crate) fn clock_interval_action() -> &'static str {
     clock_interval::CLOCK_INTERVAL_ACTION
 }

@@ -69,6 +69,8 @@ pub fn run(args: NativeSpeechArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std:
             "--locked",
             "-p",
             "conduit-speech",
+            "--features",
+            "semantic-bindings",
             "--example",
             "first_samples",
             "--",
