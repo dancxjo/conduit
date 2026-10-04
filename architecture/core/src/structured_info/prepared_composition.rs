@@ -69,6 +69,11 @@ impl PreparedStructuredComposer {
         })
     }
 
+    /// Last prepared result, borrowed without changing storage.
+    pub fn encoded(&self) -> &[u8] {
+        &self.output
+    }
+
     pub fn leaf(&mut self, bytes: &[u8]) -> Result<&[u8], Refusal> {
         let CompositionShape::Leaf(identity) = &self.shape else {
             return Err(Refusal::WrongType);

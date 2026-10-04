@@ -18,7 +18,12 @@ and clears unused destination bytes; access distinguishes short input from a
 malformed length. All branches are ordinary checked expressions. Preparation
 for the current concatenation topology peaks below 2 MiB; repeated prepared
 evaluation allocates nothing. This finite preparation cost is not a firmware
-footprint claim.
+footprint claim. Prepared typed pairing retains nested record, variant and
+nominal schemas instead of wrapping their canonical bytes as opaque leaves.
+Its exact output profile differs from primitive-leaf pairing; ordinary checked
+expressions can select nested tuple members without allocating during play.
+These codecs and the portable zip Back are composition support, rather than an
+installed native device lifecycle.
 
 `i2c-types.conduit` defines exact finite requests and typed bus outcomes;
 `i2c.conduit` invokes the class-neutral transaction Kind. The ConduitOS provider

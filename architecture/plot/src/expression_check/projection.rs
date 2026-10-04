@@ -24,6 +24,27 @@ pub(super) fn check(
         (source, member)
     {
         if let Some(ty) = context.structured_types.get(kind) {
+            if let StructuredInfoTypeShape::Record { schema, fields } = ty.shape() {
+                if schema.as_str().starts_with("conduitese/anonymous-tuple-")
+                    && tuple_info_type(
+                        fields
+                            .iter()
+                            .map(|field| field.value_type().clone())
+                            .collect(),
+                    )
+                    .is_ok_and(|canonical| &canonical == ty)
+                {
+                    return index
+                        .text
+                        .parse::<usize>()
+                        .ok()
+                        .and_then(|index| fields.get(index))
+                        .map(|field| structures::member(field.value_type()))
+                        .ok_or_else(|| {
+                            diagnostic(index.span, "tuple index is outside the exact tuple")
+                        });
+                }
+            }
             if let StructuredInfoTypeShape::Sequence {
                 element,
                 maximum_items,
