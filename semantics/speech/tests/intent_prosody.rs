@@ -34,7 +34,12 @@ fn render(mut renderer: Renderer<'_>, block: usize) -> Vec<i16> {
 #[test]
 fn rich_intent_renders_with_exact_existing_projection_and_block_invariance() {
     let intents = [intent(), intent(), intent()];
-    let events = [EnglishPhone::iy, EnglishPhone::h, EnglishPhone::aa].map(|phone| {
+    let events = [
+        conduit_speech::EnglishPhone::iy,
+        conduit_speech::EnglishPhone::h,
+        conduit_speech::EnglishPhone::aa,
+    ]
+    .map(|phone| {
         VoiceEvent::phone(SpeechPhoneInput {
             phone,
             stress: EnglishStress::primary,
