@@ -42,3 +42,16 @@ type SpeechFeatureIdentityMatch = {
     observed: SpeechFeatureId
     where .requested == .observed
 }
+
+# Pattern evidence compares observed identities; it does not assert a definition
+# lookup, inventory membership, notation equivalence or phone/phoneme coercion.
+type SpeechPhonemePatternIdentity = {
+    required: PhonemeId
+    observed: PhonemeId
+    where .required == .observed
+}
+type SpeechPhonePatternIdentity = {
+    required: PhoneId
+    observed: PhoneId
+    where .required == .observed
+}
