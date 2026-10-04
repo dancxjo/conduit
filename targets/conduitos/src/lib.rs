@@ -123,6 +123,7 @@ pub mod protected_line_support;
 pub mod protected_relay_support;
 pub mod protected_wire_session;
 pub mod protection_domain;
+pub mod protocol_host_calls;
 pub mod rendezvous_descriptor;
 #[cfg(feature = "native-owner-network")]
 pub mod secure_rendezvous_support;
