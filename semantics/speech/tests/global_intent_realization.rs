@@ -474,3 +474,81 @@ fn declared_global_default_preserves_policy_constraints_winners_and_deferral() {
         );
     }
 }
+
+#[test]
+fn selected_default_voice_retains_exact_inputs_and_refuses_foreign_defaults() {
+    use conduit_speech::{
+        global_default_choice::*, global_default_profile::*,
+        global_rule_selection::select_global_allophone_rule,
+    };
+    let source = occurrence::intent([segment(10)]);
+    let setup = Setup::new();
+    let defaults = default(10);
+    let context = setup.evidence(&defaults).unwrap().context;
+    let empty = SpeechAllophoneRuleProfile::new(
+        setup.rules.inventory_id().clone(),
+        setup.rules.language().clone(),
+        BoundedSequence::new(),
+    )
+    .unwrap();
+    let allowed = SpeechAllophoneChoicePolicy::new(true, false, false, false, true, false).unwrap();
+    let choice = select_global_allophone_rule(&source, 0, &empty, &allowed, None, context).unwrap();
+    let selected = finish_global_default_choice(&choice, &setup.inventory).unwrap();
+    let prepared = prepare_global_default_profile(&selected, &setup.voice, &defaults).unwrap();
+    assert!(core::ptr::eq(prepared.choice(), &selected));
+    assert!(core::ptr::eq(
+        prepared.definition(),
+        &setup.inventory.phones().as_slice()[0]
+    ));
+    assert!(core::ptr::eq(
+        prepared.binding(),
+        &setup.voice.phones().as_slice()[0]
+    ));
+    assert!(core::ptr::eq(prepared.default_features(), &defaults));
+    let events = [prepared.event()];
+    let timing =
+        conduit_speech::utterance_timing::prepare_utterance_timing(&source, &setup.boundaries)
+            .unwrap();
+    assert_eq!(
+        pcm(timing.renderer(&events).unwrap(), 1),
+        pcm(timing.renderer(&events).unwrap(), 128)
+    );
+    assert!(matches!(
+        prepare_global_default_profile(&selected, &setup.voice, &default(11)),
+        Err(GlobalDefaultProfileRefusal::DefaultOccurrence(_))
+    ));
+    let forbidden =
+        select_global_allophone_rule(&source, 0, &empty, &setup.policy, None, context).unwrap();
+    let none = finish_global_default_choice(&forbidden, &setup.inventory).unwrap();
+    assert!(
+        matches!(prepare_global_default_profile(&none, &setup.voice, &defaults), Err(GlobalDefaultProfileRefusal::Unchosen(state)) if state == *none.state())
+    );
+    let missing = SpeechInventory::new(
+        setup.inventory.identity().clone(),
+        setup.inventory.language().clone(),
+        setup.inventory.phonemes().clone(),
+        BoundedSequence::new(),
+    )
+    .unwrap();
+    let selected = finish_global_default_choice(&choice, &missing).unwrap();
+    assert!(matches!(
+        prepare_global_default_profile(&selected, &setup.voice, &defaults),
+        Err(GlobalDefaultProfileRefusal::MissingDefinition)
+    ));
+    let duplicate = SpeechInventory::new(
+        setup.inventory.identity().clone(),
+        setup.inventory.language().clone(),
+        setup.inventory.phonemes().clone(),
+        BoundedSequence::try_from_iter([
+            native::definition("phone/t"),
+            native::definition("phone/t"),
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+    let selected = finish_global_default_choice(&choice, &duplicate).unwrap();
+    assert!(matches!(
+        prepare_global_default_profile(&selected, &setup.voice, &defaults),
+        Err(GlobalDefaultProfileRefusal::AmbiguousDefinition)
+    ));
+}
