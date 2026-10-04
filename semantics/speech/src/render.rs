@@ -148,7 +148,7 @@ impl RenderCursor {
                 }
                 event => {
                     let model = timed_model(event, explicit_frames)?;
-                    let phone = model.realization.phone;
+                    let phone = model.phone;
                     let target = model.target;
                     let (previous, previous_place) = neighbor(
                         events,
@@ -184,7 +184,7 @@ impl RenderCursor {
                                     period_q8: 0,
                                 },
                             },
-                            stress: model.realization.input.stress,
+                            stress: model.stress,
                             state: self.state,
                             previous_place,
                             previous,
@@ -308,14 +308,15 @@ impl<'a> Renderer<'a> {
 }
 
 impl VoiceEvent {
-    fn model(self) -> Option<SpeechSegmentModel> {
+    fn model(self) -> Option<SpeechRenderSegment> {
         let realization = match self {
+            Self::phone(value) => return speech_direct_phone_model(value),
             Self::selected(value) => value,
             Self::segment(value) => speech_realize(value)?,
             Self::pronounced(value) => speech_realize(value.realization)?,
             Self::boundary(_) => return None,
         };
-        speech_selected_segment_model(realization)
+        speech_render_segment(speech_selected_segment_model(realization)?)
     }
     /// Representation projection; pronunciation and realization policy stay in plots.
     pub fn realization(self) -> Option<RealizationInput> {
@@ -323,7 +324,7 @@ impl VoiceEvent {
             Self::segment(value) => Some(value),
             Self::pronounced(value) => Some(value.realization),
             Self::selected(value) => Some(value.input),
-            Self::boundary(_) => None,
+            Self::phone(_) | Self::boundary(_) => None,
         }
     }
 }
@@ -362,7 +363,7 @@ fn neighbor(
     }
     let prepared = timed_model(*event, frame_counts.map(|counts| counts[index.unwrap()]))?;
     let endpoint = speech_neighbor_endpoint(SpeechNeighborEndpointInput {
-        phone: prepared.realization.phone,
+        phone: prepared.phone,
         target: prepared.target,
         side: if end {
             SpeechEndpointSide::end
@@ -378,7 +379,7 @@ fn neighbor(
 fn timed_model(
     event: VoiceEvent,
     frames: Option<i32>,
-) -> Result<SpeechSegmentModel, RenderRefusal> {
+) -> Result<SpeechRenderSegment, RenderRefusal> {
     let mut model = event.model().ok_or(RenderRefusal::Arithmetic)?;
     if let Some(frames) = frames {
         model.target = speech_duration_target(SpeechDurationTargetInput {

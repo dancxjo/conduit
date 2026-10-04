@@ -400,3 +400,13 @@ listening fixtures. These controls do not select unknown, unspecified,
 not-applicable, or alternative prosody states, validate rich utterance references,
 or expose rich controls through the public kernel input. Those integrations and
 FARGAN conditioning remain unfinished.
+
+`VoiceEvent.phone(SpeechPhoneInput { phone, stress })` renders an explicitly
+supplied profile phone without inventing a source phoneme or word position.
+Its `realization()` projection returns `None`; the complete event remains in
+the prepared tape. The existing plot-authored target lookup, transitions,
+trajectory, source, and filters also serve this path. Exact timing and voice
+controls apply to it, with the same finite bounds and staged cursor behavior.
+The supported proof retains `direct-phone-hello-world`, whose supplied-phone
+PCM matches the ordinary phoneme frontend. This profile input is distinct from
+rich `PhoneId`/inventory resolution and does not attest external provenance.

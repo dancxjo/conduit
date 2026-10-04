@@ -268,6 +268,32 @@ plot speech/selected-segment-model (
 }
 
 
+# A directly supplied phone has no invented source phoneme or word position.
+type SpeechPhoneInput = {
+    phone: EnglishPhone
+    stress: EnglishStress
+}
+type SpeechRenderSegment = {
+    phone: EnglishPhone
+    stress: EnglishStress
+    target: SpeechAcousticTarget
+}
+type SpeechDirectPhoneRequest = SpeechPhoneCarry<SpeechPhoneInput>
+type SpeechDirectPhoneModel = SpeechPhoneModel<SpeechPhoneInput>
+plot speech/direct-phone-model (
+    >> value: SpeechPhoneInput
+    result: SpeechRenderSegment >>
+) {
+    lookup: speech/voice-model(item = SpeechDirectPhoneRequest, output = SpeechDirectPhoneModel)
+    value >> ({phone: .phone, context: .}) >> lookup.value
+    lookup.result >> ({phone: .input.phone, stress: .input.context.stress, target: .target}) >> result
+}
+plot speech/render-segment (
+    >> value: SpeechSegmentModel
+    result: SpeechRenderSegment >>
+) = ({phone: .realization.phone, stress: .realization.input.stress, target: .target})
+
+
 type DriveInput = {
     sample: I32
     gain: I32
@@ -300,6 +326,7 @@ type VoiceEvent =
     | pronounced TextSpeechSegment
     | boundary VoiceBoundary
     | selected RealizationResult
+    | phone SpeechPhoneInput
 
 plot speech/pause (
     >> value: VoiceBoundary
