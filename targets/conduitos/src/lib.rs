@@ -67,6 +67,7 @@ pub mod machine_membrane;
     feature = "hosted-tools"
 ))]
 pub mod make;
+pub mod monotonic_clock;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_boot_join;
 mod native_components;

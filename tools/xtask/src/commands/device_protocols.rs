@@ -129,6 +129,19 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 ],
             ),
             Step::new(
+                "device-protocols.clock",
+                "Check finite monotonic observation, exact possession and late completion refusal",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduitos",
+                    "--lib",
+                    "monotonic_clock",
+                ],
+            ),
+            Step::new(
                 "device-protocols.i2c",
                 "Check exact I2C schemas, finite geometry and typed outcomes",
                 "cargo",

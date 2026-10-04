@@ -1,0 +1,12 @@
+# Deadline and completion use milliseconds on one selected monotonic clock.
+# A deadline already reached requests an immediate observation.
+type MonotonicClockRequest = {
+    deadline: U64
+}
+type MonotonicClockResult =
+    completed U64
+    | unavailable
+    | provider-lost
+    | unsupported-deadline
+    | malformed
+    | timeout
