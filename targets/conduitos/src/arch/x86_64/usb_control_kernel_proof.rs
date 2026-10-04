@@ -1,5 +1,7 @@
 //! Emulator proof appliance: checked Source, one kernel, and actual selected DMA.
 //! Descriptor/class interpretation remains outside this raw-transfer fixture.
+//! Two calls leave room for terminal lifecycle signs in the finite kernel profile.
+//! Sustained raw ring reuse has a separate 64-transfer receipt.
 use alloc::{vec, vec::Vec};
 use conduit_composite::{KernelCompositeStatus, KernelCompositeTerminal};
 use conduit_core::*;
@@ -16,6 +18,7 @@ use crate::arch::x86_64::{serial::early_write, xhci::XhciReady};
 use crate::usb_base::{
     control_contract::{CONTROL_CALL, CONTROL_MAXIMUM_BYTES, ControlContract},
     control_factory::*,
+    control_proof_plan::{self as planning, ControlProofSubject},
     control_request::ControlTransferRequest,
     control_result::PreparedControlResultEncoder,
 };
@@ -26,8 +29,6 @@ use crate::{
 
 #[path = "usb_control_kernel_proof/kernel.rs"]
 mod kernel;
-#[path = "usb_control_kernel_proof/planning.rs"]
-mod planning;
 #[path = "usb_control_kernel_proof/possession.rs"]
 mod possession;
 
@@ -39,7 +40,22 @@ pub fn run(
     base: &[u8; 32],
 ) -> Result<UsbDevice, &'static str> {
     let contract = ControlContract::prepare().map_err(|_| "usb-control-proof-contract")?;
-    let plan = planning::plan(&contract, ids, base, &device)?;
+    let root_port = device.root_port;
+    let slot = device.slot;
+    let epoch = device.attachment_epoch;
+    let device_id = identity::derive_usb_device(&ids.boot, base, root_port, slot, epoch);
+    let plan = planning::plan(
+        &contract,
+        &ControlProofSubject {
+            host_id: &identity::hex(&ids.host),
+            boot_id: &identity::hex(&ids.boot),
+            controller_base_id: &identity::hex(base),
+            device_instance_id: &identity::hex(&device_id),
+            root_port,
+            slot,
+            attachment_epoch: epoch,
+        },
+    )?;
     let (mut kernel, input_port, output_port) = kernel::kernel(&plan)?;
     let (table, handle, claim) = possession::issue(&plan)?;
     let fragment = &plan.fragments[0];
@@ -53,10 +69,6 @@ pub fn run(
     }
     let dma = device_dma_pointer(&device).map_err(|_| "usb-control-proof-attachment")?;
     let (initial_enqueue, initial_cycle) = unsafe { (*dma).control_cursor.position() };
-    let root_port = device.root_port;
-    let slot = device.slot;
-    let epoch = device.attachment_epoch;
-    let device_id = identity::derive_usb_device(&ids.boot, base, root_port, slot, epoch);
     let input = ValuePayload {
         value_kind: input_port.value_kind.clone(),
         encoded: input(&contract)?,
@@ -98,11 +110,17 @@ pub fn run(
     let mut cycle = initial_cycle;
     let mut transitions = 0;
     kernel.start().map_err(|_| "usb-control-proof-start")?;
-    for sequence in 0..64 {
-        kernel
-            .admit_input(&input_port.port_id, sequence, &input)
-            .map_err(|_| "usb-control-proof-input")?;
-        if sequence == 63 {
+    for sequence in 0..2 {
+        if let Err(error) = kernel.admit_input(&input_port.port_id, sequence, &input) {
+            let mut refusal = FixedText::new();
+            let _ = writeln!(
+                refusal,
+                "CONDUIT_USB_KERNEL_REFUSAL phase=input sequence={sequence} error={error:?}"
+            );
+            early_write(refusal.as_bytes());
+            return Err("usb-control-proof-input");
+        }
+        if sequence == 1 {
             kernel
                 .close_input(&input_port.port_id)
                 .map_err(|_| "usb-control-proof-close")?;
@@ -193,7 +211,6 @@ pub fn run(
             .output_terminal_into(&output_port.port_id, &mut output)
             .map_err(|_| "usb-control-proof-terminal")?
             != Some(KernelCompositeTerminal::Normal)
-        || transitions < 4
     {
         return Err("usb-control-proof-not-drained");
     }
@@ -203,7 +220,7 @@ pub fn run(
     let (final_enqueue, final_cycle) = unsafe { (*dma).control_cursor.position() };
     let digest: [u8; 32] = transcript.finalize().into();
     let mut sign = FixedText::new();
-    writeln!(sign, "CONDUIT_USB_KERNEL_SIGN {{\"schema\":\"conduit.conduitos.usb-control-kernel/v1\",\"proof_class\":\"freestanding-emulator\",\"status\":\"completed\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"controller_base_id\":\"{}\",\"device_instance_id\":\"{}\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"transcript_digest\":\"{}\",\"root_port\":{},\"slot\":{},\"attachment_epoch\":{},\"transfers\":64,\"short_transfers\":64,\"cycle_transitions\":{},\"initial_enqueue\":{},\"initial_cycle\":{},\"final_enqueue\":{},\"final_cycle\":{},\"output_capacity\":{},\"dma_bytes\":8192,\"maximum_in_flight\":1,\"normal_close\":true,\"fixture_protocol\":true}}",
+    writeln!(sign, "CONDUIT_USB_KERNEL_SIGN {{\"schema\":\"conduit.conduitos.usb-control-kernel/v1\",\"proof_class\":\"freestanding-emulator\",\"status\":\"completed\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"controller_base_id\":\"{}\",\"device_instance_id\":\"{}\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"transcript_digest\":\"{}\",\"root_port\":{},\"slot\":{},\"attachment_epoch\":{},\"transfers\":2,\"short_transfers\":2,\"cycle_transitions\":{},\"initial_enqueue\":{},\"initial_cycle\":{},\"final_enqueue\":{},\"final_cycle\":{},\"output_capacity\":{},\"dma_bytes\":8192,\"maximum_in_flight\":1,\"normal_close\":true,\"fixture_protocol\":true}}",
         identity::hex(&ids.host), identity::hex(&ids.boot), identity::hex(base), identity::hex(&device_id),
         plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.expanded_plot_id.as_str(),
         plan.plan_id.as_str(), fragment.fragment_id.as_str(), active.active_play_id.as_str(), identity::hex(&digest),

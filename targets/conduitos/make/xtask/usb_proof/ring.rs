@@ -23,6 +23,12 @@ pub(super) struct RingProofSign {
     fixture_protocol: bool,
 }
 
+impl RingProofSign {
+    pub(super) fn final_position(&self) -> (usize, u32) {
+        (self.final_enqueue, self.final_cycle)
+    }
+}
+
 pub(super) fn extract(
     serial: &str,
     root_port: u8,
