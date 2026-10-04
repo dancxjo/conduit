@@ -396,3 +396,52 @@ fn selected_phone_lowers_through_exact_profile_without_rewriting_intent() {
         PhoneSpecification::Unspecified
     ));
 }
+
+#[test]
+fn native_receipt_admits_only_the_26_meaningful_choice_states() {
+    let mut accepted = 0;
+    for outcome in [
+        SpeechAllophoneChoiceOutcome::None,
+        SpeechAllophoneChoiceOutcome::SelectedAllophone,
+        SpeechAllophoneChoiceOutcome::Deferred,
+        SpeechAllophoneChoiceOutcome::SelectedDefault,
+    ] {
+        for index in 0..8 {
+            for reason in [
+                SpeechContextDecision::Matched,
+                SpeechContextDecision::Mismatched,
+                SpeechContextDecision::RequirementUnresolved,
+                SpeechContextDecision::ObservationUnresolved,
+            ] {
+                let valid = match outcome {
+                    SpeechAllophoneChoiceOutcome::None => {
+                        index == 0 && reason == SpeechContextDecision::Mismatched
+                    }
+                    SpeechAllophoneChoiceOutcome::SelectedDefault => {
+                        index == 0 && reason == SpeechContextDecision::Matched
+                    }
+                    SpeechAllophoneChoiceOutcome::SelectedAllophone => {
+                        reason == SpeechContextDecision::Matched
+                    }
+                    SpeechAllophoneChoiceOutcome::Deferred => matches!(
+                        reason,
+                        SpeechContextDecision::RequirementUnresolved
+                            | SpeechContextDecision::ObservationUnresolved
+                    ),
+                };
+                assert_eq!(
+                    SpeechAllophoneChoiceState::new(index, outcome, reason).is_ok(),
+                    valid
+                );
+                accepted += usize::from(valid);
+            }
+        }
+    }
+    assert_eq!(accepted, 26);
+    assert!(SpeechAllophoneChoiceState::new(
+        8,
+        SpeechAllophoneChoiceOutcome::SelectedAllophone,
+        SpeechContextDecision::Matched
+    )
+    .is_err());
+}
