@@ -8,7 +8,8 @@ use alloc::{format, string::String};
 use conduit_body::{BodyId, BodyLifecycleSession, BodyState};
 use conduit_core::{
     AdmittedLine, BootId, HostAdvertisement, HostId, LineAvailability, LineOffer, LineOrdering,
-    LineReliability, LineTrafficShape, OfferGeneration, PlanId, PROTOCOL_VERSION,
+    LineReliability, LineScope, LineTrafficShape, LinkAuthorityReference, LinkCredentialReference,
+    OfferGeneration, PlanId, PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -383,6 +384,8 @@ fn validate_admitted_line(
         || binding.base.as_str().is_empty()
         || binding.base.as_str() == conduit_core::LOCAL_BASE_IMPLEMENTATION_ID
         || binding.base_instance_id.as_str().is_empty()
+        || matches!(binding.authority, LinkAuthorityReference::ProcessOwned)
+        || matches!(binding.credential, LinkCredentialReference::None)
         || binding.source.endpoint_id.as_str().is_empty()
         || binding.sink.endpoint_id.as_str().is_empty()
         || binding.source.host_id != source.host_id
@@ -394,6 +397,7 @@ fn validate_admitted_line(
         || binding.limits.maximum_frame_bytes == 0
         || binding.limits.maximum_buffered_bytes < binding.limits.maximum_payload_bytes
         || line.contract.traffic_shape != LineTrafficShape::Message
+        || line.contract.scope == LineScope::Process
         || line.contract.ordering != LineOrdering::Ordered
         || line.contract.reliability != LineReliability::Reliable
     {

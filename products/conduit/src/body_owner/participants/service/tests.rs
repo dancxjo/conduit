@@ -154,8 +154,8 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     owner
         .browser_planning_offer(&authorized.window_id, &snapshot.credential, &request)
         .unwrap();
-    // These process-owned Line offers exercise the exact route contract only.
-    // A live owner route must instead bind the retained browser carrier.
+    // These explicit remote Line facts exercise the route contract only. A
+    // live owner route must derive them from the retained browser carrier.
     let owner_offer = owner.host.advertisement().clone();
     let limits = conduit_core::LinkLimits {
         maximum_in_flight_items: 1,
@@ -163,24 +163,30 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         maximum_buffered_bytes: 128 * 1024,
         maximum_frame_bytes: 64 * 1024,
     };
-    let face_line = conduit_core::process_owned_line_offer_with_limits(
-        "line/test/browser-mask/face",
-        "binding/test/browser-mask/face",
-        conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
-        "base-instance/test/browser-mask",
-        &owner_offer,
-        &browser_offer,
-        limits,
-    );
-    let return_line = conduit_core::process_owned_line_offer_with_limits(
-        "line/test/browser-mask/return",
-        "binding/test/browser-mask/return",
-        conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
-        "base-instance/test/browser-mask",
-        &browser_offer,
-        &owner_offer,
-        limits,
-    );
+    let remote_line = |direction: &str,
+                       source: &conduit_core::HostAdvertisement,
+                       sink: &conduit_core::HostAdvertisement| {
+        let mut line = conduit_core::process_owned_line_offer_with_limits(
+            &format!("line/test/browser-mask/{direction}"),
+            &format!("binding/test/browser-mask/{direction}"),
+            conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "base-instance/test/browser-mask",
+            source,
+            sink,
+            limits,
+        );
+        line.binding.credential = conduit_core::LinkCredentialReference::Opaque(
+            conduit_core::CredentialReferenceId::from("credential/test/browser-mask"),
+        );
+        line.binding.authority = conduit_core::LinkAuthorityReference::Grant(
+            conduit_core::AuthorityGrantId::from("grant/test/browser-mask"),
+        );
+        line.contract.scope = conduit_core::LineScope::RoutedNetwork;
+        line.contract.security = conduit_core::LineSecurity::PlaintextNetwork;
+        line
+    };
+    let face_line = remote_line("face", &owner_offer, &browser_offer);
+    let return_line = remote_line("return", &browser_offer, &owner_offer);
     let face = owner.local_face_snapshot().unwrap();
     let seal = conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
         &owner.session,
@@ -195,6 +201,34 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     let route_bytes = serde_json::to_vec(&seal).unwrap().len();
     let face_bytes = serde_json::to_vec(&face).unwrap().len();
     assert!(route_bytes + face_bytes + 1024 <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES);
+    let mut process_owned = face_line.clone();
+    process_owned.binding.authority = conduit_core::LinkAuthorityReference::ProcessOwned;
+    assert_eq!(
+        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+            &owner.session,
+            &face,
+            &owner_offer,
+            &browser_offer,
+            &planned,
+            &process_owned,
+            &return_line,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+    );
+    let mut missing_credential = return_line.clone();
+    missing_credential.binding.credential = conduit_core::LinkCredentialReference::None;
+    assert_eq!(
+        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+            &owner.session,
+            &face,
+            &owner_offer,
+            &browser_offer,
+            &planned,
+            &face_line,
+            &missing_credential,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+    );
     let mut wrong_line = face_line.clone();
     wrong_line.binding.sink.boot_id = conduit_core::BootId::from("boot/browser/wrong");
     assert_eq!(
