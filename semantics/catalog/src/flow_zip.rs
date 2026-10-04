@@ -7,7 +7,8 @@ use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     CheckedValueContract, FiniteTerminalEmission, FrontValueContract, FrontValueLocation, Kind,
     KindIdentity, KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection,
-    PortTemporal, PreparedTuplePairEncoder, TerminalTransductionProfile, TERMINAL_INFO_ENCODED_LEN,
+    PortTemporal, PreparedTuplePairEncoder, PreparedTypedTuplePairEncoder, StructuredInfoType,
+    StructuredInfoTypeShape, TerminalTransductionProfile, TERMINAL_INFO_ENCODED_LEN,
     TERMINAL_INFO_ID, UNIT_INFO_ID,
 };
 
@@ -48,6 +49,59 @@ pub fn flow_zip_semantic_contract(
         vec![],
     )
     .map_err(|_| "flow/zip pair value contract is invalid")?;
+    paired_semantic_contract(left, right, paired)
+}
+
+/// Pair exact prepared structured schemas with the same temporal laws.
+/// Schema profiles and the resulting output contract are selected before Play.
+/// This definition alone does not install or authorize a host implementation.
+pub fn flow_zip_typed_semantic_contract(
+    left: &CheckedValueContract,
+    left_type: &StructuredInfoType,
+    right: &CheckedValueContract,
+    right_type: &StructuredInfoType,
+) -> Result<Kind, &'static str> {
+    let transport_kind = |ty: &StructuredInfoType| match ty.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => Ok(kind.clone()),
+        _ => ty.profile().map(|profile| profile.value_kind().clone()),
+    };
+    if transport_kind(left_type).map_err(|_| "flow/zip left schema is invalid")? != left.value_kind
+        || transport_kind(right_type).map_err(|_| "flow/zip right schema is invalid")?
+            != right.value_kind
+    {
+        return Err("flow/zip schema differs from its exact input value contract");
+    }
+    if (left.maximum_bytes == 0 && left.value_kind.as_str() != UNIT_INFO_ID)
+        || (right.maximum_bytes == 0 && right.value_kind.as_str() != UNIT_INFO_ID)
+    {
+        return Err("flow/zip requires finite canonical input envelopes");
+    }
+    let encoder = PreparedTypedTuplePairEncoder::new(
+        left_type.clone(),
+        left.maximum_bytes,
+        right_type.clone(),
+        right.maximum_bytes,
+    )
+    .map_err(|_| "flow/zip typed pair exceeds structured Info bounds")?;
+    let paired = CheckedValueContract::new(
+        encoder
+            .value_type()
+            .profile()
+            .map_err(|_| "flow/zip pair profile is invalid")?
+            .value_kind()
+            .clone(),
+        encoder.maximum_bytes(),
+        vec![],
+    )
+    .map_err(|_| "flow/zip pair value contract is invalid")?;
+    paired_semantic_contract(left, right, paired)
+}
+
+fn paired_semantic_contract(
+    left: &CheckedValueContract,
+    right: &CheckedValueContract,
+    paired: CheckedValueContract,
+) -> Result<Kind, &'static str> {
     let input = |name: &str, contract: &CheckedValueContract| PortDescriptor {
         port_id: port_id(name),
         value_kind: contract.value_kind.clone(),
@@ -168,5 +222,32 @@ mod tests {
                 ..
             })
         )));
+    }
+
+    #[test]
+    fn typed_pair_contract_retains_exact_schema_and_output_profile() {
+        let primitive = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+        let packet = StructuredInfoType::record(
+            kind_id("type/Packet@1"),
+            vec![conduit_core::StructuredFieldType::new("count", primitive.clone()).unwrap()],
+        )
+        .unwrap();
+        let left =
+            CheckedValueContract::new(packet.profile().unwrap().value_kind().clone(), 256, vec![])
+                .unwrap();
+        let right = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+        let typed = flow_zip_typed_semantic_contract(&left, &packet, &right, &primitive).unwrap();
+        let encoder =
+            PreparedTypedTuplePairEncoder::new(packet.clone(), 256, primitive.clone(), 8).unwrap();
+        assert_eq!(
+            &typed.outputs[0].value_kind,
+            encoder.value_type().profile().unwrap().value_kind()
+        );
+        assert_ne!(
+            typed.outputs[0].value_kind,
+            flow_zip_semantic_contract(&left, &right).unwrap().outputs[0].value_kind
+        );
+        assert_eq!(typed.terminal_transductions().count(), 2);
+        assert!(flow_zip_typed_semantic_contract(&right, &packet, &right, &primitive).is_err());
     }
 }

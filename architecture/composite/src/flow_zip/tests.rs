@@ -111,3 +111,101 @@ fn normal_close_discards_one_unmatched_value_and_uses_exact_input_contract() {
     assert!(io.test_consumed_closed(PortId(0)));
     assert!(operation.left_len.is_none());
 }
+
+#[test]
+fn typed_pairing_preserves_nested_schema_under_pressure_without_play_allocation() {
+    use conduit_core::{StructuredFieldType, StructuredFieldValue, StructuredInfoType};
+    let leaf = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+    let packet = StructuredInfoType::record(
+        kind_id("type/Packet@1"),
+        vec![StructuredFieldType::new("count", leaf.clone()).unwrap()],
+    )
+    .unwrap();
+    let input = StructuredInfoValue::record(
+        packet.clone(),
+        vec![StructuredFieldValue::new(
+            "count",
+            StructuredInfoValue::leaf(leaf.clone(), conduit_core::encode_count(7).to_vec())
+                .unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let expected = packet.canonical_bytes().unwrap();
+    let left = CheckedValueContract::new(
+        packet.profile().unwrap().value_kind().clone(),
+        input.len() as u32,
+        vec![],
+    )
+    .unwrap();
+    let right = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let mut operation = FlowZipBack::prepare_typed(&left, packet, &right, leaf).unwrap();
+    let count = conduit_core::encode_count(8);
+    let allocations = crate::test_support::allocation::allocations_during(|| {
+        for (side, bytes) in [(0, input.as_slice()), (1, count.as_slice())] {
+            let mut references = [None; 2];
+            let mut inputs = [None; 2];
+            references[side] = Some(reference(side as u16, bytes));
+            inputs[side] = Some(bytes);
+            let mut io = StepIo::test_frame(references, [false; 2], [None; 2], None, 16);
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame(inputs, None)),
+                StepOutcome::Progress
+            );
+            <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        }
+        for _ in 0..1000 {
+            let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+                StepOutcome::Await
+            );
+        }
+        let mut io = StepIo::test_frame(
+            [None; 2],
+            [false; 2],
+            [Some(operation.output_maximum), None],
+            None,
+            16,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Progress
+        );
+        let bytes = <FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).unwrap();
+        let view = conduit_core::validate_canonical_structured_value(bytes).unwrap();
+        let nested = view.record_field("item-00000").unwrap().unwrap();
+        assert_eq!(nested.type_bytes(), expected);
+        assert_eq!(
+            nested
+                .record_field("count")
+                .unwrap()
+                .unwrap()
+                .primitive_bytes("value/count")
+                .unwrap(),
+            conduit_core::encode_count(7)
+        );
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        assert!(operation.left_len.is_none());
+        assert!(operation.right_len.is_none());
+    });
+    assert_eq!(allocations, 0);
+}
+
+#[test]
+fn typed_pair_preparation_requires_exact_member_kind_contracts() {
+    use conduit_core::StructuredInfoType;
+    let text = CheckedValueContract::new(kind_id(TEXT_INFO_ID), 16, vec![]).unwrap();
+    let count = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    assert!(matches!(
+        FlowZipBack::prepare_typed(
+            &text,
+            StructuredInfoType::leaf(kind_id("value/count")).unwrap(),
+            &count,
+            StructuredInfoType::leaf(kind_id("value/count")).unwrap()
+        ),
+        Err(conduit_core::StructuredInfoRefusal::WrongType)
+    ));
+}
