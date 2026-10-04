@@ -1,6 +1,6 @@
 # Local Linux Body owner (development)
 
-This is the first local owner prerequisite for #4807, not accepted release
+This is a local development owner prerequisite for #4807, not accepted release
 support for a Body shared with browser or QEMU guests. One installed Linux Host
 can birth a Body from checked source, plan it, run supported local effects, and
 retain its biography across fresh Boots. Existing `conduit body birth` remains
@@ -70,12 +70,13 @@ to its current in-memory session and recoverable biography before sending the
 receipt. A separate foreground `body own` or disk admission writer is refused
 while the service owns the locks.
 
-This is **membership admission**, not continuing remote reachability. The
-one-shot route closes after its receipt; the service currently reports remote
-carrier availability as `unobserved`. Its retained membership snapshot must
-not be read as a live lease, shared workload, or current remote Face. The
-service's Body control currently exposes inspect and invitation/admission only;
-plan/run and semantic terminal interaction still require a later integration.
+Membership admission alone does not establish continuing remote reachability.
+The owner now selects separate current Face and interaction Lines for an
+admitted native Mask, while an authorized browser window retains its own
+presence and Mask route. Both validate the current Face and acknowledged Show
+before a typed clock action returns. The retained membership snapshot by
+itself is not a live lease, shared workload, or current remote Face; the
+workload remains on the Linux owner in the local three-Host proof.
 
 ## Internal control and retained truth
 
@@ -140,15 +141,13 @@ membership mutations while the owner is running.
   advertised backs are not all supported by the Body dispatcher: `text/upper`
   can currently plan but is refused before Play. That refusal has a regression
   test; this slice does not claim complete local effect support.
-- The owner can admit a browser participant during a bounded lulled window and
-  consume either a preissued portable native request or the exact signed
-  observation emitted by a real QEMU guest. The ConduitOS product does not yet
-  complete that request-and-receipt exchange over a live duplex Line. Shared
-  presentation, remote execution, and a terminal Mask are not implemented by
-  this entrance. The owner restores the same retained single-use invitation
-  authority after reopening. The installed service route can now perform the
-  same canonical admission for a live requester, but it does not maintain a
-  presence lease after the one-shot route closes.
+- The owner can admit browser and ConduitOS participants, issue their separate
+  Mask routes, and accept the checked clock controls over their actual Lines.
+  The [local three-Host proof](native-three-host-proof.md) retains all three
+  current Parts while the browser and QMP guest act. This does not establish
+  workload migration, arbitrary remote actions, Mask preference, or a complete
+  screen-free journey. The owner restores retained invitation authority after
+  reopening; a retained Part is not automatically a current route or Show.
 - The retained workset is fixed to the checked source at birth. This entrance
   does not yet provide source replacement or resident-workset editing.
 - Biography compaction requires an admitted archive store. This slice has none
