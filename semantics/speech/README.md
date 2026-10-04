@@ -727,7 +727,7 @@ or linguistic commitment.
 
 `prepare_sourced_global_intent` resolves every original segment and boundary
 source against explicitly supplied immutable materials in exact event/source
-order before global-rule realization. Its private aggregate retains both source
+order before global rule/default realization. Its private aggregate retains both source
 coverage and the prepared realization of the same original intent. Missing,
 stale, foreign or wrong-kind materials refuse through the existing native source
 contracts; failed realization cannot return a playable aggregate. The renderer
@@ -809,3 +809,11 @@ meaningless none/default indices. The public preparation receipt preserves
 outcome/index/reason accessors and validates their correlation through native
 laws. Pure choice Plots construct the sum; native preparation validates the
 refined receipt separately, preserving the admitted law-validator boundary.
+
+The sourced aggregate also admits mixed rule/default intents through the same
+frozen event tape. The native-speech journey writes
+`sourced-global-rule-and-default-tata.wav`: its initial /t/ uses the selected
+aspiration rule and the remaining segments use exact declared phoneme defaults.
+Source coverage, default policy, original occurrence evidence and voice admission
+all finish before a renderer is returned; source coverage still does not imply
+linguistic commitment.
