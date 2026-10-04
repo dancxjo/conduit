@@ -15,16 +15,16 @@ pub enum ChosenProfileRefusal {
     Identity(NativeBindingRefusal),
     Profile(ProfileRefusal),
 }
-pub struct ChosenAllophoneProfile<'a, 'source> {
+pub struct ChosenAllophoneProfile<'a, 'source, 'profile> {
     choice: &'a IntentAllophoneChoice<'source>,
     definition: &'source SpeechPhone,
     identity: SpeechPhoneDefinitionMatch,
-    profile: &'a SpeechFormantVoiceProfile,
-    binding: &'a SpeechFormantPhoneBinding,
+    profile: &'profile SpeechFormantVoiceProfile,
+    binding: &'profile SpeechFormantPhoneBinding,
     basis: SpeechFormantProfileBasis,
     event: VoiceEvent,
 }
-impl<'a, 'source> ChosenAllophoneProfile<'a, 'source> {
+impl<'a, 'source, 'profile> ChosenAllophoneProfile<'a, 'source, 'profile> {
     pub fn choice(&self) -> &'a IntentAllophoneChoice<'source> {
         self.choice
     }
@@ -34,10 +34,10 @@ impl<'a, 'source> ChosenAllophoneProfile<'a, 'source> {
     pub fn checked_identity(&self) -> &SpeechPhoneDefinitionMatch {
         &self.identity
     }
-    pub fn profile(&self) -> &'a SpeechFormantVoiceProfile {
+    pub fn profile(&self) -> &'profile SpeechFormantVoiceProfile {
         self.profile
     }
-    pub fn binding(&self) -> &'a SpeechFormantPhoneBinding {
+    pub fn binding(&self) -> &'profile SpeechFormantPhoneBinding {
         self.binding
     }
     pub fn checked_basis(&self) -> &SpeechFormantProfileBasis {
@@ -47,10 +47,10 @@ impl<'a, 'source> ChosenAllophoneProfile<'a, 'source> {
         self.event
     }
 }
-pub fn prepare_chosen_allophone_profile<'a, 'source>(
+pub fn prepare_chosen_allophone_profile<'a, 'source, 'profile>(
     choice: &'a IntentAllophoneChoice<'source>,
-    profile: &'a SpeechFormantVoiceProfile,
-) -> Result<ChosenAllophoneProfile<'a, 'source>, ChosenProfileRefusal> {
+    profile: &'profile SpeechFormantVoiceProfile,
+) -> Result<ChosenAllophoneProfile<'a, 'source, 'profile>, ChosenProfileRefusal> {
     let selected = choice
         .selected_phone()
         .ok_or(ChosenProfileRefusal::NoChosenPhone)?;

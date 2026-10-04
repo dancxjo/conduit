@@ -11,6 +11,7 @@ use crate::{
     },
     semantic::*,
 };
+use alloc::vec::Vec;
 use conduit_plot::rust_binding::NativeBindingRefusal;
 pub type PhoneConstraintReceipt = Result<SpeechPhoneDefinitionMatch, NativeBindingRefusal>;
 #[derive(Debug)]
@@ -72,7 +73,7 @@ pub struct IntentAllophoneChoice<'a> {
     basis: SpeechIntentInventoryBasis,
     identity: SpeechPhonemeDefinitionMatch,
     policy: &'a SpeechAllophoneChoicePolicy,
-    candidates: [Option<AllophoneCandidate<'a>>; 8],
+    candidates: Vec<AllophoneCandidate<'a>>,
     default_constraint: Option<PhoneConstraintReceipt>,
     state: SpeechAllophoneChoiceState,
 }
@@ -96,7 +97,7 @@ impl<'a> IntentAllophoneChoice<'a> {
         self.policy
     }
     pub fn candidates(&self) -> impl Iterator<Item = &AllophoneCandidate<'a>> {
-        self.candidates.iter().flatten()
+        self.candidates.iter()
     }
     pub fn default_constraint(
         &self,
@@ -215,7 +216,8 @@ pub fn select_intent_allophone<'a>(
     }
     let identity = SpeechPhonemeDefinitionMatch::new(phoneme.identity().clone(), requested.clone())
         .map_err(AllophoneSelectionRefusal::Phoneme)?;
-    let mut candidates = core::array::from_fn(|_| None);
+    // Native collection bound is eight; reserve its exact size during preparation.
+    let mut candidates = Vec::with_capacity(phoneme.allophones().as_slice().len());
     // Identity of the native priority fold; ignored slots are not observations.
     let mut state = generated::SpeechAllophoneChoiceState {
         outcome: generated::SpeechAllophoneChoiceOutcome::none,
@@ -258,7 +260,7 @@ pub fn select_intent_allophone<'a>(
             decision,
         })
         .ok_or(AllophoneSelectionRefusal::CompiledPlot)?;
-        candidates[index] = Some(AllophoneCandidate {
+        candidates.push(AllophoneCandidate {
             declaration,
             status_allowed,
             phone_constraint,
