@@ -11,7 +11,8 @@ import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
-  candidateId, ownerForward, outputArgument, playwrightArgument] = process.argv.slice(2);
+  candidateId, ownerForward, outputArgument, playwrightArgument,
+  speechExecutableArgument, speechDataArgument, speechEngineArgument] = process.argv.slice(2);
 if (!playwrightArgument) {
   throw new Error('usage: three-host-owner-journey.mjs XTASK INSTALLED-OWNER OWNER-STATE HANDBOOK SPORE CANDIDATE-ID OWNER-FORWARD NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT');
 }
@@ -21,6 +22,9 @@ const state = path.resolve(stateArgument);
 const handbook = path.resolve(handbookArgument);
 const spore = path.resolve(sporeArgument);
 const output = path.resolve(outputArgument);
+const directSpeechEnabled = Boolean(speechExecutableArgument);
+assert.equal(Boolean(speechDataArgument), directSpeechEnabled);
+assert.equal(Boolean(speechEngineArgument), directSpeechEnabled);
 assert.equal(existsSync(output), false, 'evidence directory must be new');
 await mkdir(output, { mode: 0o700 });
 const native = path.join(output, 'native');
@@ -60,6 +64,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   const ownerBefore = run(['body', 'status', '--state-dir', state, '--json']);
   const bodyId = ownerBefore.biography.body_id;
+  const runId = `three-host-${digest(bodyId).slice(0, 24)}`;
 
   await page.goto(`${server.url}?participate=owner#your-handbook`);
   await page.locator('[data-owner-key]').waitFor();
@@ -192,6 +197,55 @@ try {
     assert.equal(afterTerminalStatus.biography.membership.parts.some(part =>
       part.part_id === partId && part.current !== null), true);
   }
+  let directSpeech;
+  if (directSpeechEnabled) {
+    const directory = path.join(output, 'speech-direct');
+    const speech = spawnSync(xtask, [
+      'prove', 'one-body-spoken-chapter', '--mode', 'direct',
+      '--conduit-bin', owner, '--state-dir', state, '--output', directory,
+      '--run-id', runId, '--action-id', 'read-current-face-direct',
+      '--speech-executable', speechExecutableArgument,
+      '--speech-data', speechDataArgument,
+      '--speech-engine', speechEngineArgument,
+    ], { encoding: 'utf8', timeout: 100_000 });
+    assert.equal(speech.status, 0, speech.stderr || speech.stdout);
+    const receiptBytes = await readFile(path.join(directory, 'speech-receipt.json'));
+    const receipt = JSON.parse(receiptBytes);
+    const manifestBytes = await readFile(path.join(directory, 'manifest.json'));
+    const manifest = JSON.parse(manifestBytes);
+    assert.equal(manifest.result, 'complete');
+    assert.equal(receipt.source_commit, installed.release_source_identity);
+    assert.equal(receipt.run_id, runId);
+    assert.equal(receipt.body_id, bodyId);
+    assert.equal(receipt.owner_host_id, ownerPart.current.host_id);
+    assert.equal(receipt.owner_boot_id, ownerPart.current.boot_id);
+    assert.equal(receipt.face_id, afterTerminal.face_id);
+    assert.equal(receipt.owner_snapshot_before_after_equal, true);
+    assert.equal(receipt.direct_spoken_mask_show_observed, false);
+    assert.equal(receipt.owner_sealed_spoken_mask_route_observed, false);
+    assert.ok(receipt.batch_count > 1 && receipt.produced_pcm_bytes > 0);
+    const wavs = [];
+    for (let sequence = 1; sequence <= receipt.batch_count; sequence += 1) {
+      const name = `direct-batch-${sequence}`;
+      const batch = JSON.parse(await readFile(path.join(directory, `${name}-receipt.json`)));
+      const bytes = await readFile(path.join(directory, `${name}.wav`));
+      assert.equal(batch.run_id, runId);
+      assert.equal(batch.body_id, bodyId);
+      assert.equal(batch.wav_sha256, digest(bytes));
+      wavs.push({ path: `speech-direct/${name}.wav`, bytes: bytes.length, sha256: batch.wav_sha256 });
+    }
+    directSpeech = {
+      proof_class: receipt.proof_class,
+      action_id: receipt.action_id,
+      batch_count: receipt.batch_count,
+      produced_pcm_bytes: receipt.produced_pcm_bytes,
+      speech_receipt_sha256: digest(receiptBytes),
+      speech_manifest_sha256: digest(manifestBytes),
+      playback_observed: receipt.playback_observed,
+      human_hearing_observed: receipt.human_hearing_observed,
+      wavs,
+    };
+  }
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
   assert.equal(nativeReceipt.coordinated, true);
@@ -213,7 +267,10 @@ try {
   const nativeReceiptBytes = await readFile(path.join(native, 'owner-action-proof.json'));
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
-    proof_class: 'live-local-installed-owner-qmp-pinned-chromium',
+    proof_class: directSpeech
+      ? 'live-local-installed-owner-qmp-pinned-chromium-direct-speech'
+      : 'live-local-installed-owner-qmp-pinned-chromium',
+    run_id: runId,
     body_id: bodyId,
     owner_host_id: ownerPart.current.host_id,
     owner_boot_id: ownerPart.current.boot_id,
@@ -253,6 +310,7 @@ try {
       bytes: Buffer.byteLength(terminal.stdout),
       sha256: digest(Buffer.from(terminal.stdout)),
     },
+    ...(directSpeech ? { direct_speech: directSpeech } : {}),
     screenshots,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,

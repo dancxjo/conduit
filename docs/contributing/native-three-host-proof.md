@@ -85,3 +85,16 @@ the terminal transcript, and the exact Rust native receipt;
 Do not copy the invitation or private ISO into the evidence directory or onto
 the website. A successful local receipt is not CI, accepted-release, physical,
 or public Pages proof.
+
+To retain a direct spoken reading in that same live three-host run, add
+`--speech-executable ESPEAK --speech-data ESPEAK_NG_DATA --speech-engine
+LIBESPEAK_NG` to the command. Use the installed engine's exact regular file,
+not its `.so.1` symlink. The driver calls the existing
+`one-body-spoken-chapter` producer after the terminal action, while QEMU and
+Chromium remain live. It assigns the speech action's run ID before synthesis
+and retains the complete producer manifest, receipt, transcript, and every
+streamed WAV batch under `speech-direct/`. The combined report checks Body,
+source, owner Host/Boot, Face, batch identities, and WAV hashes. This is
+produced audio from the current owner Face. The speech Plot does not yet have
+an owner-sealed spoken Mask Show; the receipt explicitly records no speaker
+playback or human listening.
