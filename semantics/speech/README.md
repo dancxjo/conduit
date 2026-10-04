@@ -418,6 +418,7 @@ and 25,332 bytes for text plus rendering, with 260/1,284 bytes BSS and no data.
 This adds 72 bytes relative to the pre-direct-phone measurements. All 19 listening
 WAVs remain byte-identical. These are default-profile link measurements with the
 exclusions above, not full-stack, device playback or realtime acceptance.
+
 Under `semantic-bindings`, `inventory_admission::resolve_inventory_phone` binds an
 already resolved material phone token to a unique definition in a supplied
 `SpeechInventory`. Native Conduit laws check the snapshot's inventory and language
