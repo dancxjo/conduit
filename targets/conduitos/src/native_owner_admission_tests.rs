@@ -25,7 +25,7 @@ impl BinaryWebSocketIo for ScriptedLine {
     }
 
     fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, WebSocketError> {
-        if self.response.len() > output.len() {
+        if output.len() > MAXIMUM_BINARY_MESSAGE_BYTES || self.response.len() > output.len() {
             return Err(WebSocketError::ResponseTooLarge);
         }
         output[..self.response.len()].copy_from_slice(&self.response);

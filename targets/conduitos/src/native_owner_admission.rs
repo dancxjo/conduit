@@ -212,7 +212,9 @@ fn exchange_face(
     }
     line.send_binary(&encoded)
         .map_err(NativeOwnerFaceExchangeRefusal::Send)?;
-    let mut response_bytes = vec![0; MAX_OWNER_FACE_RESPONSE_BYTES];
+    // BoundedWebSocket refuses an output slice larger than its frame storage,
+    // even when the incoming message itself is short.
+    let mut response_bytes = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
     let received = line
         .receive_binary(&mut response_bytes)
         .map_err(NativeOwnerFaceExchangeRefusal::Receive)?;
