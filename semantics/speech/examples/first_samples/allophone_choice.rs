@@ -1,4 +1,6 @@
 //! Manual occurrence fixture: native contextual choice, not language commitment.
+#[path = "global_rule.rs"]
+mod global_rule;
 use conduit_core::IeeeF32;
 use conduit_plot::rust_binding::BoundedSequence;
 use conduit_speech::{
@@ -233,5 +235,6 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
             sourced.sources().receipts().len()
         );
     }
+    global_rule::write(output, &intent, &inventory, &profile)?;
     Ok(())
 }
