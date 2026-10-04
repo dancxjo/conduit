@@ -612,3 +612,21 @@ Unsupported syntax is an indexed refusal, never implicit permission or a
 mismatch. These checks do not establish occurrence adjacency, consistency across
 independently supplied evidence, syntax revision/commitment, inheritance, rule
 selection, or complete allophone eligibility.
+
+Planned occurrence context retains the exact intent and current segment, plus
+its immediate event neighbors. Segment neighbors require native occurrence
+membership and `SpeechOccurrenceAdjacency`: equal utterance, sequence, revision,
+inventory and language, with consecutive U32 ordinals. Duplicate occurrence
+identities, skipped/reversed ordinals and foreign bases are refused. Boundary
+events are retained directly and are never skipped to find another phone. An
+unobserved endpoint remains unknown because the intent has no closure claim.
+
+`compare_declared_allophone_context` binds one original compatible allophone
+receipt to this occurrence context. Its scalar, neighbor and condition receipts
+share that exact intent; a native conjunction retains their aggregate decision.
+The index addresses the compatible declaration receipts, while the original
+allophone ordinal remains on `PhoneDeclaration::Allophone`. Explicit syllable,
+prosodic and careful-style facts remain required inputs; definition features do
+not become observations. Matching does not change status/confidence, select a
+rule, resolve inheritance, admit syntax, or advance commitment. This is hosted
+preparation evidence; the compact renderer's acoustic plots are unchanged.
