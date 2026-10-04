@@ -1,0 +1,17 @@
+# Compose with descriptors.conduit so the decoded device Type has one owner.
+# The input is an acknowledged typed transfer, never a padded native buffer.
+with machine/usb/control/result as UsbControlResult
+
+type UsbDeviceReadResult =
+    device UsbDeviceDescriptor
+    | short
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+
+# Actual count and received sequence must agree before any octet is projected.
+# Packet-size interpretation still belongs to negotiated speed, not this decoder.
+plot usb-device-read (
+    transfer: UsbControlResult >> result: UsbDeviceReadResult
+) = (variant/is(., "completed") ? (value/u64(.completed.transferred) != sequence/length(.completed.input) || .completed.transferred > 18 ? malformed(unit) : (.completed.transferred < 2 ? short(unit) : (.completed.input.0 != 18 || .completed.input.1 != 1 ? malformed(unit) : (.completed.transferred < 18 ? short(unit) : device({ usb_version: value/u64(.completed.input.2) + value/u64(.completed.input.3) * 256, device_class: .completed.input.4, device_subclass: .completed.input.5, device_protocol: .completed.input.6, ep0_packet_field: .completed.input.7, vendor_id: value/u64(.completed.input.8) + value/u64(.completed.input.9) * 256, product_id: value/u64(.completed.input.10) + value/u64(.completed.input.11) * 256, device_version: value/u64(.completed.input.12) + value/u64(.completed.input.13) * 256, manufacturer_index: .completed.input.14, product_index: .completed.input.15, serial_index: .completed.input.16, configurations: .completed.input.17 }))))) : (variant/is(., "stalled") ? stalled(unit) : (variant/is(., "provider-lost") ? provider-lost(unit) : unsupported(unit))))
