@@ -624,6 +624,18 @@ context conjunction without dropping mismatch evidence. Unsupported syntax and
 occurrence failures remain typed refusals. Input matching, rule status policy,
 output-feature inheritance, selection and commitment remain separate.
 
+`prepare_rule_output_features` retains an original standalone rule and explicit
+optional default features and phone definition. The native
+`speech/output-feature-layer` law selects default realization, phone definition,
+then rule output by exact feature key. Later layers replace whole specifications,
+including Unknown and Unspecified; only a Known output phone inherits lower
+layers. Supplied phone definitions must match that Known phone's exact ID.
+Missing layers stay missing. The receipt borrows at most sixteen resulting
+features with their source layers; duplicate keys or an oversized merged result
+refuse before returning output. This establishes feature inheritance over
+supplied inputs, not inventory membership, occurrence provenance, rule selection,
+output-phone resolution or commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
