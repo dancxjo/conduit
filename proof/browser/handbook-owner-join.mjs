@@ -215,6 +215,42 @@ try {
   assert.equal(final.body_id, initial.biography.body_id);
   assert.equal(final.membership.parts.length, 2);
   assert.equal(final.membership.parts.find(part => part.part_id === admitted.credential.part_id).current, null);
+  const terminal = commands => {
+    const run = spawnSync(installation.product_executable,
+      ['body', 'terminal', '--state-dir', state], {
+        input: `${commands.join('\n')}\n`, encoding: 'utf8', timeout: 10_000, maxBuffer: 512 * 1024,
+      });
+    assert.equal(run.status, 0, run.stderr);
+    assert.doesNotMatch(run.stdout, /Action refused:/);
+    return run.stdout;
+  };
+  const terminalStartText = terminal(['control next', 'control next', 'control next', 'apply', 'quit']);
+  assert.match(terminalStartText, /"schema":"conduit\.body\/clock-start-requested@1"/);
+  const terminalStartTranscript = path.join(output, 'terminal-start.txt');
+  await writeFile(terminalStartTranscript, terminalStartText);
+  let terminalLive;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    terminalLive = status();
+    if (terminalLive.realization?.play?.active_play_id) break;
+    await pause(25);
+  }
+  assert.equal(terminalLive.biography.body_id, final.body_id);
+  assert.equal(typeof terminalLive.realization?.play?.active_play_id, 'string');
+  assert.notEqual(terminalLive.realization.play.active_play_id, live.realization.play.active_play_id);
+  const terminalStopText = terminal(['control next', 'apply', 'quit']);
+  assert.match(terminalStopText, /"schema":"conduit\.body\/clock-lull-requested@1"/);
+  const terminalStopTranscript = path.join(output, 'terminal-stop.txt');
+  await writeFile(terminalStopTranscript, terminalStopText);
+  let terminalStopped;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    terminalStopped = status();
+    if (terminalStopped.realization === null) break;
+    await pause(25);
+  }
+  assert.equal(terminalStopped.biography.body_id, final.body_id);
+  assert.equal(terminalStopped.realization, null);
+  assert.equal(terminalStopped.last_execution.play.active_play_id, terminalLive.realization.play.active_play_id);
+  assert.deepEqual(terminalStopped.last_execution.terminal, { Cancelled: { reason: 'OperatorRequested' } });
   await writeFile(path.join(output, 'report.json'), `${JSON.stringify({
     schema: 'conduit.body/handbook-owner-join@1', ownerSha256: digest(ownerBytes),
     handbookManifestSha256: digest(app), browserBundleSource: JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json'))).reviewed_distribution.source_commit,
@@ -233,6 +269,10 @@ try {
     playingFaceScreenshot: 'browser-clock-playing-face.png', playingFaceScreenshotSha256: digest(await readFile(playingFaceScreenshot)),
     stoppedScreenshot: 'browser-clock-stopped.png', stoppedScreenshotSha256: digest(await readFile(stoppedScreenshot)),
     stoppedFaceScreenshot: 'browser-clock-stopped-face.png', stoppedFaceScreenshotSha256: digest(await readFile(stoppedFaceScreenshot)),
+    terminalStartTranscript: 'terminal-start.txt', terminalStartTranscriptSha256: digest(await readFile(terminalStartTranscript)),
+    terminalStopTranscript: 'terminal-stop.txt', terminalStopTranscriptSha256: digest(await readFile(terminalStopTranscript)),
+    terminalPlayId: terminalLive.realization.play.active_play_id,
+    terminalTerminal: terminalStopped.last_execution.terminal,
     ownerWindow: 'loopback', remoteExecution: false, serviceOwned: true,
   }, null, 2)}\n`);
   console.log(`PASS: ${path.join(output, 'report.json')}`);
