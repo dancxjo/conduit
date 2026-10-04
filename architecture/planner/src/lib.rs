@@ -47,8 +47,8 @@ use conduit_core::{
     AuthorityGrant, BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId,
     DeliveryPressurePolicy, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement,
     HostId, LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedConnection, PlannedGear, PlannedStateBoundary, ResourcePoolId, StartupDependency,
-    StateContinuation, StateId, StateLifetime, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    PlannedConnection, PlannedGear, PlannedStateBoundary, ResourcePoolId, StateContinuation,
+    StateId, StateLifetime, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
     DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_plot::{CheckedGear, CheckedPlot};
@@ -747,7 +747,7 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
         });
     }
 
-    let global_startup_order = startup::startup_order(&planned_gears, &planned_connections)
+    let global_startup_order = startup::startup_order(&planned_gears, &planned_connections)?
         .ok_or_else(|| PlannerError::CyclicStartupDependencies(plot.name.clone()))?;
 
     let fragments = hosts
@@ -782,16 +782,7 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
                 })
                 .cloned()
                 .collect();
-            let startup_dependencies = connections
-                .iter()
-                .filter(|connection| connection.source_placement_id != connection.sink_placement_id)
-                .map(|connection| StartupDependency {
-                    prerequisite_placement_id: connection.sink_placement_id.clone(),
-                    dependent_placement_id: connection.source_placement_id.clone(),
-                })
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect();
+            let startup_dependencies = startup::startup_dependencies(&placements, &connections)?;
             let expected_terminals = placements
                 .iter()
                 .map(|placement| {

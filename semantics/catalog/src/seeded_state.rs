@@ -72,20 +72,23 @@ pub fn seeded_state_semantic_contract(
             PortTemporal::Current,
         )],
         configuration: Vec::new(),
-        semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![
-            FrontValueContract {
-                location: FrontValueLocation::Input(port_id("seed")),
-                contract: value.clone(),
-            },
-            FrontValueContract {
-                location: FrontValueLocation::Input(port_id("next")),
-                contract: value.clone(),
-            },
-            FrontValueContract {
-                location: FrontValueLocation::Output(port_id("current")),
-                contract: value.clone(),
-            },
-        ])],
+        semantic_laws: vec![
+            KindSemanticLaw::TemporalState(conduit_core::TemporalStateBehavior::SourceSeededFinite),
+            KindSemanticLaw::ValueContracts(vec![
+                FrontValueContract {
+                    location: FrontValueLocation::Input(port_id("seed")),
+                    contract: value.clone(),
+                },
+                FrontValueContract {
+                    location: FrontValueLocation::Input(port_id("next")),
+                    contract: value.clone(),
+                },
+                FrontValueContract {
+                    location: FrontValueLocation::Output(port_id("current")),
+                    contract: value.clone(),
+                },
+            ]),
+        ],
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 2,

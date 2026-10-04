@@ -10,6 +10,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.state-startup",
+                "Check declared state boundaries, exact startup cuts and zero-delay cycle refusal",
+                "cargo",
+                &["test", "--locked", "-p", "conduit-planner", "startup"],
+            ),
+            Step::new(
                 "device-protocols.source-feedback",
                 "Check exact Source feedback planning with retained native operation owners",
                 "cargo",

@@ -24,7 +24,7 @@ use std::collections::BTreeMap;
 
 mod protected_resource_tests;
 
-fn plot() -> conduit_plot::CheckedPlot {
+pub(crate) fn plot() -> conduit_plot::CheckedPlot {
     parse_with_startup(
             "plot signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse >> show\n}\n",
             &conduit_signal::signal_startup_catalog(),
@@ -33,7 +33,7 @@ fn plot() -> conduit_plot::CheckedPlot {
         .expect("plot must parse")
 }
 
-fn host() -> HostAdvertisement {
+pub(crate) fn host() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std-host-1"),
@@ -624,7 +624,10 @@ fn planning_rejects_cyclic_startup_dependencies() {
         &mut reverse.sink_placement_id,
     );
     connections.push(reverse);
-    assert_eq!(startup_order(&fragment.placements, &connections), None);
+    assert_eq!(
+        startup_order(&fragment.placements, &connections).unwrap(),
+        None
+    );
 }
 
 #[test]
@@ -658,6 +661,7 @@ fn admitted_host_input_source_breaks_only_its_runtime_response_cycle() {
     connections.push(reverse);
 
     let order = startup_order(&cyclic_placements, &connections)
+        .unwrap()
         .expect("an exact admitted host-input source can start the response loop");
     assert_eq!(order[0], source_placement_id);
 }
@@ -677,7 +681,9 @@ fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
     let fragment = &plan.fragments[0];
     let mut self_cord = fragment.connections[0].clone();
     self_cord.sink_placement_id = self_cord.source_placement_id.clone();
-    assert!(startup_order(&fragment.placements, &[self_cord]).is_some());
+    assert!(startup_order(&fragment.placements, &[self_cord])
+        .unwrap()
+        .is_some());
 }
 
 #[test]
