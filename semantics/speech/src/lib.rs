@@ -32,6 +32,8 @@ pub use render::{
 extern crate alloc;
 #[cfg(feature = "semantic-bindings")]
 pub mod admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]
