@@ -62,7 +62,7 @@ try {
   closeSync(serviceLog);
   const before = await waitFor(() => {
     if (!existsSync(path.join(state, 'control.sock'))) return null;
-    const status = spawnSync(owner, ['host', 'status', '--state-dir', state, '--json'],
+    const status = spawnSync(owner, ['host', 'service', 'status', '--state-dir', state, '--json'],
       { encoding: 'utf8', timeout: 3000 });
     return status.status === 0 ? JSON.parse(status.stdout) : null;
   }, service, 'installed zero-Body service');
@@ -83,8 +83,9 @@ try {
   await writeFile(path.join(output, 'birth-input.txt'), input, { mode: 0o600 });
   const transcript = invoke(owner, birthArgs, { input, timeout: speakerCard ? 180_000 : 30_000 });
   await writeFile(path.join(output, 'birth-transcript.txt'), transcript, { mode: 0o600 });
-  for (const required of ['Installed Host screen-free Birth', 'creche.name', 'creche.plot.1',
-    'creche.birth', 'Body retained by this installed Host:', 'Continuing retained Body']) {
+  for (const required of ['Installed Host screen-free Birth', 'Edit Body name requested',
+    'Include Plot. For Clock', 'Birth Body requested',
+    'Body retained by this installed Host:', 'Continuing retained Body']) {
     assert.ok(transcript.includes(required), `Birth transcript lacks ${required}`);
   }
   const born = ownerJson(['body', 'status', '--state-dir', state, '--json']);
