@@ -16,18 +16,22 @@ fn main() {
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
     println!("cargo:rerun-if-changed=inventory.conduit");
+    println!("cargo:rerun-if-changed=profile_phones.conduit");
+    println!("cargo:rerun-if-changed=voice_profile.conduit");
     println!("cargo:rerun-if-changed=timing_projection.conduit");
     println!("cargo:rerun-if-changed=duration_projection.conduit");
     println!("cargo:rerun-if-changed=duration_render.conduit");
     println!("cargo:rerun-if-changed=control_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("listening.conduit"),
         include_str!("translation.conduit"),
         include_str!("timing.conduit"),
         include_str!("intent.conduit"),
-        include_str!("inventory.conduit")
+        include_str!("inventory.conduit"),
+        include_str!("profile_phones.conduit"),
+        include_str!("voice_profile.conduit")
     );
     let semantic = check_syntax_document(
         &parse_syntax_document(&semantic_source),
@@ -56,7 +60,8 @@ fn main() {
     println!("cargo:rerun-if-changed=normalization.conduit");
     println!("cargo:rerun-if-changed=glottal.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        include_str!("profile_phones.conduit"),
         fs::read_to_string(path).expect("native speech source"),
         include_str!("pronunciation.conduit"),
         include_str!("trajectory.conduit"),
@@ -157,6 +162,26 @@ fn main() {
         panic!("target")
     };
     generated.push_str(&format!("#[cfg(test)] pub fn target_fields(value: SpeechAcousticTarget) -> [(&'static str, i32); {}] {{ [{}] }}\n", fields.len(), fields.iter().map(|field| format!("({:?}, value.{})", field.name(), field.name())).collect::<Vec<_>>().join(",")));
+    // Two generated Rust carriers for the same exact native variant. This is
+    // representation conversion, with no phonology, symbol inference or policy.
+    generated.push_str("#[cfg(feature = \"semantic-bindings\")] pub fn compact_profile_phone(value: &crate::semantic::EnglishPhone) -> EnglishPhone { match value {\n");
+    for case in cases {
+        generated.push_str(&format!(
+            "crate::semantic::EnglishPhone::{} => EnglishPhone::r#{},\n",
+            case.tag()
+                .split('_')
+                .map(|part| {
+                    let mut chars = part.chars();
+                    match chars.next() {
+                        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+                        None => String::new(),
+                    }
+                })
+                .collect::<String>(),
+            case.tag()
+        ));
+    }
+    generated.push_str("} }\n");
     let mut programs = Vec::new();
     let mut graphs = Vec::new();
     let mut symbols = std::collections::BTreeSet::new();

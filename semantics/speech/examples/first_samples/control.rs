@@ -19,5 +19,35 @@ pub(super) fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
         super::write_rendered(output, name, renderer)?;
         println!("{output}/{name}.wav: cycle {hertz:?} Hz; relative amplitude 1/{denominator}; period_q8={}, amplitude_q15={}", prepared.compact().period_q8, prepared.compact().amplitude_q15);
     }
+    // A listening fixture with explicit known quantities, not a prosody planner.
+    // Boundaries are deliberately absent from this segment-only input tape.
+    let events = text
+        .events()
+        .iter()
+        .copied()
+        .filter(|event| !matches!(event, VoiceEvent::boundary(_)))
+        .collect::<Vec<_>>();
+    let intents = events
+        .iter()
+        .map(|event| {
+            let frames = Renderer::prepare(core::slice::from_ref(event))
+                .map_err(|error| format!("{error:?}"))?
+                .total_frames();
+            SpeechSegmentProsodyIntent::new(
+                SpeechDurationSpecification::known(u64::from(SAMPLE_RATE_HZ), frames)
+                    .map_err(|error| format!("{error:?}"))?,
+                SpeechCycleSpecification::known(120, 1).map_err(|error| format!("{error:?}"))?,
+                SpeechIntensitySpecification::known(1, 1).map_err(|error| format!("{error:?}"))?,
+            )
+            .map_err(|error| format!("{error:?}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let prepared = conduit_speech::intent_prosody::prepare_segment_prosody(&intents)
+        .map_err(|error| format!("{error:?}"))?;
+    let renderer = prepared
+        .renderer(&events)
+        .map_err(|error| format!("{error:?}"))?;
+    super::write_rendered(output, "intent-prosody-hello-world", renderer)?;
+    println!("{output}/intent-prosody-hello-world.wav: explicit known segment intent; 120 Hz; unity intensity; no boundaries or linguistic commitment claim");
     Ok(())
 }
