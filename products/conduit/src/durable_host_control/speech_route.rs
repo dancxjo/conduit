@@ -20,7 +20,7 @@ pub(crate) enum SpeechRequest {
         token: Vec<u8>,
         window_id: String,
         binding: LinkBindingId,
-        request: OwnerFaceSnapshotRequest,
+        request: Box<OwnerFaceSnapshotRequest>,
         show: Box<MaskShow>,
     },
     Status {
@@ -99,7 +99,7 @@ pub(super) fn serve(
                 show,
                 ..
             } => runtime
-                .start_browser_speech(window_id, binding, request, *show)
+                .start_browser_speech(window_id, binding, *request, *show)
                 .map(|operation_id| SpeechReply::Started {
                     protocol: PROTOCOL,
                     operation_id,

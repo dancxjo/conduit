@@ -102,9 +102,7 @@ impl DurableHostRuntime {
         let thread = std::thread::Builder::new()
             .name("conduit-owner-selected-speech".into())
             .spawn(move || {
-                let Some(mut host) = receiver.recv().ok().flatten() else {
-                    return None;
-                };
+                let mut host = receiver.recv().ok().flatten()?;
                 #[cfg(test)]
                 if let Some(gate) = &equipment.before_play {
                     gate.wait();
