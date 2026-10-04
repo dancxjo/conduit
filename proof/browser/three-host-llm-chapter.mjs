@@ -10,6 +10,14 @@ import path from 'node:path';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = async file => JSON.parse(await readFile(file));
 
+export function assertExactFaceRevision(browserRevision, receiptRevision) {
+  assert.equal(typeof browserRevision, 'string');
+  assert.match(browserRevision, /^(0|[1-9][0-9]*)$/);
+  assert.ok(Number.isSafeInteger(receiptRevision) && receiptRevision >= 0,
+    'numeric Face revision must be an exact safe integer');
+  assert.equal(String(receiptRevision), browserRevision);
+}
+
 export async function awaitRouteReady(child, deadlineMillis = 5_000) {
   try {
     return await new Promise((resolve, reject) => {
@@ -101,7 +109,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
       assert.equal(item.face_id, faceId);
     }
     assert.equal(receipt.action_id, actionId);
-    assert.equal(receipt.face_revision, faceRevision);
+    assertExactFaceRevision(faceRevision, receipt.face_revision);
     assert.equal(receipt.owner_snapshot_before_after_equal, true);
     assert.equal(receipt.local_spoken_mask_show_observed, true);
     assert.equal(receipt.owner_sealed_spoken_mask_route_observed, false);
@@ -109,6 +117,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
     assert.equal(receipt.human_hearing_observed, false);
     assert.equal(validation.accepted, true);
     assert.equal(validation.presenter_play_completed, true);
+    assertExactFaceRevision(faceRevision, validation.face_revision);
     assert.ok(typeof original.output === 'string' && original.output.length > 0);
     assert.equal(original.sha256, digest(Buffer.from(original.output)));
     assert.equal(validation.original_model_output_sha256, original.sha256);
@@ -118,13 +127,13 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
     assert.equal(words.source_commit, sourceCommit);
     assert.equal(words.run_id, runId);
     assert.equal(words.body_id, bodyId);
-    assert.equal(words.face_revision, String(faceRevision));
+    assert.equal(words.face_revision, faceRevision);
     assert.equal(receipt.accepted_wording_sha256, digest(Buffer.from(words.text)));
     assert.equal(modelValidation.accepted, true);
     assert.equal(modelValidation.source_commit, sourceCommit);
     assert.equal(modelValidation.run_id, runId);
     assert.equal(modelValidation.body_id, bodyId);
-    assert.equal(modelValidation.face_revision, String(faceRevision));
+    assert.equal(modelValidation.face_revision, faceRevision);
     assert.equal(modelValidation.original_output_sha256, original.sha256);
     assert.equal(modelValidation.validated_text_sha256, digest(Buffer.from(words.text)));
     const showId = receipt.acknowledged_show.show.show_id;
@@ -178,7 +187,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
     assert.equal(current.status, 0, current.stderr);
     const face = JSON.parse(current.stdout);
     assert.equal(face.presentation.identity, faceId);
-    assert.equal(face.presentation.revision, faceRevision);
+    assertExactFaceRevision(faceRevision, face.presentation.revision);
     assert.equal(face.presentation.basis.body_id, bodyId);
     assert.equal(face.advertisement.host_id, ownerHostId);
     assert.equal(face.advertisement.boot_id, ownerBootId);
