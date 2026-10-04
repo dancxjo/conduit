@@ -1,7 +1,5 @@
 use super::*;
-use crate::{
-    expression_host_call::ExpressionOperationFactory, protocol_host_calls::PreparedProtocolCalls,
-};
+use crate::protocol_play::PreparedProtocolPlay;
 use alloc::sync::Arc;
 use conduit_composite::*;
 use conduit_plot::CompositeFrontTerminal;
@@ -59,59 +57,7 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
         maximum_in_flight: 1,
         maximum_operations: 2,
     };
-    let authority = BaseCapabilityAuthority {
-        grant: AuthorityGrant {
-            grant_id: scope.authority_grant_id.clone(),
-            contract_id: scope.authority_contract_id.clone(),
-            host_call_contract_id: scope.operation_contract_id.clone(),
-            subject_kind: scope.subject_kind.clone(),
-            host_id: scope.host_id.clone(),
-            boot_id: scope.boot_id.clone(),
-            capability_id: scope.capability_id.clone(),
-        },
-        base_instance_id: scope.base_instance_id.clone(),
-        base_provider_generation: scope.base_provider_generation,
-        resource_pool_id: scope.resource_pool_id.clone(),
-        resource_generation_id: scope.resource_generation_id.clone(),
-        operation_contract_id: scope.operation_contract_id.clone(),
-        envelope_id: scope.envelope_id.clone(),
-        maximum_parameter_bytes: scope.maximum_parameter_bytes,
-        maximum_result_bytes: scope.maximum_result_bytes,
-        maximum_work_units: scope.maximum_work_units,
-        maximum_in_flight: 1,
-        maximum_operations: scope.maximum_operations,
-    };
-    let claim = BaseOperationClaim {
-        host_id: scope.host_id.clone(),
-        boot_id: scope.boot_id.clone(),
-        base_instance_id: scope.base_instance_id.clone(),
-        base_provider_generation: scope.base_provider_generation,
-        plan_id: scope.plan_id.clone(),
-        active_play_id: scope.active_play_id.clone(),
-        implementation_id: scope.implementation_id.clone(),
-        operation_contract_id: scope.operation_contract_id.clone(),
-        subject_kind: scope.subject_kind.clone(),
-        resource_pool_id: scope.resource_pool_id.clone(),
-        resource_generation_id: scope.resource_generation_id.clone(),
-        envelope_id: scope.envelope_id.clone(),
-        parameter_bytes: I2C_MAXIMUM_BYTES,
-        work_units: 1,
-    };
-    let mut table = BaseCapabilityTable::new(
-        scope.host_id.clone(),
-        scope.boot_id.clone(),
-        scope.base_instance_id.clone(),
-        scope.base_provider_generation,
-        [7; 32],
-        1,
-    )
-    .unwrap();
-    let handle = table
-        .issue(CapabilityIssueRequest { scope, authority })
-        .unwrap();
-
-    let mut dispatcher =
-        PreparedProtocolCalls::prepare(&plan, ready, table, handle, claim).unwrap();
+    let (table, handle, claim) = possession(scope.clone());
     let mut boundary = KernelCompositeBoundary {
         input_fronts: vec![],
         output_fronts: vec![],
@@ -177,15 +123,32 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
         boundary,
         failure_translation: FailureReason::CompositeCapabilityFailed,
     };
-    let mut registry = KernelOperationRegistry::new();
-    registry
-        .install(ExpressionOperationFactory::default())
-        .unwrap();
-    registry
-        .install(I2cOperationFactory::prepare_contract().unwrap())
-        .unwrap();
-    let mut kernel = KernelCompositeHost::prepare(definition, &registry).unwrap();
-    kernel.start().unwrap();
+    let mut wrong_route = definition.clone();
+    wrong_route.boundary.input_fronts[0].internal_port_id = port_id("forged");
+    let mut stale_boot = definition.clone();
+    stale_boot.boot_id = BootId::from("boot/stale");
+    let mut duplicated_front = definition.clone();
+    duplicated_front
+        .boundary
+        .input_fronts
+        .push(duplicated_front.boundary.input_fronts[0].clone());
+    for refused in [wrong_route, stale_boot, duplicated_front] {
+        let (_, inert_ready, _) = planned(Scripted(effects.clone()));
+        let (refused_table, refused_handle, refused_claim) = possession(scope.clone());
+        assert!(matches!(
+            PreparedProtocolPlay::prepare(
+                refused,
+                inert_ready,
+                refused_table,
+                refused_handle,
+                refused_claim
+            ),
+            Err(crate::protocol_host_calls::ProtocolCallRefusal::InvalidPlan)
+        ));
+        assert_eq!(effects.load(Ordering::SeqCst), 0);
+    }
+    let mut play = PreparedProtocolPlay::prepare(definition, ready, table, handle, claim).unwrap();
+    play.start().unwrap();
     let ty = program.input_type.clone();
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
         panic!("query")
@@ -212,37 +175,28 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
         .unwrap()
         .canonical_bytes()
         .unwrap();
-    kernel
-        .admit_input(
-            &input_port.port_id,
-            0,
-            &ValuePayload {
-                value_kind: input_port.value_kind,
-                encoded,
-            },
-        )
-        .unwrap();
-    kernel.close_input(&input_port.port_id).unwrap();
+    play.admit_input(
+        &input_port.port_id,
+        0,
+        &ValuePayload {
+            value_kind: input_port.value_kind,
+            encoded,
+        },
+    )
+    .unwrap();
+    play.close_input(&input_port.port_id).unwrap();
     let mut output = ValuePayload {
         value_kind: output_port.value_kind,
         encoded: alloc::vec::Vec::with_capacity(I2C_MAXIMUM_BYTES as usize),
     };
-    let mut calls = 0;
     let mut sequence = None;
     for _ in 0..64 {
-        kernel.step().unwrap();
-        if let Some(request) = kernel.next_host_request() {
-            dispatcher.dispatch(&mut kernel, &request).unwrap();
-            calls += 1;
-        }
-        sequence = kernel
-            .output_into(&output_port.port_id, &mut output)
-            .unwrap();
+        play.step().unwrap();
+        sequence = play.output_into(&output_port.port_id, &mut output).unwrap();
         if sequence.is_some() {
             break;
         }
     }
-    assert_eq!(calls, 2);
     assert_eq!(sequence, Some(0));
     assert_eq!(effects.load(Ordering::SeqCst), 1);
     let mut encoder =
@@ -254,11 +208,72 @@ fn checked_register_plot_runs_through_kernel_and_retained_bus_owner() {
         matches!(result.shape(), StructuredInfoValueShape::Variant { tag, .. } if tag == "completed")
     );
     for _ in 0..100 {
-        kernel.step().unwrap();
-        assert!(kernel.next_host_request().is_none());
+        play.step().unwrap();
     }
     assert_eq!(effects.load(Ordering::SeqCst), 1);
-    kernel.complete_output(&output_port.port_id, 0).unwrap();
-    dispatcher.cancel(&mut kernel).unwrap();
+    play.complete_output(&output_port.port_id, 0).unwrap();
+    play.cancel().unwrap();
     assert_eq!(effects.load(Ordering::SeqCst), 101);
+}
+
+// Fixture authority: never used by native production admission.
+fn possession(
+    scope: BaseCapabilityScope,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
+    let authority = BaseCapabilityAuthority {
+        grant: AuthorityGrant {
+            grant_id: scope.authority_grant_id.clone(),
+            contract_id: scope.authority_contract_id.clone(),
+            host_call_contract_id: scope.operation_contract_id.clone(),
+            subject_kind: scope.subject_kind.clone(),
+            host_id: scope.host_id.clone(),
+            boot_id: scope.boot_id.clone(),
+            capability_id: scope.capability_id.clone(),
+        },
+        base_instance_id: scope.base_instance_id.clone(),
+        base_provider_generation: scope.base_provider_generation,
+        resource_pool_id: scope.resource_pool_id.clone(),
+        resource_generation_id: scope.resource_generation_id.clone(),
+        operation_contract_id: scope.operation_contract_id.clone(),
+        envelope_id: scope.envelope_id.clone(),
+        maximum_parameter_bytes: scope.maximum_parameter_bytes,
+        maximum_result_bytes: scope.maximum_result_bytes,
+        maximum_work_units: scope.maximum_work_units,
+        maximum_in_flight: 1,
+        maximum_operations: scope.maximum_operations,
+    };
+    let claim = BaseOperationClaim {
+        host_id: scope.host_id.clone(),
+        boot_id: scope.boot_id.clone(),
+        base_instance_id: scope.base_instance_id.clone(),
+        base_provider_generation: scope.base_provider_generation,
+        plan_id: scope.plan_id.clone(),
+        active_play_id: scope.active_play_id.clone(),
+        implementation_id: scope.implementation_id.clone(),
+        operation_contract_id: scope.operation_contract_id.clone(),
+        subject_kind: scope.subject_kind.clone(),
+        resource_pool_id: scope.resource_pool_id.clone(),
+        resource_generation_id: scope.resource_generation_id.clone(),
+        envelope_id: scope.envelope_id.clone(),
+        parameter_bytes: I2C_MAXIMUM_BYTES,
+        work_units: 1,
+    };
+    let mut table = BaseCapabilityTable::new(
+        scope.host_id.clone(),
+        scope.boot_id.clone(),
+        scope.base_instance_id.clone(),
+        scope.base_provider_generation,
+        [7; 32],
+        1,
+    )
+    .unwrap();
+    let handle = table
+        .issue(CapabilityIssueRequest { scope, authority })
+        .unwrap();
+
+    (table, handle, claim)
 }
