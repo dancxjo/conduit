@@ -643,9 +643,19 @@ after a winner; excluded declarations are retained without evaluating context.
 
 `prepare_chosen_allophone_profile` resolves the selected original phone to one
 exact inventory definition and admitted formant binding without rewriting the
-intent. This is hosted preparation with fixed candidate storage, not complete
+intent. This is hosted preparation with at most eight candidate receipts allocated before play, not complete
 utterance admission or a whole MCU footprint claim. Standalone global rules,
 inheritance, syntax, timing/source admission and commitment remain separate.
 The native-speech journey emits `allophone-default-tata.wav` and
 `allophone-initial-aspiration-tata.wav` from manually supplied linguistic facts
 and the existing bounded renderer; acoustic parameters are unchanged.
+
+`prepare_contextual_intent` combines contextual choice, exact profile binding
+and quantitative timing into a frozen bounded event tape. Explicit context has
+one slot per original event (Some for segments, None for boundaries). Deferred
+or absent phone choices, incompatible profiles, unresolved quantitative facts
+and renderer-domain failures refuse preparation before playback. Original
+intent, choice and timing receipts remain inspectable; source resolution and
+linguistic commitment are still separate obligations. Rich candidate storage is
+reserved during hosted preparation within the native eight-rule bound rather
+than copied as a large inline stack value. Rendering adds no collection growth.

@@ -124,9 +124,9 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
             PhoneSpecification::unspecified(),
             PhonemeSpecification::known(PhonemeId::new(id.into()).unwrap()).unwrap(),
             SpeechSegmentProsodyIntent::new(
-                SpeechDurationSpecification::unspecified(),
-                SpeechCycleSpecification::unspecified(),
-                SpeechIntensitySpecification::unspecified(),
+                SpeechDurationSpecification::known(if index % 2 == 0 { 12 } else { 6 }, 1).unwrap(),
+                SpeechCycleSpecification::known(120, 1).unwrap(),
+                SpeechIntensitySpecification::known(1, 1).unwrap(),
             )
             .unwrap(),
             provenance.clone(),
@@ -185,6 +185,26 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
             compact.push(prepared.event());
         }
         super::write_wav(output, name, &compact)?;
+        let contexts = [Some(ExplicitAllophoneContext {
+            careful_style: &style,
+            syllable_position: &syllable,
+            prosodic_context: &prosody,
+        }); 4];
+        let boundaries = SpeechFormantBoundaryProfile::new(BoundedSequence::new()).unwrap();
+        let combined = conduit_speech::contextual_intent_realization::prepare_contextual_intent(
+            &intent,
+            &inventory,
+            &profile,
+            &boundaries,
+            &policy,
+            &contexts,
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        super::write_rendered(
+            output,
+            &format!("contextual-intent-{name}"),
+            combined.renderer().map_err(|e| format!("{e:?}"))?,
+        )?;
     }
     Ok(())
 }
