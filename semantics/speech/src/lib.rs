@@ -70,6 +70,8 @@ pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod reference_admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod rule_conditions;
+#[cfg(feature = "semantic-bindings")]
 pub mod rule_features;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_neighbors;
@@ -154,3 +156,6 @@ mod frication_transfer;
 mod context_match_parity;
 #[cfg(test)]
 mod neighbor_match_parity;
+
+#[cfg(test)]
+mod rule_conditions_parity;

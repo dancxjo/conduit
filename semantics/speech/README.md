@@ -601,3 +601,14 @@ This remains chosen-phone quantitative preparation, not complete utterance
 admission: source resolution, phonological consistency and commitment are still
 separate checks. The `intent-realization-hello-world` listening fixture uses
 explicit 120 Hz/unity controls and retains the approved acoustic profile.
+
+Original allophone conditions have borrowed preparation receipts for explicit
+careful style, previous/next matchers, singleton/set stress, and exact feature
+keys/values. Their decisions are native Plots; the Rust adapters project typed
+facts and retain the original requirements and observations. A condition-set
+comparison admits at most eight conditions, keeps every successful component,
+and uses the native context conjunction without short-circuiting mismatches.
+Unsupported syntax is an indexed refusal, never implicit permission or a
+mismatch. These checks do not establish occurrence adjacency, consistency across
+independently supplied evidence, syntax revision/commitment, inheritance, rule
+selection, or complete allophone eligibility.
