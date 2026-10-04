@@ -18,7 +18,8 @@ pub use generated::speech_realize as realize;
 pub use generated::{
     EnglishDerivation, EnglishPhone, EnglishPhoneme, EnglishPosition, EnglishPronunciationOrigin,
     EnglishStress, RealizationInput, RealizationResult, SpeechCycleControlMode,
-    SpeechEventVoiceControl, TextSpeechSegment, VoiceBoundary, VoiceEvent, SOURCE_ID,
+    SpeechEventVoiceControl, SpeechPhoneInput, TextSpeechSegment, VoiceBoundary, VoiceEvent,
+    SOURCE_ID,
 };
 pub use pronounce::{
     pronounce, PronouncedText, TextRefusal, MAXIMUM_TEXT_BYTES, MAXIMUM_WORD_BYTES,
