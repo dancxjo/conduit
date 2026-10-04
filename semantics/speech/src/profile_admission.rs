@@ -127,7 +127,7 @@ pub fn prepare_intent_profile_phone<'a, 'intent>(
     })
 }
 
-fn prepare_binding<'a>(
+pub(crate) fn prepare_binding<'a>(
     inventory: &semantic::SpeechInventory,
     definition: &semantic::SpeechPhone,
     profile: &'a semantic::SpeechFormantVoiceProfile,

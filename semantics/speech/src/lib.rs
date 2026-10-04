@@ -46,6 +46,8 @@ pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_prosody;
 #[cfg(feature = "semantic-bindings")]
+pub mod intent_realization;
+#[cfg(feature = "semantic-bindings")]
 pub mod inventory_admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
