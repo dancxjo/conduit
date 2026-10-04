@@ -25,7 +25,7 @@ plot bme280-autonomous (
     cell.current >> join.left
     cell.current >> actions
     actions >> select(BmeProtocolAction.transact, unmatched=drop) >> bus.request
-    actions >> select(BmeProtocolAction.waiting, unmatched=drop) >> bme280-clock-wait-context() >> contexts.left
+    actions >> bme280-clock-action-context() >> select(BmeOptionalClockContext.available, unmatched=drop) >> contexts.left
     actions >> select(BmeProtocolAction.captured, unmatched=drop) >> captured
     actions >> select(BmeProtocolAction.refused, unmatched=drop) >> refused
     bus.result >> bme280-clock-bus-context() >> contexts.right

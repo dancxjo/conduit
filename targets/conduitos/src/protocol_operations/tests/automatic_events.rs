@@ -1,5 +1,7 @@
 //! Check the complete bus/time Source topology before native profile admission.
+extern crate std;
 use super::*;
+use alloc::vec::Vec;
 #[test]
 fn automatic_bus_time_topology_checks_with_exact_generic_schemas_and_reports_its_size() {
     let i2c = crate::i2c_base::contract::I2cContract::prepare().unwrap();
@@ -116,9 +118,24 @@ fn automatic_bus_time_topology_checks_with_exact_generic_schemas_and_reports_its
         &startup,
     )
     .unwrap();
+    for stage in checked
+        .plots
+        .iter()
+        .flat_map(|plot| &plot.cords)
+        .flat_map(|cord| &cord.stages)
+    {
+        if let conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } = stage {
+            profile
+                .insert(conduit_plot::structured_selector_definition(
+                    selector,
+                    PortTemporal::Flow { closes: true },
+                ))
+                .unwrap();
+        }
+    }
     let expanded =
         expand_canonical_plot_for_authoring(&checked, "bme280-autonomous", &profile).unwrap();
-    eprintln!(
+    std::eprintln!(
         "automatic BME280 Source topology: {} gears",
         expanded.expanded.gears.len()
     );
