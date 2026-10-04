@@ -10,6 +10,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { captureLlmChapter } from './three-host-llm-chapter.mjs';
+import { captureRunId } from './three-host-run-identity.mjs';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
@@ -70,7 +71,8 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   const ownerBefore = run(['body', 'status', '--state-dir', state, '--json']);
   const bodyId = ownerBefore.biography.body_id;
-  const runId = `three-host-${digest(bodyId).slice(0, 24)}`;
+  const ownerPartAtCapture = ownerBefore.biography.membership.parts[0].current;
+  const runId = captureRunId(bodyId, ownerPartAtCapture.host_id, ownerPartAtCapture.boot_id);
 
   await page.goto(`${server.url}?participate=owner#your-handbook`);
   await page.locator('[data-owner-key]').waitFor();

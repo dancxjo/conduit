@@ -7,6 +7,7 @@ import { closeSync, existsSync, openSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
+import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
@@ -71,7 +72,11 @@ try {
       { encoding: 'utf8', timeout: 3000 });
     return status.status === 0 ? JSON.parse(status.stdout) : null;
   }, service, 'installed zero-Body service');
-  assert.equal(existsSync(path.join(state, 'body', 'biography.json')), false);
+  const preBirth = makeZeroBodyReceipt(installation, before,
+    existsSync(path.join(state, 'body', 'biography.json')),
+    existsSync(path.join(state, 'body', 'owner-transaction.json')));
+  const preBirthBytes = Buffer.from(`${JSON.stringify(preBirth, null, 2)}\n`);
+  await writeFile(path.join(output, 'zero-body-before.json'), preBirthBytes, { mode: 0o600 });
   const input = [
     'read all',
     'next main',
@@ -156,6 +161,8 @@ try {
     owner_boot_id: ownerPart.boot_id,
     source_commit: installation.release_source_identity,
     zero_body_observed: true,
+    zero_body_receipt: { path: '../zero-body-before.json',
+      bytes: preBirthBytes.length, sha256: digest(preBirthBytes) },
     confirmation_observed: true,
     speaker_playback_selected: Boolean(speakerCard),
     human_hearing_observed: false,
