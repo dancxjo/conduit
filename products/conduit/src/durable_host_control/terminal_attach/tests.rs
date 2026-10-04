@@ -132,6 +132,12 @@ fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
     let route = runtime.terminal_route.as_ref().unwrap();
     assert_eq!(route.seal.route_plan_id, route_plan_id);
     assert_eq!(route.show, show);
+    assert_eq!(route.wardrobe.active_plan_id, route_plan_id);
+    assert_eq!(
+        route.wardrobe.selected.as_ref().unwrap().mask_plot,
+        route.seal.planned_mask.mask.plot_identity
+    );
+    assert!(route.wardrobe.scoped_wardrobe.wake_id.is_none());
     assert!(route.execution.has_pending_play());
     assert!(matches!(
         route.show.show.lifecycle,
@@ -142,6 +148,34 @@ fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
     };
     let current_face = owner.local_face_snapshot().unwrap();
     assert!(current_face.basis.wake_id.is_none());
+    let admitted = owner
+        .admit_attached_terminal_show(&route.seal, &route.show)
+        .unwrap();
+    assert_eq!(admitted.body_id(), &route.seal.body_id);
+    assert_eq!(admitted.plan_id(), &route_plan_id);
+    let wrong_body = conduit_presentation::BodyMaskWardrobe::new(
+        serde_json::from_str("\"another-body\"").unwrap(),
+        None,
+        conduit_presentation::MaskWardrobe::new(
+            conduit_presentation::MaskWardrobeLifetime::Body,
+            vec![route.seal.planned_mask.mask.plot_identity.clone()],
+            vec![],
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        conduit_presentation::MaskWardrobeControl::new_from_admitted_routes(
+            wrong_body, &admitted, None,
+        ),
+        Err(conduit_presentation::MaskWardrobeControlError::WrongBody)
+    );
+    let mut forged_show = route.show.clone();
+    forged_show.show.offer_generation.0 += 1;
+    assert!(owner
+        .admit_attached_terminal_show(&route.seal, &forged_show)
+        .unwrap_err()
+        .contains("OwnerRoute(InvalidShow)"));
     assert!(current_face.actions.iter().any(|action| {
         action.intent == crate::durable_host::owner::clock_interval_action()
             && action.availability.is_available()
