@@ -14,6 +14,26 @@ impl ChildKernel {
         registry: &KernelOperationRegistry,
     ) -> Result<Self, String> {
         augment_boundary_cords(&mut lowered, &boundaries)?;
+        let mut input_targets = BTreeMap::new();
+        for boundary in boundaries
+            .iter()
+            .filter(|boundary| boundary.direction == PortDirection::Input)
+        {
+            let targets = if boundary.already_lowered {
+                lowered
+                    .fore_ports
+                    .iter()
+                    .filter(|fore| {
+                        fore.front_port_id == boundary.external_port_id
+                            && fore.direction == PortDirection::Input
+                    })
+                    .map(|fore| (fore.endpoint, fore.cord))
+                    .collect()
+            } else {
+                vec![(boundary.endpoint, boundary.cord)]
+            };
+            input_targets.insert(boundary.external_port_id.clone(), targets);
+        }
         let active_nodes = lowered.nodes.len();
         let active_cords = lowered.cords.len();
         if active_nodes == 0
@@ -163,6 +183,7 @@ impl ChildKernel {
             .map_err(debug)?;
         Ok(Self {
             scheduler,
+            input_targets,
             boundaries: boundaries
                 .into_iter()
                 .map(|boundary| (boundary.external_port_id.clone(), boundary))
