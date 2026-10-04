@@ -53,7 +53,7 @@ pub(in crate::durable_host_control) struct SpeechWorker {
     source_binding: LinkBindingId,
     source_request: OwnerFaceSnapshotRequest,
     source_show: MaskShow,
-    thread: JoinHandle<(StdHost, Result<Value, SpeechFailure>)>,
+    thread: JoinHandle<Option<(StdHost, Result<Value, SpeechFailure>)>>,
 }
 
 impl DurableHostRuntime {
@@ -95,14 +95,16 @@ impl DurableHostRuntime {
         let operation_id = crate::durable_host::fresh_identity("selected-speech", &window_id);
         // Start the worker before moving the Host. Failed spawn leaves it with
         // the owner; failed handoff returns the Host for restoration.
-        let (sender, receiver) = mpsc::sync_channel::<StdHost>(1);
+        let (sender, receiver) = mpsc::sync_channel::<Option<StdHost>>(1);
         let control = RunControl::default();
         let worker_control = control.clone();
         let worker_show = show.clone();
         let thread = std::thread::Builder::new()
             .name("conduit-owner-selected-speech".into())
             .spawn(move || {
-                let mut host = receiver.recv().expect("selected speech Host handoff");
+                let Some(mut host) = receiver.recv().ok().flatten() else {
+                    return None;
+                };
                 #[cfg(test)]
                 if let Some(gate) = &equipment.before_play {
                     gate.wait();
@@ -116,12 +118,22 @@ impl DurableHostRuntime {
                         "selected speech worker panicked".into(),
                     ))
                 });
-                (host, result)
+                Some((host, result))
             })
             .map_err(|error| format!("start selected speech worker: {error}"))?;
-        let host = owner.host.take_for_play()?;
-        if let Err(error) = sender.send(host) {
-            owner.host.restore_after_play(error.0)?;
+        let host = match owner.host.take_for_play() {
+            Ok(host) => host,
+            Err(error) => {
+                let _ = sender.send(None);
+                let _ = thread.join();
+                return Err(error);
+            }
+        };
+        if let Err(error) = sender.send(Some(host)) {
+            if let Some(host) = error.0 {
+                owner.host.restore_after_play(host)?;
+            }
+            let _ = thread.join();
             return Err("selected speech worker stopped before Host handoff".into());
         }
         self.speech_worker = Some(SpeechWorker {
@@ -154,7 +166,8 @@ impl DurableHostRuntime {
         let (host, result) = worker
             .thread
             .join()
-            .map_err(|_| "selected speech worker failed before returning Host".to_string())?;
+            .map_err(|_| "selected speech worker failed before returning Host".to_string())?
+            .ok_or("selected speech worker exited without Host handoff")?;
         owner.host.restore_after_play(host)?;
         let source_current = owner
             .validate_browser_mask_show(
@@ -209,6 +222,7 @@ impl DurableHostRuntime {
         &mut self,
         operation_id: &str,
     ) -> Result<(), String> {
+        self.progress_browser_speech()?;
         let worker = self
             .speech_worker
             .as_ref()

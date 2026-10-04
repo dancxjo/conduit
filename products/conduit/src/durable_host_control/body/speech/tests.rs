@@ -17,7 +17,6 @@ use conduit_std_host::{
 use std::{
     fs,
     os::unix::fs::{symlink, PermissionsExt},
-    path::PathBuf,
     sync::{Arc, Barrier},
     time::{Duration, Instant},
 };
@@ -253,7 +252,12 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
     assert_eq!(runtime.host.advertisement(), &original);
     runtime.selected_speech_equipment = Some(equipment);
     let operation_id = runtime
-        .start_browser_speech(window_id, binding, request, show)
+        .start_browser_speech(
+            window_id.clone(),
+            binding.clone(),
+            request.clone(),
+            show.clone(),
+        )
         .unwrap();
     gate.wait(); // Worker now owns the exact Host but has not begun any Play.
     assert_eq!(
@@ -284,5 +288,28 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
     );
     assert_eq!(runtime.host.advertisement(), &original);
     assert!(matches!(&runtime.host, HostSource::Body { owner, .. } if !owner.host.is_playing()));
+
+    let leaving_operation = runtime
+        .start_browser_speech(window_id.clone(), binding, request, show)
+        .unwrap();
+    gate.wait();
+    runtime.browser_cancel_window(&window_id).unwrap();
+    gate.wait();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while runtime
+        .speech_worker
+        .as_ref()
+        .is_some_and(|worker| !worker.thread.is_finished())
+    {
+        assert!(
+            Instant::now() < deadline,
+            "selected speech survived browser cancellation"
+        );
+        std::thread::yield_now();
+    }
+    let terminal = runtime.browser_speech_status(&leaving_operation).unwrap();
+    assert_eq!(terminal["outcome"], "cancelled");
+    assert_eq!(terminal["source_show_still_current"], false);
+    assert_eq!(runtime.host.advertisement(), &original);
     fs::remove_dir_all(root).unwrap();
 }
