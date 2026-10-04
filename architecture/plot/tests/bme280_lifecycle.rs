@@ -101,7 +101,7 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
     let checked = check_syntax_document(&parse_syntax_document(&source), &catalog).unwrap();
     for name in [
         "bme280-clock-bus-context",
-        "bme280-clock-wait-context",
+        "bme280-clock-action-context",
         "bme280-clock-request",
         "bme280-clock-event",
     ] {

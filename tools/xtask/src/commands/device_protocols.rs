@@ -26,6 +26,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduitos",
                     "--lib",
                     "protocol_operations",
+                    "--",
+                    "--show-output",
                 ],
             ),
             Step::new(

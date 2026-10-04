@@ -19,9 +19,13 @@ plot bme280-clock-bus-context (
     result: I2cResult...| >> context: BmeClockContext...|
 ) = (bus(.))
 
-plot bme280-clock-wait-context (
-    deadline: U64...| >> context: BmeClockContext...|
-) = (waiting(.))
+type BmeOptionalClockContext =
+    available BmeClockContext
+    | absent
+
+plot bme280-clock-action-context (
+    action: BmeProtocolAction...| >> context: BmeOptionalClockContext...|
+) = (. is waiting ? available(waiting(.waiting)) : absent(unit))
 
 plot bme280-clock-request (
     context: BmeClockContext...| >> request: ClockRequest...|

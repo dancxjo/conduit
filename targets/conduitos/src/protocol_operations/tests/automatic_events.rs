@@ -118,9 +118,19 @@ fn automatic_bus_time_topology_checks_with_exact_generic_schemas_and_reports_its
         &startup,
     )
     .unwrap();
-    for stage in checked.plots.iter().flat_map(|plot| &plot.cords).flat_map(|cord| &cord.stages) {
+    for stage in checked
+        .plots
+        .iter()
+        .flat_map(|plot| &plot.cords)
+        .flat_map(|cord| &cord.stages)
+    {
         if let conduit_plot::CheckedCordStage::StructuredSelector { selector, .. } = stage {
-            profile.insert(conduit_plot::structured_selector_definition(selector, PortTemporal::Flow { closes: true })).unwrap();
+            profile
+                .insert(conduit_plot::structured_selector_definition(
+                    selector,
+                    PortTemporal::Flow { closes: true },
+                ))
+                .unwrap();
         }
     }
     let expanded =
