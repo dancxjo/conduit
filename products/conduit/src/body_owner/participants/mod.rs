@@ -12,7 +12,7 @@ use conduit_core::{HostId, LinkBindingId, SignId};
 use conduit_presentation::{OwnerFaceSnapshotResponse, OWNER_FACE_RESPONSE_SCHEMA};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
-    BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
+    BROWSER_ADMISSION_PROTOCOL as PROTOCOL, MAX_BROWSER_ADMISSION_FRAME_BYTES,
 };
 pub(crate) use service::{BrowserAdmittedSnapshot, BrowserWindow, BrowserWindowAuthorization};
 #[cfg(unix)]
@@ -98,7 +98,15 @@ impl Owner {
                 self.persist(root)?; // A credential is never acknowledged ahead of durable membership.
                 let snapshot =
                     BrowserAdmittedSnapshot::from_foreground(self, credential, observation)?;
-                serve_presence(&snapshot, &mut socket, &binding, clock, deadline, None)
+                serve_presence(
+                    &snapshot,
+                    &mut socket,
+                    &binding,
+                    clock,
+                    deadline,
+                    None,
+                    None,
+                )
             })();
             // Every exit fences the current browser incarnation, including failed acknowledgement.
             let current = self
@@ -144,6 +152,7 @@ fn serve_presence(
     clock: Instant,
     deadline: Instant,
     state_dir: Option<&Path>,
+    window_id: Option<&str>,
 ) -> Result<&'static str, String> {
     let credential = &snapshot.credential;
     let presence_clock = HostPresenceClock::new(
@@ -349,6 +358,66 @@ fn serve_presence(
                 })?;
                 return Err("owner interaction differs from admitted browser carrier".into());
             }
+            In::OfferDisclosureRequest {
+                protocol: PROTOCOL,
+                credential_id,
+                body_id,
+                part_id,
+                host_id,
+                boot_id,
+                request,
+            } if credential_id == credential.credential_id
+                && body_id == credential.body_id
+                && part_id == credential.part_id
+                && host_id == credential.host_id
+                && boot_id == credential.boot_id =>
+            {
+                let result = state_dir
+                    .zip(window_id)
+                    .ok_or_else(|| "planning offer requires installed owner".to_string())
+                    .and_then(|(dir, window_id)| {
+                        crate::durable_host_control::browser::planning_offer(
+                            dir,
+                            window_id,
+                            credential.clone(),
+                            request,
+                        )
+                    });
+                let response = match result {
+                    Ok(offer) => {
+                        let frame = Out::OfferEvidence {
+                            protocol: PROTOCOL,
+                            evidence: Box::new(offer),
+                        };
+                        if serde_json::to_vec(&frame)
+                            .map_err(|error| format!("encode planning offer: {error}"))?
+                            .len()
+                            > MAX_BROWSER_ADMISSION_FRAME_BYTES
+                        {
+                            Out::Refused {
+                                protocol: PROTOCOL,
+                                code: "offer-frame-pressure".into(),
+                            }
+                        } else {
+                            frame
+                        }
+                    }
+                    Err(error) => Out::Refused {
+                        protocol: PROTOCOL,
+                        code: planning_offer_refusal(&error).into(),
+                    },
+                };
+                socket.send(&response)?;
+            }
+            In::OfferDisclosureRequest {
+                protocol: PROTOCOL, ..
+            } => {
+                socket.send(&Out::Refused {
+                    protocol: PROTOCOL,
+                    code: "credential-mismatch".into(),
+                })?;
+                return Err("planning offer differs from admitted browser carrier".into());
+            }
             In::WebRtcGrantRequest {
                 protocol: PROTOCOL,
                 credential_id,
@@ -420,4 +489,17 @@ fn signal(binding: &LinkBindingId, stage: &str) -> SignId {
 }
 fn debug(error: impl std::fmt::Debug) -> String {
     format!("browser participant: {error:?}")
+}
+
+fn planning_offer_refusal(error: &str) -> &'static str {
+    match error {
+        "unknown-capability" => "unknown-capability",
+        "unknown-resource" => "unknown-resource",
+        "invalid-offer-request" => "invalid-offer-request",
+        "credential-mismatch" => "credential-mismatch",
+        "part-unavailable" => "part-unavailable",
+        "window-not-active" => "window-not-active",
+        "owner-unavailable" => "owner-unavailable",
+        _ => "offer-unavailable",
+    }
 }

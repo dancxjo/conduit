@@ -3,7 +3,10 @@
 use conduit_body::{
     BodyBiographyEvidence, MembershipCredential, PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
-use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
+use conduit_body::{
+    BodyConversationContext, HostOfferProjection, OfferDisclosureRequest, SpawnInvitationClaim,
+    SpawnInvitationSecret,
+};
 use conduit_core::{
     ActivePlayIdentity, HostAdvertisement, LinkBindingId, PlacementId, Plan,
     PoolMemberSessionDirection, PoolRealizationEnvelope, PoolRealizationObservation,
@@ -947,6 +950,13 @@ enum Request {
         window_id: String,
         frame: Box<BrowserAdmissionIngress>,
     },
+    BodyBrowserOffer {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        credential: MembershipCredential,
+        disclosure: OfferDisclosureRequest,
+    },
     BodyBrowserAbort {
         protocol: u16,
         token: Vec<u8>,
@@ -1098,6 +1108,10 @@ enum Response {
     BodyBrowserSnapshot {
         protocol: u16,
         snapshot: Box<crate::durable_host::owner::BrowserAdmittedSnapshot>,
+    },
+    BodyBrowserOffer {
+        protocol: u16,
+        offer: Box<HostOfferProjection>,
     },
     BodyBrowserAborted {
         protocol: u16,
@@ -1670,6 +1684,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
+        | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
@@ -1787,6 +1802,19 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|snapshot| Response::BodyBrowserSnapshot {
                 protocol: PROTOCOL,
                 snapshot: Box::new(snapshot),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserOffer {
+            protocol,
+            window_id,
+            credential,
+            disclosure,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_planning_offer(&window_id, &credential, &disclosure)
+            .map(|offer| Response::BodyBrowserOffer {
+                protocol: PROTOCOL,
+                offer: Box::new(offer),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserAbort {
