@@ -223,6 +223,7 @@ conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
 conduit-presentation = { path = "../../semantics/presentation" }
+conduit-conduitos-mask-offer = { path = "mask-offer" }
 conduit-tour-model = { path = "../../plots/tour" }
 conduit-tutorial-plot = { path = "../../semantics/tutorial" }
 embedded-io = { version = "0.7.1", optional = true, default-features = false }

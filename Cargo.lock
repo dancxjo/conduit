@@ -560,6 +560,7 @@ dependencies = [
  "conduit-body-make",
  "conduit-browser-mask-offer",
  "conduit-chat",
+ "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
  "conduit-finance",
@@ -866,6 +867,16 @@ dependencies = [
  "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-signal",
+]
+
+[[package]]
+name = "conduit-conduitos-mask-offer"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-presentation",
 ]
 
 [[package]]
@@ -1638,6 +1649,7 @@ dependencies = [
  "conduit-birth-plot",
  "conduit-body",
  "conduit-composite",
+ "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-home-model",
  "conduit-human",
