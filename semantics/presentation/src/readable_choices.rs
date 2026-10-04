@@ -5,7 +5,7 @@ use conduit_core::{CheckedValueContract, ValueConstraint};
 
 use crate::UTF8_TEXT_VALUE_KIND;
 
-/// Borrow small control-free UTF-8 choices from a positive canonical text membership.
+/// Borrow small, conservatively legible UTF-8 choices from positive membership.
 /// The contract remains authoritative; each Mask chooses its own wording.
 pub fn readable_finite_text_choices(contract: &CheckedValueContract) -> Option<Vec<&str>> {
     if contract.value_kind.as_str() != UTF8_TEXT_VALUE_KIND {
@@ -25,7 +25,7 @@ pub fn readable_finite_text_choices(contract: &CheckedValueContract) -> Option<V
     let mut bytes = 0usize;
     for member in members {
         let value = core::str::from_utf8(member).ok()?;
-        if value.is_empty() || value.chars().any(char::is_control) {
+        if value.is_empty() || !value.chars().all(plain_choice_scalar) {
             return None;
         }
         bytes = bytes.checked_add(value.len())?;
@@ -35,6 +35,14 @@ pub fn readable_finite_text_choices(contract: &CheckedValueContract) -> Option<V
         choices.push(value);
     }
     Some(choices)
+}
+
+// Do not inline format, bidi, zero-width, or combining characters as though
+// they were plainly visible options. A broader contract keeps its generic Face
+// clause; the checked membership itself is never changed by this display hint.
+fn plain_choice_scalar(ch: char) -> bool {
+    !matches!(ch, '\u{115f}' | '\u{1160}' | '\u{3164}' | '\u{ffa0}')
+        && (ch == ' ' || ch.is_ascii_graphic() || ch.is_alphanumeric())
 }
 
 #[cfg(test)]
@@ -85,6 +93,36 @@ mod tests {
         assert_eq!(
             readable_finite_text_choices(&contract(alloc::vec![alloc::vec![b'x'; 129]], false)),
             None
+        );
+    }
+
+    #[test]
+    fn formatting_and_invisible_scalars_keep_the_generic_clause() {
+        for value in [
+            "left\u{202e}right",
+            "a\u{200d}b",
+            "a\u{0301}",
+            "a\u{00ad}b",
+            "a\u{3164}b",
+        ] {
+            assert_eq!(
+                readable_finite_text_choices(&contract(
+                    alloc::vec![value.as_bytes().to_vec()],
+                    false
+                )),
+                None,
+                "{value:?}"
+            );
+        }
+        let legible = contract(
+            ["Café", "١٠٠٠", "東京"]
+                .map(|value| value.as_bytes().to_vec())
+                .into(),
+            false,
+        );
+        assert_eq!(
+            readable_finite_text_choices(&legible),
+            Some(alloc::vec!["Café", "١٠٠٠", "東京"])
         );
     }
 }
