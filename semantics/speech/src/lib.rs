@@ -138,3 +138,5 @@ mod frication_transfer;
 
 #[cfg(test)]
 mod context_match_parity;
+#[cfg(test)]
+mod neighbor_match_parity;
