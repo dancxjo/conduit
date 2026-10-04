@@ -36,7 +36,11 @@ pub mod admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod allophone_context;
 #[cfg(feature = "semantic-bindings")]
+pub mod allophone_selection;
+#[cfg(feature = "semantic-bindings")]
 pub mod boundary_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod chosen_allophone_profile;
 #[cfg(feature = "semantic-bindings")]
 pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
@@ -163,3 +167,6 @@ mod neighbor_match_parity;
 
 #[cfg(test)]
 mod rule_conditions_parity;
+
+#[cfg(all(test, feature = "semantic-bindings"))]
+mod allophone_selection_parity;

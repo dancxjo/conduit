@@ -630,3 +630,22 @@ prosodic and careful-style facts remain required inputs; definition features do
 not become observations. Matching does not change status/confidence, select a
 rule, resolve inheritance, admit syntax, or advance commitment. This is hosted
 preparation evidence; the compact renderer's acoustic plots are unchanged.
+
+`select_intent_allophone` prepares an ordered choice from at most eight original
+per-phoneme declarations. Native Plots apply the explicit five-status policy,
+phone compatibility, priority fold and default permission. The first eligible
+match wins; a higher-priority unresolved requirement or observation defers the
+choice rather than falling through. Known phone requests remain constraints;
+only Unspecified requests permit an unconstrained choice. All candidate receipts
+retain their original declarations and exact occurrence context. Unsupported
+context in an eligible declaration refuses this profile, including declarations
+after a winner; excluded declarations are retained without evaluating context.
+
+`prepare_chosen_allophone_profile` resolves the selected original phone to one
+exact inventory definition and admitted formant binding without rewriting the
+intent. This is hosted preparation with fixed candidate storage, not complete
+utterance admission or a whole MCU footprint claim. Standalone global rules,
+inheritance, syntax, timing/source admission and commitment remain separate.
+The native-speech journey emits `allophone-default-tata.wav` and
+`allophone-initial-aspiration-tata.wav` from manually supplied linguistic facts
+and the existing bounded renderer; acoustic parameters are unchanged.
