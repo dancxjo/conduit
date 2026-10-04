@@ -312,3 +312,46 @@ fn named_environment_specs_keep_six_states_through_native_round_trips() {
         assert_eq!(decoded, environment);
     }
 }
+
+#[test]
+fn allophone_scalar_context_retains_rule_and_unresolved_observations() {
+    use conduit_speech::allophone_context::*;
+    let declaration = allophone("phone/t");
+    let stress = StressSpecification::known(SpeechStress::Primary).unwrap();
+    let word = SpeechPositionSpecification::unknown();
+    let syllable = SpeechSyllablePositionSpecification::unknown();
+    let prosody = SpeechProsodicContextSpecification::unknown();
+    let compared = compare_allophone_scalar_context(
+        &declaration,
+        ScalarContextObservation {
+            stress: &stress,
+            word_position: &word,
+            syllable_position: &syllable,
+            prosodic_context: &prosody,
+        },
+    )
+    .unwrap();
+    assert!(core::ptr::eq(compared.declaration(), &declaration));
+    assert!(core::ptr::eq(
+        compared.stress.requirement(),
+        declaration.environment().stress_context()
+    ));
+    assert!(core::ptr::eq(compared.stress.observation(), &stress));
+    assert_eq!(
+        compared.stress.decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.word_position.decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.syllable_position.decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(
+        compared.prosodic_context.decision(),
+        &SpeechContextDecision::RequirementUnresolved
+    );
+    assert_eq!(compared.declaration().conditions().as_slice().len(), 1);
+}

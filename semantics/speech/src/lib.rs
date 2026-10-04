@@ -34,6 +34,8 @@ extern crate alloc;
 #[cfg(feature = "semantic-bindings")]
 pub mod admission;
 #[cfg(feature = "semantic-bindings")]
+pub mod allophone_context;
+#[cfg(feature = "semantic-bindings")]
 pub mod boundary_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod context_match;
