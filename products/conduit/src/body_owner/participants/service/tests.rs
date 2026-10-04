@@ -103,12 +103,13 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     advertisement
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    conduit_browser_mask_offer::planned_mask(
+    let planned = conduit_browser_mask_offer::planned_mask(
         &advertisement,
         conduit_browser_mask_offer::MASK_SOURCE,
         "browser-graphical",
     )
     .unwrap();
+    let browser_offer = advertisement.clone();
     let authorized = owner
         .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
         .unwrap();
@@ -153,6 +154,116 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
     owner
         .browser_planning_offer(&authorized.window_id, &snapshot.credential, &request)
         .unwrap();
+    // These process-owned Line offers exercise the exact route contract only.
+    // A live owner route must instead bind the retained browser carrier.
+    let owner_offer = owner.host.advertisement().clone();
+    let limits = conduit_core::LinkLimits {
+        maximum_in_flight_items: 1,
+        maximum_payload_bytes: 64 * 1024,
+        maximum_buffered_bytes: 128 * 1024,
+        maximum_frame_bytes: 64 * 1024,
+    };
+    let face_line = conduit_core::process_owned_line_offer_with_limits(
+        "line/test/browser-mask/face",
+        "binding/test/browser-mask/face",
+        conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        "base-instance/test/browser-mask",
+        &owner_offer,
+        &browser_offer,
+        limits,
+    );
+    let return_line = conduit_core::process_owned_line_offer_with_limits(
+        "line/test/browser-mask/return",
+        "binding/test/browser-mask/return",
+        conduit_core::BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+        "base-instance/test/browser-mask",
+        &browser_offer,
+        &owner_offer,
+        limits,
+    );
+    let face = owner.local_face_snapshot().unwrap();
+    let seal = conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+        &owner.session,
+        &face,
+        &owner_offer,
+        &browser_offer,
+        &planned,
+        &face_line,
+        &return_line,
+    )
+    .unwrap();
+    let route_bytes = serde_json::to_vec(&seal).unwrap().len();
+    let face_bytes = serde_json::to_vec(&face).unwrap().len();
+    assert!(route_bytes + face_bytes + 1024 <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES);
+    let mut wrong_line = face_line.clone();
+    wrong_line.binding.sink.boot_id = conduit_core::BootId::from("boot/browser/wrong");
+    assert_eq!(
+        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+            &owner.session,
+            &face,
+            &owner_offer,
+            &browser_offer,
+            &planned,
+            &wrong_line,
+            &return_line,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+    );
+    let mut missing_back = browser_offer.clone();
+    missing_back
+        .capabilities
+        .retain(|offer| offer.capability_id != mask.capability_id);
+    assert!(matches!(
+        conduit_presentation::RemoteOwnerMaskRouteSeal::seal_lulled(
+            &owner.session,
+            &face,
+            &owner_offer,
+            &missing_back,
+            &planned,
+            &face_line,
+            &return_line,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::InvalidMaskPlan(_))
+    ));
+    assert_eq!(
+        seal.validate_return_payload(64 * 1024 + 1),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::ReturnExceedsLine)
+    );
+    seal.validate_current(
+        &owner.session,
+        &face,
+        &owner_offer,
+        &browser_offer,
+        &face_line,
+        &return_line,
+    )
+    .unwrap();
+    let mut unavailable = return_line.clone();
+    unavailable.availability.availability = conduit_core::LineAvailability::Unavailable;
+    assert_eq!(
+        seal.validate_current(
+            &owner.session,
+            &face,
+            &owner_offer,
+            &browser_offer,
+            &face_line,
+            &unavailable,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::LineUnavailable)
+    );
+    let mut altered_browser = browser_offer.clone();
+    altered_browser.offer_generation.0 += 1;
+    assert_eq!(
+        seal.validate_current(
+            &owner.session,
+            &face,
+            &owner_offer,
+            &altered_browser,
+            &face_line,
+            &return_line,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::StaleHost)
+    );
     let WindowState::Active { observation, .. } =
         &mut owner.pending_browser.as_mut().unwrap().state
     else {
