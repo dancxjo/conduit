@@ -27,6 +27,11 @@ use std::{
 const LEASE_MS: u64 = 2000;
 const RENEW_MS: u64 = 500;
 const MAX_CONNECTIONS: usize = 8;
+/// A signed admission opens a finite carrier presence independent of the
+/// short window in which the proof was authorized.
+const MAX_BROWSER_PRESENCE_MILLIS: u64 = 600_000;
+// Permit a renewal every RENEW_MS plus three bounded interactions per renewal.
+const MAX_PRESENCE_FRAMES: usize = (MAX_BROWSER_PRESENCE_MILLIS / RENEW_MS) as usize * 4;
 
 impl Owner {
     pub(crate) fn admit_browser(
@@ -101,12 +106,13 @@ impl Owner {
                 self.persist(root)?; // A credential is never acknowledged ahead of durable membership.
                 let snapshot =
                     BrowserAdmittedSnapshot::from_foreground(self, credential, observation)?;
+                let presence_clock = Instant::now();
                 serve_presence(
                     &snapshot,
                     &mut socket,
                     &binding,
-                    clock,
-                    deadline,
+                    presence_clock,
+                    presence_clock + Duration::from_millis(MAX_BROWSER_PRESENCE_MILLIS),
                     None,
                     None,
                 )
@@ -193,7 +199,7 @@ fn serve_presence(
         evidence: snapshot.offer.clone(),
     })?;
     acknowledge_presence(socket, &presence)?;
-    for _ in 0..256 {
+    for _ in 0..MAX_PRESENCE_FRAMES {
         let lease = &presence.leases[0];
         let Some(window_left) = deadline.checked_duration_since(Instant::now()) else {
             return Ok("window-closed");

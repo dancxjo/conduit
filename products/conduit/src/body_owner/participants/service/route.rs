@@ -28,6 +28,7 @@ impl Owner {
                 observation,
                 route,
                 acknowledged_show,
+                ..
             } = &mut window.state
             else {
                 return Err("window-not-active".into());
