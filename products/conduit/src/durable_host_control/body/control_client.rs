@@ -84,8 +84,18 @@ fn clear_token(request: &mut Request) {
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
+        | Request::BodyBrowserBegin { token, .. }
+        | Request::BodyBrowserComplete { token, .. }
+        | Request::BodyBrowserOffer { token, .. }
+        | Request::BodyBrowserMaskRoute { token, .. }
+        | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserAbort { token, .. }
+        | Request::BodyBrowserCancel { token, .. }
+        | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyNativeMaskRoute { token, .. }
+        | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthFace { token, .. }
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
@@ -94,7 +104,16 @@ fn clear_token(request: &mut Request) {
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. } => token.fill(0),
-        _ => unreachable!("Body control client only sends Body and Birth requests"),
+        Request::Status { .. }
+        | Request::Join { .. }
+        | Request::InstallBodyContext { .. }
+        | Request::ObserveLocalModelPool { .. }
+        | Request::PrepareRemote { .. }
+        | Request::PreparePoolMember { .. }
+        | Request::ExchangeRemote { .. }
+        | Request::ReleaseRemote { .. } => {
+            unreachable!("Body control client only sends Body and Birth requests")
+        }
     }
 }
 

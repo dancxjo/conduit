@@ -119,7 +119,8 @@ fn prove(
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
-    let (part, before) = wait_for_arrival(serial_path, child, Duration::from_secs(120))?;
+    let (part, before, before_ack) =
+        wait_for_arrival(serial_path, child, Duration::from_secs(120))?;
     let (before_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
@@ -130,13 +131,13 @@ fn prove(
     for key in ["tab", "5", "0", "0", "ret"] {
         journey_input::key_pair(&mut qmp, &mut reader, key, "native-owner-clock-input")?;
     }
-    let (action, after) = wait_for_action(serial_path, child, Duration::from_secs(30))?;
+    let (action, after, after_ack) = wait_for_action(serial_path, child, Duration::from_secs(30))?;
     let (after_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-after")?;
     if let Some(error) = health {
         return Err(error);
     }
-    validate_success(&before, &action, &after)?;
+    validate_success(&before, &before_ack, &action, &after, &after_ack)?;
     if child
         .try_wait()
         .map_err(|error| ConduitosError::refusal("native-owner-proof-qemu", error.to_string()))?
@@ -155,14 +156,22 @@ fn prove(
         "qemu_argv":qemu_args,
         "guest_part":part,
         "face_before":before,
+        "show_ack_before":before_ack,
         "action":action,
         "face_after":after,
+        "show_ack_after":after_ack,
         "screenshots":[before_image,after_image],
         "qemu_alive_at_capture":true,
     }))
 }
 
-fn validate_success(before: &Value, action: &Value, after: &Value) -> Result<(), ConduitosError> {
+fn validate_success(
+    before: &Value,
+    before_ack: &Value,
+    action: &Value,
+    after: &Value,
+    after_ack: &Value,
+) -> Result<(), ConduitosError> {
     if action.get("status").and_then(Value::as_str) != Some("accepted")
         || action.get("face_refreshed").and_then(Value::as_bool) != Some(true)
         || action.get("requested_interval_ms").and_then(Value::as_u64) != Some(500)
@@ -171,6 +180,10 @@ fn validate_success(before: &Value, action: &Value, after: &Value) -> Result<(),
             .and_then(Value::as_str)
             .is_some_and(|id| id.starts_with("body/action/change-clock-interval/"))
         || after.get("status").and_then(Value::as_str) != Some("shown")
+        || before_ack.get("status").and_then(Value::as_str) != Some("acknowledged")
+        || after_ack.get("status").and_then(Value::as_str) != Some("acknowledged")
+        || before_ack.get("show_id") != before.get("show_id")
+        || after_ack.get("show_id") != after.get("show_id")
         || after.get("local_show_available").and_then(Value::as_bool) != Some(true)
         || after
             .get("owner_show_acknowledged")
@@ -219,24 +232,36 @@ fn wait_for_arrival(
     serial_path: &std::path::Path,
     child: &mut Child,
     timeout: Duration,
-) -> Result<(Value, Value), ConduitosError> {
+) -> Result<(Value, Value, Value), ConduitosError> {
     let deadline = Instant::now() + timeout;
     loop {
         let serial = bounded_serial(serial_path)?;
         let part = records(&serial, GUEST_PART)?;
         let face = records(&serial, OWNER_FACE)?;
+        let shown = face
+            .iter()
+            .rfind(|value| value.get("status").and_then(Value::as_str) == Some("shown"));
+        let acknowledged = face
+            .iter()
+            .rfind(|value| value.get("status").and_then(Value::as_str) == Some("acknowledged"));
         if serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
             && part
                 .last()
                 .is_some_and(|value| value.get("membership_installed") == Some(&Value::Bool(true)))
-            && face.last().is_some_and(|value| {
+            && shown.is_some_and(|value| {
                 value.get("local_show_available") == Some(&Value::Bool(true))
                     && value.get("owner_show_acknowledged") == Some(&Value::Bool(false))
                     && value.get("interactions_admitted") == Some(&Value::Bool(true))
                     && value.get("continuing_owner_route") == Some(&Value::Bool(true))
             })
+            && acknowledged
+                .is_some_and(|value| value.get("show_id") == shown.unwrap().get("show_id"))
         {
-            return Ok((part.last().unwrap().clone(), face.last().unwrap().clone()));
+            return Ok((
+                part.last().unwrap().clone(),
+                shown.unwrap().clone(),
+                acknowledged.unwrap().clone(),
+            ));
         }
         wait_or_refuse(child, deadline, "native-owner-face-not-ready")?;
     }
@@ -246,7 +271,7 @@ fn wait_for_action(
     serial_path: &std::path::Path,
     child: &mut Child,
     timeout: Duration,
-) -> Result<(Value, Value), ConduitosError> {
+) -> Result<(Value, Value, Value), ConduitosError> {
     let deadline = Instant::now() + timeout;
     loop {
         let serial = bounded_serial(serial_path)?;
@@ -263,8 +288,20 @@ fn wait_for_action(
                 ));
             }
         }
-        if let (Some(action), Some(after)) = (actions.last(), faces.get(1)) {
-            return Ok((action.clone(), after.clone()));
+        let shown: Vec<&Value> = faces
+            .iter()
+            .filter(|value| value.get("status").and_then(Value::as_str) == Some("shown"))
+            .collect();
+        let acknowledged: Vec<&Value> = faces
+            .iter()
+            .filter(|value| value.get("status").and_then(Value::as_str) == Some("acknowledged"))
+            .collect();
+        if let (Some(action), Some(after), Some(ack)) =
+            (actions.last(), shown.get(1), acknowledged.get(1))
+        {
+            if ack.get("show_id") == after.get("show_id") {
+                return Ok((action.clone(), (*after).clone(), (*ack).clone()));
+            }
         }
         wait_or_refuse(child, deadline, "native-owner-action-not-observed")?;
     }
@@ -359,18 +396,27 @@ mod tests {
             "prior_show_id":"show/one","face_id":"face/one","face_revision":1,
         });
         let after = json!({"status":"shown","local_show_available":true,"owner_show_acknowledged":false,"show_id":"show/two","face_id":"face/two"});
-        assert!(validate_success(&before, &accepted, &after).is_ok());
+        let before_ack = json!({"status":"acknowledged","show_id":"show/one"});
+        let after_ack = json!({"status":"acknowledged","show_id":"show/two"});
+        assert!(validate_success(&before, &before_ack, &accepted, &after, &after_ack).is_ok());
         let mut invented_owner_ack = after.clone();
         invented_owner_ack["owner_show_acknowledged"] = json!(true);
-        assert!(validate_success(&before, &accepted, &invented_owner_ack).is_err());
+        assert!(validate_success(
+            &before,
+            &before_ack,
+            &accepted,
+            &invented_owner_ack,
+            &after_ack
+        )
+        .is_err());
         let mut stale = accepted.clone();
         stale["prior_show_id"] = json!("show/older");
-        assert!(validate_success(&before, &stale, &after).is_err());
+        assert!(validate_success(&before, &before_ack, &stale, &after, &after_ack).is_err());
         let mut refused = accepted.clone();
         refused["status"] = json!("refused");
-        assert!(validate_success(&before, &refused, &after).is_err());
+        assert!(validate_success(&before, &before_ack, &refused, &after, &after_ack).is_err());
         let mut wrong_value = accepted;
         wrong_value["requested_interval_ms"] = json!(250);
-        assert!(validate_success(&before, &wrong_value, &after).is_err());
+        assert!(validate_success(&before, &before_ack, &wrong_value, &after, &after_ack).is_err());
     }
 }

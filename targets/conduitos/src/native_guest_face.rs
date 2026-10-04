@@ -8,6 +8,7 @@ use alloc::{format, string::String};
 use conduit_body::{PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA};
 use conduit_presentation::{
     OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse, Presentation, PresentationRole,
+    RemoteOwnerMaskRouteSeal,
 };
 
 use crate::native_guest_part::NativeGuestPart;
@@ -17,6 +18,7 @@ pub struct NativeGuestFace {
     credential_id: String,
     presentation: Presentation,
     interactions_admitted: bool,
+    route: Option<RemoteOwnerMaskRouteSeal>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,6 +30,7 @@ pub enum GuestFaceRefusal {
     ReceiptBasis,
     Face,
     BodyBasis,
+    MaskRoute,
 }
 
 impl GuestFaceRefusal {
@@ -40,6 +43,7 @@ impl GuestFaceRefusal {
             Self::ReceiptBasis => "native-owner-face-receipt-invalid",
             Self::Face => "native-owner-face-invalid",
             Self::BodyBasis => "native-owner-face-body-mismatch",
+            Self::MaskRoute => "native-owner-mask-route-invalid",
         }
     }
 }
@@ -58,13 +62,17 @@ impl NativeGuestFace {
         {
             return Err(GuestFaceRefusal::ReceiptBasis);
         }
-        let (presentation, interactions_admitted) = match response {
+        let (presentation, interactions_admitted, route) = match response {
             OwnerFaceSnapshotResponse::Snapshot {
                 schema,
                 presentation,
                 interactions_admitted,
-                ..
-            } if schema == OWNER_FACE_RESPONSE_SCHEMA => (*presentation, interactions_admitted),
+                route,
+            } if schema == OWNER_FACE_RESPONSE_SCHEMA => (
+                *presentation,
+                interactions_admitted,
+                route.map(|route| *route),
+            ),
             OwnerFaceSnapshotResponse::Refused { schema, code }
                 if schema == OWNER_FACE_RESPONSE_SCHEMA
                     && !code.is_empty()
@@ -92,10 +100,26 @@ impl NativeGuestFace {
         {
             return Err(GuestFaceRefusal::BodyBasis);
         }
+        if interactions_admitted != route.is_some() {
+            return Err(GuestFaceRefusal::MaskRoute);
+        }
+        if let Some(route) = &route {
+            route
+                .validate_mask_host_offer(&receipt.host_advertisement)
+                .map_err(|_| GuestFaceRefusal::MaskRoute)?;
+            if route.body_id != *body
+                || route.face_id != presentation.identity
+                || route.face_revision != presentation.revision
+                || route.face_basis != presentation.basis
+            {
+                return Err(GuestFaceRefusal::MaskRoute);
+            }
+        }
         Ok(Self {
             credential_id: receipt.credential.credential_id.as_str().into(),
             presentation,
             interactions_admitted,
+            route,
         })
     }
 
@@ -110,6 +134,10 @@ impl NativeGuestFace {
 
     pub fn interactions_admitted(&self) -> bool {
         self.interactions_admitted
+    }
+
+    pub fn route(&self) -> Option<&RemoteOwnerMaskRouteSeal> {
+        self.route.as_ref()
     }
 
     pub fn into_presentation(self) -> Presentation {

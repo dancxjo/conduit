@@ -63,11 +63,37 @@ fn proves_at(
         return false;
     };
     path.push_str(remaining);
-    types.iter().filter(|ty| &ty.value_type == input).any(|ty| {
+    retained_contract(input, &path, required, types)
+}
+
+// A typed container can forward a checked native member without flattening
+// that member's laws into the container. Only exact retained native metadata
+// establishes a refinement; matching a primitive shape alone is insufficient.
+fn retained_contract(
+    input: &conduit_core::StructuredInfoType,
+    path: &str,
+    required: &conduit_core::CheckedValueContract,
+    types: &[CheckedNativeType],
+) -> bool {
+    if types.iter().filter(|ty| &ty.value_type == input).any(|ty| {
         ty.value_contracts
             .iter()
             .any(|contract| contract.representation_path == path && &contract.contract == required)
-    })
+    }) {
+        return true;
+    }
+    let Some(rest) = path.strip_prefix('.') else {
+        return false;
+    };
+    let end = rest.find(['.', '|', '[', '?']).unwrap_or(rest.len());
+    let (field, remaining) = rest.split_at(end);
+    let StructuredInfoTypeShape::Record { fields, .. } = input.shape() else {
+        return false;
+    };
+    fields
+        .iter()
+        .find(|candidate| candidate.name() == field)
+        .is_some_and(|field| retained_contract(field.value_type(), remaining, required, types))
 }
 
 fn constructed_member<'a>(
@@ -114,6 +140,29 @@ fn input_path(node: &PortableExpressionNode) -> Option<String> {
             let mut path = input_path(value)?;
             path.push('.');
             path.push_str(field);
+            Some(path)
+        }
+        Op::Projection {
+            value,
+            member: PortableExpressionProjection::TupleIndex(index),
+        } => {
+            let StructuredInfoTypeShape::Record { fields, .. } = value.value_type.shape() else {
+                return None;
+            };
+            let canonical = conduit_core::tuple_info_type(
+                fields
+                    .iter()
+                    .map(|field| field.value_type().clone())
+                    .collect(),
+            )
+            .ok()?;
+            if canonical != value.value_type {
+                return None;
+            }
+            let field = fields.get(usize::from(*index))?;
+            let mut path = input_path(value)?;
+            path.push('.');
+            path.push_str(field.name());
             Some(path)
         }
         _ => None,

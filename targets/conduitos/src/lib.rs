@@ -19,6 +19,7 @@ pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
 pub mod expression_host_call;
+pub mod flow_zip;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -80,6 +81,8 @@ pub mod native_guest_face;
 pub mod native_network_bounds;
 #[cfg(feature = "native-owner-network")]
 pub mod native_owner_admission;
+#[cfg(feature = "native-owner-network")]
+mod native_owner_document;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_owner_return;
 pub mod native_workset;

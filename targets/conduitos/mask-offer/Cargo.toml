@@ -1,0 +1,11 @@
+[package]
+name = "conduit-conduitos-mask-offer"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-presentation = { path = "../../../semantics/presentation" }

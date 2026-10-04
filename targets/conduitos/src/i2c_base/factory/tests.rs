@@ -45,8 +45,28 @@ fn planned_named_source<P: I2cProvider>(
     source: &str,
     name: &str,
 ) -> (Plan, ReadyI2cBase<P>, I2cNativeIdentity) {
+    let (plan, ready, identity, _) = planned_named_source_with_joins(provider, source, name);
+    (plan, ready, identity)
+}
+
+fn planned_named_source_with_joins<P: I2cProvider>(
+    provider: P,
+    source: &str,
+    name: &str,
+) -> (
+    Plan,
+    ReadyI2cBase<P>,
+    I2cNativeIdentity,
+    crate::flow_zip::FlowZipOperationFactory,
+) {
     let contract = I2cContract::prepare().unwrap();
     let (mut startup, mut profile) = contract.catalogs();
+    let (join_offer, joins) = if source.contains("flow/zip/finite") {
+        let (offer, joins) = join::install(&mut startup, &mut profile);
+        (Some(offer), joins)
+    } else {
+        (None, crate::flow_zip::FlowZipOperationFactory::default())
+    };
     let mut sampler_offer = None;
     if source.contains("current/sample") {
         let types = check_syntax_document(
@@ -138,9 +158,8 @@ fn planned_named_source<P: I2cProvider>(
         planner_capabilities: vec![],
     };
     ready.append_to_advertisement(&mut host, &contract).unwrap();
-    if let Some(offer) = sampler_offer {
-        host.capabilities.push(offer);
-    }
+    host.capabilities.extend(join_offer);
+    host.capabilities.extend(sampler_offer);
     for gear in &expanded.gears {
         if let [entry] = gear.configuration.as_slice()
             && let ConfigurationValue::Text(encoded) = &entry.value
@@ -177,6 +196,11 @@ fn planned_named_source<P: I2cProvider>(
     let hosts = [host];
     let placements = default_expanded_placements(expanded, &hosts).unwrap();
     let empty = BTreeMap::new();
+    let queue_bytes = if source.contains("flow/zip/finite") {
+        crate::flow_zip::MAXIMUM_PAIR_BYTES
+    } else {
+        I2C_MAXIMUM_BYTES
+    };
     let boundary_limits = authoring
         .input_bindings
         .iter()
@@ -196,7 +220,18 @@ fn planned_named_source<P: I2cProvider>(
                 },
                 ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: I2C_MAXIMUM_BYTES,
+                    byte_capacity: queue_bytes.min(
+                        hosts[0]
+                            .capabilities
+                            .iter()
+                            .find(|offer| {
+                                offer.capability_id
+                                    == placements.by_gear[&binding.gear_id].capability_id
+                            })
+                            .unwrap()
+                            .limits
+                            .max_queue_bytes,
+                    ),
                 },
             )
         })
@@ -210,7 +245,7 @@ fn planned_named_source<P: I2cProvider>(
             connection_bases: &empty,
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: I2C_MAXIMUM_BYTES,
+            connection_byte_capacity: queue_bytes,
             authority_grants: &grants,
             protected_resource_grants: &[],
             line_offers: &[],
@@ -218,7 +253,7 @@ fn planned_named_source<P: I2cProvider>(
         &boundary_limits,
     )
     .unwrap();
-    (plan, ready, identity)
+    (plan, ready, identity, joins)
 }
 
 #[test]
@@ -248,7 +283,9 @@ fn register_plot_selects_native_expression_and_capability_bound_i2c_backs() {
     assert_eq!(count, 1);
 }
 
+mod common;
 mod execution;
+mod join;
 
 const BME_FIRST_CALL_SOURCE: &str = concat!(
     include_str!("../../../../../plots/device-protocols/bme280-lifecycle.conduit"),

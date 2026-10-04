@@ -33,6 +33,8 @@ pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
+#[path = "native_mask_route.rs"]
+mod native_mask_route;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
@@ -124,6 +126,7 @@ pub(crate) struct Owner {
     last_execution: Option<serde_json::Value>,
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
+    pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
 }
 impl Owner {
     pub(crate) fn open(
@@ -207,6 +210,7 @@ impl Owner {
             last_execution: None,
             admissions: None,
             pending_browser: None,
+            pending_native_mask: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -225,6 +229,7 @@ impl Owner {
             last_execution: None,
             admissions: None,
             pending_browser: None,
+            pending_native_mask: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
