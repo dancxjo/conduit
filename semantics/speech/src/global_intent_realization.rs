@@ -58,7 +58,7 @@ pub enum GlobalIntentRefusal<'a> {
     Renderer(UtteranceTimingRenderRefusal),
 }
 pub enum GlobalIntentRealization<'a> {
-    Rule(RuleOutputFeatures<'a>),
+    Rule(Box<RuleOutputFeatures<'a>>),
     Default {
         identity: Option<SpeechPhonePatternIdentity>,
     },
@@ -266,7 +266,7 @@ pub fn prepare_global_intent<'a>(
                         default_occurrence,
                         binding,
                         profile_basis,
-                        GlobalIntentRealization::Rule(projected.into_features()),
+                        GlobalIntentRealization::Rule(Box::new(projected.into_features())),
                         voice_event,
                     )
                 };
