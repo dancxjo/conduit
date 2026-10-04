@@ -452,6 +452,17 @@ snapshot/definition resolution, not registry authenticity, voice-profile eligibi
 commitment admission or rich-to-compact realization. It adds no compact DSP policy
 or playback allocation.
 
+`text_admission::resolve_text` binds a text source reference to a supplied
+immutable `LanguageText` snapshot. Native `LanguageTextReferenceMatch` laws
+check text identity, revision, language and scalar range extent. The preparation
+helper derives the actual Unicode scalar count, converts scalar positions to
+UTF-8 boundaries only for slicing, and retains the original reference and
+material alongside its checked receipt. Empty spans are legal. Segment kind is
+retained without claiming that the selected range is linguistically a word or
+phrase. This local resolution does not authenticate a registry, establish
+translation acceptance, or commit speech. Its bounded hosted preparation is
+separate from compact MCU playback and adds no DSP policy.
+
 Rich material phones enter the formant renderer through
 `profile_admission::prepare_profile_phone` after exact material and inventory
 resolution. The caller supplies a native `SpeechFormantVoiceProfile`: its bounded
