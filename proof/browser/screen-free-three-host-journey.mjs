@@ -10,16 +10,21 @@ import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
-  speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg] = process.argv.slice(2);
+  speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg,
+  modelArg, modelEndpoint, modelMemory] = process.argv.slice(2);
 const [speakerCard, speakerDevice, speechExecutable, speechData, speechEngine] =
   [speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg]
     .map(value => value === '-' ? undefined : value);
+const model = modelArg === '-' ? undefined : modelArg;
 assert.ok(bodyName && !bodyName.includes('\n') && !bodyName.includes('\r') &&
   Buffer.byteLength(bodyName) <= 120, 'Body name must be one bounded input line');
 assert.equal(Boolean(speakerCard), Boolean(speakerDevice));
 assert.ok(!speakerCard || speechExecutable, 'selected speaker needs a speech provider');
 assert.equal(Boolean(speechExecutable), Boolean(speechData));
 assert.equal(Boolean(speechExecutable), Boolean(speechEngine));
+assert.ok(!model || speechExecutable, 'model-assisted speech needs the selected speech provider');
+assert.equal(Boolean(model), Boolean(modelEndpoint));
+assert.equal(Boolean(model), Boolean(modelMemory));
 const [xtask, owner, state, handbook, build, profile, cert, key, output, playwright] =
   [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
     certArg, keyArg, outputArg, playwrightArg].map(value => path.resolve(value));
@@ -188,6 +193,8 @@ try {
     '--output-dir', live, '--playwright', playwright];
   if (speechExecutable) liveArgs.push('--speech-executable', speechExecutable,
     '--speech-data', speechData, '--speech-engine', speechEngine);
+  if (model) liveArgs.push('--model', model, '--ollama-endpoint', modelEndpoint,
+    '--admitted-memory-mib', modelMemory);
   invoke(xtask, liveArgs, { timeout: 180_000 });
   const reportFile = path.join(live, 'report.json');
   const report = await load(reportFile);

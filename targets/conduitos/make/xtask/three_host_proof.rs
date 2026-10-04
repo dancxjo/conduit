@@ -43,6 +43,15 @@ pub(super) struct Args {
     /// Exact installed eSpeak engine library, not a symlink.
     #[arg(long, requires = "speech_executable")]
     speech_engine: Option<PathBuf>,
+    /// Already-local Ollama model for a same-run validated spoken chapter.
+    #[arg(long, requires = "speech_executable")]
+    model: Option<String>,
+    /// Explicit loopback Ollama origin; the producer uses a private forwarding route.
+    #[arg(long, default_value = "http://127.0.0.1:11434")]
+    ollama_endpoint: String,
+    /// Finite model memory admitted by the existing spoken chapter producer.
+    #[arg(long, default_value_t = 2048)]
+    admitted_memory_mib: u32,
 }
 
 pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -102,6 +111,12 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
             }
         }
     }
+    if args.model.is_some() && args.admitted_memory_mib == 0 {
+        return Err(ConduitosError::refusal(
+            "three-host-proof-model-memory",
+            "model memory admission must be positive",
+        ));
+    }
     let current = std::env::current_exe()
         .map_err(|error| ConduitosError::refusal("three-host-proof-xtask", error.to_string()))?;
     let mut command = Command::new("node");
@@ -129,6 +144,12 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
                     .as_ref()
                     .expect("Clap requires speech engine"),
             );
+    }
+    if let Some(model) = &args.model {
+        command
+            .arg(model)
+            .arg(&args.ollama_endpoint)
+            .arg(args.admitted_memory_mib.to_string());
     }
     let status = command
         .current_dir(&root)
