@@ -592,6 +592,26 @@ pub(crate) fn acknowledge_native_mask_show(
     }
 }
 
+#[cfg(not(unix))]
+pub(crate) fn select_native_mask_route(
+    _state_dir: &Path,
+    _receipt: PortableAdmissionReceipt,
+    _face_line: conduit_core::LineOffer,
+    _return_line: conduit_core::LineOffer,
+    _expires_at_millis: u64,
+) -> Result<conduit_presentation::RemoteOwnerMaskRouteSeal, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn acknowledge_native_mask_show(
+    _state_dir: &Path,
+    _request: OwnerFaceSnapshotRequest,
+    _show: MaskShow,
+) -> Result<(), String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
 #[cfg(unix)]
 pub(crate) fn local_face_snapshot(
     state_dir: &Path,

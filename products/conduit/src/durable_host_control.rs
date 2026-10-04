@@ -54,7 +54,6 @@ pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
-#[cfg(unix)]
 #[allow(unused_imports)]
 pub(crate) use body::{acknowledge_native_mask_show, select_native_mask_route};
 #[allow(unused_imports)]
