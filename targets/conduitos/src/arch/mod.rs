@@ -27,6 +27,8 @@ pub use x86_64::{
     wait_for_attachment_state,
 };
 #[cfg(target_arch = "x86_64")]
+pub use x86_64::{I801PciObservation, I801PciRefusal, admitted_i801_pci_ports, observe_i801_pci};
+#[cfg(target_arch = "x86_64")]
 pub use x86_64::{NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock};
 
 #[cfg(target_arch = "x86_64")]

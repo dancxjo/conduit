@@ -64,7 +64,13 @@ the target nor admits a controller or starts Play.
 
 This production preparation chain is exercised by deterministic native kernel
 conformance through `cargo xtask check device-protocols`. Ordinary boot media and
-controller admission are still unfinished. A package's descriptive identities
+controller admission are still unfinished. Native Limine observation can select
+one bounded, exactly named module without granting trust or execution authority.
+The x86_64 ICH5–ICH9 realization validates an explicitly selected PCI function,
+its I/O window and live configuration before constructing the finite provider.
+It refuses busy hardware, SMI routing, I2C mode and auxiliary CRC/buffer modes;
+the native root must already own firmware handoff and exclusive access.
+A package's descriptive identities
 do not establish review, firmware release, attachment ownership or permission to
 use a controller.
 
