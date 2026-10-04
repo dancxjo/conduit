@@ -21,6 +21,7 @@ fn selected_plan(suffix: &str) -> Plan {
             pressure_policy: DeliveryPressurePolicy::PreserveOrder,
             item_capacity: 1,
             byte_capacity: 1,
+            selected_line: None,
         },
         PlannedForePort {
             front_port_id: port_id("out"),
@@ -35,6 +36,7 @@ fn selected_plan(suffix: &str) -> Plan {
             pressure_policy: DeliveryPressurePolicy::PreserveOrder,
             item_capacity: 1,
             byte_capacity: 1,
+            selected_line: None,
         },
     ];
     common::seal(fragment)

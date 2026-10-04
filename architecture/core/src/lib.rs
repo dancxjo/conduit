@@ -739,6 +739,10 @@ pub struct PlannedForePort {
     pub pressure_policy: DeliveryPressurePolicy,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    /// Exact external Line selected for this Fore, if it crosses a Host.
+    /// Availability remains a current Sign and must be checked at use.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_line: Option<AdmittedLine>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -1269,6 +1273,10 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
         .all(|(index, boundary)| {
             boundary.item_capacity > 0
                 && boundary.byte_capacity > 0
+                && boundary
+                    .selected_line
+                    .as_ref()
+                    .is_none_or(|line| valid_fore_line(fragment, boundary, line))
                 && !fragment.fore_ports[..index].iter().any(|prior| {
                     let same_fore = prior.front_port_id == boundary.front_port_id
                         && prior.direction == boundary.direction
@@ -1337,6 +1345,56 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                         })
                 })
         })
+        && fragment.fore_ports.iter().all(|fore| {
+            let Some(line) = &fore.selected_line else {
+                return true;
+            };
+            let shared = fragment.fore_ports.iter().filter(|other| {
+                other
+                    .selected_line
+                    .as_ref()
+                    .is_some_and(|candidate| candidate.line_id == line.line_id)
+            });
+            let (items, bytes, same_identity) = shared.fold((0_u32, 0_u64, true), |acc, other| {
+                (
+                    acc.0 + u32::from(other.item_capacity),
+                    acc.1 + u64::from(other.byte_capacity),
+                    acc.2 && other.selected_line.as_ref() == Some(line),
+                )
+            });
+            same_identity
+                && items <= u32::from(line.binding.limits.maximum_in_flight_items)
+                && bytes <= u64::from(line.binding.limits.maximum_buffered_bytes)
+        })
+}
+
+fn valid_fore_line(fragment: &PlanFragment, fore: &PlannedForePort, line: &AdmittedLine) -> bool {
+    let binding = &line.binding;
+    let (local, peer) = match fore.direction {
+        PortDirection::Input => (&binding.sink, &binding.source),
+        PortDirection::Output => (&binding.source, &binding.sink),
+    };
+    !line.line_id.as_str().is_empty()
+        && !binding.binding_id.as_str().is_empty()
+        && binding.base.as_str() != LOCAL_BASE_IMPLEMENTATION_ID
+        && line.contract.scope != LineScope::Process
+        && line.contract.traffic_shape == LineTrafficShape::Message
+        && line.contract.ordering == LineOrdering::Ordered
+        && line.contract.reliability == LineReliability::Reliable
+        && !binding.base_instance_id.as_str().is_empty()
+        && !local.endpoint_id.as_str().is_empty()
+        && !peer.endpoint_id.as_str().is_empty()
+        && local.host_id == fragment.host_id
+        && local.boot_id == fragment.boot_id
+        && peer.host_id != fragment.host_id
+        && !peer.host_id.as_str().is_empty()
+        && !peer.boot_id.as_str().is_empty()
+        && binding.limits.maximum_in_flight_items >= fore.item_capacity
+        && binding.limits.maximum_payload_bytes >= fore.byte_capacity
+        && binding.limits.maximum_buffered_bytes >= fore.byte_capacity
+        && binding.limits.maximum_frame_bytes >= binding.limits.maximum_payload_bytes
+        && !matches!(&binding.credential, LinkCredentialReference::Opaque(id) if id.as_str().is_empty())
+        && !matches!(&binding.authority, LinkAuthorityReference::Grant(id) if id.as_str().is_empty())
 }
 
 fn push_string(canonical: &mut Vec<u8>, value: &str) {
