@@ -13,7 +13,7 @@ use crate::{
     },
     Renderer, VoiceEvent,
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 #[derive(Clone, Copy)]
 pub struct GlobalSegmentPreparation<'a> {
     pub context: ExplicitAllophoneContext<'a>,
@@ -32,7 +32,7 @@ pub enum GlobalIntentRefusal<'a> {
     Timing(UtteranceTimingRefusal),
     Choice {
         event: usize,
-        reason: GlobalRuleSelectionRefusal<'a>,
+        reason: Box<GlobalRuleSelectionRefusal<'a>>,
     },
     Profile {
         event: usize,
@@ -161,7 +161,10 @@ pub fn prepare_global_intent<'a>(
                     supplied.observed_features,
                     supplied.context,
                 )
-                .map_err(|reason| GlobalIntentRefusal::Choice { event, reason })?;
+                .map_err(|reason| GlobalIntentRefusal::Choice {
+                    event,
+                    reason: Box::new(reason),
+                })?;
                 let projected = prepare_chosen_global_rule_profile(
                     &choice,
                     inventory,
