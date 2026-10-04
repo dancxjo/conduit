@@ -11,7 +11,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
         &[
             Step::new(
                 "device-protocols.borrowed-values",
-                "Check exact borrowed collection and variant projections",
+                "Check exact borrowed projections and prepared typed composition",
                 "cargo",
                 &[
                     "test",
@@ -20,6 +20,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduit-core",
                     "--test",
                     "borrowed_projection",
+                    "--test",
+                    "typed_pair",
                 ],
             ),
             Step::new(
@@ -35,6 +37,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "device_binary",
                     "--test",
                     "device_frames",
+                    "--test",
+                    "typed_pair_expression",
                 ],
             ),
             Step::new(

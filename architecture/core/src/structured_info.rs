@@ -19,6 +19,7 @@ mod selection;
 mod sequence;
 mod transport;
 mod tuple;
+mod typed_pair;
 mod validation;
 use canonical::{
     check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
@@ -31,6 +32,7 @@ pub use selection::*;
 pub use sequence::*;
 pub use transport::*;
 pub use tuple::*;
+pub use typed_pair::*;
 pub use validation::PreparedStructuredValueValidator;
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 16;
