@@ -103,6 +103,10 @@ unsafe impl GlobalAlloc for BootArena {
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
         self.with_state(|state| state.release(pointer, layout));
     }
+    unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        // SAFETY: GlobalAlloc supplies the exact live allocation and Layout.
+        self.with_state(|state| unsafe { state.resize(pointer, layout, new_size) })
+    }
 }
 
 #[cfg_attr(target_os = "none", global_allocator)]
