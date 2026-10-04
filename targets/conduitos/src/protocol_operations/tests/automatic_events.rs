@@ -329,29 +329,17 @@ pub(super) fn prepare<
         ),
         Err(conduit_planner::PlannerError::QueueRequirementAboveHostLimit(_))
     ));
-    let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
-        &expanded,
-        &hosts,
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 1,
-            // Finite queues admit pressure independently of the value-storage envelope.
-            connection_byte_capacity: 512,
-            authority_grants: &grants,
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
-        &connection_limits,
-        &boundaries,
-    )
-    .unwrap();
-    let owners = source.operations;
-    owners.states.validate_plan(&plan).unwrap();
-    owners.joins.validate_plan(&plan).unwrap();
-    owners.merges.validate_plan(&plan).unwrap();
+    let artifact = source
+        .plan_artifact(
+            &expanded,
+            ArtifactId::from("fixture/reviewed-source-package@1"),
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            options,
+        )
+        .unwrap();
+    let plan = &artifact.artifact().definition().internal_plan;
     assert_eq!(plan.fragments.len(), 1);
     assert_eq!(plan.fragments[0].placements.len(), 52);
     assert_eq!(
@@ -362,9 +350,9 @@ pub(super) fn prepare<
             .count(),
         2
     );
-    let (table, handle, claim) = super::automatic_admission::possession(&plan, false);
+    let (table, handle, claim) = super::automatic_admission::possession(plan, false);
     let (clock_table, clock_handle, clock_claim) =
-        super::automatic_admission::possession(&plan, true);
+        super::automatic_admission::possession(plan, true);
     let identity = crate::protocol_artifact::ProtocolArtifactIdentity {
         source: plan.source_document_id.clone(),
         checked: plan.checked_plot_id.clone(),
@@ -383,33 +371,23 @@ pub(super) fn prepare<
             crate::protocol_artifact::AdmittedProtocolArtifact::admit(stale, plan.clone()).is_err()
         );
     }
-    let artifact =
-        crate::protocol_artifact::AdmittedProtocolArtifact::admit(identity.clone(), plan).unwrap();
-    assert_eq!(artifact.identity(), &identity);
-    assert_eq!(
-        artifact
-            .definition()
-            .external_capability
-            .implementation
-            .artifact_id,
-        identity.artifact
-    );
-    let definition = artifact.into_definition();
-    let play = crate::protocol_play::PreparedTimedProtocolPlay::prepare(
-        definition,
-        bus,
-        table,
-        handle,
-        claim,
-        owners,
-        crate::protocol_play::ClockAdmission {
-            ready: timer,
-            table: clock_table,
-            handle: clock_handle,
-            claim: clock_claim,
-        },
-    )
-    .unwrap();
+    assert_eq!(artifact.artifact().identity(), &identity);
+    let play = artifact
+        .prepare_timed(
+            crate::protocol_play::I2cAdmission {
+                ready: bus,
+                table,
+                handle,
+                claim,
+            },
+            crate::protocol_play::ClockAdmission {
+                ready: timer,
+                table: clock_table,
+                handle: clock_handle,
+                claim: clock_claim,
+            },
+        )
+        .unwrap();
     (
         play,
         schema("BmeProtocolBegin").clone(),
