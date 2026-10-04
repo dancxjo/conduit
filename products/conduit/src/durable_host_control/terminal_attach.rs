@@ -293,7 +293,9 @@ pub(super) fn is_attached(runtime: &mut DurableHostRuntime) -> bool {
             owner,
             running: None,
             ..
-        } => owner.host.current_mut().terminal_attachment_mut().is_some(),
+        } if !owner.host.is_playing() => {
+            owner.host.current_mut().terminal_attachment_mut().is_some()
+        }
         _ => false,
     }
 }

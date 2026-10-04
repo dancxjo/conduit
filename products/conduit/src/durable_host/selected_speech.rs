@@ -2,7 +2,10 @@
 //! published or admitted into a Body. No provider is inferred at service start.
 use crate::cli::InstalledSpeechOptions;
 use conduit_std_host::{
-    hosted_audio::{discover_alsa_playback, AlsaPlaybackObservation, HostedPlaybackSelection},
+    hosted_audio::{
+        discover_alsa_playback, AlsaPlaybackObservation, ExplicitPlaybackAuthorization,
+        HostedPlaybackSelection,
+    },
     hosted_speech_synthesis::EspeakDiscovery,
     StdHost,
 };
@@ -26,6 +29,21 @@ pub(super) enum Change {
     Preserve,
     Replace(Selection),
     Remove,
+}
+
+#[derive(Clone)]
+pub(crate) struct AttachedEquipment {
+    pub(crate) playback: HostedPlaybackSelection,
+    pub(crate) authorization: ExplicitPlaybackAuthorization,
+    pub(crate) provider_sha256: String,
+    #[cfg(test)]
+    pub(crate) before_play: Option<std::sync::Arc<std::sync::Barrier>>,
+}
+
+impl AttachedEquipment {
+    pub(crate) fn matches(&self, host: &StdHost) -> bool {
+        host.selected_spoken_equipment_matches(&self.playback, &self.provider_sha256)
+    }
 }
 
 impl Selection {
@@ -85,7 +103,10 @@ impl Selection {
     /// This runs before runtime.json publication and before Body ownership.
     /// Discovery does not open a PCM handle; the selected Back rechecks the
     /// actual device when a Play starts.
-    pub(super) fn attach_to_fresh_host(&self, host: &mut StdHost) -> Result<String, String> {
+    pub(super) fn attach_to_fresh_host(
+        &self,
+        host: &mut StdHost,
+    ) -> Result<AttachedEquipment, String> {
         self.validate()?;
         let observation = observe_speaker(&self.card_id, self.device)?;
         if observation.base_identity != self.speaker_base_identity {
@@ -120,9 +141,18 @@ impl Selection {
                 Duration::from_secs(30),
             )
             .map_err(|error| format!("initialize configured eSpeak provider: {error:?}"))?;
-        host.attach_selected_playback(playback)?;
+        host.attach_selected_playback(playback.clone())?;
         host.attach_espeak_speech_for_selected_playback(adapter)?;
-        Ok(provider_sha256)
+        Ok(AttachedEquipment {
+            playback,
+            authorization: ExplicitPlaybackAuthorization::new(&format!(
+                "grant/installed-selected-speech/{}",
+                offered.boot_id.as_str()
+            ))?,
+            provider_sha256,
+            #[cfg(test)]
+            before_play: None,
+        })
     }
 }
 
