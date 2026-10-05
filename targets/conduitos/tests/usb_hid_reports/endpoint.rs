@@ -8,13 +8,10 @@ use conduitos::usb_base::{
 };
 
 fn package() -> ProtocolSourcePackage {
-    let mut package = super::lifecycle::package();
-    let endpoint = include_str!("../../plots/usb/hid-endpoint.conduit");
-    let (header, body) = endpoint.split_once("\n\n").unwrap();
-    package.source = format!(
-        "{header}\n{}\n{body}\ntype ImportedHidEndpointResult = UsbEndpointReadResult\n",
-        package.source
-    );
+    let mut package = conduitos::protocol_source::usb_hid_endpoint_package().unwrap();
+    package
+        .source
+        .push_str("\ntype ImportedHidEndpointResult = UsbEndpointReadResult\n");
     package
 }
 fn program(entry: &str) -> PortableExpressionProgram {
