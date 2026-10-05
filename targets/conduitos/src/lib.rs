@@ -2,6 +2,13 @@
 
 extern crate alloc;
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+#[cfg(test)]
+#[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
+mod test_allocations;
+
 pub mod allocation;
 pub mod arch;
 pub mod boot;
