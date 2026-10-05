@@ -43,6 +43,12 @@ pub(super) struct KernelProofSign {
     fixture_protocol: bool,
 }
 
+impl KernelProofSign {
+    pub(super) fn final_position(&self) -> (usize, u32) {
+        (self.final_enqueue, self.final_cycle)
+    }
+}
+
 pub(super) fn extract(
     serial: &str,
     subject: &ControlProofSubject<'_>,
