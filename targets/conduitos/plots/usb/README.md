@@ -42,9 +42,10 @@ fits the actual transfer. Device decoding uses eighteen reusable storage octets
 and an independent actual count; padded storage cannot turn a short transfer
 into a complete descriptor. The endpoint-zero packet field remains exact wire
 truth, including a SuperSpeed exponent, pending speed-specific interpretation.
-These plots check and execute in the prepared expression fixtures. Native
-selection, full configuration enumeration and class-device execution remain
-unimplemented by this framing slice.
+These plots check and execute in prepared expression fixtures. The
+`device-probe.conduit` topology also runs the eighteen-octet device decode
+through a selected native control Back in the x86_64 proof appliance. Full
+configuration enumeration and class-device execution remain unimplemented.
 
 The register-leaf groundwork in `src/machine_membrane` validates existing opaque
 Base possession before an aligned, bounded 32-bit access. Native composition
@@ -208,6 +209,18 @@ The ordinary default profile retains its earlier finite Sign budget and exact
 exhaustion refusal. Additional storage grants no controller authority and cannot
 grow during Play. The separate native ring receipt remains fixture evidence;
 neither receipt establishes checked class execution.
+
+`device-probe.conduit` constructs the device-descriptor request, frames the
+actual returned bytes and decodes the descriptor through ordinary expression
+and selector Backs in the production kernel. The x86_64 proof requires 64
+exchanges, acknowledges both observed transfer and decoded descriptor outputs,
+and verifies exact Source/Plan/Play/attachment identities and ring reuse in a
+separate receipt. Its preparation admits 4096 additional local and 512 remote
+Sign items, fixed output buffers and one in-flight transfer. Consumed Unit
+inputs release their value slots after Host Call completion even though their
+canonical payload is empty; deterministic sustained execution verifies reuse.
+The proof still uses legacy attachment setup and an explicit cooperative grant.
+It is descriptor emulator evidence, with no class or physical compatibility claim.
 
 The protocol calculations and register definition are not installed product
 device offers. Register calls execute through the production kernel in a
