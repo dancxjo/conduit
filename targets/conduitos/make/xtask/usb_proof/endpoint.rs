@@ -23,6 +23,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod hid;
 mod identity;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -48,6 +49,12 @@ struct EndpointSign {
 }
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    execute_mode(opts, false)
+}
+pub(super) fn execute_hid(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    execute_mode(opts, true)
+}
+fn execute_mode(opts: &GlobalOpts, hid: bool) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal(
             "dry-run-has-no-proof",
@@ -55,9 +62,21 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute_usb_endpoint(opts)?;
-    let socket = paths.target.join("usb-endpoint-monitor.sock");
-    let serial_path = paths.target.join("usb-endpoint-serial.log");
+    if hid {
+        image::execute_usb_hid_endpoint(opts)?;
+    } else {
+        image::execute_usb_endpoint(opts)?;
+    }
+    let socket = paths.target.join(if hid {
+        "usb-hid-endpoint-monitor.sock"
+    } else {
+        "usb-endpoint-monitor.sock"
+    });
+    let serial_path = paths.target.join(if hid {
+        "usb-hid-endpoint-serial.log"
+    } else {
+        "usb-endpoint-serial.log"
+    });
     for path in [&socket, &serial_path] {
         if path.exists() {
             fs::remove_file(path).map_err(|e| refusal("endpoint-proof-path", e.to_string()))?;
@@ -117,6 +136,9 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     run::validate_xhci(&boot, &xhci)?;
     let usb: GuestUsbSign = extract(&serial, "CONDUIT_USB_SIGN ")?;
     usb_run::validate(&boot, &xhci, &usb)?;
+    if hid {
+        return hid::retain(&paths, &serial, &boot, &xhci, &usb);
+    }
     let sign: EndpointSign = extract(&serial, "CONDUIT_USB_ENDPOINT_SIGN ")?;
     validate(&boot, &usb, &sign)?;
     let receipt = serde_json::json!({
