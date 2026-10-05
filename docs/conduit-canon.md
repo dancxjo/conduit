@@ -336,6 +336,19 @@ frontiers. The [revision contract](architecture/revision.md) admits bounded
 history and honest truncation without changing ordinary flows or making every
 keep event-sourced.
 
+### Semantic projection fidelity
+
+Projection maps semantic obligations between exact contracts; representation
+specifies encoding. A projection may be lossy, but its loss must be explicit.
+Exact preservation, declared target transformation, policy-permitted loss,
+semantic insufficiency, refusal, mechanism failure and cancellation remain
+distinct. Unknown native facts and scores retain their bounded external
+contracts instead of becoming portable meaning or normalized confidence by
+coercion. The [projection contract](architecture/projection.md) binds exact
+source, target, projector and policy identities, and correlates already-admitted
+realizations without replacing Plan or Sign truth. Inspection borrows the same
+report; it owns no second result store.
+
 ### Execution and Face
 
 The Body's Face speaks one bounded, immutable semantic graph. The current Rust

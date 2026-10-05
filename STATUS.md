@@ -39,6 +39,17 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Projection fidelity (#4952, development):** a bounded immutable core report
+  distinguishes exact/declared transformation, permitted loss, insufficient
+  results and canonical abnormal outcomes. Native evidence and score contracts
+  stay inspectable; exact policy admits loss, and strict consumers refuse
+  partial targets. Deterministic language/parser, model-private speech and
+  actual linear Face fixtures, plus borrowing Patchbay boundary inspection,
+  establish the [projection contract](docs/architecture/projection.md).
+  This does not establish live parser/model accuracy, physical presentation,
+  every adapter's integration or stable-release acceptance.
+
+
 - **Owner presentation routes (#4922, development):** The installed owner can
   present its actual lulled clock Body through an attached terminal Mask without
   inventing a workload Wake or Play. The ordinary Mask Plan/Play returns an
