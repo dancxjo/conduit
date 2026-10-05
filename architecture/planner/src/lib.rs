@@ -418,10 +418,9 @@ pub fn plan_with_options(
     plan_validated_plot(plot, hosts, placements, allowed_line_bases, options)
 }
 
+mod planning_input;
 mod validated_planning;
-pub(crate) use validated_planning::{
-    plan_validated_plot, plan_validated_plot_with_connection_limits,
-};
+pub(crate) use validated_planning::plan_validated_plot;
 
 fn planned_keep_state(
     placement: &PlannedGear,

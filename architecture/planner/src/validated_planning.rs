@@ -1,5 +1,6 @@
 //! Assemble one Plan from already validated plot identities and native offers.
 use super::*;
+use crate::planning_input::PlanningInput;
 
 pub(crate) fn plan_validated_plot(
     plot: &CheckedPlot,
@@ -20,6 +21,24 @@ pub(crate) fn plan_validated_plot(
 
 pub(crate) fn plan_validated_plot_with_connection_limits(
     plot: &CheckedPlot,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+) -> Result<Plan, PlannerError> {
+    plan_borrowed_plot_with_connection_limits(
+        PlanningInput::from(plot),
+        hosts,
+        placements,
+        bases,
+        options,
+        connection_limits,
+    )
+}
+
+pub(crate) fn plan_borrowed_plot_with_connection_limits(
+    plot: PlanningInput<'_>,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
@@ -72,13 +91,13 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
     let mut remaining_compute_minimum =
-        compute_admission::admit_minima(plot, &host_index, placements)?;
+        compute_admission::admit_minima(plot.gears, &host_index, placements)?;
     let mut consumed_protected_handles = BTreeSet::new();
     let mut resource_writers = BTreeSet::new();
     let mut planned_gears = Vec::<PlannedGear>::new();
     let mut placement_lookup = BTreeMap::<GearId, PlacementId>::new();
 
-    for gear in &plot.gears {
+    for gear in plot.gears {
         let choice = placements
             .by_gear
             .get(&gear.gear_id)
@@ -210,7 +229,7 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
     }
 
     let mut planned_connections = Vec::<PlannedConnection>::new();
-    for connection in &plot.connections {
+    for connection in plot.connections {
         let limits = connection_limits
             .get(&connection_endpoints(connection))
             .copied()
@@ -332,7 +351,7 @@ pub(crate) fn plan_validated_plot_with_connection_limits(
     }
 
     let global_startup_order = startup::startup_order(&planned_gears, &planned_connections)?
-        .ok_or_else(|| PlannerError::CyclicStartupDependencies(plot.name.clone()))?;
+        .ok_or_else(|| PlannerError::CyclicStartupDependencies(plot.name.into()))?;
 
     let fragments = hosts
         .iter()

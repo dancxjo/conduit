@@ -1,8 +1,7 @@
 use crate::prelude::*;
 use crate::{
-    default_placements_unvalidated, plan_validated_plot,
-    plan_validated_plot_with_connection_limits, ConnectionEndpoints, ConnectionQueueLimits,
-    PlacementChoices, PlannerError, PlanningOptions,
+    default_placements_unvalidated, plan_validated_plot, ConnectionEndpoints,
+    ConnectionQueueLimits, PlacementChoices, PlannerError, PlanningOptions,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
@@ -201,19 +200,8 @@ pub fn plan_expanded_canonical_with_connection_limits(
 ) -> Result<Plan, PlannerError> {
     plot.validate_expansion()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
-    let planning_plot = CheckedPlot {
-        source_document_id: plot.source_document_id.clone(),
-        checked_plot_id: plot.checked_plot_id.clone(),
-        expanded_plot_id: plot.expanded_plot_id.clone(),
-        name: plot.name.clone(),
-        completion: plot.completion,
-        gears: plot.gears.clone(),
-        connections: plot.connections.clone(),
-        exports: Vec::new(),
-        nested_plots: Vec::new(),
-    };
-    let mut plan = plan_validated_plot_with_connection_limits(
-        &planning_plot,
+    let mut plan = crate::validated_planning::plan_borrowed_plot_with_connection_limits(
+        crate::planning_input::PlanningInput::from(plot),
         hosts,
         placements,
         bases,
