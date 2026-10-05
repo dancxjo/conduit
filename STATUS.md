@@ -39,6 +39,15 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Typed claims and resolution (#4950, development):** Core admits immutable,
+  bounded domain assertions, lifecycle history, exact score contracts, and
+  policy-owned selection or abstention. Deterministic core/language fixtures
+  retain sensor/model alternatives and manual correction, revisioned dependency
+  alternatives with conservative shared facts, and unresolved runtime diagnoses.
+  The [contract](docs/architecture/claims.md) separates Signs, claims, resolution,
+  and authority. This establishes a library seam for #4907, not its complete
+  parser, a global claim store, or focused Patchbay integration.
+
 - **Static browser applications (#4804):** `cargo xtask make body static`
   packages the Handbook or another application as ordinary static files. The
   Handbook uses the public Browser SDK to birth/recover an application-scoped

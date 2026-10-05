@@ -1,3 +1,6 @@
+#[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
+mod allocation;
+
 use conduit_core::ConfigurationValue;
 use conduit_plot::{
     PortableExpressionProgram, PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog,
@@ -29,6 +32,12 @@ mod device_probe;
 
 #[path = "usb_protocol_plots/device_probe_execution.rs"]
 mod device_probe_execution;
+
+#[path = "usb_protocol_plots/descriptor_probe_execution.rs"]
+mod descriptor_probe_execution;
+
+#[path = "usb_protocol_plots/configuration_probe_execution.rs"]
+mod configuration_probe_execution;
 
 fn program(entry: &str) -> PortableExpressionProgram {
     program_from(SOURCE, entry)

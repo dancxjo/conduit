@@ -500,6 +500,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
         ConduitosCommand::UsbProof(args) => usb_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::UsbConfigurationProof => usb_proof::execute_configuration(opts),
         ConduitosCommand::UsbPlotsCheck { cross } => usb_plots_check::execute(cross, opts),
         ConduitosCommand::HidProof(args) => hid_proof::execute(args.prepared_image, opts),
         ConduitosCommand::KeyboardProof(args) => keyboard_proof::execute(args.prepared_image, opts),
@@ -658,6 +659,17 @@ mod tests {
     fn prepared_image_build_and_play_flags_are_explicit() {
         let build = Cli::try_parse_from(["xtask", "make", "conduitos", "prepare-proof-image"]);
         assert!(build.is_ok());
+        assert!(
+            Cli::try_parse_from(["xtask", "make", "conduitos", "usb-configuration-proof"]).is_ok()
+        );
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "usb-configuration-proof",
+            "--prepared-image"
+        ])
+        .is_err());
         for proof in [
             "xhci-proof",
             "usb-proof",

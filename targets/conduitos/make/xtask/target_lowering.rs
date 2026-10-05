@@ -24,6 +24,7 @@ const RISCV64_SBI_DRIVER: &str = "conduitos/riscv64-sbi-console@1";
 const RISCV64_SBI_BASE: &str = "conduitos/riscv64-sbi-console-text";
 const RISCV64_LINEAR_PRESENTER: &str = "presenter/riscv64-linear-sbi-console@1";
 const SCRIPTED_KEYBOARD_PROOF: &str = "profile-fragment/conduitos-scripted-keyboard-proof@1";
+const USB_CONFIGURATION_PROOF: &str = "profile-fragment/conduitos-usb-configuration-proof@1";
 const HOTPLUG_PROOF: &str = "profile-fragment/conduitos-hotplug-proof@1";
 const PS2_INPUT: &str = "profile-fragment/conduitos-ps2-input@1";
 
@@ -126,6 +127,10 @@ pub(super) fn lower_x86_64_pc(
         .profile_fragments
         .iter()
         .any(|item| item == SCRIPTED_KEYBOARD_PROOF);
+    let usb_configuration = manifest
+        .profile_fragments
+        .iter()
+        .any(|item| item == USB_CONFIGURATION_PROOF);
     let hotplug = manifest
         .profile_fragments
         .iter()
@@ -135,6 +140,12 @@ pub(super) fn lower_x86_64_pc(
         .iter()
         .any(|item| item == PS2_INPUT);
     let http = http::lower(manifest)?;
+    if usb_configuration && !scripted_keyboard {
+        return Err(refusal(
+            "proof-profile-prerequisite-missing",
+            "USB configuration proof requires the scripted keyboard proof closure".into(),
+        ));
+    }
     if (scripted_keyboard || hotplug) && !native {
         return Err(refusal(
             "proof-profile-prerequisite-missing",
@@ -150,6 +161,9 @@ pub(super) fn lower_x86_64_pc(
     }
     if scripted_keyboard || hotplug {
         cargo_features.push("scripted-keyboard-proof");
+    }
+    if usb_configuration {
+        cargo_features.push("usb-configuration-proof");
     }
     if http.selected {
         cargo_features.push("native-http-client");
@@ -197,6 +211,10 @@ pub(super) fn lower_x86_64_pc(
             0
         }) | (if scripted_keyboard || hotplug {
             conduitos::make::PROOF_SCRIPTED_KEYBOARD
+        } else {
+            0
+        }) | (if usb_configuration {
+            conduitos::make::PROOF_USB_CONFIGURATION
         } else {
             0
         }),

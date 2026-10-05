@@ -429,6 +429,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
         ],
         profile_fragments: vec![
             "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
+            "profile-fragment/conduitos-usb-configuration-proof@1".into(),
             "profile-fragment/conduitos-hotplug-proof@1".into(),
             "profile-fragment/conduitos-ps2-input@1".into(),
         ],

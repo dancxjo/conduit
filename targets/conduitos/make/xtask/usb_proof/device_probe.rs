@@ -51,10 +51,44 @@ pub(super) fn extract(
     subject: &ControlProofSubject<'_>,
     initial: (usize, u32),
 ) -> Result<DeviceProbeSign, ConduitosError> {
+    extract_for(serial, subject, initial, DescriptorProbe::Device)
+}
+
+pub(super) enum DescriptorProbe {
+    Device,
+    Configuration,
+}
+
+impl DeviceProbeSign {
+    pub(super) fn final_position(&self) -> (usize, u32) {
+        (self.final_enqueue, self.final_cycle)
+    }
+}
+
+pub(super) fn extract_for(
+    serial: &str,
+    subject: &ControlProofSubject<'_>,
+    initial: (usize, u32),
+    descriptor: DescriptorProbe,
+) -> Result<DeviceProbeSign, ConduitosError> {
+    let (marker, schema, local, remote, artifact) = match descriptor {
+        DescriptorProbe::Device => (
+            "CONDUIT_USB_DEVICE_PROBE_SIGN ",
+            "conduit.conduitos.usb-device-probe/v1",
+            4096,
+            512,
+            device_probe_proof_plan::prepare(subject),
+        ),
+        DescriptorProbe::Configuration => (
+            "CONDUIT_USB_CONFIGURATION_PROBE_SIGN ",
+            "conduit.conduitos.usb-configuration-probe/v1",
+            conduitos::usb_base::configuration_probe_proof_plan::ADDITIONAL_LOCAL_SIGN_ITEMS,
+            conduitos::usb_base::configuration_probe_proof_plan::ADDITIONAL_REMOTE_SIGN_ITEMS,
+            conduitos::usb_base::configuration_probe_proof_plan::prepare(subject),
+        ),
+    };
     let refuse = |detail| ConduitosError::refusal("usb-device-probe-proof-invalid", detail);
-    let mut signs = serial
-        .lines()
-        .filter_map(|line| line.strip_prefix("CONDUIT_USB_DEVICE_PROBE_SIGN "));
+    let mut signs = serial.lines().filter_map(|line| line.strip_prefix(marker));
     let one = signs
         .next()
         .ok_or_else(|| refuse("missing completed checked-kernel sign".to_string()))?;
@@ -63,8 +97,8 @@ pub(super) fn extract(
     }
     let sign: DeviceProbeSign =
         serde_json::from_str(one).map_err(|error| refuse(error.to_string()))?;
-    let artifact = device_probe_proof_plan::prepare(subject)
-        .map_err(|error| refuse(format!("device Source planning: {error:?}")))?;
+    let artifact =
+        artifact.map_err(|error| refuse(format!("device Source planning: {error:?}")))?;
     let plan = &artifact.artifact().definition().internal_plan;
     let fragment = &plan.fragments[0];
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
@@ -78,7 +112,7 @@ pub(super) fn extract(
         }
         cursor += 3;
     }
-    if sign.schema != "conduit.conduitos.usb-device-probe/v1"
+    if sign.schema != schema
         || sign.proof_class != "freestanding-emulator"
         || sign.status != "completed"
         || sign.host_id != subject.host_id
@@ -97,8 +131,8 @@ pub(super) fn extract(
         || sign.transfers != control_proof_plan::CONTROL_PROOF_TRANSFERS
         || sign.decoded != control_proof_plan::CONTROL_PROOF_TRANSFERS
         || sign.observed != control_proof_plan::CONTROL_PROOF_TRANSFERS
-        || sign.additional_local_sign_items != 4096
-        || sign.additional_remote_sign_items != 512
+        || sign.additional_local_sign_items != local
+        || sign.additional_remote_sign_items != remote
         || sign.cycle_transitions < 4
         || sign.cycle_transitions != transitions
         || (sign.initial_enqueue, sign.initial_cycle) != initial

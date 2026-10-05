@@ -14,6 +14,7 @@ mod base_capability;
 mod base_registry;
 mod capability_offer;
 mod characteristic;
+pub mod claims;
 mod completion;
 mod configuration;
 mod consequential_effect;
