@@ -410,6 +410,10 @@ xHCI endpoint owner as the raw endpoint proof and checks 128 alternating fixture
 presses/releases across two ring cycle transitions. The retained receipt checks
 exact Source/Plan/Play and attachment identities, the canonical class output
 transcript, normal closure and acknowledged stop. This command requires its own
-proof image. Its implementation and verifier are under validation; it does not
+proof image with a 32 MiB preparation arena. Deterministic preparation with the
+production allocator peaks at 17,781,120 live bytes and releases all retained
+storage on retirement; the arena also admits allocation geometry and the native
+Root's storage. The endpoint call still admits at most 2,048 payload bytes on a
+4 KiB call surface. Its implementation and verifier are under validation; it does not
 establish an ordinary class offer, physical compatibility or five-architecture
 acceptance.

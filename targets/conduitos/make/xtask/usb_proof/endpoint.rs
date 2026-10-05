@@ -131,7 +131,7 @@ fn execute_mode(opts: &GlobalOpts, hid: bool) -> Result<(), ConduitosError> {
     outcome?;
     let serial = read_serial(&serial_path)?;
     let boot: GuestBootSign = extract(&serial, "CONDUIT_BOOT_SIGN ")?;
-    identity::validate_boot(&boot)?;
+    identity::validate_boot_mode(&boot, hid)?;
     let xhci: GuestXhciSign = extract(&serial, "CONDUIT_XHCI_SIGN ")?;
     run::validate_xhci(&boot, &xhci)?;
     let usb: GuestUsbSign = extract(&serial, "CONDUIT_USB_SIGN ")?;
