@@ -402,8 +402,7 @@ unsupported and timeout observations separately. Only completed valid frames
 reach the class decoder. Preparing these graphs publishes no physical Back;
 execution requires a separately selected endpoint offer and actual possession.
 Deterministic conformance checks both class compositions and their bounded
-framing. The keyboard graph also has the native emulator proof below; native
-mouse execution remains pending.
+framing. Both class graphs also have the native emulator proofs below.
 
 The dedicated keyboard Source appliance enters through
 `cargo xtask make conduitos usb-proof --hid-endpoint`. It uses the same bounded
@@ -430,4 +429,8 @@ relative-motion reports. The independent expectation follows
 the three-octet boot prefix is decoded, and the fourth wheel octet remains
 uninterpreted wire truth. Mouse and keyboard receipts have separate paths and
 require their exact Boot profile, Plan, class transcript, sealed arena and
-acknowledged stop. Native mouse execution remains under validation.
+acknowledged stop. A retained x86_64 mouse run completes all 128 reports across
+two ring cycle transitions with matching class outputs and the arena sealed
+through normal closure and acknowledged stop. The same appliance limitations
+apply: legacy attachment setup, explicit fixture authority, and no ordinary
+class offer, physical compatibility or five-architecture acceptance.
