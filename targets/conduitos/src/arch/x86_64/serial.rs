@@ -25,6 +25,18 @@ pub fn early_write(bytes: &[u8]) {
     }
 }
 
+/// Append bounded bootstrap diagnostics after the sole Root initializes COM1.
+/// Unlike early initialization, this preserves bytes already in the transmit FIFO.
+pub fn append_boot_diagnostic(bytes: &[u8]) -> Result<(), BaseError> {
+    if bytes.len() > MAX_PRESENT_BYTES {
+        return Err(BaseError::PayloadTooLarge);
+    }
+    for &byte in bytes {
+        write_byte(byte)?;
+    }
+    Ok(())
+}
+
 pub(super) fn present(bytes: &[u8]) -> Result<(), BaseError> {
     if bytes.len() > MAX_PRESENT_BYTES {
         return Err(BaseError::PayloadTooLarge);

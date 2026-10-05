@@ -18,8 +18,11 @@ use crate::{
 pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy};
 
 mod active_capacity;
+#[cfg(feature = "alloc")]
+mod boxed_preparation;
 mod debug_control;
 mod derived_value;
+mod remote_fanout;
 mod retirement;
 use active_capacity::validate_active_capacity;
 use debug_control::DebugControlState;
@@ -1677,83 +1680,6 @@ where
                 sequence,
             },
         )?;
-        Ok(RemoteIngressOutcome::Accepted { sequence })
-    }
-
-    /// Atomically admits one external payload to every exact ingress branch.
-    /// If any branch is pressured, no branch observes the value and the same
-    /// sequence remains retryable across the whole fan-out.
-    pub fn admit_remote_input_fanout(
-        &mut self,
-        targets: &[(RemoteEndpointId, CordId)],
-        sequence: u64,
-        bytes: &[u8],
-    ) -> Result<RemoteIngressOutcome, SchedulerError> {
-        if self.cancelled {
-            return Err(SchedulerError::Cancelled);
-        }
-        if targets.is_empty() || targets.len() > usize::from(u16::MAX) {
-            return Err(SchedulerError::InvalidRemoteCordAccess);
-        }
-        let byte_len =
-            u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
-        let next_sequence = sequence
-            .checked_add(1)
-            .ok_or(SchedulerError::RemoteSequenceRejected)?;
-        for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
-            if targets[..index].contains(&(endpoint, cord)) {
-                return Err(SchedulerError::InvalidRemoteCordAccess);
-            }
-            let cord_index = usize::from(cord.0);
-            if cord_index >= self.active_cords {
-                return Err(SchedulerError::InvalidRemoteCordAccess);
-            }
-            let spec = self.cord_specs[cord_index];
-            if !matches!(spec.source, CordEndpoint::Remote(candidate) if candidate == endpoint)
-                || !matches!(spec.sink, CordEndpoint::Local { .. })
-            {
-                return Err(SchedulerError::InvalidRemoteCordAccess);
-            }
-            let state = &self.cords[cord_index];
-            if state.producer_closed || state.next_remote_sequence != sequence {
-                return Err(SchedulerError::RemoteSequenceRejected);
-            }
-            if byte_len > self.admission_maximum(spec, state)? {
-                return Ok(RemoteIngressOutcome::Full { sequence });
-            }
-        }
-        self.ensure_sign_capacity(targets.len())?;
-        self.ensure_remote_sign_capacity(targets.len())?;
-        let value = self.values.store(bytes)?;
-        for references in 1..targets.len() {
-            if let Err(error) = self.values.retain(value) {
-                for _ in 0..references {
-                    self.values.release(value)?;
-                }
-                return Err(error.into());
-            }
-        }
-        for (endpoint, cord) in targets.iter().copied() {
-            let cord_index = usize::from(cord.0);
-            let spec = self.cord_specs[cord_index];
-            let (sink_node, sink_port) = spec.sink_local().ok_or(SchedulerError::InvalidPlan)?;
-            if let Some(superseded) = self.push(cord_index, value)? {
-                self.values.release(superseded)?;
-            }
-            self.cords[cord_index].next_remote_sequence = next_sequence;
-            self.ready[usize::from(sink_node.0)] = true;
-            self.signs.record_remote(
-                sink_node,
-                sink_port,
-                KernelEventKind::RemoteInputAdmitted,
-                crate::RemoteLifecycleIdentity {
-                    endpoint,
-                    cord,
-                    direction: crate::RemoteCordDirection::Ingress,
-                    sequence,
-                },
-            )?;
-        }
         Ok(RemoteIngressOutcome::Accepted { sequence })
     }
 

@@ -113,6 +113,15 @@ impl Fixture {
     pub fn tick(&self, now: u64) -> StructuredInfoValue {
         variant(&self.event_type, "tick", &now.to_le_bytes())
     }
+    pub fn clock_failure(&self, tag: &str) -> StructuredInfoValue {
+        let clock_type = case_type(&self.event_type, "clock-failed");
+        StructuredInfoValue::variant(
+            self.event_type.clone(),
+            "clock-failed",
+            variant(clock_type, tag, &[]),
+        )
+        .unwrap()
+    }
     pub fn bus(&self, tag: &str, data: &[u8], now: u64) -> StructuredInfoValue {
         let timed_type = case_type(&self.event_type, "bus");
         let result_type = field_type(timed_type, "result");

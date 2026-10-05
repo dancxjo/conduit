@@ -14,6 +14,13 @@ use conduit_core::*;
 mod timed;
 pub use timed::{ClockAdmission, PreparedTimedProtocolPlay};
 
+pub struct I2cAdmission<P> {
+    pub ready: ReadyI2cBase<P>,
+    pub table: BaseCapabilityTable,
+    pub handle: BaseCapabilityHandle,
+    pub claim: BaseOperationClaim,
+}
+
 /// Preparation owns the admitted kernel and the actual native owners together.
 /// The caller supplies the selected Plan and opaque possession; no grant is minted here.
 pub struct PreparedProtocolPlay<P> {
@@ -56,6 +63,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             crate::protocol_operations::ProtocolOperations {
                 joins: zip,
                 states: crate::seeded_state::SeededStateOperationFactory::default(),
+                merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
             },
         )
     }
@@ -78,6 +86,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             crate::protocol_operations::ProtocolOperations {
                 joins: crate::flow_zip::FlowZipOperationFactory::default(),
                 states,
+                merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
             },
         )
     }
@@ -115,11 +124,18 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         {
             return Err(ProtocolCallRefusal::Unsupported);
         }
-        let crate::protocol_operations::ProtocolOperations { joins: zip, states } = operations;
+        let crate::protocol_operations::ProtocolOperations {
+            joins: zip,
+            states,
+            merges,
+        } = operations;
         validate_fore(&definition)?;
         zip.validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         states
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        merges
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         let calls = PreparedProtocolCalls::prepare_with_operations(
@@ -152,6 +168,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(CurrentSampleOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(merges)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         if allow_clock {
             registry
@@ -229,7 +248,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
     }
 }
 
-fn validate_fore(definition: &KernelCompositeDefinition) -> Result<(), ProtocolCallRefusal> {
+pub(crate) fn validate_fore(
+    definition: &KernelCompositeDefinition,
+) -> Result<(), ProtocolCallRefusal> {
     let plan = &definition.internal_plan;
     if !verify_plan(plan) || plan.fragments.len() != 1 {
         return Err(ProtocolCallRefusal::InvalidPlan);
@@ -238,7 +259,12 @@ fn validate_fore(definition: &KernelCompositeDefinition) -> Result<(), ProtocolC
     if definition.host_id != fragment.host_id
         || definition.boot_id != fragment.boot_id
         || definition.offer_generation != fragment.offer_generation
-        || fragment.fore_ports.len()
+        || fragment
+            .fore_ports
+            .iter()
+            .map(|fore| (&fore.front_port_id, fore.direction == PortDirection::Input))
+            .collect::<alloc::collections::BTreeSet<_>>()
+            .len()
             != definition.boundary.input_fronts.len() + definition.boundary.output_fronts.len()
     {
         return Err(ProtocolCallRefusal::InvalidPlan);
@@ -263,7 +289,14 @@ fn validate_fore(definition: &KernelCompositeDefinition) -> Result<(), ProtocolC
                 fore.front_port_id == front.external_port.port_id && fore.direction == direction
             });
             let fore = matching.next().ok_or(ProtocolCallRefusal::InvalidPlan)?;
-            if matching.next().is_some()
+            if (matching.clone().next().is_some() && direction != PortDirection::Input)
+                || matching.any(|candidate| {
+                    candidate.track != fore.track
+                        || candidate.value_kind != fore.value_kind
+                        || candidate.temporal != fore.temporal
+                        || candidate.abnormal_kind != fore.abnormal_kind
+                        || candidate.value_contract != fore.value_contract
+                })
                 || fore.track != ConnectionTrack::Payload
                 || front.terminal != conduit_plot::CompositeFrontTerminal::Independent
                 || front.internal_child != fragment.host_id

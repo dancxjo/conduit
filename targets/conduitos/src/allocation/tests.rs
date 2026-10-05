@@ -227,3 +227,70 @@ fn resized_and_zeroed_objects_preserve_the_global_allocator_contract() {
     }
     assert_eq!(arena.live_bytes(), 0);
 }
+
+#[test]
+fn resize_reuses_adjacent_space_and_preserves_failed_and_sealed_allocations() {
+    let fixture = Fixture::new(4096);
+    let arena = &fixture.arena;
+    let old = Layout::from_size_align(1024, 32).unwrap();
+    unsafe {
+        let pointer = arena.alloc(old);
+        core::ptr::write_bytes(pointer, 0x63, old.size());
+        let grown = arena.realloc(pointer, old, 3072);
+        assert_eq!(
+            grown, pointer,
+            "growth must not need a second full allocation"
+        );
+        let larger = Layout::from_size_align(3072, 32).unwrap();
+        assert!(
+            core::slice::from_raw_parts(grown, 1024)
+                .iter()
+                .all(|byte| *byte == 0x63)
+        );
+        assert_eq!(arena.live_bytes(), 3072);
+        assert!(arena.realloc(grown, larger, 8192).is_null());
+        assert_eq!(arena.live_bytes(), 3072);
+        let shrunk = arena.realloc(grown, larger, 1024);
+        assert_eq!(shrunk, pointer);
+        assert_eq!(arena.live_bytes(), 1024);
+        arena.seal();
+        assert!(arena.realloc(shrunk, old, 2048).is_null());
+        assert!(
+            core::slice::from_raw_parts(shrunk, 1024)
+                .iter()
+                .all(|byte| *byte == 0x63)
+        );
+        arena.dealloc(shrunk, old);
+        assert_eq!(arena.live_bytes(), 0);
+    }
+}
+
+#[test]
+fn resize_moves_only_when_a_live_neighbor_prevents_growth() {
+    let fixture = Fixture::new(4096);
+    let arena = &fixture.arena;
+    let old = Layout::from_size_align(1024, 32).unwrap();
+    unsafe {
+        let first = arena.alloc(old);
+        let neighbor = arena.alloc(old);
+        core::ptr::write_bytes(first, 0x2a, 1024);
+        core::ptr::write_bytes(neighbor, 0x97, 1024);
+        let moved = arena.realloc(first, old, 1536);
+        assert!(!moved.is_null());
+        assert_ne!(moved, first);
+        assert!(
+            core::slice::from_raw_parts(moved, 1024)
+                .iter()
+                .all(|byte| *byte == 0x2a)
+        );
+        assert!(
+            core::slice::from_raw_parts(neighbor, 1024)
+                .iter()
+                .all(|byte| *byte == 0x97)
+        );
+        assert_eq!(arena.live_bytes(), 2560);
+        arena.dealloc(moved, Layout::from_size_align(1536, 32).unwrap());
+        arena.dealloc(neighbor, old);
+        assert_eq!(arena.live_bytes(), 0);
+    }
+}

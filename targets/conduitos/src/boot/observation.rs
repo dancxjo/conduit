@@ -133,7 +133,7 @@ pub struct BootNormalizer {
     image_start: u64,
     image_length: u64,
     previous_region_end: Option<u64>,
-    previous_artifact_end: Option<u64>,
+    artifact_ranges: [Option<(u64, u64)>; MAX_ARTIFACTS],
     region_count: u16,
     artifact_count: u16,
     framebuffer_count: u8,
@@ -161,7 +161,7 @@ impl BootNormalizer {
             image_start,
             image_length,
             previous_region_end: None,
-            previous_artifact_end: None,
+            artifact_ranges: [None; MAX_ARTIFACTS],
             region_count: 0,
             artifact_count: 0,
             framebuffer_count: 0,
@@ -209,12 +209,14 @@ impl BootNormalizer {
             return Err(BootError::MalformedArtifactRange);
         }
         if self
-            .previous_artifact_end
-            .is_some_and(|previous| artifact.physical_start < previous)
+            .artifact_ranges
+            .iter()
+            .flatten()
+            .any(|(start, previous_end)| artifact.physical_start < *previous_end && *start < end)
         {
             return Err(BootError::OverlappingArtifacts);
         }
-        self.previous_artifact_end = Some(end);
+        self.artifact_ranges[self.artifact_count as usize] = Some((artifact.physical_start, end));
         self.artifact_count += 1;
         Ok(())
     }
@@ -452,5 +454,35 @@ mod tests {
             value.set_framebuffer_count(MAX_FRAMEBUFFERS + 1),
             Err(BootError::TooManyFramebuffers)
         );
+    }
+    #[test]
+    fn unordered_modules_are_admitted_but_overlap_with_any_prior_module_refuses() {
+        let mut value = normalizer();
+        let artifact = |base, length| BootArtifact {
+            physical_start: base,
+            length,
+            path_hash: base,
+            command_hash: 0,
+        };
+        for base in [0x50_0000, 0x30_0000, 0x40_0000] {
+            value.push_artifact(artifact(base, 0x1000)).unwrap();
+        }
+        assert_eq!(
+            value.push_artifact(artifact(0x50_0800, 0x1000)),
+            Err(BootError::OverlappingArtifacts)
+        );
+        assert_eq!(
+            value.push_artifact(artifact(0x2f_f800, 0x1000)),
+            Err(BootError::OverlappingArtifacts)
+        );
+        value.push_artifact(artifact(0x50_1000, 0x1000)).unwrap();
+        value
+            .push_region(MemoryRegion {
+                base: 0x60_0000,
+                length: MIN_RUNTIME_ARENA_BYTES,
+                kind: MemoryKind::Usable,
+            })
+            .unwrap();
+        assert_eq!(value.finish().unwrap().artifact_count, 4);
     }
 }

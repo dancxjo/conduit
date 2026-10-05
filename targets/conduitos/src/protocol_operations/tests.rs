@@ -16,6 +16,7 @@ const FEEDBACK: &str = include_str!("../../../../plots/device-protocols/bme280-f
 fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
     let contract = crate::i2c_base::contract::I2cContract::prepare().unwrap();
     let (mut startup, mut profile) = contract.catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     let types = check_syntax_document(&parse_syntax_document(LIFECYCLE), &startup).unwrap();
     let schema = |name| {
         &types
@@ -152,3 +153,15 @@ fn source_feedback_plans_with_exact_retained_state_event_and_generation_contract
 }
 
 mod execution;
+
+mod automatic_events;
+
+mod automatic_admission;
+
+mod automatic_execution;
+
+mod automatic_capture;
+
+mod automatic_clock_failure;
+
+mod automatic_body;

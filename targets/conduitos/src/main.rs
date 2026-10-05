@@ -66,6 +66,16 @@ extern "C" fn conduitos_start() -> ! {
                         emit_machine_refusal(error.as_str());
                     }
                     initialize_runtime_arena(&record);
+                    // SAFETY: ordinary native startup is the sole privileged Root.
+                    // Protocol modules are local administrator boot configuration;
+                    // that administrator must separately approve firmware handoff
+                    // and electrical attachment before installing this profile.
+                    // Admission checks actual hardware and permanently reserves it.
+                    if let Err(reason) =
+                        unsafe { conduitos::protocol_boot::run_if_selected(&record) }
+                    {
+                        emit_machine_refusal(reason);
+                    }
                     #[cfg(feature = "native-compositor")]
                     graphical_startup::run(record);
                     #[cfg(not(feature = "native-compositor"))]
@@ -218,6 +228,28 @@ fn emit_refusal(reason: &str) -> ! {
 
 #[panic_handler]
 #[cfg(target_os = "none")]
-fn panic(_info: &PanicInfo<'_>) -> ! {
-    emit_refusal("panic")
+fn panic(info: &PanicInfo<'_>) -> ! {
+    use core::fmt::Write;
+    let mut diagnostic = sign_format::FixedText::new();
+    if let Some(location) = info.location() {
+        let _ = writeln!(
+            diagnostic,
+            "CONDUIT_PANIC_LOCATION {}:{}:{}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+    }
+    let _ = writeln!(diagnostic, "CONDUIT_PANIC_DETAIL {}", info.message());
+    let _ = writeln!(
+        diagnostic,
+        "CONDUIT_PANIC_ARENA live={} capacity={}",
+        BOOT_ARENA.live_bytes(),
+        BOOT_ARENA.capacity()
+    );
+    if let Ok(sign) = sign_format::refused("panic") {
+        let _ = diagnostic.write_str(core::str::from_utf8(sign.as_bytes()).unwrap_or(""));
+    }
+    arch::early_write(diagnostic.as_bytes());
+    arch::deterministic_exit(false)
 }

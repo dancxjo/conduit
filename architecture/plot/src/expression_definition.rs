@@ -1,7 +1,7 @@
 //! Exact ordinary Gear contract for one checked pure expression.
 
 use crate::{
-    hash_string, CheckedExpression, KindConfigurationField, KindConfigurationRule, KindProjection,
+    CheckedExpression, KindConfigurationField, KindConfigurationRule, KindProjection,
     PortableExpressionProgram, MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES,
 };
 use conduit_core::{
@@ -34,12 +34,25 @@ pub fn pure_expression_definition(
     expression: &CheckedExpression,
     temporal: PortTemporal,
 ) -> Result<KindProjection, StructuredInfoRefusal> {
-    let program =
-        PortableExpressionProgram::from_checked(expression).map_err(|refusal| match refusal {
-            crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
-            _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
+    let encoded =
+        crate::expression_program::checked_canonical_hex(expression).map_err(|refusal| {
+            match refusal {
+                crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
+                _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
+            }
         })?;
-    portable_expression_definition(&program, temporal)
+    let input = expression
+        .input_type
+        .structured_info_type_with(&expression.semantic_structures)?;
+    let output = expression
+        .value_type
+        .structured_info_type_with(&expression.semantic_structures)?;
+    expression_definition_from_encoding(
+        expression_port_kind(&input)?,
+        expression_port_kind(&output)?,
+        encoded,
+        temporal,
+    )
 }
 
 /// Projects a checked Boolean predicate into canonical unary filtering. Flows
@@ -82,12 +95,13 @@ pub fn portable_filter_definition(
     } else {
         value.clone()
     };
-    let identity = hash_string(&format!(
-        "pure-filter:{PURE_FILTER_REVISION}:{}:{}:{}",
+    let identity = expression_identity(&[
+        "pure-filter",
+        PURE_FILTER_REVISION,
         value.as_str(),
         temporal.as_str(),
-        encoded_program
-    ));
+        &encoded_program,
+    ]);
     Ok(KindProjection {
         kind_id: kind_id(&format!("conduitese/pure-filter/{identity}")),
         kind_contract_revision: KindIdentity::from(PURE_FILTER_REVISION),
@@ -125,13 +139,23 @@ pub fn portable_expression_definition(
     })?;
     let input = expression_port_kind(&program.input_type)?;
     let output = expression_port_kind(&program.output_type)?;
-    let identity = hash_string(&format!(
-        "pure-expression:{PURE_EXPRESSION_REVISION}:{}:{}:{}:{}",
+    expression_definition_from_encoding(input, output, encoded_program, temporal)
+}
+
+fn expression_definition_from_encoding(
+    input: conduit_core::KindId,
+    output: conduit_core::KindId,
+    encoded_program: alloc::string::String,
+    temporal: PortTemporal,
+) -> Result<KindProjection, StructuredInfoRefusal> {
+    let identity = expression_identity(&[
+        "pure-expression",
+        PURE_EXPRESSION_REVISION,
         input.as_str(),
         output.as_str(),
         temporal.as_str(),
-        encoded_program
-    ));
+        &encoded_program,
+    ]);
     Ok(KindProjection {
         kind_id: kind_id(&format!("conduitese/pure-expression/{identity}")),
         kind_contract_revision: KindIdentity::from(PURE_EXPRESSION_REVISION),
@@ -165,5 +189,48 @@ fn expression_port_kind(
     match value_type.shape() {
         conduit_core::StructuredInfoTypeShape::Leaf(kind) => Ok(kind.clone()),
         _ => Ok(value_type.profile()?.value_kind().clone()),
+    }
+}
+
+// Hash the exact existing colon-delimited identity without copying its program.
+fn expression_identity(fields: &[&str]) -> alloc::string::String {
+    use sha2::{Digest, Sha256};
+    let mut digest = Sha256::new();
+    for (index, field) in fields.iter().enumerate() {
+        if index != 0 {
+            digest.update(b":");
+        }
+        digest.update(field.as_bytes());
+    }
+    format!("{:x}", digest.finalize())
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    #[test]
+    fn streaming_identity_preserves_the_existing_exact_delimited_bytes() {
+        for fields in [
+            &[
+                "pure-expression",
+                PURE_EXPRESSION_REVISION,
+                "value/u8",
+                "value/u16",
+                "value",
+                "012345abcdef",
+            ][..],
+            &[
+                "pure-filter",
+                PURE_FILTER_REVISION,
+                "type/exact:record",
+                "flow",
+                "",
+            ][..],
+        ] {
+            assert_eq!(
+                expression_identity(fields),
+                crate::hash_string(&fields.join(":"))
+            );
+        }
     }
 }

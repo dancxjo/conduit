@@ -61,6 +61,7 @@ fn planned_named_source_with_joins<P: I2cProvider>(
 ) {
     let contract = I2cContract::prepare().unwrap();
     let (mut startup, mut profile) = contract.catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     let (join_offer, joins) = if source.contains("flow/zip/finite") {
         let (offer, joins) = join::install(&mut startup, &mut profile);
         (Some(offer), joins)

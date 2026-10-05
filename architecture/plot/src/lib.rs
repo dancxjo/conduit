@@ -1307,3 +1307,6 @@ mod refinement_tests;
 
 #[cfg(test)]
 mod canonical_expansion_tests;
+
+mod source_type_preparation;
+pub use source_type_preparation::{prepare_source_types, PreparedSourceTypes};

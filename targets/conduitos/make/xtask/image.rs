@@ -74,7 +74,13 @@ pub(super) fn assemble_architecture_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
-    assemble_with_role(arch, None, ArtifactRole::ArchitectureProofAppliance, opts)
+    assemble_with_role(
+        arch,
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+        opts,
+    )
 }
 
 pub(super) fn assemble_product(
@@ -86,17 +92,63 @@ pub(super) fn assemble_product(
         arch,
         Some(build_description),
         ArtifactRole::ProductHost,
+        None,
         opts,
     )
+}
+
+pub(super) struct ProtocolModules<'a> {
+    pub kernel: &'a Path,
+    pub output: &'a Path,
+    pub source: &'a [u8],
+    pub request: &'a [u8],
+}
+
+pub(super) fn assemble_protocol(
+    modules: ProtocolModules<'_>,
+    opts: &GlobalOpts,
+) -> Result<ImageRecord, ConduitosError> {
+    assemble_with_role(
+        ConduitosArch::X86_64,
+        None,
+        ArtifactRole::ProductHost,
+        Some(modules),
+        opts,
+    )
+}
+
+fn stage_protocol(paths: &Paths, modules: ProtocolModules<'_>) -> Result<(), ConduitosError> {
+    let boot = paths.iso_root.join("boot");
+    fs::write(boot.join("conduit-protocol-source.json"), modules.source)
+        .and_then(|()| fs::write(boot.join("conduit-protocol-root.json"), modules.request))
+        .map_err(|error| {
+            ConduitosError::refusal("protocol-image-staging-failed", error.to_string())
+        })?;
+    let mut config = fs::OpenOptions::new()
+        .append(true)
+        .open(paths.iso_root.join("limine.conf"))
+        .map_err(|error| {
+            ConduitosError::refusal("protocol-image-staging-failed", error.to_string())
+        })?;
+    config.write_all(b"    module_path: boot():/boot/conduit-protocol-source.json\n    module_string: conduit.protocol/source@1\n    module_path: boot():/boot/conduit-protocol-root.json\n    module_string: conduit.protocol/root-request@1\n")
+        .map_err(|error| ConduitosError::refusal("protocol-image-staging-failed", error.to_string()))
 }
 
 fn assemble_with_role(
     arch: ConduitosArch,
     build_description: Option<&[u8]>,
     artifact_role: ArtifactRole,
+    protocol: Option<ProtocolModules<'_>>,
     opts: &GlobalOpts,
 ) -> Result<ImageRecord, ConduitosError> {
-    let paths = Paths::new(arch)?;
+    let mut paths = Paths::new(arch)?;
+    let module_count = if protocol.is_some() { 2 } else { 0 };
+    if let Some(modules) = &protocol {
+        paths.kernel = modules.kernel.to_owned();
+        paths.target = modules.output.to_owned();
+        paths.iso_root = modules.output.join("iso-root");
+        paths.iso = modules.output.join("conduitos.iso");
+    }
     if opts.dry_run {
         println!("fetch and verify pinned Limine {LIMINE_VERSION}");
         println!("assemble {}", paths.iso.display());
@@ -107,7 +159,9 @@ fn assemble_with_role(
             limine_version: LIMINE_VERSION,
             limine_archive_sha256: LIMINE_ARCHIVE_SHA256,
             iso_sha256: "dry-run".into(),
-            file_count: EXPECTED_IMAGE_FILE_COUNT + usize::from(build_description.is_some()),
+            file_count: EXPECTED_IMAGE_FILE_COUNT
+                + usize::from(build_description.is_some())
+                + module_count,
         });
     }
     prepare_limine(&paths)?;
@@ -116,9 +170,13 @@ fn assemble_with_role(
         fs::write(paths.iso_root.join("boot/conduit-build.json"), description)
             .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     }
+    if let Some(modules) = protocol {
+        stage_protocol(&paths, modules)?;
+    }
     create_iso(&paths)?;
     let file_count = count_files(&paths.iso_root)?;
-    let expected_file_count = EXPECTED_IMAGE_FILE_COUNT + usize::from(build_description.is_some());
+    let expected_file_count =
+        EXPECTED_IMAGE_FILE_COUNT + usize::from(build_description.is_some()) + module_count;
     if file_count != expected_file_count {
         return Err(ConduitosError::refusal(
             "unexpected-image-content",

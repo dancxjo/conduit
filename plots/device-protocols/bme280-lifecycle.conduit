@@ -4,12 +4,14 @@
 # Polling consumes at most eight status reads. No retry follows a bus refusal.
 with machine/i2c/transact/request as I2cTransaction
 with machine/i2c/transact/result as I2cResult
+with machine/clock/at/result as ClockResult
 
 type BmeProtocolFailure =
     none
     | wrong-identity U8
     | unsupported-address U8
     | bus I2cResult
+    | clock ClockResult
     | malformed
     | timeout
     | unexpected
@@ -38,6 +40,7 @@ type BmeTimedBusResult = {
 type BmeProtocolEvent =
     bus BmeTimedBusResult
     | tick U64
+    | clock-failed ClockResult
 
 type BmeProtocolTransition = {
     state: BmeProtocolState
@@ -66,7 +69,7 @@ type BmeProtocolStep = {
 
 plot bme280-step-begin (
  input: BmeProtocolTransition...| >> output: BmeProtocolStep...|
-) = ({ state: (.state.phase >= 14 ? { address: .state.address, phase: .state.phase, index: .state.index, polls: .state.polls, deadline: .state.deadline, clock: (variant/is(.event, "tick") ? .event.tick : .event.bus.now), ready: false, first: .state.first, humidity_first: .state.humidity_first, humidity: .state.humidity, sample: .state.sample, failure: .state.failure } : .state), event: .event, handled: .state.phase >= 14 })
+) = (.event is clock-failed ? { state: { address: .state.address, phase: 15, index: .state.index, polls: .state.polls, deadline: .state.deadline, clock: .state.clock, ready: true, first: .state.first, humidity_first: .state.humidity_first, humidity: .state.humidity, sample: .state.sample, failure: clock(.event.clock-failed) }, event: .event, handled: true } : ({ state: (.state.phase >= 14 ? { address: .state.address, phase: .state.phase, index: .state.index, polls: .state.polls, deadline: .state.deadline, clock: (variant/is(.event, "tick") ? .event.tick : .event.bus.now), ready: false, first: .state.first, humidity_first: .state.humidity_first, humidity: .state.humidity, sample: .state.sample, failure: .state.failure } : .state), event: .event, handled: .state.phase >= 14 }))
 
 plot bme280-step-address (
  input: BmeProtocolStep...| >> output: BmeProtocolStep...|

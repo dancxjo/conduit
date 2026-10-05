@@ -8,7 +8,8 @@ const SOURCE: &str = concat!(
 #[test]
 fn actual_bme_source_initializer_seeds_exact_native_state_through_the_kernel() {
     let contract = crate::i2c_base::contract::I2cContract::prepare().unwrap();
-    let (startup, profile) = contract.catalogs();
+    let (mut startup, profile) = contract.catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     // Derive the cell's exact schema from the reviewed lifecycle definitions.
     let lifecycle = check_syntax_document(
         &parse_syntax_document(include_str!(
