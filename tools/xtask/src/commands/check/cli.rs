@@ -43,6 +43,8 @@ pub enum CheckSuite {
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
     InputSemantics,
+    /// Prove owner-issued presentation routes without waking the workload.
+    OwnerPresentation,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
     HostedBaseIsolation,
     /// Prove the exact-endpoint OS-capability-mediated HTTP Base.

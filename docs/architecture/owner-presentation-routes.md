@@ -1,0 +1,77 @@
+# Owner presentation while the workload is lulled
+
+The decision in [#4922](https://github.com/dancxjo/conduit/issues/4922)
+allows a Body owner to admit presentation independently of a workload Wake.
+A Mask remains an ordinary checked Plot, planned from current executable offers
+and run through the production kernel. Its Mask Plan, Mask Play and acknowledged
+Show are separate from the Body workload Plan and Play. Showing a lulled Face
+must not create a placeholder Wake or remove its available interval action.
+
+## Exact route truth
+
+`LocalOwnerMaskRouteSeal` binds the Body, workset revision, exact Face identity,
+revision and basis, complete current Host/Boot/offer, and ordinary Mask Plan.
+It verifies the selected Back and resources and refuses remote fragments or
+Lines; a local terminal route has no cross-Host Cord to realize.
+`RemoteOwnerMaskRouteSeal` additionally binds a current admitted Part and the
+exact directional Face and return Line offers, credentials, authority and bounds.
+Membership, presence and matching identifiers cannot substitute for these facts.
+
+`OwnerPresentationPlan` seals at most eight verified child routes and at most
+2 MiB of serialized plan truth. Child Mask Plan and owner route-seal identities
+remain inspectable; the outer identity does not relabel a child Plan. Ordinary
+planning/lowering admits queues, payloads, Host Calls and work for each Mask.
+The seal itself is preparation and performs no platform effect.
+
+The owner retains the wardrobe and accepts only a Show acknowledged for its
+selected route and exact current Face. `AdmittedMaskPlotRoutes` and
+`MaskWardrobeControl` also accept owner presentation Plans; they do not require
+a workload BodyPlan. Losing a current witness makes a previously sealed route
+unavailable. Choosing another already-sealed route does not replan. Changing
+Face/workset/offer truth requires explicit replacement and a fresh acknowledged
+Show; selecting an old route again does not revive its former Show.
+
+## Installed terminal realization
+
+For an installed, lulled clock Body, the public entrance is:
+
+```sh
+conduit body terminal --owner-show --state-dir <installation-directory>
+```
+
+The authenticated foreground connection attaches the real terminal input/output
+provider to the owner's actual StdHost. The owner selects the offered terminal
+Backs and resources, injects its exact Face at the Mask's declared input and runs
+the ordinary kernel. An Available Show follows the foreground's exact write and
+flush acknowledgement. `apply 500` returns a typed `FaceInteraction` through the
+Mask Fore and replaces the same Body's retained clock workset while leaving it
+lulled. The consumed route cannot be submitted again; reattachment seals the new
+Face. Unsupported values and stale action bases refuse.
+
+Disconnect, missing acknowledgement, stale Face, or changed Host/Boot/offer
+retires the attachment and Show. Cancellation retires the bounded Mask execution.
+Starting workload execution requires detaching this provider because the current
+owner moves StdHost into its workload worker. Presentation during active workload
+execution is not claimed by this installed terminal slice.
+
+## Proof and scope
+
+Run the bounded deterministic and actual Unix-provider acceptance through:
+
+```sh
+cargo xtask check owner-presentation
+```
+
+The suite covers actual attachment/flush acknowledgement, a typed clock action
+and replacement, missing acknowledgement and disconnect, stale offers, replay,
+finite Mask execution and cancellation, exact route ensembles, sealed alternative
+selection versus replacement, and missing/stale/lost browser carrier evidence.
+Browser and ensemble fixtures prove contracts, not live browser delivery.
+
+The browser route currently seals directional evidence from the accepted
+WebSocket carrier around a single-Host Mask Plot; that child Plot does not select
+a cross-Host Cord. This does not establish a distributed Mask Plot or a multi-host
+product wardrobe. Local/tutorial Mask paths remain component proof.
+[#4807](https://github.com/dancxjo/conduit/issues/4807) owns the live shared-Body
+browser/QMP/terminal journey and publication. These development capabilities and
+this contract do not supply that live, stable-publication or human evidence.
