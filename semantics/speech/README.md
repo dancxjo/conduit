@@ -293,12 +293,16 @@ energy distributions; this is acoustic model evidence, not human intelligibility
 Sample rate and admission limits come from the checked literal
 `speech/profile` plot, without a second Rust copy of that policy.
 
-The optional `kernel` feature provides the exact `speech/english-utterance`
+The optional `kernel` feature provides the portable `speech/utterance`
 contract, offer and `NativeSpeechBack`. It accepts one bounded text value and
 emits canonical `audio/pcm-frames@1` on a closing Flow: mono s16le at 8 kHz,
 128-frame maximum blocks, a configured semantic media-clock identity, and
 contiguous frame positions. Preparation checks the selected Fore, Kind,
-implementation, source-bound artifact, limits and absence of resources/authority.
+implementation, source-bound artifact, exact Language coverage, limits and absence of resources/authority.
+An authored Language request is mandatory. The compiled Back declares only
+`language/english` with the exact `pronunciation/native-english@2` variety;
+French, undeclared coverage, and another pronunciation variety refuse during
+planning. Preparation checks the same request and retained declaration again.
 The kernel retains the original text value until the last block commits; private
 segment ranges therefore remain source-scoped. The Back stages a copied cursor
 and fixed PCM bytes, then advances only in `step_committed`. Existing kernel

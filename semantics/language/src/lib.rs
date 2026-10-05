@@ -45,3 +45,6 @@ pub use mapping_projection::*;
 
 mod coverage;
 pub use coverage::*;
+
+mod request_contract;
+pub use request_contract::*;
