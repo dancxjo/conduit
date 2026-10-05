@@ -8,6 +8,9 @@ fn keyboard_length_error_usages_and_duplicates_remain_distinct() {
     let mut prepared = PreparedPortableExpressionEvaluator::new(&p).unwrap();
     let mut cases = vec![
         (vec![], 0, false, "short"),
+        (vec![0; 9], 9, false, "malformed"),
+        (vec![0; 1025], 1025, false, "malformed"),
+        (vec![0; 2048], 2048, false, "malformed"),
         (vec![0; 7], 7, false, "short"),
         (vec![0; 8], 7, false, "malformed"),
         (vec![0; 8], u64::MAX, false, "malformed"),
@@ -32,6 +35,10 @@ fn keyboard_length_error_usages_and_duplicates_remain_distinct() {
     }
     for (wire, actual, strict, expected) in cases {
         let input = request(&p, &wire, actual, strict);
+        assert!(
+            input.len() <= 4096,
+            "packed report exceeds the admitted frame surface"
+        );
         let ordinary = p.evaluate(&input).unwrap();
         let result = prepared.evaluate(&input).unwrap();
         assert_eq!(result, ordinary);
