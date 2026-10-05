@@ -29,6 +29,8 @@ pub(super) struct KernelProofSign {
     attachment_epoch: u32,
     transfers: u16,
     short_transfers: u16,
+    additional_local_sign_items: u16,
+    additional_remote_sign_items: u16,
     cycle_transitions: u16,
     initial_enqueue: usize,
     initial_cycle: u32,
@@ -66,7 +68,7 @@ pub(super) fn extract(
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     let (mut cursor, mut cycle) = initial;
     let mut transitions = 0;
-    for _ in 0..2 {
+    for _ in 0..control_proof_plan::CONTROL_PROOF_TRANSFERS {
         if cursor > 28 {
             cursor = 0;
             cycle ^= 1;
@@ -74,7 +76,7 @@ pub(super) fn extract(
         }
         cursor += 3;
     }
-    if sign.schema != "conduit.conduitos.usb-control-kernel/v1"
+    if sign.schema != "conduit.conduitos.usb-control-kernel/v2"
         || sign.proof_class != "freestanding-emulator"
         || sign.status != "completed"
         || sign.host_id != subject.host_id
@@ -90,8 +92,13 @@ pub(super) fn extract(
         || sign.plan_id != plan.plan_id.as_str()
         || sign.fragment_id != fragment.fragment_id.as_str()
         || sign.active_play_id != active.active_play_id.as_str()
-        || sign.transfers != 2
-        || sign.short_transfers != 2
+        || sign.transfers != control_proof_plan::CONTROL_PROOF_TRANSFERS
+        || sign.short_transfers != control_proof_plan::CONTROL_PROOF_TRANSFERS
+        || sign.additional_local_sign_items
+            != control_proof_plan::CONTROL_PROOF_SIGN_STORAGE.additional_local_items
+        || sign.additional_remote_sign_items
+            != control_proof_plan::CONTROL_PROOF_SIGN_STORAGE.additional_remote_items
+        || sign.cycle_transitions < 4
         || sign.cycle_transitions != transitions
         || (sign.initial_enqueue, sign.initial_cycle) != initial
         || sign.final_enqueue != cursor
@@ -136,13 +143,13 @@ mod tests {
         let fragment = &plan.fragments[0];
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         serde_json::json!({
-            "schema":"conduit.conduitos.usb-control-kernel/v1", "proof_class":"freestanding-emulator", "status":"completed",
+            "schema":"conduit.conduitos.usb-control-kernel/v2", "proof_class":"freestanding-emulator", "status":"completed",
             "host_id":subject.host_id, "boot_id":subject.boot_id, "controller_base_id":subject.controller_base_id, "device_instance_id":subject.device_instance_id,
             "source_document_id":plan.source_document_id.as_str(), "checked_plot_id":plan.checked_plot_id.as_str(), "expanded_plot_id":plan.expanded_plot_id.as_str(),
             "plan_id":plan.plan_id.as_str(), "fragment_id":fragment.fragment_id.as_str(), "active_play_id":active.active_play_id.as_str(),
             "transcript_digest":"1".repeat(64), "root_port":1, "slot":1, "attachment_epoch":1,
-            "transfers":2, "short_transfers":2, "cycle_transitions":1, "initial_enqueue":27, "initial_cycle":1,
-            "final_enqueue":3, "final_cycle":0, "output_capacity":4096, "dma_bytes":8192, "maximum_in_flight":1, "normal_close":true, "fixture_protocol":true
+            "transfers":64, "short_transfers":64, "additional_local_sign_items":2048, "additional_remote_sign_items":256, "cycle_transitions":7, "initial_enqueue":27, "initial_cycle":1,
+            "final_enqueue":9, "final_cycle":0, "output_capacity":4096, "dma_bytes":8192, "maximum_in_flight":1, "normal_close":true, "fixture_protocol":true
         })
     }
     fn serial(value: &serde_json::Value) -> String {

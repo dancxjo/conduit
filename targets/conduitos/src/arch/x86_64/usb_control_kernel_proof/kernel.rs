@@ -81,8 +81,12 @@ pub(super) fn kernel(
         )
         .map_err(|_| "usb-control-proof-kernel")?;
     Ok((
-        KernelCompositeHost::prepare(definition, &registry)
-            .map_err(|_| "usb-control-proof-kernel")?,
+        KernelCompositeHost::prepare_with_sign_storage(
+            definition,
+            &registry,
+            planning::CONTROL_PROOF_SIGN_STORAGE,
+        )
+        .map_err(|_| "usb-control-proof-kernel")?,
         input,
         output,
     ))

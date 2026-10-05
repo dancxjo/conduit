@@ -13,6 +13,14 @@ use conduit_planner::{
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
 };
+/// Finite proof-root workload, with Sign history admitted before Play.
+pub const CONTROL_PROOF_TRANSFERS: u16 = 64;
+pub const CONTROL_PROOF_SIGN_STORAGE: conduit_composite::KernelCompositeSignStorage =
+    conduit_composite::KernelCompositeSignStorage {
+        additional_local_items: 2048,
+        additional_remote_items: 256,
+    };
+
 /// Observed identities supplied by the proof root; these data grant no authority.
 pub struct ControlProofSubject<'a> {
     pub host_id: &'a str,

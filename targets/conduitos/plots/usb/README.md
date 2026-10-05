@@ -192,7 +192,7 @@ native storage until acknowledged Slot disable. An acknowledged normal transfer
 returns the device to the composition root without resetting its cursor or
 issuing a new grant.
 
-The x86_64 proof appliance requires two short control transfers through the
+The x86_64 proof appliance requires 64 short control transfers through the
 checked `control.conduit` Source and production kernel, followed by normal closure.
 The host reconstructs its exact Source, checked/expanded plot, Plan, fragment and
 Play identities from the observed Boot/controller/attachment and verifies a
@@ -200,12 +200,14 @@ separate bounded transcript receipt. Its explicit cooperative proof grant does
 not establish hostile-code confinement or authorize discovered devices for
 ordinary product use. This raw-transfer fixture does not interpret USB classes.
 
-The kernel profile's finite remote lifecycle-sign storage refuses a fifth input
-after four completed input/output pairs. A deterministic test preserves that
-machine-readable refusal. The checked proof uses two calls to reserve room for
-terminal signs; sustained kernel execution requires an independently reviewed
-bounded sign-budget or retirement seam. The separate 64-transfer native ring
-receipt proves raw ring reuse, not sustained checked class execution.
+The proof root admits 2048 additional local and 256 additional remote lifecycle
+Sign items during preparation, then runs 64 complete input/output pairs and
+normal closure through one kernel Play. Its versioned receipt binds those
+finite bounds and requires at least four complete ring-cycle transitions.
+The ordinary default profile retains its earlier finite Sign budget and exact
+exhaustion refusal. Additional storage grants no controller authority and cannot
+grow during Play. The separate native ring receipt remains fixture evidence;
+neither receipt establishes checked class execution.
 
 The protocol calculations and register definition are not installed product
 device offers. Register calls execute through the production kernel in a

@@ -6,6 +6,12 @@ use conduit_composite::*;
 use conduit_plot::CompositeFrontTerminal;
 
 fn prepared() -> (KernelCompositeHost, PortDescriptor, PortDescriptor) {
+    prepared_with_sign_storage(KernelCompositeSignStorage::default()).unwrap()
+}
+
+fn prepared_with_sign_storage(
+    sign_storage: KernelCompositeSignStorage,
+) -> Result<(KernelCompositeHost, PortDescriptor, PortDescriptor), KernelCompositeError> {
     let plan = planned();
     let fragment = &plan.fragments[0];
     let gear = &fragment.placements[0];
@@ -76,11 +82,11 @@ fn prepared() -> (KernelCompositeHost, PortDescriptor, PortDescriptor) {
     registry
         .install(ControlOperationFactory::prepare_contract().unwrap())
         .unwrap();
-    (
-        KernelCompositeHost::prepare(definition, &registry).unwrap(),
+    Ok((
+        KernelCompositeHost::prepare_with_sign_storage(definition, &registry, sign_storage)?,
         input,
         output,
-    )
+    ))
 }
 
 fn input(contract: &ControlContract) -> Vec<u8> {
@@ -442,3 +448,6 @@ fn checked_control_plot_refuses_input_when_remote_sign_budget_is_exhausted() {
     ));
     assert!(kernel.next_host_request().is_none());
 }
+
+#[path = "execution/sustained.rs"]
+mod sustained;

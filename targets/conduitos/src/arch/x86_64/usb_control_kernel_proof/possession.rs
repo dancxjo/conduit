@@ -35,7 +35,7 @@ pub(super) fn issue(
         maximum_result_bytes: CONTROL_MAXIMUM_BYTES,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations: 2,
+        maximum_operations: u32::from(planning::CONTROL_PROOF_TRANSFERS),
     };
     let authority = BaseCapabilityAuthority {
         grant: AuthorityGrant {
@@ -57,7 +57,7 @@ pub(super) fn issue(
         maximum_result_bytes: CONTROL_MAXIMUM_BYTES,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations: 2,
+        maximum_operations: u32::from(planning::CONTROL_PROOF_TRANSFERS),
     };
     let claim = BaseOperationClaim {
         host_id: scope.host_id.clone(),
