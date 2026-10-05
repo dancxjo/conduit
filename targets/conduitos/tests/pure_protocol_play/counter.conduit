@@ -1,0 +1,41 @@
+# Deterministic Source fixture, with no physical offers or device policy.
+type PureCounterFrame = {
+    terminal: Boolean
+    value: U64
+}
+type PureNext =
+    next PureCounterFrame
+    | stopped
+type PureNumber = {
+    value: U64
+}
+type PureChoice =
+    number PureNumber
+    | ignored
+plot pure-counter-initialize (
+    value: U64...| >> frame: PureCounterFrame...|
+) = ({ terminal: false, value: . })
+plot pure-counter-advance (
+    frame: PureCounterFrame...| >> next: PureNext...|
+) = (.terminal ? stopped(unit) : next({ terminal: .value >= 62, value: .value + 1 }))
+plot pure-counter (
+    >> begin: U64...|
+    observed: PureCounterFrame...| <= 4096B >>
+) {
+    cell: state/seeded/flow/until
+    begin >> pure-counter-initialize() >> cell.seed
+    cell.current >> observed
+    cell.current >> pure-counter-advance() >> select(PureNext.next, unmatched=drop) >> cell.next
+}
+plot pure-overflow (
+    number: U64...| >> advanced: U64...|
+) = (. + 1)
+plot pure-choose (
+    value: U64...| >> choice: PureChoice...|
+) = (. == 0 ? ignored(unit) : number({ value: . }))
+plot pure-selected (
+    >> number: U64...|
+    selected: PureNumber...| >>
+) {
+    number >> pure-choose() >> select(PureChoice.number, unmatched=drop) >> selected
+}
