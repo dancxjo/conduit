@@ -185,10 +185,15 @@ pub fn run(
                         .execute(call.node, call.call, call.request, bytes)
                         .map_err(|_| "usb-device-probe-native-call")?;
                     digest.update(result);
-                    proof
-                        .kernel
-                        .complete_host_call_bytes(&admitted, result)
-                        .map_err(|_| "usb-device-probe-completion")?;
+                    if let Err(error) = proof.kernel.complete_host_call_bytes(&admitted, result) {
+                        let mut refusal = FixedText::new();
+                        let _ = writeln!(
+                            refusal,
+                            "CONDUIT_USB_DEVICE_PROBE_REFUSAL phase=completion sequence={sequence} error={error:?}"
+                        );
+                        early_write(refusal.as_bytes());
+                        return Err("usb-device-probe-completion");
+                    }
                     calls += 1;
                     if u64::from(calls) != sequence + 1 {
                         return Err("usb-device-probe-duplicate-transfer");
