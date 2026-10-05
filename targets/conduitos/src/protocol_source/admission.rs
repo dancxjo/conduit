@@ -1,6 +1,7 @@
 //! Keep packaged Source and retained operation owners together through admission.
 use super::*;
 use crate::protocol_artifact::{AdmittedProtocolArtifact, ProtocolArtifactIdentity};
+use crate::protocol_host_calls::ProtocolCallRefusal;
 use conduit_core::{ArtifactId, BaseImplementationId, HostAdvertisement};
 use conduit_planner::{PlacementChoices, PlanningOptions};
 use conduit_plot::ExpandedAuthoringPlot;
@@ -94,6 +95,21 @@ impl PreparedProtocolSource {
 impl PreparedProtocolArtifact {
     pub fn artifact(&self) -> &AdmittedProtocolArtifact {
         &self.artifact
+    }
+
+    /// Consume the exact local Plan and retained generic operation owners.
+    /// This profile executes computation/state only; it cannot admit a physical
+    /// implementation, transport Line, resource Cord, or device authority.
+    /// The containing machine reserves all additional Sign storage before Play.
+    pub fn prepare_pure(
+        self,
+        storage: conduit_composite::KernelCompositeSignStorage,
+    ) -> Result<crate::pure_protocol_play::PreparedPureProtocolPlay, ProtocolCallRefusal> {
+        crate::pure_protocol_play::PreparedPureProtocolPlay::prepare(
+            self.artifact.into_definition(),
+            self.operations,
+            storage,
+        )
     }
 
     /// Contribute the exact retained protocol Plan to ordinary body admission.
