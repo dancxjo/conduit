@@ -1,6 +1,6 @@
 use super::*;
 
-fn checked(source: &str) -> ExpandedAuthoringPlot {
+pub(super) fn checked(source: &str) -> ExpandedAuthoringPlot {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles).unwrap();

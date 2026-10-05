@@ -7,6 +7,9 @@
 
 extern crate alloc;
 
+mod reference;
+#[cfg(test)]
+mod reference_tests;
 #[cfg(test)]
 mod tests;
 
@@ -133,11 +136,7 @@ pub fn render_svg(
         escape(&expanded.name)
     )
     .unwrap();
-    writeln!(
-        svg,
-        "<desc id=\"desc\">Checked Conduit Plot with exact typed port connections.</desc>"
-    )
-    .unwrap();
+    reference::write_description(&mut svg, authoring);
     svg.push_str(r#"<style>svg{--diagram-background:#05070b;--diagram-surface:#090d16;--diagram-reading-paper:#0c121c;--diagram-structure:#0dd8f6;--diagram-structure-secondary:#0a1f87;--diagram-text:#93d2f7;--diagram-text-secondary:#578ec9;--diagram-emphasis:#e9a325;--diagram-failure:#ff7272;--diagram-success:#63d69b}@media(prefers-color-scheme:light){svg{--diagram-background:#eef5f8;--diagram-surface:#fff;--diagram-reading-paper:#fff;--diagram-structure:#00758c;--diagram-structure-secondary:#9ab8d1;--diagram-text:#17364d;--diagram-text-secondary:#496b82;--diagram-emphasis:#9a5b00;--diagram-failure:#a32d37;--diagram-success:#08784e}}text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:var(--conduit-text-primary,var(--diagram-text))}.canvas{fill:var(--conduit-background,var(--diagram-background))}.gear{fill:var(--conduit-reading-paper,var(--diagram-reading-paper));stroke:var(--conduit-text-secondary,var(--diagram-text-secondary));stroke-width:2}.header{fill:var(--conduit-surface,var(--diagram-surface))}.gear-mark{fill:var(--conduit-emphasis,var(--diagram-emphasis))}.gear-hole{fill:var(--conduit-surface,var(--diagram-surface))}.boundary{fill:var(--conduit-surface,var(--diagram-surface));stroke:var(--conduit-structure-primary,var(--diagram-structure));stroke-width:2}.port{fill:var(--conduit-background,var(--diagram-background));stroke-width:3}.input-port{stroke:var(--conduit-structure-primary,var(--diagram-structure))}.output-port{stroke:var(--conduit-emphasis,var(--diagram-emphasis))}.port-name{fill:var(--conduit-text-primary,var(--diagram-text));font-size:13px;font-weight:800}.cord-shadow{fill:none;stroke:var(--conduit-background,var(--diagram-background));stroke-width:9;stroke-linejoin:round}.cord{fill:none;stroke:var(--conduit-structure-primary,var(--diagram-structure));stroke-width:3;stroke-linejoin:round}.close{stroke:var(--conduit-text-secondary,var(--diagram-text-secondary));stroke-dasharray:8 5}.quiescence{stroke:#9d7bd1;stroke-dasharray:3 5}.abnormal{stroke:var(--conduit-failure,var(--diagram-failure));stroke-dasharray:5 5}.split-junction{fill:var(--conduit-emphasis,var(--diagram-emphasis));stroke:var(--conduit-background,var(--diagram-background));stroke-width:3}.join-junction{fill:var(--conduit-structure-primary,var(--diagram-structure));stroke:var(--conduit-background,var(--diagram-background));stroke-width:3}.kind{fill:var(--conduit-success,var(--diagram-success));font-size:13px}.boundary-port{fill:var(--conduit-text-primary,var(--diagram-text));font-size:13px;font-weight:750}.cord-tag{fill:var(--conduit-surface,var(--diagram-surface));stroke:var(--conduit-emphasis,var(--diagram-emphasis));stroke-width:1}.cord-label{fill:var(--conduit-emphasis,var(--diagram-emphasis));font-size:10px;font-weight:600}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:var(--conduit-text-secondary,var(--diagram-text-secondary))}</style>"#);
     svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--conduit-structure-primary,var(--diagram-structure))"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--conduit-failure,var(--diagram-failure))"/></marker><symbol id="gear-mark" viewBox="0 0 24 24"><path class="gear-mark" d="M19.4 13a7.7 7.7 0 0 0 0-2l2.1-1.6a.6.6 0 0 0 .1-.7l-2-3.5a.6.6 0 0 0-.7-.2l-2.5 1a8 8 0 0 0-1.7-1l-.4-2.6A.6.6 0 0 0 13.8 2h-4a.6.6 0 0 0-.6.4L8.9 5a8 8 0 0 0-1.7 1L4.7 5a.6.6 0 0 0-.7.2L2 8.7a.6.6 0 0 0 .1.7L4.2 11a7.7 7.7 0 0 0 0 2l-2.1 1.6a.6.6 0 0 0-.1.7l2 3.5a.6.6 0 0 0 .7.2l2.5-1a8 8 0 0 0 1.7 1l.4 2.6a.6.6 0 0 0 .6.4h4a.6.6 0 0 0 .6-.4l.4-2.6a8 8 0 0 0 1.7-1l2.5 1a.6.6 0 0 0 .7-.2l2-3.5a.6.6 0 0 0-.1-.7z"/><circle class="gear-hole" cx="12" cy="12" r="3.2"/></symbol></defs>"##);
     writeln!(

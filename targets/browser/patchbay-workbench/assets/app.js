@@ -1,6 +1,8 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
 import { createApplicationPresentationHost } from "/assets/application-presentation.mjs";
-import { arrangeFlow, configureFlowStorage, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
+import { arrangeFlow, configureFlowStorage, configureFlowWorkspaceValidator, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
+import { renderConfigurationFields } from "/assets/authoring.js";
+import { installWorkspaceControls } from "/assets/workspace-controls.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 import { createPatchbaySharedPresentation } from "/assets/shared-presentation.js";
 import { createProductMasthead } from "/assets/product-masthead.mjs";
@@ -168,7 +170,33 @@ function renderWatches(subject){
   }sharedPresentation.boundedArtifacts("watch-list",summaries);sharedPresentation.boundedArtifacts("watch-history",history);sharedPresentation.boundedArtifacts("learned-watch-list",learned,3);
 }
 
-function configurationValue(defaultValue,raw){if(defaultValue.U64!==undefined)return {U64:Number(raw)};if(defaultValue.I64!==undefined)return {I64:Number(raw)};if(defaultValue.Bool!==undefined)return {Bool:raw==="true"};if(defaultValue.Text!==undefined)return {Text:raw};throw new Error("this configuration value is not supported by the common browser editor");}
+const updateWorkspaceControls=installWorkspaceControls(document.querySelector("#workspace-controls"),()=>state.selected,selectLens);
+configureFlowWorkspaceValidator(async document=>{
+  const response=await fetch(apiUrl("workspace"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(document)});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.diagnostic??"Workspace admission refused");
+});
+function workspaceChanged(status){
+  updateWorkspaceControls(status);
+  if(status.status==="Ready"&&status.lens!==state.lens)selectLens(status.lens).catch(error=>{document.querySelector("#workspace-status").textContent=`Lens unavailable: ${error.message}`;});
+}
+async function authoringQuery(query,fields){
+  const basis=state.snapshot.authoring;
+  const response=await fetch(apiUrl("authoring-query"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query,revision:basis.source_revision,expanded_plot_id:basis.expanded_plot_id,...fields})});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.diagnostic??`Authoring query HTTP ${response.status}`);
+  if(state.snapshot.authoring?.source_revision!==basis.source_revision||state.snapshot.authoring?.expanded_plot_id!==basis.expanded_plot_id)throw new Error("Authoring query names a stale checked Plot");
+  return result;
+}
+async function beginCord(semantic,identity){
+  const request=(state.cordQuerySequence??0)+1;state.cordQuerySequence=request;
+  const result=await authoringQuery("connections",{source:semantic});
+  if(state.cordQuerySequence!==request)return;
+  state.cordSource=semantic;state.cordCandidates=result.candidates;state.cordRevision=result.revision;
+  state.snapshot.authoring.connection_candidates=result.candidates;
+  render(state.snapshot);
+  displaySelection(identity);
+}
 function renderAuthoringActions(subject){
   const authoring=state.snapshot.authoring,nodes=[{parent:null,component:"stack",key:"authoring",text:"",action:null}],actions=[],callbacks=[];
   const addAction=(event,run)=>{const index=actions.length;actions.push({id:`authoring-${index}`,event});callbacks.push(run);return index;};
@@ -176,22 +204,34 @@ function renderAuthoringActions(subject){
   if(!authoring||!subject){present();return;}
   const semantic=semanticIdentity(subject.identity);
   if(subject.role==="Gear"){
-    const kind=property(subject.identity,"kind-id")?.value?.Identity,entry=authoring.palette.find(item=>item.kind_id===kind);
     addButton("Duplicate Gear",()=>authoringEdit("duplicate-gear",semantic));addButton("Remove Gear",()=>authoringEdit("remove-gear",semantic));
-    for(const [fieldIndex,field] of (entry?.configuration??[]).entries()){
-      const value=field.default_value,valueKey=`${authoring.source_revision}:${semantic}:${field.key}`,initial=String(value.U64??value.I64??value.Bool??value.Text??"");if(!state.authoringValues.has(valueKey))state.authoringValues.set(valueKey,initial);
-      const plot=nodes.length,inputAction=addAction("input",event=>state.authoringValues.set(valueKey,new TextDecoder().decode(event.value)));nodes.push({parent:0,component:"form-field",key:`field-${fieldIndex}`,text:"",action:null},{parent:plot,component:"field-label",key:`label-${fieldIndex}`,text:`Configure ${field.key}`,action:null},{parent:plot,component:"field-help",key:`help-${fieldIndex}`,text:`Canonical ${field.key} value`,action:null},{parent:plot,component:"text-input",key:`input-${fieldIndex}`,text:`Configure ${field.key}`,value:state.authoringValues.get(valueKey),valueCapacity:256,action:inputAction});
-      addButton("Apply",()=>authoringEdit("configure-gear",semantic,{key:field.key,value:configurationValue(value,state.authoringValues.get(valueKey))}));
-    }
   }else if(subject.role==="Port"){
     const direction=property(subject.identity,"direction")?.value?.Text;
     if(state.rerouteCord)addButton("Reroute armed Cord here",()=>{const cord=state.rerouteCord;state.rerouteCord=null;return authoringEdit("reroute-cord",cord,{secondary:semantic});});
-    if(direction==="outgoing")addButton(state.cordSource===semantic?"Cord source selected":"Start Cord here",()=>{state.cordSource=semantic;displaySelection(subject.identity);});
-    if(direction==="receiving"&&state.cordSource)addButton("Connect selected output here",()=>{const source=state.cordSource;state.cordSource=null;return authoringEdit("connect-ports",source,{secondary:semantic});});
+    if(direction==="outgoing")addButton(state.cordSource===semantic?"Cord source selected":"Start Cord here",()=>beginCord(semantic,subject.identity));
+    if(direction==="receiving"&&state.cordSource&&state.cordRevision===authoring.source_revision){
+      const candidate=state.cordCandidates?.find(item=>item.sink_identity===semantic);
+      if(candidate?.compatible)addButton("Connect selected output here",()=>{const source=state.cordSource;state.cordSource=null;return authoringEdit("connect-ports",source,{secondary:semantic});});
+      else nodes.push({parent:0,component:"text",key:"compatibility",text:candidate?.diagnostic??"No checked destination",action:null});
+      for(const adapter of candidate?.adapters??[]){
+        nodes.push({parent:0,component:"text",key:`adapter-${adapter.kind_id}`,text:`Explicit adapter: ${adapter.kind_id} · ${adapter.input_port} → ${adapter.output_port}. Place it, then explicitly connect both Cords.`,action:null});
+        addButton(`Place adapter ${adapter.kind_id}`,()=>authoringEdit("place-gear",adapter.kind_id));
+      }
+    }
   }else if(subject.role==="Cord"){
     addButton("Remove Cord",()=>authoringEdit("remove-cord",semantic));addButton("Reroute one endpoint",()=>{state.rerouteCord=semantic;displaySelection(subject.identity);});
   }
   present();
+  if(subject.role==="Gear"){
+    const kind=property(subject.identity,"kind-id")?.value?.Identity,entry=authoring.palette.find(item=>item.kind_id===kind);
+    const fields=(entry?.configuration??[]).map(field=>({...field,value:authoring.configuration.find(current=>current.gear_identity===semantic&&current.key===field.key)?.value??field.default_value}));
+    renderConfigurationFields(document.querySelector("#authoring-actions"),fields,async(key,value)=>{
+      const gear=semantic.slice(semantic.lastIndexOf("/")+1);
+      const result=await authoringQuery("configuration",{gear,key,value});
+      if(!result.valid)throw new Error(result.diagnostic);
+      return authoringEdit("configure-gear",semantic,{key,value});
+    });
+  }
   function present(){sharedPresentation.present("authoring-actions",{actions,nodes},{onEvent(event){callbacks[Number(event.action.slice("authoring-".length))]?.(event);}});}
 }
 function lensProperty(lens,name){if(lens==="world")return ["body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-plot-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing","activity","evidence-class","candidate-state","lifecycle","auto-run","stage","authority-state","refusal","disposition"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="plot")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","offer-generation","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="play")return ["active-play-id","play-state","pressure","activity","disposition","request-id","run-id","stage","authority-state","effect-id"].includes(name);if(lens==="signs")return ["evidence-class","effect-id","request-id"].includes(name)||name.startsWith("sign-");return false;}
@@ -262,7 +302,7 @@ function renderPlotPalette(){
 function renderGearPalette(){
   const list=document.querySelector("#gear-results"),focused=document.activeElement?.dataset?.kind,all=state.snapshot.authoring?.palette??[],query=state.gearQuery.trim().toLocaleLowerCase();
   const visible=all.filter(entry=>[entry.name,entry.kind_id,entry.summary,entry.category,...entry.tags,...entry.inputs.map(port=>`${port.identity} ${port.info}`),...entry.outputs.map(port=>`${port.identity} ${port.info}`)].join(" ").toLocaleLowerCase().includes(query));
-  sharedPresentation.boundedActionList("gear-results","Available gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:boundedPresentationText(`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out · ${entry.kind_id}`),run:()=>authoringEdit("place-gear",entry.kind_id),annotate:button=>{button.dataset.kind=entry.kind_id;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})));presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available from the canonical catalog`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
+  sharedPresentation.boundedActionList("gear-results","Available gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:boundedPresentationText(`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out · ${entry.kind_id}${entry.authorable?"":" · not in this authoring profile"}`),run:()=>entry.authorable&&authoringEdit("place-gear",entry.kind_id),annotate:button=>{button.dataset.kind=entry.kind_id;button.disabled=!entry.authorable;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})));presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available from the canonical catalog; Host realization is checked separately`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
 }
 
 function movePlotFocus(event){
@@ -380,7 +420,8 @@ function render(snapshot){
   document.querySelector("#ordinary-summary").textContent=subjects("Info").flatMap(subject=>texts(subject.identity)).join(" · ");
   const lossAction=p.actions.find(action=>action.intent==="conduit.intent/observe-line-loss@1"),frontDoorActions=[{label:"Plan current plot",disabled:b.body_id===null||b.plan_id!==null,run:()=>dispatchFrontDoorAction("Plan"),annotate:button=>button.id="plan-plot"},{label:"Play current plan",disabled:b.body_id===null||b.plan_id===null||b.active_play_id!==null,run:()=>dispatchFrontDoorAction("Play"),annotate:button=>button.id="play-plan"},...(lossAction?[{label:"Observe browser loss",disabled:lossAction.availability!=="Available",run:()=>observeTextLabLoss().catch(error=>presentSharedStatus("front-door-feedback",`Text Lab loss failed: ${error.message}`,"failed-evidence")),annotate:button=>button.id="text-lab-loss"}]:[])];presentActions("front-door-controls",frontDoorActions);
   presentDefinitions("plot-facts",[["Body",b.body_id],["Wake",b.wake_id],["Source document",b.source_document_id],["Checked plot",b.checked_plot_id]]);
-  const navigationSubjects=state.projected.subjects;sharedPresentation.boundedChoiceList("subjects","Plot graph subjects",navigationSubjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.name}`,run:()=>select(subject.identity),annotate:control=>{control.dataset.subject=subject.identity;control.dataset.role=subject.role;}})),cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);renderPlotPalette();renderGearPalette();renderParts();renderFlow(snapshot,{onSelect:select,onConnect:(source,sink)=>authoringEdit("connect-ports",semanticIdentity(source),{secondary:semanticIdentity(sink)}),onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
+  if(snapshot.authoring&&state.cordRevision===snapshot.authoring.source_revision)snapshot.authoring.connection_candidates=state.cordCandidates;
+  const navigationSubjects=state.projected.subjects;sharedPresentation.boundedChoiceList("subjects","Plot graph subjects",navigationSubjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.name}`,run:()=>select(subject.identity),annotate:control=>{control.dataset.subject=subject.identity;control.dataset.role=subject.role;}})),cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);renderPlotPalette();renderGearPalette();renderParts();renderFlow(snapshot,{onSelect:select,onWorkspaceChange:workspaceChanged,onConnectStart:id=>beginCord(semanticIdentity(id),id),onConnect:(source,sink)=>authoringEdit("connect-ports",semanticIdentity(source),{secondary:semanticIdentity(sink)}),onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
   const placements=renderer.plan.fragments.flatMap(fragment=>fragment.placements);const placement=placements.find(item=>item.placement_id===manifestation.placement_id);const connections=[...new Map(renderer.plan.fragments.flatMap(fragment=>fragment.connections).map(connection=>[connection.connection_id,connection])).values()];
   presentDefinitions("plan-facts",[["Expanded Plot",b.expanded_plot_id],["Source Plan",b.plan_id],["Renderer Front",placement?.kind_id],["Renderer Plan",manifestation.plan_id],["Renderer Play",manifestation.active_play_id],["Manifestation",manifestation.manifestation_id],["Lifecycle",manifestation.lifecycle],["Placement",placement?.placement_id],["Host",placement?.host_id],["Boot",placement?.boot_id],["Implementation",placement?.implementation_id],["Artifact",placement?.artifact_id],["Execution profile",placement?.execution_profile_id],["Offer generation",placement?.offer_generation],["Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined]]);sharedPresentation.boundedEvidence("realizations","Realization evidence",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_calls.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${binding?.base??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
   presentDefinitions("play-facts",[["Active play",b.active_play_id],["Plan",b.plan_id]]);sharedPresentation.boundedEvidence("sign","Sign evidence",[...subjects("Sign").map(subject=>subject.name),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);

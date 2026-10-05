@@ -4,12 +4,16 @@ use crate::{
     CanonicalStartupValue, CheckedCanonicalGear, CheckedCanonicalPlot, CheckedConnection,
     CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationValue, ExpandedActivation,
     ExpandedAuthoringPlot, ExpandedCanonicalPlot, ExpandedGearProvenance, ExpandedSharedPool,
-    KindConfigurationRule, ProfileCatalog, RuntimePortDirection, MAXIMUM_PLOT_NESTING_DEPTH,
+    ProfileCatalog, RuntimePortDirection, MAXIMUM_PLOT_NESTING_DEPTH,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
 
+mod connection_contract;
 mod construction;
+pub use connection_contract::{validate_connection_contract, validate_front_contract};
+mod configuration_contract;
+pub use configuration_contract::{validate_configuration_value, validate_startup_configuration};
 mod entry;
 mod graph;
 mod identity;

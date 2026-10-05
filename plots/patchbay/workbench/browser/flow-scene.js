@@ -1,5 +1,6 @@
 import { layoutFlowScene } from "./flow-layout.js";
 import { projectCurrent } from "./portable-navigation.js";
+import { applyWorkspace, captureWorkspace, decodeWorkspace } from "./flow-workspace.js";
 
 export const FLOW_PRESENTATION_SCHEMA = "conduit.patchbay.flow-presentation/v1";
 export const MAX_FLOW_SUBJECTS = 512;
@@ -22,8 +23,17 @@ function deterministicPosition(index) {
   };
 }
 
+export function workspaceBasis(snapshot) {
+  const basis = snapshot.authoring || snapshot.presentation.basis;
+  if (typeof basis.source_document_id !== "string" || !basis.source_document_id
+    || typeof basis.checked_plot_id !== "string" || !basis.checked_plot_id) {
+    throw new Error("WorkspaceBasisUnavailable");
+  }
+  return { source_document_id: basis.source_document_id, checked_plot_id: basis.checked_plot_id };
+}
+
 export function workspaceIdentity(snapshot) {
-  const basis = snapshot.presentation.basis;
+  const basis = workspaceBasis(snapshot);
   const cursor = snapshot.navigation?.cursor;
   return `${basis.source_document_id}/${basis.checked_plot_id}/${cursor?.place??"canonical"}`;
 }
@@ -122,6 +132,11 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   // canonical Presentation still owns the exact typed facts needed to draw
   // those admitted subjects (for example Port direction and Cord endpoints).
   const subjectProperties = propertiesBySubject(snapshot.presentation);
+  const candidates = snapshot.authoring?.connection_candidates || [];
+  if (!Array.isArray(candidates) || candidates.length > MAX_FLOW_SUBJECTS) {
+    throw new Error("Connection candidate bound exceeded");
+  }
+  const compatibility = new Map(candidates.map((candidate) => [candidate.sink_identity, candidate]));
   const debuggerActivity = debuggerBySubject(snapshot);
   const causalTrace = new Set((snapshot.timeline?.trace?.steps || []).map((step) => step.subject));
   const tracing = causalTrace.size > 0;
@@ -155,6 +170,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
     type: "faceplate",
     data: {
       subjectIdentity: subject.identity,
+      workspaceSubject: subjectProperties.get(subject.identity)?.get("semantic-id") || null,
       label: subject.name,
       role: subject.role,
       accessibilityName: subject.name,
@@ -178,6 +194,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
           direction: properties.get("direction"),
           valueKind: properties.get("value-kind") || "typed value",
           temporal: properties.get("temporal") || "",
+          compatibility: compatibility.get(properties.get("semantic-id")) || null,
           diagnosticError: properties.get("diagnostic-state") === "error",
           debugger: debuggerActivity.get(port.identity) || null,
           causalTrace: causalTrace.has(port.identity),
@@ -225,6 +242,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
       style: { strokeWidth: visual.strokeWidth },
       data: {
         semanticIdentity: cord.identity,
+        workspaceSubject: propertiesMap.get("semantic-id") || null,
         sourcePort,
         sinkPort,
         lineIdentity: subjectProperties.get(cord.identity)?.get("line-id") || null,
@@ -237,6 +255,9 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   edges.sort(compareIdentity);
   return {
     workspaceIdentity: workspaceIdentity(snapshot),
+    basis: workspaceBasis(snapshot),
+    semanticSubjects: [...new Set(snapshot.presentation.properties
+      .filter((property) => property.name === "semantic-id").map(value))],
     presentationIdentity: presentation.identity,
     presentationRevision: presentation.revision,
     lens,
@@ -261,39 +282,14 @@ export function reconcileFlowScene(projection, prior = null) {
 }
 
 export function encodeFlowPresentation(scene) {
-  const document = JSON.stringify({
-    schema: FLOW_PRESENTATION_SCHEMA,
-    workspaceIdentity: scene.workspaceIdentity,
-    nodes: scene.nodes.slice(0, MAX_FLOW_SUBJECTS).map(({ id, position, selected }) => ({
-      id,
-      position,
-      selected: selected === true,
-    })),
-    viewport: scene.viewport,
-  });
-  if (document.length > MAX_FLOW_STATE_BYTES) throw new Error("Flow presentation byte bound exceeded");
+  const document = JSON.stringify(captureWorkspace(scene, scene.workspace));
+  if (new TextEncoder().encode(document).length > MAX_FLOW_STATE_BYTES) throw new Error("Flow presentation byte bound exceeded");
   return document;
 }
 
 export function decodeFlowPresentation(document, projection) {
-  if (typeof document !== "string" || document.length > MAX_FLOW_STATE_BYTES) return null;
-  let parsed;
-  try { parsed = JSON.parse(document); } catch { return null; }
-  if (parsed?.schema !== FLOW_PRESENTATION_SCHEMA || parsed.workspaceIdentity !== projection.workspaceIdentity || !Array.isArray(parsed.nodes) || parsed.nodes.length > MAX_FLOW_SUBJECTS) return null;
-  const current = new Set(projection.nodes.map((node) => node.id));
-  const nodes = [];
-  const seen = new Set();
-  for (const node of parsed.nodes) {
-    if (typeof node?.id !== "string" || seen.has(node.id) || !current.has(node.id) || !Number.isFinite(node.position?.x) || !Number.isFinite(node.position?.y)) return null;
-    seen.add(node.id);
-    if (node.selected !== undefined && typeof node.selected !== "boolean") return null;
-    nodes.push({
-      id: node.id,
-      position: { x: node.position.x, y: node.position.y },
-      selected: node.selected === true,
-    });
-  }
-  const viewport = parsed.viewport;
-  if (![viewport?.x, viewport?.y, viewport?.zoom].every(Number.isFinite) || viewport.zoom < 0.2 || viewport.zoom > 3) return null;
-  return { nodes, viewport };
+  if (typeof document !== "string" || new TextEncoder().encode(document).length > MAX_FLOW_STATE_BYTES) return null;
+  try {
+    return applyWorkspace(decodeWorkspace(document, projection), reconcileFlowScene(projection));
+  } catch { return null; }
 }

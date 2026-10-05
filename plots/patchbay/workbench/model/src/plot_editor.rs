@@ -112,8 +112,8 @@ pub struct PlotEditor {
     pub(crate) checked: CheckedRevision,
     pub(crate) open_plot: String,
     pub(crate) selection: Option<SourceSelection>,
-    startup_catalog: StartupCatalog,
-    profile_catalog: conduit_plot::ProfileCatalog,
+    pub(crate) startup_catalog: StartupCatalog,
+    pub(crate) profile_catalog: conduit_plot::ProfileCatalog,
 }
 
 impl PlotEditor {
@@ -391,15 +391,7 @@ impl PlotEditor {
     }
 }
 
-pub(crate) fn check_revision(
-    revision: u64,
-    source: &str,
-) -> Result<CheckedRevision, PlotEditorError> {
-    let (startup, _profile) = standard_catalogs()?;
-    check_revision_with_catalog(revision, source, &startup)
-}
-
-fn check_revision_with_catalog(
+pub(crate) fn check_revision_with_catalog(
     revision: u64,
     source: &str,
     startup: &StartupCatalog,
