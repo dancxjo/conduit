@@ -151,8 +151,15 @@ fn garden_path_revises_stabilizes_commits_and_corrects_without_erasure() {
     assert_eq!(journal.frontiers().committed, TokenFrontier(2));
     journal.append(&closed).unwrap();
     let history: Vec<_> = journal.history().collect();
-    let replay =
-        RevisionJournal::replay(&domain, context, TokenFrontier(1), limits, &history).unwrap();
+    let replay = RevisionJournal::replay(
+        &domain,
+        context,
+        TokenFrontier(1),
+        limits,
+        &history,
+        journal.truncated_events(),
+    )
+    .unwrap();
     assert_eq!(journal.frontiers(), replay.frontiers());
     assert_eq!(journal.current_proposal(), replay.current_proposal());
     assert!(replay.is_closed());

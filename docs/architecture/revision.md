@@ -80,9 +80,10 @@ can render those facts without a second truth store. This issue supplies the
 read-only seam, not a new universal Patchbay panel.
 
 Replay starts from the exact initial cursor/context/limits and complete bounded
-event sequence. It reruns the same admission law and reconstructs the same
+event sequence with its explicit truncation count. It reruns the same admission law and reconstructs the same
 frontiers, active proposal and closure. Domain reduction reconstructs the same
-current view. A truncated sequence refuses `TruncatedHistory`; it cannot pretend
+current view. A nonzero truncation count refuses `TruncatedHistory`, including when the
+retained slice is empty; a noninitial first sequence also refuses. It cannot pretend
 to reconstruct omitted truth without a separately admitted domain snapshot.
 
 ## Development proof

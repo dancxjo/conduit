@@ -172,9 +172,9 @@ fn native_asr_keeps_scalar_ranges_committed_text_and_delivery_separate() {
     };
     let history = [&r1, &r2, &commit, &correction];
     let journal =
-        RevisionJournal::replay(&domain, context, ScalarFrontier(0), limits, &history).unwrap();
+        RevisionJournal::replay(&domain, context, ScalarFrontier(0), limits, &history, 0).unwrap();
     let replay =
-        RevisionJournal::replay(&domain, context, ScalarFrontier(0), limits, &history).unwrap();
+        RevisionJournal::replay(&domain, context, ScalarFrontier(0), limits, &history, 0).unwrap();
     assert_eq!(journal.frontiers(), replay.frontiers());
     assert_eq!(view(&journal.history().collect::<Vec<_>>()), "cafe!");
     assert_eq!(

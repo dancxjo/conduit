@@ -112,7 +112,15 @@ fn tracking_revises_stability_commits_and_corrects_without_rewriting_history() {
     );
     assert_eq!(history[3].reference(), commit.reference());
     assert_eq!(reduce(&history)[..2], [Some(3), Some(2)]);
-    let replay = RevisionJournal::replay(&domain, context(), Frame(0), limits(), &history).unwrap();
+    let replay = RevisionJournal::replay(
+        &domain,
+        context(),
+        Frame(0),
+        limits(),
+        &history,
+        journal.truncated_events(),
+    )
+    .unwrap();
     assert_eq!(replay.frontiers(), journal.frontiers());
     assert_eq!(replay.current_proposal(), journal.current_proposal());
     assert_eq!(replay.is_closed(), journal.is_closed());
@@ -183,13 +191,37 @@ fn withdrawal_truncation_and_history_pressure_are_explicit() {
     journal.append(&closed).unwrap();
     let tail: Vec<_> = journal.history().collect();
     assert!(matches!(
-        RevisionJournal::replay(&domain, context(), Frame(0), small, &tail),
+        RevisionJournal::replay(
+            &domain,
+            context(),
+            Frame(0),
+            small,
+            &tail,
+            journal.truncated_events()
+        ),
         Err(RevisionRefusal::TruncatedHistory)
     ));
     assert_eq!(
         journal.truncate_prefix(2),
         Err(RevisionRefusal::TruncationWouldEraseCurrentRevision)
     );
+    let mut emptied = RevisionJournal::new(&domain, context(), Frame(0), small).unwrap();
+    emptied.append(&proposed).unwrap();
+    emptied.append(&withdrawn).unwrap();
+    emptied.truncate_prefix(2).unwrap();
+    assert_eq!(emptied.history().count(), 0);
+    assert_eq!(emptied.frontiers().observed_through, Frame(1));
+    assert!(matches!(
+        RevisionJournal::replay(
+            &domain,
+            context(),
+            Frame(0),
+            small,
+            &[],
+            emptied.truncated_events()
+        ),
+        Err(RevisionRefusal::TruncatedHistory)
+    ));
     let mut fully_committed = RevisionJournal::new(&domain, context(), Frame(0), small).unwrap();
     let initial_commit = event(
         &domain,

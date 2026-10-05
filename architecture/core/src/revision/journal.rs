@@ -257,7 +257,13 @@ impl<'a, D: RevisionDomain> RevisionJournal<'a, D> {
         initial: D::Cursor,
         limits: RevisionLimits,
         history: &[&'a RevisionEvent<'a, D>],
+        truncated_events: u64,
     ) -> Result<Self, RevisionRefusal> {
+        // An empty retained slice may have lost its entire prefix. Explicit
+        // metadata prevents treating that snapshot as a fresh complete epoch.
+        if truncated_events != 0 {
+            return Err(RevisionRefusal::TruncatedHistory);
+        }
         if history.len() > limits.history_events {
             return Err(RevisionRefusal::HistoryFull);
         }
