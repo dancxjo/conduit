@@ -51,7 +51,7 @@ do not grant endpoint authority or select a transport.
 
 The development implementation accepts bounded packages using
 `conduit.conduitos/protocol-source@1`. A package contains Source and exact typed
-specializations of generic state, merge and pair Backs. It contains no controller
+specializations of generic state, merge, concatenation and pair Backs. It contains no controller
 selection, resource possession or authority. Preparation checks the Source and
 retains those Back owners before publishing their exact offers.
 
@@ -75,7 +75,7 @@ requests for generic Backs. Each value reference names a checked Source type
 (including imported native type aliases) and its byte ceiling, for example
 `{"kind":"seeded-flow","value":{"type_name":"ProtocolState","maximum_bytes":4096}}`.
 Pair requests use `left` and `right`; supported requests are `seeded-flow`,
-`seeded-until`, `merge`, `zip` and `feedback-zip`. No device-specific compiler or
+`seeded-until`, `merge`, `concat`, `zip` and `feedback-zip`. No device-specific compiler or
 Rust schema authoring is required:
 
 ```sh
