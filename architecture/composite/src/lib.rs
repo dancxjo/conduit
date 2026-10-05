@@ -21,6 +21,8 @@ mod child;
 pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};
 mod current_sample;
 mod definition;
+mod flow_concat_finite;
+pub use flow_concat_finite::FlowConcatFiniteBack;
 mod flow_merge_finite;
 mod flow_select;
 mod flow_zip;

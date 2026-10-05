@@ -32,6 +32,9 @@ pub(super) fn package() -> ProtocolSourcePackage {
                 left: value("UsbKeyboardDeltaInput"),
                 right: value("UsbKeyboardTransitionBatch"),
             },
+            ProtocolSpecializationRequest::Concat {
+                value: value("UsbKeyboardCommand"),
+            },
             ProtocolSpecializationRequest::Merge {
                 value: value("UsbKeyboardState"),
             },

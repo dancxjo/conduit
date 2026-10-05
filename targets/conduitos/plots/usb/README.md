@@ -338,9 +338,10 @@ releases, then sorted presses. Unchanged slots are explicit.
 batch through generic state, zip and merge Backs before pairing another command.
 The command entry finishes explicitly. The received-frame entry connects the
 checked decoder and normalization to that loop; invalid reports are observed
-without replacing previous state. This entry remains live after frame EOF and
-currently requires Root cancellation to retire. Graceful device teardown is
-still incomplete.
+without replacing previous state. Generic ordered concatenation appends a
+Source-authored finish command after the decoded report stream closes normally.
+The state loop drains all pending transitions before completing; cancellation
+remains a separate kernel outcome. Native device teardown proof is separate.
 
 Deterministic kernel conformance covers 64 report generations and 1,274 ordered
 transitions, held-output pressure, explicit finish, cancellation, and malformed
