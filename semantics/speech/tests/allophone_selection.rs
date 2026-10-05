@@ -72,7 +72,7 @@ fn inventory(rules: Vec<SpeechPhonemeAllophone>, default: Option<&str>) -> Speec
     .unwrap();
     SpeechInventory::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         BoundedSequence::try_from_iter([phoneme]).unwrap(),
         BoundedSequence::try_from_iter([definition("phone/t", "t"), definition("phone/alt", "tʰ")])
             .unwrap(),

@@ -70,7 +70,7 @@ fn inventory() -> SpeechInventory {
     .unwrap();
     SpeechInventory::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         BoundedSequence::try_from_iter([SpeechPhoneme::new(
             BoundedSequence::new(),
             BoundedSequence::try_from_iter([rule]).unwrap(),
@@ -343,7 +343,7 @@ fn deferred_or_missing_late_choice_returns_no_partially_playable_utterance() {
 fn source_text(revision: &str) -> LanguageText {
     LanguageText::new(
         LanguageTextId::new("source".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         LanguageTextRevisionId::new(revision.into()).unwrap(),
         "t".into(),
     )

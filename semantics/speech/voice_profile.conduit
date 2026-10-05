@@ -51,14 +51,14 @@ type SpeechFormantPhoneBinding = {
 type SpeechFormantVoiceProfile = {
     identity: Text <= 64B not in [""]
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     phones: sequence SpeechFormantPhoneBinding <= 64
 }
 type SpeechFormantProfileBasis = {
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     profile_inventory_id: SpeechInventoryId
-    profile_language: SpeechLanguageId
+    profile_language: LanguageId
     where .inventory_id == .profile_inventory_id
     where .language == .profile_language
 }

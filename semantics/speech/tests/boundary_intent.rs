@@ -8,8 +8,8 @@ fn intent(
 ) -> SpeechPlannedBoundaryIntent {
     let source = LanguageSegmentRef::text(
         LanguageTextSegmentKind::Phrase,
-        SpeechLanguageId::new("en".into()).unwrap(),
-        ListeningTextRange::new(1, 0).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
+        LanguageTextRange::new(1, 0).unwrap(),
         LanguageTextRevisionId::new("r".into()).unwrap(),
         LanguageTextId::new("text".into()).unwrap(),
     )

@@ -38,7 +38,7 @@ type SpeechUtteranceIntentEvent =
 type SpeechUtteranceIntent = {
     utterance_id: SpeechUtteranceId
     revision_id: SpeechSegmentRevisionId
-    language: SpeechLanguageId
+    language: LanguageId
     inventory_id: SpeechInventoryId
     events: sequence SpeechUtteranceIntentEvent <= 256
     provenance: SpeechEvidenceProvenance
@@ -52,7 +52,7 @@ type SpeechOccurrenceMembership = {
     utterance_id: SpeechUtteranceId
     revision_id: SpeechSegmentRevisionId
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     occurrence: LanguageSpeechTokenRef
     where .occurrence.utterance_id == .utterance_id
     where .occurrence.revision_id == .revision_id

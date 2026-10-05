@@ -82,6 +82,8 @@ pub mod inventory_admission;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]
+pub mod language_projection;
+#[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod occurrence_context;
@@ -123,6 +125,10 @@ pub mod utterance_timing;
 #[allow(dead_code, clippy::large_enum_variant)]
 pub mod semantic {
     pub use conduit_language::LinguisticSyntacticLinkKind as SpeechSyntacticLinkKind;
+    pub use conduit_language::{
+        LanguageId, LanguageText, LanguageTextId, LanguageTextRange, LanguageTextReferenceMatch,
+        LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef, VarietyId,
+    };
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 

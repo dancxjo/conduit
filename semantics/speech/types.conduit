@@ -5,7 +5,6 @@
 type PhoneId = Text <= 64B not in [""]
 type PhonemeId = Text <= 64B not in [""]
 type SpeechInventoryId = Text <= 64B not in [""]
-type SpeechLanguageId = Text <= 32B not in [""]
 type SpeechFeatureId = Text <= 64B not in [""]
 type SpeechConfidence = F32 finite in 0.0..=1.0
 type SpeechAcousticCueId = Text <= 64B not in [""]
@@ -205,7 +204,7 @@ type SpeechPhonemeToken = {
 # an inventory membership claim or a selected voice realization.
 type SpeechInventory = {
     identity: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     phones: sequence SpeechPhone <= 64
     phonemes: sequence SpeechPhoneme <= 64
 }

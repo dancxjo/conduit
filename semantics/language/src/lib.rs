@@ -10,12 +10,14 @@ mod generated {
 pub use generated::{
     AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef,
     LanguageDependencyArc, LanguageDependencyHead, LanguageDependencyRelation,
-    LanguageDependencySubtype, LanguageUniversalDependencyRelation, LinguisticAnnotation,
-    LinguisticDependencyEdge, LinguisticDependencyRelation, LinguisticDerivationProvenance,
-    LinguisticEvidence, LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment,
-    LinguisticSegmentKind, LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory,
-    LinguisticTokenFeature, LinguisticTokenFeatureSlot, LinguisticTokenIdentity,
-    LinguisticTokensFour, TextSpan,
+    LanguageDependencySubtype, LanguageExternalIdentity, LanguageId, LanguageText, LanguageTextId,
+    LanguageTextRange, LanguageTextReferenceMatch, LanguageTextRevisionId, LanguageTextSegmentKind,
+    LanguageTextSegmentRef, LanguageUniversalDependencyRelation, LanguageVariety,
+    LinguisticAnnotation, LinguisticDependencyEdge, LinguisticDependencyRelation,
+    LinguisticDerivationProvenance, LinguisticEvidence, LinguisticOffsetBasis,
+    LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind, LinguisticSyntacticLinkKind,
+    LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature, LinguisticTokenFeatureSlot,
+    LinguisticTokenIdentity, LinguisticTokensFour, TextSpan, VarietyId,
 };
 
 mod catalog;
@@ -30,3 +32,12 @@ mod dependency;
 pub use dependency::*;
 
 pub mod revision;
+
+mod identity;
+pub use identity::*;
+
+mod mapping;
+pub use mapping::*;
+
+mod mapping_projection;
+pub use mapping_projection::*;

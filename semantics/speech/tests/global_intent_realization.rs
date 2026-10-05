@@ -70,7 +70,7 @@ fn rules(stress: StressSpecification) -> SpeechAllophoneRuleProfile {
     .unwrap();
     SpeechAllophoneRuleProfile::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         BoundedSequence::try_from_iter([rule]).unwrap(),
     )
     .unwrap()
@@ -102,7 +102,7 @@ fn inventory() -> SpeechInventory {
     .unwrap();
     SpeechInventory::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         BoundedSequence::try_from_iter([phoneme]).unwrap(),
         BoundedSequence::try_from_iter([native::definition("phone/t")]).unwrap(),
     )
@@ -126,7 +126,7 @@ impl Setup {
             voice: SpeechFormantVoiceProfile::new(
                 "voice".into(),
                 SpeechInventoryId::new("inventory".into()).unwrap(),
-                SpeechLanguageId::new("en".into()).unwrap(),
+                LanguageId::new("en".into()).unwrap(),
                 BoundedSequence::try_from_iter([SpeechFormantPhoneBinding::new(
                     definition,
                     EnglishPhone::T,

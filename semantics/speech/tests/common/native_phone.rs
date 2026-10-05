@@ -12,7 +12,7 @@ pub fn material_with_features(
     features: SpeechFeatureBundle,
 ) -> (LanguageSegmentRef, SpeechPhoneSequence) {
     let inventory = SpeechInventoryId::new("inventory".into()).unwrap();
-    let language = SpeechLanguageId::new("en".into()).unwrap();
+    let language = LanguageId::new("en".into()).unwrap();
     let revision = SpeechSegmentRevisionId::new("revision".into()).unwrap();
     let sequence = SpeechSegmentSequenceId::new("sequence".into()).unwrap();
     let utterance = SpeechUtteranceId::new("utterance".into()).unwrap();
@@ -58,7 +58,7 @@ pub fn definition(identity: &str) -> SpeechPhone {
 pub fn inventory(identity: &str, language: &str, phones: Vec<SpeechPhone>) -> SpeechInventory {
     SpeechInventory::new(
         SpeechInventoryId::new(identity.into()).unwrap(),
-        SpeechLanguageId::new(language.into()).unwrap(),
+        LanguageId::new(language.into()).unwrap(),
         BoundedSequence::new(),
         BoundedSequence::try_from_iter(phones).unwrap(),
     )
