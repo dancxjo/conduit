@@ -1231,6 +1231,7 @@ dependencies = [
  "conduit-core",
  "conduit-host-make",
  "conduit-kernel",
+ "conduit-language",
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-semantic-catalog",

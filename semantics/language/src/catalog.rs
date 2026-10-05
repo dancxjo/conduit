@@ -31,7 +31,7 @@ use crate::{
 
 pub const TOKENIZE_FOUR_KIND: &str = "language/tokenize-four";
 pub const ANNOTATE_FOUR_KIND: &str = "language/annotate-four";
-pub const LINGUISTICS_REVISION: &str = "conduit.std/linguistics@1";
+pub const LINGUISTICS_REVISION: &str = "conduit.language/linguistics@2";
 
 pub fn install_linguistics_catalogs(
     startup: &mut conduit_plot::StartupCatalog,
@@ -39,6 +39,7 @@ pub fn install_linguistics_catalogs(
 ) -> Result<(), String> {
     for (name, value_type) in crate::identity_types()
         .into_iter()
+        .chain(crate::realization_types())
         .chain(linguistic_types())
     {
         startup
@@ -48,17 +49,20 @@ pub fn install_linguistics_catalogs(
     startup
         .insert(KindSignature {
             kind: TOKENIZE_FOUR_KIND.into(),
-            startup_parameters: vec![StartupParameterSignature {
-                name: "text".into(),
-                value_type: "Text".into(),
-                default: None,
-            }],
+            startup_parameters: vec![
+                StartupParameterSignature {
+                    name: "text".into(),
+                    value_type: "Text".into(),
+                    default: None,
+                },
+                language_request_signature(),
+            ],
         })
         .map_err(|error| error.to_string())?;
     startup
         .insert(KindSignature {
             kind: ANNOTATE_FOUR_KIND.into(),
-            startup_parameters: vec![],
+            startup_parameters: vec![language_request_signature()],
         })
         .map_err(|error| error.to_string())?;
 
@@ -80,31 +84,37 @@ pub fn tokenize_four_definition() -> KindProjection {
             &linguistic_tokens_four_type(),
             PortDirection::Output,
         )],
-        configuration: vec![KindConfigurationField {
-            key: "text".into(),
-            default_value: ConfigurationValue::Text(String::new()),
-            rule: KindConfigurationRule::TextBytes {
-                maximum: MAXIMUM_LINGUISTIC_TEXT_BYTES,
+        configuration: vec![
+            language_request_field(),
+            KindConfigurationField {
+                key: "text".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::TextBytes {
+                    maximum: MAXIMUM_LINGUISTIC_TEXT_BYTES,
+                },
             },
-        }],
+        ],
     }
 }
 
 pub fn tokenize_four_semantic_contract() -> Kind {
     let definition = tokenize_four_definition();
     Kind {
-        startup_parameters: vec![FrontStartupParameter {
-            name: "text".into(),
-            value_type: kind_id("value/text"),
-            has_default: false,
-        }],
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "text".into(),
+                value_type: kind_id("value/text"),
+                has_default: false,
+            },
+            language_request_parameter(),
+        ],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: Default::default(),
+        semantic_laws: language_requirement_laws(),
         limits: linguistic_limits(),
     }
 }
@@ -123,23 +133,60 @@ pub fn annotate_four_definition() -> KindProjection {
             &annotation_bundle_four_type(),
             PortDirection::Output,
         )],
-        configuration: vec![],
+        configuration: vec![language_request_field()],
     }
 }
 
 pub fn annotate_four_semantic_contract() -> Kind {
     let definition = annotate_four_definition();
     Kind {
-        startup_parameters: vec![],
+        startup_parameters: vec![language_request_parameter()],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
-        semantic_laws: Default::default(),
+        configuration: definition.configuration,
+        semantic_laws: language_requirement_laws(),
         limits: linguistic_limits(),
     }
+}
+
+fn language_request_signature() -> StartupParameterSignature {
+    StartupParameterSignature {
+        name: "language-request".into(),
+        value_type: "LanguageRequest".into(),
+        default: None,
+    }
+}
+fn language_request_parameter() -> FrontStartupParameter {
+    FrontStartupParameter {
+        name: "language-request".into(),
+        value_type: crate::language_request_profile(),
+        has_default: false,
+    }
+}
+fn language_request_field() -> KindConfigurationField {
+    // A finite checker placeholder, never an authored default or language fallback.
+    let request = crate::LanguageRequest::new(
+        crate::LanguageId::new("request/placeholder".into()).expect("finite placeholder"),
+        None,
+        crate::LanguageVarietyPolicy::LanguageSufficient,
+    )
+    .expect("finite request");
+    KindConfigurationField {
+        key: "language-request".into(),
+        default_value: crate::language_request_configuration(request).expect("finite request"),
+        rule: KindConfigurationRule::Structured {
+            profile: crate::language_request_profile(),
+        },
+    }
+}
+fn language_requirement_laws() -> Vec<conduit_core::KindSemanticLaw> {
+    vec![conduit_core::KindSemanticLaw::RealizationRequirement {
+        property_profile: crate::language_coverage_profile(),
+        configuration_key: "language-request".into(),
+    }]
 }
 
 fn linguistic_limits() -> CapabilityLimits {

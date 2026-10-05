@@ -65,6 +65,21 @@ pub struct PlanningOptions<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlannerError {
+    UnsupportedRealizationRequirement {
+        gear_id: conduit_core::GearId,
+        property_profile: conduit_core::KindId,
+    },
+    InvalidLanguageRequest {
+        gear_id: conduit_core::GearId,
+        configuration_key: String,
+    },
+    InvalidRealizationProperties(conduit_core::CapabilityId),
+    LanguageCoverageUnsatisfied {
+        gear_id: conduit_core::GearId,
+        requirements: Vec<crate::LanguageCoverageRequirement>,
+        candidates: Vec<crate::LanguageCoverageCandidateEvidence>,
+        reason: Option<conduit_language::LanguageCoverageRefusal>,
+    },
     InvalidPlotIdentity(String),
     PlannerCapabilityNotAdvertised(String),
     PlannerCapabilityAmbiguous(String),
@@ -117,6 +132,57 @@ pub enum PlannerError {
 impl core::fmt::Display for PlannerError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            Self::UnsupportedRealizationRequirement {
+                gear_id,
+                property_profile,
+            } => write!(
+                f,
+                "gear '{}' requires unsupported realization property '{}'",
+                gear_id.as_str(),
+                property_profile.as_str()
+            ),
+            Self::InvalidLanguageRequest {
+                gear_id,
+                configuration_key,
+            } => write!(
+                f,
+                "gear '{}' has an invalid Language request at '{}'",
+                gear_id.as_str(),
+                configuration_key
+            ),
+            Self::InvalidRealizationProperties(capability) => write!(
+                f,
+                "Back '{}' has invalid finite realization properties",
+                capability.as_str()
+            ),
+            Self::LanguageCoverageUnsatisfied {
+                gear_id,
+                requirements,
+                reason,
+                ..
+            } => {
+                write!(
+                    f,
+                    "gear '{}' has no eligible Back for requested Language coverage",
+                    gear_id.as_str()
+                )?;
+                for requirement in requirements {
+                    write!(
+                        f,
+                        "; {}={}",
+                        requirement.configuration_key,
+                        requirement.request.language().get()
+                    )?;
+                    if let Some(variety) = requirement.request.variety() {
+                        write!(f, " / {}", variety.identity().get())?;
+                    }
+                }
+                if let Some(reason) = reason {
+                    write!(f, " ({reason:?})")?;
+                }
+                Ok(())
+            }
+
             Self::InvalidPlotIdentity(value) => write!(f, "invalid plot identity: {value}"),
             Self::PlannerCapabilityNotAdvertised(value) => {
                 write!(f, "planner capability not advertised: {value}")

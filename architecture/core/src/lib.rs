@@ -460,29 +460,8 @@ pub struct AuthorityBinding {
     pub capability_id: CapabilityId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CapabilityOffer {
-    #[serde(default)]
-    pub startup_parameters: Vec<FrontStartupParameter>,
-    #[serde(default)]
-    pub shorthand: Option<(PortId, PortId)>,
-    pub capability_id: CapabilityId,
-    pub kind_id: KindId,
-    pub kind_contract_revision: KindIdentity,
-    pub inputs: Vec<PortDescriptor>,
-    pub outputs: Vec<PortDescriptor>,
-    pub semantic_contract: KindSemanticContract,
-    #[serde(flatten)]
-    pub implementation: ImplementationOffer,
-    /// Exact keep-duration support of this Back. Absence means that the Back
-    /// makes no retained-State promise.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub state_retention: Option<StateRetentionSupport>,
-    pub host_calls: Vec<HostCallRequirement>,
-    pub resource_requirements: Vec<ResourceRequirement>,
-    pub authority_requirements: Vec<AuthorityRequirement>,
-    pub limits: CapabilityLimits,
-}
+mod capability_offer_record;
+pub use capability_offer_record::CapabilityOffer;
 
 /// Finite request shape accepted by one optional planner profile.
 ///
@@ -561,41 +540,8 @@ pub enum ConnectionOutcome {
     Terminal,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedGear {
-    pub placement_id: PlacementId,
-    pub gear_id: GearId,
-    pub kind_id: KindId,
-    pub kind_contract_revision: KindIdentity,
-    /// Authored provenance where one exists. Generated realization machinery
-    /// remains honestly spanless rather than borrowing a nearby location.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_span: Option<SourceSpan>,
-    pub execution_profile_id: ExecutionProfileId,
-    pub configuration: Vec<ConfigurationEntry>,
-    pub host_id: HostId,
-    pub boot_id: BootId,
-    pub offer_generation: OfferGeneration,
-    pub capability_id: CapabilityId,
-    pub implementation_id: ImplementationId,
-    pub artifact_id: ArtifactId,
-    /// Exact current provider for Base-backed work. Pure work remains `None`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub base: Option<BaseProviderBinding>,
-    #[serde(default)]
-    pub realization_characteristics: Vec<RealizationCharacteristic>,
-    pub limits: CapabilityLimits,
-    pub inputs: Vec<PortDescriptor>,
-    pub outputs: Vec<PortDescriptor>,
-    pub semantic_contract: KindSemanticContract,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub terminal_transductions: Vec<TerminalTransductionProfile>,
-    pub host_calls: Vec<HostCallRequirement>,
-    pub resources: Vec<ResourceBinding>,
-    pub authority: Vec<AuthorityBinding>,
-    #[serde(default)]
-    pub pool_references: Vec<SharedPoolId>,
-}
+mod planned_gear_record;
+pub use planned_gear_record::PlannedGear;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExpectedTerminal {
@@ -1951,3 +1897,6 @@ pub use source_seeded_state::{source_seeded_state_boundary, SourceSeededStateBou
 
 /// Bounded semantic fidelity at an exact projection boundary.
 pub mod projection;
+
+mod realization_properties;
+pub use realization_properties::*;

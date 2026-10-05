@@ -413,3 +413,6 @@ mod tests {
         assert_eq!(model.projection().boot_id().as_str(), "patchbay-test-boot");
     }
 }
+
+mod language_realization;
+pub use language_realization::language_realization_details;

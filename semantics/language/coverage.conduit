@@ -1,0 +1,25 @@
+# Concrete realization truth, never a portable Kind's availability promise.
+type LanguageVarietyPolicy =
+    language_sufficient
+    | exact_variety
+
+type LanguageRequest = {
+    language: LanguageId
+    variety: LanguageVariety?
+    variety_policy: LanguageVarietyPolicy
+}
+
+type LanguageMappingDeclaration = {
+    external: LanguageExternalIdentity
+    language: LanguageId
+    variety: LanguageVariety?
+}
+
+type LanguageCoverage = {
+    revision: Text <= 64B not in [""]
+    evidence: Text <= 128B not in [""]
+    languages: sequence LanguageId <= 64
+    varieties: sequence LanguageVariety <= 32
+    variety_sensitive: Boolean
+    mappings: sequence LanguageMappingDeclaration <= 32
+}

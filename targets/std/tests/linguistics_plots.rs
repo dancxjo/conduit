@@ -239,3 +239,44 @@ fn leaf_count(value: &StructuredInfoValue) -> u64 {
     };
     conduit_core::decode_count(bytes).unwrap()
 }
+
+#[test]
+fn shipped_english_specimen_refuses_valid_french_before_realization() {
+    let source = SOURCE.replace("language/english", "language/french");
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_linguistics_catalogs(&mut startup, &mut profile).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+    for stage in checked.plots[0]
+        .cords
+        .iter()
+        .flat_map(|cord| cord.stages.iter())
+    {
+        if let CheckedCordStage::StructuredSelector { selector, .. } = stage {
+            profile
+                .insert(structured_selector_definition(
+                    selector,
+                    PortTemporal::Value,
+                ))
+                .unwrap();
+        }
+    }
+    let authored =
+        expand_canonical_plot_for_authoring(&checked, "linguistic-annotations", &profile).unwrap();
+    let host = host(linguistics_std_offers());
+    let error =
+        conduit_planner::default_expanded_placements(&authored.expanded, &[host]).unwrap_err();
+    let conduit_planner::PlannerError::LanguageCoverageUnsatisfied {
+        requirements,
+        candidates,
+        ..
+    } = error
+    else {
+        panic!("unexpected {error:?}")
+    };
+    assert_eq!(requirements[0].request.language().get(), "language/french");
+    assert_eq!(
+        candidates[0].checks[0].result,
+        Err(conduit_language::LanguageCoverageRefusal::Language)
+    );
+}
