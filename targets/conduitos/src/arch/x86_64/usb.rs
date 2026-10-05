@@ -41,6 +41,9 @@ pub use error::UsbError;
 mod control_owner;
 #[path = "usb_endpoint_read.rs"]
 pub(super) mod endpoint_read;
+#[cfg(any(test, feature = "scripted-keyboard-proof"))]
+#[path = "usb_endpoint_read_proof.rs"]
+mod endpoint_read_proof;
 #[path = "usb_endpoint_setup.rs"]
 mod endpoint_setup;
 pub use control_owner::{UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection};
