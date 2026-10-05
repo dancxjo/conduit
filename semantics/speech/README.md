@@ -817,3 +817,55 @@ aspiration rule and the remaining segments use exact declared phoneme defaults.
 Source coverage, default policy, original occurrence evidence and voice admission
 all finish before a renderer is returned; source coverage still does not imply
 linguistic commitment.
+
+The explicit `SpeechFormantAspirationProfile` encloses its exact base voice and
+maps one opaque feature ID to an aspiration cue. `prepare_aspirated_global_intent`
+realizes Known Boolean inherited values on selected rule outputs and declared
+defaults: plain p/t/k presets remain plain for false and become aspirated for true. A native Plot owns
+that decision. The original phone definition, whole inherited specification,
+layer, occurrence observation and declared profile remain inspectable; an
+acoustic preset change does not rewrite the semantic phone identity. Every
+inherited key must be covered before admission finishes. Other value kinds,
+all five non-Known states, unsupported base phones and unmapped keys produce
+typed refusals, including an exact event index for whole-intent preparation.
+Rule outputs retain default → definition → rule precedence. Declared defaults
+retain definition → explicit occurrence-feature precedence. Both merge whole
+specifications before acoustic admission, including unresolved overrides. The
+original strict profile APIs retain their existing feature refusals.
+`prepare_sourced_aspirated_global_intent` resolves all original source references
+before either rule or default realization, retaining that coverage alongside the
+feature receipts. This adds no inference, parser, commitment or physical-device
+claim.
+The native-speech proof writes `feature-aspiration-off-tata.wav` and
+`feature-aspiration-on-tata.wav`, plus the corresponding
+`feature-default-aspiration-off-tata.wav` and
+`feature-default-aspiration-on-tata.wav`; the existing empty-feature samples
+retain their approved acoustic balance.
+
+The compact text profile has native regular-ending pronunciation for twelve
+explicitly declared stems. Exact whole-word dictionary entries retain priority.
+The checked inflection Plots identify bounded suffix candidates, declare stem
+eligibility and select `-s` /s, z, ɪz/ or `-ed` /t, d, ɪd/ from the stem's final
+phoneme. Rust only traverses those results and borrows prefix slices; it contains
+no suffix spelling or voicing policy. Stem stress and dictionary provenance are
+retained; appended segments have `inflection_rule` origin and exact modeled
+suffix source spans. This is pronunciation correspondence, not a grammatical
+analysis, lemma claim, measured alignment or linguistic commitment.
+
+The declared `-s` stems are voice, world, device, conduit, synthesizer, speech,
+listen, thank, please, want, speak and read. Regular `-ed` is declared only for
+listen, thank, please, voice and want; the profile now includes a self-authored
+American /wɑnt/ dictionary entry for want. At most two prefix candidates are
+examined; each dictionary result has at most twelve phonemes and the ending has
+at most two. Existing text/word/event bounds and atomic output admission apply.
+Undeclared stems, consonant doubling, y changes and irregular past forms keep the
+existing spelling fallback and its uncertainty rather than gaining inflection
+provenance. This remains a small pronunciation profile, not general English
+morphology or eSpeak-equivalent lexical coverage.
+
+The pronunciation models follow the [British Council's -s teaching model](https://africa.teachingenglish.org.uk/classroom/pronunciation/snake-or-fly)
+and [Iowa State's -ed/-s pronunciation chapter](https://iastate.pressbooks.pub/teachingpronunciation/chapter/chapter-5-ed-and-s-endings/).
+The want entry follows the [Cambridge American pronunciation](https://dictionary.cambridge.org/dictionary/english/want).
+The native-speech xtask proof writes `text-regular-plurals.wav` and
+`text-regular-past.wav` through the same fixed-storage renderer; linked MCU
+footprint and physical playback remain distinct proof classes.

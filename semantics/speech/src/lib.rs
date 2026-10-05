@@ -52,11 +52,15 @@ pub mod declared_context;
 #[cfg(feature = "semantic-bindings")]
 pub mod declared_realization;
 #[cfg(feature = "semantic-bindings")]
+pub mod default_output_features;
+#[cfg(feature = "semantic-bindings")]
 pub mod duration;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_bundle;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_match;
+#[cfg(feature = "semantic-bindings")]
+pub mod feature_realization;
 #[cfg(feature = "semantic-bindings")]
 pub mod global_intent_realization;
 #[cfg(feature = "semantic-bindings")]
@@ -205,3 +209,9 @@ pub mod global_default_profile;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod sourced_global_intent;
+
+#[cfg(test)]
+mod aspiration_parity;
+
+#[cfg(test)]
+mod inflection_parity;
