@@ -313,6 +313,17 @@ failover unless each hop has its own explicit bounded contract and current
 authority. Transport confidentiality, peer authentication, membership/line
 admission, and effect authorization remain separate inspection facts.
 
+### Evidence, claims, and resolution
+
+Signs establish bounded evidence of what was observed or happened. Claims are
+typed, evidence-supported assertions about exact domain-owned targets.
+Resolutions select or abstain deterministically under one exact domain policy.
+Authority independently governs effects; support and confidence grant none.
+Losing, revised, and invalidated claims remain inspectable, and correcting
+committed truth creates explicit later truth rather than rewriting history.
+The [claim contract](architecture/claims.md) owns this bounded separation without
+a universal entity ontology, truth scalar, or global source-priority ladder.
+
 ### Execution and Face
 
 The Body's Face speaks one bounded, immutable semantic graph. The current Rust
