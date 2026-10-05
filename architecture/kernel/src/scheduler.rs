@@ -295,7 +295,8 @@ pub struct HostCallCancellation {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct PendingHostCall {
     request: HostCallRequest,
-    maximum_input_bytes: u32,
+    // A consumed or pinned Unit owns a slot even with a zero-byte payload.
+    owns_input: bool,
     maximum_output_bytes: u32,
     dispatched: bool,
     cancellation_requested: bool,
@@ -2940,7 +2941,7 @@ where
                 .completion
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
             (
-                (pending.maximum_input_bytes > 0
+                (pending.owns_input
                     && !retains_input
                     && completion.output.map(|output| output.value)
                         != Some(pending.request.input.value))
@@ -3047,7 +3048,13 @@ where
                     call,
                     input,
                 },
-                maximum_input_bytes: binding.maximum_input_bytes,
+                owns_input: binding.maximum_input_bytes > 0
+                    || consumed_values
+                        .iter()
+                        .chain(retained_values.iter())
+                        .flatten()
+                        .any(|value| *value == input.value)
+                    || consumed_host_value == Some(input.value),
                 maximum_output_bytes: binding.maximum_output_bytes,
                 dispatched: false,
                 cancellation_requested: false,

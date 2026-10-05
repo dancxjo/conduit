@@ -48,6 +48,7 @@ impl ProtocolSourcePackage {
             .map_err(Error::Contract)?
             .catalogs();
         install_clock(&mut startup, &mut profile)?;
+        usb_catalog::install(&mut startup, &mut profile)?;
         // The first pass checks only declarations. Generic kind Fore contracts
         // depend on these schemas; the full Source is checked after installing
         // the resulting specializations by PreparedProtocolEntry::prepare.

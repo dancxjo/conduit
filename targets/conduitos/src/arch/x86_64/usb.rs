@@ -45,6 +45,11 @@ pub use control_owner::{UsbControlCallRefusal, UsbControlHostCall, UsbControlSel
 mod kernel_proof;
 #[cfg(feature = "scripted-keyboard-proof")]
 pub use kernel_proof::run as run_usb_control_kernel_proof;
+#[cfg(feature = "scripted-keyboard-proof")]
+#[path = "usb_device_probe_proof.rs"]
+mod device_probe_proof;
+#[cfg(feature = "scripted-keyboard-proof")]
+pub use device_probe_proof::run as run_usb_device_probe_proof;
 #[cfg(test)]
 use transfer::{setup_transfer_type, transferred_bytes, validate_transfer_event};
 pub const MAX_CONTROL_TRANSFERS: u8 = 5;
