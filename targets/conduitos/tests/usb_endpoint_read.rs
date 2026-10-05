@@ -151,3 +151,30 @@ fn stalls_loss_unsupported_and_timeout_keep_distinct_tags_across_reuse() {
     });
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn imported_endpoint_type_retains_the_nested_payload_bound() {
+    let contract = EndpointReadContract::prepare().unwrap();
+    let (startup, _) = contract.catalogs();
+    let source = format!(
+        "{}\ntype ImportedEndpointResult = UsbEndpointReadResult\n",
+        include_str!("../plots/usb/endpoint-read.conduit")
+    );
+    let checked = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(&source),
+        &startup,
+    )
+    .unwrap();
+    let result = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "ImportedEndpointResult")
+        .unwrap();
+    let wire = result
+        .value_contracts
+        .iter()
+        .find(|c| c.representation_path == "|completed.wire")
+        .unwrap();
+    assert_eq!(wire.contract.maximum_bytes, 2048);
+    assert_eq!(wire.contract.value_kind.as_str(), "value/bytes");
+}

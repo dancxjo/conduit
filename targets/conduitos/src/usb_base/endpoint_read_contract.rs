@@ -6,7 +6,9 @@ use conduit_core::{
     KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal,
     PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType, kind_id, port_id,
 };
-use conduit_plot::{ProfileCatalog, StartupCatalog, check_syntax_document, parse_syntax_document};
+use conduit_plot::{
+    CheckedNativeType, ProfileCatalog, StartupCatalog, check_syntax_document, parse_syntax_document,
+};
 
 pub const ENDPOINT_READ_KIND: &str = "machine/usb/endpoint-read";
 pub const ENDPOINT_READ_CALL: &str = "conduit.host/usb-endpoint-read@1";
@@ -20,6 +22,7 @@ pub struct EndpointReadContract {
     request: StructuredInfoType,
     result: StructuredInfoType,
     kind: Kind,
+    checked_types: Vec<CheckedNativeType>,
 }
 
 impl EndpointReadContract {
@@ -100,6 +103,7 @@ impl EndpointReadContract {
             request,
             result,
             kind,
+            checked_types: checked.native_types,
         })
     }
 
@@ -112,10 +116,22 @@ impl EndpointReadContract {
     pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
         let mut startup = StartupCatalog::new();
         startup
-            .insert_structured_type("machine/usb/endpoint-read/request", self.request.clone())
+            .insert_checked_native_type(
+                "machine/usb/endpoint-read/request",
+                self.checked_types
+                    .iter()
+                    .find(|ty| ty.name == "UsbEndpointReadRequest")
+                    .expect("checked request"),
+            )
             .expect("request Type");
         startup
-            .insert_structured_type("machine/usb/endpoint-read/result", self.result.clone())
+            .insert_checked_native_type(
+                "machine/usb/endpoint-read/result",
+                self.checked_types
+                    .iter()
+                    .find(|ty| ty.name == "UsbEndpointReadResult")
+                    .expect("checked result"),
+            )
             .expect("result Type");
         startup
             .insert(conduit_plot::KindSignature {
