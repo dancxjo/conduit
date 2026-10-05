@@ -1,4 +1,4 @@
-//! Finite scheduler Back for the exact selected class-neutral endpoint_read Kind.
+//! Finite scheduler Back for the exact selected class-neutral endpoint read Kind.
 use super::endpoint_read_contract::{
     ENDPOINT_READ_CALL, ENDPOINT_READ_MAXIMUM_BYTES, EndpointReadContract,
 };
@@ -97,3 +97,6 @@ impl KernelOperationFactory for EndpointReadOperationFactory {
         Ok(Box::new(HostCallBack::new(ENDPOINT_READ_MAXIMUM_BYTES)))
     }
 }
+
+#[cfg(test)]
+mod tests;

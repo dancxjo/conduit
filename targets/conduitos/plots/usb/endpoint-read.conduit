@@ -1,0 +1,9 @@
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+
+plot usb-endpoint-read-call (
+    requests: UsbEndpointReadRequest...| <= 4096B >> results: UsbEndpointReadResult...| <= 4096B
+) {
+    transfer: machine/usb/endpoint-read
+    requests >> transfer >> results
+}
