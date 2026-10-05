@@ -84,7 +84,9 @@ execution covers complete, short and stalled exchanges, 64 repeated calls, and
 normal closure with reusable value slots. Native emulator execution remains a
 separate proof requirement. The pure-expression contract admits sixteen repeated
 instances; planning refuses a seventeenth. Every instance retains its own
-finite storage admission.
+finite storage admission. The scripted-keyboard and hotplug proof profiles
+admit a 32 MiB preparation arena for the complete configuration expansion.
+Preparation and Play storage remain separate, finite admissions.
 
 The register-leaf groundwork in `src/machine_membrane` validates existing opaque
 Base possession before an aligned, bounded 32-bit access. Native composition
