@@ -324,6 +324,18 @@ committed truth creates explicit later truth rather than rewriting history.
 The [claim contract](architecture/claims.md) owns this bounded separation without
 a universal entity ontology, truth scalar, or global source-priority ladder.
 
+### Revisable semantic truth
+
+Revision explicitly replaces an exact proposal; it is not mutation or a value
+diff. Domains own typed deltas and cursor units. Stability is policy evidence,
+not commitment. Commitment advances monotonically through a finite revisable
+region; ordinary revision cannot rewrite its past. Explicit correction preserves
+that committed history. Closure stops ordinary revisions without claiming
+external finality or effect delivery. Independent stages retain independent
+frontiers. The [revision contract](architecture/revision.md) admits bounded
+history and honest truncation without changing ordinary flows or making every
+keep event-sourced.
+
 ### Execution and Face
 
 The Body's Face speaks one bounded, immutable semantic graph. The current Rust

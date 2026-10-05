@@ -52,6 +52,16 @@ Their presence is not an additional physical or release acceptance claim:
   presentation during active installed workload execution, a distributed Mask
   Plot, the live multi-host journey or its publication under #4807.
 
+- **Bounded revision (#4951, development):** A borrowed, allocation-free core
+  lifecycle admits exact proposals, revisions, policy stability, monotonic
+  commitment, withdrawal, explicit correction and closure. Fixed history and
+  domain-owned cursor limits refuse pressure; explicit truncation cannot erase
+  committed history. Native language/ASR adapters and a tracking fixture prove
+  independent frontiers and deterministic history/current-view replay. The
+  [contract](docs/architecture/revision.md) records the #4907 consumer seam and
+  inspection API. This is deterministic library proof, not a live parser, audio
+  recognition, effect delivery or a new Patchbay panel.
+
 - **Typed claims and resolution (#4950, development):** Core admits immutable,
   bounded domain assertions, lifecycle history, exact score contracts, and
   policy-owned selection or abstention. Deterministic core/language fixtures

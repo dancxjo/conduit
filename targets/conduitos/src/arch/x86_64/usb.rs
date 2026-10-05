@@ -39,6 +39,15 @@ use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
 #[path = "usb_control_owner.rs"]
 mod control_owner;
+#[path = "usb_endpoint_read.rs"]
+pub(super) mod endpoint_read;
+#[cfg(any(test, feature = "scripted-keyboard-proof"))]
+#[path = "usb_endpoint_read_proof.rs"]
+mod endpoint_read_proof;
+#[cfg(feature = "usb-endpoint-read-proof")]
+pub use endpoint_read_proof::run_appliance as run_usb_endpoint_read_proof;
+#[path = "usb_endpoint_setup.rs"]
+mod endpoint_setup;
 pub use control_owner::{UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection};
 #[cfg(feature = "scripted-keyboard-proof")]
 #[path = "usb_control_kernel_proof.rs"]

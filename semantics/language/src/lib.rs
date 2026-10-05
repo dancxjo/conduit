@@ -28,3 +28,5 @@ pub use reference::*;
 
 mod dependency;
 pub use dependency::*;
+
+pub mod revision;

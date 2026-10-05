@@ -499,7 +499,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
-        ConduitosCommand::UsbProof(args) => usb_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::UsbProof(args) => usb_proof::execute(args, opts),
         ConduitosCommand::UsbConfigurationProof => usb_proof::execute_configuration(opts),
         ConduitosCommand::UsbPlotsCheck { cross } => usb_plots_check::execute(cross, opts),
         ConduitosCommand::HidProof(args) => hid_proof::execute(args.prepared_image, opts),

@@ -36,8 +36,11 @@ pub const PRESENTER_LINEAR_SERIAL: u16 = 1 << 1;
 pub const PROOF_HOTPLUG: u16 = 1 << 0;
 pub const PROOF_SCRIPTED_KEYBOARD: u16 = 1 << 1;
 pub const PROOF_USB_CONFIGURATION: u16 = 1 << 2;
+pub const PROOF_USB_ENDPOINT_READ: u16 = 1 << 3;
+pub const USB_ENDPOINT_QEMU_PROFILE: &str =
+    "q35-single-cpu-64m-headless-xhci-usb-kbd-endpoint-read";
 pub const ALL_KNOWN_PROOF_INSTRUMENTATION: u16 =
-    PROOF_HOTPLUG | PROOF_SCRIPTED_KEYBOARD | PROOF_USB_CONFIGURATION;
+    PROOF_HOTPLUG | PROOF_SCRIPTED_KEYBOARD | PROOF_USB_CONFIGURATION | PROOF_USB_ENDPOINT_READ;
 pub const USB_CONFIGURATION_ARENA_BYTES: u64 = 256 * 1024 * 1024;
 pub const USB_CONFIGURATION_QEMU_PROFILE: &str = "q35-single-cpu-512m-headless-xhci-usb-kbd-adlib";
 

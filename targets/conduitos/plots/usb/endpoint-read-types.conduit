@@ -1,0 +1,16 @@
+# A selected inbound endpoint supplies bytes. No request chooses an endpoint,
+# controller, attachment, DMA buffer or authority. Root owns those facts.
+type UsbEndpointReadRequest = {
+    length: U64
+}
+type UsbEndpointReadFrame = {
+    actual: U64
+    short: Boolean
+    wire: Bytes <= 2048B
+}
+type UsbEndpointReadResult =
+    completed UsbEndpointReadFrame
+    | stalled
+    | provider-lost
+    | unsupported
+    | timeout
