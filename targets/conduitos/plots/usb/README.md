@@ -394,3 +394,12 @@ reports larger than eight bytes before reading an octet. Keyboard reports requir
 eight bytes; mouse reports preserve three through eight actual bytes, including
 uninterpreted extensions. Short reports remain distinct from malformed reports.
 These are class bounds, independent of endpoint transfer admission.
+
+`hid-endpoint.conduit` connects the exact endpoint-read Fore to keyboard and
+mouse interpretation. Source constructs the eight-byte boot-report request,
+checks count, extent and shortness, and preserves stalled, provider-loss,
+unsupported and timeout observations separately. Only completed valid frames
+reach the class decoder. Preparing these graphs publishes no physical Back;
+execution requires a separately selected endpoint offer and actual possession.
+Deterministic conformance checks this composition and its bounded framing;
+native execution of these class graphs remains pending.
