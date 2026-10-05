@@ -24,6 +24,16 @@ pub(super) fn run(
     expected_decoded: Option<&str>,
     calls: u64,
 ) {
+    let cases =
+        vec![(actual, expected_observed, expected_decoded); usize::try_from(calls).unwrap()];
+    run_script(descriptor, &cases);
+}
+
+type Outcome<'a> = (Option<u16>, &'a str, Option<&'a str>);
+
+pub(super) fn run_script(descriptor: Descriptor, cases: &[Outcome<'_>]) {
+    assert!(!cases.is_empty());
+    let calls = u64::try_from(cases.len()).unwrap();
     let subject = ControlProofSubject {
         host_id: "host/device-script",
         boot_id: "boot/device-script",
@@ -75,16 +85,19 @@ pub(super) fn run(
         ),
     };
     let request = ControlTransferRequest::new(setup, &[], 256).unwrap();
-    let reply = match actual {
-        Some(count) => encoder
-            .completed(&request, count, &wire[..count as usize])
-            .unwrap()
-            .to_vec(),
-        None => encoder
-            .disposition(ControlTransferDisposition::Stalled)
-            .unwrap()
-            .to_vec(),
-    };
+    let replies: Vec<_> = cases
+        .iter()
+        .map(|(actual, _, _)| match actual {
+            Some(count) => encoder
+                .completed(&request, *count, &wire[..usize::from(*count)])
+                .unwrap()
+                .to_vec(),
+            None => encoder
+                .disposition(ControlTransferDisposition::Stalled)
+                .unwrap()
+                .to_vec(),
+        })
+        .collect();
     let mut storage: Vec<ValuePayload> = outputs
         .iter()
         .map(|port| ValuePayload {
@@ -97,6 +110,7 @@ pub(super) fn run(
         .map(|value| value.encoded.capacity())
         .collect();
     let mut seen = vec![false; outputs.len()];
+    let mut sequences = vec![0; outputs.len()];
     let mut transfers = 0;
     let mut complete = false;
     let pulse = ValuePayload {
@@ -105,7 +119,8 @@ pub(super) fn run(
     };
     let allocations = super::allocation::allocations(|| {
         probe.kernel.start().unwrap();
-        for invocation in 0..calls {
+        for (at, (_, expected_observed, expected_decoded)) in cases.iter().enumerate() {
+            let invocation = u64::try_from(at).unwrap();
             seen.fill(false);
             probe
                 .kernel
@@ -148,7 +163,7 @@ pub(super) fn run(
                     );
                     probe
                         .kernel
-                        .complete_host_call_bytes(&admitted, &reply)
+                        .complete_host_call_bytes(&admitted, &replies[at])
                         .unwrap();
                 }
                 for (index, port) in outputs.iter().enumerate() {
@@ -157,12 +172,12 @@ pub(super) fn run(
                         .output_into(&port.port_id, &mut storage[index])
                         .unwrap()
                     {
-                        assert_eq!(sequence, invocation);
+                        assert_eq!(sequence, sequences[index]);
                         assert!(!seen[index]);
                         seen[index] = true;
                         assert_eq!(storage[index].encoded.capacity(), capacities[index]);
                         let expected = if port.port_id.as_str() == "observed" {
-                            expected_observed
+                            *expected_observed
                         } else {
                             expected_decoded.expect("unexpected decode of a refused transfer")
                         };
@@ -251,6 +266,7 @@ pub(super) fn run(
                             .kernel
                             .complete_output(&port.port_id, sequence)
                             .unwrap();
+                        sequences[index] += 1;
                     }
                 }
                 if status == KernelCompositeStatus::Complete {
@@ -267,14 +283,16 @@ pub(super) fn run(
                     .position(|port| port.port_id.as_str() == "observed")
                     .unwrap()]
             );
+            for (index, port) in outputs.iter().enumerate() {
+                assert_eq!(
+                    seen[index],
+                    port.port_id.as_str() == "observed" || expected_decoded.is_some()
+                );
+            }
         }
         assert!(complete);
         assert_eq!(transfers, calls);
         for (index, port) in outputs.iter().enumerate() {
-            assert_eq!(
-                seen[index],
-                port.port_id.as_str() == "observed" || expected_decoded.is_some()
-            );
             assert_eq!(
                 probe
                     .kernel
