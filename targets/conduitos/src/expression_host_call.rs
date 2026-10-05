@@ -26,7 +26,9 @@ pub fn offer(
     // The native one-value operation needs only its exact frame envelope.
     // Advertising the generic Kind ceiling would inflate every kernel slot.
     let mut limits = contract.limits.clone();
-    limits.max_queue_bytes = limits.max_queue_bytes.min(input_bytes.max(output_bytes));
+    limits.max_queue_bytes = limits
+        .max_queue_bytes
+        .min(input_bytes.max(output_bytes).max(1));
     Ok(BackOfferBuilder::new(
         contract,
         Back {
