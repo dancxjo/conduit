@@ -29,3 +29,5 @@ pub(crate) mod endpoint_ring;
 pub mod endpoint_read_proof_plan;
 
 pub mod hid_endpoint_proof_plan;
+
+pub mod hid_endpoint_proof_kernel;
