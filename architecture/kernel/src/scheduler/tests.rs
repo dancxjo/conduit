@@ -3402,63 +3402,7 @@ fn remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state() {
     );
 }
 
-#[test]
-fn pressured_remote_ingress_branch_refuses_atomic_payload_fanout_without_partial_delivery() {
-    let endpoints = [RemoteEndpointId(0), RemoteEndpointId(1)];
-    let targets = [(endpoints[0], CordId(0)), (endpoints[1], CordId(1))];
-    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
-    routes.seal().unwrap();
-    let signs = FixedSignLog::<16>::new_with_remote_storage(
-        (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
-        16,
-        crate::remote_sign_storage_bytes(16).unwrap(),
-    )
-    .unwrap();
-    let capacity = |slot_start| CordCapacity {
-        slot_start,
-        item_capacity: 1,
-        byte_capacity: 4,
-        pressure_policy: Default::default(),
-    };
-    let mut scheduler = FixedScheduler::<_, _, _, 2, 2, PORTS, 2, 2, 1>::new(
-        [node([Some(CordId(0)), None]), node([Some(CordId(1)), None])],
-        [
-            CordSpec::remote_ingress(CordId(0), endpoints[0], (NodeId(0), PortId(0)), capacity(0)),
-            CordSpec::remote_ingress(CordId(1), endpoints[1], (NodeId(1), PortId(0)), capacity(1)),
-        ],
-        routes,
-        [
-            Driver::Sink {
-                seen: [None; 4],
-                len: 0,
-                stall: false,
-            },
-            Driver::BlockedSink { cancelled: false },
-        ],
-        FixedValueStore::<2, 4>::new(8).unwrap(),
-        signs,
-    )
-    .unwrap();
-
-    assert_eq!(
-        scheduler.admit_remote_input_fanout(&targets, 0, b"seed"),
-        Ok(RemoteIngressOutcome::Accepted { sequence: 0 })
-    );
-    assert_eq!(
-        scheduler.step(),
-        Ok(SchedulerStatus::Progress { node: NodeId(0) })
-    );
-    assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (0, 0));
-    assert_eq!(scheduler.cord_usage(CordId(1)).unwrap(), (1, 4));
-
-    assert_eq!(
-        scheduler.admit_remote_input_fanout(&targets, 1, b"next"),
-        Ok(RemoteIngressOutcome::Full { sequence: 1 })
-    );
-    assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (0, 0));
-    assert_eq!(scheduler.cord_usage(CordId(1)).unwrap(), (1, 4));
-    assert_eq!(scheduler.values().used_items(), 1);
-}
+mod remote_fanout;
 
 #[test]
 fn coalescing_cords_supersede_the_newest_pending_item_without_growth() {

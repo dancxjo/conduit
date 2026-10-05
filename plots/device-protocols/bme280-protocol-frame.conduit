@@ -1,0 +1,11 @@
+# Source marks the final protocol state; the generic state cell publishes it before closing.
+type BmeProtocolFrame = {
+    value: BmeProtocolState
+    terminal: Boolean
+}
+plot bme280-protocol-frame (
+    value: BmeProtocolState...| >> frame: BmeProtocolFrame...|
+) = ({ value: ., terminal: .phase == 14 || .phase == 15 })
+plot bme280-protocol-frame-value (
+    frame: BmeProtocolFrame...| >> value: BmeProtocolState...|
+) = (.value)

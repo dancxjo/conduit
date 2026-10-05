@@ -2,6 +2,9 @@
 //! The invariant TSC's CPUID frequency is preferred; ACPI-discovered HPET
 //! supplies the same elapsed-millisecond contract under QEMU TCG.
 
+mod monotonic;
+pub use monotonic::{NativeMonotonicDeadlineClock, admitted_monotonic_deadline_clock};
+
 use core::{
     arch::x86_64::__cpuid,
     ptr::{read_volatile, write_volatile},
@@ -195,6 +198,22 @@ fn calibrated_ticks_per_millisecond(
         .checked_div(u64::from(denominator))?
         .checked_div(1_000)?;
     (ticks_per_millisecond > 0).then_some(ticks_per_millisecond)
+}
+
+/// Bootstrap Root spacing for a pending protocol deadline. Both counter reads
+/// and elapsed time are bounded; a stalled/regressed counter refuses.
+pub fn space_protocol_clock_poll() -> Result<(), &'static str> {
+    let counter = CandidateDeadline::admit(1000).ok_or("protocol-clock-spacing-unavailable")?;
+    for _ in 0..1000000 {
+        let elapsed = counter
+            .elapsed_millis()
+            .ok_or("protocol-clock-spacing-lost")?;
+        if elapsed >= 1 {
+            return Ok(());
+        }
+        core::hint::spin_loop();
+    }
+    Err("protocol-clock-spacing-no-progress")
 }
 
 #[cfg(test)]

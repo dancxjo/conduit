@@ -2,31 +2,39 @@ use super::*;
 
 #[test]
 fn native_make_uses_the_admitted_heap_arena_ceiling() {
-    let profile = check_host_configuration(
-        parse_host_configuration_conduit(include_str!(
-            "../../../profiles/conduitos-native.host.conduit"
-        ))
-        .unwrap(),
-        &conduit_workspace_make::catalog(),
-        &conduit_workspace_make::package_set(),
-    )
-    .unwrap()
-    .into_profile();
-    let (checked, _) = build_default_host_image(
-        profile,
-        &conduit_workspace_make::catalog(),
-        &conduit_workspace_make::package_set(),
-        &BuildInputs {
-            source_identity: "test-source".into(),
-            toolchain_available: true,
-        },
-    )
-    .unwrap();
-    assert_eq!(runtime_arena_ceiling(&checked.manifest), 16 * 1024 * 1024);
-    assert_ne!(
-        runtime_arena_ceiling(&checked.manifest),
-        checked.manifest.bounds.static_memory_bytes
-    );
+    for (source, expected) in [
+        (
+            include_str!("../../../profiles/conduitos-native.host.conduit"),
+            16 * 1024 * 1024,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
+            256 * 1024 * 1024,
+        ),
+    ] {
+        let profile = check_host_configuration(
+            parse_host_configuration_conduit(source).unwrap(),
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+        )
+        .unwrap()
+        .into_profile();
+        let (checked, _) = build_default_host_image(
+            profile,
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+            &BuildInputs {
+                source_identity: "test-source".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(runtime_arena_ceiling(&checked.manifest), expected);
+        assert_ne!(
+            runtime_arena_ceiling(&checked.manifest),
+            checked.manifest.bounds.static_memory_bytes
+        );
+    }
 }
 
 #[test]

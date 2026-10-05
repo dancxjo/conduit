@@ -149,12 +149,58 @@ pub fn spore_module() -> Option<&'static [u8]> {
     selected
 }
 
+/// Borrow one bounded named module. Discovery does not grant review, trust,
+/// resource possession or permission to execute its contents.
+pub fn named_module(
+    command: &[u8],
+    maximum_bytes: usize,
+) -> Result<Option<&'static [u8]>, super::BootModuleRefusal> {
+    use super::{
+        BootModuleRefusal,
+        modules::{ObservedModule, select_named},
+    };
+    if command.is_empty() || maximum_bytes == 0 {
+        return Err(BootModuleRefusal::InvalidSelection);
+    }
+    let Some(response) = MODULES.get_response() else {
+        return Ok(None);
+    };
+    if response.modules().len() > super::MAX_ARTIFACTS {
+        return Err(BootModuleRefusal::ArtifactBound);
+    }
+    let mut observations = [const { None }; super::MAX_ARTIFACTS];
+    for (index, file) in response.modules().iter().enumerate() {
+        let name = file.string().to_bytes();
+        let bytes = if name == command {
+            let length =
+                usize::try_from(file.size()).map_err(|_| BootModuleRefusal::PayloadBound)?;
+            if length == 0 || length > maximum_bytes || length > isize::MAX as usize {
+                return Err(BootModuleRefusal::PayloadBound);
+            }
+            // SAFETY: Limine retains this selected module's mapped bytes. The
+            // extent is checked before constructing the borrowed observation.
+            unsafe { core::slice::from_raw_parts(file.addr(), length) }
+        } else {
+            &[]
+        };
+        observations[index] = Some(ObservedModule {
+            command: name,
+            bytes,
+        });
+    }
+    select_named(observations.into_iter().flatten(), command, maximum_bytes)
+}
+
 unsafe extern "C" {
     static __conduitos_image_start: u8;
     static __conduitos_image_end: u8;
 }
 
 pub fn normalize_boot() -> Result<BootRecord, BootError> {
+    normalize_boot_with_arena_bytes(super::observation::MIN_RUNTIME_ARENA_BYTES)
+}
+
+pub fn normalize_boot_with_arena_bytes(arena_bytes: u64) -> Result<BootRecord, BootError> {
     if !BASE_REVISION.is_supported() {
         return Err(BootError::UnsupportedLimineRevision);
     }
@@ -207,7 +253,8 @@ pub fn normalize_boot() -> Result<BootRecord, BootError> {
         .checked_add(image_offset)
         .ok_or(BootError::MalformedImageRange)?;
 
-    let mut normalized = BootNormalizer::new(firmware, timestamp, hhdm, image_start, image_length)?;
+    let mut normalized = BootNormalizer::new(firmware, timestamp, hhdm, image_start, image_length)?
+        .require_arena_bytes(arena_bytes)?;
     if let Some(rsdp) = RSDP.get_response() {
         normalized.set_rsdp_address(rsdp.address() as u64);
     }
@@ -261,5 +308,23 @@ fn memory_kind(kind: EntryType) -> MemoryKind {
         MemoryKind::Framebuffer
     } else {
         MemoryKind::Reserved
+    }
+}
+
+#[cfg(test)]
+mod module_tests {
+    use super::*;
+
+    #[test]
+    fn missing_module_and_invalid_selection_remain_distinct_without_bootloader_data() {
+        assert_eq!(
+            named_module(b"", 16),
+            Err(super::super::BootModuleRefusal::InvalidSelection)
+        );
+        assert_eq!(
+            named_module(b"conduit.protocol/source@1", 0),
+            Err(super::super::BootModuleRefusal::InvalidSelection)
+        );
+        assert_eq!(named_module(b"conduit.protocol/source@1", 16), Ok(None));
     }
 }

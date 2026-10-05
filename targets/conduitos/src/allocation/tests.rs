@@ -22,8 +22,7 @@ impl Fixture {
     }
 }
 
-#[test]
-fn released_adjacent_preparations_are_reusable_without_touching_live_objects() {
+fn released_adjacent_preparations_are_reusable_without_touching_live_objects_contract() {
     let fixture = Fixture::new(4096);
     let arena = &fixture.arena;
     let layout = Layout::from_size_align(1024, 32).unwrap();
@@ -57,8 +56,7 @@ fn released_adjacent_preparations_are_reusable_without_touching_live_objects() {
     assert_eq!(arena.used(), 4096);
 }
 
-#[test]
-fn thousands_of_mixed_alignment_refreshes_keep_a_bounded_live_population() {
+fn thousands_of_mixed_alignment_refreshes_keep_a_bounded_live_population_contract() {
     let fixture = Fixture::new(64 * 1024);
     let arena = &fixture.arena;
     let mut live: Vec<(*mut u8, Layout, u8)> = Vec::new();
@@ -116,8 +114,7 @@ fn thousands_of_mixed_alignment_refreshes_keep_a_bounded_live_population() {
     unsafe { arena.dealloc(pointer, entire) };
 }
 
-#[test]
-fn seal_and_failed_reinitialization_preserve_the_original_admission() {
+fn seal_and_failed_reinitialization_preserve_the_original_admission_contract() {
     let fixture = Fixture::new(4096);
     let arena = &fixture.arena;
     let layout = Layout::from_size_align(17, 16).unwrap();
@@ -141,8 +138,7 @@ fn seal_and_failed_reinitialization_preserve_the_original_admission() {
     assert_eq!(arena.live_bytes(), 0);
 }
 
-#[test]
-fn invalid_ranges_and_unrepresentable_requests_refuse_without_mutation() {
+fn invalid_ranges_and_unrepresentable_requests_refuse_without_mutation_contract() {
     let arena = BootArena::new();
     for (start, bytes) in [
         (0, 64),
@@ -163,8 +159,7 @@ fn invalid_ranges_and_unrepresentable_requests_refuse_without_mutation() {
     assert_eq!(fixture.arena.live_bytes(), 0);
 }
 
-#[test]
-fn concurrent_preparation_owners_cannot_alias_live_ranges() {
+fn concurrent_preparation_owners_cannot_alias_live_ranges_contract() {
     let fixture = Fixture::new(64 * 1024);
     std::thread::scope(|scope| {
         for owner in 1..=4 {
@@ -191,8 +186,7 @@ fn concurrent_preparation_owners_cannot_alias_live_ranges() {
     assert_eq!(fixture.arena.live_bytes(), 0);
 }
 
-#[test]
-fn resized_and_zeroed_objects_preserve_the_global_allocator_contract() {
+fn resized_and_zeroed_objects_preserve_the_global_allocator_contract_contract() {
     let fixture = Fixture::new(4096);
     let arena = &fixture.arena;
     let small = Layout::from_size_align(33, 128).unwrap();
@@ -227,3 +221,116 @@ fn resized_and_zeroed_objects_preserve_the_global_allocator_contract() {
     }
     assert_eq!(arena.live_bytes(), 0);
 }
+
+fn resize_reuses_adjacent_space_and_preserves_failed_and_sealed_allocations_contract() {
+    let fixture = Fixture::new(4096);
+    let arena = &fixture.arena;
+    let old = Layout::from_size_align(1024, 32).unwrap();
+    unsafe {
+        let pointer = arena.alloc(old);
+        core::ptr::write_bytes(pointer, 0x63, old.size());
+        let grown = arena.realloc(pointer, old, 3072);
+        assert_eq!(
+            grown, pointer,
+            "growth must not need a second full allocation"
+        );
+        let larger = Layout::from_size_align(3072, 32).unwrap();
+        assert!(
+            core::slice::from_raw_parts(grown, 1024)
+                .iter()
+                .all(|byte| *byte == 0x63)
+        );
+        assert_eq!(arena.live_bytes(), 3072);
+        assert!(arena.realloc(grown, larger, 8192).is_null());
+        assert_eq!(arena.live_bytes(), 3072);
+        let shrunk = arena.realloc(grown, larger, 1024);
+        assert_eq!(shrunk, pointer);
+        assert_eq!(arena.live_bytes(), 1024);
+        arena.seal();
+        assert!(arena.realloc(shrunk, old, 2048).is_null());
+        assert!(
+            core::slice::from_raw_parts(shrunk, 1024)
+                .iter()
+                .all(|byte| *byte == 0x63)
+        );
+        arena.dealloc(shrunk, old);
+        assert_eq!(arena.live_bytes(), 0);
+    }
+}
+
+fn resize_moves_only_when_a_live_neighbor_prevents_growth_contract() {
+    let fixture = Fixture::new(4096);
+    let arena = &fixture.arena;
+    let old = Layout::from_size_align(1024, 32).unwrap();
+    unsafe {
+        let first = arena.alloc(old);
+        let neighbor = arena.alloc(old);
+        core::ptr::write_bytes(first, 0x2a, 1024);
+        core::ptr::write_bytes(neighbor, 0x97, 1024);
+        let moved = arena.realloc(first, old, 1536);
+        assert!(!moved.is_null());
+        assert_ne!(moved, first);
+        assert!(
+            core::slice::from_raw_parts(moved, 1024)
+                .iter()
+                .all(|byte| *byte == 0x2a)
+        );
+        assert!(
+            core::slice::from_raw_parts(neighbor, 1024)
+                .iter()
+                .all(|byte| *byte == 0x97)
+        );
+        assert_eq!(arena.live_bytes(), 2560);
+        arena.dealloc(moved, Layout::from_size_align(1536, 32).unwrap());
+        arena.dealloc(neighbor, old);
+        assert_eq!(arena.live_bytes(), 0);
+    }
+}
+
+// Production metadata is static. Hosted contract fixtures construct several
+// full finite bitmaps, so give their construction an explicit bounded stack.
+macro_rules! bounded_arena_test {
+    ($name:ident, $contract:ident) => {
+        #[test]
+        fn $name() {
+            std::thread::Builder::new()
+                .stack_size(16 * 1024 * 1024)
+                .spawn($contract)
+                .unwrap()
+                .join()
+                .unwrap();
+        }
+    };
+}
+bounded_arena_test!(
+    released_adjacent_preparations_are_reusable_without_touching_live_objects,
+    released_adjacent_preparations_are_reusable_without_touching_live_objects_contract
+);
+bounded_arena_test!(
+    thousands_of_mixed_alignment_refreshes_keep_a_bounded_live_population,
+    thousands_of_mixed_alignment_refreshes_keep_a_bounded_live_population_contract
+);
+bounded_arena_test!(
+    seal_and_failed_reinitialization_preserve_the_original_admission,
+    seal_and_failed_reinitialization_preserve_the_original_admission_contract
+);
+bounded_arena_test!(
+    invalid_ranges_and_unrepresentable_requests_refuse_without_mutation,
+    invalid_ranges_and_unrepresentable_requests_refuse_without_mutation_contract
+);
+bounded_arena_test!(
+    concurrent_preparation_owners_cannot_alias_live_ranges,
+    concurrent_preparation_owners_cannot_alias_live_ranges_contract
+);
+bounded_arena_test!(
+    resized_and_zeroed_objects_preserve_the_global_allocator_contract,
+    resized_and_zeroed_objects_preserve_the_global_allocator_contract_contract
+);
+bounded_arena_test!(
+    resize_reuses_adjacent_space_and_preserves_failed_and_sealed_allocations,
+    resize_reuses_adjacent_space_and_preserves_failed_and_sealed_allocations_contract
+);
+bounded_arena_test!(
+    resize_moves_only_when_a_live_neighbor_prevents_growth,
+    resize_moves_only_when_a_live_neighbor_prevents_growth_contract
+);

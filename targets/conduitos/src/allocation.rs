@@ -16,8 +16,8 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-/// Maximum preparation range, including the graphical profile's current arena.
-pub const MAXIMUM_ARENA_BYTES: usize = 16 * 1024 * 1024;
+/// Maximum finite preparation range; Root selects its exact Make budget.
+pub const MAXIMUM_ARENA_BYTES: usize = 256 * 1024 * 1024;
 
 pub struct BootArena {
     locked: AtomicBool,
@@ -102,6 +102,10 @@ unsafe impl GlobalAlloc for BootArena {
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
         self.with_state(|state| state.release(pointer, layout));
+    }
+    unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        // SAFETY: GlobalAlloc supplies the exact live allocation and Layout.
+        self.with_state(|state| unsafe { state.resize(pointer, layout, new_size) })
     }
 }
 

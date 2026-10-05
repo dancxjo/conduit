@@ -6,6 +6,9 @@ use conduit_core::{
     ResourceGenerationId, ResourcePoolId,
 };
 
+#[path = "base_capability/allocation.rs"]
+mod allocation;
+
 fn scope() -> BaseCapabilityScope {
     BaseCapabilityScope {
         host_id: HostId::from("host/one"),

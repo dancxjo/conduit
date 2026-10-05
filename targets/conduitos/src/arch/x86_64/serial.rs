@@ -5,6 +5,7 @@ use super::io::{inb, outb};
 const COM1: u16 = 0x3f8;
 const SERIAL_SPIN_LIMIT: u32 = 100_000;
 const MAX_PRESENT_BYTES: usize = crate::offer::SERIAL_MAXIMUM_BYTES as usize;
+const MAX_BOOT_DIAGNOSTIC_BYTES: usize = crate::sign_format::MAX_STRUCTURED_SIGN_BYTES;
 
 pub(super) fn initialize() {
     unsafe {
@@ -23,6 +24,18 @@ pub fn early_write(bytes: &[u8]) {
     for &byte in bytes {
         let _ = write_byte(byte);
     }
+}
+
+/// Append bounded bootstrap diagnostics after the sole Root initializes COM1.
+/// Unlike early initialization, this preserves bytes already in the transmit FIFO.
+pub fn append_boot_diagnostic(bytes: &[u8]) -> Result<(), BaseError> {
+    if bytes.len() > MAX_BOOT_DIAGNOSTIC_BYTES {
+        return Err(BaseError::PayloadTooLarge);
+    }
+    for &byte in bytes {
+        write_byte(byte)?;
+    }
+    Ok(())
 }
 
 pub(super) fn present(bytes: &[u8]) -> Result<(), BaseError> {

@@ -1,0 +1,41 @@
+# One admitted monotonic clock timestamps bus completions and waits for deadlines.
+with machine/clock/at/request as ClockRequest
+with machine/clock/at/result as ClockResult
+
+type BmeClockContext =
+    bus I2cResult
+    | waiting U64
+
+type BmeClockCompletion = {
+    context: BmeClockContext
+    result: ClockResult
+}
+
+type BmeClockEvent =
+    event BmeProtocolEvent
+    | failed ClockResult
+
+plot bme280-clock-bus-context (
+    result: I2cResult...| >> context: BmeClockContext...|
+) = (bus(.))
+
+type BmeOptionalClockContext =
+    available BmeClockContext
+    | absent
+
+plot bme280-clock-action-context (
+    action: BmeProtocolAction...| >> context: BmeOptionalClockContext...|
+) = (. is waiting ? available(waiting(.waiting)) : absent(unit))
+
+plot bme280-clock-request (
+    context: BmeClockContext...| >> request: ClockRequest...|
+) = ({ deadline: (. is waiting ? .waiting : 0) })
+
+plot bme280-clock-event (
+    completion: BmeClockCompletion...| >> outcome: BmeClockEvent...|
+) = (.result is completed ? event(.context is bus ? bus({ result: .context.bus, now: .result.completed }) : tick(.result.completed)) : failed(.result))
+
+# Every clock refusal also advances Source to its explicit terminal state.
+plot bme280-clock-feedback-event (
+    outcome: BmeClockEvent...| >> event: BmeProtocolEvent...|
+) = (. is event ? .event : clock-failed(.failed))
