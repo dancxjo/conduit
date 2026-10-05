@@ -28,6 +28,8 @@ use sha2::{Digest, Sha256};
 mod kernel;
 #[path = "usb_endpoint_read_proof/possession.rs"]
 mod possession;
+#[path = "usb_endpoint_read_proof/hid.rs"]
+mod hid;
 
 #[repr(C, align(4096))]
 struct ProofDma {
@@ -121,6 +123,9 @@ pub(super) fn run(
         )
     }
     .map_err(|_| "usb-endpoint-proof-configuration")?;
+    if cfg!(feature = "usb-hid-endpoint-proof") {
+        return hid::run(controller, device, configured, dma, ids, base);
+    }
     // Publish readiness and issue possession only after native configuration is acknowledged.
     let plan = planning::plan(
         &contract,
