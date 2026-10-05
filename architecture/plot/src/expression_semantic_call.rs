@@ -37,6 +37,33 @@ pub(super) fn check(
         }
         return Ok(CheckedExpressionType::semantic(target));
     }
+    if matches!(name.text.as_str(), "bytes/length" | "bytes/at") {
+        let expected_count = if name.text == "bytes/at" { 2 } else { 1 };
+        if arguments.len() != expected_count {
+            return Err(diagnostic(
+                span,
+                "byte observation requires Bytes and, for indexing, a U64 index",
+            ));
+        }
+        let bytes = CheckedExpressionType::semantic("value/bytes");
+        if check_argument(&arguments[0], None)? != bytes {
+            return Err(diagnostic(
+                arguments[0].span(),
+                "byte observation requires exact Bytes",
+            ));
+        }
+        if name.text == "bytes/at" {
+            let index = CheckedExpressionType::semantic("value/u64");
+            if check_argument(&arguments[1], Some(&index))? != index {
+                return Err(diagnostic(
+                    arguments[1].span(),
+                    "byte index requires exact U64",
+                ));
+            }
+            return Ok(CheckedExpressionType::semantic("value/u8"));
+        }
+        return Ok(CheckedExpressionType::semantic("value/u64"));
+    }
     if name.text == "sequence/at" {
         let [source, index] = arguments else {
             return Err(diagnostic(
@@ -291,6 +318,11 @@ pub(crate) fn is_intrinsic(name: &str) -> bool {
     integer_widening_target(name).is_some()
         || matches!(
             name,
-            "variant/tag" | "variant/is" | "sequence/length" | "sequence/at"
+            "variant/tag"
+                | "variant/is"
+                | "sequence/length"
+                | "sequence/at"
+                | "bytes/length"
+                | "bytes/at"
         )
 }

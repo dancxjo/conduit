@@ -6,6 +6,54 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if matches!(kind, "bytes/length" | "bytes/at") {
+        let count = if kind == "bytes/at" { 2 } else { 1 };
+        let source_type = StructuredInfoType::leaf(conduit_core::kind_id("value/bytes"))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let expected_type =
+            StructuredInfoType::leaf(conduit_core::kind_id(if kind == "bytes/at" {
+                "value/u8"
+            } else {
+                "value/u64"
+            }))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if arguments.len() != count
+            || arguments[0].value_type != source_type
+            || expected != &expected_type
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let bytes = &arguments[0].encoded;
+        let encoded = if kind == "bytes/at" {
+            if arguments[1].value_type
+                != StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
+            {
+                return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+            }
+            let index = u64::from_le_bytes(
+                arguments[1]
+                    .encoded
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?,
+            );
+            let index = usize::try_from(index)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+            core::slice::from_ref(
+                bytes
+                    .get(index)
+                    .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?,
+            )
+            .to_vec()
+        } else {
+            (bytes.len() as u64).to_le_bytes().to_vec()
+        };
+        return Ok(Value {
+            value_type: expected_type,
+            encoded,
+        });
+    }
     if kind == "sequence/at" {
         let [source, index] = arguments.as_slice() else {
             return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
