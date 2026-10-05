@@ -13,6 +13,14 @@ use conduit_language::{
 use conduit_plot::{rust_binding::NativeRustBinding, CheckedGear};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LanguageCoverageUnsatisfied {
+    pub gear_id: conduit_core::GearId,
+    pub requirements: Vec<LanguageCoverageRequirement>,
+    pub candidates: Vec<LanguageCoverageCandidateEvidence>,
+    pub reason: Option<LanguageCoverageRefusal>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LanguageCoverageRequirement {
     pub configuration_key: String,
     pub request: LanguageRequest,
@@ -68,15 +76,17 @@ pub(crate) fn requirements(
                 configuration_key: configuration_key.clone(),
             })?;
         validate_language_request(&request).map_err(|reason| {
-            PlannerError::LanguageCoverageUnsatisfied {
-                gear_id: gear.gear_id.clone(),
-                requirements: vec![LanguageCoverageRequirement {
-                    configuration_key: configuration_key.clone(),
-                    request: request.clone(),
-                }],
-                candidates: Vec::new(),
-                reason: Some(reason),
-            }
+            PlannerError::LanguageCoverageUnsatisfied(alloc::boxed::Box::new(
+                LanguageCoverageUnsatisfied {
+                    gear_id: gear.gear_id.clone(),
+                    requirements: vec![LanguageCoverageRequirement {
+                        configuration_key: configuration_key.clone(),
+                        request: request.clone(),
+                    }],
+                    candidates: Vec::new(),
+                    reason: Some(reason),
+                },
+            ))
         })?;
         requests.push(LanguageCoverageRequirement {
             configuration_key: configuration_key.clone(),
@@ -176,12 +186,14 @@ where
         }
     }
     if eligible.is_empty() {
-        return Err(PlannerError::LanguageCoverageUnsatisfied {
-            gear_id: gear.gear_id.clone(),
-            requirements: requests,
-            candidates: rejected,
-            reason: None,
-        });
+        return Err(PlannerError::LanguageCoverageUnsatisfied(
+            alloc::boxed::Box::new(LanguageCoverageUnsatisfied {
+                gear_id: gear.gear_id.clone(),
+                requirements: requests,
+                candidates: rejected,
+                reason: None,
+            }),
+        ));
     }
     Ok(eligible)
 }
@@ -241,11 +253,15 @@ pub(crate) fn no_eligible_error(
     Ok(candidates
         .iter()
         .all(|candidate| candidate.checks.iter().any(|check| check.result.is_err()))
-        .then(|| PlannerError::LanguageCoverageUnsatisfied {
-            gear_id: gear.gear_id.clone(),
-            requirements: requests,
-            candidates,
-            reason: None,
+        .then(|| {
+            PlannerError::LanguageCoverageUnsatisfied(alloc::boxed::Box::new(
+                LanguageCoverageUnsatisfied {
+                    gear_id: gear.gear_id.clone(),
+                    requirements: requests,
+                    candidates,
+                    reason: None,
+                },
+            ))
         }))
 }
 

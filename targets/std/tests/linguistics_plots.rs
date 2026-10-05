@@ -266,14 +266,14 @@ fn shipped_english_specimen_refuses_valid_french_before_realization() {
     let host = host(linguistics_std_offers());
     let error =
         conduit_planner::default_expanded_placements(&authored.expanded, &[host]).unwrap_err();
-    let conduit_planner::PlannerError::LanguageCoverageUnsatisfied {
+    let conduit_planner::PlannerError::LanguageCoverageUnsatisfied(evidence) = error else {
+        panic!("unexpected {error:?}")
+    };
+    let conduit_planner::LanguageCoverageUnsatisfied {
         requirements,
         candidates,
         ..
-    } = error
-    else {
-        panic!("unexpected {error:?}")
-    };
+    } = *evidence;
     assert_eq!(requirements[0].request.language().get(), "language/french");
     assert_eq!(
         candidates[0].checks[0].result,

@@ -1015,7 +1015,7 @@ mod tests;
 mod language_coverage;
 pub use language_coverage::{
     inspect_language_coverage, LanguageCoverageCandidateEvidence, LanguageCoverageCheck,
-    LanguageCoverageRequirement,
+    LanguageCoverageRequirement, LanguageCoverageUnsatisfied,
 };
 
 #[cfg(test)]

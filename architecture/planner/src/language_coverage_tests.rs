@@ -135,14 +135,14 @@ fn declare(
         vec![language_coverage_property(coverage(names, varieties, sensitive)).unwrap()];
 }
 fn refusal(error: PlannerError, expected: &str, reason: LanguageCoverageRefusal) {
-    let PlannerError::LanguageCoverageUnsatisfied {
+    let PlannerError::LanguageCoverageUnsatisfied(evidence) = error else {
+        panic!("unexpected refusal {error:?}")
+    };
+    let crate::LanguageCoverageUnsatisfied {
         requirements,
         candidates,
         ..
-    } = error
-    else {
-        panic!("unexpected refusal {error:?}")
-    };
+    } = *evidence;
     assert_eq!(requirements[0].request.language().get(), expected);
     assert_eq!(candidates[0].checks[0].result, Err(reason));
 }
@@ -164,14 +164,14 @@ fn fore_equality_cannot_admit_french_or_undeclared_back_in_any_ordinary_entrance
             LanguageCoverageRefusal::Undeclared
         };
         refusal(
-            default_placements(&plot, &[host.clone()]).unwrap_err(),
+            default_placements(&plot, core::slice::from_ref(&host)).unwrap_err(),
             "French",
             reason,
         );
         refusal(
             select_realization_with_policy(
                 &plot.gears[0],
-                &[host.clone()],
+                core::slice::from_ref(&host),
                 &HardRealizationRequirements::default(),
                 &RealizationPolicy::default(),
             )
@@ -182,7 +182,7 @@ fn fore_equality_cannot_admit_french_or_undeclared_back_in_any_ordinary_entrance
         refusal(
             select_realization_with_characteristics(
                 &plot.gears[0],
-                &[host.clone()],
+                core::slice::from_ref(&host),
                 &[],
                 &HardRealizationRequirements::default(),
                 &[],
@@ -207,7 +207,7 @@ fn fore_equality_cannot_admit_french_or_undeclared_back_in_any_ordinary_entrance
         refusal(
             plan(
                 &plot,
-                &[host.clone()],
+                core::slice::from_ref(&host),
                 &placements,
                 &[BaseImplementationId::from("conduit.base/local@1")],
             )
@@ -220,7 +220,7 @@ fn fore_equality_cannot_admit_french_or_undeclared_back_in_any_ordinary_entrance
 fn declaration_is_english(host: &HostAdvertisement) -> bool {
     inspect_language_coverage(
         &fixture(request("English", None, false)).0.gears[0],
-        &[host.clone()],
+        core::slice::from_ref(host),
     )
     .unwrap()[0]
         .checks[0]
@@ -244,7 +244,7 @@ fn multilingual_and_narrow_backs_share_kind_and_policy_runs_after_coverage() {
     let choose = |gear: &CheckedGear| {
         select_realization_with_policy(
             gear,
-            &[host.clone()],
+            core::slice::from_ref(&host),
             &HardRealizationRequirements::default(),
             &policy,
         )
@@ -300,7 +300,8 @@ fn variety_requirement_and_back_sensitivity_are_separate_exact_facts() {
             vec![supported.clone()],
             back_sensitive,
         );
-        let details = inspect_language_coverage(&plot.gears[0], &[host.clone()]).unwrap();
+        let details =
+            inspect_language_coverage(&plot.gears[0], core::slice::from_ref(&host)).unwrap();
         assert_eq!(
             details[0].checks[0].requirement.request.variety(),
             &Some(requested.clone())
@@ -321,10 +322,10 @@ fn variety_requirement_and_back_sensitivity_are_separate_exact_facts() {
 fn selected_coverage_is_retained_and_cannot_change_under_the_same_plan_identity() {
     let (plot, mut host) = fixture(request("English", None, false));
     declare(&mut host, &["English"], vec![], false);
-    let placements = default_placements(&plot, &[host.clone()]).unwrap();
+    let placements = default_placements(&plot, core::slice::from_ref(&host)).unwrap();
     let original = plan(
         &plot,
-        &[host.clone()],
+        core::slice::from_ref(&host),
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )

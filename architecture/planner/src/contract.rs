@@ -74,12 +74,7 @@ pub enum PlannerError {
         configuration_key: String,
     },
     InvalidRealizationProperties(conduit_core::CapabilityId),
-    LanguageCoverageUnsatisfied {
-        gear_id: conduit_core::GearId,
-        requirements: Vec<crate::LanguageCoverageRequirement>,
-        candidates: Vec<crate::LanguageCoverageCandidateEvidence>,
-        reason: Option<conduit_language::LanguageCoverageRefusal>,
-    },
+    LanguageCoverageUnsatisfied(alloc::boxed::Box<crate::LanguageCoverageUnsatisfied>),
     InvalidPlotIdentity(String),
     PlannerCapabilityNotAdvertised(String),
     PlannerCapabilityAmbiguous(String),
@@ -155,12 +150,13 @@ impl core::fmt::Display for PlannerError {
                 "Back '{}' has invalid finite realization properties",
                 capability.as_str()
             ),
-            Self::LanguageCoverageUnsatisfied {
-                gear_id,
-                requirements,
-                reason,
-                ..
-            } => {
+            Self::LanguageCoverageUnsatisfied(evidence) => {
+                let crate::LanguageCoverageUnsatisfied {
+                    gear_id,
+                    requirements,
+                    reason,
+                    ..
+                } = evidence.as_ref();
                 write!(
                     f,
                     "gear '{}' has no eligible Back for requested Language coverage",
