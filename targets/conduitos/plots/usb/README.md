@@ -387,3 +387,10 @@ compatibility, or five-architecture USB emulator acceptance.
   frequency control and Type-I PCM streaming.
 - [USB CDC specifications](https://www.usb.org/document-library/class-definitions-communication-devices-12),
   Ethernet Control Model packet-filter and communications interface contracts.
+
+HID report interpretation consumes packed `Bytes <= 2048B`, matching the bounded
+endpoint payload. The class plots require count/extent agreement and reject boot
+reports larger than eight bytes before reading an octet. Keyboard reports require
+eight bytes; mouse reports preserve three through eight actual bytes, including
+uninterpreted extensions. Short reports remain distinct from malformed reports.
+These are class bounds, independent of endpoint transfer admission.
