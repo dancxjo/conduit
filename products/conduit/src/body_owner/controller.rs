@@ -37,6 +37,11 @@ mod birth;
 mod clock_interval;
 #[path = "native_mask_route.rs"]
 mod native_mask_route;
+#[path = "presentation_wardrobe.rs"]
+mod presentation_wardrobe;
+#[cfg(unix)]
+#[path = "presentation_wardrobe_runtime.rs"]
+mod presentation_wardrobe_runtime;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
@@ -129,6 +134,7 @@ pub(crate) struct Owner {
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
+    presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
 }
 impl Owner {
     pub(crate) fn selected_speech_host_is_idle(&self) -> bool {
@@ -217,6 +223,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            presentation_wardrobe: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -236,6 +243,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            presentation_wardrobe: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {

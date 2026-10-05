@@ -160,7 +160,7 @@ fn report_wardrobe(output: &mut impl Write, report: &serde_json::Value) -> Resul
     let planning = &report["reconciliation"]["planning"];
     writeln!(
         output,
-        "Wardrobe (this foreground attachment only): {} worn terminal Mask, {} admitted route; selected route: {selected}; current Show: {show}; planning: {planning}. Preference: {}. Wear/doff/prefer address only this admitted terminal Mask; other Masks have no admitted route here.",
+        "Owner Body wardrobe: {} worn terminal Mask, {} admitted route; selected route: {selected}; current Show: {show}; planning: {planning}. Preference: {}. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.",
         worn.len(),
         report["admitted_routes"].as_array().map_or(0, Vec::len),
         report["wardrobe"]["preference"],
