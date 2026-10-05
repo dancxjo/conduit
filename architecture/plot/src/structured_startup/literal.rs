@@ -130,6 +130,14 @@ pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> 
     Some(conduit_core::Scalar::from_raw_microunits(raw))
 }
 
+fn parse_decimal_magnitude(value: &str) -> Option<u64> {
+    value.bytes().try_fold(0_u64, |magnitude, digit| {
+        magnitude
+            .checked_mul(10)?
+            .checked_add(u64::from(digit - b'0'))
+    })
+}
+
 #[cfg(test)]
 mod float_literal_tests {
     use super::*;
@@ -180,12 +188,4 @@ mod float_literal_tests {
         assert!(canonical_leaf_literal(conduit_core::F32_INFO_ID, "0.1234567891", span).is_err());
         assert!(canonical_leaf_literal(conduit_core::F32_INFO_ID, "NaN", span).is_err());
     }
-}
-
-fn parse_decimal_magnitude(value: &str) -> Option<u64> {
-    value.bytes().try_fold(0_u64, |magnitude, digit| {
-        magnitude
-            .checked_mul(10)?
-            .checked_add(u64::from(digit - b'0'))
-    })
 }

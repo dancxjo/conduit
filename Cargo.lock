@@ -1126,6 +1126,7 @@ dependencies = [
  "conduit-data",
  "conduit-human",
  "conduit-kernel",
+ "conduit-language",
  "conduit-little-seismograph-fixture",
  "conduit-net",
  "conduit-observatory",

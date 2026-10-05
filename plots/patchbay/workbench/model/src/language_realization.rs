@@ -38,12 +38,21 @@ mod tests {
         let source = r#"plot language-details {
             tokens: language/tokenize-four(text = "Bonjour les amis.", language-request = { language: "language/french", variety: none(""), variety_policy: language_sufficient("") })
         }"#;
-        let editor = crate::PlotEditor::from_source(
-            std::path::PathBuf::from("language-details.conduit"),
-            source.into(),
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
+        conduit_language::install_linguistics_catalogs(&mut startup, &mut profile).unwrap();
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
+            &startup,
         )
         .unwrap();
-        let plot = editor.expand_plot("language-details").unwrap();
+        let plot = conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            "language-details",
+            &profile,
+        )
+        .unwrap()
+        .expanded;
         let graph = crate::PatchbayGraph::from_expanded(&plot).unwrap();
         let subject = graph.subject_ref(&graph.gears[0].identity).unwrap();
         let host = HostAdvertisement {
