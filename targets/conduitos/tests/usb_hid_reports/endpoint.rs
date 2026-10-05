@@ -318,12 +318,12 @@ fn sole_kernel_constructs_and_retains_the_endpoint_call_for_native_admission() {
         let allocations = crate::allocation::allocations(|| {
             for _ in 0..256 {
                 play.kernel_mut().step().unwrap();
-                if let Some(request) = play.kernel_mut().next_host_request() {
-                    if !play.service_pure_call(&request).unwrap() {
-                        assert!(!play.service_pure_call(&request).unwrap());
-                        endpoint_request = Some(request);
-                        break;
-                    }
+                if let Some(request) = play.kernel_mut().next_host_request()
+                    && !play.service_pure_call(&request).unwrap()
+                {
+                    assert!(!play.service_pure_call(&request).unwrap());
+                    endpoint_request = Some(request);
+                    break;
                 }
             }
         });
