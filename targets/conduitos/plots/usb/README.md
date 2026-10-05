@@ -356,6 +356,29 @@ selected base/resource, Plan/Play and attachment identities with a bounded
 transaction transcript and final lifecycle outcome. Emulator execution and
 physical/HIL compatibility remain separate proof classes.
 
+
+## HID keyboard state (development)
+
+`hid-keyboard-state.conduit` derives twenty fixed slots from validated,
+normalized previous and current reports: modifier changes in bit order, sorted
+releases, then sorted presses. Unchanged slots are explicit.
+
+`hid-keyboard-lifecycle.conduit` retains previous-report state and drains each
+batch through generic state, zip and merge Backs before pairing another command.
+The command entry finishes explicitly. The received-frame entry connects the
+checked decoder and normalization to that loop; invalid reports are observed
+without replacing previous state. Generic ordered concatenation appends a
+Source-authored finish command after the decoded report stream closes normally.
+The state loop drains all pending transitions before completing; cancellation
+remains a separate kernel outcome. Native device teardown proof is separate.
+
+Deterministic kernel conformance covers 64 report generations and 1,274 ordered
+transitions, held-output pressure, explicit finish, cancellation, and malformed
+wire reports, with zero Play allocations and storage reserved beforehand.
+Run it through `cargo xtask make conduitos usb-plots-check`. These tests establish
+neither an installed class offer nor interrupt endpoint execution, physical
+compatibility, or five-architecture USB emulator acceptance.
+
 ## Protocol references
 
 - [USB HID 1.11](https://www.usb.org/sites/default/files/documents/hid1_11.pdf),
@@ -364,3 +387,37 @@ physical/HIL compatibility remain separate proof classes.
   frequency control and Type-I PCM streaming.
 - [USB CDC specifications](https://www.usb.org/document-library/class-definitions-communication-devices-12),
   Ethernet Control Model packet-filter and communications interface contracts.
+
+HID report interpretation consumes packed `Bytes <= 2048B`, matching the bounded
+endpoint payload. The class plots require count/extent agreement and reject boot
+reports larger than eight bytes before reading an octet. Keyboard reports require
+eight bytes; mouse reports preserve three through eight actual bytes, including
+uninterpreted extensions. Short reports remain distinct from malformed reports.
+These are class bounds, independent of endpoint transfer admission.
+
+`hid-endpoint.conduit` connects the exact endpoint-read Fore to keyboard and
+mouse interpretation. Source constructs the eight-byte boot-report request,
+checks count, extent and shortness, and preserves stalled, provider-loss,
+unsupported and timeout observations separately. Only completed valid frames
+reach the class decoder. Preparing these graphs publishes no physical Back;
+execution requires a separately selected endpoint offer and actual possession.
+Deterministic conformance checks both class compositions and their bounded
+framing. The keyboard graph also has the native emulator proof below; native
+mouse execution remains pending.
+
+The dedicated keyboard Source appliance enters through
+`cargo xtask make conduitos usb-proof --hid-endpoint`. It uses the same bounded
+xHCI endpoint owner as the raw endpoint proof and checks 128 alternating fixture
+presses/releases across two ring cycle transitions. The retained receipt checks
+exact Source/Plan/Play and attachment identities, the canonical class output
+transcript, normal closure and acknowledged stop. The production arena is sealed
+before Play, so the entire native transfer, drain and stop run refuses allocations.
+This command requires its own
+proof image with a 32 MiB preparation arena. Deterministic preparation with the
+production allocator peaks at 17,781,120 live bytes and releases all retained
+storage on retirement; the arena also admits allocation geometry and the native
+Root's storage. The endpoint call still admits at most 2,048 payload bytes on a
+4 KiB call surface. A retained x86_64 emulator run completes all 128 reports with
+the arena sealed. The appliance retains legacy attachment setup and an explicit
+Root fixture grant. This development proof does not establish an ordinary class
+offer, physical compatibility or five-architecture acceptance.

@@ -1,34 +1,36 @@
 use conduit_composite::{
-    KernelCompositeSignStorage, KernelCompositeStatus, KernelCompositeTerminal,
+    KernelCompositeError, KernelCompositeSignStorage, KernelCompositeStatus,
+    KernelCompositeTerminal,
 };
 use conduit_core::*;
-use conduit_kernel::scheduler::RemoteIngressOutcome;
+use conduit_kernel::{scheduler::RemoteIngressOutcome, KernelEventKind};
 use conduitos::protocol_source::PreparedProtocolEntry;
+use conduitos::{
+    protocol_host_calls::ProtocolCallRefusal, pure_protocol_play::PreparedPureProtocolPlay,
+};
 use std::collections::BTreeMap;
 
-#[test]
-fn source_keyboard_state_drains_64_reports_in_order_under_pressure_without_allocations() {
+struct Fixture {
+    run: PreparedPureProtocolPlay,
+    command: PortDescriptor,
+    begin: PortDescriptor,
+    output: PortDescriptor,
+    inputs: Vec<ValuePayload>,
+    expected: Vec<(u8, bool, u8)>,
+    begin_value: ValuePayload,
+}
+
+pub(super) fn prepared(
+    entry_name: &str,
+) -> (
+    BTreeMap<PortId, StructuredInfoType>,
+    PreparedPureProtocolPlay,
+) {
     let entry = PreparedProtocolEntry::prepare(
         &serde_json::to_vec(&super::lifecycle::package()).unwrap(),
-        "usb-hid-keyboard-lifecycle",
+        entry_name,
     )
     .unwrap();
-    let schema = entry.input_schema(&PortId::from("command")).unwrap();
-    let StructuredInfoTypeShape::Variant { cases, .. } = schema.shape() else {
-        panic!("command");
-    };
-    let report_type = cases
-        .iter()
-        .find(|c| c.tag() == "report")
-        .unwrap()
-        .payload_type()
-        .clone();
-    let unit_type = cases
-        .iter()
-        .find(|c| c.tag() == "finish")
-        .unwrap()
-        .payload_type()
-        .clone();
     let mut host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/keyboard-source-host".into(),
@@ -43,6 +45,18 @@ fn source_keyboard_state_drains_64_reports_in_order_under_pressure_without_alloc
     entry.publish_pure_backs(&mut host).unwrap();
     let hosts = [host];
     let placements = entry.placements(&hosts).unwrap();
+    let schemas = entry
+        .expanded()
+        .front
+        .inputs()
+        .iter()
+        .map(|port| {
+            (
+                port.port_id.clone(),
+                entry.input_schema(&port.port_id).unwrap(),
+            )
+        })
+        .collect();
     let artifact = entry
         .plan(
             &hosts,
@@ -65,6 +79,27 @@ fn source_keyboard_state_drains_64_reports_in_order_under_pressure_without_alloc
             additional_remote_items: 60000,
         })
         .unwrap();
+    (schemas, run)
+}
+
+fn fixture() -> Fixture {
+    let (schemas, run) = prepared("usb-hid-keyboard-lifecycle");
+    let schema = schemas.get(&PortId::from("command")).unwrap().clone();
+    let StructuredInfoTypeShape::Variant { cases, .. } = schema.shape() else {
+        panic!("command");
+    };
+    let report_type = cases
+        .iter()
+        .find(|c| c.tag() == "report")
+        .unwrap()
+        .payload_type()
+        .clone();
+    let unit_type = cases
+        .iter()
+        .find(|c| c.tag() == "finish")
+        .unwrap()
+        .payload_type()
+        .clone();
     let command = run
         .kernel()
         .definition()
@@ -123,13 +158,34 @@ fn source_keyboard_state_drains_64_reports_in_order_under_pressure_without_alloc
         value_kind: begin.value_kind.clone(),
         encoded: vec![],
     };
+    Fixture {
+        run,
+        command,
+        begin,
+        output,
+        inputs,
+        expected,
+        begin_value,
+    }
+}
+
+#[test]
+fn source_keyboard_state_drains_64_reports_in_order_under_pressure_without_allocations() {
+    let Fixture {
+        mut run,
+        command,
+        begin,
+        output,
+        inputs,
+        expected,
+        begin_value,
+    } = fixture();
     let mut value = ValuePayload {
         value_kind: output.value_kind.clone(),
         encoded: Vec::with_capacity(4096),
     };
     assert_eq!(expected.len(), 1274);
     let mut held = Vec::with_capacity(4096);
-    let mut run = run;
     let mut next_input = 0;
     let mut next_output = 0;
     let mut pressure = 0;
@@ -209,4 +265,75 @@ fn source_keyboard_state_drains_64_reports_in_order_under_pressure_without_alloc
         );
     });
     assert_eq!(allocations, 0);
+}
+
+#[test]
+fn pending_keyboard_transition_is_revoked_by_cancellation_without_a_normal_finish() {
+    let Fixture {
+        mut run,
+        command,
+        begin,
+        output,
+        inputs,
+        begin_value,
+        ..
+    } = fixture();
+    let mut value = ValuePayload {
+        value_kind: output.value_kind.clone(),
+        encoded: Vec::with_capacity(4096),
+    };
+    run.start().unwrap();
+    assert_eq!(
+        run.admit_input(&begin.port_id, 0, &begin_value).unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    run.close_input(&begin.port_id).unwrap();
+    assert_eq!(
+        run.admit_input(&command.port_id, 0, &inputs[0]).unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    let mut held = false;
+    for _ in 0..4096 {
+        run.step().unwrap();
+        if run.output_into(&output.port_id, &mut value).unwrap() == Some(0) {
+            held = true;
+            break;
+        }
+    }
+    assert!(held);
+    let allocations = crate::allocation::allocations(|| {
+        run.cancel().unwrap();
+        assert_eq!(run.step().unwrap(), KernelCompositeStatus::Cancelled);
+        assert!(matches!(
+            run.output_into(&output.port_id, &mut value),
+            Err(ProtocolCallRefusal::Kernel(
+                KernelCompositeError::InvalidLifecycle
+            ))
+        ));
+        assert!(matches!(
+            run.complete_output(&output.port_id, 0),
+            Err(ProtocolCallRefusal::Kernel(
+                KernelCompositeError::InvalidLifecycle
+            ))
+        ));
+        assert!(matches!(
+            run.admit_input(&command.port_id, 1, &inputs[1]),
+            Err(ProtocolCallRefusal::Kernel(
+                KernelCompositeError::InvalidLifecycle
+            ))
+        ));
+        assert!(matches!(
+            run.output_terminal_into(&output.port_id, &mut value),
+            Err(ProtocolCallRefusal::Kernel(
+                KernelCompositeError::InvalidLifecycle
+            ))
+        ));
+    });
+    assert_eq!(allocations, 0);
+    assert!(run
+        .kernel()
+        .signs()
+        .values()
+        .flatten()
+        .any(|event| event.kind == KernelEventKind::RunCancelled));
 }
