@@ -56,9 +56,33 @@ keys include the runner image, platform, architecture, and checked-in tool
 specification. Apt archives additionally bind the installed baseline and exact
 resolved dependency versions; cached bytes must match current authenticated
 repository metadata. No cache restores `/usr` or the package-manager database.
-Ubuntu acquisition uses the official archive mirror rather than the Azure
-mirror. If a cached package version is no longer authenticated by the
-repository, acquisition refuses; this cache is not a historical apt snapshot.
+APT acquisition supports the Ubuntu 24.04/noble and 26.04/resolute amd64
+runner profiles. Build prerequisites resolve exclusively from the official
+HTTPS Ubuntu archive and security repositories, with main, restricted, universe,
+and multiverse in the release, updates, and security suites. The runner's Ubuntu
+archive keyring supplies signature verification. Other profiles refuse; a
+package requiring a vendor repository is unsupported and fails resolution.
+
+Each acquisition uses private source configuration and fresh indices, leaving
+host sources and lists untouched. Unrelated vendor outages cannot affect that
+scope. Required archive update failures remain fatal, including on cache hits;
+unauthenticated, weak, insecure, and downgraded repositories remain forbidden.
+The archive cache identity includes the exact selected sources, signing-key
+content, runner image, architecture, requested packages, and installed baseline.
+Cached bytes must match current metadata from that same private index scope;
+host indices and binary metadata caches cannot authenticate them. Before either
+download or installation, an APT simulation must contain no removals and no
+version decrease against the recorded baseline, using dpkg's version ordering.
+APT may classify a same-version reinstall with different metadata as a downgrade;
+that exact version is allowed only after this guard and repository authentication. If a cached
+version is no longer authenticated, acquisition refuses; this is not a
+historical apt snapshot.
+
+The original vendor outage for [#4984](https://github.com/dancxjo/conduit/issues/4984)
+remains in its [failed acquisition job](https://github.com/dancxjo/conduit/actions/runs/37180737785/job/111376354133)
+and `acquisition-esp32-c3` artifact. It proves a setup failure before compilation,
+not a product execution failure. ESP32-C3 candidate evidence proves acquisition
+and compilation separately; it does not prove physical device execution.
 
 Every setup emits `target/acquisition/<lane>.json` with verified identities,
 operations, durations, cache outcomes, and known download sizes. The supported
