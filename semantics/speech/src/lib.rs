@@ -212,3 +212,6 @@ pub mod sourced_global_intent;
 
 #[cfg(test)]
 mod aspiration_parity;
+
+#[cfg(test)]
+mod inflection_parity;

@@ -72,6 +72,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build_support/lower.rs");
     println!("cargo:rerun-if-changed=build_support/graph.rs");
     println!("cargo:rerun-if-changed=pronunciation.conduit");
+    println!("cargo:rerun-if-changed=inflection.conduit");
     println!("cargo:rerun-if-changed=trajectory.conduit");
     println!("cargo:rerun-if-changed=connection.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
@@ -79,12 +80,13 @@ fn main() {
     println!("cargo:rerun-if-changed=normalization.conduit");
     println!("cargo:rerun-if-changed=glottal.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("profile_phones.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
         fs::read_to_string(path).expect("native speech source"),
         include_str!("pronunciation.conduit"),
+        include_str!("inflection.conduit"),
         include_str!("trajectory.conduit"),
         include_str!("connection.conduit"),
         include_str!("prosody.conduit"),

@@ -841,3 +841,31 @@ The native-speech proof writes `feature-aspiration-off-tata.wav` and
 `feature-default-aspiration-off-tata.wav` and
 `feature-default-aspiration-on-tata.wav`; the existing empty-feature samples
 retain their approved acoustic balance.
+
+The compact text profile has native regular-ending pronunciation for twelve
+explicitly declared stems. Exact whole-word dictionary entries retain priority.
+The checked inflection Plots identify bounded suffix candidates, declare stem
+eligibility and select `-s` /s, z, ɪz/ or `-ed` /t, d, ɪd/ from the stem's final
+phoneme. Rust only traverses those results and borrows prefix slices; it contains
+no suffix spelling or voicing policy. Stem stress and dictionary provenance are
+retained; appended segments have `inflection_rule` origin and exact modeled
+suffix source spans. This is pronunciation correspondence, not a grammatical
+analysis, lemma claim, measured alignment or linguistic commitment.
+
+The declared `-s` stems are voice, world, device, conduit, synthesizer, speech,
+listen, thank, please, want, speak and read. Regular `-ed` is declared only for
+listen, thank, please, voice and want; the profile now includes a self-authored
+American /wɑnt/ dictionary entry for want. At most two prefix candidates are
+examined; each dictionary result has at most twelve phonemes and the ending has
+at most two. Existing text/word/event bounds and atomic output admission apply.
+Undeclared stems, consonant doubling, y changes and irregular past forms keep the
+existing spelling fallback and its uncertainty rather than gaining inflection
+provenance. This remains a small pronunciation profile, not general English
+morphology or eSpeak-equivalent lexical coverage.
+
+The pronunciation models follow the [British Council's -s teaching model](https://africa.teachingenglish.org.uk/classroom/pronunciation/snake-or-fly)
+and [Iowa State's -ed/-s pronunciation chapter](https://iastate.pressbooks.pub/teachingpronunciation/chapter/chapter-5-ed-and-s-endings/).
+The want entry follows the [Cambridge American pronunciation](https://dictionary.cambridge.org/dictionary/english/want).
+The native-speech xtask proof writes `text-regular-plurals.wav` and
+`text-regular-past.wav` through the same fixed-storage renderer; linked MCU
+footprint and physical playback remain distinct proof classes.

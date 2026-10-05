@@ -108,57 +108,59 @@ fn preparation_rejects_fore_artifact_pool_and_configuration_drift() {
 }
 #[test]
 fn planned_kernel_fanout_preserves_every_frame_and_drains_before_completion() {
-    let pause = Rc::new(Cell::new(true));
-    let mut scheduler = graph::scheduler(b"Hello 007 world", pause.clone());
-    for _ in 0..32 {
-        scheduler.step().unwrap();
-    }
-    let before = scheduler
-        .drivers()
-        .iter()
-        .find_map(|d| match d {
-            graph::Driver::Voice(b) => Some(b.rendered_frames()),
-            _ => None,
-        })
-        .unwrap();
-    assert_eq!(before, 128, "one block may enter each admitted branch");
-    for _ in 0..32 {
-        scheduler.step().unwrap();
-    }
-    let after = scheduler
-        .drivers()
-        .iter()
-        .find_map(|d| match d {
-            graph::Driver::Voice(b) => Some(b.rendered_frames()),
-            _ => None,
-        })
-        .unwrap();
-    assert_eq!(after, before, "a full branch pressures the atomic fan-out");
-    pause.set(false);
-    scheduler.run(20000).unwrap();
-    let mut events = [VoiceEvent::boundary(VoiceBoundary::phrase); MAXIMUM_EVENTS];
-    let prepared = pronounce("Hello 007 world", &mut events).unwrap();
-    let mut renderer = Renderer::prepare(prepared.events()).unwrap();
-    let mut expected = Vec::new();
-    while !renderer.is_complete() {
-        let mut block = [0_i16; 128];
-        let n = renderer.render(&mut block).unwrap();
-        for sample in &block[..n] {
-            expected.extend_from_slice(&sample.to_le_bytes());
+    for text in ["Hello 007 world", "Conduits, voices. Thanked, wanted."] {
+        let pause = Rc::new(Cell::new(true));
+        let mut scheduler = graph::scheduler(text.as_bytes(), pause.clone());
+        for _ in 0..32 {
+            scheduler.step().unwrap();
         }
-    }
-    let mut sinks = 0;
-    for driver in scheduler.drivers() {
-        if let graph::Driver::Sink { pcm, complete, .. } = driver {
-            assert!(*complete);
-            assert_eq!(*pcm, expected);
-            sinks += 1;
+        let before = scheduler
+            .drivers()
+            .iter()
+            .find_map(|d| match d {
+                graph::Driver::Voice(b) => Some(b.rendered_frames()),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(before, 128, "one block may enter each admitted branch");
+        for _ in 0..32 {
+            scheduler.step().unwrap();
         }
+        let after = scheduler
+            .drivers()
+            .iter()
+            .find_map(|d| match d {
+                graph::Driver::Voice(b) => Some(b.rendered_frames()),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(after, before, "a full branch pressures the atomic fan-out");
+        pause.set(false);
+        scheduler.run(20000).unwrap();
+        let mut events = [VoiceEvent::boundary(VoiceBoundary::phrase); MAXIMUM_EVENTS];
+        let prepared = pronounce(text, &mut events).unwrap();
+        let mut renderer = Renderer::prepare(prepared.events()).unwrap();
+        let mut expected = Vec::new();
+        while !renderer.is_complete() {
+            let mut block = [0_i16; 128];
+            let n = renderer.render(&mut block).unwrap();
+            for sample in &block[..n] {
+                expected.extend_from_slice(&sample.to_le_bytes());
+            }
+        }
+        let mut sinks = 0;
+        for driver in scheduler.drivers() {
+            if let graph::Driver::Sink { pcm, complete, .. } = driver {
+                assert!(*complete);
+                assert_eq!(*pcm, expected);
+                sinks += 1;
+            }
+        }
+        assert_eq!(sinks, 2);
+        assert!(scheduler
+            .signs()
+            .contains_kind(KernelEventKind::BackCompleted));
     }
-    assert_eq!(sinks, 2);
-    assert!(scheduler
-        .signs()
-        .contains_kind(KernelEventKind::BackCompleted));
 }
 #[test]
 fn cancellation_invalid_text_and_empty_utterance_are_distinct() {
