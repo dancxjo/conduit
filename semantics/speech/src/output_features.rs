@@ -28,6 +28,9 @@ pub struct InheritedOutputFeature<'a> {
     layer: OutputFeatureLayer,
 }
 impl<'a> InheritedOutputFeature<'a> {
+    pub(crate) fn new(feature: &'a SpeechFeature, layer: OutputFeatureLayer) -> Self {
+        Self { feature, layer }
+    }
     pub fn feature(&self) -> &'a SpeechFeature {
         self.feature
     }

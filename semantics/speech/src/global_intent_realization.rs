@@ -1,9 +1,17 @@
 //! Whole-intent global-rule preparation with private immutable event storage.
 use crate::{
-    chosen_global_rule_profile::{prepare_chosen_global_rule_profile, ChosenGlobalProfileRefusal},
+    chosen_global_rule_profile::{
+        prepare_aspirated_global_rule_profile, prepare_chosen_global_rule_profile,
+        ChosenGlobalProfileRefusal,
+    },
     declared_context::ExplicitAllophoneContext,
+    default_output_features::DefaultOutputFeatures,
+    feature_realization::AspirationRealization,
     global_default_choice::{finish_global_default_choice, GlobalDefaultRefusal},
-    global_default_profile::{prepare_global_default_profile, GlobalDefaultProfileRefusal},
+    global_default_profile::{
+        prepare_aspirated_global_default_profile, prepare_global_default_profile,
+        GlobalDefaultProfileRefusal,
+    },
     global_rule_selection::{
         select_global_allophone_rule, GlobalRuleChoice, GlobalRuleSelectionRefusal,
     },
@@ -53,7 +61,7 @@ pub enum GlobalIntentRefusal<'a> {
     },
     DefaultProfile {
         event: usize,
-        reason: GlobalDefaultProfileRefusal,
+        reason: GlobalDefaultProfileRefusal<'a>,
     },
     Renderer(UtteranceTimingRenderRefusal),
 }
@@ -61,6 +69,7 @@ pub enum GlobalIntentRealization<'a> {
     Rule(Box<RuleOutputFeatures<'a>>),
     Default {
         identity: Option<SpeechPhonePatternIdentity>,
+        features: Option<Box<DefaultOutputFeatures<'a>>>,
     },
 }
 pub struct GlobalIntentPhoneReceipt<'a> {
@@ -76,8 +85,18 @@ pub struct GlobalIntentPhoneReceipt<'a> {
     completed_choice: SpeechAllophoneChoiceState,
     binding: &'a SpeechFormantPhoneBinding,
     profile_basis: SpeechFormantProfileBasis,
+    aspiration: Option<AspirationRealization<'a, 'a>>,
 }
 impl<'a> GlobalIntentPhoneReceipt<'a> {
+    pub fn default_output_features(&self) -> Option<&DefaultOutputFeatures<'a>> {
+        match &self.realization {
+            GlobalIntentRealization::Default { features, .. } => features.as_deref(),
+            _ => None,
+        }
+    }
+    pub fn aspiration(&self) -> Option<&AspirationRealization<'a, 'a>> {
+        self.aspiration.as_ref()
+    }
     pub fn event_index(&self) -> usize {
         self.event
     }
@@ -167,6 +186,44 @@ pub fn prepare_global_intent<'a>(
     policy: &'a SpeechAllophoneChoicePolicy,
     evidence: &[Option<GlobalSegmentPreparation<'a>>],
 ) -> Result<PreparedGlobalIntent<'a>, GlobalIntentRefusal<'a>> {
+    prepare_inner(
+        source, inventory, profile, boundaries, rules, policy, evidence, None,
+    )
+}
+/// Whole-intent preparation with explicitly declared aspiration lowering on
+/// selected rule outputs and declared defaults; each preserves its layer law.
+#[allow(clippy::too_many_arguments)]
+pub fn prepare_aspirated_global_intent<'a>(
+    source: &'a SpeechUtteranceIntent,
+    inventory: &'a SpeechInventory,
+    profile: &'a SpeechFormantAspirationProfile,
+    boundaries: &'a SpeechFormantBoundaryProfile,
+    rules: &'a SpeechAllophoneRuleProfile,
+    policy: &'a SpeechAllophoneChoicePolicy,
+    evidence: &[Option<GlobalSegmentPreparation<'a>>],
+) -> Result<PreparedGlobalIntent<'a>, GlobalIntentRefusal<'a>> {
+    prepare_inner(
+        source,
+        inventory,
+        profile.voice(),
+        boundaries,
+        rules,
+        policy,
+        evidence,
+        Some(profile),
+    )
+}
+#[allow(clippy::too_many_arguments)]
+fn prepare_inner<'a>(
+    source: &'a SpeechUtteranceIntent,
+    inventory: &'a SpeechInventory,
+    profile: &'a SpeechFormantVoiceProfile,
+    boundaries: &'a SpeechFormantBoundaryProfile,
+    rules: &'a SpeechAllophoneRuleProfile,
+    policy: &'a SpeechAllophoneChoicePolicy,
+    evidence: &[Option<GlobalSegmentPreparation<'a>>],
+    aspiration_profile: Option<&'a SpeechFormantAspirationProfile>,
+) -> Result<PreparedGlobalIntent<'a>, GlobalIntentRefusal<'a>> {
     if evidence.len() != source.events().as_slice().len() {
         return Err(GlobalIntentRefusal::EvidenceCount);
     }
@@ -225,32 +282,57 @@ pub fn prepare_global_intent<'a>(
                     profile_basis,
                     realization,
                     voice_event,
+                    aspiration,
                 ) = if completed.selected_default().is_some() {
-                    let projected = prepare_global_default_profile(
-                        &completed,
-                        profile,
-                        supplied.default_features,
-                    )
+                    let projected = match aspiration_profile {
+                        Some(profile) => prepare_aspirated_global_default_profile(
+                            &completed,
+                            profile,
+                            supplied.default_features,
+                        ),
+                        None => prepare_global_default_profile(
+                            &completed,
+                            profile,
+                            supplied.default_features,
+                        ),
+                    }
                     .map_err(|reason| GlobalIntentRefusal::DefaultProfile { event, reason })?;
+                    let definition = projected.definition();
+                    let identity = projected.checked_identity().clone();
+                    let default_occurrence = projected.checked_default_occurrence().clone();
+                    let binding = projected.binding();
+                    let profile_basis = projected.checked_basis().clone();
+                    let voice_event = projected.event();
+                    let (features, aspiration) = projected.into_realization();
                     (
-                        projected.definition(),
-                        projected.checked_identity().clone(),
+                        definition,
+                        identity,
                         phoneme.checked_basis().clone(),
-                        projected.checked_default_occurrence().clone(),
-                        projected.binding(),
-                        projected.checked_basis().clone(),
+                        default_occurrence,
+                        binding,
+                        profile_basis,
                         GlobalIntentRealization::Default {
                             identity: completed.checked_default_identity().cloned(),
+                            features: features.map(Box::new),
                         },
-                        projected.event(),
+                        voice_event,
+                        aspiration,
                     )
                 } else {
-                    let projected = prepare_chosen_global_rule_profile(
-                        &choice,
-                        inventory,
-                        profile,
-                        supplied.default_features,
-                    )
+                    let projected = match aspiration_profile {
+                        Some(profile) => prepare_aspirated_global_rule_profile(
+                            &choice,
+                            inventory,
+                            profile,
+                            supplied.default_features,
+                        ),
+                        None => prepare_chosen_global_rule_profile(
+                            &choice,
+                            inventory,
+                            profile,
+                            supplied.default_features,
+                        ),
+                    }
                     .map_err(|reason| GlobalIntentRefusal::Profile { event, reason })?;
                     let definition = projected.definition();
                     let identity = projected.checked_identity().clone();
@@ -259,6 +341,7 @@ pub fn prepare_global_intent<'a>(
                     let binding = projected.binding();
                     let profile_basis = projected.checked_profile_basis().clone();
                     let voice_event = projected.event();
+                    let (features, aspiration) = projected.into_realization();
                     (
                         definition,
                         identity,
@@ -266,8 +349,9 @@ pub fn prepare_global_intent<'a>(
                         default_occurrence,
                         binding,
                         profile_basis,
-                        GlobalIntentRealization::Rule(Box::new(projected.into_features())),
+                        GlobalIntentRealization::Rule(Box::new(features)),
                         voice_event,
+                        aspiration,
                     )
                 };
                 events.push(voice_event);
@@ -284,6 +368,7 @@ pub fn prepare_global_intent<'a>(
                     completed_choice,
                     binding,
                     profile_basis,
+                    aspiration,
                 });
             }
             EventTimingReceipt::Boundary { event, .. } => events.push(*event),
