@@ -79,8 +79,12 @@ not native configuration exchange or class-device execution proof.
 256 bytes and preserves each class-neutral transfer disposition. Its completion
 framing rejects contradictory counts and short flags before the complete walker
 sees a frame. The checked topology has 60 gears and one control call; preparation
-publishes no discovered transfer authority. Native execution of this exchange
-remains the next integration step.
+publishes no discovered transfer authority. Deterministic production-kernel
+execution covers complete, short and stalled exchanges, 64 repeated calls, and
+normal closure with reusable value slots. Native emulator execution remains a
+separate proof requirement. The pure-expression contract admits sixteen repeated
+instances; planning refuses a seventeenth. Every instance retains its own
+finite storage admission.
 
 The register-leaf groundwork in `src/machine_membrane` validates existing opaque
 Base possession before an aligned, bounded 32-bit access. Native composition

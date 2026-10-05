@@ -150,3 +150,112 @@ fn contradictory_short_flag_or_count_never_creates_a_configuration_frame() {
         );
     }
 }
+
+#[test]
+fn every_configuration_expression_has_an_exact_native_offer() {
+    use conduit_core::*;
+    use conduitos::protocol_source::{PreparedProtocolEntry, ProtocolSourcePackage};
+    let package = ProtocolSourcePackage::compile(source(), &[]).unwrap();
+    let bytes = serde_json::to_vec(&package).unwrap();
+    let entry = PreparedProtocolEntry::prepare(&bytes, "usb-configuration-probe").unwrap();
+    let mut host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: "fixture/configuration".into(),
+        boot_id: "fixture/boot".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/native@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    entry.publish_pure_backs(&mut host).unwrap();
+    let mut counts = std::collections::BTreeMap::new();
+    for gear in &entry.expanded().expanded.gears {
+        if gear.kind_id.as_str() == "machine/usb/control" {
+            continue;
+        }
+        let offer = host
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id == gear.kind_id)
+            .unwrap();
+        *counts.entry(gear.kind_id.clone()).or_insert(0_usize) += 1;
+        assert!(
+            gear.accepts_realization(offer),
+            "gear {:?} front {:?} offered {:?} semantic {} revision {}",
+            gear.gear_id,
+            gear.checked_front(),
+            offer.checked_front(),
+            gear.accepts_semantic_contract(offer),
+            gear.kind_contract_revision == offer.kind_contract_revision
+        );
+    }
+}
+
+#[test]
+fn repeated_expression_planning_admits_sixteen_and_refuses_seventeen() {
+    use conduit_core::*;
+    use conduitos::protocol_source::{PreparedProtocolEntry, ProtocolSourcePackage};
+    let package = ProtocolSourcePackage::compile(source(), &[]).unwrap();
+    let entry = PreparedProtocolEntry::prepare(
+        &serde_json::to_vec(&package).unwrap(),
+        "usb-configuration-probe",
+    )
+    .unwrap();
+    let mut host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: "fixture/configuration".into(),
+        boot_id: "fixture/boot".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/native@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    entry.publish_pure_backs(&mut host).unwrap();
+    let mut counts = std::collections::BTreeMap::new();
+    for gear in &entry.expanded().expanded.gears {
+        *counts.entry(gear.kind_id.clone()).or_insert(0_usize) += 1;
+    }
+    let (kind, count) = counts.iter().max_by_key(|(_, count)| *count).unwrap();
+    assert_eq!(*count, 16);
+    let gear = entry
+        .expanded()
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| &gear.kind_id == kind)
+        .unwrap();
+    let offer = host
+        .capabilities
+        .iter()
+        .find(|offer| &offer.kind_id == kind)
+        .unwrap();
+    assert_eq!(offer.limits.max_active_instances, 16);
+    let mut plot = conduit_plot::CheckedPlot {
+        source_document_id: entry.expanded().expanded.source_document_id.clone(),
+        checked_plot_id: entry.expanded().expanded.checked_plot_id.clone(),
+        expanded_plot_id: entry.expanded().expanded.expanded_plot_id.clone(),
+        name: "fixture/repeated-expression".into(),
+        completion: entry.expanded().expanded.completion,
+        gears: vec![],
+        connections: vec![],
+        exports: vec![],
+        nested_plots: vec![],
+    };
+    for index in 0..16 {
+        let mut repeated = gear.clone();
+        repeated.gear_id = format!("fixture/{index}").into();
+        plot.gears.push(repeated);
+    }
+    conduit_planner::default_placements(&plot, &[host.clone()]).unwrap();
+    let mut excess = gear.clone();
+    excess.gear_id = "fixture/16".into();
+    plot.gears.push(excess);
+    assert!(matches!(
+        conduit_planner::default_placements(&plot, &[host]),
+        Err(conduit_planner::PlannerError::UnknownCapability(_))
+    ));
+}
