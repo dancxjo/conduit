@@ -14,7 +14,7 @@ policy belong in reviewed plots. An endpoint provider must not conceal a class
 driver behind a generic-looking gear.
 
 This USB slice does not absorb #4833's I2C/BME280 acceptance. Portable binary
-composition developed here should serve that later slice too: checked integer
+composition is shared with that completed code slice: checked integer
 widening preserves the entire source domain, and packed-word helpers are bounded
 groundwork rather than a substitute for reusable bounded byte/frame contracts.
 Prepared pure expressions preserve complete structured values and select bounded
