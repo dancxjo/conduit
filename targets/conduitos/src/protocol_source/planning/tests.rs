@@ -239,3 +239,61 @@ fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
     assert_eq!(pairs, 1);
     assert!(complete, "retained signs: {:?}", kernel.signs());
 }
+
+#[test]
+fn source_admission_requires_the_actual_retained_concat_owner() {
+    let boolean = ProtocolValue {
+        schema: StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap(),
+        contract: CheckedValueContract::new(kind_id(BOOL_INFO_ID), 1, vec![]).unwrap(),
+    };
+    let package = ProtocolSourcePackage {
+        schema: PACKAGE_SCHEMA.into(),
+        source: "plot ordered (\n >> first: Boolean...| <= 1B\n >> last: Boolean...| <= 1B\n output: Boolean...| <= 1B >>\n) {\n join: flow/concat/finite\n first >> join.left\n last >> join.right\n join.concatenated >> output\n}\n".into(),
+        specializations: vec![ProtocolSpecialization::Concat { value: boolean }],
+    };
+    let source = PreparedProtocolSource::prepare(package.clone()).unwrap();
+    let expanded = source.expand("ordered").unwrap();
+    let mut host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: "fixture/concat".into(),
+        boot_id: "fixture/boot".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/native@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    source.publish_pure_backs(&expanded, &mut host).unwrap();
+    let hosts = [host];
+    let placements =
+        conduit_planner::default_expanded_placements(&expanded.expanded, &hosts).unwrap();
+    for retain_owner in [true, false] {
+        let mut source = PreparedProtocolSource::prepare(package.clone()).unwrap();
+        if !retain_owner {
+            source.operations.concats =
+                crate::flow_concat_finite::FlowConcatFiniteOperationFactory::default();
+        }
+        let result = source.plan_artifact(
+            &expanded,
+            ArtifactId::from("fixture/concat-artifact"),
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: 1,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+        );
+        if retain_owner {
+            assert!(result.is_ok());
+        } else {
+            assert!(matches!(result, Err(ProtocolSourceRefusal::Offer)));
+        }
+    }
+}
