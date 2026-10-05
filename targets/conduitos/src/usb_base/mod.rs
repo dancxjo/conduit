@@ -23,3 +23,5 @@ pub mod endpoint_read_result;
 
 pub mod endpoint_read_factory;
 pub mod endpoint_read_owner;
+
+pub(crate) mod endpoint_ring;
