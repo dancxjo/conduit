@@ -9,6 +9,9 @@ const SOURCE: &str = include_str!("../plots/usb/protocol.conduit");
 #[path = "usb_protocol_plots/descriptors.rs"]
 mod descriptors;
 
+#[path = "usb_protocol_plots/device_probe.rs"]
+mod device_probe;
+
 fn program(entry: &str) -> PortableExpressionProgram {
     program_from(SOURCE, entry)
 }

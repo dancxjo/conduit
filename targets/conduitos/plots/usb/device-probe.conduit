@@ -1,0 +1,37 @@
+# Device-descriptor wire exchange. Root supplies the admitted attachment;
+# these values neither choose a controller nor grant transfer authority.
+# UsbControlRequest/Result and UsbDeviceDescriptorFrame come from the shared
+# control and descriptor documents in the same checked protocol package.
+
+type UsbDeviceTransferFrame =
+    frame UsbDeviceDescriptorFrame
+    | short
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+
+plot usb-device-descriptor-request (
+    start: Unit...| >> request: UsbControlRequest...|
+) = ({ setup: 0x0012000001000680, output: [] })
+
+# Only actual received octets may become the fixed decoder frame. A short
+# completion never gains bytes from reusable DMA padding.
+plot usb-device-transfer-frame (
+    result: UsbControlResult...| >> frame: UsbDeviceTransferFrame...|
+) = (. is completed ? (value/u64(.completed.transferred) != sequence/length(.completed.input) || .completed.transferred > 18 ? malformed(unit) : (.completed.transferred < 18 ? (.completed.short ? short(unit) : malformed(unit)) : (.completed.short ? malformed(unit) : frame({ wire: [.completed.input.0, .completed.input.1, .completed.input.2, .completed.input.3, .completed.input.4, .completed.input.5, .completed.input.6, .completed.input.7, .completed.input.8, .completed.input.9, .completed.input.10, .completed.input.11, .completed.input.12, .completed.input.13, .completed.input.14, .completed.input.15, .completed.input.16, .completed.input.17], actual: 18 })))) : (. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : unsupported(unit))))
+
+# The observation fore preserves every transfer disposition. Only a complete
+# actual frame enters descriptor interpretation; fan-out is explicit topology.
+plot usb-device-probe (
+    start: Unit...| >> decoded: UsbDeviceDescriptorResult...|,
+    observed: UsbDeviceTransferFrame...|
+) {
+    request: usb-device-descriptor-request()
+    transfer: machine/usb/control
+    framing: usb-device-transfer-frame()
+    decoder: usb-device-descriptor()
+    start >> request >> transfer >> framing
+    framing >> observed
+    framing >> select(UsbDeviceTransferFrame.frame, unmatched=drop) >> decoder >> decoded
+}
