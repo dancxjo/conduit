@@ -17,23 +17,9 @@ fn source() -> String {
 }
 
 fn program(entry: &str) -> conduit_plot::PortableExpressionProgram {
-    use conduit_core::ConfigurationValue;
-    use conduit_plot::{
-        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-    };
     let contract = ControlContract::prepare().unwrap();
     let (startup, profile) = contract.catalogs();
-    let syntax = parse_syntax_document(&source());
-    assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-    let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let expanded = expand_canonical_plot_for_authoring(&checked, entry, &profile)
-        .unwrap()
-        .expanded;
-    assert_eq!(expanded.gears.len(), 1);
-    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
-        panic!("pure program")
-    };
-    conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
+    super::program_with_catalog(&source(), entry, &startup, &profile)
 }
 
 fn tag(output: &[u8], expected: &str) {
@@ -96,7 +82,6 @@ fn actual_transfer_frames_never_decode_short_padding_and_preserve_refusals() {
 
 #[test]
 fn inconsistent_counts_and_shortness_are_malformed() {
-    use conduit_core::{StructuredFieldValue, StructuredInfoValue, StructuredInfoValueShape};
     let p = program("usb-device-transfer-frame");
     let mut evaluator = PreparedPortableExpressionEvaluator::new(&p).unwrap();
     let contract = ControlContract::prepare().unwrap();
@@ -110,37 +95,7 @@ fn inconsistent_counts_and_shortness_are_malformed() {
         let bytes = encoder
             .completed(&request, actual, &vec![0; actual as usize])
             .unwrap();
-        let value = StructuredInfoValue::from_canonical_bytes(bytes).unwrap();
-        let StructuredInfoValueShape::Variant { payload, .. } = value.shape() else {
-            panic!("variant")
-        };
-        let StructuredInfoValueShape::Record(fields) = payload.shape() else {
-            panic!("record")
-        };
-        let fields = fields
-            .iter()
-            .map(|member| {
-                StructuredFieldValue::new(
-                    member.name(),
-                    if member.name() == field {
-                        StructuredInfoValue::leaf(
-                            member.value().value_type().clone(),
-                            changed.clone(),
-                        )
-                        .unwrap()
-                    } else {
-                        member.value().clone()
-                    },
-                )
-                .unwrap()
-            })
-            .collect();
-        let payload = StructuredInfoValue::record(payload.value_type().clone(), fields).unwrap();
-        let invalid =
-            StructuredInfoValue::variant(value.value_type().clone(), "completed", payload)
-                .unwrap()
-                .canonical_bytes()
-                .unwrap();
+        let invalid = super::control_reply::replace_completed_leaf(bytes, field, &changed);
         tag(evaluator.evaluate(&invalid).unwrap(), "malformed");
     }
 }
