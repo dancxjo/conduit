@@ -1,4 +1,3 @@
-
 use super::*;
 fn subject() -> ControlProofSubject<'static> {
     ControlProofSubject {
