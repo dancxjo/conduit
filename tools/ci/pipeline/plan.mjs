@@ -17,6 +17,9 @@ function familiesFor(path) {
   if (/(^|\/)(Cargo\.(toml|lock)|package(-lock)?\.json|rust-toolchain(\.toml)?)$/.test(path)) {
     return FAMILIES;
   }
+  // This publication-only renderer is compiled and tested by the shared
+  // product/lint shards; only the browser lane executes site composition.
+  if (/^tools\/xtask\/src\/evidence\/one_body_journey(?:\.rs$|\/)/.test(path)) return ["browser"];
   // These target subtrees are libraries consumed across target families.
   // Keep this conservative rather than reconstructing Cargo's dependency graph.
   if (/^targets\/[^/]+\/(runtime|offers|make|network-realization)\//.test(path)) return FAMILIES;
