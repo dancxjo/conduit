@@ -333,8 +333,7 @@ fn maximum_frame_and_endpoint_capacity_preserve_actual_source_octets() {
     walker.run(&wire, wire.len() as u64, "configuration");
 }
 
-#[path = "../../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
-mod allocation;
+use super::allocation;
 
 #[test]
 fn complete_walk_reuses_prepared_storage_without_allocating() {

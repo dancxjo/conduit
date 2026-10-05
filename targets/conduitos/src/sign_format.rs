@@ -11,6 +11,13 @@ use crate::{
     offer::{HostOffer, SERIAL_MAXIMUM_BYTES},
 };
 
+#[cfg(any(test, target_arch = "x86_64"))]
+const BOOT_QEMU_PROFILE: &str = if cfg!(feature = "usb-configuration-proof") {
+    crate::make::USB_CONFIGURATION_QEMU_PROFILE
+} else {
+    "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib"
+};
+
 pub const BOOT_SIGN_SCHEMA: &str = "conduit.conduitos.boot-sign/v1";
 pub const MAX_BOOT_SIGN_BYTES: usize = 1024;
 pub const MACHINE_SIGN_SCHEMA: &str = "conduit.conduitos.kernel-sign/v2";
@@ -67,7 +74,7 @@ pub fn accepted(
     let mut output = FixedText::new();
     write!(
         output,
-        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib\",\"host_id\":\"",
+        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"{BOOT_QEMU_PROFILE}\",\"host_id\":\"",
         crate::arch::ARCHITECTURE,
         record.firmware.as_str(),
         make.profile_id,
