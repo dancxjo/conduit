@@ -3,8 +3,8 @@ use super::super::{
     image,
     profile::{Paths, EXPECTED_QEMU_SUCCESS},
     qmp,
-    report::{git_head, GuestBootSign, GuestUsbSign},
-    ConduitosArch, ConduitosError,
+    report::{git_head, GuestBootSign, GuestUsbSign, GuestXhciSign},
+    run, usb_run, ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use conduit_core::bind_active_play;
@@ -22,6 +22,8 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
+
+mod identity;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -110,13 +112,17 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     outcome?;
     let serial = read_serial(&serial_path)?;
     let boot: GuestBootSign = extract(&serial, "CONDUIT_BOOT_SIGN ")?;
+    identity::validate_boot(&boot)?;
+    let xhci: GuestXhciSign = extract(&serial, "CONDUIT_XHCI_SIGN ")?;
+    run::validate_xhci(&boot, &xhci)?;
     let usb: GuestUsbSign = extract(&serial, "CONDUIT_USB_SIGN ")?;
+    usb_run::validate(&boot, &xhci, &usb)?;
     let sign: EndpointSign = extract(&serial, "CONDUIT_USB_ENDPOINT_SIGN ")?;
     validate(&boot, &usb, &sign)?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos.usb-endpoint-read-proof/v1", "base_commit": git_head(&paths.root)?,
         "proof_class": "freestanding-emulator", "qemu_controller": "qemu-xhci", "qemu_device": "usb-kbd",
-        "boot": boot, "device": usb, "endpoint": sign, "class_acceptance": false,
+        "boot": boot, "controller": xhci, "device": usb, "endpoint": sign, "class_acceptance": false,
     });
     let output = paths.target.join("usb-endpoint-read-proof.json");
     fs::write(

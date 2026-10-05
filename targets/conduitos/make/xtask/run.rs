@@ -168,7 +168,10 @@ pub(super) fn prove_xhci_absent(paths: &Paths) -> Result<String, ConduitosError>
     Ok("xhci-controller-absent".to_owned())
 }
 
-fn validate_xhci(boot: &GuestBootSign, sign: &GuestXhciSign) -> Result<(), ConduitosError> {
+pub(super) fn validate_xhci(
+    boot: &GuestBootSign,
+    sign: &GuestXhciSign,
+) -> Result<(), ConduitosError> {
     if sign.schema != "conduit.conduitos.xhci-base/v1"
         || sign.status != "ready"
         || sign.proof_class != "freestanding-emulator"
