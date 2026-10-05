@@ -124,3 +124,6 @@ pub(super) fn extract(
     }
     Ok(sign)
 }
+
+#[cfg(test)]
+mod tests;
