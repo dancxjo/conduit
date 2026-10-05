@@ -93,7 +93,16 @@ export function acquireApt(requested, options = {}) {
       // An incomplete acquisition is not a valid warm cache. APT validates any
       // partial archive against its authenticated index before reusing it.
       const preexistingDebs = readdirSync(archives).filter(name => name.endsWith('.deb'));
-      privileged('apt-get', [...aptOptions, 'install', '--download-only', '-y', '--no-install-recommends', ...missing]);
+      try {
+        privileged('apt-get', [...aptOptions, 'install', '--download-only', '-y', '--no-install-recommends', ...missing]);
+      } catch (error) {
+        // Simulation records exact dependency versions without retrying acquisition
+        // or changing installed state. Preserve the original acquisition failure.
+        let resolution;
+        try { resolution = run('apt-get', [...aptOptions, 'install', '--simulate', '--no-install-recommends', ...missing]); }
+        catch (diagnostic) { resolution = diagnostic.message; }
+        throw new Error(`${error.message}\nAPT resolution diagnostic:\n${resolution}`);
+      }
       const debs = readdirSync(archives).filter(name => name.endsWith('.deb')).sort().map(file => {
         const full = path.join(archives, file);
         assertFile(full);
