@@ -129,7 +129,7 @@ impl PreparedHidEndpointProofKernel {
         use ProtocolCallRefusal as Error;
         let view = self
             .kernel
-            .host_request_view(&request)
+            .host_request_view(request)
             .map_err(Error::Kernel)?;
         let node = view.request.node;
         let Some((_, owner)) = self.pure.iter_mut().find(|(actual, _)| *actual == node) else {
@@ -140,14 +140,14 @@ impl PreparedHidEndpointProofKernel {
         }
         let obligation = self
             .kernel
-            .host_request_obligation(&request)
+            .host_request_obligation(request)
             .map_err(Error::Kernel)?;
         if obligation.requirement.contract_id.as_str() != owner.contract() {
             return Err(Error::InvalidPlan);
         }
         let admitted = self
             .kernel
-            .admit_host_request(&request, &self.identity, &[], &[])
+            .admit_host_request(request, &self.identity, &[], &[])
             .map_err(Error::Kernel)?;
         let call = *self
             .kernel
