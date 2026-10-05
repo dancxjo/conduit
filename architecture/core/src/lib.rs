@@ -1948,3 +1948,6 @@ mod tests;
 mod flow_semantic_laws;
 mod source_seeded_state;
 pub use source_seeded_state::{source_seeded_state_boundary, SourceSeededStateBoundary};
+
+/// Bounded semantic fidelity at an exact projection boundary.
+pub mod projection;

@@ -12,6 +12,7 @@ is not itself evidence that every target implements it.
 - [Callable compatibility and semantic realization](functional-compatibility.md)
 - [Claims and deterministic resolution](claims.md)
 - [Bounded revision](revision.md)
+- [Bounded semantic projection fidelity](projection.md)
 - [Identity classes and stability](identity-classes.md)
 - [Plan-to-kernel lowering](plan-kernel-lowering.md)
 - [Portable planner](portable-planner-capability.md)

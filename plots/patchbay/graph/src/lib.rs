@@ -11,6 +11,8 @@ mod construction;
 mod front_controls;
 mod graph;
 mod inspection;
+mod projection_inspection;
+pub use projection_inspection::*;
 mod recursive_graph;
 mod recursive_projection;
 mod types;
