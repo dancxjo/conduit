@@ -24,12 +24,12 @@ use conduit_core::*;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use core::fmt::Write;
 use sha2::{Digest, Sha256};
+#[path = "usb_endpoint_read_proof/hid.rs"]
+mod hid;
 #[path = "usb_endpoint_read_proof/kernel.rs"]
 mod kernel;
 #[path = "usb_endpoint_read_proof/possession.rs"]
 mod possession;
-#[path = "usb_endpoint_read_proof/hid.rs"]
-mod hid;
 
 #[repr(C, align(4096))]
 struct ProofDma {
