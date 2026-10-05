@@ -82,17 +82,22 @@ sees a frame. The checked topology has 60 gears and one control call; preparatio
 publishes no discovered transfer authority. Deterministic production-kernel
 execution covers complete, short and stalled exchanges, 64 repeated calls, and
 normal closure with reusable value slots. Allocation counting covers the entire
-production-kernel Play, including admission, pure dispatch and output
-acknowledgement, with zero allocations across 64 exchanges. Native emulator
-execution remains a
-separate proof requirement. The pure-expression contract admits sixteen repeated
-instances; planning refuses a seventeenth. Every instance retains its own
-finite storage admission. The separate `cargo xtask make conduitos usb-configuration-proof` appliance
-admits a 256 MiB preparation arena and 512 MiB emulator memory for the complete
-configuration expansion, with an explicit two-minute preparation allowance.
-Its configuration receipt has its own schema and file.
-The shared prepared keyboard and rescue image retains its earlier profile.
-Preparation and Play storage remain separate, finite admissions.
+Play, including admission, pure dispatch and output acknowledgement, with zero
+allocations across 64 exchanges. The pure-expression contract admits sixteen
+repeated instances; planning refuses a seventeenth. Every instance retains its
+own finite storage admission.
+
+`cargo xtask make conduitos usb-configuration-proof` executes the configuration
+Source over the actual selected x86_64 control machinery. The retained emulator
+receipt requires 64 observed and decoded exchanges, exact Source/Plan/Play and
+attachment identities, multiple complete ring-cycle transitions, and normal
+closure. Its separate appliance admits a 256 MiB preparation arena, 512 MiB
+emulator memory and a two-minute preparation allowance. The configuration receipt
+has its own schema and file; the ordinary prepared USB, keyboard and rescue
+image keeps its earlier profile. Preparation and Play storage remain distinct,
+finite admissions. The fixture retains legacy attachment setup and a cooperative
+proof grant. It establishes configuration exchange, with no class-device or
+physical compatibility claim.
 
 The register-leaf groundwork in `src/machine_membrane` validates existing opaque
 Base possession before an aligned, bounded 32-bit access. Native composition
