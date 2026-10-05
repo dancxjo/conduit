@@ -24,12 +24,35 @@ pub(super) fn inject(
     serial_path: &Path,
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
+    inject_with_preparation_budget(socket, serial_path, child, Duration::from_secs(5))
+}
+
+pub(super) fn inject_configuration(
+    socket: &Path,
+    serial_path: &Path,
+    child: &mut Child,
+) -> Result<(), ConduitosError> {
+    inject_with_preparation_budget(
+        socket,
+        serial_path,
+        child,
+        super::profile::USB_CONFIGURATION_PREPARATION_TIMEOUT,
+    )
+}
+
+fn inject_with_preparation_budget(
+    socket: &Path,
+    serial_path: &Path,
+    child: &mut Child,
+    preparation: Duration,
+) -> Result<(), ConduitosError> {
     let (mut qmp, mut reader) = connect(socket, child)?;
-    wait_for_stage(
+    wait_for_stage_with_budget(
         serial_path,
         child,
         "CONDUIT_BOOT_STAGE hid-awaiting-qemu-key",
         "hid-ready-timeout",
+        preparation,
     )?;
     send_key(&mut qmp, &mut reader, true)?;
     wait_for_stage(
@@ -337,13 +360,37 @@ pub(super) fn wait_for_stage(
     stage: &str,
     reason: &'static str,
 ) -> Result<(), ConduitosError> {
-    let deadline = Instant::now() + Duration::from_secs(5);
+    wait_for_stage_with_budget(serial_path, child, stage, reason, Duration::from_secs(5))
+}
+
+fn wait_for_stage_with_budget(
+    serial_path: &Path,
+    child: &mut Child,
+    stage: &str,
+    reason: &'static str,
+    budget: Duration,
+) -> Result<(), ConduitosError> {
+    let deadline = Instant::now() + budget;
     loop {
         if fs::read_to_string(serial_path).is_ok_and(|serial| serial.contains(stage)) {
             return Ok(());
         }
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|error| ConduitosError::refusal(reason, error.to_string()))?
+        {
+            return stop(
+                child,
+                reason,
+                format!("guest exited with {status} before {stage}"),
+            );
+        }
         if Instant::now() >= deadline {
-            return stop(child, reason, format!("guest did not emit {stage}"));
+            return stop(
+                child,
+                reason,
+                format!("guest did not emit {stage} within {budget:?}"),
+            );
         }
         thread::sleep(Duration::from_millis(1));
     }

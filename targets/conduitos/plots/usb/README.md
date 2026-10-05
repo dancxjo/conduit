@@ -86,7 +86,8 @@ separate proof requirement. The pure-expression contract admits sixteen repeated
 instances; planning refuses a seventeenth. Every instance retains its own
 finite storage admission. The separate `cargo xtask make conduitos usb-configuration-proof` appliance
 admits a 256 MiB preparation arena and 512 MiB emulator memory for the complete
-configuration expansion. Its configuration receipt has its own schema and file.
+configuration expansion, with an explicit two-minute preparation allowance.
+Its configuration receipt has its own schema and file.
 The shared prepared keyboard and rescue image retains its earlier profile.
 Preparation and Play storage remain separate, finite admissions.
 
