@@ -38,6 +38,7 @@ pub const PROOF_SCRIPTED_KEYBOARD: u16 = 1 << 1;
 pub const PROOF_USB_CONFIGURATION: u16 = 1 << 2;
 pub const ALL_KNOWN_PROOF_INSTRUMENTATION: u16 =
     PROOF_HOTPLUG | PROOF_SCRIPTED_KEYBOARD | PROOF_USB_CONFIGURATION;
+pub const USB_CONFIGURATION_ARENA_BYTES: u64 = 256 * 1024 * 1024;
 pub const USB_CONFIGURATION_QEMU_PROFILE: &str = "q35-single-cpu-512m-headless-xhci-usb-kbd-adlib";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
