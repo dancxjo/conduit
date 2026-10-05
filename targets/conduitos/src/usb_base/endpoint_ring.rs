@@ -4,6 +4,7 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum EndpointRingRefusal {
     Geometry,
+    Uncertain,
     Pending,
     Exhausted,
     StaleCompletion,
@@ -26,6 +27,7 @@ pub(crate) struct EndpointRingCursor {
     cycle: u32,
     sequence: u64,
     pending: Option<(u64, usize, u32, u16)>,
+    configuration_pending: bool,
 }
 impl EndpointRingCursor {
     pub fn new(total_slots: usize) -> Result<Self, EndpointRingRefusal> {
@@ -38,6 +40,7 @@ impl EndpointRingCursor {
             cycle: 1,
             sequence: 0,
             pending: None,
+            configuration_pending: false,
         })
     }
 
@@ -67,7 +70,9 @@ impl EndpointRingCursor {
     }
 
     pub fn ensure_idle(&self) -> Result<(), EndpointRingRefusal> {
-        if self.pending.is_some() {
+        if self.configuration_pending {
+            Err(EndpointRingRefusal::Uncertain)
+        } else if self.pending.is_some() {
             Err(EndpointRingRefusal::Pending)
         } else {
             Ok(())
@@ -79,6 +84,30 @@ impl EndpointRingCursor {
         self.sequence
             .checked_add(1)
             .ok_or(EndpointRingRefusal::Exhausted)?;
+        Ok(())
+    }
+
+    pub fn is_fresh(&self) -> bool {
+        self.sequence == 0 && self.pending.is_none() && !self.configuration_pending
+    }
+
+    pub fn begin_configuration(&mut self) -> Result<(), EndpointRingRefusal> {
+        self.ensure_ready()?;
+        if !self.is_fresh() {
+            return Err(EndpointRingRefusal::Geometry);
+        }
+        self.configuration_pending = true;
+        Ok(())
+    }
+
+    /// # Safety
+    /// Native Root validated the successful Configure Endpoint completion for
+    /// this exact ring. A command timeout or unrelated event is insufficient.
+    pub unsafe fn complete_configuration(&mut self) -> Result<(), EndpointRingRefusal> {
+        if !self.configuration_pending || self.pending.is_some() || self.sequence != 0 {
+            return Err(EndpointRingRefusal::StaleCompletion);
+        }
+        self.configuration_pending = false;
         Ok(())
     }
 

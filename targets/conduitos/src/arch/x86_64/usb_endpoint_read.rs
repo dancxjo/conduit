@@ -70,6 +70,7 @@ impl<'a> UsbEndpointReadHostCall<'a> {
         controller: &'a mut XhciReady,
         device: UsbDevice,
         attachment: EndpointReadAttachment,
+        configured: super::endpoint_setup::ConfiguredInboundEndpoint,
         dma: EndpointReceiveDma<'a>,
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,
@@ -77,7 +78,12 @@ impl<'a> UsbEndpointReadHostCall<'a> {
         contract: &EndpointReadContract,
         selected: SelectedOperationPlan<'_>,
     ) -> Result<Self, EndpointNativeRefusal> {
-        if attachment.slot != device.slot
+        if configured.slot != device.slot
+            || configured.device_epoch != device.attachment_epoch
+            || configured.endpoint_epoch != attachment.endpoint_generation
+            || configured.dci != attachment.endpoint_dci
+            || configured.ring_physical != dma.ring_physical
+            || attachment.slot != device.slot
             || attachment.generation != u64::from(device.attachment_epoch)
             || dma.ring_physical == 0
             || dma.ring_physical & 63 != 0
