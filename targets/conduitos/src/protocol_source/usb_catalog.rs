@@ -1,4 +1,4 @@
-//! USB control contracts available to checked Source, without native offers.
+//! USB exchange contracts available to checked Source, without native offers.
 use super::*;
 
 pub(super) fn install(
@@ -27,5 +27,9 @@ pub(super) fn install(
         .map_err(Error::Catalog)?;
     profile
         .insert_kind(control.kind().clone())
-        .map_err(|error| Error::Catalog(alloc::format!("{error:?}")))
+        .map_err(|error| Error::Catalog(alloc::format!("{error:?}")))?;
+    crate::usb_base::endpoint_read_contract::EndpointReadContract::prepare()
+        .map_err(Error::Contract)?
+        .install_catalogs(startup, profile)
+        .map_err(Error::Catalog)
 }
