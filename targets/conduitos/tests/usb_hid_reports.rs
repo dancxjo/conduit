@@ -9,6 +9,8 @@ mod usb_hid_reports {
     mod kernel;
     mod kernel_fixture;
     mod keyboard;
+    mod lifecycle;
+    mod transitions;
     mod mouse;
     mod pressure;
 }

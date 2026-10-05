@@ -1,0 +1,85 @@
+with flow/zip/feedback/paired as UsbKeyboardCommandPair
+with flow/zip/finite/paired as UsbKeyboardBatchPair
+
+# This local class loop consumes validated, normalized reports. Attachment loss
+# and cancellation remain distinct Host/kernel outcomes, not synthetic releases.
+type UsbKeyboardCommand =
+    report UsbBootKeyboardReport
+    | finish
+type UsbKeyboardState = {
+    terminal: Boolean
+    busy: Boolean
+    previous: UsbBootKeyboardReport
+    changes: UsbKeyboardTransitionBatch
+    cursor: U64
+}
+type UsbKeyboardRoute =
+    waiting UsbKeyboardState
+    | emitting UsbKeyboardState
+    | stopped
+type UsbKeyboardWork =
+    receive UsbKeyboardDeltaInput
+    | finished UsbKeyboardState
+
+plot usb-hid-keyboard-initialize (
+    begin: Unit...| >> state: UsbKeyboardState...|
+) = ({ terminal: false, busy: false, previous: { modifiers: 0, keys: [0, 0, 0, 0, 0, 0] }, changes: { slots: [unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit), unchanged(unit)] }, cursor: 0 })
+plot usb-hid-keyboard-route (
+    state: UsbKeyboardState...| >> route: UsbKeyboardRoute...|
+) = (.terminal ? stopped(unit) : (.busy ? emitting(.) : waiting(.)))
+plot usb-hid-keyboard-command (
+    pair: UsbKeyboardCommandPair...| >> work: UsbKeyboardWork...|
+) = (.1 is report ? receive({ previous: .0.previous, current: .1.report }) : finished({ terminal: true, busy: false, previous: .0.previous, changes: .0.changes, cursor: 0 }))
+plot usb-hid-keyboard-batch-state (
+    pair: UsbKeyboardBatchPair...| >> state: UsbKeyboardState...|
+) = ({ terminal: false, busy: true, previous: .0.current, changes: .1, cursor: 0 })
+plot usb-hid-keyboard-slot (
+    state: UsbKeyboardState...| >> slot: UsbKeyboardTransitionSlot...|
+) = (sequence/at(.changes.slots, .cursor))
+plot usb-hid-keyboard-advance (
+    state: UsbKeyboardState...| >> next: UsbKeyboardState...|
+) = ({ terminal: false, busy: .cursor < 19, previous: .previous, changes: .changes, cursor: (.cursor < 19 ? .cursor + 1 : 0) })
+
+plot usb-hid-keyboard-receive (
+    >> work: UsbKeyboardWork...|
+    received: UsbKeyboardDeltaInput...| >>
+) {
+    work >> select(UsbKeyboardWork.receive, unmatched=drop) >> received
+}
+plot usb-hid-keyboard-emitting (
+    >> route: UsbKeyboardRoute...|
+    state: UsbKeyboardState...| >>
+) {
+    route >> select(UsbKeyboardRoute.emitting, unmatched=drop) >> state
+}
+
+plot usb-hid-keyboard-lifecycle (
+    >> begin: Unit...|
+    >> command: UsbKeyboardCommand...| <= 4096B
+    transition: UsbKeyboardTransition...| <= 4096B >>
+) {
+    cell: state/seeded/flow/until
+    route: usb-hid-keyboard-route()
+    join: flow/zip/feedback
+    work: usb-hid-keyboard-command()
+    batch: flow/zip/finite
+    updates: flow/merge/finite
+    replacements: flow/merge/finite
+    receive: usb-hid-keyboard-receive
+    emitting: usb-hid-keyboard-emitting
+    begin >> usb-hid-keyboard-initialize() >> cell.seed
+    cell.current >> route
+    route >> select(UsbKeyboardRoute.waiting, unmatched=drop) >> join.left
+    command >> join.right
+    join.paired >> work
+    work >> receive.work
+    receive.received >> batch.left
+    receive.received >> usb-hid-keyboard-transitions() >> batch.right
+    batch.paired >> usb-hid-keyboard-batch-state() >> updates.left
+    work >> select(UsbKeyboardWork.finished, unmatched=drop) >> updates.right
+    updates.merged >> replacements.left
+    route >> emitting.route
+    emitting.state >> usb-hid-keyboard-slot() >> select(UsbKeyboardTransitionSlot.changed, unmatched=drop) >> transition
+    emitting.state >> usb-hid-keyboard-advance() >> replacements.right
+    replacements.merged >> cell.next
+}
