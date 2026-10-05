@@ -45,7 +45,42 @@ truth, including a SuperSpeed exponent, pending speed-specific interpretation.
 These plots check and execute in prepared expression fixtures. The
 `device-probe.conduit` topology also runs the eighteen-octet device decode
 through a selected native control Back in the x86_64 proof appliance. Full
-configuration enumeration and class-device execution remain unimplemented.
+native configuration enumeration and class-device execution remain unimplemented.
+
+`configuration-descriptors.conduit` decodes configuration, interface and
+endpoint prefixes from fixed storage plus an independent received count. It
+preserves alternate settings, zero-endpoint interfaces, raw power/interval
+fields and all packet-size bits for later speed/class policy. An extended
+record must be completely received before its prefix is interpreted. These
+prepared-expression fixtures cover short, malformed and oversized data and
+repeated buffer reuse. They do not yet walk a full configuration or authorize
+an endpoint. Wire layout follows USB 2.0 section 9.6, tables 9-10, 9-12 and
+9-13 ([specification](https://www.seriesten.org/docs/protocols/USB_2.0_Specification.pdf)).
+
+`configuration-walk.conduit` checks the entire received configuration and
+publishes descriptive interface/endpoint records. Its profile admits 256 bytes,
+four interface/alternate records, eight endpoints and sixteen subordinate
+descriptors. Alternate settings share a distinct interface count; each interface
+needs a default setting and its declared endpoints. Duplicate interface/alternate
+pairs, orphan or duplicate endpoints, invalid addresses, truncated records and
+inconsistent totals remain refusals. Unknown class records consume the same
+finite descriptor budget. Raw packet, power and attribute fields remain available
+for later speed/class policy; this parser does not authorize endpoint use.
+
+The walk composes 56 ordinary checked gears inside the existing kernel profile.
+Compact intermediate words retain received descriptor offsets, and final U8
+fields are selected from actual wire octets without narrowing casts. Every
+prepared result fits the existing 4096-byte Fore budget. Deterministic conformance
+compares ordinary and prepared evaluation and proves allocation-free reuse of
+complete valid and malformed walks. This is complete configuration parser proof,
+not native configuration exchange or class-device execution proof.
+
+`configuration-probe.conduit` constructs one configuration-zero request for
+256 bytes and preserves each class-neutral transfer disposition. Its completion
+framing rejects contradictory counts and short flags before the complete walker
+sees a frame. The checked topology has 60 gears and one control call; preparation
+publishes no discovered transfer authority. Native execution of this exchange
+remains the next integration step.
 
 The register-leaf groundwork in `src/machine_membrane` validates existing opaque
 Base possession before an aligned, bounded 32-bit access. Native composition

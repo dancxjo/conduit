@@ -33,6 +33,10 @@ impl CheckedExpressionType {
         Self::Semantic(kind_id(kind.as_ref()))
     }
 
+    pub(crate) fn from_member(value_type: &StructuredInfoType) -> Self {
+        structures::member(value_type)
+    }
+
     fn from_structured(value_type: &StructuredInfoType) -> Self {
         match value_type.shape() {
             StructuredInfoTypeShape::Leaf(kind) => Self::Semantic(kind.clone()),

@@ -1,0 +1,34 @@
+# One bounded configuration-zero transfer over an already admitted attachment.
+# Root owns possession; descriptor bytes cannot create endpoint authority.
+type UsbConfigurationTransferFrame =
+    frame UsbConfigurationTransfer
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+
+plot usb-configuration-descriptor-request (
+    start: Unit...| >> request: UsbControlRequest...|
+) = ({ setup: 0x0100000002000680, output: [] })
+
+# The received count and the class-neutral completion's short flag must agree
+# with this exact 256-byte request. A short transfer may contain a complete
+# configuration; the walker owns that distinction from its advertised total.
+plot usb-configuration-transfer-frame (
+    result: UsbControlResult...| >> frame: UsbConfigurationTransferFrame...|
+) = (. is completed ? (value/u64(.completed.transferred) != sequence/length(.completed.input) || .completed.transferred > 256 ? malformed(unit) : ((.completed.transferred < 256) != .completed.short ? malformed(unit) : frame({ wire: .completed.input, actual: value/u64(.completed.transferred) }))) : (. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : unsupported(unit))))
+
+plot usb-configuration-probe (
+    >> start: Unit...|
+    decoded: UsbConfigurationTopologyResult...| >>
+    observed: UsbConfigurationTransferFrame...| >>
+) {
+    request: usb-configuration-descriptor-request()
+    transfer: machine/usb/control
+    framing: usb-configuration-transfer-frame()
+    walker: usb-configuration-walk()
+    start >> request >> transfer >> framing
+    framing >> observed
+    framing >> select(UsbConfigurationTransferFrame.frame, unmatched=drop) >> walker.input
+    walker.result >> decoded
+}

@@ -6,6 +6,21 @@ use conduit_plot::{
 
 const SOURCE: &str = include_str!("../plots/usb/protocol.conduit");
 
+#[path = "usb_protocol_plots/configuration_descriptors.rs"]
+mod configuration_descriptors;
+
+#[path = "usb_protocol_plots/configuration_walk.rs"]
+mod configuration_walk;
+
+#[path = "usb_protocol_plots/configuration_probe.rs"]
+mod configuration_probe;
+
+#[path = "usb_protocol_plots/control_reply.rs"]
+mod control_reply;
+
+#[path = "usb_protocol_plots/descriptor_frame.rs"]
+mod descriptor_frame;
+
 #[path = "usb_protocol_plots/descriptors.rs"]
 mod descriptors;
 
@@ -20,11 +35,25 @@ fn program(entry: &str) -> PortableExpressionProgram {
 }
 
 fn program_from(source: &str, entry: &str) -> PortableExpressionProgram {
+    program_with_catalog(
+        source,
+        entry,
+        &StartupCatalog::new(),
+        &ProfileCatalog::new(),
+    )
+}
+
+fn program_with_catalog(
+    source: &str,
+    entry: &str,
+    startup: &StartupCatalog,
+    profile: &ProfileCatalog,
+) -> PortableExpressionProgram {
     let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-    let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
-    let expanded = expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new())
-        .unwrap()
+    let checked = check_syntax_document(&syntax, startup).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, entry, profile)
+        .unwrap_or_else(|error| panic!("{entry}: {error:?}"))
         .expanded;
     assert_eq!(expanded.gears.len(), 1, "{entry}");
     let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {

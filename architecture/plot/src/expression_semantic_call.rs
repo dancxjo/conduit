@@ -37,6 +37,41 @@ pub(super) fn check(
         }
         return Ok(CheckedExpressionType::semantic(target));
     }
+    if name.text == "sequence/at" {
+        let [source, index] = arguments else {
+            return Err(diagnostic(
+                span,
+                "sequence selection requires a collection and U64 index",
+            ));
+        };
+        let source_type = check_argument(source, None)?;
+        let expected_index = CheckedExpressionType::semantic("value/u64");
+        if check_argument(index, Some(&expected_index))? != expected_index {
+            return Err(diagnostic(
+                index.span(),
+                "sequence index requires exact U64",
+            ));
+        }
+        let ty = source_type
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
+                diagnostic(
+                    source.span(),
+                    "sequence selection requires an exact finite collection Type",
+                )
+            })?;
+        let element = match ty.shape() {
+            conduit_core::StructuredInfoTypeShape::Collection { element, .. }
+            | conduit_core::StructuredInfoTypeShape::Sequence { element, .. } => element,
+            _ => {
+                return Err(diagnostic(
+                    source.span(),
+                    "sequence selection requires an exact finite collection Type",
+                ))
+            }
+        };
+        return Ok(CheckedExpressionType::from_member(element));
+    }
     if name.text == "sequence/length" {
         let [argument] = arguments else {
             return Err(diagnostic(
@@ -46,9 +81,8 @@ pub(super) fn check(
         };
         let source = check_argument(argument, None)?;
         let ty = source
-            .value_kind()
-            .and_then(|kind| context.structured_types.get(kind))
-            .ok_or_else(|| {
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
                 diagnostic(
                     argument.span(),
                     "sequence length requires an exact finite collection Type",
@@ -255,5 +289,8 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
 
 pub(crate) fn is_intrinsic(name: &str) -> bool {
     integer_widening_target(name).is_some()
-        || matches!(name, "variant/tag" | "variant/is" | "sequence/length")
+        || matches!(
+            name,
+            "variant/tag" | "variant/is" | "sequence/length" | "sequence/at"
+        )
 }

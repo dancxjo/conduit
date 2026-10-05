@@ -15,6 +15,7 @@ mod shared_input;
 use shared_input::SharedBytes;
 mod member_selection;
 mod nominal;
+mod sequence_selection;
 use member_selection::PreparedMemberSelection;
 mod primitive;
 mod storage_bound;
@@ -79,6 +80,7 @@ enum PreparedOperation {
         when_false: Box<PreparedNode>,
     },
     Projection(PreparedMemberSelection),
+    SequenceSelection(sequence_selection::PreparedSequenceSelection),
     Widen(Box<PreparedNode>),
     Inspection(inspection::PreparedInspection),
 }
@@ -291,6 +293,15 @@ fn prepare_node(
                 prepared_input,
             )?)
         }
+        PortableExpressionOperation::SemanticCall { kind: call, .. } if call == "sequence/at" => {
+            PreparedOperation::SequenceSelection(
+                sequence_selection::PreparedSequenceSelection::new(
+                    node,
+                    input_type,
+                    prepared_input,
+                )?,
+            )
+        }
         PortableExpressionOperation::Projection { .. } => {
             PreparedOperation::Projection(member_selection::prepare(node, input_type)?)
         }
@@ -349,6 +360,9 @@ fn evaluate_node<'a>(
             primitive::evaluate_widen(expected, &operand)?
         }
         PreparedOperation::Inspection(inspection) => inspection.evaluate(input)?,
+        PreparedOperation::SequenceSelection(selection) => {
+            PrimitiveValue::borrowed(expected, selection.evaluate(input)?)?
+        }
         PreparedOperation::Projection(projection) => {
             PrimitiveValue::borrowed(expected, projection.evaluate(input)?)?
         }
