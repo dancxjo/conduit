@@ -68,7 +68,7 @@ fn execute_mode(opts: &GlobalOpts, hid: bool) -> Result<(), ConduitosError> {
         image::execute_usb_endpoint(opts)?;
     }
     let socket = paths.target.join(if hid {
-        "usb-hid-endpoint-monitor.sock"
+        "hid.sock"
     } else {
         "usb-endpoint-monitor.sock"
     });
