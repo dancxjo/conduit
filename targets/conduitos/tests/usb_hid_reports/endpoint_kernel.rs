@@ -76,25 +76,25 @@ fn endpoint_completion_reaches_class_outputs_and_drains_under_pressure() {
             let mut completed_once = false;
             for _ in 0..512 {
                 play.kernel_mut().step().unwrap();
-                if let Some(request) = play.kernel_mut().next_host_request() {
-                    if !play.service_pure_call(&request).unwrap() {
-                        assert!(!completed_once);
-                        let kernel = play.kernel_mut();
-                        let obligation = kernel.host_request_obligation(&request).unwrap();
-                        let admitted = kernel
-                            .admit_host_request(
-                                &request,
-                                &obligation.host,
-                                &obligation.resources,
-                                &obligation.authorities,
-                            )
-                            .unwrap();
-                        kernel
-                            .complete_host_call_bytes(&admitted, &completed)
-                            .unwrap();
-                        completed_once = true;
-                        break;
-                    }
+                if let Some(request) = play.kernel_mut().next_host_request()
+                    && !play.service_pure_call(&request).unwrap()
+                {
+                    assert!(!completed_once);
+                    let kernel = play.kernel_mut();
+                    let obligation = kernel.host_request_obligation(&request).unwrap();
+                    let admitted = kernel
+                        .admit_host_request(
+                            &request,
+                            &obligation.host,
+                            &obligation.resources,
+                            &obligation.authorities,
+                        )
+                        .unwrap();
+                    kernel
+                        .complete_host_call_bytes(&admitted, &completed)
+                        .unwrap();
+                    completed_once = true;
+                    break;
                 }
             }
             assert!(completed_once);
