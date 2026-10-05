@@ -26,12 +26,87 @@ use conduit_plan_lowering::lowering::lower_plan_fragment;
 use core::fmt::Write;
 use sha2::{Digest, Sha256};
 
+#[derive(Clone, Copy)]
+enum DescriptorProbe {
+    Device,
+    Configuration,
+}
+impl DescriptorProbe {
+    fn sign_profile(self) -> KernelCompositeSignStorage {
+        match self {
+            Self::Device => KernelCompositeSignStorage {
+                additional_local_items: 4096,
+                additional_remote_items: 512,
+            },
+            Self::Configuration => KernelCompositeSignStorage {
+                additional_local_items:
+                    crate::usb_base::configuration_probe_proof_plan::ADDITIONAL_LOCAL_SIGN_ITEMS,
+                additional_remote_items:
+                    crate::usb_base::configuration_probe_proof_plan::ADDITIONAL_REMOTE_SIGN_ITEMS,
+            },
+        }
+    }
+    fn decoded_tag(self) -> &'static str {
+        match self {
+            Self::Device => "device",
+            Self::Configuration => "configuration",
+        }
+    }
+    fn marker(self) -> &'static str {
+        match self {
+            Self::Device => "CONDUIT_USB_DEVICE_PROBE_SIGN",
+            Self::Configuration => "CONDUIT_USB_CONFIGURATION_PROBE_SIGN",
+        }
+    }
+    fn schema(self) -> &'static str {
+        match self {
+            Self::Device => "conduit.conduitos.usb-device-probe/v1",
+            Self::Configuration => "conduit.conduitos.usb-configuration-probe/v1",
+        }
+    }
+}
+
+pub fn run_configuration(
+    controller: &mut XhciReady,
+    device: UsbDevice,
+    mapping: fn(u64) -> Option<u64>,
+    ids: &BootIdentities,
+    base: &[u8; 32],
+) -> Result<UsbDevice, &'static str> {
+    run_descriptor(
+        controller,
+        device,
+        mapping,
+        ids,
+        base,
+        DescriptorProbe::Configuration,
+    )
+}
+
 pub fn run(
     controller: &mut XhciReady,
     device: UsbDevice,
     mapping: fn(u64) -> Option<u64>,
     ids: &BootIdentities,
     base: &[u8; 32],
+) -> Result<UsbDevice, &'static str> {
+    run_descriptor(
+        controller,
+        device,
+        mapping,
+        ids,
+        base,
+        DescriptorProbe::Device,
+    )
+}
+
+fn run_descriptor(
+    controller: &mut XhciReady,
+    device: UsbDevice,
+    mapping: fn(u64) -> Option<u64>,
+    ids: &BootIdentities,
+    base: &[u8; 32],
+    descriptor: DescriptorProbe,
 ) -> Result<UsbDevice, &'static str> {
     let host = identity::hex(&ids.host);
     let boot = identity::hex(&ids.boot);
@@ -52,14 +127,14 @@ pub fn run(
         slot: device.slot,
         attachment_epoch: device.attachment_epoch,
     };
-    let mut proof = PreparedDeviceProbeKernel::prepare(
-        &subject,
-        KernelCompositeSignStorage {
-            additional_local_items: 4096,
-            additional_remote_items: 512,
-        },
-    )
-    .map_err(|_| "usb-device-probe-preparation")?;
+    let storage = descriptor.sign_profile();
+    let mut proof = match descriptor {
+        DescriptorProbe::Device => PreparedDeviceProbeKernel::prepare(&subject, storage),
+        DescriptorProbe::Configuration => {
+            PreparedDeviceProbeKernel::prepare_configuration(&subject, storage)
+        }
+    }
+    .map_err(|_| "usb-descriptor-probe-preparation")?;
     let plan = proof.plan().clone();
     let fragment = &plan.fragments[0];
     let gear = fragment
@@ -148,7 +223,7 @@ pub fn run(
                 .map_err(|_| "usb-device-probe-close")?;
         }
         let mut seen = [false; 2];
-        for _ in 0..128 {
+        for _ in 0..512 {
             proof.kernel.step().map_err(|_| "usb-device-probe-step")?;
             if let Some(request) = proof.kernel.next_host_request() {
                 if !proof
@@ -214,7 +289,7 @@ pub fn run(
                     }
                     let tag = match port.port_id.as_str() {
                         "observed" => "frame",
-                        "decoded" => "device",
+                        "decoded" => descriptor.decoded_tag(),
                         _ => return Err("usb-device-probe-output-port"),
                     };
                     if validate_canonical_structured_value(&outputs[index].encoded)
@@ -249,7 +324,7 @@ pub fn run(
         }
     }
     let mut complete = false;
-    for _ in 0..32 {
+    for _ in 0..512 {
         if proof.kernel.step().map_err(|_| "usb-device-probe-drain")?
             == KernelCompositeStatus::Complete
         {
@@ -275,8 +350,8 @@ pub fn run(
         .release_completed(node, conduit_kernel::HostCallId(0))
         .map_err(|_| "usb-device-probe-release")?;
     let mut sign = FixedText::new();
-    writeln!(sign, "CONDUIT_USB_DEVICE_PROBE_SIGN {{\"schema\":\"conduit.conduitos.usb-device-probe/v1\",\"proof_class\":\"freestanding-emulator\",\"status\":\"completed\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"controller_base_id\":\"{}\",\"device_instance_id\":\"{}\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"transcript_digest\":\"{:x}\",\"root_port\":{},\"slot\":{},\"attachment_epoch\":{},\"transfers\":{},\"decoded\":64,\"observed\":64,\"cycle_transitions\":{},\"initial_enqueue\":{},\"initial_cycle\":{},\"final_enqueue\":{},\"final_cycle\":{},\"additional_local_sign_items\":4096,\"additional_remote_sign_items\":512,\"output_capacity\":4096,\"dma_bytes\":8192,\"maximum_in_flight\":1,\"normal_close\":true,\"protocol_owned_by_source\":true,\"legacy_attachment_setup\":true,\"fixture_appliance\":true}}",
-        host, boot, base_id, device_id, plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.expanded_plot_id.as_str(), plan.plan_id.as_str(), fragment.fragment_id.as_str(), active.active_play_id.as_str(), digest.finalize(), subject.root_port, subject.slot, subject.attachment_epoch, calls, cycles, initial.0, initial.1, final_position.0, final_position.1).map_err(|_| "usb-device-probe-sign")?;
+    writeln!(sign, "{} {{\"schema\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"status\":\"completed\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"controller_base_id\":\"{}\",\"device_instance_id\":\"{}\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"fragment_id\":\"{}\",\"active_play_id\":\"{}\",\"transcript_digest\":\"{:x}\",\"root_port\":{},\"slot\":{},\"attachment_epoch\":{},\"transfers\":{},\"decoded\":64,\"observed\":64,\"cycle_transitions\":{},\"initial_enqueue\":{},\"initial_cycle\":{},\"final_enqueue\":{},\"final_cycle\":{},\"additional_local_sign_items\":{},\"additional_remote_sign_items\":{},\"output_capacity\":4096,\"dma_bytes\":8192,\"maximum_in_flight\":1,\"normal_close\":true,\"protocol_owned_by_source\":true,\"legacy_attachment_setup\":true,\"fixture_appliance\":true}}",
+        descriptor.marker(), descriptor.schema(), host, boot, base_id, device_id, plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.expanded_plot_id.as_str(), plan.plan_id.as_str(), fragment.fragment_id.as_str(), active.active_play_id.as_str(), digest.finalize(), subject.root_port, subject.slot, subject.attachment_epoch, calls, cycles, initial.0, initial.1, final_position.0, final_position.1, storage.additional_local_items, storage.additional_remote_items).map_err(|_| "usb-device-probe-sign")?;
     early_write(sign.as_bytes());
     Ok(device)
 }

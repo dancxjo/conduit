@@ -46,6 +46,24 @@ impl PreparedDeviceProbeKernel {
     ) -> Result<Self, DeviceProbeKernelRefusal> {
         use DeviceProbeKernelRefusal as Error;
         let artifact = device_probe_proof_plan::prepare(subject).map_err(Error::Plan)?;
+        Self::from_artifact(artifact, storage)
+    }
+
+    /// Configuration descriptors use the same one-control-call proof appliance.
+    pub fn prepare_configuration(
+        subject: &ControlProofSubject<'_>,
+        storage: KernelCompositeSignStorage,
+    ) -> Result<Self, DeviceProbeKernelRefusal> {
+        let artifact = super::configuration_probe_proof_plan::prepare(subject)
+            .map_err(DeviceProbeKernelRefusal::Plan)?;
+        Self::from_artifact(artifact, storage)
+    }
+
+    fn from_artifact(
+        artifact: crate::protocol_source::PreparedProtocolArtifact,
+        storage: KernelCompositeSignStorage,
+    ) -> Result<Self, DeviceProbeKernelRefusal> {
+        use DeviceProbeKernelRefusal as Error;
         let definition = artifact.artifact().definition().clone();
         let fragment = &definition.internal_plan.fragments[0];
         let lowered = lower_plan_fragment(fragment).map_err(|_| Error::InvalidBinding)?;

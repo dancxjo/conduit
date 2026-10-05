@@ -78,7 +78,9 @@ pub use usb::{
     retire_removed_device, wait_for_attachment_state,
 };
 #[cfg(feature = "scripted-keyboard-proof")]
-pub use usb::{run_usb_control_kernel_proof, run_usb_device_probe_proof};
+pub use usb::{
+    run_usb_configuration_probe_proof, run_usb_control_kernel_proof, run_usb_device_probe_proof,
+};
 pub use virtio_net::{VirtioNetError, VirtioNetIdentity, VirtioNetReady, initialize_virtio_net};
 pub use xhci::{XhciReady, initialize_xhci};
 

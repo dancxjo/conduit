@@ -11,18 +11,34 @@ fn subject() -> ControlProofSubject<'static> {
     }
 }
 fn fixture() -> serde_json::Value {
+    fixture_for(DescriptorProbe::Device)
+}
+fn fixture_for(descriptor: DescriptorProbe) -> serde_json::Value {
     let subject = subject();
-    let artifact = device_probe_proof_plan::prepare(&subject).unwrap();
+    let (artifact, schema, local, remote) = match descriptor {
+        DescriptorProbe::Device => (
+            device_probe_proof_plan::prepare(&subject).unwrap(),
+            "conduit.conduitos.usb-device-probe/v1",
+            4096,
+            512,
+        ),
+        DescriptorProbe::Configuration => (
+            conduitos::usb_base::configuration_probe_proof_plan::prepare(&subject).unwrap(),
+            "conduit.conduitos.usb-configuration-probe/v1",
+            conduitos::usb_base::configuration_probe_proof_plan::ADDITIONAL_LOCAL_SIGN_ITEMS,
+            conduitos::usb_base::configuration_probe_proof_plan::ADDITIONAL_REMOTE_SIGN_ITEMS,
+        ),
+    };
     let plan = &artifact.artifact().definition().internal_plan;
     let fragment = &plan.fragments[0];
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     serde_json::json!({
-        "schema":"conduit.conduitos.usb-device-probe/v1", "proof_class":"freestanding-emulator", "status":"completed",
+        "schema":schema, "proof_class":"freestanding-emulator", "status":"completed",
         "host_id":subject.host_id, "boot_id":subject.boot_id, "controller_base_id":subject.controller_base_id, "device_instance_id":subject.device_instance_id,
         "source_document_id":plan.source_document_id.as_str(), "checked_plot_id":plan.checked_plot_id.as_str(), "expanded_plot_id":plan.expanded_plot_id.as_str(),
         "plan_id":plan.plan_id.as_str(), "fragment_id":fragment.fragment_id.as_str(), "active_play_id":active.active_play_id.as_str(),
         "transcript_digest":"1".repeat(64), "root_port":1, "slot":1, "attachment_epoch":1,
-        "transfers":64, "decoded":64, "observed":64, "additional_local_sign_items":4096, "additional_remote_sign_items":512, "cycle_transitions":7, "initial_enqueue":27, "initial_cycle":1,
+        "transfers":64, "decoded":64, "observed":64, "additional_local_sign_items":local, "additional_remote_sign_items":remote, "cycle_transitions":7, "initial_enqueue":27, "initial_cycle":1,
         "final_enqueue":9, "final_cycle":0, "output_capacity":4096, "dma_bytes":8192, "maximum_in_flight":1, "normal_close":true, "protocol_owned_by_source":true, "legacy_attachment_setup":true, "fixture_appliance":true
     })
 }
@@ -104,4 +120,74 @@ fn receipt_refuses_missing_duplicate_and_unknown_fields() {
     let mut unknown = fixture();
     unknown["invented_authority"] = true.into();
     assert!(extract(&serial(&unknown), &subject(), (27, 1)).is_err());
+}
+
+#[test]
+fn configuration_receipt_binds_its_source_and_profile_and_refuses_device_receipts() {
+    let valid = fixture_for(DescriptorProbe::Configuration);
+    let serial =
+        |value: &serde_json::Value| format!("CONDUIT_USB_CONFIGURATION_PROBE_SIGN {value}\n");
+    assert!(extract_for(
+        &serial(&valid),
+        &subject(),
+        (27, 1),
+        DescriptorProbe::Configuration
+    )
+    .is_ok());
+    for field in [
+        "source_document_id",
+        "checked_plot_id",
+        "expanded_plot_id",
+        "plan_id",
+        "active_play_id",
+        "boot_id",
+        "device_instance_id",
+    ] {
+        let mut changed = valid.clone();
+        changed[field] = "stale".into();
+        assert!(
+            extract_for(
+                &serial(&changed),
+                &subject(),
+                (27, 1),
+                DescriptorProbe::Configuration
+            )
+            .is_err(),
+            "{field}"
+        );
+    }
+    for field in [
+        "additional_local_sign_items",
+        "additional_remote_sign_items",
+        "decoded",
+        "observed",
+        "final_enqueue",
+    ] {
+        let mut changed = valid.clone();
+        changed[field] = 99.into();
+        assert!(
+            extract_for(
+                &serial(&changed),
+                &subject(),
+                (27, 1),
+                DescriptorProbe::Configuration
+            )
+            .is_err(),
+            "{field}"
+        );
+    }
+    assert!(extract_for(
+        &serial(&fixture()),
+        &subject(),
+        (27, 1),
+        DescriptorProbe::Configuration
+    )
+    .is_err());
+    assert!(extract_for(
+        &format!("{}{}", serial(&valid), serial(&valid)),
+        &subject(),
+        (27, 1),
+        DescriptorProbe::Configuration
+    )
+    .is_err());
 }

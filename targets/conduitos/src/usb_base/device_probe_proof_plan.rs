@@ -28,10 +28,18 @@ pub fn prepare(
         include_str!("../../plots/usb/descriptors.conduit"),
         include_str!("../../plots/usb/device-probe.conduit")
     );
+    prepare_source(subject, source, "usb-device-probe")
+}
+
+pub(super) fn prepare_source(
+    subject: &ControlProofSubject<'_>,
+    source: alloc::string::String,
+    entry_name: &str,
+) -> Result<PreparedProtocolArtifact, DeviceProbeProofRefusal> {
     let package =
         ProtocolSourcePackage::compile(source, &[]).map_err(DeviceProbeProofRefusal::Source)?;
     let bytes = serde_json::to_vec(&package).map_err(DeviceProbeProofRefusal::Encoding)?;
-    let entry = PreparedProtocolEntry::prepare(&bytes, "usb-device-probe")
+    let entry = PreparedProtocolEntry::prepare(&bytes, entry_name)
         .map_err(DeviceProbeProofRefusal::Source)?;
     let contract = ControlContract::prepare().map_err(DeviceProbeProofRefusal::Contract)?;
     let (mut host, grants) = control_proof_plan::host_and_grants(&contract, subject)
