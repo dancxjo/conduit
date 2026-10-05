@@ -215,6 +215,23 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
 }
 
+fn english_coverage() -> conduit_language::LanguageCoverage {
+    use conduit_plot::rust_binding::BoundedSequence;
+    conduit_language::LanguageCoverage::new(
+        "repository/four-token-English-rule-fixture".into(),
+        BoundedSequence::try_from_iter([conduit_language::LanguageId::new(
+            "language/english".into(),
+        )
+        .expect("finite identity")])
+        .expect("one language"),
+        BoundedSequence::try_from_iter([]).expect("no mappings"),
+        "four-token-rules@1".into(),
+        BoundedSequence::try_from_iter([]).expect("undeclared varieties"),
+        false,
+    )
+    .expect("bounded coverage")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,21 +261,4 @@ mod tests {
             assert_eq!(offer.limits, semantic.limits);
         }
     }
-}
-
-fn english_coverage() -> conduit_language::LanguageCoverage {
-    use conduit_plot::rust_binding::BoundedSequence;
-    conduit_language::LanguageCoverage::new(
-        "repository/four-token-English-rule-fixture".into(),
-        BoundedSequence::try_from_iter([conduit_language::LanguageId::new(
-            "language/english".into(),
-        )
-        .expect("finite identity")])
-        .expect("one language"),
-        BoundedSequence::try_from_iter([]).expect("no mappings"),
-        "four-token-rules@1".into(),
-        BoundedSequence::try_from_iter([]).expect("undeclared varieties"),
-        false,
-    )
-    .expect("bounded coverage")
 }
