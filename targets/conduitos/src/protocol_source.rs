@@ -223,7 +223,7 @@ impl PreparedProtocolSource {
 }
 
 fn preparation_stage(stage: &str) {
-    #[cfg(target_os = "none")]
+    #[cfg(all(target_os = "none", target_arch = "x86_64"))]
     {
         use core::fmt::Write;
         let mut text = crate::sign_format::FixedText::new();
@@ -235,7 +235,7 @@ fn preparation_stage(stage: &str) {
         );
         crate::arch::early_write(text.as_bytes());
     }
-    #[cfg(not(target_os = "none"))]
+    #[cfg(not(all(target_os = "none", target_arch = "x86_64")))]
     let _ = stage;
 }
 
