@@ -123,7 +123,7 @@ export function acquireApt(requested, options = {}) {
       assertFile(file);
       if (hash(readFileSync(file)) !== deb.sha256 || lstatSync(file).size !== deb.bytes) throw new Error(`APT cache digest mismatch: ${deb.file}`);
       const identity = `${deb.name}${deb.architecture === 'all' ? '' : `:${deb.architecture}`}=${deb.version}`;
-      const metadata = run('apt-cache', [...scopeOptions, 'show', identity]);
+      const metadata = run('apt-cache', [...scopeOptions, 'show', '--all-versions', `${deb.name}:${deb.architecture === 'all' ? arch : deb.architecture}`]);
       if (!metadata.split('\n\n').some(stanza => stanza.split('\n').includes(`Package: ${deb.name}`) && stanza.split('\n').includes(`Version: ${deb.version}`) && stanza.split('\n').includes(`Architecture: ${deb.architecture}`) && stanza.split('\n').includes(`SHA256: ${deb.sha256}`))) throw new Error(`APT cached version is not authenticated by current repository: ${identity}`);
       exact.push(identity);
     }

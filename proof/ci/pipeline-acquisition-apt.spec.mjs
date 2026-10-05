@@ -257,3 +257,21 @@ test('cold and warm resolution reject version decreases before package effects',
     assert.ok(!state.calls.some(([, args]) => args.includes('--download-only') || args.includes('--no-download')));
   }
 });
+
+test('authentication enumerates archive records even when an installed same-version record has no digest', t => {
+  const { state, options } = fixture(t);
+  const run = options.run;
+  options.run = (program, args, config) => {
+    if (program === 'apt-cache' && (!args.includes('--all-versions') || args.at(-1).includes('='))) {
+      return 'Package: tool\nVersion: 1.2\nArchitecture: amd64\n';
+    }
+    return run(program, args, config);
+  };
+  assert.equal(acquireApt(['tool'], options).cache, 'miss');
+  state.present = false;
+  assert.equal(acquireApt(['tool'], options).cache, 'hit');
+  for (const [program, args] of state.calls) if (program === 'apt-cache') {
+    assert.ok(args.includes('--all-versions'));
+    assert.equal(args.at(-1), 'tool:amd64');
+  }
+});
