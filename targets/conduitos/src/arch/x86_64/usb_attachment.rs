@@ -27,12 +27,19 @@ pub fn retire_removed_device(
     controller: &mut XhciReady,
     device: &UsbDevice,
 ) -> Result<u8, UsbError> {
+    let dma = super::dma::device_dma_pointer(device)?;
     if controller.port_status(device.root_port) & 1 != 0 {
         return Err(UsbError::StaleDeviceInstance);
     }
-    controller
+    let stale_transfers = controller
         .disable_removed_slot(device.slot)
-        .map_err(UsbError::from)
+        .map_err(UsbError::from)?;
+    // Successful Disable Slot completion acknowledges all endpoint DMA stop.
+    // Only then can later enumeration initialize this fixed storage anew.
+    unsafe {
+        (*dma).owner_slot = 0;
+    }
+    Ok(stale_transfers)
 }
 
 pub(super) fn attached_root_port(controller: &XhciReady) -> Result<u8, UsbError> {

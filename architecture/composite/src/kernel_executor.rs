@@ -3,6 +3,7 @@ mod host_dispatch;
 #[cfg(test)]
 use host_dispatch::{dispatch_matches, outstanding_host_call_index};
 mod preparation;
+mod sign_storage;
 use crate::child::{
     BoundaryEndpoint, ChildExecutionError, ChildKernel, ChildTerminalError, ChildTransportError,
 };
@@ -18,6 +19,7 @@ use conduit_kernel::{HostCallId, HostCallOutcome, KernelEvent, NodeId, RemoteEnd
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 #[cfg(test)]
 use preparation::host_call_obligation_identity;
+pub use sign_storage::KernelCompositeSignStorage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositePreparation {

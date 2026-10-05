@@ -11,6 +11,9 @@ use super::{
     run, usb_run, ConduitosArch, ConduitosError,
 };
 
+mod kernel;
+mod ring;
+
 const NEGATIVE_CASES: [&str; 14] = [
     "device-absent",
     "port-reset-timeout-or-failure",
@@ -37,6 +40,8 @@ struct UsbProofRecord {
     qemu_controller: &'static str,
     qemu_device: &'static str,
     positive: GuestUsbSign,
+    control_ring_reuse: ring::RingProofSign,
+    control_kernel: kernel::KernelProofSign,
     device_absent_refusal: String,
     deterministic_negative_command: &'static str,
     deterministic_negative_cases: &'static [&'static str],
@@ -60,6 +65,21 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
             "the bounded descriptor request must retain a short Data Stage followed by successful Status Stage",
         ));
     }
+    let control_ring_reuse =
+        ring::extract(&positive.serial, positive.usb.root_port, positive.usb.slot)?;
+    let control_kernel = kernel::extract(
+        &positive.serial,
+        &conduitos::usb_base::control_proof_plan::ControlProofSubject {
+            host_id: &positive.boot.host_id,
+            boot_id: &positive.boot.boot_id,
+            controller_base_id: &positive.usb.controller_base_id,
+            device_instance_id: &positive.usb.device_instance_id,
+            root_port: positive.usb.root_port,
+            slot: positive.usb.slot,
+            attachment_epoch: positive.usb.attachment_epoch,
+        },
+        control_ring_reuse.final_position(),
+    )?;
     let absent = usb_run::prove_absent(&paths)?;
     let status = Command::new("cargo")
         .args(["test", "-p", "conduitos", "--lib", "arch::x86_64::usb"])
@@ -82,6 +102,8 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
         qemu_controller: "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
         qemu_device: "usb-kbd,bus=conduitos-xhci.0,port=1",
         positive: positive.usb,
+        control_ring_reuse,
+        control_kernel,
         device_absent_refusal: absent,
         deterministic_negative_command: "cargo test -p conduitos --lib arch::x86_64::usb",
         deterministic_negative_cases: &NEGATIVE_CASES,

@@ -41,6 +41,15 @@ impl KernelCompositeHost {
         definition: KernelCompositeDefinition,
         registry: &KernelOperationRegistry,
     ) -> Result<Self, KernelCompositeError> {
+        Self::prepare_with_sign_storage(definition, registry, KernelCompositeSignStorage::default())
+    }
+
+    /// Admit explicit extra finite Sign storage before any child starts Play.
+    pub fn prepare_with_sign_storage(
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+        sign_storage: KernelCompositeSignStorage,
+    ) -> Result<Self, KernelCompositeError> {
         let preparation = KernelCompositePreparation::prepare(definition.internal_plan.clone())?;
         let mut child_boundaries = BTreeMap::<HostId, Vec<BoundaryEndpoint>>::new();
         let mut fronts = BTreeMap::new();
@@ -196,6 +205,7 @@ impl KernelCompositeHost {
                 lowered,
                 child_boundaries.remove(&child).unwrap_or_default(),
                 registry,
+                sign_storage,
             )
             .map_err(|reason| KernelCompositeError::ChildRefused {
                 child: child.clone(),

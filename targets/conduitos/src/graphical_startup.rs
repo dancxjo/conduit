@@ -127,6 +127,17 @@ pub fn run(record: boot::BootRecord) -> ! {
         xhci.sign_slots,
     );
     arch::early_write(xhci_sign.as_bytes());
+    #[cfg(feature = "scripted-keyboard-proof")]
+    let usb = match arch::run_usb_control_kernel_proof(
+        &mut xhci,
+        usb,
+        boot::executable_physical_address,
+        &identities,
+        &xhci_base,
+    ) {
+        Ok(device) => device,
+        Err(error) => emit_machine_refusal(error),
+    };
     let device_id = identity::derive_usb_device(
         &identities.boot,
         &xhci_base,
