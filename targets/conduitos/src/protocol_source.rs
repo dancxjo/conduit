@@ -33,6 +33,9 @@ pub enum ProtocolSpecialization {
     SeededUntil {
         value: ProtocolValue,
     },
+    Concat {
+        value: ProtocolValue,
+    },
     Merge {
         value: ProtocolValue,
     },
@@ -139,6 +142,19 @@ impl PreparedProtocolSource {
                         .states
                         .install_until(&value.contract, &value.schema)
                         .map_err(Error::Specialization)
+                }
+                ProtocolSpecialization::Concat { value } => {
+                    conduit_semantic_catalog::install_flow_concat_finite_kind(
+                        &value.contract,
+                        &value.schema,
+                        &mut startup,
+                        &mut profile,
+                    )
+                    .map_err(Error::Catalog)?;
+                    operations
+                        .concats
+                        .install(&value.contract, &value.schema)
+                        .map_err(Error::Catalog)
                 }
                 ProtocolSpecialization::Merge { value } => {
                     conduit_semantic_catalog::install_flow_merge_finite_kind(

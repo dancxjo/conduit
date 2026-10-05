@@ -19,6 +19,7 @@ pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
 pub mod expression_host_call;
+pub mod flow_concat_finite;
 pub mod flow_merge_finite;
 pub mod flow_zip;
 #[cfg(any(

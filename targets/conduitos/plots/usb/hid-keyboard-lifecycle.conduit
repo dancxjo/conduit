@@ -88,10 +88,14 @@ plot usb-hid-keyboard-report-command (
     report: UsbBootKeyboardReport...| >> command: UsbKeyboardCommand...|
 ) = (report(.))
 
+plot usb-hid-keyboard-finish-command (
+    begin: Unit...| >> command: UsbKeyboardCommand...|
+) = (finish(unit))
+
 # Received octets enter the reviewed decoder and normalization before state.
 # Malformed/error reports are observed and never replace the previous report.
-# This received-stream entry remains live after frame EOF; Root cancellation
-# retires it. Graceful device teardown is not established by this entry.
+# Ordered concatenation appends finish only after every decoded report and
+# normal frame EOF. Cancellation remains a separate kernel outcome.
 plot usb-hid-keyboard-received (
     >> begin: Unit...|
     >> frame: UsbHidReportFrame...|
@@ -99,10 +103,13 @@ plot usb-hid-keyboard-received (
     transition: UsbKeyboardTransition...| >>
 ) {
     decode: usb-hid-boot-keyboard-zero-reserved
+    commands: flow/concat/finite
     state: usb-hid-keyboard-lifecycle
     begin >> state.begin
+    begin >> usb-hid-keyboard-finish-command() >> commands.right
     frame >> decode.frame
     decode.observed >> observed
-    decode.decoded >> usb-hid-keyboard-report-command() >> state.command
+    decode.decoded >> usb-hid-keyboard-report-command() >> commands.left
+    commands.concatenated >> state.command
     state.transition >> transition
 }

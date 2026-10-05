@@ -17,6 +17,9 @@ pub enum ProtocolSpecializationRequest {
     SeededUntil {
         value: ProtocolValueReference,
     },
+    Concat {
+        value: ProtocolValueReference,
+    },
     Merge {
         value: ProtocolValueReference,
     },
@@ -83,6 +86,9 @@ impl ProtocolSourcePackage {
                     value: value(reference)?,
                 },
                 Request::SeededUntil { value: reference } => ProtocolSpecialization::SeededUntil {
+                    value: value(reference)?,
+                },
+                Request::Concat { value: reference } => ProtocolSpecialization::Concat {
                     value: value(reference)?,
                 },
                 Request::Merge { value: reference } => ProtocolSpecialization::Merge {

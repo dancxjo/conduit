@@ -1,7 +1,6 @@
-use conduit_composite::{KernelCompositeError, KernelCompositeStatus};
+use conduit_composite::{KernelCompositeStatus, KernelCompositeTerminal};
 use conduit_core::*;
 use conduit_kernel::scheduler::RemoteIngressOutcome;
-use conduitos::protocol_host_calls::ProtocolCallRefusal;
 
 #[test]
 fn malformed_wire_report_is_observed_without_replacing_previous_keyboard_state() {
@@ -71,6 +70,7 @@ fn malformed_wire_report_is_observed_without_replacing_previous_keyboard_state()
     let mut next_input = 0;
     let mut next_observation = 0;
     let mut next_event = 0;
+    let mut held_output_steps = 0;
     let allocations = crate::allocation::allocations(|| {
         run.start().unwrap();
         assert_eq!(
@@ -103,6 +103,10 @@ fn malformed_wire_report_is_observed_without_replacing_previous_keyboard_state()
                 run.complete_output(&observed.port_id, sequence).unwrap();
             }
             if let Some(sequence) = run.output_into(&transition.port_id, &mut event).unwrap() {
+                if next_event == 0 && held_output_steps < 128 {
+                    held_output_steps += 1;
+                    continue;
+                }
                 assert_eq!(sequence, next_event as u64);
                 let value = validate_canonical_structured_value(&event.encoded).unwrap();
                 let octet = |name| {
@@ -134,26 +138,33 @@ fn malformed_wire_report_is_observed_without_replacing_previous_keyboard_state()
         }
         assert!(complete);
         assert_eq!((next_input, next_observation, next_event), (3, 3, 6));
-        for _ in 0..128 {
-            assert_ne!(run.step().unwrap(), KernelCompositeStatus::Complete);
+        assert_eq!(held_output_steps, 128);
+        let mut drained = false;
+        for _ in 0..4096 {
+            let status = run.step().unwrap();
             assert_eq!(
                 run.output_into(&transition.port_id, &mut event).unwrap(),
                 None
             );
+            if status == KernelCompositeStatus::Complete {
+                drained = true;
+                break;
+            }
         }
+        assert!(
+            drained,
+            "normal frame EOF must append finish after all reports"
+        );
         assert_eq!(
             run.output_terminal_into(&transition.port_id, &mut event)
                 .unwrap(),
-            None
+            Some(KernelCompositeTerminal::Normal)
         );
-        run.cancel().unwrap();
-        assert_eq!(run.step().unwrap(), KernelCompositeStatus::Cancelled);
-        assert!(matches!(
-            run.output_terminal_into(&transition.port_id, &mut event),
-            Err(ProtocolCallRefusal::Kernel(
-                KernelCompositeError::InvalidLifecycle
-            ))
-        ));
+        assert_eq!(
+            run.output_terminal_into(&observed.port_id, &mut observation)
+                .unwrap(),
+            Some(KernelCompositeTerminal::Normal)
+        );
     });
     assert_eq!(allocations, 0);
 }
