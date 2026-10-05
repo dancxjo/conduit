@@ -18,7 +18,7 @@ use conduit_presentation::{
 };
 
 mod remote;
-pub use remote::planned_owner_face_show_mask;
+pub use remote::{planned_owner_face_show_interaction_mask, planned_owner_face_show_mask};
 
 pub const MASK_BYTES: u32 = 512 * 1024;
 const MASK_OPERATION: &str = "browser.host/dom-mask@1";

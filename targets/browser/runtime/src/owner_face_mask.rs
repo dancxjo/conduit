@@ -188,7 +188,11 @@ impl OwnerBrowserMask {
             mask_host_id: route.mask_host.host_id.as_str().into(),
             mask_boot_id: route.mask_host.boot_id.as_str().into(),
         };
-        let selected_lines = (route.face_line.clone(), route.return_line.clone());
+        let selected_lines = (
+            route.face_line.clone(),
+            route.return_line.clone(),
+            route.interaction_line.clone(),
+        );
         Self::prepare_planned(
             basis,
             presentation,
@@ -234,7 +238,11 @@ impl OwnerBrowserMask {
         presentation: Presentation,
         planned: conduit_presentation::PlannedMaskPlot,
         route: Option<RouteView>,
-        selected_lines: Option<(conduit_core::AdmittedLine, conduit_core::AdmittedLine)>,
+        selected_lines: Option<(
+            conduit_core::AdmittedLine,
+            conduit_core::AdmittedLine,
+            Option<conduit_core::AdmittedLine>,
+        )>,
         play_sequence: u64,
         interactions_admitted: bool,
     ) -> Result<Self, String> {
@@ -277,14 +285,14 @@ impl OwnerBrowserMask {
         let interaction_boundary =
             execution::exact_boundary(&lowered.fore_ports, "interaction", PortDirection::Output)?
                 .clone();
-        if let Some((face_line, return_line)) = selected_lines {
+        if let Some((face_line, return_line, interaction_line)) = selected_lines {
             let selected = face_boundary.selected_line.is_some()
                 || show_boundary.selected_line.is_some()
                 || interaction_boundary.selected_line.is_some();
             if selected
                 && (face_boundary.selected_line.as_ref() != Some(&face_line)
                     || show_boundary.selected_line.as_ref() != Some(&return_line)
-                    || interaction_boundary.selected_line.is_some())
+                    || interaction_boundary.selected_line != interaction_line)
             {
                 return Err("browser Mask lowered a different selected carrier Line".into());
             }
