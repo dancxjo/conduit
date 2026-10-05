@@ -39,6 +39,19 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Owner presentation routes (#4922, development):** The installed owner can
+  present its actual lulled clock Body through an attached terminal Mask without
+  inventing a workload Wake or Play. The ordinary Mask Plan/Play returns an
+  acknowledged Show and typed interval action to the same owner's workset.
+  Finite owner presentation Plans retain exact child routes and distinguish
+  already-sealed alternative selection from replacement and fresh Show
+  acknowledgement. `cargo xtask check owner-presentation` exercises actual
+  Unix-provider attachment/actions and deterministic seal, loss, cancellation,
+  bound and wardrobe contracts. The [route contract](docs/architecture/owner-presentation-routes.md)
+  records the browser carrier's narrower evidence boundary. This does not prove
+  presentation during active installed workload execution, a distributed Mask
+  Plot, the live multi-host journey or its publication under #4807.
+
 - **Typed claims and resolution (#4950, development):** Core admits immutable,
   bounded domain assertions, lifecycle history, exact score contracts, and
   policy-owned selection or abstention. Deterministic core/language fixtures

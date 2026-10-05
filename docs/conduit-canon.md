@@ -347,6 +347,15 @@ tactile, and future masks all receive the same semantic grammar. A mask may
 project disclosure, navigation, wording, layout, or medium-specific presentation, but
 it may not redefine the Face's facts or authority.
 
+The owner may seal a finite presentation route independently of a workload
+Wake, so a lulled Body can expose its current Face and available actions.
+Its ordinary Mask Plan, Mask Play and acknowledged Show remain distinct from
+the Body workload Plan and Play; it never creates a placeholder Wake or a
+second workload scheduler. Exact current offers, resources, authority and any
+required Lines bind the route. Loss or stale basis revokes its Show; choosing
+an already-sealed alternative differs from replacement planning. See
+[owner presentation routes](architecture/owner-presentation-routes.md).
+
 Projection chooses which truth matters now. Semantic composition says how
 those truths are meant to stand together: grouped, contrasted, juxtaposed,
 emphasized, subordinate, associated, or revealed in relation. Projection
