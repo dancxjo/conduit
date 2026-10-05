@@ -187,6 +187,8 @@ mod tests {
             "attachment_epoch",
             "transfers",
             "short_transfers",
+            "additional_local_sign_items",
+            "additional_remote_sign_items",
             "cycle_transitions",
             "final_enqueue",
             "final_cycle",
