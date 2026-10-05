@@ -68,8 +68,12 @@ fn request(
     values: Vec<StructuredInfoValue>,
     index: u64,
 ) -> Vec<u8> {
-    let collection =
-        StructuredInfoValue::sequence(field_type(&program.input_type, name), values).unwrap();
+    let ty = field_type(&program.input_type, name);
+    let collection = match ty.shape() {
+        StructuredInfoTypeShape::Collection { .. } => StructuredInfoValue::collection(ty, values),
+        _ => StructuredInfoValue::sequence(ty, values),
+    }
+    .unwrap();
     let index = StructuredInfoValue::leaf(
         field_type(&program.input_type, "index"),
         index.to_le_bytes().to_vec(),
@@ -88,8 +92,10 @@ fn request(
 }
 fn bytes(program: &PortableExpressionProgram, wire: &[u8], index: u64) -> Vec<u8> {
     let ty = field_type(&program.input_type, "bytes");
-    let StructuredInfoTypeShape::Sequence { element, .. } = ty.shape() else {
-        panic!("sequence");
+    let (StructuredInfoTypeShape::Sequence { element, .. }
+    | StructuredInfoTypeShape::Collection { element, .. }) = ty.shape()
+    else {
+        panic!("collection or sequence");
     };
     request(
         program,
@@ -183,4 +189,32 @@ fn checking_and_preparation_reject_substituted_index_and_element_types() {
     p.root.value_type = StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
     p.output_type = p.root.value_type.clone();
     assert!(PreparedPortableExpressionEvaluator::new(&p).is_err());
+}
+
+#[test]
+fn fixed_collections_obey_the_same_exact_index_contract() {
+    let source = SOURCE.replace("bytes: sequence U8 <= 4", "bytes: collection U8 = 4");
+    let guarded = program(&source, "guarded");
+    let mut guard = PreparedPortableExpressionEvaluator::new(&guarded).unwrap();
+    let outside = bytes(&guarded, &[1, 2, 3, 4], 4);
+    assert_eq!(
+        guard.evaluate(&outside).unwrap(),
+        guarded.evaluate(&outside).unwrap()
+    );
+    let p = program(&source, "read");
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    for index in [0, 3, 4, u64::MAX] {
+        let input = bytes(&p, &[1, 2, 3, 4], index);
+        let ordinary = p.evaluate(&input);
+        let actual = prepared.evaluate(&input).map(|bytes| bytes.to_vec());
+        assert_eq!(actual, ordinary);
+        if index < 4 {
+            assert_eq!(actual.unwrap(), [(index + 1) as u8]);
+        } else {
+            assert_eq!(
+                actual,
+                Err(PortableExpressionEvaluationRefusal::InvalidInput)
+            );
+        }
+    }
 }

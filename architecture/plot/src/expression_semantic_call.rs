@@ -53,9 +53,8 @@ pub(super) fn check(
             ));
         }
         let ty = source_type
-            .value_kind()
-            .and_then(|kind| context.structured_types.get(kind))
-            .ok_or_else(|| {
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
                 diagnostic(
                     source.span(),
                     "sequence selection requires an exact finite collection Type",
@@ -82,9 +81,8 @@ pub(super) fn check(
         };
         let source = check_argument(argument, None)?;
         let ty = source
-            .value_kind()
-            .and_then(|kind| context.structured_types.get(kind))
-            .ok_or_else(|| {
+            .structured_info_type_with(context.structured_types)
+            .map_err(|_| {
                 diagnostic(
                     argument.span(),
                     "sequence length requires an exact finite collection Type",
