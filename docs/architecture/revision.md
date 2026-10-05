@@ -45,7 +45,9 @@ revisable-unit limit. Domain reducers separately check whether an affected range
 exists and what a replacement means; a high-water mark alone is not current text
 length or evidence of a value in every slot. A correction must affect only the
 committed prefix covered by its exact target commitment. It cannot move the
-frontier or erase the original event.
+committed/observed cursors or erase the original event. If it touches an
+asserted stable prefix, it clears that stability assertion; corrected truth
+cannot inherit policy evidence established for the older interpretation.
 
 IDs and reasons are borrowed, nonempty, at most 192 UTF-8 bytes. The journal uses
 a fixed 64-slot array, admits a caller-selected capacity of one to 64 events,
@@ -94,7 +96,8 @@ speech semantic fixtures through the repository's supported entrance.
 - The language adapter consumes native revisioned dependency arcs and exact
   source-token identities. A supplied garden-path analysis of “The old man the
   boats” revises an early `amod` arc to `nsubj`, stabilizes and commits it, then
-  requires explicit later reanalysis. This is #4907's reusable consumer seam,
+  requires explicit later reanalysis and clears the superseded stability
+  assertion while retaining commitment. This is #4907's reusable consumer seam,
   not a running parser or proof of linguistic accuracy.
 - The ASR adapter consumes native partial, scalar replacement, cancellation and
   committed-segment Types. A Unicode fixture demonstrates scalar rather than

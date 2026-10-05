@@ -147,6 +147,8 @@ fn garden_path_revises_stabilizes_commits_and_corrects_without_erasure() {
         Err(RevisionRefusal::CommittedHistoryRequiresCorrection)
     );
     journal.append(&correction).unwrap();
+    assert_eq!(journal.frontiers().stable_through, None);
+    assert_eq!(journal.frontiers().committed, TokenFrontier(2));
     journal.append(&closed).unwrap();
     let history: Vec<_> = journal.history().collect();
     let replay =

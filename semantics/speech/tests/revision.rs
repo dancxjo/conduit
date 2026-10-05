@@ -130,6 +130,31 @@ fn native_asr_keeps_scalar_ranges_committed_text_and_delivery_separate() {
         },
     )
     .unwrap();
+    // This replacement fits within the committed high-water range, but would
+    // shift all later scalar positions if admitted as a correction.
+    let shifts_epoch = ListeningDelta::Correction(
+        AsrRevisedHypothesis::new(
+            None,
+            ListeningTextRange::new(2, 1).unwrap(),
+            ListeningTextRole::Recognition,
+            segment.clone(),
+            "two".into(),
+        )
+        .unwrap(),
+    );
+    assert!(matches!(
+        RevisionEvent::new(
+            &domain,
+            reference(4, "shifts-epoch"),
+            &evidence,
+            RevisionChange::Corrected {
+                commit: commit.reference(),
+                delta: &shifts_epoch,
+                reason: text("length-changing reanalysis")
+            }
+        ),
+        Err(RevisionRefusal::Domain)
+    ));
     let correction = RevisionEvent::new(
         &domain,
         reference(4, "correction"),
@@ -191,16 +216,5 @@ fn listening_mapping_refuses_wrong_subject_role_and_unbounded_scalar_ranges() {
         )
         .unwrap(),
     );
-    let shifts_epoch = ListeningDelta::Correction(
-        AsrRevisedHypothesis::new(
-            None,
-            ListeningTextRange::new(2, 1).unwrap(),
-            ListeningTextRole::Recognition,
-            segment.clone(),
-            "three".into(),
-        )
-        .unwrap(),
-    );
-    assert!(!domain.validate_delta(RevisionDeltaRole::Correction, &shifts_epoch));
     assert!(!domain.validate_cursor(domain.region(&replacement).1));
 }

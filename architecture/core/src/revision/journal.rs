@@ -161,9 +161,12 @@ impl<'a, D: RevisionDomain> RevisionJournal<'a, D> {
                 if start < self.initial || end > *through || end > next.committed {
                     return Err(RevisionRefusal::CorrectionOutsideCommit);
                 }
-                // Preserve both the old assertion and its commitment. A
-                // correction changes domain truth without moving any frontier
-                // or reopening ordinary revision after closure.
+                if next.stable_through.is_some_and(|through| start < through) {
+                    next.stable_through = None;
+                }
+                // Preserve the old assertion and commitment cursor. Corrected
+                // truth does not inherit stale stability evidence or reopen
+                // ordinary revision after closure.
             }
             RevisionChange::Closed => {
                 closed = true;
