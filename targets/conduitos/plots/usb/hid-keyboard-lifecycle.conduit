@@ -56,7 +56,7 @@ plot usb-hid-keyboard-emitting (
 plot usb-hid-keyboard-lifecycle (
     >> begin: Unit...|
     >> command: UsbKeyboardCommand...| <= 4096B
-    transition: UsbKeyboardTransition...| <= 4096B >>
+    transition: UsbKeyboardTransition...| >>
 ) {
     cell: state/seeded/flow/until
     route: usb-hid-keyboard-route()

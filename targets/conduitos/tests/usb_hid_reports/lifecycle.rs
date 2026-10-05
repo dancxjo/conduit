@@ -10,8 +10,7 @@ fn value(name: &str) -> ProtocolValueReference {
     }
 }
 
-#[test]
-fn keyboard_lifecycle_checks_with_exact_retained_state_zip_and_merge_types() {
+pub(super) fn package() -> ProtocolSourcePackage {
     let lifecycle = include_str!("../../plots/usb/hid-keyboard-lifecycle.conduit");
     let (header, body) = lifecycle.split_once("\n\n").unwrap();
     let source = format!(
@@ -19,7 +18,7 @@ fn keyboard_lifecycle_checks_with_exact_retained_state_zip_and_merge_types() {
         super::common::SOURCE,
         include_str!("../../plots/usb/hid-keyboard-state.conduit")
     );
-    let package = ProtocolSourcePackage::compile(
+    ProtocolSourcePackage::compile(
         source,
         &[
             ProtocolSpecializationRequest::SeededUntil {
@@ -38,8 +37,12 @@ fn keyboard_lifecycle_checks_with_exact_retained_state_zip_and_merge_types() {
             },
         ],
     )
-    .unwrap();
-    let prepared = PreparedProtocolSource::prepare(package).unwrap();
+    .unwrap()
+}
+
+#[test]
+fn keyboard_lifecycle_checks_with_exact_retained_state_zip_and_merge_types() {
+    let prepared = PreparedProtocolSource::prepare(package()).unwrap();
     let expanded = prepared.expand("usb-hid-keyboard-lifecycle").unwrap();
     assert!(!expanded.expanded.gears.is_empty());
 }
