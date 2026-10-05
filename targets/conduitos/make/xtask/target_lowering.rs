@@ -178,6 +178,13 @@ pub(super) fn lower_x86_64_pc(
     if usb_endpoint {
         cargo_features.push("usb-endpoint-read-proof");
     }
+    if manifest
+        .profile_fragments
+        .iter()
+        .any(|item| item == "profile-fragment/conduitos-usb-hid-endpoint-proof@1")
+    {
+        cargo_features.push("usb-hid-endpoint-proof");
+    }
     if http.selected {
         cargo_features.push("native-http-client");
     }
