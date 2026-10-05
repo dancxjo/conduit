@@ -83,3 +83,26 @@ plot usb-hid-keyboard-lifecycle (
     emitting.state >> usb-hid-keyboard-advance() >> replacements.right
     replacements.merged >> cell.next
 }
+
+plot usb-hid-keyboard-report-command (
+    report: UsbBootKeyboardReport...| >> command: UsbKeyboardCommand...|
+) = (report(.))
+
+# Received octets enter the reviewed decoder and normalization before state.
+# Malformed/error reports are observed and never replace the previous report.
+# This received-stream entry remains live after frame EOF; Root cancellation
+# retires it. Graceful device teardown is not established by this entry.
+plot usb-hid-keyboard-received (
+    >> begin: Unit...|
+    >> frame: UsbHidReportFrame...|
+    observed: UsbBootKeyboardResult...| >>
+    transition: UsbKeyboardTransition...| >>
+) {
+    decode: usb-hid-boot-keyboard-zero-reserved
+    state: usb-hid-keyboard-lifecycle
+    begin >> state.begin
+    frame >> decode.frame
+    decode.observed >> observed
+    decode.decoded >> usb-hid-keyboard-report-command() >> state.command
+    state.transition >> transition
+}

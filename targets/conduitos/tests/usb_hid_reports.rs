@@ -11,6 +11,7 @@ mod usb_hid_reports {
     mod keyboard;
     mod lifecycle;
     mod state_kernel;
+    mod received_kernel;
     mod transitions;
     mod mouse;
     mod pressure;
