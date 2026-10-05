@@ -97,6 +97,15 @@ impl PreparedProtocolSource {
 }
 
 impl PreparedProtocolArtifact {
+    pub(crate) fn into_preparation_parts(
+        self,
+    ) -> (
+        conduit_composite::KernelCompositeDefinition,
+        ProtocolOperations,
+    ) {
+        (self.artifact.into_definition(), self.operations)
+    }
+
     pub fn artifact(&self) -> &AdmittedProtocolArtifact {
         &self.artifact
     }

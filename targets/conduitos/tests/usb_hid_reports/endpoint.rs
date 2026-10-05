@@ -269,3 +269,90 @@ fn class_proof_plan_retains_exact_endpoint_selection_and_source_identity() {
     };
     assert!(hid_endpoint_proof_plan::plan(&invalid, "usb-hid-keyboard-endpoint").is_err());
 }
+
+#[test]
+fn sole_kernel_constructs_and_retains_the_endpoint_call_for_native_admission() {
+    use conduitos::usb_base::{
+        endpoint_read_proof_plan::EndpointReadProofSubject,
+        hid_endpoint_proof_kernel::PreparedHidEndpointProofKernel, hid_endpoint_proof_plan,
+    };
+    let subject = EndpointReadProofSubject {
+        host_id: "proof/host",
+        boot_id: "proof/boot",
+        controller_base_id: "proof/controller",
+        device_instance_id: "proof/device",
+        root_port: 1,
+        slot: 1,
+        attachment_epoch: 1,
+        endpoint_dci: 3,
+        endpoint_epoch: 1,
+    };
+    for entry in ["usb-hid-keyboard-endpoint", "usb-hid-mouse-endpoint"] {
+        let artifact = hid_endpoint_proof_plan::plan(&subject, entry).unwrap();
+        let read = artifact
+            .artifact()
+            .definition()
+            .external_capability
+            .inputs
+            .iter()
+            .find(|port| port.port_id.as_str() == "read")
+            .unwrap()
+            .clone();
+        let mut play = PreparedHidEndpointProofKernel::prepare(
+            artifact,
+            conduit_composite::KernelCompositeSignStorage {
+                additional_local_items: 4096,
+                additional_remote_items: 4096,
+            },
+        )
+        .unwrap();
+        play.kernel_mut().start().unwrap();
+        let unit = ValuePayload {
+            value_kind: read.value_kind,
+            encoded: Vec::new(),
+        };
+        play.kernel_mut()
+            .admit_input(&read.port_id, 0, &unit)
+            .unwrap();
+        let mut endpoint_request = None;
+        let allocations = crate::allocation::allocations(|| {
+            for _ in 0..256 {
+                play.kernel_mut().step().unwrap();
+                if let Some(request) = play.kernel_mut().next_host_request() {
+                    if !play.service_pure_call(&request).unwrap() {
+                        assert!(!play.service_pure_call(&request).unwrap());
+                        endpoint_request = Some(request);
+                        break;
+                    }
+                }
+            }
+        });
+        assert_eq!(allocations, 0);
+        let request = endpoint_request.expect("exact physical handoff");
+        let obligation = play.kernel_mut().host_request_obligation(&request).unwrap();
+        assert_eq!(
+            obligation.requirement.contract_id.as_str(),
+            conduitos::usb_base::endpoint_read_contract::ENDPOINT_READ_CALL
+        );
+        let host = obligation.host.clone();
+        let resources = obligation.resources.clone();
+        let authorities = obligation.authorities.clone();
+        // Kernel admission is tested without invoking an actual device owner.
+        let admitted = play
+            .kernel_mut()
+            .admit_host_request(&request, &host, &resources, &authorities)
+            .unwrap();
+        let input = play.kernel_mut().host_request_input(&admitted).unwrap();
+        let frame = validate_canonical_structured_value(input).unwrap();
+        assert_eq!(
+            frame
+                .record_field("length")
+                .unwrap()
+                .unwrap()
+                .primitive_bytes("value/u64")
+                .unwrap(),
+            8_u64.to_le_bytes()
+        );
+        play.kernel_mut().cancel().unwrap();
+    }
+}
