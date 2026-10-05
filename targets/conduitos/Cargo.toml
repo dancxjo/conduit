@@ -173,6 +173,7 @@ hosted-tools = []
 hotplug-proof = []
 scripted-keyboard-proof = []
 usb-configuration-proof = []
+usb-endpoint-read-proof = ["scripted-keyboard-proof"]
 native-compositor = ["dep:fontdue", "native-owner-network"]
 # The product's invitation-bound owner exchange uses the same bounded network
 # machinery as the isolated transport proof, without selecting its entrypoint.

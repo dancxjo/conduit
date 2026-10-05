@@ -224,6 +224,19 @@ pub fn run(record: boot::BootRecord) -> ! {
         usb.sign_slots,
     );
     arch::early_write(usb_sign.as_bytes());
+    #[cfg(feature = "usb-endpoint-read-proof")]
+    if cfg!(feature = "usb-endpoint-read-proof") {
+        if let Err(reason) = arch::run_usb_endpoint_read_proof(
+            &mut xhci,
+            usb,
+            boot::executable_physical_address,
+            &identities,
+            &xhci_base,
+        ) {
+            emit_machine_refusal(reason);
+        }
+        arch::deterministic_exit(true);
+    }
     arch::early_write(b"CONDUIT_BOOT_STAGE hid-start\n");
     let hid_ready =
         match arch::prepare_boot_keyboard(&mut xhci, &usb, boot::executable_physical_address) {

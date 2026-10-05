@@ -13,6 +13,7 @@ use super::{
 
 mod configuration_probe;
 mod device_probe;
+mod endpoint;
 mod kernel;
 mod ring;
 
@@ -58,8 +59,14 @@ struct UsbProofRecord {
     existing_conduitos_run_remained_green: bool,
 }
 
-pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    execute_profile(prepared_image, false, opts)
+pub fn execute(
+    args: super::command::UsbProofArgs,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    if args.endpoint_read {
+        return endpoint::execute(opts);
+    }
+    execute_profile(args.prepared_image, false, opts)
 }
 
 pub(super) fn execute_configuration(opts: &GlobalOpts) -> Result<(), ConduitosError> {

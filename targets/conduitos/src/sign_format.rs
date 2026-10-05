@@ -12,7 +12,9 @@ use crate::{
 };
 
 #[cfg(any(test, target_arch = "x86_64"))]
-const BOOT_QEMU_PROFILE: &str = if cfg!(feature = "usb-configuration-proof") {
+const BOOT_QEMU_PROFILE: &str = if cfg!(feature = "usb-endpoint-read-proof") {
+    crate::make::USB_ENDPOINT_QEMU_PROFILE
+} else if cfg!(feature = "usb-configuration-proof") {
     crate::make::USB_CONFIGURATION_QEMU_PROFILE
 } else {
     "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib"

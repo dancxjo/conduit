@@ -70,6 +70,14 @@ pub(super) fn execute_usb_configuration(opts: &GlobalOpts) -> Result<ImageRecord
     assemble_architecture_proof(ConduitosArch::X86_64, opts)
 }
 
+pub(super) fn execute_usb_endpoint(opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
+    let build = build::execute_usb_endpoint(opts)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(ConduitosArch::X86_64, opts)
+}
+
 pub(super) fn execute_emergency_halt(opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
     let build = build::execute_emergency_halt(opts)?;
     build

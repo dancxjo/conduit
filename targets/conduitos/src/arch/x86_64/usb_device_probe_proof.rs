@@ -225,54 +225,53 @@ fn run_descriptor(
         let mut seen = [false; 2];
         for _ in 0..512 {
             proof.kernel.step().map_err(|_| "usb-device-probe-step")?;
-            if let Some(request) = proof.kernel.next_host_request() {
-                if !proof
+            if let Some(request) = proof.kernel.next_host_request()
+                && !proof
                     .dispatch_pure(&request)
                     .map_err(|_| "usb-device-probe-pure-call")?
-                {
-                    let obligation = proof
-                        .kernel
-                        .host_request_obligation(&request)
-                        .map_err(|_| "usb-device-probe-obligation")?;
-                    if obligation.requirement.contract_id.as_str() != CONTROL_CALL {
-                        return Err("usb-device-probe-foreign-call");
-                    }
-                    let admitted = proof
-                        .kernel
-                        .admit_host_request(
-                            &request,
-                            &obligation.host,
-                            &obligation.resources,
-                            &obligation.authorities,
-                        )
-                        .map_err(|_| "usb-device-probe-admission")?;
-                    let call = *proof
-                        .kernel
-                        .admitted_host_request_view(&admitted)
-                        .map_err(|_| "usb-device-probe-request")?
-                        .request;
-                    let bytes = proof
-                        .kernel
-                        .host_request_input(&admitted)
-                        .map_err(|_| "usb-device-probe-request")?;
-                    digest.update(bytes);
-                    let result = owner
-                        .execute(call.node, call.call, call.request, bytes)
-                        .map_err(|_| "usb-device-probe-native-call")?;
-                    digest.update(result);
-                    if let Err(error) = proof.kernel.complete_host_call_bytes(&admitted, result) {
-                        let mut refusal = FixedText::new();
-                        let _ = writeln!(
-                            refusal,
-                            "CONDUIT_USB_DEVICE_PROBE_REFUSAL phase=completion sequence={sequence} error={error:?}"
-                        );
-                        early_write(refusal.as_bytes());
-                        return Err("usb-device-probe-completion");
-                    }
-                    calls += 1;
-                    if u64::from(calls) != sequence + 1 {
-                        return Err("usb-device-probe-duplicate-transfer");
-                    }
+            {
+                let obligation = proof
+                    .kernel
+                    .host_request_obligation(&request)
+                    .map_err(|_| "usb-device-probe-obligation")?;
+                if obligation.requirement.contract_id.as_str() != CONTROL_CALL {
+                    return Err("usb-device-probe-foreign-call");
+                }
+                let admitted = proof
+                    .kernel
+                    .admit_host_request(
+                        &request,
+                        &obligation.host,
+                        &obligation.resources,
+                        &obligation.authorities,
+                    )
+                    .map_err(|_| "usb-device-probe-admission")?;
+                let call = *proof
+                    .kernel
+                    .admitted_host_request_view(&admitted)
+                    .map_err(|_| "usb-device-probe-request")?
+                    .request;
+                let bytes = proof
+                    .kernel
+                    .host_request_input(&admitted)
+                    .map_err(|_| "usb-device-probe-request")?;
+                digest.update(bytes);
+                let result = owner
+                    .execute(call.node, call.call, call.request, bytes)
+                    .map_err(|_| "usb-device-probe-native-call")?;
+                digest.update(result);
+                if let Err(error) = proof.kernel.complete_host_call_bytes(&admitted, result) {
+                    let mut refusal = FixedText::new();
+                    let _ = writeln!(
+                        refusal,
+                        "CONDUIT_USB_DEVICE_PROBE_REFUSAL phase=completion sequence={sequence} error={error:?}"
+                    );
+                    early_write(refusal.as_bytes());
+                    return Err("usb-device-probe-completion");
+                }
+                calls += 1;
+                if u64::from(calls) != sequence + 1 {
+                    return Err("usb-device-probe-duplicate-transfer");
                 }
             }
             for (index, port) in ports.iter().enumerate() {

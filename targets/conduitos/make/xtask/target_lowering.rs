@@ -131,6 +131,10 @@ pub(super) fn lower_x86_64_pc(
         .profile_fragments
         .iter()
         .any(|item| item == USB_CONFIGURATION_PROOF);
+    let usb_endpoint = manifest
+        .profile_fragments
+        .iter()
+        .any(|item| item == "profile-fragment/conduitos-usb-endpoint-read-proof@1");
     let hotplug = manifest
         .profile_fragments
         .iter()
@@ -140,7 +144,13 @@ pub(super) fn lower_x86_64_pc(
         .iter()
         .any(|item| item == PS2_INPUT);
     let http = http::lower(manifest)?;
-    if usb_configuration && !scripted_keyboard {
+    if usb_endpoint && (usb_configuration || hotplug) {
+        return Err(refusal(
+            "proof-profile-combination-mismatch",
+            "Raw endpoint proof owns a separate terminal appliance".into(),
+        ));
+    }
+    if (usb_configuration || usb_endpoint) && !scripted_keyboard {
         return Err(refusal(
             "proof-profile-prerequisite-missing",
             "USB configuration proof requires the scripted keyboard proof closure".into(),
@@ -164,6 +174,9 @@ pub(super) fn lower_x86_64_pc(
     }
     if usb_configuration {
         cargo_features.push("usb-configuration-proof");
+    }
+    if usb_endpoint {
+        cargo_features.push("usb-endpoint-read-proof");
     }
     if http.selected {
         cargo_features.push("native-http-client");
@@ -215,6 +228,10 @@ pub(super) fn lower_x86_64_pc(
             0
         }) | (if usb_configuration {
             conduitos::make::PROOF_USB_CONFIGURATION
+        } else {
+            0
+        }) | (if usb_endpoint {
+            conduitos::make::PROOF_USB_ENDPOINT_READ
         } else {
             0
         }),
@@ -424,3 +441,6 @@ fn refusal(code: &'static str, detail: String) -> ConduitosError {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod endpoint_tests;
