@@ -12,6 +12,9 @@ mod descriptors;
 #[path = "usb_protocol_plots/device_probe.rs"]
 mod device_probe;
 
+#[path = "usb_protocol_plots/device_probe_execution.rs"]
+mod device_probe_execution;
+
 fn program(entry: &str) -> PortableExpressionProgram {
     program_from(SOURCE, entry)
 }
