@@ -403,3 +403,13 @@ reach the class decoder. Preparing these graphs publishes no physical Back;
 execution requires a separately selected endpoint offer and actual possession.
 Deterministic conformance checks this composition and its bounded framing;
 native execution of these class graphs remains pending.
+
+The dedicated keyboard Source appliance enters through
+`cargo xtask make conduitos usb-proof --hid-endpoint`. It uses the same bounded
+xHCI endpoint owner as the raw endpoint proof and checks 128 alternating fixture
+presses/releases across two ring cycle transitions. The retained receipt checks
+exact Source/Plan/Play and attachment identities, the canonical class output
+transcript, normal closure and acknowledged stop. This command requires its own
+proof image. Its implementation and verifier are under validation; it does not
+establish an ordinary class offer, physical compatibility or five-architecture
+acceptance.

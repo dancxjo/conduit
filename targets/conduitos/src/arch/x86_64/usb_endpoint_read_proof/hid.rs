@@ -219,9 +219,6 @@ pub(super) fn run(
                     {
                         return Err("usb-hid-native-order");
                     }
-                    digest.update(sequence.to_le_bytes());
-                    digest.update(port.port_id.as_str().as_bytes());
-                    digest.update(&buffers[index].encoded);
                     play.kernel_mut()
                         .complete_output(&port.port_id, actual)
                         .map_err(|_| "usb-hid-native-ack")?;
@@ -234,6 +231,11 @@ pub(super) fn run(
         }
         if !seen.iter().all(|seen| *seen) {
             return Err("usb-hid-native-delivery");
+        }
+        for (index, port) in outputs.iter().enumerate() {
+            digest.update(sequence.to_le_bytes());
+            digest.update(port.port_id.as_str().as_bytes());
+            digest.update(&buffers[index].encoded);
         }
         let (_, next_cycle) = owner.ring_position();
         if next_cycle != cycle {
