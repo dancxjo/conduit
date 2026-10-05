@@ -56,15 +56,12 @@ fn arithmetic_failure_completes_one_host_call_and_requires_explicit_cancellation
     run.close_input(&number).unwrap();
     let mut failed = false;
     for _ in 0..64 {
-        match run.step() {
-            Err(error) => {
-                assert!(matches!(error, ProtocolCallRefusal::Expression(_)));
-                assert_eq!(error.failure().code, FailureCode::HostCallFailed);
-                assert_eq!(error.failure().detail, 1027);
-                failed = true;
-                break;
-            }
-            Ok(_) => {}
+        if let Err(error) = run.step() {
+            assert!(matches!(error, ProtocolCallRefusal::Expression(_)));
+            assert_eq!(error.failure().code, FailureCode::HostCallFailed);
+            assert_eq!(error.failure().detail, 1027);
+            failed = true;
+            break;
         }
         assert_eq!(run.output_into(&advanced, &mut output).unwrap(), None);
     }
