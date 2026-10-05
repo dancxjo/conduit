@@ -174,3 +174,29 @@ fn usb_source_prepares_without_advertising_transfer_authority() {
             .all(|offer| offer.kind_id.as_str() != "machine/usb/control")
     );
 }
+
+#[test]
+fn descriptor_exchange_plans_against_explicit_control_root_and_exact_fore() {
+    use conduitos::usb_base::{control_proof_plan::ControlProofSubject, device_probe_proof_plan};
+    let subject = ControlProofSubject {
+        host_id: "host/usb-device-proof",
+        boot_id: "boot/usb-device-proof",
+        controller_base_id: "base/usb-device-proof",
+        device_instance_id: "device/usb-device-proof",
+        root_port: 1,
+        slot: 1,
+        attachment_epoch: 1,
+    };
+    let prepared = device_probe_proof_plan::prepare(&subject).unwrap();
+    let definition = prepared.artifact().definition();
+    assert_eq!(definition.boundary.input_fronts.len(), 1);
+    assert_eq!(definition.boundary.output_fronts.len(), 2);
+    assert_eq!(
+        definition.internal_plan.fragments[0]
+            .placements
+            .iter()
+            .filter(|placement| placement.kind_id.as_str() == "machine/usb/control")
+            .count(),
+        1
+    );
+}
