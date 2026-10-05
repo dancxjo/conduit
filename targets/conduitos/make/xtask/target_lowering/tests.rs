@@ -368,7 +368,10 @@ fn usb_configuration_proof_owns_its_finite_profile_and_requires_keyboard_closure
     let source =
         include_str!("../../../proof/profiles/conduitos-usb-configuration-proof.profile.json");
     let admitted = manifest(source);
-    assert_eq!(admitted.bounds.heap_arena_bytes, 256 * 1024 * 1024);
+    assert_eq!(
+        admitted.bounds.heap_arena_bytes,
+        conduitos::make::USB_CONFIGURATION_ARENA_BYTES
+    );
     let usb = lower(&admitted).unwrap();
     assert_eq!(
         usb.cargo_features,

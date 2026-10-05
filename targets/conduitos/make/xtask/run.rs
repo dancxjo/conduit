@@ -197,28 +197,8 @@ fn validate_xhci(boot: &GuestBootSign, sign: &GuestXhciSign) -> Result<(), Condu
     Ok(())
 }
 
-fn validate_boot(sign: &GuestBootSign, qemu_profile: &str) -> Result<(), ConduitosError> {
-    if sign.schema != "conduit.conduitos.boot-sign/v1"
-        || sign.status != "accepted"
-        || sign.arch != "x86_64"
-        || sign.profile_id.is_empty()
-        || sign.build_id.is_empty()
-        || sign.image_binding.is_empty()
-        || sign.offer_generation == 0
-        || sign.limine != LIMINE_VERSION
-        || sign.qemu_profile != qemu_profile
-        || sign.host_id.len() != 64
-        || sign.boot_id.len() != 64
-        || sign.memory_regions == 0
-        || sign.runtime_arena_bytes != 16_777_216
-    {
-        return Err(ConduitosError::refusal(
-            "invalid-boot-sign",
-            format!("boot Sign failed exact validation: {sign:?}"),
-        ));
-    }
-    Ok(())
-}
+mod boot_identity;
+use boot_identity::validate_boot;
 
 fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), ConduitosError> {
     let valid_base_ids = sign.base_ids.len() == 7

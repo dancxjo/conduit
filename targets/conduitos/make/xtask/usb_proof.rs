@@ -49,6 +49,8 @@ struct UsbProofRecord {
     configuration_probe: Option<device_probe::DeviceProbeSign>,
     #[serde(skip_serializing_if = "Option::is_none")]
     preparation_timeout_seconds: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    preparation_arena_bytes: Option<u64>,
     device_absent_refusal: String,
     deterministic_negative_command: &'static str,
     deterministic_negative_cases: &'static [&'static str],
@@ -174,6 +176,8 @@ fn execute_profile(
         configuration_probe,
         preparation_timeout_seconds: configuration
             .then_some(super::profile::USB_CONFIGURATION_PREPARATION_TIMEOUT.as_secs()),
+        preparation_arena_bytes: configuration
+            .then_some(conduitos::make::USB_CONFIGURATION_ARENA_BYTES),
         device_absent_refusal: absent,
         deterministic_negative_command: "cargo test -p conduitos --lib arch::x86_64::usb",
         deterministic_negative_cases: &NEGATIVE_CASES,

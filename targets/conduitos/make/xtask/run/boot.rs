@@ -6,7 +6,7 @@ use std::{
 };
 
 pub(crate) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
-    boot_with_memory(paths, opts, "64M", QEMU_PROFILE)
+    boot_with_memory(paths, opts, "64M", QEMU_PROFILE, 16 * 1024 * 1024)
 }
 
 pub(crate) fn boot_configuration(
@@ -18,6 +18,7 @@ pub(crate) fn boot_configuration(
         opts,
         "512M",
         conduitos::make::USB_CONFIGURATION_QEMU_PROFILE,
+        conduitos::make::USB_CONFIGURATION_ARENA_BYTES,
     )
 }
 
@@ -26,6 +27,7 @@ fn boot_with_memory(
     opts: &GlobalOpts,
     memory: &str,
     qemu_profile: &str,
+    arena_bytes: u64,
 ) -> Result<GuestRun, ConduitosError> {
     let monitor_socket = paths.target.join("hid-monitor.sock");
     let serial_path = paths.target.join("boot-serial.log");
@@ -268,7 +270,7 @@ fn boot_with_memory(
         serde_json::from_str(keyboard_text_observatory_snapshots[0]).map_err(|error| {
             ConduitosError::refusal("malformed-keyboard-text-observatory", error.to_string())
         })?;
-    validate_boot(&boot, qemu_profile)?;
+    validate_boot(&boot, qemu_profile, arena_bytes)?;
     validate_presentation(&boot, &presentation)?;
     validate_pc_speaker(&boot, &pc_speaker)?;
     validate_xhci(&boot, &xhci)?;
