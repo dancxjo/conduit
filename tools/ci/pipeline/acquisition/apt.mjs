@@ -99,9 +99,9 @@ export function acquireApt(requested, options = {}) {
         // Simulation records exact dependency versions without retrying acquisition
         // or changing installed state. Preserve the original acquisition failure.
         let resolution;
-        try { resolution = run('apt-get', [...aptOptions, 'install', '--simulate', '--no-install-recommends', ...missing]); }
+        try { resolution = run('apt-get', [...aptOptions, '-o', 'APT::Get::Assume-Yes=false', 'install', '--simulate', '--no-install-recommends', ...missing]); }
         catch (diagnostic) { resolution = diagnostic.message; }
-        throw new Error(`${error.message}\nAPT resolution diagnostic:\n${resolution}`);
+        throw new Error(`${error.message}\nAPT resolution diagnostic:\n${resolution}\n${run('apt-cache', [...scopeOptions, 'policy', ...missing, 'libllvm21', 'libudev1', 'libcrypt1'])}`);
       }
       const debs = readdirSync(archives).filter(name => name.endsWith('.deb')).sort().map(file => {
         const full = path.join(archives, file);
