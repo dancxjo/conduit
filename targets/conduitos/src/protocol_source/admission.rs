@@ -74,6 +74,10 @@ impl PreparedProtocolSource {
             .validate_plan(&plan)
             .map_err(|_| ProtocolSourceRefusal::Offer)?;
         self.operations
+            .concats
+            .validate_plan(&plan)
+            .map_err(|_| ProtocolSourceRefusal::Offer)?;
+        self.operations
             .merges
             .validate_plan(&plan)
             .map_err(|_| ProtocolSourceRefusal::Offer)?;
