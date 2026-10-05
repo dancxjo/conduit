@@ -1,0 +1,56 @@
+# Boot reports request at most eight wire bytes through a selected inbound Fore.
+# Descriptor/class meaning grants no attachment, endpoint or controller authority.
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+
+type UsbHidTransferFrame =
+    frame UsbHidReportFrame
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+    | timeout
+
+plot usb-hid-endpoint-request (
+    read: Unit...| >> request: UsbEndpointReadRequest...| <= 4096B
+) = ({ length: 8 })
+
+# Shortness is relative to this exact eight-byte request, independently of the
+# keyboard/mouse report's own minimum extent. No padding or retry is invented.
+plot usb-hid-endpoint-frame (
+    result: UsbEndpointReadResult...| <= 4096B >> observed: UsbHidTransferFrame...| <= 4096B
+) = (. is completed ? (.completed.actual != bytes/length(.completed.wire) || .completed.actual > 8 || (.completed.actual < 8) != .completed.short ? malformed(unit) : frame({ wire: .completed.wire, actual: .completed.actual })) : (. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : (. is timeout ? timeout(unit) : unsupported(unit)))))
+
+plot usb-hid-keyboard-endpoint (
+    >> begin: Unit...|
+    >> read: Unit...|
+    received: UsbHidTransferFrame...| <= 4096B >>
+    observed: UsbBootKeyboardResult...| >>
+    transition: UsbKeyboardTransition...| >>
+) {
+    transfer: machine/usb/endpoint-read
+    framing: usb-hid-endpoint-frame()
+    keyboard: usb-hid-keyboard-received
+    begin >> keyboard.begin
+    read >> usb-hid-endpoint-request() >> transfer.request
+    transfer.result >> framing
+    framing >> received
+    framing >> select(UsbHidTransferFrame.frame, unmatched=drop) >> keyboard.frame
+    keyboard.observed >> observed
+    keyboard.transition >> transition
+}
+
+plot usb-hid-mouse-endpoint (
+    >> read: Unit...|
+    received: UsbHidTransferFrame...| <= 4096B >>
+    decoded: UsbBootMouseResult...| >>
+) {
+    transfer: machine/usb/endpoint-read
+    framing: usb-hid-endpoint-frame()
+    mouse: usb-hid-boot-mouse
+    read >> usb-hid-endpoint-request() >> transfer.request
+    transfer.result >> framing
+    framing >> received
+    framing >> select(UsbHidTransferFrame.frame, unmatched=drop) >> mouse.frame
+    mouse.decoded >> decoded
+}

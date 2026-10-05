@@ -1,0 +1,215 @@
+//! Checked class composition over an inert endpoint contract; no device claim.
+use conduit_core::*;
+use conduit_plot::{PortableExpressionProgram, PreparedPortableExpressionEvaluator};
+use conduitos::protocol_source::{PreparedProtocolSource, ProtocolSourcePackage};
+use conduitos::usb_base::{
+    endpoint_read_contract::{ENDPOINT_READ_KIND, EndpointReadContract},
+    endpoint_read_result::{EndpointReadDisposition, PreparedEndpointReadResultEncoder},
+};
+
+fn package() -> ProtocolSourcePackage {
+    let mut package = super::lifecycle::package();
+    let endpoint = include_str!("../../plots/usb/hid-endpoint.conduit");
+    let (header, body) = endpoint.split_once("\n\n").unwrap();
+    package.source = format!(
+        "{header}\n{}\n{body}\ntype ImportedHidEndpointResult = UsbEndpointReadResult\n",
+        package.source
+    );
+    package
+}
+fn program(entry: &str) -> PortableExpressionProgram {
+    let source = PreparedProtocolSource::prepare(package()).unwrap();
+    let expanded = source.expand(entry).unwrap().expanded;
+    assert_eq!(expanded.gears.len(), 1);
+    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
+        panic!("pure program")
+    };
+    PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
+}
+fn forged_frame(contract: &EndpointReadContract, wire: &[u8], actual: u64, short: bool) -> Vec<u8> {
+    let StructuredInfoTypeShape::Variant { cases, .. } = contract.result_type().shape() else {
+        panic!("result")
+    };
+    let ty = cases
+        .iter()
+        .find(|case| case.tag() == "completed")
+        .unwrap()
+        .payload_type();
+    let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
+        panic!("completed frame")
+    };
+    let field_type = |name: &str| {
+        fields
+            .iter()
+            .find(|field| field.name() == name)
+            .unwrap()
+            .value_type()
+            .clone()
+    };
+    let value = |name: &str, encoded: Vec<u8>| {
+        StructuredFieldValue::new(
+            name,
+            StructuredInfoValue::leaf(field_type(name), encoded).unwrap(),
+        )
+        .unwrap()
+    };
+    let frame = StructuredInfoValue::record(
+        ty.clone(),
+        vec![
+            value("actual", actual.to_le_bytes().to_vec()),
+            value("short", vec![u8::from(short)]),
+            value("wire", wire.to_vec()),
+        ],
+    )
+    .unwrap();
+    StructuredInfoValue::variant(contract.result_type().clone(), "completed", frame)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+}
+
+#[test]
+fn endpoint_class_graphs_preserve_byte_refinements_without_advertising_physics() {
+    let source = PreparedProtocolSource::prepare(package()).unwrap();
+    let imported = source
+        .checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "ImportedHidEndpointResult")
+        .unwrap();
+    let wire = imported
+        .value_contracts
+        .iter()
+        .find(|contract| contract.representation_path == "|completed.wire")
+        .unwrap();
+    assert_eq!(wire.contract.maximum_bytes, 2048);
+    assert_eq!(wire.contract.value_kind.as_str(), "value/bytes");
+    for entry in ["usb-hid-keyboard-endpoint", "usb-hid-mouse-endpoint"] {
+        let expanded = source.expand(entry).unwrap();
+        assert_eq!(
+            expanded
+                .expanded
+                .gears
+                .iter()
+                .filter(|gear| gear.kind_id.as_str() == ENDPOINT_READ_KIND)
+                .count(),
+            1
+        );
+        let mut host = HostAdvertisement {
+            protocol_version: PROTOCOL_VERSION,
+            host_id: "fixture/hid".into(),
+            boot_id: "fixture/boot".into(),
+            offer_generation: OfferGeneration(1),
+            profile: "fixture/hid-source".into(),
+            bases: vec![],
+            resources: vec![],
+            capabilities: vec![],
+            planner_capabilities: vec![],
+        };
+        source.publish_pure_backs(&expanded, &mut host).unwrap();
+        assert!(
+            host.capabilities
+                .iter()
+                .all(|offer| offer.kind_id.as_str() != ENDPOINT_READ_KIND)
+        );
+        assert!(conduit_planner::default_expanded_placements(&expanded.expanded, &[host]).is_err());
+    }
+}
+
+#[test]
+fn boot_report_request_is_eight_bytes_without_endpoint_selection_facts() {
+    let program = program("usb-hid-endpoint-request");
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let request = validate_canonical_structured_value(prepared.evaluate(&[]).unwrap()).unwrap();
+    assert_eq!(
+        request
+            .record_field("length")
+            .unwrap()
+            .unwrap()
+            .primitive_bytes("value/u64")
+            .unwrap(),
+        8_u64.to_le_bytes()
+    );
+}
+
+#[test]
+fn endpoint_framing_keeps_actual_extent_and_distinct_transport_outcomes_without_growth() {
+    let program = program("usb-hid-endpoint-frame");
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let contract = EndpointReadContract::prepare().unwrap();
+    let mut encoder = PreparedEndpointReadResultEncoder::new(&contract).unwrap();
+    let mut cases = Vec::new();
+    for actual in 0..=8_u16 {
+        let wire: Vec<_> = (0..actual).map(|index| index as u8).collect();
+        cases.push((
+            encoder.completed(8, actual, &wire).unwrap().to_vec(),
+            "frame",
+            Some(wire),
+        ));
+    }
+    for (disposition, tag) in [
+        (EndpointReadDisposition::Stalled, "stalled"),
+        (EndpointReadDisposition::ProviderLost, "provider-lost"),
+        (EndpointReadDisposition::Unsupported, "unsupported"),
+        (EndpointReadDisposition::Timeout, "timeout"),
+    ] {
+        cases.push((
+            encoder.disposition(disposition).unwrap().to_vec(),
+            tag,
+            None,
+        ));
+    }
+    for (wire, actual, short) in [
+        (vec![0; 8], 8, true),
+        (vec![0; 7], 7, false),
+        (vec![0; 8], 7, true),
+        (vec![], u64::MAX, false),
+        (vec![0; 9], 9, false),
+        (vec![0; 2048], 2048, false),
+    ] {
+        let input = forged_frame(&contract, &wire, actual, short);
+        assert!(input.len() <= 4096);
+        cases.push((input, "malformed", None));
+    }
+    for (input, tag, wire) in &cases {
+        let ordinary = program.evaluate(input).unwrap();
+        let output = prepared.evaluate(input).unwrap();
+        assert_eq!(output, ordinary);
+        super::common::tag(output, tag);
+        if let Some(wire) = wire {
+            let frame = validate_canonical_structured_value(output)
+                .unwrap()
+                .variant_payload("frame")
+                .unwrap()
+                .unwrap();
+            assert_eq!(
+                frame
+                    .record_field("wire")
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes("value/bytes")
+                    .unwrap(),
+                wire
+            );
+            assert_eq!(
+                frame
+                    .record_field("actual")
+                    .unwrap()
+                    .unwrap()
+                    .primitive_bytes("value/u64")
+                    .unwrap(),
+                (wire.len() as u64).to_le_bytes()
+            );
+        }
+    }
+    let capacity = prepared.output_capacity();
+    let allocations = crate::allocation::allocations(|| {
+        for _ in 0..1024 {
+            for (input, tag, _) in &cases {
+                super::common::tag(prepared.evaluate(input).unwrap(), tag);
+            }
+        }
+    });
+    assert_eq!(allocations, 0);
+    assert_eq!(prepared.output_capacity(), capacity);
+}
