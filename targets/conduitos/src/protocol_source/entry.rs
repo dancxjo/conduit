@@ -6,6 +6,9 @@ use conduit_planner::{PlacementChoices, PlanningOptions};
 use conduit_plot::ExpandedAuthoringPlot;
 use sha2::{Digest, Sha256};
 
+/// Owns the checked Source and its exact expansion together. Preparation is
+/// the only constructor, and callers receive only shared expansion references;
+/// retained planning can therefore reuse this provenance without re-expanding.
 pub struct PreparedProtocolEntry {
     source: PreparedProtocolSource,
     expanded: ExpandedAuthoringPlot,
@@ -21,8 +24,11 @@ impl PreparedProtocolEntry {
             return Err(ProtocolSourceRefusal::Bounds);
         }
         let package = ProtocolSourcePackage::decode(bytes)?;
+        preparation_stage("decoded");
         let source = PreparedProtocolSource::prepare(package)?;
+        preparation_stage("prepared");
         let expanded = source.expand(entry)?;
+        preparation_stage("expanded");
         let digest = Sha256::digest(bytes);
         Ok(Self {
             source,
@@ -73,7 +79,8 @@ impl PreparedProtocolEntry {
         &self,
         host: &mut HostAdvertisement,
     ) -> Result<(), ProtocolSourceRefusal> {
-        self.source.publish_pure_backs(&self.expanded, host)
+        self.source
+            .publish_retained_pure_backs(&self.expanded, host)
     }
 
     pub fn placements(
@@ -89,7 +96,8 @@ impl PreparedProtocolEntry {
         hosts: &[HostAdvertisement],
         placements: &PlacementChoices,
     ) -> Result<ProtocolQueueLimits, ProtocolSourceRefusal> {
-        self.source.queue_limits(&self.expanded, hosts, placements)
+        self.source
+            .retained_queue_limits(&self.expanded, hosts, placements)
     }
 
     /// Consume the retained expansion and operations with selected native truth.
@@ -100,7 +108,7 @@ impl PreparedProtocolEntry {
         bases: &[BaseImplementationId],
         options: PlanningOptions<'_>,
     ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
-        self.source.plan_artifact(
+        self.source.plan_retained_artifact(
             &self.expanded,
             self.artifact,
             hosts,

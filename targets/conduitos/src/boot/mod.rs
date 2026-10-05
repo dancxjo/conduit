@@ -20,7 +20,8 @@ pub use modules::BootModuleRefusal;
     target_arch = "loongarch64"
 ))]
 pub use limine::{
-    executable_physical_address, framebuffer_display, named_module, normalize_boot, spore_module,
+    executable_physical_address, framebuffer_display, named_module, normalize_boot,
+    normalize_boot_with_arena_bytes, spore_module,
 };
 #[cfg(target_arch = "x86")]
 pub use multiboot1::{firmware_from_multiboot1, spore_module_from_multiboot1};

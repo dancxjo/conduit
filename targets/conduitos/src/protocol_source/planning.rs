@@ -50,8 +50,19 @@ impl PreparedProtocolSource {
         expanded: &ExpandedAuthoringPlot,
         host: &mut HostAdvertisement,
     ) -> Result<(), ProtocolSourceRefusal> {
-        use ProtocolSourceRefusal as Error;
         self.validate_expanded(expanded)?;
+        self.publish_retained_pure_backs(expanded, host)
+    }
+
+    // PreparedProtocolEntry owns an internally expanded, externally immutable
+    // entry. Its retained paths preserve that provenance without reconstructing
+    // a second complete expansion in the finite preparation arena.
+    pub(super) fn publish_retained_pure_backs(
+        &self,
+        expanded: &ExpandedAuthoringPlot,
+        host: &mut HostAdvertisement,
+    ) -> Result<(), ProtocolSourceRefusal> {
+        use ProtocolSourceRefusal as Error;
         let mut offers = BTreeMap::<CapabilityId, CapabilityOffer>::new();
         let mut retain = |offer: CapabilityOffer| -> Result<(), Error> {
             if let Some(previous) = offers.get(&offer.capability_id) {
@@ -127,8 +138,17 @@ impl PreparedProtocolSource {
         hosts: &[HostAdvertisement],
         placements: &PlacementChoices,
     ) -> Result<ProtocolQueueLimits, ProtocolSourceRefusal> {
-        use ProtocolSourceRefusal as Error;
         self.validate_expanded(expanded)?;
+        self.retained_queue_limits(expanded, hosts, placements)
+    }
+
+    pub(super) fn retained_queue_limits(
+        &self,
+        expanded: &ExpandedAuthoringPlot,
+        hosts: &[HostAdvertisement],
+        placements: &PlacementChoices,
+    ) -> Result<ProtocolQueueLimits, ProtocolSourceRefusal> {
+        use ProtocolSourceRefusal as Error;
         let offer = |gear: &GearId| -> Result<&CapabilityOffer, Error> {
             let choice = placements.by_gear.get(gear).ok_or(Error::Offer)?;
             let mut matches = hosts

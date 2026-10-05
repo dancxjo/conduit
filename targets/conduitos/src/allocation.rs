@@ -16,8 +16,8 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-/// Maximum preparation range, including the graphical profile's current arena.
-pub const MAXIMUM_ARENA_BYTES: usize = 16 * 1024 * 1024;
+/// Maximum finite preparation range; Root selects its exact Make budget.
+pub const MAXIMUM_ARENA_BYTES: usize = 64 * 1024 * 1024;
 
 pub struct BootArena {
     locked: AtomicBool,

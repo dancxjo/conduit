@@ -59,7 +59,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
             "-cpu",
             "max",
             "-m",
-            "64M",
+            "128M",
             "-smp",
             "1",
             "-display",
@@ -132,7 +132,7 @@ pub(super) fn execute(args: RunArgs, opts: &GlobalOpts) -> Result<(), ConduitosE
         "image_sha256": digest,
         "outcome": outcome,
         "serial_sha256": sha256_file(&serial)?,
-        "qemu_profile": "q35-single-cpu-64m-headless",
+        "qemu_profile": "q35-single-cpu-128m-headless",
         "physical_compatibility": "unverified",
     });
     fs::write(

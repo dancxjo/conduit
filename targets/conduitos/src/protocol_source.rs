@@ -190,8 +190,10 @@ impl PreparedProtocolSource {
             }?;
             capabilities.push(offer);
         }
+        preparation_stage("catalogs");
         let checked = check_syntax_document(&parse_syntax_document(&package.source), &startup)
             .map_err(Error::Source)?;
+        preparation_stage("checked");
         let mut selectors = alloc::collections::BTreeSet::new();
         for stage in checked
             .plots
@@ -218,6 +220,23 @@ impl PreparedProtocolSource {
             capabilities,
         })
     }
+}
+
+fn preparation_stage(stage: &str) {
+    #[cfg(target_os = "none")]
+    {
+        use core::fmt::Write;
+        let mut text = crate::sign_format::FixedText::new();
+        let _ = writeln!(
+            text,
+            "CONDUIT_PROTOCOL_PREPARATION {stage} live={} peak={}",
+            crate::allocation::BOOT_ARENA.live_bytes(),
+            crate::allocation::BOOT_ARENA.used()
+        );
+        crate::arch::early_write(text.as_bytes());
+    }
+    #[cfg(not(target_os = "none"))]
+    let _ = stage;
 }
 
 fn install_clock(

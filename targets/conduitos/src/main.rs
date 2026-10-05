@@ -45,7 +45,9 @@ mod scripted_startup;
 #[cfg(target_os = "none")]
 #[unsafe(no_mangle)]
 extern "C" fn conduitos_start() -> ! {
-    match boot::normalize_boot() {
+    match boot::normalize_boot_with_arena_bytes(
+        conduitos::make::EMBEDDED_MAKE.runtime_arena_ceiling,
+    ) {
         Ok(record) => {
             #[cfg(feature = "emergency-halt-proof")]
             {
