@@ -14,7 +14,11 @@ fn field(schema: &StructuredInfoType, name: &str) -> StructuredInfoType {
         .clone()
 }
 
-fn report(schema: StructuredInfoType, modifiers: u8, keys: [u8; 6]) -> StructuredInfoValue {
+pub(super) fn report(
+    schema: StructuredInfoType,
+    modifiers: u8,
+    keys: [u8; 6],
+) -> StructuredInfoValue {
     let octet = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
     let keys_type = field(&schema, "keys");
     StructuredInfoValue::record(
@@ -62,7 +66,7 @@ fn input(schema: &StructuredInfoType, previous: (u8, [u8; 6]), current: (u8, [u8
     .unwrap()
 }
 
-fn expected(previous: (u8, [u8; 6]), current: (u8, [u8; 6])) -> Vec<(u8, bool, u8)> {
+pub(super) fn expected(previous: (u8, [u8; 6]), current: (u8, [u8; 6])) -> Vec<(u8, bool, u8)> {
     let mut events = Vec::new();
     for bit in 0..8 {
         let mask = 1 << bit;
