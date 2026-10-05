@@ -185,3 +185,6 @@ mod allophone_selection_parity;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod contextual_intent_realization;
+
+#[cfg(test)]
+mod inflection_parity;
