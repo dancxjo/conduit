@@ -6,6 +6,8 @@ mod admission;
 mod service;
 #[cfg(unix)]
 mod service_worker;
+#[cfg(unix)]
+mod speech;
 mod transport;
 use super::Owner;
 use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
@@ -17,7 +19,9 @@ use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
 };
-pub(crate) use service::{BrowserAdmittedSnapshot, BrowserWindow, BrowserWindowAuthorization};
+pub(crate) use service::{
+    BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindow, BrowserWindowAuthorization,
+};
 #[cfg(unix)]
 pub(crate) use service_worker::run_service_window;
 use std::{
@@ -82,16 +86,10 @@ impl Owner {
             let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
                 break;
             };
-            let Some(mut socket) = listener.accept(remaining)? else {
+            let Some(mut socket) = listener.accept(remaining, "line/owner-browser")? else {
                 break;
             };
-            let binding = LinkBindingId::from(format!(
-                "line/owner-browser/{}",
-                nonce()?
-                    .iter()
-                    .map(|b| format!("{b:02x}"))
-                    .collect::<String>()
-            ));
+            let binding = socket.binding().clone();
             let result = (|| {
                 let (credential, observation) = admission::admit(
                     self,
@@ -199,6 +197,8 @@ fn serve_presence(
         evidence: snapshot.offer.clone(),
     })?;
     acknowledge_presence(socket, &presence)?;
+    #[cfg(unix)]
+    let mut selected_speech = speech::CarrierSpeech::default();
     for _ in 0..MAX_PRESENCE_FRAMES {
         let lease = &presence.leases[0];
         let Some(window_left) = deadline.checked_duration_since(Instant::now()) else {
@@ -288,11 +288,13 @@ fn serve_presence(
                             "owner route requires the installed service actor".to_string()
                         })
                         .and_then(|(dir, window)| {
+                            let evidence = socket.line_evidence(snapshot, window)?;
                             crate::durable_host_control::browser::mask_route(
                                 dir,
                                 window,
                                 credential.clone(),
                                 binding.clone(),
+                                evidence,
                             )
                         });
                     #[cfg(not(unix))]
@@ -467,6 +469,18 @@ fn serve_presence(
                     code: "credential-mismatch".into(),
                 })?;
                 return Err("owner interaction differs from admitted browser carrier".into());
+            }
+            #[cfg(unix)]
+            frame @ (In::SelectedSpeechStart {
+                protocol: PROTOCOL, ..
+            }
+            | In::SelectedSpeechStatus {
+                protocol: PROTOCOL, ..
+            }
+            | In::SelectedSpeechStop {
+                protocol: PROTOCOL, ..
+            }) => {
+                selected_speech.handle(frame, snapshot, socket, binding, state_dir, window_id)?;
             }
             In::OfferDisclosureRequest {
                 protocol: PROTOCOL,

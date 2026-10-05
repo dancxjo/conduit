@@ -108,6 +108,7 @@ pub mod utterance_timing;
 // This optional module is absent from the compact renderer's default profile.
 #[allow(dead_code, clippy::large_enum_variant)]
 pub mod semantic {
+    pub use conduit_language::LinguisticSyntacticLinkKind as SpeechSyntacticLinkKind;
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 

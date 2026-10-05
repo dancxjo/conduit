@@ -9,6 +9,30 @@ const OWNER_FACE_REQUEST_SCHEMA = "conduit.presentation/owner-face-request@1";
 const OWNER_FACE_RESPONSE_SCHEMA = "conduit.presentation/owner-face-response@1";
 const MAX_OWNER_FACE_RESPONSE_BYTES = 32768;
 
+export function checkedSelectedSpeechResponse(frame, pending, frameLength) {
+  if (!pending || frame?.kind !== "selected-speech-response" || frame.protocol !== 1 ||
+      frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
+  const expected = { start: "started", status: "status", stop: "stop-requested" }[pending.kind];
+  const status = frame.status;
+  const statusValid = pending.kind !== "status" ||
+    (status?.operation_id === pending.operationId &&
+      ((status.schema === "conduit.body/selected-speech-status@1" && status.state === "running") ||
+       (status.schema === "conduit.body/selected-speech-terminal@1" &&
+         ["completed", "cancelled", "refused", "failed", "play-refused-unclassified"].includes(status.outcome))));
+  if (!Number.isSafeInteger(frameLength) || frameLength < 1 || frameLength > 64 * 1024 ||
+      ![expected, "refused"].includes(frame.outcome) ||
+      (frame.outcome === "refused" && (typeof frame.code !== "string" || !frame.code || frame.code.length > 128)) ||
+      (frame.outcome !== "refused" && frame.code !== null) ||
+      (frame.operation_id !== null && (typeof frame.operation_id !== "string" || !frame.operation_id || frame.operation_id.length > 256)) ||
+      (frame.outcome !== "refused" &&
+        (!frame.operation_id || (pending.operationId !== null && frame.operation_id !== pending.operationId) ||
+         (pending.kind !== "status" && status !== null) || !statusValid))) {
+    throw new Error("invalid selected speech response");
+  }
+  if (frame.outcome === "refused") throw new Error(`Owner refused selected speech: ${frame.code}`);
+  return Object.freeze(frame);
+}
+
 export function immutableWebRtcGrantFrame(frame) {
   if (frame?.grant !== null && (typeof frame?.grant !== "object" ||
       !Array.isArray(frame.grant.session_hello))) {
@@ -162,6 +186,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let pendingFaceSnapshot = null;
   let pendingFaceShow = null;
   let pendingFaceInteraction = null;
+  let pendingSelectedSpeech = null;
+  let selectedSpeechSequence = 0;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
   let freshnessProfile = Object.freeze({
     scheduling: "best-effort-browser-event-loop",
@@ -313,6 +339,13 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       } else {
         pending.reject(new Error("invalid owner interaction response"));
       }
+    } else if (frame.kind === "selected-speech-response" && frame.protocol === 1) {
+      const pending = pendingSelectedSpeech;
+      if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
+      clearTimeout(pending.timeout);
+      pendingSelectedSpeech = null;
+      try { pending.resolve(checkedSelectedSpeechResponse(frame, pending, frameBytes.length)); }
+      catch (error) { pending.reject(error); }
     } else if (frame.kind === "media-use-plan" && frame.protocol === 1) {
       if (!pendingMediaPlan || frame.resource_handle !== pendingMediaPlan.resourceHandle) {
         throw new Error("stale or mismatched media use Plan");
@@ -561,6 +594,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingFaceInteraction.reject(new Error("owner interaction Line closed"));
         pendingFaceInteraction = null;
       }
+      if (pendingSelectedSpeech) {
+        clearTimeout(pendingSelectedSpeech.timeout);
+        pendingSelectedSpeech.reject(new Error("selected speech owner Line closed"));
+        pendingSelectedSpeech = null;
+      }
       if (state.startsWith("refused:")) return;
       if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
         reconnectAttempts += 1;
@@ -745,6 +783,46 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       catch (error) { clearTimeout(timeout); pendingFaceShow = null; reject(error); }
     });
   }
+  function selectedSpeech(kind, { showBytes = null, operationId = null } = {}) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for selected speech"));
+    }
+    if (pendingSelectedSpeech) return Promise.reject(new Error("one selected speech request is already pending"));
+    if (!["start", "status", "stop"].includes(kind)) return Promise.reject(new Error("unknown selected speech request"));
+    const requestId = `browser-speech/${++selectedSpeechSequence}`;
+    let serialized;
+    if (kind === "start") {
+      if (!(showBytes instanceof Uint8Array) || showBytes.length < 1 || showBytes.length > 64 * 1024) {
+        return Promise.reject(new Error("current bounded owner Show receipt is required for speech"));
+      }
+      const show = decoder.decode(showBytes);
+      if (!show.startsWith('{') || !show.endsWith('}')) return Promise.reject(new Error("invalid owner Show receipt"));
+      const request = { schema: OWNER_FACE_REQUEST_SCHEMA, credential_id: credential.credential_id,
+        body_id: credential.body_id, part_id: credential.part_id, host_id: credential.host_id,
+        boot_id: credential.boot_id, last_seen_revision: null, last_seen_identity: null };
+      serialized = `{"kind":"selected-speech-start","protocol":1,"request_id":${JSON.stringify(requestId)},"request":${JSON.stringify(request)},"show":${show}}`;
+    } else {
+      if (typeof operationId !== "string" || !operationId || operationId.length > 256) {
+        return Promise.reject(new Error("one exact selected speech operation is required"));
+      }
+      serialized = JSON.stringify({ kind: `selected-speech-${kind}`, protocol: 1,
+        request_id: requestId, operation_id: operationId });
+    }
+    const bytes = encoder.encode(serialized);
+    if (bytes.length > 193 * 1024) return Promise.reject(new Error("selected speech frame exceeds its admitted bound"));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingSelectedSpeech?.requestId === requestId) {
+          pendingSelectedSpeech = null;
+          if (kind === "start") socket.close(1000, "Selected speech start outcome unknown");
+          reject(new Error("selected speech owner response deadline; outcome unknown"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingSelectedSpeech = { requestId, kind, operationId, resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingSelectedSpeech = null; reject(error); }
+    });
+  }
   return Object.freeze({
     hostId,
     bootId,
@@ -754,6 +832,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     requestOfferEvidence,
     requestFaceSnapshot,
     acknowledgeFaceShow,
+    selectedSpeech,
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,

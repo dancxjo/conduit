@@ -1,5 +1,5 @@
 use super::*;
-use crate::durable_host::owner::Owner;
+use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, Owner};
 use crate::durable_host_control::terminal_attach;
 use conduit_body::{ResidentPlot, SpawnInvitationSecret};
 use conduit_core::{BootId, HostId, OfferGeneration};
@@ -33,6 +33,51 @@ fn host(id: &str, boot: &str) -> StdHost {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
     })
+}
+
+fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrierLineEvidence {
+    let authorization = snapshot.line_authorization.as_ref().unwrap().clone();
+    let owner = snapshot.owner_advertisement.as_deref().unwrap();
+    let browser = snapshot.browser_advertisement.as_deref().unwrap();
+    let descriptor = &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
+    let limits = conduit_core::LinkLimits {
+        maximum_in_flight_items: descriptor.maximum_in_flight_items,
+        maximum_payload_bytes: descriptor.maximum_payload_bytes,
+        maximum_buffered_bytes: descriptor.maximum_buffered_bytes,
+        maximum_frame_bytes: descriptor.maximum_frame_bytes,
+    };
+    let line = |direction: &str,
+                source: &conduit_core::HostAdvertisement,
+                sink: &conduit_core::HostAdvertisement,
+                grant: &conduit_core::AuthorityGrantId| {
+        let carrier = authorization.carrier_binding.as_str();
+        let mut offer = conduit_core::process_owned_line_offer_with_limits(
+            &format!("line/browser-mask/{carrier}/{direction}"),
+            &format!("binding/browser-mask/{carrier}/{direction}"),
+            conduit_core::BaseImplementationId::from(descriptor.base_implementation_id),
+            &format!("base-instance/{carrier}"),
+            source,
+            sink,
+            limits,
+        );
+        offer.binding.credential = conduit_core::LinkCredentialReference::Opaque(
+            conduit_core::CredentialReferenceId::from(snapshot.credential.credential_id.as_str()),
+        );
+        offer.binding.authority = conduit_core::LinkAuthorityReference::Grant(grant.clone());
+        offer.binding.source.endpoint_id =
+            conduit_core::LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/source"));
+        offer.binding.sink.endpoint_id =
+            conduit_core::LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/sink"));
+        offer.availability.sign_id =
+            conduit_core::SignId::from(format!("sign/browser-mask/{carrier}/{direction}/ready"));
+        offer.contract = descriptor.contract;
+        offer
+    };
+    BrowserCarrierLineEvidence {
+        face: line("face", owner, browser, &authorization.face_grant_id),
+        returned: line("return", browser, owner, &authorization.return_grant_id),
+        authorization,
+    }
 }
 
 fn selected_host(root: &std::path::Path) -> (StdHost, AttachedEquipment) {
@@ -146,7 +191,12 @@ fn acknowledged_browser_show(
         )
         .unwrap();
     let route = owner
-        .browser_mask_route(&authorized.window_id, &snapshot.credential, &binding)
+        .browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &binding,
+            Some(&fixture_carrier_evidence(&snapshot)),
+        )
         .unwrap();
     let face = owner.local_face_snapshot().unwrap();
     let placement = route.planned_mask.show_placement();

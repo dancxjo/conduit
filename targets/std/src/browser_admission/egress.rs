@@ -78,6 +78,37 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             }
             protocol
         }
+        BrowserAdmissionEgress::SelectedSpeechResponse {
+            protocol,
+            request_id,
+            outcome,
+            operation_id,
+            status,
+            code,
+        } => {
+            let shape = match outcome.as_str() {
+                "started" | "stop-requested" => {
+                    operation_id.is_some() && status.is_none() && code.is_none()
+                }
+                "status" => operation_id.is_some() && status.is_some() && code.is_none(),
+                "refused" => status.is_none() && code.is_some(),
+                _ => false,
+            };
+            if !shape
+                || !valid_speech_id(request_id)
+                || operation_id.as_ref().is_some_and(|id| !valid_speech_id(id))
+                || code
+                    .as_ref()
+                    .is_some_and(|value| value.is_empty() || value.len() > 128)
+                || serde_json::to_vec(status)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                    .len()
+                    > 64 * 1024
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
         BrowserAdmissionEgress::MediaUsePlan {
             protocol,
             plan_id,

@@ -1,5 +1,50 @@
 use super::*;
 
+fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrierLineEvidence {
+    let authorization = snapshot.line_authorization.as_ref().unwrap().clone();
+    let owner = snapshot.owner_advertisement.as_deref().unwrap();
+    let browser = snapshot.browser_advertisement.as_deref().unwrap();
+    let descriptor = &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
+    let limits = conduit_core::LinkLimits {
+        maximum_in_flight_items: descriptor.maximum_in_flight_items,
+        maximum_payload_bytes: descriptor.maximum_payload_bytes,
+        maximum_buffered_bytes: descriptor.maximum_buffered_bytes,
+        maximum_frame_bytes: descriptor.maximum_frame_bytes,
+    };
+    let line = |direction: &str,
+                source: &conduit_core::HostAdvertisement,
+                sink: &conduit_core::HostAdvertisement,
+                grant: &conduit_core::AuthorityGrantId| {
+        let carrier = authorization.carrier_binding.as_str();
+        let mut offer = conduit_core::process_owned_line_offer_with_limits(
+            &format!("line/browser-mask/{carrier}/{direction}"),
+            &format!("binding/browser-mask/{carrier}/{direction}"),
+            conduit_core::BaseImplementationId::from(descriptor.base_implementation_id),
+            &format!("base-instance/{carrier}"),
+            source,
+            sink,
+            limits,
+        );
+        offer.binding.credential = conduit_core::LinkCredentialReference::Opaque(
+            conduit_core::CredentialReferenceId::from(snapshot.credential.credential_id.as_str()),
+        );
+        offer.binding.authority = conduit_core::LinkAuthorityReference::Grant(grant.clone());
+        offer.binding.source.endpoint_id =
+            conduit_core::LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/source"));
+        offer.binding.sink.endpoint_id =
+            conduit_core::LinkEndpointId::from(format!("endpoint/{carrier}/{direction}/sink"));
+        offer.availability.sign_id =
+            conduit_core::SignId::from(format!("sign/browser-mask/{carrier}/{direction}/ready"));
+        offer.contract = descriptor.contract;
+        offer
+    };
+    BrowserCarrierLineEvidence {
+        face: line("face", owner, browser, &authorization.face_grant_id),
+        returned: line("return", browser, owner, &authorization.return_grant_id),
+        authorization,
+    }
+}
+
 #[test]
 fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() {
     let (mut owner, root, _) = setup();
@@ -65,6 +110,7 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             },
         )
         .unwrap();
+    let carrier_evidence = fixture_carrier_evidence(&snapshot);
     // The admission authorization may expire while this exact admitted
     // carrier continues to realize and acknowledge its current Mask route.
     owner.pending_browser.as_mut().unwrap().deadline = Instant::now() - Duration::from_millis(1);
@@ -81,14 +127,108 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &authorized.window_id,
             &snapshot.credential,
             &LinkBindingId::from("line/test/other-carrier"),
+            Some(&carrier_evidence),
         ),
         Err("browser-route-carrier-mismatch".into())
+    );
+    let current_binding = LinkBindingId::from("line/test/browser-mask");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            None
+        ),
+        Err("browser-line-evidence-missing".into())
+    );
+    let mut stale_authority = carrier_evidence.clone();
+    stale_authority.authorization.face_grant_id =
+        conduit_core::AuthorityGrantId::from("grant/forged");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&stale_authority)
+        ),
+        Err("browser-line-authority-missing-or-stale".into())
+    );
+    let WindowState::Active {
+        line_authorization, ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    let original_authorization = line_authorization.clone();
+    line_authorization.window_id = "browser-window/other".into();
+    let mut wrong_window = carrier_evidence.clone();
+    wrong_window.authorization.window_id = "browser-window/other".into();
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&wrong_window)
+        ),
+        Err("browser-line-authority-missing-or-stale".into())
+    );
+    let WindowState::Active {
+        line_authorization, ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    *line_authorization = original_authorization;
+    let mut stale_boot = carrier_evidence.clone();
+    stale_boot.face.binding.sink.boot_id = conduit_core::BootId::from("boot/browser/stale");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&stale_boot)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let mut lost_return = carrier_evidence.clone();
+    lost_return.returned.availability.availability = conduit_core::LineAvailability::Unavailable;
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&lost_return)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let mut wrong_base = carrier_evidence.clone();
+    wrong_base.face.binding.base = conduit_core::BaseImplementationId::from("base/forged");
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&wrong_base)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let mut wrong_credential = carrier_evidence.clone();
+    wrong_credential.returned.binding.credential = conduit_core::LinkCredentialReference::None;
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&wrong_credential)
+        ),
+        Err("browser-line-evidence-mismatch".into())
     );
     let selected = owner
         .browser_mask_route(
             &authorized.window_id,
             &snapshot.credential,
             &LinkBindingId::from("line/test/browser-mask"),
+            Some(&carrier_evidence),
         )
         .unwrap();
     assert_eq!(selected.mask_host.host_id, snapshot.credential.host_id);
@@ -197,12 +337,34 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .unwrap();
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    let retained = line_evidence.take();
+    assert_eq!(
+        owner.validate_browser_mask_show(
+            &authorized.window_id,
+            &current_binding,
+            &face_request,
+            &available_show,
+        ),
+        Err("browser-line-evidence-lost".into())
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    *line_evidence = retained;
     assert_eq!(
         owner
             .browser_mask_route(
                 &authorized.window_id,
                 &snapshot.credential,
                 &LinkBindingId::from("line/test/browser-mask"),
+                Some(&carrier_evidence),
             )
             .unwrap(),
         selected

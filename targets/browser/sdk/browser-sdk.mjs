@@ -203,6 +203,7 @@ export class BrowserBodyParticipation {
   ownerFaceSnapshot(options) { return this.#state.membership.requestFaceSnapshot(options); }
   /** Run the exact owner Face through this Host's checked browser Mask Plot. */
   async prepareOwnerFaceMask(options) {
+    this.#state.lastOwnerShow = null;
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential) {
       throw new Error("current browser presence is required for the owner Face Mask");
@@ -238,7 +239,26 @@ export class BrowserBodyParticipation {
       throw new Error("browser Mask acknowledged another owner Face Show");
     }
     await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
+    this.#state.lastOwnerShow = shown;
     return shown;
+  }
+  /** Ask the installed owner to read its current acknowledged graphical Show aloud. */
+  selectedDirectSpeechStart(view) {
+    const shown = this.#state.lastOwnerShow;
+    if (this.presenceState() !== "available" || !shown || view?.show_state !== "available"
+        || view.show_id !== shown.show_id || view.face_id !== shown.face_id
+        || view.face_revision !== shown.face_revision) {
+      throw new Error("current acknowledged owner Show is required for selected speech");
+    }
+    return this.#state.membership.selectedSpeech("start", {
+      showBytes: this.#state.host.bridge.ownerFaceShowReceipt(),
+    });
+  }
+  selectedDirectSpeechStatus(operationId) {
+    return this.#state.membership.selectedSpeech("status", { operationId });
+  }
+  selectedDirectSpeechStop(operationId) {
+    return this.#state.membership.selectedSpeech("stop", { operationId });
   }
   /** Emit one typed Mask interaction on this still-live owner window. */
   submitOwnerFaceInteraction({ view, actionId, target, arguments: actionArguments, sequence = 1 }) {
@@ -256,6 +276,7 @@ export class BrowserBodyParticipation {
       show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       action_id: actionId, target, arguments: checked, sequence,
     });
+    this.#state.lastOwnerShow = null;
     return this.#state.membership.submitFaceInteraction(submission);
   }
   signalWebRtc(options) { return this.#state.membership.signalWebRtc(options); }
@@ -271,6 +292,7 @@ export class BrowserBodyParticipation {
   publishMediaResource(evidence) { return this.#state.membership.publishMediaResource(evidence); }
   close() {
     this.#state.host.bridge.ownerFaceClear?.();
+    this.#state.lastOwnerShow = null;
     return this.#state.membership.close();
   }
 

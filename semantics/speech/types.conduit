@@ -225,9 +225,9 @@ type SpeechRuleCondition =
     | previous_stress_in sequence SpeechStress in 1..=4
     | next_stress SpeechStress
     | next_stress_in sequence SpeechStress in 1..=4
-    | current_word_has_syntactic_link SpeechSyntacticLinkKind
-    | previous_word_has_syntactic_link SpeechSyntacticLinkKind
-    | next_word_has_syntactic_link SpeechSyntacticLinkKind
+    | current_word_has_syntactic_link LinguisticSyntacticLinkKind
+    | previous_word_has_syntactic_link LinguisticSyntacticLinkKind
+    | next_word_has_syntactic_link LinguisticSyntacticLinkKind
     | not_careful_style
 
 type SpeechPhonemeAllophone = {
@@ -251,22 +251,6 @@ type SpeechAllophoneRule = {
     status: SpeechRuleStatus
 }
 
-
-type SpeechSyntacticLinkKind =
-    subject
-    | object
-    | complement
-    | infinitival_marker
-    | modifier
-    | determiner
-    | auxiliary
-    | preposition
-    | coordination
-    | contrast_pair
-    | noun_compound
-    | vocative
-    | apposition
-    | parenthetical
 
 type PhoneSpecification = SpeechSpec<PhoneId>
 

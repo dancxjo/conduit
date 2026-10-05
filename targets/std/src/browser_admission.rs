@@ -18,6 +18,7 @@ use conduit_presentation::{
     MAX_FACE_INTERACTION_BYTES, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::time::Duration;
 
 use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
@@ -99,6 +100,22 @@ pub enum BrowserAdmissionIngress {
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
         interaction: FaceInteraction,
+    },
+    SelectedSpeechStart {
+        protocol: u16,
+        request_id: String,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+    },
+    SelectedSpeechStatus {
+        protocol: u16,
+        request_id: String,
+        operation_id: String,
+    },
+    SelectedSpeechStop {
+        protocol: u16,
+        request_id: String,
+        operation_id: String,
     },
     OfferDisclosureRequest {
         protocol: u16,
@@ -194,6 +211,14 @@ pub enum BrowserAdmissionEgress {
         protocol: u16,
         accepted: bool,
         code: String,
+    },
+    SelectedSpeechResponse {
+        protocol: u16,
+        request_id: String,
+        outcome: String,
+        operation_id: Option<String>,
+        status: Option<Box<Value>>,
+        code: Option<String>,
     },
     MediaUsePlan {
         protocol: u16,
@@ -462,6 +487,41 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             }
             protocol
         }
+        BrowserAdmissionIngress::SelectedSpeechStart {
+            protocol,
+            request_id,
+            request,
+            show,
+        } => {
+            if !valid_speech_id(request_id)
+                || !request.has_exact_basis()
+                || show.show.host_id != request.host_id
+                || show.show.boot_id != request.boot_id
+                || show.show.body_id.as_ref() != Some(&request.body_id)
+                || serde_json::to_vec(show)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                    .len()
+                    > 64 * 1024
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::SelectedSpeechStatus {
+            protocol,
+            request_id,
+            operation_id,
+        }
+        | BrowserAdmissionIngress::SelectedSpeechStop {
+            protocol,
+            request_id,
+            operation_id,
+        } => {
+            if !valid_speech_id(request_id) || !valid_speech_id(operation_id) {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
         BrowserAdmissionIngress::MediaResourceTruth {
             protocol,
             host_id,
@@ -538,6 +598,31 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
         return Err(BrowserAdmissionFrameError::WrongProtocol);
     }
     Ok(())
+}
+
+fn valid_speech_id(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 256 && value.bytes().all(|byte| byte.is_ascii_graphic())
+}
+
+#[cfg(test)]
+mod selected_speech_tests {
+    use super::*;
+
+    #[test]
+    fn selected_speech_status_requires_a_bounded_correlated_operation() {
+        let valid = br#"{"kind":"selected-speech-status","protocol":1,"request_id":"browser-speech/1","operation_id":"selected-speech/1"}"#;
+        assert!(matches!(
+            decode_browser_admission_frame(valid),
+            Ok(BrowserAdmissionIngress::SelectedSpeechStatus { .. })
+        ));
+        for invalid in [
+            br#"{"kind":"selected-speech-status","protocol":1,"request_id":"","operation_id":"selected-speech/1"}"#.as_slice(),
+            br#"{"kind":"selected-speech-stop","protocol":1,"request_id":"browser-speech/2","operation_id":""}"#.as_slice(),
+            br#"{"kind":"selected-speech-status","protocol":2,"request_id":"browser-speech/3","operation_id":"selected-speech/1"}"#.as_slice(),
+        ] {
+            assert!(decode_browser_admission_frame(invalid).is_err());
+        }
+    }
 }
 
 #[cfg(test)]
