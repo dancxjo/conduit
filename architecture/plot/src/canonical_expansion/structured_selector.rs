@@ -359,6 +359,7 @@ fn expand_expression(
             "pure expression has no finite exact Port identity".into(),
         )
     })?;
+    drop(checked);
     let key = definition.kind_id.as_str().to_string();
     let count = anonymous_counts.entry(key.clone()).or_default();
     let name = format!("expression-{}-{count}", &hash_string(&key)[..12]);

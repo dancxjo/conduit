@@ -4,8 +4,9 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, CheckedValueContract, FrontValueContract,
-    FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection,
-    PortTemporal, PreparedStructuredValueValidator, StructuredInfoType, StructuredInfoTypeShape,
+    FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior, PortDescriptor,
+    PortDirection, PortTemporal, PreparedStructuredValueValidator, StructuredInfoType,
+    StructuredInfoTypeShape, BOOL_INFO_ID,
 };
 
 pub const SEEDED_STATE_KIND: &str = "state/seeded/finite";
@@ -162,6 +163,41 @@ pub fn install_seeded_state_kind(
     profile
         .insert_kind(contract)
         .map_err(|error| error.to_string())
+}
+
+/// The terminal marker is authored data; the host adds no device termination policy.
+pub fn seeded_state_until_semantic_contract(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+) -> Result<Kind, &'static str> {
+    let StructuredInfoTypeShape::Record { fields, .. } = schema.shape() else {
+        return Err("terminal state requires a record");
+    };
+    if !fields.iter().any(|field| field.name() == "terminal" && matches!(field.value_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == BOOL_INFO_ID)) {
+        return Err("terminal state requires an exact terminal Boolean");
+    }
+    let mut kind = seeded_state_flow_semantic_contract(value, schema)?;
+    kind.kind_id = kind_id("state/seeded/flow/until");
+    kind.kind_contract_revision = KindIdentity::from("conduit.state/seeded-flow-until@1");
+    kind.semantic_laws.push(KindSemanticLaw::Terminal(
+        KindTerminalBehavior::EmitsThroughSourceTerminalFlag,
+    ));
+    Ok(kind)
+}
+#[cfg(feature = "plot-catalog")]
+pub fn install_seeded_state_until_kind(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    let kind = seeded_state_until_semantic_contract(value, schema).map_err(str::to_string)?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: kind.kind_id.as_str().into(),
+        startup_parameters: Vec::new(),
+    })?;
+    startup.insert_fore(kind.kind_id.as_str(), kind.checked_front())?;
+    profile.insert_kind(kind).map_err(|error| error.to_string())
 }
 
 #[cfg(test)]

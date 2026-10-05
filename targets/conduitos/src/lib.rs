@@ -19,6 +19,7 @@ pub mod dual_region_kernel;
 pub mod dual_region_plan;
 mod execution_region;
 pub mod expression_host_call;
+pub mod flow_merge_finite;
 pub mod flow_zip;
 #[cfg(any(
     test,
@@ -130,7 +131,12 @@ pub mod protected_wire_session;
 pub mod protection_domain;
 pub mod protocol_host_calls;
 pub mod protocol_operations;
+
+pub mod protocol_artifact;
 pub mod protocol_play;
+pub mod protocol_source;
+#[cfg(test)]
+mod protocol_test_support;
 pub mod rendezvous_descriptor;
 #[cfg(feature = "native-owner-network")]
 pub mod secure_rendezvous_support;
@@ -283,3 +289,5 @@ pub mod tour_workspace;
 
 #[cfg(test)]
 mod protocol_kernel_fixture;
+
+pub mod protocol_boot;

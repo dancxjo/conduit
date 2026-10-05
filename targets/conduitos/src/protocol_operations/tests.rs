@@ -3,8 +3,7 @@ use super::*;
 use alloc::{collections::BTreeMap, vec};
 use conduit_core::*;
 use conduit_planner::{
-    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
-    plan_expanded_authoring_with_options,
+    PlanningOptions, default_expanded_placements, plan_expanded_authoring_with_connection_limits,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -16,6 +15,7 @@ const FEEDBACK: &str = include_str!("../../../../plots/device-protocols/bme280-f
 fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
     let contract = crate::i2c_base::contract::I2cContract::prepare().unwrap();
     let (mut startup, mut profile) = contract.catalogs();
+    crate::protocol_test_support::install_clock_result(&mut startup);
     let types = check_syntax_document(&parse_syntax_document(LIFECYCLE), &startup).unwrap();
     let schema = |name| {
         &types
@@ -90,31 +90,9 @@ fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
         planner_capabilities: vec![],
     }];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
-    let boundary_limits = authoring
-        .input_bindings
-        .iter()
-        .map(|b| (PortDirection::Input, b))
-        .chain(
-            authoring
-                .output_bindings
-                .iter()
-                .map(|b| (PortDirection::Output, b)),
-        )
-        .map(|(direction, binding)| {
-            (
-                ForeBoundaryKey {
-                    direction,
-                    front_port_id: binding.front_port_id.clone(),
-                    track: binding.track,
-                },
-                ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: 4096,
-                },
-            )
-        })
-        .collect();
-    let plan = plan_expanded_authoring_with_options(
+    let limits =
+        crate::protocol_kernel_fixture::queue_limits(&authoring, &hosts, &placements, 4096);
+    let plan = plan_expanded_authoring_with_connection_limits(
         &authoring,
         &hosts,
         &placements,
@@ -128,7 +106,8 @@ fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
             protected_resource_grants: &[],
             line_offers: &[],
         },
-        &boundary_limits,
+        &limits.connections,
+        &limits.boundaries,
     )
     .unwrap();
     (plan, owners, state_offer)
@@ -152,3 +131,15 @@ fn source_feedback_plans_with_exact_retained_state_event_and_generation_contract
 }
 
 mod execution;
+
+mod automatic_events;
+
+mod automatic_admission;
+
+mod automatic_execution;
+
+mod automatic_capture;
+
+mod automatic_clock_failure;
+
+mod automatic_body;

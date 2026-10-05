@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::{PlacementChoices, PlannerError};
 use alloc::collections::BTreeMap;
 use conduit_core::{CapabilityId, HostAdvertisement, HostId, ResourcePoolId};
-use conduit_plot::CheckedPlot;
+use conduit_plot::CheckedGear;
 
 pub(crate) type RemainingComputeMinimum = BTreeMap<(HostId, ResourcePoolId), u32>;
 
@@ -10,12 +10,12 @@ pub(crate) type RemainingComputeMinimum = BTreeMap<(HostId, ResourcePoolId), u32
 /// lanes toward preferences. This is the compute-specific part of the existing
 /// whole-plot finite resource allocator, not a separate scheduler.
 pub(crate) fn admit_minima(
-    plot: &CheckedPlot,
+    gears: &[CheckedGear],
     hosts: &BTreeMap<HostId, &HostAdvertisement>,
     placements: &PlacementChoices,
 ) -> Result<RemainingComputeMinimum, PlannerError> {
     let mut remaining = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
-    for gear in &plot.gears {
+    for gear in gears {
         let choice = placements
             .by_gear
             .get(&gear.gear_id)

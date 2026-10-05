@@ -34,6 +34,125 @@ effect outside the exact selected base. The canon's prohibition on authored
 addresses and device/resource binding facts still applies to realization facts;
 #4833 explicitly requires protocol-level addressing inside a bounded exchange.
 
+## Source package preparation
+
+The development implementation accepts bounded packages using
+`conduit.conduitos/protocol-source@1`. A package contains Source and exact typed
+specializations of generic state, merge and pair Backs. It contains no controller
+selection, resource possession or authority. Preparation checks the Source and
+retains those Back owners before publishing their exact offers.
+
+The native caller supplies host offers, selected placements, bases and grants to
+`PreparedProtocolSource::plan_artifact`. Ordinary planning seals the exact Cords
+and finite queues; artifact admission binds the distinct Source, checked,
+expanded and artifact identities. Input fan-out retains the planner's atomic
+routing and exact common Fore contract. The resulting package owner consumes
+actual I2C and clock possession together when preparing Play.
+
+Package a reviewed JSON Source package through the repository entrance:
+
+```sh
+cargo xtask make conduitos protocol-source \
+  --package protocol-source.json --entry device-protocol \
+  --output-dir checked-protocol-package
+```
+
+To build the package from ordinary combined Source, supply a JSON array of
+requests for generic Backs. Each value reference names a checked Source type
+(including imported native type aliases) and its byte ceiling, for example
+`{"kind":"seeded-flow","value":{"type_name":"ProtocolState","maximum_bytes":4096}}`.
+Pair requests use `left` and `right`; supported requests are `seeded-flow`,
+`seeded-until`, `merge`, `zip` and `feedback-zip`. No device-specific compiler or
+Rust schema authoring is required:
+
+```sh
+cargo xtask make conduitos protocol-source \
+  --source protocol.conduit --specializations specializations.json \
+  --entry device-protocol --output-dir checked-protocol-package
+```
+
+Preparation derives schemas through the native Type checker, then checks and
+expands the complete Source with those generic contracts installed. Type-only
+preparation is not a checked plot or authorization to execute.
+
+The new output directory retains the exact package bytes and a receipt binding
+its SHA-256 digest, Source identity, checked plot identity and expanded plot
+identity. This is checking and expansion evidence; packaging neither rebuilds
+the target nor admits a controller or starts Play.
+
+This production preparation chain is exercised by deterministic native kernel
+conformance through `cargo xtask check device-protocols`. The x86_64 product Root
+also has a standalone native boot entrance: a local administrator supplies an
+exact Source package and a separate bounded Root request. The request names the
+entry, approved package digest, selected PCI function, address interval, finite
+operation/poll/step budgets, clock lifetime and canonical Fore input bytes.
+Firmware handoff, electrical approval and exclusive machine ownership must be
+established independently by the administrator before installing this profile.
+Decoded flags and Source identities cannot establish those facts.
+
+Package those inputs over an already capable product kernel, without rebuilding:
+
+```sh
+cargo xtask make conduitos protocol-image \
+  --kernel product/conduitos --build-record product/build.json \
+  --package protocol-source.json --root-request protocol-root-request.json \
+  --output-dir protocol-media
+```
+
+The Root request input array uses canonical bytes with the checked entry's exact
+input kind. Prepare an item without implementing a device codec in Rust:
+
+```sh
+cargo xtask make conduitos protocol-input \
+  --package protocol-source.json --entry device-protocol --port begin \
+  --value begin.json --output begin-input.json
+```
+
+The JSON value uses record objects, collection/sequence arrays and single-key
+variant objects; scalar leaves are arrays of their canonical bytes. The command
+checks the entry schema and any declared Fore constraints, then writes a new
+input-item file for the Root request. External queue and output-copy storage are
+sealed into the native Plan with a per-boundary 4 KiB ceiling, independently of
+optional semantic Fore constraints.
+
+This command checks the exact x86_64 product-kernel digest and Source binding,
+then retains the boot image and packaging receipt in a new directory. At boot,
+Root checks compiled implementation inventory, actual controller configuration
+and real calibrated clock availability before issuing narrowly bounded native
+possession. One canonical Body runs the admitted Source entry through the
+ordinary kernel; typed output bytes are diagnostic records. Retirement keeps
+its biography and resource reservations alive instead of starting a second Body.
+Observe the exact packaged image through a bounded isolated emulator run:
+
+```sh
+cargo xtask make conduitos protocol-run \
+  --media protocol-media --output-dir protocol-run
+```
+
+The observer retains serial bytes and distinguishes boot refusal, Root refusal,
+execution refusal and observed retirement after Plan/Play. A timeout remains an
+observation failure. These records do not establish physical compatibility.
+Packaging receipts establish preparation, not hardware compatibility or execution.
+Native Limine observation selects bounded, exactly named modules without itself
+granting trust or execution authority.
+The x86_64 ICH5–ICH9 realization validates an explicitly selected PCI function,
+its I/O window and live configuration before constructing the finite provider.
+It refuses busy hardware, SMI routing, I2C mode and auxiliary CRC/buffer modes;
+the native root must already own firmware handoff and exclusive access.
+A package's descriptive identities
+do not establish review, firmware release, attachment ownership or permission to
+use a controller.
+
+Boot preparation and the packaging command retain the same selected entry:
+checked Source, exact expansion, generic operation owners and a SHA-256 artifact
+identity for the package bytes. Repackaging the same Source can preserve its
+resident meaning while changing its artifact identity. Limine observation uses
+the exact module command `conduit.protocol/source@1`; absence remains absence,
+and duplicate or oversized modules are refused before Source preparation.
+The IA-32 boot entrance currently reports unsupported for this module path.
+The retained entry contributes its exact partition to ordinary body planning;
+successful preparation still does not start Play or authorize a controller.
+
 ## Existing Rust responsibility audit
 
 The categories below describe responsibilities, not whole-file exemptions.
@@ -75,3 +194,16 @@ bounded transaction transcript, probe/observation/refusal and lifecycle outcome.
 Removal/substitution must distinguish missing hardware, wrong protocol identity,
 malformed data, bus refusal, provider loss and stale attachment without default
 observations. Preserve old evidence under the implementation it actually tested.
+
+The reviewed `conduitos-protocol-source.host.conduit` Make profile admits a
+256 MiB preparation arena for checked Source, expanded program configurations,
+planning, and prepared operations. Build that capable kernel once with
+`cargo xtask make host build targets/conduitos/profiles/conduitos-protocol-source.host.conduit --output target/conduitos/protocol-source-host`.
+Then package additional reviewed Source through `protocol-image` without
+rebuilding the target. The ordinary graphical profile retains its 16 MiB arena.
+Root selects the exact arena budget from the embedded Make record; boot
+normalization must find one sufficiently large usable memory range before
+initializing it. Unsupported budgets and unavailable ranges have distinct
+refusals. The protocol observer uses an isolated 512 MiB QEMU machine.
+Preparation remains finite, and this larger budget does not permit storage
+growth during Play or grant bus, clock, or electrical authority.

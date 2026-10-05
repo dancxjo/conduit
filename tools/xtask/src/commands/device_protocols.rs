@@ -10,6 +10,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.source-package",
+                "Check bounded source packaging, exact schema decoding and refusal classes",
+                "cargo",
+                &["test", "--locked", "-p", "conduitos", "--lib", "protocol_source"],
+            ),
+            Step::new(
                 "device-protocols.state-startup",
                 "Check declared state boundaries, exact startup cuts and zero-delay cycle refusal",
                 "cargo",
@@ -26,6 +32,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduitos",
                     "--lib",
                     "protocol_operations",
+                    "--",
+                    "--show-output",
                 ],
             ),
             Step::new(
@@ -74,6 +82,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduitos",
                     "flow_zip",
                 ],
+            ),
+            Step::new(
+                "device-protocols.finite-merge",
+                "Check finite typed context merging, pressure, independent closure and cancellation",
+                "cargo",
+                &["test", "--locked", "-p", "conduit-composite", "-p", "conduit-semantic-catalog", "-p", "conduitos", "flow_merge_finite"],
             ),
             Step::new(
                 "device-protocols.binary",
@@ -139,6 +153,19 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                     "conduitos",
                     "--lib",
                     "monotonic_clock",
+                ],
+            ),
+            Step::new(
+                "device-protocols.clock-native",
+                "Check calibrated native counter observations, finite lifetime and revocation",
+                "cargo",
+                &[
+                    "test",
+                    "--locked",
+                    "-p",
+                    "conduitos",
+                    "--lib",
+                    "arch::x86_64::deadline",
                 ],
             ),
             Step::new(

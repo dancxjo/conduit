@@ -84,3 +84,74 @@ pub(crate) fn definition(plan: Plan, mut external: CapabilityOffer) -> KernelCom
         failure_translation: FailureReason::CompositeCapabilityFailed,
     }
 }
+
+/// Fixtures select exact one-item queues from their actual native Back offers.
+pub(crate) fn queue_limits(
+    expanded: &conduit_plot::ExpandedAuthoringPlot,
+    hosts: &[HostAdvertisement],
+    placements: &conduit_planner::PlacementChoices,
+    maximum: u32,
+) -> crate::protocol_source::ProtocolQueueLimits {
+    use alloc::collections::BTreeMap;
+    use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey};
+    let bound = |gear: &GearId| {
+        let choice = &placements.by_gear[gear];
+        hosts
+            .iter()
+            .find(|host| host.host_id == choice.host_id)
+            .unwrap()
+            .capabilities
+            .iter()
+            .find(|offer| offer.capability_id == choice.capability_id)
+            .unwrap()
+            .limits
+            .max_queue_bytes
+            .min(maximum)
+    };
+    let connections = expanded
+        .expanded
+        .connections
+        .iter()
+        .map(|cord| {
+            (
+                (
+                    cord.source_gear_id.clone(),
+                    cord.source_port_id.clone(),
+                    cord.sink_gear_id.clone(),
+                    cord.sink_port_id.clone(),
+                ),
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: bound(&cord.source_gear_id).min(bound(&cord.sink_gear_id)),
+                },
+            )
+        })
+        .collect();
+    let mut boundaries = BTreeMap::new();
+    for (direction, bindings) in [
+        (PortDirection::Input, &expanded.input_bindings),
+        (PortDirection::Output, &expanded.output_bindings),
+    ] {
+        for binding in bindings {
+            let key = ForeBoundaryKey {
+                direction,
+                front_port_id: binding.front_port_id.clone(),
+                track: binding.track,
+            };
+            let bytes = bound(&binding.gear_id);
+            boundaries
+                .entry(key)
+                .and_modify(|limit: &mut ConnectionQueueLimits| {
+                    limit.byte_capacity = limit.byte_capacity.min(bytes)
+                })
+                .or_insert(ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: bytes,
+                });
+        }
+    }
+    crate::protocol_source::ProtocolQueueLimits {
+        connections,
+        boundaries,
+    }
+}

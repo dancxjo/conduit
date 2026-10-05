@@ -41,7 +41,17 @@ fn selected() -> (
     ActivePlayIdentity,
     PlacementId,
 ) {
-    let program = program();
+    selected_program(program())
+}
+
+fn selected_program(
+    program: PortableExpressionProgram,
+) -> (
+    PlanFragment,
+    LoweredPlanFragment,
+    ActivePlayIdentity,
+    PlacementId,
+) {
     let contract =
         conduit_semantic_catalog::pure_expression_contract(&program, PortTemporal::Value).unwrap();
     let scope = BaseCapabilityScope {
@@ -76,6 +86,7 @@ fn selected() -> (
     );
     let expected = offer(&program, PortTemporal::Value).unwrap();
     let gear = &mut fragment.placements[0];
+    gear.limits = expected.limits;
     gear.host_calls = expected.host_calls;
     gear.capability_id = expected.capability_id;
     gear.execution_profile_id = expected.implementation.execution_profile_id;
@@ -152,3 +163,24 @@ fn native_expression_refuses_stale_play_and_substituted_lowering() {
 mod kernel;
 
 mod planned;
+
+#[test]
+fn empty_unit_frames_keep_one_admitted_queue_cell_and_execute() {
+    let unit = StructuredInfoType::leaf(kind_id(UNIT_INFO_ID)).unwrap();
+    let program = PortableExpressionProgram {
+        input_type: unit.clone(),
+        output_type: unit.clone(),
+        root: PortableExpressionNode {
+            value_type: unit,
+            operation: PortableExpressionOperation::Input,
+        },
+    };
+    let (fragment, lowered, active, placement) = selected_program(program);
+    assert_eq!(fragment.placements[0].limits.max_queue_bytes, 1);
+    let mut call = ExpressionHostCall::prepare(&fragment, &lowered, &active, &placement).unwrap();
+    assert!(
+        call.invoke(call.node, HostCallId(0), RequestId(0), &[])
+            .unwrap()
+            .is_empty()
+    );
+}

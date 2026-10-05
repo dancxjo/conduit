@@ -6,6 +6,9 @@ use crate::{
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
+mod checked_encoding;
+pub(crate) use checked_encoding::checked_canonical_hex;
+
 pub const MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES: usize = crate::MAXIMUM_PLOT_SOURCE_BYTES * 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,33 +94,89 @@ impl PortableExpressionProgram {
                 .structured_info_type_with(&expression.semantic_structures)?,
             root: node(&expression.syntax, expression)?,
         };
-        if value.canonical_bytes()?.len() > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
+        if value.canonical_size()? > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
             return Err(PortableExpressionProgramRefusal::TooLarge);
         }
         Ok(value)
     }
 
-    pub fn canonical_bytes(&self) -> Result<Vec<u8>, PortableExpressionProgramRefusal> {
-        let mut encoded = b"conduit.pure-expression.program.v2".to_vec();
-        push_type(&mut encoded, &self.input_type)?;
-        push_type(&mut encoded, &self.output_type)?;
-        push_node(&mut encoded, &self.root)?;
-        if encoded.len() > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
+    fn encode(&self, encoded: &mut ProgramSink) -> Result<(), PortableExpressionProgramRefusal> {
+        encoded.extend_from_slice(b"conduit.pure-expression.program.v2");
+        push_type(encoded, &self.input_type)?;
+        push_type(encoded, &self.output_type)?;
+        push_node(encoded, &self.root)?;
+        if encoded.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
             Err(PortableExpressionProgramRefusal::TooLarge)
         } else {
-            Ok(encoded)
+            Ok(())
         }
     }
 
+    fn canonical_size(&self) -> Result<usize, PortableExpressionProgramRefusal> {
+        let mut encoded = ProgramSink {
+            storage: ProgramStorage::Count,
+            length: 0,
+        };
+        self.encode(&mut encoded)?;
+        Ok(encoded.length)
+    }
+
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, PortableExpressionProgramRefusal> {
+        let length = self.canonical_size()?;
+        let mut encoded = ProgramSink {
+            storage: ProgramStorage::Bytes(Vec::with_capacity(length)),
+            length: 0,
+        };
+        self.encode(&mut encoded)?;
+        let ProgramStorage::Bytes(bytes) = encoded.storage else {
+            unreachable!("byte encoder owns its admitted storage");
+        };
+        Ok(bytes)
+    }
+
     pub fn canonical_hex(&self) -> Result<String, PortableExpressionProgramRefusal> {
-        let bytes = self.canonical_bytes()?;
-        let mut encoded = String::with_capacity(bytes.len() * 2);
-        const HEX: &[u8; 16] = b"0123456789abcdef";
-        for byte in bytes {
-            encoded.push(char::from(HEX[usize::from(byte >> 4)]));
-            encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+        let length = self.canonical_size()?;
+        let mut encoded = ProgramSink {
+            storage: ProgramStorage::Hex(String::with_capacity(length * 2)),
+            length: 0,
+        };
+        self.encode(&mut encoded)?;
+        let ProgramStorage::Hex(text) = encoded.storage else {
+            unreachable!("hex encoder owns its admitted storage");
+        };
+        Ok(text)
+    }
+}
+
+// Counting and writing share the exact same serialization walk. Preparation
+// admits the complete byte buffer once, without allocating a disposable copy
+// or growing it while the typed program is also retained.
+enum ProgramStorage {
+    Count,
+    Bytes(Vec<u8>),
+    Hex(String),
+}
+struct ProgramSink {
+    storage: ProgramStorage,
+    length: usize,
+}
+impl ProgramSink {
+    fn push(&mut self, byte: u8) {
+        self.extend_from_slice(core::slice::from_ref(&byte));
+    }
+    fn extend_from_slice(&mut self, value: &[u8]) {
+        self.length = self.length.saturating_add(value.len());
+        match &mut self.storage {
+            ProgramStorage::Count => {}
+            ProgramStorage::Bytes(bytes) => bytes.extend_from_slice(value),
+            ProgramStorage::Hex(text) => {
+                const HEX: &[u8; 16] = b"0123456789abcdef";
+                for byte in value {
+                    text.push(char::from(HEX[usize::from(byte >> 4)]));
+                    text.push(char::from(HEX[usize::from(byte & 0x0f)]));
+                }
+            }
         }
-        Ok(encoded)
     }
 }
 
@@ -240,7 +299,7 @@ fn same_span(left: Span, right: Span) -> bool {
 }
 
 fn push_node(
-    encoded: &mut Vec<u8>,
+    encoded: &mut ProgramSink,
     node: &PortableExpressionNode,
 ) -> Result<(), PortableExpressionProgramRefusal> {
     push_type(encoded, &node.value_type)?;
@@ -322,7 +381,7 @@ fn push_node(
 }
 
 fn push_nodes(
-    encoded: &mut Vec<u8>,
+    encoded: &mut ProgramSink,
     values: &[PortableExpressionNode],
 ) -> Result<(), PortableExpressionProgramRefusal> {
     push_len(encoded, values.len());
@@ -333,7 +392,7 @@ fn push_nodes(
 }
 
 fn push_type(
-    encoded: &mut Vec<u8>,
+    encoded: &mut ProgramSink,
     value_type: &StructuredInfoType,
 ) -> Result<(), PortableExpressionProgramRefusal> {
     let bytes = value_type.canonical_bytes()?;
@@ -342,12 +401,12 @@ fn push_type(
     Ok(())
 }
 
-fn push_text(encoded: &mut Vec<u8>, value: &str) {
+fn push_text(encoded: &mut ProgramSink, value: &str) {
     push_len(encoded, value.len());
     encoded.extend_from_slice(value.as_bytes());
 }
 
-fn push_len(encoded: &mut Vec<u8>, value: usize) {
+fn push_len(encoded: &mut ProgramSink, value: usize) {
     encoded.extend_from_slice(&(value as u64).to_le_bytes());
 }
 

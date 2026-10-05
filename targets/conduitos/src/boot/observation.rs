@@ -97,6 +97,7 @@ pub enum BootError {
     CommandLineTooLong,
     MalformedCommandLine,
     RuntimeArenaUnavailable,
+    UnsupportedRuntimeArenaBudget,
 }
 
 impl BootError {
@@ -121,6 +122,7 @@ impl BootError {
             Self::CommandLineTooLong => "command-line-too-long",
             Self::MalformedCommandLine => "malformed-command-line",
             Self::RuntimeArenaUnavailable => "runtime-arena-unavailable",
+            Self::UnsupportedRuntimeArenaBudget => "unsupported-runtime-arena-budget",
         }
     }
 }
@@ -133,12 +135,13 @@ pub struct BootNormalizer {
     image_start: u64,
     image_length: u64,
     previous_region_end: Option<u64>,
-    previous_artifact_end: Option<u64>,
+    artifact_ranges: [Option<(u64, u64)>; MAX_ARTIFACTS],
     region_count: u16,
     artifact_count: u16,
     framebuffer_count: u8,
     command_line_bytes: u16,
     runtime_arena: Option<RuntimeArena>,
+    required_arena_bytes: u64,
 }
 
 impl BootNormalizer {
@@ -161,13 +164,27 @@ impl BootNormalizer {
             image_start,
             image_length,
             previous_region_end: None,
-            previous_artifact_end: None,
+            artifact_ranges: [None; MAX_ARTIFACTS],
             region_count: 0,
             artifact_count: 0,
             framebuffer_count: 0,
             command_line_bytes: 0,
             runtime_arena: None,
+            required_arena_bytes: MIN_RUNTIME_ARENA_BYTES,
         })
+    }
+
+    /// Root selects this finite preparation budget before observing memory.
+    pub fn require_arena_bytes(mut self, bytes: u64) -> Result<Self, BootError> {
+        if self.region_count != 0
+            || bytes < MIN_RUNTIME_ARENA_BYTES
+            || bytes > crate::allocation::MAXIMUM_ARENA_BYTES as u64
+            || !bytes.is_multiple_of(4096)
+        {
+            return Err(BootError::UnsupportedRuntimeArenaBudget);
+        }
+        self.required_arena_bytes = bytes;
+        Ok(self)
     }
 
     pub fn push_region(&mut self, region: MemoryRegion) -> Result<(), BootError> {
@@ -189,11 +206,11 @@ impl BootNormalizer {
 
         if self.runtime_arena.is_none()
             && region.kind == MemoryKind::Usable
-            && region.length >= MIN_RUNTIME_ARENA_BYTES
+            && region.length >= self.required_arena_bytes
         {
             self.runtime_arena = Some(RuntimeArena {
                 physical_start: region.base,
-                length: MIN_RUNTIME_ARENA_BYTES,
+                length: self.required_arena_bytes,
             });
         }
         Ok(())
@@ -209,12 +226,14 @@ impl BootNormalizer {
             return Err(BootError::MalformedArtifactRange);
         }
         if self
-            .previous_artifact_end
-            .is_some_and(|previous| artifact.physical_start < previous)
+            .artifact_ranges
+            .iter()
+            .flatten()
+            .any(|(start, previous_end)| artifact.physical_start < *previous_end && *start < end)
         {
             return Err(BootError::OverlappingArtifacts);
         }
-        self.previous_artifact_end = Some(end);
+        self.artifact_ranges[self.artifact_count as usize] = Some((artifact.physical_start, end));
         self.artifact_count += 1;
         Ok(())
     }
@@ -287,170 +306,5 @@ const fn checked_end(start: u64, length: u64) -> Option<u64> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime_arena_matches_the_compiled_presentation_shape() {
-        #[cfg(feature = "native-compositor")]
-        assert_eq!(MIN_RUNTIME_ARENA_BYTES, 16 * 1024 * 1024);
-        #[cfg(not(feature = "native-compositor"))]
-        assert_eq!(MIN_RUNTIME_ARENA_BYTES, 8 * 1024 * 1024);
-    }
-
-    fn normalizer() -> BootNormalizer {
-        BootNormalizer::new(
-            Firmware::Uefi64,
-            1,
-            0xffff_8000_0000_0000,
-            0x20_0000,
-            0x10_000,
-        )
-        .unwrap()
-    }
-
-    #[test]
-    fn accepts_finite_sorted_boot_truth() {
-        let mut value = normalizer();
-        value
-            .push_region(MemoryRegion {
-                base: 0x1000,
-                length: MIN_RUNTIME_ARENA_BYTES,
-                kind: MemoryKind::Usable,
-            })
-            .unwrap();
-        value.set_framebuffer_count(0).unwrap();
-        value.set_command_line(b"").unwrap();
-        let record = value.finish().unwrap();
-        assert_eq!(record.memory_region_count, 1);
-        assert_eq!(record.runtime_arena.physical_start, 0x1000);
-    }
-
-    #[test]
-    fn rejects_overlap_overflow_and_missing_arena_distinctly() {
-        let mut overlap = normalizer();
-        overlap
-            .push_region(MemoryRegion {
-                base: 0x1000,
-                length: 0x2000,
-                kind: MemoryKind::Reserved,
-            })
-            .unwrap();
-        assert_eq!(
-            overlap.push_region(MemoryRegion {
-                base: 0x2000,
-                length: 0x1000,
-                kind: MemoryKind::Reserved,
-            }),
-            Err(BootError::OverlappingMemoryRegions)
-        );
-
-        assert_eq!(
-            normalizer().push_region(MemoryRegion {
-                base: u64::MAX,
-                length: 2,
-                kind: MemoryKind::Usable,
-            }),
-            Err(BootError::MalformedMemoryRange)
-        );
-        assert_eq!(
-            normalizer().finish(),
-            Err(BootError::RuntimeArenaUnavailable)
-        );
-    }
-
-    #[test]
-    fn rejects_oversized_or_malformed_command_lines() {
-        let mut value = normalizer();
-        assert_eq!(
-            value.set_command_line(&[b'x'; MAX_COMMAND_LINE_BYTES + 1]),
-            Err(BootError::CommandLineTooLong)
-        );
-        assert_eq!(
-            value.set_command_line(&[0xff]),
-            Err(BootError::MalformedCommandLine)
-        );
-        assert_eq!(
-            value.set_command_line(b"a\0b"),
-            Err(BootError::MalformedCommandLine)
-        );
-    }
-
-    #[test]
-    fn hhdm_conversion_fails_closed() {
-        assert_eq!(
-            hhdm_to_physical(9, 10),
-            Err(BootError::MalformedHhdmConversion)
-        );
-        assert_eq!(hhdm_to_physical(11, 10), Ok(1));
-    }
-
-    #[test]
-    fn finite_region_and_artifact_caps_refuse_without_truncation() {
-        let mut regions = normalizer();
-        for index in 0..MAX_MEMORY_REGIONS {
-            regions
-                .push_region(MemoryRegion {
-                    base: 0x10_0000 + index as u64 * 0x1000,
-                    length: 0x1000,
-                    kind: MemoryKind::Reserved,
-                })
-                .unwrap();
-        }
-        assert_eq!(
-            regions.push_region(MemoryRegion {
-                base: 0x10_0000 + MAX_MEMORY_REGIONS as u64 * 0x1000,
-                length: 0x1000,
-                kind: MemoryKind::Reserved,
-            }),
-            Err(BootError::TooManyMemoryRegions)
-        );
-
-        let mut artifacts = normalizer();
-        for index in 0..MAX_ARTIFACTS {
-            artifacts
-                .push_artifact(BootArtifact {
-                    physical_start: 0x30_0000 + index as u64 * 0x1000,
-                    length: 0x1000,
-                    path_hash: index as u64,
-                    command_hash: 0,
-                })
-                .unwrap();
-        }
-        assert_eq!(
-            artifacts.push_artifact(BootArtifact {
-                physical_start: 0x30_0000 + MAX_ARTIFACTS as u64 * 0x1000,
-                length: 0x1000,
-                path_hash: 0,
-                command_hash: 0,
-            }),
-            Err(BootError::TooManyArtifacts)
-        );
-    }
-
-    #[test]
-    fn artifact_overlap_and_framebuffer_overflow_are_distinct() {
-        let mut value = normalizer();
-        value
-            .push_artifact(BootArtifact {
-                physical_start: 0x30_0000,
-                length: 0x2000,
-                path_hash: 1,
-                command_hash: 2,
-            })
-            .unwrap();
-        assert_eq!(
-            value.push_artifact(BootArtifact {
-                physical_start: 0x30_1000,
-                length: 0x1000,
-                path_hash: 3,
-                command_hash: 4,
-            }),
-            Err(BootError::OverlappingArtifacts)
-        );
-        assert_eq!(
-            value.set_framebuffer_count(MAX_FRAMEBUFFERS + 1),
-            Err(BootError::TooManyFramebuffers)
-        );
-    }
-}
+#[path = "observation_tests.rs"]
+mod tests;

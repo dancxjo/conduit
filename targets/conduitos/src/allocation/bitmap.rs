@@ -1,6 +1,6 @@
 //! Allocation metadata never resides in released user storage.
 //!
-//! One bit per 32-byte unit covers at most 16 MiB, using a fixed 64 KiB bitmap.
+//! One bit per 32-byte unit covers at most 256 MiB, using a fixed 1 MiB bitmap.
 //! A search inspects only this finite admitted range; it skips occupied runs.
 //! Releasing adjacent allocations naturally makes their combined range usable.
 
@@ -101,6 +101,56 @@ impl ArenaState {
         self.mark(index, index + needed, false);
         self.live_units -= needed;
         self.cursor = self.cursor.min(index);
+    }
+
+    /// Caller supplies one exact live allocation, as required by GlobalAlloc.
+    pub(super) unsafe fn resize(
+        &mut self,
+        pointer: *mut u8,
+        layout: Layout,
+        new_size: usize,
+    ) -> *mut u8 {
+        if self.sealed {
+            return null_mut();
+        }
+        let Ok(new_layout) = Layout::from_size_align(new_size, layout.align()) else {
+            return null_mut();
+        };
+        let Some(old_units) = allocation_units(layout) else {
+            return null_mut();
+        };
+        let Some(new_units) = allocation_units(new_layout) else {
+            return null_mut();
+        };
+        let index = (pointer as usize - self.start) / UNIT;
+        if new_units <= old_units {
+            if new_units < old_units {
+                self.mark(index + new_units, index + old_units, false);
+                self.live_units -= old_units - new_units;
+                self.cursor = self.cursor.min(index + new_units);
+            }
+            return pointer;
+        }
+        if new_units <= self.units - index
+            && self
+                .first_occupied(index + old_units, index + new_units)
+                .is_none()
+        {
+            self.mark(index + old_units, index + new_units, true);
+            self.live_units += new_units - old_units;
+            self.peak_units = self.peak_units.max(self.live_units);
+            self.cursor = index + new_units;
+            return pointer;
+        }
+        let replacement = self.allocate(new_layout);
+        if !replacement.is_null() {
+            // SAFETY: both allocations are live, disjoint and large enough.
+            unsafe {
+                core::ptr::copy_nonoverlapping(pointer, replacement, layout.size().min(new_size));
+            }
+            self.release(pointer, layout);
+        }
+        replacement
     }
 
     fn find_run(

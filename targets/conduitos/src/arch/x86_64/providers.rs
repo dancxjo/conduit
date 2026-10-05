@@ -29,7 +29,6 @@ pub fn initialize_machine(
         crate::arch::early_write(b"\n");
         cpu::deterministic_exit(false)
     });
-    #[cfg(feature = "native-owner-network")]
     {
         if super::deadline::initialize_hpet(
             topology.hpet_address,

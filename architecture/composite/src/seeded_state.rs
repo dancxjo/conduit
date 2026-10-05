@@ -25,6 +25,8 @@ pub struct SeededStateBack {
     staged: Option<ValueRef>,
     terminal: bool,
     flow: bool,
+    until: bool,
+    staged_terminal: bool,
 }
 
 impl SeededStateBack {
@@ -70,6 +72,8 @@ impl SeededStateBack {
             staged: None,
             terminal: false,
             flow: false,
+            until: false,
+            staged_terminal: false,
         })
     }
 
@@ -79,6 +83,21 @@ impl SeededStateBack {
     ) -> Result<Self, &'static str> {
         let mut back = Self::prepare(contract, schema)?;
         back.flow = true;
+        Ok(back)
+    }
+
+    pub fn prepare_until(
+        contract: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<Self, &'static str> {
+        let StructuredInfoTypeShape::Record { fields, .. } = schema.shape() else {
+            return Err("terminal state requires a record");
+        };
+        if !fields.iter().any(|field| field.name() == "terminal" && matches!(field.value_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::BOOL_INFO_ID)) {
+            return Err("terminal state requires an exact terminal Boolean");
+        }
+        let mut back = Self::prepare_flow(contract, schema)?;
+        back.until = true;
         Ok(back)
     }
 
@@ -106,6 +125,15 @@ impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
 
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.terminal {
+            for port in [PortId(0), PortId(1)] {
+                if io.input_closed(port) && io.input(port).is_none() {
+                    io.consume_closed(port)
+                        .expect("exposed terminal state input");
+                }
+            }
+            if let Some(held) = self.held.take() {
+                io.discard(held).expect("one terminal retained state");
+            }
             return StepOutcome::Complete;
         }
         if io.input_abnormal(PortId(0)).is_some() || io.input_abnormal(PortId(1)).is_some() {
@@ -141,6 +169,20 @@ impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
         if bytes.len() != reference.byte_len as usize || !self.valid(bytes) {
             return fail(934);
         }
+        let terminal = if self.until {
+            let Ok(view) = conduit_core::validate_canonical_structured_value(bytes) else {
+                return fail(935);
+            };
+            let Ok(Some(flag)) = view.record_field("terminal") else {
+                return fail(936);
+            };
+            let Ok(flag) = flag.primitive_bytes(conduit_core::BOOL_INFO_ID) else {
+                return fail(937);
+            };
+            flag == [1]
+        } else {
+            false
+        };
         if !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
         }
@@ -150,6 +192,7 @@ impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
                 .expect("one retained previous state value");
         }
         io.send(PortId(0), value).expect("ready exact state output");
+        self.staged_terminal = terminal;
         self.staged = Some(value);
         self.staged_seed = !self.seeded;
         StepOutcome::Progress
@@ -159,6 +202,8 @@ impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
         if let Some(value) = self.staged.take() {
             self.held = Some(value);
         }
+        self.terminal |= self.staged_terminal;
+        self.staged_terminal = false;
         self.seeded |= self.staged_seed;
         self.seed_closed |= self.staged_close;
         self.staged_seed = false;
@@ -166,6 +211,7 @@ impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
     }
 
     fn cancel(&mut self) {
+        self.staged_terminal = false;
         self.staged_seed = false;
         self.staged_close = false;
         self.held = None;
@@ -183,3 +229,6 @@ fn fail(detail: u16) -> StepOutcome {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod terminal_tests;

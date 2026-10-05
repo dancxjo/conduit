@@ -7,9 +7,11 @@
     target_arch = "loongarch64"
 ))]
 mod limine;
+mod modules;
 #[cfg(any(test, target_arch = "x86"))]
 mod multiboot1;
 mod observation;
+pub use modules::BootModuleRefusal;
 
 #[cfg(any(
     target_arch = "x86_64",
@@ -17,7 +19,10 @@ mod observation;
     target_arch = "riscv64",
     target_arch = "loongarch64"
 ))]
-pub use limine::{executable_physical_address, framebuffer_display, normalize_boot, spore_module};
+pub use limine::{
+    executable_physical_address, framebuffer_display, named_module, normalize_boot,
+    normalize_boot_with_arena_bytes, spore_module,
+};
 #[cfg(target_arch = "x86")]
 pub use multiboot1::{firmware_from_multiboot1, spore_module_from_multiboot1};
 
