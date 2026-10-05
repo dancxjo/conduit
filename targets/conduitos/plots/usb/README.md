@@ -47,6 +47,16 @@ These plots check and execute in prepared expression fixtures. The
 through a selected native control Back in the x86_64 proof appliance. Full
 configuration enumeration and class-device execution remain unimplemented.
 
+`configuration-descriptors.conduit` decodes configuration, interface and
+endpoint prefixes from fixed storage plus an independent received count. It
+preserves alternate settings, zero-endpoint interfaces, raw power/interval
+fields and all packet-size bits for later speed/class policy. An extended
+record must be completely received before its prefix is interpreted. These
+prepared-expression fixtures cover short, malformed and oversized data and
+repeated buffer reuse. They do not yet walk a full configuration or authorize
+an endpoint. Wire layout follows USB 2.0 section 9.6, tables 9-10, 9-12 and
+9-13 ([specification](https://www.seriesten.org/docs/protocols/USB_2.0_Specification.pdf)).
+
 The register-leaf groundwork in `src/machine_membrane` validates existing opaque
 Base possession before an aligned, bounded 32-bit access. Native composition
 must bind the exact already-admitted device-memory mapping and revoke possession

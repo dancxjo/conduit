@@ -6,6 +6,12 @@ use conduit_plot::{
 
 const SOURCE: &str = include_str!("../plots/usb/protocol.conduit");
 
+#[path = "usb_protocol_plots/configuration_descriptors.rs"]
+mod configuration_descriptors;
+
+#[path = "usb_protocol_plots/descriptor_frame.rs"]
+mod descriptor_frame;
+
 #[path = "usb_protocol_plots/descriptors.rs"]
 mod descriptors;
 
