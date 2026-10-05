@@ -149,7 +149,7 @@ pub fn run(record: boot::BootRecord) -> ! {
         Ok(device) => device,
         Err(error) => emit_machine_refusal(error),
     };
-    #[cfg(feature = "scripted-keyboard-proof")]
+    #[cfg(feature = "usb-configuration-proof")]
     let usb = match arch::run_usb_configuration_probe_proof(
         &mut xhci,
         usb,
