@@ -28,7 +28,7 @@ fn held_outputs_preserve_order_and_a_bad_report_emits_only_its_typed_observation
         .unwrap();
     let input = |wire: &[u8], actual| ValuePayload {
         value_kind: input_port.value_kind.clone(),
-        encoded: crate::descriptor_frame::frame(&run.input_schema, wire, actual),
+        encoded: crate::usb_hid_reports::common::frame(&run.input_schema, wire, actual),
     };
     let first = input(&[0, 0, 9, 0, 0, 0, 0, 0], 8);
     let bad = input(&[0; 7], 8);
