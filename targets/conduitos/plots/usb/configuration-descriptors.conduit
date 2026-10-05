@@ -1,0 +1,67 @@
+# USB 2.0 descriptor prefixes: received counts are independent of storage.
+# These wire facts grant no endpoint possession and do not validate a topology.
+type UsbNineOctetDescriptorFrame = {
+    wire: collection U8 = 9
+    actual: U64
+}
+type UsbSevenOctetDescriptorFrame = {
+    wire: collection U8 = 7
+    actual: U64
+}
+type UsbConfigurationPrefix = {
+    total_length: U64
+    interfaces: U8
+    configuration_value: U8
+    string_index: U8
+    attributes: U8
+    maximum_power_field: U8
+}
+type UsbConfigurationPrefixResult =
+    configuration UsbConfigurationPrefix
+    | short
+    | malformed
+    | oversized
+plot usb-configuration-prefix (
+    frame: UsbNineOctetDescriptorFrame...| >> result: UsbConfigurationPrefixResult...|
+) = (.actual > 256 ? oversized(unit) : (.actual < 2 ? short(unit) : (.wire.0 != 9 || .wire.1 != 2 ? malformed(unit) : (.actual < 9 ? short(unit) : (value/u64(.wire.2) + value/u64(.wire.3) * 256 < 9 ? malformed(unit) : (value/u64(.wire.2) + value/u64(.wire.3) * 256 > 256 ? oversized(unit) : configuration({ total_length: value/u64(.wire.2) + value/u64(.wire.3) * 256, interfaces: .wire.4, configuration_value: .wire.5, string_index: .wire.6, attributes: .wire.7, maximum_power_field: .wire.8 })))))))
+
+type UsbInterfacePrefix = {
+    descriptor_length: U8
+    number: U8
+    alternate_setting: U8
+    endpoints: U8
+    class: U8
+    subclass: U8
+    protocol: U8
+    string_index: U8
+}
+type UsbInterfacePrefixResult =
+    interface UsbInterfacePrefix
+    | short
+    | malformed
+    | oversized
+plot usb-interface-prefix (
+    frame: UsbNineOctetDescriptorFrame...| >> result: UsbInterfacePrefixResult...|
+) = (.actual > 256 ? oversized(unit) : (.actual < 2 ? short(unit) : (.wire.0 < 9 || .wire.1 != 4 ? malformed(unit) : (.actual < value/u64(.wire.0) ? short(unit) : interface({ descriptor_length: .wire.0, number: .wire.2, alternate_setting: .wire.3, endpoints: .wire.4, class: .wire.5, subclass: .wire.6, protocol: .wire.7, string_index: .wire.8 })))))
+
+type UsbEndpointPrefix = {
+    descriptor_length: U8
+    address: U8
+    direction_in: Boolean
+    attributes: U8
+    transfer_type: U64
+    packet_field: U64
+    maximum_packet_size: U64
+    additional_transactions_field: U64
+    interval_field: U8
+}
+type UsbEndpointPrefixResult =
+    endpoint UsbEndpointPrefix
+    | short
+    | malformed
+    | oversized
+# Preserve raw fields whose meaning also depends on speed and transfer type.
+# Extended class descriptors must be fully received before their prefix is used.
+plot usb-endpoint-prefix (
+    frame: UsbSevenOctetDescriptorFrame...| >> result: UsbEndpointPrefixResult...|
+) = (.actual > 256 ? oversized(unit) : (.actual < 2 ? short(unit) : (.wire.0 < 7 || .wire.1 != 5 ? malformed(unit) : (.actual < value/u64(.wire.0) ? short(unit) : endpoint({ descriptor_length: .wire.0, address: .wire.2, direction_in: (.wire.2 & 128) != 0, attributes: .wire.3, transfer_type: value/u64(.wire.3) & 3, packet_field: value/u64(.wire.4) + value/u64(.wire.5) * 256, maximum_packet_size: (value/u64(.wire.4) + value/u64(.wire.5) * 256) & 2047, additional_transactions_field: ((value/u64(.wire.4) + value/u64(.wire.5) * 256) / 2048) & 3, interval_field: .wire.6 })))))

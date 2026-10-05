@@ -117,37 +117,46 @@ impl PreparedMemberSelection {
             .map_err(|_| Refusal::InvalidInput)?
             .ok_or(Refusal::InvalidInput)?;
         }
-        if value.type_bytes() != self.output_type {
-            return Err(Refusal::InvalidInput);
-        }
-        let node = value.value_node();
-        if self.primitive {
-            let [0, length @ ..] = node else {
-                return Err(Refusal::InvalidProgram);
-            };
-            let length_bytes = length.get(..4).ok_or(Refusal::InvalidProgram)?;
-            let size = u32::from_le_bytes(length_bytes.try_into().unwrap()) as usize;
-            let bytes = length.get(4..).ok_or(Refusal::InvalidProgram)?;
-            if bytes.len() != size {
-                return Err(Refusal::InvalidProgram);
-            }
-            return Ok(bytes);
-        }
-        if self
-            .output_type
-            .len()
-            .checked_add(node.len())
-            .is_none_or(|size| size > self.output.capacity())
-        {
-            return Err(Refusal::InvalidProgram);
-        }
-        self.output.clear();
-        self.output.extend_from_slice(&self.output_type);
-        self.output.extend_from_slice(node);
-        Ok(&self.output)
+        render_selected(value, &self.output_type, self.primitive, &mut self.output)
     }
 }
-fn is_primitive(ty: &StructuredInfoType) -> bool {
+
+pub(super) fn render_selected<'a>(
+    value: conduit_core::ValidatedCanonicalStructuredValue<'a>,
+    output_type: &[u8],
+    primitive: bool,
+    output: &'a mut Vec<u8>,
+) -> Result<&'a [u8], Refusal> {
+    if value.type_bytes() != output_type {
+        return Err(Refusal::InvalidInput);
+    }
+    let node = value.value_node();
+    if primitive {
+        let [0, length @ ..] = node else {
+            return Err(Refusal::InvalidProgram);
+        };
+        let length_bytes = length.get(..4).ok_or(Refusal::InvalidProgram)?;
+        let size = u32::from_le_bytes(length_bytes.try_into().unwrap()) as usize;
+        let bytes = length.get(4..).ok_or(Refusal::InvalidProgram)?;
+        if bytes.len() != size {
+            return Err(Refusal::InvalidProgram);
+        }
+        return Ok(bytes);
+    }
+    if output_type
+        .len()
+        .checked_add(node.len())
+        .is_none_or(|size| size > output.capacity())
+    {
+        return Err(Refusal::InvalidProgram);
+    }
+    output.clear();
+    output.extend_from_slice(output_type);
+    output.extend_from_slice(node);
+    Ok(output.as_slice())
+}
+
+pub(super) fn is_primitive(ty: &StructuredInfoType) -> bool {
     match ty.shape() {
         StructuredInfoTypeShape::Leaf(_) => true,
         StructuredInfoTypeShape::Nominal { representation, .. } => is_primitive(representation),

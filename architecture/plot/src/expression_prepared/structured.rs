@@ -14,6 +14,7 @@ enum PreparedShape {
     Input,
     Constant(Vec<u8>),
     Selected(super::member_selection::PreparedMemberSelection),
+    SequenceSelected(super::sequence_selection::PreparedSequenceSelection),
     Record(Vec<PreparedField>),
     Collection(Vec<PreparedChild>),
     Variant {
@@ -62,6 +63,15 @@ impl PreparedStructuredExpression {
             PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(
                 super::member_selection::prepare(program.root, program.input_type)?,
             ),
+            PortableExpressionOperation::SemanticCall { kind, .. } if kind == "sequence/at" => {
+                PreparedShape::SequenceSelected(
+                    super::sequence_selection::PreparedSequenceSelection::new(
+                        program.root,
+                        program.input_type,
+                        prepared_input,
+                    )?,
+                )
+            }
             PortableExpressionOperation::Tuple(values) => {
                 let fields = values
                     .iter()
@@ -149,6 +159,9 @@ impl PreparedStructuredExpression {
         match &mut self.shape {
             PreparedShape::Input => return append(output, input),
             PreparedShape::Constant(bytes) => return append(output, bytes),
+            PreparedShape::SequenceSelected(selection) => {
+                return append(output, selection.evaluate(input)?)
+            }
             PreparedShape::Selected(selection) => {
                 return append(output, selection.evaluate(input)?)
             }
@@ -170,7 +183,10 @@ impl PreparedStructuredExpression {
         }
         append(output, &self.type_prefix)?;
         match &mut self.shape {
-            PreparedShape::Input | PreparedShape::Constant(_) | PreparedShape::Selected(_) => {
+            PreparedShape::Input
+            | PreparedShape::Constant(_)
+            | PreparedShape::Selected(_)
+            | PreparedShape::SequenceSelected(_) => {
                 unreachable!("identity selection handled before prefix")
             }
             PreparedShape::Record(fields) => {
