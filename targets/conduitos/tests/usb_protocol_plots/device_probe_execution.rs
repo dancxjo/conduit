@@ -1,29 +1,15 @@
-//! Cooperative scripted transfers; actual Source and one production kernel.
+//! Cooperative scripted transfers; actual Source and one production probe.kernel.
 use conduit_composite::{
-    KernelCompositeHost, KernelCompositeStatus, KernelCompositeTerminal, KernelOperationRegistry,
+    KernelCompositeSignStorage, KernelCompositeStatus, KernelCompositeTerminal,
 };
-use conduit_core::{
-    PortDescriptor, ValuePayload, bind_active_play, validate_canonical_structured_value,
+use conduit_core::{PortDescriptor, ValuePayload, validate_canonical_structured_value};
+use conduitos::usb_base::{
+    control_contract::ControlContract,
+    control_proof_plan::ControlProofSubject,
+    control_request::ControlTransferRequest,
+    control_result::{ControlTransferDisposition, PreparedControlResultEncoder},
+    device_probe_proof_kernel::PreparedDeviceProbeKernel,
 };
-use conduit_kernel::{HostCallDisposition, HostCallOutcome, NodeId};
-use conduit_plan_lowering::lowering::lower_plan_fragment;
-use conduitos::{
-    expression_host_call::{self, ExpressionHostCall, ExpressionOperationFactory},
-    structured_selector_host_call::{self, SelectorHostCall, SelectorOperationFactory},
-    usb_base::{
-        control_contract::ControlContract,
-        control_factory::ControlOperationFactory,
-        control_proof_plan::ControlProofSubject,
-        control_request::ControlTransferRequest,
-        control_result::{ControlTransferDisposition, PreparedControlResultEncoder},
-        device_probe_proof_plan,
-    },
-};
-
-enum PureOwner {
-    Expression(ExpressionHostCall),
-    Selector(SelectorHostCall),
-}
 
 fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&str>) {
     let subject = ControlProofSubject {
@@ -35,35 +21,10 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
         slot: 1,
         attachment_epoch: 1,
     };
-    let artifact = device_probe_proof_plan::prepare(&subject).unwrap();
-    let definition = artifact.artifact().definition().clone();
-    let fragment = &definition.internal_plan.fragments[0];
-    let lowered = lower_plan_fragment(fragment).unwrap();
-    let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-    let mut pure = Vec::<(NodeId, PureOwner)>::new();
-    for placement in &fragment.placements {
-        let node = lowered
-            .identity
-            .placements
-            .iter()
-            .find(|(_, id)| id == &placement.placement_id)
-            .unwrap()
-            .0;
-        let owner = match placement.implementation_id.as_str() {
-            expression_host_call::IMPLEMENTATION => Some(PureOwner::Expression(
-                ExpressionHostCall::prepare(fragment, &lowered, &active, &placement.placement_id)
-                    .unwrap(),
-            )),
-            structured_selector_host_call::IMPLEMENTATION => Some(PureOwner::Selector(
-                SelectorHostCall::prepare(fragment, &lowered, &active, &placement.placement_id)
-                    .unwrap(),
-            )),
-            _ => None,
-        };
-        if let Some(owner) = owner {
-            pure.push((node, owner));
-        }
-    }
+    let mut probe =
+        PreparedDeviceProbeKernel::prepare(&subject, KernelCompositeSignStorage::default())
+            .unwrap();
+    let definition = probe.kernel.definition();
     let input = definition.boundary.input_fronts[0].external_port.clone();
     let outputs: Vec<PortDescriptor> = definition
         .boundary
@@ -71,17 +32,6 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
         .iter()
         .map(|front| front.external_port.clone())
         .collect();
-    let mut registry = KernelOperationRegistry::new();
-    registry
-        .install(ExpressionOperationFactory::default())
-        .unwrap();
-    registry
-        .install(SelectorOperationFactory::default())
-        .unwrap();
-    registry
-        .install(ControlOperationFactory::prepare_contract().unwrap())
-        .unwrap();
-    let mut kernel = KernelCompositeHost::prepare(definition, &registry).unwrap();
     let contract = ControlContract::prepare().unwrap();
     let mut encoder = PreparedControlResultEncoder::new(&contract).unwrap();
     let request = ControlTransferRequest::new([128, 6, 0, 1, 0, 0, 18, 0], &[], 256).unwrap();
@@ -110,8 +60,9 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
     let mut seen = vec![false; outputs.len()];
     let mut transfers = 0;
     let mut complete = false;
-    kernel.start().unwrap();
-    kernel
+    probe.kernel.start().unwrap();
+    probe
+        .kernel
         .admit_input(
             &input.port_id,
             0,
@@ -121,49 +72,22 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
             },
         )
         .unwrap();
-    kernel.close_input(&input.port_id).unwrap();
+    probe.kernel.close_input(&input.port_id).unwrap();
     for _ in 0..128 {
-        let status = kernel.step().unwrap();
-        if let Some(request) = kernel.next_host_request() {
-            let obligation = kernel.host_request_obligation(&request).unwrap();
-            let admitted = kernel
-                .admit_host_request(
-                    &request,
-                    &obligation.host,
-                    &obligation.resources,
-                    &obligation.authorities,
-                )
-                .unwrap();
-            let call = *kernel
-                .admitted_host_request_view(&admitted)
-                .unwrap()
-                .request;
-            let bytes = kernel.host_request_input(&admitted).unwrap();
-            if let Some((_, owner)) = pure.iter_mut().find(|(node, _)| *node == call.node) {
-                let result = match owner {
-                    PureOwner::Expression(owner) => Some(
-                        owner
-                            .invoke(call.node, call.call, call.request, bytes)
-                            .unwrap(),
-                    ),
-                    PureOwner::Selector(owner) => owner
-                        .invoke(call.node, call.call, call.request, bytes)
-                        .unwrap(),
-                };
-                match result {
-                    Some(bytes) => kernel.complete_host_call_bytes(&admitted, bytes).unwrap(),
-                    None => kernel
-                        .complete_host_call(
-                            &admitted,
-                            HostCallOutcome {
-                                disposition: HostCallDisposition::Completed,
-                                output: None,
-                                failure: None,
-                            },
-                        )
-                        .unwrap(),
-                }
-            } else {
+        let status = probe.kernel.step().unwrap();
+        if let Some(request) = probe.kernel.next_host_request() {
+            if !probe.dispatch_pure(&request).unwrap() {
+                let obligation = probe.kernel.host_request_obligation(&request).unwrap();
+                let admitted = probe
+                    .kernel
+                    .admit_host_request(
+                        &request,
+                        &obligation.host,
+                        &obligation.resources,
+                        &obligation.authorities,
+                    )
+                    .unwrap();
+                let bytes = probe.kernel.host_request_input(&admitted).unwrap();
                 assert_eq!(
                     obligation.requirement.contract_id.as_str(),
                     conduitos::usb_base::control_contract::CONTROL_CALL
@@ -180,11 +104,15 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
                         .unwrap(),
                     [128, 6, 0, 1, 0, 0, 18, 0]
                 );
-                kernel.complete_host_call_bytes(&admitted, &reply).unwrap();
+                probe
+                    .kernel
+                    .complete_host_call_bytes(&admitted, &reply)
+                    .unwrap();
             }
         }
         for (index, port) in outputs.iter().enumerate() {
-            if let Some(sequence) = kernel
+            if let Some(sequence) = probe
+                .kernel
                 .output_into(&port.port_id, &mut storage[index])
                 .unwrap()
             {
@@ -222,7 +150,10 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
                         );
                     }
                 }
-                kernel.complete_output(&port.port_id, sequence).unwrap();
+                probe
+                    .kernel
+                    .complete_output(&port.port_id, sequence)
+                    .unwrap();
             }
         }
         if status == KernelCompositeStatus::Complete {
@@ -238,7 +169,8 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
             port.port_id.as_str() == "observed" || expected_decoded.is_some()
         );
         assert_eq!(
-            kernel
+            probe
+                .kernel
                 .output_terminal_into(&port.port_id, &mut storage[index])
                 .unwrap(),
             Some(KernelCompositeTerminal::Normal)

@@ -12,3 +12,5 @@ pub mod control_result;
 pub(crate) mod control_ring;
 
 pub mod device_probe_proof_plan;
+
+pub mod device_probe_proof_kernel;
