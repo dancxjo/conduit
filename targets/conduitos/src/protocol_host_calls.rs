@@ -103,6 +103,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                         | expression_host_call::IMPLEMENTATION
                         | structured_selector_host_call::IMPLEMENTATION
                         | crate::flow_zip::IMPLEMENTATION
+                        | crate::flow_concat_finite::IMPLEMENTATION
                         | crate::flow_merge_finite::IMPLEMENTATION
                         | crate::seeded_state::IMPLEMENTATION
                         | crate::current_sample::IMPLEMENTATION
