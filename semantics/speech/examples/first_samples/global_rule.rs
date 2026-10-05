@@ -276,5 +276,17 @@ pub fn write(
         "sourced-global-rule-and-default-tata",
         mixed.renderer().map_err(|reason| format!("{reason:?}"))?,
     )?;
+    aspiration_samples::write(
+        output,
+        intent,
+        inventory,
+        voice,
+        &boundaries,
+        &policy,
+        &evidence,
+    )?;
     Ok(())
 }
+
+#[path = "aspiration.rs"]
+mod aspiration_samples;

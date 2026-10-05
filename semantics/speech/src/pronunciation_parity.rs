@@ -132,7 +132,16 @@ fn payload<'a>(ty: &'a StructuredInfoType, tag: &str) -> &'a StructuredInfoType 
 #[test]
 fn lexicon_and_spelling_outputs_match_portable_exact_native_values() {
     let lexicon = program("speech_english_lexicon");
-    for word in ["hello", "world", "synthesizer", "chat", "a", "", "Hello"] {
+    for word in [
+        "hello",
+        "world",
+        "synthesizer",
+        "want",
+        "chat",
+        "a",
+        "",
+        "Hello",
+    ] {
         let StructuredInfoTypeShape::Nominal { representation, .. } = lexicon.input_type.shape()
         else {
             panic!("word")

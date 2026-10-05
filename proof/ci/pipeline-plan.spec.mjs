@@ -28,11 +28,21 @@ test("target-local changes select the owning family", () => {
     ["targets/browser/src/lib.rs", ["browser"]],
     ["proof/browser/workspace.spec.ts", ["browser"]],
     ["site/index.html", ["browser"]],
+    ["tools/xtask/src/evidence/one_body_journey.rs", ["browser"]],
+    ["tools/xtask/src/evidence/one_body_journey/render.rs", ["browser"]],
     ["targets/std/src/lib.rs", ["browser", "hosted"]],
     ["targets/conduitos/kernel/src/lib.rs", ["conduitos", "orange-pi"]],
     ...["esp32", "avr", "raspberry-pi", "orange-pi", "rp2040"]
       .map((family) => [`targets/${family}/src/lib.rs`, [family]]),
   ]) assert.deepEqual(planChanges([path]), { docsOnly: false, families }, path);
+});
+
+test("other xtask evidence changes retain the full target matrix", () => {
+  for (const path of [
+    "tools/xtask/src/evidence.rs",
+    "tools/xtask/src/evidence/gallery.rs",
+    "tools/xtask/src/evidence/one_body_journey_extra.rs",
+  ]) assert.deepEqual(planChanges([path]), all, path);
 });
 
 test("renamed paths select both old and new owners in stable order", () => {
@@ -45,6 +55,7 @@ test("renamed paths select both old and new owners in stable order", () => {
 test("full integration always selects every family, even for prose", () => {
   assert.deepEqual(planChanges(["README.md"], { full: true }), all);
   assert.deepEqual(planChanges(["targets/browser/src/lib.rs"], { full: true }), all);
+  assert.deepEqual(planChanges(["tools/xtask/src/evidence/one_body_journey/render.rs"], { full: true }), all);
 });
 
 test("malformed path collections cannot silently become docs-only", () => {

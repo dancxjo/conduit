@@ -312,7 +312,12 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
         started_from_face.contains("Owner action result:"),
         "{started_from_face}"
     );
-    let playing = local_face(&state);
+    // Start acknowledges a request; observe the published Play before using
+    // its controls, then explicitly reorient the client to that current Show.
+    let playing = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
+    input.write_all(b"refresh\n").unwrap();
+    let refreshed = read_until_prompt(&mut output, b"body> ");
+    assert!(!refreshed.contains("Owner action result:"), "{refreshed}");
     assert!(!action_available(&playing, "conduit.intent/start-clock@1"));
     assert!(action_available(&playing, "conduit.intent/lull-clock@1"));
     let lull = action_id(&playing, "conduit.intent/lull-clock@1");
@@ -323,7 +328,12 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     assert!(!focused_lull.contains("Refused action:"), "{focused_lull}");
     let lulled = read_until_prompt(&mut output, b"body> ");
     assert!(lulled.contains("Owner action result:"), "{lulled}");
-    let current = local_face(&state);
+    // Lull is also requested asynchronously; do not select the next Start
+    // against a snapshot taken before retirement has reached the owner.
+    let current = wait_for_available_action(&state, "conduit.intent/start-clock@1");
+    input.write_all(b"refresh\n").unwrap();
+    let refreshed = read_until_prompt(&mut output, b"body> ");
+    assert!(!refreshed.contains("Owner action result:"), "{refreshed}");
     assert!(action_available(&current, "conduit.intent/start-clock@1"));
     assert!(!action_available(&current, "conduit.intent/lull-clock@1"));
     let wake = action_id(&current, "conduit.intent/start-clock@1");
@@ -334,7 +344,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     assert!(!focused_wake.contains("Refused action:"), "{focused_wake}");
     let woke = read_until_prompt(&mut output, b"body> ");
     assert!(woke.contains("Owner action result:"), "{woke}");
-    let resumed = local_face(&state);
+    let resumed = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
     assert!(!action_available(&resumed, "conduit.intent/start-clock@1"));
     assert!(action_available(&resumed, "conduit.intent/lull-clock@1"));
     input.write_all(b"read all\n").unwrap();
@@ -500,6 +510,21 @@ fn action_available(face: &Value, intent: &str) -> bool {
         .find(|action| action["intent"] == intent)
         .unwrap_or_else(|| panic!("missing current action {intent}"))["availability"]
         == "Available"
+}
+
+fn wait_for_available_action(state: &Path, intent: &str) -> Value {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let face = local_face(state);
+        if action_available(&face, intent) {
+            return face;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "owner did not publish {intent}: {face}"
+        );
+        thread::sleep(Duration::from_millis(10));
+    }
 }
 
 fn read_until_prompt(input: &mut impl Read, prompt: &[u8]) -> String {
