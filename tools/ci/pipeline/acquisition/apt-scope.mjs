@@ -16,5 +16,5 @@ export function aptScope(root, architecture) {
   const signingKeySha256 = createHash('sha256').update(readFileSync(keyring)).digest('hex');
   const stanza = (uri, suites) => `Types: deb\nURIs: ${uri}\nSuites: ${suites}\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: ${keyring}\n`;
   const source = `${stanza('https://archive.ubuntu.com/ubuntu', `${suite} ${suite}-updates`)}\n${stanza('https://security.ubuntu.com/ubuntu', `${suite}-security`)}`;
-  return { policy: 'ubuntu-build-prerequisites@1', os, suite, source, signingKeySha256 };
+  return { policy: 'ubuntu-build-prerequisites@1', resolution: 'no-removal-no-version-downgrade@1', os, suite, source, signingKeySha256 };
 }

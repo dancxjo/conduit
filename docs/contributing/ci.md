@@ -70,7 +70,11 @@ unauthenticated, weak, insecure, and downgraded repositories remain forbidden.
 The archive cache identity includes the exact selected sources, signing-key
 content, runner image, architecture, requested packages, and installed baseline.
 Cached bytes must match current metadata from that same private index scope;
-host indices and binary metadata caches cannot authenticate them. If a cached
+host indices and binary metadata caches cannot authenticate them. Before either
+download or installation, an APT simulation must contain no removals and no
+version decrease against the recorded baseline, using dpkg's version ordering.
+APT may classify a same-version reinstall with different metadata as a downgrade;
+that exact version is allowed only after this guard and repository authentication. If a cached
 version is no longer authenticated, acquisition refuses; this is not a
 historical apt snapshot.
 
