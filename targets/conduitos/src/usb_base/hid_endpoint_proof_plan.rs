@@ -5,11 +5,11 @@ use super::{
     endpoint_read_proof_plan::{EndpointReadProofSubject, host_and_grants},
 };
 use crate::protocol_source::{
-    PreparedProtocolArtifact, PreparedProtocolSource, usb_hid_endpoint_package,
+    PreparedProtocolArtifact, PreparedProtocolEntry, usb_hid_endpoint_package,
 };
 use alloc::collections::BTreeMap;
-use conduit_core::{ArtifactId, BaseImplementationId};
-use conduit_planner::{PlanningOptions, default_expanded_placements};
+use conduit_core::BaseImplementationId;
+use conduit_planner::PlanningOptions;
 
 pub fn plan(
     subject: &EndpointReadProofSubject<'_>,
@@ -31,24 +31,21 @@ pub fn plan(
         return Err("usb-hid-endpoint-proof-subject".into());
     }
     let package = usb_hid_endpoint_package().map_err(|_| "usb-hid-endpoint-proof-package")?;
-    let source =
-        PreparedProtocolSource::prepare(package).map_err(|_| "usb-hid-endpoint-proof-source")?;
-    let expanded = source
-        .expand(entry)
+    let bytes = serde_json::to_vec(&package).map_err(|_| "usb-hid-endpoint-proof-package")?;
+    let entry = PreparedProtocolEntry::prepare(&bytes, entry)
         .map_err(|_| "usb-hid-endpoint-proof-source")?;
     let contract =
         EndpointReadContract::prepare().map_err(|_| "usb-hid-endpoint-proof-contract")?;
     let (mut host, grants) = host_and_grants(&contract, subject)?;
-    source
-        .publish_pure_backs(&expanded, &mut host)
+    entry
+        .publish_pure_backs(&mut host)
         .map_err(|_| "usb-hid-endpoint-proof-backs")?;
     let hosts = [host];
-    let placements = default_expanded_placements(&expanded.expanded, &hosts)
+    let placements = entry
+        .placements(&hosts)
         .map_err(|_| "usb-hid-endpoint-proof-placement")?;
-    source
-        .plan_artifact(
-            &expanded,
-            ArtifactId::from(alloc::format!("conduitos.proof/{entry}@1")),
+    entry
+        .plan(
             &hosts,
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],

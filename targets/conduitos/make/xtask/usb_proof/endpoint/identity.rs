@@ -1,7 +1,15 @@
 //! Proof-specific Boot disposition: no product input offer is initialized.
 use super::{refusal, ConduitosError, GuestBootSign};
 
-pub(super) fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> {
+pub(super) fn validate_boot_mode(sign: &GuestBootSign, hid: bool) -> Result<(), ConduitosError> {
+    let (profile, arena) = if hid {
+        (
+            conduitos::make::USB_HID_ENDPOINT_QEMU_PROFILE,
+            conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES,
+        )
+    } else {
+        (conduitos::make::USB_ENDPOINT_QEMU_PROFILE, 16 * 1024 * 1024)
+    };
     let exact_id =
         |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
     if sign.schema != "conduit.conduitos.boot-sign/v1"
@@ -13,11 +21,11 @@ pub(super) fn validate_boot(sign: &GuestBootSign) -> Result<(), ConduitosError> 
         || sign.image_binding.is_empty()
         || sign.offer_generation != 0
         || sign.limine != "12.5.2"
-        || sign.qemu_profile != conduitos::make::USB_ENDPOINT_QEMU_PROFILE
+        || sign.qemu_profile != profile
         || !exact_id(&sign.host_id)
         || !exact_id(&sign.boot_id)
         || sign.memory_regions == 0
-        || sign.runtime_arena_bytes != 16 * 1024 * 1024
+        || sign.runtime_arena_bytes != arena
     {
         return Err(refusal("endpoint-proof-boot", format!("{sign:?}")));
     }
@@ -51,8 +59,21 @@ mod tests {
     }
 
     #[test]
+    fn hid_boot_requires_its_exact_profile_and_preparation_budget() {
+        let mut sign = specimen();
+        assert!(validate_boot_mode(&sign, true).is_err());
+        sign.qemu_profile = conduitos::make::USB_HID_ENDPOINT_QEMU_PROFILE.into();
+        assert!(validate_boot_mode(&sign, true).is_err());
+        sign.runtime_arena_bytes = conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES;
+        validate_boot_mode(&sign, true).unwrap();
+        assert!(validate_boot_mode(&sign, false).is_err());
+        sign.runtime_arena_bytes -= 1;
+        assert!(validate_boot_mode(&sign, true).is_err());
+    }
+
+    #[test]
     fn endpoint_boot_refuses_wrong_profile_budget_and_invented_product_offer() {
-        validate_boot(&specimen()).unwrap();
+        validate_boot_mode(&specimen(), false).unwrap();
         for (field, value) in [
             ("schema", serde_json::json!("wrong")),
             ("status", serde_json::json!("refused")),
@@ -75,7 +96,10 @@ mod tests {
             let mut candidate = serde_json::to_value(specimen()).unwrap();
             candidate[field] = value;
             let candidate = serde_json::from_value(candidate).unwrap();
-            assert!(validate_boot(&candidate).is_err(), "accepted {field}");
+            assert!(
+                validate_boot_mode(&candidate, false).is_err(),
+                "accepted {field}"
+            );
         }
     }
 }
