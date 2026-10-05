@@ -319,6 +319,8 @@ mod schema_encoding {
 mod tests;
 
 mod usb_catalog;
+mod usb_hid;
+pub use usb_hid::usb_hid_endpoint_package;
 
 mod planning;
 pub use planning::ProtocolQueueLimits;
