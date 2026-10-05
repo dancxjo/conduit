@@ -19,8 +19,8 @@ fn evidence() -> SpeechEvidenceProvenance {
 fn intent(phoneme: PhonemeSpecification) -> SpeechUtteranceIntent {
     let sources = BoundedSequence::try_from_iter([LanguageSegmentRef::text(
         LanguageTextSegmentKind::Word,
-        SpeechLanguageId::new("es".into()).unwrap(),
-        ListeningTextRange::new(1, 0).unwrap(),
+        LanguageId::new("es".into()).unwrap(),
+        LanguageTextRange::new(1, 0).unwrap(),
         LanguageTextRevisionId::new("source revision".into()).unwrap(),
         LanguageTextId::new("source".into()).unwrap(),
     )
@@ -36,7 +36,7 @@ fn intent(phoneme: PhonemeSpecification) -> SpeechUtteranceIntent {
     let segment = SpeechUtteranceIntentEvent::segment(
         LanguageSpeechTokenRef::new(
             SpeechInventoryId::new("inventory".into()).unwrap(),
-            SpeechLanguageId::new("en".into()).unwrap(),
+            LanguageId::new("en".into()).unwrap(),
             91,
             SpeechSegmentRevisionId::new("revision".into()).unwrap(),
             SpeechSegmentSequenceId::new("sequence".into()).unwrap(),
@@ -60,7 +60,7 @@ fn intent(phoneme: PhonemeSpecification) -> SpeechUtteranceIntent {
     SpeechUtteranceIntent::new(
         BoundedSequence::try_from_iter([boundary, segment]).unwrap(),
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         evidence(),
         SpeechSegmentRevisionId::new("revision".into()).unwrap(),
         SpeechUtteranceId::new("utterance".into()).unwrap(),
@@ -107,7 +107,7 @@ fn phoneme(
 fn inventory(phonemes: Vec<SpeechPhoneme>) -> SpeechInventory {
     SpeechInventory::new(
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         BoundedSequence::try_from_iter(phonemes).unwrap(),
         BoundedSequence::try_from_iter([fixture::definition("phone/t")]).unwrap(),
     )

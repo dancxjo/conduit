@@ -10,7 +10,7 @@ pub enum ListeningDelta {
     Replacement(AsrRevisedHypothesis),
     Correction(AsrRevisedHypothesis),
     Withdrawal {
-        range: ListeningTextRange,
+        range: LanguageTextRange,
         cancelled: AsrHypothesisCancelled,
     },
 }

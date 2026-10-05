@@ -90,3 +90,6 @@ The [history index](../history/README.md) retains earlier host/kernel designs,
 Patchbay milestones, physical diagnostics, and CI records. Their APIs, commands,
 and stop lines describe their named checkpoint. Use current references above
 for new work; historical evidence does not change merely because code evolves.
+
+The [Language boundary](language.md) owns shared linguistic identity and the
+separation between portable meaning, language data and realization coverage.

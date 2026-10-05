@@ -68,7 +68,7 @@ fn native_asr_keeps_scalar_ranges_committed_text_and_delivery_separate() {
     let replacement = ListeningDelta::Replacement(
         AsrRevisedHypothesis::new(
             None,
-            ListeningTextRange::new(5, 4).unwrap(),
+            LanguageTextRange::new(5, 4).unwrap(),
             ListeningTextRole::Recognition,
             segment.clone(),
             "!".into(),
@@ -78,7 +78,7 @@ fn native_asr_keeps_scalar_ranges_committed_text_and_delivery_separate() {
     let corrected = ListeningDelta::Correction(
         AsrRevisedHypothesis::new(
             None,
-            ListeningTextRange::new(4, 3).unwrap(),
+            LanguageTextRange::new(4, 3).unwrap(),
             ListeningTextRole::Recognition,
             segment.clone(),
             "e".into(),
@@ -135,7 +135,7 @@ fn native_asr_keeps_scalar_ranges_committed_text_and_delivery_separate() {
     let shifts_epoch = ListeningDelta::Correction(
         AsrRevisedHypothesis::new(
             None,
-            ListeningTextRange::new(2, 1).unwrap(),
+            LanguageTextRange::new(2, 1).unwrap(),
             ListeningTextRole::Recognition,
             segment.clone(),
             "two".into(),
@@ -209,7 +209,7 @@ fn listening_mapping_refuses_wrong_subject_role_and_unbounded_scalar_ranges() {
     let replacement = ListeningDelta::Replacement(
         AsrRevisedHypothesis::new(
             None,
-            ListeningTextRange::new(4097, 4096).unwrap(),
+            LanguageTextRange::new(4097, 4096).unwrap(),
             ListeningTextRole::Recognition,
             segment.clone(),
             "x".into(),
