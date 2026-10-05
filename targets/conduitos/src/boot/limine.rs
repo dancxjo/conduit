@@ -197,6 +197,10 @@ unsafe extern "C" {
 }
 
 pub fn normalize_boot() -> Result<BootRecord, BootError> {
+    normalize_boot_with_arena_bytes(super::observation::MIN_RUNTIME_ARENA_BYTES)
+}
+
+pub fn normalize_boot_with_arena_bytes(arena_bytes: u64) -> Result<BootRecord, BootError> {
     if !BASE_REVISION.is_supported() {
         return Err(BootError::UnsupportedLimineRevision);
     }
@@ -249,7 +253,8 @@ pub fn normalize_boot() -> Result<BootRecord, BootError> {
         .checked_add(image_offset)
         .ok_or(BootError::MalformedImageRange)?;
 
-    let mut normalized = BootNormalizer::new(firmware, timestamp, hhdm, image_start, image_length)?;
+    let mut normalized = BootNormalizer::new(firmware, timestamp, hhdm, image_start, image_length)?
+        .require_arena_bytes(arena_bytes)?;
     if let Some(rsdp) = RSDP.get_response() {
         normalized.set_rsdp_address(rsdp.address() as u64);
     }

@@ -23,6 +23,37 @@ impl PreparedProtocolSource {
         options: PlanningOptions<'_>,
     ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
         let limits = self.queue_limits(expanded, hosts, placements)?;
+        self.plan_with_limits(
+            expanded, artifact, hosts, placements, bases, options, limits,
+        )
+    }
+
+    pub(super) fn plan_retained_artifact(
+        self,
+        expanded: &ExpandedAuthoringPlot,
+        artifact: ArtifactId,
+        hosts: &[HostAdvertisement],
+        placements: &PlacementChoices,
+        bases: &[BaseImplementationId],
+        options: PlanningOptions<'_>,
+    ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
+        let limits = self.retained_queue_limits(expanded, hosts, placements)?;
+        self.plan_with_limits(
+            expanded, artifact, hosts, placements, bases, options, limits,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn plan_with_limits(
+        self,
+        expanded: &ExpandedAuthoringPlot,
+        artifact: ArtifactId,
+        hosts: &[HostAdvertisement],
+        placements: &PlacementChoices,
+        bases: &[BaseImplementationId],
+        options: PlanningOptions<'_>,
+        limits: ProtocolQueueLimits,
+    ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
         let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
             expanded,
             hosts,

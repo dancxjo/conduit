@@ -194,3 +194,16 @@ bounded transaction transcript, probe/observation/refusal and lifecycle outcome.
 Removal/substitution must distinguish missing hardware, wrong protocol identity,
 malformed data, bus refusal, provider loss and stale attachment without default
 observations. Preserve old evidence under the implementation it actually tested.
+
+The reviewed `conduitos-protocol-source.host.conduit` Make profile admits a
+64 MiB preparation arena for checked Source, expanded program configurations,
+planning, and prepared operations. Build that capable kernel once with
+`cargo xtask make host build targets/conduitos/profiles/conduitos-protocol-source.host.conduit --output target/conduitos/protocol-source-host`.
+Then package additional reviewed Source through `protocol-image` without
+rebuilding the target. The ordinary graphical profile retains its 16 MiB arena.
+Root selects the exact arena budget from the embedded Make record; boot
+normalization must find one sufficiently large usable memory range before
+initializing it. Unsupported budgets and unavailable ranges have distinct
+refusals. The protocol observer uses an isolated 128 MiB QEMU machine.
+Preparation remains finite, and this larger budget does not permit storage
+growth during Play or grant bus, clock, or electrical authority.
