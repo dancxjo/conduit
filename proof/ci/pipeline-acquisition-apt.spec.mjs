@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, rmSync, chmodSync, statSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, rmSync, chmodSync, statSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { acquireApt, ubuntuMirror } from '../../tools/ci/pipeline/acquisition/apt.mjs';
+import { aptScope } from '../../tools/ci/pipeline/acquisition/apt-scope.mjs';
+import { acquireApt } from '../../tools/ci/pipeline/acquisition/apt.mjs';
 const bytes = Buffer.from('fixture authenticated deb');
 const sha = createHash('sha256').update(bytes).digest('hex');
 function fixture(t) {
@@ -13,9 +14,12 @@ function fixture(t) {
   mkdirSync(path.join(root, 'etc/apt/sources.list.d'), { recursive: true });
   writeFileSync(path.join(root, 'etc/os-release'), 'ID=ubuntu\nVERSION_ID=24.04\n');
   writeFileSync(path.join(root, 'etc/apt/sources.list'), 'deb https://azure.archive.ubuntu.com/ubuntu noble main\n');
+  mkdirSync(path.join(root, 'usr/share/keyrings'), { recursive: true });
+  writeFileSync(path.join(root, 'usr/share/keyrings/ubuntu-archive-keyring.gpg'), 'fixture signing keys');
   const state = { present: false, calls: [], trusted: true, baseline: '', identities: [] };
   const run = (program, args, config = {}) => {
     state.calls.push([program, args]);
+    if (program === 'rm') { rmSync(args.at(-1), { recursive: true, force: true }); return ''; }
     if (program === 'chmod') {
       const walk = directory => {
         chmodSync(directory, statSync(directory).mode | 0o555);
@@ -33,6 +37,9 @@ function fixture(t) {
     if (program === 'dpkg-deb') return 'Package: tool\nVersion: 1.2\nArchitecture: amd64\n';
     if (program === 'apt-cache') return `Package: tool\nVersion: 1.2\nArchitecture: amd64\nSHA256: ${state.trusted ? sha : '0'.repeat(64)}\n`;
     if (program === 'apt-get') {
+      const source = args.find(arg => arg.startsWith('Dir::Etc::sourcelist=')).split('=').slice(1).join('=');
+      assert.doesNotMatch(readFileSync(source, 'utf8'), /microsoft|vendor/);
+      if (args.includes('update') && state.requiredFailure) throw new Error('required source unavailable');
       if (args.includes('--download-only')) {
         const archives = args.find(value => value.startsWith('Dir::Cache::archives=')).split('=').slice(1).join('=');
         writeFileSync(path.join(archives, 'tool_1.2_amd64.deb'), bytes);
@@ -47,9 +54,6 @@ function fixture(t) {
   const options = { root, cacheRoot: path.join(root, 'cache'), run, privileged: run, imageVersion: 'test-image', report() {}, recordTool(name, identity) { state.identities.push({ name, ...identity }); } };
   return { state, options, root };
 }
-test('only official Azure Ubuntu mirror is normalized', () => {
-  assert.equal(ubuntuMirror('https://azure.archive.ubuntu.com/ubuntu https://azure.archive.ubuntu.com.evil/repo https://other/repo'), 'https://archive.ubuntu.com/ubuntu https://azure.archive.ubuntu.com.evil/repo https://other/repo');
-});
 test('already installed merged packages skip every privileged command', t => {
   const { state, options } = fixture(t); state.present = true;
   const report = acquireApt(['tool', 'tool'], options);
@@ -143,4 +147,77 @@ test('architecture-independent installed package satisfies a native request', t 
   const report = acquireApt(['tool'], options);
   assert.equal(report.cache, 'installed');
   assert.equal(report.installedVersions.tool, '0.7');
+});
+
+test('unrelated vendor outage is excluded and host repository configuration is preserved', t => {
+  const { state, options, root } = fixture(t);
+  const vendor = path.join(root, 'etc/apt/sources.list.d/vendor.list');
+  const vendorText = 'deb https://packages.microsoft.com/ubuntu/24.04/prod noble main\n';
+  writeFileSync(vendor, vendorText);
+  const ubuntu = path.join(root, 'etc/apt/sources.list');
+  const original = readFileSync(ubuntu, 'utf8');
+  acquireApt(['tool'], options);
+  assert.equal(readFileSync(vendor, 'utf8'), vendorText);
+  assert.equal(readFileSync(ubuntu, 'utf8'), original);
+  assert.ok(!state.calls.some(([program]) => program === 'tee'));
+  const commands = state.calls.filter(([program]) => ['apt-get', 'apt-cache'].includes(program));
+  for (const [, args] of commands) {
+    assert.ok(args.includes('Dir::Etc::sourceparts=-'));
+    assert.ok(args.includes('Dir::Cache::pkgcache='));
+    assert.ok(args.some(arg => arg.startsWith('Dir::State::lists=')));
+  }
+});
+test('required source failure refuses both cold and warm acquisition before installation', t => {
+  for (const warm of [false, true]) {
+    const { state, options } = fixture(t);
+    if (warm) acquireApt(['tool'], options);
+    state.present = false; state.calls = []; state.requiredFailure = true;
+    assert.throws(() => acquireApt(['tool'], options), /required source unavailable/);
+    assert.ok(!state.calls.some(([, args]) => args.includes('install')));
+  }
+});
+test('selected signing keys and runner profile bind cache identity; unrelated sources do not', t => {
+  const { state, options, root } = fixture(t);
+  const initial = acquireApt(['tool'], options).resolutionKey;
+  state.present = false;
+  writeFileSync(path.join(root, 'etc/apt/sources.list.d/vendor.list'), 'deb https://vendor.invalid/repo noble main\n');
+  assert.equal(acquireApt(['tool'], options).resolutionKey, initial);
+  state.present = false;
+  writeFileSync(path.join(root, 'usr/share/keyrings/ubuntu-archive-keyring.gpg'), 'rotated signing keys');
+  assert.notEqual(acquireApt(['tool'], options).resolutionKey, initial);
+  state.present = false;
+  writeFileSync(path.join(root, 'etc/os-release'), 'ID=ubuntu\nVERSION_ID="26.04"\nVERSION_CODENAME=resolute\n');
+  assert.notEqual(acquireApt(['tool'], options).resolutionKey, initial);
+});
+test('unsupported profile and vendor-only required package refuse without fallback', t => {
+  const { state, options, root } = fixture(t);
+  writeFileSync(path.join(root, 'etc/os-release'), 'ID=debian\nVERSION_ID=13\n');
+  assert.throws(() => acquireApt(['tool'], options), /Unsupported CI APT profile/);
+  assert.ok(!state.calls.some(([program]) => program === 'apt-get'));
+  writeFileSync(path.join(root, 'etc/os-release'), 'ID=ubuntu\nVERSION_ID=24.04\n');
+  const run = options.run;
+  options.privileged = (program, args, config) => {
+    if (program === 'apt-get' && args.includes('--download-only')) throw new Error('Unable to locate package vendor-only');
+    return run(program, args, config);
+  };
+  assert.throws(() => acquireApt(['vendor-only'], options), /Unable to locate package/);
+});
+test('each warm attempt refreshes a distinct index directory with strict authentication', t => {
+  const { state, options } = fixture(t);
+  acquireApt(['tool'], options); state.present = false;
+  acquireApt(['tool'], options);
+  const updates = state.calls.filter(([program, args]) => program === 'apt-get' && args.includes('update'));
+  assert.equal(updates.length, 2);
+  assert.notEqual(updates[0][1].find(arg => arg.startsWith('Dir::State::lists=')), updates[1][1].find(arg => arg.startsWith('Dir::State::lists=')));
+  for (const [, args] of updates) for (const control of ['APT::Update::Error-Mode=any', 'APT::Get::AllowUnauthenticated=false', 'Acquire::AllowInsecureRepositories=false', 'Acquire::AllowDowngradeToInsecureRepositories=false', 'Acquire::AllowWeakRepositories=false']) assert.ok(args.includes(control));
+});
+
+test('selected scope contains only exact Ubuntu suites, components, architecture and keyring', t => {
+  const { root } = fixture(t);
+  const scope = aptScope(root, 'amd64');
+  assert.equal(scope.policy, 'ubuntu-build-prerequisites@1');
+  assert.equal(scope.source, `Types: deb\nURIs: https://archive.ubuntu.com/ubuntu\nSuites: noble noble-updates\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: ${root}/usr/share/keyrings/ubuntu-archive-keyring.gpg\n\nTypes: deb\nURIs: https://security.ubuntu.com/ubuntu\nSuites: noble-security\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: ${root}/usr/share/keyrings/ubuntu-archive-keyring.gpg\n`);
+  assert.throws(() => aptScope(root, 'arm64'), /Unsupported/);
+  writeFileSync(path.join(root, 'etc/os-release'), 'ID=ubuntu\nVERSION_ID=24.04\nVERSION_CODENAME=jammy\n');
+  assert.throws(() => aptScope(root, 'amd64'), /Unsupported/);
 });
