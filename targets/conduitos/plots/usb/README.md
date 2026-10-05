@@ -24,6 +24,26 @@ prepared execution agree for empty through maximum-length control payloads;
 malformed envelopes and substituted Types remain refusals. This is payload
 composition groundwork, not native transfer or class-device execution proof.
 
+`hid-reports.conduit` interprets already-received boot keyboard and mouse frames
+according to [HID 1.11, Appendices B/C](https://www.usb.org/sites/default/files/hid1_11.pdf).
+Its eight-octet profile checks actual count before indexed reads, preserves exact
+keyboard error usages, rejects duplicate nonzero keys, and sorts six key slots
+with six fixed passes. Mouse interpretation preserves signed motion and the
+original wire bytes, including uninterpreted extensions. The standard profile
+ignores OEM/constant fields; the separately named zero-reserved profile enforces
+the existing stricter keyboard and button policy. The boot motion profile
+refuses the out-of-domain `0x80` displacement rather than clamping it.
+
+`cargo xtask make conduitos usb-plots-check` includes these Source contracts.
+Deterministic conformance covers every key-slot permutation and motion octet.
+Both class topologies also execute 64 frames through the production kernel with
+normal closure and zero allocations during Play. Held output acknowledgements
+retain the earlier report under pressure; malformed input emits its exact
+observation without a decoded keyboard report. This establishes checked report
+interpretation, not press/release state, installed class offers, endpoint/control
+lifecycle, device execution, or physical compatibility. Existing native Rust HID
+behavior remains migration debt until the complete plotted path earns its proof.
+
 Probe plots consume an already-admitted attachment; recognizing a class never
 mints authority or selects a host resource.
 

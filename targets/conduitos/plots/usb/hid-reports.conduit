@@ -1,0 +1,118 @@
+# HID 1.11 Appendix B/C wire interpretation over already received octets.
+# https://www.usb.org/sites/default/files/hid1_11.pdf
+# Source grants no device, endpoint or controller authority.
+type UsbHidReportFrame = {
+    wire: sequence U8 <= 8
+    actual: U64
+}
+type UsbHidDecodeRequest = {
+    frame: UsbHidReportFrame
+    zero_reserved: Boolean
+}
+type UsbBootKeyboardReport = {
+    modifiers: U8
+    keys: collection U8 = 6
+}
+type UsbBootKeyboardResult =
+    keyboard UsbBootKeyboardReport
+    | short
+    | malformed
+    | reserved
+    | report-error U8
+    | duplicate
+type UsbBootMouseReport = {
+    buttons: U8
+    x: I16
+    y: I16
+    wire: sequence U8 <= 8
+}
+type UsbBootMouseResult =
+    mouse UsbBootMouseReport
+    | short
+    | malformed
+    | reserved
+    | invalid-motion
+
+# The standard profile ignores OEM/constant fields. Zero-reserved is an
+# explicitly stricter profile, matching the existing native keyboard policy.
+plot usb-hid-standard-report (
+    frame: UsbHidReportFrame...| >> request: UsbHidDecodeRequest...|
+) = ({ frame: ., zero_reserved: false })
+plot usb-hid-zero-reserved-report (
+    frame: UsbHidReportFrame...| >> request: UsbHidDecodeRequest...|
+) = ({ frame: ., zero_reserved: true })
+
+# Count/extent agree before indexed reads. Error usages retain their exact
+# wire code; duplicate nonzero usages are not repeated semantic presses.
+plot usb-hid-keyboard-frame (
+    request: UsbHidDecodeRequest...| >> result: UsbBootKeyboardResult...|
+) = (.frame.actual != sequence/length(.frame.wire) ? malformed(unit) : (.frame.actual < 8 ? short(unit) : (.zero_reserved && .frame.wire.1 != 0 ? reserved(unit) : ((.frame.wire.2 >= 1 && .frame.wire.2 <= 3) || (.frame.wire.3 >= 1 && .frame.wire.3 <= 3) || (.frame.wire.4 >= 1 && .frame.wire.4 <= 3) || (.frame.wire.5 >= 1 && .frame.wire.5 <= 3) || (.frame.wire.6 >= 1 && .frame.wire.6 <= 3) || (.frame.wire.7 >= 1 && .frame.wire.7 <= 3) ? report-error((.frame.wire.2 >= 1 && .frame.wire.2 <= 3 ? .frame.wire.2 : (.frame.wire.3 >= 1 && .frame.wire.3 <= 3 ? .frame.wire.3 : (.frame.wire.4 >= 1 && .frame.wire.4 <= 3 ? .frame.wire.4 : (.frame.wire.5 >= 1 && .frame.wire.5 <= 3 ? .frame.wire.5 : (.frame.wire.6 >= 1 && .frame.wire.6 <= 3 ? .frame.wire.6 : (.frame.wire.7 >= 1 && .frame.wire.7 <= 3 ? .frame.wire.7 : 0))))))) : (((((.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.3) || ((.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.4) || (.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.5))) || (((.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.6) || (.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.7)) || ((.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.4) || (.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.5)))) || ((((.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.6) || (.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.7)) || ((.frame.wire.4 != 0 && .frame.wire.4 == .frame.wire.5) || (.frame.wire.4 != 0 && .frame.wire.4 == .frame.wire.6))) || (((.frame.wire.4 != 0 && .frame.wire.4 == .frame.wire.7) || (.frame.wire.5 != 0 && .frame.wire.5 == .frame.wire.6)) || ((.frame.wire.5 != 0 && .frame.wire.5 == .frame.wire.7) || (.frame.wire.6 != 0 && .frame.wire.6 == .frame.wire.7))))) ? duplicate(unit) : keyboard({ modifiers: .frame.wire.0, keys: [.frame.wire.2, .frame.wire.3, .frame.wire.4, .frame.wire.5, .frame.wire.6, .frame.wire.7] }))))))
+
+# Six alternating passes sort exactly six slots with no data-dependent work.
+# Zero slots remain in the fixed report and never become key transitions.
+plot usb-hid-keyboard-sort-even (
+    report: UsbBootKeyboardReport...| >> sorted: UsbBootKeyboardReport...|
+) = ({ modifiers: .modifiers, keys: [(.keys.0 < .keys.1 ? .keys.0 : .keys.1), (.keys.0 < .keys.1 ? .keys.1 : .keys.0), (.keys.2 < .keys.3 ? .keys.2 : .keys.3), (.keys.2 < .keys.3 ? .keys.3 : .keys.2), (.keys.4 < .keys.5 ? .keys.4 : .keys.5), (.keys.4 < .keys.5 ? .keys.5 : .keys.4)] })
+plot usb-hid-keyboard-sort-odd (
+    report: UsbBootKeyboardReport...| >> sorted: UsbBootKeyboardReport...|
+) = ({ modifiers: .modifiers, keys: [.keys.0, (.keys.1 < .keys.2 ? .keys.1 : .keys.2), (.keys.1 < .keys.2 ? .keys.2 : .keys.1), (.keys.3 < .keys.4 ? .keys.3 : .keys.4), (.keys.3 < .keys.4 ? .keys.4 : .keys.3), .keys.5] })
+plot usb-hid-keyboard-normalize (
+    >> report: UsbBootKeyboardReport...|
+    sorted: UsbBootKeyboardReport...| >>
+) {
+    e0: usb-hid-keyboard-sort-even()
+    o0: usb-hid-keyboard-sort-odd()
+    e1: usb-hid-keyboard-sort-even()
+    o1: usb-hid-keyboard-sort-odd()
+    e2: usb-hid-keyboard-sort-even()
+    o2: usb-hid-keyboard-sort-odd()
+    report >> e0 >> o0 >> e1 >> o1 >> e2 >> o2 >> sorted
+}
+plot usb-hid-boot-keyboard (
+    >> frame: UsbHidReportFrame...|
+    decoded: UsbBootKeyboardReport...| >>
+    observed: UsbBootKeyboardResult...| >>
+) {
+    profile: usb-hid-standard-report()
+    decode: usb-hid-keyboard-frame()
+    normalize: usb-hid-keyboard-normalize
+    frame >> profile >> decode
+    decode >> observed
+    decode >> select(UsbBootKeyboardResult.keyboard, unmatched=drop) >> normalize.report
+    normalize.sorted >> decoded
+}
+plot usb-hid-boot-keyboard-zero-reserved (
+    >> frame: UsbHidReportFrame...|
+    decoded: UsbBootKeyboardReport...| >>
+    observed: UsbBootKeyboardResult...| >>
+) {
+    profile: usb-hid-zero-reserved-report()
+    decode: usb-hid-keyboard-frame()
+    normalize: usb-hid-keyboard-normalize
+    frame >> profile >> decode
+    decode >> observed
+    decode >> select(UsbBootKeyboardResult.keyboard, unmatched=drop) >> normalize.report
+    normalize.sorted >> decoded
+}
+
+# Boot motion has the specified -127..127 logical domain. Extensions remain
+# uninterpreted wire truth; an optional wheel is not silently advertised.
+plot usb-hid-mouse-frame (
+    request: UsbHidDecodeRequest...| >> result: UsbBootMouseResult...|
+) = (.frame.actual != sequence/length(.frame.wire) ? malformed(unit) : (.frame.actual < 3 ? short(unit) : (.zero_reserved && (.frame.wire.0 & 248) != 0 ? reserved(unit) : (.frame.wire.1 == 128 || .frame.wire.2 == 128 ? invalid-motion(unit) : mouse({ buttons: .frame.wire.0 & 7, x: (.frame.wire.1 < 128 ? value/i16(.frame.wire.1) : value/i16(.frame.wire.1) - 256), y: (.frame.wire.2 < 128 ? value/i16(.frame.wire.2) : value/i16(.frame.wire.2) - 256), wire: .frame.wire })))))
+plot usb-hid-boot-mouse (
+    >> frame: UsbHidReportFrame...|
+    decoded: UsbBootMouseResult...| >>
+) {
+    profile: usb-hid-standard-report()
+    decode: usb-hid-mouse-frame()
+    frame >> profile >> decode >> decoded
+}
+plot usb-hid-boot-mouse-zero-reserved (
+    >> frame: UsbHidReportFrame...|
+    decoded: UsbBootMouseResult...| >>
+) {
+    profile: usb-hid-zero-reserved-report()
+    decode: usb-hid-mouse-frame()
+    frame >> profile >> decode >> decoded
+}
