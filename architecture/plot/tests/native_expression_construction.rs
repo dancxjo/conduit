@@ -213,3 +213,20 @@ fn nested_conditional_and_variant_fields_preserve_every_active_refinement() {
         .unwrap_err()
         .contains("law validator"));
 }
+
+#[test]
+fn variant_payload_projection_preserves_exact_forwarded_refinements() {
+    let source = "type Address = {\n address: U8 in 8..=119\n}\ntype Choice =\n known Address\n | missing\nplot choose (\n >> input: Choice\n output: Choice >>\n) = (. is known ? known({address: .known.address}) : missing(unit))\n";
+    assert!(compile(source).is_ok());
+    let broad_input = "type Broad = {\n address: U8 in 0..=255\n}\ntype InputChoice =\n known Broad\n | missing\n";
+    let rejected = format!(
+        "{broad_input}{}",
+        source.replace("input: Choice", "input: InputChoice")
+    );
+    assert!(compile(&rejected).unwrap_err().contains("law validator"));
+    assert!(
+        compile(&source.replace("address: .known.address", "address: .known.address + 1"))
+            .unwrap_err()
+            .contains("law validator")
+    );
+}

@@ -138,7 +138,15 @@ fn input_path(node: &PortableExpressionNode) -> Option<String> {
             member: PortableExpressionProjection::Field(field),
         } => {
             let mut path = input_path(value)?;
-            path.push('.');
+            match value.value_type.shape() {
+                StructuredInfoTypeShape::Variant { cases, .. } => {
+                    if !cases.iter().any(|case| case.tag() == field) {
+                        return None;
+                    }
+                    path.push('|');
+                }
+                _ => path.push('.'),
+            }
             path.push_str(field);
             Some(path)
         }
