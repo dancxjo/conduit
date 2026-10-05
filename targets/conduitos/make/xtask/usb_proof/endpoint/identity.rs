@@ -1,15 +1,12 @@
 //! Proof-specific Boot disposition: no product input offer is initialized.
 use super::{refusal, ConduitosError, GuestBootSign};
 
-pub(super) fn validate_boot_mode(sign: &GuestBootSign, hid: bool) -> Result<(), ConduitosError> {
-    let (profile, arena) = if hid {
-        (
-            conduitos::make::USB_HID_ENDPOINT_QEMU_PROFILE,
-            conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES,
-        )
-    } else {
-        (conduitos::make::USB_ENDPOINT_QEMU_PROFILE, 16 * 1024 * 1024)
-    };
+pub(super) fn validate_boot_mode(
+    sign: &GuestBootSign,
+    mode: super::ProofMode,
+) -> Result<(), ConduitosError> {
+    let profile = mode.qemu_profile();
+    let arena = mode.arena_bytes();
     let exact_id =
         |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
     if sign.schema != "conduit.conduitos.boot-sign/v1"
@@ -61,19 +58,31 @@ mod tests {
     #[test]
     fn hid_boot_requires_its_exact_profile_and_preparation_budget() {
         let mut sign = specimen();
-        assert!(validate_boot_mode(&sign, true).is_err());
+        assert!(validate_boot_mode(&sign, super::super::ProofMode::Keyboard).is_err());
         sign.qemu_profile = conduitos::make::USB_HID_ENDPOINT_QEMU_PROFILE.into();
-        assert!(validate_boot_mode(&sign, true).is_err());
+        assert!(validate_boot_mode(&sign, super::super::ProofMode::Keyboard).is_err());
         sign.runtime_arena_bytes = conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES;
-        validate_boot_mode(&sign, true).unwrap();
-        assert!(validate_boot_mode(&sign, false).is_err());
+        validate_boot_mode(&sign, super::super::ProofMode::Keyboard).unwrap();
+        assert!(validate_boot_mode(&sign, super::super::ProofMode::Raw).is_err());
         sign.runtime_arena_bytes -= 1;
-        assert!(validate_boot_mode(&sign, true).is_err());
+        assert!(validate_boot_mode(&sign, super::super::ProofMode::Keyboard).is_err());
+    }
+
+    #[test]
+    fn mouse_boot_refuses_substituted_keyboard_profile() {
+        use super::super::ProofMode;
+        let mut sign = specimen();
+        sign.runtime_arena_bytes = ProofMode::Mouse.arena_bytes();
+        sign.qemu_profile = ProofMode::Keyboard.qemu_profile().into();
+        assert!(validate_boot_mode(&sign, ProofMode::Mouse).is_err());
+        sign.qemu_profile = ProofMode::Mouse.qemu_profile().into();
+        validate_boot_mode(&sign, ProofMode::Mouse).unwrap();
+        assert!(validate_boot_mode(&sign, ProofMode::Keyboard).is_err());
     }
 
     #[test]
     fn endpoint_boot_refuses_wrong_profile_budget_and_invented_product_offer() {
-        validate_boot_mode(&specimen(), false).unwrap();
+        validate_boot_mode(&specimen(), super::super::ProofMode::Raw).unwrap();
         for (field, value) in [
             ("schema", serde_json::json!("wrong")),
             ("status", serde_json::json!("refused")),
@@ -97,7 +106,7 @@ mod tests {
             candidate[field] = value;
             let candidate = serde_json::from_value(candidate).unwrap();
             assert!(
-                validate_boot_mode(&candidate, false).is_err(),
+                validate_boot_mode(&candidate, super::super::ProofMode::Raw).is_err(),
                 "accepted {field}"
             );
         }

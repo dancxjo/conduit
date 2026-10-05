@@ -12,7 +12,9 @@ use crate::{
 };
 
 #[cfg(any(test, target_arch = "x86_64"))]
-const BOOT_QEMU_PROFILE: &str = if cfg!(feature = "usb-hid-endpoint-proof") {
+const BOOT_QEMU_PROFILE: &str = if cfg!(feature = "usb-hid-mouse-proof") {
+    crate::make::USB_HID_MOUSE_QEMU_PROFILE
+} else if cfg!(feature = "usb-hid-endpoint-proof") {
     crate::make::USB_HID_ENDPOINT_QEMU_PROFILE
 } else if cfg!(feature = "usb-endpoint-read-proof") {
     crate::make::USB_ENDPOINT_QEMU_PROFILE
