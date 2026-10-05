@@ -93,3 +93,6 @@ extern "C" fn conduitos_exception_handler(vector: u64) -> ! {
     serial::early_write(b"\n");
     cpu::deterministic_exit(false)
 }
+
+#[cfg(feature = "usb-endpoint-read-proof")]
+pub use usb::run_usb_endpoint_read_proof;

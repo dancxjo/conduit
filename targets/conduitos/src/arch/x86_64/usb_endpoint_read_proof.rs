@@ -1,5 +1,5 @@
 //! Explicit raw endpoint proof appliance; no report decoding or class policy.
-#![allow(dead_code)] // Dedicated proof entrance is not installed yet.
+#![allow(dead_code)] // Invoked only by the explicitly selected raw endpoint proof appliance.
 use super::{
     UsbDevice,
     endpoint_read::{EndpointReceiveDma, UsbEndpointReadHostCall},
@@ -43,6 +43,30 @@ static mut PROOF_DMA: ProofDma = ProofDma {
     cursor: None,
 };
 
+pub fn run_appliance(
+    controller: &mut XhciReady,
+    device: UsbDevice,
+    mapping: fn(u64) -> Option<u64>,
+    ids: &BootIdentities,
+    base: &[u8; 32],
+) -> Result<(), &'static str> {
+    let endpoint = device.endpoints[0];
+    if device.endpoint_count != 1
+        || endpoint.address != 0x81
+        || endpoint.transfer_type != 3
+        || endpoint.maximum_packet_size != 8
+    {
+        return Err("usb-endpoint-proof-fixture-attachment");
+    }
+    let parameters = InboundEndpointParameters {
+        address: endpoint.address,
+        transfer_type: endpoint.transfer_type,
+        packet_field: endpoint.maximum_packet_size,
+        interval: endpoint.interval,
+    };
+    run(controller, device, mapping, ids, base, parameters)
+}
+
 /// Only the explicitly selected proof appliance invokes this Root grant recipe.
 /// Endpoint fields are fixture input, not discovery-derived authority.
 pub(super) fn run(
@@ -60,31 +84,6 @@ pub(super) fn run(
     let dci = ((parameters.address & 15) << 1) | 1;
     let endpoint_epoch = 1;
     let device_id = identity::derive_usb_device(&ids.boot, base, root_port, slot, epoch);
-    let plan = planning::plan(
-        &contract,
-        &EndpointReadProofSubject {
-            host_id: &identity::hex(&ids.host),
-            boot_id: &identity::hex(&ids.boot),
-            controller_base_id: &identity::hex(base),
-            device_instance_id: &identity::hex(&device_id),
-            root_port,
-            slot,
-            attachment_epoch: epoch,
-            endpoint_dci: dci,
-            endpoint_epoch,
-        },
-    )?;
-    let (mut kernel, input_port, output_port) = kernel::kernel(&plan)?;
-    let (table, handle, claim) = possession::issue(&plan)?;
-    let fragment = &plan.fragments[0];
-    let gear = &fragment.placements[0];
-    let lowered = lower_plan_fragment(fragment).map_err(|_| "usb-endpoint-proof-lowering")?;
-    let node = lowered.nodes[0].node;
-    let call = conduit_kernel::HostCallId(0);
-    let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-    if kernel.active_plays().get(&fragment.host_id) != Some(&active.active_play_id) {
-        return Err("usb-endpoint-proof-play");
-    }
     let storage = core::ptr::addr_of_mut!(PROOF_DMA);
     let virtual_start = storage as u64;
     let physical = mapping(virtual_start).ok_or("usb-endpoint-proof-mapping")?;
@@ -122,6 +121,32 @@ pub(super) fn run(
         )
     }
     .map_err(|_| "usb-endpoint-proof-configuration")?;
+    // Publish readiness and issue possession only after native configuration is acknowledged.
+    let plan = planning::plan(
+        &contract,
+        &EndpointReadProofSubject {
+            host_id: &identity::hex(&ids.host),
+            boot_id: &identity::hex(&ids.boot),
+            controller_base_id: &identity::hex(base),
+            device_instance_id: &identity::hex(&device_id),
+            root_port,
+            slot,
+            attachment_epoch: epoch,
+            endpoint_dci: dci,
+            endpoint_epoch,
+        },
+    )?;
+    let (mut kernel, input_port, output_port) = kernel::kernel(&plan)?;
+    let (table, handle, claim) = possession::issue(&plan)?;
+    let fragment = &plan.fragments[0];
+    let gear = &fragment.placements[0];
+    let lowered = lower_plan_fragment(fragment).map_err(|_| "usb-endpoint-proof-lowering")?;
+    let node = lowered.nodes[0].node;
+    let call = conduit_kernel::HostCallId(0);
+    let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    if kernel.active_plays().get(&fragment.host_id) != Some(&active.active_play_id) {
+        return Err("usb-endpoint-proof-play");
+    }
     let mut owner = unsafe {
         UsbEndpointReadHostCall::bind_selected(
             controller,

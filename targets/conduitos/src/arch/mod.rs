@@ -109,3 +109,6 @@ pub use armv6::{
 };
 #[cfg(target_arch = "arm")]
 pub const ARCHITECTURE: &str = "armv6";
+
+#[cfg(all(target_arch = "x86_64", feature = "usb-endpoint-read-proof"))]
+pub use x86_64::run_usb_endpoint_read_proof;
