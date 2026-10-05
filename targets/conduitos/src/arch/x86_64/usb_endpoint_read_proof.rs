@@ -56,7 +56,12 @@ pub fn run_appliance(
     if device.endpoint_count != 1
         || endpoint.address != 0x81
         || endpoint.transfer_type != 3
-        || endpoint.maximum_packet_size != 8
+        || endpoint.maximum_packet_size
+            != if cfg!(feature = "usb-hid-mouse-proof") {
+                4
+            } else {
+                8
+            }
     {
         return Err("usb-endpoint-proof-fixture-attachment");
     }

@@ -13,6 +13,12 @@ pub(super) fn run(
     ids: &BootIdentities,
     base: &[u8; 32],
 ) -> Result<(), &'static str> {
+    let mouse = cfg!(feature = "usb-hid-mouse-proof");
+    let entry = if mouse {
+        "usb-hid-mouse-endpoint"
+    } else {
+        "usb-hid-keyboard-endpoint"
+    };
     let slot = device.slot;
     let dci = configured.dci;
     let endpoint_epoch = configured.endpoint_epoch;
@@ -31,7 +37,7 @@ pub(super) fn run(
             endpoint_dci: dci,
             endpoint_epoch,
         },
-        "usb-hid-keyboard-endpoint",
+        entry,
     )
     .map_err(|_| "usb-hid-native-plan")?;
     let plan = artifact.artifact().definition().internal_plan.clone();
@@ -104,13 +110,13 @@ pub(super) fn run(
         .iter()
         .find(|port| port.port_id.as_str() == "read")
         .ok_or("usb-hid-native-read")?;
-    let begin = inputs
-        .iter()
-        .find(|port| port.port_id.as_str() == "begin")
-        .ok_or("usb-hid-native-begin")?;
+    let begin = inputs.iter().find(|port| port.port_id.as_str() == "begin");
+    if begin.is_some() == mouse {
+        return Err("usb-hid-native-entry-inputs");
+    }
     let device_hex = identity::hex(&device_id);
     let unit = ValuePayload {
-        value_kind: begin.value_kind.clone(),
+        value_kind: read.value_kind.clone(),
         encoded: Vec::new(),
     };
     // Root has retained every owner, buffer and identity. From here through
@@ -119,12 +125,14 @@ pub(super) fn run(
     play.kernel_mut()
         .start()
         .map_err(|_| "usb-hid-native-start")?;
-    play.kernel_mut()
-        .admit_input(&begin.port_id, 0, &unit)
-        .map_err(|_| "usb-hid-native-begin")?;
-    play.kernel_mut()
-        .close_input(&begin.port_id)
-        .map_err(|_| "usb-hid-native-begin")?;
+    if let Some(begin) = begin {
+        play.kernel_mut()
+            .admit_input(&begin.port_id, 0, &unit)
+            .map_err(|_| "usb-hid-native-begin")?;
+        play.kernel_mut()
+            .close_input(&begin.port_id)
+            .map_err(|_| "usb-hid-native-begin")?;
+    }
     let mut digest = Sha256::new();
     let mut wraps = 0;
     let mut cycle = 1;
@@ -197,9 +205,10 @@ pub(super) fn run(
             return Err("usb-hid-native-timeout-retained-dma");
         }
         let mut seen = [false; 3];
-        if outputs.len() != seen.len() {
+        if outputs.len() != if mouse { 2 } else { 3 } {
             return Err("usb-hid-native-output-count");
         }
+        let seen = &mut seen[..outputs.len()];
         for _ in 0..2048 {
             play.kernel_mut()
                 .step()
