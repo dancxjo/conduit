@@ -9,6 +9,9 @@ use conduitos::{
 };
 use core::panic::PanicInfo;
 
+#[cfg(feature = "ia32-a3")]
+mod timer_takeover;
+
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
 
@@ -106,6 +109,7 @@ extern "C" fn conduitos_ia32_a2_rust_entry() -> ! {
                 break;
             }
             Some(arch::InterruptFact::WrongSource(_)) => refuse("wrong-wake-source"),
+            Some(arch::InterruptFact::UnarmedTimer) => refuse("unadmitted-timer-wake"),
             Some(arch::InterruptFact::Overflow) => refuse("interrupt-fact-capacity-exhausted"),
             None => continue,
         }
@@ -134,7 +138,7 @@ extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
             )
             .unwrap_or_else(|_| refuse("memory-base-unavailable"));
     }
-    arch::initialize_machine();
+    timer_takeover::prove().unwrap_or_else(|error| refuse(error));
     let counter = arch::read_counter();
     entry_sign(counter);
     let identities = conduitos::identity::derive(

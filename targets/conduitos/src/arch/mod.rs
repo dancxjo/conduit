@@ -31,6 +31,9 @@ pub use x86_64::{
 pub const ARCHITECTURE: &str = "x86_64";
 #[cfg(target_arch = "x86")]
 mod ia32;
+#[cfg(any(target_arch = "x86", test))]
+#[path = "ia32/timer_lifecycle.rs"]
+mod ia32_timer_lifecycle;
 #[cfg(any(target_arch = "x86", all(test, target_arch = "x86_64")))]
 #[cfg_attr(all(test, target_arch = "x86_64"), allow(dead_code))]
 #[path = "ia32/vga_text.rs"]
