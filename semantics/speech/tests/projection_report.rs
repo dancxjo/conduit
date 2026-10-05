@@ -6,6 +6,16 @@ use conduit_speech::semantic::*;
 fn t(s: &str) -> ProjectionText<'_> {
     ProjectionText::new(s).unwrap()
 }
+fn portable_phone() -> SpeechPhone {
+    SpeechPhone::new(
+        BoundedSequence::new(),
+        SpeechFeatureBundle::new(BoundedSequence::new()).unwrap(),
+        PhoneId::new("portable/aspirated-t".into()).unwrap(),
+        "tʰ".into(),
+        SpeechSegmentStatus::Allophonic,
+    )
+    .unwrap()
+}
 struct ModelProjection;
 #[derive(PartialEq, Eq)]
 enum PhoneLoss {
@@ -20,7 +30,7 @@ impl ProjectionDomain for ModelProjection {
     type Target = PrivateSymbol;
     type Detail = PhoneLoss;
     fn source_contract(&self) -> ProjectionText<'_> {
-        t("speech/phone@1")
+        t("speech/aspirated-phone-specimen@1")
     }
     fn target_contract(&self) -> ProjectionText<'_> {
         t("checkpoint/demo-vocab@1")
@@ -34,7 +44,7 @@ impl ProjectionDomain for ModelProjection {
         scores: &[ProjectionScore<'_>],
         _mechanism: ProjectionMechanism,
     ) -> bool {
-        source.ipa() == "tʰ"
+        source == &portable_phone()
             && facts.len() == 1
             && native.is_empty()
             && scores.is_empty()
@@ -75,14 +85,7 @@ impl ProjectionPolicy<ModelProjection> for Approximation {
 }
 #[test]
 fn private_vocabulary_requires_exact_admission_of_aspiration_approximation() {
-    let source = SpeechPhone::new(
-        BoundedSequence::new(),
-        SpeechFeatureBundle::new(BoundedSequence::new()).unwrap(),
-        PhoneId::new("portable/aspirated-t".into()).unwrap(),
-        "tʰ".into(),
-        SpeechSegmentStatus::Allophonic,
-    )
-    .unwrap();
+    let source = portable_phone();
     let target = PrivateSymbol {
         checkpoint: "checkpoint/demo/1",
         symbol: 42,
@@ -143,6 +146,20 @@ fn private_vocabulary_requires_exact_admission_of_aspiration_approximation() {
     );
     assert!(matches!(
         ProjectionReport::new(&domain, &policy, input(&[])),
+        Err(ProjectionRefusal::Domain)
+    ));
+    let unadmitted = SpeechPhone::new(
+        source.aliases().clone(),
+        source.features().clone(),
+        PhoneId::new("portable/different-phone".into()).unwrap(),
+        source.ipa().clone(),
+        *source.status(),
+    )
+    .unwrap();
+    let mut draft = input(&facts);
+    draft.source = &unadmitted;
+    assert!(matches!(
+        ProjectionReport::new(&domain, &policy, draft),
         Err(ProjectionRefusal::Domain)
     ));
     let silent = [ProjectionFact::Preserved {
