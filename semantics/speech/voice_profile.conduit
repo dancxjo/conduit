@@ -62,3 +62,10 @@ type SpeechFormantProfileBasis = {
     where .inventory_id == .profile_inventory_id
     where .language == .profile_language
 }
+
+# An explicit profile attaches an opaque feature key to the aspiration cue.
+# The enclosed voice is the exact base realization; IDs are never interpreted.
+type SpeechFormantAspirationProfile = {
+    feature_id: SpeechFeatureId
+    voice: SpeechFormantVoiceProfile
+}

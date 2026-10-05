@@ -558,3 +558,9 @@ mod default_intent_cases;
 
 #[path = "common/sourced_global_intent_cases.rs"]
 mod sourced_intent_cases;
+
+#[path = "common/aspiration_cases.rs"]
+mod aspiration_cases;
+
+#[path = "common/aspiration_default_cases.rs"]
+mod aspiration_default_cases;
