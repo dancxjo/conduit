@@ -150,7 +150,7 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
         }
         validate_terminal(input.mechanism)?;
         if let Some(index) = input.selected_attempt {
-            if index + 1 != input.attempts.len()
+            if index.checked_add(1) != Some(input.attempts.len())
                 || input
                     .attempts
                     .get(index)

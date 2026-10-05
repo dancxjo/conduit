@@ -295,3 +295,16 @@ fn attempt_pressure_and_unknown_native_identity_refuse_before_domain_admission()
         Err(ProjectionRefusal::AttemptBound)
     ));
 }
+
+#[test]
+fn maximum_selected_attempt_index_is_typed_refusal_without_overflow() {
+    let domain = Bits;
+    let policy = Budget(0);
+    let source = 0;
+    let mut draft = input(&source, Some(&source), &[]);
+    draft.selected_attempt = Some(usize::MAX);
+    assert!(matches!(
+        ProjectionReport::new(&domain, &policy, draft),
+        Err(ProjectionRefusal::AttemptOutcome)
+    ));
+}
