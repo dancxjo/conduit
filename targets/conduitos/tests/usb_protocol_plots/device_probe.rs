@@ -147,17 +147,10 @@ fn inconsistent_counts_and_shortness_are_malformed() {
 
 #[test]
 fn device_probe_expands_into_control_and_source_operations() {
-    use conduit_plot::{
-        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-    };
-    let contract = ControlContract::prepare().unwrap();
-    let (startup, profile) = contract.catalogs();
-    let parsed = parse_syntax_document(&source());
-    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
-    let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let expanded = expand_canonical_plot_for_authoring(&checked, "usb-device-probe", &profile)
-        .unwrap()
-        .expanded;
+    use conduitos::protocol_source::{PreparedProtocolSource, ProtocolSourcePackage};
+    let package = ProtocolSourcePackage::compile(source(), &[]).unwrap();
+    let prepared = PreparedProtocolSource::prepare(package).unwrap();
+    let expanded = prepared.expand("usb-device-probe").unwrap().expanded;
     assert_eq!(
         expanded
             .gears
