@@ -4,8 +4,12 @@ use conduit_plot::*;
 pub const SOURCE: &str = include_str!("../../plots/usb/hid-reports.conduit");
 
 pub fn program(entry: &str) -> PortableExpressionProgram {
+    program_from(SOURCE, entry)
+}
+
+pub fn program_from(source: &str, entry: &str) -> PortableExpressionProgram {
     let checked =
-        check_syntax_document(&parse_syntax_document(SOURCE), &StartupCatalog::new()).unwrap();
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new())
         .unwrap()
         .expanded;
