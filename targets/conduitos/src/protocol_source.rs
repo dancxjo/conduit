@@ -109,6 +109,7 @@ impl PreparedProtocolSource {
         let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
         let (mut startup, mut profile) = i2c.catalogs();
         install_clock(&mut startup, &mut profile)?;
+        usb_catalog::install(&mut startup, &mut profile)?;
         let mut operations = ProtocolOperations::default();
         let mut capabilities = Vec::new();
         for specialization in &package.specializations {
@@ -300,6 +301,8 @@ mod schema_encoding {
 
 #[cfg(test)]
 mod tests;
+
+mod usb_catalog;
 
 mod planning;
 pub use planning::ProtocolQueueLimits;

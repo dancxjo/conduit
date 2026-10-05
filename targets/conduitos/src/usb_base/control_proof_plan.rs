@@ -46,6 +46,59 @@ pub fn plan(
     .map_err(|_| "usb-control-proof-planning")?;
     let authoring = expand_canonical_plot_for_authoring(&checked, "usb-control-call", &profile)
         .map_err(|_| "usb-control-proof-planning")?;
+    let (host, grants) = host_and_grants(contract, subject)?;
+    let hosts = [host];
+    let placements = default_expanded_placements(&authoring.expanded, &hosts)
+        .map_err(|_| "usb-control-proof-planning")?;
+    let boundaries = authoring
+        .input_bindings
+        .iter()
+        .map(|binding| (PortDirection::Input, binding))
+        .chain(
+            authoring
+                .output_bindings
+                .iter()
+                .map(|binding| (PortDirection::Output, binding)),
+        )
+        .map(|(direction, binding)| {
+            (
+                ForeBoundaryKey {
+                    direction,
+                    front_port_id: binding.front_port_id.clone(),
+                    track: binding.track,
+                },
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: CONTROL_MAXIMUM_BYTES,
+                },
+            )
+        })
+        .collect();
+    plan_expanded_authoring_with_options(
+        &authoring,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: CONTROL_MAXIMUM_BYTES,
+            authority_grants: &grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundaries,
+    )
+    .map_err(|_| "usb-control-proof-planning")
+}
+
+/// Explicit fixture-root advertisement and grants, shared by checked USB proofs.
+/// No discovery or Source metadata is treated as possession.
+pub(super) fn host_and_grants(
+    contract: &ControlContract,
+    subject: &ControlProofSubject<'_>,
+) -> Result<(HostAdvertisement, [AuthorityGrant; 1]), &'static str> {
     let kind = contract.kind();
     let offer = conduit_core::capability_offer_from_parts! {
         semantic_contract: kind.semantic_contract(),
@@ -114,48 +167,5 @@ pub fn plan(
         boot_id: host.boot_id.clone(),
         capability_id: CONTROL_IMPLEMENTATION.into(),
     }];
-    let hosts = [host];
-    let placements = default_expanded_placements(&authoring.expanded, &hosts)
-        .map_err(|_| "usb-control-proof-planning")?;
-    let boundaries = authoring
-        .input_bindings
-        .iter()
-        .map(|binding| (PortDirection::Input, binding))
-        .chain(
-            authoring
-                .output_bindings
-                .iter()
-                .map(|binding| (PortDirection::Output, binding)),
-        )
-        .map(|(direction, binding)| {
-            (
-                ForeBoundaryKey {
-                    direction,
-                    front_port_id: binding.front_port_id.clone(),
-                    track: binding.track,
-                },
-                ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: CONTROL_MAXIMUM_BYTES,
-                },
-            )
-        })
-        .collect();
-    plan_expanded_authoring_with_options(
-        &authoring,
-        &hosts,
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 1,
-            connection_byte_capacity: CONTROL_MAXIMUM_BYTES,
-            authority_grants: &grants,
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
-        &boundaries,
-    )
-    .map_err(|_| "usb-control-proof-planning")
+    Ok((host, grants))
 }

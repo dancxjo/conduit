@@ -30,7 +30,7 @@ use crate::{
 #[path = "usb_control_kernel_proof/kernel.rs"]
 mod kernel;
 #[path = "usb_control_kernel_proof/possession.rs"]
-mod possession;
+pub(super) mod possession;
 
 pub fn run(
     controller: &mut XhciReady,

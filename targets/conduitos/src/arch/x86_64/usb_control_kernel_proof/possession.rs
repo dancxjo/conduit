@@ -1,6 +1,6 @@
 //! Explicit proof-root issuance; observation never creates a grant.
 use super::*;
-pub(super) fn issue(
+pub(in crate::arch::x86_64::usb) fn issue(
     plan: &Plan,
 ) -> Result<
     (
@@ -11,7 +11,14 @@ pub(super) fn issue(
     &'static str,
 > {
     let fragment = &plan.fragments[0];
-    let gear = &fragment.placements[0];
+    let mut selected = fragment
+        .placements
+        .iter()
+        .filter(|gear| gear.implementation_id.as_str() == CONTROL_IMPLEMENTATION);
+    let gear = selected.next().ok_or("usb-control-proof-possession")?;
+    if selected.next().is_some() {
+        return Err("usb-control-proof-possession");
+    }
     let base = gear.base.as_ref().ok_or("usb-control-proof-possession")?;
     let grant = &gear.authority[0];
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
