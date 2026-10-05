@@ -18,6 +18,8 @@ use crate::{
 };
 
 mod cli;
+#[path = "check/owner_presentation.rs"]
+mod owner_presentation;
 pub use cli::{CheckArgs, CheckScope, CheckSuite};
 
 pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
@@ -50,6 +52,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
+        CheckSuite::OwnerPresentation => run_suite(owner_presentation::STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
         CheckSuite::IsolatedHttpBase => run_suite(ISOLATED_HTTP_BASE_STEPS, &root, opts),

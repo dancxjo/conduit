@@ -23,6 +23,7 @@ is not itself evidence that every target implements it.
 
 ## Bodies, resources, and lifecycle
 
+- [Owner presentation routes](owner-presentation-routes.md)
 - [Body lifecycle boundaries](body-lifecycle-waists.md)
 - [Durable continuity](durable-continuity.md)
 - [Optional pre-play hold](pre-play-hold.md)

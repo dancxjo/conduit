@@ -439,3 +439,6 @@ fn closed_provider_before_ack_never_retains_an_available_show() {
     assert!(runtime.host.advertisement().offer_generation > before.offer_generation);
     fs::remove_dir_all(state).unwrap();
 }
+
+#[path = "action_tests.rs"]
+mod action_tests;
