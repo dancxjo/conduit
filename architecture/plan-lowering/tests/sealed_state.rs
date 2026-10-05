@@ -108,6 +108,7 @@ fn plan_sealed_fore_ports_lower_to_exact_bounded_remote_cords() {
             pressure_policy: DeliveryPressurePolicy::PreserveOrder,
             item_capacity: 1,
             byte_capacity: 1,
+            selected_line: None,
         },
         PlannedForePort {
             front_port_id: conduit_core::port_id("show"),
@@ -122,6 +123,7 @@ fn plan_sealed_fore_ports_lower_to_exact_bounded_remote_cords() {
             pressure_policy: DeliveryPressurePolicy::PreserveOrder,
             item_capacity: 1,
             byte_capacity: 1,
+            selected_line: None,
         },
     ];
     let plan = common::seal(fragment);
@@ -184,6 +186,7 @@ fn abnormal_fore_projection_retains_its_exact_contract_through_lowering() {
         pressure_policy: DeliveryPressurePolicy::PreserveOrder,
         item_capacity: 1,
         byte_capacity: 8,
+        selected_line: None,
     }];
     let plan = common::seal(fragment);
     assert!(conduit_core::verify_plan(&plan));

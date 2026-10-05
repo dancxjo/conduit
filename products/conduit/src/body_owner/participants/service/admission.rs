@@ -175,7 +175,7 @@ impl Owner {
                 AdmissionManager::new(self.session.evidence().body_id.clone()).map_err(debug)?,
             );
             let mut session = self.session.clone();
-            let authority = self.host.advertisement();
+            let authority = self.host.advertisement().clone();
             let credential = match (&pending.kind, frame) {
                 (
                     PendingKind::Ambient {
@@ -302,16 +302,23 @@ impl Owner {
                 self.admissions = before_manager;
                 return Err(error);
             }
+            let line_authorization =
+                BrowserLineAuthorization::issue(&window.id, &pending.binding, &credential);
             let snapshot = BrowserAdmittedSnapshot {
                 credential: credential.clone(),
                 biography: Box::new(self.session.evidence().clone()),
                 offer: Box::new(offer),
+                owner_advertisement: Some(Box::new(authority.clone())),
+                browser_advertisement: Some(Box::new(pending.observation.advertisement.clone())),
+                line_authorization: Some(line_authorization.clone()),
             };
             window.state = WindowState::Active {
                 presence_deadline: Instant::now()
                     + Duration::from_millis(MAX_BROWSER_PRESENCE_MILLIS),
                 credential,
                 observation: Box::new(pending.observation.clone()),
+                line_authorization: Box::new(line_authorization),
+                line_evidence: None,
                 route: None,
                 acknowledged_show: None,
             };

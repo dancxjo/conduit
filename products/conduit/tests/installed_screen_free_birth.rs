@@ -34,7 +34,16 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     ));
     fs::create_dir_all(&state).unwrap();
     seed_installation(&state);
+    let offline_zero_status = host_service_status(&state);
+    assert_eq!(offline_zero_status["presence"], "installed-offline");
+    assert!(offline_zero_status["body_id"].is_null());
     let mut service = start_service(&state);
+    let zero_body_status = host_service_status(&state);
+    assert_eq!(
+        zero_body_status["schema"],
+        "conduit.install/durable-host-runtime@1"
+    );
+    assert!(zero_body_status["body_id"].is_null());
 
     let before = product(&["body", "face", "--state-dir", path(&state), "--json"]);
     assert!(
@@ -95,6 +104,17 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
         1
     );
     assert!(spoken.contains(body_id));
+    let born_status = host_service_status(&state);
+    assert_eq!(born_status["body_id"], body_id);
+    for field in [
+        "host_id",
+        "boot_id",
+        "offer_generation",
+        "process_id",
+        "release_bundle_sha256",
+    ] {
+        assert_eq!(born_status[field], zero_body_status[field], "{field}");
+    }
 
     let face = product(&["body", "face", "--state-dir", path(&state), "--json"]);
     assert!(
@@ -150,8 +170,19 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     );
 
     stop_service(&mut service);
+    let offline_status = host_service_status(&state);
+    assert_eq!(
+        offline_status["schema"],
+        "conduit.install/durable-host-status@1"
+    );
+    assert_eq!(offline_status["presence"], "installed-offline");
+    assert_eq!(offline_status["body_id"], body_id);
     fs::remove_file(state.join("control.sock")).unwrap();
     service = start_service(&state);
+    let recovered_status = host_service_status(&state);
+    assert_eq!(recovered_status["body_id"], body_id);
+    assert_eq!(recovered_status["host_id"], born_status["host_id"]);
+    assert_ne!(recovered_status["boot_id"], born_status["boot_id"]);
     let recovered = product(&["body", "face", "--state-dir", path(&state), "--json"]);
     assert!(
         recovered.status.success(),
@@ -216,13 +247,14 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     let focused = read_until_prompt(&mut output, b"body> ");
     assert!(!focused.contains("Refused action:"), "{focused}");
 
+    // Leave time to exercise active-state controls even on a busy CI host.
     let started = product(&[
         "body",
         "start",
         "--state-dir",
         path(&state),
         "--maximum-millis",
-        "1000",
+        "30000",
     ]);
     assert!(
         started.status.success(),
@@ -280,7 +312,12 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
         started_from_face.contains("Owner action result:"),
         "{started_from_face}"
     );
-    let playing = local_face(&state);
+    // Start acknowledges a request; observe the published Play before using
+    // its controls, then explicitly reorient the client to that current Show.
+    let playing = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
+    input.write_all(b"refresh\n").unwrap();
+    let refreshed = read_until_prompt(&mut output, b"body> ");
+    assert!(!refreshed.contains("Owner action result:"), "{refreshed}");
     assert!(!action_available(&playing, "conduit.intent/start-clock@1"));
     assert!(action_available(&playing, "conduit.intent/lull-clock@1"));
     let lull = action_id(&playing, "conduit.intent/lull-clock@1");
@@ -291,7 +328,12 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     assert!(!focused_lull.contains("Refused action:"), "{focused_lull}");
     let lulled = read_until_prompt(&mut output, b"body> ");
     assert!(lulled.contains("Owner action result:"), "{lulled}");
-    let current = local_face(&state);
+    // Lull is also requested asynchronously; do not select the next Start
+    // against a snapshot taken before retirement has reached the owner.
+    let current = wait_for_available_action(&state, "conduit.intent/start-clock@1");
+    input.write_all(b"refresh\n").unwrap();
+    let refreshed = read_until_prompt(&mut output, b"body> ");
+    assert!(!refreshed.contains("Owner action result:"), "{refreshed}");
     assert!(action_available(&current, "conduit.intent/start-clock@1"));
     assert!(!action_available(&current, "conduit.intent/lull-clock@1"));
     let wake = action_id(&current, "conduit.intent/start-clock@1");
@@ -302,7 +344,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     assert!(!focused_wake.contains("Refused action:"), "{focused_wake}");
     let woke = read_until_prompt(&mut output, b"body> ");
     assert!(woke.contains("Owner action result:"), "{woke}");
-    let resumed = local_face(&state);
+    let resumed = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
     assert!(!action_available(&resumed, "conduit.intent/start-clock@1"));
     assert!(action_available(&resumed, "conduit.intent/lull-clock@1"));
     input.write_all(b"read all\n").unwrap();
@@ -468,6 +510,21 @@ fn action_available(face: &Value, intent: &str) -> bool {
         .find(|action| action["intent"] == intent)
         .unwrap_or_else(|| panic!("missing current action {intent}"))["availability"]
         == "Available"
+}
+
+fn wait_for_available_action(state: &Path, intent: &str) -> Value {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let face = local_face(state);
+        if action_available(&face, intent) {
+            return face;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "owner did not publish {intent}: {face}"
+        );
+        thread::sleep(Duration::from_millis(10));
+    }
 }
 
 fn read_until_prompt(input: &mut impl Read, prompt: &[u8]) -> String {
@@ -682,6 +739,23 @@ fn product(arguments: &[&str]) -> Output {
         .args(arguments)
         .output()
         .unwrap()
+}
+
+fn host_service_status(state: &Path) -> Value {
+    let output = product(&[
+        "host",
+        "service",
+        "status",
+        "--state-dir",
+        path(state),
+        "--json",
+    ]);
+    assert!(
+        output.status.success(),
+        "host service status failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
 }
 
 fn product_with_stdin(arguments: &[&str], input: &[u8]) -> Output {

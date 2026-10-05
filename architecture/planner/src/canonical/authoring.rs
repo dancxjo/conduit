@@ -243,6 +243,7 @@ fn seal_fore(
                 pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
                 item_capacity: limits.item_capacity,
                 byte_capacity: limits.byte_capacity,
+                selected_line: None,
             });
         }
     }

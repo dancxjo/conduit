@@ -385,6 +385,22 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     canonical.extend_from_slice(&fragment.sign_storage_budget.item_capacity.to_le_bytes());
     push_u32(&mut canonical, fragment.sign_storage_budget.byte_capacity);
     crate::state_delay::push_canonical_state(&mut canonical, &fragment.states);
+    // Keep the historical fingerprint byte-for-byte when no external Fore
+    // selects a Line. Bound Fore identities extend that canonical encoding.
+    let bound = fragment
+        .fore_ports
+        .iter()
+        .enumerate()
+        .filter_map(|(index, port)| port.selected_line.as_ref().map(|line| (index, line)))
+        .collect::<Vec<_>>();
+    if !bound.is_empty() {
+        push_string(&mut canonical, "conduit.plan/fore-lines@1");
+        push_u32(&mut canonical, bound.len() as u32);
+        for (index, line) in bound {
+            push_u32(&mut canonical, index as u32);
+            push_admitted_line(&mut canonical, line);
+        }
+    }
     FragmentId::from(hash_bytes(&canonical))
 }
 

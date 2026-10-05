@@ -39,16 +39,29 @@ fn main() {
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit")
     );
-    let semantic = check_syntax_document(
-        &parse_syntax_document(&semantic_source),
-        &StartupCatalog::new(),
-    )
-    .expect("Speaking segment and listening contracts check");
-    let bindings = conduit_plot::rust_binding::generate_rust_bindings(
+    let syntax_type = conduit_language::LinguisticSyntacticLinkKind::semantic_type()
+        .expect("language-owned syntax Type");
+    let mut semantic_catalog = StartupCatalog::new();
+    semantic_catalog
+        .insert_structured_type("LinguisticSyntacticLinkKind", syntax_type.clone())
+        .expect("language syntax installs once");
+    let semantic =
+        check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
+            .expect("Speaking segment and listening contracts check");
+    let StructuredInfoTypeShape::Variant { schema, .. } = syntax_type.shape() else {
+        panic!("language syntax is a variant")
+    };
+    let syntax_identity = schema.as_str().to_owned();
+    let bindings = conduit_plot::rust_binding::generate_rust_bindings_with_external_bindings(
         &semantic.native_types,
+        &[syntax_type],
+        &[conduit_plot::rust_binding::ExternalNativeRustBinding {
+            semantic_identity: &syntax_identity,
+            rust_type_path: "conduit_language::LinguisticSyntacticLinkKind",
+        }],
         &conduit_plot::rust_binding::RustBindingOptions::default(),
     )
-    .expect("Speaking native bindings");
+    .expect("Speaking bindings consume language-owned syntax");
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("semantic_types.rs"),
         bindings.source,
@@ -59,6 +72,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build_support/lower.rs");
     println!("cargo:rerun-if-changed=build_support/graph.rs");
     println!("cargo:rerun-if-changed=pronunciation.conduit");
+    println!("cargo:rerun-if-changed=inflection.conduit");
     println!("cargo:rerun-if-changed=trajectory.conduit");
     println!("cargo:rerun-if-changed=connection.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
@@ -66,12 +80,13 @@ fn main() {
     println!("cargo:rerun-if-changed=normalization.conduit");
     println!("cargo:rerun-if-changed=glottal.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("profile_phones.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
         fs::read_to_string(path).expect("native speech source"),
         include_str!("pronunciation.conduit"),
+        include_str!("inflection.conduit"),
         include_str!("trajectory.conduit"),
         include_str!("connection.conduit"),
         include_str!("prosody.conduit"),

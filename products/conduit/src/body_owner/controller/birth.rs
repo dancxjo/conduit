@@ -109,6 +109,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            presentation_wardrobe: None,
         }
     }
 }

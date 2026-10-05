@@ -89,3 +89,72 @@ type AnnotationBundleFour = {
     dependencies: collection LinguisticDependencyEdge = 3
     provenance: LinguisticDerivationProvenance
 }
+
+# UD v2 universal bases; distinct from the four-token fixture's relation family.
+# https://universaldependencies.org/u/dep/index.html
+# A subtype is an explicit finite suffix, not another universal base or a claim
+# that its language-specific usage has been validated.
+type LanguageUniversalDependencyRelation =
+    acl
+    | advcl
+    | advmod
+    | amod
+    | appos
+    | aux
+    | case
+    | cc
+    | ccomp
+    | clf
+    | compound
+    | conj
+    | cop
+    | csubj
+    | dep
+    | det
+    | discourse
+    | dislocated
+    | expl
+    | fixed
+    | flat
+    | goeswith
+    | iobj
+    | list
+    | mark
+    | nmod
+    | nsubj
+    | nummod
+    | obj
+    | obl
+    | orphan
+    | parataxis
+    | punct
+    | reparandum
+    | root
+    | vocative
+    | xcomp
+
+type LanguageDependencySubtype = Text <= 32B not in [""]
+type LanguageDependencyRelation = {
+    base: LanguageUniversalDependencyRelation
+    subtype: LanguageDependencySubtype?
+}
+
+# Analysis revision is distinct from source-text revision and commitment.
+type LanguageAnalysisRevisionId = Text <= 64B not in [""]
+type LanguageAnalysisTokenRef = {
+    revision: LanguageAnalysisRevisionId
+    token: LinguisticTokenIdentity
+}
+type LanguageDependencyHead =
+    root
+    | token LanguageAnalysisTokenRef
+
+type LanguageDependencyArc = {
+    dependent: LanguageAnalysisTokenRef
+    governor: LanguageDependencyHead
+    relation: LanguageDependencyRelation
+    where .governor is root ? .relation.base is root : !(.relation.base is root)
+    where .governor is token ? .governor.token.revision == .dependent.revision : true
+    where .governor is token ? .governor.token.token.text_identity == .dependent.token.text_identity : true
+    where .governor is token ? .governor.token.token.ordinal != .dependent.token.ordinal : true
+}

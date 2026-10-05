@@ -42,6 +42,8 @@ pub mod boundary_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod chosen_allophone_profile;
 #[cfg(feature = "semantic-bindings")]
+pub mod chosen_global_rule_profile;
+#[cfg(feature = "semantic-bindings")]
 pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
@@ -50,15 +52,25 @@ pub mod declared_context;
 #[cfg(feature = "semantic-bindings")]
 pub mod declared_realization;
 #[cfg(feature = "semantic-bindings")]
+pub mod default_output_features;
+#[cfg(feature = "semantic-bindings")]
 pub mod duration;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_bundle;
 #[cfg(feature = "semantic-bindings")]
 pub mod feature_match;
 #[cfg(feature = "semantic-bindings")]
+pub mod feature_realization;
+#[cfg(feature = "semantic-bindings")]
+pub mod global_intent_realization;
+#[cfg(feature = "semantic-bindings")]
+pub mod global_rule_selection;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
+#[cfg(feature = "semantic-bindings")]
+pub mod intent_phoneme_inventory;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_prosody;
 #[cfg(feature = "semantic-bindings")]
@@ -73,6 +85,8 @@ pub mod kernel;
 pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod occurrence_context;
+#[cfg(feature = "semantic-bindings")]
+pub mod output_features;
 #[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
@@ -108,6 +122,7 @@ pub mod utterance_timing;
 // This optional module is absent from the compact renderer's default profile.
 #[allow(dead_code, clippy::large_enum_variant)]
 pub mod semantic {
+    pub use conduit_language::LinguisticSyntacticLinkKind as SpeechSyntacticLinkKind;
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
@@ -182,3 +197,21 @@ mod allophone_selection_parity;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod contextual_intent_realization;
+
+#[cfg(test)]
+mod output_features_parity;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod global_default_choice;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod global_default_profile;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod sourced_global_intent;
+
+#[cfg(test)]
+mod aspiration_parity;
+
+#[cfg(test)]
+mod inflection_parity;

@@ -324,6 +324,7 @@ fn activation_plan() -> Plan {
             pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
             item_capacity: 1,
             byte_capacity: 1,
+            selected_line: None,
         },
         conduit_core::PlannedForePort {
             front_port_id: conduit_core::port_id("out"),
@@ -338,6 +339,7 @@ fn activation_plan() -> Plan {
             pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
             item_capacity: 1,
             byte_capacity: 1,
+            selected_line: None,
         },
     ];
     let child = common::seal(child_fragment);
@@ -410,6 +412,7 @@ fn fold_or_scan_plan(scan: bool) -> Plan {
         pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
         item_capacity: 1,
         byte_capacity: 1,
+        selected_line: None,
     };
     child_fragment.fore_ports = vec![
         front("accumulator", conduit_core::PortDirection::Input, "next"),

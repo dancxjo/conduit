@@ -14,7 +14,7 @@ use conduit_body::{
     OfferDisclosureRequest, OfferDisclosureStage, PartReturnChallenge, PartReturnProof,
     RemoteProofClass,
 };
-use conduit_core::{HostAdvertisement, HostId, LinkBindingId};
+use conduit_core::{AuthorityGrantId, HostAdvertisement, HostId, LineOffer, LinkBindingId};
 use conduit_presentation::RemoteOwnerMaskRouteSeal;
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In, MAX_BROWSER_ADMISSION_FRAME_BYTES,
@@ -38,6 +38,48 @@ pub(crate) struct BrowserAdmittedSnapshot {
     pub(crate) credential: MembershipCredential,
     pub(crate) biography: Box<BodyBiographyEvidence>,
     pub(crate) offer: Box<HostOfferProjection>,
+    pub(crate) owner_advertisement: Option<Box<HostAdvertisement>>,
+    pub(crate) browser_advertisement: Option<Box<HostAdvertisement>>,
+    pub(crate) line_authorization: Option<BrowserLineAuthorization>,
+}
+
+/// Owner-issued authority for only the two directions of this admitted carrier.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct BrowserLineAuthorization {
+    pub(crate) window_id: String,
+    pub(crate) carrier_binding: LinkBindingId,
+    pub(crate) credential_id: String,
+    pub(crate) face_grant_id: AuthorityGrantId,
+    pub(crate) return_grant_id: AuthorityGrantId,
+}
+
+impl BrowserLineAuthorization {
+    pub(super) fn issue(
+        window_id: &str,
+        binding: &LinkBindingId,
+        credential: &MembershipCredential,
+    ) -> Self {
+        Self {
+            window_id: window_id.into(),
+            carrier_binding: binding.clone(),
+            credential_id: credential.credential_id.as_str().into(),
+            face_grant_id: AuthorityGrantId::from(format!(
+                "grant/{window_id}/{}/face",
+                binding.as_str()
+            )),
+            return_grant_id: AuthorityGrantId::from(format!(
+                "grant/{window_id}/{}/return",
+                binding.as_str()
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct BrowserCarrierLineEvidence {
+    pub(crate) authorization: BrowserLineAuthorization,
+    pub(crate) face: LineOffer,
+    pub(crate) returned: LineOffer,
 }
 
 impl BrowserAdmittedSnapshot {
@@ -60,6 +102,9 @@ impl BrowserAdmittedSnapshot {
             credential,
             biography: Box::new(owner.session.evidence().clone()),
             offer: Box::new(offer),
+            owner_advertisement: None,
+            browser_advertisement: None,
+            line_authorization: None,
         })
     }
 }
@@ -80,6 +125,8 @@ enum WindowState {
         presence_deadline: Instant,
         credential: MembershipCredential,
         observation: Box<CandidateObservation>,
+        line_authorization: Box<BrowserLineAuthorization>,
+        line_evidence: Option<Box<BrowserCarrierLineEvidence>>,
         route: Option<Box<RemoteOwnerMaskRouteSeal>>,
         acknowledged_show: Option<Box<conduit_presentation::MaskShow>>,
     },

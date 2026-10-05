@@ -130,6 +130,7 @@ impl Execution {
                 pressure_policy: DeliveryPressurePolicy::default(),
                 item_capacity: 1,
                 byte_capacity: CLOCK_MAXIMUM_BYTES,
+                selected_line: None,
             });
         }
         let plan = seal_plan(
