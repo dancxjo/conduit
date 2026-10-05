@@ -353,14 +353,19 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
     let global_startup_order = startup::startup_order(&planned_gears, &planned_connections)?
         .ok_or_else(|| PlannerError::CyclicStartupDependencies(plot.name.into()))?;
 
+    // A placement belongs to exactly one Host. Move its retained program into
+    // that fragment instead of copying every program while both lists are live.
+    let mut placements_by_host = BTreeMap::<HostId, Vec<PlannedGear>>::new();
+    for placement in planned_gears {
+        placements_by_host
+            .entry(placement.host_id.clone())
+            .or_default()
+            .push(placement);
+    }
     let fragments = hosts
         .iter()
         .map(|host| -> Result<Option<PlanFragment>, PlannerError> {
-            let placements = planned_gears
-                .iter()
-                .filter(|item| item.host_id == host.host_id)
-                .cloned()
-                .collect::<Vec<_>>();
+            let placements = placements_by_host.remove(&host.host_id).unwrap_or_default();
             if placements.is_empty() {
                 return Ok(None);
             }
