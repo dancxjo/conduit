@@ -52,8 +52,9 @@ fn mouse_prefix_preserves_signed_motion_and_uninterpreted_extensions() {
                 .record_field("wire")
                 .unwrap()
                 .unwrap()
-                .collection_length()
-                .unwrap(),
+                .primitive_bytes("value/bytes")
+                .unwrap()
+                .len(),
             4
         );
     }
@@ -65,6 +66,9 @@ fn mouse_extent_and_explicit_strict_profile_refuse_without_reading_padding() {
     let mut prepared = PreparedPortableExpressionEvaluator::new(&p).unwrap();
     for (wire, actual, strict, expected) in [
         (&[][..], 0, false, "short"),
+        (&[0; 9][..], 9, false, "malformed"),
+        (&[0; 1025][..], 1025, false, "malformed"),
+        (&[0; 2048][..], 2048, false, "malformed"),
         (&[0, 0][..], 2, false, "short"),
         (&[0, 0, 0][..], 2, false, "malformed"),
         (&[0xf8, 0, 0][..], 3, true, "reserved"),
@@ -73,6 +77,10 @@ fn mouse_extent_and_explicit_strict_profile_refuse_without_reading_padding() {
         (&[7, 0, 0, 1, 2, 3, 4, 5][..], 8, false, "mouse"),
     ] {
         let input = request(&p, wire, actual, strict);
+        assert!(
+            input.len() <= 4096,
+            "packed report exceeds the admitted frame surface"
+        );
         tag(prepared.evaluate(&input).unwrap(), expected);
     }
 }
