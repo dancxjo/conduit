@@ -249,6 +249,25 @@ impl ControlCallOwner {
         encoded
     }
 
+    /// # Safety
+    /// An acknowledged native endpoint/controller stop must cover this exact
+    /// retained submission and attachment. Software revocation alone is insufficient.
+    pub(crate) unsafe fn discard_quiesced(
+        &mut self,
+        submission: &NativeControlSubmission,
+    ) -> Result<(), ControlOwnerRefusal> {
+        if !self.pending.as_ref().is_some_and(|(sequence, lease)| {
+            *sequence == submission.request_id && *lease == submission.lease
+        }) || self.attachment != submission.attachment
+        {
+            return Err(ControlOwnerRefusal::StaleTransfer);
+        }
+        self.pending = None;
+        self.table
+            .complete(&mut self.handle, submission.lease.clone(), 0)
+            .map_err(ControlOwnerRefusal::Capability)
+    }
+
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), ControlOwnerRefusal> {
         if node != self.node || call != HostCallId(0) {
             return Err(ControlOwnerRefusal::WrongBinding);

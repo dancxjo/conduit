@@ -16,23 +16,25 @@ pub use x86_64::{
     FtdiLineSession, HidError, HidKeyTransition, HidKeyboardSession, HidPointerError,
     HidPointerReady, HidPointerSession, HidProof, I801PortWindow, Idle, Interrupts,
     NativeMonotonicDeadlineClock, Opl2, PcSpeaker, Ps2Error, Ps2Input, Ps2Ready, RdrandEntropy,
-    RebootBase, RebootError, Serial, Timer, UsbDevice, VirtioNetError, VirtioNetIdentity,
-    VirtioNetReady, XhciReady, admitted_i801_block_read_ports, admitted_i801_pci_ports,
-    admitted_i801_ports, admitted_monotonic_deadline_clock, append_boot_diagnostic, boot_entropy,
-    deterministic_exit, early_write, emergency_halt, emergency_machine_profile,
-    enumerate_attached_at_epochs, enumerate_one_at_epoch, enumerate_usb, feature_basis,
-    finish_boot_keyboard, initialize_machine, initialize_virtio_net, initialize_xhci,
-    local_reboot_base, pc_speaker_input_hz, prepare_boot_keyboard, prepare_boot_pointer,
-    prepare_ftdi_line, receive_boot_keyboard, receive_first_boot_keyboard_report,
-    retire_removed_device, run_boot_keyboard, space_protocol_clock_poll,
-    start_boot_keyboard_session, start_ftdi_line_session, start_pointer_session,
-    wait_for_attachment_state,
+    RebootBase, RebootError, Serial, Timer, UsbControlCallRefusal, UsbControlHostCall,
+    UsbControlSelection, UsbDevice, VirtioNetError, VirtioNetIdentity, VirtioNetReady, XhciReady,
+    admitted_i801_block_read_ports, admitted_i801_pci_ports, admitted_i801_ports,
+    admitted_monotonic_deadline_clock, append_boot_diagnostic, boot_entropy, deterministic_exit,
+    early_write, emergency_halt, emergency_machine_profile, enumerate_attached_at_epochs,
+    enumerate_one_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard, initialize_machine,
+    initialize_virtio_net, initialize_xhci, local_reboot_base, pc_speaker_input_hz,
+    prepare_boot_keyboard, prepare_boot_pointer, prepare_ftdi_line, receive_boot_keyboard,
+    receive_first_boot_keyboard_report, retire_removed_device, run_boot_keyboard,
+    space_protocol_clock_poll, start_boot_keyboard_session, start_ftdi_line_session,
+    start_pointer_session, wait_for_attachment_state,
 };
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::{I801PciObservation, I801PciRefusal, observe_i801_pci};
 
 #[cfg(target_arch = "x86_64")]
 pub const ARCHITECTURE: &str = "x86_64";
+#[cfg(all(target_arch = "x86_64", feature = "scripted-keyboard-proof"))]
+pub use x86_64::run_usb_control_kernel_proof;
 #[cfg(target_arch = "x86")]
 mod ia32;
 #[cfg(any(target_arch = "x86", test))]

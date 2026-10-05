@@ -141,6 +141,30 @@ requires an observed short transfer, followed by successful status and device
 configuration. This demonstrates native stage handling, not plotted enumeration
 or cancellation/quiescence proof.
 
+The native control producer retains one finite cursor in each DMA slot instead
+of reconstructing a presumed enumeration offset. One reservation holds pending
+storage until the exact final Status Stage succeeds. Uncertain failure, timeout
+or foreign completion poisons reuse; it does not claim endpoint stop. Slot and
+attachment-epoch checks reject stale device descriptions. Only acknowledged
+Disable Slot retirement releases the storage for new enumeration.
+
+Control TDs remain contiguous within the fixed ring. A Link TRB returns to the
+head and toggles producer/consumer ownership. Publication withholds the first
+TRB until all stages are ready, and withholds the next free slot before exposing
+the TD. This includes tail slots that were unused in a previous cycle. Link
+publication follows complete preparation of the new head. These x86 coherent
+DMA stores are controller invariants, not a portable coherence claim.
+
+The architecture proof appliance scripts 64 short descriptor transfers through
+this native primitive and requires exact ring geometry, cycle transitions and
+bounded storage in `cargo xtask make conduitos usb-proof`. Its separate ring Sign
+and receipt explicitly identify fixture protocol. That proof does not execute
+USB class plots or establish physical-device compatibility. Deterministic tests
+exercise 100,000 mixed reservations and 10,000 actual DMA publication cycles,
+including controller look-ahead, pressure, stale reservation and uncertain
+quiescence. The [xHCI specification](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
+defines Link TRB and Cycle-bit behavior.
+
 ## Check the groundwork
 
 ```sh
@@ -162,11 +186,32 @@ physical behavior, or stable acceptance.
 
 ## Remaining implementation
 
+The native control owner binds an exact selected control Back, Boot, attachment,
+capability possession and retained DMA slot before dispatch. Cancellation keeps
+native storage until acknowledged Slot disable. An acknowledged normal transfer
+returns the device to the composition root without resetting its cursor or
+issuing a new grant.
+
+The x86_64 proof appliance requires 64 short control transfers through the
+checked `control.conduit` Source and production kernel, followed by normal closure.
+The host reconstructs its exact Source, checked/expanded plot, Plan, fragment and
+Play identities from the observed Boot/controller/attachment and verifies a
+separate bounded transcript receipt. Its explicit cooperative proof grant does
+not establish hostile-code confinement or authorize discovered devices for
+ordinary product use. This raw-transfer fixture does not interpret USB classes.
+
+The proof root admits 2048 additional local and 256 additional remote lifecycle
+Sign items during preparation, then runs 64 complete input/output pairs and
+normal closure through one kernel Play. Its versioned receipt binds those
+finite bounds and requires at least four complete ring-cycle transitions.
+The ordinary default profile retains its earlier finite Sign budget and exact
+exhaustion refusal. Additional storage grants no controller authority and cannot
+grow during Play. The separate native ring receipt remains fixture evidence;
+neither receipt establishes checked class execution.
+
 The protocol calculations and register definition are not installed product
 device offers. Register calls execute through the production kernel in a
-cooperative mapping fixture; native composition has not bound a real admitted
-controller resource or installed its advertisement/dispatcher. The following
-work remains under the owning issue:
+cooperative mapping fixture. The following work remains under the owning issue:
 
 - product machine/USB offers, native dispatcher and actual resource integration;
 - a class-neutral bounded USB transfer base with distinct short/malformed,
