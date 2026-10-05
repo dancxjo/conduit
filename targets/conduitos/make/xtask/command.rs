@@ -73,7 +73,7 @@ pub(super) enum ConduitosCommand {
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
     XhciProof(PreparedProofArgs),
     /// Prove one real bounded root-attached USB device without semantic input.
-    UsbProof(PreparedProofArgs),
+    UsbProof(UsbProofArgs),
     /// Prove the complete Source configuration exchange with its admitted preparation arena.
     UsbConfigurationProof,
     /// Check shared USB wire plots and machine register-possession fixtures.
@@ -189,6 +189,41 @@ mod tests {
             "--package",
             "old.json"
         ]))
+        .is_err());
+    }
+}
+
+#[derive(Args, Debug)]
+pub(super) struct UsbProofArgs {
+    #[arg(long, conflicts_with = "endpoint_read")]
+    pub(super) prepared_image: bool,
+    /// Run the dedicated class-neutral endpoint-receive proof appliance.
+    #[arg(long)]
+    pub(super) endpoint_read: bool,
+}
+
+#[cfg(test)]
+mod endpoint_command_tests {
+    use crate::cli::Cli;
+    use clap::Parser;
+    #[test]
+    fn endpoint_proof_requires_its_own_build_and_refuses_prepared_ordinary_images() {
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "usb-proof",
+            "--endpoint-read"
+        ])
+        .is_ok());
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "usb-proof",
+            "--endpoint-read",
+            "--prepared-image"
+        ])
         .is_err());
     }
 }

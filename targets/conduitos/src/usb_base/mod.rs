@@ -16,3 +16,14 @@ pub mod device_probe_proof_plan;
 pub mod device_probe_proof_kernel;
 
 pub mod configuration_probe_proof_plan;
+
+pub mod endpoint_read_contract;
+pub mod endpoint_read_request;
+pub mod endpoint_read_result;
+
+pub mod endpoint_read_factory;
+pub mod endpoint_read_owner;
+
+pub(crate) mod endpoint_ring;
+
+pub mod endpoint_read_proof_plan;

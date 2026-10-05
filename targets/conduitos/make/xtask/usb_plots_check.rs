@@ -48,6 +48,22 @@ pub fn execute(cross: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "machine_membrane",
         ],
         &["test", "--locked", "-p", "conduitos", "--lib", "usb_base"],
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduitos",
+            "--test",
+            "usb_endpoint_read",
+        ],
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduitos",
+            "--lib",
+            "arch::x86_64::usb::endpoint_",
+        ],
     ];
     for arguments in checks {
         if opts.dry_run {

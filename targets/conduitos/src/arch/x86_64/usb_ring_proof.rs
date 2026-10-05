@@ -9,7 +9,7 @@ use crate::{
 use core::fmt::Write;
 
 pub(super) fn run(controller: &mut XhciReady, ring: &mut ControlRing) -> Result<(), UsbError> {
-    let (initial_enqueue, initial_cycle) = unsafe { (&(*ring.dma).control_cursor).position() };
+    let (initial_enqueue, initial_cycle) = unsafe { (*ring.dma).control_cursor.position() };
     let mut cycle = initial_cycle;
     let mut wraps = 0;
     let mut short = 0;
@@ -23,7 +23,7 @@ pub(super) fn run(controller: &mut XhciReady, ring: &mut ControlRing) -> Result<
             return Err(UsbError::MalformedCompletion);
         }
         short += 1;
-        let (_, next_cycle) = unsafe { (&(*ring.dma).control_cursor).position() };
+        let (_, next_cycle) = unsafe { (*ring.dma).control_cursor.position() };
         if next_cycle != cycle {
             wraps += 1;
             cycle = next_cycle;
@@ -32,7 +32,7 @@ pub(super) fn run(controller: &mut XhciReady, ring: &mut ControlRing) -> Result<
     if wraps < 4 {
         return Err(UsbError::TransferRingFull);
     }
-    let (final_enqueue, final_cycle) = unsafe { (&(*ring.dma).control_cursor).position() };
+    let (final_enqueue, final_cycle) = unsafe { (*ring.dma).control_cursor.position() };
     let mut sign = FixedText::new();
     writeln!(sign,"CONDUIT_USB_RING_SIGN {{\"schema\":\"conduit.conduitos.usb-control-ring/v1\",\"proof_class\":\"freestanding-emulator\",\"status\":\"completed\",\"root_port\":{},\"slot\":{},\"transfers\":64,\"short_transfers\":{},\"cycle_transitions\":{},\"initial_enqueue\":{},\"initial_cycle\":{},\"final_enqueue\":{},\"final_cycle\":{},\"ring_trbs\":32,\"maximum_in_flight\":1,\"dma_bytes\":{},\"fixture_protocol\":true}}",ring.root_port,ring.slot,short,wraps,initial_enqueue,initial_cycle,final_enqueue,final_cycle,core::mem::size_of::<super::UsbDma>()).map_err(|_|UsbError::ControlError)?;
     early_write(sign.as_bytes());

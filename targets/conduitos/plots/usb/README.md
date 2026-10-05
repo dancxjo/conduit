@@ -238,6 +238,35 @@ including controller look-ahead, pressure, stale reservation and uncertain
 quiescence. The [xHCI specification](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf)
 defines Link TRB and Cycle-bit behavior.
 
+## Bounded endpoint receive on development code
+
+`endpoint-read.conduit` invokes the class-neutral `machine/usb/endpoint-read`
+leaf through the production Host Call boundary. Its result carries packed
+`Bytes <=2048B`; the maximum canonical completed result is 2,516 bytes within
+its selected 4 KiB call surface. The payload bound, representation extent and
+call admission budget remain separate contracts.
+
+The x86_64 native owner binds exact Boot/Plan/Play possession and device/endpoint
+attachment generations. Configure Endpoint must succeed before Root advertises
+readiness or issues possession. One Normal TRB owns the retained receive buffer;
+uncertain completion retains DMA, and cancellation revokes possession before
+acknowledged Disable Slot retirement. The Link cycle changes only with the final
+ordinary TRB, preserving a controller waiting at the preceding cycle's Link.
+
+```sh
+cargo xtask make conduitos usb-proof --endpoint-read
+```
+
+This dedicated emulator appliance executes the checked endpoint plot with an
+explicit Root-selected `usb-kbd` fixture. It verifies 128 eight-byte receives,
+two complete ring-cycle transitions, the exact canonical byte transcript,
+normal kernel drain and acknowledged native stop. Its retained receipt records
+Boot, Source/checked plot, Plan/Play and attachment identities and explicitly
+sets `class_acceptance` to false. Deterministic conformance separately exercises
+all receive lengths through 2,048 bytes and sustained allocation-free reuse.
+This proves the x86_64 raw endpoint path; it does not establish HID class plot
+execution, the other architectures' controller paths or physical compatibility.
+
 ## Check the groundwork
 
 ```sh
