@@ -43,6 +43,8 @@ pub(super) fn package() -> ProtocolSourcePackage {
 #[test]
 fn keyboard_lifecycle_checks_with_exact_retained_state_zip_and_merge_types() {
     let prepared = PreparedProtocolSource::prepare(package()).unwrap();
-    let expanded = prepared.expand("usb-hid-keyboard-lifecycle").unwrap();
-    assert!(!expanded.expanded.gears.is_empty());
+    for entry in ["usb-hid-keyboard-lifecycle", "usb-hid-keyboard-received"] {
+        let expanded = prepared.expand(entry).unwrap();
+        assert!(!expanded.expanded.gears.is_empty());
+    }
 }
