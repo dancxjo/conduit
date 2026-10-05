@@ -11,7 +11,7 @@ use conduit_plot::{ProfileCatalog, StartupCatalog, check_syntax_document, parse_
 pub const ENDPOINT_READ_KIND: &str = "machine/usb/endpoint-read";
 pub const ENDPOINT_READ_CALL: &str = "conduit.host/usb-endpoint-read@1";
 pub const ENDPOINT_READ_MAXIMUM_BYTES: u32 = 4096;
-pub const ENDPOINT_READ_DATA_BYTES: u16 = 512;
+pub const ENDPOINT_READ_DATA_BYTES: u16 = 2048;
 pub const ENDPOINT_READ_TYPES: &str = include_str!("../../plots/usb/endpoint-read-types.conduit");
 
 /// Exact schemas, prepared before Play. A definition is not an available Back,

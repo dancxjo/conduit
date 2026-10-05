@@ -172,7 +172,7 @@ fn reusable_possession_and_malformed_physical_results_do_not_hide_work_or_retry(
 #[test]
 fn zero_or_oversized_read_is_refused_before_possession_is_consumed() {
     let mut owner = fixture::owner(7);
-    for length in [0, 513, u64::MAX] {
+    for length in [0, 513, 2049, u64::MAX] {
         assert_eq!(
             owner
                 .begin(
