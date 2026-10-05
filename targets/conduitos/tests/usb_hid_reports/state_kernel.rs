@@ -3,7 +3,7 @@ use conduit_composite::{
     KernelCompositeTerminal,
 };
 use conduit_core::*;
-use conduit_kernel::{scheduler::RemoteIngressOutcome, KernelEventKind};
+use conduit_kernel::{KernelEventKind, scheduler::RemoteIngressOutcome};
 use conduitos::protocol_source::PreparedProtocolEntry;
 use conduitos::{
     protocol_host_calls::ProtocolCallRefusal, pure_protocol_play::PreparedPureProtocolPlay,
@@ -330,10 +330,11 @@ fn pending_keyboard_transition_is_revoked_by_cancellation_without_a_normal_finis
         ));
     });
     assert_eq!(allocations, 0);
-    assert!(run
-        .kernel()
-        .signs()
-        .values()
-        .flatten()
-        .any(|event| event.kind == KernelEventKind::RunCancelled));
+    assert!(
+        run.kernel()
+            .signs()
+            .values()
+            .flatten()
+            .any(|event| event.kind == KernelEventKind::RunCancelled)
+    );
 }
