@@ -421,3 +421,13 @@ Root's storage. The endpoint call still admits at most 2,048 payload bytes on a
 the arena sealed. The appliance retains legacy attachment setup and an explicit
 Root fixture grant. This development proof does not establish an ordinary class
 offer, physical compatibility or five-architecture acceptance.
+
+The mouse counterpart enters through
+`cargo xtask make conduitos usb-proof --hid-mouse`. Its separate proof profile
+selects the existing mouse Source graph and injects 128 alternating button and
+relative-motion reports. The independent expectation follows
+[QEMU's HID report implementation](https://github.com/qemu/qemu/blob/v10.2.1/hw/input/hid.c):
+the three-octet boot prefix is decoded, and the fourth wheel octet remains
+uninterpreted wire truth. Mouse and keyboard receipts have separate paths and
+require their exact Boot profile, Plan, class transcript, sealed arena and
+acknowledged stop. Native mouse execution remains under validation.
