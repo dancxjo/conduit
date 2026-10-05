@@ -162,7 +162,9 @@ impl<'a> UsbEndpointReadHostCall<'a> {
             .cursor
             .reserve(submission.length())
             .map_err(EndpointNativeRefusal::Ring)?;
-        if reservation.slot == 0 || reservation.slot == 62 {
+        // The controller may still be parked at the preceding cycle's Link.
+        // Publish its new cycle only with the final ordinary TRB, never slot 0.
+        if reservation.slot == 62 {
             publish(
                 reservation.link(self.dma.ring_physical),
                 |word, value| unsafe { write_volatile(&mut self.dma.ring[63][word], value) },
