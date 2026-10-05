@@ -401,19 +401,23 @@ checks count, extent and shortness, and preserves stalled, provider-loss,
 unsupported and timeout observations separately. Only completed valid frames
 reach the class decoder. Preparing these graphs publishes no physical Back;
 execution requires a separately selected endpoint offer and actual possession.
-Deterministic conformance checks this composition and its bounded framing;
-native execution of these class graphs remains pending.
+Deterministic conformance checks both class compositions and their bounded
+framing. The keyboard graph also has the native emulator proof below; native
+mouse execution remains pending.
 
 The dedicated keyboard Source appliance enters through
 `cargo xtask make conduitos usb-proof --hid-endpoint`. It uses the same bounded
 xHCI endpoint owner as the raw endpoint proof and checks 128 alternating fixture
 presses/releases across two ring cycle transitions. The retained receipt checks
 exact Source/Plan/Play and attachment identities, the canonical class output
-transcript, normal closure and acknowledged stop. This command requires its own
+transcript, normal closure and acknowledged stop. The production arena is sealed
+before Play, so the entire native transfer, drain and stop run refuses allocations.
+This command requires its own
 proof image with a 32 MiB preparation arena. Deterministic preparation with the
 production allocator peaks at 17,781,120 live bytes and releases all retained
 storage on retirement; the arena also admits allocation geometry and the native
 Root's storage. The endpoint call still admits at most 2,048 payload bytes on a
-4 KiB call surface. Its implementation and verifier are under validation; it does not
-establish an ordinary class offer, physical compatibility or five-architecture
-acceptance.
+4 KiB call surface. A retained x86_64 emulator run completes all 128 reports with
+the arena sealed. The appliance retains legacy attachment setup and an explicit
+Root fixture grant. This development proof does not establish an ordinary class
+offer, physical compatibility or five-architecture acceptance.
