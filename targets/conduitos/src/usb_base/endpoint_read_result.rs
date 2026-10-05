@@ -4,8 +4,8 @@ use super::endpoint_read_contract::{
 };
 use alloc::vec::Vec;
 use conduit_core::{
-    PreparedLeafSequenceEncoder, PreparedStructuredComposer, StructuredInfoRefusal,
-    StructuredInfoType, StructuredInfoTypeShape, kind_id, validate_canonical_structured_value,
+    PreparedStructuredComposer, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
+    kind_id, validate_canonical_structured_value,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -26,7 +26,7 @@ pub enum EndpointReadResultRefusal {
 pub struct PreparedEndpointReadResultEncoder {
     result: PreparedStructuredComposer,
     completed: PreparedStructuredComposer,
-    wire: PreparedLeafSequenceEncoder,
+    wire: PreparedStructuredComposer,
     actual: PreparedStructuredComposer,
     short: PreparedStructuredComposer,
     unit: Vec<u8>,
@@ -53,10 +53,9 @@ impl PreparedEndpointReadResultEncoder {
                 completed,
                 ENDPOINT_READ_MAXIMUM_BYTES as usize,
             )?,
-            wire: PreparedLeafSequenceEncoder::new(
-                kind_id("value/u8"),
-                1,
-                ENDPOINT_READ_DATA_BYTES.into(),
+            wire: PreparedStructuredComposer::new(
+                &primitive("value/bytes")?,
+                ENDPOINT_READ_MAXIMUM_BYTES as usize,
             )?,
             actual: PreparedStructuredComposer::new(&primitive("value/u64")?, 64)?,
             short: PreparedStructuredComposer::new(&primitive("value/bool")?, 64)?,
@@ -82,10 +81,7 @@ impl PreparedEndpointReadResultEncoder {
         if input.len() != usize::from(actual) {
             return Err(Error::InputLength);
         }
-        let wire = self
-            .wire
-            .encode(input.iter().map(core::slice::from_ref))
-            .map_err(Error::Canonical)?;
+        let wire = self.wire.leaf(input).map_err(Error::Canonical)?;
         let actual_value = self
             .actual
             .leaf(&u64::from(actual).to_le_bytes())

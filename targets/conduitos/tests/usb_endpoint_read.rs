@@ -34,16 +34,16 @@ fn request(contract: &EndpointReadContract, length: u64) -> Vec<u8> {
 fn every_admitted_length_decodes_without_allocating_and_oversize_never_wraps() {
     let contract = EndpointReadContract::prepare().unwrap();
     let decoder = PreparedEndpointReadRequestDecoder::new(&contract).unwrap();
-    let inputs: Vec<_> = (1..=512).map(|n| request(&contract, n)).collect();
+    let inputs: Vec<_> = (1..=2048).map(|n| request(&contract, n)).collect();
     let allocations = allocation::allocations(|| {
         for (index, input) in inputs.iter().enumerate() {
-            assert_eq!(decoder.decode(input, 512).unwrap(), index as u16 + 1);
+            assert_eq!(decoder.decode(input, 2048).unwrap(), index as u16 + 1);
         }
     });
     assert_eq!(allocations, 0);
-    for length in [0, 513, 65536, u64::MAX] {
+    for length in [0, 2049, 65536, u64::MAX] {
         assert_eq!(
-            decoder.decode(&request(&contract, length), 512),
+            decoder.decode(&request(&contract, length), 2048),
             Err(EndpointReadRequestRefusal::Length)
         );
     }
@@ -51,14 +51,14 @@ fn every_admitted_length_decodes_without_allocating_and_oversize_never_wraps() {
         decoder.decode(&request(&contract, 9), 8),
         Err(EndpointReadRequestRefusal::Length)
     );
-    for maximum in [0, 513, u16::MAX] {
+    for maximum in [0, 2049, u16::MAX] {
         assert_eq!(
             decoder.decode(&inputs[0], maximum),
             Err(EndpointReadRequestRefusal::InvalidEnvelope)
         );
     }
     assert!(matches!(
-        decoder.decode(&[0; 32], 512),
+        decoder.decode(&[0; 32], 2048),
         Err(EndpointReadRequestRefusal::Canonical(_))
     ));
     let wrong = StructuredInfoValue::leaf(
@@ -69,7 +69,7 @@ fn every_admitted_length_decodes_without_allocating_and_oversize_never_wraps() {
     .canonical_bytes()
     .unwrap();
     assert!(matches!(
-        decoder.decode(&wrong, 512),
+        decoder.decode(&wrong, 2048),
         Err(EndpointReadRequestRefusal::Canonical(_))
     ));
 }
@@ -78,12 +78,13 @@ fn every_admitted_length_decodes_without_allocating_and_oversize_never_wraps() {
 fn all_received_extents_preserve_exact_octets_shortness_and_reusable_storage() {
     let contract = EndpointReadContract::prepare().unwrap();
     let mut encoder = PreparedEndpointReadResultEncoder::new(&contract).unwrap();
-    let wire = core::array::from_fn::<_, 512, _>(|index| index as u8);
-    let mut copied = [0; 512];
+    let wire = core::array::from_fn::<_, 2048, _>(|index| index as u8);
+    let maximum_encoded = encoder.completed(2048, 2048, &wire).unwrap().len();
+    println!("2048-byte endpoint result: {maximum_encoded} canonical bytes");
     let allocations = allocation::allocations(|| {
-        for actual in 0..=512_u16 {
+        for actual in 0..=2048_u16 {
             let bytes = encoder
-                .completed(512, actual, &wire[..usize::from(actual)])
+                .completed(2048, actual, &wire[..usize::from(actual)])
                 .unwrap();
             assert!(bytes.len() <= 4096);
             let result = validate_canonical_structured_value(bytes).unwrap();
@@ -101,13 +102,12 @@ fn all_received_extents_preserve_exact_octets_shortness_and_reusable_storage() {
                 .unwrap()
                 .primitive_bytes("value/bool")
                 .unwrap();
-            assert_eq!(short, [u8::from(actual < 512)]);
+            assert_eq!(short, [u8::from(actual < 2048)]);
             let value = frame.record_field("wire").unwrap().unwrap();
-            assert_eq!(value.collection_length().unwrap(), u32::from(actual));
-            value
-                .copy_octet_collection("value/u8", &mut copied)
-                .unwrap();
-            assert_eq!(&copied[..usize::from(actual)], &wire[..usize::from(actual)]);
+            assert_eq!(
+                value.primitive_bytes("value/bytes").unwrap(),
+                &wire[..usize::from(actual)]
+            );
         }
     });
     assert_eq!(allocations, 0);
@@ -124,7 +124,7 @@ fn all_received_extents_preserve_exact_octets_shortness_and_reusable_storage() {
         Err(EndpointReadResultRefusal::DataEnvelope)
     );
     assert_eq!(
-        encoder.completed(513, 0, &[]),
+        encoder.completed(2049, 0, &[]),
         Err(EndpointReadResultRefusal::DataEnvelope)
     );
 }

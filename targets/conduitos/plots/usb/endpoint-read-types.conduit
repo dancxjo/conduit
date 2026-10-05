@@ -6,7 +6,7 @@ type UsbEndpointReadRequest = {
 type UsbEndpointReadFrame = {
     actual: U64
     short: Boolean
-    wire: sequence U8 <= 512
+    wire: Bytes <= 2048B
 }
 type UsbEndpointReadResult =
     completed UsbEndpointReadFrame
