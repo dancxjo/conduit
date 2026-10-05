@@ -4,6 +4,7 @@ mod allocation;
 
 mod usb_hid_reports {
     pub(super) mod common;
+    mod endpoint;
     mod kernel;
     mod kernel_fixture;
     mod keyboard;

@@ -1,6 +1,6 @@
 //! Preparation-only contract derived from reviewed Conduit Types.
 
-use alloc::{vec, vec::Vec};
+use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{
     CapabilityLimits, CheckedValueContract, FrontValueContract, FrontValueLocation, Kind,
     KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal,
@@ -113,39 +113,42 @@ impl EndpointReadContract {
         PreparedStructuredValueValidator::new(&self.request, ENDPOINT_READ_MAXIMUM_BYTES as usize)
     }
 
-    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
-        let mut startup = StartupCatalog::new();
-        startup
-            .insert_checked_native_type(
+    /// Register inert checked contracts, preserving nested byte refinements.
+    /// This creates no implementation offer, resource possession, or authority.
+    pub fn install_catalogs(
+        &self,
+        startup: &mut StartupCatalog,
+        profile: &mut ProfileCatalog,
+    ) -> Result<(), String> {
+        for (path, name) in [
+            (
                 "machine/usb/endpoint-read/request",
-                self.checked_types
-                    .iter()
-                    .find(|ty| ty.name == "UsbEndpointReadRequest")
-                    .expect("checked request"),
-            )
-            .expect("request Type");
-        startup
-            .insert_checked_native_type(
-                "machine/usb/endpoint-read/result",
-                self.checked_types
-                    .iter()
-                    .find(|ty| ty.name == "UsbEndpointReadResult")
-                    .expect("checked result"),
-            )
-            .expect("result Type");
-        startup
-            .insert(conduit_plot::KindSignature {
-                kind: ENDPOINT_READ_KIND.into(),
-                startup_parameters: vec![],
-            })
-            .expect("endpoint read startup");
-        startup
-            .insert_fore(ENDPOINT_READ_KIND, self.kind.checked_front())
-            .expect("endpoint read Fore");
-        let mut profile = ProfileCatalog::new();
+                "UsbEndpointReadRequest",
+            ),
+            ("machine/usb/endpoint-read/result", "UsbEndpointReadResult"),
+        ] {
+            let ty = self
+                .checked_types
+                .iter()
+                .find(|ty| ty.name == name)
+                .expect("prepared endpoint Type");
+            startup.insert_checked_native_type(path, ty)?;
+        }
+        startup.insert(conduit_plot::KindSignature {
+            kind: ENDPOINT_READ_KIND.into(),
+            startup_parameters: vec![],
+        })?;
+        startup.insert_fore(ENDPOINT_READ_KIND, self.kind.checked_front())?;
         profile
             .insert_kind(self.kind.clone())
-            .expect("endpoint read Kind");
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        self.install_catalogs(&mut startup, &mut profile)
+            .expect("prepared endpoint catalogs");
         (startup, profile)
     }
 }
