@@ -226,6 +226,10 @@ pub fn run(record: boot::BootRecord) -> ! {
     arch::early_write(usb_sign.as_bytes());
     #[cfg(feature = "usb-endpoint-read-proof")]
     if cfg!(feature = "usb-endpoint-read-proof") {
+        // This appliance exits before product input offers are initialized.
+        let sign = sign_format::accepted(&record, &identities, make, 0)
+            .unwrap_or_else(|_| emit_refusal("boot-sign-storage-full"));
+        arch::early_write(sign.as_bytes());
         if let Err(reason) = arch::run_usb_endpoint_read_proof(
             &mut xhci,
             usb,
