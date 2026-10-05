@@ -215,3 +215,6 @@ mod aspiration_parity;
 
 #[cfg(test)]
 mod inflection_parity;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod revision;

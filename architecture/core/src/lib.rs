@@ -41,6 +41,7 @@ mod resource;
 mod resource_canonical;
 mod resource_content;
 mod resource_port;
+pub mod revision;
 use resource_canonical::push_resource_binding;
 mod plan_fingerprint;
 mod planned_gear;
