@@ -8,11 +8,14 @@ mod generated {
 }
 
 pub use generated::{
-    AnnotationBundleFour, LinguisticAnnotation, LinguisticDependencyEdge,
-    LinguisticDependencyRelation, LinguisticDerivationProvenance, LinguisticEvidence,
-    LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind,
-    LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature,
-    LinguisticTokenFeatureSlot, LinguisticTokenIdentity, LinguisticTokensFour, TextSpan,
+    AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef,
+    LanguageDependencyArc, LanguageDependencyHead, LanguageDependencyRelation,
+    LanguageDependencySubtype, LanguageUniversalDependencyRelation, LinguisticAnnotation,
+    LinguisticDependencyEdge, LinguisticDependencyRelation, LinguisticDerivationProvenance,
+    LinguisticEvidence, LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment,
+    LinguisticSegmentKind, LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory,
+    LinguisticTokenFeature, LinguisticTokenFeatureSlot, LinguisticTokenIdentity,
+    LinguisticTokensFour, TextSpan,
 };
 
 mod catalog;
@@ -22,3 +25,6 @@ mod reference;
 pub use catalog::*;
 pub use info::*;
 pub use reference::*;
+
+mod dependency;
+pub use dependency::*;
