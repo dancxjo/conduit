@@ -654,6 +654,86 @@ Excluded statuses retain an explicit unevaluated candidate. Candidate storage is
 reserved once during preparation. This stage has no default candidate and does
 not resolve output features, bind a voice profile, render or commit a phone.
 
+`prepare_rule_output_features` retains an original standalone rule and explicit
+optional default features and phone definition. The native
+`speech/output-feature-layer` law selects default realization, phone definition,
+then rule output by exact feature key. Later layers replace whole specifications,
+including Unknown and Unspecified; only a Known output phone inherits lower
+layers. Supplied phone definitions must match that Known phone's exact ID.
+Missing layers stay missing. The receipt borrows at most sixteen resulting
+features with their source layers; duplicate keys or an oversized merged result
+refuse before returning output. This establishes feature inheritance over
+supplied inputs, not inventory membership, occurrence provenance, rule selection,
+output-phone resolution or commitment.
+
+`prepare_chosen_global_rule_profile` binds a selected standalone rule's Known
+output phone to one exact inventory definition and the admitted voice's complete
+definition snapshot. Default-realization feature evidence is explicit, retains
+its provenance, and must name the original occurrence. Native output-feature
+inheritance retains the three layers before compact profile admission; every
+nonempty inherited feature bundle is currently refused rather than discarded.
+Unchosen/deferred states and selected unresolved outputs remain distinct typed
+refusals. Timing, source resolution and commitment remain separate obligations.
+The `global-rule-initial-aspiration-tata` fixture combines this bridge with native
+quantitative timing from the original manual intent through the existing renderer.
+
+`prepare_global_intent` combines global-rule choice, occurrence-bound default
+features, exact voice admission and quantitative timing for one immutable intent.
+Its evidence slots must align with the original events: segment evidence is
+required and boundaries have no segment evidence. All segment obligations and
+renderer admission must pass before a renderable result escapes. The private
+aggregate owns its frozen event tape and retains each choice, inherited feature
+receipt, definition/basis witnesses and profile binding. A late refusal returns
+no playable aggregate; boundary silence and original uncertainty remain explicit.
+Rendering borrows the admitted tapes. The
+`global-intent-initial-aspiration-tata` fixture exercises this whole preparation
+path. Source-material coverage and linguistic commitment remain separate checks;
+the optional rich preparation receipts do not establish whole-device MCU fit.
+
+`resolve_intent_inventory_phoneme` retains the original occurrence and one exact
+phoneme definition from the supplied inventory. Native occurrence, inventory
+basis and phoneme-identity witnesses are retained; a matching notation is not
+membership. Missing or ambiguous definitions and all five non-Known states
+refuse without case, Unicode or base-ID fallback. Whole global-intent preparation
+now requires this receipt before rule choice and retains it alongside the chosen
+phone. A late missing phoneme cannot produce a renderable aggregate even if a
+wildcard rule and output-phone binding would otherwise match. Definition features
+remain definition facts, without becoming observed token features or defaults.
+
+`finish_global_default_choice` completes standalone-rule selection using only
+the exact original phoneme definition's declared default phone. The existing
+native finish law preserves winners and earlier deferral; default selection
+requires explicit policy permission and compatibility with any Known requested
+phone. The receipt retains the original choice, native phoneme membership and
+optional exact default-ID witness. It does not invent a phone from spelling,
+resolve phone membership, admit acoustics or establish commitment.
+
+`prepare_global_default_profile` admits an already selected phoneme default
+through the same inventory's unique exact phone definition and the voice's full
+definition snapshot. Explicit default features require the original occurrence
+witness; nonempty default or definition features remain typed unsupported input.
+The receipt retains the selection, definition, feature provenance and exact
+binding. It does not rewrite the intent or establish timing, source coverage or
+commitment. The supported sample writer includes a declared-default “tata”.
+
+Whole-intent global preparation now completes native default choice before voice
+admission. Each private phone receipt retains the original rule-choice state,
+completed state and an explicit rule/default realization. Rule output features
+are available only for rule realization; default features retain their explicit
+occurrence evidence. Mixed rule/default events and boundaries share the same
+frozen timing and renderer. Earlier deferral or a late default-admission failure
+prevents a playable aggregate escaping. This does not establish source coverage
+or linguistic commitment.
+
+`prepare_sourced_global_intent` resolves every original segment and boundary
+source against explicitly supplied immutable materials in exact event/source
+order before global rule/default realization. Its private aggregate retains both source
+coverage and the prepared realization of the same original intent. Missing,
+stale, foreign or wrong-kind materials refuse through the existing native source
+contracts; failed realization cannot return a playable aggregate. The renderer
+uses the frozen admitted events. Source resolution establishes reference
+coverage, not authenticity, causality, authority or linguistic commitment.
+
 Original allophone conditions have borrowed preparation receipts for explicit
 careful style, previous/next matchers, singleton/set stress, and exact feature
 keys/values. Their decisions are native Plots; the Rust adapters project typed
@@ -729,3 +809,11 @@ meaningless none/default indices. The public preparation receipt preserves
 outcome/index/reason accessors and validates their correlation through native
 laws. Pure choice Plots construct the sum; native preparation validates the
 refined receipt separately, preserving the admitted law-validator boundary.
+
+The sourced aggregate also admits mixed rule/default intents through the same
+frozen event tape. The native-speech journey writes
+`sourced-global-rule-and-default-tata.wav`: its initial /t/ uses the selected
+aspiration rule and the remaining segments use exact declared phoneme defaults.
+Source coverage, default policy, original occurrence evidence and voice admission
+all finish before a renderer is returned; source coverage still does not imply
+linguistic commitment.
