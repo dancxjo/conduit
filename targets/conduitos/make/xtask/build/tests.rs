@@ -9,7 +9,7 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
         ),
         (
             include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
-            64 * 1024 * 1024,
+            256 * 1024 * 1024,
         ),
     ] {
         let profile = check_host_configuration(

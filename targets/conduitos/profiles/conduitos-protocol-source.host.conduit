@@ -3,5 +3,5 @@ host conduitos-protocol-source {
   target = {architecture: "x86_64", machine: "pc"}
   base = {kind: "display/scanout", implementation: "display/linear-framebuffer@1"}
   need = {id: "surface/main", class: "presentation/surface", slots: 4, bytes: 8388608}
-  limits = {static_memory_bytes: 8388608, heap_arena_bytes: 67108864, queue_items: 1024, buffered_bytes: 8388608, active_instances: 128, operation_slots: 64, timer_slots: 32, line_sessions: 8, evidence_items: 1024}
+  limits = {static_memory_bytes: 8388608, heap_arena_bytes: 268435456, queue_items: 1024, buffered_bytes: 8388608, active_instances: 128, operation_slots: 64, timer_slots: 32, line_sessions: 8, evidence_items: 1024}
 }

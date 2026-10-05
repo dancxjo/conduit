@@ -76,6 +76,7 @@ fn selected() -> (
     );
     let expected = offer(&program, PortTemporal::Value).unwrap();
     let gear = &mut fragment.placements[0];
+    gear.limits = expected.limits;
     gear.host_calls = expected.host_calls;
     gear.capability_id = expected.capability_id;
     gear.execution_profile_id = expected.implementation.execution_profile_id;

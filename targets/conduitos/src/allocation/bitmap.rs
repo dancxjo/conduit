@@ -1,6 +1,6 @@
 //! Allocation metadata never resides in released user storage.
 //!
-//! One bit per 32-byte unit covers at most 64 MiB, using a fixed 256 KiB bitmap.
+//! One bit per 32-byte unit covers at most 256 MiB, using a fixed 1 MiB bitmap.
 //! A search inspects only this finite admitted range; it skips occupied runs.
 //! Releasing adjacent allocations naturally makes their combined range usable.
 

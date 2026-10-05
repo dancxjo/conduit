@@ -196,7 +196,7 @@ fn unordered_modules_are_admitted_but_overlap_with_any_prior_module_refuses() {
 
 #[test]
 fn selected_preparation_budget_requires_one_exact_usable_range() {
-    let budget = 64 * 1024 * 1024;
+    let budget = 256 * 1024 * 1024;
     let mut value = normalizer().require_arena_bytes(budget).unwrap();
     value
         .push_region(MemoryRegion {
@@ -207,13 +207,13 @@ fn selected_preparation_budget_requires_one_exact_usable_range() {
         .unwrap();
     value
         .push_region(MemoryRegion {
-            base: 0x4000000,
+            base: budget * 2,
             length: budget,
             kind: MemoryKind::Usable,
         })
         .unwrap();
     let arena = value.finish().unwrap().runtime_arena;
-    assert_eq!(arena.physical_start, 0x4000000);
+    assert_eq!(arena.physical_start, budget * 2);
     assert_eq!(arena.length, budget);
     let mut missing = normalizer().require_arena_bytes(budget).unwrap();
     missing
@@ -232,7 +232,7 @@ fn unsupported_or_late_preparation_budgets_refuse_before_changing_boot_truth() {
         0,
         MIN_RUNTIME_ARENA_BYTES - 1,
         MIN_RUNTIME_ARENA_BYTES + 1,
-        64 * 1024 * 1024 + 4096,
+        256 * 1024 * 1024 + 4096,
     ] {
         assert!(matches!(
             normalizer().require_arena_bytes(bytes),
@@ -248,7 +248,7 @@ fn unsupported_or_late_preparation_budgets_refuse_before_changing_boot_truth() {
         })
         .unwrap();
     assert!(matches!(
-        value.require_arena_bytes(64 * 1024 * 1024),
+        value.require_arena_bytes(256 * 1024 * 1024),
         Err(BootError::UnsupportedRuntimeArenaBudget)
     ));
 }

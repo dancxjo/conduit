@@ -17,7 +17,7 @@ use core::{
 };
 
 /// Maximum finite preparation range; Root selects its exact Make budget.
-pub const MAXIMUM_ARENA_BYTES: usize = 64 * 1024 * 1024;
+pub const MAXIMUM_ARENA_BYTES: usize = 256 * 1024 * 1024;
 
 pub struct BootArena {
     locked: AtomicBool,

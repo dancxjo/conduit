@@ -17,6 +17,16 @@ pub fn offer(
 ) -> Result<CapabilityOffer, StructuredInfoRefusal> {
     let contract = conduit_semantic_catalog::pure_expression_contract(program, temporal)?;
     let kind = contract.kind_id.clone();
+    let input_bytes = program
+        .maximum_prepared_input_bytes()
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    let output_bytes = program
+        .maximum_prepared_output_bytes()
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    // The native one-value operation needs only its exact frame envelope.
+    // Advertising the generic Kind ceiling would inflate every kernel slot.
+    let mut limits = contract.limits.clone();
+    limits.max_queue_bytes = limits.max_queue_bytes.min(input_bytes.max(output_bytes));
     Ok(BackOfferBuilder::new(
         contract,
         Back {
@@ -28,17 +38,15 @@ pub fn offer(
                 contract_id: HostCallContractId::from(CALL),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
-                maximum_input_bytes: program
-                    .maximum_prepared_input_bytes()
-                    .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?,
-                maximum_output_bytes: program
-                    .maximum_prepared_output_bytes()
-                    .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+                maximum_input_bytes: input_bytes,
+                maximum_output_bytes: output_bytes,
             }],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
     )
+    .narrow_capacity(limits)
+    .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?
     .build())
 }
 
