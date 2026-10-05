@@ -87,7 +87,11 @@ fn boot_with_memory(
                 format!("cannot launch qemu-system-x86_64: {error}"),
             )
         })?;
-    hid_qmp::inject(&monitor_socket, &serial_path, &mut child)?;
+    if qemu_profile == conduitos::make::USB_CONFIGURATION_QEMU_PROFILE {
+        hid_qmp::inject_configuration(&monitor_socket, &serial_path, &mut child)?;
+    } else {
+        hid_qmp::inject(&monitor_socket, &serial_path, &mut child)?;
+    }
     let deadline = Instant::now() + Duration::from_secs(20);
     let status = loop {
         match child.try_wait().map_err(|error| {
