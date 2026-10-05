@@ -100,7 +100,11 @@ speech semantic fixtures through the repository's supported entrance.
   committed-segment Types. A Unicode fixture demonstrates scalar rather than
   byte ranges, explicit correction, unchanged native committed text and exact
   replay. Native commitment validates already-derived text; it cannot secretly
-  replace it. Audio recognition quality and live delivery remain separate proof.
+  replace it. This scalar-epoch profile admits only cardinality-preserving
+  committed corrections; length-changing reanalysis requires an explicit new
+  epoch so retained cursor positions do not silently change meaning. Native
+  listening records remain domain evidence, not replaced by this lifecycle.
+  Audio recognition quality and live delivery remain separate proof.
 
 The limited lifecycle/frontier and delivery-separation ideas come from Tongues'
 [pinned streaming contract](https://github.com/dancxjo/tongues/blob/b03702798db5a5e7d174278ac2fc1233f171b02e/docs/streaming-event-contract.md)

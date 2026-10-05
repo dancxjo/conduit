@@ -191,5 +191,16 @@ fn listening_mapping_refuses_wrong_subject_role_and_unbounded_scalar_ranges() {
         )
         .unwrap(),
     );
+    let shifts_epoch = ListeningDelta::Correction(
+        AsrRevisedHypothesis::new(
+            None,
+            ListeningTextRange::new(2, 1).unwrap(),
+            ListeningTextRole::Recognition,
+            segment.clone(),
+            "three".into(),
+        )
+        .unwrap(),
+    );
+    assert!(!domain.validate_delta(RevisionDeltaRole::Correction, &shifts_epoch));
     assert!(!domain.validate_cursor(domain.region(&replacement).1));
 }

@@ -50,8 +50,18 @@ impl RevisionDomain for ListeningRevisions<'_> {
             (RevisionDeltaRole::Proposal, ListeningDelta::Partial(value)) => {
                 (value.segment_id(), value.role())
             }
-            (RevisionDeltaRole::Revision, ListeningDelta::Replacement(value))
-            | (RevisionDeltaRole::Correction, ListeningDelta::Correction(value)) => {
+            (RevisionDeltaRole::Revision, ListeningDelta::Replacement(value)) => {
+                (value.segment_id(), value.role())
+            }
+            (RevisionDeltaRole::Correction, ListeningDelta::Correction(value)) => {
+                // Committed cursors name this exact scalar epoch. A correction
+                // cannot shift its retained positions; cardinality-changing
+                // reanalysis needs an explicit domain epoch handoff.
+                if value.text().chars().count() as u64
+                    != u64::from(*value.replaces().end() - *value.replaces().start())
+                {
+                    return false;
+                }
                 (value.segment_id(), value.role())
             }
             (RevisionDeltaRole::Withdrawal, ListeningDelta::Withdrawal { cancelled, .. }) => {
