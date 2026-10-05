@@ -353,22 +353,13 @@ fn expand_expression(
             anonymous_counts,
         );
     }
-    let program = crate::PortableExpressionProgram::from_checked(&checked).map_err(|_| {
+    let definition = crate::pure_expression_definition(&checked, temporal).map_err(|_| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-046",
             "pure expression has no finite exact Port identity".into(),
         )
     })?;
-    // The portable program owns all exact node types. Release the checker and
-    // its retained schema registry before allocating the canonical program.
     drop(checked);
-    let definition = crate::portable_expression_definition(&program, temporal).map_err(|_| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-046",
-            "pure expression has no finite exact Port identity".into(),
-        )
-    })?;
-    drop(program);
     let key = definition.kind_id.as_str().to_string();
     let count = anonymous_counts.entry(key.clone()).or_default();
     let name = format!("expression-{}-{count}", &hash_string(&key)[..12]);

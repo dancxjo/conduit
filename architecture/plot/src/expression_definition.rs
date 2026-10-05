@@ -34,12 +34,25 @@ pub fn pure_expression_definition(
     expression: &CheckedExpression,
     temporal: PortTemporal,
 ) -> Result<KindProjection, StructuredInfoRefusal> {
-    let program =
-        PortableExpressionProgram::from_checked(expression).map_err(|refusal| match refusal {
-            crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
-            _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
+    let encoded =
+        crate::expression_program::checked_canonical_hex(expression).map_err(|refusal| {
+            match refusal {
+                crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
+                _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
+            }
         })?;
-    portable_expression_definition(&program, temporal)
+    let input = expression
+        .input_type
+        .structured_info_type_with(&expression.semantic_structures)?;
+    let output = expression
+        .value_type
+        .structured_info_type_with(&expression.semantic_structures)?;
+    expression_definition_from_encoding(
+        expression_port_kind(&input)?,
+        expression_port_kind(&output)?,
+        encoded,
+        temporal,
+    )
 }
 
 /// Projects a checked Boolean predicate into canonical unary filtering. Flows
@@ -125,6 +138,15 @@ pub fn portable_expression_definition(
     })?;
     let input = expression_port_kind(&program.input_type)?;
     let output = expression_port_kind(&program.output_type)?;
+    expression_definition_from_encoding(input, output, encoded_program, temporal)
+}
+
+fn expression_definition_from_encoding(
+    input: conduit_core::KindId,
+    output: conduit_core::KindId,
+    encoded_program: alloc::string::String,
+    temporal: PortTemporal,
+) -> Result<KindProjection, StructuredInfoRefusal> {
     let identity = hash_string(&format!(
         "pure-expression:{PURE_EXPRESSION_REVISION}:{}:{}:{}:{}",
         input.as_str(),
