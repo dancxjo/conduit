@@ -6,6 +6,41 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if kind == "sequence/at" {
+        let [source, index] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let element = match source.value_type.shape() {
+            StructuredInfoTypeShape::Collection { element, .. }
+            | StructuredInfoTypeShape::Sequence { element, .. } => element,
+            _ => return Err(PortableExpressionEvaluationRefusal::InvalidProgram),
+        };
+        if element != expected
+            || index.value_type
+                != StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let index = u64::from_le_bytes(
+            index
+                .encoded
+                .as_slice()
+                .try_into()
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?,
+        );
+        let index = usize::try_from(index)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let source = StructuredInfoValue::from_canonical_bytes(&source.encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidInput)?;
+        let StructuredInfoValueShape::Collection(values) = source.shape() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let selected = values
+            .get(index)
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidInput)?;
+        return super::structured::encoded_structured(selected.clone());
+    }
     if kind == "sequence/length" {
         let [argument] = arguments.as_slice() else {
             return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
