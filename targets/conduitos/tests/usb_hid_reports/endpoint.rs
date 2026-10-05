@@ -210,3 +210,62 @@ fn endpoint_framing_keeps_actual_extent_and_distinct_transport_outcomes_without_
     assert_eq!(allocations, 0);
     assert_eq!(prepared.output_capacity(), capacity);
 }
+
+#[test]
+fn class_proof_plan_retains_exact_endpoint_selection_and_source_identity() {
+    use conduitos::usb_base::{
+        endpoint_read_proof_plan::EndpointReadProofSubject, hid_endpoint_proof_plan,
+    };
+    let subject = EndpointReadProofSubject {
+        host_id: "proof/host",
+        boot_id: "proof/boot",
+        controller_base_id: "proof/controller",
+        device_instance_id: "proof/device",
+        root_port: 1,
+        slot: 1,
+        attachment_epoch: 1,
+        endpoint_dci: 3,
+        endpoint_epoch: 1,
+    };
+    for entry in ["usb-hid-keyboard-endpoint", "usb-hid-mouse-endpoint"] {
+        let retained = hid_endpoint_proof_plan::plan(&subject, entry).unwrap();
+        let artifact = retained.artifact();
+        let plan = &artifact.definition().internal_plan;
+        assert!(verify_plan(plan));
+        assert_eq!(plan.source_document_id, artifact.identity().source);
+        let fragment = &plan.fragments[0];
+        assert!(
+            fragment
+                .fore_ports
+                .iter()
+                .all(|port| port.item_capacity == 1 && port.byte_capacity <= 4096)
+        );
+        assert_eq!(fragment.host_id.as_str(), subject.host_id);
+        assert_eq!(fragment.boot_id.as_str(), subject.boot_id);
+        let endpoint = fragment
+            .placements
+            .iter()
+            .find(|gear| gear.kind_id.as_str() == ENDPOINT_READ_KIND)
+            .unwrap();
+        assert_eq!(
+            endpoint.base.as_ref().unwrap().base_id.as_str(),
+            subject.controller_base_id
+        );
+        assert_eq!(endpoint.resources.len(), 1);
+        assert_eq!(endpoint.authority.len(), 1);
+        assert!(
+            retained
+                .prepare_pure(conduit_composite::KernelCompositeSignStorage {
+                    additional_local_items: 0,
+                    additional_remote_items: 0
+                })
+                .is_err()
+        );
+    }
+    assert!(hid_endpoint_proof_plan::plan(&subject, "usb-hid-endpoint-request").is_err());
+    let invalid = EndpointReadProofSubject {
+        endpoint_dci: 2,
+        ..subject
+    };
+    assert!(hid_endpoint_proof_plan::plan(&invalid, "usb-hid-keyboard-endpoint").is_err());
+}

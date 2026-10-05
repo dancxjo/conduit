@@ -18,13 +18,13 @@ plot usb-hid-endpoint-request (
 # Shortness is relative to this exact eight-byte request, independently of the
 # keyboard/mouse report's own minimum extent. No padding or retry is invented.
 plot usb-hid-endpoint-frame (
-    result: UsbEndpointReadResult...| <= 4096B >> observed: UsbHidTransferFrame...| <= 4096B
+    result: UsbEndpointReadResult...| <= 4096B >> observed: UsbHidTransferFrame...|
 ) = (. is completed ? (.completed.actual != bytes/length(.completed.wire) || .completed.actual > 8 || (.completed.actual < 8) != .completed.short ? malformed(unit) : frame({ wire: .completed.wire, actual: .completed.actual })) : (. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : (. is timeout ? timeout(unit) : unsupported(unit)))))
 
 plot usb-hid-keyboard-endpoint (
     >> begin: Unit...|
     >> read: Unit...|
-    received: UsbHidTransferFrame...| <= 4096B >>
+    received: UsbHidTransferFrame...| >>
     observed: UsbBootKeyboardResult...| >>
     transition: UsbKeyboardTransition...| >>
 ) {
@@ -42,7 +42,7 @@ plot usb-hid-keyboard-endpoint (
 
 plot usb-hid-mouse-endpoint (
     >> read: Unit...|
-    received: UsbHidTransferFrame...| <= 4096B >>
+    received: UsbHidTransferFrame...| >>
     decoded: UsbBootMouseResult...| >>
 ) {
     transfer: machine/usb/endpoint-read
