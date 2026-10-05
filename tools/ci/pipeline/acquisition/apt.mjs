@@ -10,7 +10,7 @@ import path from 'node:path';
 const hash = value => createHash('sha256').update(value).digest('hex');
 function execute(program, args, { input } = {}) {
   const result = spawnSync(program, args, { encoding: 'utf8', input, timeout: 20 * 60_000, maxBuffer: 32 * 1024 * 1024 });
-  if (result.error || result.status !== 0) throw new Error(`${program} failed: ${result.error?.message ?? result.stderr}`);
+  if (result.error || result.status !== 0) throw new Error(`${program} ${args.join(' ')} failed: ${result.error?.message ?? `${result.stdout}\n${result.stderr}`}`);
   return result.stdout;
 }
 function installed(run) {
