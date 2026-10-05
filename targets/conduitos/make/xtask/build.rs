@@ -151,6 +151,15 @@ pub(super) fn execute_proof(
     )
 }
 
+pub(super) fn execute_usb_configuration(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    execute_embedded_profile(
+        ConduitosArch::X86_64,
+        include_str!("../../proof/profiles/conduitos-usb-configuration-proof.profile.json"),
+        ArtifactRole::ArchitectureProofAppliance,
+        opts,
+    )
+}
+
 pub(super) fn execute_emergency_halt(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     execute_with_features(
         ConduitosArch::X86_64,

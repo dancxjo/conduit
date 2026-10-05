@@ -287,7 +287,7 @@ fn proof_profiles_are_checked_distinct_and_normal_products_stay_clean() {
     );
     assert_eq!(
         hotplug.proof_instrumentation,
-        conduitos::make::ALL_KNOWN_PROOF_INSTRUMENTATION
+        conduitos::make::PROOF_HOTPLUG | conduitos::make::PROOF_SCRIPTED_KEYBOARD
     );
     assert_eq!(ps2.cargo_features, ["native-compositor", "ps2-input"]);
     assert_eq!(ps2.proof_instrumentation, 0);
@@ -361,4 +361,38 @@ fn aarch64_virt_rejects_x86_leaks_and_incomplete_serial_closure() {
         .unwrap_err()
         .to_string()
         .contains("aarch64-product-closure-mismatch"));
+}
+
+#[test]
+fn usb_configuration_proof_owns_its_finite_profile_and_requires_keyboard_closure() {
+    let source =
+        include_str!("../../../proof/profiles/conduitos-usb-configuration-proof.profile.json");
+    let admitted = manifest(source);
+    assert_eq!(admitted.bounds.heap_arena_bytes, 256 * 1024 * 1024);
+    let usb = lower(&admitted).unwrap();
+    assert_eq!(
+        usb.cargo_features,
+        [
+            "native-compositor",
+            "scripted-keyboard-proof",
+            "usb-configuration-proof"
+        ]
+    );
+    assert_eq!(
+        usb.proof_instrumentation,
+        conduitos::make::PROOF_SCRIPTED_KEYBOARD | conduitos::make::PROOF_USB_CONFIGURATION
+    );
+    let ordinary = manifest(include_str!(
+        "../../../proof/profiles/conduitos-proof.profile.json"
+    ));
+    assert_eq!(ordinary.bounds.heap_arena_bytes, 16 * 1024 * 1024);
+    assert!(!lower(&ordinary)
+        .unwrap()
+        .cargo_features
+        .contains(&"usb-configuration-proof"));
+    let mut missing_keyboard = admitted;
+    missing_keyboard
+        .profile_fragments
+        .retain(|item| item != SCRIPTED_KEYBOARD_PROOF);
+    assert!(lower(&missing_keyboard).is_err());
 }

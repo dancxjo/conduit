@@ -74,6 +74,8 @@ pub(super) enum ConduitosCommand {
     XhciProof(PreparedProofArgs),
     /// Prove one real bounded root-attached USB device without semantic input.
     UsbProof(PreparedProofArgs),
+    /// Prove the complete Source configuration exchange with its admitted preparation arena.
+    UsbConfigurationProof,
     /// Check shared USB wire plots and machine register-possession fixtures.
     UsbPlotsCheck {
         /// Type-check the shared library for each product CPU architecture.

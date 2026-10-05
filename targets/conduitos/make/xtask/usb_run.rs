@@ -76,6 +76,13 @@ pub(super) fn validate(
 }
 
 pub(super) fn prove_absent(paths: &Paths) -> Result<String, ConduitosError> {
+    prove_absent_with_memory(paths, "64M")
+}
+
+pub(super) fn prove_absent_with_memory(
+    paths: &Paths,
+    memory: &str,
+) -> Result<String, ConduitosError> {
     let output = Command::new("qemu-system-x86_64")
         .args([
             "-M",
@@ -83,7 +90,7 @@ pub(super) fn prove_absent(paths: &Paths) -> Result<String, ConduitosError> {
             "-cpu",
             "max",
             "-m",
-            "64M",
+            memory,
             "-smp",
             "1",
             "-display",
