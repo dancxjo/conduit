@@ -34,6 +34,19 @@ effect outside the exact selected base. The canon's prohibition on authored
 addresses and device/resource binding facts still applies to realization facts;
 #4833 explicitly requires protocol-level addressing inside a bounded exchange.
 
+Packed wire data uses `Bytes` with an explicit byte ceiling, for example
+`wire: Bytes <= 2048B`. Pure Source expressions observe its actual extent with
+`bytes/length(.wire)` (U64) and read an octet with `bytes/at(.wire, index)`
+(U8, with an exact U64 index). Guard an indexed read with the actual length;
+an out-of-range read produces an invalid-input refusal. Prepared evaluation
+borrows the admitted bytes and performs these observations without allocation.
+
+A packed byte value is independent of a finite collection's element ceiling.
+Its declared byte ceiling, maximum encoded representation, and selected Host
+Call surface remain separate checks. A declared 2,048-byte value does not imply
+that every host or call can admit its complete representation. These observations
+do not grant endpoint authority or select a transport.
+
 ## Source package preparation
 
 The development implementation accepts bounded packages using
