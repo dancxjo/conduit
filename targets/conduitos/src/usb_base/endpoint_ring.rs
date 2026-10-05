@@ -111,6 +111,10 @@ impl EndpointRingCursor {
         Ok(())
     }
 
+    pub fn position(&self) -> (usize, u32) {
+        (self.enqueue, self.cycle)
+    }
+
     pub fn ordinary_slots(&self) -> usize {
         self.ordinary_slots
     }

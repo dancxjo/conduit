@@ -134,6 +134,10 @@ impl<'a> UsbEndpointReadHostCall<'a> {
         })
     }
 
+    pub fn ring_position(&self) -> (usize, u32) {
+        self.dma.cursor.position()
+    }
+
     /// Publish one already admitted transfer; no polling, class logic or retry.
     pub fn begin(
         &mut self,
