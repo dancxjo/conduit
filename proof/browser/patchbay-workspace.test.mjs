@@ -104,6 +104,19 @@ test("authoring workspace uses exact checked source rather than enclosing Body p
   assert.throws(() => workspaceBasis(snapshot), /WorkspaceBasisUnavailable/);
 });
 
+test("fresh Entrance and Body scenes have no portable Plot workspace and still project", () => {
+  const snapshot = { presentation: { identity: "entrance", revision: 1,
+    basis: { source_document_id: null, checked_plot_id: null },
+    subjects: [{ identity: "body/present", role: "Body", name: "Present Body" }],
+    properties: [], relationships: [] }, interaction: { selected_subject: null } };
+  assert.equal(workspaceBasis(snapshot), null);
+  assert.equal(workspaceIdentity(snapshot), null);
+  const projected = projectFlowScene(snapshot);
+  assert.equal(projected.basis, null);
+  assert.equal(projected.workspaceIdentity, null);
+  assert.equal(projected.nodes.length, 1);
+});
+
 test("port compatibility is copied from canonical candidates by semantic identity, never label", () => {
   const candidate = { sink_identity: "port/exact", compatible: false, diagnostic: "Canonical temporal mismatch", adapters: [] };
   const snapshot = {

@@ -53,6 +53,7 @@ function storageKey(workspaceIdentity) {
 }
 
 function restore(projection) {
+  if (!projection.basis) return null;
   try {
     const encoded = retainedScenes.get(storageKey(projection.workspaceIdentity));
     const document = workspaceDocuments.get(projection.workspaceIdentity)
@@ -84,6 +85,7 @@ async function retainWorkspace(workspaceIdentity) {
 
 function persist(scene, viewport = instance?.getViewport() || scene.viewport) {
   currentScene = { ...scene, viewport };
+  if (!scene.basis) return;
   if (admittedStorage && !loadedWorkspaces.has(scene.workspaceIdentity)) return;
   if (workspaceRefusals.has(scene.workspaceIdentity)) return;
   const key = storageKey(scene.workspaceIdentity);
@@ -147,7 +149,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
   const mounted = React.useRef(false);
   React.useEffect(() => {
     let active = true;
-    if (admittedStorage && !retainedScenes.has(storageKey(projected.workspaceIdentity))) {
+    if (projected.basis && admittedStorage && !retainedScenes.has(storageKey(projected.workspaceIdentity))) {
       admittedStorage.readJson(storageKey(projected.workspaceIdentity)).then(async (document) => {
         if (!active) return;
         if (typeof document !== "string") {
@@ -190,12 +192,13 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
       const document = workspaceDocuments.get(projected.workspaceIdentity);
       const decorated = document ? applyWorkspace(document, next) : next;
       if (!sameWorkspace && currentScene?.basis
-        && currentScene.basis.checked_plot_id !== projected.basis.checked_plot_id) {
+        && currentScene.basis.checked_plot_id !== projected.basis?.checked_plot_id) {
         decorated.workspaceNotice = "ChangedBasis: previous layouts retained separately; no remapping";
       }
       if (!sameWorkspace) instance?.setViewport(decorated.viewport, { duration: 0 });
       workspace.current = projected.workspaceIdentity;
       persist(decorated);
+      onWorkspaceChange?.(flowWorkspaceStatus());
       return decorated.nodes;
     });
     const document = workspaceDocuments.get(projected.workspaceIdentity);
@@ -277,6 +280,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
           : nodes;
         next.setViewport(viewport, { duration: 0 });
         currentScene = { ...projected, nodes: initializedNodes, edges, viewport };
+        onWorkspaceChange?.(flowWorkspaceStatus());
       },
       nodesDraggable: true,
       nodesConnectable: Boolean(snapshot.authoring),
@@ -364,7 +368,7 @@ export function flowSceneSnapshot() {
 }
 
 function currentDocument() {
-  if (!currentScene) throw new Error("WorkspaceUnavailable");
+  if (!currentScene?.basis) throw new Error("WorkspaceUnavailable");
   return captureWorkspace(currentScene, workspaceDocuments.get(currentScene.workspaceIdentity));
 }
 
@@ -381,16 +385,21 @@ async function updateWorkspace(edit) {
 }
 
 export function flowWorkspaceStatus() {
-  if (!currentScene) return { status: "WorkspaceUnavailable", layouts: [] };
+  if (!currentScene?.basis) return { status: "WorkspaceUnavailable", available: false,
+    layouts: [], active_layout: null, basis: null, lens: currentScene?.lens,
+    correlation: { basis_matches: false, orphaned_subjects: [] } };
   const document = workspaceDocuments.get(currentScene.workspaceIdentity);
   return {
     status: workspaceRefusals.get(currentScene.workspaceIdentity) || currentScene.storageRefusal || "Ready",
+    available: true,
     layouts: document?.layouts.map((layout) => layout.name) || ["Default"],
     active_layout: document?.active_layout || "Default",
     lens: document ? workspaceLayout(document).lens : currentScene.lens,
     basis: currentScene.basis,
     notice: currentScene.workspaceNotice || null,
     correlation: document ? workspaceCorrelation(document, currentScene) : { basis_matches: true, orphaned_subjects: [] },
+    retained_workspaces: [...workspaceDocuments.entries()].filter(([identity]) => identity !== currentScene.workspaceIdentity)
+      .map(([identity, prior]) => ({ identity, basis: prior.basis, correlation: workspaceCorrelation(prior, currentScene) })),
   };
 }
 
@@ -407,12 +416,35 @@ export async function selectFlowLayout(name) {
   return updateWorkspace((document) => { document.active_layout = name; });
 }
 
-export function exportFlowWorkspace() {
+export function exportFlowWorkspace(identity = null) {
+  if (identity !== null) {
+    const document = workspaceDocuments.get(identity);
+    if (!document) throw new Error("WorkspaceNotRetained");
+    return JSON.stringify(document);
+  }
   return JSON.stringify(currentDocument());
 }
 
+export async function retainedFlowWorkspaces() {
+  if (!currentScene) return [];
+  if (admittedStorage) {
+    const identities = await admittedStorage.readJson(workspaceIndexKey);
+    if (Array.isArray(identities)) for (const identity of identities.slice(0, MAX_FLOW_WORKSPACES)) {
+      if (typeof identity !== "string" || workspaceDocuments.has(identity)) continue;
+      const encoded = await admittedStorage.readJson(storageKey(identity));
+      if (typeof encoded !== "string") continue;
+      const document = decodeWorkspace(encoded, currentScene);
+      workspaceDocuments.set(identity, document);
+    }
+  }
+  return [...workspaceDocuments.entries()].map(([identity, document]) => ({
+    identity, basis: document.basis, layouts: document.layouts.map((layout) => layout.name),
+    correlation: workspaceCorrelation(document, currentScene),
+  }));
+}
+
 export async function importFlowWorkspace(encoded) {
-  if (!currentScene) throw new Error("WorkspaceUnavailable");
+  if (!currentScene?.basis) throw new Error("WorkspaceUnavailable");
   const document = decodeWorkspace(encoded, currentScene);
   const correlation = workspaceCorrelation(document, currentScene);
   if (!correlation.basis_matches) {

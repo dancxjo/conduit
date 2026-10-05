@@ -50,6 +50,46 @@ Mask realization edge. Patchbay projections consume exact advertisements,
 plans, reports, and Observatory truth without depending on a concrete Host or
 reconstructing a second current-truth registry.
 
+## Catalog authoring and workspace layouts
+
+The development authoring surface uses the semantic catalog's exact Kind
+revision, Fore, startup parameters, configuration rules, and finite limits.
+Visibility in this catalog is distinct from authorability in the selected
+source profile, and neither promises a current Host Back. Cord highlighting
+queries the checked editor; configuration uses the source checker's validator.
+Reviewed adapter suggestions name an explicit Gear and its exact ports. Placing
+one does not silently connect it. Generated SVG descriptions expose the same
+canonical port and configuration facts for reference and handbook consumers.
+
+`patchbay_application::PatchbayWorkspace` is the portable presentation document,
+separate from authored source, checked Plot, and live realization. Its
+`conduit.patchbay.workspace/v1` schema admits at most four named layouts in
+64 KiB. Each layout has bounded semantic-subject positions, Cord routes,
+visual frames, notes, collapsed subjects, viewport, and preferred lens.
+Coordinates, annotation text, membership counts, and route points have explicit
+limits. Frames create no semantic scope; route points create no Gear or Line.
+
+Browser **Workspace layouts and annotations** controls save, switch, import,
+and export these documents through admitted application storage and the same
+portable validator. Export permits personal or shared arrangements without
+requiring one global layout. A layout may remember a Plan/Play/Signs lens, but
+all its evidence is projected again from the current authoritative snapshot.
+No runtime evidence is serialized into the workspace.
+
+Workspace correlation retains exact source and checked Plot identities.
+Unknown subjects are reported as orphans, never matched by position or label.
+A changed basis refuses application instead of guessing a rename mapping.
+Legacy Flow v1 positions migrate deterministically only when their exact
+projection supplies semantic subject mappings; unknown/future schemas refuse
+without overwriting the retained document. Workspace migration never edits a
+Plot, and semantic edits never fabricate replacement geometry.
+
+The existing `cargo xtask prove patchbay-body-workbench` entrance includes
+catalog, portable workspace, diagram-reference, and browser authoring proofs.
+These are development contract/browser evidence, not a new stable-release,
+physical-device, or human-enactment claim. Native consumers share the portable
+schema and checking laws; identical graphical controls are not required.
+
 ## Explanation and proof classification
 
 - Voyager scar explanations now live with the planner proof evidence they

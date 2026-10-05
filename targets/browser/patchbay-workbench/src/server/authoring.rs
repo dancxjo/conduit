@@ -36,7 +36,7 @@ impl PatchbayHtmlServer {
             return None;
         }
         let result = if first == "POST /api/workspace HTTP/1.1" {
-            validate_workspace(body)
+            Self::validate_workspace(body)
         } else {
             self.authoring_query(body)
         };
@@ -108,5 +108,32 @@ impl PatchbayHtmlServer {
                 }))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn workspace_endpoint_refuses_unknown_runtime_fields_future_versions_and_large_input() {
+        let fixture = include_str!("../../../../../proof/browser/fixtures/patchbay-workspace.json");
+        assert!(PatchbayHtmlServer::validate_workspace(fixture.as_bytes()).is_ok());
+        let mut value: serde_json::Value = serde_json::from_str(fixture).unwrap();
+        value["plan_id"] = "invented-plan".into();
+        assert!(
+            PatchbayHtmlServer::validate_workspace(&serde_json::to_vec(&value).unwrap()).is_err()
+        );
+        value.as_object_mut().unwrap().remove("plan_id");
+        value["schema"] = "conduit.patchbay.workspace/v999".into();
+        assert!(
+            PatchbayHtmlServer::validate_workspace(&serde_json::to_vec(&value).unwrap()).is_err()
+        );
+        assert!(PatchbayHtmlServer::validate_workspace(&vec![
+            b' ';
+            patchbay_application::MAX_WORKSPACE_BYTES
+                + 1
+        ])
+        .is_err());
     }
 }

@@ -27,6 +27,7 @@ export function workspaceBasis(snapshot) {
   const basis = snapshot.authoring || snapshot.presentation.basis;
   if (typeof basis.source_document_id !== "string" || !basis.source_document_id
     || typeof basis.checked_plot_id !== "string" || !basis.checked_plot_id) {
+    if (!snapshot.authoring) return null;
     throw new Error("WorkspaceBasisUnavailable");
   }
   return { source_document_id: basis.source_document_id, checked_plot_id: basis.checked_plot_id };
@@ -34,6 +35,7 @@ export function workspaceBasis(snapshot) {
 
 export function workspaceIdentity(snapshot) {
   const basis = workspaceBasis(snapshot);
+  if (!basis) return null;
   const cursor = snapshot.navigation?.cursor;
   return `${basis.source_document_id}/${basis.checked_plot_id}/${cursor?.place??"canonical"}`;
 }

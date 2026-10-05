@@ -1,4 +1,9 @@
 // Native controls render catalog rules; only the canonical editor validates edits.
+export function authoringBasis(value) {
+  return value ? JSON.stringify([value.source_document_id, value.source_revision,
+    value.checked_plot_id, value.expanded_plot_id]) : null;
+}
+
 export function configurationText(value) {
   return String(value.U64 ?? value.I64 ?? value.Bool ?? value.Text ?? value.Quantity?.value ?? "");
 }

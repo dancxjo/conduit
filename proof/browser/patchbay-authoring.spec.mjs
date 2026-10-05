@@ -12,12 +12,7 @@ async function startAuthoringEntrance(plotSource = "plot making {\n}\n") {
   return { ...(await spawnEntrance(source)), directory, source };
 }
 
-async function spawnEntrance(source) {
-  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--plot", "Empty Plot", source], {
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
-  test("catalog queries and two durable layouts decorate the same live Plot", async ({ page }) => {
+test("catalog queries and two durable layouts decorate the same live Plot", async ({ page }) => {
     test.setTimeout(90_000);
     const source = `plot authoring {
       literal: text/literal("authoring truth")
@@ -26,14 +21,15 @@ async function spawnEntrance(source) {
       label: text/join("Result: ")
       display: presentation/text(maximum-values = 4)
       map: math/map-quantity
-      normalize: math/normalized-quantity-scalar
+      scalar: math/clamp
+      wrapped: structured-info/wrap-quantity
       literal >> prefix >> upper >> label >> display
     }\n`;
     const server = await startAuthoringEntrance(source);
     try {
       await page.goto(server.url);
       await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
-      await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(7);
+      await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(8);
       const initial = await current(page);
       const basis = initial.authoring.checked_plot_id;
       expect(initial.presentation.basis.plan_id).toBeNull();
@@ -42,6 +38,16 @@ async function spawnEntrance(source) {
       expect(mapping.kind_contract_revision).toBeTruthy();
       expect(mapping.configuration.length).toBeGreaterThan(4);
       expect(mapping.front).toBeTruthy();
+      const distinctBases = await page.evaluate(async basis => {
+        const { authoringBasis } = await import("/assets/authoring.js");
+        return [
+          authoringBasis({ ...basis, source_document_id: `${basis.source_document_id}/other` }),
+          authoringBasis({ ...basis, checked_plot_id: `${basis.checked_plot_id}/other` }),
+          authoringBasis({ ...basis, expanded_plot_id: `${basis.expanded_plot_id}/other` }),
+          authoringBasis(basis),
+        ];
+      }, initial.authoring);
+      expect(new Set(distinctBases).size).toBe(4);
 
       const portIdentity = (snapshot, gear, direction) => {
         const subject = snapshot.presentation.subjects.find(subject => subject.role === "Gear" && subject.label === `authoring/${gear}`);
@@ -55,10 +61,10 @@ async function spawnEntrance(source) {
         const response = await fetch("/api/authoring-query", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: "connections", revision: snapshot.authoring.source_revision, expanded_plot_id: snapshot.authoring.expanded_plot_id, source: sourcePort }) });
         return (await response.json()).candidates.find(candidate => candidate.sink_identity === sinkPort);
-      }, { sourcePort: portIdentity(initial, "map", "outgoing"), sinkPort: portIdentity(initial, "normalize", "receiving") });
+      }, { sourcePort: portIdentity(initial, "scalar", "outgoing"), sinkPort: portIdentity(initial, "wrapped", "receiving") });
       expect(queries.compatible).toBe(false);
       expect(queries.diagnostic).toBeTruthy();
-      expect(queries.adapters.map(adapter => adapter.kind_id)).toContain("structured-info/wrap-quantity");
+      expect(queries.adapters.map(adapter => adapter.kind_id)).toContain("math/map-quantity");
       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
 
       await selectRole(page, "Gear", "authoring/map Gear");
@@ -87,6 +93,7 @@ async function spawnEntrance(source) {
       const second = structuredClone(first);
       const alternate = structuredClone(second.layouts.find(layout => layout.name === "Teaching"));
       alternate.name = "Wide";
+      alternate.notes[0].id = "note-2";
       alternate.positions.forEach((position, index) => { position.x = index * 1800 - 6000; position.y = index % 2 ? 4000 : -4000; });
       alternate.viewport = { x: 100, y: -100, zoom: 0.25 };
       second.layouts.push(alternate);
@@ -94,6 +101,12 @@ async function spawnEntrance(source) {
       await page.getByRole("textbox", { name: "Workspace document", exact: true }).fill(JSON.stringify(second));
       await page.getByRole("button", { name: "Import workspace", exact: true }).click();
       await expect(page.getByRole("combobox", { name: "Saved layouts", exact: true })).toHaveValue("Wide");
+      await page.getByRole("textbox", { name: "Workspace annotation", exact: true }).fill("A second independent annotation");
+      await page.getByRole("button", { name: "Add note", exact: true }).click();
+      await page.getByRole("button", { name: "Export workspace", exact: true }).click();
+      const annotated = JSON.parse(await page.getByRole("textbox", { name: "Workspace document", exact: true }).inputValue());
+      expect(annotated.layouts.find(layout => layout.name === "Wide").notes.map(note => note.text).sort())
+        .toEqual(["A second independent annotation", "This frame is not executable scope"]);
       expect((await current(page)).authoring.checked_plot_id).toBe(basis);
       expect(await readFile(server.source, "utf8")).toBe(source);
 
@@ -129,6 +142,11 @@ async function spawnEntrance(source) {
       server.child.kill("SIGTERM");
       await rm(server.directory, { recursive: true, force: true });
     }
+});
+
+async function spawnEntrance(source) {
+  const child = spawn("target/debug/conduit-browser-patchbay-workbench", ["--plot", "Empty Plot", source], {
+    stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];
   child.stderr.setEncoding("utf8");

@@ -36,9 +36,9 @@ mod mask_control_tests;
 mod mask_plans_tests;
 #[cfg(test)]
 mod mask_product_tests;
+mod palette_placement;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
-mod palette_placement;
 mod plot_editor;
 mod plot_editor_catalogs;
 mod plot_editor_error;

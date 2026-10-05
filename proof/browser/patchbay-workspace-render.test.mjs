@@ -27,7 +27,7 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
     });
     await page.goto("http://workspace.test/");
     const fixture = JSON.parse(await readFile(new URL("proof/browser/fixtures/patchbay-workspace.json", root), "utf8"));
-    const initialize = async ({ fixture, stored = [] }) => {
+    const initialize = async ({ fixture, stored = [], fresh = false }) => {
       window.flow = await import("/plots/patchbay/workbench/browser/flow.js");
       const subjects = fixture.layouts[0].positions.map((item, i) => ({ identity: `wrapper-${i}`, role: "Gear", name: item.subject }));
       const property = (subject, name, text) => ({ subject, name, value: { Text: text } });
@@ -42,6 +42,13 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
         relationships.push({ source: `wrapper-${i}`, target: source, kind: "Contains" }, { source: `wrapper-${i + 1}`, target: sink, kind: "Contains" });
       });
       window.snapshot = { authoring: { ...fixture.basis, connection_candidates: [] }, presentation: { identity: "presentation/exact", revision: 1, basis: fixture.basis, subjects, properties, relationships, text: [], actions: [] }, interaction: { revision: 1, selected_subject: null } };
+      if (fresh) {
+        delete snapshot.authoring;
+        snapshot.presentation.basis = { source_document_id: null, checked_plot_id: null };
+        snapshot.presentation.subjects = [{ identity: "body/present", role: "Body", name: "Present Body" }];
+        snapshot.presentation.properties = [];
+        snapshot.presentation.relationships = [];
+      }
       window.before = JSON.stringify(window.snapshot);
       window.store = new Map(stored);
       window.validations = 0;
@@ -60,6 +67,13 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
         onConnectStart: (source) => window.connectionStarts.push(source) };
       flow.renderFlow(snapshot, handlers);
     };
+    await page.evaluate(initialize, { fixture, fresh: true });
+    await page.locator(".flow-frontplate.role-body").waitFor();
+    assert.equal(await page.evaluate(() => flow.flowWorkspaceStatus().available), false);
+    assert.equal(await page.evaluate(() => store.size), 0);
+    assert.equal(await page.evaluate(() => {
+      try { flow.exportFlowWorkspace(); } catch (error) { return error.message; }
+    }), "WorkspaceUnavailable");
     await page.evaluate(initialize, { fixture });
     await page.locator(".flow-frontplate").first().waitFor();
     const sourceHandle = page.locator('.faceplate-handle[data-port-id="out-0"]');
@@ -112,6 +126,21 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
     assert.ok(result.validations >= 5);
     assert.equal(result.encoded.includes("wrapper-"), false);
     const stored = await page.evaluate(() => [...store.entries()]);
+    await page.evaluate(() => {
+      snapshot.authoring = { ...snapshot.authoring, source_document_id: "source/edited", checked_plot_id: "checked/edited" };
+      snapshot.presentation.subjects = snapshot.presentation.subjects.filter((subject) => subject.identity !== "wrapper-0");
+      snapshot.presentation.properties = snapshot.presentation.properties.filter((property) => property.subject !== "wrapper-0");
+      snapshot.presentation.revision++;
+      flow.renderFlow(snapshot, handlers);
+    });
+    await page.waitForFunction(() => flow.flowWorkspaceStatus().basis?.checked_plot_id === "checked/edited");
+    const retained = await page.evaluate(async () => {
+      const prior = (await flow.retainedFlowWorkspaces()).find((item) => item.basis.checked_plot_id === "checked/exact");
+      return { prior, encoded: flow.exportFlowWorkspace(prior.identity) };
+    });
+    assert.equal(retained.prior.correlation.basis_matches, false);
+    assert.ok(retained.prior.correlation.orphaned_subjects.includes("gear/source"));
+    assert.deepEqual(JSON.parse(retained.encoded), JSON.parse(result.encoded));
     await page.reload();
     await page.evaluate(initialize, { fixture, stored });
     await page.waitForFunction(() => window.flow?.flowWorkspaceStatus().active_layout === "Personal");
