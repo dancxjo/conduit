@@ -22,6 +22,7 @@ struct HidSign {
     normal_close: bool,
     acknowledged_stop: bool,
     fixture_protocol: bool,
+    allocation_sealed: bool,
 }
 
 pub(super) fn retain(
@@ -86,6 +87,7 @@ fn validate_sign(
         || !sign.normal_close
         || !sign.acknowledged_stop
         || !sign.fixture_protocol
+        || !sign.allocation_sealed
     {
         return Err(refusal("hid-proof-sign", format!("{sign:?}")));
     }
@@ -250,6 +252,7 @@ mod tests {
             normal_close: true,
             acknowledged_stop: true,
             fixture_protocol: true,
+            allocation_sealed: true,
         };
         validate_sign(plan, "proof/device", &expected, &specimen).unwrap();
         for (field, replacement) in [
@@ -266,6 +269,7 @@ mod tests {
             ("normal_close", serde_json::json!(false)),
             ("acknowledged_stop", serde_json::json!(false)),
             ("fixture_protocol", serde_json::json!(false)),
+            ("allocation_sealed", serde_json::json!(false)),
         ] {
             let mut forged = serde_json::to_value(&specimen).unwrap();
             forged[field] = replacement;

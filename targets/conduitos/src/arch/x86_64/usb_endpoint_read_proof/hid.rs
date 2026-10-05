@@ -108,10 +108,14 @@ pub(super) fn run(
         .iter()
         .find(|port| port.port_id.as_str() == "begin")
         .ok_or("usb-hid-native-begin")?;
+    let device_hex = identity::hex(&device_id);
     let unit = ValuePayload {
         value_kind: begin.value_kind.clone(),
         encoded: Vec::new(),
     };
+    // Root has retained every owner, buffer and identity. From here through
+    // transfer, drain and acknowledged stop, the production allocator refuses growth.
+    crate::allocation::BOOT_ARENA.seal();
     play.kernel_mut()
         .start()
         .map_err(|_| "usb-hid-native-start")?;
@@ -278,8 +282,14 @@ pub(super) fn run(
         .cancel(node, conduit_kernel::HostCallId(0))
         .map_err(|_| "usb-hid-native-stop")?;
     let digest: [u8; 32] = digest.finalize().into();
+    let mut digest_text = FixedText::new();
+    for byte in digest {
+        write!(digest_text, "{byte:02x}").map_err(|_| "usb-hid-native-digest")?;
+    }
+    let digest_hex =
+        core::str::from_utf8(digest_text.as_bytes()).map_err(|_| "usb-hid-native-digest")?;
     let mut sign = FixedText::new();
-    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true}}", plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.plan_id.as_str(), active.active_play_id.as_str(), identity::hex(&device_id), wraps, identity::hex(&digest)).map_err(|_| "usb-hid-native-sign")?;
+    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true,\"allocation_sealed\":true}}", plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.plan_id.as_str(), active.active_play_id.as_str(), device_hex, wraps, digest_hex).map_err(|_| "usb-hid-native-sign")?;
     early_write(sign.as_bytes());
     Ok(())
 }
