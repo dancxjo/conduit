@@ -81,40 +81,40 @@ fn run(actual: Option<u16>, expected_observed: &str, expected_decoded: Option<&s
         }
         for _ in 0..128 {
             let status = probe.kernel.step().unwrap();
-            if let Some(request) = probe.kernel.next_host_request() {
-                if !probe.dispatch_pure(&request).unwrap() {
-                    let obligation = probe.kernel.host_request_obligation(&request).unwrap();
-                    let admitted = probe
-                        .kernel
-                        .admit_host_request(
-                            &request,
-                            &obligation.host,
-                            &obligation.resources,
-                            &obligation.authorities,
-                        )
-                        .unwrap();
-                    let bytes = probe.kernel.host_request_input(&admitted).unwrap();
-                    assert_eq!(
-                        obligation.requirement.contract_id.as_str(),
-                        conduitos::usb_base::control_contract::CONTROL_CALL
-                    );
-                    transfers += 1;
-                    assert_eq!(transfers, invocation + 1, "hidden transfer or retry");
-                    let value = validate_canonical_structured_value(bytes).unwrap();
-                    assert_eq!(
-                        value
-                            .record_field("setup")
-                            .unwrap()
-                            .unwrap()
-                            .primitive_bytes("value/u64")
-                            .unwrap(),
-                        [128, 6, 0, 1, 0, 0, 18, 0]
-                    );
-                    probe
-                        .kernel
-                        .complete_host_call_bytes(&admitted, &reply)
-                        .unwrap();
-                }
+            if let Some(request) = probe.kernel.next_host_request()
+                && !probe.dispatch_pure(&request).unwrap()
+            {
+                let obligation = probe.kernel.host_request_obligation(&request).unwrap();
+                let admitted = probe
+                    .kernel
+                    .admit_host_request(
+                        &request,
+                        &obligation.host,
+                        &obligation.resources,
+                        &obligation.authorities,
+                    )
+                    .unwrap();
+                let bytes = probe.kernel.host_request_input(&admitted).unwrap();
+                assert_eq!(
+                    obligation.requirement.contract_id.as_str(),
+                    conduitos::usb_base::control_contract::CONTROL_CALL
+                );
+                transfers += 1;
+                assert_eq!(transfers, invocation + 1, "hidden transfer or retry");
+                let value = validate_canonical_structured_value(bytes).unwrap();
+                assert_eq!(
+                    value
+                        .record_field("setup")
+                        .unwrap()
+                        .unwrap()
+                        .primitive_bytes("value/u64")
+                        .unwrap(),
+                    [128, 6, 0, 1, 0, 0, 18, 0]
+                );
+                probe
+                    .kernel
+                    .complete_host_call_bytes(&admitted, &reply)
+                    .unwrap();
             }
             for (index, port) in outputs.iter().enumerate() {
                 if let Some(sequence) = probe
