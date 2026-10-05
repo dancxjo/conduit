@@ -178,10 +178,29 @@ impl NativeSpeechBack {
             }
         };
         let start = next.rendered_frames();
-        let mut samples = [0_i16; MAXIMUM_BLOCK_FRAMES];
-        let count = next
-            .render(&self.events[..self.event_count], &mut samples)
-            .map_err(|_| input_failure(InputFailureDetail::Arithmetic))?;
+        // Keep the wire packet unchanged while using only 16 bytes of PCM
+        // scratch on the Step stack. Every successful iteration advances count.
+        let mut samples = [0_i16; 8];
+        let mut count = 0;
+        while count < MAXIMUM_BLOCK_FRAMES && !next.is_complete() {
+            let capacity = samples.len().min(MAXIMUM_BLOCK_FRAMES - count);
+            let rendered = next
+                .render(&self.events[..self.event_count], &mut samples[..capacity])
+                .map_err(|_| input_failure(InputFailureDetail::Arithmetic))?;
+            if rendered == 0 {
+                return Err(input_failure(InputFailureDetail::Arithmetic));
+            }
+            let offset = PCM_FRAME_HEADER_ENCODED_LEN + count * 2;
+            for (sample, pair) in samples[..rendered].iter().zip(
+                self.pcm[offset..offset + rendered * 2]
+                    .as_chunks_mut::<2>()
+                    .0
+                    .iter_mut(),
+            ) {
+                pair.copy_from_slice(&sample.to_le_bytes());
+            }
+            count += rendered;
+        }
         if count != 0 {
             let header = PcmFrameHeader::new(
                 PcmSampleRepresentation::Signed16LittleEndian,
@@ -195,12 +214,6 @@ impl NativeSpeechBack {
             .map_err(|_| FailureCode::InvalidInput)?
             .encode();
             self.pcm[..header.len()].copy_from_slice(&header);
-            for (sample, pair) in samples[..count]
-                .iter()
-                .zip(self.pcm[header.len()..].as_chunks_mut::<2>().0.iter_mut())
-            {
-                pair.copy_from_slice(&sample.to_le_bytes());
-            }
             self.pcm_len = header.len() + count * 2;
             io.send_prepared(self.output_port, self.pcm_len as u32)
                 .map_err(|_| FailureCode::InvalidPort)?;

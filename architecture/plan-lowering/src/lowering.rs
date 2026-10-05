@@ -286,6 +286,9 @@ pub struct LoweredForePort {
     pub temporal: conduit_core::PortTemporal,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    /// Selected external carrier identity; execution must recheck its live
+    /// availability before crossing this Fore.
+    pub selected_line: Option<conduit_core::AdmittedLine>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1299,6 +1302,7 @@ pub fn lower_plan_fragment_for_profile(
             temporal: planned.temporal,
             item_capacity: planned.item_capacity,
             byte_capacity: planned.byte_capacity,
+            selected_line: planned.selected_line.clone(),
         });
     }
 
@@ -1602,6 +1606,7 @@ mod terminal_track_tests {
             temporal: PortTemporal::Value,
             item_capacity: 1,
             byte_capacity: conduit_core::COUNT_ENCODED_LEN as u32,
+            selected_line: None,
         };
         assert_eq!(port.validate_value(&conduit_core::encode_count(3)), Ok(()));
         assert_eq!(

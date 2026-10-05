@@ -68,3 +68,11 @@ type SpeechOccurrenceObservationMatch = {
     observed: LanguageSpeechTokenRef
     where .expected == .observed
 }
+
+# Explicit ordered global rules for one supplied inventory/language profile.
+# This does not establish inventory membership or status permission.
+type SpeechAllophoneRuleProfile = {
+    inventory_id: SpeechInventoryId
+    language: SpeechLanguageId
+    rules: sequence SpeechAllophoneRule <= 8
+}

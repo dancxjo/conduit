@@ -7,7 +7,10 @@ use std::{
     thread,
 };
 
-use super::input::read_command_line;
+use conduit_presentation::{MaskShow, Presentation};
+use conduit_std_host::spoken_face_mask::SpokenFaceSession;
+
+use super::input::{parse_command, read_command_line};
 
 pub(super) enum InputEvent {
     Line(String),
@@ -31,8 +34,15 @@ pub(super) trait CommandInput {
     fn next(&mut self) -> InputEvent;
 
     /// Only the selected spoken path consumes input during Play. The first
-    /// pending command interrupts speech and is then handled in exact order.
-    fn interrupting_command(&mut self) -> bool {
+    /// An accepted queued command interrupts speech, then runs in exact order.
+    /// Refused input stays queued until the current Play completes.
+    fn interrupting_command(
+        &mut self,
+        _reader: &SpokenFaceSession,
+        _face: &Presentation,
+        _show: &MaskShow,
+        _sequence: u64,
+    ) -> bool {
         false
     }
 }
@@ -51,6 +61,14 @@ pub(super) struct SpokenInput {
 }
 
 impl SpokenInput {
+    #[cfg(test)]
+    pub(super) fn from_receiver(receiver: Receiver<InputEvent>) -> Self {
+        Self {
+            receiver,
+            pending: None,
+        }
+    }
+
     pub(super) fn from_stdin() -> Result<Self, String> {
         let (sender, receiver) = mpsc::sync_channel(1);
         thread::Builder::new()
@@ -81,15 +99,31 @@ impl CommandInput for SpokenInput {
             .unwrap_or_else(|| self.receiver.recv().unwrap_or(InputEvent::Eof))
     }
 
-    fn interrupting_command(&mut self) -> bool {
+    fn interrupting_command(
+        &mut self,
+        reader: &SpokenFaceSession,
+        face: &Presentation,
+        show: &MaskShow,
+        sequence: u64,
+    ) -> bool {
         if self.pending.is_some() {
             return false;
         }
         match self.receiver.try_recv() {
             Ok(InputEvent::Line(line)) if line == "stop" => true,
-            Ok(event @ InputEvent::Line(_)) | Ok(event @ InputEvent::Refused(_)) => {
+            Ok(InputEvent::Line(line)) => {
+                let interrupts = line == "quit"
+                    || parse_command(&line, reader, face).is_ok_and(|command| {
+                        reader
+                            .accepts_interruption(face, show, &command, sequence)
+                            .is_ok()
+                    });
+                self.pending = Some(InputEvent::Line(line));
+                interrupts
+            }
+            Ok(event @ InputEvent::Refused(_)) => {
                 self.pending = Some(event);
-                true
+                false
             }
             Ok(other) => {
                 self.pending = Some(other);
@@ -101,28 +135,5 @@ impl CommandInput for SpokenInput {
                 false
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn navigation_interrupts_and_is_preserved_but_stop_is_consumed() {
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let mut input = SpokenInput {
-            receiver,
-            pending: None,
-        };
-        sender
-            .send(InputEvent::Line("next article".into()))
-            .unwrap();
-        assert!(input.interrupting_command());
-        assert!(matches!(input.next(), InputEvent::Line(line) if line == "next article"));
-        sender.send(InputEvent::Line("stop".into())).unwrap();
-        assert!(input.interrupting_command());
-        sender.send(InputEvent::Eof).unwrap();
-        assert!(matches!(input.next(), InputEvent::Eof));
     }
 }

@@ -78,6 +78,7 @@ mod dormant_readmission;
 mod dormant_readmission_explanation;
 #[cfg(test)]
 mod dormant_readmission_explanation_tests;
+mod external_fore_lines;
 mod fact_policy;
 mod functional_compatibility;
 mod fusion;
@@ -189,6 +190,7 @@ pub use dormant_readmission_explanation::{
     explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
     MAXIMUM_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
+pub use external_fore_lines::{bind_external_fore_lines, ExternalForeLineChoice};
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{
     plan_selected_optimization, select_fusion_candidate, FusionBoundary, FusionCandidate,
