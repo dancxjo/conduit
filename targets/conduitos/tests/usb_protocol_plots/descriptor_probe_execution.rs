@@ -103,177 +103,189 @@ pub(super) fn run(
         value_kind: input.value_kind.clone(),
         encoded: vec![],
     };
-    probe.kernel.start().unwrap();
-    for invocation in 0..calls {
-        seen.fill(false);
-        probe
-            .kernel
-            .admit_input(&input.port_id, invocation, &pulse)
-            .unwrap();
-        if invocation + 1 == calls {
-            probe.kernel.close_input(&input.port_id).unwrap();
-        }
-        for _ in 0..512 {
-            let status = probe.kernel.step().unwrap();
-            if let Some(request) = probe.kernel.next_host_request()
-                && !probe.dispatch_pure(&request).unwrap()
-            {
-                let obligation = probe.kernel.host_request_obligation(&request).unwrap();
-                let admitted = probe
-                    .kernel
-                    .admit_host_request(
-                        &request,
-                        &obligation.host,
-                        &obligation.resources,
-                        &obligation.authorities,
-                    )
-                    .unwrap();
-                let bytes = probe.kernel.host_request_input(&admitted).unwrap();
-                assert_eq!(
-                    obligation.requirement.contract_id.as_str(),
-                    conduitos::usb_base::control_contract::CONTROL_CALL
-                );
-                transfers += 1;
-                assert_eq!(transfers, invocation + 1, "hidden transfer or retry");
-                let value = validate_canonical_structured_value(bytes).unwrap();
-                assert_eq!(
-                    value
-                        .record_field("setup")
-                        .unwrap()
-                        .unwrap()
-                        .primitive_bytes("value/u64")
-                        .unwrap(),
-                    setup
-                );
-                probe
-                    .kernel
-                    .complete_host_call_bytes(&admitted, &reply)
-                    .unwrap();
-            }
-            for (index, port) in outputs.iter().enumerate() {
-                if let Some(sequence) = probe
-                    .kernel
-                    .output_into(&port.port_id, &mut storage[index])
-                    .unwrap()
-                {
-                    assert_eq!(sequence, invocation);
-                    assert!(!seen[index]);
-                    seen[index] = true;
-                    assert_eq!(storage[index].encoded.capacity(), capacities[index]);
-                    let expected = if port.port_id.as_str() == "observed" {
-                        expected_observed
-                    } else {
-                        expected_decoded.expect("unexpected decode of a refused transfer")
-                    };
-                    assert!(
-                        validate_canonical_structured_value(&storage[index].encoded)
-                            .unwrap()
-                            .variant_payload(expected)
-                            .unwrap()
-                            .is_some()
-                    );
-                    if expected == "configuration" {
-                        let topology = validate_canonical_structured_value(&storage[index].encoded)
-                            .unwrap()
-                            .variant_payload("configuration")
-                            .unwrap()
-                            .unwrap();
-                        for field in ["interface_count", "endpoint_count", "distinct_interfaces"] {
-                            assert_eq!(
-                                topology
-                                    .record_field(field)
-                                    .unwrap()
-                                    .unwrap()
-                                    .primitive_bytes("value/u64")
-                                    .unwrap(),
-                                1_u64.to_le_bytes()
-                            );
-                        }
-                        let interface = topology
-                            .record_field("interfaces")
-                            .unwrap()
-                            .unwrap()
-                            .collection_index(0)
-                            .unwrap()
-                            .unwrap();
-                        assert_eq!(
-                            interface
-                                .record_field("number")
-                                .unwrap()
-                                .unwrap()
-                                .primitive_bytes("value/u8")
-                                .unwrap(),
-                            [3]
-                        );
-                        let endpoint = topology
-                            .record_field("endpoints")
-                            .unwrap()
-                            .unwrap()
-                            .collection_index(0)
-                            .unwrap()
-                            .unwrap();
-                        assert_eq!(
-                            endpoint
-                                .record_field("address")
-                                .unwrap()
-                                .unwrap()
-                                .primitive_bytes("value/u8")
-                                .unwrap(),
-                            [129]
-                        );
-                    }
-                    if expected == "device" {
-                        let device = validate_canonical_structured_value(&storage[index].encoded)
-                            .unwrap()
-                            .variant_payload("device")
-                            .unwrap()
-                            .unwrap();
-                        for (field, expected) in [("vendor_id", 1575_u64), ("product_id", 1_u64)] {
-                            assert_eq!(
-                                device
-                                    .record_field(field)
-                                    .unwrap()
-                                    .unwrap()
-                                    .primitive_bytes("value/u64")
-                                    .unwrap(),
-                                expected.to_le_bytes()
-                            );
-                        }
-                    }
-                    probe
-                        .kernel
-                        .complete_output(&port.port_id, sequence)
-                        .unwrap();
-                }
-            }
-            if status == KernelCompositeStatus::Complete {
-                complete = true;
-                break;
-            }
-            if invocation + 1 < calls && seen.iter().all(|seen| *seen) {
-                break;
-            }
-        }
-        assert!(
-            seen[outputs
-                .iter()
-                .position(|port| port.port_id.as_str() == "observed")
-                .unwrap()]
-        );
-    }
-    assert!(complete);
-    assert_eq!(transfers, calls);
-    for (index, port) in outputs.iter().enumerate() {
-        assert_eq!(
-            seen[index],
-            port.port_id.as_str() == "observed" || expected_decoded.is_some()
-        );
-        assert_eq!(
+    let allocations = super::allocation::allocations(|| {
+        probe.kernel.start().unwrap();
+        for invocation in 0..calls {
+            seen.fill(false);
             probe
                 .kernel
-                .output_terminal_into(&port.port_id, &mut storage[index])
-                .unwrap(),
-            Some(KernelCompositeTerminal::Normal)
-        );
-    }
+                .admit_input(&input.port_id, invocation, &pulse)
+                .unwrap();
+            if invocation + 1 == calls {
+                probe.kernel.close_input(&input.port_id).unwrap();
+            }
+            for _ in 0..512 {
+                let status = probe.kernel.step().unwrap();
+                if let Some(request) = probe.kernel.next_host_request()
+                    && !probe.dispatch_pure(&request).unwrap()
+                {
+                    let obligation = probe.kernel.host_request_obligation(&request).unwrap();
+                    let admitted = probe
+                        .kernel
+                        .admit_host_request(
+                            &request,
+                            &obligation.host,
+                            &obligation.resources,
+                            &obligation.authorities,
+                        )
+                        .unwrap();
+                    let bytes = probe.kernel.host_request_input(&admitted).unwrap();
+                    assert_eq!(
+                        obligation.requirement.contract_id.as_str(),
+                        conduitos::usb_base::control_contract::CONTROL_CALL
+                    );
+                    transfers += 1;
+                    assert_eq!(transfers, invocation + 1, "hidden transfer or retry");
+                    let value = validate_canonical_structured_value(bytes).unwrap();
+                    assert_eq!(
+                        value
+                            .record_field("setup")
+                            .unwrap()
+                            .unwrap()
+                            .primitive_bytes("value/u64")
+                            .unwrap(),
+                        setup
+                    );
+                    probe
+                        .kernel
+                        .complete_host_call_bytes(&admitted, &reply)
+                        .unwrap();
+                }
+                for (index, port) in outputs.iter().enumerate() {
+                    if let Some(sequence) = probe
+                        .kernel
+                        .output_into(&port.port_id, &mut storage[index])
+                        .unwrap()
+                    {
+                        assert_eq!(sequence, invocation);
+                        assert!(!seen[index]);
+                        seen[index] = true;
+                        assert_eq!(storage[index].encoded.capacity(), capacities[index]);
+                        let expected = if port.port_id.as_str() == "observed" {
+                            expected_observed
+                        } else {
+                            expected_decoded.expect("unexpected decode of a refused transfer")
+                        };
+                        assert!(
+                            validate_canonical_structured_value(&storage[index].encoded)
+                                .unwrap()
+                                .variant_payload(expected)
+                                .unwrap()
+                                .is_some()
+                        );
+                        if expected == "configuration" {
+                            let topology =
+                                validate_canonical_structured_value(&storage[index].encoded)
+                                    .unwrap()
+                                    .variant_payload("configuration")
+                                    .unwrap()
+                                    .unwrap();
+                            for field in
+                                ["interface_count", "endpoint_count", "distinct_interfaces"]
+                            {
+                                assert_eq!(
+                                    topology
+                                        .record_field(field)
+                                        .unwrap()
+                                        .unwrap()
+                                        .primitive_bytes("value/u64")
+                                        .unwrap(),
+                                    1_u64.to_le_bytes()
+                                );
+                            }
+                            let interface = topology
+                                .record_field("interfaces")
+                                .unwrap()
+                                .unwrap()
+                                .collection_index(0)
+                                .unwrap()
+                                .unwrap();
+                            assert_eq!(
+                                interface
+                                    .record_field("number")
+                                    .unwrap()
+                                    .unwrap()
+                                    .primitive_bytes("value/u8")
+                                    .unwrap(),
+                                [3]
+                            );
+                            let endpoint = topology
+                                .record_field("endpoints")
+                                .unwrap()
+                                .unwrap()
+                                .collection_index(0)
+                                .unwrap()
+                                .unwrap();
+                            assert_eq!(
+                                endpoint
+                                    .record_field("address")
+                                    .unwrap()
+                                    .unwrap()
+                                    .primitive_bytes("value/u8")
+                                    .unwrap(),
+                                [129]
+                            );
+                        }
+                        if expected == "device" {
+                            let device =
+                                validate_canonical_structured_value(&storage[index].encoded)
+                                    .unwrap()
+                                    .variant_payload("device")
+                                    .unwrap()
+                                    .unwrap();
+                            for (field, expected) in
+                                [("vendor_id", 1575_u64), ("product_id", 1_u64)]
+                            {
+                                assert_eq!(
+                                    device
+                                        .record_field(field)
+                                        .unwrap()
+                                        .unwrap()
+                                        .primitive_bytes("value/u64")
+                                        .unwrap(),
+                                    expected.to_le_bytes()
+                                );
+                            }
+                        }
+                        probe
+                            .kernel
+                            .complete_output(&port.port_id, sequence)
+                            .unwrap();
+                    }
+                }
+                if status == KernelCompositeStatus::Complete {
+                    complete = true;
+                    break;
+                }
+                if invocation + 1 < calls && seen.iter().all(|seen| *seen) {
+                    break;
+                }
+            }
+            assert!(
+                seen[outputs
+                    .iter()
+                    .position(|port| port.port_id.as_str() == "observed")
+                    .unwrap()]
+            );
+        }
+        assert!(complete);
+        assert_eq!(transfers, calls);
+        for (index, port) in outputs.iter().enumerate() {
+            assert_eq!(
+                seen[index],
+                port.port_id.as_str() == "observed" || expected_decoded.is_some()
+            );
+            assert_eq!(
+                probe
+                    .kernel
+                    .output_terminal_into(&port.port_id, &mut storage[index])
+                    .unwrap(),
+                Some(KernelCompositeTerminal::Normal)
+            );
+        }
+    });
+    assert_eq!(
+        allocations, 0,
+        "descriptor Play must reuse all admitted storage"
+    );
 }

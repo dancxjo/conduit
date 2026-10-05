@@ -1,3 +1,6 @@
+#[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
+mod allocation;
+
 use conduit_core::ConfigurationValue;
 use conduit_plot::{
     PortableExpressionProgram, PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog,

@@ -81,7 +81,10 @@ framing rejects contradictory counts and short flags before the complete walker
 sees a frame. The checked topology has 60 gears and one control call; preparation
 publishes no discovered transfer authority. Deterministic production-kernel
 execution covers complete, short and stalled exchanges, 64 repeated calls, and
-normal closure with reusable value slots. Native emulator execution remains a
+normal closure with reusable value slots. Allocation counting covers the entire
+production-kernel Play, including admission, pure dispatch and output
+acknowledgement, with zero allocations across 64 exchanges. Native emulator
+execution remains a
 separate proof requirement. The pure-expression contract admits sixteen repeated
 instances; planning refuses a seventeenth. Every instance retains its own
 finite storage admission. The separate `cargo xtask make conduitos usb-configuration-proof` appliance
