@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { recordBrowserCapture } from './three-host-capture-observation.mjs';
 
 export async function capturePresentationRecovery({ page, context, serverUrl, owner, state,
   bodyId, ownerPartId, guestPartId, browserCredential, browserBootId, oldFace,
@@ -130,6 +131,14 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
   await recoveredPage.locator('[data-owner-face]').screenshot({
     path: path.join(output, 'browser-after-recovery.png'),
   });
+  const observation = await recordBrowserCapture({ output, name: 'browser-recovered',
+    sourceCommit, runId, bodyId, hostId: identity.hostId, bootId: identity.bootId,
+    face: recovered.face,
+    cause: { kind: 'browser-presentation-recovery',
+      browser_part_id: browserCredential.part_id,
+      lost_boot_id: browserBootId, recovered_boot_id: identity.bootId,
+      old_show_id: oldFace.show_id, recovered_show_id: recovered.face.show_id },
+    screenshot: 'browser-after-recovery.png' });
   const receipt = {
     schema: 'conduit.proof/browser-presentation-recovery@1', source_commit: sourceCommit,
     run_id: runId, body_id: bodyId, owner_part_id: ownerPartId, guest_part_id: guestPartId,
@@ -143,5 +152,6 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
   };
   const bytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
   await writeFile(path.join(output, 'browser-presentation-recovery.json'), bytes);
-  return { receipt, bytes, screenshot: await readFile(path.join(output, 'browser-after-recovery.png')) };
+  return { receipt, bytes, observation,
+    screenshot: await readFile(path.join(output, 'browser-after-recovery.png')) };
 }

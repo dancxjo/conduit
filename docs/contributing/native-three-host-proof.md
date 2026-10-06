@@ -170,6 +170,11 @@ distinguishable even when identical Birth inputs yield the same Body ID.
 pre-Birth receipt. The walkthrough bundle retains verified copies of the Birth and later
 screen-free clock inputs and transcripts beside the page; the private
 invitation, spore, TLS material, and owner state stay outside that bundle.
+The browser producer also writes one-time `three-host/observations/*.json`
+records when its six screenshots are captured. Each binds the actual triggering
+event, current Face and Show, browser Host and Boot, and PNG digest before the
+final report is assembled. These observations are development evidence, not
+the complete eight-chapter publication receipts.
 Without a selected speaker, the screen-free client emits text readout and
 this run does not prove audio. To select real device playback, first inspect
 `conduit body speech-options --json`, then add

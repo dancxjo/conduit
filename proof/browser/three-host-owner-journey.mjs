@@ -16,6 +16,8 @@ import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-own
 import { retainOwnerSpeechArtifacts } from './three-host-owner-speech-artifacts.mjs';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { capturePresentationRecovery } from './three-host-presentation-recovery.mjs';
+import { recordBrowserCapture } from './three-host-capture-observation.mjs';
+import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
   candidateId, ownerForward, outputArgument, playwrightArgument,
@@ -79,6 +81,12 @@ try {
   const bodyId = ownerBefore.biography.body_id;
   const ownerPartAtCapture = ownerBefore.biography.membership.parts[0].current;
   const runId = captureRunId(bodyId, ownerPartAtCapture.host_id, ownerPartAtCapture.boot_id);
+  const observations = [];
+  const observeBrowserCapture = async (name, face, cause, screenshot) => {
+    observations.push(await recordBrowserCapture({ output, name,
+      sourceCommit: installed.release_source_identity, runId, bodyId,
+      hostId: identity.hostId, bootId: identity.bootId, face, cause, screenshot }));
+  };
 
   await page.goto(`${server.url}?participate=owner#your-handbook`);
   await page.locator('[data-owner-key]').waitFor();
@@ -102,6 +110,8 @@ try {
   assert.equal(joined.face.body_id, bodyId);
   assert.equal(joined.face.show_state, 'available');
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
+  await observeBrowserCapture('browser-joined', joined.face,
+    { kind: 'browser-membership', part_id: joined.credential.part_id }, 'browser-before.png');
   const wardrobeEvidence = page.locator('[data-owner-wardrobe-evidence]');
   const readWardrobe = async () => JSON.parse(await wardrobeEvidence.textContent());
   const awaitWardrobeRevision = async prior => {
@@ -216,6 +226,16 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterNative.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-native.png') });
+  await observeBrowserCapture('after-native-action', afterNative, {
+    kind: 'conduitos-semantic-action', action_id: nativeAction.action.action_id,
+    source_face_id: nativeAction.action.face_id,
+    source_face_revision: nativeAction.action.face_revision,
+    source_show_id: nativeAction.action.prior_show_id,
+    native_result_face_id: nativeAction.face.face_id,
+    native_result_face_revision: nativeAction.face.face_revision,
+    native_result_show_id: nativeAction.face.show_id,
+    outcome: nativeAction.action.status,
+  }, 'browser-after-native.png');
   const control = page.locator('[data-owner-action]').filter({
     has: page.getByRole('button', { name: 'Change clock interval' }),
   });
@@ -234,6 +254,11 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterBrowser.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-browser.png') });
+  await observeBrowserCapture('after-browser-action', afterBrowser, {
+    kind: 'browser-semantic-action', action_id: browserAction.identity,
+    source_face_id: afterNative.face_id, source_face_revision: afterNative.face_revision,
+    source_show_id: afterNative.show_id, outcome: 'accepted',
+  }, 'browser-after-browser.png');
   const stillJoined = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(stillJoined.biography.membership.parts.length, 3);
   for (const partId of [ownerPart.part_id, arrived.guest_part.part_id, joined.credential.part_id]) {
@@ -275,6 +300,12 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterTerminal.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-terminal.png') });
+  await observeBrowserCapture('after-terminal-action', afterTerminal, {
+    kind: 'terminal-semantic-action', interaction_id: terminalAction.interaction_id,
+    source_face_id: terminalAction.prior_face_id,
+    source_face_revision: terminalAction.prior_face_revision,
+    source_show_id: terminalAction.prior_show_id, outcome: 'accepted',
+  }, 'browser-after-terminal.png');
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(() => {
     if (!document.querySelector('[data-owner-wardrobe-status]').textContent
@@ -321,6 +352,13 @@ try {
   assert.equal(currentBrowserFace.show_id, wardrobeRecovered.show_id);
   assert.equal(currentBrowserFace.face_id, afterTerminal.face_id);
   await page.locator('.owner-wardrobe').screenshot({ path: path.join(output, 'browser-wardrobe.png') });
+  await observeBrowserCapture('wardrobe-restored', currentBrowserFace, {
+    kind: 'owner-wardrobe-transition', owner_plan_id: wardrobeBefore.owner_plan_id,
+    revision_before: wardrobeBefore.wardrobe_revision_decimal,
+    revision_after: wardrobeRecovered.wardrobe_revision_decimal,
+    selected_route_id: wardrobeRecovered.selected.route_id,
+    selected_show_id: wardrobeRecovered.show_id,
+  }, 'browser-wardrobe.png');
   const wardrobeRecord = { schema: 'conduit.proof/owner-browser-wardrobe@1',
     source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
     browser_route_id: browserRoute.route_id,
@@ -481,6 +519,7 @@ try {
     oldWardrobe: await readWardrobe(), output,
     sourceCommit: installed.release_source_identity, runId,
   });
+  observations.push(presentationRecovery.observation);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
   assert.equal(nativeReceipt.coordinated, true);
@@ -499,6 +538,15 @@ try {
     const bytes = await readFile(path.join(output, file));
     return { path: file, bytes: bytes.length, sha256: digest(bytes) };
   }));
+  assert.equal(observations.length, 6, 'every browser capture needs its action-time observation');
+  for (const retained of observations) {
+    const bytes = await readFile(path.join(output, retained.path));
+    assert.equal(bytes.length, retained.bytes);
+    assert.equal(digest(bytes), retained.sha256);
+    const capture = JSON.parse(bytes).capture;
+    assert.equal(capture.sha256, screenshots.find(item => item.path === capture.path)?.sha256,
+      `browser capture changed after ${retained.path}`);
+  }
   const nativeReceiptBytes = await readFile(path.join(native, 'owner-action-proof.json'));
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
@@ -572,6 +620,7 @@ try {
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
       model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
+    observations,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,
   };
@@ -585,6 +634,7 @@ try {
     }))),
   };
   await writeFile(path.join(output, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+  await verifyWalkthroughAssets(output, await readFile(path.join(output, walkthrough.path), 'utf8'));
   console.log(`Three-host journey proof: ${path.join(output, 'report.json')}`);
 } finally {
   speechObserver?.close();

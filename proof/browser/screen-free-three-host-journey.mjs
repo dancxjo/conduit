@@ -10,6 +10,7 @@ import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
 import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
+import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
@@ -351,6 +352,7 @@ try {
     }))),
   };
   await writeFile(reportFile, `${JSON.stringify(report, null, 2)}\n`);
+  await verifyWalkthroughAssets(live, await readFile(path.join(live, walkthrough.path), 'utf8'));
   console.log(`Screen-free Birth and three-host proof: ${reportFile}`);
 } finally {
   if (invitation?.exitCode === null) invitation.kill();
