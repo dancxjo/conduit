@@ -66,6 +66,11 @@ pub enum EvidenceMetadataFact<'a> {
     Implementation(&'a str),
     Host(&'a str),
     Boot(&'a str),
+    /// Sequence in the retained execution's kernel collector stream, not a
+    /// cross-Host causal stamp.
+    LocalOrder {
+        sequence: u32,
+    },
     ClockObservation {
         capture: ClockCapture,
         local_ticks: u64,

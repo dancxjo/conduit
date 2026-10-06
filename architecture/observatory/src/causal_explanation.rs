@@ -57,6 +57,9 @@ pub enum CausalExplanationMetadataFact {
     Implementation(String),
     Host(String),
     Boot(String),
+    LocalOrder {
+        sequence: u32,
+    },
     ClockObservation {
         capture: ClockCapture,
         local_ticks: u64,
@@ -354,6 +357,9 @@ fn owned_metadata_fact(fact: EvidenceMetadataFact<'_>) -> CausalExplanationMetad
         }
         EvidenceMetadataFact::Host(value) => CausalExplanationMetadataFact::Host(value.into()),
         EvidenceMetadataFact::Boot(value) => CausalExplanationMetadataFact::Boot(value.into()),
+        EvidenceMetadataFact::LocalOrder { sequence } => {
+            CausalExplanationMetadataFact::LocalOrder { sequence }
+        }
         EvidenceMetadataFact::ClockObservation {
             capture,
             local_ticks,
