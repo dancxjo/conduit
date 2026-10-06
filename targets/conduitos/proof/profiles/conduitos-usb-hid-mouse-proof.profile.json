@@ -63,7 +63,7 @@
   },
   "bounds": {
     "static_memory_bytes": 8388608,
-    "heap_arena_bytes": 33554432,
+    "heap_arena_bytes": 67108864,
     "queue_items": 1024,
     "buffered_bytes": 8388608,
     "active_instances": 128,

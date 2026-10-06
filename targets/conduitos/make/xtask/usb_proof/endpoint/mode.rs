@@ -31,7 +31,8 @@ impl ProofMode {
     pub(super) fn qemu_memory(self) -> &'static str {
         match self {
             Self::Keyboard => "256M",
-            Self::Raw | Self::Mouse => "64M",
+            Self::Mouse => "128M",
+            Self::Raw => "64M",
         }
     }
     pub(super) fn serial_name(self) -> &'static str {
