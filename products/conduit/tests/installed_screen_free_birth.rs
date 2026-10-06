@@ -123,8 +123,12 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
         String::from_utf8_lossy(&face.stderr)
     );
     let snapshot: Value = serde_json::from_slice(&face.stdout).unwrap();
-    assert_eq!(snapshot.as_object().unwrap().len(), 3);
+    assert_eq!(snapshot.as_object().unwrap().len(), 4);
     assert_eq!(snapshot["schema"], "conduit.body/local-face-snapshot@1");
+    assert_eq!(
+        snapshot["presentation_revision_decimal"],
+        snapshot["presentation"]["revision"].to_string()
+    );
     assert_eq!(snapshot["presentation"]["basis"]["body_id"], body_id);
     assert_eq!(
         snapshot["advertisement"]["host_id"],
