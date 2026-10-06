@@ -409,6 +409,14 @@ fn run_body(
             output,
         )?;
         if let Some(interaction) = result.interaction {
+            writeln!(
+                output,
+                "Interaction: action={} face-revision={} show={}",
+                interaction.action_id,
+                face.revision,
+                show.show_id.as_str()
+            )
+            .map_err(|error| error.to_string())?;
             let correlated = execution.interact(interaction).map_err(debug_error)?;
             match durable_host_control::submit_local_face_interaction(
                 state_dir,

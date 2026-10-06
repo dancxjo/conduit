@@ -1,9 +1,11 @@
 // A private, human-readable view of one completed live proof receipt.
 // The complete eight-chapter public journey has a separate publication gate.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { copyFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const escape = value => String(value).replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[character]);
@@ -89,10 +91,34 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       + `<details><summary>Compare the original model output and validated speech</summary><h3>Original model output</h3><pre>${escape(original)}</pre><h3>Validated spoken text</h3><p>${escape(report.llm_speech.validated_text)}</p><p><a href="speech-llm/validation.json">Inspect validation receipt</a> · <a href="speech-llm/model-validation.json">Inspect model validation</a></p></details>`
       + `<details><summary>Inspect the configured route withdrawal</summary><p>The producer closed its own forwarding endpoint. This is a configured route refusal, not an Ollama daemon shutdown or wardrobe replacement.</p><pre>${escape(routeLoss)}</pre></details>`));
   }
+  if (report.screen_free_lull) {
+    const lull = report.screen_free_lull;
+    assert.equal(lull.body_id, report.body_id);
+    assert.equal(lull.run_id, report.run_id);
+    assert.equal(lull.source_commit, report.native_source_commit);
+    const input = await readFile(path.join(output, '..', 'lull-input.txt'));
+    assert.equal(input.length, lull.input.bytes);
+    assert.equal(digest(input), lull.input.sha256);
+    const transcriptBytes = await readFile(path.join(output, '..', 'lull-transcript.txt'));
+    assert.equal(transcriptBytes.length, lull.transcript.bytes);
+    const transcript = transcriptBytes.toString('utf8');
+    assert.equal(digest(transcript), lull.transcript.sha256);
+    sections.push(chapter('lull', sections.length + 1, 'Leave the Body well, without a screen',
+      'Reenter the installed owner’s retained Body through its nonvisual interface. Read the whole current Face, focus its exact Lull action, and activate it. The owner acknowledges the action, stops the current Play, and offers Wake on a new Face while retaining the same Body and Host Boot.' +
+      (lull.speaker_playback_selected
+        ? ' The selected speaker drained the produced reading; human hearing was not observed.'
+        : ' This run used text readout and does not claim audio playback.'),
+      `<details><summary>Read the actual nonvisual Lull session</summary><pre>${escape(transcript)}</pre></details>`
+      + `<p><a href="../lull-input.txt">Inspect the submitted commands</a> · <a href="report.json">Inspect the exact Face, Show, action, and result identities</a></p>`));
+  }
   const ids = [...(report.birth ? ['birth'] : []), 'browser', 'native', 'native-action', 'browser-action', 'terminal-action'];
   if (report.direct_speech) ids.push('direct-speech');
   if (report.llm_speech) ids.push('llm-speech');
-  const titles = [...(report.birth ? ['Birth'] : []), 'Browser', 'ConduitOS', 'Native action', 'Browser action', 'Terminal action', 'Direct speech', 'Model explanation'];
+  if (report.screen_free_lull) ids.push('lull');
+  const titles = [...(report.birth ? ['Birth'] : []), 'Browser', 'ConduitOS', 'Native action', 'Browser action', 'Terminal action'];
+  if (report.direct_speech) titles.push('Direct speech');
+  if (report.llm_speech) titles.push('Model explanation');
+  if (report.screen_free_lull) titles.push('Lull');
   const stepLinks = ids.map((id, index) => `<li><a href="#${id}">${index + 1}. ${titles[index]}</a></li>`).join('');
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>One clock, three live Hosts · Conduit development proof</title><link rel="stylesheet" href="conduit.css"><link rel="stylesheet" href="chrome.css"><style>
 body{margin:0;background:var(--conduit-background);color:var(--conduit-text-primary)}.proof{max-width:74rem;margin:auto;padding:2rem 1.25rem 5rem}.proof h1,.proof h2{font-family:var(--conduit-font-editorial);line-height:1.15}.proof h1{font-size:clamp(2.5rem,6vw,5rem);max-width:14ch}.proof h2{font-size:clamp(1.8rem,3vw,2.8rem)}.proof p{max-width:68ch}.proof .lede{font-size:1.25rem;color:var(--conduit-text-secondary)}.proof .boundary{border-left:.25rem solid var(--conduit-emphasis);padding:1rem;background:var(--conduit-reading-paper)}.proof nav ol{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;padding:0;list-style:none}.proof a{color:var(--conduit-structure-primary)}.proof a:focus-visible,.proof summary:focus-visible{outline:3px solid var(--conduit-focus);outline-offset:3px}.proof article{padding:3rem 0;border-top:1px solid var(--conduit-structure-secondary)}.proof .step{color:var(--conduit-emphasis);font-weight:700;letter-spacing:.06em;text-transform:uppercase}.proof figure{margin:1.5rem 0 2.5rem}.proof img{display:block;width:100%;height:auto;border:1px solid var(--conduit-structure-secondary);border-radius:var(--conduit-radius-panel)}.proof figcaption{padding:.6rem 0;color:var(--conduit-text-secondary)}.proof details,.proof .audio-feature{padding:1rem;background:var(--conduit-reading-paper);border:1px solid var(--conduit-structure-secondary);border-radius:var(--conduit-radius-panel)}.proof pre{max-height:30rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.proof .audio-list{padding-left:1.5rem}.proof .audio-list li{padding:1rem 0;border-top:1px solid var(--conduit-structure-secondary)}.proof audio{width:min(100%,40rem)}

@@ -31,6 +31,54 @@ const [xtask, owner, state, handbook, build, profile, cert, key, output, playwri
     certArg, keyArg, outputArg, playwrightArg].map(value => path.resolve(value));
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const load = async file => JSON.parse(await readFile(file, 'utf8'));
+const selectedSpeechArgs = speakerCard ? ['--speak', '--speaker-card', speakerCard,
+  '--speaker-device', speakerDevice, '--speech-executable', speechExecutable,
+  '--speech-data', speechData, '--speech-engine', speechEngine] : [];
+const attestReading = (transcript, face, part, label) => {
+  const receipts = transcript.split('\n').flatMap(line => {
+    const start = line.indexOf('{"');
+    if (start < 0) return [];
+    try { return [JSON.parse(line.slice(start))]; } catch { return []; }
+  });
+  const turns = receipts.filter(item => item.schema === 'conduit.body/spoken-face-turn@1');
+  const plays = receipts.filter(item => item.schema === 'conduit.body/spoken-face-playback@1');
+  if (speakerCard) {
+    assert.ok(turns.length > 0 && plays.length > 0,
+      `${label} selected speaker produced no completed spoken turn and playback`);
+    for (const played of plays) {
+      assert.equal(played.outcome, 'Completed');
+      assert.equal(played.speaker_lifecycle, 'StoppedClosed');
+      assert.equal(played.host_id, part.host_id);
+      assert.equal(played.boot_id, part.boot_id);
+      assert.ok(played.speaker_frames_committed > 0);
+      assert.equal(played.speaker_underruns, 0);
+    }
+    for (const turn of turns) {
+      assert.equal(turn.outcome, 'Completed');
+      assert.ok(turn.completed_segments > 0);
+      assert.ok(plays.some(played => played.face_id === turn.face_id &&
+        played.source_show_id === turn.source_show_id),
+      `${label} spoken turn is not correlated with its current Face and Show`);
+    }
+    const last = turns.at(-1);
+    assert.equal(last.face_id, face.identity);
+    assert.equal(last.face_revision, face.revision);
+    return { first: { face_id: turns[0].face_id, face_revision: turns[0].face_revision,
+      source_show_id: turns[0].source_show_id },
+    final: { outcome: last.outcome, face_id: last.face_id,
+      face_revision: last.face_revision, source_show_id: last.source_show_id,
+      completed_segments: last.completed_segments, selected_playback_receipts: plays.length } };
+  }
+  assert.equal(turns.length, 0);
+  assert.equal(plays.length, 0);
+  const readouts = [...transcript.matchAll(/Text Face revision=(\d+) Show=(\S+)/g)];
+  assert.ok(readouts.length > 0, `${label} produced no text readout`);
+  const first = readouts[0], last = readouts.at(-1);
+  assert.equal(Number(last[1]), face.revision);
+  return { first: { face_revision: Number(first[1]), source_show_id: first[2] },
+    final: { outcome: 'text-readout', face_id: face.identity,
+      face_revision: Number(last[1]), source_show_id: last[2] } };
+};
 const waitFor = async (predicate, child, label, timeoutMillis = 15_000) => {
   const deadline = Date.now() + timeoutMillis;
   while (Date.now() < deadline) {
@@ -86,10 +134,8 @@ try {
     'read all', 'focus creche.birth', 'activate',
     'read all', 'quit', '',
   ].join('\n');
-  const birthArgs = ['body', 'birth', '--screen-free', '--state-dir', state];
-  if (speakerCard) birthArgs.push('--speak', '--speaker-card', speakerCard,
-    '--speaker-device', speakerDevice, '--speech-executable', speechExecutable,
-    '--speech-data', speechData, '--speech-engine', speechEngine);
+  const birthArgs = ['body', 'birth', '--screen-free', '--state-dir', state,
+    ...selectedSpeechArgs];
   await writeFile(path.join(output, 'birth-input.txt'), input, { mode: 0o600 });
   const transcript = invoke(owner, birthArgs, { input, timeout: speakerCard ? 180_000 : 30_000 });
   await writeFile(path.join(output, 'birth-transcript.txt'), transcript, { mode: 0o600 });
@@ -111,48 +157,8 @@ try {
   assert.ok(beforeText.includes(ownerPart.host_id) && beforeText.includes(ownerPart.boot_id));
   assert.match(await readFile(path.join(state, 'body', 'source.conduit'), 'utf8'),
     /time\/every\(1s\)/);
-  const receipts = transcript.split('\n').flatMap(line => {
-    const start = line.indexOf('{"');
-    if (start < 0) return [];
-    try { return [JSON.parse(line.slice(start))]; } catch { return []; }
-  });
-  const turns = receipts.filter(item => item.schema === 'conduit.body/spoken-face-turn@1');
-  const plays = receipts.filter(item => item.schema === 'conduit.body/spoken-face-playback@1');
-  let finalReading;
-  if (speakerCard) {
-    assert.ok(turns.length > 0 && plays.length > 0,
-      'selected speaker must produce complete spoken turns and playback receipts');
-    for (const played of plays) {
-      assert.equal(played.outcome, 'Completed');
-      assert.equal(played.speaker_lifecycle, 'StoppedClosed');
-      assert.equal(played.host_id, ownerPart.host_id);
-      assert.equal(played.boot_id, ownerPart.boot_id);
-      assert.ok(played.speaker_frames_committed > 0);
-      assert.equal(played.speaker_underruns, 0);
-    }
-    for (const turn of turns) {
-      assert.equal(turn.outcome, 'Completed');
-      assert.ok(turn.completed_segments > 0);
-      assert.ok(plays.some(played => played.face_id === turn.face_id &&
-        played.source_show_id === turn.source_show_id),
-      'spoken turn must correlate with its current Face and source Show');
-    }
-    const last = turns.at(-1);
-    assert.equal(last.face_id, bornFace.presentation.identity);
-    assert.equal(last.face_revision, bornFace.presentation.revision);
-    finalReading = { outcome: last.outcome, face_id: last.face_id,
-      face_revision: last.face_revision, source_show_id: last.source_show_id,
-      completed_segments: last.completed_segments, selected_playback_receipts: plays.length };
-  } else {
-    assert.equal(turns.length, 0);
-    assert.equal(plays.length, 0);
-    const readouts = [...transcript.matchAll(/Text Face revision=(\d+) Show=(\S+)/g)];
-    assert.ok(readouts.length > 0, 'screen-free Birth produced no text readout');
-    const last = readouts.at(-1);
-    assert.equal(Number(last[1]), bornFace.presentation.revision);
-    finalReading = { outcome: 'text-readout', face_id: bornFace.presentation.identity,
-      face_revision: Number(last[1]), source_show_id: last[2] };
-  }
+  const finalReading = attestReading(transcript, bornFace.presentation, ownerPart,
+    'screen-free Birth').final;
   const birth = {
     proof_class: speakerCard ? 'installed-screen-free-birth-selected-alsa' :
       'installed-screen-free-birth-text-readout',
@@ -210,6 +216,58 @@ try {
   assert.equal(report.owner_boot_id, ownerPart.boot_id);
   assert.equal(report.native_source_commit, installation.release_source_identity);
   report.birth = birth;
+  const beforeLull = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(beforeLull.presentation.basis.body_id, bodyId);
+  assert.equal(beforeLull.advertisement.host_id, ownerPart.host_id);
+  assert.equal(beforeLull.advertisement.boot_id, ownerPart.boot_id);
+  const lull = beforeLull.presentation.actions.find(action =>
+    action.intent === 'conduit.intent/lull@1' && action.availability === 'Available');
+  assert.ok(lull, 'the current owner Face offers no available Lull action');
+  const lullInput = ['read all', `focus ${lull.identity}`, 'activate',
+    'read all', 'quit', ''].join('\n');
+  const lullArgs = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
+  await writeFile(path.join(output, 'lull-input.txt'), lullInput, { mode: 0o600 });
+  const lullTranscript = invoke(owner, lullArgs,
+    { input: lullInput, timeout: speakerCard ? 180_000 : 30_000 });
+  await writeFile(path.join(output, 'lull-transcript.txt'), lullTranscript, { mode: 0o600 });
+  assert.ok(lullTranscript.includes(`Continuing retained Body ${bodyId}`));
+  const enacted = [...lullTranscript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
+  assert.equal(enacted.length, 1, 'screen-free Lull must submit exactly one semantic action');
+  assert.equal(enacted[0][1], lull.identity);
+  assert.equal(Number(enacted[0][2]), beforeLull.presentation.revision);
+  assert.match(lullTranscript, /Owner action result:/);
+  const afterLull = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  const afterLullFace = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(afterLull.biography.body_id, bodyId);
+  assert.equal(afterLull.biography.body.state, 'Lulled');
+  assert.equal(afterLull.biography.membership.parts[0].current.host_id, ownerPart.host_id);
+  assert.equal(afterLull.biography.membership.parts[0].current.boot_id, ownerPart.boot_id);
+  assert.equal(afterLullFace.presentation.basis.body_id, bodyId);
+  assert.equal(afterLullFace.presentation.basis.active_play_id, null);
+  assert.ok(afterLullFace.presentation.revision > beforeLull.presentation.revision);
+  assert.ok(afterLullFace.presentation.actions.some(action =>
+    action.intent === 'conduit.intent/wake@1' && action.availability === 'Available'));
+  const lullReading = attestReading(lullTranscript, afterLullFace.presentation, ownerPart,
+    'screen-free Lull');
+  assert.equal(lullReading.first.face_revision, beforeLull.presentation.revision);
+  assert.equal(enacted[0][3], lullReading.first.source_show_id);
+  report.screen_free_lull = {
+    proof_class: speakerCard ? 'installed-screen-free-lull-selected-alsa' :
+      'installed-screen-free-lull-text-readout',
+    run_id: report.run_id, body_id: bodyId,
+    owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
+    source_commit: installation.release_source_identity,
+    action_id: lull.identity, source_face_id: beforeLull.presentation.identity,
+    source_face_revision: beforeLull.presentation.revision,
+    source_show_id: enacted[0][3], result_face_id: afterLullFace.presentation.identity,
+    result_face_revision: afterLullFace.presentation.revision,
+    final_reading: lullReading.final,
+    speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
+    input: { path: '../lull-input.txt', bytes: Buffer.byteLength(lullInput),
+      sha256: digest(Buffer.from(lullInput)) },
+    transcript: { path: '../lull-transcript.txt', bytes: Buffer.byteLength(lullTranscript),
+      sha256: digest(Buffer.from(lullTranscript)) },
+  };
   const walkthrough = await writeThreeHostWalkthrough(live, handbook, report);
   report.walkthrough = {
     ...walkthrough,
