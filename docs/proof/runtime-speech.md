@@ -95,3 +95,9 @@ state does not claim another model inference or synthesis occurred.
 A requested audio failure prevents sealing the documentary track. Without the
 speech options, the existing deterministic proof route remains explicitly
 identified and does not claim intelligible runtime speech.
+
+The `cargo xtask prove one-body-spoken-chapter` producer likewise requires
+`--speech-language-coverage` alongside its explicit executable, data, and engine
+selection. Its retained English Face proof supplies an explicit English semantic
+request; the selected voice name does not determine that request. Coverage is
+rechecked against the exact current provider before the spoken Mask is planned.
