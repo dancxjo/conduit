@@ -110,6 +110,24 @@ The canonical material carrier admits 4096 UTF-8 bytes; this bounded four-token
 reference retains its separate 1024-byte preparation refusal. It advertises
 limited English fixture coverage on std and browser hosts. This proves exact
 selection for that specimen, not grammar accuracy or broad English support.
-Hosted Speech realization coverage and full source-material proof remain
-open work; a waveform renderer must not acquire a language grammar
-merely because a selected text frontend needs one.
+Native English utterance preparation requires the declared experimental
+pronunciation variety; a different or missing variety refuses before play.
+The waveform renderer remains separate from that text frontend's linguistic
+coverage.
+
+Hosted eSpeak and Whisper discovery produces undeclared offers until a supplied
+finite coverage declaration binds the exact provider artifact. Portable
+Language/Variety requests map through explicit declaration rows to the private
+voice or model-language argument. Changing provider source invalidates that
+binding. Recognition retains each admitted request and declaration under its
+exact lowered node before play; language detection hypotheses do not supply
+missing coverage. Retained equipment without coverage still decodes, but ordinary installation
+validation refuses it. An explicit replacement or removal must preserve the
+validated Host and Body identities while repairing that selection.
+
+Repository proof enters through `cargo xtask make host`: the
+`declare-speech-language` and `declare-whisper-language` entrances produce new
+bounded declaration and request files. This records supplied Host metadata,
+not pronunciation or recognition accuracy. See the
+[runtime speech guide](../proof/runtime-speech.md) for declaration and synthesis.
+Full consumer proof and stable acceptance remain open.

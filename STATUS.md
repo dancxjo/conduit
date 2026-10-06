@@ -48,9 +48,13 @@ Their presence is not an additional physical or release acceptance claim:
   seam, not parser accuracy or multilingual availability. The #4957 development
   slice now binds explicit Language/Variety requests to finite Back coverage,
   gates default/policy/fixed placement planning, and retains exact declarations
-  in Plans. The four-token std/browser specimen advertises limited English
-  coverage; speech-facing coverage, final proof, and stable acceptance remain
-  open. See the
+  in Plans. The four-token std/browser specimen retains exact Language-owned
+  source material and advertises limited English coverage. Native English
+  speech requires its declared experimental pronunciation variety. Hosted
+  eSpeak and Whisper offers start undeclared and require artifact-bound coverage
+  with explicit private voice/model-language mappings. Generic planner coverage
+  has stable acceptance; final source-material and speech-consumer proof and
+  acceptance remain open. See the
   [Language contract](docs/architecture/language.md).
 
 - **Projection fidelity (#4952, development):** a bounded immutable core report

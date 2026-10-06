@@ -13,9 +13,9 @@ import { runPacedScreenFree } from './paced-screen-free-input.mjs';
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
   speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg,
-  modelArg, modelEndpoint, modelMemory] = process.argv.slice(2);
-const [speakerCard, speakerDevice, speechExecutable, speechData, speechEngine] =
-  [speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg]
+  speechLanguageCoverageArg, modelArg, modelEndpoint, modelMemory] = process.argv.slice(2);
+const [speakerCard, speakerDevice, speechExecutable, speechData, speechEngine, speechLanguageCoverage] =
+  [speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg, speechLanguageCoverageArg]
     .map(value => value === '-' ? undefined : value);
 const model = modelArg === '-' ? undefined : modelArg;
 assert.ok(bodyName && !bodyName.includes('\n') && !bodyName.includes('\r') &&
@@ -24,6 +24,7 @@ assert.equal(Boolean(speakerCard), Boolean(speakerDevice));
 assert.ok(!speakerCard || speechExecutable, 'selected speaker needs a speech provider');
 assert.equal(Boolean(speechExecutable), Boolean(speechData));
 assert.equal(Boolean(speechExecutable), Boolean(speechEngine));
+assert.equal(Boolean(speechExecutable), Boolean(speechLanguageCoverage));
 assert.ok(!model || speechExecutable, 'model-assisted speech needs the selected speech provider');
 assert.equal(Boolean(model), Boolean(modelEndpoint));
 assert.equal(Boolean(model), Boolean(modelMemory));
@@ -34,7 +35,8 @@ const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const load = async file => JSON.parse(await readFile(file, 'utf8'));
 const selectedSpeechArgs = speakerCard ? ['--speak', '--speaker-card', speakerCard,
   '--speaker-device', speakerDevice, '--speech-executable', speechExecutable,
-  '--speech-data', speechData, '--speech-engine', speechEngine] : [];
+  '--speech-data', speechData, '--speech-engine', speechEngine,
+  '--speech-language-coverage', speechLanguageCoverage] : [];
 // Full-Face playback is serialized at the selected ALSA device. The scripted
 // Birth and clock sessions each include multiple complete readings, not a
 // single generated artifact; retain a finite wall-clock deadline for them.
@@ -229,7 +231,8 @@ try {
     '--candidate-id', candidateId, '--owner-forward', forward,
     '--output-dir', live, '--playwright', playwright];
   if (speechExecutable) liveArgs.push('--speech-executable', speechExecutable,
-    '--speech-data', speechData, '--speech-engine', speechEngine);
+    '--speech-data', speechData, '--speech-engine', speechEngine,
+    '--speech-language-coverage', speechLanguageCoverage);
   if (model) liveArgs.push('--model', model, '--ollama-endpoint', modelEndpoint,
     '--admitted-memory-mib', modelMemory);
   invoke(xtask, liveArgs, { timeout: 180_000 });

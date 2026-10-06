@@ -126,6 +126,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "finite-replay-fixture",
         face.clone(),
         candidate.clone(),
+        &crate::hosted_language::tests::request("language/english"),
     )
     .expect("the exact finite wording proposal must reach an acknowledged Show");
     assert_eq!(
@@ -147,6 +148,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "invented-replay-fixture",
         face.clone(),
         invented,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .is_err());
 
@@ -157,6 +159,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "unknown-replay-fixture",
         face,
         candidate,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap_err();
     assert!(refused.contains("unsupported spoken Mask template"));
@@ -173,6 +176,12 @@ fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
         &[engine],
     )
     .unwrap();
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en-us",
+        "language/english",
+    );
+    let discovery = discovery.declare_language_coverage(coverage).unwrap();
     let directory =
         std::env::temp_dir().join(format!("conduit-real-mask-proof-{}", std::process::id()));
     std::fs::create_dir(&directory).unwrap();
@@ -185,6 +194,7 @@ fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
         retained(face),
         discovery,
         &destination,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap();
     let shown = &result.execution.shown;
@@ -237,6 +247,12 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
         &[engine],
     )
     .unwrap();
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en-us",
+        "language/english",
+    );
+    let discovery = discovery.declare_language_coverage(coverage).unwrap();
     let directory = std::env::temp_dir().join(format!(
         "conduit-streamed-mask-proof-{}",
         std::process::id()
@@ -252,6 +268,7 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
         candidate.clone(),
         discovery,
         &destination,
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap();
     let shown = &result.execution.shown;
@@ -292,4 +309,19 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
     }
     std::fs::write(directory.join("words.txt"), words).unwrap();
     eprintln!("Actual streamed Mask audio retained at {} (fixture wording; no live model or playback claim)", directory.display());
+}
+
+#[test]
+fn french_mask_request_refuses_the_english_fixture_before_play() {
+    let face = presentation();
+    let error = execute_retained_manifestation_mask(
+        "french-mask-refusal",
+        "french-mask-refusal",
+        face.clone(),
+        retained(face),
+        &crate::hosted_language::tests::request("language/french"),
+    )
+    .unwrap_err();
+    assert!(error.contains("language/french"), "{error}");
+    assert!(error.contains("LanguageCoverageUnsatisfied"), "{error}");
 }

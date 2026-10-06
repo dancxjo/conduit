@@ -39,6 +39,32 @@ fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability(
     let (attached, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
     owner.host.attach_terminal_mask(attached).unwrap();
     let (face, seal) = owner.seal_attached_terminal_route().unwrap();
+    owner.attached_terminal_route = Some(seal.clone());
+    assert!(Owner::current_attached_terminal_route(
+        &owner.host,
+        owner.attached_terminal_route.as_ref(),
+        &owner.session,
+        &face,
+    )
+    .unwrap()
+    .is_some());
+    let next_face = conduit_presentation::Presentation::new(
+        face.revision + 1,
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+    )
+    .unwrap();
+    assert!(Owner::current_attached_terminal_route(
+        &owner.host,
+        owner.attached_terminal_route.as_ref(),
+        &owner.session,
+        &next_face,
+    )
+    .unwrap()
+    .is_none());
     let current = [CurrentOwnerPresentationRoute::Local {
         seal: &seal,
         owner_offer: owner.host.advertisement(),

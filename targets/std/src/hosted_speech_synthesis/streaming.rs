@@ -11,7 +11,7 @@ pub(crate) struct StreamLimits {
 }
 impl StreamLimits {
     pub fn from_placement(placement: &PlannedGear) -> Result<Self, EspeakFailure> {
-        if placement.configuration.len() != 3 {
+        if placement.configuration.len() != 4 {
             return Err(EspeakFailure::InvalidLimits);
         }
         let value = |key: &str, maximum: u32| {
@@ -249,14 +249,14 @@ mod tests {
         let stream = conduit_tongues::streaming_synthesize_semantic_contract();
         assert_eq!(
             single.kind_contract_revision.as_str(),
-            "conduit.speech/synthesize@1"
+            "conduit.speech/synthesize@2"
         );
-        assert_eq!(single.configuration.len(), 1);
+        assert_eq!(single.configuration.len(), 2);
         assert_eq!(
             stream.kind_contract_revision.as_str(),
-            "conduit.speech/synthesize-stream@2"
+            "conduit.speech/synthesize-stream@3"
         );
-        assert_eq!(stream.configuration.len(), 3);
+        assert_eq!(stream.configuration.len(), 4);
         assert_eq!(
             stream.configuration[0].default_value,
             ConfigurationValue::U64(131_072)

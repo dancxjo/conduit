@@ -396,6 +396,7 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
             mask_host_offer: &browser_offer,
             face_line: &face_line,
             return_line: &return_line,
+            interaction_line: None,
         },
     ];
     let ensemble = OwnerPresentationPlan::seal_current(&session, &face, &witnesses).unwrap();
@@ -461,6 +462,7 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
                     mask_host_offer: &browser_offer,
                     face_line: &face_line,
                     return_line: &lost_return,
+                    interaction_line: None,
                 },
             ]
         ),
@@ -482,6 +484,7 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
                     mask_host_offer: &browser_offer,
                     face_line: &wrong_boot,
                     return_line: &return_line,
+                    interaction_line: None,
                 },
             ]
         ),

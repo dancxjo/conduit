@@ -30,7 +30,7 @@ use crate::{
 mod playback;
 pub use playback::{
     execute_real_spoken_batch_to_selected_playback, execute_spoken_batch_on_attached_host,
-    SpokenPlaybackExecution, SpokenPlaybackOutcome, SPOKEN_PLAYBACK_PLOT,
+    spoken_playback_plot, SpokenPlaybackExecution, SpokenPlaybackOutcome,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,13 +67,17 @@ pub struct SpokenStreamExecution {
 /// The portable Plot uses the same real synthesis, conversion, and artifact
 /// backs as `prove-speech --stream`. The Front is already committed Tongues
 /// text; adding `speech/commit-generated-text` here would commit it twice.
-pub const SPOKEN_SEGMENT_PLOT: &str = "plot spoken_face_stream (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n";
+pub fn spoken_segment_plot(language: &conduit_language::LanguageRequest) -> String {
+    let language_request = crate::hosted_language::language_request_literal(language);
+    format!("plot spoken_face_stream (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n")
+}
 
 pub fn execute_real_spoken_batch(
     face: &Presentation,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     discovery: EspeakDiscovery,
+    language: &conduit_language::LanguageRequest,
     wav_path: &Path,
 ) -> Result<SpokenStreamExecution, SpokenStreamExecutionRefusal> {
     validate_batch_for_installed_fore(face, source_show, batch, wav_path)?;
@@ -89,8 +93,11 @@ pub fn execute_real_spoken_batch(
         .map_err(SpokenStreamExecutionRefusal::Check)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)
         .map_err(SpokenStreamExecutionRefusal::Check)?;
-    let checked = check_syntax_document(&parse_syntax_document(SPOKEN_SEGMENT_PLOT), &startup)
-        .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
+    let checked = check_syntax_document(
+        &parse_syntax_document(&spoken_segment_plot(language)),
+        &startup,
+    )
+    .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
     let authoring = expand_canonical_plot_for_authoring(&checked, "spoken_face_stream", &profiles)
         .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
 

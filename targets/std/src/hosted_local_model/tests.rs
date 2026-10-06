@@ -510,7 +510,11 @@ fn checked_house_plot_executes_through_the_ordinary_local_model_play() {
         capabilities,
     )
     .unwrap();
-    let (plan_id, completed) = crate::local_model_proof::run_house(&mut host).unwrap();
+    let (plan_id, completed) = crate::local_model_proof::run_house(
+        &mut host,
+        &crate::hosted_language::tests::request("language/english"),
+    )
+    .unwrap();
     assert!(!plan_id.is_empty());
     assert!(completed);
 }

@@ -123,6 +123,7 @@ fn selected_host(root: &std::path::Path) -> (StdHost, AttachedEquipment) {
             Duration::from_secs(5),
         )
         .unwrap();
+    let realization_properties = adapter.offer().realization_properties;
     host.attach_selected_playback(playback.clone()).unwrap();
     host.attach_espeak_speech_for_selected_playback(adapter)
         .unwrap();
@@ -130,6 +131,7 @@ fn selected_host(root: &std::path::Path) -> (StdHost, AttachedEquipment) {
         playback,
         authorization: ExplicitPlaybackAuthorization::new("grant/test-speaker").unwrap(),
         provider_sha256,
+        realization_properties,
         before_play: None,
     };
     assert!(equipment.matches(&host));
