@@ -18,7 +18,8 @@ use conduit_plot::{
 use crate::{
     analysis_revision_type, analysis_token_ref_type, annotation_bundle_four_type,
     dependency_arc_type, dependency_edge_type, dependency_head_type, dependency_subtype_type,
-    language_dependency_relation_type, linguistic_annotation_type,
+    language_dependency_relation_type, language_request_field, language_request_parameter,
+    language_request_signature, language_requirement_laws, linguistic_annotation_type,
     linguistic_annotations_four_type, linguistic_label_type, linguistic_segment_type,
     linguistic_token_type, linguistic_tokens_four_type, text_span_type,
     universal_dependency_relation_type, ANALYSIS_REVISION_TYPE, ANALYSIS_TOKEN_REF_TYPE,
@@ -42,9 +43,7 @@ pub fn install_linguistics_catalogs(
         .chain(crate::realization_types())
         .chain(linguistic_types())
     {
-        startup
-            .insert_structured_type(name, value_type)
-            .map_err(|error| error.to_string())?;
+        startup.ensure_structured_type(name, value_type)?;
     }
     startup
         .insert(KindSignature {
@@ -150,43 +149,6 @@ pub fn annotate_four_semantic_contract() -> Kind {
         semantic_laws: language_requirement_laws(),
         limits: linguistic_limits(),
     }
-}
-
-fn language_request_signature() -> StartupParameterSignature {
-    StartupParameterSignature {
-        name: "language-request".into(),
-        value_type: "LanguageRequest".into(),
-        default: None,
-    }
-}
-fn language_request_parameter() -> FrontStartupParameter {
-    FrontStartupParameter {
-        name: "language-request".into(),
-        value_type: crate::language_request_profile(),
-        has_default: false,
-    }
-}
-fn language_request_field() -> KindConfigurationField {
-    // A finite checker placeholder, never an authored default or language fallback.
-    let request = crate::LanguageRequest::new(
-        crate::LanguageId::new("request/placeholder".into()).expect("finite placeholder"),
-        None,
-        crate::LanguageVarietyPolicy::LanguageSufficient,
-    )
-    .expect("finite request");
-    KindConfigurationField {
-        key: "language-request".into(),
-        default_value: crate::language_request_configuration(request).expect("finite request"),
-        rule: KindConfigurationRule::Structured {
-            profile: crate::language_request_profile(),
-        },
-    }
-}
-fn language_requirement_laws() -> Vec<conduit_core::KindSemanticLaw> {
-    vec![conduit_core::KindSemanticLaw::RealizationRequirement {
-        property_profile: crate::language_coverage_profile(),
-        configuration_key: "language-request".into(),
-    }]
 }
 
 fn linguistic_limits() -> CapabilityLimits {

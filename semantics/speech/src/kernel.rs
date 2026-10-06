@@ -13,6 +13,7 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId, ValueRef,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 pub use contract::{contract, install, offer, CAPABILITY, IMPLEMENTATION, KIND, PROFILE, REVISION};
 
 pub const MAXIMUM_PCM_BYTES: usize = PCM_FRAME_HEADER_ENCODED_LEN + 2 * MAXIMUM_BLOCK_FRAMES;
@@ -25,6 +26,7 @@ pub const REQUIRED_STEP_FUEL: u16 = 3;
 pub enum PreparationRefusal {
     Identity,
     Configuration,
+    Coverage(conduit_language::LanguageCoverageRefusal),
     Port,
 }
 
@@ -93,6 +95,7 @@ impl NativeSpeechBack {
             || placement.capability_id != expected.capability_id
             || placement.implementation_id != expected.implementation.implementation_id
             || placement.artifact_id != expected.implementation.artifact_id
+            || placement.realization_properties != expected.realization_properties
             || placement.inputs != expected.inputs
             || placement.outputs != expected.outputs
             || placement.limits != expected.limits
@@ -111,12 +114,35 @@ impl NativeSpeechBack {
             return Err(PreparationRefusal::Port);
         }
         let clock = match placement.configuration.as_slice() {
-            [entry] if entry.key == "clock" => match entry.value {
-                ConfigurationValue::U64(clock) if clock != 0 => clock,
-                _ => return Err(PreparationRefusal::Configuration),
-            },
+            [entry, request] if entry.key == "clock" && request.key == "language-request" => {
+                match entry.value {
+                    ConfigurationValue::U64(clock) if clock != 0 => clock,
+                    _ => return Err(PreparationRefusal::Configuration),
+                }
+            }
             _ => return Err(PreparationRefusal::Configuration),
         };
+        let Some(conduit_core::ConfigurationEntry {
+            value: conduit_core::ConfigurationValue::Structured(request),
+            ..
+        }) = placement
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "language-request")
+        else {
+            return Err(PreparationRefusal::Configuration);
+        };
+        if request.profile() != &conduit_language::language_request_profile() {
+            return Err(PreparationRefusal::Configuration);
+        }
+        let request = conduit_language::LanguageRequest::decode(request.canonical_value())
+            .map_err(|_| PreparationRefusal::Configuration)?;
+        let declaration = conduit_language::LanguageCoverage::decode(
+            expected.realization_properties[0].canonical_value(),
+        )
+        .map_err(|_| PreparationRefusal::Identity)?;
+        conduit_language::admit_language_coverage(&request, Some(&declaration))
+            .map_err(PreparationRefusal::Coverage)?;
         Ok(Self {
             events: [VoiceEvent::boundary(VoiceBoundary::phrase); MAXIMUM_EVENTS],
             event_count: 0,

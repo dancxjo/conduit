@@ -6,7 +6,7 @@ publish = false
 
 [features]
 default = []
-kernel = ["dep:conduit-core", "dep:conduit-plot", "dep:conduit-audio", "dep:conduit-kernel"]
+kernel = ["dep:conduit-language", "dep:conduit-core", "dep:conduit-plot", "dep:conduit-audio", "dep:conduit-kernel"]
 semantic-bindings = ["dep:conduit-core", "dep:conduit-plot", "dep:conduit-language"]
 
 [dependencies]
