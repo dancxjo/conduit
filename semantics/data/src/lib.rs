@@ -2,6 +2,28 @@
 
 extern crate alloc;
 
+<<<<<<< HEAD
+=======
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
+    DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataReferenceRefusal,
+    DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy,
+    FullWindowPolicyRepresentation, MathScalarRefusal, MeasurementPlotOverflowPolicy,
+    MeasurementPlotRefusal, MeasurementSummaryRefusal, MeasurementThresholdRefusal,
+    MeasurementThresholdState, MeasurementThresholdStateRepresentation,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
+    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
+    ScalarComparison, ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
+    SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther, TensorElement,
+    TensorRefusal,
+};
+
+>>>>>>> 2e374cdd2 (Unify full-window policy representation)
 mod data_catalog;
 mod data_generation;
 mod data_reference;

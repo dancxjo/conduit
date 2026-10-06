@@ -1,0 +1,205 @@
+# Authoritative portable data meaning. Rust consumes generated bindings.
+
+type FullWindowPolicy =
+    reject
+    | drop_oldest
+
+representation data/full-window-policy = FullWindowPolicy as u8
+
+type MeasurementPlotOverflowPolicy =
+    reject
+    | evenly_spaced
+
+type MeasurementWindowRefusal =
+    capacity_out_of_bounds
+    | invalid_clock_profile
+    | invalid_range
+    | invalid_timestamp
+    | unit_mismatch
+    | uncertainty_unit_mismatch
+    | negative_uncertainty
+    | clock_mismatch
+    | timestamp_regression
+    | out_of_range
+    | full
+    | discard_count_overflow
+
+type MeasurementPlotRefusal =
+    invalid_point_capacity
+    | empty_window
+    | full
+    | degenerate_value_range
+    | arithmetic_overflow
+    | invalid_projection
+
+type MeasurementSummaryRefusal =
+    empty_window
+    | unit_mismatch
+    | arithmetic_overflow
+    | inexact_mean
+
+type MeasurementThresholdRefusal =
+    policy_unit_mismatch
+    | invalid_policy_order
+    | summary_unit_mismatch
+
+type MeasurementThresholdState =
+    below
+    | above
+
+type MeasurementThresholdTransition =
+    rose_above
+    | fell_below
+
+type TensorElement =
+    i8
+    | u8
+    | i16
+    | i24
+    | u16
+    | i32
+    | u32
+    | i64
+    | u64
+    | f32
+    | f64
+
+type TensorAxisRole =
+    batch
+    | time
+    | feature
+    | sensor
+    | spatial_coordinate
+    | frequency
+    | channel
+    | other {
+        identity: Text <= 64B not in [""]
+    }
+
+type ClockRelationQuality =
+    exact
+    | estimated {
+        maximum-error: Duration
+    }
+
+type SampledSignalRefusal =
+    invalid_clock
+    | invalid_start
+    | invalid_cadence
+    | invalid_continuity
+    | empty_signal
+    | tensor_invalid
+    | sample_count_mismatch
+    | missing_sample_axis
+    | window_out_of_bounds
+    | temporal_overflow
+    | incompatible_signals
+    | noncontiguous_signals
+    | too_many_parts
+
+type SignalContinuity =
+    continuous
+    | discontinuous {
+        gap-identity: Text <= 128B not in [""]
+    }
+    | clock-reset {
+        prior-clock: Text <= 128B not in [""]
+    }
+
+type RangePolicy =
+    refuse
+    | clamp
+
+type QuantizationPolicy =
+    exact
+    | nearest
+
+type QuantityMappingRefusal =
+    invalid-range
+    | out-of-range
+    | inexact
+    | overflow
+
+type ScalarComparison =
+    less
+    | less-or-equal
+    | equal
+    | not-equal
+    | greater-or-equal
+    | greater
+
+type MathScalarRefusal =
+    invalid-configuration
+    | overflow
+
+type NormalizedQuantityRefusal =
+    malformed-or-wrong-type
+    | incompatible-unit
+    | out-of-domain
+
+type DataSaveTextTerminal =
+    value_too_large
+    | generation_capacity_exhausted
+    | byte_capacity_exhausted
+    | wrong_content_kind
+
+type DataLoadTextTerminal =
+    malformed_reference
+    | wrong_content_kind
+    | wrong_access_class
+    | expiring_generation
+    | item_extent
+    | generation_not_retained
+    | extent_mismatch
+
+type TensorRefusal =
+    rank_out_of_bounds
+    | zero_dimension
+    | axis_count_mismatch
+    | axis_identity_invalid
+    | shape_overflow
+    | byte_bound_exceeded
+    | inline_payload_too_large
+    | payload_length_mismatch
+    | resource_profile_mismatch
+    | resource_extent_mismatch
+    | content_identity_mismatch
+    | invalid_resource
+    | unsupported_encoding_version
+    | unsupported_element
+    | unsupported_axis_role
+    | unsupported_unit
+    | malformed_encoding
+
+type ScientificObservationRefusal =
+    missing_identity
+    | invalid_identity
+    | invalid_value
+    | clock_mismatch
+    | missing_source
+    | too_many_sources
+    | empty_observation_set
+    | too_many_observations
+    | duplicate_observation
+    | invalid_mask
+    | mask_shape_mismatch
+    | unknown_masked_observation
+    | duplicate_mask
+
+type DataReferenceRefusal =
+    malformed
+    | wrong_reference_kind
+    | wrong_content_kind
+    | wrong_access_class
+    | expiring_generation
+    | item_extent
+
+type DataGenerationNamespaceRefusal =
+    empty
+    | too_large
+
+representation data/save-text-terminal = DataSaveTextTerminal as u8
+
+representation data/load-text-terminal = DataLoadTextTerminal as u8
+
+representation data/measurement-threshold-state = MeasurementThresholdState as u8
