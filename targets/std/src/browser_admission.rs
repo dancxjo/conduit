@@ -14,8 +14,9 @@ use conduit_body::{
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
 use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
 use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
-    MAX_FACE_INTERACTION_BYTES, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
+    FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse, MAX_FACE_INTERACTION_BYTES, MAX_OWNER_FACE_RESPONSE_BYTES,
+    OWNER_FACE_RESPONSE_SCHEMA,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -94,6 +95,14 @@ pub enum BrowserAdmissionIngress {
         protocol: u16,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
+    },
+    FaceWardrobeRequest {
+        protocol: u16,
+        request_id: String,
+        request: OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
     },
     FaceInteractionRequest {
         protocol: u16,
@@ -206,6 +215,13 @@ pub enum BrowserAdmissionEgress {
         protocol: u16,
         accepted: bool,
         code: String,
+    },
+    FaceWardrobeResponse {
+        protocol: u16,
+        request_id: String,
+        accepted: bool,
+        code: String,
+        report: Option<Box<Value>>,
     },
     FaceInteractionResponse {
         protocol: u16,
@@ -469,6 +485,22 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             }
             protocol
         }
+        BrowserAdmissionIngress::FaceWardrobeRequest {
+            protocol,
+            request_id,
+            request,
+            owner_plan_id,
+            action,
+            ..
+        } => {
+            if !request.has_exact_basis()
+                || !valid_wardrobe_request_id(request_id)
+                || owner_plan_id.is_some() != action.is_some()
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
         BrowserAdmissionIngress::FaceInteractionRequest {
             protocol,
             request,
@@ -602,6 +634,68 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
 
 fn valid_speech_id(value: &str) -> bool {
     !value.is_empty() && value.len() <= 256 && value.bytes().all(|byte| byte.is_ascii_graphic())
+}
+
+fn valid_wardrobe_request_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-'))
+}
+
+#[cfg(test)]
+mod wardrobe_wire_tests {
+    use super::*;
+
+    #[test]
+    fn wardrobe_request_uses_correlated_revision_bound_action_shape() {
+        let mask = conduit_core::PlotIdentity {
+            source_document_id: conduit_core::SourceDocumentId::from("source/mask"),
+            checked_plot_id: conduit_core::CheckedPlotId::from("checked/mask"),
+            expanded_plot_id: conduit_core::ExpandedPlotId::from("expanded/mask"),
+        };
+        let request = OwnerFaceSnapshotRequest {
+            schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+            credential_id: "credential/test".into(),
+            body_id: BodyId::from("body/test"),
+            part_id: PartId::from("part/test"),
+            host_id: HostId::from("host/test"),
+            boot_id: BootId::from("boot/test"),
+            last_seen_revision: None,
+            last_seen_identity: None,
+        };
+        let frame = BrowserAdmissionIngress::FaceWardrobeRequest {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            request_id: "wardrobe:1".into(),
+            request,
+            owner_plan_id: Some(PlanId::from("plan/owner")),
+            basis_revision: 7,
+            action: Some(MaskWardrobeAction::Wear(mask)),
+        };
+        let value = serde_json::to_value(&frame).unwrap();
+        assert_eq!(value["kind"], "face-wardrobe-request");
+        assert_eq!(value["request_id"], "wardrobe:1");
+        assert_eq!(value["owner_plan_id"], "plan/owner");
+        assert_eq!(value["basis_revision"], 7);
+        assert_eq!(value["action"]["Wear"]["source_document_id"], "source/mask");
+        assert!(decode_browser_admission_frame(&serde_json::to_vec(&frame).unwrap()).is_ok());
+        let response = BrowserAdmissionEgress::FaceWardrobeResponse {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            request_id: "wardrobe:1".into(),
+            accepted: true,
+            code: String::new(),
+            report: Some(Box::new(
+                serde_json::json!({"schema":"conduit.body/owner-mask-wardrobe@1"}),
+            )),
+        };
+        let value = serde_json::to_value(response).unwrap();
+        assert_eq!(value["kind"], "face-wardrobe-response");
+        assert_eq!(
+            value["report"]["schema"],
+            "conduit.body/owner-mask-wardrobe@1"
+        );
+    }
 }
 
 #[cfg(test)]

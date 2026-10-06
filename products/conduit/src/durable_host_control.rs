@@ -16,8 +16,8 @@ use conduit_core::{
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
-    RemoteOwnerMaskRouteSeal,
+    FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse, Presentation, RemoteOwnerMaskRouteSeal,
 };
 use conduit_std_host::{
     browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
@@ -999,6 +999,16 @@ enum Request {
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
     },
+    BodyBrowserWardrobe {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    },
     BodyBrowserAbort {
         protocol: u16,
         token: Vec<u8>,
@@ -1194,6 +1204,10 @@ enum Response {
     },
     BodyBrowserShowAccepted {
         protocol: u16,
+    },
+    BodyBrowserWardrobeReport {
+        protocol: u16,
+        report: Box<serde_json::Value>,
     },
     BodyBrowserAborted {
         protocol: u16,
@@ -1786,6 +1800,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
@@ -1825,6 +1840,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyFace { .. }
                 | Request::BodyBrowserMaskRoute { .. }
                 | Request::BodyBrowserShow { .. }
+                | Request::BodyBrowserWardrobe { .. }
                 | Request::BodyLocalFace { .. }
                 | Request::BodyNativeMaskRoute { .. }
                 | Request::BodyNativeMaskShow { .. }
@@ -1958,6 +1974,29 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         } if protocol == PROTOCOL => runtime
             .browser_acknowledge_show(&window_id, &binding, &request, &show)
             .map(|()| Response::BodyBrowserShowAccepted { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserWardrobe {
+            protocol,
+            window_id,
+            binding,
+            request,
+            owner_plan_id,
+            basis_revision,
+            action,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .browser_wardrobe_report(
+                &window_id,
+                &binding,
+                &request,
+                owner_plan_id.as_ref(),
+                basis_revision,
+                action,
+            )
+            .map(|report| Response::BodyBrowserWardrobeReport {
+                protocol: PROTOCOL,
+                report: Box::new(report),
+            })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserAbort {
             protocol,

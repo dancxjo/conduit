@@ -39,6 +39,8 @@ mod clock_interval;
 mod native_mask_route;
 #[path = "presentation_wardrobe.rs"]
 mod presentation_wardrobe;
+#[path = "presentation_wardrobe_report.rs"]
+mod presentation_wardrobe_report;
 #[path = "presentation_wardrobe_runtime.rs"]
 mod presentation_wardrobe_runtime;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};

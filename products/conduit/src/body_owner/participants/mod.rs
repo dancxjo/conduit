@@ -9,6 +9,7 @@ mod service_worker;
 #[cfg(unix)]
 mod speech;
 mod transport;
+mod wardrobe;
 use super::Owner;
 use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
 use conduit_core::{HostId, LinkBindingId, SignId};
@@ -383,6 +384,26 @@ fn serve_presence(
                         }
                     }),
                 })?;
+            }
+            In::FaceWardrobeRequest {
+                protocol: PROTOCOL,
+                request_id,
+                request,
+                owner_plan_id,
+                basis_revision,
+                action,
+            } => {
+                wardrobe::respond(
+                    socket,
+                    state_dir,
+                    window_id,
+                    binding,
+                    request_id,
+                    request,
+                    owner_plan_id,
+                    basis_revision,
+                    action,
+                )?;
             }
             In::FaceShowAcknowledgement {
                 protocol: PROTOCOL, ..

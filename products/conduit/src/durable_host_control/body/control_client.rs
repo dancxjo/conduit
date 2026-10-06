@@ -89,6 +89,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }

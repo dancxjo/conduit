@@ -268,6 +268,36 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         ),
         Err("browser-line-evidence-mismatch".into())
     );
+    let wardrobe_request = conduit_presentation::OwnerFaceSnapshotRequest {
+        schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: snapshot.credential.credential_id.as_str().into(),
+        body_id: snapshot.credential.body_id.clone(),
+        part_id: snapshot.credential.part_id.clone(),
+        host_id: snapshot.credential.host_id.clone(),
+        boot_id: snapshot.credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    let terminal_only_plan_id = owner
+        .presentation_wardrobe
+        .as_ref()
+        .unwrap()
+        .plan()
+        .plan_id
+        .clone();
+    assert_eq!(
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&terminal_only_plan_id),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Prefer(vec![
+                terminal_seal.planned_mask.mask.plot_identity.clone(),
+            ])),
+        ),
+        Err("browser-wardrobe-face-route-unavailable".into())
+    );
     let selected = owner
         .browser_mask_route(
             &authorized.window_id,
@@ -283,51 +313,106 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         .plan()
         .plan_id
         .clone();
-    let face = owner.local_face_snapshot().unwrap();
-    let current = Owner::current_presentation_routes(
-        owner.host.advertisement(),
-        owner.pending_browser.as_ref(),
-        Owner::current_attached_terminal_route(
-            &owner.host,
-            owner.attached_terminal_route.as_ref(),
-            &owner.session,
-            &face,
-        )
-        .unwrap(),
-    );
-    let wardrobe = owner.presentation_wardrobe.as_mut().unwrap();
-    assert_eq!(wardrobe.plan().routes.len(), 2);
-    let browser_mask = selected.planned_mask.mask.plot_identity.clone();
-    wardrobe
-        .apply(
-            &owner.session,
-            &face,
-            &current,
+    let report = owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            None,
             0,
-            conduit_presentation::MaskWardrobeAction::Wear(browser_mask.clone()),
+            None,
         )
         .unwrap();
-    wardrobe
-        .apply(
-            &owner.session,
-            &face,
-            &current,
-            1,
-            conduit_presentation::MaskWardrobeAction::Doff(
+    assert_eq!(report["schema"], "conduit.body/owner-mask-wardrobe@1");
+    assert_eq!(report["wardrobe_revision_decimal"], "0");
+    assert_eq!(report["admitted_routes"].as_array().unwrap().len(), 2);
+    assert_eq!(report["route_descriptions"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&conduit_core::PlanId::from("plan/unknown")),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Prefer(vec![
                 terminal_seal.planned_mask.mask.plot_identity.clone(),
-            ),
+            ])),
+        ),
+        Err("owner-wardrobe-plan-stale".into())
+    );
+    let WindowState::Active {
+        route: Some(route), ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    route.face_revision += 1;
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            None,
+            0,
+            None,
         )
-        .unwrap();
-    wardrobe
-        .apply(
-            &owner.session,
-            &face,
-            &current,
-            2,
-            conduit_presentation::MaskWardrobeAction::Prefer(vec![browser_mask]),
+        .is_err());
+    let WindowState::Active {
+        route: Some(route), ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    route.face_revision -= 1;
+    let browser_mask = selected.planned_mask.mask.plot_identity.clone();
+    let apply = |owner: &mut Owner, revision, action| {
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&owner_plan_id),
+            revision,
+            Some(action),
         )
-        .unwrap();
-    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
+    };
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/forged"),
+            &wardrobe_request,
+            None,
+            0,
+            None,
+        )
+        .is_err());
+    apply(
+        &mut owner,
+        0,
+        conduit_presentation::MaskWardrobeAction::Wear(browser_mask.clone()),
+    )
+    .unwrap();
+    assert!(apply(
+        &mut owner,
+        0,
+        conduit_presentation::MaskWardrobeAction::Prefer(vec![browser_mask.clone()])
+    )
+    .is_err());
+    apply(
+        &mut owner,
+        1,
+        conduit_presentation::MaskWardrobeAction::Doff(
+            terminal_seal.planned_mask.mask.plot_identity.clone(),
+        ),
+    )
+    .unwrap();
+    let report = apply(
+        &mut owner,
+        2,
+        conduit_presentation::MaskWardrobeAction::Prefer(vec![browser_mask]),
+    )
+    .unwrap();
+    assert_eq!(report["owner_plan_id"], serde_json::json!(owner_plan_id));
+    assert_eq!(report["wardrobe_revision_decimal"], "3");
     assert_eq!(selected.mask_host.host_id, snapshot.credential.host_id);
     let fores = &selected.planned_mask.plan.fragments[0].fore_ports;
     let selected_line = |name| {
