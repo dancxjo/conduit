@@ -16,8 +16,12 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
     oldWardrobe.route_descriptions.find(route => route.host_id === browserCredential.host_id)?.route_id);
   assert.equal(oldFace.show_id, oldWardrobe.show_id);
   await page.getByRole('button', { name: 'Leave this window' }).click();
-  await page.waitForFunction(() => globalThis.__conduitOwnerParticipation?.presence() !== 'available',
-    null, { timeout: 12_000 });
+  await page.waitForFunction(() => {
+    const participation = globalThis.__conduitOwnerParticipation;
+    return participation?.presence() !== 'available' && participation?.face() === null
+      && [...document.querySelectorAll('[data-owner-action] button')]
+        .every(button => button.disabled);
+  }, null, { timeout: 12_000 });
   const lost = await page.evaluate(() => ({
     presence: globalThis.__conduitOwnerParticipation.presence(),
     face: globalThis.__conduitOwnerParticipation.face(),
