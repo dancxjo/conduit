@@ -1,7 +1,10 @@
 //! Reuse the generic Face reader's order and exact provenance. Primary graphics
 //! group human wording by subject; full contract/identity clauses remain in Details.
 use super::*;
-use alloc::{format, string::String};
+use alloc::{
+    format,
+    string::{String, ToString},
+};
 use conduit_presentation::{
     FaceUtteranceProvenance as Provenance, PresentationActionAvailability,
     PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole, plan_face_utterances,
@@ -146,7 +149,25 @@ pub(super) fn prepare(
                 _ => false,
             };
             if belongs_here {
-                let mut connection = item(clause.text.clone(), GraphicsTextRole::Body);
+                let text = if let Provenance::Relationship(provenance) = &clause.provenance {
+                    let relationship = &face.relationships[*provenance.index() as usize];
+                    if matches!(
+                        relationship.kind,
+                        conduit_presentation::PresentationRelationshipKind::Contains
+                    ) {
+                        let child = face
+                            .subjects
+                            .iter()
+                            .find(|child| child.identity == relationship.target)
+                            .ok_or(FaceSceneError::InvalidFace)?;
+                        format!("Contains · {}", child.name)
+                    } else {
+                        clause.text.clone()
+                    }
+                } else {
+                    clause.text.clone()
+                };
+                let mut connection = item(text, GraphicsTextRole::Body);
                 connection.paint = GraphicsPaintRole::Muted;
                 append(connection);
             }
@@ -163,7 +184,17 @@ pub(super) fn prepare(
                             | PresentationPropertyValue::Flag(_)
                     )
                 {
-                    append(item(clause.text.clone(), GraphicsTextRole::Body));
+                    let value = match &property.value {
+                        PresentationPropertyValue::Text(value) => format!("\"{value}\""),
+                        PresentationPropertyValue::Count(value) => value.to_string(),
+                        PresentationPropertyValue::Signed(value) => value.to_string(),
+                        PresentationPropertyValue::Flag(value) => value.to_string(),
+                        _ => unreachable!("primary property kind was checked"),
+                    };
+                    append(item(
+                        format!("{} · {value}", property.name.replace('-', " ")),
+                        GraphicsTextRole::Label,
+                    ));
                 }
             }
         }

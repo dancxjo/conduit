@@ -29,6 +29,45 @@ impl Row {
     }
 }
 
+/// Row-local drawing belongs with its measured bounds. A heading marker and
+/// control outline are Mask geometry; neither changes the Face or hit target.
+pub(super) fn append_row_chrome(
+    scene: &mut GraphicsScene,
+    row: &Row,
+    screen: LayoutRect,
+    outline: GraphicsPaintRole,
+    showing_details: bool,
+) -> Result<(), FaceSceneError> {
+    if row.control.is_some() {
+        push(
+            scene,
+            GraphicsCommand::rect(row.bounds, screen, outline, GraphicsShapeStyle::Stroke),
+        )?;
+    }
+    if !showing_details
+        && matches!(
+            row.role,
+            GraphicsTextRole::Title | GraphicsTextRole::Heading
+        )
+    {
+        push(
+            scene,
+            GraphicsCommand::rect(
+                LayoutRect {
+                    x: row.bounds.x,
+                    y: row.bounds.y + 4,
+                    width: 3,
+                    height: row.bounds.height - 8,
+                },
+                screen,
+                GraphicsPaintRole::Accent,
+                GraphicsShapeStyle::Fill,
+            ),
+        )?;
+    }
+    Ok(())
+}
+
 pub(super) fn admit(
     items: Vec<document::Item>,
     screen: LayoutRect,
