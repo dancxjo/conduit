@@ -3,21 +3,24 @@ use alloc::{format, string::String, vec};
 use conduit_core::*;
 use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature};
 
-pub const KIND: &str = "speech/english-utterance";
-pub const REVISION: &str = "conduit.speech/english-utterance@1";
+pub const KIND: &str = "speech/utterance";
+pub const REVISION: &str = "conduit.speech/utterance@2";
 pub const PROFILE: &str = "conduit-native/english-s16le-8000-mono@1";
-pub const IMPLEMENTATION: &str = "conduit-native/checked-english-speech@2";
+pub const IMPLEMENTATION: &str = "conduit-native/checked-english-speech@3";
 pub const CAPABILITY: &str = "native-english-speech";
 
 pub fn contract() -> Kind {
-    Kind {
+    let mut kind = Kind {
         kind_id: kind_id(KIND),
         kind_contract_revision: KindIdentity::from(REVISION),
-        startup_parameters: vec![FrontStartupParameter {
-            name: "clock".into(),
-            value_type: kind_id("value/count"),
-            has_default: false,
-        }],
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "clock".into(),
+                value_type: kind_id("value/count"),
+                has_default: false,
+            },
+            conduit_language::language_request_parameter(),
+        ],
         shorthand: None,
         inputs: vec![PortDescriptor {
             port_id: port_id("text"),
@@ -33,14 +36,17 @@ pub fn contract() -> Kind {
             temporal: PortTemporal::Flow { closes: true },
             abnormal_kind: None,
         }],
-        configuration: vec![KindConfigurationField {
-            key: "clock".into(),
-            default_value: ConfigurationValue::U64(1),
-            rule: KindConfigurationRule::U64Range {
-                minimum: 1,
-                maximum: u64::MAX,
+        configuration: vec![
+            KindConfigurationField {
+                key: "clock".into(),
+                default_value: ConfigurationValue::U64(1),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: 1,
+                    maximum: u64::MAX,
+                },
             },
-        }],
+            conduit_language::language_request_field(),
+        ],
         semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![
             FrontValueContract {
                 location: FrontValueLocation::Input(port_id("text")),
@@ -66,13 +72,16 @@ pub fn contract() -> Kind {
             max_queue_items: 1,
             max_queue_bytes: crate::MAXIMUM_TEXT_BYTES as u32,
         },
-    }
+    };
+    kind.semantic_laws
+        .extend(conduit_language::language_requirement_laws());
+    kind
 }
 
 /// Wrapper revision and exact checked-source identity are both artifact truth.
 /// This is a compiled Host Back; it does not pretend to be an expanded Plot Back.
 pub fn offer() -> CapabilityOffer {
-    BackOfferBuilder::new(
+    let mut offered = BackOfferBuilder::new(
         contract(),
         Back {
             capability_id: CapabilityId::from(CAPABILITY),
@@ -84,18 +93,48 @@ pub fn offer() -> CapabilityOffer {
             authority_requirements: vec![],
         },
     )
-    .build()
+    .build();
+    offered.realization_properties =
+        vec![
+            conduit_language::language_coverage_property(english_coverage())
+                .expect("compiled source coverage"),
+        ];
+    offered
 }
 
 pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Result<(), String> {
+    conduit_language::install_language_request_type(startup)?;
     startup.insert_value_kind_alias("PcmFrames", kind_id(conduit_audio::AUDIO_PCM_INFO_ID))?;
     startup.insert(KindSignature {
         kind: KIND.into(),
-        startup_parameters: vec![StartupParameterSignature {
-            name: "clock".into(),
-            value_type: "Count".into(),
-            default: None,
-        }],
+        startup_parameters: vec![
+            StartupParameterSignature {
+                name: "clock".into(),
+                value_type: "Count".into(),
+                default: None,
+            },
+            conduit_language::language_request_signature(),
+        ],
     })?;
     profile.insert_kind(contract()).map_err(|e| format!("{e}"))
+}
+
+fn english_coverage() -> conduit_language::LanguageCoverage {
+    use conduit_language::{LanguageCoverage, LanguageId, LanguageVariety, VarietyId};
+    use conduit_plot::rust_binding::BoundedSequence;
+    let language = LanguageId::new("language/english".into()).expect("finite identity");
+    let variety = LanguageVariety::new(
+        VarietyId::new("pronunciation/native-english@2".into()).expect("finite identity"),
+        language.clone(),
+    )
+    .expect("exact relationship");
+    LanguageCoverage::new(
+        "repository/native-english-checked-source".into(),
+        BoundedSequence::try_from_iter([language]).expect("one language"),
+        BoundedSequence::try_from_iter([]).expect("no private mapping"),
+        "native-english@2".into(),
+        BoundedSequence::try_from_iter([variety]).expect("one pronunciation profile"),
+        true,
+    )
+    .expect("compiled source declaration")
 }
