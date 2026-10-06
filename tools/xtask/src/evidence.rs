@@ -40,6 +40,7 @@ const CAPTURE_DECLARATION_SCHEMA: &str = "conduit.capture-declarations/v1";
 pub enum EvidenceKind {
     Screenshot,
     Audio,
+    Document,
     MachineReadableManifest,
     ConsoleTranscript,
 }

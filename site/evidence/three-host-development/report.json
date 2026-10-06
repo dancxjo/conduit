@@ -1,0 +1,2358 @@
+{
+  "schema": "conduit.body/three-host-owner-journey@1",
+  "proof_class": "live-local-installed-owner-qmp-pinned-chromium-selected-model-speaker",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "owner_host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+  "owner_boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+  "guest_host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+  "guest_boot_id": "0dca10324fbd6064d6cb0841c272fa4b142f4f445e994396c835777478875290",
+  "guest_part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+  "browser_host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+  "browser_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+  "browser_part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+  "native_source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "native_receipt_sha256": "2a11c549938b1766e18429589b4a2e213d9a70d0dc76ca5d19cdb851b06ab2dc",
+  "handbook_manifest_sha256": "558c613c944fe5f42305897910fa26607f0048ddf2972c014cd53c83cf1f0554",
+  "before_browser_face_id": "423b46920f0485c74918fa586363b80896edd94b34b0ff065f795fd016630815",
+  "after_native_browser_face_id": "6651327df2966b4519b6268e89e3582ccd8b91c626dc42257e9a5acf43f10baf",
+  "after_browser_face_id": "f8cf58cc52f21d1f09a9723237e2b6a97c917a8b4445b07295eb0b25bde88fde",
+  "after_terminal_browser_face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+  "native_action": {
+    "action_id": "body/action/change-clock-interval/0",
+    "status": "accepted",
+    "requested_interval_ms": 500
+  },
+  "browser_action": {
+    "action_id": "body/action/change-clock-interval/2",
+    "status": "accepted",
+    "requested_interval_ms": 1000
+  },
+  "terminal_action": {
+    "interaction_id": "8f881ba1e6e37ed14e0c6c8f1ef7ae6b4e01c1be2b0ab59d186b07d6fe8227eb",
+    "status": "accepted",
+    "requested_interval_ms": 500,
+    "next_step": "start-replacement-plan"
+  },
+  "terminal_show": {
+    "face_revision_before": "11",
+    "show_id_before": "show/ea38aaf94535b3283a83cc85b17a8a376c00309e565fc6798f48d28a760f46c6",
+    "face_revision_after": "13",
+    "show_id_after": "show/4a8fa3a92d5acedb416c0ad5581b16a15b36e8ad9a4a884c4c2d31d3b5a10e64",
+    "host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+    "boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+    "path": "terminal-face.txt",
+    "bytes": 14355,
+    "sha256": "3f4b61783c9a4a9caac6e5c3883b0ad00a6e0b6257945f1c079c1ca04aa7ef5d"
+  },
+  "browser_wardrobe": {
+    "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+    "owner_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+    "revision_before": "6",
+    "revision_after": "9",
+    "selected_show_id": "show/0fd8ddd14e207c934c189f3821a3daeebc99eb65cc899b69b770d81834d7f267",
+    "path": "browser-wardrobe.json",
+    "bytes": 84625,
+    "sha256": "ef08dee76a489794466aef18b215af897b8c94a5f5abc85674215fee215cfd03"
+  },
+  "presentation_host_recovery": {
+    "path": "browser-presentation-recovery.json",
+    "bytes": 18266,
+    "sha256": "4ba7bcb3e5b919989c8fc2623078d545b132678ed9dc740c45375ce9df5e652c",
+    "lost_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+    "recovered_boot_id": "browser-boot/543d806e-4a9b-49dd-af75-f311ab308b75",
+    "old_show_id": "show/61b88b1ea2dd209e64c5f2abb131fedaad963589e48d55f8cb071aac56ef32be",
+    "recovered_show_id": "show/f0c9807e35397fcbc584b1b48e97a74fa709810d25ac22d4ec59908a7bf48d0b"
+  },
+  "direct_speech": {
+    "proof_class": "installed-owner-direct-speech",
+    "action_id": "read-current-face-direct",
+    "batch_count": 18,
+    "produced_pcm_bytes": 33291244,
+    "speech_receipt_sha256": "52530171d5cbfaed02a27c2d702251e34b9e90ae0ca6d81a7167dd539bf117fc",
+    "speech_manifest_sha256": "cc8214d8d598c4da8687f3eff6879da614f27a83519e6b7e552f7e76fb7dda76",
+    "source_show_id": "show/4a8fa3a92d5acedb416c0ad5581b16a15b36e8ad9a4a884c4c2d31d3b5a10e64",
+    "source_mask_kind": "terminal",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": "13",
+    "playback_observed": false,
+    "human_hearing_observed": false,
+    "wavs": [
+      {
+        "path": "speech-direct/direct-batch-1.wav",
+        "bytes": 812228,
+        "sha256": "092cbc24e43225adcc30a36ecc18331a4e0d6df78bf8d61894e6a75ac773d9f0"
+      },
+      {
+        "path": "speech-direct/direct-batch-2.wav",
+        "bytes": 942300,
+        "sha256": "f8ab456c94539781c2ac1f84bb99076567939ac6a91fa9cd2d429d6f33d2c67b"
+      },
+      {
+        "path": "speech-direct/direct-batch-3.wav",
+        "bytes": 3855920,
+        "sha256": "305230cc350ca88474a589cb62d66a853f19b28a3945884ee1c6b691d4475e24"
+      },
+      {
+        "path": "speech-direct/direct-batch-4.wav",
+        "bytes": 1414944,
+        "sha256": "875afd7afad875832c5cf811d582a14982aff021420a932a3bb53805fe33650c"
+      },
+      {
+        "path": "speech-direct/direct-batch-5.wav",
+        "bytes": 1334588,
+        "sha256": "39169a4ea3409094be6f2841166b1bbee7a6150fe017e8c2e78a6a4f8e13f86c"
+      },
+      {
+        "path": "speech-direct/direct-batch-6.wav",
+        "bytes": 1355244,
+        "sha256": "30a8afea3a28e1f642b19f520e3f4a3e2c489706e270927217927e3ab8c2df5c"
+      },
+      {
+        "path": "speech-direct/direct-batch-7.wav",
+        "bytes": 3925520,
+        "sha256": "590be4444ef3bb470e4773e5f00db61364da1d039242cfc2625de5d0b31951ac"
+      },
+      {
+        "path": "speech-direct/direct-batch-8.wav",
+        "bytes": 4639168,
+        "sha256": "aa890c4e339fab475fa3efe67549381f718e703d267b4313179c9f3a46ac4737"
+      },
+      {
+        "path": "speech-direct/direct-batch-9.wav",
+        "bytes": 1173536,
+        "sha256": "1d07f30535289e3ea4562871a70d943bb39b23b0cc39b76e2471a0d39d15cd6d"
+      },
+      {
+        "path": "speech-direct/direct-batch-10.wav",
+        "bytes": 1123440,
+        "sha256": "3a7216e3d180b602a1479302a04ecb5a3bad0ac7c5398dcc3a9f6698a97168fd"
+      },
+      {
+        "path": "speech-direct/direct-batch-11.wav",
+        "bytes": 882436,
+        "sha256": "989dd44b7fb0ad5ec36310d92efd679c3c6678d7aa3d0f472d38cba227a8656c"
+      },
+      {
+        "path": "speech-direct/direct-batch-12.wav",
+        "bytes": 1565180,
+        "sha256": "b2f920d3dba39ecc0dc8f9dfddf647a15d1e8b93f599d9af85ff81920dc00ca5"
+      },
+      {
+        "path": "speech-direct/direct-batch-13.wav",
+        "bytes": 1542316,
+        "sha256": "e9c0434b7a49775c9d45763994890f7f02f1465e7cc1f4bcb7b533bbf1ccb473"
+      },
+      {
+        "path": "speech-direct/direct-batch-14.wav",
+        "bytes": 1302060,
+        "sha256": "b150477604e5dac2a4ec5eff5cbd57afe5f235ba0a15cb72ba3558ace1e3fa6d"
+      },
+      {
+        "path": "speech-direct/direct-batch-15.wav",
+        "bytes": 3159468,
+        "sha256": "64de9396c1db9c45c0bbcfea57e4ebaed614fe300c716d1d253fe52067ab43fa"
+      },
+      {
+        "path": "speech-direct/direct-batch-16.wav",
+        "bytes": 2247544,
+        "sha256": "80e15ba622bb98a382c968fa8291fa3aab4d3ec083c156c4ae1ccdaa6590b5fd"
+      },
+      {
+        "path": "speech-direct/direct-batch-17.wav",
+        "bytes": 1381400,
+        "sha256": "f6898f4c0a57b4512630137385b1ec457615f5aa5e1d61ecc3db7e47b109216f"
+      },
+      {
+        "path": "speech-direct/direct-batch-18.wav",
+        "bytes": 634744,
+        "sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1"
+      }
+    ]
+  },
+  "owner_selected_speech": {
+    "proof_class": "installed-owner-selected-speaker-playback",
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": "13",
+    "source_show_id": "show/0fd8ddd14e207c934c189f3821a3daeebc99eb65cc899b69b770d81834d7f267",
+    "browser_route_plan_id": "plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+    "browser_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+    "browser_mask_play_id": "d853dbf0878f67abba435e090318bc2c7c4640cf3d3ce3486cea3eb6975ce6a7",
+    "owner_host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+    "owner_boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+    "operation_id": "selected-speech/25c5e69bc551950458bacc124e840f155f4082bab602f78f8ab808c6584750e8",
+    "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+    "terminal_receipt": {
+      "authority_grant_id": "grant/installed-selected-speech/boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+      "batches": [
+        {
+          "outcome": "completed",
+          "pcm_blocks": 1625,
+          "pcm_bytes": 353736,
+          "pcm_sha256": "c62066259b19f25accd542e70acda2bd27956e6c82affd51cb5ae23e4759fd34",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "4c8576055a62adbe5ab7868f2f97576567db3898fd701f11ea8472700d67699a",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "329878a0f66891d538a9281f5babf029d4875ba2ae176e16d91b6dcd472d8905",
+          "speaker_blocks_committed": 1625,
+          "speaker_frames_committed": 88434,
+          "spoken_segments": [
+            "One Body Clock, body."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/0",
+          "wav_artifact_id": "play-73edb352a072f8d59d4373121830003b2923ff86279afd54df8081df5822074a.wav",
+          "wav_bytes": 353780,
+          "wav_sha256": "f3fa35dcebc394bccce8ef6d8b836e931f30616a04359f39fc09d7218a882611"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2106,
+          "pcm_bytes": 458452,
+          "pcm_sha256": "680330ea397f54cf35be39a7d4b4120181cc95b1289282d238612259a3dd8d9e",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "ce3a32b1118c08d1c8891df9f3acfc37888221b0e902fb140c3dd7ed989b4a1b",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "f922052b7950ccf495e44b5b708932249708547b0a488b08f97bca6389aee980",
+          "speaker_blocks_committed": 2106,
+          "speaker_frames_committed": 114613,
+          "spoken_segments": [
+            "Current overview context, region."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/1",
+          "wav_artifact_id": "play-15577da24d2564d611e31cbc3bf101b29c4a19ae87ce6ba11bffc229180d3ec6.wav",
+          "wav_bytes": 458496,
+          "wav_sha256": "814ed833e66c1f4a2ee33586ec6bf9b01316e4c5daec359b4f360cbe6ddd4c7e"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 1383,
+          "pcm_bytes": 300880,
+          "pcm_sha256": "d99aa87cb461b03c63be5b8bf8721dffe02546b5aceaabe40690f1b6db95fd90",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "dd3726f45bb80b202ac5bdfc66c57872fde7d5c2856592f408c5a17f9c61fa83",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "3aea02970e76aaf5f6cdf97494f2b570e0cfdc57767222840693dd62b6afd2eb",
+          "speaker_blocks_committed": 1383,
+          "speaker_frames_committed": 75220,
+          "spoken_segments": [
+            "clock-demo, plot."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/2",
+          "wav_artifact_id": "play-7bceabb40ec2e6cea4095fb66c2a9c6163bbbb578181bc169a861a4e30197372.wav",
+          "wav_bytes": 300924,
+          "wav_sha256": "e8e2f58da78372b516b369543123f685efb516c8852fd1b79d36bd35a5176e56"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2947,
+          "pcm_bytes": 641376,
+          "pcm_sha256": "d31c41541952133588a2fde0de5a932befb9b7b322af459b9cc515b2ab28a0a6",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "ba81433fc66a7aa5e7cfa0d2e96e0821d3a854e94472c953dedbde558f609af1",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "af32c72d6a75d312b2d28fba7b2c0d8a68bb078b2630a3813aa77c5ba43c3f0c",
+          "speaker_blocks_committed": 2947,
+          "speaker_frames_committed": 160344,
+          "spoken_segments": [
+            "One Body Clock contains Current overview context."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/3",
+          "wav_artifact_id": "play-d81f31cc852112723c70d4e62dacec2cefcada260bc9294d9fd17392eda71c6a.wav",
+          "wav_bytes": 641420,
+          "wav_sha256": "e6bda2fbe6e1f754a4dda4944021cb4f6d6922136e5fc7fd5419739f5945b763"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2212,
+          "pcm_bytes": 481336,
+          "pcm_sha256": "51b97a17152d486cdcbdcf1edcc1ac48c0088e12dc3c9188677f3c798bc2d781",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "c2d4bd0a3a5b214626922bb1c5a9b94f80ce97fd72e6478a9c20c9ee3992891b",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "6f85d404ab73d2be0dd53007c9b794b003c49c3a552dd7128b100d4a6ce7c049",
+          "speaker_blocks_committed": 2212,
+          "speaker_frames_committed": 120334,
+          "spoken_segments": [
+            "One Body Clock contains clock-demo."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/4",
+          "wav_artifact_id": "play-ca4db3106ec628d1dbf9f6c3ce96a48ef8e216bedc3e2f4369fc23a153597385.wav",
+          "wav_bytes": 481380,
+          "wav_sha256": "31a94762a43d30506fca1f22a0c57a8d0d8624000d6ae3c3909c2efd0cb0d767"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3051,
+          "pcm_bytes": 664120,
+          "pcm_sha256": "edf0aaeefe435e4596ac42b3ad397940a04495707095d1e92323b9404c0c127f",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "854925c9d660dc34fdff2c0608599c05b46b8f56a216f0f4bffbf5e307eb7c23",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "07cb08830e45a58d6e492243a0d5896d994d502fc7650240f7e2fb9dabf95a76",
+          "speaker_blocks_committed": 3051,
+          "speaker_frames_committed": 166030,
+          "spoken_segments": [
+            "One Body Clock has property body-id: identity "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/5",
+          "wav_artifact_id": "play-ae8ec33b023100c09953abcc244126ba6a0b5f474130e339aa198e2257a5cb28.wav",
+          "wav_bytes": 664164,
+          "wav_sha256": "bc8d8ec7a2d5a4961fb1bd115c4e98558806655c334214efe838d287dd63ec90"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 16633,
+          "pcm_bytes": 3620720,
+          "pcm_sha256": "fbb76102b00141339247da120b0dd86cb6fae8210a1602aaca7165d0c4629981",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "77bb9c4625ffc95681c4f2f58579e4049823455b212a8cca0821e63953ba1e04",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "b6cbb66c9cbfa828eeed625bb87b2b417189b574b38da58b8a16f605da7dfeca",
+          "speaker_blocks_committed": 16633,
+          "speaker_frames_committed": 905180,
+          "spoken_segments": [
+            "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141"
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/6",
+          "wav_artifact_id": "play-0697e67e4544b984ad0f05ee202f5b9aebb224ccc4f114b5d5e85dacbeb4447d.wav",
+          "wav_bytes": 3620764,
+          "wav_sha256": "a0843b2b6c242fce1b57d231a88222a125e3e015570b69d187ffe983f162757f"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 7,
+          "pcm_bytes": 1344,
+          "pcm_sha256": "d457efc0edd106bb2ab6c7b0630f50618de6e1d29c67937e15368e6d5c9df205",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "2d0d09b90ee0d6f2e37f25346f57855a45f9014aca7a8e5ffc74cdd0a026ba43",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "c6d21f5f3fdd9c32954e303dea67929047dabb6e7f4a0343bb6feee589401f5c",
+          "speaker_blocks_committed": 7,
+          "speaker_frames_committed": 336,
+          "spoken_segments": [
+            "."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/7",
+          "wav_artifact_id": "play-8861b364a2585bb472f5ce81314ebb5a833e5116fbcbd461cacf5f1484967f08.wav",
+          "wav_bytes": 1388,
+          "wav_sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2696,
+          "pcm_bytes": 586720,
+          "pcm_sha256": "c9c019cffacf53eb044caa6cb75986e96401de86241441fc0f76e4884e4d2980",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "6c4d7284b31a1f94b4c85ddf9907229419cce26cac8e242bfd59f95b302a2f89",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "be75d5275b2f4b31560383ab1043587844de4bdf66f9866ae917840285b12b05",
+          "speaker_blocks_committed": 2696,
+          "speaker_frames_committed": 146680,
+          "spoken_segments": [
+            "One Body Clock, lifecycle-state: lulled."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/8",
+          "wav_artifact_id": "play-c2144061f1d74d41d579de683071f52b511e5a6132a62e5f6259206ad8c804bc.wav",
+          "wav_bytes": 586764,
+          "wav_sha256": "5a1f7c2351ebb92893b1f1fc70dda39476831dcc6a3fd9f1ca6eb3fb1b5f06a1"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2704,
+          "pcm_bytes": 588488,
+          "pcm_sha256": "6ccdeb827ab495677261158978fa1cbcaf9201ecf19bf5ac9057f6d30361d03b",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "239a91adeeeba202d86b0b57e503367174501ee07d5b6b187867dc915ea7edb4",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "637bf4ec7eb155f4c615cb70aefe0f385ae58034656506586e857aba90e7ee30",
+          "speaker_blocks_committed": 2704,
+          "speaker_frames_committed": 147122,
+          "spoken_segments": [
+            "One Body Clock, workload-revision: 6."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/9",
+          "wav_artifact_id": "play-2ea7454667f939a30104e850305c216c7a1497f3914b3091db0a434ea16516e6.wav",
+          "wav_bytes": 588532,
+          "wav_sha256": "0f9b528ec1c4214452cbb45a88f4b13fd90c59bd2c509f1654f6cd7596b7a70f"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3428,
+          "pcm_bytes": 746060,
+          "pcm_sha256": "16451a65d48f8b960140bb6e9a776161efc149964f6d342d89ba5e86eb8b3b09",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "7fc38e44f5ec45172acf812b3e2eb5d42a606ee933a60b38ef6812502421a2c6",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "510a55584d4a19b5fb246d5276d4ebac18a48eb30f93b3d5911d1a31a4413aa7",
+          "speaker_blocks_committed": 3428,
+          "speaker_frames_committed": 186515,
+          "spoken_segments": [
+            "Current overview context, operator-context: overview."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/10",
+          "wav_artifact_id": "play-ea8372d9949494889922ccb7217f4e093cddbb03bcf821123b9a7865978e9fe4.wav",
+          "wav_bytes": 746104,
+          "wav_sha256": "c8c57cb522e9f57a6f6a5f1c2d59a11abf86c920e26575d6961dd50cc73e0bb4"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3153,
+          "pcm_bytes": 686160,
+          "pcm_sha256": "ba0243626cf1edf613d6849106736be6125612b12e0014fc46474314b38d14ec",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "fa0fd0cf7e56a41da9f619662a97916bb053f8aa2ee235a5296708f02da38dcb",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "6ea5f014765d796a79973aefa3b34c63703cc42cd5cbd1629734c49a18006b06",
+          "speaker_blocks_committed": 3153,
+          "speaker_frames_committed": 171540,
+          "spoken_segments": [
+            "Current overview context, operator-focus: body."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/11",
+          "wav_artifact_id": "play-c87429fa6937a4c2214f4b2aa6616897a98a703fdad4c894cba94c663944b2a7.wav",
+          "wav_bytes": 686204,
+          "wav_sha256": "17d5ee580dac303711ea93773b200056b3437fb92dcd808364044d7fa92f89f0"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3074,
+          "pcm_bytes": 669040,
+          "pcm_sha256": "bf7d87316fbbd02f97ba827d67d30dfed7b438b2dd157bcebef4f9732cdf5cfe",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "76d85dd35c1827e22b12a8b8e6b003a8ef12eb23d9c381f20dfb6a5034b83864",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "b19e093105dfe9dc8aaee450a1e5992996441019850c840aa7e70a7cc94c8161",
+          "speaker_blocks_committed": 3074,
+          "speaker_frames_committed": 167260,
+          "spoken_segments": [
+            "clock-demo has property checked-plot-id: identity "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/12",
+          "wav_artifact_id": "play-cd1d2f8b312fe56ab7ea5f1a79fd6951e6e865bc85df22e55249e86ecdd40e97.wav",
+          "wav_bytes": 669084,
+          "wav_sha256": "627b05ce255af7051aff9bb8d5d2b9de5c14571ad9388097086cf790cf9632d3"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 15336,
+          "pcm_bytes": 3338276,
+          "pcm_sha256": "bad86b1a351175a45289ee8a615b211929c398ff37741a7a9fab071ecd9e84c1",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "8a03a3c437cf11bb6cce56095385b669711d59cebb717a0b0328b2e02ab2ccab",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "d1e209aa5080da552162ad8402e2bfda894d730f38adba8d386b49c248fd64ac",
+          "speaker_blocks_committed": 15336,
+          "speaker_frames_committed": 834569,
+          "spoken_segments": [
+            "d08311b188ebaa9d4703bf90745cb2efc6ee137c11f5527b13bcfce93a4f0f70"
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/13",
+          "wav_artifact_id": "play-ce8757dd8dfd5cd921f9af70a43891823f3942635ff83f9785c6e2ddb49a3c2e.wav",
+          "wav_bytes": 3338320,
+          "wav_sha256": "981ea58c0411303527b967a52bc215b541604f0a46bd9d063d9ec6c39b08fb98"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 7,
+          "pcm_bytes": 1344,
+          "pcm_sha256": "d457efc0edd106bb2ab6c7b0630f50618de6e1d29c67937e15368e6d5c9df205",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "ce2ab58b7f7c2ba6c61f30978ee1ba824f15dd410edae30b85cd4d68086c63f0",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "b3861a2dfebd59eb0e38bd855382519d6ae2680bddc76979c037157c7f489a16",
+          "speaker_blocks_committed": 7,
+          "speaker_frames_committed": 336,
+          "spoken_segments": [
+            "."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/14",
+          "wav_artifact_id": "play-a2aef8ff10886d9573a2d4e59302bdd08c2b799f854b10cd80e3eea8dc59c9ed.wav",
+          "wav_bytes": 1388,
+          "wav_sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2698,
+          "pcm_bytes": 587200,
+          "pcm_sha256": "83d522c364dd0ab387e61334648e77f64a96cacfc756b63b672431d44c57e14d",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "758a48a8182a27a2c823b128b8b984d3c476356cf17efe58ca49ba255a99ba53",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "4c3953313bdf5e148505131513e6964d515dfedf447756c5762dc1e6c237930a",
+          "speaker_blocks_committed": 2698,
+          "speaker_frames_committed": 146800,
+          "spoken_segments": [
+            "clock-demo, interval-ms: 500."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/15",
+          "wav_artifact_id": "play-4a6e3ef4d5010bd2978e499e036b7066690297c4f908342177ad3ade3b7ebab8.wav",
+          "wav_bytes": 587244,
+          "wav_sha256": "de94c042c7abcba90ddfa12894850250bb691e6d39b16380c1d251611934acde"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3279,
+          "pcm_bytes": 713596,
+          "pcm_sha256": "939c2c59223087f967a6abcab1303bfbe23dcc8256f10b7fcb9462d7ee8f4529",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "b08e5ef8768b75491d73a17bcfaae791f224aeccbcd1b6cf217c51819f047a55",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "f40130dccc90ab74d9265b4625476f5b36b543ece4819b5c3b33975182b14767",
+          "speaker_blocks_committed": 3279,
+          "speaker_frames_committed": 178399,
+          "spoken_segments": [
+            "clock-demo has property source-document-id: identity "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/16",
+          "wav_artifact_id": "play-6b6b5a0e36612a0984aea2a14a1ed42423c2f245b87d9a0b89f7d556c41fc64e.wav",
+          "wav_bytes": 713640,
+          "wav_sha256": "af7b0a8a184fbaa975711c8a3f793c5b0a0d23c389efd5b87ad612b06df1a5d6"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 18361,
+          "pcm_bytes": 3996868,
+          "pcm_sha256": "dd0523a39ff535a57db90aa640505dd19a93f2a06b8056b9cc39b0749682af97",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "70abb4ddcbf73e55d2b7283ba128a4873c535a63dfd1e6d83b8e23ffba96b37d",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "6ee94919bf744e74afc18bcdd95d7bdda53d96277611ed8ccb47e3a865ce7793",
+          "speaker_blocks_committed": 18361,
+          "speaker_frames_committed": 999217,
+          "spoken_segments": [
+            "b43b98194e77682bb0d79ce26275511d11d2fb1bf19f3bf66b3655c99d21c13b"
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/17",
+          "wav_artifact_id": "play-1bfe9796430d476e28aa4c83d55d5623d092a17540a1f950933504154bb51a09.wav",
+          "wav_bytes": 3996912,
+          "wav_sha256": "6c081d92822fab343c7924ac8ef54e7af22747564acba20d0d2d88f5897c742a"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 7,
+          "pcm_bytes": 1344,
+          "pcm_sha256": "d457efc0edd106bb2ab6c7b0630f50618de6e1d29c67937e15368e6d5c9df205",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "6afe8a9222cbdf814658a4d4163d28648ae641439782c72668c0992572038861",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "f4fe3d4fe75042ecd85ca0c68bcd3b537cb6f7dbc300d944f9252f8d4847ea1a",
+          "speaker_blocks_committed": 7,
+          "speaker_frames_committed": 336,
+          "spoken_segments": [
+            "."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/18",
+          "wav_artifact_id": "play-6827f2939624e7718f856f5f2650c5e2310f333238e10a4cd6f8cb1b63224405.wav",
+          "wav_bytes": 1388,
+          "wav_sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2752,
+          "pcm_bytes": 598876,
+          "pcm_sha256": "f492cfdc350b198edd31cb2633eebd0556f5c25a1563b71e46a8ef38d4c8d695",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "98dc0bd09963e5fcbca153132c043ea1c7389f4de4fc2d245849620d721e4b64",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "dcb8a703e078272916bced75be4272199c6ec6e6e127903ecbc74d0982f6cafb",
+          "speaker_blocks_committed": 2752,
+          "speaker_frames_committed": 149719,
+          "spoken_segments": [
+            "clock-demo, workload-membership: resident."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/19",
+          "wav_artifact_id": "play-c7dda52eea699e1dd589e8108b8f3df0939dca25f3b0f773cc3bab502614695d.wav",
+          "wav_bytes": 598920,
+          "wav_sha256": "3657e4cd85e2fabecf8b5e3d4bfd81a4dbfa997992ff5793770fe5c24cbadefc"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2640,
+          "pcm_bytes": 574616,
+          "pcm_sha256": "87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "69437c59fbc9fc3c9ece87d9d8cd90c80431731c18977a972ef856334f783897",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "fd3ecd934aa22a3907186ce2086eb9f30bb2d86181b29005fe60e7132eaa400d",
+          "speaker_blocks_committed": 2640,
+          "speaker_frames_committed": 143654,
+          "spoken_segments": [
+            "One Body Clock is lulled with one resident plot."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/20",
+          "wav_artifact_id": "play-340174fcae2363c9a20272c2dd376d7929d3bb11bf5cc9a575fbd94706f9a1f3.wav",
+          "wav_bytes": 574660,
+          "wav_sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2901,
+          "pcm_bytes": 631312,
+          "pcm_sha256": "e1a5e666b2a366deebb6aa6d8779507ac6748783be1a76a759868e7f0e01f8e3",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "c55835db88747239209f5d78600b66ab674d691459ad7d177fb0744235ba9060",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "66eba911bf4c0a864b88c47573f5dc40c8b6a7109098e549fb49dd25d463c37c",
+          "speaker_blocks_committed": 2901,
+          "speaker_frames_committed": 157828,
+          "spoken_segments": [
+            "The current clock interval is 500 milliseconds."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/21",
+          "wav_artifact_id": "play-b569e56dfb5cbd359671076946a5c50ec8f59852a98f897e8c22828bb80c124a.wav",
+          "wav_bytes": 631356,
+          "wav_sha256": "cad513e289d22181f2a6687884f012b990655adbaadc806b840908e6dee4be7d"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2261,
+          "pcm_bytes": 492088,
+          "pcm_sha256": "37501d472862b5207bf29f66034c15fb51b486d1ac6b3af2f8b57793505a6137",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "28bd90e30ba65ba5ca881798629661359ea909300c73be8cb50bf714a14e95c1",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "26b06ea856328cef2f129b746a1511f1bfaf62268d2123fdb09e29e7f5800812",
+          "speaker_blocks_committed": 2261,
+          "speaker_frames_committed": 123022,
+          "spoken_segments": [
+            "Primary content: One Body Clock."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/22",
+          "wav_artifact_id": "play-aca4bc96aa28ad30424b832fc9352ba8604c17686951558f231fb08d2b29d615.wav",
+          "wav_bytes": 492132,
+          "wav_sha256": "d11f013a1c9bc688b489fe89e1ca5644aac4a3760ca8f653832f73f3285bc5ba"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2394,
+          "pcm_bytes": 520960,
+          "pcm_sha256": "836bcc96b06f192a7b877337697c74cc1eb19144eacb25391af560bd12b344d9",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "d9f1c7c74b361a02cc6ff99847c982550579b4cd6559381f7bda02e68c9104ec",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "90fa42922539f6758d56fb266ca7c8fad7b97e23f176efe1187c1374f0ab2155",
+          "speaker_blocks_committed": 2394,
+          "speaker_frames_committed": 130240,
+          "spoken_segments": [
+            "Context: Current overview context."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/23",
+          "wav_artifact_id": "play-7b092ab25d25ad5cdae6508d6c861d6d0c7869143ac6f483c466a051217ba9c8.wav",
+          "wav_bytes": 521004,
+          "wav_sha256": "0798be119e989e1aa57ec3c40d9f2fd1c9013cd1f2f2520de0b6d22ce7739370"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 1661,
+          "pcm_bytes": 361432,
+          "pcm_sha256": "7ff2f098335273990fdef494b93d88c9c0a9c1f5564f560133f4df4f46824267",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "c699e4bc747669887589b9d23869c530392fdfdf0f3cc94f1f377cc7491a3203",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "faeef5435e94a291d707f19cda90379afba9f2c273099048b103acabf56856ce",
+          "speaker_blocks_committed": 1661,
+          "speaker_frames_committed": 90358,
+          "spoken_segments": [
+            "Context: clock-demo."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/24",
+          "wav_artifact_id": "play-1dba0a6cf546f6656301250f08eb62344d5522c5957ae217fa17cbc6ad5a4242.wav",
+          "wav_bytes": 361476,
+          "wav_sha256": "2995fbca9edd5ddda399704b18ee1be02259c84d68a03d1441a86a48ba63e4a2"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 4267,
+          "pcm_bytes": 928872,
+          "pcm_sha256": "d5d429e64851513119bef1099262c6bdde7cbfe9331c520fc6f0a4f9e7349dc7",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "0b4d1bf52a5c0f55efc901864d5c6bd8100fe50fa72dca6462e07f3137148128",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "ad8aa122f277abf60f0df9a2d981d9f88dc00d549311bc0d33573405a082b98e",
+          "speaker_blocks_committed": 4267,
+          "speaker_frames_committed": 232218,
+          "spoken_segments": [
+            "Open Plots library. For One Body Clock. Unavailable: This owner "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/25",
+          "wav_artifact_id": "play-5d822b303fbb3dd7f47d79d097b4fe6df4e36806b53ffcdb1476f9b54f14edfa.wav",
+          "wav_bytes": 928916,
+          "wav_sha256": "ea185d6982951c231495caf463453fffda2dcbbab4b7108c7cf404a4f6d119ee"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2922,
+          "pcm_bytes": 636048,
+          "pcm_sha256": "74bece8a330d8029a8f046db4c8c984444a994c8c2f68742b101ea48129d3033",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "248e059d7090624f7c1a5772955f3593f9c37517dea1198d9ece4d75195e7e70",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "c3c49fb517ecd2851bc15128e3fe42e8aa66e9bad3b4beaecb093cdfae15e513",
+          "speaker_blocks_committed": 2922,
+          "speaker_frames_committed": 159012,
+          "spoken_segments": [
+            "return route does not yet accept this semantic action."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/26",
+          "wav_artifact_id": "play-cd0e361659bdf30345f3ceee870b4809fead4e3b049bb38adb54b9bd08602e40.wav",
+          "wav_bytes": 636092,
+          "wav_sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 4162,
+          "pcm_bytes": 905988,
+          "pcm_sha256": "7fa2c3fa4bd10e9283c28736e976d266374c312b6e8cffb98595b9795cc4785d",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "10033a610247dae6fdc0fd1bccb2ba9f36c5986c318bf8f89d5a6a11dfc2033d",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "e2712c8398ae965039cd2390a1a9cfcfa4b0514e37b55406376672faf5ba4258",
+          "speaker_blocks_committed": 4162,
+          "speaker_frames_committed": 226497,
+          "spoken_segments": [
+            "Open Body overview. For One Body Clock. Unavailable: This owner "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/27",
+          "wav_artifact_id": "play-c01294b56e55bbf27126318b5da0a1c25df82bbc430d19d94fc127545c8b50ab.wav",
+          "wav_bytes": 906032,
+          "wav_sha256": "176215c7fd82652b49e145c80001bd8c12ecdcdd4ae5c3eaa95c7ab3d08dfd44"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2922,
+          "pcm_bytes": 636048,
+          "pcm_sha256": "74bece8a330d8029a8f046db4c8c984444a994c8c2f68742b101ea48129d3033",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "82d01f419a5bc125421717d809faa57cab00754feaa6bc3b706e6679e2d6a354",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "4f4a40f6608261e2289baaddabf27fa48800418ac2b3ac3eb310a706c9589609",
+          "speaker_blocks_committed": 2922,
+          "speaker_frames_committed": 159012,
+          "spoken_segments": [
+            "return route does not yet accept this semantic action."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/28",
+          "wav_artifact_id": "play-4c6368964bcf223d1919e934600908fc39fdbe1c6e76f677d7320b13e0b073e2.wav",
+          "wav_bytes": 636092,
+          "wav_sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2724,
+          "pcm_bytes": 592800,
+          "pcm_sha256": "6a49378a6cdfc693a61a77c9f1fe957ebec4b8e6a04c02f144cbea7301c8a724",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "cb8426184100b761ce81e60680b33d9d8822c8b86ebebd26ac8b14bb1494119d",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "5d2188ca49b7ba9de20e7647991f9856b73b60f0ec99315cd98b1a73c1a5e1a7",
+          "speaker_blocks_committed": 2724,
+          "speaker_frames_committed": 148200,
+          "spoken_segments": [
+            "Wake. For One Body Clock. Available."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/29",
+          "wav_artifact_id": "play-1d414258dc49acfb417e79d9222222c0029bc6c04404a4a61aeae090ebb8662e.wav",
+          "wav_bytes": 592844,
+          "wav_sha256": "92b8969d041cf1fe02f97401e22a0a75b6b3a8b3559ca9109aabe2cba8c64dd1"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3258,
+          "pcm_bytes": 709216,
+          "pcm_sha256": "ac80cb39ffcec5e4ca420a8055c964c3f747fae425a89cd206e35becccafd709",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "811b9ae869335f3abd3d38c716fe38bd9c794eec4300fe15420f08202c7ffab2",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "7b41b07a7e36acf20fc146b41b77085cabebd809652e523b9f2663f59aa59eac",
+          "speaker_blocks_committed": 3258,
+          "speaker_frames_committed": 177304,
+          "spoken_segments": [
+            "Change clock interval. For clock-demo. Available."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/30",
+          "wav_artifact_id": "play-5f36735631f1a630f99b5b8c753b1db291ba4fd206147d9dc32fd249a88bfca3.wav",
+          "wav_bytes": 709260,
+          "wav_sha256": "e0c6951306e456bea4a1b80ef63937e2033ad7a49a2f3f087fb95231200d4b0a"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 5945,
+          "pcm_bytes": 1294056,
+          "pcm_sha256": "30b25309432f58f060897e2a751444da4690908fdbf62f3f15d217ec57847afd",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "9dff29f6eaca3fa339905c2bc6408d1223564f701f2a9ed07edce9e83735f6ea",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "c40c0ce1896ae280ec9b6e21af1f159a3dcba437208f578739d1857e49ac55b3",
+          "speaker_blocks_committed": 5945,
+          "speaker_frames_committed": 323514,
+          "spoken_segments": [
+            "Interval in milliseconds: 250, 500, 1000, or 2000. Choose one "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/31",
+          "wav_artifact_id": "play-280c47b8154cef87bb4d4f4c80a730037bfe8939cbb429df41d92f29f206c651.wav",
+          "wav_bytes": 1294100,
+          "wav_sha256": "fe4e702f55a7f496eea84c6ac9f819f8837b1da92484f33da224c6869651b84b"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 6521,
+          "pcm_bytes": 1419520,
+          "pcm_sha256": "9b24d026e50bef1aa7d0bf96ee72d41a989b06f2113a0dd0899d28d10036e369",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "7637ff78b83dcc135ef11ab3f77f9418dae3b07954d14ff34a7c79d112689932",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "33b31e8d64c613fc0fdc7b93418acde1a8dc50b80c5c3c9823c2bc1db89e979b",
+          "speaker_blocks_committed": 6521,
+          "speaker_frames_committed": 354880,
+          "spoken_segments": [
+            "of: 1000, 2000, 250, 500. Enter it with edit clock/interval-ms, "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/32",
+          "wav_artifact_id": "play-81f9546abd46352fe599616c2a76ba69359c68e44e646be83b5d67fd6abd59a4.wav",
+          "wav_bytes": 1419564,
+          "wav_sha256": "09372b8868b8148bca6d4b8a25102a128897fe609ce4a7449482bce4e897abef"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2129,
+          "pcm_bytes": 463344,
+          "pcm_sha256": "1e40bd09c47894a42d6ef27cf316046d7f0cf445226e166fb7d5ccbfef1d147e",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "5f896cd673092fec9e40201c85565cb75c0a67d3049fe45f65cf8df7617a2e20",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "e28013a8e07ed029f7d1266532da1e7fa274de635d59cca19e68c3d5af9ee51b",
+          "speaker_blocks_committed": 2129,
+          "speaker_frames_committed": 115836,
+          "spoken_segments": [
+            "then activate Change clock interval."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/33",
+          "wav_artifact_id": "play-7f901c127faee998ee13167c6fe0e05f7c4277b1d1e66695158603e4a369bad5.wav",
+          "wav_bytes": 463388,
+          "wav_sha256": "e584153dc783c0dfd12e8bcd88609b5bdc10e5ec7bd703b6f4ffa57fe61ceb22"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3980,
+          "pcm_bytes": 866300,
+          "pcm_sha256": "38c11dd70d9c4e698a0b3d88d085d82cc4705530fc0351c771c22bdba8d6f6fc",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "cab05b1f585ee0d7c3bd201ef1c2dffb60f5994d89be19244784004e7b8c41a9",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "13aa9e68895f9fc6a72c89eab439629968c3e60cf9be613ddf737ed69529518b",
+          "speaker_blocks_committed": 3980,
+          "speaker_frames_committed": 216575,
+          "spoken_segments": [
+            "Stop the clock. For clock-demo. Unavailable: Start the clock "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/34",
+          "wav_artifact_id": "play-f96bafd6c9dab789dc7bc9bdd709106c624868e8df9ea119b33c8278668a2896.wav",
+          "wav_bytes": 866344,
+          "wav_sha256": "dbcb9b6913a4f348f4ac1a5479503817cf761db0dd3611d611116c231419be11"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 1112,
+          "pcm_bytes": 241956,
+          "pcm_sha256": "4a7739ac8777fe86ed2e9f051a0b27e2630bc6581491e8458bbb2338b6c16b2a",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "2d75a2fab8e53e9cc14728769d4f3b89b83483d15eb87f405c311007dd6e6c93",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "64c1261d5770006a1a11c9bc28218e88169a685203aca66f31f80796ccddbaac",
+          "speaker_blocks_committed": 1112,
+          "speaker_frames_committed": 60489,
+          "spoken_segments": [
+            "before stopping it."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/35",
+          "wav_artifact_id": "play-33cc12817245dd2bb3f45a5c1b07603d8a60d4d9f1a0feab12aac20c7e43c693.wav",
+          "wav_bytes": 242000,
+          "wav_sha256": "014f8f1cc0b1fde8f444ea9030b8322665a78412eabf856d9e4444d93e7c7e43"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 3827,
+          "pcm_bytes": 832984,
+          "pcm_sha256": "ce2a3d7b70653c900608073707467d3cfee328d5e64a1f4499535fc88b395aa2",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "068765a0f70be0c2f1413addbd7ef0901848e75027b0b2630984cfb843b4859e",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "5c5afd3ddf0c8e681d1799146ab486f4ca75d7eb2bc84e3fb672c2f65fd68d85",
+          "speaker_blocks_committed": 3827,
+          "speaker_frames_committed": 208246,
+          "spoken_segments": [
+            "Open inspection. For clock-demo. Unavailable: No admitted "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/36",
+          "wav_artifact_id": "play-0afa25d3ea094d6ef5b196a6292c36ee0f978ccb5cecd7c10db37e416271500a.wav",
+          "wav_bytes": 833028,
+          "wav_sha256": "74a58492b00c025af1475b4a0c52371fbd2e5e4b927d395ed373d88ef513f109"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2464,
+          "pcm_bytes": 536312,
+          "pcm_sha256": "ad701a2d66204a41879018a30a07daed689097fb9aa6574a79258ae1a166f1a8",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "11632ff9ca469aeeb1124316564b9b1b8aacdb521c1e83d50594c13184b0bda4",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "ee2c3b13b2cb5b79876b16319a3c2debf86f1856d7f204262173b7a06831df4e",
+          "speaker_blocks_committed": 2464,
+          "speaker_frames_committed": 134078,
+          "spoken_segments": [
+            "inspection contribution is currently playing."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/37",
+          "wav_artifact_id": "play-8d835220924292c089e17530a86e89fceac1bd6e5a1309f7c090c25d78bbaded.wav",
+          "wav_bytes": 536356,
+          "wav_sha256": "0fe6e6cc828e4a05a61d498027249d69092f21af1188ea1c9e50fffe52296efe"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 4046,
+          "pcm_bytes": 880720,
+          "pcm_sha256": "f82f48067f602f965a01fa927fd9b7b598c993d2b09a7bab8e348d5004f7f8fc",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "72b827f3979f3f9f0c32faed08828fd9e9ec10411968e7bee33721daf367d519",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "b917d282eb0fb76f2e78c1b32ed0083ebcafd286ff6b4d6c8e04047f740ed083",
+          "speaker_blocks_committed": 4046,
+          "speaker_frames_committed": 220180,
+          "spoken_segments": [
+            "Open resident Plot. For clock-demo. Unavailable: The resident "
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/38",
+          "wav_artifact_id": "play-6fe412d96793e307e6b5f56190608fecbf5161fbd2f4ffdf0baf8a6acc7a7cd3.wav",
+          "wav_bytes": 880764,
+          "wav_sha256": "7921a8e42c6a7c30c254241613e6785747e9d4d000b166d2de6e590007658444"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 1917,
+          "pcm_bytes": 417168,
+          "pcm_sha256": "bf5d99d079a95ff59b72ea7f1948c5d1b9fd0a06b93753ffca81649e5e457f9f",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "cdbe1a22c666fe29bca107e280497613d03b14c7a919b597e0246ff12b266227",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "caef3041c7f195cdf5b273f9c8e59a4efb960b88fb06818367f9d33c3dc8beb1",
+          "speaker_blocks_committed": 1917,
+          "speaker_frames_committed": 104292,
+          "spoken_segments": [
+            "Plot is not currently presenting."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/39",
+          "wav_artifact_id": "play-446dd3270d72c78c82d0220d27b0d9ab382f7ee1a93489b7ff70737a69ec0a8b.wav",
+          "wav_bytes": 417212,
+          "wav_sha256": "8bc712da41b57c8dc23c8f3693d9f0e54bdd8db8786301c8aa4025c7cc8008f3"
+        },
+        {
+          "outcome": "completed",
+          "pcm_blocks": 2916,
+          "pcm_bytes": 634700,
+          "pcm_sha256": "668311aacf6118f38805f3e2b0ae98d348cbe73d7b83e88954ceed27db4eb819",
+          "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+          "play_id": "792608e9721d5023ec5f999c9e9f8a92e725152163819a7b791c168043afe289",
+          "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+          "source_segments_sha256": "10bd2a5ffe474e3a44ac6e834dfa5e6bfee1d1fbd03d7681d2caca56818db9fa",
+          "speaker_blocks_committed": 2916,
+          "speaker_frames_committed": 158675,
+          "spoken_segments": [
+            "Start the clock. For clock-demo. Available."
+          ],
+          "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/40",
+          "wav_artifact_id": "play-c821116f3a89b9b0518a0fdcfdaefe423f158573e557d5f4c6e83c1e943a387a.wav",
+          "wav_bytes": 634744,
+          "wav_sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1"
+        }
+      ],
+      "boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+      "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+      "face_revision": 13,
+      "face_revision_decimal": "13",
+      "host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+      "offer_generation": 1,
+      "operation_id": "selected-speech/25c5e69bc551950458bacc124e840f155f4082bab602f78f8ab808c6584750e8",
+      "outcome": "completed",
+      "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+      "schema": "conduit.body/selected-speech-terminal@1",
+      "selected_resource_pool_id": "std/audio/alsa/skl_hda_dsp_generic/card-sofhdadsp/device-0",
+      "source_show_id": "show/0fd8ddd14e207c934c189f3821a3daeebc99eb65cc899b69b770d81834d7f267",
+      "source_show_still_current": true
+    },
+    "batches": [
+      {
+        "outcome": "completed",
+        "pcm_blocks": 1625,
+        "pcm_bytes": 353736,
+        "pcm_sha256": "c62066259b19f25accd542e70acda2bd27956e6c82affd51cb5ae23e4759fd34",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "4c8576055a62adbe5ab7868f2f97576567db3898fd701f11ea8472700d67699a",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "329878a0f66891d538a9281f5babf029d4875ba2ae176e16d91b6dcd472d8905",
+        "speaker_blocks_committed": 1625,
+        "speaker_frames_committed": 88434,
+        "spoken_segments": [
+          "One Body Clock, body."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/0",
+        "wav_artifact_id": "play-73edb352a072f8d59d4373121830003b2923ff86279afd54df8081df5822074a.wav",
+        "wav_bytes": 353780,
+        "wav_sha256": "f3fa35dcebc394bccce8ef6d8b836e931f30616a04359f39fc09d7218a882611",
+        "wav": {
+          "path": "owner-selected-speech/play-73edb352a072f8d59d4373121830003b2923ff86279afd54df8081df5822074a.wav",
+          "sha256": "f3fa35dcebc394bccce8ef6d8b836e931f30616a04359f39fc09d7218a882611",
+          "bytes": 353780,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2106,
+        "pcm_bytes": 458452,
+        "pcm_sha256": "680330ea397f54cf35be39a7d4b4120181cc95b1289282d238612259a3dd8d9e",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "ce3a32b1118c08d1c8891df9f3acfc37888221b0e902fb140c3dd7ed989b4a1b",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "f922052b7950ccf495e44b5b708932249708547b0a488b08f97bca6389aee980",
+        "speaker_blocks_committed": 2106,
+        "speaker_frames_committed": 114613,
+        "spoken_segments": [
+          "Current overview context, region."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/1",
+        "wav_artifact_id": "play-15577da24d2564d611e31cbc3bf101b29c4a19ae87ce6ba11bffc229180d3ec6.wav",
+        "wav_bytes": 458496,
+        "wav_sha256": "814ed833e66c1f4a2ee33586ec6bf9b01316e4c5daec359b4f360cbe6ddd4c7e",
+        "wav": {
+          "path": "owner-selected-speech/play-15577da24d2564d611e31cbc3bf101b29c4a19ae87ce6ba11bffc229180d3ec6.wav",
+          "sha256": "814ed833e66c1f4a2ee33586ec6bf9b01316e4c5daec359b4f360cbe6ddd4c7e",
+          "bytes": 458496,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 1383,
+        "pcm_bytes": 300880,
+        "pcm_sha256": "d99aa87cb461b03c63be5b8bf8721dffe02546b5aceaabe40690f1b6db95fd90",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "dd3726f45bb80b202ac5bdfc66c57872fde7d5c2856592f408c5a17f9c61fa83",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "3aea02970e76aaf5f6cdf97494f2b570e0cfdc57767222840693dd62b6afd2eb",
+        "speaker_blocks_committed": 1383,
+        "speaker_frames_committed": 75220,
+        "spoken_segments": [
+          "clock-demo, plot."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/2",
+        "wav_artifact_id": "play-7bceabb40ec2e6cea4095fb66c2a9c6163bbbb578181bc169a861a4e30197372.wav",
+        "wav_bytes": 300924,
+        "wav_sha256": "e8e2f58da78372b516b369543123f685efb516c8852fd1b79d36bd35a5176e56",
+        "wav": {
+          "path": "owner-selected-speech/play-7bceabb40ec2e6cea4095fb66c2a9c6163bbbb578181bc169a861a4e30197372.wav",
+          "sha256": "e8e2f58da78372b516b369543123f685efb516c8852fd1b79d36bd35a5176e56",
+          "bytes": 300924,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2947,
+        "pcm_bytes": 641376,
+        "pcm_sha256": "d31c41541952133588a2fde0de5a932befb9b7b322af459b9cc515b2ab28a0a6",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "ba81433fc66a7aa5e7cfa0d2e96e0821d3a854e94472c953dedbde558f609af1",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "af32c72d6a75d312b2d28fba7b2c0d8a68bb078b2630a3813aa77c5ba43c3f0c",
+        "speaker_blocks_committed": 2947,
+        "speaker_frames_committed": 160344,
+        "spoken_segments": [
+          "One Body Clock contains Current overview context."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/3",
+        "wav_artifact_id": "play-d81f31cc852112723c70d4e62dacec2cefcada260bc9294d9fd17392eda71c6a.wav",
+        "wav_bytes": 641420,
+        "wav_sha256": "e6bda2fbe6e1f754a4dda4944021cb4f6d6922136e5fc7fd5419739f5945b763",
+        "wav": {
+          "path": "owner-selected-speech/play-d81f31cc852112723c70d4e62dacec2cefcada260bc9294d9fd17392eda71c6a.wav",
+          "sha256": "e6bda2fbe6e1f754a4dda4944021cb4f6d6922136e5fc7fd5419739f5945b763",
+          "bytes": 641420,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2212,
+        "pcm_bytes": 481336,
+        "pcm_sha256": "51b97a17152d486cdcbdcf1edcc1ac48c0088e12dc3c9188677f3c798bc2d781",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "c2d4bd0a3a5b214626922bb1c5a9b94f80ce97fd72e6478a9c20c9ee3992891b",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "6f85d404ab73d2be0dd53007c9b794b003c49c3a552dd7128b100d4a6ce7c049",
+        "speaker_blocks_committed": 2212,
+        "speaker_frames_committed": 120334,
+        "spoken_segments": [
+          "One Body Clock contains clock-demo."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/4",
+        "wav_artifact_id": "play-ca4db3106ec628d1dbf9f6c3ce96a48ef8e216bedc3e2f4369fc23a153597385.wav",
+        "wav_bytes": 481380,
+        "wav_sha256": "31a94762a43d30506fca1f22a0c57a8d0d8624000d6ae3c3909c2efd0cb0d767",
+        "wav": {
+          "path": "owner-selected-speech/play-ca4db3106ec628d1dbf9f6c3ce96a48ef8e216bedc3e2f4369fc23a153597385.wav",
+          "sha256": "31a94762a43d30506fca1f22a0c57a8d0d8624000d6ae3c3909c2efd0cb0d767",
+          "bytes": 481380,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3051,
+        "pcm_bytes": 664120,
+        "pcm_sha256": "edf0aaeefe435e4596ac42b3ad397940a04495707095d1e92323b9404c0c127f",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "854925c9d660dc34fdff2c0608599c05b46b8f56a216f0f4bffbf5e307eb7c23",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "07cb08830e45a58d6e492243a0d5896d994d502fc7650240f7e2fb9dabf95a76",
+        "speaker_blocks_committed": 3051,
+        "speaker_frames_committed": 166030,
+        "spoken_segments": [
+          "One Body Clock has property body-id: identity "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/5",
+        "wav_artifact_id": "play-ae8ec33b023100c09953abcc244126ba6a0b5f474130e339aa198e2257a5cb28.wav",
+        "wav_bytes": 664164,
+        "wav_sha256": "bc8d8ec7a2d5a4961fb1bd115c4e98558806655c334214efe838d287dd63ec90",
+        "wav": {
+          "path": "owner-selected-speech/play-ae8ec33b023100c09953abcc244126ba6a0b5f474130e339aa198e2257a5cb28.wav",
+          "sha256": "bc8d8ec7a2d5a4961fb1bd115c4e98558806655c334214efe838d287dd63ec90",
+          "bytes": 664164,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 16633,
+        "pcm_bytes": 3620720,
+        "pcm_sha256": "fbb76102b00141339247da120b0dd86cb6fae8210a1602aaca7165d0c4629981",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "77bb9c4625ffc95681c4f2f58579e4049823455b212a8cca0821e63953ba1e04",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "b6cbb66c9cbfa828eeed625bb87b2b417189b574b38da58b8a16f605da7dfeca",
+        "speaker_blocks_committed": 16633,
+        "speaker_frames_committed": 905180,
+        "spoken_segments": [
+          "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141"
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/6",
+        "wav_artifact_id": "play-0697e67e4544b984ad0f05ee202f5b9aebb224ccc4f114b5d5e85dacbeb4447d.wav",
+        "wav_bytes": 3620764,
+        "wav_sha256": "a0843b2b6c242fce1b57d231a88222a125e3e015570b69d187ffe983f162757f",
+        "wav": {
+          "path": "owner-selected-speech/play-0697e67e4544b984ad0f05ee202f5b9aebb224ccc4f114b5d5e85dacbeb4447d.wav",
+          "sha256": "a0843b2b6c242fce1b57d231a88222a125e3e015570b69d187ffe983f162757f",
+          "bytes": 3620764,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 7,
+        "pcm_bytes": 1344,
+        "pcm_sha256": "d457efc0edd106bb2ab6c7b0630f50618de6e1d29c67937e15368e6d5c9df205",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "2d0d09b90ee0d6f2e37f25346f57855a45f9014aca7a8e5ffc74cdd0a026ba43",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "c6d21f5f3fdd9c32954e303dea67929047dabb6e7f4a0343bb6feee589401f5c",
+        "speaker_blocks_committed": 7,
+        "speaker_frames_committed": 336,
+        "spoken_segments": [
+          "."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/7",
+        "wav_artifact_id": "play-8861b364a2585bb472f5ce81314ebb5a833e5116fbcbd461cacf5f1484967f08.wav",
+        "wav_bytes": 1388,
+        "wav_sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768",
+        "wav": {
+          "path": "owner-selected-speech/play-8861b364a2585bb472f5ce81314ebb5a833e5116fbcbd461cacf5f1484967f08.wav",
+          "sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768",
+          "bytes": 1388,
+          "source": "same-selected-speaker-play",
+          "audible": false
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2696,
+        "pcm_bytes": 586720,
+        "pcm_sha256": "c9c019cffacf53eb044caa6cb75986e96401de86241441fc0f76e4884e4d2980",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "6c4d7284b31a1f94b4c85ddf9907229419cce26cac8e242bfd59f95b302a2f89",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "be75d5275b2f4b31560383ab1043587844de4bdf66f9866ae917840285b12b05",
+        "speaker_blocks_committed": 2696,
+        "speaker_frames_committed": 146680,
+        "spoken_segments": [
+          "One Body Clock, lifecycle-state: lulled."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/8",
+        "wav_artifact_id": "play-c2144061f1d74d41d579de683071f52b511e5a6132a62e5f6259206ad8c804bc.wav",
+        "wav_bytes": 586764,
+        "wav_sha256": "5a1f7c2351ebb92893b1f1fc70dda39476831dcc6a3fd9f1ca6eb3fb1b5f06a1",
+        "wav": {
+          "path": "owner-selected-speech/play-c2144061f1d74d41d579de683071f52b511e5a6132a62e5f6259206ad8c804bc.wav",
+          "sha256": "5a1f7c2351ebb92893b1f1fc70dda39476831dcc6a3fd9f1ca6eb3fb1b5f06a1",
+          "bytes": 586764,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2704,
+        "pcm_bytes": 588488,
+        "pcm_sha256": "6ccdeb827ab495677261158978fa1cbcaf9201ecf19bf5ac9057f6d30361d03b",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "239a91adeeeba202d86b0b57e503367174501ee07d5b6b187867dc915ea7edb4",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "637bf4ec7eb155f4c615cb70aefe0f385ae58034656506586e857aba90e7ee30",
+        "speaker_blocks_committed": 2704,
+        "speaker_frames_committed": 147122,
+        "spoken_segments": [
+          "One Body Clock, workload-revision: 6."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/9",
+        "wav_artifact_id": "play-2ea7454667f939a30104e850305c216c7a1497f3914b3091db0a434ea16516e6.wav",
+        "wav_bytes": 588532,
+        "wav_sha256": "0f9b528ec1c4214452cbb45a88f4b13fd90c59bd2c509f1654f6cd7596b7a70f",
+        "wav": {
+          "path": "owner-selected-speech/play-2ea7454667f939a30104e850305c216c7a1497f3914b3091db0a434ea16516e6.wav",
+          "sha256": "0f9b528ec1c4214452cbb45a88f4b13fd90c59bd2c509f1654f6cd7596b7a70f",
+          "bytes": 588532,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3428,
+        "pcm_bytes": 746060,
+        "pcm_sha256": "16451a65d48f8b960140bb6e9a776161efc149964f6d342d89ba5e86eb8b3b09",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "7fc38e44f5ec45172acf812b3e2eb5d42a606ee933a60b38ef6812502421a2c6",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "510a55584d4a19b5fb246d5276d4ebac18a48eb30f93b3d5911d1a31a4413aa7",
+        "speaker_blocks_committed": 3428,
+        "speaker_frames_committed": 186515,
+        "spoken_segments": [
+          "Current overview context, operator-context: overview."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/10",
+        "wav_artifact_id": "play-ea8372d9949494889922ccb7217f4e093cddbb03bcf821123b9a7865978e9fe4.wav",
+        "wav_bytes": 746104,
+        "wav_sha256": "c8c57cb522e9f57a6f6a5f1c2d59a11abf86c920e26575d6961dd50cc73e0bb4",
+        "wav": {
+          "path": "owner-selected-speech/play-ea8372d9949494889922ccb7217f4e093cddbb03bcf821123b9a7865978e9fe4.wav",
+          "sha256": "c8c57cb522e9f57a6f6a5f1c2d59a11abf86c920e26575d6961dd50cc73e0bb4",
+          "bytes": 746104,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3153,
+        "pcm_bytes": 686160,
+        "pcm_sha256": "ba0243626cf1edf613d6849106736be6125612b12e0014fc46474314b38d14ec",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "fa0fd0cf7e56a41da9f619662a97916bb053f8aa2ee235a5296708f02da38dcb",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "6ea5f014765d796a79973aefa3b34c63703cc42cd5cbd1629734c49a18006b06",
+        "speaker_blocks_committed": 3153,
+        "speaker_frames_committed": 171540,
+        "spoken_segments": [
+          "Current overview context, operator-focus: body."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/11",
+        "wav_artifact_id": "play-c87429fa6937a4c2214f4b2aa6616897a98a703fdad4c894cba94c663944b2a7.wav",
+        "wav_bytes": 686204,
+        "wav_sha256": "17d5ee580dac303711ea93773b200056b3437fb92dcd808364044d7fa92f89f0",
+        "wav": {
+          "path": "owner-selected-speech/play-c87429fa6937a4c2214f4b2aa6616897a98a703fdad4c894cba94c663944b2a7.wav",
+          "sha256": "17d5ee580dac303711ea93773b200056b3437fb92dcd808364044d7fa92f89f0",
+          "bytes": 686204,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3074,
+        "pcm_bytes": 669040,
+        "pcm_sha256": "bf7d87316fbbd02f97ba827d67d30dfed7b438b2dd157bcebef4f9732cdf5cfe",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "76d85dd35c1827e22b12a8b8e6b003a8ef12eb23d9c381f20dfb6a5034b83864",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "b19e093105dfe9dc8aaee450a1e5992996441019850c840aa7e70a7cc94c8161",
+        "speaker_blocks_committed": 3074,
+        "speaker_frames_committed": 167260,
+        "spoken_segments": [
+          "clock-demo has property checked-plot-id: identity "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/12",
+        "wav_artifact_id": "play-cd1d2f8b312fe56ab7ea5f1a79fd6951e6e865bc85df22e55249e86ecdd40e97.wav",
+        "wav_bytes": 669084,
+        "wav_sha256": "627b05ce255af7051aff9bb8d5d2b9de5c14571ad9388097086cf790cf9632d3",
+        "wav": {
+          "path": "owner-selected-speech/play-cd1d2f8b312fe56ab7ea5f1a79fd6951e6e865bc85df22e55249e86ecdd40e97.wav",
+          "sha256": "627b05ce255af7051aff9bb8d5d2b9de5c14571ad9388097086cf790cf9632d3",
+          "bytes": 669084,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 15336,
+        "pcm_bytes": 3338276,
+        "pcm_sha256": "bad86b1a351175a45289ee8a615b211929c398ff37741a7a9fab071ecd9e84c1",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "8a03a3c437cf11bb6cce56095385b669711d59cebb717a0b0328b2e02ab2ccab",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "d1e209aa5080da552162ad8402e2bfda894d730f38adba8d386b49c248fd64ac",
+        "speaker_blocks_committed": 15336,
+        "speaker_frames_committed": 834569,
+        "spoken_segments": [
+          "d08311b188ebaa9d4703bf90745cb2efc6ee137c11f5527b13bcfce93a4f0f70"
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/13",
+        "wav_artifact_id": "play-ce8757dd8dfd5cd921f9af70a43891823f3942635ff83f9785c6e2ddb49a3c2e.wav",
+        "wav_bytes": 3338320,
+        "wav_sha256": "981ea58c0411303527b967a52bc215b541604f0a46bd9d063d9ec6c39b08fb98",
+        "wav": {
+          "path": "owner-selected-speech/play-ce8757dd8dfd5cd921f9af70a43891823f3942635ff83f9785c6e2ddb49a3c2e.wav",
+          "sha256": "981ea58c0411303527b967a52bc215b541604f0a46bd9d063d9ec6c39b08fb98",
+          "bytes": 3338320,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 7,
+        "pcm_bytes": 1344,
+        "pcm_sha256": "d457efc0edd106bb2ab6c7b0630f50618de6e1d29c67937e15368e6d5c9df205",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "ce2ab58b7f7c2ba6c61f30978ee1ba824f15dd410edae30b85cd4d68086c63f0",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "b3861a2dfebd59eb0e38bd855382519d6ae2680bddc76979c037157c7f489a16",
+        "speaker_blocks_committed": 7,
+        "speaker_frames_committed": 336,
+        "spoken_segments": [
+          "."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/14",
+        "wav_artifact_id": "play-a2aef8ff10886d9573a2d4e59302bdd08c2b799f854b10cd80e3eea8dc59c9ed.wav",
+        "wav_bytes": 1388,
+        "wav_sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768",
+        "wav": {
+          "path": "owner-selected-speech/play-a2aef8ff10886d9573a2d4e59302bdd08c2b799f854b10cd80e3eea8dc59c9ed.wav",
+          "sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768",
+          "bytes": 1388,
+          "source": "same-selected-speaker-play",
+          "audible": false
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2698,
+        "pcm_bytes": 587200,
+        "pcm_sha256": "83d522c364dd0ab387e61334648e77f64a96cacfc756b63b672431d44c57e14d",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "758a48a8182a27a2c823b128b8b984d3c476356cf17efe58ca49ba255a99ba53",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "4c3953313bdf5e148505131513e6964d515dfedf447756c5762dc1e6c237930a",
+        "speaker_blocks_committed": 2698,
+        "speaker_frames_committed": 146800,
+        "spoken_segments": [
+          "clock-demo, interval-ms: 500."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/15",
+        "wav_artifact_id": "play-4a6e3ef4d5010bd2978e499e036b7066690297c4f908342177ad3ade3b7ebab8.wav",
+        "wav_bytes": 587244,
+        "wav_sha256": "de94c042c7abcba90ddfa12894850250bb691e6d39b16380c1d251611934acde",
+        "wav": {
+          "path": "owner-selected-speech/play-4a6e3ef4d5010bd2978e499e036b7066690297c4f908342177ad3ade3b7ebab8.wav",
+          "sha256": "de94c042c7abcba90ddfa12894850250bb691e6d39b16380c1d251611934acde",
+          "bytes": 587244,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3279,
+        "pcm_bytes": 713596,
+        "pcm_sha256": "939c2c59223087f967a6abcab1303bfbe23dcc8256f10b7fcb9462d7ee8f4529",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "b08e5ef8768b75491d73a17bcfaae791f224aeccbcd1b6cf217c51819f047a55",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "f40130dccc90ab74d9265b4625476f5b36b543ece4819b5c3b33975182b14767",
+        "speaker_blocks_committed": 3279,
+        "speaker_frames_committed": 178399,
+        "spoken_segments": [
+          "clock-demo has property source-document-id: identity "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/16",
+        "wav_artifact_id": "play-6b6b5a0e36612a0984aea2a14a1ed42423c2f245b87d9a0b89f7d556c41fc64e.wav",
+        "wav_bytes": 713640,
+        "wav_sha256": "af7b0a8a184fbaa975711c8a3f793c5b0a0d23c389efd5b87ad612b06df1a5d6",
+        "wav": {
+          "path": "owner-selected-speech/play-6b6b5a0e36612a0984aea2a14a1ed42423c2f245b87d9a0b89f7d556c41fc64e.wav",
+          "sha256": "af7b0a8a184fbaa975711c8a3f793c5b0a0d23c389efd5b87ad612b06df1a5d6",
+          "bytes": 713640,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 18361,
+        "pcm_bytes": 3996868,
+        "pcm_sha256": "dd0523a39ff535a57db90aa640505dd19a93f2a06b8056b9cc39b0749682af97",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "70abb4ddcbf73e55d2b7283ba128a4873c535a63dfd1e6d83b8e23ffba96b37d",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "6ee94919bf744e74afc18bcdd95d7bdda53d96277611ed8ccb47e3a865ce7793",
+        "speaker_blocks_committed": 18361,
+        "speaker_frames_committed": 999217,
+        "spoken_segments": [
+          "b43b98194e77682bb0d79ce26275511d11d2fb1bf19f3bf66b3655c99d21c13b"
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/17",
+        "wav_artifact_id": "play-1bfe9796430d476e28aa4c83d55d5623d092a17540a1f950933504154bb51a09.wav",
+        "wav_bytes": 3996912,
+        "wav_sha256": "6c081d92822fab343c7924ac8ef54e7af22747564acba20d0d2d88f5897c742a",
+        "wav": {
+          "path": "owner-selected-speech/play-1bfe9796430d476e28aa4c83d55d5623d092a17540a1f950933504154bb51a09.wav",
+          "sha256": "6c081d92822fab343c7924ac8ef54e7af22747564acba20d0d2d88f5897c742a",
+          "bytes": 3996912,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 7,
+        "pcm_bytes": 1344,
+        "pcm_sha256": "d457efc0edd106bb2ab6c7b0630f50618de6e1d29c67937e15368e6d5c9df205",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "6afe8a9222cbdf814658a4d4163d28648ae641439782c72668c0992572038861",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "f4fe3d4fe75042ecd85ca0c68bcd3b537cb6f7dbc300d944f9252f8d4847ea1a",
+        "speaker_blocks_committed": 7,
+        "speaker_frames_committed": 336,
+        "spoken_segments": [
+          "."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/18",
+        "wav_artifact_id": "play-6827f2939624e7718f856f5f2650c5e2310f333238e10a4cd6f8cb1b63224405.wav",
+        "wav_bytes": 1388,
+        "wav_sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768",
+        "wav": {
+          "path": "owner-selected-speech/play-6827f2939624e7718f856f5f2650c5e2310f333238e10a4cd6f8cb1b63224405.wav",
+          "sha256": "719878ad5925c29f998ed30ea7f018051c26b209bf887f057c35b88661ccb768",
+          "bytes": 1388,
+          "source": "same-selected-speaker-play",
+          "audible": false
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2752,
+        "pcm_bytes": 598876,
+        "pcm_sha256": "f492cfdc350b198edd31cb2633eebd0556f5c25a1563b71e46a8ef38d4c8d695",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "98dc0bd09963e5fcbca153132c043ea1c7389f4de4fc2d245849620d721e4b64",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "dcb8a703e078272916bced75be4272199c6ec6e6e127903ecbc74d0982f6cafb",
+        "speaker_blocks_committed": 2752,
+        "speaker_frames_committed": 149719,
+        "spoken_segments": [
+          "clock-demo, workload-membership: resident."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/19",
+        "wav_artifact_id": "play-c7dda52eea699e1dd589e8108b8f3df0939dca25f3b0f773cc3bab502614695d.wav",
+        "wav_bytes": 598920,
+        "wav_sha256": "3657e4cd85e2fabecf8b5e3d4bfd81a4dbfa997992ff5793770fe5c24cbadefc",
+        "wav": {
+          "path": "owner-selected-speech/play-c7dda52eea699e1dd589e8108b8f3df0939dca25f3b0f773cc3bab502614695d.wav",
+          "sha256": "3657e4cd85e2fabecf8b5e3d4bfd81a4dbfa997992ff5793770fe5c24cbadefc",
+          "bytes": 598920,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2640,
+        "pcm_bytes": 574616,
+        "pcm_sha256": "87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "69437c59fbc9fc3c9ece87d9d8cd90c80431731c18977a972ef856334f783897",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "fd3ecd934aa22a3907186ce2086eb9f30bb2d86181b29005fe60e7132eaa400d",
+        "speaker_blocks_committed": 2640,
+        "speaker_frames_committed": 143654,
+        "spoken_segments": [
+          "One Body Clock is lulled with one resident plot."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/20",
+        "wav_artifact_id": "play-340174fcae2363c9a20272c2dd376d7929d3bb11bf5cc9a575fbd94706f9a1f3.wav",
+        "wav_bytes": 574660,
+        "wav_sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5",
+        "wav": {
+          "path": "owner-selected-speech/play-340174fcae2363c9a20272c2dd376d7929d3bb11bf5cc9a575fbd94706f9a1f3.wav",
+          "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5",
+          "bytes": 574660,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2901,
+        "pcm_bytes": 631312,
+        "pcm_sha256": "e1a5e666b2a366deebb6aa6d8779507ac6748783be1a76a759868e7f0e01f8e3",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "c55835db88747239209f5d78600b66ab674d691459ad7d177fb0744235ba9060",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "66eba911bf4c0a864b88c47573f5dc40c8b6a7109098e549fb49dd25d463c37c",
+        "speaker_blocks_committed": 2901,
+        "speaker_frames_committed": 157828,
+        "spoken_segments": [
+          "The current clock interval is 500 milliseconds."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/21",
+        "wav_artifact_id": "play-b569e56dfb5cbd359671076946a5c50ec8f59852a98f897e8c22828bb80c124a.wav",
+        "wav_bytes": 631356,
+        "wav_sha256": "cad513e289d22181f2a6687884f012b990655adbaadc806b840908e6dee4be7d",
+        "wav": {
+          "path": "owner-selected-speech/play-b569e56dfb5cbd359671076946a5c50ec8f59852a98f897e8c22828bb80c124a.wav",
+          "sha256": "cad513e289d22181f2a6687884f012b990655adbaadc806b840908e6dee4be7d",
+          "bytes": 631356,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2261,
+        "pcm_bytes": 492088,
+        "pcm_sha256": "37501d472862b5207bf29f66034c15fb51b486d1ac6b3af2f8b57793505a6137",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "28bd90e30ba65ba5ca881798629661359ea909300c73be8cb50bf714a14e95c1",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "26b06ea856328cef2f129b746a1511f1bfaf62268d2123fdb09e29e7f5800812",
+        "speaker_blocks_committed": 2261,
+        "speaker_frames_committed": 123022,
+        "spoken_segments": [
+          "Primary content: One Body Clock."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/22",
+        "wav_artifact_id": "play-aca4bc96aa28ad30424b832fc9352ba8604c17686951558f231fb08d2b29d615.wav",
+        "wav_bytes": 492132,
+        "wav_sha256": "d11f013a1c9bc688b489fe89e1ca5644aac4a3760ca8f653832f73f3285bc5ba",
+        "wav": {
+          "path": "owner-selected-speech/play-aca4bc96aa28ad30424b832fc9352ba8604c17686951558f231fb08d2b29d615.wav",
+          "sha256": "d11f013a1c9bc688b489fe89e1ca5644aac4a3760ca8f653832f73f3285bc5ba",
+          "bytes": 492132,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2394,
+        "pcm_bytes": 520960,
+        "pcm_sha256": "836bcc96b06f192a7b877337697c74cc1eb19144eacb25391af560bd12b344d9",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "d9f1c7c74b361a02cc6ff99847c982550579b4cd6559381f7bda02e68c9104ec",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "90fa42922539f6758d56fb266ca7c8fad7b97e23f176efe1187c1374f0ab2155",
+        "speaker_blocks_committed": 2394,
+        "speaker_frames_committed": 130240,
+        "spoken_segments": [
+          "Context: Current overview context."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/23",
+        "wav_artifact_id": "play-7b092ab25d25ad5cdae6508d6c861d6d0c7869143ac6f483c466a051217ba9c8.wav",
+        "wav_bytes": 521004,
+        "wav_sha256": "0798be119e989e1aa57ec3c40d9f2fd1c9013cd1f2f2520de0b6d22ce7739370",
+        "wav": {
+          "path": "owner-selected-speech/play-7b092ab25d25ad5cdae6508d6c861d6d0c7869143ac6f483c466a051217ba9c8.wav",
+          "sha256": "0798be119e989e1aa57ec3c40d9f2fd1c9013cd1f2f2520de0b6d22ce7739370",
+          "bytes": 521004,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 1661,
+        "pcm_bytes": 361432,
+        "pcm_sha256": "7ff2f098335273990fdef494b93d88c9c0a9c1f5564f560133f4df4f46824267",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "c699e4bc747669887589b9d23869c530392fdfdf0f3cc94f1f377cc7491a3203",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "faeef5435e94a291d707f19cda90379afba9f2c273099048b103acabf56856ce",
+        "speaker_blocks_committed": 1661,
+        "speaker_frames_committed": 90358,
+        "spoken_segments": [
+          "Context: clock-demo."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/24",
+        "wav_artifact_id": "play-1dba0a6cf546f6656301250f08eb62344d5522c5957ae217fa17cbc6ad5a4242.wav",
+        "wav_bytes": 361476,
+        "wav_sha256": "2995fbca9edd5ddda399704b18ee1be02259c84d68a03d1441a86a48ba63e4a2",
+        "wav": {
+          "path": "owner-selected-speech/play-1dba0a6cf546f6656301250f08eb62344d5522c5957ae217fa17cbc6ad5a4242.wav",
+          "sha256": "2995fbca9edd5ddda399704b18ee1be02259c84d68a03d1441a86a48ba63e4a2",
+          "bytes": 361476,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 4267,
+        "pcm_bytes": 928872,
+        "pcm_sha256": "d5d429e64851513119bef1099262c6bdde7cbfe9331c520fc6f0a4f9e7349dc7",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "0b4d1bf52a5c0f55efc901864d5c6bd8100fe50fa72dca6462e07f3137148128",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "ad8aa122f277abf60f0df9a2d981d9f88dc00d549311bc0d33573405a082b98e",
+        "speaker_blocks_committed": 4267,
+        "speaker_frames_committed": 232218,
+        "spoken_segments": [
+          "Open Plots library. For One Body Clock. Unavailable: This owner "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/25",
+        "wav_artifact_id": "play-5d822b303fbb3dd7f47d79d097b4fe6df4e36806b53ffcdb1476f9b54f14edfa.wav",
+        "wav_bytes": 928916,
+        "wav_sha256": "ea185d6982951c231495caf463453fffda2dcbbab4b7108c7cf404a4f6d119ee",
+        "wav": {
+          "path": "owner-selected-speech/play-5d822b303fbb3dd7f47d79d097b4fe6df4e36806b53ffcdb1476f9b54f14edfa.wav",
+          "sha256": "ea185d6982951c231495caf463453fffda2dcbbab4b7108c7cf404a4f6d119ee",
+          "bytes": 928916,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2922,
+        "pcm_bytes": 636048,
+        "pcm_sha256": "74bece8a330d8029a8f046db4c8c984444a994c8c2f68742b101ea48129d3033",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "248e059d7090624f7c1a5772955f3593f9c37517dea1198d9ece4d75195e7e70",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "c3c49fb517ecd2851bc15128e3fe42e8aa66e9bad3b4beaecb093cdfae15e513",
+        "speaker_blocks_committed": 2922,
+        "speaker_frames_committed": 159012,
+        "spoken_segments": [
+          "return route does not yet accept this semantic action."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/26",
+        "wav_artifact_id": "play-cd0e361659bdf30345f3ceee870b4809fead4e3b049bb38adb54b9bd08602e40.wav",
+        "wav_bytes": 636092,
+        "wav_sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843",
+        "wav": {
+          "path": "owner-selected-speech/play-cd0e361659bdf30345f3ceee870b4809fead4e3b049bb38adb54b9bd08602e40.wav",
+          "sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843",
+          "bytes": 636092,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 4162,
+        "pcm_bytes": 905988,
+        "pcm_sha256": "7fa2c3fa4bd10e9283c28736e976d266374c312b6e8cffb98595b9795cc4785d",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "10033a610247dae6fdc0fd1bccb2ba9f36c5986c318bf8f89d5a6a11dfc2033d",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "e2712c8398ae965039cd2390a1a9cfcfa4b0514e37b55406376672faf5ba4258",
+        "speaker_blocks_committed": 4162,
+        "speaker_frames_committed": 226497,
+        "spoken_segments": [
+          "Open Body overview. For One Body Clock. Unavailable: This owner "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/27",
+        "wav_artifact_id": "play-c01294b56e55bbf27126318b5da0a1c25df82bbc430d19d94fc127545c8b50ab.wav",
+        "wav_bytes": 906032,
+        "wav_sha256": "176215c7fd82652b49e145c80001bd8c12ecdcdd4ae5c3eaa95c7ab3d08dfd44",
+        "wav": {
+          "path": "owner-selected-speech/play-c01294b56e55bbf27126318b5da0a1c25df82bbc430d19d94fc127545c8b50ab.wav",
+          "sha256": "176215c7fd82652b49e145c80001bd8c12ecdcdd4ae5c3eaa95c7ab3d08dfd44",
+          "bytes": 906032,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2922,
+        "pcm_bytes": 636048,
+        "pcm_sha256": "74bece8a330d8029a8f046db4c8c984444a994c8c2f68742b101ea48129d3033",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "82d01f419a5bc125421717d809faa57cab00754feaa6bc3b706e6679e2d6a354",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "4f4a40f6608261e2289baaddabf27fa48800418ac2b3ac3eb310a706c9589609",
+        "speaker_blocks_committed": 2922,
+        "speaker_frames_committed": 159012,
+        "spoken_segments": [
+          "return route does not yet accept this semantic action."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/28",
+        "wav_artifact_id": "play-4c6368964bcf223d1919e934600908fc39fdbe1c6e76f677d7320b13e0b073e2.wav",
+        "wav_bytes": 636092,
+        "wav_sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843",
+        "wav": {
+          "path": "owner-selected-speech/play-4c6368964bcf223d1919e934600908fc39fdbe1c6e76f677d7320b13e0b073e2.wav",
+          "sha256": "50c7d958db33d0fd2bcc8c03a332795b6a6fb196c1e88d4a9253e20ff7c2b843",
+          "bytes": 636092,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2724,
+        "pcm_bytes": 592800,
+        "pcm_sha256": "6a49378a6cdfc693a61a77c9f1fe957ebec4b8e6a04c02f144cbea7301c8a724",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "cb8426184100b761ce81e60680b33d9d8822c8b86ebebd26ac8b14bb1494119d",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "5d2188ca49b7ba9de20e7647991f9856b73b60f0ec99315cd98b1a73c1a5e1a7",
+        "speaker_blocks_committed": 2724,
+        "speaker_frames_committed": 148200,
+        "spoken_segments": [
+          "Wake. For One Body Clock. Available."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/29",
+        "wav_artifact_id": "play-1d414258dc49acfb417e79d9222222c0029bc6c04404a4a61aeae090ebb8662e.wav",
+        "wav_bytes": 592844,
+        "wav_sha256": "92b8969d041cf1fe02f97401e22a0a75b6b3a8b3559ca9109aabe2cba8c64dd1",
+        "wav": {
+          "path": "owner-selected-speech/play-1d414258dc49acfb417e79d9222222c0029bc6c04404a4a61aeae090ebb8662e.wav",
+          "sha256": "92b8969d041cf1fe02f97401e22a0a75b6b3a8b3559ca9109aabe2cba8c64dd1",
+          "bytes": 592844,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3258,
+        "pcm_bytes": 709216,
+        "pcm_sha256": "ac80cb39ffcec5e4ca420a8055c964c3f747fae425a89cd206e35becccafd709",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "811b9ae869335f3abd3d38c716fe38bd9c794eec4300fe15420f08202c7ffab2",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "7b41b07a7e36acf20fc146b41b77085cabebd809652e523b9f2663f59aa59eac",
+        "speaker_blocks_committed": 3258,
+        "speaker_frames_committed": 177304,
+        "spoken_segments": [
+          "Change clock interval. For clock-demo. Available."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/30",
+        "wav_artifact_id": "play-5f36735631f1a630f99b5b8c753b1db291ba4fd206147d9dc32fd249a88bfca3.wav",
+        "wav_bytes": 709260,
+        "wav_sha256": "e0c6951306e456bea4a1b80ef63937e2033ad7a49a2f3f087fb95231200d4b0a",
+        "wav": {
+          "path": "owner-selected-speech/play-5f36735631f1a630f99b5b8c753b1db291ba4fd206147d9dc32fd249a88bfca3.wav",
+          "sha256": "e0c6951306e456bea4a1b80ef63937e2033ad7a49a2f3f087fb95231200d4b0a",
+          "bytes": 709260,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 5945,
+        "pcm_bytes": 1294056,
+        "pcm_sha256": "30b25309432f58f060897e2a751444da4690908fdbf62f3f15d217ec57847afd",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "9dff29f6eaca3fa339905c2bc6408d1223564f701f2a9ed07edce9e83735f6ea",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "c40c0ce1896ae280ec9b6e21af1f159a3dcba437208f578739d1857e49ac55b3",
+        "speaker_blocks_committed": 5945,
+        "speaker_frames_committed": 323514,
+        "spoken_segments": [
+          "Interval in milliseconds: 250, 500, 1000, or 2000. Choose one "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/31",
+        "wav_artifact_id": "play-280c47b8154cef87bb4d4f4c80a730037bfe8939cbb429df41d92f29f206c651.wav",
+        "wav_bytes": 1294100,
+        "wav_sha256": "fe4e702f55a7f496eea84c6ac9f819f8837b1da92484f33da224c6869651b84b",
+        "wav": {
+          "path": "owner-selected-speech/play-280c47b8154cef87bb4d4f4c80a730037bfe8939cbb429df41d92f29f206c651.wav",
+          "sha256": "fe4e702f55a7f496eea84c6ac9f819f8837b1da92484f33da224c6869651b84b",
+          "bytes": 1294100,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 6521,
+        "pcm_bytes": 1419520,
+        "pcm_sha256": "9b24d026e50bef1aa7d0bf96ee72d41a989b06f2113a0dd0899d28d10036e369",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "7637ff78b83dcc135ef11ab3f77f9418dae3b07954d14ff34a7c79d112689932",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "33b31e8d64c613fc0fdc7b93418acde1a8dc50b80c5c3c9823c2bc1db89e979b",
+        "speaker_blocks_committed": 6521,
+        "speaker_frames_committed": 354880,
+        "spoken_segments": [
+          "of: 1000, 2000, 250, 500. Enter it with edit clock/interval-ms, "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/32",
+        "wav_artifact_id": "play-81f9546abd46352fe599616c2a76ba69359c68e44e646be83b5d67fd6abd59a4.wav",
+        "wav_bytes": 1419564,
+        "wav_sha256": "09372b8868b8148bca6d4b8a25102a128897fe609ce4a7449482bce4e897abef",
+        "wav": {
+          "path": "owner-selected-speech/play-81f9546abd46352fe599616c2a76ba69359c68e44e646be83b5d67fd6abd59a4.wav",
+          "sha256": "09372b8868b8148bca6d4b8a25102a128897fe609ce4a7449482bce4e897abef",
+          "bytes": 1419564,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2129,
+        "pcm_bytes": 463344,
+        "pcm_sha256": "1e40bd09c47894a42d6ef27cf316046d7f0cf445226e166fb7d5ccbfef1d147e",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "5f896cd673092fec9e40201c85565cb75c0a67d3049fe45f65cf8df7617a2e20",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "e28013a8e07ed029f7d1266532da1e7fa274de635d59cca19e68c3d5af9ee51b",
+        "speaker_blocks_committed": 2129,
+        "speaker_frames_committed": 115836,
+        "spoken_segments": [
+          "then activate Change clock interval."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/33",
+        "wav_artifact_id": "play-7f901c127faee998ee13167c6fe0e05f7c4277b1d1e66695158603e4a369bad5.wav",
+        "wav_bytes": 463388,
+        "wav_sha256": "e584153dc783c0dfd12e8bcd88609b5bdc10e5ec7bd703b6f4ffa57fe61ceb22",
+        "wav": {
+          "path": "owner-selected-speech/play-7f901c127faee998ee13167c6fe0e05f7c4277b1d1e66695158603e4a369bad5.wav",
+          "sha256": "e584153dc783c0dfd12e8bcd88609b5bdc10e5ec7bd703b6f4ffa57fe61ceb22",
+          "bytes": 463388,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3980,
+        "pcm_bytes": 866300,
+        "pcm_sha256": "38c11dd70d9c4e698a0b3d88d085d82cc4705530fc0351c771c22bdba8d6f6fc",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "cab05b1f585ee0d7c3bd201ef1c2dffb60f5994d89be19244784004e7b8c41a9",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "13aa9e68895f9fc6a72c89eab439629968c3e60cf9be613ddf737ed69529518b",
+        "speaker_blocks_committed": 3980,
+        "speaker_frames_committed": 216575,
+        "spoken_segments": [
+          "Stop the clock. For clock-demo. Unavailable: Start the clock "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/34",
+        "wav_artifact_id": "play-f96bafd6c9dab789dc7bc9bdd709106c624868e8df9ea119b33c8278668a2896.wav",
+        "wav_bytes": 866344,
+        "wav_sha256": "dbcb9b6913a4f348f4ac1a5479503817cf761db0dd3611d611116c231419be11",
+        "wav": {
+          "path": "owner-selected-speech/play-f96bafd6c9dab789dc7bc9bdd709106c624868e8df9ea119b33c8278668a2896.wav",
+          "sha256": "dbcb9b6913a4f348f4ac1a5479503817cf761db0dd3611d611116c231419be11",
+          "bytes": 866344,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 1112,
+        "pcm_bytes": 241956,
+        "pcm_sha256": "4a7739ac8777fe86ed2e9f051a0b27e2630bc6581491e8458bbb2338b6c16b2a",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "2d75a2fab8e53e9cc14728769d4f3b89b83483d15eb87f405c311007dd6e6c93",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "64c1261d5770006a1a11c9bc28218e88169a685203aca66f31f80796ccddbaac",
+        "speaker_blocks_committed": 1112,
+        "speaker_frames_committed": 60489,
+        "spoken_segments": [
+          "before stopping it."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/35",
+        "wav_artifact_id": "play-33cc12817245dd2bb3f45a5c1b07603d8a60d4d9f1a0feab12aac20c7e43c693.wav",
+        "wav_bytes": 242000,
+        "wav_sha256": "014f8f1cc0b1fde8f444ea9030b8322665a78412eabf856d9e4444d93e7c7e43",
+        "wav": {
+          "path": "owner-selected-speech/play-33cc12817245dd2bb3f45a5c1b07603d8a60d4d9f1a0feab12aac20c7e43c693.wav",
+          "sha256": "014f8f1cc0b1fde8f444ea9030b8322665a78412eabf856d9e4444d93e7c7e43",
+          "bytes": 242000,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 3827,
+        "pcm_bytes": 832984,
+        "pcm_sha256": "ce2a3d7b70653c900608073707467d3cfee328d5e64a1f4499535fc88b395aa2",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "068765a0f70be0c2f1413addbd7ef0901848e75027b0b2630984cfb843b4859e",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "5c5afd3ddf0c8e681d1799146ab486f4ca75d7eb2bc84e3fb672c2f65fd68d85",
+        "speaker_blocks_committed": 3827,
+        "speaker_frames_committed": 208246,
+        "spoken_segments": [
+          "Open inspection. For clock-demo. Unavailable: No admitted "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/36",
+        "wav_artifact_id": "play-0afa25d3ea094d6ef5b196a6292c36ee0f978ccb5cecd7c10db37e416271500a.wav",
+        "wav_bytes": 833028,
+        "wav_sha256": "74a58492b00c025af1475b4a0c52371fbd2e5e4b927d395ed373d88ef513f109",
+        "wav": {
+          "path": "owner-selected-speech/play-0afa25d3ea094d6ef5b196a6292c36ee0f978ccb5cecd7c10db37e416271500a.wav",
+          "sha256": "74a58492b00c025af1475b4a0c52371fbd2e5e4b927d395ed373d88ef513f109",
+          "bytes": 833028,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2464,
+        "pcm_bytes": 536312,
+        "pcm_sha256": "ad701a2d66204a41879018a30a07daed689097fb9aa6574a79258ae1a166f1a8",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "11632ff9ca469aeeb1124316564b9b1b8aacdb521c1e83d50594c13184b0bda4",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "ee2c3b13b2cb5b79876b16319a3c2debf86f1856d7f204262173b7a06831df4e",
+        "speaker_blocks_committed": 2464,
+        "speaker_frames_committed": 134078,
+        "spoken_segments": [
+          "inspection contribution is currently playing."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/37",
+        "wav_artifact_id": "play-8d835220924292c089e17530a86e89fceac1bd6e5a1309f7c090c25d78bbaded.wav",
+        "wav_bytes": 536356,
+        "wav_sha256": "0fe6e6cc828e4a05a61d498027249d69092f21af1188ea1c9e50fffe52296efe",
+        "wav": {
+          "path": "owner-selected-speech/play-8d835220924292c089e17530a86e89fceac1bd6e5a1309f7c090c25d78bbaded.wav",
+          "sha256": "0fe6e6cc828e4a05a61d498027249d69092f21af1188ea1c9e50fffe52296efe",
+          "bytes": 536356,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 4046,
+        "pcm_bytes": 880720,
+        "pcm_sha256": "f82f48067f602f965a01fa927fd9b7b598c993d2b09a7bab8e348d5004f7f8fc",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "72b827f3979f3f9f0c32faed08828fd9e9ec10411968e7bee33721daf367d519",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "b917d282eb0fb76f2e78c1b32ed0083ebcafd286ff6b4d6c8e04047f740ed083",
+        "speaker_blocks_committed": 4046,
+        "speaker_frames_committed": 220180,
+        "spoken_segments": [
+          "Open resident Plot. For clock-demo. Unavailable: The resident "
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/38",
+        "wav_artifact_id": "play-6fe412d96793e307e6b5f56190608fecbf5161fbd2f4ffdf0baf8a6acc7a7cd3.wav",
+        "wav_bytes": 880764,
+        "wav_sha256": "7921a8e42c6a7c30c254241613e6785747e9d4d000b166d2de6e590007658444",
+        "wav": {
+          "path": "owner-selected-speech/play-6fe412d96793e307e6b5f56190608fecbf5161fbd2f4ffdf0baf8a6acc7a7cd3.wav",
+          "sha256": "7921a8e42c6a7c30c254241613e6785747e9d4d000b166d2de6e590007658444",
+          "bytes": 880764,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 1917,
+        "pcm_bytes": 417168,
+        "pcm_sha256": "bf5d99d079a95ff59b72ea7f1948c5d1b9fd0a06b93753ffca81649e5e457f9f",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "cdbe1a22c666fe29bca107e280497613d03b14c7a919b597e0246ff12b266227",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "caef3041c7f195cdf5b273f9c8e59a4efb960b88fb06818367f9d33c3dc8beb1",
+        "speaker_blocks_committed": 1917,
+        "speaker_frames_committed": 104292,
+        "spoken_segments": [
+          "Plot is not currently presenting."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/39",
+        "wav_artifact_id": "play-446dd3270d72c78c82d0220d27b0d9ab382f7ee1a93489b7ff70737a69ec0a8b.wav",
+        "wav_bytes": 417212,
+        "wav_sha256": "8bc712da41b57c8dc23c8f3693d9f0e54bdd8db8786301c8aa4025c7cc8008f3",
+        "wav": {
+          "path": "owner-selected-speech/play-446dd3270d72c78c82d0220d27b0d9ab382f7ee1a93489b7ff70737a69ec0a8b.wav",
+          "sha256": "8bc712da41b57c8dc23c8f3693d9f0e54bdd8db8786301c8aa4025c7cc8008f3",
+          "bytes": 417212,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      },
+      {
+        "outcome": "completed",
+        "pcm_blocks": 2916,
+        "pcm_bytes": 634700,
+        "pcm_sha256": "668311aacf6118f38805f3e2b0ae98d348cbe73d7b83e88954ceed27db4eb819",
+        "plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+        "play_id": "792608e9721d5023ec5f999c9e9f8a92e725152163819a7b791c168043afe289",
+        "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+        "source_segments_sha256": "10bd2a5ffe474e3a44ac6e834dfa5e6bfee1d1fbd03d7681d2caca56818db9fa",
+        "speaker_blocks_committed": 2916,
+        "speaker_frames_committed": 158675,
+        "spoken_segments": [
+          "Start the clock. For clock-demo. Available."
+        ],
+        "stream_identity": "face/2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d/13/turn/1/batch/40",
+        "wav_artifact_id": "play-c821116f3a89b9b0518a0fdcfdaefe423f158573e557d5f4c6e83c1e943a387a.wav",
+        "wav_bytes": 634744,
+        "wav_sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1",
+        "wav": {
+          "path": "owner-selected-speech/play-c821116f3a89b9b0518a0fdcfdaefe423f158573e557d5f4c6e83c1e943a387a.wav",
+          "sha256": "0573a83f553c0b0842c19ecde8eca11233ea43c4268a4d6c6c8122870de0e1d1",
+          "bytes": 634744,
+          "source": "same-selected-speaker-play",
+          "audible": true
+        }
+      }
+    ],
+    "speaker_playback_reported": true,
+    "wav_artifact_from_this_play": true,
+    "human_hearing_observed": false,
+    "path": "owner-selected-speech.json",
+    "sha256": "bbb1a64bf381db83c55b16a7c0f156dc3d9e51a1e486163fa4f88584240319a0"
+  },
+  "owner_llm_speech": {
+    "proof_class": "installed-owner-selected-model-and-same-play-speaker",
+    "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+    "run_id": "three-host-20d405d340483425e46e96f6",
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision_decimal": "13",
+    "model_name": "conduit-journey:3366-celsius",
+    "model_content_identity": "daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+    "route_plan_id": "plan/local-owner-mask/060e36e09c6ebfc35682d34651b3e1f80d69b5540fdc9d7bf2024f018c650522",
+    "show_id": "show/eb667043e0608571094322845d5b164567498ba4b524427d7e722ba3c46dd95d",
+    "model_artifact_play_id": "01101b5dbd3a1cde5b7873d1c2d7545d954cf6badcfbaf220c49508f38d35e7e",
+    "listener_plan_id": "13516a36266df035fefebe5fc74d18b7c97b6f28d668b64718360e9a83607e7a",
+    "listener_play_id": "01a547211bfb2bf0587cfa9af7aa7bf72d9eda3a54fd8f880cc9737b53a38d48",
+    "accepted_wording": "One Body Clock is lulled with one resident plot.",
+    "provider_identity": "ollama/ollama version is 0.34.1",
+    "model_identity": "conduit-journey:3366-celsius/daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+    "candidate_digest": "sha256:c7dcc2653e03e7203c4e3f874aae7a5b880212550efc3c41940b68465deda6ae",
+    "validation_receipt_identity": "sha256:33b1e07b774b88062ab0063d222d1b3ecaff9bd6d8025fcaf4a2d4ae72337451",
+    "original_model_output_sha256": "d7bd1584f7b34ab6706a469444bddf8da727ec10776ba90b068df78a8640d295",
+    "terminal": {
+      "path": "owner-llm-selected/terminal.json",
+      "sha256": "3bafadc3658ecee95bd6c0d45362eadcc0be2fc4b4fa9a3318a2d0999695c93a"
+    },
+    "wav": {
+      "path": "owner-llm-selected/play-eb54d232662bac0b809b9bcbd01059ce71aca96eda4cdd18f69d8cd3c3478fce.wav",
+      "bytes": 574660,
+      "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5"
+    },
+    "physical_hearing_observed": false
+  },
+  "llm_speech": {
+    "proof_class": "live-local-model",
+    "action_id": "explain-current-face-llm",
+    "provider_id": "ollama/ollama version is 0.34.1",
+    "model_id": "conduit-journey:3366-celsius/daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+    "model_content_identity": "daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+    "owner_host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+    "owner_boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+    "model_host_id": "host/local-ollama-presenter-proof",
+    "model_boot_id": "boot/local-ollama-presenter-proof",
+    "mask_host_id": "host/journey-spoken-f8a215d26006d010bf2462cc",
+    "mask_boot_id": "boot/journey-spoken-f8a215d26006d010bf2462cc",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "show_id": "show/b7d0ade40f57db9f5856efa32a7ce2a1e84e83ea7a6d638b6052c8f29fb677f6",
+    "validated_text": "One Body Clock is lulled with one resident plot.",
+    "original_model_output_sha256": "d7bd1584f7b34ab6706a469444bddf8da727ec10776ba90b068df78a8640d295",
+    "speech_receipt_sha256": "2b14f8ab2c5e6581d583b87052e1d5bb6d285f40ff143d4b64cd4a8a3dcf6586",
+    "speech_manifest_sha256": "d56494e0fc00cdd33cfdca30acadbbbbf06f619d3847b5f9225c38e6e25f5c46",
+    "wav": {
+      "path": "speech-llm/speech.wav",
+      "bytes": 574660,
+      "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5"
+    },
+    "records": [
+      {
+        "path": "speech-llm/original-model-output.json",
+        "sha256": "76a4ed335b12a774910ea4770504e55ec5527e85f5ffb8621c1a8160ed178b42"
+      },
+      {
+        "path": "speech-llm/validation.json",
+        "sha256": "86cd460b57c6338182ccdec7543fd24cb8a0d9cc5ee10a6bc9fdd6f79c2a4973"
+      },
+      {
+        "path": "speech-llm/speech-transcript.json",
+        "sha256": "2a2288da1316de27c860c070d686e081f982ec7757b2c1867070004a34785074"
+      },
+      {
+        "path": "speech-llm/model-validation.json",
+        "sha256": "ba0b859681012d9e32df0ce2d3231d0ad1a2e82029493ffe0b65ba4e7b0cddac"
+      },
+      {
+        "path": "speech-llm/model-proof.json",
+        "sha256": "412f1962df3a774313ec2f0715e628a159412bfd27ffc5b5d3c30f06c7203165"
+      }
+    ]
+  },
+  "model_route_loss": {
+    "proof_class": "configured-local-model-route-withdrawal-refusal",
+    "action_id": "explain-after-model-route-loss",
+    "configured_endpoint": "http://127.0.0.1:38467",
+    "underlying_ollama_stopped": false,
+    "owner_face_unchanged": true,
+    "speech_wav_produced": false,
+    "exit_status": 1,
+    "transcript": {
+      "path": "model-route-loss.txt",
+      "sha256": "5a4547230dad5bcb8c8bd9d809caede32d870ae1c1e2e81a1b92c8ea0e55ef5a"
+    }
+  },
+  "model_route_restoration": {
+    "action_id": "explain-after-model-route-restoration",
+    "proof_class": "live-local-model",
+    "show_id": "show/ba8ce9f6db83e2e2eb580577faf9ed09f14b8c5e5109c75291ffcc5dfac2e7d1",
+    "validated_text": "One Body Clock is lulled with one resident plot.",
+    "model_content_identity": "daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+    "original_model_output_sha256": "d7bd1584f7b34ab6706a469444bddf8da727ec10776ba90b068df78a8640d295",
+    "owner_face_unchanged": true,
+    "model_route_restored": true,
+    "playback_observed": false,
+    "human_hearing_observed": false,
+    "configured_endpoint": "http://127.0.0.1:37111",
+    "speech_receipt_sha256": "ad92fb2ecdb56321f3d3c3c5b38a43966248bdd046251b96c0b191f7affb5b0d",
+    "speech_manifest_sha256": "8f2ead79bddb8f35810c0bd78301f83c048d454a5700ecf309ceffa550453d1c",
+    "wav": {
+      "path": "speech-llm-restored/speech.wav",
+      "bytes": 574660,
+      "sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5"
+    }
+  },
+  "screenshots": [
+    {
+      "path": "browser-before.png",
+      "bytes": 160478,
+      "sha256": "50a6c5e4ff6bca6de6f77d385016ce3ff136edf8203c05e325f04b5604b8b22b"
+    },
+    {
+      "path": "browser-after-native.png",
+      "bytes": 160541,
+      "sha256": "0610ff542195f2f42da55e0748bb3c0a51e2fa4be30c6d040b922ebdc9a386e9"
+    },
+    {
+      "path": "browser-after-browser.png",
+      "bytes": 164187,
+      "sha256": "25f66a5d24a24d5245f00581a7d5a7ce761c504068dd5698c22cba5652b3034b"
+    },
+    {
+      "path": "browser-after-terminal.png",
+      "bytes": 164080,
+      "sha256": "829ce3d8a98d388c489f2748e7c855c0986552323d864cc9c0342fb0c82863f2"
+    },
+    {
+      "path": "browser-wardrobe.png",
+      "bytes": 83331,
+      "sha256": "e22b75d87e6a35aca0672383056b7e7c0fb266a6d82baedcce24735ff9140141"
+    },
+    {
+      "path": "browser-after-recovery.png",
+      "bytes": 162302,
+      "sha256": "ce37bbd2771ff405241dcabbfe7fea153255ef3a9bde31c6f172fa5044c87cdd"
+    },
+    {
+      "path": "native/owner-standby.png",
+      "bytes": 185242,
+      "sha256": "aa4dc03172e1c42df6c09bce3d13ad81bd69a44af9255c9dbc7347b3ed959c3d"
+    },
+    {
+      "path": "native/owner-before.png",
+      "bytes": 168479,
+      "sha256": "929fd3cebd2ccb0e35738598851ef27a93dd08e52b762a7fb52b7f8a2a1646b4"
+    },
+    {
+      "path": "native/owner-after.png",
+      "bytes": 167665,
+      "sha256": "d8c8178dddc57e556e79cec9103dd3cbe5ec0d89bcaeac17d40a0e56731defe4"
+    }
+  ],
+  "observations": [
+    {
+      "path": "observations/browser-joined.json",
+      "bytes": 946,
+      "sha256": "865d430fcc882300ef2ebe50499c93b6fa49b161b1b06dbb00080e446d8b7fe0"
+    },
+    {
+      "path": "observations/after-native-action.json",
+      "bytes": 1412,
+      "sha256": "c31ef6820a54db182fc4a3981f360cb6ebf2eeb61a64f825460e55eb75792367"
+    },
+    {
+      "path": "observations/after-browser-action.json",
+      "bytes": 1177,
+      "sha256": "583966ff7ddc8603f1d0ae546c2864f940684c2db0eecbaf69d3b418484a8f12"
+    },
+    {
+      "path": "observations/after-terminal-action.json",
+      "bytes": 1212,
+      "sha256": "2257b0f2df73885a41cbf1326cbde923d2a8acfa5609d57bfb4936a5e2a2cdbc"
+    },
+    {
+      "path": "observations/wardrobe-restored.json",
+      "bytes": 1259,
+      "sha256": "38ea1c5383f6d0990f9a7db6832b431c1144c8611fc59a1b724ccb83b0466e26"
+    },
+    {
+      "path": "observations/browser-recovered.json",
+      "bytes": 1315,
+      "sha256": "026e62917ce530763a1a20d5d41f1c6667594df3a107120ac0598002a9f6c1f7"
+    }
+  ],
+  "concurrent_part_count": 3,
+  "qemu_alive_through_browser_actions": true,
+  "walkthrough": {
+    "path": "walkthrough.html",
+    "bytes": 95369,
+    "sha256": "d35d97f4e3d9547be72331801eb182ef8d57a54b8ecc1d732615429ec926ab38",
+    "assets": [
+      {
+        "path": "conduit.css",
+        "sha256": "8b84a6c5e4c6af377a5e90723d477831247ee69486afde6c1b96c711b2e54099"
+      },
+      {
+        "path": "chrome.css",
+        "sha256": "0f4d9ba82b720235ba4749712af1c54c2493b8ebbf69e6b1cd36418386296a0d"
+      }
+    ]
+  },
+  "birth": {
+    "proof_class": "installed-screen-free-birth-selected-alsa",
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "owner_host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+    "owner_boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+    "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+    "zero_body_observed": true,
+    "zero_body_receipt": {
+      "path": "zero-body-before.json",
+      "bytes": 25980,
+      "sha256": "e001fb259dffc321941aa73d60d8636122fbdd2a0c5821b4572ead316aa61cc4"
+    },
+    "confirmation_observed": true,
+    "speaker_playback_selected": true,
+    "human_hearing_observed": false,
+    "owner_instance_speech_realization_observed": false,
+    "final_reading": {
+      "outcome": "Completed",
+      "face_id": "358b48a1e2131fbac40184553e9b1b723c3db4a978cb5dde711d5497ccc130a3",
+      "face_revision": "3",
+      "source_show_id": "show/557bb2944916e32a9fefe488ace19e18bba477b8744f0adfb3dd7acf32505272",
+      "completed_segments": 41,
+      "selected_playback_receipts": 268
+    },
+    "input": {
+      "path": "birth-input.txt",
+      "sha256": "b455d3c6ff412929943d516e1f1aa12347d488197f8bbd1523109cd72ecb7f45"
+    },
+    "transcript": {
+      "path": "birth-transcript.txt",
+      "sha256": "4c5cbf622d07dea261bcd80d6891068634ea8b2e5c84943f9ad17b2f6f001162"
+    }
+  },
+  "screen_free_clock": {
+    "proof_class": "installed-screen-free-clock-selected-alsa",
+    "run_id": "three-host-20d405d340483425e46e96f6",
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "owner_host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+    "owner_boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+    "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+    "start": {
+      "action_id": "body/action/start-clock/6",
+      "source_face_id": "67f6fec5f3d86deb39fa81e5c99d2f3e11e376445b494ea151f0225a7d0fb879",
+      "source_face_revision": "16",
+      "source_show_id": "show/cd0b3af8f3b42290de831d60b9e566d5187b4eadadd1dc16ad7d2349555f2f14",
+      "result_face_id": "a775e4d4eb2a9e0792079ee1b244b60fc71ab25df48ce982e14dd78c5acb5e43",
+      "result_face_revision": "19",
+      "final_reading": {
+        "outcome": "Completed",
+        "face_id": "a775e4d4eb2a9e0792079ee1b244b60fc71ab25df48ce982e14dd78c5acb5e43",
+        "face_revision": "19",
+        "source_show_id": "show/6ea861a5437f106859f719ba5620de57bf9d03375499501bcab190afe2d3ed3c",
+        "completed_segments": 2,
+        "selected_playback_receipts": 5
+      },
+      "input": {
+        "path": "clock-start-input.txt",
+        "bytes": 46,
+        "sha256": "2a4e2470d490bb56c0c9d43bb2d7358ebbfd536d2ab0c12b230f7563d1eefb90"
+      },
+      "transcript": {
+        "path": "clock-start-transcript.txt",
+        "bytes": 12840,
+        "sha256": "51c69d90512dcb0ab960b18f6c859e3742ec6d37ddf935f43f42e6f3549099f2"
+      }
+    },
+    "lull": {
+      "action_id": "body/action/lull-clock/body-play/sha256:b37d8415b5bd3e93120883f85af974631e93b44407257205a25c36c3c9f59e3a",
+      "source_face_id": "a775e4d4eb2a9e0792079ee1b244b60fc71ab25df48ce982e14dd78c5acb5e43",
+      "source_face_revision": "19",
+      "source_show_id": "show/6ea861a5437f106859f719ba5620de57bf9d03375499501bcab190afe2d3ed3c",
+      "result_face_id": "791cba884b467b0f0b29ed97f8f095eb5b1ce807d3e2a1acf1e772eff05ec38a",
+      "result_face_revision": "21",
+      "final_reading": {
+        "outcome": "Completed",
+        "face_id": "791cba884b467b0f0b29ed97f8f095eb5b1ce807d3e2a1acf1e772eff05ec38a",
+        "face_revision": "21",
+        "source_show_id": "show/5ea3170cc47ed52cd8879787e61283da58b6b4c2f392033d95855ab5d4eb44e5",
+        "completed_segments": 41,
+        "selected_playback_receipts": 45
+      },
+      "input": {
+        "path": "clock-lull-input.txt",
+        "bytes": 134,
+        "sha256": "da360cf0be595c1218112b04e4dcd13a15ed8c964101909d20e944058db775c3"
+      },
+      "transcript": {
+        "path": "clock-lull-transcript.txt",
+        "bytes": 69806,
+        "sha256": "d9f09dc2496a1c8b7b45c8bf29dc66be5d23f8bf651fe8faafaafddc498f64d2"
+      }
+    },
+    "speaker_playback_selected": true,
+    "human_hearing_observed": false
+  }
+}
