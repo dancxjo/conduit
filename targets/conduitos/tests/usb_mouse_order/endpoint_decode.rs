@@ -5,6 +5,12 @@ use conduit_plot::PreparedPortableExpressionEvaluator;
 
 #[test]
 fn endpoint_decode_retains_ordinals_for_valid_and_invalid_reports_without_allocating() {
+    let package = conduitos::protocol_source::usb_hid_mouse_order_package().unwrap();
+    assert!(
+        package
+            .source
+            .contains("plot usb-hid-mouse-endpoint-command-message")
+    );
     let decode = program("usb-hid-mouse-endpoint-command-message");
     let StructuredInfoTypeShape::Variant { cases, .. } = decode.input_type.shape() else {
         panic!("endpoint result")
