@@ -1,6 +1,9 @@
 use super::*;
 use conduit_body::{Body, BodyPlayIdentity};
 use conduit_core::{FailureReason, SignId};
+use conduit_kernel::causal_evidence::{
+    EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit,
+};
 
 fn clock_observation(
     body_basis: &str,
@@ -194,6 +197,31 @@ fn causal_send_receive_survives_overlapping_inverted_physical_estimates() {
                 ))
         )
     }));
+    // Local stream order remains an independent fact beside the causal graph.
+    for (evidence, sequence, host, boot) in [
+        (send, 1, "host/send", "boot/send"),
+        (receive, 2, "host/receive", "boot/receive"),
+    ] {
+        let node = operator
+            .nodes
+            .iter()
+            .find(|node| node.evidence == Some(evidence))
+            .unwrap();
+        let conduit_observatory::CausalExplanationMetadata::Visible(facts) = &node.metadata else {
+            panic!("operator must see exact local order");
+        };
+        use conduit_observatory::CausalExplanationMetadataFact as Fact;
+        assert!(facts.contains(&Fact::LocalOrder { sequence }));
+        assert!(facts.contains(&Fact::Host(host.into())));
+        assert!(facts.contains(&Fact::Boot(boot.into())));
+        assert!(facts.contains(&Fact::Play("play/test".into())));
+    }
+    assert_eq!(
+        record
+            .graph()
+            .cause_of(receive, CausalRelationship::CausedBy),
+        Ok(send)
+    );
     let public = conduit_observatory::explain_trace_with_metadata(
         record.graph(),
         &record,

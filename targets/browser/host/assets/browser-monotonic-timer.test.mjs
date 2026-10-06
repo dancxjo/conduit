@@ -64,6 +64,27 @@ test("new timer sessions use distinct stable clock identities", () => {
   assert.equal(first.basisId, firstBasis);
 });
 
+test("a paused counter stays pending and a late wake completes only the original wait", async () => {
+  const clock = fixture();
+  const timer = createBrowserMonotonicTimer(clock.window, "host", "boot");
+  const slot = { pending: null, cancel: null };
+  let completions = 0;
+  const wait = timer.wait(5000, new AbortController().signal, slot).then(() => { completions += 1; });
+  // A callback after a pause is not evidence of elapsed provider time.
+  clock.stepWall(60_000);
+  clock.fire();
+  await Promise.resolve();
+  assert.equal(completions, 0);
+  assert.deepEqual(clock.pending(), [5000]);
+  // A continuous provider can instead advance while delivery is delayed.
+  clock.advance(6000);
+  clock.fire();
+  await wait;
+  assert.equal(completions, 1);
+  assert.equal(slot.pending, null);
+  assert.deepEqual(clock.pending(), []);
+});
+
 test("regression, cancellation, and closed session cannot complete a stale timer", async () => {
   const clock = fixture();
   const timer = createBrowserMonotonicTimer(clock.window, "host", "boot");
