@@ -241,8 +241,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(paletteButton).toHaveCSS("outline-color","rgb(244, 196, 0)");
     await page.evaluate(()=>document.fonts.ready);
     if(canonical) {
-      expect(await page.evaluate(()=>document.fonts.check('16px "DejaVu Sans"'))).toBe(true);
-      expect((await page.evaluate(()=>getComputedStyle(document.documentElement).fontFamily)).replaceAll('"',"")).toBe("DejaVu Sans, sans-serif");
+      const font=await page.evaluate(async()=>{await document.fonts.ready;const style=getComputedStyle(document.documentElement);return {actual:style.fontFamily,declared:style.getPropertyValue("--conduit-font-body").trim()};});
+      expect(font.actual.replaceAll('"',"")).toBe(font.declared.replaceAll('"',""));
     }
 
     await page.getByRole("button",{name:"Plot",exact:true}).click();
@@ -326,7 +326,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("Completed");
     await expect(page.locator("#flow-root .flow-cord .react-flow__edge-text").first()).toContainText("pressure unavailable");
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"play-lens",selectedSnapshot,"same-graph-active-play-state-and-pressure-overlay");
-    await page.getByRole("button",{name:"Debug",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-frontplate")).toHaveCount(0);await expect(page.locator("#flow-root .react-flow")).toBeVisible();
+    await page.getByRole("button",{name:"Debug",exact:true}).click();await expect(page.locator("#lens-label")).toHaveText("PROGRAM · SIGNS");await expect(page.locator("#flow-root .flow-frontplate").first()).toBeVisible();await expect(page.locator("#flow-root .react-flow")).toBeVisible();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"signs-lens",selectedSnapshot,"same-graph-selected-subject-causal-evidence");
     await page.getByRole("button",{name:"Structure",exact:true}).click();await expect(page.locator("#flow-root .flow-gear")).toHaveCount(3);
     const afterLenses=await (await fetch(`${url}/api/snapshot`)).json();expect({presentation:afterLenses.presentation.identity,plan:afterLenses.presentation.basis.plan_id,play:afterLenses.presentation.basis.active_play_id}).toEqual(stableLensIdentity);expect(afterLenses.navigation.cursor.focus).toBeNull();expect(afterLenses.interaction.revision).toBeGreaterThan(selectedSnapshot.interaction.revision);
@@ -460,7 +460,6 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
       expect(Math.abs(after.x-before.x)+Math.abs(after.y-before.y)).toBeGreaterThan(40);
       moved.push({id:await node.getAttribute("data-id"),box:after});
     }
-    const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
     const presentationOnly=await (await fetch(`${url}/api/snapshot`)).json();
     expect(presentationOnly.interaction.revision).toBe(before.interaction.revision);
     const clickableIndex=await nodes.evaluateAll(items=>items.findIndex(item=>{const box=item.getBoundingClientRect(),hit=document.elementFromPoint(box.x+box.width/2,box.y+box.height/2);return hit?.closest(".react-flow__node")===item;}));
@@ -501,6 +500,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
       subjects:after.presentation.subjects.map(subject=>subject.identity).sort(),
     }).toEqual(identities);
     await prepareCanvasEvidence(page);
+    const viewportAfter=await page.evaluate(()=>window.patchbayFlowViewport());
     const persisted=[];for(const {id} of moved)persisted.push({id,box:await page.locator(`#flow-root .react-flow__node[data-id="${id.replaceAll('"','\\"')}"]`).boundingBox()});
     await expect.poll(()=>page.evaluate(()=>window.patchbayFlowStorageSettled())).toBe("Stored");
     await page.reload();

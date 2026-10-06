@@ -4,7 +4,9 @@ use conduit_core::{
     BaseImplementationId, BaseInstanceId, CredentialReferenceId, LineAvailability,
     LinkAuthorityReference, LinkCredentialReference, LinkLimits,
 };
-use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
+use conduit_presentation::{
+    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal,
+};
 
 const WEBSOCKET: &conduit_host_browser_make::BrowserLineRealizationDescriptor =
     &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
@@ -75,16 +77,17 @@ impl Owner {
                 owner,
                 browser,
             )?;
-            let planned = conduit_browser_mask_offer::planned_owner_face_show_mask(
+            let planned = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
                 browser,
                 owner,
                 &evidence.face,
                 &evidence.returned,
+                &evidence.interaction,
                 conduit_browser_mask_offer::MASK_SOURCE,
                 "browser-graphical",
             )?;
             let face = self.local_face_snapshot()?;
-            let selected = RemoteOwnerMaskRouteSeal::seal_current(
+            let selected = RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
                 &self.session,
                 &face,
                 owner,
@@ -92,6 +95,7 @@ impl Owner {
                 &planned,
                 &evidence.face,
                 &evidence.returned,
+                &evidence.interaction,
             )
             .map_err(|error| format!("browser-route-refused:{error:?}"))?;
             *route = Some(Box::new(selected.clone()));
@@ -124,6 +128,29 @@ impl Owner {
             return Err("browser-mask-show-not-acknowledged".into());
         }
         Ok(())
+    }
+
+    pub(crate) fn validate_browser_mask_interaction(
+        &self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<(), String> {
+        self.validate_browser_mask_show(window_id, binding, request, show)?;
+        let Some(BrowserWindow {
+            state: WindowState::Active {
+                route: Some(route), ..
+            },
+            ..
+        }) = self.pending_browser.as_ref()
+        else {
+            return Err("browser-mask-route-not-selected".into());
+        };
+        route
+            .validate_interaction_payload(interaction.encode().len())
+            .map_err(|error| format!("browser-mask-interaction-refused:{error:?}"))
     }
 
     fn validate_browser_mask_route_show(
@@ -171,13 +198,14 @@ impl Owner {
             browser,
         )?;
         route
-            .validate_available_show(
+            .validate_available_show_with_interaction(
                 &self.session,
                 &face,
                 owner,
                 browser,
                 &evidence.face,
                 &evidence.returned,
+                &evidence.interaction,
                 show,
             )
             .map_err(|error| format!("browser-mask-show-refused:{error:?}"))?;
@@ -246,6 +274,13 @@ fn validate_carrier_evidence(
             owner,
             &issued.return_grant_id,
         ),
+        (
+            "interaction",
+            &evidence.interaction,
+            browser,
+            owner,
+            &issued.interaction_grant_id,
+        ),
     ] {
         if grant.as_str().is_empty()
             || !offer.validate_sign_identity()
@@ -276,9 +311,12 @@ fn validate_carrier_evidence(
             return Err("browser-line-evidence-mismatch".into());
         }
     }
-    if evidence.face.line_id == evidence.returned.line_id
-        || evidence.face.binding.binding_id == evidence.returned.binding.binding_id
-    {
+    let offers = [&evidence.face, &evidence.returned, &evidence.interaction];
+    if offers.iter().enumerate().any(|(index, left)| {
+        offers.iter().skip(index + 1).any(|right| {
+            left.line_id == right.line_id || left.binding.binding_id == right.binding.binding_id
+        })
+    }) {
         return Err("browser-line-evidence-mismatch".into());
     }
     Ok(())

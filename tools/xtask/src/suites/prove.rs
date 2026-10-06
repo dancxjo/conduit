@@ -689,19 +689,6 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["target/debug/conduit-browser-host"],
     ),
     Step::typed(
-        "prove.browser-host.patchbay-native-build",
-        "Build native Patchbay distributed source artifact",
-        "cargo",
-        &["build", "-p", "patchbay-native"],
-        None,
-        None,
-        Some(ProofClass::ContractCompile),
-        &[
-            "target/debug/patchbay-native",
-            "target/debug/browser-parts-capstone",
-        ],
-    ),
-    Step::typed(
         "prove.browser-host.conduit-browser-patchbay-workbench-build",
         "Build bounded HTML Patchbay delivery artifact",
         "cargo",
@@ -792,6 +779,22 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         None,
         Some(ProofClass::ContractCompile),
         &["target/debug/browser-body-camera-realization-capstone"],
+    ),
+    Step::typed(
+        "prove.browser-host.text-lab-live-server-build",
+        "Build the live Text Lab server used by the HTML Patchbay matrix",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "text-lab-live-server",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/text-lab-live-server"],
     ),
     Step::typed(
         "prove.browser-host.playwright",

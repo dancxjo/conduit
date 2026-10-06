@@ -43,7 +43,7 @@ pub(crate) struct BrowserAdmittedSnapshot {
     pub(crate) line_authorization: Option<BrowserLineAuthorization>,
 }
 
-/// Owner-issued authority for only the two directions of this admitted carrier.
+/// Owner-issued authority for the Face, Show, and interaction channels of this carrier.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct BrowserLineAuthorization {
     pub(crate) window_id: String,
@@ -51,6 +51,7 @@ pub(crate) struct BrowserLineAuthorization {
     pub(crate) credential_id: String,
     pub(crate) face_grant_id: AuthorityGrantId,
     pub(crate) return_grant_id: AuthorityGrantId,
+    pub(crate) interaction_grant_id: AuthorityGrantId,
 }
 
 impl BrowserLineAuthorization {
@@ -71,6 +72,10 @@ impl BrowserLineAuthorization {
                 "grant/{window_id}/{}/return",
                 binding.as_str()
             )),
+            interaction_grant_id: AuthorityGrantId::from(format!(
+                "grant/{window_id}/{}/interaction",
+                binding.as_str()
+            )),
         }
     }
 }
@@ -80,6 +85,7 @@ pub(crate) struct BrowserCarrierLineEvidence {
     pub(crate) authorization: BrowserLineAuthorization,
     pub(crate) face: LineOffer,
     pub(crate) returned: LineOffer,
+    pub(crate) interaction: LineOffer,
 }
 
 impl BrowserAdmittedSnapshot {

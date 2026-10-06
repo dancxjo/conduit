@@ -31,7 +31,10 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
       .filter(relation=>relation.source===gear.identity&&relation.kind==="Contains")
       .map(relation=>snapshot.presentation.subjects.find(subject=>subject.identity===relation.target))
       .filter(subject=>subject?.role==="Port");
-    expect(ports.map(port=>port.label)).toEqual(["request","result"]);
+    expect(ports.map(port=>port.name)).toEqual([
+      "llm/interpret request carrying llm/interpretation-request@1",
+      "llm/interpret result carrying llm/interpretation-result@1",
+    ]);
     expect(ports.map(port=>property(snapshot,port.identity,"value-kind").Identity)).toEqual([
       "llm/interpretation-request@1","llm/interpretation-result@1",
     ]);
@@ -70,7 +73,7 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
     const systemSign=page.locator('#structured-navigator input[type="radio"][data-role="Sign"]');
     await systemSign.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("SYSTEM SIGN EVIDENCE");
-    await expect(page.locator("#sign")).toContainText("SYSTEM SIGN");
+    await expect(page.locator("#sign")).toContainText("System evidence produced after an admitted effect request");
 
     await page.getByRole("button",{name:"Structure",exact:true}).click();
     const decisions=page.locator('#structured-navigator input[type="radio"][data-subject^="decision/"]');

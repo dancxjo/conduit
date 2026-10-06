@@ -76,6 +76,12 @@ fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrie
     BrowserCarrierLineEvidence {
         face: line("face", owner, browser, &authorization.face_grant_id),
         returned: line("return", browser, owner, &authorization.return_grant_id),
+        interaction: line(
+            "interaction",
+            browser,
+            owner,
+            &authorization.interaction_grant_id,
+        ),
         authorization,
     }
 }

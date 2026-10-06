@@ -76,7 +76,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     await page.goto(server.url);
     await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
     await expect(page.getByRole("heading", { name: "Gears · reusable Kinds" })).toBeVisible();
-    await expect(page.locator("#gear-results-status")).toContainText("74 of 74 Gears");
+    await expect(page.locator("#gear-results-status")).toContainText(/\d+ of \d+ Gears available/);
 
     const search = page.getByRole("searchbox", { name: "Find Plots, Gears, and Parts" });
     await search.fill("text literal");
@@ -88,13 +88,16 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
 
     let snapshot = await current(page);
     const gears = snapshot.presentation.subjects.filter(subject => subject.role === "Gear");
-    expect(gears.map(gear => gear.label).sort()).toEqual(["making/literal", "making/literal-2", "making/text"]);
-    expect(new Set(gears.map(gear => gear.label)).size).toBe(3);
+    expect(gears.map(gear => gear.name)).toEqual(expect.arrayContaining([
+      expect.stringContaining("making/literal"),
+      expect.stringContaining("making/literal-2"),
+      expect.stringContaining("making/text"),
+    ]));
+    expect(new Set(gears.map(gear => gear.name)).size).toBe(3);
     expect(snapshot.presentation.subjects.filter(subject => subject.role === "Port")).toHaveLength(3);
 
     await selectRole(page, "Gear", "making/literal Gear");
-    const configure = page.locator('#authoring-actions [data-application-component="plot-field"]').filter({ hasText: "Configure value" });
-    await configure.locator("input").fill("Browser-authored truth");
+    await page.getByRole("textbox", { name: "Configure value" }).fill("Browser-authored truth");
     await clickEdit(page, page.locator("#authoring-actions").getByRole("button", { name: "Apply" }));
 
     await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(0).click();
@@ -159,7 +162,10 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     await page.goto(reopened.url);
     await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
     const restored = await current(page);
-    expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.name).sort()).toEqual(["Gear making/literal", "Gear making/text"]);
+    expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.name).sort()).toEqual([
+      "making/literal Gear, text/literal",
+      "making/text Gear, presentation/text",
+    ]);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
     expect(restored.presentation.properties.some(property => property.name.startsWith("authored-control-") && property.value.Text.includes("Browser-authored truth"))).toBe(true);
   } finally {

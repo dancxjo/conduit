@@ -13,7 +13,9 @@ const membershipStorageSchema = "conduit.patchbay/browser-membership@1";
 const membershipStorageKey = "body-membership";
 const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, formQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, savedEvidenceBody:null, savedEvidenceRevision:null, bodyInvitation:null, retainedMembershipCredential:null, bodyMembershipInterrupted:false, bodyMembershipReturningFreshBoot:false, bodyMembershipEvidenceAdoption:Promise.resolve() };
 const apiUrl=path=>new URL(`api/${path}`,document.baseURI).href;
-const face = new BrowserFaceClient();
+// The renderer's finite snapshot contract permits up to 1,703,936 bytes.
+// Keep this client ceiling above that bound while retaining a finite SDK limit.
+const face = new BrowserFaceClient({ maximumResponseBytes: 2 * 1024 * 1024 });
 const applicationPresentation = createApplicationPresentationHost();
 const sharedPresentation = createPatchbaySharedPresentation(applicationPresentation);
 const productMasthead = createProductMasthead(applicationPresentation, "product-masthead", "patchbay");
