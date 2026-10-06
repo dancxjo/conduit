@@ -19,6 +19,10 @@ browser runtime, ConduitOS, and workbench fixtures. Workspace Clippy runs
 alongside them. The package ownership list still covers every workspace package
 exactly once, and each host group retains `--test-threads=1` for process isolation.
 A unit failure does not prevent independent targets from reporting defects.
+Reproduce a host group with `cargo xtask ci pipeline unit hosts-std` (or
+`hosts-browser`, `hosts-conduitos`, `hosts-workbench`). The full xtask check
+entrance also exposes `workspace-test-hosts-std` and the other named groups;
+`workspace-test-hosts` retains the aggregate local suite.
 
 The `candidate` job is an AND gate over all selected proof for the exact PR SHA.
 It is skipped on drafts and cannot certify them for admission. Ready docs-only
