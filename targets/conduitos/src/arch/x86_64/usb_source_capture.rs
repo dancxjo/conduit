@@ -30,6 +30,15 @@ pub(super) struct PreparedSourceCapture<'a, const N: usize> {
 }
 
 #[derive(Debug)]
+pub(super) enum CaptureServiceRefusal {
+    Kernel(conduit_composite::KernelCompositeError),
+    Pure(crate::protocol_host_calls::ProtocolCallRefusal),
+    Native(super::endpoint_read::EndpointNativeRefusal),
+    RequestPressure,
+    CompletionIdentity,
+}
+
+#[derive(Debug)]
 pub(super) struct CaptureCancellationRefusal {
     pub revocation: Option<super::endpoint_read::EndpointNativeRefusal>,
     pub kernel: Option<conduit_composite::KernelCompositeError>,
@@ -65,18 +74,18 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
 
     /// Advance the production kernel once and service at most one issued call.
     /// `true` means Root must ring the configured endpoint after publication.
-    pub fn step(&mut self) -> Result<bool, &'static str> {
+    pub fn step(&mut self) -> Result<bool, CaptureServiceRefusal> {
         self.play
             .kernel_mut()
             .step()
-            .map_err(|_| "usb-source-capture-step")?;
+            .map_err(CaptureServiceRefusal::Kernel)?;
         let Some(request) = self.play.kernel_mut().next_host_request() else {
             return Ok(false);
         };
         if self
             .play
             .service_pure_call(&request)
-            .map_err(|_| "usb-source-capture-pure")?
+            .map_err(CaptureServiceRefusal::Pure)?
         {
             return Ok(false);
         }
@@ -84,11 +93,11 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
             .requests
             .iter()
             .position(Option::is_none)
-            .ok_or("usb-source-capture-request-pressure")?;
+            .ok_or(CaptureServiceRefusal::RequestPressure)?;
         let kernel = self.play.kernel_mut();
         let obligation = kernel
             .host_request_obligation(&request)
-            .map_err(|_| "usb-source-capture-obligation")?;
+            .map_err(CaptureServiceRefusal::Kernel)?;
         let admitted = kernel
             .admit_host_request(
                 &request,
@@ -96,10 +105,10 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
                 &obligation.resources,
                 &obligation.authorities,
             )
-            .map_err(|_| "usb-source-capture-admission")?;
+            .map_err(CaptureServiceRefusal::Kernel)?;
         let call = *kernel
             .admitted_host_request_view(&admitted)
-            .map_err(|_| "usb-source-capture-call")?
+            .map_err(CaptureServiceRefusal::Kernel)?
             .request;
         self.owner
             .begin(
@@ -108,9 +117,9 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
                 call.request,
                 kernel
                     .host_request_input(&admitted)
-                    .map_err(|_| "usb-source-capture-input")?,
+                    .map_err(CaptureServiceRefusal::Kernel)?,
             )
-            .map_err(|_| "usb-source-capture-submit")?;
+            .map_err(CaptureServiceRefusal::Native)?;
         self.requests[index] = Some(admitted);
         Ok(true)
     }
@@ -120,11 +129,11 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
     pub fn complete(
         &mut self,
         event: crate::arch::x86_64::xhci::Event,
-    ) -> Result<u64, &'static str> {
+    ) -> Result<u64, CaptureServiceRefusal> {
         let completed = self
             .owner
             .complete(event)
-            .map_err(|_| "usb-source-capture-completion")?;
+            .map_err(CaptureServiceRefusal::Native)?;
         let kernel = self.play.kernel_mut();
         let index = self
             .requests
@@ -139,10 +148,10 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
                         })
                 })
             })
-            .ok_or("usb-source-capture-completion-identity")?;
+            .ok_or(CaptureServiceRefusal::CompletionIdentity)?;
         kernel
             .complete_host_call_bytes(self.requests[index].as_ref().unwrap(), completed.encoded)
-            .map_err(|_| "usb-source-capture-result")?;
+            .map_err(CaptureServiceRefusal::Kernel)?;
         self.requests[index] = None;
         Ok(completed.ordinal)
     }
