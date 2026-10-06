@@ -448,7 +448,7 @@ fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
 #[test]
 fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
     let source = r#"plot language-lab {
-    tokens: language/tokenize-four(text = "Bright stars shine.", language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
+    tokens: language/tokenize-four(material = { identity: "text/linguistic-specimen", language: "language/english", revision: "source/1", text: "Bright stars shine." })
     annotate: language/annotate-four(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
     result: presentation/structured-info
 

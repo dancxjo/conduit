@@ -48,3 +48,6 @@ pub use coverage::*;
 
 mod request_contract;
 pub use request_contract::*;
+
+mod source_material;
+pub use source_material::*;

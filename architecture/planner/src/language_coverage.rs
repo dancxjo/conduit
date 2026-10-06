@@ -65,10 +65,9 @@ pub(crate) fn requirements(
             .iter()
             .find(|entry| entry.key == *configuration_key)
             .and_then(|entry| match &entry.value {
-                conduit_core::ConfigurationValue::Structured(value) => (value.profile()
-                    == &conduit_language::language_request_profile())
-                    .then(|| LanguageRequest::decode(value.canonical_value()).ok())
-                    .flatten(),
+                conduit_core::ConfigurationValue::Structured(value) => {
+                    conduit_language::language_configuration_request(value).ok()
+                }
                 _ => None,
             })
             .ok_or_else(|| PlannerError::InvalidLanguageRequest {

@@ -3,7 +3,12 @@ use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 fn token(text: &str, revision: &str, ordinal: u64) -> LanguageAnalysisTokenRef {
     LanguageAnalysisTokenRef::new(
         LanguageAnalysisRevisionId::new(revision.into()).unwrap(),
-        LinguisticTokenIdentity::new(ordinal, text.into()).unwrap(),
+        LinguisticTokenIdentity::new(
+            ordinal,
+            LanguageTextId::new(text.into()).unwrap(),
+            LanguageTextRevisionId::new("source/3".into()).unwrap(),
+        )
+        .unwrap(),
     )
     .unwrap()
 }
