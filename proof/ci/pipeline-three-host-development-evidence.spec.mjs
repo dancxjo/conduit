@@ -25,10 +25,15 @@ test('development evidence is absent until a retained diagnostic manifest exists
       owner_selected_speech: {}, owner_llm_speech: { wav: { path: 'speaker.wav' } },
     }));
     writeFileSync(path.join(root, 'index.html'),
-      'This is not the complete eight-chapter public journey. <img src="browser.png"><audio src="speaker.wav"></audio>');
+      'This is not the complete eight-chapter public journey. <a href="/conduit/">Home</a><img src="browser.png"><audio src="speaker.wav"></audio>');
     assert.deepEqual(retainedThreeHostDevelopmentEvidence(root), {
       root, sourceCommit: 'a'.repeat(40),
     });
+    writeFileSync(path.join(root, 'index.html'),
+      'This is not the complete eight-chapter public journey. <a href="/conduit/unreviewed/">Other</a><img src="browser.png"><audio src="speaker.wav"></audio>');
+    assert.throws(() => retainedThreeHostDevelopmentEvidence(root), /undeclared asset/);
+    writeFileSync(path.join(root, 'index.html'),
+      'This is not the complete eight-chapter public journey. <a href="/conduit/">Home</a><img src="browser.png"><audio src="speaker.wav"></audio>');
     manifest.result = 'complete';
     writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest));
     assert.throws(() => retainedThreeHostDevelopmentEvidence(root), /exact-source diagnostic/);

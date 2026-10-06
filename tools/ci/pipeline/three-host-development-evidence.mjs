@@ -4,6 +4,10 @@ import path from 'node:path';
 export const THREE_HOST_DEVELOPMENT_ROOT = 'site/evidence/three-host-development';
 export const THREE_HOST_DEVELOPMENT_PROOF = 'journey-one-body-three-host-development';
 export const THREE_HOST_DEVELOPMENT_SUITE = 'journey-gallery';
+const SITE_NAVIGATION_HREFS = new Set([
+  '/conduit/', '/conduit/journeys/', '/conduit/handbook/',
+  '/conduit/#get-conduit', '/conduit/workspace/',
+]);
 
 export function retainedThreeHostDevelopmentEvidence(evidenceRoot = THREE_HOST_DEVELOPMENT_ROOT) {
   let root;
@@ -40,7 +44,8 @@ export function retainedThreeHostDevelopmentEvidence(evidenceRoot = THREE_HOST_D
     throw new Error('Three-host development page or report does not match its partial live run');
   }
   for (const [, reference] of page.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
-    if (!reference.startsWith('https://') && !reference.startsWith('#') && !paths.has(reference)) {
+    if (!reference.startsWith('https://') && !reference.startsWith('#')
+      && !SITE_NAVIGATION_HREFS.has(reference) && !paths.has(reference)) {
       throw new Error(`Three-host development page links an undeclared asset: ${reference}`);
     }
   }
