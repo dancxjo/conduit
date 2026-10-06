@@ -325,7 +325,21 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let manifest: serde_json::Value =
         serde_json::from_str(package.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(manifest["application_id"], "conduit.application/patchbay");
-    assert_eq!(manifest["resources"].as_array().unwrap().len(), 29);
+    let template: serde_json::Value =
+        serde_json::from_str(include_str!("../assets/patchbay.application.template.json")).unwrap();
+    let paths = |document: &serde_json::Value| {
+        document["resources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|resource| resource["path"].as_str().unwrap().to_owned())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert_eq!(paths(&manifest), paths(&template));
+    assert_eq!(
+        manifest["resources"].as_array().unwrap().len(),
+        paths(&template).len()
+    );
     assert!(manifest["resources"]
         .as_array()
         .unwrap()

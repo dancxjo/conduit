@@ -51,6 +51,12 @@ pub use inspection::{
 mod topology;
 mod topology_projection;
 mod workbench_layout;
+mod workspace;
+mod workspace_migration;
+pub use workspace::*;
+pub use workspace_migration::*;
+#[cfg(test)]
+mod workspace_tests;
 pub use debugger_control::{
     DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
     MAX_DEBUGGER_BREAKPOINT_SUBJECTS, MAX_DEBUGGER_CONTROL_REASON_BYTES,

@@ -371,39 +371,14 @@ mod contract;
 pub use conduit_core::{KindConfigurationField, KindConfigurationRule, KindTerminalBehavior};
 pub use contract::StandardKindContract;
 
-/// User-facing semantic contracts, including portable kinds without a currently
-/// installed std implementation. This is discovery truth, not a host offer.
-pub fn palette_contracts() -> Vec<StandardKindContract> {
-    let mut contracts = supported_nucleus_contracts();
-    contracts.extend(patchbay_presentation_contracts());
-    contracts.extend(alife_contracts());
-    contracts.extend(robotics_hazard_contracts());
-    contracts.push(keyboard_contract());
-    contracts.extend(application_contracts());
-    contracts.extend(http_contracts());
-    contracts
-}
-
+mod authoring_catalog;
 #[cfg(feature = "plot-catalog")]
-pub fn standard_profile_catalog() -> conduit_plot::ProfileCatalog {
-    use conduit_plot::ProfileCatalog;
-
-    let mut catalog = ProfileCatalog::new();
-    for (contract, revision) in supported_nucleus_contracts_with_revisions() {
-        let kind = match contract.kind_id.as_str() {
-            MATH_CLAMP_KIND => math_clamp_semantic_contract(),
-            MATH_SCALE_KIND => math_scale_semantic_contract(),
-            MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
-            FIRST_KIND => flow_first_scalar_semantic_contract(),
-            AUDIO_TONE_KIND => audio_tone_semantic_contract(),
-            _ => contract.into_semantic_contract(revision),
-        };
-        catalog
-            .insert_kind(kind)
-            .expect("standard catalog kinds are unique");
-    }
-    catalog
-}
+mod palette_adapters;
+pub use authoring_catalog::palette_contracts;
+#[cfg(feature = "plot-catalog")]
+pub use authoring_catalog::standard_profile_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use palette_adapters::PaletteAdapterSuggestion;
 
 pub fn standard_host_call_requirements(
     back_kind: &KindId,

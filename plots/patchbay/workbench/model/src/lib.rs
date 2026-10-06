@@ -11,7 +11,11 @@ use conduit_observatory::{
     ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
 
+mod authoring_catalog;
 mod build_birth;
+pub use authoring_catalog::{
+    AuthoringAdapter, AuthoringConnection, AuthoringKind, AuthoringStartupParameter,
+};
 mod control;
 mod cross_host_renderer;
 mod front_configuration;
@@ -32,6 +36,7 @@ mod mask_control_tests;
 mod mask_plans_tests;
 #[cfg(test)]
 mod mask_product_tests;
+mod palette_placement;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
 mod plot_editor;
