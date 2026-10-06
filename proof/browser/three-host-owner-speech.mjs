@@ -10,7 +10,7 @@ export function assertOwnerSelectedSpeech(receipt, { face, bodyId, ownerHostId,
   assert.equal(receipt.operation_id, operationId);
   assert.equal(receipt.outcome, 'completed');
   assert.equal(receipt.face_id, face.face_id);
-  assert.equal(String(receipt.face_revision), face.face_revision);
+  assert.equal(receipt.face_revision_decimal, face.face_revision);
   assert.equal(face.body_id, bodyId);
   assert.equal(face.route.owner_host_id, ownerHostId);
   assert.equal(face.route.owner_boot_id, ownerBootId);

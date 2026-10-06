@@ -13,7 +13,8 @@ const expected = { face, bodyId: 'body/one', ownerHostId: 'host/linux',
 const receipt = {
   schema: 'conduit.body/selected-speech-terminal@1',
   operation_id: 'selected-speech/one', outcome: 'completed',
-  face_id: 'face/clock', face_revision: 9, source_show_id: 'show/browser',
+  face_id: 'face/clock', face_revision: 9, face_revision_decimal: '9',
+  source_show_id: 'show/browser',
   source_show_still_current: true, host_id: 'host/linux', boot_id: 'boot/linux',
   offer_generation: 1, provider_sha256: hash, selected_resource_pool_id: 'pool/speaker',
   authority_grant_id: 'grant/speaker',
@@ -34,6 +35,15 @@ test('owner-selected speaker receipt binds current Show, Body, Host, Plan, and P
   assert.equal(checked.human_hearing_observed, false);
 });
 
+test('large Face revisions use the exact decimal wire value', () => {
+  const decimal = '9007199254740993';
+  const roundedByJavaScript = JSON.parse('{"face_revision":9007199254740993}').face_revision;
+  assert.notEqual(String(roundedByJavaScript), decimal);
+  assertOwnerSelectedSpeech({ ...receipt, face_revision: roundedByJavaScript,
+    face_revision_decimal: decimal }, { ...expected,
+    face: { ...face, face_revision: decimal } });
+});
+
 test('stale Show, wrong owner, incomplete playback, and absent blocks cannot pass', () => {
   for (const changed of [
     { source_show_id: 'show/stale' }, { host_id: 'host/other' },
@@ -46,4 +56,6 @@ test('stale Show, wrong owner, incomplete playback, and absent blocks cannot pas
   ]) assert.throws(() => assertOwnerSelectedSpeech({ ...receipt, ...changed }, expected));
   assert.throws(() => assertOwnerSelectedSpeech(receipt, { ...expected,
     face: { ...face, face_revision: '10' } }));
+  assert.throws(() => assertOwnerSelectedSpeech({ ...receipt,
+    face_revision_decimal: '9007199254740993' }, expected));
 });

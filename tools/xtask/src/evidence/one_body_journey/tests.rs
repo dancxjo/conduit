@@ -241,6 +241,7 @@ fn fixture_with_source_gap(
                         json!({
                             "schema":"conduit.body/selected-speech-terminal@1",
                             "outcome":"completed", "face_revision":5,
+                            "face_revision_decimal":"5",
                             "source_show_id":show, "source_show_still_current":true,
                             "host_id":"synthetic-owner", "boot_id":"synthetic-boot",
                             "provider_sha256":"a".repeat(64),

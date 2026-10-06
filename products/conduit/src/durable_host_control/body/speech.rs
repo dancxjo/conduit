@@ -374,7 +374,9 @@ fn play_selected(
     }
     Ok(json!({"schema":"conduit.body/selected-speech-terminal@1",
         "outcome":"completed", "face_id":face.identity.as_str(),
-        "face_revision":face.revision, "source_show_id":show.show_id.as_str(),
+        "face_revision":face.revision,
+        "face_revision_decimal":face.revision.to_string(),
+        "source_show_id":show.show_id.as_str(),
         "host_id":offered.host_id.as_str(), "boot_id":offered.boot_id.as_str(),
         "offer_generation":offered.offer_generation.0,
         "provider_sha256":equipment.provider_sha256,

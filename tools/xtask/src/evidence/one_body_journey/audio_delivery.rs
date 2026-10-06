@@ -13,6 +13,7 @@ struct SpeakerTerminal {
     schema: String,
     outcome: String,
     face_revision: u64,
+    face_revision_decimal: String,
     source_show_id: String,
     source_show_still_current: bool,
     host_id: String,
@@ -116,7 +117,8 @@ pub(super) fn validate(
             if terminal.schema != "conduit.body/selected-speech-terminal@1"
                 || terminal.outcome != "completed"
                 || !terminal.source_show_still_current
-                || terminal.face_revision.to_string() != capture.face_revision
+                || terminal.face_revision.to_string() != terminal.face_revision_decimal
+                || terminal.face_revision_decimal != capture.face_revision
                 || Some(terminal.source_show_id.as_str()) != capture.show_id.as_deref()
                 || terminal.host_id.is_empty()
                 || terminal.boot_id.is_empty()
