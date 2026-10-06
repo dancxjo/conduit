@@ -10,7 +10,7 @@ impl ProofMode {
     pub(super) fn entry(self) -> Option<&'static str> {
         match self {
             Self::Raw => None,
-            Self::Keyboard => Some("usb-hid-keyboard-endpoint"),
+            Self::Keyboard => Some("usb-hid-keyboard-capture-window"),
             Self::Mouse => Some("usb-hid-mouse-endpoint"),
         }
     }
@@ -24,7 +24,14 @@ impl ProofMode {
     pub(super) fn arena_bytes(self) -> u64 {
         match self {
             Self::Raw => 16 * 1024 * 1024,
-            Self::Keyboard | Self::Mouse => conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES,
+            Self::Keyboard => conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES,
+            Self::Mouse => conduitos::make::USB_HID_MOUSE_ARENA_BYTES,
+        }
+    }
+    pub(super) fn qemu_memory(self) -> &'static str {
+        match self {
+            Self::Keyboard => "256M",
+            Self::Raw | Self::Mouse => "64M",
         }
     }
     pub(super) fn serial_name(self) -> &'static str {

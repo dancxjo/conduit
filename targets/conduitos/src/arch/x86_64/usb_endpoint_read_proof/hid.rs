@@ -298,7 +298,7 @@ pub(super) fn run(
     let digest_hex =
         core::str::from_utf8(digest_text.as_bytes()).map_err(|_| "usb-hid-native-digest")?;
     let mut sign = FixedText::new();
-    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true,\"allocation_sealed\":true}}", plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.plan_id.as_str(), active.active_play_id.as_str(), device_hex, wraps, digest_hex).map_err(|_| "usb-hid-native-sign")?;
+    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true,\"allocation_sealed\":true,\"capture_buffers\":1,\"maximum_pending_transfers\":1}}", plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.plan_id.as_str(), active.active_play_id.as_str(), device_hex, wraps, digest_hex).map_err(|_| "usb-hid-native-sign")?;
     early_write(sign.as_bytes());
     Ok(())
 }

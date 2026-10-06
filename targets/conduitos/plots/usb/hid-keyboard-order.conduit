@@ -1,0 +1,46 @@
+# Eight admitted physical reads may finish their Source processing out of order.
+# Retain compact decoded observations, including malformed reports, before
+# changing keyboard history. Insertion preserves history; draining advances it
+# only for a valid normalized report. This Source state grants no endpoint authority.
+type UsbKeyboardOrderedObservation = {
+    ordinal: U64
+    observed: UsbBootKeyboardResult
+}
+type UsbKeyboardOrderSlot =
+    vacant
+    | held UsbKeyboardOrderedObservation
+type UsbKeyboardOrderState = {
+    previous: UsbBootKeyboardReport
+    expected: U64
+    slots: collection UsbKeyboardOrderSlot = 8
+}
+type UsbKeyboardOrderInsertion = {
+    state: UsbKeyboardOrderState
+    observation: UsbKeyboardOrderedObservation
+}
+type UsbKeyboardOrderAdmission =
+    accepted UsbKeyboardOrderState
+    | stale
+    | duplicate
+    | outside-window
+    | pressure
+type UsbKeyboardOrderReady = {
+    previous: UsbBootKeyboardReport
+    state: UsbKeyboardOrderState
+    observation: UsbKeyboardOrderedObservation
+}
+type UsbKeyboardOrderDrain =
+    ready UsbKeyboardOrderReady
+    | waiting UsbKeyboardOrderState
+
+plot usb-hid-keyboard-order-initialize (
+    begin: Unit...| >> state: UsbKeyboardOrderState...|
+) = ({ previous: { modifiers: 0, keys: [0, 0, 0, 0, 0, 0] }, expected: 0, slots: [vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit) ]})
+
+plot usb-hid-keyboard-order-insert (
+    input: UsbKeyboardOrderInsertion...| >> admitted: UsbKeyboardOrderAdmission...|
+) = (.observation.ordinal < .state.expected ? stale(unit) : (.observation.ordinal == 18446744073709551615 || .observation.ordinal - .state.expected >= 8 ? outside-window(unit) : (((((.state.slots.0 is held ? .state.slots.0.held.ordinal == .observation.ordinal : false) || (.state.slots.1 is held ? .state.slots.1.held.ordinal == .observation.ordinal : false)) || ((.state.slots.2 is held ? .state.slots.2.held.ordinal == .observation.ordinal : false) || (.state.slots.3 is held ? .state.slots.3.held.ordinal == .observation.ordinal : false))) || (((.state.slots.4 is held ? .state.slots.4.held.ordinal == .observation.ordinal : false) || (.state.slots.5 is held ? .state.slots.5.held.ordinal == .observation.ordinal : false)) || ((.state.slots.6 is held ? .state.slots.6.held.ordinal == .observation.ordinal : false) || (.state.slots.7 is held ? .state.slots.7.held.ordinal == .observation.ordinal : false)))) ? duplicate(unit) : (((.state.slots.0 is vacant || .state.slots.1 is vacant) || (.state.slots.2 is vacant || .state.slots.3 is vacant)) ? ((.state.slots.0 is vacant || .state.slots.1 is vacant) ? (.state.slots.0 is vacant ? (.state.slots.0 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [held(.observation), .state.slots.1, .state.slots.2, .state.slots.3, .state.slots.4, .state.slots.5, .state.slots.6, .state.slots.7] }) : pressure(unit)) : (.state.slots.1 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [.state.slots.0, held(.observation), .state.slots.2, .state.slots.3, .state.slots.4, .state.slots.5, .state.slots.6, .state.slots.7] }) : pressure(unit))) : (.state.slots.2 is vacant ? (.state.slots.2 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [.state.slots.0, .state.slots.1, held(.observation), .state.slots.3, .state.slots.4, .state.slots.5, .state.slots.6, .state.slots.7] }) : pressure(unit)) : (.state.slots.3 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [.state.slots.0, .state.slots.1, .state.slots.2, held(.observation), .state.slots.4, .state.slots.5, .state.slots.6, .state.slots.7] }) : pressure(unit)))) : ((.state.slots.4 is vacant || .state.slots.5 is vacant) ? (.state.slots.4 is vacant ? (.state.slots.4 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [.state.slots.0, .state.slots.1, .state.slots.2, .state.slots.3, held(.observation), .state.slots.5, .state.slots.6, .state.slots.7] }) : pressure(unit)) : (.state.slots.5 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [.state.slots.0, .state.slots.1, .state.slots.2, .state.slots.3, .state.slots.4, held(.observation), .state.slots.6, .state.slots.7] }) : pressure(unit))) : (.state.slots.6 is vacant ? (.state.slots.6 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [.state.slots.0, .state.slots.1, .state.slots.2, .state.slots.3, .state.slots.4, .state.slots.5, held(.observation), .state.slots.7] }) : pressure(unit)) : (.state.slots.7 is vacant ? accepted({ previous: .state.previous, expected: .state.expected, slots: [.state.slots.0, .state.slots.1, .state.slots.2, .state.slots.3, .state.slots.4, .state.slots.5, .state.slots.6, held(.observation)] }) : pressure(unit))))))))
+
+plot usb-hid-keyboard-order-drain (
+    state: UsbKeyboardOrderState...| >> drained: UsbKeyboardOrderDrain...|
+) = ((((.slots.0 is held ? .slots.0.held.ordinal == .expected : false) || (.slots.1 is held ? .slots.1.held.ordinal == .expected : false)) || ((.slots.2 is held ? .slots.2.held.ordinal == .expected : false) || (.slots.3 is held ? .slots.3.held.ordinal == .expected : false))) ? (((.slots.0 is held ? .slots.0.held.ordinal == .expected : false) || (.slots.1 is held ? .slots.1.held.ordinal == .expected : false)) ? ((.slots.0 is held ? .slots.0.held.ordinal == .expected : false) ? ((.slots.0 is held ? .slots.0.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.0.held.observed is keyboard ? .slots.0.held.observed.keyboard : .previous), expected: .expected + 1, slots: [vacant(unit), .slots.1, .slots.2, .slots.3, .slots.4, .slots.5, .slots.6, .slots.7] }, observation: .slots.0.held }) : waiting(.)) : ((.slots.1 is held ? .slots.1.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.1.held.observed is keyboard ? .slots.1.held.observed.keyboard : .previous), expected: .expected + 1, slots: [.slots.0, vacant(unit), .slots.2, .slots.3, .slots.4, .slots.5, .slots.6, .slots.7] }, observation: .slots.1.held }) : waiting(.))) : ((.slots.2 is held ? .slots.2.held.ordinal == .expected : false) ? ((.slots.2 is held ? .slots.2.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.2.held.observed is keyboard ? .slots.2.held.observed.keyboard : .previous), expected: .expected + 1, slots: [.slots.0, .slots.1, vacant(unit), .slots.3, .slots.4, .slots.5, .slots.6, .slots.7] }, observation: .slots.2.held }) : waiting(.)) : ((.slots.3 is held ? .slots.3.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.3.held.observed is keyboard ? .slots.3.held.observed.keyboard : .previous), expected: .expected + 1, slots: [.slots.0, .slots.1, .slots.2, vacant(unit), .slots.4, .slots.5, .slots.6, .slots.7] }, observation: .slots.3.held }) : waiting(.)))) : (((.slots.4 is held ? .slots.4.held.ordinal == .expected : false) || (.slots.5 is held ? .slots.5.held.ordinal == .expected : false)) ? ((.slots.4 is held ? .slots.4.held.ordinal == .expected : false) ? ((.slots.4 is held ? .slots.4.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.4.held.observed is keyboard ? .slots.4.held.observed.keyboard : .previous), expected: .expected + 1, slots: [.slots.0, .slots.1, .slots.2, .slots.3, vacant(unit), .slots.5, .slots.6, .slots.7] }, observation: .slots.4.held }) : waiting(.)) : ((.slots.5 is held ? .slots.5.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.5.held.observed is keyboard ? .slots.5.held.observed.keyboard : .previous), expected: .expected + 1, slots: [.slots.0, .slots.1, .slots.2, .slots.3, .slots.4, vacant(unit), .slots.6, .slots.7] }, observation: .slots.5.held }) : waiting(.))) : ((.slots.6 is held ? .slots.6.held.ordinal == .expected : false) ? ((.slots.6 is held ? .slots.6.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.6.held.observed is keyboard ? .slots.6.held.observed.keyboard : .previous), expected: .expected + 1, slots: [.slots.0, .slots.1, .slots.2, .slots.3, .slots.4, .slots.5, vacant(unit), .slots.7] }, observation: .slots.6.held }) : waiting(.)) : ((.slots.7 is held ? .slots.7.held.ordinal == .expected : false) ? ready({ previous: .previous, state: { previous: (.slots.7.held.observed is keyboard ? .slots.7.held.observed.keyboard : .previous), expected: .expected + 1, slots: [.slots.0, .slots.1, .slots.2, .slots.3, .slots.4, .slots.5, .slots.6, vacant(unit)] }, observation: .slots.7.held }) : waiting(.)))))

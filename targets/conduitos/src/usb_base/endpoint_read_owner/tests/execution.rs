@@ -21,6 +21,7 @@ fn kernel_request_replay_cannot_repeat_a_completed_native_effect() {
             owner.finish_quiesced(
                 &submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 8,
                     input: &[0; 8],
                 },
@@ -76,6 +77,7 @@ fn pending_transfer_exerts_pressure_until_acknowledged_quiescence() {
         owner.finish_quiesced(
             &submission,
             NativeEndpointReadObservation::Completed {
+                ordinal: 0,
                 actual: 3,
                 input: &[1, 2, 3],
             },
@@ -98,6 +100,7 @@ fn pending_transfer_exerts_pressure_until_acknowledged_quiescence() {
             owner.finish_quiesced(
                 &submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 3,
                     input: &[1, 2, 3],
                 },
@@ -148,6 +151,7 @@ fn reusable_possession_and_malformed_physical_results_do_not_hide_work_or_retry(
             owner.finish_quiesced(
                 &submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 9,
                     input: &[0; 9],
                 },

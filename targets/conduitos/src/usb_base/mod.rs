@@ -23,6 +23,7 @@ pub mod endpoint_read_request;
 pub mod endpoint_read_result;
 
 pub mod endpoint_read_factory;
+pub mod endpoint_read_offer;
 pub mod endpoint_read_owner;
 
 pub(crate) mod endpoint_ring;
@@ -30,5 +31,7 @@ pub(crate) mod endpoint_ring;
 pub mod endpoint_read_proof_plan;
 
 pub mod hid_endpoint_proof_plan;
+pub mod hid_source_kernel;
+pub mod hid_source_plan;
 
 pub mod hid_endpoint_proof_kernel;
