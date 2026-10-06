@@ -1,0 +1,31 @@
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+
+# Two exact planned calls share a Root-admitted endpoint capture window.
+# Root reuses a member only after its prior ordered observation is delivered.
+plot usb-hid-mouse-capture-request (
+    read: Unit...| >> request: UsbEndpointReadRequest...| <= 4096B
+) = ({ length: 8 })
+
+plot usb-hid-mouse-capture-window (
+    >> begin: Unit...|
+    >> read0: Unit...|
+    >> read1: Unit...|
+    observation: UsbMouseOrderedObservation...| >>
+    ended: UsbMouseOrderEnd...| >>
+) {
+    state: usb-hid-mouse-order-lifecycle
+    commands: flow/concat/finite
+    transfer0: machine/usb/endpoint-read
+    transfer1: machine/usb/endpoint-read
+    completed: flow/merge/finite
+    begin >> state.begin
+    begin >> usb-hid-mouse-endpoint-finish() >> commands.right
+    read0 >> usb-hid-mouse-capture-request() >> transfer0.request
+    transfer0.result >> usb-hid-mouse-endpoint-command-message() >> completed.left
+    read1 >> usb-hid-mouse-capture-request() >> transfer1.request
+    transfer1.result >> usb-hid-mouse-endpoint-command-message() >> completed.right
+    completed.merged >> select(UsbMouseOrderMessage.command, unmatched=drop) >> commands.left
+    commands.concatenated >> state.command
+    state.observation >> observation
+    state.ended >> ended
+}

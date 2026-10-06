@@ -2,7 +2,7 @@
 //! Preparation performs no device effects and issues no Base possession.
 use crate::protocol_source::{
     PreparedProtocolArtifact, PreparedProtocolEntry, usb_hid_endpoint_package,
-    usb_hid_keyboard_order_package,
+    usb_hid_keyboard_order_package, usb_hid_mouse_order_package,
 };
 use alloc::{collections::BTreeMap, string::String};
 use conduit_core::{AuthorityGrant, BaseImplementationId, HostAdvertisement};
@@ -14,6 +14,8 @@ pub enum HidSourceRole {
     /// Eight calls and ordered class state; Root supplies the admitted window.
     KeyboardCapture,
     Mouse,
+    /// Two ordered calls; Root supplies the exact admitted endpoint window.
+    MouseCapture,
 }
 
 impl HidSourceRole {
@@ -22,6 +24,7 @@ impl HidSourceRole {
             Self::KeyboardCapture => "usb-hid-keyboard-capture-window",
             Self::Keyboard => "usb-hid-keyboard-batch-endpoint",
             Self::Mouse => "usb-hid-mouse-endpoint",
+            Self::MouseCapture => "usb-hid-mouse-capture-window",
         }
     }
 }
@@ -36,6 +39,7 @@ pub fn prepare(
 ) -> Result<PreparedProtocolArtifact, String> {
     let package = match role {
         HidSourceRole::KeyboardCapture => usb_hid_keyboard_order_package(),
+        HidSourceRole::MouseCapture => usb_hid_mouse_order_package(),
         _ => usb_hid_endpoint_package(),
     }
     .map_err(|_| "usb-hid-source-package")?;

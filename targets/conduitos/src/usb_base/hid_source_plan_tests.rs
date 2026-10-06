@@ -120,3 +120,59 @@ fn ordered_keyboard_class_requires_eight_admitted_calls_in_the_shared_kernel() {
     host.resources[0].capacity_units = 7;
     assert!(prepare(HidSourceRole::KeyboardCapture, &host, &grants).is_err());
 }
+
+#[test]
+fn ordered_mouse_class_requires_two_admitted_calls_in_the_shared_kernel() {
+    let (mut host, mut grants) = fixture();
+    let contract = EndpointReadContract::prepare().unwrap();
+    host.capabilities[0] = crate::usb_base::endpoint_read_offer::capture_offer(
+        &contract,
+        "fixture/ordered-mouse-capture@1".into(),
+        "fixture/ordered-mouse-capture".into(),
+        2,
+    )
+    .unwrap();
+    host.bases[0].capability_ids = vec![host.capabilities[0].capability_id.clone()];
+    host.resources[0].capacity_units = 2;
+    grants[0].capability_id = host.capabilities[0].capability_id.clone();
+    let artifact = prepare(HidSourceRole::MouseCapture, &host, &grants).unwrap();
+    let plan = &artifact.artifact().definition().internal_plan;
+    let endpoints: alloc::vec::Vec<_> = plan.fragments[0]
+        .placements
+        .iter()
+        .filter(|gear| {
+            gear.implementation_id.as_str()
+                == crate::usb_base::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION
+        })
+        .collect();
+    assert_eq!(endpoints.len(), 2);
+    for endpoint in endpoints {
+        assert_eq!(endpoint.authority.len(), 1);
+        assert_eq!(endpoint.authority[0].grant_id, grants[0].grant_id);
+        assert_eq!(endpoint.host_calls.len(), 1);
+        assert_eq!(endpoint.host_calls[0].maximum_in_flight, 1);
+        assert_eq!(endpoint.host_calls[0].maximum_input_bytes, 4096);
+        assert_eq!(endpoint.host_calls[0].maximum_output_bytes, 4096);
+    }
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+    assert!(lowered.nodes.len() <= 64);
+    let mut run = crate::usb_base::hid_source_kernel::PreparedHidSourceKernel::prepare(
+        artifact,
+        conduit_composite::KernelCompositeSignStorage::default(),
+    )
+    .unwrap();
+    assert_eq!(run.kernel_mut().definition().boundary.input_fronts.len(), 3);
+    assert_eq!(
+        run.kernel_mut().definition().boundary.output_fronts.len(),
+        2
+    );
+    assert!(prepare(HidSourceRole::MouseCapture, &host, &[]).is_err());
+    let mut stale = grants.clone();
+    stale[0].boot_id = "previous-boot".into();
+    assert!(prepare(HidSourceRole::MouseCapture, &host, &stale).is_err());
+    let mut fewer = host.clone();
+    fewer.capabilities[0].limits.max_active_instances = 1;
+    assert!(prepare(HidSourceRole::MouseCapture, &fewer, &grants).is_err());
+    host.resources[0].capacity_units = 1;
+    assert!(prepare(HidSourceRole::MouseCapture, &host, &grants).is_err());
+}

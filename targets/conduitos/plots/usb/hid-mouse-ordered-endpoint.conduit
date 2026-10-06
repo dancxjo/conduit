@@ -1,0 +1,13 @@
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+
+# Completed transfers retain the physical submission ordinal even when their
+# report is invalid. Physical failures have no completed ordinal and remain
+# explicit class commands. This is the standard boot profile: OEM button bits
+# and trailing bytes are uninterpreted, and motion -128 is outside the domain.
+plot usb-hid-mouse-endpoint-command-message (
+    result: UsbEndpointReadResult...| <= 4096B >> message: UsbMouseOrderMessage...| <= 4096B
+) = (. is completed ? command(observation({ ordinal: .completed.ordinal, observed: ((.completed.actual != bytes/length(.completed.wire) || .completed.actual > 8 || (.completed.actual < 8) != .completed.short) ? malformed(unit) : (.completed.actual < 3 ? short(unit) : (bytes/at(.completed.wire, 1) == 128 || bytes/at(.completed.wire, 2) == 128 ? invalid-motion(unit) : mouse({ buttons: bytes/at(.completed.wire, 0) & 7, x: (bytes/at(.completed.wire, 1) < 128 ? value/i16(bytes/at(.completed.wire, 1)) : value/i16(bytes/at(.completed.wire, 1)) - 256), y: (bytes/at(.completed.wire, 2) < 128 ? value/i16(bytes/at(.completed.wire, 2)) : value/i16(bytes/at(.completed.wire, 2)) - 256) })))) })) : command(. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : (. is timeout ? timeout(unit) : unsupported(unit)))))
+
+plot usb-hid-mouse-endpoint-finish (
+    begin: Unit...| >> command: UsbMouseOrderCommand...| <= 4096B
+) = (finish(unit))

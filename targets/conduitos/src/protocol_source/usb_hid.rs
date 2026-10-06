@@ -15,13 +15,27 @@ pub fn usb_hid_mouse_order_package() -> Result<ProtocolSourcePackage, ProtocolSo
             .ok_or(ProtocolSourceRefusal::Specialization(
                 "HID mouse ordering imports",
             ))?;
+    let endpoint = include_str!("../../plots/usb/hid-mouse-ordered-endpoint.conduit");
+    let (endpoint_header, endpoint_body) =
+        endpoint
+            .split_once("\n\n")
+            .ok_or(ProtocolSourceRefusal::Specialization(
+                "HID mouse endpoint imports",
+            ))?;
+    let capture = include_str!("../../plots/usb/hid-mouse-capture-window.conduit");
+    let (capture_header, capture_body) =
+        capture
+            .split_once("\n\n")
+            .ok_or(ProtocolSourceRefusal::Specialization(
+                "HID mouse capture imports",
+            ))?;
     let value = |name: &str| ProtocolValueReference {
         type_name: name.into(),
         maximum_bytes: 4096,
     };
     ProtocolSourcePackage::compile(
         format!(
-            "{header}\n{}\n{}\n{}\n{body}",
+            "{header}\n{endpoint_header}\n{capture_header}\n{}\n{}\n{}\n{body}\n{endpoint_body}\n{capture_body}",
             include_str!("../../plots/usb/hid-reports.conduit"),
             include_str!("../../plots/usb/hid-mouse-order.conduit"),
             include_str!("../../plots/usb/hid-mouse-pointer.conduit"),
