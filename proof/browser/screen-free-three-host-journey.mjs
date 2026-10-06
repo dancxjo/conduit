@@ -142,8 +142,9 @@ try {
     'focus creche.plot.0', 'edit value false', 'activate',
     'focus creche.plot.1', 'edit value true', 'activate',
     'read all', 'focus creche.birth', 'activate',
-    // Birth enters the retained Body, whose spoken entrance reads its Face.
-    ...(speakerCard ? [] : ['read all']), 'quit',
+    // Birth enters the retained Body with concise spoken orientation; request
+    // the complete stable Face explicitly before leaving the Crèche chapter.
+    'read all', 'quit',
   ];
   const input = `${birthCommands.join('\n')}\n`;
   const birthArgs = ['body', 'birth', '--screen-free', '--state-dir', state,
@@ -248,7 +249,7 @@ try {
     assert.ok(action, `the current owner Face offers no available ${name} action`);
     const commands = [...(speakerCard ? [] : ['read all']),
       `focus ${action.identity}`, 'activate',
-      'read all', 'quit'];
+      ...(speakerCard && name === 'start' ? [] : ['read all']), 'quit'];
     const input = `${commands.join('\n')}\n`;
     const inputFile = `clock-${name}-input.txt`;
     const transcriptFile = `clock-${name}-transcript.txt`;
@@ -256,7 +257,7 @@ try {
     const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
     const selected = speakerCard
       ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
-        { retryStaleReadAll: 4 }) : null;
+        { retryStaleReadAll: name === 'start' ? 0 : 4 }) : null;
     const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
     if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
     const transcript = selected?.transcript ??

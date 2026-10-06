@@ -158,17 +158,21 @@ by the owner instance. The three speech provider options may also be used withou
 speaker selection to retain the same-run direct speech artifact after the
 three-Host actions; that does not turn the Birth readout into audio.
 
-When Start changes the Face during a long selected-speaker reading, the client
-cancels the stale turn between speech Plays. The capture driver requests the
-current Face again, at most four times, and retains every command it actually
-sent. A cancelled last turn or a Face that keeps changing fails this proof;
-neither is a completed spoken Show.
+When the Face changes during a selected-speaker reading, the client cancels
+the stale turn between speech Plays. The capture driver can request the current
+Face again, at most four times, and retains every command it actually sent.
+The active clock chapter uses concise orientation instead of an automatic
+full-Face reading that would outlast its 60-second admitted Play. A cancelled
+last turn or a Face that keeps changing fails this proof; neither is a
+completed spoken Show.
 
 After the live three-Host actions and speech captures, the same producer
 reenters the retained owner with `conduit body screen-free`. The three-Host
 producer has already retired the clock Play, so the Body is Lulled. It reads
-the current Face, focuses and activates the available Start clock action,
-reads the new Face, then focuses and activates Stop clock. The owner retires
+the current Face on request, focuses and activates the available Start clock
+action, receives concise current-Face orientation, then focuses and activates
+Stop clock before the bounded Play ends. It reads the resulting Lulled Face in
+full. The owner retires
 that Play and returns to Lulled. `three-host/report.json` binds both inputs
 and transcripts to the original Body, owner Host/Boot, run, source Faces,
 acknowledged Shows, semantic actions, and resulting Faces. If a speaker was
