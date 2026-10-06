@@ -76,12 +76,14 @@ pub(super) fn write(
         "orifina-spoken-initial",
         presentation.clone(),
         retained.clone(),
+        &conduit_tongues::specimen_language_request(),
     )?;
     let alternate = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-generative",
         "orifina-spoken-alternate",
         presentation.clone(),
         retained.clone(),
+        &conduit_tongues::specimen_language_request(),
     )?;
     let replacement_alternate =
         conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
@@ -89,12 +91,14 @@ pub(super) fn write(
             "orifina-spoken-replanned",
             presentation.clone(),
             retained.clone(),
+            &conduit_tongues::specimen_language_request(),
         )?;
     let restored = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-initial",
         "orifina-spoken-restored",
         presentation.clone(),
         retained,
+        &conduit_tongues::specimen_language_request(),
     )?;
     let initial_routes = conduit_std_host::spoken_mask_journey::admit_spoken_mask_routes(
         &[initial.clone(), alternate.clone()],
