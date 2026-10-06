@@ -13,6 +13,16 @@ proves the three-Host graphical and terminal presentation topology and one
 same-Plan browser wardrobe transition, not presentation-host loss,
 owner-selected speech, physical hardware, or the published journey.
 
+The browser joins first. After ConduitOS joins, its screen displays the
+owner Face read-only and asks the person to choose Native graphics in the
+owner's wardrobe. In the browser, inspect the newly admitted native route,
+Wear it, and Prefer it. Press F5 on the native screen to request a fresh Show;
+the owner acknowledges that Show before the native clock action. The proof
+drives these same user actions through the browser controls and QMP keyboard.
+The standby screenshot and owner wardrobe transitions are retained alongside
+the action screenshots. An early F5 can be refused; it never changes wardrobe
+policy by itself.
+
 Start from a clean checkout at one commit. Check tools with
 `cargo xtask doctor browser` and the ConduitOS prerequisites in
 [the native spore guide](native-spore-provision.md). The browser proof needs the

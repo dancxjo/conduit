@@ -48,8 +48,9 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       'The browser joins the Linux owner’s existing Body. It sees the current clock through its own graphical Mask, with a fresh Host and Boot identity.',
       figure('browser-before.png', 'Browser Face before the clock changes', 'The browser’s first acknowledged Face.')),
     chapter('native', 2 + offset, 'Meet the same Body on ConduitOS',
-      'Boot the provisioned ConduitOS image in QEMU. Its Part joins this Body; the native screen receives the owner’s current Face and acknowledges its Show.',
-      figure('native/owner-before.png', 'ConduitOS native Mask before its action', 'The QMP capture comes from the running guest.')),
+      'Boot the provisioned ConduitOS image in QEMU. Its Part joins this Body and first shows the owner’s current Face for reading. In the browser, inspect the owner’s wardrobe, wear the newly admitted Native graphical Mask, and explicitly prefer it. Then press F5 on the native screen to request a fresh Show. The owner acknowledges that selected Show before any native action.',
+      figure('native/owner-standby.png', 'ConduitOS reading the owner Face while awaiting Mask selection', 'The native screen gives the person the F5 continuation instruction; the owner has not selected this Show yet.')
+      + figure('native/owner-before.png', 'ConduitOS native Mask after explicit selection', 'The QMP capture comes from the running guest after a browser wardrobe action and a real F5 key press.')),
     chapter('native-action', 3 + offset, 'Change the clock from ConduitOS',
       'Use the guest’s keyboard control to ask for 500 milliseconds. The owner accepts the typed action. Refresh the browser to see the same changed Face.',
       figure('native/owner-after.png', 'ConduitOS native Mask after changing the clock to 500 milliseconds', 'The guest shows the owner’s refreshed Face.')
