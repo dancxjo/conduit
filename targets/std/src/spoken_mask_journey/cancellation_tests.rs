@@ -52,6 +52,7 @@ fn streamed_mask_stop_reaps_provider_and_never_acknowledges_partial_audio() {
         Some((discovery, &destination)),
         true,
         &control,
+        &conduit_tongues::specimen_language_request(),
     )
     .unwrap();
     let (pid, partial_written, retired) = &*observed.borrow();

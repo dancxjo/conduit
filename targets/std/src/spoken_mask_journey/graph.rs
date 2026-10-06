@@ -1,14 +1,20 @@
 //! Ordinary Mask composition; streaming changes admitted work, not queue size.
-pub(super) fn source(plot_name: &str, maximum_output_bytes: u32, streaming: bool) -> String {
+pub(super) fn source(
+    plot_name: &str,
+    maximum_output_bytes: u32,
+    streaming: bool,
+    language: &conduit_language::LanguageRequest,
+) -> String {
+    let language_request = conduit_language::language_request_literal(language);
     let projection = if streaming {
         "presentation/generated-manifestation-speech-stream"
     } else {
         "presentation/generated-manifestation-speech"
     };
     let synthesis = if streaming {
-        format!("commit: speech/commit-generated-text\n voice: speech/synthesize-stream(maximum-output-bytes = {maximum_output_bytes}, maximum-audio-millis = 30000, maximum-segments = 32)")
+        format!("commit: speech/commit-generated-text\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = {maximum_output_bytes}, maximum-audio-millis = 30000, maximum-segments = 32)")
     } else {
-        format!("voice: speech/synthesize(maximum-output-bytes = {maximum_output_bytes})")
+        format!("voice: speech/synthesize(language-request = {language_request}, maximum-output-bytes = {maximum_output_bytes})")
     };
     let work = if streaming {
         ", maximum-blocks = 32768, maximum-audio-millis = 30000"
