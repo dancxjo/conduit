@@ -42,7 +42,10 @@ test("Workspace package dependencies name real source owners", () => {
     const descriptor = JSON.parse(readFileSync(`${root}/workspace.application.template.json`, "utf8"));
     const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
     assert.equal(descriptor.application_id, "conduit.application/workspace");
+    assert.equal(resources.size, descriptor.resources.length, "Workspace resource roles must be unique");
     for (const resource of descriptor.resources) {
+      assert.equal(new Set(resource.dependencies.map((entry) => entry.role)).size, resource.dependencies.length,
+        `${resource.role}: dependency roles must be unique`);
       const source = resource.source ? resolve(resource.source) : resolve(root, resource.path);
       if (!existsSync(source) || resource.kind !== "module") continue;
       for (const dependency of resource.dependencies) {
