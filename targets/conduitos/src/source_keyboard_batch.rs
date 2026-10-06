@@ -66,6 +66,8 @@ impl SourceKeyboardBatchDecoder {
                 batch.transitions[batch.count] =
                     HidKeyTransition::from_source(octet("usage")?, pressed, octet("modifiers")?);
                 batch.count += 1;
+            } else if slot.variant_payload("unchanged")?.is_none() {
+                return Err(StructuredInfoRefusal::WrongType);
             }
         }
         Ok(batch)
