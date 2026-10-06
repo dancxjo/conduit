@@ -1,0 +1,80 @@
+with flow/zip/feedback/paired as UsbKeyboardOrderCommandPair
+
+# This lifecycle drains the next wire ordinal before consuming another command.
+# EOF with a missing ordinal is a gap, never a synthetic report or clean drain.
+type UsbKeyboardOrderSession = {
+    terminal: Boolean
+    order: UsbKeyboardOrderState
+}
+type UsbKeyboardOrderCommand = observation UsbKeyboardOrderedObservation | finish
+type UsbKeyboardOrderRoute =
+    waiting UsbKeyboardOrderSession
+    | emitting UsbKeyboardOrderReady
+    | stopped
+type UsbKeyboardOrderEnd = closed | gap | stale | duplicate | outside-window | pressure
+type UsbKeyboardOrderDecision = continued UsbKeyboardOrderState | ended UsbKeyboardOrderEnd
+type UsbKeyboardOrderWork = inserting UsbKeyboardOrderInsertion | ending UsbKeyboardOrderEnd
+
+plot usb-hid-keyboard-order-session-initialize (
+    order: UsbKeyboardOrderState...| >> session: UsbKeyboardOrderSession...|
+) = ({ terminal: false, order: . })
+
+plot usb-hid-keyboard-order-session-ready (
+    ready: UsbKeyboardOrderReady...| >> session: UsbKeyboardOrderSession...|
+) = ({ terminal: false, order: .state })
+
+plot usb-hid-keyboard-order-session-observation (
+    ready: UsbKeyboardOrderReady...| >> observation: UsbKeyboardOrderedObservation...|
+) = (.observation)
+
+plot usb-hid-keyboard-order-session-accepted (
+    order: UsbKeyboardOrderState...| >> session: UsbKeyboardOrderSession...|
+) = ({ terminal: false, order: . })
+
+plot usb-hid-keyboard-order-session-end (
+    end: UsbKeyboardOrderEnd...| >> session: UsbKeyboardOrderSession...|
+) = ({ terminal: true, order: { expected: 0, slots: [vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit)] } })
+
+plot usb-hid-keyboard-order-decision (
+    admission: UsbKeyboardOrderAdmission...| >> decision: UsbKeyboardOrderDecision...|
+) = (. is accepted ? continued(.accepted) : ended(. is stale ? stale(unit) : (. is duplicate ? duplicate(unit) : (. is outside-window ? outside-window(unit) : pressure(unit)))))
+
+plot usb-hid-keyboard-order-session-route (
+    session: UsbKeyboardOrderSession...| >> route: UsbKeyboardOrderRoute...|
+) = (.terminal ? stopped(unit) : ((.order.slots.0 is held && .order.slots.0.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [vacant(unit), .order.slots.1, .order.slots.2, .order.slots.3, .order.slots.4, .order.slots.5, .order.slots.6, .order.slots.7] }, observation: .order.slots.0.held }) : ((.order.slots.1 is held && .order.slots.1.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, vacant(unit), .order.slots.2, .order.slots.3, .order.slots.4, .order.slots.5, .order.slots.6, .order.slots.7] }, observation: .order.slots.1.held }) : ((.order.slots.2 is held && .order.slots.2.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, .order.slots.1, vacant(unit), .order.slots.3, .order.slots.4, .order.slots.5, .order.slots.6, .order.slots.7] }, observation: .order.slots.2.held }) : ((.order.slots.3 is held && .order.slots.3.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, .order.slots.1, .order.slots.2, vacant(unit), .order.slots.4, .order.slots.5, .order.slots.6, .order.slots.7] }, observation: .order.slots.3.held }) : ((.order.slots.4 is held && .order.slots.4.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, .order.slots.1, .order.slots.2, .order.slots.3, vacant(unit), .order.slots.5, .order.slots.6, .order.slots.7] }, observation: .order.slots.4.held }) : ((.order.slots.5 is held && .order.slots.5.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, .order.slots.1, .order.slots.2, .order.slots.3, .order.slots.4, vacant(unit), .order.slots.6, .order.slots.7] }, observation: .order.slots.5.held }) : ((.order.slots.6 is held && .order.slots.6.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, .order.slots.1, .order.slots.2, .order.slots.3, .order.slots.4, .order.slots.5, vacant(unit), .order.slots.7] }, observation: .order.slots.6.held }) : ((.order.slots.7 is held && .order.slots.7.held.ordinal == .order.expected) ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, .order.slots.1, .order.slots.2, .order.slots.3, .order.slots.4, .order.slots.5, .order.slots.6, vacant(unit)] }, observation: .order.slots.7.held }) : (waiting(.)))))))))))
+
+plot usb-hid-keyboard-order-session-command (
+    pair: UsbKeyboardOrderCommandPair...| >> work: UsbKeyboardOrderWork...|
+) = (.1 is observation ? inserting({ state: .0.order, observation: .1.observation }) : ending(.0.order.slots.0 is vacant && .0.order.slots.1 is vacant && .0.order.slots.2 is vacant && .0.order.slots.3 is vacant && .0.order.slots.4 is vacant && .0.order.slots.5 is vacant && .0.order.slots.6 is vacant && .0.order.slots.7 is vacant ? closed(unit) : gap(unit)))
+
+plot usb-hid-keyboard-order-lifecycle (
+    >> begin: Unit...|
+    >> command: UsbKeyboardOrderCommand...| <= 4096B
+    observation: UsbKeyboardOrderedObservation...| >>
+    ended: UsbKeyboardOrderEnd...| >>
+) {
+    cell: state/seeded/flow/until
+    join: flow/zip/feedback
+    route: usb-hid-keyboard-order-session-route()
+    work: usb-hid-keyboard-order-session-command()
+    insert: usb-hid-keyboard-order-insert()
+    decide: usb-hid-keyboard-order-decision()
+    updates: flow/merge/finite
+    ends: flow/merge/finite
+    replacements: flow/merge/finite
+    begin >> usb-hid-keyboard-order-initialize() >> usb-hid-keyboard-order-session-initialize() >> cell.seed
+    cell.current >> route
+    route >> select(UsbKeyboardOrderRoute.waiting, unmatched=drop) >> join.left
+    command >> join.right
+    join.paired >> work
+    work >> select(UsbKeyboardOrderWork.inserting, unmatched=drop) >> insert >> decide
+    decide >> select(UsbKeyboardOrderDecision.continued, unmatched=drop) >> usb-hid-keyboard-order-session-accepted() >> updates.left
+    decide >> select(UsbKeyboardOrderDecision.ended, unmatched=drop) >> ends.left
+    work >> select(UsbKeyboardOrderWork.ending, unmatched=drop) >> ends.right
+    ends.merged >> ended
+    ends.merged >> usb-hid-keyboard-order-session-end() >> updates.right
+    route >> select(UsbKeyboardOrderRoute.emitting, unmatched=drop) >> usb-hid-keyboard-order-session-observation() >> observation
+    route >> select(UsbKeyboardOrderRoute.emitting, unmatched=drop) >> usb-hid-keyboard-order-session-ready() >> replacements.right
+    updates.merged >> replacements.left
+    replacements.merged >> cell.next
+}
