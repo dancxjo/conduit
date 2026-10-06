@@ -149,7 +149,7 @@ fn document(
                             escape(&safe_asset_path(&validation.path)?)));
                     }
                 }
-                EvidenceKind::MachineReadableManifest => unreachable!("validated media is visible"),
+                EvidenceKind::MachineReadableManifest | EvidenceKind::Document => unreachable!("validated media is visible"),
             }
         }
         let limitations = chapter

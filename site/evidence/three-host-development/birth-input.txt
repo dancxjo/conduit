@@ -1,0 +1,16 @@
+read all
+next main
+focus creche.name
+edit value One Body Clock
+activate
+focus creche.plot.0
+edit value false
+activate
+focus creche.plot.1
+edit value true
+activate
+read all
+focus creche.birth
+activate
+read all
+quit

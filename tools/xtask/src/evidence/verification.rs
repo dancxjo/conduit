@@ -483,6 +483,7 @@ fn verify_little_life(root: &Path, manifest: &Manifest) -> Result<(), String> {
                     EvidenceKind::ConsoleTranscript => "text/plain; charset=utf-8",
                     EvidenceKind::MachineReadableManifest => "application/json",
                     EvidenceKind::Audio => unreachable!(),
+                    EvidenceKind::Document => unreachable!(),
                 }
             || output.provenance.scenario_id != "little-life.orbium-lenia@1"
             || output.provenance.asserted_semantic_disposition.as_deref() != Some("completed")

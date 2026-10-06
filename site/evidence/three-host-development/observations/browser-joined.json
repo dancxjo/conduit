@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.proof/browser-capture-observation@1",
+  "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "browser_host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+  "browser_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+  "cause": {
+    "kind": "browser-membership",
+    "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7"
+  },
+  "resulting_face": {
+    "face_id": "423b46920f0485c74918fa586363b80896edd94b34b0ff065f795fd016630815",
+    "face_revision": "5",
+    "show_id": "show/b8e9b186b6b4b2ec02611b6db4171df035d20914a3b56589269bbb165ce73306"
+  },
+  "capture": {
+    "source": "pinned-chromium",
+    "path": "browser-before.png",
+    "bytes": 160478,
+    "sha256": "50a6c5e4ff6bca6de6f77d385016ce3ff136edf8203c05e325f04b5604b8b22b"
+  }
+}

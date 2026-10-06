@@ -228,10 +228,20 @@ the browser, QEMU guest, local model, and speech device can actually operate.
 The captured source commit must be an ancestor of the later publication
 commit. Preflight checks that relationship, the browser lane renders and
 checks the exact media and common navigation, and the normal protected release
-train deploys the verified site. A diagnostic or partial run does not create
-the page. `site-publication.json` records the capture source and publication
-source separately; neither source identity implies human listening or physical
-hardware proof.
+train deploys the verified site. A diagnostic or partial run cannot create the
+complete eight-chapter page. `site-publication.json` records the capture source
+and publication source separately; neither source identity implies human
+listening or physical hardware proof.
+
+A separately labeled development recording may be retained at
+`site/evidence/three-host-development/` while the eight-chapter acceptance
+journey is still incomplete. Its `diagnostic-incomplete` manifest declares the
+actual page, report, screenshots, and listener WAV files from one local run.
+Preflight checks capture-source ancestry; the site lane verifies every retained
+byte and copies the recording without running QEMU, a speaker, or a model.
+The gallery and publication receipt identify it as partial evidence. The
+complete journey and development recording cannot claim the same route in one
+publication. This carrier does not turn a partial run into #4807 acceptance.
 
 ## Operation and validation
 

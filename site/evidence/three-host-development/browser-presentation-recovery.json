@@ -1,0 +1,392 @@
+{
+  "schema": "conduit.proof/browser-presentation-recovery@1",
+  "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "owner_part_id": "074ddcb0badb98c699f4c0d4faab02dc5244a343de9d73835bba0616121eeda2",
+  "guest_part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+  "browser_part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+  "lost_browser_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+  "recovered_browser_boot_id": "browser-boot/543d806e-4a9b-49dd-af75-f311ab308b75",
+  "old_show_id": "show/61b88b1ea2dd209e64c5f2abb131fedaad963589e48d55f8cb071aac56ef32be",
+  "recovered_show_id": "show/f0c9807e35397fcbc584b1b48e97a74fa709810d25ac22d4ec59908a7bf48d0b",
+  "old_owner_plan_id": "plan/owner-presentation/c56cedf9378e4f673a5d2470689f9c8e99d8e35cbbdd890c004df40f1c25b6f2",
+  "recovered_owner_plan_id": "plan/owner-presentation/06d521b993244b9a637c7d7031a0904a9eafc74fea5091305674de121f3c3ed4",
+  "loss": {
+    "presence": "unavailable",
+    "face": null,
+    "actionDisabled": true,
+    "result": "The owner window is closed; this browser has no current action return.",
+    "wardrobe": "Previous wardrobe evidence is historical."
+  },
+  "membership_during_loss": {
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "events": [
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "5f3347e95f1c2662caf42c9946993e1f0af6d09cbb99d696059d59163f388006",
+        "kind": {
+          "Admitted": {
+            "proof_id": "13781f2657a6420941f90a2e9fdf4cbdf4ef528a448b5dc8e1ba4d3ed7b07bdf"
+          }
+        },
+        "part_id": "074ddcb0badb98c699f4c0d4faab02dc5244a343de9d73835bba0616121eeda2",
+        "revision": 1,
+        "sign_id": "56ec219af808bc990cf352f54c4df043da82c9b87dea28d4b2a2d90f1143e0d0"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "68a6c153106e755d39df61215a1d2525e8a0b62d0f5c03cf5ac798d98f4ef14a",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+              "host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+              "offer_generation": 1,
+              "proof_id": "13781f2657a6420941f90a2e9fdf4cbdf4ef528a448b5dc8e1ba4d3ed7b07bdf",
+              "sequence": 0
+            }
+          }
+        },
+        "part_id": "074ddcb0badb98c699f4c0d4faab02dc5244a343de9d73835bba0616121eeda2",
+        "revision": 2,
+        "sign_id": "5b0b2ee47ec09565c0811ab56a93f7a88b7f16e924c6398d95e27583d2bdfbe0"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "893bef28b07f55007cba723a367db626f7f4ddbc93c0921a81bc163dbf604883",
+        "kind": {
+          "Admitted": {
+            "proof_id": "c013d4f04befd0b9a69e7c498c8f9e72391127e0dba5c9fb0d5d2609253c17f5"
+          }
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "revision": 3,
+        "sign_id": "8f434cb89e6b999d5db1f86a7e60264b69fbba948dfba0a8967b1c64cb7d8888"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "cb33833fca9c7cef5b88ebc84893798bea06ce314d2ec5eca6583035ae764914",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+              "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+              "offer_generation": 1,
+              "proof_id": "c013d4f04befd0b9a69e7c498c8f9e72391127e0dba5c9fb0d5d2609253c17f5",
+              "sequence": 0
+            }
+          }
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "revision": 4,
+        "sign_id": "a666bccbb8a4265d962d1ed392bbb5734e80cf2228cd80e42e4c3932f3bd7896"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "68d307f5be446ad5c6e68f8ad1a1eaccf4215e2bc3cf5447d4d17f748831d91d",
+        "kind": {
+          "Admitted": {
+            "proof_id": "ab7bfbfdfc71c1ca8adb4fb402d63013a8bccfeba7799111d47558cba3f91225"
+          }
+        },
+        "part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+        "revision": 5,
+        "sign_id": "6d88a937fc326a6e764c73b5298d6205676cfce7ef277e846e38eefbb1a3b149"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "8455d4eba6149f093e8f8e99d47985e6a2b23cb63b3afe937ae4b8f6673afc30",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "boot_id": "0dca10324fbd6064d6cb0841c272fa4b142f4f445e994396c835777478875290",
+              "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+              "offer_generation": 1,
+              "proof_id": "ab7bfbfdfc71c1ca8adb4fb402d63013a8bccfeba7799111d47558cba3f91225",
+              "sequence": 0
+            }
+          }
+        },
+        "part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+        "revision": 6,
+        "sign_id": "857e980db4f3059c9fd062c47ebaf826a4fdebc8df45e4957b132402fd45dca9"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "a481e9a99e2154399a8d92b9ac178f3b9b3f51f0d36beb3fd5d8850d3d167a88",
+        "kind": {
+          "HostDetached": {
+            "prior_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6"
+          }
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "revision": 7,
+        "sign_id": "70b0190596836844df4927eafb1d793d2226baa0390fdbd346c0a9b0bfa6d065"
+      }
+    ],
+    "parts": [
+      {
+        "current": {
+          "boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+          "host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+          "offer_generation": 1,
+          "proof_id": "13781f2657a6420941f90a2e9fdf4cbdf4ef528a448b5dc8e1ba4d3ed7b07bdf",
+          "sequence": 0
+        },
+        "part_id": "074ddcb0badb98c699f4c0d4faab02dc5244a343de9d73835bba0616121eeda2",
+        "state": "Admitted"
+      },
+      {
+        "current": null,
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "state": "Admitted"
+      },
+      {
+        "current": {
+          "boot_id": "0dca10324fbd6064d6cb0841c272fa4b142f4f445e994396c835777478875290",
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "offer_generation": 1,
+          "proof_id": "ab7bfbfdfc71c1ca8adb4fb402d63013a8bccfeba7799111d47558cba3f91225",
+          "sequence": 0
+        },
+        "part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+        "state": "Admitted"
+      }
+    ],
+    "revision": 7
+  },
+  "recovered_wardrobe": {
+    "admitted_routes": [
+      {
+        "child_mask_plan_id": "72bec5dfb7bc24ba43889eb4b4f9ba0dbb257b009ee397ddddba43c93f06cb61",
+        "currently_available": true,
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "owner_route_seal_id": "plan/remote-owner-mask/9131ca60b1b6e8e4de43bdfa3e7c9329dda9d32861963d3230908355d37a56f3",
+        "placement_ids": [
+          "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+        ],
+        "plan_id": "plan/owner-presentation/06d521b993244b9a637c7d7031a0904a9eafc74fea5091305674de121f3c3ed4",
+        "route_id": "route/plan/remote-owner-mask/9131ca60b1b6e8e4de43bdfa3e7c9329dda9d32861963d3230908355d37a56f3"
+      }
+    ],
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "05a8c7ea515cd57acabff40d5aa491c3c11b6115d835fac3e700c632d5c7d031",
+    "face_revision": 15,
+    "fresh_show_required": false,
+    "owner_plan_id": "plan/owner-presentation/06d521b993244b9a637c7d7031a0904a9eafc74fea5091305674de121f3c3ed4",
+    "reconciliation": {
+      "planning": "NotRequired",
+      "show": {
+        "Retain": {
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "plan_id": "plan/owner-presentation/06d521b993244b9a637c7d7031a0904a9eafc74fea5091305674de121f3c3ed4",
+          "route_id": "route/plan/remote-owner-mask/9131ca60b1b6e8e4de43bdfa3e7c9329dda9d32861963d3230908355d37a56f3"
+        }
+      }
+    },
+    "route_descriptions": [
+      {
+        "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+        "mask_name": "browser-graphical",
+        "route_id": "route/plan/remote-owner-mask/9131ca60b1b6e8e4de43bdfa3e7c9329dda9d32861963d3230908355d37a56f3"
+      }
+    ],
+    "schema": "conduit.body/owner-mask-wardrobe@1",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+        "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+        "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+      },
+      "plan_id": "plan/owner-presentation/06d521b993244b9a637c7d7031a0904a9eafc74fea5091305674de121f3c3ed4",
+      "route_id": "route/plan/remote-owner-mask/9131ca60b1b6e8e4de43bdfa3e7c9329dda9d32861963d3230908355d37a56f3"
+    },
+    "show_id": "show/f0c9807e35397fcbc584b1b48e97a74fa709810d25ac22d4ec59908a7bf48d0b",
+    "spoken_artifact_can_start_new_play": true,
+    "transition": null,
+    "wardrobe": {
+      "lifetime": "Body",
+      "preference": [],
+      "revision": 14,
+      "worn": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ]
+    },
+    "wardrobe_revision_decimal": "14"
+  },
+  "membership_after_recovery": {
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "events": [
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "5f3347e95f1c2662caf42c9946993e1f0af6d09cbb99d696059d59163f388006",
+        "kind": {
+          "Admitted": {
+            "proof_id": "13781f2657a6420941f90a2e9fdf4cbdf4ef528a448b5dc8e1ba4d3ed7b07bdf"
+          }
+        },
+        "part_id": "074ddcb0badb98c699f4c0d4faab02dc5244a343de9d73835bba0616121eeda2",
+        "revision": 1,
+        "sign_id": "56ec219af808bc990cf352f54c4df043da82c9b87dea28d4b2a2d90f1143e0d0"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "68a6c153106e755d39df61215a1d2525e8a0b62d0f5c03cf5ac798d98f4ef14a",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+              "host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+              "offer_generation": 1,
+              "proof_id": "13781f2657a6420941f90a2e9fdf4cbdf4ef528a448b5dc8e1ba4d3ed7b07bdf",
+              "sequence": 0
+            }
+          }
+        },
+        "part_id": "074ddcb0badb98c699f4c0d4faab02dc5244a343de9d73835bba0616121eeda2",
+        "revision": 2,
+        "sign_id": "5b0b2ee47ec09565c0811ab56a93f7a88b7f16e924c6398d95e27583d2bdfbe0"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "893bef28b07f55007cba723a367db626f7f4ddbc93c0921a81bc163dbf604883",
+        "kind": {
+          "Admitted": {
+            "proof_id": "c013d4f04befd0b9a69e7c498c8f9e72391127e0dba5c9fb0d5d2609253c17f5"
+          }
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "revision": 3,
+        "sign_id": "8f434cb89e6b999d5db1f86a7e60264b69fbba948dfba0a8967b1c64cb7d8888"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "cb33833fca9c7cef5b88ebc84893798bea06ce314d2ec5eca6583035ae764914",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+              "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+              "offer_generation": 1,
+              "proof_id": "c013d4f04befd0b9a69e7c498c8f9e72391127e0dba5c9fb0d5d2609253c17f5",
+              "sequence": 0
+            }
+          }
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "revision": 4,
+        "sign_id": "a666bccbb8a4265d962d1ed392bbb5734e80cf2228cd80e42e4c3932f3bd7896"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "68d307f5be446ad5c6e68f8ad1a1eaccf4215e2bc3cf5447d4d17f748831d91d",
+        "kind": {
+          "Admitted": {
+            "proof_id": "ab7bfbfdfc71c1ca8adb4fb402d63013a8bccfeba7799111d47558cba3f91225"
+          }
+        },
+        "part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+        "revision": 5,
+        "sign_id": "6d88a937fc326a6e764c73b5298d6205676cfce7ef277e846e38eefbb1a3b149"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "8455d4eba6149f093e8f8e99d47985e6a2b23cb63b3afe937ae4b8f6673afc30",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "boot_id": "0dca10324fbd6064d6cb0841c272fa4b142f4f445e994396c835777478875290",
+              "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+              "offer_generation": 1,
+              "proof_id": "ab7bfbfdfc71c1ca8adb4fb402d63013a8bccfeba7799111d47558cba3f91225",
+              "sequence": 0
+            }
+          }
+        },
+        "part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+        "revision": 6,
+        "sign_id": "857e980db4f3059c9fd062c47ebaf826a4fdebc8df45e4957b132402fd45dca9"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "a481e9a99e2154399a8d92b9ac178f3b9b3f51f0d36beb3fd5d8850d3d167a88",
+        "kind": {
+          "HostDetached": {
+            "prior_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6"
+          }
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "revision": 7,
+        "sign_id": "70b0190596836844df4927eafb1d793d2226baa0390fdbd346c0a9b0bfa6d065"
+      },
+      {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "change_id": "121ed1f79ddd23459e11e0fdd30cbec910fee29dd16a6c352086cd1db0c7322c",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "boot_id": "browser-boot/543d806e-4a9b-49dd-af75-f311ab308b75",
+              "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+              "offer_generation": 1,
+              "proof_id": "1f56930ade14d4967a1fac645a8dc15cc9873b605ca66f1e9d490aa059fc2358",
+              "sequence": 8
+            }
+          }
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "revision": 8,
+        "sign_id": "6bf172260c25e06bdda9130481154ab59a1bd1736aa63b55a57c80de22040159"
+      }
+    ],
+    "parts": [
+      {
+        "current": {
+          "boot_id": "boot/installed/66fc356c35f081c4b0cfeb1ecf4ef0d8456f357f980542fd9079c16c3b94e6a9",
+          "host_id": "host/installed/e049770e0b0962778e4f8e7373f5958dfcb712b6e3ff4cd720c41adffbdc73ab",
+          "offer_generation": 1,
+          "proof_id": "13781f2657a6420941f90a2e9fdf4cbdf4ef528a448b5dc8e1ba4d3ed7b07bdf",
+          "sequence": 0
+        },
+        "part_id": "074ddcb0badb98c699f4c0d4faab02dc5244a343de9d73835bba0616121eeda2",
+        "state": "Admitted"
+      },
+      {
+        "current": {
+          "boot_id": "browser-boot/543d806e-4a9b-49dd-af75-f311ab308b75",
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "offer_generation": 1,
+          "proof_id": "1f56930ade14d4967a1fac645a8dc15cc9873b605ca66f1e9d490aa059fc2358",
+          "sequence": 8
+        },
+        "part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+        "state": "Admitted"
+      },
+      {
+        "current": {
+          "boot_id": "0dca10324fbd6064d6cb0841c272fa4b142f4f445e994396c835777478875290",
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "offer_generation": 1,
+          "proof_id": "ab7bfbfdfc71c1ca8adb4fb402d63013a8bccfeba7799111d47558cba3f91225",
+          "sequence": 0
+        },
+        "part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+        "state": "Admitted"
+      }
+    ],
+    "revision": 8
+  },
+  "proof_boundary": "Browser window leave and new Boot admission; owner and QMP Parts stay current. No QMP reboot or workload failover claimed."
+}

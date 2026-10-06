@@ -11,6 +11,7 @@ import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
 import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
 import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
+import { verifyGuestRouteCertificate } from './three-host-route-certificate.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
@@ -115,6 +116,7 @@ const invoke = (executable, args, options = {}) => {
   return result.stdout;
 };
 const ownerJson = args => JSON.parse(invoke(owner, args));
+verifyGuestRouteCertificate(await readFile(cert), await readFile(key), routeUrl);
 const installation = await load(path.join(state, 'installation.json'));
 assert.equal(installation.product_executable, owner, 'installed owner executable differs');
 const guestBuild = await load(path.join(build, 'build-manifest.json'));
