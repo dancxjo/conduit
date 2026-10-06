@@ -172,9 +172,9 @@ fn prove(
         )?;
         wait_for_resume(directory, "resume-native-action", child)?;
     }
-    // Keyboard traffic is the actual native Mask Fore: focus the only
-    // available clock interval action, replace it with 500, then submit.
-    for key in ["tab", "5", "0", "0", "ret"] {
+    // The first available control is Wake; the second is the checked clock
+    // interval argument. Traverse both through the ordinary native Mask.
+    for key in ["tab", "tab", "5", "0", "0", "ret"] {
         journey_input::key_pair(&mut qmp, &mut reader, key, "native-owner-clock-input")?;
     }
     let (action, after, after_ack) = wait_for_action(serial_path, child, Duration::from_secs(30))?;

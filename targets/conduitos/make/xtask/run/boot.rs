@@ -53,7 +53,9 @@ pub(crate) fn inspect_wav(path: &Path) -> Result<QemuWavCapture, ConduitosError>
         ));
     }
     let nonzero_samples = bytes[44..]
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .filter(|sample| sample[0] != 0 || sample[1] != 0)
         .count();
     if nonzero_samples == 0 {
