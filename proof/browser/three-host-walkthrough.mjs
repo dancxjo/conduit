@@ -146,13 +146,19 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     const loss = report.owner_model_route_loss;
     assert.equal(loss.body_id, report.body_id);
     assert.equal(loss.run_id, report.run_id);
-    assert.equal(loss.failed_outcome, 'failed');
+    assert.equal(loss.operation_started_on_loss, false);
     assert.equal(loss.owner_face_unchanged, true);
     assert.equal(loss.new_listener_wav_on_failure, false);
-    const failed = JSON.parse(await readFile(path.join(output, loss.terminal.path)));
-    assert.equal(failed.operation_id, loss.failed_operation_id);
-    assert.equal(digest(Buffer.from(`${JSON.stringify(failed, null, 2)}\n`)),
-      loss.terminal.sha256);
+    const refusal = JSON.parse(await readFile(path.join(output, loss.refusal.path)));
+    assert.equal(refusal.operation_started, false);
+    assert.equal(digest(Buffer.from(`${JSON.stringify(refusal, null, 2)}\n`)),
+      loss.refusal.sha256);
+    const wardrobeBytes = await readFile(path.join(output, loss.wardrobe.path));
+    const wardrobe = JSON.parse(wardrobeBytes);
+    assert.equal(digest(wardrobeBytes), loss.wardrobe.sha256);
+    assert.equal(wardrobe.available.body_id, report.body_id);
+    assert.equal(wardrobe.unavailable.body_id, report.body_id);
+    assert.equal(wardrobe.restored.body_id, report.body_id);
     const restored = loss.restored;
     assert.equal(restored.body_id, report.body_id);
     assert.notEqual(restored.listener_play_id, report.owner_llm_speech.listener_play_id);
@@ -160,8 +166,8 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       restored.wav.sha256);
     sections.push(chapter('owner-model-loss', sections.length + 1,
       'Lose the model route, then hear it return',
-      'Withdraw the private loopback endpoint selected by this installed owner. Ask its still-selected model Mask to speak again. That owner operation fails without a new Show or listener WAV; the Face and Body remain. Restore the exact endpoint, ask again, and hear a new validated Show through a new speaker Play. The shared model service stays running. This does not establish wardrobe replacement planning or automatic fallback.',
-      `<details><summary>Inspect the failed owner operation</summary><p>${escape(loss.failed_detail)}</p><p><a href="${escape(loss.terminal.path)}">Owner terminal receipt</a></p></details><figure class="audio-feature"><figcaption><strong>Listen after restoration</strong><p>${escape(restored.accepted_wording)}</p></figcaption><audio controls preload="metadata" src="${escape(restored.wav.path)}"><a href="${escape(restored.wav.path)}">Download the restored speaker Play</a></audio></figure><p><a href="${escape(restored.terminal.path)}">Inspect restored owner Show and speaker Play</a>.</p>`));
+      'Withdraw the private loopback endpoint selected by this installed owner. Ask its still-selected model Mask to speak again. The owner sees the unavailable provider and refuses before a new Play, Show, or listener WAV; the Face and Body remain. Restore the exact endpoint, ask again, and hear a new validated Show through a new speaker Play. The shared model service stays running. This does not establish wardrobe replacement planning or automatic fallback.',
+      `<details><summary>Inspect the owner’s refusal</summary><p>${escape(loss.refusal_detail)}</p><p><a href="${escape(loss.refusal.path)}">Owner refusal receipt</a> · <a href="${escape(loss.wardrobe.path)}">Before, unavailable, and restored wardrobe reports</a></p></details><figure class="audio-feature"><figcaption><strong>Listen after restoration</strong><p>${escape(restored.accepted_wording)}</p></figcaption><audio controls preload="metadata" src="${escape(restored.wav.path)}"><a href="${escape(restored.wav.path)}">Download the restored speaker Play</a></audio></figure><p><a href="${escape(restored.terminal.path)}">Inspect restored owner Show and speaker Play</a>.</p>`));
   }
   if (report.presentation_host_recovery) {
     const recovery = JSON.parse(await readFile(path.join(output,

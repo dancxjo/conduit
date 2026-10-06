@@ -470,7 +470,19 @@ try {
     ? await captureOwnerModelRouteLoss({ owner: run, state, output, installation: installed,
       bodyId, runId, sourceCommit: installed.release_source_identity,
       model: modelArgument, controlSocket: ownerModelRouteControlArgument,
-      successful: ownerLlmSpeech }) : undefined;
+      successful: ownerLlmSpeech,
+      observeWardrobe: async (routeId, available) => {
+        await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+        await page.waitForFunction(({ routeId, available }) => {
+          try {
+            const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]')
+              .textContent);
+            return report.admitted_routes.some(route =>
+              route.route_id === routeId && route.currently_available === available);
+          } catch { return false; }
+        }, { routeId, available }, { timeout: 12_000 });
+        return readWardrobe();
+      } }) : undefined;
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(expectedShow => {
     try {

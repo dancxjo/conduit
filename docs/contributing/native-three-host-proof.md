@@ -271,8 +271,8 @@ reobserves the selected offer at Boot. Add
 `--owner-model-route-control PRIVATE_ROUTE_DIR/model-control.sock` to the
 `screen-free-three-host-proof` command. The producer verifies that the private
 control socket names that exact installed endpoint, withdraws only that route,
-starts the owner-selected model Mask, checks its failed terminal result and
-absence of a new listener WAV, restores the same endpoint, and captures a new
+asks the owner-selected model Mask to start, checks its refusal before a Play
+and the absence of a new listener WAV, restores the same endpoint, and captures a new
 owner Show and same-Play speaker WAV. The shared Ollama service stays running.
 The route and control socket are producer equipment, not authored Plot facts.
 An existing installation that selected Ollama directly remains valid for
