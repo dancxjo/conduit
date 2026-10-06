@@ -35,14 +35,26 @@ the existing stricter keyboard and button policy. The boot motion profile
 refuses the out-of-domain `0x80` displacement rather than clamping it.
 
 `cargo xtask make conduitos usb-plots-check` includes these Source contracts.
-`hid-mouse-order.conduit` adds a two-observation ordering state ahead of pointer
-history. It retains compact motion and distinct invalid-report observations;
-the existing decoded wire result and 2,048-byte endpoint payload retain their
-own bounds. Packaged preparation issues no authority. Prepared-expression conformance
+`hid-mouse-order.conduit` retains two compact observations ahead of pointer
+history. The existing decoded wire result and 2,048-byte endpoint payload keep
+their own bounds. Packaged preparation issues no authority. Expression proof
 preserves signed motion and buttons, distinguishes invalid observations, refuses
 duplicate/stale/distant ordinals, and reuses two slots across 128 observations.
-Projection and drain allocation checks pass. Pointer history, kernel lifecycle
-and ordinary two-capture installation remain pending.
+
+`hid-mouse-order-lifecycle.conduit` drains that state through the existing kernel,
+seeded state, feedback Zip and finite Merge. Kernel conformance covers held
+output pressure, 64 reuse cycles, normal drain, missing ordinals, each physical
+failure tag and cancellation. Prepared execution allocates nothing; cancellation
+revokes a held observation without fabricating normal completion.
+
+`hid-mouse-pointer.conduit` advances normalized position and event sequence only
+for valid ordered motion. It preserves the existing motion scale, coordinate
+clamp and primary button mapping, retains history for invalid observations, and
+refuses invalid state or sequence exhaustion. The mechanical
+`SourcePointerSampleDecoder` converts its checked sample to the existing portable
+pointer seam without interpreting reports. Expression and conversion allocation
+checks pass. Ordinary two-capture device installation remains pending; these
+fixtures establish Source/kernel behavior, not native endpoint execution.
 
 Existing report conformance covers every key-slot permutation and motion octet.
 Both class topologies also execute 64 frames through the production kernel with

@@ -1,93 +1,19 @@
 //! Two-capture mouse ordering in checked Source; no device execution claim.
 #[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
 mod allocation;
+#[path = "usb_mouse_order/common.rs"]
+mod common;
+use common::*;
 use conduit_core::*;
-use conduit_plot::{PortableExpressionProgram, PreparedPortableExpressionEvaluator};
-
-fn program(entry: &str) -> PortableExpressionProgram {
-    let package = conduitos::protocol_source::usb_hid_mouse_order_package().unwrap();
-    let source = conduitos::protocol_source::PreparedProtocolSource::prepare(package).unwrap();
-    let expanded = source
-        .expand(entry)
-        .unwrap_or_else(|error| panic!("{entry}: {error:?}"))
-        .expanded;
-    assert_eq!(expanded.gears.len(), 1);
-    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
-        panic!("pure Source expression")
-    };
-    PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
-}
-fn field_type(ty: &StructuredInfoType, name: &str) -> StructuredInfoType {
-    let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
-        panic!("record")
-    };
-    fields
-        .iter()
-        .find(|f| f.name() == name)
-        .unwrap()
-        .value_type()
-        .clone()
-}
-fn insertion(ty: &StructuredInfoType, state: &[u8], ordinal: u64, tag: &str) -> Vec<u8> {
-    let observation_type = field_type(ty, "observation");
-    let result_type = field_type(&observation_type, "observed");
-    let unit = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/unit")).unwrap(),
-        vec![],
-    )
-    .unwrap();
-    let observed = StructuredInfoValue::variant(result_type, tag, unit).unwrap();
-    let observation = StructuredInfoValue::record(
-        observation_type.clone(),
-        vec![
-            StructuredFieldValue::new(
-                "ordinal",
-                StructuredInfoValue::leaf(
-                    field_type(&observation_type, "ordinal"),
-                    ordinal.to_le_bytes().to_vec(),
-                )
-                .unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldValue::new("observed", observed).unwrap(),
-        ],
-    )
-    .unwrap();
-    StructuredInfoValue::record(
-        ty.clone(),
-        vec![
-            StructuredFieldValue::new(
-                "state",
-                StructuredInfoValue::from_canonical_bytes(state).unwrap(),
-            )
-            .unwrap(),
-            StructuredFieldValue::new("observation", observation).unwrap(),
-        ],
-    )
-    .unwrap()
-    .canonical_bytes()
-    .unwrap()
-}
-fn encoded(value: ValidatedCanonicalStructuredValue<'_>) -> Vec<u8> {
-    let mut bytes = value.type_bytes().to_vec();
-    bytes.extend_from_slice(value.value_node());
-    bytes
-}
-fn payload(bytes: &[u8], tag: &str) -> Vec<u8> {
-    encoded(
-        validate_canonical_structured_value(bytes)
-            .unwrap()
-            .variant_payload(tag)
-            .unwrap()
-            .unwrap(),
-    )
-}
+use conduit_plot::PreparedPortableExpressionEvaluator;
 
 #[test]
 fn two_captures_preserve_invalid_observations_and_refuse_duplicate_stale_and_distant_values() {
-    let initialize = program("usb-hid-mouse-order-initialize");
-    let insert = program("usb-hid-mouse-order-insert");
-    let drain = program("usb-hid-mouse-order-drain");
+    let [initialize, insert, drain] = programs([
+        "usb-hid-mouse-order-initialize",
+        "usb-hid-mouse-order-insert",
+        "usb-hid-mouse-order-drain",
+    ]);
     let mut state = initialize.evaluate(&[]).unwrap();
     let mut prepared = PreparedPortableExpressionEvaluator::new(&drain).unwrap();
     for ordinal in [1, 0] {
@@ -172,24 +98,6 @@ fn two_captures_preserve_invalid_observations_and_refuse_duplicate_stale_and_dis
         .evaluate(&insertion(&insert.input_type, &state, 1, "short"))
         .unwrap();
     assert_tag(&stale, "stale");
-}
-
-fn assert_tag(bytes: &[u8], expected: &str) {
-    assert!(
-        validate_canonical_structured_value(bytes)
-            .unwrap()
-            .variant_payload(expected)
-            .unwrap()
-            .is_some()
-    );
-}
-
-fn leaf_field(ty: &StructuredInfoType, name: &str, bytes: &[u8]) -> StructuredFieldValue {
-    StructuredFieldValue::new(
-        name,
-        StructuredInfoValue::leaf(field_type(ty, name), bytes.to_vec()).unwrap(),
-    )
-    .unwrap()
 }
 
 #[test]
@@ -330,9 +238,11 @@ fn compact_observation_preserves_motion_buttons_and_every_invalid_disposition_wi
 
 #[test]
 fn two_capture_window_reuses_slots_across_128_observations_with_constant_state_bound() {
-    let initialize = program("usb-hid-mouse-order-initialize");
-    let insert = program("usb-hid-mouse-order-insert");
-    let drain = program("usb-hid-mouse-order-drain");
+    let [initialize, insert, drain] = programs([
+        "usb-hid-mouse-order-initialize",
+        "usb-hid-mouse-order-insert",
+        "usb-hid-mouse-order-drain",
+    ]);
     let mut state = initialize.evaluate(&[]).unwrap();
     let mut full_state_size = None;
     for round in 0..64_u64 {
@@ -377,3 +287,6 @@ fn two_capture_window_reuses_slots_across_128_observations_with_constant_state_b
         assert_tag(&drain.evaluate(&state).unwrap(), "waiting");
     }
 }
+
+#[path = "usb_mouse_order/pointer_history.rs"]
+mod pointer_history;
