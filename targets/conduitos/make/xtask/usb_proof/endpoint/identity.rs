@@ -1,5 +1,5 @@
 //! Proof-specific Boot disposition: no product input offer is initialized.
-use super::{refusal, ConduitosError, GuestBootSign};
+use super::{ConduitosError, GuestBootSign, refusal};
 
 pub(super) fn validate_boot_mode(
     sign: &GuestBootSign,
@@ -66,6 +66,12 @@ mod tests {
         assert!(validate_boot_mode(&sign, super::super::ProofMode::Raw).is_err());
         sign.runtime_arena_bytes -= 1;
         assert!(validate_boot_mode(&sign, super::super::ProofMode::Keyboard).is_err());
+        sign.qemu_profile = conduitos::make::USB_HID_MOUSE_QEMU_PROFILE.into();
+        sign.runtime_arena_bytes = conduitos::make::USB_HID_MOUSE_ARENA_BYTES;
+        validate_boot_mode(&sign, super::super::ProofMode::Mouse).unwrap();
+        assert!(validate_boot_mode(&sign, super::super::ProofMode::Keyboard).is_err());
+        sign.runtime_arena_bytes = conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES;
+        assert!(validate_boot_mode(&sign, super::super::ProofMode::Mouse).is_err());
     }
 
     #[test]

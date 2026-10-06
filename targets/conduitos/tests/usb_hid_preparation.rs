@@ -1,8 +1,8 @@
 //! Measure retained Source preparation using the production fixed arena allocator.
 use conduitos::allocation::BootArena;
 use conduitos::usb_base::{
-    endpoint_read_proof_plan::EndpointReadProofSubject,
-    hid_endpoint_proof_kernel::PreparedHidEndpointProofKernel, hid_endpoint_proof_plan,
+    endpoint_read_proof_plan::EndpointReadProofSubject, hid_endpoint_proof_plan,
+    hid_source_kernel::PreparedHidSourceKernel,
 };
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
@@ -98,8 +98,8 @@ fn retained_hid_source_preparation_has_a_measured_finite_arena_envelope() {
             endpoint_epoch: 1,
         };
         let artifact =
-            hid_endpoint_proof_plan::plan(&subject, "usb-hid-keyboard-endpoint").unwrap();
-        let _play = PreparedHidEndpointProofKernel::prepare(
+            hid_endpoint_proof_plan::plan(&subject, "usb-hid-keyboard-capture-window").unwrap();
+        let _play = PreparedHidSourceKernel::prepare(
             artifact,
             conduit_composite::KernelCompositeSignStorage {
                 additional_local_items: 4096,
