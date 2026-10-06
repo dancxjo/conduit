@@ -272,6 +272,8 @@ mod tests {
             "--orifina-presenter",
             "--journey-documentary",
         ]);
+        assert!(Cli::try_parse_from(&args).is_err());
+        args.extend(["--speech-language-coverage", "/coverage.cov"]);
         assert!(Cli::try_parse_from(&args).is_ok());
     }
 }
