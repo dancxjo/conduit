@@ -43,17 +43,7 @@ pub fn install_linguistics_catalogs(
         .chain(crate::realization_types())
         .chain(linguistic_types())
     {
-        if let Some(existing) = startup.structured_type(name) {
-            if existing != &value_type {
-                return Err(alloc::format!(
-                    "{name} differs from the Language-owned native schema"
-                ));
-            }
-        } else {
-            startup
-                .insert_structured_type(name, value_type)
-                .map_err(|error| error.to_string())?;
-        }
+        startup.ensure_structured_type(name, value_type)?;
     }
     startup
         .insert(KindSignature {
