@@ -25,6 +25,8 @@ use conduit_core::*;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use core::fmt::Write;
 use sha2::{Digest, Sha256};
+#[path = "usb_endpoint_read_proof/capture_preparation.rs"]
+mod capture_preparation;
 #[path = "usb_endpoint_read_proof/dma.rs"]
 mod dma;
 #[path = "usb_endpoint_read_proof/hid.rs"]
