@@ -157,6 +157,7 @@ fn service_product_ingress(
 /// established from its admitted USB capture. The caller retains ingress and
 /// batch across Yield/pressure and acknowledges Source only after it is empty.
 #[cfg(target_arch = "x86_64")]
+#[allow(dead_code)] // Root Source capture composition is being connected.
 pub(crate) fn service_source_batch(
     batch: &mut crate::source_keyboard_batch::PendingSourceKeyboardBatch,
     ingress: &mut KeyboardIngress,
