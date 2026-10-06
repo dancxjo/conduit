@@ -151,11 +151,11 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
     await expect(page.getByRole("button", { name: "Library", exact: true })).toHaveAttribute("aria-expanded", "true");
-    await expect(page.locator("#plot-results").getByRole("button")).toHaveCount(3);
+    await expect(page.locator("#plot-results").getByRole("button")).toHaveCount(4);
     await expect(page.getByRole("button", { name: "Open Plot Text Lab" })).toBeVisible();
     await page.getByRole("searchbox", { name: "Find Plots, Gears, and Parts" }).fill("hElLo");
-    await expect(page.locator("#plot-results-status")).toHaveText("1 of 3 Plots available");
-    const plot = initial.presentation.subjects.find(({ role, label }) => role === "Plot" && label === "Hello");
+    await expect(page.locator("#plot-results-status")).toHaveText("1 of 4 Plots available");
+    const plot = initial.presentation.subjects.find(({ role, name }) => role === "Plot" && name === "Hello");
     const formButton = page.getByRole("button", { name: "Open Plot Hello" });
     await page.getByRole("searchbox", { name: "Find Plots, Gears, and Parts" }).press("ArrowDown");
     await expect(formButton).toBeFocused();
@@ -198,12 +198,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     );
     expect(opened.presentation.subjects).toEqual(expect.arrayContaining([
       expect.objectContaining({ role: "Plot" }),
-      expect.objectContaining({ role: "Gear", label: "hello/upper" }),
+      expect.objectContaining({ role: "Gear", name: expect.stringMatching(/^hello\/upper Gear/) }),
       expect.objectContaining({ role: "Cord" }),
     ]));
-    const upperFaceplate = page.locator('.faceplate-title[title="hello/upper"]');
+    const upperFaceplate = page.locator('.faceplate-title[title^="hello/upper Gear"]');
     await expect(upperFaceplate).toHaveText("upper");
-    await expect(upperFaceplate).toHaveAttribute("title", "hello/upper");
+    await expect(upperFaceplate).toHaveAttribute("title", "hello/upper Gear, text/upper");
     const birthAction = opened.presentation.actions.find(
       ({ intent, target }) => intent === "conduit.intent/birth@1" && target === plot.identity,
     );
