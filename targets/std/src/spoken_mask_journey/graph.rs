@@ -1,5 +1,5 @@
 //! Ordinary Mask composition; streaming changes admitted work, not queue size.
-pub(super) fn source(plot_name: &str, maximum_output_bytes: u32, streaming: bool) -> String {
+pub(crate) fn source(plot_name: &str, maximum_output_bytes: u32, streaming: bool) -> String {
     let projection = if streaming {
         "presentation/generated-manifestation-speech-stream"
     } else {

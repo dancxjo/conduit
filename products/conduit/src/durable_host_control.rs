@@ -105,8 +105,8 @@ pub(crate) struct DurableHostRuntime {
     selected_speech_equipment: Option<crate::durable_host::selected_speech::AttachedEquipment>,
     speech_worker: Option<body::speech::SpeechWorker>,
     speech_terminal: Option<serde_json::Value>,
-    direct_spoken_worker: Option<body::direct_spoken::DirectSpokenWorker>,
-    direct_spoken_terminal: Option<serde_json::Value>,
+    owner_spoken_worker: Option<body::owner_spoken::OwnerSpokenWorker>,
+    owner_spoken_terminal: Option<serde_json::Value>,
 }
 
 impl DurableHostRuntime {
@@ -134,8 +134,8 @@ impl DurableHostRuntime {
             selected_speech_equipment: None,
             speech_worker: None,
             speech_terminal: None,
-            direct_spoken_worker: None,
-            direct_spoken_terminal: None,
+            owner_spoken_worker: None,
+            owner_spoken_terminal: None,
         }
     }
 
@@ -1384,7 +1384,7 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
         terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
         let running = runtime.host.body_is_running()
             || runtime.speech_worker.is_some()
-            || runtime.direct_spoken_worker.is_some()
+            || runtime.owner_spoken_worker.is_some()
             || terminal_attach::is_attached(&mut runtime);
         if running != polling_play {
             listener
@@ -1394,13 +1394,13 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
         }
         runtime.progress_owned_body()?;
         runtime.progress_browser_speech()?;
-        runtime.progress_direct_spoken()?;
+        runtime.progress_owner_spoken()?;
         let mut stream = match listener.accept() {
             Ok((stream, _)) => stream,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 let pause = if runtime.host.body_is_running()
                     || runtime.speech_worker.is_some()
-                    || runtime.direct_spoken_worker.is_some()
+                    || runtime.owner_spoken_worker.is_some()
                 {
                     10
                 } else {
@@ -1874,7 +1874,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         return refused("body-play-active");
     }
     #[cfg(unix)]
-    if (runtime.speech_worker.is_some() || runtime.direct_spoken_worker.is_some())
+    if (runtime.speech_worker.is_some() || runtime.owner_spoken_worker.is_some())
         && !speech_route::ordinary_request_allowed(&request)
     {
         return refused("selected-speech-active");

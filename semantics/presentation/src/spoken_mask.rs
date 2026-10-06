@@ -8,7 +8,8 @@ use conduit_core::{ActivePlayId, PlacementId, PlanId, SignId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    GeneratedManifestation, ManifestationLifecycle, MaskShow, MaskShowError, Presentation,
+    GeneratedContentRole, GeneratedManifestation, ManifestationLifecycle, MaskShow, MaskShowError,
+    Presentation, MAX_GENERATED_WORDING_BYTES,
 };
 
 pub const SPOKEN_MASK_ARTIFACT_RECEIPT_KIND: &str =
@@ -52,6 +53,8 @@ pub struct SpokenMaskArtifactReceipt {
 pub struct ArtifactAcknowledgedSpokenShow {
     pub show: MaskShow,
     pub generated_manifestation_identity: String,
+    /// Exact validated outward Speech handed to synthesis for this Show.
+    pub accepted_wording: String,
     pub artifact: SpokenMaskArtifactReceipt,
 }
 
@@ -77,21 +80,51 @@ pub enum SpokenMaskShowError {
 }
 
 impl ArtifactAcknowledgedSpokenShow {
+    /// Outer-owner check after the trusted spoken Mask session has already
+    /// validated the generated candidate and minted this Show. This proves
+    /// artifact/Face/Plan/Play linkage, not the candidate's semantics by itself.
+    pub fn validate_owner_artifact(
+        &self,
+        presentation: &Presentation,
+    ) -> Result<(), SpokenMaskShowError> {
+        self.artifact.validate_for(&self.show)?;
+        if self.generated_manifestation_identity.is_empty()
+            || self.accepted_wording.is_empty()
+            || self.accepted_wording.len() > MAX_GENERATED_WORDING_BYTES
+        {
+            return Err(SpokenMaskShowError::StaleGeneration);
+        }
+        if self.show.show.lifecycle != ManifestationLifecycle::Available {
+            return Err(SpokenMaskShowError::NotAvailable);
+        }
+        self.show
+            .validate(presentation)
+            .map_err(SpokenMaskShowError::InvalidShow)
+    }
+
     pub fn validate(
         &self,
         presentation: &Presentation,
         generated: &GeneratedManifestation,
     ) -> Result<(), SpokenMaskShowError> {
-        self.artifact.validate_for(&self.show)?;
+        self.validate_owner_artifact(presentation)?;
         if self.generated_manifestation_identity != generated.manifestation_identity()
             || generated.source_presentation_identity() != presentation.identity.as_str()
             || generated.source_presentation_revision() != presentation.revision
+            || generated
+                .content()
+                .iter()
+                .filter(|segment| segment.role == GeneratedContentRole::Speech)
+                .count()
+                != 1
+            || !generated.content().iter().any(|segment| {
+                segment.role == GeneratedContentRole::Speech
+                    && segment.bytes == self.accepted_wording.as_bytes()
+            })
         {
             return Err(SpokenMaskShowError::StaleGeneration);
         }
-        self.show
-            .validate(presentation)
-            .map_err(SpokenMaskShowError::InvalidShow)
+        Ok(())
     }
 }
 

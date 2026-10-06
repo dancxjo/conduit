@@ -396,6 +396,7 @@ fn execute_spoken_mask_with_final_slot(
         serde_json::from_slice(&collector.0[0].bytes).unwrap();
     assert_eq!(shown.show.show.lifecycle, ManifestationLifecycle::Available);
     assert_eq!(shown.show.show.presentation_id, presentation.identity);
+    assert_eq!(shown.accepted_wording, presentation.text[0].text);
     assert!(shown.artifact.pcm_bytes > 0);
     assert!(shown.artifact.blocks > 0);
     let kernel = report.kernel.unwrap();

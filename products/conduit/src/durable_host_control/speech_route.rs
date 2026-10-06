@@ -42,6 +42,28 @@ pub(crate) enum SpeechRequest {
         token: Vec<u8>,
         operation_id: String,
     },
+    LlmAdmit {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    LlmSelect {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    LlmStart {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    LlmStatus {
+        protocol: u16,
+        token: Vec<u8>,
+        operation_id: String,
+    },
+    LlmStop {
+        protocol: u16,
+        token: Vec<u8>,
+        operation_id: String,
+    },
     Start {
         protocol: u16,
         token: Vec<u8>,
@@ -111,6 +133,11 @@ pub(super) fn call(
         | SpeechRequest::DirectStart { token, .. }
         | SpeechRequest::DirectStatus { token, .. }
         | SpeechRequest::DirectStop { token, .. } => token.fill(0),
+        SpeechRequest::LlmAdmit { token, .. }
+        | SpeechRequest::LlmSelect { token, .. }
+        | SpeechRequest::LlmStart { token, .. }
+        | SpeechRequest::LlmStatus { token, .. }
+        | SpeechRequest::LlmStop { token, .. } => token.fill(0),
     }
     sent?;
     stream
@@ -144,6 +171,15 @@ pub(super) fn serve(
                 protocol, token, ..
             }
             | SpeechRequest::DirectStop {
+                protocol, token, ..
+            }
+            | SpeechRequest::LlmAdmit { protocol, token }
+            | SpeechRequest::LlmSelect { protocol, token }
+            | SpeechRequest::LlmStart { protocol, token }
+            | SpeechRequest::LlmStatus {
+                protocol, token, ..
+            }
+            | SpeechRequest::LlmStop {
                 protocol, token, ..
             }
             | SpeechRequest::Start {
@@ -197,6 +233,42 @@ pub(super) fn serve(
                 }),
             SpeechRequest::DirectStop { operation_id, .. } => runtime
                 .stop_direct_spoken(&operation_id)
+                .map(|()| SpeechReply::StopRequested {
+                    protocol: PROTOCOL,
+                    operation_id,
+                }),
+            SpeechRequest::LlmAdmit { .. } => {
+                runtime
+                    .admit_llm_spoken()
+                    .map(|report| SpeechReply::DirectRoute {
+                        protocol: PROTOCOL,
+                        report: Box::new(report),
+                    })
+            }
+            SpeechRequest::LlmSelect { .. } => {
+                runtime
+                    .select_llm_spoken()
+                    .map(|report| SpeechReply::DirectRoute {
+                        protocol: PROTOCOL,
+                        report: Box::new(report),
+                    })
+            }
+            SpeechRequest::LlmStart { .. } => {
+                runtime
+                    .start_llm_spoken()
+                    .map(|operation_id| SpeechReply::Started {
+                        protocol: PROTOCOL,
+                        operation_id,
+                    })
+            }
+            SpeechRequest::LlmStatus { operation_id, .. } => runtime
+                .llm_spoken_status(&operation_id)
+                .map(|status| SpeechReply::Status {
+                    protocol: PROTOCOL,
+                    status: Box::new(status),
+                }),
+            SpeechRequest::LlmStop { operation_id, .. } => runtime
+                .stop_llm_spoken(&operation_id)
                 .map(|()| SpeechReply::StopRequested {
                     protocol: PROTOCOL,
                     operation_id,

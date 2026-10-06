@@ -207,6 +207,8 @@ impl SpokenMaskSemanticSession {
         let result = ArtifactAcknowledgedSpokenShow {
             show: available,
             generated_manifestation_identity: generated.manifestation_identity().into(),
+            accepted_wording: String::from_utf8(self.extract_accepted_speech(generated)?)
+                .map_err(|_| "accepted outward Speech is not UTF-8".to_string())?,
             artifact,
         };
         result

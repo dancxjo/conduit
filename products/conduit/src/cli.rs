@@ -517,16 +517,33 @@ pub(crate) enum BodyCommand {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum SpokenMaskCommand {
-    /// Admit the direct Face-to-artifact child in the current Body Plan.
-    Admit,
+    /// Admit the direct or --llm Face-to-artifact child in the Body Plan.
+    Admit {
+        #[arg(long)]
+        llm: bool,
+    },
     /// Wear and select that exact child before its Play.
-    Select,
-    /// Start one cancellable direct spoken Mask Play.
-    Start,
+    Select {
+        #[arg(long)]
+        llm: bool,
+    },
+    /// Start one cancellable selected spoken Mask Play.
+    Start {
+        #[arg(long)]
+        llm: bool,
+    },
     /// Inspect the exact operation's terminal or running state.
-    Status { operation_id: String },
+    Status {
+        operation_id: String,
+        #[arg(long)]
+        llm: bool,
+    },
     /// Request cancellation of the exact running operation.
-    Stop { operation_id: String },
+    Stop {
+        operation_id: String,
+        #[arg(long)]
+        llm: bool,
+    },
 }
 
 /// Explicit local synthesis and speaker selection for a screen-free session.

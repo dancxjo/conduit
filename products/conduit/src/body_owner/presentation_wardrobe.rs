@@ -69,6 +69,71 @@ impl OwnerPresentationWardrobe {
         &self.control
     }
 
+    /// Explicit owner choice of one already sealed child. Preference alone
+    /// retains a still-current prior Show, so release that selection through
+    /// wardrobe actions and restore its worn eligibility after the new child
+    /// is selected. All revisions advance in this one owner control turn.
+    pub(crate) fn select_plot(
+        &mut self,
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        current: &[CurrentOwnerPresentationRoute<'_>],
+        target: &PlotIdentity,
+        route_plan_id: &PlanId,
+    ) -> Result<(), OwnerPresentationWardrobeError> {
+        let previous = self
+            .control
+            .selected
+            .as_ref()
+            .map(|route| route.mask_plot.clone());
+        let mut preference = self.control.scoped_wardrobe.wardrobe.preference.clone();
+        if !self.control.scoped_wardrobe.wardrobe.worn.contains(target) {
+            let revision = self.control.scoped_wardrobe.wardrobe.revision;
+            self.apply(
+                session,
+                face,
+                current,
+                revision,
+                MaskWardrobeAction::Wear(target.clone()),
+            )?;
+        }
+        preference.retain(|plot| plot != target);
+        preference.insert(0, target.clone());
+        let revision = self.control.scoped_wardrobe.wardrobe.revision;
+        self.apply(
+            session,
+            face,
+            current,
+            revision,
+            MaskWardrobeAction::Prefer(preference),
+        )?;
+        if let Some(previous) = previous.filter(|plot| plot != target) {
+            let revision = self.control.scoped_wardrobe.wardrobe.revision;
+            self.apply(
+                session,
+                face,
+                current,
+                revision,
+                MaskWardrobeAction::Doff(previous.clone()),
+            )?;
+            let revision = self.control.scoped_wardrobe.wardrobe.revision;
+            self.apply(
+                session,
+                face,
+                current,
+                revision,
+                MaskWardrobeAction::Wear(previous),
+            )?;
+        }
+        if self.control.selected.as_ref().is_none_or(|selected| {
+            selected.route_id != format!("route/{}", route_plan_id.as_str())
+                || &selected.mask_plot != target
+        }) {
+            return Err(OwnerPresentationWardrobeError::RouteNotSelected);
+        }
+        Ok(())
+    }
+
     /// Recheck actual current offers and Lines. A missing witness makes its
     /// sealed route unavailable; a stale or unsealed witness is refused.
     pub(crate) fn reconcile(

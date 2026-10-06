@@ -241,12 +241,19 @@ impl Owner {
             &self.session,
             &face,
         )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
         let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
             self.pending_native_mask.as_ref(),
             speech,
+            llm_speech,
             &self.session,
             &face,
             super::super::super::super::super::current_time_millis()?,

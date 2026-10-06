@@ -118,6 +118,7 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub mod llm_spoken_mask;
 pub mod spoken_face_mask;
 pub mod spoken_face_stream_execution;
 pub mod spoken_mask_journey;

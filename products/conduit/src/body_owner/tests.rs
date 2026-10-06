@@ -25,6 +25,17 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
 }
 
 #[test]
+fn spoken_next_play_capacity_report_is_safe_while_worker_owns_host() {
+    let plot = source();
+    let mut owner =
+        Owner::open(host("boot/spoken-capacity"), resident(&plot), None, "Test").unwrap();
+    let taken = owner.host.take_for_play().unwrap();
+    assert!(owner.host.is_playing());
+    assert!(!super::presentation_wardrobe_report::spoken_artifact_can_start_new_play(&owner.host));
+    owner.host.restore_after_play(taken).unwrap();
+}
+
+#[test]
 fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability() {
     use conduit_presentation::{CurrentOwnerPresentationRoute, MaskShowDisposition};
 

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(all(test, unix))]
 mod cancellation_tests;
-mod graph;
+pub(crate) mod graph;
 mod replay;
 mod retained_artifact;
 mod routes;

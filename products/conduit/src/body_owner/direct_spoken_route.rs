@@ -9,9 +9,7 @@ use super::{
     presentation_wardrobe_runtime::wardrobe_error, Owner,
 };
 use conduit_core::{port_id, ConnectionTrack, SignId};
-use conduit_presentation::{
-    LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobeAction, Presentation, PresentationRole,
-};
+use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow, Presentation, PresentationRole};
 use conduit_std_host::{
     direct_spoken_mask_runtime::DirectSpokenMaskPreparation, ExternalForeInput,
 };
@@ -30,12 +28,19 @@ impl Owner {
             &self.session,
             &face,
         )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
         let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
             self.pending_native_mask.as_ref(),
             Some(&seal),
+            llm_speech,
             &self.session,
             &face,
             super::super::super::current_time_millis()?,
@@ -44,75 +49,15 @@ impl Owner {
             .presentation_wardrobe
             .as_mut()
             .ok_or("owner presentation wardrobe is not admitted")?;
-        let target = seal.planned_mask.mask.plot_identity.clone();
-        let previous = wardrobe
-            .control()
-            .selected
-            .as_ref()
-            .map(|route| route.mask_plot.clone());
-        let mut preference = wardrobe
-            .control()
-            .scoped_wardrobe
-            .wardrobe
-            .preference
-            .clone();
-        if !wardrobe
-            .control()
-            .scoped_wardrobe
-            .wardrobe
-            .worn
-            .contains(&target)
-        {
-            let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
-            wardrobe
-                .apply(
-                    &self.session,
-                    &face,
-                    &current,
-                    revision,
-                    MaskWardrobeAction::Wear(target.clone()),
-                )
-                .map_err(wardrobe_error)?;
-        }
-        preference.retain(|plot| plot != &target);
-        preference.insert(0, target.clone());
-        let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
         wardrobe
-            .apply(
+            .select_plot(
                 &self.session,
                 &face,
                 &current,
-                revision,
-                MaskWardrobeAction::Prefer(preference),
+                &seal.planned_mask.mask.plot_identity,
+                &seal.route_plan_id,
             )
             .map_err(wardrobe_error)?;
-        if let Some(previous) = previous.filter(|plot| plot != &target) {
-            let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
-            wardrobe
-                .apply(
-                    &self.session,
-                    &face,
-                    &current,
-                    revision,
-                    MaskWardrobeAction::Doff(previous.clone()),
-                )
-                .map_err(wardrobe_error)?;
-            let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
-            wardrobe
-                .apply(
-                    &self.session,
-                    &face,
-                    &current,
-                    revision,
-                    MaskWardrobeAction::Wear(previous),
-                )
-                .map_err(wardrobe_error)?;
-        }
-        if wardrobe.control().selected.as_ref().is_none_or(|selected| {
-            selected.route_id != format!("route/{}", seal.route_plan_id.as_str())
-        }) {
-            return Err("direct spoken Mask could not become the selected owner route".into());
-        }
         Ok(seal)
     }
 
@@ -122,7 +67,10 @@ impl Owner {
         if !self.selected_speech_host_is_idle()
             || !self.host.current().spoken_mask_artifact_route_is_current()
         {
-            return Err("direct spoken Mask needs an idle current voice and free artifact".into());
+            return Err(
+                "direct spoken Mask needs an idle current voice and retained artifact capacity"
+                    .into(),
+            );
         }
         let face = self.local_face_snapshot()?;
         let prepared = self.host.current().prepare_direct_spoken_mask(&face)?;
@@ -140,12 +88,19 @@ impl Owner {
             &self.session,
             &face,
         )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
         let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
             self.pending_native_mask.as_ref(),
             Some(&seal),
+            llm_speech,
             &self.session,
             &face,
             super::super::super::current_time_millis()?,
@@ -182,11 +137,17 @@ impl Owner {
         .ok_or("direct spoken route has no current Host/provider witness")?
         .clone();
         if !self.host.current().spoken_mask_artifact_route_is_current() {
-            return Err("direct spoken artifact destination already published".into());
+            return Err("direct spoken artifact retained capacity is unavailable".into());
         }
         let terminal = Self::current_attached_terminal_route(
             &self.host,
             self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
             &self.session,
             &face,
         )?;
@@ -196,6 +157,7 @@ impl Owner {
             terminal,
             self.pending_native_mask.as_ref(),
             Some(&seal),
+            llm_speech,
             &self.session,
             &face,
             super::super::super::current_time_millis()?,
@@ -283,12 +245,19 @@ impl Owner {
             &self.session,
             &face,
         )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
         let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
             self.pending_native_mask.as_ref(),
             Some(seal),
+            llm_speech,
             &self.session,
             &face,
             super::super::super::current_time_millis()?,

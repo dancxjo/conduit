@@ -30,8 +30,8 @@ mod clock_action;
 #[cfg(unix)]
 #[path = "body/control_client.rs"]
 mod control_client;
-#[path = "body/direct_spoken.rs"]
-pub(super) mod direct_spoken;
+#[path = "body/owner_spoken.rs"]
+pub(super) mod owner_spoken;
 #[path = "body/speech.rs"]
 pub(super) mod speech;
 #[cfg(unix)]
@@ -290,8 +290,8 @@ impl DurableHostRuntime {
             selected_speech_equipment,
             speech_worker,
             speech_terminal,
-            direct_spoken_worker,
-            direct_spoken_terminal,
+            owner_spoken_worker,
+            owner_spoken_terminal,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
@@ -316,8 +316,8 @@ impl DurableHostRuntime {
             selected_speech_equipment,
             speech_worker,
             speech_terminal,
-            direct_spoken_worker,
-            direct_spoken_terminal,
+            owner_spoken_worker,
+            owner_spoken_terminal,
         })
     }
 

@@ -38,6 +38,9 @@ mod clock_interval;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
+#[path = "llm_spoken_route.rs"]
+mod llm_spoken_route;
+pub(crate) use llm_spoken_route::LlmSpokenStart;
 #[path = "native_mask_route.rs"]
 mod native_mask_route;
 #[path = "presentation_wardrobe.rs"]
@@ -142,6 +145,7 @@ pub(crate) struct Owner {
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     attached_terminal_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
+    llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
 }
 impl Owner {
@@ -233,6 +237,7 @@ impl Owner {
             pending_native_mask: None,
             attached_terminal_route: None,
             direct_spoken_route: None,
+            llm_spoken_route: None,
             presentation_wardrobe: None,
         })
     }
@@ -255,6 +260,7 @@ impl Owner {
             pending_native_mask: None,
             attached_terminal_route: None,
             direct_spoken_route: None,
+            llm_spoken_route: None,
             presentation_wardrobe: None,
         })
     }
