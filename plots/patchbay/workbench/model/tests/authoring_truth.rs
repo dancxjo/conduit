@@ -51,14 +51,25 @@ fn unchanged_revision_and_ports_do_not_hide_configuration_drift() {
 }
 
 #[test]
-fn reroute_accepts_the_same_reactive_flow_to_value_contract_as_connect() {
-    let source = "plot main {\n source: text/literal(\"hello\")\n upper: text/upper\n sink: presentation/text\n alternate: presentation/text\n source >> upper >> sink\n}\n";
-    let mut editor = PlotEditor::from_source("reroute.conduit".into(), source.into()).unwrap();
+fn reroute_accepts_the_same_finite_to_standing_flow_contract_as_connect() {
+    let source = "plot main {\n clock: time/tick(count = 1, period-ms = 0)\n sink: presentation/tick\n alternate: presentation/tick\n clock.tick >> sink.tick\n}\n";
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
+    conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+        .unwrap();
+    let mut editor = PlotEditor::from_source_with_catalogs(
+        "reroute.conduit".into(),
+        source.into(),
+        startup,
+        profile,
+    )
+    .unwrap();
     let graph = editor.patchbay_graph_for_authoring("main").unwrap();
     let upper = graph
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == "text/upper")
+        .find(|gear| gear.kind_id.as_str() == "time/tick")
         .unwrap();
     let alternate = graph
         .gears
