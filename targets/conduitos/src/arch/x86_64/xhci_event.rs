@@ -5,8 +5,14 @@ use core::sync::atomic::{Ordering, fence};
 use super::{DMA, DmaStorage, EVENT_TRBS, Event, XhciReady, write64};
 
 impl XhciReady {
-    /// Inspect the current event slot once without waiting for controller work.
+    /// Deliver retained observations first, then inspect one hardware event.
     pub(in crate::arch::x86_64) fn poll_event(&mut self) -> Option<Event> {
+        self.deferred_events
+            .pop()
+            .or_else(|| self.poll_hardware_event())
+    }
+
+    pub(super) fn poll_hardware_event(&mut self) -> Option<Event> {
         let event = read_owned_event(self.event_cycle, |word| unsafe {
             core::ptr::read_volatile(core::ptr::addr_of!(
                 DMA.event_ring[self.event_dequeue][word]
