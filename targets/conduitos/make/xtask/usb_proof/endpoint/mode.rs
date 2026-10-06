@@ -10,7 +10,7 @@ impl ProofMode {
     pub(super) fn entry(self) -> Option<&'static str> {
         match self {
             Self::Raw => None,
-            Self::Keyboard => Some("usb-hid-keyboard-endpoint"),
+            Self::Keyboard => Some("usb-hid-keyboard-capture-window"),
             Self::Mouse => Some("usb-hid-mouse-endpoint"),
         }
     }
