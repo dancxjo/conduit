@@ -106,7 +106,7 @@ fn exact_window_issuance_preserves_independent_possession_and_all_selection_fenc
                 );
             }
             let lease = owner.table.authorize(&owner.handle, &owner.claim).unwrap();
-            owner.table.complete(&owner.handle, lease, 0).unwrap();
+            owner.table.complete(&mut owner.handle, lease, 0).unwrap();
         }
         let placement = placements[0];
         for field in ["boot", "host", "plan", "play"] {
