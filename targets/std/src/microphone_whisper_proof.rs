@@ -65,7 +65,7 @@ fn run_inner(
     host.attach_whisper_clip_recognizer(whisper)?;
     let mut profiles = ProfileCatalog::new();
     let mut startup = StartupCatalog::new();
-    conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles)?;
     let source = microphone_plot_source(language);
@@ -191,7 +191,8 @@ mod language_contract_tests {
         let language = crate::hosted_language::tests::request("language/french");
         let mut startup = StartupCatalog::new();
         let mut profiles = ProfileCatalog::new();
-        conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();
+        conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)
+            .unwrap();
         conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)
             .unwrap();
         conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles).unwrap();
