@@ -40,8 +40,10 @@ pub(super) fn prove(
         "checked/xtask-tongues-spoken-birth".into(),
         1,
         SignId::from("sign/xtask-tongues-spoken-birth/born"),
-        body_text,
-        &conduit_tongues::specimen_language_request(),
+        conduit_std_host::spoken_birth_journey::BirthSpeech {
+            text: body_text,
+            language: &conduit_tongues::specimen_language_request(),
+        },
     )?;
     if opts.json {
         println!("{}", serde_json::to_string(&evidence)?);

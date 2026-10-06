@@ -27,19 +27,27 @@ pub(super) struct MaskRun {
     pub destination: std::path::PathBuf,
     pub real_speech: bool,
 }
+pub(super) struct SpeechPreparation<'a> {
+    pub real: Option<(
+        crate::hosted_speech_synthesis::EspeakDiscovery,
+        &'a std::path::Path,
+    )>,
+    pub streaming: bool,
+    pub language: &'a conduit_language::LanguageRequest,
+}
 pub(super) fn run_mask(
     plot_name: &str,
     execution_id: &str,
     presentation: conduit_presentation::Presentation,
     retained: conduit_presentation::GeneratedManifestationCandidate,
-    real: Option<(
-        crate::hosted_speech_synthesis::EspeakDiscovery,
-        &std::path::Path,
-    )>,
-    streaming: bool,
+    speech: SpeechPreparation<'_>,
     control: &crate::RunControl,
-    language: &conduit_language::LanguageRequest,
 ) -> Result<MaskRun, String> {
+    let SpeechPreparation {
+        real,
+        streaming,
+        language,
+    } = speech;
     use conduit_core::{
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
         SignId,

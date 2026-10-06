@@ -55,10 +55,12 @@ fn streamed_mask_stop_reaps_provider_and_never_acknowledges_partial_audio() {
         "stream-cancel",
         face,
         candidate,
-        Some((discovery, &destination)),
-        true,
+        run::SpeechPreparation {
+            real: Some((discovery, &destination)),
+            streaming: true,
+            language: &crate::hosted_language::tests::request("language/english"),
+        },
         &control,
-        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap();
     let (pid, partial_written, retired) = &*observed.borrow();
