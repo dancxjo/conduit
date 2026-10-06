@@ -23,9 +23,9 @@ use crate::{
 };
 
 pub const SPEECH_RECOGNIZE_KIND: &str = "speech/recognize";
-pub const SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize@1";
+pub const SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize@2";
 pub const SPEECH_RECOGNIZE_CLIP_KIND: &str = "speech/recognize-clip";
-pub const SPEECH_RECOGNIZE_CLIP_REVISION: &str = "conduit.speech/recognize-clip@1";
+pub const SPEECH_RECOGNIZE_CLIP_REVISION: &str = "conduit.speech/recognize-clip@2";
 pub const SPEECH_RECOGNITION_RESULT_KIND: &str = "speech/recognition-result@2";
 pub const MAXIMUM_RECOGNITION_PROVIDER_IDENTITY_BYTES: usize = 128;
 pub const SPEECH_RECOGNITION_TO_TEXT_KIND: &str = "speech/recognition-to-text";
@@ -80,18 +80,40 @@ impl SpeechRecognitionContract {
             ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
             _ => None,
         };
+        let requires_language = recognition_requires_language(&self.kind_id);
         Kind {
-            startup_parameters: Vec::new(),
+            startup_parameters: if requires_language {
+                vec![conduit_language::language_request_parameter()]
+            } else {
+                Vec::new()
+            },
             shorthand,
             kind_id: self.kind_id,
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
-            configuration: Default::default(),
-            semantic_laws: Default::default(),
+            configuration: if requires_language {
+                vec![conduit_language::language_request_field()]
+            } else {
+                Vec::new()
+            },
+            semantic_laws: if requires_language {
+                conduit_language::language_requirement_laws()
+            } else {
+                Vec::new()
+            },
             limits: self.limits,
         }
     }
+}
+
+// Recognition performs language-dependent inference. Commitment and text
+// projection only preserve supplied facts and do not claim recognition coverage.
+fn recognition_requires_language(kind: &KindId) -> bool {
+    matches!(
+        kind.as_str(),
+        SPEECH_RECOGNIZE_KIND | SPEECH_RECOGNIZE_CLIP_KIND | crate::STREAMING_SPEECH_RECOGNIZE_KIND
+    )
 }
 
 #[derive(Serialize, Deserialize)]
@@ -234,6 +256,7 @@ pub fn install_speech_recognition_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    conduit_language::install_language_request_type(startup)?;
     startup.insert_value_kind_alias("PcmFrames", kind_id(conduit_audio::AUDIO_PCM_INFO_ID))?;
     startup.insert_value_kind_alias("ChatMessage", kind_id(crate::CHAT_MESSAGE_VALUE_KIND))?;
     for contract in [
@@ -246,7 +269,11 @@ pub fn install_speech_recognition_catalog(
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().into(),
-            startup_parameters: vec![],
+            startup_parameters: if recognition_requires_language(&contract.kind_id) {
+                vec![conduit_language::language_request_signature()]
+            } else {
+                vec![]
+            },
         })?;
         profile
             .insert_kind(contract.into_semantic_capability_contract())

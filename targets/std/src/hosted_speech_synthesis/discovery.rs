@@ -26,8 +26,33 @@ pub struct EspeakDiscovery {
     digest: [u8; 32],
     bytes: u32,
     items: u32,
+    pub(super) coverage: Option<conduit_language::LanguageCoverage>,
 }
 impl EspeakDiscovery {
+    pub fn provider_identity(&self) -> String {
+        format!("espeak/provider/{}", self.provider_sha256)
+    }
+
+    /// Reviewed declaration for this exact voice and installed provider closure.
+    /// The voice spelling itself never establishes a portable Language identity.
+    pub fn declare_language_coverage(
+        mut self,
+        coverage: conduit_language::LanguageCoverage,
+    ) -> Result<Self, EspeakFailure> {
+        crate::hosted_language::declare(&self.provider_identity(), &coverage)
+            .map_err(EspeakFailure::Language)?;
+        if coverage.languages().len() != 1
+            || coverage.mappings().len() != 1
+            || coverage.mappings().as_slice()[0].external().name() != &self.voice
+        {
+            return Err(EspeakFailure::Language(
+                crate::hosted_language::HostedLanguageRefusal::Mapping,
+            ));
+        }
+        self.coverage = Some(coverage);
+        Ok(self)
+    }
+
     pub fn inspect(
         executable: &Path,
         data_root: &Path,
@@ -162,6 +187,7 @@ impl EspeakDiscovery {
             digest,
             bytes: bytes as u32,
             items: files.len() as u32,
+            coverage: None,
         })
     }
     pub fn content_requirement(&self) -> ResourceContentRequirement {
@@ -184,13 +210,14 @@ impl EspeakDiscovery {
         format!("std/espeak-ng/{}", self.provider_sha256)
     }
     pub(super) fn verify(&self) -> Result<(), EspeakFailure> {
-        let current = Self::inspect(
+        let mut current = Self::inspect(
             &self.executable,
             &self.data_root,
             &self.voice,
             &self.dependencies,
         )
         .map_err(|_| EspeakFailure::ProviderChanged)?;
+        current.coverage = self.coverage.clone();
         if current != *self {
             return Err(EspeakFailure::ProviderChanged);
         }
