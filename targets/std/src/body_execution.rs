@@ -9,6 +9,12 @@ use conduit_kernel::{scheduler::HostCallRequest, KernelEvent};
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
 
+#[derive(Debug, Clone)]
+pub struct ObservedKernelEvent {
+    pub sequence: u32,
+    pub time: crate::body_causal_evidence::BodyEventTimeObservation,
+}
+
 pub struct BodyRunRequest<'a> {
     pub wake: &'a Wake,
     pub plan: &'a BodyPlan,
@@ -29,6 +35,7 @@ pub struct BodyRunReport {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub kernel_events: Vec<KernelEvent>,
+    pub clock_observations: Vec<ObservedKernelEvent>,
 }
 
 impl StdHost {
@@ -109,7 +116,14 @@ impl StdHost {
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
             started(&play, &wake_at_start)?;
             let terminal_sign = sign(2);
-            let result = kernel.run(output, timer, request.keyboard, request.control);
+            let result = kernel.run(
+                output,
+                timer,
+                request.keyboard,
+                request.control,
+                &self.advertisement.host_id,
+                &self.advertisement.boot_id,
+            );
             Ok(BodyRunReport {
                 play,
                 wake_at_start,
@@ -120,6 +134,7 @@ impl StdHost {
                 partitions: result.partitions,
                 requests: result.requests,
                 kernel_events: result.events,
+                clock_observations: result.clock_observations,
             })
         })();
         let mut release_errors = Vec::new();
