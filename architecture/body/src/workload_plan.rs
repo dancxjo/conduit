@@ -1,7 +1,7 @@
 //! One immutable body-wide Plan over the current exact plot workset.
 
 use alloc::{format, string::String, vec::Vec};
-use conduit_core::{verify_plan, ActivePlayId, PlacementId, Plan, PlanId};
+use conduit_core::{verify_plan, ActivePlayId, BodyTimeRequirement, PlacementId, Plan, PlanId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -24,6 +24,8 @@ pub struct BodyPlan {
     /// Exact Mask Plot realizations selected independently of authored plots.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mask_topologies: Vec<BodyMaskTopology>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_time_requirement: Option<BodyTimeRequirement>,
 }
 
 pub const MAX_BODY_MASK_TOPOLOGIES: usize = 16;
@@ -81,6 +83,7 @@ pub enum BodyPlanError {
     MaskChainCapacityExceeded,
     InvalidMaskChain,
     DuplicateMaskTopology,
+    InvalidBodyTimeRequirement,
 }
 
 impl BodyPlan {
@@ -90,9 +93,27 @@ impl BodyPlan {
 
     pub fn seal_with_masks(
         wake: &Wake,
+        plots: Vec<BodyPlotPlan>,
+        mask_topologies: Vec<BodyMaskTopology>,
+    ) -> Result<Self, BodyPlanError> {
+        Self::seal_with_requirements(wake, plots, mask_topologies, None)
+    }
+
+    pub fn seal_with_body_time(
+        wake: &Wake,
+        plots: Vec<BodyPlotPlan>,
+        requirement: BodyTimeRequirement,
+    ) -> Result<Self, BodyPlanError> {
+        Self::seal_with_requirements(wake, plots, Vec::new(), Some(requirement))
+    }
+
+    fn seal_with_requirements(
+        wake: &Wake,
         mut plots: Vec<BodyPlotPlan>,
         mut mask_topologies: Vec<BodyMaskTopology>,
+        body_time_requirement: Option<BodyTimeRequirement>,
     ) -> Result<Self, BodyPlanError> {
+        validate_body_time_requirement(&wake.body_id, body_time_requirement.as_ref())?;
         wake.workset
             .validate()
             .map_err(|_| BodyPlanError::InvalidIdentity)?;
@@ -132,6 +153,7 @@ impl BodyPlan {
             wake.workload_revision,
             &plots,
             &mask_topologies,
+            body_time_requirement.as_ref(),
         );
         Ok(Self {
             plan_id,
@@ -141,6 +163,7 @@ impl BodyPlan {
             workset: wake.workset.clone(),
             plots,
             mask_topologies,
+            body_time_requirement,
         })
     }
 
@@ -154,8 +177,12 @@ impl BodyPlan {
         if self.workload_revision != wake.workload_revision || self.workset != wake.workset {
             return Err(BodyPlanError::StaleWorkload);
         }
-        let resealed =
-            Self::seal_with_masks(wake, self.plots.clone(), self.mask_topologies.clone())?;
+        let resealed = Self::seal_with_requirements(
+            wake,
+            self.plots.clone(),
+            self.mask_topologies.clone(),
+            self.body_time_requirement.clone(),
+        )?;
         if resealed.plan_id != self.plan_id {
             return Err(BodyPlanError::InvalidIdentity);
         }
@@ -198,6 +225,7 @@ impl BodyPlan {
             return Err(BodyPlanError::MissingPlot);
         }
         validate_mask_topologies(&self.workset, &self.plots, &self.mask_topologies)?;
+        validate_body_time_requirement(&self.body_id, self.body_time_requirement.as_ref())?;
         if self
             .mask_topologies
             .windows(2)
@@ -209,6 +237,7 @@ impl BodyPlan {
                     self.workload_revision,
                     &self.plots,
                     &self.mask_topologies,
+                    self.body_time_requirement.as_ref(),
                 )
         {
             return Err(BodyPlanError::InvalidIdentity);
@@ -253,6 +282,7 @@ fn bind_body_plan(
     workload_revision: u64,
     plots: &[BodyPlotPlan],
     mask_topologies: &[BodyMaskTopology],
+    body_time_requirement: Option<&BodyTimeRequirement>,
 ) -> PlanId {
     let mut bytes = Vec::new();
     push(&mut bytes, "conduit.body/body-plan@3");
@@ -290,7 +320,37 @@ fn bind_body_plan(
             }
         }
     }
+    if let Some(requirement) = body_time_requirement {
+        push(&mut bytes, "body-time-requirement@1");
+        push(&mut bytes, requirement.body_basis());
+        bytes.extend_from_slice(&requirement.tolerance().ticks().to_le_bytes());
+        push_temporal_scale(&mut bytes, requirement.tolerance().scale());
+        bytes.extend_from_slice(&requirement.horizon().ticks().to_le_bytes());
+        push_temporal_scale(&mut bytes, requirement.horizon().scale());
+    }
     PlanId::from(digest_id("body-plan", &bytes))
+}
+
+fn validate_body_time_requirement(
+    body_id: &BodyId,
+    requirement: Option<&BodyTimeRequirement>,
+) -> Result<(), BodyPlanError> {
+    if requirement.is_some_and(|requirement| {
+        !requirement.valid_basis() || requirement.body_basis() != body_id.as_str()
+    }) {
+        return Err(BodyPlanError::InvalidBodyTimeRequirement);
+    }
+    Ok(())
+}
+
+fn push_temporal_scale(bytes: &mut Vec<u8>, scale: conduit_core::TemporalScale) {
+    let label = match scale {
+        conduit_core::TemporalScale::Seconds => "seconds",
+        conduit_core::TemporalScale::Milliseconds => "milliseconds",
+        conduit_core::TemporalScale::Microseconds => "microseconds",
+        conduit_core::TemporalScale::Nanoseconds => "nanoseconds",
+    };
+    push(bytes, label);
 }
 
 fn validate_mask_topologies(

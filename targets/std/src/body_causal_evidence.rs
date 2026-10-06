@@ -1,7 +1,7 @@
 //! Bounded causal evidence projected from actual std-host Body execution.
 
 use crate::body_execution::BodyRunReport;
-use conduit_body::{BodyPlan, Wake, WakeId, WakeLifecycle, WakeLifecycleEvent};
+use conduit_body::{BodyId, BodyPlan, Wake, WakeId, WakeLifecycle, WakeLifecycleEvent};
 use conduit_core::{
     AuthorityBinding, BootId, GearId, HostId, ImplementationId, KindId, PlacementId, PlanId,
     ResourceBinding, SourceDocumentId, TerminalDisposition, TerminalInfo,
@@ -22,6 +22,8 @@ mod graph;
 use graph::{record_intra_run_edges, record_planned_recovery_edges, record_planned_transfer_edges};
 mod identity;
 use identity::{digest_u64, evidence_sign, execution_envelope};
+mod time;
+pub use time::{BodyEventTimeObservation, EventTimeCapture};
 
 pub const MAXIMUM_BODY_CAUSAL_NODES: usize = 128;
 pub const MAXIMUM_BODY_CAUSAL_EDGES: usize = 128;
@@ -40,6 +42,9 @@ pub enum BodyCausalEvidenceRefusal {
     NoUnresolvedSemanticAbnormal,
     NotFailed,
     Causal(CausalEvidenceRefusal),
+    UnknownClockEvent,
+    ConflictingClockObservation,
+    InvalidClockObservation,
 }
 
 impl From<CausalEvidenceRefusal> for BodyCausalEvidenceRefusal {
@@ -54,6 +59,7 @@ struct BodyCausalNode {
     outcome: EvidenceOutcome,
     source_document_id: SourceDocumentId,
     source_span: Option<conduit_core::SourceSpan>,
+    body_id: BodyId,
     wake_id: WakeId,
     plan_id: PlanId,
     play_id: conduit_core::ActivePlayId,
@@ -69,6 +75,7 @@ struct BodyCausalNode {
     kernel_port: Option<conduit_kernel::PortId>,
     kernel_sequence: u32,
     semantic_terminal: bool,
+    observed_time: Option<BodyEventTimeObservation>,
 }
 
 /// Exact bounded evidence for one run or one successful replacement pair.
@@ -325,6 +332,20 @@ fn collect_nodes(
     let mut nodes = Vec::with_capacity(relevant.len());
     for event in relevant {
         let (fragment, placement) = resolve_event(plan, &report.partitions, event)?;
+        let observed_time = report
+            .clock_observations
+            .iter()
+            .find(|observation| observation.sequence == event.sequence)
+            .map(|observation| {
+                observation.time.validate()?;
+                if observation.time.local().clock().host_id() != &placement.host_id
+                    || observation.time.local().clock().boot_id() != &placement.boot_id
+                {
+                    return Err(BodyCausalEvidenceRefusal::InvalidClockObservation);
+                }
+                Ok(observation.time.clone())
+            })
+            .transpose()?;
         if placement.resources.len() > MAXIMUM_BODY_NODE_RESOURCES
             || placement.authority.len() > MAXIMUM_BODY_NODE_AUTHORITIES
         {
@@ -339,6 +360,7 @@ fn collect_nodes(
             outcome: outcome(event.kind),
             source_document_id: fragment.source_document_id.clone(),
             source_span: placement.source_span,
+            body_id: plan.body_id.clone(),
             wake_id: plan.wake_id.clone(),
             plan_id: plan.plan_id.clone(),
             play_id: report.play.active_play_id.clone(),
@@ -354,6 +376,7 @@ fn collect_nodes(
             kernel_port: event.port,
             kernel_sequence: event.sequence,
             semantic_terminal: false,
+            observed_time,
         });
     }
     if nodes.iter().enumerate().any(|(index, node)| {

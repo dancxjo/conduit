@@ -14,6 +14,7 @@ pub mod acoustic_emergency;
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_causal_evidence;
+pub mod body_clock_line;
 pub mod body_coordination;
 pub mod body_execution;
 mod boot_identity;
@@ -356,6 +357,16 @@ pub struct SignalReceipt {
 pub trait TimerAdapter {
     fn wait(&mut self, duration: Duration);
 
+    /// An exact sample on an identified provider basis. Adapters that only
+    /// offer a duration or an unlabelled counter leave event time unsupported.
+    fn monotonic_observation(
+        &mut self,
+        _host_id: &conduit_core::HostId,
+        _boot_id: &conduit_core::BootId,
+    ) -> Option<conduit_core::MonotonicInstant> {
+        None
+    }
+
     /// Returns the current host/boot-scoped monotonic millisecond reading when
     /// this adapter offers the admitted deadline contract.
     fn monotonic_now_ms(&mut self) -> Option<u64> {
@@ -405,6 +416,23 @@ impl TimerAdapter for ThreadTimer {
                 .as_micros(),
         )
         .ok()
+    }
+
+    fn monotonic_observation(
+        &mut self,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
+    ) -> Option<conduit_core::MonotonicInstant> {
+        let identity = conduit_core::MonotonicClockIdentity::new(
+            host_id.clone(),
+            boot_id.clone(),
+            "std/thread-timer/process-epoch".into(),
+            conduit_core::TemporalScale::Microseconds,
+            1,
+            1,
+        )
+        .ok()?;
+        conduit_core::MonotonicInstant::new(self.monotonic_now_micros()?, identity).ok()
     }
 }
 
