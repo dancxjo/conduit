@@ -6,6 +6,17 @@ use conduit_birth_plot::{BirthDraft, BirthPlotChoice};
 use conduit_human::{KeyModifiers, KeyTransition};
 use conduit_presentation::{Face, FaceContext, FaceFocus, ManifestationLifecycle};
 
+#[test]
+fn compositor_refusal_keeps_its_specific_machine_reason() {
+    assert_eq!(
+        NativeFaceMaskError::Compositor(
+            crate::native_compositor::NativeCompositorError::SurfaceNotAdmitted
+        )
+        .as_str(),
+        "compositor-surface-not-admitted"
+    );
+}
+
 struct CountingDisplay {
     writes: u32,
     fail: bool,

@@ -49,7 +49,7 @@ impl NativeFaceMaskError {
             Self::Scene(FaceSceneError::IncompleteInput) => "native-face-mask-input-incomplete",
             Self::Scene(_) => "native-face-mask-scene-refused",
             Self::Mask(_) => "native-face-mask-execution-refused",
-            Self::Compositor(_) => "native-face-mask-compositor-refused",
+            Self::Compositor(error) => error.as_str(),
         }
     }
 }
