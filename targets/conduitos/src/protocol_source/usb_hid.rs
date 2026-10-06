@@ -8,13 +8,39 @@ use alloc::format;
 /// Compact motion observations retain a two-report ordering window without
 /// multiplying the raw endpoint payload bound. No native effects or grants.
 pub fn usb_hid_mouse_order_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
+    let lifecycle = include_str!("../../plots/usb/hid-mouse-order-lifecycle.conduit");
+    let (header, body) =
+        lifecycle
+            .split_once("\n\n")
+            .ok_or(ProtocolSourceRefusal::Specialization(
+                "HID mouse ordering imports",
+            ))?;
+    let value = |name: &str| ProtocolValueReference {
+        type_name: name.into(),
+        maximum_bytes: 4096,
+    };
     ProtocolSourcePackage::compile(
         format!(
-            "{}\n{}",
+            "{header}\n{}\n{}\n{}\n{body}",
             include_str!("../../plots/usb/hid-reports.conduit"),
             include_str!("../../plots/usb/hid-mouse-order.conduit"),
+            include_str!("../../plots/usb/hid-mouse-pointer.conduit"),
         ),
-        &[],
+        &[
+            ProtocolSpecializationRequest::SeededUntil {
+                value: value("UsbMouseOrderSession"),
+            },
+            ProtocolSpecializationRequest::FeedbackZip {
+                left: value("UsbMouseOrderSession"),
+                right: value("UsbMouseOrderCommand"),
+            },
+            ProtocolSpecializationRequest::Concat {
+                value: value("UsbMouseOrderCommand"),
+            },
+            ProtocolSpecializationRequest::Merge {
+                value: value("UsbMouseOrderMessage"),
+            },
+        ],
     )
 }
 
