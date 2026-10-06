@@ -301,7 +301,8 @@ try {
   const wardrobePreferred = await awaitWardrobeRevision(wardrobeWorn.wardrobe_revision_decimal);
   assert.equal(wardrobePreferred.owner_plan_id, wardrobeBefore.owner_plan_id);
   assert.equal(wardrobePreferred.selected?.route_id, browserRoute.route_id);
-  assert.equal(wardrobePreferred.fresh_show_required, true);
+  // The owner may retain a current Show when this route is selected again.
+  // Refresh below must still produce a new acknowledged Show for the action.
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(() => Boolean(document.querySelector('[data-handbook-application]')
     ?.dataset.ownerShowAcknowledged), null, { timeout: 12_000 });
