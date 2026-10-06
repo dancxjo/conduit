@@ -2,6 +2,7 @@
 //! Preparation performs no device effects and issues no Base possession.
 use crate::protocol_source::{
     PreparedProtocolArtifact, PreparedProtocolEntry, usb_hid_endpoint_package,
+    usb_hid_keyboard_order_package,
 };
 use alloc::{collections::BTreeMap, string::String};
 use conduit_core::{AuthorityGrant, BaseImplementationId, HostAdvertisement};
@@ -10,12 +11,15 @@ use conduit_planner::PlanningOptions;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HidSourceRole {
     Keyboard,
+    /// Eight calls and ordered class state; Root supplies the admitted window.
+    KeyboardCapture,
     Mouse,
 }
 
 impl HidSourceRole {
     fn entry(self) -> &'static str {
         match self {
+            Self::KeyboardCapture => "usb-hid-keyboard-capture-window",
             Self::Keyboard => "usb-hid-keyboard-batch-endpoint",
             Self::Mouse => "usb-hid-mouse-endpoint",
         }
@@ -30,10 +34,14 @@ pub fn prepare(
     host: &HostAdvertisement,
     authority_grants: &[AuthorityGrant],
 ) -> Result<PreparedProtocolArtifact, String> {
-    let package = usb_hid_endpoint_package().map_err(|_| "usb-hid-source-package")?;
+    let package = match role {
+        HidSourceRole::KeyboardCapture => usb_hid_keyboard_order_package(),
+        _ => usb_hid_endpoint_package(),
+    }
+    .map_err(|_| "usb-hid-source-package")?;
     let bytes = serde_json::to_vec(&package).map_err(|_| "usb-hid-source-package")?;
-    let entry =
-        PreparedProtocolEntry::prepare(&bytes, role.entry()).map_err(|_| "usb-hid-source-check")?;
+    let entry = PreparedProtocolEntry::prepare(&bytes, role.entry())
+        .map_err(|error| alloc::format!("usb-hid-source-check: {error:?}"))?;
     let mut host = host.clone();
     entry
         .publish_pure_backs(&mut host)
@@ -41,7 +49,7 @@ pub fn prepare(
     let hosts = [host];
     let placements = entry
         .placements(&hosts)
-        .map_err(|_| "usb-hid-source-placement")?;
+        .map_err(|error| alloc::format!("usb-hid-source-placement: {error:?}"))?;
     entry
         .plan(
             &hosts,

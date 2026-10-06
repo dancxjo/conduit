@@ -62,3 +62,61 @@ fn authority_does_not_create_an_endpoint_offer() {
         assert!(prepare(role, &host, &grants).is_err());
     }
 }
+
+#[test]
+fn ordered_keyboard_class_requires_eight_admitted_calls_in_the_shared_kernel() {
+    let (mut host, mut grants) = fixture();
+    let contract = EndpointReadContract::prepare().unwrap();
+    host.capabilities[0] = crate::usb_base::endpoint_read_offer::capture_offer(
+        &contract,
+        "fixture/ordered-keyboard-capture@1".into(),
+        "fixture/ordered-keyboard-capture".into(),
+        8,
+    )
+    .unwrap();
+    host.bases[0].capability_ids = vec![host.capabilities[0].capability_id.clone()];
+    host.resources[0].capacity_units = 8;
+    grants[0].capability_id = host.capabilities[0].capability_id.clone();
+    let artifact = prepare(HidSourceRole::KeyboardCapture, &host, &grants).unwrap();
+    let plan = &artifact.artifact().definition().internal_plan;
+    let endpoints: alloc::vec::Vec<_> = plan.fragments[0]
+        .placements
+        .iter()
+        .filter(|gear| {
+            gear.implementation_id.as_str()
+                == crate::usb_base::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION
+        })
+        .collect();
+    assert_eq!(endpoints.len(), 8);
+    for endpoint in endpoints {
+        assert_eq!(endpoint.host_calls.len(), 1);
+        assert_eq!(endpoint.host_calls[0].maximum_in_flight, 1);
+        assert_eq!(endpoint.host_calls[0].maximum_input_bytes, 4096);
+        assert_eq!(endpoint.host_calls[0].maximum_output_bytes, 4096);
+    }
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+    assert!(
+        lowered.nodes.len() <= 64,
+        "nodes={}, cords={}, slots={}, calls={}",
+        lowered.nodes.len(),
+        lowered.cords.len(),
+        lowered.cord_value_slots,
+        lowered.host_calls.len()
+    );
+    let mut run = crate::usb_base::hid_source_kernel::PreparedHidSourceKernel::prepare(
+        artifact,
+        conduit_composite::KernelCompositeSignStorage::default(),
+    )
+    .unwrap();
+    assert_eq!(run.kernel_mut().definition().boundary.input_fronts.len(), 9);
+    assert_eq!(
+        run.kernel_mut().definition().boundary.output_fronts.len(),
+        3
+    );
+    assert!(prepare(HidSourceRole::KeyboardCapture, &host, &[]).is_err());
+    let mut fewer = host.clone();
+    fewer.capabilities[0].limits.max_active_instances = 7;
+    assert!(prepare(HidSourceRole::KeyboardCapture, &fewer, &grants).is_err());
+    host.resources[0].capacity_units = 7;
+    assert!(prepare(HidSourceRole::KeyboardCapture, &host, &grants).is_err());
+}

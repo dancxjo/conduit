@@ -16,6 +16,12 @@ type UsbKeyboardOrderCommand =
     | provider-lost
     | timeout
     | unsupported
+# One exact Merge value carries class commands and state replacements.
+# Each consumer selects its declared branch; no merged value grants authority.
+type UsbKeyboardOrderMessage =
+    session UsbKeyboardOrderSession
+    | command UsbKeyboardOrderCommand
+
 type UsbKeyboardOrderRoute =
     waiting UsbKeyboardOrderSession
     | emitting UsbKeyboardOrderReady
@@ -81,27 +87,18 @@ plot usb-hid-keyboard-order-lifecycle (
     join: flow/zip/feedback
     route: usb-hid-keyboard-order-session-route()
     work: usb-hid-keyboard-order-session-command()
-    insert: usb-hid-keyboard-order-insert()
-    decide: usb-hid-keyboard-order-decision()
-    updates: flow/merge/finite
-    terminal_updates: flow/merge/finite
     replacements: flow/merge/finite
     begin >> usb-hid-keyboard-order-initialize() >> usb-hid-keyboard-order-session-initialize() >> cell.seed
     cell.current >> route
     route >> select(UsbKeyboardOrderRoute.waiting, unmatched=drop) >> join.left
     command >> usb-hid-keyboard-order-sort-even() >> usb-hid-keyboard-order-sort-odd() >> usb-hid-keyboard-order-sort-even() >> usb-hid-keyboard-order-sort-odd() >> usb-hid-keyboard-order-sort-even() >> usb-hid-keyboard-order-sort-odd() >> join.right
     join.paired >> work
-    work >> select(UsbKeyboardOrderWork.inserting, unmatched=drop) >> insert >> decide
-    decide >> select(UsbKeyboardOrderDecision.continued, unmatched=drop) >> usb-hid-keyboard-order-session-accepted() >> updates.left
-    decide >> select(UsbKeyboardOrderDecision.ended, unmatched=drop) >> usb-hid-keyboard-order-session-end() >> terminal_updates.left
-    work >> select(UsbKeyboardOrderWork.ending, unmatched=drop) >> usb-hid-keyboard-order-session-end() >> terminal_updates.right
-    terminal_updates.merged >> updates.right
+    work >> usb-hid-keyboard-order-work-update() >> usb-hid-keyboard-order-update-session() >> usb-hid-keyboard-order-session-message() >> replacements.left
     route >> select(UsbKeyboardOrderRoute.stopped, unmatched=drop) >> ended
     route >> select(UsbKeyboardOrderRoute.emitting, unmatched=drop) >> usb-hid-keyboard-order-session-observation() >> observation
-    route >> select(UsbKeyboardOrderRoute.emitting, unmatched=drop) >> usb-hid-keyboard-order-session-ready() >> replacements.right
+    route >> select(UsbKeyboardOrderRoute.emitting, unmatched=drop) >> usb-hid-keyboard-order-session-ready() >> usb-hid-keyboard-order-session-message() >> replacements.right
     route >> select(UsbKeyboardOrderRoute.emitting, unmatched=drop) >> usb-hid-keyboard-order-delta() >> select(UsbKeyboardOrderDelta.available, unmatched=drop) >> usb-hid-keyboard-transitions() >> changes
-    updates.merged >> replacements.left
-    replacements.merged >> cell.next
+    replacements.merged >> select(UsbKeyboardOrderMessage.session, unmatched=drop) >> cell.next
 }
 
 plot usb-hid-keyboard-order-sort-even (
@@ -119,3 +116,23 @@ type UsbKeyboardOrderDelta =
 plot usb-hid-keyboard-order-delta (
     ready: UsbKeyboardOrderReady...| >> delta: UsbKeyboardOrderDelta...|
 ) = (.observation.observed is keyboard ? available({ previous: .previous, current: .observation.observed.keyboard }) : unavailable(unit))
+
+plot usb-hid-keyboard-order-session-message (
+    state: UsbKeyboardOrderSession...| >> message: UsbKeyboardOrderMessage...|
+) = (session(.))
+
+plot usb-hid-keyboard-order-command-message (
+    input: UsbKeyboardOrderCommand...| >> message: UsbKeyboardOrderMessage...|
+) = (command(.))
+
+type UsbKeyboardOrderWorkAdmission =
+    accepted UsbKeyboardOrderState
+    | ended UsbKeyboardOrderEnd
+
+plot usb-hid-keyboard-order-work-update (
+    work: UsbKeyboardOrderWork...| >> update: UsbKeyboardOrderWorkAdmission...|
+) = (. is inserting ? (.inserting.observation.ordinal < .inserting.state.expected ? ended(stale(unit)) : (.inserting.observation.ordinal == 18446744073709551615 || .inserting.observation.ordinal - .inserting.state.expected >= 8 ? ended(outside-window(unit)) : (((((.inserting.state.slots.0 is held ? .inserting.state.slots.0.held.ordinal == .inserting.observation.ordinal : false) || (.inserting.state.slots.1 is held ? .inserting.state.slots.1.held.ordinal == .inserting.observation.ordinal : false)) || ((.inserting.state.slots.2 is held ? .inserting.state.slots.2.held.ordinal == .inserting.observation.ordinal : false) || (.inserting.state.slots.3 is held ? .inserting.state.slots.3.held.ordinal == .inserting.observation.ordinal : false))) || (((.inserting.state.slots.4 is held ? .inserting.state.slots.4.held.ordinal == .inserting.observation.ordinal : false) || (.inserting.state.slots.5 is held ? .inserting.state.slots.5.held.ordinal == .inserting.observation.ordinal : false)) || ((.inserting.state.slots.6 is held ? .inserting.state.slots.6.held.ordinal == .inserting.observation.ordinal : false) || (.inserting.state.slots.7 is held ? .inserting.state.slots.7.held.ordinal == .inserting.observation.ordinal : false)))) ? ended(duplicate(unit)) : (((.inserting.state.slots.0 is vacant || .inserting.state.slots.1 is vacant) || (.inserting.state.slots.2 is vacant || .inserting.state.slots.3 is vacant)) ? ((.inserting.state.slots.0 is vacant || .inserting.state.slots.1 is vacant) ? (.inserting.state.slots.0 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [held(.inserting.observation), .inserting.state.slots.1, .inserting.state.slots.2, .inserting.state.slots.3, .inserting.state.slots.4, .inserting.state.slots.5, .inserting.state.slots.6, .inserting.state.slots.7] }) : (.inserting.state.slots.1 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [.inserting.state.slots.0, held(.inserting.observation), .inserting.state.slots.2, .inserting.state.slots.3, .inserting.state.slots.4, .inserting.state.slots.5, .inserting.state.slots.6, .inserting.state.slots.7] }) : ended(pressure(unit)))) : (.inserting.state.slots.2 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [.inserting.state.slots.0, .inserting.state.slots.1, held(.inserting.observation), .inserting.state.slots.3, .inserting.state.slots.4, .inserting.state.slots.5, .inserting.state.slots.6, .inserting.state.slots.7] }) : (.inserting.state.slots.3 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [.inserting.state.slots.0, .inserting.state.slots.1, .inserting.state.slots.2, held(.inserting.observation), .inserting.state.slots.4, .inserting.state.slots.5, .inserting.state.slots.6, .inserting.state.slots.7] }) : ended(pressure(unit))))) : ((.inserting.state.slots.4 is vacant || .inserting.state.slots.5 is vacant) ? (.inserting.state.slots.4 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [.inserting.state.slots.0, .inserting.state.slots.1, .inserting.state.slots.2, .inserting.state.slots.3, held(.inserting.observation), .inserting.state.slots.5, .inserting.state.slots.6, .inserting.state.slots.7] }) : (.inserting.state.slots.5 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [.inserting.state.slots.0, .inserting.state.slots.1, .inserting.state.slots.2, .inserting.state.slots.3, .inserting.state.slots.4, held(.inserting.observation), .inserting.state.slots.6, .inserting.state.slots.7] }) : ended(pressure(unit)))) : (.inserting.state.slots.6 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [.inserting.state.slots.0, .inserting.state.slots.1, .inserting.state.slots.2, .inserting.state.slots.3, .inserting.state.slots.4, .inserting.state.slots.5, held(.inserting.observation), .inserting.state.slots.7] }) : (.inserting.state.slots.7 is vacant ? accepted({ previous: .inserting.state.previous, expected: .inserting.state.expected, slots: [.inserting.state.slots.0, .inserting.state.slots.1, .inserting.state.slots.2, .inserting.state.slots.3, .inserting.state.slots.4, .inserting.state.slots.5, .inserting.state.slots.6, held(.inserting.observation)] }) : ended(pressure(unit))))))))) : ended(.ending))
+
+plot usb-hid-keyboard-order-update-session (
+    update: UsbKeyboardOrderWorkAdmission...| >> state: UsbKeyboardOrderSession...|
+) = (. is accepted ? { terminal: false, end: closed(unit), order: .accepted } : { terminal: true, end: .ended, order: { previous: { modifiers: 0, keys: [0, 0, 0, 0, 0, 0] }, expected: 0, slots: [vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit), vacant(unit)] } })
