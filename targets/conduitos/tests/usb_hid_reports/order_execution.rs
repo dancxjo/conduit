@@ -131,8 +131,10 @@ fn execute(
     } else {
         "usb-hid-keyboard-order-lifecycle"
     };
-    let (schemas, mut run) =
-        super::state_kernel::prepared_package(&super::order_lifecycle::package(), entry_name);
+    let (schemas, output_schemas, mut run) = super::state_kernel::prepared_package_schemas(
+        &super::order_lifecycle::package(),
+        entry_name,
+    );
     let boundary = &run.kernel().definition().boundary;
     let begin = boundary
         .input_fronts
@@ -169,13 +171,8 @@ fn execute(
         .unwrap()
         .external_port
         .clone();
-    let entry = conduitos::protocol_source::PreparedProtocolEntry::prepare(
-        &serde_json::to_vec(&super::order_lifecycle::package()).unwrap(),
-        entry_name,
-    )
-    .unwrap();
     let decoder = conduitos::source_keyboard_batch::SourceKeyboardBatchDecoder::prepare(
-        &entry.output_schema(&changes.port_id).unwrap(),
+        output_schemas.get(&changes.port_id).unwrap(),
     )
     .unwrap();
     let mut batch = ValuePayload {
