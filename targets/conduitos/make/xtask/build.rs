@@ -169,6 +169,22 @@ pub(super) fn execute_usb_endpoint(opts: &GlobalOpts) -> Result<BuildRecord, Con
     )
 }
 
+pub(super) fn execute_usb_hid_endpoint(
+    opts: &GlobalOpts,
+    mouse: bool,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_embedded_profile(
+        ConduitosArch::X86_64,
+        if mouse {
+            include_str!("../../proof/profiles/conduitos-usb-hid-mouse-proof.profile.json")
+        } else {
+            include_str!("../../proof/profiles/conduitos-usb-hid-endpoint-proof.profile.json")
+        },
+        ArtifactRole::ArchitectureProofAppliance,
+        opts,
+    )
+}
+
 pub(super) fn execute_emergency_halt(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     execute_with_features(
         ConduitosArch::X86_64,

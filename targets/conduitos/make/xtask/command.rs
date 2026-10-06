@@ -195,11 +195,17 @@ mod tests {
 
 #[derive(Args, Debug)]
 pub(super) struct UsbProofArgs {
-    #[arg(long, conflicts_with = "endpoint_read")]
+    #[arg(long, conflicts_with_all = ["endpoint_read", "hid_endpoint", "hid_mouse"])]
     pub(super) prepared_image: bool,
     /// Run the dedicated class-neutral endpoint-receive proof appliance.
     #[arg(long)]
     pub(super) endpoint_read: bool,
+    /// Run the Source keyboard class over the native endpoint owner.
+    #[arg(long, conflicts_with = "endpoint_read")]
+    pub(super) hid_endpoint: bool,
+    /// Run the Source mouse class over the native endpoint owner.
+    #[arg(long, conflicts_with_all = ["endpoint_read", "hid_endpoint"])]
+    pub(super) hid_mouse: bool,
 }
 
 #[cfg(test)]
@@ -208,6 +214,35 @@ mod endpoint_command_tests {
     use clap::Parser;
     #[test]
     fn endpoint_proof_requires_its_own_build_and_refuses_prepared_ordinary_images() {
+        assert!(
+            Cli::try_parse_from(["xtask", "make", "conduitos", "usb-proof", "--hid-mouse"]).is_ok()
+        );
+        for conflicting in ["--prepared-image", "--endpoint-read", "--hid-endpoint"] {
+            assert!(Cli::try_parse_from([
+                "xtask",
+                "make",
+                "conduitos",
+                "usb-proof",
+                "--hid-mouse",
+                conflicting
+            ])
+            .is_err());
+        }
+        assert!(
+            Cli::try_parse_from(["xtask", "make", "conduitos", "usb-proof", "--hid-endpoint"])
+                .is_ok()
+        );
+        for conflicting in ["--prepared-image", "--endpoint-read"] {
+            assert!(Cli::try_parse_from([
+                "xtask",
+                "make",
+                "conduitos",
+                "usb-proof",
+                "--hid-endpoint",
+                conflicting
+            ])
+            .is_err());
+        }
         assert!(Cli::try_parse_from([
             "xtask",
             "make",

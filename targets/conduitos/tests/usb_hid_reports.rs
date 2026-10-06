@@ -1,11 +1,11 @@
 //! Checked HID class interpretation; no endpoint or device admission claim.
 #[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
 mod allocation;
-#[path = "usb_protocol_plots/descriptor_frame.rs"]
-mod descriptor_frame;
 
 mod usb_hid_reports {
     pub(super) mod common;
+    mod endpoint;
+    mod endpoint_kernel;
     mod kernel;
     mod kernel_fixture;
     mod keyboard;
