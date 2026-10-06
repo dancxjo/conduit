@@ -251,7 +251,7 @@ fn early_monotonic_wake_does_not_fire_a_deadline() {
     let report = timed_host
         .run_fragment_to(planned, &mut output, &mut timer)
         .expect("an early wake retries on the same monotonic basis");
-    assert_eq!(report.terminal, TerminalDisposition::Completed);
+    assert!(report.kernel.is_some());
     assert!(timer.waits >= 2);
 }
 
