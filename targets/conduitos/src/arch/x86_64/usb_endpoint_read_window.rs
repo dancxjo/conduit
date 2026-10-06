@@ -249,6 +249,7 @@ impl<'a, const N: usize> EndpointReadWindow<'a, N> {
             member.owner.finish_quiesced(
                 &pending.submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: pending.reservation.ordinal(),
                     actual,
                     input: &self.dma.buffers[pending.member][..usize::from(actual)],
                 },

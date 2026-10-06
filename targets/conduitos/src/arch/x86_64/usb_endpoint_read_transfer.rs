@@ -201,11 +201,12 @@ impl<'a> EndpointReadTransfer<'a> {
         fence(Ordering::Acquire);
         unsafe { self.dma.cursor.complete_quiesced(reservation) }
             .map_err(EndpointNativeRefusal::Ring)?;
-        let (submission, _) = self.pending.take().expect("validated pending transfer");
+        let (submission, reservation) = self.pending.take().expect("validated pending transfer");
         unsafe {
             self.owner.finish_quiesced(
                 &submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: reservation.ordinal(),
                     actual,
                     input: &self.dma.buffer[..usize::from(actual)],
                 },

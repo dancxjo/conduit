@@ -11,11 +11,11 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
-pub const ENDPOINT_READ_IMPLEMENTATION: &str = "conduitos/usb-endpoint-read@1";
+pub const ENDPOINT_READ_IMPLEMENTATION: &str = "conduitos/usb-endpoint-read@2";
 pub const ENDPOINT_READ_PROFILE: &str = "conduitos/usb-endpoint-read-cooperative-bounded@1";
 pub const ENDPOINT_READ_BASE: &str = "conduitos.base/usb-controller@1";
 pub const ENDPOINT_READ_ATTACHMENT: &str = "machine/usb/endpoint-in-attachment";
-pub const ENDPOINT_READ_AUTHORITY: &str = "conduitos.authority/usb-endpoint-read@1";
+pub const ENDPOINT_READ_AUTHORITY: &str = "conduitos.authority/usb-endpoint-read@2";
 
 /// Kernel preparation does not issue possession or select a physical device.
 /// Native effects must still pass the independently bound EndpointReadCallOwner.
