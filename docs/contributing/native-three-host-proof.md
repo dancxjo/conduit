@@ -115,6 +115,10 @@ edits the name, selects the reviewed Clock Plot, reviews the current Face, and
 explicitly activates Birth. The resulting Body is the one provisioned for QMP
 and joined by Chromium. Keep the TLS key and the entire new output directory
 private: it contains a live invitation and provisioned ISO.
+Selected speech first gives command help, the focused Crèche orientation, and
+the first available control. The person can request the complete Face with
+`read all` when ready. This
+producer does request it, including the content beyond the graphical viewport.
 The current fixed-storage ConduitOS TLS client offers ECDSA P-256/P-384 and
 Ed25519 signatures, not RSA. Use a private P-256 route certificate whose SAN
 includes the guest route IP (`10.0.2.42`) and the owner-forward address. An
