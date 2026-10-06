@@ -1112,6 +1112,7 @@ mod tests {
             "executable": "/missing/espeak-ng", "data_root": "/missing/espeak-ng-data",
             "voice": "en-us", "engine_dependencies": ["/missing/libespeak-ng.so"],
             "provider_sha256": "a".repeat(64),
+            "language_coverage": selected_speech::fixture_language_coverage(&"a".repeat(64)),
         })).unwrap();
         let first = install_configured(
             &manifest,
