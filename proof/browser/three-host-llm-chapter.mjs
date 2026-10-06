@@ -10,12 +10,12 @@ import path from 'node:path';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = async file => JSON.parse(await readFile(file));
 
-export function assertExactFaceRevision(browserRevision, receiptRevision) {
+export function assertExactFaceRevision(browserRevision, receiptRevisionDecimal) {
   assert.equal(typeof browserRevision, 'string');
   assert.match(browserRevision, /^(0|[1-9][0-9]*)$/);
-  assert.ok(Number.isSafeInteger(receiptRevision) && receiptRevision >= 0,
-    'numeric Face revision must be an exact safe integer');
-  assert.equal(String(receiptRevision), browserRevision);
+  assert.equal(typeof receiptRevisionDecimal, 'string');
+  assert.match(receiptRevisionDecimal, /^(0|[1-9][0-9]*)$/);
+  assert.equal(receiptRevisionDecimal, browserRevision);
 }
 
 export async function awaitRouteReady(child, deadlineMillis = 5_000) {
@@ -110,7 +110,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
       assert.equal(item.face_id, faceId);
     }
     assert.equal(receipt.action_id, actionId);
-    assertExactFaceRevision(faceRevision, receipt.face_revision);
+    assertExactFaceRevision(faceRevision, receipt.face_revision_decimal);
     assert.equal(receipt.owner_snapshot_before_after_equal, true);
     assert.equal(receipt.local_spoken_mask_show_observed, true);
     assert.equal(receipt.owner_sealed_spoken_mask_route_observed, false);
@@ -118,7 +118,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
     assert.equal(receipt.human_hearing_observed, false);
     assert.equal(validation.accepted, true);
     assert.equal(validation.presenter_play_completed, true);
-    assertExactFaceRevision(faceRevision, validation.face_revision);
+    assertExactFaceRevision(faceRevision, validation.face_revision_decimal);
     assert.ok(typeof original.output === 'string' && original.output.length > 0);
     assert.equal(original.sha256, digest(Buffer.from(original.output)));
     assert.equal(validation.original_model_output_sha256, original.sha256);
@@ -188,7 +188,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
     assert.equal(current.status, 0, current.stderr);
     const face = JSON.parse(current.stdout);
     assert.equal(face.presentation.identity, faceId);
-    assertExactFaceRevision(faceRevision, face.presentation.revision);
+    assertExactFaceRevision(faceRevision, face.presentation_revision_decimal);
     assert.equal(face.presentation.basis.body_id, bodyId);
     assert.equal(face.advertisement.host_id, ownerHostId);
     assert.equal(face.advertisement.boot_id, ownerBootId);
@@ -260,7 +260,7 @@ export function assertRestoredSpeech({ sourceCommit, runId, bodyId, ownerHostId,
     assert.equal(item.owner_host_id, ownerHostId);
     assert.equal(item.owner_boot_id, ownerBootId);
     assert.equal(item.face_id, faceId);
-    assertExactFaceRevision(faceRevision, item.face_revision);
+    assertExactFaceRevision(faceRevision, item.face_revision_decimal);
   }
   assert.equal(receipt.action_id, actionId);
   assert.notEqual(receipt.action_id, initial.action_id);

@@ -374,7 +374,7 @@ try {
     assert.equal(receipt.owner_host_id, ownerPart.current.host_id);
     assert.equal(receipt.owner_boot_id, ownerPart.current.boot_id);
     assert.equal(receipt.face_id, afterTerminal.face_id);
-    assert.equal(receipt.face_revision.toString(), afterTerminal.face_revision);
+    assert.equal(receipt.face_revision_decimal, afterTerminal.face_revision);
     assert.equal(receipt.owner_snapshot_before_after_equal, true);
     assert.equal(receipt.direct_spoken_mask_show_observed, false);
     assert.equal(receipt.owner_sealed_spoken_mask_route_observed, false);

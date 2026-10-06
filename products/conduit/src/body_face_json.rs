@@ -11,6 +11,7 @@ const MAX_JSON_BYTES: usize = 512 * 1024;
 struct Snapshot<'a> {
     schema: &'static str,
     presentation: &'a conduit_presentation::Presentation,
+    presentation_revision_decimal: String,
     advertisement: &'a conduit_core::HostAdvertisement,
 }
 
@@ -26,6 +27,7 @@ pub(crate) fn run(state_dir: &Path, json: bool) -> Result<(), String> {
     let bytes = serde_json::to_vec(&Snapshot {
         schema: SCHEMA,
         presentation: &presentation,
+        presentation_revision_decimal: presentation.revision.to_string(),
         advertisement: &advertisement,
     })
     .map_err(|error| format!("encode current Body Face: {error}"))?;
