@@ -104,6 +104,10 @@ impl Owner {
         {
             return Err("native-mask-part-unavailable".into());
         }
+        // This Part's admission changed the owner Face. Keep the already
+        // attached browser route in the same new-Face Plan only after its
+        // actual carrier and Lines have been revalidated and resealed.
+        self.refresh_browser_mask_route_for_current_face()?;
         let planned = conduit_conduitos_mask_offer::prepare_stage_from_offer(
             conduit_conduitos_mask_offer::Adapter::Native,
             native_offer,

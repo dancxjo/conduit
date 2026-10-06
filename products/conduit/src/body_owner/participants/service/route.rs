@@ -6,13 +6,57 @@ use conduit_core::{
 };
 use conduit_presentation::{
     FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
-    RemoteOwnerMaskRouteSeal,
+    RemoteOwnerMaskRouteError, RemoteOwnerMaskRouteSeal,
 };
 
 const WEBSOCKET: &conduit_host_browser_make::BrowserLineRealizationDescriptor =
     &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
 
 impl Owner {
+    /// Membership can change the Face after the browser has sealed its route.
+    /// Rebind only an intact, still-attached browser route to that new Face;
+    /// `browser_mask_route` rechecks the actual carrier, Part, offers, and Lines
+    /// and invalidates the old Show before replacing the owner Plan.
+    pub(crate) fn refresh_browser_mask_route_for_current_face(&mut self) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let Some(window) = self.pending_browser.as_ref() else {
+            return Ok(());
+        };
+        let Some((seal, browser_offer, face_line, return_line, interaction_line)) =
+            window.current_mask_route()
+        else {
+            return Ok(());
+        };
+        match seal.validate_current_with_interaction(
+            &self.session,
+            &face,
+            self.host.advertisement(),
+            browser_offer,
+            face_line,
+            return_line,
+            interaction_line,
+        ) {
+            Ok(()) => return Ok(()),
+            Err(RemoteOwnerMaskRouteError::StaleFace) => {}
+            Err(error) => return Err(format!("browser route cannot refresh: {error:?}")),
+        }
+        let WindowState::Active {
+            credential,
+            observation,
+            line_evidence: Some(evidence),
+            ..
+        } = &window.state
+        else {
+            return Err("browser route lost its carrier evidence".into());
+        };
+        let window_id = window.id.clone();
+        let credential = credential.clone();
+        let binding = observation.observed_binding_id.clone();
+        let evidence = (**evidence).clone();
+        self.browser_mask_route(&window_id, &credential, &binding, Some(&evidence))?;
+        Ok(())
+    }
+
     pub(crate) fn browser_wardrobe_report(
         &mut self,
         window_id: &str,
