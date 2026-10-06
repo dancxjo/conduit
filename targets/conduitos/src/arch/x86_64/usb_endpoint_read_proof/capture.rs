@@ -71,13 +71,6 @@ pub(super) fn run(
         encoded: Vec::new(),
     };
     let device_hex = identity::hex(&capture.device_id);
-    let fragment = &capture.plan.fragments[0];
-    let active = bind_active_play(
-        &capture.plan.plan_id,
-        &fragment.host_id,
-        &fragment.boot_id,
-        0,
-    );
     let mut pending = [None; 8];
     let mut nodes = [None; 8];
     let mut digest = Sha256::new();
@@ -297,7 +290,7 @@ pub(super) fn run(
     let digest_hex =
         core::str::from_utf8(digest_text.as_bytes()).map_err(|_| "usb-hid-capture-digest")?;
     let mut sign = FixedText::new();
-    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true,\"allocation_sealed\":true,\"capture_buffers\":8,\"maximum_pending_transfers\":8}}", capture.plan.source_document_id.as_str(), capture.plan.checked_plot_id.as_str(), capture.plan.plan_id.as_str(), active.active_play_id.as_str(), device_hex, wraps, digest_hex).map_err(|_| "usb-hid-capture-sign")?;
+    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true,\"allocation_sealed\":true,\"capture_buffers\":8,\"maximum_pending_transfers\":8}}", capture.identity.source_document_id.as_str(), capture.identity.checked_plot_id.as_str(), capture.identity.plan_id.as_str(), capture.identity.active_play_id.as_str(), device_hex, wraps, digest_hex).map_err(|_| "usb-hid-capture-sign")?;
     early_write(sign.as_bytes());
     Ok(())
 }
