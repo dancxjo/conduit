@@ -120,7 +120,9 @@ it. Link the owning issue when there is one. Include a screenshot or retained
 evidence link when it helps review a visible change. GitHub already records
 commits and checks; you do not need to copy their identities into the prose.
 
-PR admission checks portable meaning before the affected target lanes. Automation
+Keep active work in a draft PR for quick checks, then mark it ready for review
+to run exhaustive admission proof. Portable meaning and affected target lanes
+run in parallel after preflight. Automation
 runs all targets once for combined development, then publishes those tested
 products after verifying their identities; release does not rebuild them.
 Contributors do not need to assemble promotion receipts or manage release

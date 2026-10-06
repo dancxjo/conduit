@@ -53,6 +53,8 @@ try {
       const paths = base === 'all' ? [] : run('git', ['diff', '--name-only', '--no-renames', '-z', `${exactSha(base)}...${head}`], true).split('\0').filter(Boolean);
       const plan = planChanges(paths, { full: base === 'all' });
       output('docs-only', String(plan.docsOnly));
+      output('unit-matrix', { shard: plan.unitShards });
+      output('conduitos-proof', String(plan.conduitosProof));
       output('matrix', { include: TARGETS.filter(item => plan.families.includes(item.family)) });
       output('sha', head);
       break;

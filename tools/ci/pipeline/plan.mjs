@@ -3,6 +3,22 @@ export const FAMILIES = Object.freeze([
   "browser", "hosted", "conduitos", "esp32", "avr", "raspberry-pi", "orange-pi", "rp2040",
 ]);
 
+export const UNIT_SHARDS = Object.freeze([
+  "foundation", "hosts-std", "hosts-browser", "hosts-conduitos", "hosts-workbench", "products", "lint",
+]);
+
+// Browser proof and site assets do not change Rust implementations. Keep their
+// browser/workbench fixtures and tooling tests; any source or dependency change
+// retains all portable proof rather than guessing reverse package dependencies.
+function unitsFor(path) {
+  if ((/^proof\/browser\/.+\.(?:mjs|js|ts|html|css|svg|png|json)$/.test(path)
+      && !/(^|\/)package(-lock)?\.json$/.test(path))
+      || /^site\/.+\.(?:html|css|js|mjs|svg|png|jpg|webp)$/.test(path)) {
+    return ["hosts-browser", "hosts-workbench", "products", "lint"];
+  }
+  return UNIT_SHARDS;
+}
+
 const rootProse = new Set([
   "README.md", "STATUS.md", "CONTRIBUTING.md", "AGENTS.md", "LICENSE",
   "LICENSE.md", "CHANGELOG.md", "CODE_OF_CONDUCT.md", "SECURITY.md",
@@ -42,15 +58,19 @@ export function planChanges(paths, { full = false } = {}) {
   if (!Array.isArray(paths) || paths.some((path) => typeof path !== "string")) {
     throw new TypeError("changed paths must be an array of strings");
   }
-  if (full || paths.length === 0) return { docsOnly: false, families: [...FAMILIES] };
+  if (full || paths.length === 0) return { docsOnly: false, families: [...FAMILIES], unitShards: [...UNIT_SHARDS], conduitosProof: true };
 
   const selected = new Set();
+  const selectedUnits = new Set();
   for (const path of paths) {
     if (isDocumentation(path)) continue;
     for (const family of familiesFor(path)) selected.add(family);
+    for (const shard of unitsFor(path)) selectedUnits.add(shard);
   }
   return {
     docsOnly: selected.size === 0,
     families: FAMILIES.filter((family) => selected.has(family)),
+    unitShards: UNIT_SHARDS.filter((shard) => selectedUnits.has(shard)),
+    conduitosProof: selectedUnits.has("hosts-conduitos"),
   };
 }

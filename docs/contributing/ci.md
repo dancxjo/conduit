@@ -1,10 +1,5 @@
 # CI for contributors and agents
 
-As of 6 October 2026, the repository's candidate, integration, publication,
-and acquisition workflows are manually disabled at the owner's request. This
-guide describes their checked-in behavior and local entrances. New pushes do
-not receive those workflow results or automatic promotion while disabled.
-
 Open ordinary pull requests to `dev`. Read the single required `candidate`
 result. Its failure identifies the command and source being checked; reproduce
 through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
@@ -13,10 +8,34 @@ through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The pipeline scans the diff, checks patch hygiene, Rust formatting, locked
 workspace metadata and firmware lockfiles, artifact/publication invariants, and
-Actions syntax. Three
-broad unit shards cover foundation, hosts, and products; workspace Clippy runs
-alongside them. These use the repository's existing package ownership list.
-Expensive targets start only after every unit and lint shard passes.
+Actions syntax. This `candidate/quick` check runs on every PR update, including
+drafts. Draft PRs stop after quick checks; mark a PR ready for review to launch
+exhaustive proof for its current SHA. Returning it to draft cancels superseded
+proof and runs quick checks again. Keep actively changing work in draft.
+
+After preflight, unit and target proof start independently. Foundation and
+products retain their broad unit shards; hosts split into std providers,
+browser runtime, ConduitOS, and workbench fixtures. Workspace Clippy runs
+alongside them. Ordinary packages belong to exactly one group. The sustained
+ConduitOS proof is partitioned across the same runners: automatic Body cases
+with std, automatic Clock cases and HID reports with browser, USB protocol plots
+with workbench,
+and remaining library, default integration, and doc tests with ConduitOS.
+The native lane validates the compiled library inventory; Cargo metadata assigns
+every default integration target. Each group retains `--test-threads=1`.
+Isolated browser assets skip these native slices; Integration always proves them.
+A unit failure does not prevent independent targets from reporting defects.
+Reproduce a host group with `cargo xtask ci pipeline unit hosts-std` (or
+`hosts-browser`, `hosts-conduitos`, `hosts-workbench`). The full xtask check
+entrance also exposes `workspace-test-hosts-std` and the other named groups;
+`workspace-test-hosts` retains the aggregate local suite.
+
+The `candidate` job is an AND gate over all selected proof for the exact PR SHA.
+It explicitly blocks admission on drafts while quick checks can pass; a skipped
+required check would count as successful in GitHub branch protection. Ready docs-only
+PRs require successful preflight. Integration always runs exhaustive proof for
+all targets and unit shards, with running work finishing and pending commits
+coalescing. Publication continues to consume those exact verified artifacts.
 
 Selection is deliberately small and conservative:
 
@@ -29,6 +48,11 @@ Selection is deliberately small and conservative:
 | Shared target runtime, offers, or make libraries | All |
 | ConduitOS | ConduitOS and Orange Pi |
 | Shared code, manifests, tools, workflows, unknown paths | All |
+
+Unit selection is conservative too: isolated browser proof scripts and site
+assets select browser and workbench host fixtures, products/tooling tests, and
+workspace Clippy. Other source changes, dependency files, unknown paths, and
+mixed changes retain every unit shard. Integration always selects all shards.
 
 Both names of a rename are included. An empty diff selects all. There are no
 receipt-reuse fingerprints or path dependency controllers. The selection rules

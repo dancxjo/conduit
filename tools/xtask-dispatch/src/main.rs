@@ -86,6 +86,8 @@ mod process {
 
 #[path = "../../xtask/src/suites/check.rs"]
 pub mod suite_check;
+#[path = "../../xtask/src/suites/host_protocol_shards.rs"]
+pub mod suite_host_protocol_shards;
 #[path = "../../xtask/src/suites/network_capability.rs"]
 pub mod suite_network_capability;
 #[path = "../../xtask/src/suites/pico_compositions.rs"]
@@ -95,6 +97,7 @@ pub mod suite_workspace_shards;
 
 mod suites {
     pub use crate::suite_check as check;
+    pub use crate::suite_host_protocol_shards as host_protocol_shards;
     #[cfg(test)]
     pub use crate::suite_network_capability as network_capability;
     #[cfg(test)]
