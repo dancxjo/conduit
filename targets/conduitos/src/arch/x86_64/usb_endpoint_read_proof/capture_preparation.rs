@@ -13,10 +13,17 @@ use crate::usb_base::{hid_endpoint_proof_plan, hid_source_kernel::PreparedHidSou
 pub(super) struct PreparedNativeCapture<'a> {
     pub play: PreparedHidSourceKernel,
     pub owner: EndpointReadWindow<'a, 8>,
-    pub plan: Plan,
+    pub identity: NativeCaptureIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub device_id: [u8; 32],
+}
+
+pub(super) struct NativeCaptureIdentity {
+    pub source_document_id: SourceDocumentId,
+    pub checked_plot_id: CheckedPlotId,
+    pub plan_id: PlanId,
+    pub active_play_id: ActivePlayId,
 }
 
 /// # Safety
@@ -49,6 +56,7 @@ pub(super) unsafe fn prepare<'a>(
         &dma,
         &contract,
     )?;
+    preparation_stage("plan-start")?;
     let artifact = hid_endpoint_proof_plan::plan(
         &EndpointReadProofSubject {
             host_id: &identity::hex(&ids.host),
@@ -64,13 +72,26 @@ pub(super) unsafe fn prepare<'a>(
         "usb-hid-keyboard-capture-window",
     )
     .map_err(|_| "usb-hid-capture-plan")?;
+    preparation_stage("plan-ready")?;
     let definition = artifact.artifact().definition();
-    let plan = definition.internal_plan.clone();
     let inputs = definition.external_capability.inputs.clone();
     let outputs = definition.external_capability.outputs.clone();
+    let mut play =
+        PreparedHidSourceKernel::prepare(artifact, planning::ENDPOINT_READ_PROOF_SIGN_STORAGE)
+            .map_err(|_| "usb-hid-capture-kernel")?;
+    preparation_stage("kernel-ready")?;
+    // Bind from the kernel's retained Plan rather than retaining another full
+    // expansion solely to publish the four exact identities in the receipt.
+    let plan = &play.kernel_mut().definition().internal_plan;
     let fragment = &plan.fragments[0];
     let lowered = lower_plan_fragment(fragment).map_err(|_| "usb-hid-capture-lowering")?;
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let identity = NativeCaptureIdentity {
+        source_document_id: plan.source_document_id.clone(),
+        checked_plot_id: plan.checked_plot_id.clone(),
+        plan_id: plan.plan_id.clone(),
+        active_play_id: active.active_play_id.clone(),
+    };
     let mut selections = Vec::with_capacity(8);
     for gear in fragment
         .placements
@@ -94,7 +115,7 @@ pub(super) unsafe fn prepare<'a>(
         // Deterministic independent keys are confined to this proof appliance.
         // Ordinary Root installation must use its cryptographic issuer instead.
         let (table, handle, claim) = possession::issue_selected(
-            &plan,
+            plan,
             &gear.placement_id,
             [71 + selections.len() as u8; 32],
         )?;
@@ -121,10 +142,7 @@ pub(super) unsafe fn prepare<'a>(
         maximum_data_bytes: 2048,
         resource_bytes: core::mem::size_of::<ProofDma>() as u64,
     };
-    // Finish every fallible allocation before binding the retained native owner.
-    let play =
-        PreparedHidSourceKernel::prepare(artifact, planning::ENDPOINT_READ_PROOF_SIGN_STORAGE)
-            .map_err(|_| "usb-hid-capture-kernel")?;
+    // Finish preparation before binding the retained native owner.
     let owner = unsafe {
         EndpointReadWindow::bind_selected(
             controller.maximum_ports(),
@@ -137,12 +155,27 @@ pub(super) unsafe fn prepare<'a>(
         )
     }
     .map_err(|_| "usb-hid-capture-binding")?;
+    preparation_stage("bound")?;
     Ok(PreparedNativeCapture {
         play,
         owner,
-        plan,
+        identity,
         inputs,
         outputs,
         device_id,
     })
+}
+
+fn preparation_stage(stage: &str) -> Result<(), &'static str> {
+    let mut marker = FixedText::new();
+    writeln!(
+        marker,
+        "CONDUIT_USB_CAPTURE_PREPARATION {stage} live={} peak={} capacity={}",
+        crate::allocation::BOOT_ARENA.live_bytes(),
+        crate::allocation::BOOT_ARENA.used(),
+        crate::allocation::BOOT_ARENA.capacity(),
+    )
+    .map_err(|_| "usb-hid-capture-preparation-sign")?;
+    early_write(marker.as_bytes());
+    Ok(())
 }
