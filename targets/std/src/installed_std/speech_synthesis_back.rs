@@ -235,6 +235,16 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         }
         _ => return Err("planned speech implementation is not installed".into()),
     };
+    if matches!(
+        placement.implementation_id.as_str(),
+        conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION
+            | conduit_std_offers::DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION
+    ) && placement.realization_properties != offer.realization_properties
+    {
+        return Err(
+            "deterministic speech proof Language coverage differs from installation".into(),
+        );
+    }
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
