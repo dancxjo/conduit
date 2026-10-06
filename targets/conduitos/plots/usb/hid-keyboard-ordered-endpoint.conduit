@@ -1,0 +1,63 @@
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+
+type UsbKeyboardEndpointFrame = {
+    actual: U64
+    ordinal: U64
+    short: Boolean
+    wire: Bytes <= 2048B
+}
+
+# Wire interpretation retains every completed ordinal, including bad reports.
+# Physical failure has no completed ordinal and ends the class explicitly.
+# Finite concatenation drains completed observations before the failure tail
+# and appends finish only after normal result EOF. This plot issues no retries.
+type UsbKeyboardEndpointRoute =
+    completed UsbKeyboardEndpointFrame
+    | failed UsbKeyboardOrderCommand
+
+plot usb-hid-keyboard-endpoint-route (
+    result: UsbEndpointReadResult...| >> route: UsbKeyboardEndpointRoute...|
+) = (. is completed ? completed({ ordinal: .completed.ordinal, actual: .completed.actual, short: .completed.short, wire: .completed.wire }) : failed(. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : (. is timeout ? timeout(unit) : unsupported(unit)))))
+
+type UsbKeyboardEndpointDecode =
+    pending UsbKeyboardEndpointFrame
+    | observed UsbKeyboardOrderedObservation
+
+plot usb-hid-keyboard-endpoint-preflight (
+    frame: UsbKeyboardEndpointFrame...| >> checked: UsbKeyboardEndpointDecode...|
+) = (.actual != bytes/length(.wire) || .actual > 8 || (.actual < 8) != .short ? observed({ ordinal: .ordinal, observed: malformed(unit) }) : (.actual < 8 ? observed({ ordinal: .ordinal, observed: short(unit) }) : (bytes/at(.wire, 1) != 0 ? observed({ ordinal: .ordinal, observed: reserved(unit) }) : pending(.))))
+
+plot usb-hid-keyboard-endpoint-finish (
+    begin: Unit...| >> command: UsbKeyboardOrderCommand...|
+) = (finish(unit))
+
+plot usb-hid-keyboard-ordered-results (
+    >> begin: Unit...|
+    >> result: UsbEndpointReadResult...|
+    observation: UsbKeyboardOrderedObservation...| >>
+    changes: UsbKeyboardTransitionBatch...| >>
+    ended: UsbKeyboardOrderEnd...| >>
+) {
+    route: usb-hid-keyboard-endpoint-route()
+    completions: flow/concat/finite
+    commands: flow/concat/finite
+    state: usb-hid-keyboard-order-lifecycle
+    begin >> state.begin
+    begin >> usb-hid-keyboard-endpoint-finish() >> commands.right
+    result >> route
+    route >> select(UsbKeyboardEndpointRoute.completed, unmatched=drop) >> usb-hid-keyboard-endpoint-preflight() >> usb-hid-keyboard-endpoint-errors() >> usb-hid-keyboard-endpoint-command() >> completions.left
+    route >> select(UsbKeyboardEndpointRoute.failed, unmatched=drop) >> completions.right
+    completions.concatenated >> commands.left
+    commands.concatenated >> state.command
+    state.observation >> observation
+    state.changes >> changes
+    state.ended >> ended
+}
+
+plot usb-hid-keyboard-endpoint-errors (
+    decoded: UsbKeyboardEndpointDecode...| >> checked: UsbKeyboardEndpointDecode...|
+) = (. is pending ? ((bytes/at(.pending.wire, 2) >= 1 && bytes/at(.pending.wire, 2) <= 3) || (bytes/at(.pending.wire, 3) >= 1 && bytes/at(.pending.wire, 3) <= 3) || (bytes/at(.pending.wire, 4) >= 1 && bytes/at(.pending.wire, 4) <= 3) || (bytes/at(.pending.wire, 5) >= 1 && bytes/at(.pending.wire, 5) <= 3) || (bytes/at(.pending.wire, 6) >= 1 && bytes/at(.pending.wire, 6) <= 3) || (bytes/at(.pending.wire, 7) >= 1 && bytes/at(.pending.wire, 7) <= 3) ? observed({ ordinal: .pending.ordinal, observed: report-error((bytes/at(.pending.wire, 2) >= 1 && bytes/at(.pending.wire, 2) <= 3 ? bytes/at(.pending.wire, 2) : (bytes/at(.pending.wire, 3) >= 1 && bytes/at(.pending.wire, 3) <= 3 ? bytes/at(.pending.wire, 3) : (bytes/at(.pending.wire, 4) >= 1 && bytes/at(.pending.wire, 4) <= 3 ? bytes/at(.pending.wire, 4) : (bytes/at(.pending.wire, 5) >= 1 && bytes/at(.pending.wire, 5) <= 3 ? bytes/at(.pending.wire, 5) : (bytes/at(.pending.wire, 6) >= 1 && bytes/at(.pending.wire, 6) <= 3 ? bytes/at(.pending.wire, 6) : (bytes/at(.pending.wire, 7) >= 1 && bytes/at(.pending.wire, 7) <= 3 ? bytes/at(.pending.wire, 7) : 0))))))) }) : .) : .)
+
+plot usb-hid-keyboard-endpoint-command (
+    decoded: UsbKeyboardEndpointDecode...| >> command: UsbKeyboardOrderCommand...|
+) = (. is observed ? observation(.observed) : observation({ ordinal: .pending.ordinal, observed: (((((bytes/at(.pending.wire, 2) != 0 && bytes/at(.pending.wire, 2) == bytes/at(.pending.wire, 3)) || ((bytes/at(.pending.wire, 2) != 0 && bytes/at(.pending.wire, 2) == bytes/at(.pending.wire, 4)) || (bytes/at(.pending.wire, 2) != 0 && bytes/at(.pending.wire, 2) == bytes/at(.pending.wire, 5)))) || (((bytes/at(.pending.wire, 2) != 0 && bytes/at(.pending.wire, 2) == bytes/at(.pending.wire, 6)) || (bytes/at(.pending.wire, 2) != 0 && bytes/at(.pending.wire, 2) == bytes/at(.pending.wire, 7))) || ((bytes/at(.pending.wire, 3) != 0 && bytes/at(.pending.wire, 3) == bytes/at(.pending.wire, 4)) || (bytes/at(.pending.wire, 3) != 0 && bytes/at(.pending.wire, 3) == bytes/at(.pending.wire, 5))))) || ((((bytes/at(.pending.wire, 3) != 0 && bytes/at(.pending.wire, 3) == bytes/at(.pending.wire, 6)) || (bytes/at(.pending.wire, 3) != 0 && bytes/at(.pending.wire, 3) == bytes/at(.pending.wire, 7))) || ((bytes/at(.pending.wire, 4) != 0 && bytes/at(.pending.wire, 4) == bytes/at(.pending.wire, 5)) || (bytes/at(.pending.wire, 4) != 0 && bytes/at(.pending.wire, 4) == bytes/at(.pending.wire, 6)))) || (((bytes/at(.pending.wire, 4) != 0 && bytes/at(.pending.wire, 4) == bytes/at(.pending.wire, 7)) || (bytes/at(.pending.wire, 5) != 0 && bytes/at(.pending.wire, 5) == bytes/at(.pending.wire, 6))) || ((bytes/at(.pending.wire, 5) != 0 && bytes/at(.pending.wire, 5) == bytes/at(.pending.wire, 7)) || (bytes/at(.pending.wire, 6) != 0 && bytes/at(.pending.wire, 6) == bytes/at(.pending.wire, 7)))))) ? duplicate(unit) : keyboard({ modifiers: bytes/at(.pending.wire, 0), keys: [bytes/at(.pending.wire, 2), bytes/at(.pending.wire, 3), bytes/at(.pending.wire, 4), bytes/at(.pending.wire, 5), bytes/at(.pending.wire, 6), bytes/at(.pending.wire, 7)] })) }))
