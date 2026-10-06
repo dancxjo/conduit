@@ -51,6 +51,9 @@ pub(crate) mod browser;
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
 #[cfg(unix)]
+#[path = "durable_host_control/owner_wardrobe.rs"]
+pub(crate) mod owner_wardrobe;
+#[cfg(unix)]
 #[path = "durable_host_control/speech_route.rs"]
 pub(crate) mod speech_route;
 #[cfg(not(unix))]

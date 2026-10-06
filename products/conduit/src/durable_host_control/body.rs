@@ -235,6 +235,22 @@ impl DurableHostRuntime {
         }
     }
 
+    pub(super) fn local_owner_wardrobe_report(
+        &mut self,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<serde_json::Value, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => {
+                owner.owner_wardrobe_report(owner_plan_id, basis_revision, action)
+            }
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
     pub(super) fn browser_abort(&mut self, window_id: &str) -> Result<(), String> {
         match &mut self.host {
             HostSource::Body { owner, .. } => owner.browser_abort(window_id),

@@ -4,8 +4,8 @@ use super::{
     constant_time_equal, read_frame, read_secret, write_frame, DurableHostRuntime,
     Request as OrdinaryRequest, PROTOCOL,
 };
-use conduit_core::LinkBindingId;
-use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest};
+use conduit_core::{LinkBindingId, PlanId};
+use conduit_presentation::{MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
@@ -20,6 +20,13 @@ pub(crate) const MAGIC: &[u8; 8] = b"SDSPCH01";
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub(crate) enum SpeechRequest {
+    OwnerWardrobe {
+        protocol: u16,
+        token: Vec<u8>,
+        owner_plan_id: Option<PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    },
     DirectAdmit {
         protocol: u16,
         token: Vec<u8>,
@@ -87,6 +94,7 @@ pub(crate) enum SpeechRequest {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub(crate) enum SpeechReply {
+    OwnerWardrobe { protocol: u16, report: Box<Value> },
     DirectRoute { protocol: u16, report: Box<Value> },
     Started { protocol: u16, operation_id: String },
     Status { protocol: u16, status: Box<Value> },
@@ -125,7 +133,8 @@ pub(super) fn call(
     secret.fill(0);
     let sent = write_frame(&mut stream, &request);
     match &mut request {
-        SpeechRequest::Start { token, .. }
+        SpeechRequest::OwnerWardrobe { token, .. }
+        | SpeechRequest::Start { token, .. }
         | SpeechRequest::Status { token, .. }
         | SpeechRequest::Stop { token, .. }
         | SpeechRequest::DirectAdmit { token, .. }
@@ -164,7 +173,10 @@ pub(super) fn serve(
         }
         let mut request: SpeechRequest = read_frame(stream)?;
         let (protocol, token) = match &mut request {
-            SpeechRequest::DirectAdmit { protocol, token }
+            SpeechRequest::OwnerWardrobe {
+                protocol, token, ..
+            }
+            | SpeechRequest::DirectAdmit { protocol, token }
             | SpeechRequest::DirectSelect { protocol, token }
             | SpeechRequest::DirectStart { protocol, token }
             | SpeechRequest::DirectStatus {
@@ -201,6 +213,17 @@ pub(super) fn serve(
             return Err("selected-speech-protocol".into());
         }
         match request {
+            SpeechRequest::OwnerWardrobe {
+                owner_plan_id,
+                basis_revision,
+                action,
+                ..
+            } => runtime
+                .local_owner_wardrobe_report(owner_plan_id.as_ref(), basis_revision, action)
+                .map(|report| SpeechReply::OwnerWardrobe {
+                    protocol: PROTOCOL,
+                    report: Box::new(report),
+                }),
             SpeechRequest::DirectAdmit { .. } => {
                 runtime
                     .admit_direct_spoken()

@@ -7,10 +7,12 @@ use std::{
 
 use conduit_core::HostAdvertisement;
 use conduit_presentation::{MaskShow, Presentation};
-use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
+use conduit_std_host::spoken_face_mask::SpokenFaceSession;
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
 use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 
+use super::opening_readout::opening_body_commands;
+pub(super) use super::opening_readout::opening_commands;
 use super::{
     command_input::{CommandInput, DirectInput, InputEvent, SpokenInput},
     debug_error,
@@ -290,9 +292,11 @@ fn run_body(
     let mut execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
     let mut show = present(&face, &mut execution, output)?;
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
+    #[cfg(unix)]
+    let mut wardrobe_report = None;
     writeln!(
         output,
-        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh.",
+        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh, wardrobe, wardrobe wear/doff ROUTE, wardrobe prefer ROUTE ... . Inspect first and use exact route IDs. Preference ranks routes; doff the current route to allow selection of the next preferred route. Wardrobe reports are text; selected speaker playback does not voice them yet.",
         body_id.as_str()
     )
     .map_err(|error| error.to_string())?;
@@ -347,6 +351,10 @@ fn run_body(
             execution.close_without_input().map_err(debug_error)?;
             face = current;
             advertisement = host;
+            #[cfg(unix)]
+            {
+                wardrobe_report = None;
+            }
             execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
             show = present(&face, &mut execution, output)?;
             reader
@@ -382,6 +390,10 @@ fn run_body(
         if line == "refresh" {
             writeln!(output, "Owner Face revision {} is current.", face.revision)
                 .map_err(|error| error.to_string())?;
+            continue;
+        }
+        #[cfg(unix)]
+        if super::wardrobe::handle(state_dir, &line, &mut wardrobe_report, output)? {
             continue;
         }
         let command = match parse_command(&line, &reader, &face) {
@@ -438,6 +450,10 @@ fn run_body(
             }
             face = current;
             advertisement = host;
+            #[cfg(unix)]
+            {
+                wardrobe_report = None;
+            }
             execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
             show = present(&face, &mut execution, output)?;
             reader
@@ -470,29 +486,4 @@ fn present(
     mask.show()
         .cloned()
         .ok_or_else(|| "terminal did not acknowledge a Show".into())
-}
-
-pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
-    // The Crèche starts at its current name control; a person can request
-    // every clause without waiting through it before their first edit.
-    spoken
-        .then_some(ReaderCommand::Help)
-        .into_iter()
-        .chain(std::iter::once(if spoken {
-            ReaderCommand::Repeat
-        } else {
-            ReaderCommand::ReadAll
-        }))
-        .chain(spoken.then_some(ReaderCommand::FocusAction("creche.name".into())))
-}
-
-/// A returning spoken user gets immediate orientation, then chooses whether
-/// to read the whole view. Reading it automatically can outlast a live Play
-/// and make its current Stop action unreachable through nonvisual input.
-fn opening_body_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
-    std::iter::once(if spoken {
-        ReaderCommand::Repeat
-    } else {
-        ReaderCommand::ReadAll
-    })
 }

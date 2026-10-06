@@ -32,6 +32,7 @@ use audio::BirthSpeechOutput;
 mod command_input;
 mod input;
 mod installed;
+mod opening_readout;
 #[cfg(test)]
 use input::MAX_SCREEN_FREE_COMMAND_BYTES;
 #[cfg(test)]
@@ -42,6 +43,8 @@ pub(crate) use installed::{run_retained, run_retained_spoken};
 mod selected_playback;
 mod selected_readout;
 mod speech_options;
+#[cfg(unix)]
+mod wardrobe;
 pub(crate) use speech_options::run as speech_options;
 
 #[cfg(test)]
