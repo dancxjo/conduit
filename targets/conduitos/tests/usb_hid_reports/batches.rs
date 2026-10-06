@@ -175,6 +175,38 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                         Err(conduitos::keyboard_input::KeyboardIngressRefusal::Pressure)
                     );
                     assert_eq!(ingress.pending(), 0);
+                    let mut pending = report.into_pending().unwrap();
+                    let mut delivered = 0;
+                    while pending.pending() != 0 {
+                        let before = pending.pending();
+                        let next = pending.next_transition().unwrap();
+                        if pending.admit_next(&mut ingress).is_err() {
+                            assert_eq!(pending.pending(), before);
+                            assert_eq!(pending.next_transition(), Some(next));
+                            assert_eq!(ingress.pending(), 8);
+                            ingress.service(8, |key| {
+                                let (usage, pressed, modifiers) =
+                                    expected[batch_offsets[next_event] + delivered];
+                                assert_eq!(
+                                    key.encode(),
+                                    [usage, if pressed { 0 } else { 1 }, modifiers]
+                                );
+                                delivered += 1;
+                            });
+                        }
+                    }
+                    assert!(!pending.admit_next(&mut ingress).unwrap());
+                    ingress.service(8, |key| {
+                        let (usage, pressed, modifiers) =
+                            expected[batch_offsets[next_event] + delivered];
+                        assert_eq!(
+                            key.encode(),
+                            [usage, if pressed { 0 } else { 1 }, modifiers]
+                        );
+                        delivered += 1;
+                    });
+                    assert_eq!(delivered, batch_lengths[next_event]);
+                    assert_eq!(ingress.pending(), 0);
                     next_event += 1;
                     run.complete_output(&transition.port_id, sequence).unwrap();
                     continue;
