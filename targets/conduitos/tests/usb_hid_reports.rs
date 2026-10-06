@@ -4,6 +4,7 @@ mod allocation;
 
 mod usb_hid_reports {
     mod batches;
+    mod capture_kernel;
     pub(super) mod common;
     mod endpoint;
     mod endpoint_kernel;
