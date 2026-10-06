@@ -6,7 +6,7 @@ import path from 'node:path';
 
 export async function capturePresentationRecovery({ page, context, serverUrl, owner, state,
   bodyId, ownerPartId, guestPartId, browserCredential, browserBootId, oldFace,
-  oldWardrobe, output, sourceCommit, runId }) {
+  oldWardrobe, initialOwnerWindowUrl, output, sourceCommit, runId }) {
   const status = () => {
     const result = owner(['body', 'status', '--state-dir', state, '--json']);
     assert.equal(result.biography.body_id, bodyId);
@@ -53,12 +53,20 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
   assert.equal(lost.actionDisabled, true);
   assert.match(lost.result, /no current action return/);
   assert.match(lost.wardrobe, /historical/);
-  const duringLoss = status();
+  await page.close();
+  let duringLoss;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    duringLoss = status();
+    if (duringLoss.biography.membership.parts.find(part =>
+      part.part_id === browserCredential.part_id)?.current === null) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.equal(duringLoss.biography.membership.parts.find(part =>
+    part.part_id === browserCredential.part_id)?.current, null,
+  'owner must retire the old browser carrier before a new Boot joins');
   for (const partId of [ownerPartId, guestPartId]) {
     assert.ok(duringLoss.biography.membership.parts.find(part => part.part_id === partId)?.current);
   }
-  await page.close();
-
   const recoveredPage = await context.newPage();
   await recoveredPage.goto(`${serverUrl}?participate=owner#your-handbook`);
   await recoveredPage.locator('[data-owner-key]').waitFor();
@@ -66,13 +74,20 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
     globalThis.__conduitOwnerParticipation.admissionIdentity());
   assert.equal(identity.hostId, browserCredential.host_id);
   assert.notEqual(identity.bootId, browserBootId, 'recovery needs a fresh browser Boot');
-  const window = owner(['body', 'browser-window', '--state-dir', state,
-    '--expected-host-id', identity.hostId,
-    '--new-host-verifying-key', JSON.stringify(identity.verifyingKey),
-    '--maximum-millis', '60000', '--authorize-window']);
-  assert.equal(window.body_id, bodyId);
+  let ownerWindowUrl;
+  try {
+    const window = owner(['body', 'browser-window', '--state-dir', state,
+      '--expected-host-id', identity.hostId,
+      '--new-host-verifying-key', JSON.stringify(identity.verifyingKey),
+      '--maximum-millis', '60000', '--authorize-window']);
+    assert.equal(window.body_id, bodyId);
+    ownerWindowUrl = window.url;
+  } catch (error) {
+    assert.match(error.message, /another browser admission window is active/);
+    ownerWindowUrl = initialOwnerWindowUrl;
+  }
   await recoveredPage.getByLabel('Body ID').fill(bodyId);
-  await recoveredPage.getByLabel('Owner window URL').fill(window.url);
+  await recoveredPage.getByLabel('Owner window URL').fill(ownerWindowUrl);
   await recoveredPage.getByRole('button', { name: 'Join this Body' }).click();
   await recoveredPage.waitForFunction(() => globalThis.__conduitOwnerParticipation?.presence() === 'available',
     null, { timeout: 12_000 });

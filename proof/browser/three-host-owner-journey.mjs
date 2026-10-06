@@ -434,6 +434,7 @@ try {
     page, context, serverUrl: server.url, owner: run, state, bodyId,
     ownerPartId: ownerPart.part_id, guestPartId: arrived.guest_part.part_id,
     browserCredential: joined.credential, browserBootId: identity.bootId,
+    initialOwnerWindowUrl: window.url,
     oldFace: await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()),
     oldWardrobe: await readWardrobe(), output,
     sourceCommit: installed.release_source_identity, runId,
