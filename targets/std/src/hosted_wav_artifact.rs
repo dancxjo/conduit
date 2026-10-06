@@ -214,6 +214,8 @@ pub struct WavArtifactReport {
     pub frames: u32,
     pub blocks: u16,
     pub completed: bool,
+    pub locator: Option<String>,
+    pub pcm_sha256: Option<String>,
 }
 
 pub(crate) struct WavArtifactSession {
@@ -350,6 +352,8 @@ impl WavArtifactSession {
             frames: self.next_frame as u32,
             blocks: self.blocks,
             completed: self.completed,
+            locator: self.locator(),
+            pcm_sha256: self.content_sha256(),
         }
     }
     pub(crate) fn content_sha256(&self) -> Option<String> {

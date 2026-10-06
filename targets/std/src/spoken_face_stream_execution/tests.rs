@@ -198,6 +198,7 @@ fn deterministic_playback(
         &authorization,
         control,
         &mut host,
+        false,
     )?;
     Ok((reader, execution))
 }
@@ -225,6 +226,7 @@ fn selected_playback_keeps_the_same_host_across_two_plays() {
         &authorization,
         &crate::RunControl::default(),
         &mut host,
+        false,
     )
     .unwrap();
     let second = super::playback::run_selected_spoken_playback(
@@ -238,6 +240,7 @@ fn selected_playback_keeps_the_same_host_across_two_plays() {
         &authorization,
         &crate::RunControl::default(),
         &mut host,
+        false,
     )
     .unwrap();
     assert_eq!(host.advertisement(), &original);
@@ -267,6 +270,7 @@ fn attached_host_entrance_refuses_a_missing_speech_provider() {
         &authorization,
         &crate::RunControl::default(),
         &mut host,
+        false,
     )
     .unwrap_err();
     assert!(matches!(refusal, SpokenStreamExecutionRefusal::Plan(_)));

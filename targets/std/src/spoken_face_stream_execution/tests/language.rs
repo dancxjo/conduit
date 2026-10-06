@@ -24,6 +24,7 @@ fn english_proof_face_back_refuses_french_before_selected_playback() {
         &authorization,
         &crate::RunControl::default(),
         &mut host,
+        false,
     );
     let Err(SpokenStreamExecutionRefusal::Plan(detail)) = result else {
         panic!("French must be refused during coverage planning");
