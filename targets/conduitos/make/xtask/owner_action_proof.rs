@@ -381,23 +381,33 @@ fn wait_for_action(
                 ));
             }
         }
-        let shown: Vec<&Value> = faces
-            .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("shown"))
-            .collect();
-        let acknowledged: Vec<&Value> = faces
-            .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("acknowledged"))
-            .collect();
-        if let (Some(action), Some(after), Some(ack)) =
-            (actions.last(), shown.get(1), acknowledged.get(1))
-        {
-            if ack.get("show_id") == after.get("show_id") {
-                return Ok((action.clone(), (*after).clone(), (*ack).clone()));
+        if let Some(action) = actions.last() {
+            if let Some((after, ack)) = refreshed_show_after_action(action, &faces) {
+                return Ok((action.clone(), after, ack));
             }
         }
         wait_or_refuse(child, deadline, "native-owner-action-not-observed")?;
     }
+}
+
+fn refreshed_show_after_action(action: &Value, faces: &[Value]) -> Option<(Value, Value)> {
+    let prior_face = action.get("face_id")?;
+    let prior_revision = action.get("face_revision")?.as_u64()?;
+    faces.iter().enumerate().find_map(|(index, after)| {
+        if after.get("status")?.as_str()? != "shown"
+            || after.get("interactions_admitted") != Some(&Value::Bool(true))
+            || after.get("face_id") == Some(prior_face)
+            || after.get("face_revision")?.as_u64()? <= prior_revision
+        {
+            return None;
+        }
+        let show_id = after.get("show_id")?;
+        let ack = faces[index + 1..].iter().find(|face| {
+            face.get("status").and_then(Value::as_str) == Some("acknowledged")
+                && face.get("show_id") == Some(show_id)
+        })?;
+        Some((after.clone(), ack.clone()))
+    })
 }
 
 fn bounded_serial(path: &std::path::Path) -> Result<String, ConduitosError> {
@@ -524,5 +534,23 @@ mod tests {
         let mut wrong_value = accepted;
         wrong_value["requested_interval_ms"] = json!(250);
         assert!(validate_success(&before, &before_ack, &wrong_value, &after, &after_ack).is_err());
+    }
+
+    #[test]
+    fn action_proof_correlates_refreshed_show_after_standby() {
+        let action = json!({"face_id":"face/one","face_revision":7});
+        let mut faces = vec![
+            json!({"status":"shown","face_id":"face/one","face_revision":7,"show_id":"show/standby","interactions_admitted":false}),
+            json!({"status":"shown","face_id":"face/one","face_revision":7,"show_id":"show/active","interactions_admitted":true}),
+            json!({"status":"acknowledged","show_id":"show/active"}),
+            json!({"status":"shown","face_id":"face/two","face_revision":9,"show_id":"show/refreshed","interactions_admitted":true}),
+        ];
+        assert!(refreshed_show_after_action(&action, &faces).is_none());
+        faces.push(json!({"status":"acknowledged","show_id":"show/active"}));
+        assert!(refreshed_show_after_action(&action, &faces).is_none());
+        faces.push(json!({"status":"acknowledged","show_id":"show/refreshed"}));
+        let (after, ack) = refreshed_show_after_action(&action, &faces).unwrap();
+        assert_eq!(after["show_id"], "show/refreshed");
+        assert_eq!(ack["show_id"], after["show_id"]);
     }
 }
