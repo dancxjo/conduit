@@ -37,6 +37,7 @@ impl crate::StdHost {
         let mut startup = StartupCatalog::new();
         let mut profiles = ProfileCatalog::new();
         conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
+        conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
         conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
         conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
         conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
@@ -112,21 +113,31 @@ impl crate::StdHost {
 /// A finite direct route. The wording Back streams only exact Face clauses;
 /// the Show Back accepts the artifact receipt after synthesis completes.
 pub fn source(plot_name: &str) -> String {
+    let language = conduit_language::LanguageRequest::new(
+        conduit_language::LanguageId::new("language/english".into())
+            .expect("direct spoken Mask Language"),
+        None,
+        conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+    )
+    .expect("direct spoken Mask request");
+    let language_request = crate::hosted_language::language_request_literal(&language);
     format!(
         r#"plot {plot_name} (
  >> face: Presentation
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {{
+ spread: presentation/tee
  wording: presentation/direct-face-wording
  commit: speech/commit-generated-text
- voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)
+ voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right", maximum-blocks = 32768, maximum-audio-millis = 30000)
  artifact: presentation/spoken-artifact(maximum-blocks = 32768, maximum-audio-millis = 30000)
  shown: presentation/direct-artifact-show
  no-input: presentation/no-interaction
- face >> wording.presentation
- face >> shown.presentation
+ face >> spread.source
+ spread.presentation >> wording.presentation
+ spread.presentation >> shown.presentation
  wording.speech >> commit.generated
  commit.segments >> voice.text
  voice.audio >> convert.audio
@@ -148,6 +159,7 @@ mod tests {
         let mut startup = StartupCatalog::new();
         let mut profiles = ProfileCatalog::new();
         conduit_presentation::install_mask_plot_value_aliases(&mut startup).unwrap();
+        conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles).unwrap();
         conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles).unwrap();
         conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles).unwrap();
         conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles).unwrap();
@@ -159,6 +171,10 @@ mod tests {
         .unwrap();
         let authoring =
             expand_canonical_plot_for_authoring(&checked, "direct_spoken_test", &profiles).unwrap();
+        assert_eq!(authoring.front.inputs().len(), 1);
+        assert_eq!(authoring.front.outputs().len(), 2);
+        assert_eq!(authoring.input_bindings.len(), 1);
+        assert_eq!(authoring.output_bindings.len(), 2);
         let mask = MaskPlot::admit(&authoring).unwrap();
         assert_eq!(mask.plot_name, "direct_spoken_test");
     }
