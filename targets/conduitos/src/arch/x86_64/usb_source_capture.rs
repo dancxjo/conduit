@@ -26,6 +26,93 @@ use conduit_plan_lowering::lowering::lower_plan_fragment;
 pub(super) struct PreparedSourceCapture<'a, const N: usize> {
     pub play: PreparedHidSourceKernel,
     pub owner: EndpointReadWindow<'a, N>,
+    requests: [Option<conduit_composite::AdmittedKernelCompositeHostRequest>; N],
+}
+
+impl<const N: usize> PreparedSourceCapture<'_, N> {
+    /// Advance the production kernel once and service at most one issued call.
+    /// `true` means Root must ring the configured endpoint after publication.
+    pub fn step(&mut self) -> Result<bool, &'static str> {
+        self.play
+            .kernel_mut()
+            .step()
+            .map_err(|_| "usb-source-capture-step")?;
+        let Some(request) = self.play.kernel_mut().next_host_request() else {
+            return Ok(false);
+        };
+        if self
+            .play
+            .service_pure_call(&request)
+            .map_err(|_| "usb-source-capture-pure")?
+        {
+            return Ok(false);
+        }
+        let index = self
+            .requests
+            .iter()
+            .position(Option::is_none)
+            .ok_or("usb-source-capture-request-pressure")?;
+        let kernel = self.play.kernel_mut();
+        let obligation = kernel
+            .host_request_obligation(&request)
+            .map_err(|_| "usb-source-capture-obligation")?;
+        let admitted = kernel
+            .admit_host_request(
+                &request,
+                &obligation.host,
+                &obligation.resources,
+                &obligation.authorities,
+            )
+            .map_err(|_| "usb-source-capture-admission")?;
+        let call = *kernel
+            .admitted_host_request_view(&admitted)
+            .map_err(|_| "usb-source-capture-call")?
+            .request;
+        self.owner
+            .begin(
+                call.node,
+                call.call,
+                call.request,
+                kernel
+                    .host_request_input(&admitted)
+                    .map_err(|_| "usb-source-capture-input")?,
+            )
+            .map_err(|_| "usb-source-capture-submit")?;
+        self.requests[index] = Some(admitted);
+        Ok(true)
+    }
+
+    /// Complete an observation dispatched by the sole controller event owner.
+    /// Foreign or stale observations retain the pending calls and DMA.
+    pub fn complete(
+        &mut self,
+        event: crate::arch::x86_64::xhci::Event,
+    ) -> Result<u64, &'static str> {
+        let completed = self
+            .owner
+            .complete(event)
+            .map_err(|_| "usb-source-capture-completion")?;
+        let kernel = self.play.kernel_mut();
+        let index = self
+            .requests
+            .iter()
+            .position(|request| {
+                request.as_ref().is_some_and(|request| {
+                    kernel
+                        .admitted_host_request_view(request)
+                        .is_ok_and(|view| {
+                            view.request.node == completed.node
+                                && view.request.request == completed.request
+                        })
+                })
+            })
+            .ok_or("usb-source-capture-completion-identity")?;
+        kernel
+            .complete_host_call_bytes(self.requests[index].as_ref().unwrap(), completed.encoded)
+            .map_err(|_| "usb-source-capture-result")?;
+        self.requests[index] = None;
+        Ok(completed.ordinal)
+    }
 }
 
 /// Bind the actual retained Plan, configured endpoint and independently admitted
@@ -124,5 +211,9 @@ pub(super) unsafe fn bind<'a, const N: usize>(
         )
     }
     .map_err(|_| "usb-source-capture-binding")?;
-    Ok(PreparedSourceCapture { play, owner })
+    Ok(PreparedSourceCapture {
+        play,
+        owner,
+        requests: core::array::from_fn(|_| None),
+    })
 }
