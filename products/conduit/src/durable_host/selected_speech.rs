@@ -261,6 +261,24 @@ fn observe_speaker(card_id: &str, device: u16) -> Result<AlsaPlaybackObservation
 }
 
 #[cfg(test)]
+pub(super) fn fixture_language_coverage(provider_sha256: &str) -> Vec<u8> {
+    use conduit_language::{LanguageCoverage, LanguageId};
+    use conduit_plot::rust_binding::BoundedSequence;
+    LanguageCoverage::new(
+        format!("espeak/provider/{provider_sha256}"),
+        BoundedSequence::try_from_iter([LanguageId::new("language/english".into()).unwrap()])
+            .unwrap(),
+        BoundedSequence::try_from_iter([]).unwrap(),
+        "selection-test@1".into(),
+        BoundedSequence::try_from_iter([]).unwrap(),
+        false,
+    )
+    .unwrap()
+    .encode()
+    .unwrap()
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -275,22 +293,7 @@ mod tests {
             voice: "en-us".into(),
             engine_dependencies: vec!["/lib/libespeak-ng.so.1".into()],
             provider_sha256: String::new(),
-            language_coverage: Some(
-                conduit_language::LanguageCoverage::new(
-                    format!("espeak/provider/{}", "a".repeat(64)),
-                    conduit_plot::rust_binding::BoundedSequence::try_from_iter([
-                        conduit_language::LanguageId::new("language/english".into()).unwrap(),
-                    ])
-                    .unwrap(),
-                    conduit_plot::rust_binding::BoundedSequence::try_from_iter([]).unwrap(),
-                    "selection-test@1".into(),
-                    conduit_plot::rust_binding::BoundedSequence::try_from_iter([]).unwrap(),
-                    false,
-                )
-                .unwrap()
-                .encode()
-                .unwrap(),
-            ),
+            language_coverage: Some(fixture_language_coverage(&"a".repeat(64))),
         };
         let reviewed = unreviewed
             .clone()
