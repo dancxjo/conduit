@@ -261,7 +261,10 @@ try {
   };
   const start = await exercise('start', beforeStart,
     available(beforeStart, 'conduit.intent/start-clock@1'));
-  assert.ok(start.after.presentation.basis.active_play_id);
+  const afterStart = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterStart.biography.body_id, bodyId);
+  assert.ok(afterStart.biography.body.state.Awake);
+  assert.ok(available(start.after, 'conduit.intent/lull-clock@1'));
   const lull = await exercise('lull', start.after,
     available(start.after, 'conduit.intent/lull-clock@1'));
   const afterLull = ownerJson(['body', 'status', '--state-dir', state, '--json']);
@@ -269,7 +272,6 @@ try {
   assert.equal(afterLull.biography.body.state, 'Lulled');
   assert.equal(afterLull.biography.membership.parts[0].current.host_id, ownerPart.host_id);
   assert.equal(afterLull.biography.membership.parts[0].current.boot_id, ownerPart.boot_id);
-  assert.equal(lull.after.presentation.basis.active_play_id, null);
   assert.ok(available(lull.after, 'conduit.intent/start-clock@1'));
   delete start.after;
   delete lull.after;
