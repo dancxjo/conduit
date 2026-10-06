@@ -128,6 +128,15 @@ impl HidKeyTransition {
             modifiers,
         }
     }
+    /// Carry an already decoded Source transition. This descriptive value does
+    /// not establish physical origin; Root retains the admitted USB provenance.
+    pub(crate) const fn from_source(usage: u8, pressed: bool, modifiers: u8) -> Self {
+        Self {
+            usage,
+            pressed,
+            modifiers,
+        }
+    }
     pub const fn usage(self) -> u8 {
         self.usage
     }
