@@ -1561,6 +1561,7 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-kernel",
+ "conduit-language",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",

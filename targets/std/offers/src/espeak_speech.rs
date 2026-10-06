@@ -8,12 +8,12 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, ResourceContentRequirement,
 };
 
-pub const ESPEAK_STREAM_IMPLEMENTATION: &str = "std/espeak-ng-stream@2";
+pub const ESPEAK_STREAM_IMPLEMENTATION: &str = "std/espeak-ng-stream@3";
 pub const ESPEAK_STREAM_PROFILE: &str = "std/espeak-ng-stream-s16le-22050-mono@2";
 pub const ESPEAK_STREAM_OPERATION: &str = "conduit.host/espeak-ng-stream-next@2";
 pub const ESPEAK_SPEECH_PROFILE: &str = "std/espeak-ng-s16le-22050-mono@1";
-pub const ESPEAK_SPEECH_IMPLEMENTATION: &str = "std/espeak-ng-speech@1";
-pub const ESPEAK_SPEECH_ARTIFACT: &str = "conduit-std-host/espeak-ng-speech@1";
+pub const ESPEAK_SPEECH_IMPLEMENTATION: &str = "std/espeak-ng-speech@2";
+pub const ESPEAK_SPEECH_ARTIFACT: &str = "conduit-std-host/espeak-ng-speech@2";
 pub const ESPEAK_SPEECH_OPERATION: &str = "conduit.host/espeak-ng-speech-next@1";
 pub const ESPEAK_SPEECH_RESOURCE_CLASS: &str = "conduit.resource/espeak-ng-provider@1";
 pub const ESPEAK_PROVIDER_CONTENT_PROFILE: &str = "std/espeak-ng-provider-closure@1";
