@@ -5,6 +5,19 @@ use super::{
 };
 use alloc::format;
 
+/// Compact motion observations retain a two-report ordering window without
+/// multiplying the raw endpoint payload bound. No native effects or grants.
+pub fn usb_hid_mouse_order_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
+    ProtocolSourcePackage::compile(
+        format!(
+            "{}\n{}",
+            include_str!("../../plots/usb/hid-reports.conduit"),
+            include_str!("../../plots/usb/hid-mouse-order.conduit"),
+        ),
+        &[],
+    )
+}
+
 /// Assemble protocol meaning and generic typed operations only. Native callers
 /// must independently select a ready endpoint Back and possess its resources.
 pub fn usb_hid_endpoint_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
