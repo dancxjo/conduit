@@ -14,6 +14,7 @@ import { captureRunId } from './three-host-run-identity.mjs';
 import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-owner-speech.mjs';
 import { retainOwnerSpeechArtifacts } from './three-host-owner-speech-artifacts.mjs';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
+import { capturePresentationRecovery } from './three-host-presentation-recovery.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
   candidateId, ownerForward, outputArgument, playwrightArgument,
@@ -420,6 +421,23 @@ try {
     modelRouteLoss = captured.routeLoss;
     modelRouteRestoration = captured.restoration;
   }
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(() => {
+    try {
+      const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+      return report.schema === 'conduit.body/owner-mask-wardrobe@1'
+        && report.show_id === globalThis.__conduitOwnerParticipation.face()?.show_id;
+    } catch { return false; }
+  }, null, { timeout: 12_000 });
+  const presentationRecovery = await capturePresentationRecovery({
+    page, context, serverUrl: server.url, owner: run, state, bodyId,
+    ownerPartId: ownerPart.part_id, guestPartId: arrived.guest_part.part_id,
+    browserCredential: joined.credential, browserBootId: identity.bootId,
+    oldFace: await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()),
+    oldWardrobe: await readWardrobe(), output,
+    sourceCommit: installed.release_source_identity, runId,
+  });
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
   assert.equal(nativeReceipt.coordinated, true);
@@ -432,7 +450,7 @@ try {
   const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json')));
   assert.equal(browserBundle.reviewed_distribution.source_commit, nativeReceipt.source_commit);
   const screenshotPaths = ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
-    'browser-after-terminal.png', 'browser-wardrobe.png',
+    'browser-after-terminal.png', 'browser-wardrobe.png', 'browser-after-recovery.png',
     'native/owner-standby.png', 'native/owner-before.png', 'native/owner-after.png'];
   const screenshots = await Promise.all(screenshotPaths.map(async file => {
     const bytes = await readFile(path.join(output, file));
@@ -493,6 +511,15 @@ try {
       selected_show_id: wardrobeRecovered.show_id,
       path: 'browser-wardrobe.json', bytes: wardrobeBytes.length,
       sha256: digest(wardrobeBytes),
+    },
+    presentation_host_recovery: {
+      path: 'browser-presentation-recovery.json',
+      bytes: presentationRecovery.bytes.length,
+      sha256: digest(presentationRecovery.bytes),
+      lost_boot_id: presentationRecovery.receipt.lost_browser_boot_id,
+      recovered_boot_id: presentationRecovery.receipt.recovered_browser_boot_id,
+      old_show_id: presentationRecovery.receipt.old_show_id,
+      recovered_show_id: presentationRecovery.receipt.recovered_show_id,
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
     ...(ownerSelectedSpeech ? { owner_selected_speech: ownerSelectedSpeech } : {}),
