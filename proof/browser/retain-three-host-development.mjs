@@ -56,10 +56,15 @@ for (const observation of report.observations ?? []) {
   assert.match(relative, /^observations\/[a-z-]+\.json$/);
   files.set(relative, path.join(run, `three-host/${relative}`));
 }
-// The original terminal transcript is retained byte-for-byte. Its inline
-// documentary copy should be readable without ANSI cursor/style instructions.
+// The original terminal transcript is retained byte-for-byte. The published
+// copy uses local site links and wraps long evidence IDs on narrow screens.
+assert.ok(html.includes('</style>'), 'retained walkthrough needs its authored style block');
 const index = html.replaceAll('href="../', 'href="').replaceAll('src="../', 'src="')
+  .replaceAll('href="https://dancxjo.github.io/conduit/', 'href="/conduit/')
+  .replace('</style>', '.proof{overflow-wrap:anywhere}</style>')
   .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '').replaceAll('\r', '');
+assert.ok(!index.includes('href="https://dancxjo.github.io/conduit/'),
+  'retained site navigation must stay within the staged site');
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const kindAndType = relative => {
   if (relative.endsWith('.png')) return ['screenshot', 'image/png'];
