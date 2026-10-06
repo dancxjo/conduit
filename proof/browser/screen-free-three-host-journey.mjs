@@ -216,57 +216,71 @@ try {
   assert.equal(report.owner_boot_id, ownerPart.boot_id);
   assert.equal(report.native_source_commit, installation.release_source_identity);
   report.birth = birth;
-  const beforeLull = ownerJson(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(beforeLull.presentation.basis.body_id, bodyId);
-  assert.equal(beforeLull.advertisement.host_id, ownerPart.host_id);
-  assert.equal(beforeLull.advertisement.boot_id, ownerPart.boot_id);
-  const lull = beforeLull.presentation.actions.find(action =>
-    action.intent === 'conduit.intent/lull@1' && action.availability === 'Available');
-  assert.ok(lull, 'the current owner Face offers no available Lull action');
-  const lullInput = ['read all', `focus ${lull.identity}`, 'activate',
-    'read all', 'quit', ''].join('\n');
-  const lullArgs = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
-  await writeFile(path.join(output, 'lull-input.txt'), lullInput, { mode: 0o600 });
-  const lullTranscript = invoke(owner, lullArgs,
-    { input: lullInput, timeout: speakerCard ? 180_000 : 30_000 });
-  await writeFile(path.join(output, 'lull-transcript.txt'), lullTranscript, { mode: 0o600 });
-  assert.ok(lullTranscript.includes(`Continuing retained Body ${bodyId}`));
-  const enacted = [...lullTranscript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
-  assert.equal(enacted.length, 1, 'screen-free Lull must submit exactly one semantic action');
-  assert.equal(enacted[0][1], lull.identity);
-  assert.equal(Number(enacted[0][2]), beforeLull.presentation.revision);
-  assert.match(lullTranscript, /Owner action result:/);
+  const beforeStart = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(beforeStart.presentation.basis.body_id, bodyId);
+  assert.equal(beforeStart.advertisement.host_id, ownerPart.host_id);
+  assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
+  const available = (face, intent) => face.presentation.actions.find(action =>
+    action.intent === intent && action.availability === 'Available');
+  const exercise = async (name, before, action) => {
+    assert.ok(action, `the current owner Face offers no available ${name} action`);
+    const input = ['read all', `focus ${action.identity}`, 'activate',
+      'read all', 'quit', ''].join('\n');
+    const inputFile = `clock-${name}-input.txt`;
+    const transcriptFile = `clock-${name}-transcript.txt`;
+    await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
+    const transcript = invoke(owner,
+      ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs],
+      { input, timeout: speakerCard ? 180_000 : 30_000 });
+    await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
+    assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
+    const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
+    assert.equal(enacted.length, 1, `screen-free ${name} must submit one semantic action`);
+    assert.equal(enacted[0][1], action.identity);
+    assert.equal(Number(enacted[0][2]), before.presentation.revision);
+    assert.match(transcript, /Owner action result:/);
+    const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+    assert.equal(after.presentation.basis.body_id, bodyId);
+    assert.ok(after.presentation.revision > before.presentation.revision);
+    const reading = attestReading(transcript, after.presentation, ownerPart,
+      `screen-free clock ${name}`);
+    assert.equal(reading.first.face_revision, before.presentation.revision);
+    assert.equal(enacted[0][3], reading.first.source_show_id);
+    return {
+      action_id: action.identity, source_face_id: before.presentation.identity,
+      source_face_revision: before.presentation.revision, source_show_id: enacted[0][3],
+      result_face_id: after.presentation.identity,
+      result_face_revision: after.presentation.revision,
+      final_reading: reading.final,
+      input: { path: `../${inputFile}`, bytes: Buffer.byteLength(input),
+        sha256: digest(Buffer.from(input)) },
+      transcript: { path: `../${transcriptFile}`, bytes: Buffer.byteLength(transcript),
+        sha256: digest(Buffer.from(transcript)) },
+      after,
+    };
+  };
+  const start = await exercise('start', beforeStart,
+    available(beforeStart, 'conduit.intent/start-clock@1'));
+  assert.ok(start.after.presentation.basis.active_play_id);
+  const lull = await exercise('lull', start.after,
+    available(start.after, 'conduit.intent/lull-clock@1'));
   const afterLull = ownerJson(['body', 'status', '--state-dir', state, '--json']);
-  const afterLullFace = ownerJson(['body', 'face', '--state-dir', state, '--json']);
   assert.equal(afterLull.biography.body_id, bodyId);
   assert.equal(afterLull.biography.body.state, 'Lulled');
   assert.equal(afterLull.biography.membership.parts[0].current.host_id, ownerPart.host_id);
   assert.equal(afterLull.biography.membership.parts[0].current.boot_id, ownerPart.boot_id);
-  assert.equal(afterLullFace.presentation.basis.body_id, bodyId);
-  assert.equal(afterLullFace.presentation.basis.active_play_id, null);
-  assert.ok(afterLullFace.presentation.revision > beforeLull.presentation.revision);
-  assert.ok(afterLullFace.presentation.actions.some(action =>
-    action.intent === 'conduit.intent/wake@1' && action.availability === 'Available'));
-  const lullReading = attestReading(lullTranscript, afterLullFace.presentation, ownerPart,
-    'screen-free Lull');
-  assert.equal(lullReading.first.face_revision, beforeLull.presentation.revision);
-  assert.equal(enacted[0][3], lullReading.first.source_show_id);
-  report.screen_free_lull = {
-    proof_class: speakerCard ? 'installed-screen-free-lull-selected-alsa' :
-      'installed-screen-free-lull-text-readout',
+  assert.equal(lull.after.presentation.basis.active_play_id, null);
+  assert.ok(available(lull.after, 'conduit.intent/start-clock@1'));
+  delete start.after;
+  delete lull.after;
+  report.screen_free_clock = {
+    proof_class: speakerCard ? 'installed-screen-free-clock-selected-alsa' :
+      'installed-screen-free-clock-text-readout',
     run_id: report.run_id, body_id: bodyId,
     owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
     source_commit: installation.release_source_identity,
-    action_id: lull.identity, source_face_id: beforeLull.presentation.identity,
-    source_face_revision: beforeLull.presentation.revision,
-    source_show_id: enacted[0][3], result_face_id: afterLullFace.presentation.identity,
-    result_face_revision: afterLullFace.presentation.revision,
-    final_reading: lullReading.final,
+    start, lull,
     speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
-    input: { path: '../lull-input.txt', bytes: Buffer.byteLength(lullInput),
-      sha256: digest(Buffer.from(lullInput)) },
-    transcript: { path: '../lull-transcript.txt', bytes: Buffer.byteLength(lullTranscript),
-      sha256: digest(Buffer.from(lullTranscript)) },
   };
   const walkthrough = await writeThreeHostWalkthrough(live, handbook, report);
   report.walkthrough = {

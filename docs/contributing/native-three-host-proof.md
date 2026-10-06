@@ -157,14 +157,17 @@ speaker selection to retain the same-run direct speech artifact after the
 three-Host actions; that does not turn the Birth readout into audio.
 
 After the live three-Host actions and speech captures, the same producer
-reenters the retained owner with `conduit body screen-free`. It reads the
-current Face, focuses that Face's exact available Lull action, activates it,
-and reads the resulting Face. `three-host/report.json` binds the submitted
-input and transcript to the original Body, owner Host/Boot, run, source Face,
-acknowledged Show, semantic action, and Lulled result. If a speaker was
-selected, both readings must have completed playback receipts; otherwise this
-is text readout only. This proves a screen-free closing action, not a complete
-screen-free traversal of all three-Host journey chapters or human listening.
+reenters the retained owner with `conduit body screen-free`. The three-Host
+producer has already retired the clock Play, so the Body is Lulled. It reads
+the current Face, focuses and activates the available Start clock action,
+reads the new Face, then focuses and activates Stop clock. The owner retires
+that Play and returns to Lulled. `three-host/report.json` binds both inputs
+and transcripts to the original Body, owner Host/Boot, run, source Faces,
+acknowledged Shows, semantic actions, and resulting Faces. If a speaker was
+selected, the readings must have completed playback receipts; otherwise this
+is text readout only. This proves screen-free control of the resident clock,
+not a complete screen-free traversal of all three-Host journey chapters or
+human listening.
 
 For a same-run finite model explanation, add `--model ALREADY_LOCAL_MODEL` with
 the three speech provider options. The optional `--ollama-endpoint` defaults to
