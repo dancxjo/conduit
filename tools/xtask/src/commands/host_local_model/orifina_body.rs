@@ -1,7 +1,7 @@
 //! Deterministic Body lifecycle fixtures for the local-model Orifina proof.
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership, BodyPlayIdentity,
-    BodyPlotPlan, MembershipProofId, PartId,
+    BodyPlotPlan, MembershipProofId, PartId, ResidentPlot,
 };
 use conduit_core::{
     bind_sign, seal_plan, BootId, ExpandedPlotId, HostId, OfferGeneration, PlotIdentity,
@@ -60,7 +60,7 @@ pub(super) fn orifina_body(
         .map_err(|error| proof_error("open Orifina Workspace Body", error))
 }
 
-fn orifina_plans(body: &conduit_body::BodyLifecycleSession) -> Vec<BodyPlotPlan> {
+pub(super) fn orifina_plans(body: &conduit_body::BodyLifecycleSession) -> Vec<BodyPlotPlan> {
     body.evidence()
         .body
         .workset

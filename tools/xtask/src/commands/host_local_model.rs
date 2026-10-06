@@ -6,7 +6,8 @@ use conduit_core::{AuthorityGrantId, BootId, HostId};
 mod orifina_body;
 use conduit_std_host::hosted_local_model::{HostedLocalModelAdapter, OllamaDiscovery};
 use orifina_body::{
-    admit_orifina_companion, orifina_body, proof_error, start_orifina, tutorial_request,
+    admit_orifina_companion, orifina_body, orifina_plans, proof_error, start_orifina,
+    tutorial_request,
 };
 use serde::Serialize;
 
