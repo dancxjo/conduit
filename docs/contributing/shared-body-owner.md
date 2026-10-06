@@ -36,6 +36,18 @@ or use `--without-selected-speech` to remove it. Omit both selection flags to
 preserve the installed choice. Use an isolated state directory when trying
 this development entrance; a running service is not reconfigured in place.
 
+An already local Ollama model can be offered by that same installed Host Boot:
+add `--selected-model MODEL --model-endpoint http://127.0.0.1:11434
+--model-memory-mib 2048` to the install command. Selection checks the local
+inventory and a bounded warmup; it never downloads a model. The installed
+record retains the exact model offer. Each fresh Boot reobserves and initializes
+that provider before publishing its Host advertisement; a changed model,
+runtime, or offer refuses startup until an explicit reinstall selects it again.
+Use `--without-selected-model` to remove the retained choice, or omit both
+selection flags to preserve it. This supplies a real owner Host model offer;
+an owner-selected LLM spoken Mask and its Show require a separately admitted
+route and are not implied by the installation alone.
+
 For a fresh installation, `--no-start` leaves the Host available for foreground
 ownership. Omitting it preserves the normal service activation behavior. It does
 not stop an already running service; use a fresh installation for this sequence.

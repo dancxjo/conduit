@@ -7,6 +7,7 @@ default-run = "conduit"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
+conduit-ai = { path = "../../semantics/ai" }
 conduit-core = { path = "../../architecture/core" }
 conduit-body = { path = "../../architecture/body" }
 conduit-body-make = { path = "../../make/body" }

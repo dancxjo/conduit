@@ -2,7 +2,7 @@
 
 use crate::cli::HostServiceCommand;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostConfig};
+use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -29,6 +29,8 @@ const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
+#[path = "durable_host/selected_model.rs"]
+mod selected_model;
 #[path = "durable_host/selected_speech.rs"]
 pub(crate) mod selected_speech;
 
@@ -69,6 +71,8 @@ struct Installation {
     joined_body_state: Option<membership::JoinedBodyBinding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     selected_speech: Option<selected_speech::Selection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    selected_model: Option<selected_model::Selection>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -96,13 +100,20 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             state_dir,
             no_start,
             speech,
+            model,
         } => (if no_start {
-            install_with_selection(&manifest, &state_dir, selected_speech::change(speech)?)
-        } else {
-            install_and_activate_with_selection(
+            install_with_equipment(
                 &manifest,
                 &state_dir,
                 selected_speech::change(speech)?,
+                selected_model::change(model)?,
+            )
+        } else {
+            install_and_activate_with_equipment(
+                &manifest,
+                &state_dir,
+                selected_speech::change(speech)?,
+                selected_model::change(model)?,
             )
         })
         .map(|installation| {
@@ -150,12 +161,13 @@ pub(crate) fn install_and_activate(
     Ok(installation)
 }
 
-fn install_and_activate_with_selection(
+fn install_and_activate_with_equipment(
     manifest: &Path,
     state_dir: &Path,
-    change: selected_speech::Change,
+    speech_change: selected_speech::Change,
+    model_change: selected_model::Change,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install_with_selection(manifest, state_dir, change)?;
+    let installation = install_with_equipment(manifest, state_dir, speech_change, model_change)?;
     activate_service(state_dir)?;
     Ok(installation)
 }
@@ -172,7 +184,21 @@ fn install_with_selection(
     state_dir: &Path,
     change: selected_speech::Change,
 ) -> Result<InstalledHostIdentity, String> {
-    let installation = install_configured(manifest, state_dir, change)?;
+    install_with_equipment(
+        manifest,
+        state_dir,
+        change,
+        selected_model::Change::Preserve,
+    )
+}
+
+fn install_with_equipment(
+    manifest: &Path,
+    state_dir: &Path,
+    speech_change: selected_speech::Change,
+    model_change: selected_model::Change,
+) -> Result<InstalledHostIdentity, String> {
+    let installation = install_configured(manifest, state_dir, speech_change, model_change)?;
     Ok(InstalledHostIdentity {
         host_id: installation.host_id,
         release_bundle_sha256: installation.release_bundle_sha256,
@@ -220,13 +246,19 @@ fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
 
 #[cfg(test)]
 fn install(manifest_path: &Path, state_dir: &Path) -> Result<Installation, String> {
-    install_configured(manifest_path, state_dir, selected_speech::Change::Preserve)
+    install_configured(
+        manifest_path,
+        state_dir,
+        selected_speech::Change::Preserve,
+        selected_model::Change::Preserve,
+    )
 }
 
 fn install_configured(
     manifest_path: &Path,
     state_dir: &Path,
-    change: selected_speech::Change,
+    speech_change: selected_speech::Change,
+    model_change: selected_model::Change,
 ) -> Result<Installation, String> {
     let manifest_bytes = bounded_read(manifest_path, 256 * 1024)?;
     let manifest: ReleaseManifest = serde_json::from_slice(&manifest_bytes)
@@ -264,7 +296,7 @@ fn install_configured(
         .as_ref()
         .map(|value| value.host_id.clone())
         .unwrap_or_else(|| fresh_identity("host/installed", &manifest.bundle_sha256));
-    let retained_selection = match change {
+    let retained_selection = match speech_change {
         selected_speech::Change::Preserve => existing
             .as_ref()
             .and_then(|value| value.selected_speech.clone()),
@@ -273,6 +305,16 @@ fn install_configured(
             Some(selection)
         }
         selected_speech::Change::Remove => None,
+    };
+    let retained_model = match model_change {
+        selected_model::Change::Preserve => existing
+            .as_ref()
+            .and_then(|value| value.selected_model.clone()),
+        selected_model::Change::Replace(selection) => {
+            selection.validate()?;
+            Some(selection)
+        }
+        selected_model::Change::Remove => None,
     };
     let installation = Installation {
         schema: INSTALL_SCHEMA.into(),
@@ -283,6 +325,7 @@ fn install_configured(
         body_state: existing.as_ref().and_then(|value| value.body_state.clone()),
         joined_body_state: existing.and_then(|value| value.joined_body_state),
         selected_speech: retained_selection,
+        selected_model: retained_model,
     };
     write_json_atomic(&install_path, &installation)?;
     write_service_definition(state_dir, &installation)?;
@@ -407,7 +450,15 @@ fn prepare_runtime(
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
     };
-    let mut host = StdHost::new_with_config(config);
+    let mut host = if let Some(selection) = &installation.selected_model {
+        StdHost::new_with_local_model(
+            config,
+            StdHostComposition::reference(),
+            Box::new(selection.initialize()?),
+        )?
+    } else {
+        StdHost::new_with_config(config)
+    };
     let selected_equipment = installation
         .selected_speech
         .as_ref()
@@ -705,6 +756,9 @@ fn read_installation(path: &Path) -> Result<Installation, String> {
         return Err("installation state is invalid".into());
     }
     if let Some(selection) = &value.selected_speech {
+        selection.validate()?;
+    }
+    if let Some(selection) = &value.selected_model {
         selection.validate()?;
     }
     if let Some(binding) = &value.body_state {
@@ -1075,6 +1129,7 @@ mod tests {
             state_dir: state.clone(),
             no_start: true,
             speech: Default::default(),
+            model: Default::default(),
         })
         .unwrap();
         let installed = read_installation(&state.join("installation.json")).unwrap();
@@ -1117,6 +1172,7 @@ mod tests {
             &manifest,
             &state,
             selected_speech::Change::Replace(selection),
+            selected_model::Change::Preserve,
         )
         .unwrap();
         let second = install(&manifest, &state).unwrap();
@@ -1128,7 +1184,13 @@ mod tests {
             .contains("configured speaker"));
         assert!(!state.join("runtime.json").exists());
 
-        let third = install_configured(&manifest, &state, selected_speech::Change::Remove).unwrap();
+        let third = install_configured(
+            &manifest,
+            &state,
+            selected_speech::Change::Remove,
+            selected_model::Change::Preserve,
+        )
+        .unwrap();
         assert_eq!(first.host_id, third.host_id);
         assert!(third.selected_speech.is_none());
         assert_eq!(start_runtime(&state).unwrap().host_id, third.host_id);

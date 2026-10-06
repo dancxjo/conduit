@@ -276,6 +276,8 @@ pub(crate) enum HostServiceCommand {
         no_start: bool,
         #[command(flatten)]
         speech: InstalledSpeechOptions,
+        #[command(flatten)]
+        model: InstalledModelOptions,
     },
     /// Run the durable host in the foreground for a platform service manager.
     Run {
@@ -321,6 +323,21 @@ pub(crate) struct InstalledSpeechOptions {
     pub(crate) speech_engine: Vec<PathBuf>,
     #[arg(long, requires = "selected_speech")]
     pub(crate) speech_voice: Option<String>,
+}
+
+/// One reviewed local model offered by every fresh installed Host Boot.
+#[derive(Debug, Default, Args)]
+pub(crate) struct InstalledModelOptions {
+    /// Select an already local Ollama model for this installed Host.
+    #[arg(long, requires_all = ["model_endpoint", "model_memory_mib"])]
+    pub(crate) selected_model: Option<String>,
+    /// Remove the retained model selection on reinstall.
+    #[arg(long, conflicts_with = "selected_model")]
+    pub(crate) without_selected_model: bool,
+    #[arg(long, requires = "selected_model")]
+    pub(crate) model_endpoint: Option<String>,
+    #[arg(long, requires = "selected_model")]
+    pub(crate) model_memory_mib: Option<u32>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -847,6 +864,61 @@ mod public_surface_tests {
                 .copied()
                 .chain(["--without-selected-speech", "--selected-speech"])
         )
+        .is_err());
+    }
+
+    #[test]
+    fn service_install_model_requires_exact_endpoint_and_memory() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        assert!(
+            Cli::try_parse_from(base.iter().copied().chain(["--selected-model", "local"])).is_err()
+        );
+        assert!(Cli::try_parse_from(
+            base.iter()
+                .copied()
+                .chain(["--model-endpoint", "http://127.0.0.1:11434"])
+        )
+        .is_err());
+        let selected = base.iter().copied().chain([
+            "--selected-model",
+            "local",
+            "--model-endpoint",
+            "http://127.0.0.1:11434",
+            "--model-memory-mib",
+            "2048",
+        ]);
+        assert!(matches!(
+            Cli::try_parse_from(selected).unwrap().command,
+            Some(Command::Host {
+                command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install {
+                        model: InstalledModelOptions {
+                            selected_model: Some(_),
+                            model_memory_mib: Some(2048),
+                            ..
+                        },
+                        ..
+                    }
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(base.iter().copied().chain([
+            "--without-selected-model",
+            "--selected-model",
+            "local",
+            "--model-endpoint",
+            "http://127.0.0.1:11434",
+            "--model-memory-mib",
+            "2048",
+        ]))
         .is_err());
     }
 }
