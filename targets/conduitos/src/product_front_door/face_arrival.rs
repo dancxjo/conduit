@@ -189,6 +189,7 @@ impl FaceArrival {
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         let face = self.owner_face.clone().ok_or("owner-face-absent")?;
+        self.retire_owner_surface()?;
         self.present_owner_face(face, false, display)
     }
 
@@ -247,6 +248,10 @@ impl FaceArrival {
             self.mask.suspend().map_err(|error| error.as_str())?;
         }
         Ok(())
+    }
+
+    fn retire_owner_surface(&mut self) -> Result<(), &'static str> {
+        self.mask.suspend().map_err(|error| error.as_str())
     }
 
     fn present(
@@ -423,6 +428,62 @@ mod tests {
                     arrival.next_play + 1,
                     &mut display
                 )
+                .map_err(|error| error.as_str()),
+            Err("compositor-surface-revision-stale")
+        );
+    }
+
+    #[test]
+    fn route_loss_retires_owner_show_before_read_only_republication() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let mut arrival = FaceArrival::prepare(
+            "host/native".into(),
+            "boot/native".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            &provider,
+            None,
+        )
+        .unwrap();
+        let body = conduit_body::Body::born(
+            "source/shared-clock".into(),
+            "checked/shared-clock".into(),
+            1,
+            "sign/owner-born".into(),
+        )
+        .unwrap();
+        let face = Face::project(
+            &body,
+            None,
+            7,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .presentation;
+        let mut display = Display;
+        arrival
+            .mask
+            .present(face.clone(), 1, 1, &mut display)
+            .unwrap();
+        arrival.owner_face = Some(face.clone());
+        let active_show = arrival.mask.show().unwrap().show_id.clone();
+
+        arrival.retire_owner_surface().unwrap();
+        assert!(arrival.mask.show().is_none());
+        let read_only = arrival
+            .mask
+            .present_read_only(face.clone(), 2, 2, &mut display)
+            .unwrap();
+        assert_eq!(read_only.presentation_id, face.identity);
+        assert_ne!(arrival.mask.show().unwrap().show_id, active_show);
+        assert_eq!(arrival.mask.scene().unwrap().presentation(), &face);
+        assert_eq!(
+            arrival
+                .mask
+                .present_read_only(face, 3, 3, &mut display)
                 .map_err(|error| error.as_str()),
             Err("compositor-surface-revision-stale")
         );
