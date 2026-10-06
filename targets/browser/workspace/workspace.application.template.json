@@ -426,12 +426,14 @@
         }
       ]
     },
+    {"role":"browser-monotonic-timer","kind":"module","path":"browser-monotonic-timer.mjs","maximum_bytes":8192,"dependencies":[{"role":"browser-plot-effects","specifier":"./browser-plot-effects.mjs"}]},
     {
       "role": "browser-body-host",
       "kind": "module",
       "path": "browser-body-host.mjs",
       "maximum_bytes": 24576,
       "dependencies": [
+        {"role":"browser-monotonic-timer","specifier":"./browser-monotonic-timer.mjs"},
         {
           "role": "browser-human-input",
           "specifier": "./browser-human-input.mjs"
