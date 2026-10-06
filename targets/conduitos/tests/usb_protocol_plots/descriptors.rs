@@ -127,7 +127,10 @@ fn device_decode_preserves_fields_and_cannot_read_padding_as_received_data() {
             assert_eq!(prepared.output_capacity(), capacity);
         }
     });
-    assert_eq!(allocations, 0, "prepared descriptor decoding must reuse admitted storage");
+    assert_eq!(
+        allocations, 0,
+        "prepared descriptor decoding must reuse admitted storage"
+    );
     let device = validate_canonical_structured_value(&expected)
         .unwrap()
         .variant_payload("device")
