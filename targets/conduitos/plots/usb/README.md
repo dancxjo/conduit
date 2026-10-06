@@ -35,6 +35,12 @@ the existing stricter keyboard and button policy. The boot motion profile
 refuses the out-of-domain `0x80` displacement rather than clamping it.
 
 `cargo xtask make conduitos usb-plots-check` includes these Source contracts.
+`hid-mouse-order.conduit` adds a two-observation ordering state ahead of pointer
+history. It retains compact motion and distinct invalid-report observations;
+the existing decoded wire result and 2,048-byte endpoint payload retain their
+own bounds. Packaged preparation issues no authority. Execution conformance,
+pointer history, lifecycle and ordinary two-capture installation are pending.
+
 Deterministic conformance covers every key-slot permutation and motion octet.
 Both class topologies also execute 64 frames through the production kernel with
 normal closure and zero allocations during Play. Held output acknowledgements
