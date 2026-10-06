@@ -12,6 +12,95 @@ const SOURCE: &str = r#"plot authoring {
 "#;
 
 #[test]
+fn unchanged_revision_and_ports_do_not_hide_configuration_drift() {
+    let original = conduit_semantic_catalog::standard_profile_catalog();
+    let kind = original.canonical_kind(&KindId::from("text/join")).unwrap();
+    for changed_default in [false, true] {
+        let mut divergent = kind.clone();
+        if changed_default {
+            divergent.configuration[0].default_value = ConfigurationValue::Text("drift".into());
+        } else {
+            divergent.configuration[0].rule =
+                conduit_core::KindConfigurationRule::TextBytes { maximum: 1 };
+        }
+        assert_eq!(
+            divergent.kind_contract_revision,
+            kind.kind_contract_revision
+        );
+        assert_eq!(divergent.inputs, kind.inputs);
+        assert_eq!(divergent.outputs, kind.outputs);
+        let mut profile = conduit_plot::ProfileCatalog::new();
+        profile.insert_kind(divergent).unwrap();
+        let startup = profile.startup_catalog().unwrap();
+        let editor = PlotEditor::from_source_with_catalogs(
+            "drift.conduit".into(),
+            "plot drift {\n}\n".into(),
+            startup,
+            profile,
+        )
+        .unwrap();
+        let inventory = editor.authoring_catalog().unwrap();
+        assert!(
+            !inventory
+                .iter()
+                .find(|entry| entry.contract.kind_id == kind.kind_id)
+                .unwrap()
+                .authorable
+        );
+    }
+}
+
+#[test]
+fn reroute_accepts_the_same_reactive_flow_to_value_contract_as_connect() {
+    let source = "plot main {\n source: text/literal(\"hello\")\n upper: text/upper\n sink: presentation/text\n alternate: presentation/text\n source >> upper >> sink\n}\n";
+    let mut editor = PlotEditor::from_source("reroute.conduit".into(), source.into()).unwrap();
+    let graph = editor.patchbay_graph_for_authoring("main").unwrap();
+    let upper = graph
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == "text/upper")
+        .unwrap();
+    let alternate = graph
+        .gears
+        .iter()
+        .find(|gear| gear.gear_id.as_str() == "main/alternate")
+        .unwrap();
+    assert_ne!(
+        upper.outputs[0].descriptor.temporal,
+        alternate.inputs[0].descriptor.temporal
+    );
+    let cord = graph
+        .cords
+        .iter()
+        .find(|cord| cord.source_port == upper.outputs[0].identity)
+        .unwrap();
+    editor
+        .clone()
+        .connect_ports(
+            0,
+            &graph.expanded_plot_id,
+            &upper.outputs[0].identity,
+            &alternate.inputs[0].identity,
+        )
+        .unwrap();
+    editor
+        .reroute_cord_endpoint(
+            0,
+            &graph.expanded_plot_id,
+            &cord.identity,
+            &alternate.inputs[0].identity,
+        )
+        .unwrap();
+    let after = editor.patchbay_graph_for_authoring("main").unwrap();
+    assert_eq!(after.cords.len(), graph.cords.len());
+    assert!(after
+        .cords
+        .iter()
+        .any(|cord| cord.source_port == upper.outputs[0].identity
+            && cord.sink_port == alternate.inputs[0].identity));
+}
+
+#[test]
 fn catalog_and_configuration_queries_preserve_exact_checked_source() {
     let editor = PlotEditor::from_source("authoring.conduit".into(), SOURCE.into()).unwrap();
     let before = editor.view();

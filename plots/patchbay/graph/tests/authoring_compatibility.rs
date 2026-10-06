@@ -46,6 +46,40 @@ fn catalog(source: &PortDescriptor, sink: &PortDescriptor) -> ProfileCatalog {
 }
 
 #[test]
+fn cord_identity_survives_insertion_and_reordering() {
+    let source = port(PortDirection::Output, "value/count", PortTemporal::Value);
+    let sink = port(PortDirection::Input, "value/count", PortTemporal::Value);
+    let catalog = catalog(&source, &sink);
+    let startup = catalog.startup_catalog().unwrap();
+    let graph = |cords: &str| {
+        let text = format!(
+            "plot main {{\n source: test/source\n sink: test/sink\n other: test/sink\n {cords}\n}}\n"
+        );
+        let checked = check_syntax_document(&parse_syntax_document(&text), &startup).unwrap();
+        PatchbayGraph::from_expanded(&expand_canonical_plot(&checked, "main", &catalog).unwrap())
+            .unwrap()
+    };
+    let original = graph("source.port >> sink.port");
+    let identity = &original.cords[0].identity;
+    for text in [
+        "source.port >> other.port\n source.port >> sink.port",
+        "source.port >> sink.port\n source.port >> other.port",
+    ] {
+        let changed = graph(text);
+        let retained = changed
+            .cords
+            .iter()
+            .find(|cord| {
+                cord.source_port == original.cords[0].source_port
+                    && cord.sink_port == original.cords[0].sink_port
+            })
+            .unwrap();
+        assert_eq!(&retained.identity, identity);
+        assert_ne!(changed.cords[0].identity, changed.cords[1].identity);
+    }
+}
+
+#[test]
 fn payload_matrix_has_exact_source_checker_parity() {
     let temporal = [
         PortTemporal::Value,

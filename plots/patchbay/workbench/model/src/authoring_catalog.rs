@@ -54,11 +54,22 @@ impl PlotEditor {
                     authorable: signature.is_some()
                         && self
                             .profile_catalog
-                            .get(&entry.kind_id)
+                            .canonical_kind(&entry.kind_id)
                             .is_some_and(|kind| {
                                 kind.kind_contract_revision == entry.kind_contract_revision
+                                    && kind.checked_front() == entry.front
                                     && kind.inputs == entry.inputs
                                     && kind.outputs == entry.outputs
+                                    && kind.semantic_laws == entry.semantic_laws
+                                    && kind.limits == entry.limits
+                                    && kind.configuration.len() == entry.configuration.len()
+                                    && kind.configuration.iter().zip(&entry.configuration).all(
+                                        |(field, projected)| {
+                                            field.key == projected.key
+                                                && field.default_value == projected.default_value
+                                                && field.rule == projected.rule
+                                        },
+                                    )
                             }),
                     startup_parameters: signature
                         .into_iter()

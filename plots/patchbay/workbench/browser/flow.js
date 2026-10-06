@@ -269,7 +269,13 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
         const next = { ...projected, nodes: nodes.map((current) => current.id === node.id ? { ...current, position: { ...node.position } } : current), edges, viewport: instance?.getViewport() || initial.viewport };
         persist(next);
       },
-      onMoveEnd: (_event, viewport) => persist({ ...projected, nodes, edges, viewport }, viewport),
+      onMoveEnd: (_event, viewport) => {
+        // Applying a saved viewport can finish before React commits its new
+        // nodes. Persist the applied scene, rather than this render's old layout.
+        const scene = currentScene?.workspaceIdentity === projected.workspaceIdentity
+          ? currentScene : { ...projected, nodes, edges };
+        persist({ ...scene, viewport }, viewport);
+      },
       onInit: (next) => {
         instance = next;
         const viewport = currentScene?.workspaceIdentity === projected.workspaceIdentity

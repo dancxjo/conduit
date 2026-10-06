@@ -151,30 +151,7 @@ impl PlotEditor {
                 .find(|port| port.identity == sink_port_identity)
                 .map(|port| (composition, port))
         });
-        match graph.connection_compatibility(source_port_identity, sink_port_identity) {
-            crate::PatchbayPortCompatibility::Compatible => {}
-            crate::PatchbayPortCompatibility::DuplicateCord => {
-                return Err(PlotEditorError::DuplicateCord)
-            }
-            crate::PatchbayPortCompatibility::IncompatibleInfo { source, sink } => {
-                return Err(PlotEditorError::IncompatiblePorts(format!(
-                    "Info {} cannot feed {}",
-                    source.as_str(),
-                    sink.as_str()
-                )))
-            }
-            crate::PatchbayPortCompatibility::IncompatibleTemporal { source, sink } => {
-                return Err(PlotEditorError::IncompatiblePorts(format!(
-                    "temporal contract {source:?} cannot feed {sink:?}"
-                )))
-            }
-            crate::PatchbayPortCompatibility::UnknownPort
-            | crate::PatchbayPortCompatibility::InvalidDirection => {
-                return Err(PlotEditorError::UnknownPort(format!(
-                    "{source_port_identity} >> {sink_port_identity}"
-                )))
-            }
-        }
+        require_compatible_connection(&graph, source_port_identity, sink_port_identity)?;
         let source_reference = if let Some(source) = internal_source {
             let source_name = direct_gear_name(&self.open_plot, source.gear_id.as_str())?;
             format!("{source_name}.{}", source.descriptor.port_id.as_str())
@@ -310,26 +287,16 @@ impl PlotEditor {
             (None, Some(sink)) => (old_source_port, sink),
             _ => return Err(PlotEditorError::UnknownPort(endpoint_port_identity.into())),
         };
-        if source_port.descriptor.value_kind != sink_port.descriptor.value_kind {
-            return Err(PlotEditorError::IncompatiblePorts(format!(
-                "Info {} cannot feed {}",
-                source_port.descriptor.value_kind.as_str(),
-                sink_port.descriptor.value_kind.as_str()
-            )));
-        }
-        if source_port.descriptor.temporal != sink_port.descriptor.temporal {
-            return Err(PlotEditorError::IncompatiblePorts(format!(
-                "temporal contract {:?} cannot feed {:?}",
-                source_port.descriptor.temporal, sink_port.descriptor.temporal
-            )));
-        }
-        if graph.cords.iter().any(|candidate| {
-            candidate.identity != cord_identity
-                && candidate.source_port == source_port.identity
-                && candidate.sink_port == sink_port.identity
-        }) {
-            return Err(PlotEditorError::DuplicateCord);
-        }
+        // The Cord being replaced must not count as a duplicate of itself.
+        let mut candidate_graph = graph.clone();
+        candidate_graph
+            .cords
+            .retain(|candidate| candidate.identity != cord_identity);
+        require_compatible_connection(
+            &candidate_graph,
+            &source_port.identity,
+            &sink_port.identity,
+        )?;
         let old_source = direct_port_reference(&self.open_plot, &cord.source_port, "output")?;
         let old_sink = direct_port_reference(&self.open_plot, &cord.sink_port, "input")?;
         let plot = self.open_graph_plot()?;
@@ -454,4 +421,36 @@ fn line_range(source: &str, start: usize, end: usize) -> (usize, usize) {
         .find('\n')
         .map_or(source.len(), |offset| end + offset + 1);
     (line_start, line_end)
+}
+
+fn require_compatible_connection(
+    graph: &PatchbayGraph,
+    source_port_identity: &str,
+    sink_port_identity: &str,
+) -> Result<(), PlotEditorError> {
+    match graph.connection_compatibility(source_port_identity, sink_port_identity) {
+        crate::PatchbayPortCompatibility::Compatible => {}
+        crate::PatchbayPortCompatibility::DuplicateCord => {
+            return Err(PlotEditorError::DuplicateCord)
+        }
+        crate::PatchbayPortCompatibility::IncompatibleInfo { source, sink } => {
+            return Err(PlotEditorError::IncompatiblePorts(format!(
+                "Info {} cannot feed {}",
+                source.as_str(),
+                sink.as_str()
+            )))
+        }
+        crate::PatchbayPortCompatibility::IncompatibleTemporal { source, sink } => {
+            return Err(PlotEditorError::IncompatiblePorts(format!(
+                "temporal contract {source:?} cannot feed {sink:?}"
+            )))
+        }
+        crate::PatchbayPortCompatibility::UnknownPort
+        | crate::PatchbayPortCompatibility::InvalidDirection => {
+            return Err(PlotEditorError::UnknownPort(format!(
+                "{source_port_identity} >> {sink_port_identity}"
+            )))
+        }
+    }
+    Ok(())
 }

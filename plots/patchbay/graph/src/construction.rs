@@ -73,7 +73,7 @@ impl PatchbayGraph {
             })
             .collect::<Result<Vec<_>, PatchbayGraphError>>()?;
         let mut cords = Vec::with_capacity(plot.connections.len());
-        for (index, connection) in plot.connections.iter().enumerate() {
+        for connection in &plot.connections {
             let source = port_identity(
                 &connection.source_gear_id,
                 PortDirection::Output,
@@ -124,7 +124,14 @@ impl PatchbayGraph {
                 return Err(PatchbayGraphError::CordContractMismatch);
             }
             cords.push(PatchbayCord {
-                identity: format!("cord/{index}/{source}->{sink}"),
+                // Length-prefix endpoints so delimiters in semantic names cannot
+                // alias another tuple. Order in the expanded inventory is irrelevant.
+                identity: format!(
+                    "cord/{}/{}/{source}/{}/{sink}",
+                    connection.track.as_str(),
+                    source.len(),
+                    sink.len(),
+                ),
                 source_port: source,
                 sink_port: sink,
                 value_kind: connection.value_kind.clone(),
