@@ -58,6 +58,9 @@ pub fn select_realization_with_characteristics_and_signs(
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
         .filter(|(_, offer)| gear.accepts_realization(offer))
         .collect::<Vec<_>>();
+    if let Some(error) = crate::language_coverage::no_eligible_error(gear, hosts)? {
+        return Err(error);
+    }
     if front_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(
             gear.kind_id.as_str().to_string(),
@@ -75,8 +78,19 @@ pub fn select_realization_with_characteristics_and_signs(
     let mut hard_admitted = Vec::with_capacity(front_candidates.len());
     for (host, offer) in front_candidates {
         let facts = advertisement_for(host, offer, advertisements);
-        let rejection = hard_requirement_failure(offer, requirements)
-            .map(base_rejection)
+        let coverage_rejection = crate::language_coverage::candidate_checks(gear, offer)?
+            .into_iter()
+            .find_map(|check| {
+                check
+                    .result
+                    .err()
+                    .map(|reason| crate::RealizationRejection::LanguageCoverage {
+                        request: check.requirement.request,
+                        reason,
+                    })
+            });
+        let rejection = coverage_rejection
+            .or_else(|| hard_requirement_failure(offer, requirements).map(base_rejection))
             .or_else(|| characteristic_rejection(facts, requirements));
         let rejection = match rejection {
             Some(rejection) => Some(rejection),

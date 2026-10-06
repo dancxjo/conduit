@@ -89,6 +89,7 @@ pub(super) fn validate<'a>(
             || gear.offer_generation != host.offer_generation
             || gear.implementation_id != offer.implementation.implementation_id
             || gear.artifact_id != offer.implementation.artifact_id
+            || gear.realization_properties != offer.realization_properties
             || gear.execution_profile_id != offer.implementation.execution_profile_id
             || gear.kind_id != offer.kind_id
             || gear.kind_contract_revision != offer.kind_contract_revision

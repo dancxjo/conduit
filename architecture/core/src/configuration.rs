@@ -277,6 +277,13 @@ mod human_i64 {
 /// A machine-readable semantic law owned by a Kind.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KindSemanticLaw {
+    /// Domain-owned semantic admission law: interpret this exact startup value
+    /// against the concrete Back's typed realization property before execution.
+    /// The property profile and request remain distinct from Kind identity.
+    RealizationRequirement {
+        property_profile: KindId,
+        configuration_key: String,
+    },
     Terminal(KindTerminalBehavior),
     /// How this Kind transforms terminal truth. This is deliberately
     /// independent of every Port's value, temporal, and abnormal-info types.

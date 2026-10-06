@@ -45,8 +45,12 @@ Their presence is not an additional physical or release acceptance claim:
   same generated carriers. Bounded exact external mapping preserves private
   provider names and uses the #4952 report boundary; unknown mappings remain
   insufficient. Non-Latin text and stale-occurrence fixtures prove this semantic
-  seam, not parser accuracy or multilingual availability. Back coverage and
-  planner eligibility remain unfinished under #4957. See the
+  seam, not parser accuracy or multilingual availability. The #4957 development
+  slice now binds explicit Language/Variety requests to finite Back coverage,
+  gates default/policy/fixed placement planning, and retains exact declarations
+  in Plans. The four-token std/browser specimen advertises limited English
+  coverage; speech-facing coverage, final proof, and stable acceptance remain
+  open. See the
   [Language contract](docs/architecture/language.md).
 
 - **Projection fidelity (#4952, development):** a bounded immutable core report

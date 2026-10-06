@@ -96,7 +96,7 @@ fn offer(
     implementation: &str,
     host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
-    BackOfferBuilder::new(
+    let mut offered = BackOfferBuilder::new(
         contract,
         Back {
             capability_id: CapabilityId::from(implementation),
@@ -108,7 +108,13 @@ fn offer(
             authority_requirements: Vec::new(),
         },
     )
-    .build()
+    .build();
+    offered.realization_properties =
+        vec![
+            conduit_language::language_coverage_property(english_coverage())
+                .expect("bounded fixture coverage"),
+        ];
+    offered
 }
 
 fn operation(target: &str, output: u32) -> HostCallRequirement {
@@ -207,6 +213,23 @@ fn configuration_text(placement: &PlannedGear) -> Result<&str, String> {
 
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
+}
+
+fn english_coverage() -> conduit_language::LanguageCoverage {
+    use conduit_plot::rust_binding::BoundedSequence;
+    conduit_language::LanguageCoverage::new(
+        "repository/four-token-English-rule-fixture".into(),
+        BoundedSequence::try_from_iter([conduit_language::LanguageId::new(
+            "language/english".into(),
+        )
+        .expect("finite identity")])
+        .expect("one language"),
+        BoundedSequence::try_from_iter([]).expect("no mappings"),
+        "four-token-rules@1".into(),
+        BoundedSequence::try_from_iter([]).expect("undeclared varieties"),
+        false,
+    )
+    .expect("bounded coverage")
 }
 
 #[cfg(test)]

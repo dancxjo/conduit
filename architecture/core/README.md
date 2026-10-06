@@ -13,6 +13,7 @@ depends on semantic, application, target, or proof packages.
 | `base_registry.rs` | universal architecture | Bounded thin-host truth for exact base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private base capability possession, exact per-play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
 | `capability_offer.rs` | universal architecture | Generic bounded host capability offers, realization limits, and exact implementation, operation, resource, and authority requirements. |
+| `capability_offer_record.rs` | universal architecture | Exact Host/Boot capability offer record, including finite typed realization properties; semantic domains own their property meanings. |
 | `consequential_effect.rs` | universal architecture | Generic attended last-mile gating for bounded consequential physical effects, including exact resource generation, safety readiness, one-shot authority, uncertain outcomes, and safe disposition. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, base, and observation characteristics. |
 | `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked plot meaning into plan and fragment identity. |
@@ -29,6 +30,8 @@ depends on semantic, application, target, or proof packages.
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |
 | `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, effect multiplicity, terminal and cancellation laws, and per-activation Sign storage. |
 | `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |
+| `planned_gear_record.rs` | universal architecture | One selected Gear record retaining exact implementation, admission, and realization properties in its Plan identity. |
+| `realization_properties.rs` | universal architecture | Finite profile-keyed realization property validation, unique profile identities, canonical byte bounds, and generic requirement validation. |
 | `port.rs` | universal architecture | Typed port direction and temporal shape. |
 | `preparation.rs` | universal architecture | Finite cross-host admission before one exact plan starts. |
 | `resource_content.rs`, `resource_canonical.rs`, `resource.rs`, `resource_port.rs` | universal architecture | Generic resource requirements, offers, observations, bindings, compute topology, and the checked distinction between serializable info ports and unforgeable resource-authority ports. |

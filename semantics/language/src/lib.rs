@@ -8,11 +8,12 @@ mod generated {
 }
 
 pub use generated::{
-    AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef,
+    AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef, LanguageCoverage,
     LanguageDependencyArc, LanguageDependencyHead, LanguageDependencyRelation,
-    LanguageDependencySubtype, LanguageExternalIdentity, LanguageId, LanguageText, LanguageTextId,
-    LanguageTextRange, LanguageTextReferenceMatch, LanguageTextRevisionId, LanguageTextSegmentKind,
-    LanguageTextSegmentRef, LanguageUniversalDependencyRelation, LanguageVariety,
+    LanguageDependencySubtype, LanguageExternalIdentity, LanguageId, LanguageMappingDeclaration,
+    LanguageRequest, LanguageText, LanguageTextId, LanguageTextRange, LanguageTextReferenceMatch,
+    LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef,
+    LanguageUniversalDependencyRelation, LanguageVariety, LanguageVarietyPolicy,
     LinguisticAnnotation, LinguisticDependencyEdge, LinguisticDependencyRelation,
     LinguisticDerivationProvenance, LinguisticEvidence, LinguisticOffsetBasis,
     LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind, LinguisticSyntacticLinkKind,
@@ -41,3 +42,6 @@ pub use mapping::*;
 
 mod mapping_projection;
 pub use mapping_projection::*;
+
+mod coverage;
+pub use coverage::*;

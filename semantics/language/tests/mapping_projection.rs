@@ -10,10 +10,33 @@ fn provider_private_identity_reports_declared_mapping_and_unknowns_remain_insuff
         LanguageExternalIdentity::new("model/fixed-rows-v3".into(), "row-42".into()).unwrap();
     let target =
         LanguageSelection::new(LanguageId::new("language/french".into()).unwrap(), None).unwrap();
-    let rows = [LanguageMappingRow {
-        external: source.clone(),
-        target: target.clone(),
-    }];
+    use conduit_plot::rust_binding::BoundedSequence;
+    let coverage = LanguageCoverage::new(
+        "model/artifact-v3-explicit-table".into(),
+        BoundedSequence::try_from_iter([target.language().clone()]).unwrap(),
+        BoundedSequence::try_from_iter([LanguageMappingDeclaration::new(
+            source.clone(),
+            target.language().clone(),
+            None,
+        )
+        .unwrap()])
+        .unwrap(),
+        "artifact-v3@1".into(),
+        BoundedSequence::try_from_iter([]).unwrap(),
+        false,
+    )
+    .unwrap();
+    let rows = language_coverage_mapping_rows(&coverage).unwrap();
+    let request = LanguageRequest::new(
+        target.language().clone(),
+        None,
+        LanguageVarietyPolicy::LanguageSufficient,
+    )
+    .unwrap();
+    assert_eq!(
+        admit_language_coverage(&request, Some(&coverage)),
+        Ok(LanguageCoverageUse::LanguageSufficient)
+    );
     let mapping = LanguageMapping::new(&rows).unwrap();
     let domain = LanguageMappingProjection {
         mapping: &mapping,

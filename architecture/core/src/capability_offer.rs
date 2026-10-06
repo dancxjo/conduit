@@ -86,6 +86,7 @@ impl Kind {
     }
 
     pub fn validate(&self) -> Result<(), KindValidationError> {
+        crate::realization_properties::validate_kind_requirements(self)?;
         if self.kind_id.as_str().is_empty() {
             return Err(KindValidationError::EmptyId);
         }
@@ -549,6 +550,7 @@ pub(crate) fn validate_terminal_transduction_ports(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KindValidationError {
+    InvalidRealizationRequirement,
     EmptyId,
     EmptyIdentity,
     DuplicateConfigurationKey,
@@ -695,6 +697,7 @@ impl BackOfferBuilder {
                 artifact_id: self.realization.artifact_id,
             },
             state_retention: self.state_retention,
+            realization_properties: Vec::new(),
             host_calls: self.realization.host_calls,
             resource_requirements: self.realization.resource_requirements,
             authority_requirements: self.realization.authority_requirements,
@@ -753,7 +756,7 @@ impl CapabilityOffer {
 #[macro_export]
 macro_rules! capability_offer_from_parts {
     ($($fields:tt)*) => {{
-        let offer = $crate::CapabilityOffer { state_retention: None, $($fields)* };
+        let offer = $crate::CapabilityOffer { state_retention: None, realization_properties: ::core::default::Default::default(), $($fields)* };
         if let Err(error) = offer.validate_constructed_semantic_contract() {
             panic!("CapabilityOffer requires a valid semantic contract: {:?}", error);
         }
