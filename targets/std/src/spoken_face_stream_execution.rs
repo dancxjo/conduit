@@ -30,7 +30,9 @@ use crate::{
 mod playback;
 pub use playback::{
     execute_real_spoken_batch_to_selected_playback, execute_spoken_batch_on_attached_host,
-    spoken_playback_plot, SpokenPlaybackExecution, SpokenPlaybackOutcome,
+    execute_spoken_batch_on_attached_host_with_capture, spoken_playback_plot,
+    spoken_playback_with_capture_plot, SamePlayCapture, SpokenPlaybackExecution,
+    SpokenPlaybackOutcome,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

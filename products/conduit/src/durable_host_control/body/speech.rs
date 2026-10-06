@@ -6,7 +6,8 @@ use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::{
     spoken_face_mask::{ReaderCommand, SpokenFaceSession},
     spoken_face_stream_execution::{
-        execute_spoken_batch_on_attached_host, SpokenPlaybackOutcome, SpokenStreamExecutionRefusal,
+        execute_spoken_batch_on_attached_host_with_capture, SpokenPlaybackOutcome,
+        SpokenStreamExecutionRefusal,
     },
     RunControl, RunControlRequestId, StdHost,
 };
@@ -282,7 +283,7 @@ fn play_selected(
             completed = true;
             break;
         };
-        let result = execute_spoken_batch_on_attached_host(
+        let result = execute_spoken_batch_on_attached_host_with_capture(
             face,
             show,
             &batch,
@@ -309,25 +310,36 @@ fn play_selected(
             SpokenPlaybackOutcome::Cancelled => "cancelled",
             SpokenPlaybackOutcome::Failed => "failed",
         };
+        let capture = match (&result.outcome, result.same_play_capture.as_ref()) {
+            (SpokenPlaybackOutcome::Completed, Some(capture)) => capture,
+            (SpokenPlaybackOutcome::Completed, None) => {
+                return Err(SpeechFailure::Failed(
+                    "selected speaker Play omitted same-Play WAV capture".into(),
+                ))
+            }
+            (SpokenPlaybackOutcome::Cancelled, _) => {
+                return Err(SpeechFailure::Cancelled(
+                    "selected speaker Play cancelled".into(),
+                ))
+            }
+            (SpokenPlaybackOutcome::Failed, _) => {
+                return Err(SpeechFailure::Failed("selected speaker Play failed".into()))
+            }
+        };
         receipts.push(json!({"stream_identity":result.stream_identity,
             "source_segments_sha256":result.source_segments_sha256,
             "plan_id":result.playback_plan_id, "play_id":result.playback_play_id,
             "provider_sha256":result.provider_sha256,
             "speaker_blocks_committed":result.playback.metrics.blocks_committed,
+            "wav_path":capture.wav_path, "wav_sha256":capture.wav_sha256,
+            "wav_bytes":capture.wav_bytes, "pcm_sha256":capture.pcm_sha256,
+            "pcm_bytes":capture.pcm_bytes, "pcm_blocks":capture.pcm_blocks,
             "outcome":outcome}));
         let terminal = reader
             .acknowledge_batch(result.delivery())
             .map_err(|error| {
                 SpeechFailure::Failed(format!("selected speaker receipt refused: {error:?}"))
             })?;
-        if outcome != "completed" {
-            return Err(match &result.outcome {
-                SpokenPlaybackOutcome::Cancelled => {
-                    SpeechFailure::Cancelled("selected speaker Play cancelled".into())
-                }
-                _ => SpeechFailure::Failed("selected speaker Play failed".into()),
-            });
-        }
         if terminal.is_some() {
             completed = true;
             break;
