@@ -191,8 +191,8 @@
       "path": "index.html",
       "media_type": "text/html; charset=utf-8",
       "required": true,
-      "bytes": 94943,
-      "sha256": "0d75d1c252a46e69a775cf8c736ecf7b2e4ca66c15105aa466ddc37f1cf51236",
+      "bytes": 94823,
+      "sha256": "3b0d7578a98dffc986367b355eddea5b35207b6dc1d659713eb2a89a4a6a0e60",
       "scenario_id": "three-host-20d405d340483425e46e96f6",
       "proof_class": "retained-local-development"
     },
