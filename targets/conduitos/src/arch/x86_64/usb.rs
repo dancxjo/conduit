@@ -49,6 +49,9 @@ pub use endpoint_read_proof::run_appliance as run_usb_endpoint_read_proof;
 #[path = "usb_endpoint_setup.rs"]
 mod endpoint_setup;
 pub use control_owner::{UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection};
+#[cfg(feature = "usb-endpoint-read-proof")]
+#[path = "usb_hid_boot_control_proof.rs"]
+mod hid_boot_control_proof;
 #[cfg(feature = "scripted-keyboard-proof")]
 #[path = "usb_control_kernel_proof.rs"]
 mod kernel_proof;

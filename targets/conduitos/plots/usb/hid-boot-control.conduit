@@ -1,0 +1,27 @@
+# HID boot protocol selection applies to an already selected boot interface.
+# Its interface number is wire data, never attachment identity or authority.
+type UsbHidBootSelection =
+    ready
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+
+plot usb-hid-boot-request (
+    interface: U8...| >> request: UsbControlRequest...|
+) = ({ setup: 0x0000000000000b21 | (value/u64(.) * 4294967296), output: [] })
+
+# A no-data request must complete with no actual input, no transferred octets,
+# and no shortness. A successful transport tag alone does not establish ready.
+plot usb-hid-boot-result (
+    result: UsbControlResult...| >> selection: UsbHidBootSelection...|
+) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? ready(unit) : malformed(unit)) : (. is stalled ? stalled(unit) : (. is provider-lost ? provider-lost(unit) : unsupported(unit))))
+
+plot usb-hid-select-boot (
+    interface: U8...| >> selection: UsbHidBootSelection...|
+) {
+    request: usb-hid-boot-request()
+    transfer: machine/usb/control
+    interpret: usb-hid-boot-result()
+    interface >> request >> transfer >> interpret >> selection
+}
