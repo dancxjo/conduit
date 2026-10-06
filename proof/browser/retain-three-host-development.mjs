@@ -56,7 +56,10 @@ for (const observation of report.observations ?? []) {
   assert.match(relative, /^observations\/[a-z-]+\.json$/);
   files.set(relative, path.join(run, `three-host/${relative}`));
 }
-const index = html.replaceAll('href="../', 'href="').replaceAll('src="../', 'src="');
+// The original terminal transcript is retained byte-for-byte. Its inline
+// documentary copy should be readable without ANSI cursor/style instructions.
+const index = html.replaceAll('href="../', 'href="').replaceAll('src="../', 'src="')
+  .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '').replaceAll('\r', '');
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const kindAndType = relative => {
   if (relative.endsWith('.png')) return ['screenshot', 'image/png'];
