@@ -177,10 +177,17 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                     assert_eq!(ingress.pending(), 0);
                     let mut pending = report.into_pending().unwrap();
                     let mut delivered = 0;
-                    while pending.pending() != 0 {
+                    for _ in 0..64 {
+                        if pending.pending() == 0 {
+                            break;
+                        }
                         let before = pending.pending();
                         let next = pending.next_transition().unwrap();
-                        if pending.admit_next(&mut ingress).is_err() {
+                        if let Err(refusal) = pending.admit_next(&mut ingress) {
+                            assert_eq!(
+                                refusal,
+                                conduitos::keyboard_input::KeyboardIngressRefusal::Pressure
+                            );
                             assert_eq!(pending.pending(), before);
                             assert_eq!(pending.next_transition(), Some(next));
                             assert_eq!(ingress.pending(), 8);
@@ -195,6 +202,7 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                             });
                         }
                     }
+                    assert_eq!(pending.pending(), 0);
                     assert!(!pending.admit_next(&mut ingress).unwrap());
                     ingress.service(8, |key| {
                         let (usage, pressed, modifiers) =
@@ -296,4 +304,26 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
             .decode(&retained_batch[..retained_batch.len() - 1])
             .is_err()
     );
+    // A malformed final portable transition cannot leak a valid prefix.
+    let value = validate_canonical_structured_value(&retained_batch).unwrap();
+    let slots = value.record_field("slots").unwrap().unwrap();
+    let usage_offset = (0..20)
+        .find_map(|index| {
+            let slot = slots.collection_index(index).unwrap().unwrap();
+            let changed = slot.variant_payload("changed").unwrap()?;
+            let usage = changed
+                .record_field("usage")
+                .unwrap()
+                .unwrap()
+                .primitive_bytes("value/u8")
+                .unwrap();
+            (usage == [9]).then_some(usage.as_ptr() as usize - retained_batch.as_ptr() as usize)
+        })
+        .unwrap();
+    retained_batch[usage_offset] = 0;
+    assert!(matches!(
+        decoder.decode(&retained_batch).unwrap().into_pending(),
+        Err(conduitos::keyboard_input::KeyboardIngressRefusal::InvalidTransition)
+    ));
+    assert_eq!(ingress.pending(), 0);
 }
