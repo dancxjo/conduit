@@ -23,3 +23,24 @@ pub fn offer(contract: &EndpointReadContract, artifact_id: ArtifactId) -> Capabi
         limits: kind.limits.clone(),
     }
 }
+
+/// Describe an initialized capture provider's admitted instance capacity.
+/// Each instance retains the same single-call and 4 KiB transport contract.
+pub fn capture_offer(
+    contract: &EndpointReadContract,
+    artifact_id: ArtifactId,
+    capability_id: CapabilityId,
+    maximum_instances: u16,
+) -> Result<CapabilityOffer, &'static str> {
+    if !(1..=8).contains(&maximum_instances) {
+        return Err("usb-endpoint-capture-capacity");
+    }
+    let mut description = offer(contract, artifact_id);
+    description.capability_id = capability_id;
+    description.limits.max_active_instances = maximum_instances;
+    Ok(description)
+}
+
+#[cfg(test)]
+#[path = "endpoint_read_offer_tests.rs"]
+mod tests;
