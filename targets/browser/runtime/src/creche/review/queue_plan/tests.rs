@@ -6,7 +6,7 @@ use conduit_core::{
 
 fn remote_offer(gear: &conduit_plot::CheckedGear) -> CapabilityOffer {
     let slug = gear.kind_id.as_str().replace('/', "-");
-    conduit_core::capability_offer_from_parts! {
+    let mut offered = conduit_core::capability_offer_from_parts! {
         semantic_contract: gear.semantic_contract.clone(),
         startup_parameters: gear.startup_parameters.clone(),
         shorthand: gear.shorthand.clone(),
@@ -28,7 +28,36 @@ fn remote_offer(gear: &conduit_plot::CheckedGear) -> CapabilityOffer {
             max_queue_items: 32,
             max_queue_bytes: 262_144,
         },
+    };
+    declare_english_fixture_coverage(&mut offered);
+    offered
+}
+
+fn declare_english_fixture_coverage(offer: &mut CapabilityOffer) {
+    if !offer.semantic_contract.laws.iter().any(|law| {
+        matches!(law,
+            conduit_core::KindSemanticLaw::RealizationRequirement { property_profile, .. }
+                if property_profile == &conduit_language::language_coverage_profile()
+        )
+    }) {
+        return;
     }
+    use conduit_plot::rust_binding::BoundedSequence;
+    let coverage = conduit_language::LanguageCoverage::new(
+        offer.implementation.artifact_id.as_str().into(),
+        BoundedSequence::try_from_iter([conduit_language::LanguageId::new(
+            "language/english".into(),
+        )
+        .unwrap()])
+        .unwrap(),
+        BoundedSequence::try_from_iter([]).unwrap(),
+        "browser-voice-english-fixture@1".into(),
+        BoundedSequence::try_from_iter([]).unwrap(),
+        false,
+    )
+    .unwrap();
+    offer.realization_properties =
+        vec![conduit_language::language_coverage_property(coverage).unwrap()];
 }
 
 #[test]
@@ -135,7 +164,7 @@ fn spoken_conversation_requires_explicit_audio_authority_and_a_joined_line() {
     .is_err());
 }
 
-fn actual_voice_offers() -> Vec<CapabilityOffer> {
+fn reviewed_voice_fixture_offers() -> Vec<CapabilityOffer> {
     let model = conduit_ai::LocalModelOffer {
         identity: conduit_ai::LocalModelIdentity {
             runtime_name: "fixture".into(),
@@ -181,6 +210,9 @@ fn actual_voice_offers() -> Vec<CapabilityOffer> {
         conduit_std_offers::deterministic_streaming_speech_offer(),
     ];
     offers.extend(model.capability_offers().unwrap());
+    for offer in &mut offers {
+        declare_english_fixture_coverage(offer);
+    }
     offers
 }
 
@@ -207,7 +239,7 @@ fn reviewed_fixture_voice_offers_cover_every_expanded_remote_conversation_gear()
         &backs,
     )
     .unwrap();
-    let offers = actual_voice_offers();
+    let offers = reviewed_voice_fixture_offers();
 
     for gear in expanded.gears.iter().filter(|gear| {
         !matches!(
@@ -220,7 +252,7 @@ fn reviewed_fixture_voice_offers_cover_every_expanded_remote_conversation_gear()
             offers
                 .iter()
                 .any(|offer| offer.checked_front() == gear.checked_front()),
-            "real Voice Host offers do not realize expanded Gear {}",
+            "reviewed Voice fixture offers do not realize expanded Gear {}",
             gear.kind_id.as_str()
         );
     }
