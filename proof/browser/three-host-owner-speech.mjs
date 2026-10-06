@@ -28,9 +28,22 @@ export function assertOwnerSelectedSpeech(receipt, { face, bodyId, ownerHostId,
     assert.ok(typeof batch.plan_id === 'string' && batch.plan_id);
     assert.ok(typeof batch.play_id === 'string' && batch.play_id);
     assert.match(batch.source_segments_sha256, /^[0-9a-f]{64}$/);
+    assert.ok(Array.isArray(batch.spoken_segments) && batch.spoken_segments.length > 0
+      && batch.spoken_segments.length <= 32);
+    assert.ok(batch.spoken_segments.every(segment => typeof segment === 'string'
+      && segment.length > 0 && Buffer.byteLength(segment, 'utf8') <= 8192));
     assert.equal(batch.provider_sha256, providerSha256);
     assert.ok(Number.isSafeInteger(batch.speaker_blocks_committed)
       && batch.speaker_blocks_committed > 0);
+    assert.ok(Number.isSafeInteger(batch.speaker_frames_committed)
+      && batch.speaker_frames_committed > 0);
+    assert.match(batch.wav_artifact_id, /^play-[0-9a-f]{64}\.wav$/);
+    assert.match(batch.wav_sha256, /^[0-9a-f]{64}$/);
+    assert.match(batch.pcm_sha256, /^[0-9a-f]{64}$/);
+    assert.ok(Number.isSafeInteger(batch.wav_bytes) && batch.wav_bytes > 44);
+    assert.equal(batch.wav_bytes, batch.pcm_bytes + 44);
+    assert.equal(batch.pcm_blocks, batch.speaker_blocks_committed);
+    assert.equal(batch.pcm_bytes / 4, batch.speaker_frames_committed);
     assert.equal(batch.outcome, 'completed');
   }
   return {
@@ -49,7 +62,7 @@ export function assertOwnerSelectedSpeech(receipt, { face, bodyId, ownerHostId,
     terminal_receipt: receipt,
     batches: receipt.batches,
     speaker_playback_reported: true,
-    wav_artifact_from_this_play: false,
+    wav_artifact_from_this_play: true,
     human_hearing_observed: false,
   };
 }

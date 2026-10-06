@@ -84,29 +84,23 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     assert.equal(speech.owner_host_id, report.owner_host_id);
     assert.equal(speech.owner_boot_id, report.owner_boot_id);
     assert.ok(speech.source_show_id && speech.browser_route_plan_id);
-    assert.equal(speech.wav_artifact_from_this_play, false);
+    assert.equal(speech.wav_artifact_from_this_play, true);
     assert.equal(speech.human_hearing_observed, false);
+    const clips = speech.batches.map((batch, index) => {
+      assert.equal(batch.wav.source, 'same-selected-speaker-play');
+      return `<li><p>${escape(batch.spoken_segments.join(' '))}</p><audio controls preload="none" src="${escape(batch.wav.path)}"><a href="${escape(batch.wav.path)}">Download speaker Play ${index + 1}</a></audio></li>`;
+    });
+    const featured = speech.batches.find(batch => batch.spoken_segments.some(text =>
+      text.includes('The current clock interval is 500 milliseconds'))) ?? speech.batches[0];
     sections.push(chapter('owner-selected-speech', sections.length + 1,
       'Ask the owner to read this view aloud',
-      `From the joined browser, select “Read this view aloud,” then check its outcome. The installed Linux owner reports ${speech.batches.length} completed speaker Plays through its preselected equipment. The request names the browser’s acknowledged Show and the current Face; the receipt keeps each stream, Plan, Play, provider, and committed speaker blocks. This reports device playback, not attended human hearing.`,
-      `<details><summary>Inspect this owner-selected reading</summary><p>Browser route Plan <code>${escape(speech.browser_route_plan_id)}</code> · source Show <code>${escape(speech.source_show_id)}</code>.</p><ol>${speech.batches.map(batch => `<li>Stream <code>${escape(batch.stream_identity)}</code> · Plan <code>${escape(batch.plan_id)}</code> · Play <code>${escape(batch.play_id)}</code> · ${batch.speaker_blocks_committed} speaker blocks committed.</li>`).join('')}</ol><p><a href="${speech.path}">Inspect the selected speech receipt</a>. This speaker Play did not export a WAV; the following audio files belong to a separate artifact-producing action on the same Face.</p></details>`));
+      `From the joined browser, select “Read this view aloud,” then check its outcome. The installed Linux owner reports ${speech.batches.length} completed speaker Plays through its preselected equipment. Each playable WAV records the PCM fanned to the speaker in that same Plan and Play; the words beside it are the ordered committed segments. This establishes the device's completed output path, not attended human hearing.`,
+      `<figure class="audio-feature"><figcaption><strong>Listen to this speaker Play</strong><p>${escape(featured.spoken_segments.join(' '))}</p></figcaption><audio controls preload="metadata" src="${escape(featured.wav.path)}"><a href="${escape(featured.wav.path)}">Download this speaker Play</a></audio></figure><details><summary>Hear every completed speaker Play</summary><ol class="audio-list">${clips.join('')}</ol></details><details><summary>Inspect the exact output</summary><p>Browser route Plan <code>${escape(speech.browser_route_plan_id)}</code> · source Show <code>${escape(speech.source_show_id)}</code>.</p><ol>${speech.batches.map(batch => `<li>Stream <code>${escape(batch.stream_identity)}</code> · Plan <code>${escape(batch.plan_id)}</code> · Play <code>${escape(batch.play_id)}</code> · ${batch.speaker_blocks_committed} speaker blocks committed · WAV SHA-256 <code>${escape(batch.wav.sha256)}</code>.</li>`).join('')}</ol><p><a href="${speech.path}">Inspect the selected speech receipt</a>.</p></details>`));
   }
   if (report.direct_speech) {
-    const clips = [];
-    const produced = [];
-    for (const [index, wav] of report.direct_speech.wavs.entries()) {
-      const receipt = JSON.parse(await readFile(path.join(output, 'speech-direct',
-        `direct-batch-${index + 1}-receipt.json`)));
-      const readable = receipt.source_segments.map(segment => segment.text).join(' ');
-      produced.push({ wav, readable });
-      clips.push(`<li><p>${escape(readable)}</p><audio controls preload="none" src="${wav.path}"><a href="${wav.path}">Download speech batch ${index + 1}</a></audio></li>`);
-    }
-    const featured = produced.find(item =>
-      item.readable.includes('The current clock interval is 500 milliseconds'))
-      ?? produced[0];
-    sections.push(chapter('direct-speech', sections.length + 1, 'Hear the current Face',
-      `Request a separate mechanical full-Face reading while the three Hosts remain live. The artifact-producing proof Host committed ${report.direct_speech.batch_count} ordered speech batches and produced real PCM WAV files from source Show ${escape(report.direct_speech.source_show_id)}. These files are correlated with the same owner Face, not with the owner-selected speaker Plays above. This action does not claim speaker playback or human listening.`,
-      `<figure class="audio-feature"><figcaption><strong>Listen to the current clock</strong><p>${escape(featured.readable)}</p></figcaption><audio controls preload="metadata" src="${featured.wav.path}"><a href="${featured.wav.path}">Download this produced speech clip</a></audio></figure><details><summary>Hear the complete ${clips.length}-batch Face reading</summary><ol class="audio-list">${clips.join('')}</ol></details>`));
+    sections.push(chapter('direct-speech', sections.length + 1, 'Inspect a separate speech diagnostic',
+      `A separate proof Host also produced ${report.direct_speech.batch_count} mechanical speech batches from source Show ${escape(report.direct_speech.source_show_id)}. That is a different Play from the speaker output above, so its WAV files are retained only as diagnostic artifacts and are not offered here as recordings of what the listener heard.`,
+      '<p>The playable recordings in the preceding chapter come from the owner’s selected speaker Plays. <a href="speech-direct/manifest.json">Inspect the separate proof Host manifest</a>.</p>'));
   }
   if (report.llm_speech) {
     assert.ok(report.model_route_restoration, 'model route restoration has no producer receipt');
@@ -114,11 +108,10 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       'original-model-output.json'))).output;
     const routeLoss = await readFile(path.join(output, 'model-route-loss.txt'), 'utf8');
     sections.push(chapter('llm-speech', sections.length + 1, 'Ask for a grounded explanation',
-      'Ask the local model to explain the current Face while the three Hosts remain live. The finite Presenter validates its original wording against that Face before an ordinary spoken Mask produces this WAV. The local spoken Show belongs to the proof Host, not an owner-sealed wardrobe route. Then withdraw only this capture’s loopback model route: the next request refuses without an audio file. Reopen a fresh route to the same service and ask again; the same Body and Face produce a second validated Show and WAV.',
-      `<figure class="audio-feature"><figcaption><strong>Listen to the validated explanation</strong><p>${escape(report.llm_speech.validated_text)}</p></figcaption><audio controls preload="metadata" src="${report.llm_speech.wav.path}"><a href="${report.llm_speech.wav.path}">Download the produced explanation</a></audio></figure>`
-      + `<details><summary>Compare the original model output and validated speech</summary><h3>Original model output</h3><pre>${escape(original)}</pre><h3>Validated spoken text</h3><p>${escape(report.llm_speech.validated_text)}</p><p><a href="speech-llm/validation.json">Inspect validation receipt</a> · <a href="speech-llm/model-validation.json">Inspect model validation</a></p></details>`
+      'Ask the local model to explain the current Face while the three Hosts remain live. The finite Presenter validates its original wording against that Face. Its current artifact-producing proof Host is a separate Play, so this chapter shows the wording and validation but does not present those WAV files as listener audio. Then withdraw this capture’s loopback model route, observe refusal, and reopen a fresh route to the same service.',
+      `<details><summary>Compare the original model output and validated text</summary><h3>Original model output</h3><pre>${escape(original)}</pre><h3>Validated text</h3><p>${escape(report.llm_speech.validated_text)}</p><p><a href="speech-llm/validation.json">Inspect validation receipt</a> · <a href="speech-llm/model-validation.json">Inspect model validation</a></p></details>`
       + `<details><summary>Inspect the configured route withdrawal</summary><p>The producer closed its own forwarding endpoint. This is a configured route refusal, not an Ollama daemon shutdown or wardrobe replacement.</p><pre>${escape(routeLoss)}</pre></details>`
-      + `<figure class="audio-feature"><figcaption><strong>Hear the restored route</strong><p>${escape(report.model_route_restoration.validated_text)}</p></figcaption><audio controls preload="none" src="${report.model_route_restoration.wav.path}"><a href="${report.model_route_restoration.wav.path}">Download restored speech</a></audio></figure><details><summary>Inspect the restored model and Show</summary><p><a href="speech-llm-restored/validation.json">Validation</a> · <a href="speech-llm-restored/speech-receipt.json">Speech receipt</a> · <a href="speech-llm-restored/manifest.json">Evidence manifest</a></p></details>`));
+      + `<details><summary>Inspect the restored model and Show</summary><p>${escape(report.model_route_restoration.validated_text)}</p><p><a href="speech-llm-restored/validation.json">Validation</a> · <a href="speech-llm-restored/speech-receipt.json">Speech receipt</a> · <a href="speech-llm-restored/manifest.json">Separate Play manifest</a></p></details>`));
   }
   if (report.screen_free_clock) {
     const clock = report.screen_free_clock;

@@ -18,8 +18,11 @@ const receipt = {
   offer_generation: 1, provider_sha256: hash, selected_resource_pool_id: 'pool/speaker',
   authority_grant_id: 'grant/speaker',
   batches: [{ stream_identity: 'stream/one', source_segments_sha256: hash,
+    spoken_segments: ['The current clock interval is 500 milliseconds.'],
     plan_id: 'plan/speech', play_id: 'play/speech', provider_sha256: hash,
-    speaker_blocks_committed: 2, outcome: 'completed' }],
+    speaker_blocks_committed: 2, speaker_frames_committed: 100,
+    wav_artifact_id: `play-${hash}.wav`, wav_sha256: hash, wav_bytes: 444,
+    pcm_sha256: hash, pcm_bytes: 400, pcm_blocks: 2, outcome: 'completed' }],
 };
 
 test('owner-selected speaker receipt binds current Show, Body, Host, Plan, and Play', () => {
@@ -27,7 +30,7 @@ test('owner-selected speaker receipt binds current Show, Body, Host, Plan, and P
   assert.equal(checked.browser_route_plan_id, 'plan/browser-route');
   assert.equal(checked.source_show_id, 'show/browser');
   assert.equal(checked.batches[0].play_id, 'play/speech');
-  assert.equal(checked.wav_artifact_from_this_play, false);
+  assert.equal(checked.wav_artifact_from_this_play, true);
   assert.equal(checked.human_hearing_observed, false);
 });
 
@@ -36,6 +39,9 @@ test('stale Show, wrong owner, incomplete playback, and absent blocks cannot pas
     { source_show_id: 'show/stale' }, { host_id: 'host/other' },
     { source_show_still_current: false }, { outcome: 'failed' },
     { batches: [{ ...receipt.batches[0], speaker_blocks_committed: 0 }] },
+    { batches: [{ ...receipt.batches[0], speaker_frames_committed: 99 }] },
+    { batches: [{ ...receipt.batches[0], wav_artifact_id: '../escape.wav' }] },
+    { batches: [{ ...receipt.batches[0], spoken_segments: [] }] },
     { batches: [{ ...receipt.batches[0], provider_sha256: 'b'.repeat(64) }] },
   ]) assert.throws(() => assertOwnerSelectedSpeech({ ...receipt, ...changed }, expected));
   assert.throws(() => assertOwnerSelectedSpeech(receipt, { ...expected,

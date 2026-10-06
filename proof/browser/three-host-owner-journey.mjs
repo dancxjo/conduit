@@ -12,6 +12,7 @@ import { startStaticProduct } from './static-product-server.mjs';
 import { captureLlmChapter } from './three-host-llm-chapter.mjs';
 import { captureRunId } from './three-host-run-identity.mjs';
 import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-owner-speech.mjs';
+import { retainOwnerSpeechArtifacts } from './three-host-owner-speech-artifacts.mjs';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
@@ -340,9 +341,11 @@ try {
       ownerBootId: ownerPart.current.boot_id,
       providerSha256: installed.selected_speech.provider_sha256,
     });
-    const bytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
+    const batches = await retainOwnerSpeechArtifacts(state, output, receipt.batches);
+    const retained = { ...receipt, batches };
+    const bytes = Buffer.from(`${JSON.stringify(retained, null, 2)}\n`);
     await writeFile(path.join(output, 'owner-selected-speech.json'), bytes);
-    ownerSelectedSpeech = { ...receipt, path: 'owner-selected-speech.json', sha256: digest(bytes) };
+    ownerSelectedSpeech = { ...retained, path: 'owner-selected-speech.json', sha256: digest(bytes) };
     assert.equal(run(['body', 'status', '--state-dir', state, '--json']).biography.body_id, bodyId);
   }
   let directSpeech;
