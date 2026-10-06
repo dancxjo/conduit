@@ -5,10 +5,12 @@ impl crate::StdHost {
         &self,
         playback: &crate::hosted_audio::HostedPlaybackSelection,
         provider_sha256: &str,
+        realization_properties: &[conduit_core::StructuredConfigurationValue],
     ) -> bool {
         self.playback.as_ref() == Some(playback)
             && self.speech_synthesis.as_ref().is_some_and(|adapter| {
                 adapter.provider_sha256() == provider_sha256
+                    && adapter.offer().realization_properties == realization_properties
                     && adapter
                         .validate_host(
                             &self.advertisement.host_id,

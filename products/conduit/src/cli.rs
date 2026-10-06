@@ -548,6 +548,8 @@ mod public_surface_tests {
             "/usr/lib/espeak-ng-data",
             "--speech-engine",
             "/usr/lib/libespeak-ng.so.1",
+            "--speech-language-coverage",
+            "coverage.native",
         ])
         .unwrap();
         assert!(matches!(
@@ -574,6 +576,8 @@ mod public_surface_tests {
             "/usr/lib/espeak-ng-data",
             "--speech-engine",
             "/usr/lib/libespeak-ng.so.1",
+            "--speech-language-coverage",
+            "coverage.native",
         ])
         .unwrap();
         assert!(matches!(
@@ -781,6 +785,8 @@ mod public_surface_tests {
             "/data/espeak-ng-data",
             "--speech-engine",
             "/lib/libespeak-ng.so.1",
+            "--speech-language-coverage",
+            "coverage.native",
         ]);
         assert!(matches!(
             Cli::try_parse_from(selected).unwrap().command,
