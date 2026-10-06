@@ -49,20 +49,22 @@ impl SourceKeyboardBatchDecoder {
                         .record_field(name)?
                         .ok_or(StructuredInfoRefusal::WrongRecordFields)?
                         .primitive_bytes("value/u8")?;
-                    bytes
-                        .first()
-                        .copied()
-                        .ok_or(StructuredInfoRefusal::WrongType)
+                    match bytes {
+                        [value] => Ok(*value),
+                        _ => Err(StructuredInfoRefusal::WrongType),
+                    }
                 };
                 let pressed = change
                     .record_field("pressed")?
                     .ok_or(StructuredInfoRefusal::WrongRecordFields)?
                     .primitive_bytes("value/bool")?;
-                batch.transitions[batch.count] = HidKeyTransition::from_source(
-                    octet("usage")?,
-                    pressed == [1],
-                    octet("modifiers")?,
-                );
+                let pressed = match pressed {
+                    [0] => false,
+                    [1] => true,
+                    _ => return Err(StructuredInfoRefusal::WrongType),
+                };
+                batch.transitions[batch.count] =
+                    HidKeyTransition::from_source(octet("usage")?, pressed, octet("modifiers")?);
                 batch.count += 1;
             }
         }
