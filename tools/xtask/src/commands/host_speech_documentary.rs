@@ -21,6 +21,7 @@ pub(super) fn produce(
         manifestation.clone(),
         discovery.clone(),
         &output.join(&path),
+        &conduit_tongues::specimen_language_request(),
     )?;
     let receipt_path = format!("artifacts/{stem}.json");
     let receipt = serde_json::to_vec_pretty(&json!({

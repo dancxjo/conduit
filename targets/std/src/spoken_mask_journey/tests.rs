@@ -126,6 +126,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "finite-replay-fixture",
         face.clone(),
         candidate.clone(),
+        &conduit_tongues::specimen_language_request(),
     )
     .expect("the exact finite wording proposal must reach an acknowledged Show");
     assert_eq!(
@@ -147,6 +148,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "invented-replay-fixture",
         face.clone(),
         invented,
+        &conduit_tongues::specimen_language_request(),
     )
     .is_err());
 
@@ -157,6 +159,7 @@ fn finite_wording_replay_uses_the_presenter_policy_and_revalidates_the_face() {
         "unknown-replay-fixture",
         face,
         candidate,
+        &conduit_tongues::specimen_language_request(),
     )
     .unwrap_err();
     assert!(refused.contains("unsupported spoken Mask template"));
@@ -185,6 +188,7 @@ fn installed_espeak_mask_retains_acknowledged_wav_through_plan_and_play() {
         retained(face),
         discovery,
         &destination,
+        &conduit_tongues::specimen_language_request(),
     )
     .unwrap();
     let shown = &result.execution.shown;
@@ -252,6 +256,7 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
         candidate.clone(),
         discovery,
         &destination,
+        &conduit_tongues::specimen_language_request(),
     )
     .unwrap();
     let shown = &result.execution.shown;

@@ -428,6 +428,7 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
         "spoken-producer-callable",
         presentation(),
         retained,
+        &conduit_tongues::specimen_language_request(),
     )
     .unwrap();
     assert_eq!(
