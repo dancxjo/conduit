@@ -187,3 +187,20 @@ pub fn language_coverage_mapping_rows(
         })
         .collect()
 }
+
+/// Domain-owned request extraction from exact semantic input schemas.
+/// Material names its own Language; no operation or human-language name is matched.
+pub fn language_configuration_request(
+    value: &StructuredConfigurationValue,
+) -> Result<LanguageRequest, LanguageCoverageRefusal> {
+    if value.profile() == &language_request_profile() {
+        LanguageRequest::decode(value.canonical_value())
+            .map_err(|_| LanguageCoverageRefusal::MalformedDeclaration)
+    } else if value.profile() == &crate::language_text_profile() {
+        let material = crate::LanguageText::decode(value.canonical_value())
+            .map_err(|_| LanguageCoverageRefusal::MalformedDeclaration)?;
+        Ok(crate::language_material_request(&material))
+    } else {
+        Err(LanguageCoverageRefusal::MalformedDeclaration)
+    }
+}

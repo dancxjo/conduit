@@ -8,7 +8,12 @@ fn arc(revision: &str, relation: LanguageUniversalDependencyRelation) -> Depende
     let token = |ordinal| {
         LanguageAnalysisTokenRef::new(
             LanguageAnalysisRevisionId::new(revision.into()).unwrap(),
-            LinguisticTokenIdentity::new(ordinal, "utterance/3".into()).unwrap(),
+            LinguisticTokenIdentity::new(
+                ordinal,
+                LanguageTextId::new("utterance/3".into()).unwrap(),
+                LanguageTextRevisionId::new("source/3".into()).unwrap(),
+            )
+            .unwrap(),
         )
         .unwrap()
     };
@@ -43,8 +48,15 @@ fn view<'a>(
 }
 #[test]
 fn garden_path_revises_stabilizes_commits_and_corrects_without_erasure() {
+    let source = LanguageText::new(
+        LanguageTextId::new("utterance/3".into()).unwrap(),
+        LanguageId::new("language/english".into()).unwrap(),
+        LanguageTextRevisionId::new("source/3".into()).unwrap(),
+        "The old man the boats".into(),
+    )
+    .unwrap();
     let domain = DependencyRevisions {
-        source_text: text("utterance/3"),
+        source_text: &source,
         tokens: 5,
     };
     let context = RevisionContext {
@@ -171,7 +183,13 @@ fn garden_path_revises_stabilizes_commits_and_corrects_without_erasure() {
         journal.truncate_prefix(1),
         Err(RevisionRefusal::TruncationWouldEraseCommittedHistory)
     );
-    let wrong =
-        DependencyDelta::Withdraw(LinguisticTokenIdentity::new(1, "other/text".into()).unwrap());
+    let wrong = DependencyDelta::Withdraw(
+        LinguisticTokenIdentity::new(
+            1,
+            LanguageTextId::new("other/text".into()).unwrap(),
+            LanguageTextRevisionId::new("source/3".into()).unwrap(),
+        )
+        .unwrap(),
+    );
     assert!(!domain.validate_delta(RevisionDeltaRole::Withdrawal, &wrong));
 }

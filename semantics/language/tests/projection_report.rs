@@ -24,7 +24,12 @@ struct ParserProjection;
 fn token(ordinal: u64) -> LanguageAnalysisTokenRef {
     LanguageAnalysisTokenRef::new(
         LanguageAnalysisRevisionId::new("analysis/1".into()).unwrap(),
-        LinguisticTokenIdentity::new(ordinal, "text/1".into()).unwrap(),
+        LinguisticTokenIdentity::new(
+            ordinal,
+            LanguageTextId::new("text/1".into()).unwrap(),
+            LanguageTextRevisionId::new("source/1".into()).unwrap(),
+        )
+        .unwrap(),
     )
     .unwrap()
 }

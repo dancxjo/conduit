@@ -1,6 +1,6 @@
 //! Dependency-analysis consumer of the shared revision law. Native arcs and
 //! exact source token identities remain language-owned; no parser lives here.
-use crate::{LanguageDependencyArc, LanguageDependencyHead, LinguisticTokenIdentity};
+use crate::{LanguageDependencyArc, LanguageDependencyHead, LanguageText, LinguisticTokenIdentity};
 use conduit_core::revision::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -14,7 +14,7 @@ pub enum DependencyDelta {
 /// One finite source-text epoch. Different analysis revisions retain their
 /// native identities; token ordinals are never compared across source epochs.
 pub struct DependencyRevisions<'a> {
-    pub source_text: RevisionText<'a>,
+    pub source_text: &'a LanguageText,
     pub tokens: u64,
 }
 impl RevisionDomain for DependencyRevisions<'_> {
@@ -38,7 +38,8 @@ impl RevisionDomain for DependencyRevisions<'_> {
         };
         self.tokens > 0
             && self.tokens <= 4096
-            && token.text_identity().as_str() == self.source_text.as_str()
+            && token.text_identity() == self.source_text.identity()
+            && token.text_revision() == self.source_text.revision()
             && *token.ordinal() < self.tokens
     }
     fn validate_cursor(&self, cursor: TokenFrontier) -> bool {
