@@ -41,6 +41,12 @@ fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrie
     BrowserCarrierLineEvidence {
         face: line("face", owner, browser, &authorization.face_grant_id),
         returned: line("return", browser, owner, &authorization.return_grant_id),
+        interaction: line(
+            "interaction",
+            browser,
+            owner,
+            &authorization.interaction_grant_id,
+        ),
         authorization,
     }
 }
@@ -201,6 +207,18 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         ),
         Err("browser-line-evidence-mismatch".into())
     );
+    let mut lost_interaction = carrier_evidence.clone();
+    lost_interaction.interaction.availability.availability =
+        conduit_core::LineAvailability::Unavailable;
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&lost_interaction)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
     let mut wrong_base = carrier_evidence.clone();
     wrong_base.face.binding.base = conduit_core::BaseImplementationId::from("base/forged");
     assert_eq!(
@@ -249,8 +267,37 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         selected_line("show"),
         Some(carrier_evidence.returned.admitted_line())
     );
-    assert_eq!(selected_line("interaction"), None);
+    assert_eq!(
+        selected_line("interaction"),
+        Some(carrier_evidence.interaction.admitted_line())
+    );
+    assert_eq!(
+        selected.interaction_line,
+        Some(carrier_evidence.interaction.admitted_line())
+    );
+    let mut missing_interaction = selected.clone();
+    missing_interaction.interaction_line = None;
+    assert_eq!(
+        missing_interaction.verify_seal(),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::InvalidSeal)
+    );
+    assert_eq!(selected.validate_interaction_payload(128), Ok(()));
+    assert_eq!(
+        selected.validate_interaction_payload(conduit_presentation::MAX_FACE_INTERACTION_BYTES + 1),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::ReturnExceedsFore)
+    );
     let issued_face = owner.local_face_snapshot().unwrap();
+    assert_eq!(
+        selected.validate_current(
+            &owner.session,
+            &issued_face,
+            owner.host.advertisement(),
+            &browser_offer,
+            &carrier_evidence.face,
+            &carrier_evidence.returned,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+    );
     let issued_response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
         schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
         presentation: Box::new(issued_face),
@@ -376,6 +423,28 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         unreachable!()
     };
     *line_evidence = retained;
+    let current_interaction = line_evidence.as_ref().unwrap().interaction.clone();
+    line_evidence
+        .as_mut()
+        .unwrap()
+        .interaction
+        .availability
+        .availability = conduit_core::LineAvailability::Unavailable;
+    assert_eq!(
+        owner.validate_browser_mask_show(
+            &authorized.window_id,
+            &current_binding,
+            &face_request,
+            &available_show,
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    line_evidence.as_mut().unwrap().interaction = current_interaction;
     assert_eq!(
         owner
             .browser_mask_route(

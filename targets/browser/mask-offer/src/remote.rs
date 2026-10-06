@@ -25,7 +25,43 @@ pub fn planned_owner_face_show_mask(
     source: &str,
     name: &str,
 ) -> Result<PlannedMaskPlot, String> {
-    for line in [face_line, return_line] {
+    planned_owner_mask(browser, owner, face_line, return_line, None, source, name)
+}
+
+/// Select a distinct, carrier-backed interaction return as well as Face and Show.
+pub fn planned_owner_face_show_interaction_mask(
+    browser: &HostAdvertisement,
+    owner: &HostAdvertisement,
+    face_line: &LineOffer,
+    return_line: &LineOffer,
+    interaction_line: &LineOffer,
+    source: &str,
+    name: &str,
+) -> Result<PlannedMaskPlot, String> {
+    planned_owner_mask(
+        browser,
+        owner,
+        face_line,
+        return_line,
+        Some(interaction_line),
+        source,
+        name,
+    )
+}
+
+fn planned_owner_mask(
+    browser: &HostAdvertisement,
+    owner: &HostAdvertisement,
+    face_line: &LineOffer,
+    return_line: &LineOffer,
+    interaction_line: Option<&LineOffer>,
+    source: &str,
+    name: &str,
+) -> Result<PlannedMaskPlot, String> {
+    for line in [Some(face_line), Some(return_line), interaction_line]
+        .into_iter()
+        .flatten()
+    {
         let limits = line.binding.limits;
         if line.binding.base.as_str() != WEBSOCKET.base_implementation_id
             || line.contract != WEBSOCKET.contract
@@ -56,7 +92,7 @@ pub fn planned_owner_face_show_mask(
             show_bytes,
         }),
     )?;
-    let choices = [
+    let mut choices = vec![
         ExternalForeLineChoice {
             host_id: browser.host_id.clone(),
             boot_id: browser.boot_id.clone(),
@@ -78,10 +114,27 @@ pub fn planned_owner_face_show_mask(
             line_id: return_line.line_id.clone(),
         },
     ];
+    if let Some(interaction_line) = interaction_line {
+        choices.push(ExternalForeLineChoice {
+            host_id: browser.host_id.clone(),
+            boot_id: browser.boot_id.clone(),
+            direction: PortDirection::Output,
+            front_port_id: planned.mask.interaction_output.front_port_id.clone(),
+            track: ConnectionTrack::Payload,
+            peer_host_id: owner.host_id.clone(),
+            peer_boot_id: owner.boot_id.clone(),
+            line_id: interaction_line.line_id.clone(),
+        });
+    }
+    let offers = [Some(face_line), Some(return_line), interaction_line]
+        .into_iter()
+        .flatten()
+        .cloned()
+        .collect::<Vec<_>>();
     let plan = bind_external_fore_lines(
         &planned.plan,
         &choices,
-        &[face_line.clone(), return_line.clone()],
+        &offers,
         &[BaseImplementationId::from(WEBSOCKET.base_implementation_id)],
     )
     .map_err(|error| format!("browser Mask Fore Line refused: {error}"))?;
@@ -123,7 +176,7 @@ mod tests {
         }
     }
 
-    fn lines(owner: &HostAdvertisement, browser: &HostAdvertisement) -> [LineOffer; 2] {
+    fn lines(owner: &HostAdvertisement, browser: &HostAdvertisement) -> [LineOffer; 3] {
         let limits = LinkLimits {
             maximum_in_flight_items: 1,
             maximum_payload_bytes: 64 * 1024,
@@ -148,16 +201,26 @@ mod tests {
             owner,
             limits,
         );
+        let mut interaction = process_owned_line_offer_with_limits(
+            "interaction-line",
+            "interaction-binding",
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "websocket-instance",
+            browser,
+            owner,
+            limits,
+        );
         face.contract = WEBSOCKET.contract;
         returning.contract = WEBSOCKET.contract;
-        [face, returning]
+        interaction.contract = WEBSOCKET.contract;
+        [face, returning, interaction]
     }
 
     #[test]
     fn current_lines_select_only_face_and_show_without_changing_the_local_mask() {
         let owner = host("owner", false);
         let browser = host("browser", true);
-        let [face, returning] = lines(&owner, &browser);
+        let [face, returning, _] = lines(&owner, &browser);
         let selected = planned_owner_face_show_mask(
             &browser,
             &owner,
@@ -204,7 +267,7 @@ mod tests {
     fn stale_or_unavailable_carrier_offer_refuses_and_smaller_line_reduces_fore_bound() {
         let owner = host("owner", false);
         let browser = host("browser", true);
-        let [face, returning] = lines(&owner, &browser);
+        let [face, returning, _] = lines(&owner, &browser);
         let mut stale = face.clone();
         stale.binding.sink.boot_id = BootId::from("stale");
         assert!(planned_owner_face_show_mask(
@@ -255,5 +318,54 @@ mod tests {
             .find(|fore| fore.front_port_id.as_str() == "face")
             .unwrap();
         assert_eq!(face_fore.byte_capacity, 8 * 1024);
+    }
+
+    #[test]
+    fn interaction_requires_its_own_current_carrier_line() {
+        let owner = host("owner", false);
+        let browser = host("browser", true);
+        let [face, returning, interaction] = lines(&owner, &browser);
+        let selected = planned_owner_face_show_interaction_mask(
+            &browser,
+            &owner,
+            &face,
+            &returning,
+            &interaction,
+            crate::MASK_SOURCE,
+            "browser-graphical",
+        )
+        .unwrap();
+        let fores = &selected.plan.fragments[0].fore_ports;
+        assert_eq!(
+            fores
+                .iter()
+                .find(|fore| fore.front_port_id.as_str() == "interaction")
+                .unwrap()
+                .selected_line,
+            Some(interaction.admitted_line())
+        );
+        assert!(conduit_core::verify_plan(&selected.plan));
+        assert!(planned_owner_face_show_interaction_mask(
+            &browser,
+            &owner,
+            &face,
+            &returning,
+            &returning,
+            crate::MASK_SOURCE,
+            "browser-graphical",
+        )
+        .is_err());
+        let mut stale = interaction;
+        stale.availability.availability = LineAvailability::Unavailable;
+        assert!(planned_owner_face_show_interaction_mask(
+            &browser,
+            &owner,
+            &face,
+            &returning,
+            &stale,
+            crate::MASK_SOURCE,
+            "browser-graphical",
+        )
+        .is_err());
     }
 }

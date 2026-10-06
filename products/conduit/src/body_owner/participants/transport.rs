@@ -139,6 +139,12 @@ impl Socket {
             authorization: authorization.clone(),
             face: offer("face", owner, browser, &authorization.face_grant_id),
             returned: offer("return", browser, owner, &authorization.return_grant_id),
+            interaction: offer(
+                "interaction",
+                browser,
+                owner,
+                &authorization.interaction_grant_id,
+            ),
         })
     }
     pub(super) fn receive(

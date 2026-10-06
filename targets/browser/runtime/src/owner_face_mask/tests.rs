@@ -131,17 +131,61 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
         face.clone(),
         planned.clone(),
         None,
-        Some((return_line.admitted_line(), face_line.admitted_line())),
+        Some((return_line.admitted_line(), face_line.admitted_line(), None)),
         1,
         false,
     )
     .is_err());
+    let interaction_line = line("interaction/selected", &browser, &owner);
+    let full_plan = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
+        &browser,
+        &owner,
+        &face_line,
+        &return_line,
+        &interaction_line,
+        conduit_browser_mask_offer::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let full_basis = HostBasis {
+        body_id: basis.body_id.clone(),
+        host_id: basis.host_id.clone(),
+        boot_id: basis.boot_id.clone(),
+    };
+    assert!(OwnerBrowserMask::prepare_planned(
+        full_basis,
+        face.clone(),
+        full_plan.clone(),
+        None,
+        Some((face_line.admitted_line(), return_line.admitted_line(), None)),
+        1,
+        false,
+    )
+    .is_err());
+    OwnerBrowserMask::prepare_planned(
+        HostBasis {
+            body_id: basis.body_id.clone(),
+            host_id: basis.host_id.clone(),
+            boot_id: basis.boot_id.clone(),
+        },
+        face.clone(),
+        full_plan,
+        None,
+        Some((
+            face_line.admitted_line(),
+            return_line.admitted_line(),
+            Some(interaction_line.admitted_line()),
+        )),
+        1,
+        false,
+    )
+    .unwrap();
     let mut mask = OwnerBrowserMask::prepare_planned(
         basis,
         face,
         planned,
         None,
-        Some((face_line.admitted_line(), return_line.admitted_line())),
+        Some((face_line.admitted_line(), return_line.admitted_line(), None)),
         1,
         false,
     )
