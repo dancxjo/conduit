@@ -186,6 +186,10 @@ pub(super) enum HostCommand {
         whisper_executable: PathBuf,
         #[arg(long)]
         whisper_model: PathBuf,
+        #[arg(long)]
+        language_coverage: PathBuf,
+        #[arg(long)]
+        language_request: PathBuf,
         #[arg(long, default_value_t = 2)]
         whisper_threads: u8,
         #[arg(long, default_value_t = 30)]
