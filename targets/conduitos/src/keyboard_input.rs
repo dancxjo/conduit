@@ -4,6 +4,9 @@ use conduit_human::KeyEvent;
 use conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_ITEMS;
 
 mod product;
+#[cfg(target_arch = "x86_64")]
+#[allow(unused_imports)] // Root Source capture composition is being connected.
+pub(crate) use product::service_source_batch;
 pub use product::{ProductInputControl, ProductInputEvent, run_product, run_ps2_product};
 
 use crate::{

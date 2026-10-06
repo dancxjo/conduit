@@ -153,6 +153,36 @@ fn service_product_ingress(
     }
 }
 
+/// Service a retained Source batch whose physical provenance Root has already
+/// established from its admitted USB capture. The caller retains ingress and
+/// batch across Yield/pressure and acknowledges Source only after it is empty.
+#[cfg(target_arch = "x86_64")]
+pub(crate) fn service_source_batch(
+    batch: &mut crate::source_keyboard_batch::PendingSourceKeyboardBatch,
+    ingress: &mut KeyboardIngress,
+    interact: &mut impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
+) -> Result<ProductInputControl, &'static str> {
+    for _ in 0..INGRESS_CAPACITY {
+        let Some(transition) = batch.next_transition() else {
+            break;
+        };
+        match batch.admit_next(ingress) {
+            Ok(true) => {
+                if interact(ProductInputEvent::LocalRescue(
+                    transition.into_local_rescue(),
+                ))? == ProductInputControl::Yield
+                {
+                    return Ok(ProductInputControl::Yield);
+                }
+            }
+            Ok(false) => break,
+            Err(KeyboardIngressRefusal::Pressure) => break,
+            Err(error) => return Err(error.as_str()),
+        }
+    }
+    service_product_ingress(ingress, interact)
+}
+
 #[cfg(test)]
 #[path = "product_tests.rs"]
 mod tests;
