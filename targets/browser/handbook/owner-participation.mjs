@@ -477,7 +477,7 @@ export async function startOwnerParticipation(application, root) {
     if (!participation) return;
     participation.close();
     leave.disabled = true;
-    showState('leaving');
+    showState('offline');
   });
   faceRefresh.addEventListener('click', refreshFace);
   wardrobeRefresh.addEventListener('click', refreshWardrobe);
