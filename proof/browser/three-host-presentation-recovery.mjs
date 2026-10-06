@@ -91,6 +91,12 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
   await recoveredPage.getByRole('button', { name: 'Join this Body' }).click();
   await recoveredPage.waitForFunction(() => globalThis.__conduitOwnerParticipation?.presence() === 'available',
     null, { timeout: 12_000 });
+  await recoveredPage.waitForFunction(previousShow => {
+    const face = globalThis.__conduitOwnerParticipation?.face();
+    return face?.show_id && face.show_id !== previousShow
+      && document.querySelector('[data-handbook-application]')?.dataset.ownerShowAcknowledged
+        === face.show_id;
+  }, oldFace.show_id, { timeout: 12_000 });
   await recoveredPage.locator('[data-owner-face-document] [data-owner-action]').first().waitFor();
   const recovered = await recoveredPage.evaluate(() => ({
     credential: globalThis.__conduitOwnerParticipation.credential(),
