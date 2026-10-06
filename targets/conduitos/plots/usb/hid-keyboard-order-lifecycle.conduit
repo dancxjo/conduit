@@ -12,6 +12,10 @@ type UsbKeyboardOrderSession = {
 type UsbKeyboardOrderCommand =
     observation UsbKeyboardOrderedObservation
     | finish
+    | stalled
+    | provider-lost
+    | timeout
+    | unsupported
 type UsbKeyboardOrderRoute =
     waiting UsbKeyboardOrderSession
     | emitting UsbKeyboardOrderReady
@@ -23,6 +27,10 @@ type UsbKeyboardOrderEnd =
     | duplicate
     | outside-window
     | pressure
+    | stalled
+    | provider-lost
+    | timeout
+    | unsupported
 type UsbKeyboardOrderDecision =
     continued UsbKeyboardOrderState
     | ended UsbKeyboardOrderEnd
@@ -60,7 +68,7 @@ plot usb-hid-keyboard-order-session-route (
 
 plot usb-hid-keyboard-order-session-command (
     pair: UsbKeyboardOrderCommandPair...| >> work: UsbKeyboardOrderWork...|
-) = (.1 is observation ? inserting({ state: .0.order, observation: .1.observation }) : ending(.0.order.slots.0 is vacant && .0.order.slots.1 is vacant && .0.order.slots.2 is vacant && .0.order.slots.3 is vacant && .0.order.slots.4 is vacant && .0.order.slots.5 is vacant && .0.order.slots.6 is vacant && .0.order.slots.7 is vacant ? closed(unit) : gap(unit)))
+) = (.1 is observation ? inserting({ state: .0.order, observation: .1.observation }) : ending(.1 is finish ? (.0.order.slots.0 is vacant && .0.order.slots.1 is vacant && .0.order.slots.2 is vacant && .0.order.slots.3 is vacant && .0.order.slots.4 is vacant && .0.order.slots.5 is vacant && .0.order.slots.6 is vacant && .0.order.slots.7 is vacant ? closed(unit) : gap(unit)) : (.1 is stalled ? stalled(unit) : (.1 is provider-lost ? provider-lost(unit) : (.1 is timeout ? timeout(unit) : unsupported(unit))))))
 
 plot usb-hid-keyboard-order-lifecycle (
     >> begin: Unit...|

@@ -67,8 +67,15 @@ pub fn usb_hid_keyboard_order_package() -> Result<ProtocolSourcePackage, Protoco
             .ok_or(ProtocolSourceRefusal::Specialization(
                 "HID ordering imports",
             ))?;
+    let endpoint = include_str!("../../plots/usb/hid-keyboard-ordered-endpoint.conduit");
+    let (endpoint_header, endpoint_body) =
+        endpoint
+            .split_once("\n\n")
+            .ok_or(ProtocolSourceRefusal::Specialization(
+                "HID ordered endpoint imports",
+            ))?;
     let source = format!(
-        "{header}\n{}\n{}\n{}\n{body}",
+        "{header}\n{endpoint_header}\n{}\n{}\n{}\n{body}\n{endpoint_body}",
         include_str!("../../plots/usb/hid-reports.conduit"),
         include_str!("../../plots/usb/hid-keyboard-order.conduit"),
         include_str!("../../plots/usb/hid-keyboard-state.conduit"),
@@ -86,6 +93,9 @@ pub fn usb_hid_keyboard_order_package() -> Result<ProtocolSourcePackage, Protoco
             ProtocolSpecializationRequest::FeedbackZip {
                 left: value("UsbKeyboardOrderSession"),
                 right: value("UsbKeyboardOrderCommand"),
+            },
+            ProtocolSpecializationRequest::Concat {
+                value: value("UsbKeyboardOrderCommand"),
             },
             ProtocolSpecializationRequest::Merge {
                 value: value("UsbKeyboardOrderSession"),
