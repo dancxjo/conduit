@@ -26,6 +26,9 @@ use conduit_plan_lowering::lowering::lower_plan_fragment;
 #[derive(Debug)]
 pub(super) enum CaptureBindingRefusal {
     Contract(StructuredInfoRefusal),
+    Source(alloc::string::String),
+    Kernel(crate::protocol_host_calls::ProtocolCallRefusal),
+    Authority,
     Readiness(&'static str),
     Fragment,
     Lowering(conduit_plan_lowering::lowering::LoweringError),
@@ -272,4 +275,56 @@ pub(super) unsafe fn bind<'a, const N: usize>(
         owner,
         requests: core::array::from_fn(|_| None),
     })
+}
+
+/// Prepare checked Source from caller-owned current Host offers and grants, then
+/// bind its retained Plan to the actual configured native resource.
+///
+/// # Safety
+/// The same exclusive ownership, coherence and acknowledged-stop requirements
+/// as `bind` apply. Host descriptions and successful planning grant no authority.
+#[allow(clippy::too_many_arguments)]
+pub(super) unsafe fn prepare<'a, const N: usize>(
+    controller: &XhciReady,
+    device: UsbDevice,
+    configured: ConfiguredInboundEndpoint,
+    dma: EndpointReadWindowDma<'a, N>,
+    attachment: EndpointReadAttachment,
+    base_id: &str,
+    provider_instance_id: &str,
+    host: &HostAdvertisement,
+    issuers: [NativeProtocolIssuer; N],
+    storage: conduit_composite::KernelCompositeSignStorage,
+    work_units: u64,
+) -> Result<PreparedSourceCapture<'a, N>, CaptureBindingRefusal> {
+    use crate::usb_base::hid_source_plan::{self, HidSourceRole};
+    let role = match N {
+        8 => HidSourceRole::KeyboardCapture,
+        2 => HidSourceRole::MouseCapture,
+        _ => return Err(CaptureBindingRefusal::Members),
+    };
+    // All members reserve the same endpoint operation envelope, but each issuer
+    // retains its independently admitted secret and table-scoped possession.
+    let grant = issuers[0].grant();
+    if issuers.iter().any(|issuer| issuer.grant() != grant) {
+        return Err(CaptureBindingRefusal::Authority);
+    }
+    let artifact = hid_source_plan::prepare(role, host, core::slice::from_ref(grant))
+        .map_err(CaptureBindingRefusal::Source)?;
+    let play = PreparedHidSourceKernel::prepare(artifact, storage)
+        .map_err(CaptureBindingRefusal::Kernel)?;
+    unsafe {
+        bind(
+            controller,
+            device,
+            configured,
+            dma,
+            attachment,
+            base_id,
+            provider_instance_id,
+            play,
+            issuers,
+            work_units,
+        )
+    }
 }
