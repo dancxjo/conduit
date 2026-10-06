@@ -260,6 +260,7 @@ installed_step_dispatch!(
     GeneratedSemanticValidator,
     RetainGeneratedValidation,
     SpokenGeneratedSpeech,
+    DirectFaceWording,
     SpokenArtifact,
     SpokenArtifactShow,
     SpokenNoInteraction,

@@ -37,6 +37,7 @@ fn setup() -> (Owner, PathBuf, ResidentPlot) {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
     };
     crate::durable_host::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(SOURCE)
@@ -85,6 +86,8 @@ fn advertise(owner: &mut Owner, window_id: &str) -> conduit_body::AdmissionChall
 #[path = "route_tests.rs"]
 mod route_tests;
 
+#[path = "native_face_reseal_tests.rs"]
+mod native_face_reseal_tests;
 #[path = "native_route_tests.rs"]
 mod native_route_tests;
 

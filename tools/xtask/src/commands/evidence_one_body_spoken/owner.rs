@@ -28,6 +28,7 @@ pub(super) struct InstalledRelease {
 pub(super) struct OwnerSnapshot {
     pub(super) schema: String,
     pub(super) presentation: Presentation,
+    pub(super) presentation_revision_decimal: String,
     pub(super) advertisement: HostAdvertisement,
 }
 
@@ -64,6 +65,9 @@ pub(super) fn parse_snapshot(bytes: &[u8]) -> Result<OwnerSnapshot, String> {
         serde_json::from_slice(bytes).map_err(|error| error.to_string())?;
     if snapshot.schema != SNAPSHOT_SCHEMA {
         return Err("unexpected owner Face snapshot schema".into());
+    }
+    if snapshot.presentation_revision_decimal != snapshot.presentation.revision.to_string() {
+        return Err("owner Face decimal revision does not match the presentation".into());
     }
     snapshot
         .presentation

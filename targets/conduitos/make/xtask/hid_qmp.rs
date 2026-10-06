@@ -24,7 +24,24 @@ pub(super) fn inject(
     serial_path: &Path,
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
-    inject_with_preparation_budget(socket, serial_path, child, Duration::from_secs(5))
+    inject_with_preparation_budget(socket, serial_path, child, Duration::from_secs(5), None)
+}
+
+/// Arm QEMU's own mixer capture immediately before the final Enter key starts
+/// the guest action. All preceding HID preparation uses the normal backend.
+pub(super) fn inject_with_capture(
+    socket: &Path,
+    serial_path: &Path,
+    child: &mut Child,
+    wav: &Path,
+) -> Result<(), ConduitosError> {
+    inject_with_preparation_budget(
+        socket,
+        serial_path,
+        child,
+        Duration::from_secs(5),
+        Some(wav),
+    )
 }
 
 pub(super) fn inject_configuration(
@@ -37,6 +54,7 @@ pub(super) fn inject_configuration(
         serial_path,
         child,
         super::profile::USB_CONFIGURATION_PREPARATION_TIMEOUT,
+        None,
     )
 }
 
@@ -45,6 +63,7 @@ fn inject_with_preparation_budget(
     serial_path: &Path,
     child: &mut Child,
     preparation: Duration,
+    wav: Option<&Path>,
 ) -> Result<(), ConduitosError> {
     let (mut qmp, mut reader) = connect(socket, child)?;
     wait_for_stage_with_budget(
@@ -68,7 +87,7 @@ fn inject_with_preparation_budget(
         "CONDUIT_BOOT_STAGE keyboard-text-play-started",
         "keyboard-text-start-timeout",
     )?;
-    inject_keyboard_text(&mut qmp, &mut reader, serial_path, child)
+    inject_keyboard_text(&mut qmp, &mut reader, serial_path, child, wav)
 }
 
 fn inject_keyboard_text(
@@ -76,6 +95,7 @@ fn inject_keyboard_text(
     reader: &mut super::qmp::Reader,
     serial_path: &Path,
     child: &mut Child,
+    wav: Option<&Path>,
 ) -> Result<(), ConduitosError> {
     const EVENTS: [(&str, bool); 38] = [
         ("h", true),
@@ -125,6 +145,32 @@ fn inject_keyboard_text(
             index + 1,
             "keyboard-text-ready-timeout",
         )?;
+        if index == 36 {
+            if let Some(wav) = wav {
+                let name = wav
+                    .to_str()
+                    .filter(|name| {
+                        name.bytes().all(|byte| {
+                            byte.is_ascii_alphanumeric()
+                                || matches!(byte, b'/' | b'.' | b'_' | b'-')
+                        })
+                    })
+                    .ok_or_else(|| {
+                        ConduitosError::refusal(
+                            "qemu-audio-output-path-invalid",
+                            "HMP WAV path has unsupported characters",
+                        )
+                    })?;
+                let command = serde_json::json!({"execute":"human-monitor-command",
+                    "arguments":{"command-line":format!("wavcapture {name} conduitos-opl2-audio")}});
+                qmp::request(
+                    qmp,
+                    reader,
+                    command.to_string().as_bytes(),
+                    "arm-guest-audio-capture",
+                )?;
+            }
+        }
         send_named_keys(qmp, reader, &[key], down, "keyboard-text-key")?;
         wait_for_stage_count(
             serial_path,

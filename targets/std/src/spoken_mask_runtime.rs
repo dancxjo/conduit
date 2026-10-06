@@ -12,7 +12,7 @@ use conduit_kernel::{
 use conduit_presentation::{
     ArtifactAcknowledgedSpokenShow, GeneratedManifestation, GeneratedManifestationCandidate,
     GeneratedValidationSession, GenerativePresenterRequest, ManifestationLifecycle, MaskShow,
-    PlannedMaskPlot, Presentation, SpokenMaskArtifactReceipt,
+    PlannedMaskPlot, Presentation, SpokenGenerationEvidence, SpokenMaskArtifactReceipt,
 };
 
 mod speech;
@@ -207,6 +207,21 @@ impl SpokenMaskSemanticSession {
         let result = ArtifactAcknowledgedSpokenShow {
             show: available,
             generated_manifestation_identity: generated.manifestation_identity().into(),
+            accepted_wording: String::from_utf8(self.extract_accepted_speech(generated)?)
+                .map_err(|_| "accepted outward Speech is not UTF-8".to_string())?,
+            generation_evidence: SpokenGenerationEvidence {
+                provider_identity: generated.candidate().provider_identity.clone(),
+                model_identity: generated.candidate().model_identity.clone(),
+                candidate_digest: generated.validation_receipt().candidate_digest().into(),
+                validation_receipt_identity: generated
+                    .validation_receipt()
+                    .receipt_identity()
+                    .into(),
+                original_model_output: generated
+                    .validation_receipt()
+                    .raw_provider_output()
+                    .map(str::to_owned),
+            },
             artifact,
         };
         result

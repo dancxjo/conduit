@@ -1,6 +1,7 @@
 //! Publication gate for #4807. The producer owns the live run; this module
 //! checks its retained, digest-bound result and renders no partial journey.
 
+mod audio_delivery;
 mod media;
 mod render;
 
@@ -97,6 +98,8 @@ struct CaptureReceipt {
     provider_id: Option<String>,
     model_id: Option<String>,
     validation_id: Option<String>,
+    audio_provenance_id: Option<String>,
+    qemu_boot_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -136,6 +139,7 @@ struct ValidatedMedia<'a> {
     transcript: Option<&'a VerifiedOutput>,
     transcript_text: Option<String>,
     mode: Option<&'a str>,
+    delivery_source: Option<&'static str>,
     validation: Option<&'a VerifiedOutput>,
 }
 
@@ -298,10 +302,13 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 EvidenceKind::Audio
                     if artifact.media_type == "audio/wav" && wav(&root.join(&artifact.path))? =>
                 {
-                    if capture.capture_source != "runtime-speech" {
-                        return Err("audio lacks runtime speech source".into());
+                    if !matches!(
+                        capture.capture_source.as_str(),
+                        "speaker-play" | "qemu-audio"
+                    ) {
+                        return Err("audio lacks same-Play speaker or same-run QEMU source".into());
                     }
-                    "runtime-speech"
+                    capture.capture_source.as_str()
                 }
                 _ => {
                     return Err(format!(
@@ -386,6 +393,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 {
                     return Err("direct speech carries a model claim or missing mode".into());
                 }
+                audio_delivery::validate(&root, &outputs, &capture, &words, artifact)?;
                 if chapter.id == "hear" {
                     audio_modes.insert(capture.speech_mode.clone().unwrap());
                 }
@@ -398,6 +406,8 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 || capture.provider_id.is_some()
                 || capture.model_id.is_some()
                 || capture.voice_id.is_some()
+                || capture.audio_provenance_id.is_some()
+                || capture.qemu_boot_id.is_some()
             {
                 return Err("visual capture carries unsupported speech metadata".into());
             }
@@ -414,6 +424,11 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                         "llm-assisted"
                     }
                 }),
+                delivery_source: match capture.capture_source.as_str() {
+                    "speaker-play" => Some("selected speaker Play"),
+                    "qemu-audio" => Some("same-run QEMU output"),
+                    _ => None,
+                },
                 validation,
             });
         }
@@ -422,7 +437,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
             "join" => &["chromium", "qmp"],
             "start" => &["chromium"],
             "see" => &["qmp", "terminal"],
-            "hear" => &["runtime-speech"],
+            "hear" => &[],
             "loss" | "return" => &[],
             _ => unreachable!("chapter order was validated"),
         };
@@ -441,14 +456,17 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
             media,
         });
     }
-    if !["chromium", "qmp", "terminal", "runtime-speech"]
+    if !["chromium", "qmp", "terminal"]
         .iter()
         .all(|source| all_sources.contains(*source))
+        || (!all_sources.contains("speaker-play") && !all_sources.contains("qemu-audio"))
         || !["direct", "llm-assisted"]
             .iter()
             .all(|mode| audio_modes.contains(*mode))
     {
-        return Err("journey lacks browser, QMP, terminal, direct, or LLM runtime media".into());
+        return Err(
+            "journey lacks browser, QMP, terminal, delivered audio, direct, or LLM media".into(),
+        );
     }
     render::write(request, &root, &evidence, &journey, &chapters)
 }

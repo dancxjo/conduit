@@ -38,6 +38,9 @@ fn read(path: &Path, explicit_reselection: bool) -> Result<Installation, String>
             selection.validate()?;
         }
     }
+    if let Some(selection) = &value.selected_model {
+        selection.validate()?;
+    }
     if let Some(binding) = &value.body_state {
         if binding.body_id.is_empty()
             || !valid_digest(&binding.biography_sha256)

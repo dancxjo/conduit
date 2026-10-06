@@ -110,6 +110,8 @@ impl Owner {
             pending_browser: None,
             pending_native_mask: None,
             attached_terminal_route: None,
+            direct_spoken_route: None,
+            llm_spoken_route: None,
             presentation_wardrobe: None,
         }
     }

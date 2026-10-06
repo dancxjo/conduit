@@ -403,19 +403,28 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             .unwrap_or(self.offer.limits.work.maximum_output_bytes());
         // The portable result slot carries payload plus exact provenance/accounting.
         // Reserve bounded envelope headroom instead of asking the provider to fill it.
-        let token_ceiling = if matches!(
-            placement.kind_id.as_str(),
-            conduit_ai::LLM_INTERPRET_KIND | conduit_ai::LLM_PRESENT_KIND
-        ) {
-            256
+        let maximum_tokens = if placement.kind_id.as_str() == conduit_ai::LLM_PRESENT_KIND {
+            // A single exact Face clause can carry two long opaque identities.
+            // The previous 256-token limit cut valid structured responses in
+            // half. The retained raw output and encoded candidate retain their
+            // independent finite byte checks below and in `finish_wording`.
+            maximum_output_bytes
+                .saturating_sub(2_048)
+                .checked_div(4)
+                .unwrap_or(1)
+                .clamp(1, 512)
         } else {
-            64
+            let token_ceiling = if placement.kind_id.as_str() == conduit_ai::LLM_INTERPRET_KIND {
+                256
+            } else {
+                64
+            };
+            maximum_output_bytes
+                .saturating_sub(2_048)
+                .checked_div(8)
+                .unwrap_or(1)
+                .clamp(1, token_ceiling)
         };
-        let maximum_tokens = maximum_output_bytes
-            .saturating_sub(2_048)
-            .checked_div(8)
-            .unwrap_or(1)
-            .clamp(1, token_ceiling);
         let (payload, truncated, work_units) = match placement.kind_id.as_str() {
             conduit_ai::LLM_GENERATE_KIND | conduit_ai::LLM_GENERATE_FLOW_KIND => {
                 match self.generate(input, maximum_tokens, false) {

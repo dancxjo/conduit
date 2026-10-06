@@ -1,6 +1,8 @@
 use super::*;
 
-fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrierLineEvidence {
+pub(super) fn fixture_carrier_evidence(
+    snapshot: &BrowserAdmittedSnapshot,
+) -> BrowserCarrierLineEvidence {
     let authorization = snapshot.line_authorization.as_ref().unwrap().clone();
     let owner = snapshot.owner_advertisement.as_deref().unwrap();
     let browser = snapshot.browser_advertisement.as_deref().unwrap();
