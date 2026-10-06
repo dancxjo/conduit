@@ -363,6 +363,9 @@ pub(super) fn prepare_artifact_hosts(
     active_play: &conduit_core::ActivePlayIdentity,
     selection: Option<&crate::hosted_wav_artifact::WavArtifactSelection>,
 ) -> Result<Vec<Option<SpokenArtifactHost>>, String> {
+    if active_play.plan_id != fragment.plan_id {
+        return Err("spoken artifact Play identity is stale for its Plan".into());
+    }
     fragment
         .placements
         .iter()
@@ -380,6 +383,7 @@ pub(super) fn prepare_artifact_hosts(
                 .ok_or_else(|| "spoken Mask has no selected artifact destination".to_string())?;
             if selection.boot_id != placement.boot_id
                 || selection.offer_generation != placement.offer_generation
+                || active_play.boot_id != placement.boot_id
             {
                 return Err("spoken Mask artifact destination is stale".into());
             }
@@ -387,8 +391,13 @@ pub(super) fn prepare_artifact_hosts(
                 session: {
                     let work =
                         super::audio_stream_budget::AudioStreamBudget::from_placement(placement)?;
+                    let exact = selection.for_play(
+                        &fragment.plan_id,
+                        &active_play.active_play_id,
+                        &placement.placement_id,
+                    )?;
                     crate::hosted_wav_artifact::WavArtifactSession::prepare_bounded(
-                        selection.clone(),
+                        exact,
                         work.blocks,
                         work.millis,
                     )?
@@ -416,6 +425,7 @@ pub(super) fn execute_artifact(
         let receipt = conduit_presentation::SpokenMaskArtifactReceipt {
             artifact_identity: format!("artifact/wav/{content_sha256}"),
             content_sha256,
+            artifact_locator: host.session.locator(),
             pcm_bytes: report.pcm_bytes,
             frames: report.frames,
             blocks: report.blocks,

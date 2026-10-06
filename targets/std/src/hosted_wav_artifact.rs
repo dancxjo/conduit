@@ -1,23 +1,61 @@
-//! Boot-scoped bounded WAV artifact output for explicit evidence destinations.
+//! Bounded WAV artifacts at fixed or exact per-Play destinations.
 
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
-use conduit_core::{BootId, OfferGeneration, ResourcePoolId};
+use conduit_core::{ActivePlayId, BootId, OfferGeneration, PlacementId, PlanId, ResourcePoolId};
 use sha2::{Digest, Sha256};
 use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 const SAMPLE_RATE_HZ: u32 = 48_000;
+// Sixty-four retained 30-second stereo PCM Shows admit at most 368,642,816
+// bytes including WAV headers. Reserve and partial names can coexist until
+// a Play finishes or cancels, hence the larger finite directory scan bound.
+const MAX_RETAINED_ARTIFACTS: usize = 64;
+const MAX_WAV_BYTES: u64 = 44 + 30 * 48_000_u64 * 4;
+const MAX_DIRECTORY_ENTRIES: usize = 3 * MAX_RETAINED_ARTIFACTS + 1;
+
+#[derive(Debug)]
+struct QuotaReservation(PathBuf);
+
+impl Drop for QuotaReservation {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+struct QuotaLock(PathBuf);
+
+impl QuotaLock {
+    fn acquire(root: &Path) -> Result<Self, String> {
+        let path = root.join(".quota-lock");
+        std::fs::create_dir(&path).map_err(|e| format!("reserve WAV artifact quota lock: {e}"))?;
+        Ok(Self(path))
+    }
+}
+
+impl Drop for QuotaLock {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir(&self.0);
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct WavArtifactSelection {
     destination: PathBuf,
+    per_play: bool,
+    reservation: Option<Arc<QuotaReservation>>,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
 }
 
 impl WavArtifactSelection {
     pub fn is_unpublished(&self) -> bool {
-        !self.destination.exists()
+        if self.per_play {
+            self.has_retained_capacity(false).unwrap_or(false)
+        } else {
+            !self.destination.exists()
+        }
     }
 
     pub fn new(
@@ -34,9 +72,135 @@ impl WavArtifactSelection {
         }
         Ok(Self {
             destination: destination.to_path_buf(),
+            per_play: false,
+            reservation: None,
             boot_id,
             offer_generation,
         })
+    }
+
+    /// Select a retained artifact directory before Boot advertisement. Each
+    /// subsequent Play reserves one exact create-new name and bounded extent.
+    pub fn per_play_root(
+        root: impl AsRef<Path>,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+    ) -> Result<Self, String> {
+        let root = root.as_ref();
+        if !root.is_dir()
+            || root
+                .symlink_metadata()
+                .map_err(|e| e.to_string())?
+                .file_type()
+                .is_symlink()
+        {
+            return Err("selected WAV artifact root is unavailable".into());
+        }
+        let root = root
+            .canonicalize()
+            .map_err(|e| format!("resolve selected WAV artifact root: {e}"))?;
+        if root.to_str().is_none() || root.as_os_str().as_encoded_bytes().len() > 2_048 {
+            return Err("selected WAV artifact root cannot provide a bounded locator".into());
+        }
+        let selection = Self {
+            destination: root,
+            per_play: true,
+            reservation: None,
+            boot_id,
+            offer_generation,
+        };
+        if !selection.has_retained_capacity(false)? {
+            return Err("selected WAV artifact retained quota is full".into());
+        }
+        Ok(selection)
+    }
+
+    fn has_retained_capacity(&self, owns_lock: bool) -> Result<bool, String> {
+        let mut count = 0usize;
+        let mut bytes = 0u64;
+        let mut entries = 0usize;
+        for entry in std::fs::read_dir(&self.destination).map_err(|e| e.to_string())? {
+            entries += 1;
+            if entries > MAX_DIRECTORY_ENTRIES {
+                return Err("WAV artifact directory exceeds its finite scan bound".into());
+            }
+            let entry = entry.map_err(|e| e.to_string())?;
+            if entry.file_name() == ".quota-lock" {
+                if !owns_lock {
+                    return Ok(false);
+                }
+                continue;
+            }
+            let metadata = entry.path().symlink_metadata().map_err(|e| e.to_string())?;
+            if !metadata.is_file() {
+                return Err("WAV artifact root contains an unsupported entry".into());
+            }
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if name.ends_with(".wav")
+                || name.ends_with(".reserve")
+                || name.contains(".wav.partial-")
+            {
+                count += 1;
+                bytes = bytes
+                    .checked_add(if name.ends_with(".wav") {
+                        metadata.len()
+                    } else {
+                        MAX_WAV_BYTES
+                    })
+                    .ok_or("WAV artifact quota overflow")?;
+            } else {
+                return Err("WAV artifact directory contains an unknown file".into());
+            }
+        }
+        Ok(count < MAX_RETAINED_ARTIFACTS
+            && bytes
+                .checked_add(MAX_WAV_BYTES)
+                .is_some_and(|required| required <= MAX_RETAINED_ARTIFACTS as u64 * MAX_WAV_BYTES))
+    }
+
+    pub fn for_play(
+        &self,
+        plan_id: &PlanId,
+        active_play_id: &ActivePlayId,
+        placement_id: &PlacementId,
+    ) -> Result<Self, String> {
+        if !self.per_play {
+            return Ok(self.clone());
+        }
+        let _lock = QuotaLock::acquire(&self.destination)?;
+        if !self.has_retained_capacity(true)? {
+            return Err("selected WAV artifact retained quota is full".into());
+        }
+        let mut digest = Sha256::new();
+        for part in [
+            self.boot_id.as_str(),
+            plan_id.as_str(),
+            active_play_id.as_str(),
+            placement_id.as_str(),
+        ] {
+            digest.update((part.len() as u64).to_le_bytes());
+            digest.update(part.as_bytes());
+        }
+        let destination = self
+            .destination
+            .join(format!("play-{:x}.wav", digest.finalize()));
+        if destination.exists() {
+            return Err("exact WAV artifact Play identity is already published".into());
+        }
+        let reservation_path = destination.with_extension("reserve");
+        std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&reservation_path)
+            .map_err(|e| format!("reserve exact WAV artifact Play: {e}"))?;
+        let mut exact = Self::new(destination, self.boot_id.clone(), self.offer_generation)?;
+        exact.reservation = Some(Arc::new(QuotaReservation(reservation_path)));
+        Ok(exact)
+    }
+
+    pub fn locator(&self) -> Option<String> {
+        self.destination.to_str().map(str::to_owned)
     }
 
     pub fn pool_id(&self) -> ResourcePoolId {
@@ -77,6 +241,9 @@ impl WavArtifactSession {
         blocks: u32,
         millis: u32,
     ) -> Result<Self, String> {
+        if selection.per_play {
+            return Err("WAV artifact Play has no exact reserved destination".into());
+        }
         if blocks == 0 || blocks > 32_768 || millis == 0 || millis > 30_000 {
             return Err("invalid admitted WAV work budget".into());
         }
@@ -189,6 +356,9 @@ impl WavArtifactSession {
         self.completed
             .then(|| format!("{:x}", self.digest.clone().finalize()))
     }
+    pub(crate) fn locator(&self) -> Option<String> {
+        self.completed.then(|| self.selection.locator()).flatten()
+    }
 }
 impl Drop for WavArtifactSession {
     fn drop(&mut self) {
@@ -213,93 +383,5 @@ fn write_header(file: &mut std::fs::File, data_bytes: u32) -> Result<(), String>
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn selection(root: &Path) -> WavArtifactSelection {
-        WavArtifactSelection::new(
-            root.join("answer.wav"),
-            BootId::from("boot/wav-test"),
-            OfferGeneration(1),
-        )
-        .unwrap()
-    }
-
-    #[test]
-    fn malformed_or_unfinished_pcm_never_creates_an_artifact() {
-        let root = std::env::temp_dir().join(format!(
-            "conduit-wav-artifact-refusal-{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
-        std::fs::create_dir(&root).unwrap();
-        let destination = root.join("answer.wav");
-        let mut session = WavArtifactSession::prepare(selection(&root));
-        assert!(session.write_frame(b"not-pcm").is_err());
-        assert!(session.finish().is_err());
-        assert!(!destination.exists());
-        drop(session);
-        assert!(!destination.exists());
-        std::fs::remove_dir_all(root).unwrap();
-    }
-    #[test]
-    fn bounded_long_artifact_is_incremental_and_unfinished_output_is_not_published() {
-        let root = std::env::temp_dir().join(format!("conduit-long-wav-{}", std::process::id()));
-        std::fs::create_dir(&root).unwrap();
-        let mut session =
-            WavArtifactSession::prepare_bounded(selection(&root), 4000, 20000).unwrap();
-        let mut bytes = Vec::new();
-        for block in 0..3750_u64 {
-            let header = PcmFrameHeader::new(
-                PcmSampleRepresentation::Signed16LittleEndian,
-                48000,
-                PcmChannelLayout::StereoLeftRight,
-                256,
-                9,
-                block * 256,
-                false,
-            )
-            .unwrap();
-            bytes.clear();
-            bytes.extend_from_slice(&header.encode());
-            bytes.resize(bytes.len() + 1024, 0);
-            session.write_frame(&bytes).unwrap();
-        }
-        assert!(!root.join("answer.wav").exists());
-        assert_eq!(
-            std::fs::metadata(&session.temporary).unwrap().len(),
-            44 + 20 * 48000 * 4
-        );
-        session.finish().unwrap();
-        assert_eq!(session.report().frames, 20 * 48000);
-        assert!(session.content_sha256().is_some());
-        drop(session);
-        std::fs::remove_file(root.join("answer.wav")).unwrap();
-        let mut unfinished = WavArtifactSession::prepare(selection(&root));
-        let header = PcmFrameHeader::new(
-            PcmSampleRepresentation::Signed16LittleEndian,
-            48000,
-            PcmChannelLayout::StereoLeftRight,
-            1,
-            9,
-            0,
-            false,
-        )
-        .unwrap();
-        let mut frame = header.encode().to_vec();
-        frame.extend_from_slice(&[0; 4]);
-        unfinished.write_frame(&frame).unwrap();
-        assert!(
-            unfinished.write_frame(&frame).is_err(),
-            "repeated frame is discontinuous"
-        );
-        assert!(
-            unfinished.finish().is_err(),
-            "a failed write cannot become a completed artifact"
-        );
-        assert!(!root.join("answer.wav").exists());
-        drop(unfinished);
-        assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
-        std::fs::remove_dir(root).unwrap();
-    }
-}
+#[path = "hosted_wav_artifact_tests.rs"]
+mod tests;

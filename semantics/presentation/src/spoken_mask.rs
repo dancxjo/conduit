@@ -34,6 +34,10 @@ pub const SPOKEN_MASK_CONTRACT_REVISION: &str = "conduit.presentation/spoken-mas
 pub struct SpokenMaskArtifactReceipt {
     pub artifact_identity: String,
     pub content_sha256: String,
+    /// Host-retained local file, when this Back can expose one. This is an
+    /// evidence locator, never an authority or an authored Plot address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_locator: Option<String>,
     pub pcm_bytes: u32,
     pub frames: u32,
     pub blocks: u16,
@@ -107,6 +111,10 @@ impl SpokenMaskArtifactReceipt {
     fn validate_for(&self, show: &MaskShow) -> Result<(), SpokenMaskShowError> {
         if self.artifact_identity.is_empty()
             || self.artifact_identity.len() > MAX_SPOKEN_MASK_ARTIFACT_IDENTITY_BYTES
+            || self
+                .artifact_locator
+                .as_ref()
+                .is_some_and(|locator| locator.is_empty() || locator.len() > 4096)
             || self.content_sha256.len() != 64
             || !self
                 .content_sha256

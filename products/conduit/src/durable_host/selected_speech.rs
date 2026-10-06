@@ -104,22 +104,20 @@ impl Selection {
         Ok(self)
     }
 
-    /// Select the speaker, voice, and one create-new WAV destination before
-    /// this Boot is advertised. The destination can complete once per Boot;
-    /// a later spoken Show requires a new Boot or an admitted per-Play output
-    /// selection, never replacement of an already published artifact.
+    /// Select the speaker, voice, and finite create-new WAV artifact pool
+    /// before this Boot is advertised. Each Play gets its own exact name.
     /// Discovery does not open a PCM handle; the Back rechecks the device at Play.
     pub(super) fn attach_to_fresh_host_with_artifact(
         &self,
         host: &mut StdHost,
-        destination: &Path,
+        artifact_root: &Path,
     ) -> Result<AttachedEquipment, String> {
-        if destination.exists() {
-            return Err("selected spoken artifact destination already exists".into());
-        }
         let offer = host.advertisement();
-        let artifact =
-            WavArtifactSelection::new(destination, offer.boot_id.clone(), offer.offer_generation)?;
+        let artifact = WavArtifactSelection::per_play_root(
+            artifact_root,
+            offer.boot_id.clone(),
+            offer.offer_generation,
+        )?;
         self.validate()?;
         let observation = observe_speaker(&self.card_id, self.device)?;
         if observation.base_identity != self.speaker_base_identity {

@@ -689,7 +689,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::AUDIO_WAV_ARTIFACT_IMPLEMENTATION
             {
-                wav_artifact_back::prepare_session(placement, wav_artifact).map(Some)
+                wav_artifact_back::prepare_session(
+                    &fragment.plan_id,
+                    &active_play.active_play_id,
+                    placement,
+                    wav_artifact,
+                )
+                .map(Some)
             } else {
                 Ok(None)
             }

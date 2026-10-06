@@ -464,11 +464,9 @@ fn prepare_runtime(
         fs::create_dir_all(&artifact_dir)
             .map_err(|error| format!("create spoken artifact directory: {error}"))?;
         restrict_directory(&artifact_dir)?;
-        // Each installed Boot owns one create-new artifact destination. A
-        // later spoken Show must obtain another admitted destination; it
-        // cannot overwrite a completed artifact or inherit a stale Boot.
-        let artifact = artifact_dir.join(format!("{}.wav", boot_id.replace('/', "_")));
-        Some(selection.attach_to_fresh_host_with_artifact(&mut host, &artifact)?)
+        // Retained capacity is selected before Boot advertisement; each
+        // admitted Play derives a create-new destination from exact identity.
+        Some(selection.attach_to_fresh_host_with_artifact(&mut host, &artifact_dir)?)
     } else {
         None
     };

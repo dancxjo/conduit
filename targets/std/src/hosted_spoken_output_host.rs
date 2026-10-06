@@ -1,7 +1,7 @@
 //! Host-owned speech and artifact attachment, before ordinary planning.
 impl crate::StdHost {
-    /// Current selected provider possession, independent of whether this
-    /// Boot's one-shot artifact has already produced a retained Show.
+    /// Current selected provider possession, independent of retained
+    /// artifact capacity for a later Play.
     pub fn spoken_mask_provider_is_current(&self) -> bool {
         self.speech_synthesis
             .as_ref()
@@ -9,7 +9,8 @@ impl crate::StdHost {
             && self.kernel_resources.is_idle()
     }
 
-    /// A new artifact Show additionally needs this Boot's destination free.
+    /// A new artifact Play additionally needs the selected retained pool to
+    /// have a free slot or its fixed destination to be unpublished.
     pub fn spoken_mask_artifact_route_is_current(&self) -> bool {
         self.spoken_mask_provider_is_current()
             && self
