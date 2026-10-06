@@ -16,6 +16,8 @@ pub(super) struct MicrophoneWhisperRequest {
     pub capture_timeout_seconds: u64,
     pub whisper_executable: PathBuf,
     pub whisper_model: PathBuf,
+    pub language_coverage: PathBuf,
+    pub language_request: PathBuf,
     pub whisper_threads: u8,
     pub whisper_timeout_seconds: u64,
     pub authorize_capture: bool,
@@ -75,13 +77,20 @@ pub(super) fn prove(
             timeout: Duration::from_secs(request.capture_timeout_seconds),
         },
     )?;
+    let coverage = conduit_std_host::hosted_speech_recognition::read_language_coverage(
+        &request.language_coverage,
+    )?;
+    let language = conduit_std_host::hosted_speech_recognition::read_language_request(
+        &request.language_request,
+    )?;
     let whisper = WhisperDiscovery::inspect(&request.whisper_executable, &request.whisper_model)?
+        .declare_language_coverage(coverage)?
         .initialize(WhisperLimits {
-        maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-        maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
-        threads: request.whisper_threads,
-        timeout: Duration::from_secs(request.whisper_timeout_seconds),
-    })?;
+            maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+            maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
+            threads: request.whisper_threads,
+            timeout: Duration::from_secs(request.whisper_timeout_seconds),
+        })?;
     let receipt = conduit_std_host::microphone_whisper_proof::run(
         StdHostConfig {
             host_id: conduit_core::HostId::from("host/microphone-whisper-proof"),
@@ -91,6 +100,7 @@ pub(super) fn prove(
         StdHostComposition::reference(),
         microphone,
         whisper,
+        &language,
     )?;
     emit(
         Report {
