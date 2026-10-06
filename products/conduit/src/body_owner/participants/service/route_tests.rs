@@ -54,6 +54,8 @@ fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrie
 #[test]
 fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() {
     let (mut owner, root, _) = setup();
+    let (terminal, _terminal_peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    owner.host.attach_terminal_mask(terminal).unwrap();
     let mut advertisement = host("host/browser-test", "boot/browser/first")
         .advertisement()
         .clone();
@@ -115,6 +117,31 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
                 signature: secret.sign(&challenge.signing_transcript()).to_vec(),
             },
         )
+        .unwrap();
+    let (terminal_face, terminal_seal) = owner.seal_attached_terminal_route().unwrap();
+    let terminal_placement = terminal_seal.planned_mask.show_placement();
+    let terminal_play = conduit_core::bind_active_play(
+        &terminal_seal.planned_mask.plan.plan_id,
+        &terminal_placement.host_id,
+        &terminal_placement.boot_id,
+        1,
+    );
+    let terminal_show = conduit_presentation::MaskShow::prepared(
+        &terminal_seal.planned_mask,
+        &terminal_face,
+        terminal_play,
+        terminal_face.subjects[0].identity.clone(),
+        "terminal/test".into(),
+        conduit_core::SignId::from("sign/test/terminal-prepared"),
+    )
+    .unwrap()
+    .transition(
+        conduit_presentation::ManifestationLifecycle::Available,
+        conduit_core::SignId::from("sign/test/terminal-available"),
+    )
+    .unwrap();
+    owner
+        .acknowledge_attached_terminal_show(&terminal_seal, &terminal_show)
         .unwrap();
     let carrier_evidence = fixture_carrier_evidence(&snapshot);
     // The admission authorization may expire while this exact admitted
@@ -249,6 +276,58 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             Some(&carrier_evidence),
         )
         .unwrap();
+    let owner_plan_id = owner
+        .presentation_wardrobe
+        .as_ref()
+        .unwrap()
+        .plan()
+        .plan_id
+        .clone();
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    let wardrobe = owner.presentation_wardrobe.as_mut().unwrap();
+    assert_eq!(wardrobe.plan().routes.len(), 2);
+    let browser_mask = selected.planned_mask.mask.plot_identity.clone();
+    wardrobe
+        .apply(
+            &owner.session,
+            &face,
+            &current,
+            0,
+            conduit_presentation::MaskWardrobeAction::Wear(browser_mask.clone()),
+        )
+        .unwrap();
+    wardrobe
+        .apply(
+            &owner.session,
+            &face,
+            &current,
+            1,
+            conduit_presentation::MaskWardrobeAction::Doff(
+                terminal_seal.planned_mask.mask.plot_identity.clone(),
+            ),
+        )
+        .unwrap();
+    wardrobe
+        .apply(
+            &owner.session,
+            &face,
+            &current,
+            2,
+            conduit_presentation::MaskWardrobeAction::Prefer(vec![browser_mask]),
+        )
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
     assert_eq!(selected.mask_host.host_id, snapshot.credential.host_id);
     let fores = &selected.planned_mask.plan.fragments[0].fore_ports;
     let selected_line = |name| {
@@ -394,6 +473,34 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .unwrap();
+    let wardrobe = owner.presentation_wardrobe.as_ref().unwrap();
+    assert_eq!(wardrobe.plan().routes.len(), 2);
+    assert_eq!(
+        wardrobe.control().selected.as_ref().unwrap().route_id,
+        format!("route/{}", selected.route_plan_id.as_str())
+    );
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    let admitted = wardrobe
+        .plan()
+        .admit_current_routes(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(admitted.routes().len(), 2);
+    assert!(admitted
+        .routes()
+        .iter()
+        .all(|route| route.currently_available));
+    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
     owner
         .validate_browser_mask_show(
             &authorized.window_id,
@@ -430,6 +537,39 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         .interaction
         .availability
         .availability = conduit_core::LineAvailability::Unavailable;
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    let wardrobe = owner.presentation_wardrobe.as_mut().unwrap();
+    let lost = wardrobe
+        .admit_or_replace(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
+    assert!(matches!(
+        lost.show,
+        conduit_presentation::MaskShowDisposition::NoCurrentShow { .. }
+    ));
+    let admitted = wardrobe
+        .plan()
+        .admit_current_routes(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(
+        admitted
+            .routes()
+            .iter()
+            .filter(|route| route.currently_available)
+            .count(),
+        1
+    );
     assert_eq!(
         owner.validate_browser_mask_show(
             &authorized.window_id,
@@ -438,6 +578,40 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         ),
         Err("browser-line-evidence-mismatch".into())
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    line_evidence.as_mut().unwrap().interaction = current_interaction.clone();
+    line_evidence
+        .as_mut()
+        .unwrap()
+        .interaction
+        .binding
+        .binding_id = LinkBindingId::from("binding/forged-ready-interaction");
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    assert!(owner
+        .presentation_wardrobe
+        .as_mut()
+        .unwrap()
+        .admit_or_replace(&owner.session, &face, &current)
+        .is_err());
+    assert_eq!(
+        owner.presentation_wardrobe.as_ref().unwrap().plan().plan_id,
+        owner_plan_id
     );
     let WindowState::Active { line_evidence, .. } =
         &mut owner.pending_browser.as_mut().unwrap().state
