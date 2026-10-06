@@ -1,6 +1,9 @@
 //! Allocation-stable construction of anonymous structured expression results.
 
-use super::{PreparedPortableExpressionEvaluator, Refusal};
+use super::{
+    projection::{prepare_projection, PreparedProjection},
+    PreparedPortableExpressionEvaluator, Refusal,
+};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
@@ -13,6 +16,8 @@ pub(super) struct PreparedStructuredExpression {
 }
 
 enum PreparedShape {
+    Input,
+    Projection(PreparedProjection),
     Record(Vec<PreparedField>),
     Collection(Vec<PreparedChild>),
 }
@@ -30,7 +35,19 @@ struct PreparedChild {
 
 impl PreparedStructuredExpression {
     pub(super) fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
+        if program.root.value_type != program.output_type {
+            return Err(Refusal::InvalidProgram);
+        }
         let shape = match &program.root.operation {
+            PortableExpressionOperation::Input => {
+                if program.input_type != program.output_type {
+                    return Err(Refusal::InvalidProgram);
+                }
+                PreparedShape::Input
+            }
+            PortableExpressionOperation::Projection { .. } => {
+                PreparedShape::Projection(prepare_projection(&program.root)?)
+            }
             PortableExpressionOperation::Tuple(values) => {
                 let fields = values
                     .iter()
@@ -79,8 +96,18 @@ impl PreparedStructuredExpression {
     }
 
     pub(super) fn evaluate(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
+        // Selection returns a complete canonical value. Never reinterpret a
+        // selected node under a different output schema.
+        match &mut self.shape {
+            PreparedShape::Input => return append(output, input),
+            PreparedShape::Projection(projection) => {
+                return append(output, projection.evaluate(input)?);
+            }
+            _ => {}
+        }
         append(output, &self.type_prefix)?;
         match &mut self.shape {
+            PreparedShape::Input | PreparedShape::Projection(_) => unreachable!(),
             PreparedShape::Record(fields) => {
                 push(output, 2)?;
                 push_len(output, fields.len())?;

@@ -17,6 +17,13 @@ This USB slice does not absorb #4833's I2C/BME280 acceptance. Portable binary
 composition developed here should serve that later slice too: checked integer
 widening preserves the entire source domain, and packed-word helpers are bounded
 groundwork rather than a substitute for reusable bounded byte/frame contracts.
+Prepared pure expressions preserve complete structured values and select bounded
+byte-sequence fields through the generic exact-type selector. Their finite
+output and selection buffers are allocated before Play. Source checking and
+prepared execution agree for empty through maximum-length control payloads;
+malformed envelopes and substituted Types remain refusals. This is payload
+composition groundwork, not native transfer or class-device execution proof.
+
 Probe plots consume an already-admitted attachment; recognizing a class never
 mints authority or selects a host resource.
 
