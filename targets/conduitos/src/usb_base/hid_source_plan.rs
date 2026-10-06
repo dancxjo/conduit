@@ -16,7 +16,7 @@ pub enum HidSourceRole {
 impl HidSourceRole {
     fn entry(self) -> &'static str {
         match self {
-            Self::Keyboard => "usb-hid-keyboard-endpoint",
+            Self::Keyboard => "usb-hid-keyboard-batch-endpoint",
             Self::Mouse => "usb-hid-mouse-endpoint",
         }
     }
