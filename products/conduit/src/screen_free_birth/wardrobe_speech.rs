@@ -113,9 +113,46 @@ impl<I: CommandInput> Announcement<'_, I> {
             if worker.join().is_err() {
                 return Err("wardrobe speech worker panicked".into());
             }
-            let result = played.map_err(debug_error)?;
-            self.selected
-                .verify_receipt(self.face, self.show, &batch, &result)?;
+            let result = match played {
+                Ok(result) => result,
+                Err(refusal) if interrupted => {
+                    writeln!(
+                        output,
+                        "{}",
+                        interrupted_without_receipt(
+                            report_sha256.as_deref(),
+                            &wording_sha256,
+                            index,
+                            lines.len(),
+                            &format!("{refusal:?}"),
+                        )
+                    )
+                    .map_err(|error| error.to_string())?;
+                    return Ok(false);
+                }
+                Err(refusal) => return Err(debug_error(refusal)),
+            };
+            if let Err(reason) = self
+                .selected
+                .verify_receipt(self.face, self.show, &batch, &result)
+            {
+                if interrupted && result.outcome != SpokenPlaybackOutcome::Completed {
+                    writeln!(
+                        output,
+                        "{}",
+                        interrupted_without_receipt(
+                            report_sha256.as_deref(),
+                            &wording_sha256,
+                            index,
+                            lines.len(),
+                            &reason,
+                        )
+                    )
+                    .map_err(|error| error.to_string())?;
+                    return Ok(false);
+                }
+                return Err(reason);
+            }
             let report_current_after_play = match report {
                 Some(source) => {
                     let current = crate::durable_host_control::owner_wardrobe::report(
@@ -143,7 +180,12 @@ impl<I: CommandInput> Announcement<'_, I> {
                     "wording": wording,
                     "part": index + 1,
                     "parts": lines.len(),
-                    "playback": self.selected.receipt_json(&result),
+                    "outcome": format!("{:?}", result.outcome),
+                    "playback_receipt": if result.outcome == SpokenPlaybackOutcome::Completed {
+                        Some(self.selected.receipt_json(&result))
+                    } else {
+                        None
+                    },
                 })
             )
             .map_err(|error| error.to_string())?;
@@ -156,6 +198,25 @@ impl<I: CommandInput> Announcement<'_, I> {
         }
         Ok(true)
     }
+}
+
+fn interrupted_without_receipt(
+    report_sha256: Option<&str>,
+    wording_sha256: &str,
+    index: usize,
+    parts: usize,
+    detail: &str,
+) -> Value {
+    json!({
+        "schema": "conduit.body/owner-wardrobe-announcement@1",
+        "outcome": "interrupted-before-playback-receipt",
+        "report_sha256": report_sha256,
+        "wording_sha256": wording_sha256,
+        "part": index + 1,
+        "parts": parts,
+        "detail": detail,
+        "playback_receipt": null,
+    })
 }
 
 fn report_basis(report: &Value) -> Value {
@@ -191,5 +252,20 @@ mod tests {
         assert_eq!(report_basis(&action_result), report_basis(&inspection));
         inspection["wardrobe"]["revision"] = json!(3);
         assert_ne!(report_basis(&action_result), report_basis(&inspection));
+    }
+
+    #[test]
+    fn interrupted_refusal_cannot_claim_playback_delivery() {
+        let outcome = interrupted_without_receipt(
+            Some(&"ab".repeat(32)),
+            &"cd".repeat(32),
+            0,
+            2,
+            "admission cancelled",
+        );
+        assert_eq!(outcome["outcome"], "interrupted-before-playback-receipt");
+        assert!(outcome["playback_receipt"].is_null());
+        assert_eq!(outcome["part"], 1);
+        assert_eq!(outcome["parts"], 2);
     }
 }
