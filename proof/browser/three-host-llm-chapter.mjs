@@ -72,7 +72,7 @@ async function stopRoute(route) {
 
 export async function captureLlmChapter({ xtask, owner, state, output, sourceCommit, runId,
   bodyId, ownerHostId, ownerBootId, faceId, faceRevision,
-  speechExecutable, speechData, speechEngine, model, ollamaEndpoint, admittedMemoryMib }) {
+  speechExecutable, speechData, speechEngine, speechLanguageCoverage, model, ollamaEndpoint, admittedMemoryMib }) {
   const route = await startRoute(ollamaEndpoint);
   const actionId = 'explain-current-face-llm';
   const args = (directory, action) => [
@@ -83,6 +83,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
     '--admitted-memory-mib', String(admittedMemoryMib),
     '--speech-executable', speechExecutable, '--speech-data', speechData,
     '--speech-engine', speechEngine,
+    '--speech-language-coverage', speechLanguageCoverage,
   ];
   try {
     const directory = path.join(output, 'speech-llm');
