@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[derive(Debug, Default, Args)]
 pub(crate) struct InstalledSpeechOptions {
     /// Select a currently observed speaker and verified eSpeak NG provider.
-    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine"])]
+    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine", "speech_language_coverage"])]
     pub(crate) selected_speech: bool,
     /// Remove a previously retained speech selection on reinstall.
     #[arg(long, conflicts_with = "selected_speech")]
@@ -23,13 +23,16 @@ pub(crate) struct InstalledSpeechOptions {
     pub(crate) speech_engine: Vec<PathBuf>,
     #[arg(long, requires = "selected_speech")]
     pub(crate) speech_voice: Option<String>,
+    /// Native LanguageCoverage bound to the exact selected provider source.
+    #[arg(long, requires = "selected_speech")]
+    pub(crate) speech_language_coverage: Option<PathBuf>,
 }
 
 /// Explicit local synthesis and speaker selection for a screen-free session.
 #[derive(Debug, Default, Args)]
 pub(crate) struct BirthSpeechOptions {
     /// Speak through one selected, currently discovered ALSA speaker.
-    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine"])]
+    #[arg(long, requires_all = ["speaker_card", "speaker_device", "speech_executable", "speech_data", "speech_engine", "speech_language_coverage"])]
     pub(crate) speak: bool,
     /// ALSA card ID from `conduit body speech-options`.
     #[arg(long, requires = "speak")]
@@ -49,5 +52,7 @@ pub(crate) struct BirthSpeechOptions {
     /// Voice within the selected installed data tree (default: en-us).
     #[arg(long, requires = "speak")]
     pub(crate) speech_voice: Option<String>,
+    /// Native LanguageCoverage bound to the exact selected provider source.
+    #[arg(long, requires = "speak")]
+    pub(crate) speech_language_coverage: Option<PathBuf>,
 }
-
