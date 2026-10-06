@@ -16,9 +16,12 @@ owner-selected speech, physical hardware, or the published journey.
 The browser joins first. After ConduitOS joins, its screen displays the
 owner Face read-only and asks the person to choose Native graphics in the
 owner's wardrobe. In the browser, inspect the newly admitted native route,
-Wear it, and Prefer it. Press F5 on the native screen to request a fresh Show;
+Wear it, Doff the browser Mask, and Prefer native graphics. Preference alone
+does not preempt a currently valid browser Show. Press F5 on the native screen to request a fresh Show;
 the owner acknowledges that Show before the native clock action. The proof
 drives these same user actions through the browser controls and QMP keyboard.
+After the native action, the person wears the browser Mask, doffs the native
+Mask, and prefers the browser again before refreshing its Face.
 The standby screenshot and owner wardrobe transitions are retained alongside
 the action screenshots. An early F5 can be refused; it never changes wardrobe
 policy by itself.

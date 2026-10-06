@@ -133,11 +133,19 @@ try {
     route.route_id === nativeDescription.route_id && route.currently_available);
   assert.ok(nativeRoute, 'native Mask must have a current sealed route before user selection');
   assert.notEqual(nativeWardrobeBefore.selected?.route_id, nativeRoute.route_id);
+  const initialBrowserDescription = nativeWardrobeBefore.route_descriptions.find(route =>
+    route.route_id === nativeWardrobeBefore.selected?.route_id);
+  assert.ok(initialBrowserDescription, 'initial browser Show needs its owner route name');
   await page.getByRole('button', { name: 'Wear native-graphical', exact: true }).click();
   const nativeWorn = await awaitWardrobeRevision(nativeWardrobeBefore.wardrobe_revision_decimal);
   assert.equal(nativeWorn.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
+  assert.equal(nativeWorn.selected?.route_id, nativeWardrobeBefore.selected.route_id);
+  await page.getByRole('button', { name: `Doff ${initialBrowserDescription.mask_name}`, exact: true }).click();
+  const browserDoffed = await awaitWardrobeRevision(nativeWorn.wardrobe_revision_decimal);
+  assert.equal(browserDoffed.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
+  assert.equal(browserDoffed.selected?.route_id, nativeRoute.route_id);
   await page.getByRole('button', { name: 'Prefer only native-graphical', exact: true }).click();
-  const nativePreferred = await awaitWardrobeRevision(nativeWorn.wardrobe_revision_decimal);
+  const nativePreferred = await awaitWardrobeRevision(browserDoffed.wardrobe_revision_decimal);
   assert.equal(nativePreferred.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
   assert.equal(nativePreferred.selected?.route_id, nativeRoute.route_id);
   await writeFile(path.join(native, 'resume-native-activation'), 'continue\n');
@@ -177,8 +185,17 @@ try {
   const currentBrowserRoute = beforeBrowserRestore.admitted_routes.find(route =>
     route.route_id === browserDescription?.route_id && route.currently_available);
   assert.ok(currentBrowserRoute, 'current browser route needs a sealed available witness');
+  const currentNativeDescription = beforeBrowserRestore.route_descriptions.find(route =>
+    route.mask_name === 'native-graphical');
+  assert.ok(currentNativeDescription, 'current native route needs its owner name');
+  await page.getByRole('button', { name: `Wear ${browserDescription.mask_name}`, exact: true }).click();
+  const browserWorn = await awaitWardrobeRevision(beforeBrowserRestore.wardrobe_revision_decimal);
+  assert.equal(browserWorn.selected?.route_id, beforeBrowserRestore.selected?.route_id);
+  await page.getByRole('button', { name: `Doff ${currentNativeDescription.mask_name}`, exact: true }).click();
+  const nativeDoffed = await awaitWardrobeRevision(browserWorn.wardrobe_revision_decimal);
+  assert.equal(nativeDoffed.selected?.route_id, currentBrowserRoute.route_id);
   await page.getByRole('button', { name: `Prefer only ${browserDescription.mask_name}`, exact: true }).click();
-  const browserRestored = await awaitWardrobeRevision(beforeBrowserRestore.wardrobe_revision_decimal);
+  const browserRestored = await awaitWardrobeRevision(nativeDoffed.wardrobe_revision_decimal);
   assert.equal(browserRestored.selected?.route_id, currentBrowserRoute.route_id);
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(prior => {
@@ -296,8 +313,10 @@ try {
   const wardrobeRecord = { schema: 'conduit.proof/owner-browser-wardrobe@1',
     source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
     browser_route_id: browserRoute.route_id,
-    native_selection: { standby, before: nativeWardrobeBefore, worn: nativeWorn,
-      preferred: nativePreferred, browser_restored: browserRestored },
+    native_selection: { standby, before: nativeWardrobeBefore, native_worn: nativeWorn,
+      browser_doffed: browserDoffed, native_preferred: nativePreferred,
+      before_browser_restore: beforeBrowserRestore, browser_worn: browserWorn,
+      native_doffed: nativeDoffed, browser_restored: browserRestored },
     before: wardrobeBefore, doffed: wardrobeDoffed, worn: wardrobeWorn,
     preferred: wardrobePreferred, recovered: wardrobeRecovered };
   const wardrobeBytes = Buffer.from(`${JSON.stringify(wardrobeRecord, null, 2)}\n`);
