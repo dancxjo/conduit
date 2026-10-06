@@ -1,20 +1,46 @@
-//! Finite authenticated local control for a selected browser-source speech Play.
+//! Finite authenticated local control for selected owner speech Plays.
 //! The request is EOF-delimited; the worker outlives this short round trip.
 use super::{
-    constant_time_equal, read_frame, write_frame, DurableHostRuntime, Request as OrdinaryRequest,
-    PROTOCOL,
+    constant_time_equal, read_frame, read_secret, write_frame, DurableHostRuntime,
+    Request as OrdinaryRequest, PROTOCOL,
 };
 use conduit_core::LinkBindingId;
 use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{io::Read, os::unix::net::UnixStream};
+use std::{
+    io::{Read, Write},
+    os::unix::net::UnixStream,
+    path::Path,
+};
 
 pub(crate) const MAGIC: &[u8; 8] = b"SDSPCH01";
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub(crate) enum SpeechRequest {
+    DirectAdmit {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    DirectSelect {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    DirectStart {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    DirectStatus {
+        protocol: u16,
+        token: Vec<u8>,
+        operation_id: String,
+    },
+    DirectStop {
+        protocol: u16,
+        token: Vec<u8>,
+        operation_id: String,
+    },
     Start {
         protocol: u16,
         token: Vec<u8>,
@@ -38,6 +64,7 @@ pub(crate) enum SpeechRequest {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub(crate) enum SpeechReply {
+    DirectRoute { protocol: u16, report: Box<Value> },
     Started { protocol: u16, operation_id: String },
     Status { protocol: u16, status: Box<Value> },
     StopRequested { protocol: u16, operation_id: String },
@@ -53,6 +80,36 @@ pub(super) fn ordinary_request_allowed(request: &OrdinaryRequest) -> bool {
             | OrdinaryRequest::BodyBrowserCancel { .. }
             | OrdinaryRequest::BodyBrowserAbort { .. }
     )
+}
+
+/// One authenticated short control exchange, shared by browser speech and
+/// the owner-selected direct Mask. A lost reply remains an unknown outcome.
+pub(super) fn call(
+    state_dir: &Path,
+    request: impl FnOnce(Vec<u8>) -> SpeechRequest,
+) -> Result<SpeechReply, String> {
+    let mut secret = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to selected speech owner: {error}"))?;
+    stream.write_all(MAGIC).map_err(|error| error.to_string())?;
+    let mut request = request(secret.to_vec());
+    secret.fill(0);
+    let sent = write_frame(&mut stream, &request);
+    match &mut request {
+        SpeechRequest::Start { token, .. }
+        | SpeechRequest::Status { token, .. }
+        | SpeechRequest::Stop { token, .. }
+        | SpeechRequest::DirectAdmit { token, .. }
+        | SpeechRequest::DirectSelect { token, .. }
+        | SpeechRequest::DirectStart { token, .. }
+        | SpeechRequest::DirectStatus { token, .. }
+        | SpeechRequest::DirectStop { token, .. } => token.fill(0),
+    }
+    sent?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| error.to_string())?;
+    read_frame(&mut stream)
 }
 
 /// A broken or malformed speech client cannot terminate the installed owner.
@@ -73,7 +130,16 @@ pub(super) fn serve(
         }
         let mut request: SpeechRequest = read_frame(stream)?;
         let (protocol, token) = match &mut request {
-            SpeechRequest::Start {
+            SpeechRequest::DirectAdmit { protocol, token }
+            | SpeechRequest::DirectSelect { protocol, token }
+            | SpeechRequest::DirectStart { protocol, token }
+            | SpeechRequest::DirectStatus {
+                protocol, token, ..
+            }
+            | SpeechRequest::DirectStop {
+                protocol, token, ..
+            }
+            | SpeechRequest::Start {
                 protocol, token, ..
             }
             | SpeechRequest::Status {
@@ -92,6 +158,42 @@ pub(super) fn serve(
             return Err("selected-speech-protocol".into());
         }
         match request {
+            SpeechRequest::DirectAdmit { .. } => {
+                runtime
+                    .admit_direct_spoken()
+                    .map(|report| SpeechReply::DirectRoute {
+                        protocol: PROTOCOL,
+                        report: Box::new(report),
+                    })
+            }
+            SpeechRequest::DirectSelect { .. } => {
+                runtime
+                    .select_direct_spoken()
+                    .map(|report| SpeechReply::DirectRoute {
+                        protocol: PROTOCOL,
+                        report: Box::new(report),
+                    })
+            }
+            SpeechRequest::DirectStart { .. } => {
+                runtime
+                    .start_direct_spoken()
+                    .map(|operation_id| SpeechReply::Started {
+                        protocol: PROTOCOL,
+                        operation_id,
+                    })
+            }
+            SpeechRequest::DirectStatus { operation_id, .. } => runtime
+                .direct_spoken_status(&operation_id)
+                .map(|status| SpeechReply::Status {
+                    protocol: PROTOCOL,
+                    status: Box::new(status),
+                }),
+            SpeechRequest::DirectStop { operation_id, .. } => runtime
+                .stop_direct_spoken(&operation_id)
+                .map(|()| SpeechReply::StopRequested {
+                    protocol: PROTOCOL,
+                    operation_id,
+                }),
             SpeechRequest::Start {
                 window_id,
                 binding,

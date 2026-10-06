@@ -348,6 +348,13 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Produce an exact spoken Mask Show from the installed owner's current Face.
+    SpokenMask {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[command(subcommand)]
+        command: SpokenMaskCommand,
+    },
     /// Enter the birth encounter for a Host that does not yet belong to a Body.
     Birth {
         /// Use a terminal and nonvisual command input for the zero-Body Crèche.
@@ -506,6 +513,20 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_membership: bool,
     },
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum SpokenMaskCommand {
+    /// Admit the direct Face-to-artifact child in the current Body Plan.
+    Admit,
+    /// Wear and select that exact child before its Play.
+    Select,
+    /// Start one cancellable direct spoken Mask Play.
+    Start,
+    /// Inspect the exact operation's terminal or running state.
+    Status { operation_id: String },
+    /// Request cancellation of the exact running operation.
+    Stop { operation_id: String },
 }
 
 /// Explicit local synthesis and speaker selection for a screen-free session.

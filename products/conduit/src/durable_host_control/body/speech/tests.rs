@@ -296,6 +296,8 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
         selected_speech_equipment: None,
         speech_worker: None,
         speech_terminal: None,
+        direct_spoken_worker: None,
+        direct_spoken_terminal: None,
     };
     assert!(runtime
         .start_browser_speech(

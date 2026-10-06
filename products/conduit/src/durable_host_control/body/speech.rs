@@ -65,7 +65,7 @@ impl DurableHostRuntime {
         show: MaskShow,
     ) -> Result<String, String> {
         self.progress_browser_speech()?;
-        if self.speech_worker.is_some() {
+        if self.speech_worker.is_some() || self.direct_spoken_worker.is_some() {
             return Err("selected speech is already running".into());
         }
         #[cfg(unix)]

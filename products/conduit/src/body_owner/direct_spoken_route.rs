@@ -9,12 +9,113 @@ use super::{
     presentation_wardrobe_runtime::wardrobe_error, Owner,
 };
 use conduit_core::{port_id, ConnectionTrack, SignId};
-use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow, Presentation, PresentationRole};
+use conduit_presentation::{
+    LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobeAction, Presentation, PresentationRole,
+};
 use conduit_std_host::{
     direct_spoken_mask_runtime::DirectSpokenMaskPreparation, ExternalForeInput,
 };
 
 impl Owner {
+    /// Explicitly wear and select the direct child. A current different Show
+    /// is released through wardrobe actions; its worn policy is restored after
+    /// the direct route becomes selected. All revisions are checked in this
+    /// one owner control turn.
+    pub(crate) fn select_direct_spoken_route(&mut self) -> Result<LocalOwnerMaskRouteSeal, String> {
+        let seal = self.admit_direct_spoken_route()?;
+        let face = self.local_face_snapshot()?;
+        let terminal = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            terminal,
+            self.pending_native_mask.as_ref(),
+            Some(&seal),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        let wardrobe = self
+            .presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?;
+        let target = seal.planned_mask.mask.plot_identity.clone();
+        let previous = wardrobe
+            .control()
+            .selected
+            .as_ref()
+            .map(|route| route.mask_plot.clone());
+        let mut preference = wardrobe
+            .control()
+            .scoped_wardrobe
+            .wardrobe
+            .preference
+            .clone();
+        if !wardrobe
+            .control()
+            .scoped_wardrobe
+            .wardrobe
+            .worn
+            .contains(&target)
+        {
+            let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
+            wardrobe
+                .apply(
+                    &self.session,
+                    &face,
+                    &current,
+                    revision,
+                    MaskWardrobeAction::Wear(target.clone()),
+                )
+                .map_err(wardrobe_error)?;
+        }
+        preference.retain(|plot| plot != &target);
+        preference.insert(0, target.clone());
+        let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
+        wardrobe
+            .apply(
+                &self.session,
+                &face,
+                &current,
+                revision,
+                MaskWardrobeAction::Prefer(preference),
+            )
+            .map_err(wardrobe_error)?;
+        if let Some(previous) = previous.filter(|plot| plot != &target) {
+            let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
+            wardrobe
+                .apply(
+                    &self.session,
+                    &face,
+                    &current,
+                    revision,
+                    MaskWardrobeAction::Doff(previous.clone()),
+                )
+                .map_err(wardrobe_error)?;
+            let revision = wardrobe.control().scoped_wardrobe.wardrobe.revision;
+            wardrobe
+                .apply(
+                    &self.session,
+                    &face,
+                    &current,
+                    revision,
+                    MaskWardrobeAction::Wear(previous),
+                )
+                .map_err(wardrobe_error)?;
+        }
+        if wardrobe.control().selected.as_ref().is_none_or(|selected| {
+            selected.route_id != format!("route/{}", seal.route_plan_id.as_str())
+        }) {
+            return Err("direct spoken Mask could not become the selected owner route".into());
+        }
+        Ok(seal)
+    }
+
     /// Admit the provider-held direct child before any Start. The owner Plan
     /// records this exact Mask Plan, current Boot offer, and selected grants.
     pub(crate) fn admit_direct_spoken_route(&mut self) -> Result<LocalOwnerMaskRouteSeal, String> {
