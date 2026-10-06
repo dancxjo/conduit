@@ -23,9 +23,9 @@ pub use entry::{
     expand_canonical_plot_for_authoring_with_backs, expand_canonical_plot_with_backs,
 };
 use graph::*;
-use startup::{bind_child_environment, canonical_initial_bytes, substitute};
 use identity::{expanded_identity, provenance_digest};
 use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};
+use startup::{bind_child_environment, canonical_initial_bytes, substitute};
 pub use structured_selector::structured_selector_definition;
 
 #[derive(Debug, Clone)]
