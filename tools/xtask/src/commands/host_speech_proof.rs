@@ -7,8 +7,11 @@ use conduit_plot::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_host::{
-    hosted_speech_synthesis::EspeakDiscovery, hosted_wav_artifact::WavArtifactSelection, StdHost,
-    StdHostComposition, StdHostConfig, TimerAdapter,
+    hosted_speech_synthesis::{
+        language_request_literal, read_language_coverage, read_language_request, EspeakDiscovery,
+    },
+    hosted_wav_artifact::WavArtifactSelection,
+    StdHost, StdHostComposition, StdHostConfig, TimerAdapter,
 };
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, io::Write, path::PathBuf, time::Duration};
@@ -23,6 +26,12 @@ pub(super) struct SpeechProofRequest {
     pub engine: PathBuf,
     #[arg(long, default_value = "en-us")]
     pub voice: String,
+    /// Artifact-bound native LanguageCoverage prepared for this provider.
+    #[arg(long)]
+    pub language_coverage: PathBuf,
+    /// Exact native LanguageRequest for the authored synthesis operation.
+    #[arg(long)]
+    pub language_request: PathBuf,
     #[arg(long, default_value = "Hello.")]
     pub text: String,
     /// Use committed segments and incremental PCM with a 30-second work allowance.
@@ -72,6 +81,10 @@ pub(super) fn prove(
         &request.voice,
         &[request.engine],
     )?;
+    let discovery =
+        discovery.declare_language_coverage(read_language_coverage(&request.language_coverage)?)?;
+    let language_request =
+        language_request_literal(&read_language_request(&request.language_request)?);
     let provider_digest = discovery.provider_sha256.clone();
     // Use the ordinary Host's fresh Boot generator, with only the minimal host
     // composition and explicitly attached speech/artifact implementations.
@@ -90,9 +103,9 @@ pub(super) fn prove(
         Duration::from_secs(if request.stream { 30 } else { 10 }),
     )?;
     let source = if request.stream {
-        "plot real_speech (\n >> text: Text...| <= 1024B\n) {\n commit: speech/commit-generated-text\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n text >> commit.generated\n commit.segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n".to_owned()
+        format!("plot real_speech (\n >> text: Text...| <= 1024B\n) {{\n commit: speech/commit-generated-text\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n text >> commit.generated\n commit.segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n")
     } else {
-        format!("plot real_speech {{\n voice: speech/synthesize(maximum-output-bytes = 131072)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: audio/play\n {} >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n", serde_json::to_string(&request.text)?)
+        format!("plot real_speech {{\n voice: speech/synthesize(language-request = {language_request}, maximum-output-bytes = 131072)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: audio/play\n {} >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n", serde_json::to_string(&request.text)?)
     };
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();

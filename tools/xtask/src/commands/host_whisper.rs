@@ -3,7 +3,9 @@ use conduit_audio::{
     encode_pcm_clip, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation,
     MAXIMUM_PCM_CLIP_FRAMES, MAXIMUM_PCM_FRAMES_PER_BLOCK,
 };
-use conduit_std_host::hosted_speech_recognition::{WhisperDiscovery, WhisperLimits};
+use conduit_std_host::hosted_speech_recognition::{
+    read_language_coverage, read_language_request, WhisperDiscovery, WhisperLimits,
+};
 use conduit_std_host::{StdHostComposition, StdHostConfig};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -16,6 +18,8 @@ const MAXIMUM_RAW_PCM_BYTES: usize = MAXIMUM_PCM_CLIP_FRAMES as usize * BYTES_PE
 pub(super) struct WhisperProofRequest {
     pub executable: PathBuf,
     pub model: PathBuf,
+    pub language_coverage: PathBuf,
+    pub language_request: PathBuf,
     pub pcm_s16le_16000_mono: PathBuf,
     pub threads: u8,
     pub timeout_seconds: u64,
@@ -87,6 +91,9 @@ pub(super) fn prove(
     let raw = read_bounded_pcm(&request.pcm_s16le_16000_mono)?;
     let (clip, blocks, frames) = encode_recorded_pcm(&raw)?;
     let discovery = WhisperDiscovery::inspect(&request.executable, &request.model)?;
+    let discovery =
+        discovery.declare_language_coverage(read_language_coverage(&request.language_coverage)?)?;
+    let language_request = read_language_request(&request.language_request)?;
     let executable_sha256 = discovery.executable_sha256.clone();
     let model_sha256 = discovery.model_sha256.clone();
     let model_bytes = discovery.model_bytes;
@@ -106,6 +113,7 @@ pub(super) fn prove(
         StdHostComposition::reference(),
         adapter,
         clip,
+        language_request,
     )?;
     if receipt.audio_sha256 != clip_sha256 {
         return Err("Whisper result and provider receipt disagree on clip identity".into());
