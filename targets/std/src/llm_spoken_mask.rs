@@ -45,7 +45,15 @@ impl crate::StdHost {
         conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
         conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
         let plot_name = "owner_llm_spoken_mask";
-        let source = crate::spoken_mask_journey::graph::source(plot_name, 1_323_000, true);
+        let language = conduit_language::LanguageRequest::new(
+            conduit_language::LanguageId::new("language/english".into())
+                .map_err(|error| format!("owner LLM spoken Language: {error:?}"))?,
+            None,
+            conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+        )
+        .map_err(|error| format!("owner LLM spoken Language: {error:?}"))?;
+        let source =
+            crate::spoken_mask_journey::graph::source(plot_name, 1_323_000, true, &language);
         let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
             .map_err(|error| format!("check owner LLM spoken Mask: {error:?}"))?;
         let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)

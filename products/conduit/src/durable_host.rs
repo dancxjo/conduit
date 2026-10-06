@@ -286,7 +286,7 @@ fn install_configured(
     let existing = if install_path.exists() {
         Some(read_installation_for_equipment_change(
             &install_path,
-            &change,
+            &speech_change,
         )?)
     } else {
         None
