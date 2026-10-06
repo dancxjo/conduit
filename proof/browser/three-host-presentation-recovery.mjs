@@ -16,16 +16,30 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
     oldWardrobe.route_descriptions.find(route => route.host_id === browserCredential.host_id)?.route_id);
   assert.equal(oldFace.show_id, oldWardrobe.show_id);
   await page.getByRole('button', { name: 'Leave this window' }).click();
-  await page.waitForFunction(() => {
-    const participation = globalThis.__conduitOwnerParticipation;
-    return participation?.presence() !== 'available' && participation?.face() === null
-      && [...document.querySelectorAll('[data-owner-action] button')]
-        .every(button => button.disabled)
-      && document.querySelector('[data-owner-wardrobe-evidence]')?.textContent
-        .includes('historical')
-      && document.querySelector('[data-owner-action-result]')?.textContent
-        .includes('no current action return');
-  }, null, { timeout: 12_000 });
+  try {
+    await page.waitForFunction(() => {
+      const participation = globalThis.__conduitOwnerParticipation;
+      return participation?.presence() !== 'available' && participation?.face() === null
+        && [...document.querySelectorAll('[data-owner-action] button')]
+          .every(button => button.disabled)
+        && document.querySelector('[data-owner-wardrobe-evidence]')?.textContent
+          .includes('historical')
+        && document.querySelector('[data-owner-action-result]')?.textContent
+          .includes('no current action return');
+    }, null, { timeout: 12_000 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      presence: globalThis.__conduitOwnerParticipation?.presence(),
+      faceCurrent: globalThis.__conduitOwnerParticipation?.face() !== null,
+      actionButtons: [...document.querySelectorAll('[data-owner-action] button')]
+        .map(button => ({ disabled: button.disabled, text: button.textContent })),
+      wardrobeHistorical: document.querySelector('[data-owner-wardrobe-evidence]')?.textContent
+        .includes('historical'),
+      actionResult: document.querySelector('[data-owner-action-result]')?.textContent,
+      status: document.querySelector('[data-owner-status]')?.textContent,
+    }));
+    throw new Error(`browser loss did not settle: ${JSON.stringify(state)}`, { cause: error });
+  }
   const lost = await page.evaluate(() => ({
     presence: globalThis.__conduitOwnerParticipation.presence(),
     face: globalThis.__conduitOwnerParticipation.face(),
