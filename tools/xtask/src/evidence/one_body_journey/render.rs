@@ -135,9 +135,10 @@ fn document(
                     let transcript = item.transcript.ok_or("validated audio lost transcript")?;
                     let transcript_href = safe_asset_path(&transcript.path)?;
                     let mode = item.mode.ok_or("validated audio lost speech mode")?;
+                    let delivery = item.delivery_source.ok_or("validated audio lost delivery source")?;
                     let label = if mode == "direct" { "Direct mechanical reading" } else { "Finite model-assisted wording" };
-                    media.push_str(&format!("<figure class=\"audio-card\"><figcaption><strong>{}</strong>{}</figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download produced speech</a></audio><p><strong>Words in produced audio ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
-                        label, escape(item.alt), escape(&href), escape(&href), escape(mode),
+                    media.push_str(&format!("<figure class=\"audio-card\"><figcaption><strong>{}</strong>{}<p>Captured from the {}</p></figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download this output recording</a></audio><p><strong>Words in recorded audio ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
+                        label, escape(item.alt), escape(delivery), escape(&href), escape(&href), escape(mode),
                         escape(item.transcript_text.as_deref().unwrap_or("")), escape(&transcript_href)));
                     if let Some(validation) = item.validation {
                         evidence_links.push_str(&format!("<li><a href=\"{}\">Original model output and validation receipt</a></li>",
