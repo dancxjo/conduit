@@ -135,8 +135,9 @@ try {
   const preBirthBytes = Buffer.from(`${JSON.stringify(preBirth, null, 2)}\n`);
   await writeFile(path.join(output, 'zero-body-before.json'), preBirthBytes, { mode: 0o600 });
   const birthCommands = [
-    // Selected speech already opens with Help and a complete Face reading.
-    ...(speakerCard ? [] : ['read all']),
+    // Speech opens with Help and focused orientation. Explicitly request the
+    // full zero-Body Face so this proof still exercises below-viewport reading.
+    'read all',
     'next main',
     'focus creche.name', `edit value ${bodyName}`, 'activate',
     'focus creche.plot.0', 'edit value false', 'activate',

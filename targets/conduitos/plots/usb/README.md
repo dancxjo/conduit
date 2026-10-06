@@ -379,6 +379,32 @@ Run it through `cargo xtask make conduitos usb-plots-check`. These tests establi
 neither an installed class offer nor interrupt endpoint execution, physical
 compatibility, or five-architecture USB emulator acceptance.
 
+## HID boot selection (development)
+
+`hid-boot-control.conduit` owns the HID boot-selection exchange over
+`machine/usb/control`. It constructs an interface-scoped, no-data SET_PROTOCOL
+request and requires an empty, non-short completion before reporting ready.
+Malformed, stalled, provider-lost and unsupported results remain distinct.
+Interface numbers are wire data; the selected attachment and transfer authority
+come from the containing Plan and native owner.
+
+The existing control proof kernel executes this Source with explicit fixture
+grants. `cargo xtask make conduitos usb-plots-check` covers all 256 interface
+numbers, inconsistent completions, preserved failures, and bounded kernel
+execution without hidden retries or Play allocations.
+
+`cargo xtask make conduitos usb-proof --endpoint-read` runs this checked
+exchange against the actual emulated keyboard before the raw endpoint workload.
+Its separate receipt correlates Source, checked plot, Plan, Play, attachment and
+interface identities, the independently expected transaction digest, normal
+close and quiescent release. The native owner has possession for one operation;
+endpoint reads require their own subsequent admission. The retained endpoint
+workload still crosses two complete ring cycles and acknowledges device stop.
+
+Ordinary HID setup still uses the retained Rust path. The dedicated emulator
+appliance establishes neither physical compatibility nor ordinary class offers
+or class acceptance on the five product architectures.
+
 ## Protocol references
 
 - [USB HID 1.11](https://www.usb.org/sites/default/files/documents/hid1_11.pdf),
