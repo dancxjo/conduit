@@ -156,9 +156,12 @@ Ollama service, calls the existing `one-body-spoken-chapter --mode llm-assisted`
 while the QMP guest and Chromium remain live, and checks the original provider
 output, accepted finite wording, Face/Show, source/run/Body/Host/Boot identities,
 and real WAV. It then closes only that forwarding route and retains the next
-request's connection refusal and absence of audio. This demonstrates loss of
-the **configured model route**, not shutdown of Ollama, Host availability
-withdrawal, wardrobe replacement, speaker playback, or human hearing. The
-private walkthrough has a separate chapter with the produced explanation and
-expandable original output, validation, and route-refusal observations. No
-fixture or failed model request can stand in for a successful explanation.
+request's connection refusal and absence of audio. It then opens a fresh
+forwarding route to the same service and requires another live model Play,
+validated spoken Show, and WAV from the unchanged owner Face. This demonstrates
+loss and restoration of the **configured model route**, not shutdown of Ollama,
+Host availability withdrawal, owner-sealed wardrobe replacement, speaker
+playback, or human hearing. The private walkthrough has a separate chapter
+with both produced explanations and expandable original output, validation,
+refusal, and restoration receipts. No fixture or failed model request can stand
+in for a successful explanation.
