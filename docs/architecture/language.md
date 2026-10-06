@@ -35,13 +35,18 @@ Unrepresented distinctions remain explicit through the projection boundary.
 
 The current four-token/four-annotation reference is a bounded deterministic
 specimen. Its tiny English annotation rules do not become the definition of
-Language. A structurally different specimen may use the same types without
-introducing another subsystem. Neither specimen establishes production parser
+Language. A supplied Japanese specimen uses the same source, token, feature
+and Universal Dependencies carriers for non-Latin scalar spans, a particle,
+and different dependency ordering, without another subsystem. Neither specimen establishes production parser
 accuracy or general multilingual support.
 
-The #4907 streaming spine must consume these identities and exact source-text
-revisions rather than define parser-local language/text cousins. Analysis
-revision and source-text revision remain distinct; the shared bounded revision
+The bounded #4907 dependency revision consumer takes canonical `LanguageText`.
+`TextSpan` and `LinguisticTokenIdentity` retain its exact `LanguageTextId` and
+`LanguageTextRevisionId`; token and annotation bundles carry the immutable
+material. Source identity, source revision, scalar range, surface mismatch, and
+Language mismatch remain distinct refusals. A byte-based span converts through
+the actual UTF-8 material and refuses a split scalar. Analysis revision and
+source-text revision remain distinct; the shared bounded revision
 lifecycle does not make ASR confidence into coverage or commitment into effect
 authority.
 
@@ -98,9 +103,13 @@ compares it with the current Host/Boot offer. Planner inspection and Patchbay
 including coverage revision and variety sensitivity; ordinary refusal text
 retains requested identities without dumping the full candidate table.
 
-The shipped four-token specimen now authors its Language request and advertises
+The shipped four-token specimen authors native `LanguageText` material. Its
+exact Language identity supplies the language-sufficient realization request;
+an annotation request is checked against incoming material before analysis.
+The canonical material carrier admits 4096 UTF-8 bytes; this bounded four-token
+reference retains its separate 1024-byte preparation refusal. It advertises
 limited English fixture coverage on std and browser hosts. This proves exact
 selection for that specimen, not grammar accuracy or broad English support.
-Speech-facing realization coverage and the #4907 source-material seam remain
-separate pending work; a waveform renderer must not acquire a language grammar
+Hosted Speech realization coverage and full source-material proof remain
+open work; a waveform renderer must not acquire a language grammar
 merely because a selected text frontend needs one.

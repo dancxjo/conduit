@@ -8,13 +8,15 @@ type TextSpan = {
     basis: LinguisticOffsetBasis
     end: U64
     start: U64
-    text_identity: Text <= 1024B not in [""]
+    text_identity: LanguageTextId
+    text_revision: LanguageTextRevisionId
     where .start <= .end
 }
 
 type LinguisticTokenIdentity = {
     ordinal: U64
-    text_identity: Text <= 1024B not in [""]
+    text_identity: LanguageTextId
+    text_revision: LanguageTextRevisionId
 }
 
 type LinguisticOptionalText =
@@ -65,6 +67,7 @@ type LinguisticDerivationProvenance =
 type LinguisticTokensFour = {
     provenance: LinguisticDerivationProvenance
     segments: collection LinguisticSegment = 1
+    source: LanguageText
     tokens: collection LinguisticToken = 4
 }
 
@@ -88,6 +91,7 @@ type AnnotationBundleFour = {
     annotations: collection LinguisticAnnotation = 4
     dependencies: collection LinguisticDependencyEdge = 3
     provenance: LinguisticDerivationProvenance
+    source: LanguageText
 }
 
 # UD v2 universal bases; distinct from the four-token fixture's relation family.
@@ -156,5 +160,6 @@ type LanguageDependencyArc = {
     where .governor is root ? .relation.base is root : !(.relation.base is root)
     where .governor is token ? .governor.token.revision == .dependent.revision : true
     where .governor is token ? .governor.token.token.text_identity == .dependent.token.text_identity : true
+    where .governor is token ? .governor.token.token.text_revision == .dependent.token.text_revision : true
     where .governor is token ? .governor.token.token.ordinal != .dependent.token.ordinal : true
 }

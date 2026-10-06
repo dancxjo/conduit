@@ -48,7 +48,12 @@ impl ClaimPolicy<Syntax> for PlausibleParses {
 fn token(ordinal: u64) -> LanguageAnalysisTokenRef {
     LanguageAnalysisTokenRef::new(
         LanguageAnalysisRevisionId::new("analysis/7".into()).unwrap(),
-        LinguisticTokenIdentity::new(ordinal, "text/revision/3".into()).unwrap(),
+        LinguisticTokenIdentity::new(
+            ordinal,
+            LanguageTextId::new("text/revision/3".into()).unwrap(),
+            LanguageTextRevisionId::new("source/3".into()).unwrap(),
+        )
+        .unwrap(),
     )
     .unwrap()
 }

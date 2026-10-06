@@ -22,6 +22,11 @@ pub enum LinguisticRefusal {
     TextTooLarge,
     WrongTokenCount { expected: u16, actual: usize },
     MalformedInfo,
+    SourceIdentity,
+    SourceRevision,
+    SourceRange,
+    SourceSurface,
+    SourceLanguage,
     Structured(StructuredInfoRefusal),
     NativeBinding(conduit_plot::rust_binding::NativeBindingRefusal),
 }

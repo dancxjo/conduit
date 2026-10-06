@@ -5,12 +5,12 @@ use super::factory::{
 };
 use super::BrowserBack;
 use conduit_core::{
-    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
-    PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
+    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@1";
 const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@1";
@@ -139,8 +139,11 @@ fn prepare_tokenize(
     values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
     validate_placement(placement, &tokenize_offer())?;
-    let value = conduit_language::tokenize_four("tour/gear-lab", configuration_text(placement)?)
-        .map_err(|error| format!("tokenize four: {error:?}"))?;
+    let value = conduit_language::tokenize_four(
+        &conduit_language::configured_language_material(&placement.configuration)
+            .map_err(debug_error)?,
+    )
+    .map_err(|error| format!("tokenize four: {error:?}"))?;
     let canonical = value
         .canonical_bytes()
         .map_err(|error| format!("encode linguistic tokens: {error:?}"))?;
@@ -170,9 +173,14 @@ fn prepare_presentation(
     ))
 }
 
-fn perform_annotate(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+fn perform_annotate(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     let tokens = StructuredInfoValue::from_canonical_bytes(input)
         .map_err(|error| format!("decode linguistic tokens: {error:?}"))?;
+    let native = conduit_language::LinguisticTokensFour::from_structured(tokens.clone())
+        .map_err(debug_error)?;
+    let request = conduit_language::configured_language_request(&placement.configuration)
+        .map_err(debug_error)?;
+    conduit_language::validate_linguistic_request(&request, &native).map_err(debug_error)?;
     let annotated = conduit_language::annotate_with_unicode_library(&tokens)
         .map_err(|error| format!("annotate four: {error:?}"))?;
     Ok(BrowserHostResult {
@@ -198,17 +206,6 @@ fn perform_presentation(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResu
             canonical_value: input.to_vec(),
         }),
     })
-}
-
-fn configuration_text(placement: &PlannedGear) -> Result<&str, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            ("text", ConfigurationValue::Text(value)) => Some(value.as_str()),
-            _ => None,
-        })
-        .ok_or_else(|| "language/tokenize-four is missing its bounded text".into())
 }
 
 fn debug_error(error: impl core::fmt::Debug) -> String {
