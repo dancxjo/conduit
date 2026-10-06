@@ -198,6 +198,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
     let mut audio_modes = BTreeSet::new();
     let mut chapters = Vec::with_capacity(CHAPTERS.len());
     for (index, chapter) in journey.chapters.iter().enumerate() {
+        let mut chapter_sources = BTreeSet::new();
         if chapter.id != CHAPTERS[index]
             || chapter.media.is_empty()
             || chapter.media.len() > 12
@@ -310,6 +311,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 }
             };
             all_sources.insert(source.to_owned());
+            chapter_sources.insert(source.to_owned());
             let mut transcript = None;
             let mut transcript_text = None;
             let mut validation = None;
@@ -414,6 +416,24 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 }),
                 validation,
             });
+        }
+        let required_sources: &[&str] = match chapter.id.as_str() {
+            "birth" | "lull" => &["terminal"],
+            "join" => &["chromium", "qmp"],
+            "start" => &["chromium"],
+            "see" => &["qmp", "terminal"],
+            "hear" => &["runtime-speech"],
+            "loss" | "return" => &[],
+            _ => unreachable!("chapter order was validated"),
+        };
+        if required_sources
+            .iter()
+            .any(|source| !chapter_sources.contains(*source))
+        {
+            return Err(format!(
+                "chapter '{}' lacks its required user-visible capture source",
+                chapter.id
+            ));
         }
         chapters.push(ValidatedChapter {
             story: chapter,

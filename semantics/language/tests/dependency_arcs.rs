@@ -3,7 +3,12 @@ use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 fn token(text: &str, revision: &str, ordinal: u64) -> LanguageAnalysisTokenRef {
     LanguageAnalysisTokenRef::new(
         LanguageAnalysisRevisionId::new(revision.into()).unwrap(),
-        LinguisticTokenIdentity::new(ordinal, text.into()).unwrap(),
+        LinguisticTokenIdentity::new(
+            ordinal,
+            LanguageTextId::new(text.into()).unwrap(),
+            LanguageTextRevisionId::new("source/3".into()).unwrap(),
+        )
+        .unwrap(),
     )
     .unwrap()
 }
@@ -69,6 +74,29 @@ fn wrong_root_relation_self_source_and_revision_are_native_refusals() {
     assert!(LanguageAnalysisRevisionId::new("".into()).is_err());
     assert!(LanguageAnalysisRevisionId::new("x".repeat(65)).is_err());
 }
+#[test]
+fn equal_analysis_revisions_cannot_join_different_source_revisions() {
+    let dependent = token("source", "analysis/7", 1);
+    let head = LanguageAnalysisTokenRef::new(
+        dependent.revision().clone(),
+        LinguisticTokenIdentity::new(
+            0,
+            dependent.token().text_identity().clone(),
+            LanguageTextRevisionId::new("source/4".into()).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(
+        LanguageDependencyArc::new(
+            dependent,
+            token_head(head),
+            relation(LanguageUniversalDependencyRelation::nsubj()),
+        ),
+        Err(NativeBindingRefusal::ViolatedInvariant { .. })
+    ));
+}
+
 #[test]
 fn checked_plots_can_name_the_same_native_arc_contract() {
     let mut startup = conduit_plot::StartupCatalog::new();

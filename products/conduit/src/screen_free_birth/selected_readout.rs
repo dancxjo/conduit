@@ -18,20 +18,39 @@ pub(super) enum OutputPhase {
     Body,
 }
 
-fn verify_current_face(
+fn face_is_current(
     state_dir: &Path,
     face: &Presentation,
     advertisement: &HostAdvertisement,
     phase: OutputPhase,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let (current, host) = match phase {
         OutputPhase::Birth => durable_host_control::birth_face(state_dir)?,
         OutputPhase::Body => durable_host_control::local_face_snapshot(state_dir)?,
     };
-    if current != *face || host != *advertisement {
-        return Err("spoken Face or installed Host Boot changed before the next Play".into());
+    if host != *advertisement {
+        return Err("installed Host Boot changed during selected speech Play".into());
     }
-    Ok(())
+    Ok(current == *face)
+}
+
+fn stop_stale_reading(
+    reader: &mut SpokenFaceSession,
+    face: &Presentation,
+    show: &MaskShow,
+    sequence: &mut u64,
+    output: &mut impl Write,
+) -> Result<bool, String> {
+    *sequence = sequence.checked_add(1).ok_or("input sequence exhausted")?;
+    let stopped = reader
+        .command(face, show, ReaderCommand::Stop, *sequence)
+        .map_err(debug_error)?;
+    if let Some(terminal) = stopped.interrupted {
+        write_turn(&terminal, output)?;
+    }
+    writeln!(output, "Owner Face changed during speech. Stopped the stale reading; read all again for the current Face.")
+        .map_err(|error| error.to_string())?;
+    Ok(true)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -54,7 +73,12 @@ pub(super) fn emit_readout(
     };
     selected.verify_host(advertisement)?;
     loop {
-        verify_current_face(state_dir, face, advertisement, phase)?;
+        if !face_is_current(state_dir, face, advertisement, phase)? {
+            if matches!(phase, OutputPhase::Body) {
+                return stop_stale_reading(reader, face, show, sequence, output);
+            }
+            return Err("installed Birth Face changed before the next speech Play".into());
+        }
         let Some(batch) = reader.next_batch_with_limits(1, 64).map_err(debug_error)? else {
             return Ok(false);
         };
@@ -162,10 +186,14 @@ pub(super) fn emit_readout(
         if let Some(terminal) = &terminal {
             write_turn(terminal, output)?;
         }
-        verify_current_face(state_dir, face, advertisement, phase)
-            .map_err(|error| format!("spoken Face changed during selected Play: {error}"))?;
         if let Some(terminal) = terminal {
             return Ok(turn_interrupted(&terminal.outcome));
+        }
+        if !face_is_current(state_dir, face, advertisement, phase)? {
+            if matches!(phase, OutputPhase::Body) {
+                return stop_stale_reading(reader, face, show, sequence, output);
+            }
+            return Err("installed Birth Face changed during selected speech Play".into());
         }
     }
 }

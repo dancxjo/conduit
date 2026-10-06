@@ -36,7 +36,7 @@ mod tests {
     #[test]
     fn details_keep_french_request_and_current_english_candidate_refusal() {
         let source = r#"plot language-details {
-            tokens: language/tokenize-four(text = "Bonjour les amis.", language-request = { language: "language/french", variety: none(""), variety_policy: language_sufficient("") })
+            tokens: language/tokenize-four(material = { identity: "text/details", language: "language/french", revision: "source/1", text: "Bonjour les amis." })
         }"#;
         let mut startup = conduit_plot::StartupCatalog::new();
         let mut profile = conduit_plot::ProfileCatalog::new();

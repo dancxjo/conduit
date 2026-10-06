@@ -254,7 +254,7 @@ try {
       wavs,
     };
   }
-  let llmSpeech, modelRouteLoss;
+  let llmSpeech, modelRouteLoss, modelRouteRestoration;
   if (modelArgument) {
     const captured = await captureLlmChapter({
       xtask, owner, state, output, sourceCommit: installed.release_source_identity,
@@ -267,6 +267,7 @@ try {
     });
     llmSpeech = captured.speech;
     modelRouteLoss = captured.routeLoss;
+    modelRouteRestoration = captured.restoration;
   }
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
@@ -290,7 +291,7 @@ try {
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
     proof_class: llmSpeech
-      ? 'live-local-installed-owner-qmp-pinned-chromium-direct-and-llm-speech-route-loss'
+      ? 'live-local-installed-owner-qmp-pinned-chromium-direct-and-llm-speech-route-loss-restoration'
       : directSpeech
         ? 'live-local-installed-owner-qmp-pinned-chromium-direct-speech'
         : 'live-local-installed-owner-qmp-pinned-chromium',
@@ -335,7 +336,8 @@ try {
       sha256: digest(Buffer.from(terminal.stdout)),
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
-    ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss } : {}),
+    ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
+      model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,

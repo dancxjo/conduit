@@ -362,7 +362,15 @@ fn bounded_serial(path: &std::path::Path) -> Result<String, ConduitosError> {
 
 fn records(serial: &str, prefix: &str) -> Result<Vec<Value>, ConduitosError> {
     let mut result = Vec::new();
-    for line in serial.lines().filter_map(|line| line.strip_prefix(prefix)) {
+    // QEMU appends this file while the proof polls it. The final unterminated
+    // line is still in flight; only a newline makes a serial record complete.
+    let complete = serial
+        .rsplit_once('\n')
+        .map_or("", |(complete, _)| complete);
+    for line in complete
+        .lines()
+        .filter_map(|line| line.strip_prefix(prefix))
+    {
         if line.len() > 1024 || result.len() == 8 {
             return Err(refusal("native-owner-record-pressure"));
         }
@@ -408,7 +416,12 @@ mod tests {
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0]["status"], "accepted");
         assert!(records(&line.repeat(9), OWNER_ACTION).is_err());
-        assert!(records(&format!("{OWNER_ACTION}not-json"), OWNER_ACTION).is_err());
+        assert!(records(&format!("{OWNER_ACTION}not-json\n"), OWNER_ACTION).is_err());
+        assert!(records(
+            &format!("{line}{OWNER_ACTION}{{\"status\":\"pend"),
+            OWNER_ACTION
+        )
+        .is_ok_and(|records| records.len() == 1));
     }
 
     #[test]
