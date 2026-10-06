@@ -364,6 +364,59 @@ fn run(fixture: &Fixture) -> Result<(), String> {
     })
 }
 
+fn rewrite_json_output(fixture: &Fixture, output_id: &str, value: &Value) {
+    let path = fixture.root.join(format!("{output_id}.json"));
+    let bytes = serde_json::to_vec(value).unwrap();
+    fs::write(path, &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let declared = manifest["outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["id"] == output_id)
+        .unwrap();
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+}
+
+#[test]
+fn captures_can_follow_successive_action_face_revisions() {
+    let fixture = fixture(false, false, false, false);
+    let receipt_path = fixture.root.join("receipt-join.json");
+    let mut receipt: Value = serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
+    receipt["action_ids"] = json!(["action-join-first", "action-join"]);
+    receipt["action_face_revisions"] = json!({
+        "action-join-first": "face-join-first",
+        "action-join": "face-join"
+    });
+    rewrite_json_output(&fixture, "receipt-join", &receipt);
+
+    let capture_path = fixture.root.join("capture-join-0.json");
+    let mut capture: Value = serde_json::from_slice(&fs::read(capture_path).unwrap()).unwrap();
+    capture["action_id"] = json!("action-join-first");
+    capture["face_revision"] = json!("face-join-first");
+    rewrite_json_output(&fixture, "capture-join-0", &capture);
+    run(&fixture).unwrap();
+}
+
+#[test]
+fn rejects_capture_at_the_wrong_action_face_revision() {
+    let fixture = fixture(false, false, false, false);
+    let receipt_path = fixture.root.join("receipt-join.json");
+    let mut receipt: Value = serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
+    receipt["action_face_revisions"] = json!({"action-join": "face-join"});
+    rewrite_json_output(&fixture, "receipt-join", &receipt);
+    let capture_path = fixture.root.join("capture-join-0.json");
+    let mut capture: Value = serde_json::from_slice(&fs::read(capture_path).unwrap()).unwrap();
+    capture["face_revision"] = json!("stale-face");
+    rewrite_json_output(&fixture, "capture-join-0", &capture);
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("does not match its run, action, Face, or digest"));
+}
+
 #[test]
 fn renders_only_complete_correlated_synthetic_fixture() {
     let fixture = fixture(false, false, false, false);

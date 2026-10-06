@@ -71,6 +71,8 @@ struct ChapterReceipt {
     body_id: String,
     chapter_id: String,
     action_ids: Vec<String>,
+    #[serde(default)]
+    action_face_revisions: BTreeMap<String, String>,
     resulting_face_revision: String,
     outcome: String,
 }
@@ -239,6 +241,19 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
             || receipt.action_ids.len() > 24
             || receipt.action_ids.iter().any(|id| !identity(id))
             || receipt.action_ids.iter().collect::<BTreeSet<_>>().len() != receipt.action_ids.len()
+            || (!receipt.action_face_revisions.is_empty()
+                && (receipt.action_face_revisions.len() != receipt.action_ids.len()
+                    || receipt.action_ids.iter().any(|id| {
+                        receipt
+                            .action_face_revisions
+                            .get(id)
+                            .is_none_or(|revision| !identity(revision))
+                    })
+                    || receipt
+                        .action_ids
+                        .last()
+                        .and_then(|id| receipt.action_face_revisions.get(id))
+                        != Some(&receipt.resulting_face_revision)))
         {
             return Err(format!(
                 "chapter '{}' has no correlated completed action receipt",
@@ -273,7 +288,11 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 || capture.body_id != journey.body_id
                 || capture.chapter_id != chapter.id
                 || !receipt.action_ids.contains(&capture.action_id)
-                || capture.face_revision != receipt.resulting_face_revision
+                || &capture.face_revision
+                    != receipt
+                        .action_face_revisions
+                        .get(&capture.action_id)
+                        .unwrap_or(&receipt.resulting_face_revision)
                 || capture.media_output_id != artifact.id
                 || capture.media_sha256 != artifact.sha256
             {
