@@ -235,11 +235,18 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native(
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
             self.pending_native_mask.as_ref(),
+            speech,
             &self.session,
             &face,
             super::super::super::super::super::current_time_millis()?,

@@ -136,6 +136,12 @@ impl EspeakDiscovery {
     }
 }
 impl EspeakSpeechAdapter {
+    /// Recheck the selected provider's complete content before offering a
+    /// current route witness. A Boot-time grant alone cannot prove presence.
+    pub fn provider_is_current(&self) -> bool {
+        self.discovery.verify().is_ok()
+    }
+
     pub fn provider_sha256(&self) -> &str {
         &self.discovery.provider_sha256
     }

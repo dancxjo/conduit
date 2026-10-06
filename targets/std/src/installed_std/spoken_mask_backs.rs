@@ -37,6 +37,16 @@ pub(super) static ARTIFACT_SHOW_FACTORY: BackFactory = BackFactory {
     budget: show_budget,
     prepare: prepare_show,
 };
+pub(super) static DIRECT_FACE_WORDING_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::DIRECT_FACE_WORDING_IMPLEMENTATION,
+    budget: direct_wording_budget,
+    prepare: prepare_direct_wording,
+};
+pub(super) static DIRECT_ARTIFACT_SHOW_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
+    budget: direct_show_budget,
+    prepare: prepare_direct_show,
+};
 pub(super) static NO_INTERACTION_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::NO_INTERACTION_IMPLEMENTATION,
     budget: no_interaction_budget,
@@ -198,6 +208,36 @@ fn prepare_show(
     ))
 }
 
+fn prepare_direct_wording(
+    placement: &PlannedGear,
+    _: &mut HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_FACE_WORDING_IMPLEMENTATION,
+    )?;
+    Ok(InstalledBack::DirectFaceWording(
+        crate::direct_spoken_mask_runtime::DirectFaceWordingBack::new(),
+    ))
+}
+
+fn prepare_direct_show(
+    placement: &PlannedGear,
+    _: &mut HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
+    )?;
+    Ok(InstalledBack::SpokenArtifactShow(
+        ArtifactAcknowledgedShowBack::new(
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+            4_096,
+        )
+        .map_err(str::to_string)?,
+    ))
+}
+
 fn prepare_no_interaction(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
@@ -259,6 +299,34 @@ fn show_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     Ok(BackBudget {
         value_items: 3,
         value_bytes: conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32 + 266_240,
+        host_requests: 2,
+        sign_items: 24,
+        maximum_value_bytes: 262_144,
+    })
+}
+
+fn direct_wording_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_FACE_WORDING_IMPLEMENTATION,
+    )?;
+    Ok(BackBudget {
+        value_items: 2,
+        value_bytes: conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32 + 1024,
+        host_requests: 33,
+        sign_items: 64,
+        maximum_value_bytes: conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+    })
+}
+
+fn direct_show_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(
+        placement,
+        conduit_std_offers::DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
+    )?;
+    Ok(BackBudget {
+        value_items: 3,
+        value_bytes: conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32 + 266_240,
         host_requests: 2,
         sign_items: 24,
         maximum_value_bytes: 262_144,

@@ -1,5 +1,23 @@
 //! Host-owned speech and artifact attachment, before ordinary planning.
 impl crate::StdHost {
+    /// Current selected provider possession, independent of whether this
+    /// Boot's one-shot artifact has already produced a retained Show.
+    pub fn spoken_mask_provider_is_current(&self) -> bool {
+        self.speech_synthesis
+            .as_ref()
+            .is_some_and(|provider| provider.provider_is_current())
+            && self.kernel_resources.is_idle()
+    }
+
+    /// A new artifact Show additionally needs this Boot's destination free.
+    pub fn spoken_mask_artifact_route_is_current(&self) -> bool {
+        self.spoken_mask_provider_is_current()
+            && self
+                .wav_artifact
+                .as_ref()
+                .is_some_and(|artifact| artifact.is_unpublished())
+    }
+
     /// Check the preattached route without changing this Boot's offers.
     pub fn selected_spoken_equipment_matches(
         &self,

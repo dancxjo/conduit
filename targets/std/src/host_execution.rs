@@ -18,6 +18,7 @@ struct HostRunInputs<'a> {
     attach_live: bool,
     external_fore: Option<ExternalForeRun<'a>>,
     spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
+    direct_spoken_mask: Option<crate::direct_spoken_mask_runtime::DirectSpokenMaskPreparation>,
     durable_state: Option<installed_std::DurableStateRun<'a>>,
 }
 
@@ -87,6 +88,7 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -113,6 +115,7 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -142,6 +145,7 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: Some(installed_std::DurableStateRun {
                     body,
                     root: residence_root,
@@ -171,6 +175,7 @@ impl StdHost {
                 attach_live: true,
                 external_fore: None,
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -265,6 +270,7 @@ impl StdHost {
                     sequential,
                 }),
                 spoken_mask: None,
+                direct_spoken_mask: None,
                 durable_state: None,
             },
         )
@@ -286,6 +292,7 @@ impl StdHost {
             attach_live,
             external_fore,
             spoken_mask,
+            direct_spoken_mask,
             durable_state,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
@@ -344,6 +351,7 @@ impl StdHost {
                         vision: self.vision.as_mut(),
                         external_fore,
                         spoken_mask,
+                        direct_spoken_mask,
                         durable_state,
                     },
                 )

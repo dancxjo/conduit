@@ -268,6 +268,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut vision,
         mut external_fore,
         spoken_mask,
+        direct_spoken_mask,
         durable_state,
     } = lifecycle;
     let InstalledRunHost {
@@ -374,6 +375,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .as_ref()
         .map(|preparation| preparation.prepare_session(active_play.clone()))
         .transpose()?;
+    let mut direct_spoken_mask_session = direct_spoken_mask
+        .map(|preparation| preparation.prepare_session(active_play.clone()))
+        .transpose()?;
+    if spoken_mask_session.is_some() && direct_spoken_mask_session.is_some() {
+        return Err("one Play cannot prepare two spoken Mask semantic sessions".into());
+    }
     let drivers = preparation::prepare_operations(
         fragment,
         &lowered,
@@ -2121,42 +2128,68 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     | conduit_std_offers::GENERATED_SPEECH_OPERATION
                     | conduit_std_offers::REGISTER_MANIFESTATION_OPERATION
                     | conduit_std_offers::ARTIFACT_SHOW_OPERATION
+                    | conduit_std_offers::DIRECT_FACE_WORDING_OPERATION
+                    | conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION
+                    | conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION
             ) {
-                let session = spoken_mask_session.as_mut().ok_or_else(|| {
-                    "spoken Mask semantic Host Call has no exact prepared session".to_string()
-                })?;
-                let result = match contract.as_str() {
-                    conduit_std_offers::PRESENTATION_REQUEST_OPERATION => {
-                        session.adapt_presentation(input).map(Some)
+                let result = if matches!(
+                    contract.as_str(),
+                    conduit_std_offers::DIRECT_FACE_WORDING_OPERATION
+                        | conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION
+                        | conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION
+                ) {
+                    let session = direct_spoken_mask_session.as_mut().ok_or_else(|| {
+                        "direct spoken Mask Host Call has no exact prepared session".to_string()
+                    })?;
+                    match contract.as_str() {
+                        conduit_std_offers::DIRECT_FACE_WORDING_OPERATION => {
+                            session.next_wording(input)
+                        }
+                        conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION => {
+                            session.register_face(input).map(|()| None)
+                        }
+                        conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION => {
+                            session.acknowledge_artifact_and_build_show(input).map(Some)
+                        }
+                        _ => unreachable!(),
                     }
-                    conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION => {
-                        session.register_validation_request(input).map(|()| None)
+                } else {
+                    let session = spoken_mask_session.as_mut().ok_or_else(|| {
+                        "spoken Mask semantic Host Call has no exact prepared session".to_string()
+                    })?;
+                    match contract.as_str() {
+                        conduit_std_offers::PRESENTATION_REQUEST_OPERATION => {
+                            session.adapt_presentation(input).map(Some)
+                        }
+                        conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION => {
+                            session.register_validation_request(input).map(|()| None)
+                        }
+                        conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION => {
+                            session.finish_validation_envelope(input).map(Some)
+                        }
+                        conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION => {
+                            session.assess_generated_envelope(input).map(Some)
+                        }
+                        conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION => {
+                            session.register_generated_candidate(input).map(|()| None)
+                        }
+                        conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION => {
+                            session.retain_generated_assessment(input).map(Some)
+                        }
+                        conduit_std_offers::GENERATED_SPEECH_OPERATION => session
+                            .validate_and_extract_speech_bounded(
+                                input,
+                                lowered_operation.binding.maximum_output_bytes,
+                            )
+                            .map(Some),
+                        conduit_std_offers::REGISTER_MANIFESTATION_OPERATION => session
+                            .register_generated_manifestation(input)
+                            .map(|()| None),
+                        conduit_std_offers::ARTIFACT_SHOW_OPERATION => {
+                            session.acknowledge_artifact_and_build_show(input).map(Some)
+                        }
+                        _ => unreachable!(),
                     }
-                    conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION => {
-                        session.finish_validation_envelope(input).map(Some)
-                    }
-                    conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION => {
-                        session.assess_generated_envelope(input).map(Some)
-                    }
-                    conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION => {
-                        session.register_generated_candidate(input).map(|()| None)
-                    }
-                    conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION => {
-                        session.retain_generated_assessment(input).map(Some)
-                    }
-                    conduit_std_offers::GENERATED_SPEECH_OPERATION => session
-                        .validate_and_extract_speech_bounded(
-                            input,
-                            lowered_operation.binding.maximum_output_bytes,
-                        )
-                        .map(Some),
-                    conduit_std_offers::REGISTER_MANIFESTATION_OPERATION => session
-                        .register_generated_manifestation(input)
-                        .map(|()| None),
-                    conduit_std_offers::ARTIFACT_SHOW_OPERATION => {
-                        session.acknowledge_artifact_and_build_show(input).map(Some)
-                    }
-                    _ => unreachable!(),
                 };
                 let (output_value, failure) = match result {
                     Ok(Some(bytes)) => {

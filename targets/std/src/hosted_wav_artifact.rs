@@ -16,6 +16,10 @@ pub struct WavArtifactSelection {
 }
 
 impl WavArtifactSelection {
+    pub fn is_unpublished(&self) -> bool {
+        !self.destination.exists()
+    }
+
     pub fn new(
         destination: impl AsRef<Path>,
         boot_id: BootId,

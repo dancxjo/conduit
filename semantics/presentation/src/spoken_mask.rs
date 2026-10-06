@@ -25,6 +25,8 @@ pub const GENERATED_MANIFESTATION_TO_SPEECH_STREAM_KIND: &str =
     "presentation/generated-manifestation-speech-stream";
 pub const ARTIFACT_ACKNOWLEDGED_SHOW_KIND: &str = "presentation/artifact-acknowledged-show";
 pub const CLOSING_NO_INTERACTION_KIND: &str = "presentation/no-interaction";
+pub const DIRECT_FACE_WORDING_KIND: &str = "presentation/direct-face-wording";
+pub const DIRECT_ARTIFACT_SHOW_KIND: &str = "presentation/direct-artifact-show";
 pub const SPOKEN_MASK_CONTRACT_REVISION: &str = "conduit.presentation/spoken-mask-stage@1";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -340,6 +342,44 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
                 PortTemporal::Flow { closes: true },
             )],
         ),
+        kind(
+            DIRECT_FACE_WORDING_KIND,
+            alloc::vec![port(
+                "presentation",
+                crate::PRESENTATION_VALUE_KIND,
+                PortDirection::Input,
+                PortTemporal::Value,
+            )],
+            alloc::vec![port(
+                "speech",
+                "value/text",
+                PortDirection::Output,
+                PortTemporal::Flow { closes: true },
+            )],
+        ),
+        kind(
+            DIRECT_ARTIFACT_SHOW_KIND,
+            alloc::vec![
+                port(
+                    "presentation",
+                    crate::PRESENTATION_VALUE_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+                port(
+                    "artifact",
+                    SPOKEN_MASK_ARTIFACT_RECEIPT_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+            ],
+            alloc::vec![port(
+                "show",
+                crate::SHOW_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
     ];
     // A closing Flow is explicit semantic meaning, not an implicit Value lift.
     // Keep the existing single-shot Value projection and its 256-byte contract.
@@ -374,6 +414,25 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
             },
         ]));
     kinds.push(stream);
+    let direct = kinds
+        .iter_mut()
+        .find(|kind| kind.kind_id.as_str() == DIRECT_FACE_WORDING_KIND)
+        .expect("direct Face wording Kind");
+    direct.kind_contract_revision =
+        KindIdentity::from("conduit.presentation/direct-face-wording@1");
+    direct
+        .semantic_laws
+        .push(conduit_core::KindSemanticLaw::ValueContracts(alloc::vec![
+            conduit_core::FrontValueContract {
+                location: conduit_core::FrontValueLocation::Output(port_id("speech")),
+                contract: conduit_core::CheckedValueContract::new(
+                    kind_id("value/text"),
+                    1024,
+                    alloc::vec::Vec::new(),
+                )
+                .expect("finite direct Face wording item"),
+            },
+        ]));
     let artifact = kinds
         .iter_mut()
         .find(|kind| kind.kind_id.as_str() == SPOKEN_ARTIFACT_KIND)
