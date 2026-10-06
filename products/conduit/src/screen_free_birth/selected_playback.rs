@@ -120,6 +120,13 @@ impl SelectedPlayback {
             show,
             batch,
             self.discovery.clone(),
+            &conduit_language::LanguageRequest::new(
+                conduit_language::LanguageId::new("language/english".into())
+                    .expect("English mechanical Mask Language"),
+                None,
+                conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+            )
+            .expect("explicit mechanical Mask request"),
             self.config.clone(),
             self.selection.clone(),
             &self.authorization,
