@@ -43,6 +43,7 @@ pub(super) struct PreparedSourceCapture<'a, const N: usize> {
     pub play: PreparedHidSourceKernel,
     pub owner: EndpointReadWindow<'a, N>,
     requests: [Option<conduit_composite::AdmittedKernelCompositeHostRequest>; N],
+    held_request: Option<conduit_composite::KernelCompositeHostRequest>,
 }
 
 #[derive(Debug)]
@@ -66,6 +67,7 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
     pub fn cancel(&mut self) -> Result<(), CaptureCancellationRefusal> {
         let revocation = self.owner.revoke_all().err();
         let kernel = self.play.kernel_mut().cancel().err();
+        self.held_request = None;
         if revocation.is_some() || kernel.is_some() {
             Err(CaptureCancellationRefusal { revocation, kernel })
         } else {
@@ -95,7 +97,11 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
             .kernel_mut()
             .step()
             .map_err(CaptureServiceRefusal::Kernel)?;
-        let Some(request) = self.play.kernel_mut().next_host_request() else {
+        let Some(request) = self
+            .held_request
+            .take()
+            .or_else(|| self.play.kernel_mut().next_host_request())
+        else {
             return Ok(false);
         };
         if self
@@ -105,11 +111,12 @@ impl<const N: usize> PreparedSourceCapture<'_, N> {
         {
             return Ok(false);
         }
-        let index = self
-            .requests
-            .iter()
-            .position(Option::is_none)
-            .ok_or(CaptureServiceRefusal::RequestPressure)?;
+        let Some(index) = self.requests.iter().position(Option::is_none) else {
+            // Surfacing a call consumes its dispatch token from the kernel's
+            // queue. Retain that exact token; pressure must not lose the call.
+            self.held_request = Some(request);
+            return Err(CaptureServiceRefusal::RequestPressure);
+        };
         let kernel = self.play.kernel_mut();
         let obligation = kernel
             .host_request_obligation(&request)
@@ -274,6 +281,7 @@ pub(super) unsafe fn bind<'a, const N: usize>(
         play,
         owner,
         requests: core::array::from_fn(|_| None),
+        held_request: None,
     })
 }
 
