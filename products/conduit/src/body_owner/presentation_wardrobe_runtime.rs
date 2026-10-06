@@ -1,5 +1,6 @@
 //! Installed owner orchestration of its already sealed presentation wardrobe.
 use super::{
+    native_mask_route::NativeMaskRoute,
     presentation_wardrobe::{OwnerPresentationWardrobe, OwnerPresentationWardrobeError},
     Owner,
 };
@@ -59,6 +60,31 @@ impl Owner {
         current
     }
 
+    pub(super) fn current_presentation_routes_with_native<'a>(
+        owner_offer: &'a conduit_core::HostAdvertisement,
+        browser: Option<&'a super::participants::BrowserWindow>,
+        local: Option<&'a LocalOwnerMaskRouteSeal>,
+        native: Option<&'a NativeMaskRoute>,
+        session: &conduit_body::BodyLifecycleSession,
+        face: &conduit_presentation::Presentation,
+        now_millis: u64,
+    ) -> Vec<CurrentOwnerPresentationRoute<'a>> {
+        let mut current = Self::current_presentation_routes(owner_offer, browser, local);
+        if let Some((seal, mask_host_offer, face_line, return_line)) =
+            native.and_then(|route| route.current_witness(session, face, now_millis))
+        {
+            current.push(CurrentOwnerPresentationRoute::Remote {
+                seal,
+                owner_offer,
+                mask_host_offer,
+                face_line,
+                return_line,
+                interaction_line: None,
+            });
+        }
+        current
+    }
+
     pub(crate) fn admit_browser_presentation_route(
         &mut self,
         seal: &RemoteOwnerMaskRouteSeal,
@@ -70,10 +96,14 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes(
+        let current = Self::current_presentation_routes_with_native(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         if !current.iter().any(|route| {
             matches!(route,
@@ -115,16 +145,125 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes(
+        let current = Self::current_presentation_routes_with_native(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         self.presentation_wardrobe
             .as_mut()
             .ok_or("owner presentation wardrobe is not admitted")?
             .acknowledge_selected_show(&self.session, &face, &current, &seal.route_plan_id, show)
             .map_err(wardrobe_error)
+    }
+
+    pub(crate) fn admit_native_presentation_route(
+        &mut self,
+        seal: &RemoteOwnerMaskRouteSeal,
+    ) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        if !current.iter().any(|route| {
+            matches!(route,
+                CurrentOwnerPresentationRoute::Remote { seal: found, .. }
+                    if found.route_plan_id == seal.route_plan_id
+            )
+        }) {
+            return Err("native presentation route is no longer current".into());
+        }
+        if let Some(wardrobe) = &mut self.presentation_wardrobe {
+            wardrobe
+                .admit_or_replace(&self.session, &face, &current)
+                .map_err(wardrobe_error)?;
+        } else {
+            let mask = seal.planned_mask.mask.plot_identity.clone();
+            self.presentation_wardrobe = Some(
+                OwnerPresentationWardrobe::seal(
+                    &self.session,
+                    &face,
+                    &current,
+                    vec![mask.clone()],
+                    vec![mask],
+                )
+                .map_err(wardrobe_error)?,
+            );
+        }
+        Ok(())
+    }
+
+    pub(crate) fn acknowledge_selected_native_show(
+        &mut self,
+        seal: &RemoteOwnerMaskRouteSeal,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        self.presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .acknowledge_selected_show(&self.session, &face, &current, &seal.route_plan_id, show)
+            .map_err(wardrobe_error)
+    }
+
+    pub(crate) fn validate_selected_native_show(&mut self, show: &MaskShow) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        let selected = self
+            .presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .selected_show(&self.session, &face, &current)
+            .map_err(wardrobe_error)?;
+        if selected != show {
+            return Err("native Mask Show differs from selected owner Show".into());
+        }
+        Ok(())
     }
 
     /// The installed owner keeps the Body-lifetime wardrobe. The attached
@@ -136,10 +275,14 @@ impl Owner {
     ) -> Result<(), String> {
         self.validate_attached_terminal_route(seal, show)?;
         let face = self.local_face_snapshot()?;
-        let current = Self::current_presentation_routes(
+        let current = Self::current_presentation_routes_with_native(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             Some(seal),
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         if let Some(wardrobe) = &mut self.presentation_wardrobe {
             wardrobe
@@ -193,10 +336,14 @@ impl Owner {
     ) -> Result<Value, String> {
         self.validate_attached_terminal_route(seal, show)?;
         let face = self.local_face_snapshot()?;
-        let current = Self::current_presentation_routes(
+        let current = Self::current_presentation_routes_with_native(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             Some(seal),
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         let wardrobe = self
             .presentation_wardrobe
@@ -254,10 +401,14 @@ impl Owner {
         show: &MaskShow,
     ) -> Result<(), String> {
         let face = self.local_face_snapshot()?;
-        let current = Self::current_presentation_routes(
+        let current = Self::current_presentation_routes_with_native(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             Some(seal),
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         let wardrobe = self
             .presentation_wardrobe
