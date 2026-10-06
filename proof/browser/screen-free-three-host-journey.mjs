@@ -39,7 +39,7 @@ const selectedSpeechArgs = speakerCard ? ['--speak', '--speaker-card', speakerCa
 // Birth and clock sessions each include multiple complete readings, not a
 // single generated artifact; retain a finite wall-clock deadline for them.
 const screenFreeSessionTimeout = speakerCard ? 30 * 60_000 : 30_000;
-const attestReading = (transcript, face, part, label) => {
+const attestReading = (transcript, face, part, label, allowStaleCancellation = false) => {
   const receipts = transcript.split('\n').flatMap(line => {
     const start = line.indexOf('{"');
     if (start < 0) return [];
@@ -59,13 +59,17 @@ const attestReading = (transcript, face, part, label) => {
       assert.equal(played.speaker_underruns, 0);
     }
     for (const turn of turns) {
-      assert.equal(turn.outcome, 'Completed');
+      assert.ok(turn.outcome === 'Completed' ||
+        (allowStaleCancellation && turn.outcome === 'Cancelled' &&
+          transcript.includes('Stopped the stale reading; read all again for the current Face.')),
+      `${label} has an unexplained spoken turn outcome ${turn.outcome}`);
       assert.ok(turn.completed_segments > 0);
       assert.ok(plays.some(played => played.face_id === turn.face_id &&
         played.source_show_id === turn.source_show_id),
       `${label} spoken turn is not correlated with its current Face and Show`);
     }
     const last = turns.at(-1);
+    assert.equal(last.outcome, 'Completed');
     assert.equal(last.face_id, face.identity);
     assert.equal(last.face_revision, face.revision);
     return { first: { face_id: turns[0].face_id, face_revision: turns[0].face_revision,
@@ -262,7 +266,7 @@ try {
     assert.equal(after.presentation.basis.body_id, bodyId);
     assert.ok(after.presentation.revision > before.presentation.revision);
     const reading = attestReading(transcript, after.presentation, ownerPart,
-      `screen-free clock ${name}`);
+      `screen-free clock ${name}`, true);
     assert.equal(reading.first.face_revision, before.presentation.revision);
     assert.equal(enacted[0][3], reading.first.source_show_id);
     return {

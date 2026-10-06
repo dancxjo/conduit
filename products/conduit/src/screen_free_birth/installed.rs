@@ -340,10 +340,7 @@ fn run_body(
         if current.basis.body_id.as_ref() != Some(&body_id) {
             return Err("installed owner changed Body identity".into());
         }
-        if current.identity != face.identity
-            || current.revision != face.revision
-            || host != advertisement
-        {
+        if current != face || host != advertisement {
             // The line was entered while the previous Face was on offer. Even
             // a bare `activate` must never be reinterpreted after refreshing
             // the reader's focus and Show against a different owner state.
@@ -357,23 +354,30 @@ fn run_body(
                 .map_err(debug_error)?;
             writeln!(
                 output,
-                "Owner Face or Host Boot changed. Refused the pending command; Face revision {} is current. Enter read all or help, then choose an action again.",
+                "Owner Face or Host Boot changed. Face revision {} is current. Read-only help and read all use the new Face; actions must be chosen again.",
                 face.revision
             )
                 .map_err(|error| error.to_string())?;
-            emit_readout(
-                state_dir,
-                input,
-                playback.as_ref(),
-                &mut reader,
-                &face,
-                &show,
-                &advertisement,
-                &mut sequence,
-                OutputPhase::Body,
-                output,
-            )?;
-            continue;
+            if line != "read all" && line != "help" {
+                writeln!(
+                    output,
+                    "Refused the pending command because it named an older Face."
+                )
+                .map_err(|error| error.to_string())?;
+                emit_readout(
+                    state_dir,
+                    input,
+                    playback.as_ref(),
+                    &mut reader,
+                    &face,
+                    &show,
+                    &advertisement,
+                    &mut sequence,
+                    OutputPhase::Body,
+                    output,
+                )?;
+                continue;
+            }
         }
         if line == "refresh" {
             writeln!(output, "Owner Face revision {} is current.", face.revision)
