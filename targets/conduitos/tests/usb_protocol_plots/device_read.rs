@@ -80,10 +80,13 @@ fn acknowledged_control_results_decode_without_padding_or_failure_translation() 
             .unwrap(),
         0x1234_u64.to_le_bytes()
     );
-    for _ in 0..10_000 {
-        assert_eq!(prepared.evaluate(&input).unwrap(), expected);
-        assert_eq!(prepared.output_capacity(), capacity);
-    }
+    let (_, play) = allocation_probe::observe(|| {
+        for _ in 0..10_000 {
+            assert_eq!(prepared.evaluate(&input).unwrap(), expected);
+            assert_eq!(prepared.output_capacity(), capacity);
+        }
+    });
+    assert_eq!((play.allocations, play.reallocations), (0, 0), "{play:?}");
     for (case, disposition) in [
         ("stalled", ControlTransferDisposition::Stalled),
         ("provider-lost", ControlTransferDisposition::ProviderLost),
@@ -97,4 +100,36 @@ fn acknowledged_control_results_decode_without_padding_or_failure_translation() 
         );
     }
     assert!(prepared.evaluate(&input[..input.len() - 1]).is_err());
+}
+
+#[test]
+fn descriptor_projection_refuses_inconsistent_count_before_reading_members() {
+    let program = decoder();
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let source = format!(
+        "{}\nplot inconsistent (\n octet: U8 >> result: UsbControlResult\n) = (completed({{ transferred: 2, short: true, input: [.] }}))",
+        include_str!("../../plots/usb/control-types.conduit")
+    );
+    let forged = program_from(&source, "inconsistent");
+    assert_eq!(forged.output_type, program.input_type);
+    tag(
+        prepared.evaluate(&forged.evaluate(&[18]).unwrap()).unwrap(),
+        "malformed",
+    );
+    let contract = ControlContract::prepare().unwrap();
+    let request = ControlTransferRequest::new([128, 6, 0, 1, 0, 0, 64, 0], &[], 256).unwrap();
+    let mut encoder = PreparedControlResultEncoder::new(&contract).unwrap();
+    let oversized = [18, 1, 0, 2, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0];
+    tag(
+        prepared
+            .evaluate(encoder.completed(&request, 19, &oversized).unwrap())
+            .unwrap(),
+        "malformed",
+    );
+    tag(
+        prepared
+            .evaluate(encoder.completed(&request, 2, &[17, 1]).unwrap())
+            .unwrap(),
+        "malformed",
+    );
 }
