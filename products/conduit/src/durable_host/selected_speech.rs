@@ -104,20 +104,11 @@ impl Selection {
         Ok(self)
     }
 
-    /// This runs before runtime.json publication and before Body ownership.
-    /// Discovery does not open a PCM handle; the selected Back rechecks the
-    /// actual device when a Play starts.
-    pub(super) fn attach_to_fresh_host(
-        &self,
-        host: &mut StdHost,
-    ) -> Result<AttachedEquipment, String> {
-        self.attach_to_fresh_host_with_optional_artifact(host, None)
-    }
-
     /// Select the speaker, voice, and one create-new WAV destination before
     /// this Boot is advertised. The destination can complete once per Boot;
     /// a later spoken Show requires a new Boot or an admitted per-Play output
     /// selection, never replacement of an already published artifact.
+    /// Discovery does not open a PCM handle; the Back rechecks the device at Play.
     pub(super) fn attach_to_fresh_host_with_artifact(
         &self,
         host: &mut StdHost,
@@ -129,14 +120,6 @@ impl Selection {
         let offer = host.advertisement();
         let artifact =
             WavArtifactSelection::new(destination, offer.boot_id.clone(), offer.offer_generation)?;
-        self.attach_to_fresh_host_with_optional_artifact(host, Some(artifact))
-    }
-
-    fn attach_to_fresh_host_with_optional_artifact(
-        &self,
-        host: &mut StdHost,
-        artifact: Option<WavArtifactSelection>,
-    ) -> Result<AttachedEquipment, String> {
         self.validate()?;
         let observation = observe_speaker(&self.card_id, self.device)?;
         if observation.base_identity != self.speaker_base_identity {
@@ -172,11 +155,7 @@ impl Selection {
             )
             .map_err(|error| format!("initialize configured eSpeak provider: {error:?}"))?;
         host.attach_selected_playback(playback.clone())?;
-        if let Some(artifact) = artifact {
-            host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
-        } else {
-            host.attach_espeak_speech_for_selected_playback(adapter)?;
-        }
+        host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
         Ok(AttachedEquipment {
             playback,
             authorization: ExplicitPlaybackAuthorization::new(&format!(
