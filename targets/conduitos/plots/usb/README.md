@@ -495,15 +495,29 @@ acceptance remain separate work under #4831.
 
 The mouse counterpart enters through
 `cargo xtask make conduitos usb-proof --hid-mouse`. Its separate proof profile
-admits a 32 MiB preparation arena and 64 MiB emulator memory, selects the
-existing single-call mouse Source graph, and injects 128 alternating button and
-relative-motion reports. The independent expectation follows
+admits a 64 MiB preparation arena and 128 MiB emulator memory. The checked
+`usb-hid-mouse-capture-window` entry selects two endpoint calls, orders their
+observations and advances pointer history in one terminal-aware Source session.
+It injects 128 alternating button and relative-motion reports. The independent
+expectation follows
 [QEMU's HID report implementation](https://github.com/qemu/qemu/blob/v10.2.1/hw/input/hid.c):
-the three-octet boot prefix is decoded, and the fourth wheel octet remains
-uninterpreted wire truth. Mouse and keyboard receipts have separate paths and
-require their exact Boot profile, Plan, class transcript, sealed arena and
-acknowledged stop. A retained x86_64 mouse run completes all 128 reports across
-two ring cycle transitions with matching class outputs and the arena sealed
-through normal closure and acknowledged stop. The same appliance limitations
-apply: legacy attachment setup, explicit fixture authority, and no ordinary
-class offer, physical compatibility or five-architecture acceptance.
+the three-octet boot prefix supplies motion, and the fourth wheel octet remains
+uninterpreted. The expected transcript independently constructs all normalized
+positions, deltas, primary-button states, history sequences and queue/loss
+fields, followed by the sole event stream's closed outcome.
+
+The retained two-capture x86_64 run completes all 128 reports across two ring
+cycle transitions with matching normalized events, two captures initially
+pending, sealed allocation, normal closure and acknowledged stop. Preparation
+reports 19,137,600 live bytes at binding and a 27,472,576-byte recorded peak.
+The earlier 32 MiB profile refused a 5,562,368-byte lowering allocation during
+preparation; that refusal is retained separately from the successful run.
+The older single-call mouse receipt remains historical evidence for that
+appliance, not a two-capture acceptance claim. Each endpoint call still admits
+at most 2,048 payload bytes on a 4 KiB Host Call surface.
+
+Mouse and keyboard receipts have separate paths and require their exact Boot
+profile, Source/checked plot, Plan/Play, attachment, capture bounds, independent
+class transcript, sealed arena and acknowledged stop. The same appliance
+limitations apply: legacy attachment setup, explicit fixture authority, and no
+ordinary class offer, physical compatibility or five-architecture acceptance.
