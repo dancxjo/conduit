@@ -29,7 +29,40 @@ pub(super) struct PreparedSourceCapture<'a, const N: usize> {
     requests: [Option<conduit_composite::AdmittedKernelCompositeHostRequest>; N],
 }
 
+#[derive(Debug)]
+pub(super) struct CaptureCancellationRefusal {
+    pub revocation: Option<super::endpoint_read::EndpointNativeRefusal>,
+    pub kernel: Option<conduit_composite::KernelCompositeError>,
+}
+
 impl<const N: usize> PreparedSourceCapture<'_, N> {
+    /// Attempt every revocation and cancel the retained kernel, even when one
+    /// operation refuses. Software cancellation never releases native DMA.
+    pub fn cancel(&mut self) -> Result<(), CaptureCancellationRefusal> {
+        let revocation = self.owner.revoke_all().err();
+        let kernel = self.play.kernel_mut().cancel().err();
+        if revocation.is_some() || kernel.is_some() {
+            Err(CaptureCancellationRefusal { revocation, kernel })
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Release pending native leases only after Root's hardware stop receipt.
+    ///
+    /// # Safety
+    /// Root has acknowledged a stop covering this exact slot, endpoint and all
+    /// retained transfers. Cancellation, timeout and removal alone do not suffice.
+    pub unsafe fn release_stopped(
+        &mut self,
+    ) -> Result<(), super::endpoint_read::EndpointNativeRefusal> {
+        unsafe { self.owner.release_stopped() }?;
+        for request in &mut self.requests {
+            *request = None;
+        }
+        Ok(())
+    }
+
     /// Advance the production kernel once and service at most one issued call.
     /// `true` means Root must ring the configured endpoint after publication.
     pub fn step(&mut self) -> Result<bool, &'static str> {
