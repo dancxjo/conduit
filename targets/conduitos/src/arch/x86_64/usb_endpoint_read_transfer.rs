@@ -241,7 +241,7 @@ impl<'a> EndpointReadTransfer<'a> {
     }
 }
 
-fn validated_residual(
+pub(super) fn validated_residual(
     event: Event,
     slot: u8,
     endpoint: u8,
