@@ -130,8 +130,9 @@ fn speech_conversion_feeds_the_selected_playback_base_through_plan_and_play() {
     let mut catalog = crate::installed_std::test_catalog();
     let mut startup = catalog.startup_catalog().unwrap();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog).unwrap();
-    let plot = conduit_plot::parse(
+    let plot = conduit_plot::parse_with_startup(
         "plot spoken_audio {\n synthesize: speech/synthesize(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") }, maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n \"Rosehip\" >> synthesize.text\n synthesize.audio >> convert.audio\n convert.converted >> output.audio\n}\n",
+        &startup,
         &catalog,
     )
     .unwrap();

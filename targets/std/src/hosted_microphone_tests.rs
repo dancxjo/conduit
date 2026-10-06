@@ -287,14 +287,22 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
         &whisper_executable,
         &whisper_model,
     )
-    .unwrap()
-    .initialize(crate::hosted_speech_recognition::WhisperLimits {
-        maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-        maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
-        threads: 1,
-        timeout: Duration::from_secs(2),
-    })
     .unwrap();
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &whisper.provider_identity(),
+        "en",
+        "language/english",
+    );
+    let whisper = whisper
+        .declare_language_coverage(coverage)
+        .unwrap()
+        .initialize(crate::hosted_speech_recognition::WhisperLimits {
+            maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+            maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
+            threads: 1,
+            timeout: Duration::from_secs(2),
+        })
+        .unwrap();
 
     let config = crate::StdHostConfig {
         host_id: HostId::from("microphone-plan-host"),
@@ -330,7 +338,7 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles).unwrap();
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(
-            "plot microphone-whisper {\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}\n",
+            "plot microphone-whisper {\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") })\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}\n",
         ),
         &startup,
     )
