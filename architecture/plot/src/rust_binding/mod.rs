@@ -43,3 +43,5 @@ pub enum NativeFormRefusal {
     WrongLength { actual: usize },
     InvalidTag { actual: u8 },
 }
+
+mod external_binding_validation;

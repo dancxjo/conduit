@@ -29,7 +29,7 @@ fn definition(id: &str) -> SpeechPhoneme {
 fn inventory(id: &str, language: &str, definitions: Vec<SpeechPhoneme>) -> SpeechInventory {
     SpeechInventory::new(
         SpeechInventoryId::new(id.into()).unwrap(),
-        SpeechLanguageId::new(language.into()).unwrap(),
+        LanguageId::new(language.into()).unwrap(),
         BoundedSequence::try_from_iter(definitions).unwrap(),
         BoundedSequence::new(),
     )

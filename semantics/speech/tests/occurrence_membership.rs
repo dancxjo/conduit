@@ -5,7 +5,7 @@ use conduit_speech::semantic::*;
 fn occurrence(sequence: &str, ordinal: u32) -> LanguageSpeechTokenRef {
     LanguageSpeechTokenRef::new(
         SpeechInventoryId::new("english-test".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         ordinal,
         SpeechSegmentRevisionId::new("revision-2".into()).unwrap(),
         SpeechSegmentSequenceId::new(sequence.into()).unwrap(),
@@ -22,7 +22,7 @@ fn membership(
 ) -> Result<SpeechOccurrenceMembership, conduit_plot::rust_binding::NativeBindingRefusal> {
     SpeechOccurrenceMembership::new(
         SpeechInventoryId::new(inventory.into()).unwrap(),
-        SpeechLanguageId::new(language.into()).unwrap(),
+        LanguageId::new(language.into()).unwrap(),
         value,
         SpeechSegmentRevisionId::new(revision.into()).unwrap(),
         SpeechUtteranceId::new(utterance.into()).unwrap(),
@@ -115,7 +115,7 @@ fn intent(occurrence: LanguageSpeechTokenRef) -> SpeechUtteranceIntent {
     // Source provenance intentionally names another revision and inventory.
     let source = LanguageSegmentRef::phone(
         SpeechInventoryId::new("source-inventory".into()).unwrap(),
-        SpeechLanguageId::new("es".into()).unwrap(),
+        LanguageId::new("es".into()).unwrap(),
         77,
         SpeechSegmentRevisionId::new("source-revision".into()).unwrap(),
         SpeechSegmentSequenceId::new("source-phones".into()).unwrap(),
@@ -149,7 +149,7 @@ fn intent(occurrence: LanguageSpeechTokenRef) -> SpeechUtteranceIntent {
     SpeechUtteranceIntent::new(
         BoundedSequence::try_from_iter([boundary, segment]).unwrap(),
         SpeechInventoryId::new("english-test".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         provenance,
         SpeechSegmentRevisionId::new("revision-2".into()).unwrap(),
         SpeechUtteranceId::new("utterance-1".into()).unwrap(),
@@ -164,7 +164,7 @@ fn intent_checks_its_occurrences_without_resolving_specs_or_rebinding_sources() 
     validate_intent_occurrences(&value).unwrap();
     let foreign = LanguageSpeechTokenRef::new(
         SpeechInventoryId::new("english-test".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         0,
         SpeechSegmentRevisionId::new("revision-1".into()).unwrap(),
         SpeechSegmentSequenceId::new("phones".into()).unwrap(),

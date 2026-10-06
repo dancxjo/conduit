@@ -7,7 +7,6 @@ type ListeningStreamId = Text <= 64B not in [""]
 type ListeningEventId = Text <= 64B not in [""]
 type ListeningSegmentId = Text <= 64B not in [""]
 type AsrSessionId = Text <= 64B not in [""]
-type SpeechVarietyId = Text <= 64B not in [""]
 type SpeechMorphemeOccurrenceId = Text <= 64B not in [""]
 
 type ListeningProviderClock = {
@@ -73,13 +72,6 @@ type ListeningProvenance = {
     attributes: sequence ListeningProviderAttribute <= 16
 }
 
-# Exact Unicode-scalar text ranges, never a UTF-8 byte index.
-type ListeningTextRange = {
-    start: U32
-    end: U32
-    where .start <= .end
-}
-
 type ListeningTimeRange = {
     start_ms: U64
     end_ms: U64
@@ -93,7 +85,8 @@ type ListeningTimedToken = {
 }
 
 type ListeningLanguageHypothesis = {
-    language: SpeechLanguageId
+    language: LanguageId
+    variety: VarietyId?
     confidence: ListeningConfidence?
 }
 
@@ -114,7 +107,7 @@ type AsrPartialHypothesis = {
 type AsrRevisedHypothesis = {
     role: ListeningTextRole
     segment_id: ListeningSegmentId
-    replaces: ListeningTextRange
+    replaces: LanguageTextRange
     text: Text <= 4096B
     confidence: ListeningConfidence?
 }
@@ -248,7 +241,7 @@ type AsrDecodingConfig = {
 }
 
 type AsrSessionConfig = {
-    language: SpeechLanguageId?
+    language: LanguageId?
     decoding: AsrDecodingConfig
 }
 
@@ -275,15 +268,15 @@ type ListeningAnalysisFinality =
 
 type ListeningGraphemeCandidate = {
     text: Text <= 256B
-    span: ListeningTextRange
-    variety: SpeechVarietyId
+    span: LanguageTextRange
+    variety: VarietyId
     finality: ListeningAnalysisFinality
 }
 
 type ListeningWordCandidate = {
     text: Text <= 256B
-    span: ListeningTextRange
-    variety: SpeechVarietyId
+    span: LanguageTextRange
+    variety: VarietyId
     finality: ListeningAnalysisFinality
     morpheme_occurrences: sequence SpeechMorphemeOccurrenceId <= 16
 }

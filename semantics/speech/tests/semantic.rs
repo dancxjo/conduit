@@ -40,12 +40,12 @@ fn specification_states_roundtrip_without_turning_absence_into_a_phone() {
 fn frame_spans_and_listening_ranges_have_distinct_units_and_enforce_order() {
     assert!(SpeechFrameSpan::new(10, 8000, 11, "synthesis/test".into()).is_err());
     let frames = SpeechFrameSpan::new(20, 8000, 10, "synthesis/test".into()).unwrap();
-    let text = ListeningTextRange::new(20, 10).unwrap();
+    let text = LanguageTextRange::new(20, 10).unwrap();
     assert_ne!(
         frames.into_structured().unwrap().value_type(),
         text.clone().into_structured().unwrap().value_type()
     );
-    assert!(ListeningTextRange::new(3, 4).is_err());
+    assert!(LanguageTextRange::new(3, 4).is_err());
     assert!(ListeningTimeRange::new(3, 4).is_err());
     assert!(AsrChunkedSimulation::new(100, 100).is_err());
 }
@@ -62,7 +62,7 @@ fn recognition_revisions_commits_and_cancellation_remain_different_events() {
     .unwrap();
     let revision = AsrRecognitionEvent::revised_hypothesis(
         None,
-        ListeningTextRange::new(5, 0).unwrap(),
+        LanguageTextRange::new(5, 0).unwrap(),
         ListeningTextRole::Recognition,
         segment.clone(),
         "hullo".into(),
@@ -91,8 +91,8 @@ fn translations_allow_many_to_many_links_but_do_not_invent_empty_matches() {
     let reference = |text: &str, revision: &str, start, end| {
         LanguageSegmentRef::text(
             LanguageTextSegmentKind::Word,
-            SpeechLanguageId::new("en".into()).unwrap(),
-            ListeningTextRange::new(end, start).unwrap(),
+            LanguageId::new("en".into()).unwrap(),
+            LanguageTextRange::new(end, start).unwrap(),
             LanguageTextRevisionId::new(revision.into()).unwrap(),
             LanguageTextId::new(text.into()).unwrap(),
         )

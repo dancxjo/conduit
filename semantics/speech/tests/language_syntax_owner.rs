@@ -16,3 +16,22 @@ fn speech_syntax_is_the_same_native_and_rust_language_type() {
         SpeechRuleCondition::CurrentWordHasSyntacticLink(LinguisticSyntacticLinkKind::Vocative)
     ));
 }
+
+#[test]
+fn downstream_language_and_text_carriers_have_one_authoritative_owner() {
+    use conduit_language::{
+        LanguageId, LanguageText, LanguageTextId, LanguageTextRevisionId, VarietyId,
+    };
+    use conduit_speech::semantic;
+    let language: semantic::LanguageId = LanguageId::new("language/fixture".into()).unwrap();
+    let variety: semantic::VarietyId = VarietyId::new("variety/local".into()).unwrap();
+    assert_eq!(variety.get(), "variety/local");
+    let text: semantic::LanguageText = LanguageText::new(
+        LanguageTextId::new("text/1".into()).unwrap(),
+        language,
+        LanguageTextRevisionId::new("revision/1".into()).unwrap(),
+        "猫".into(),
+    )
+    .unwrap();
+    assert_eq!(text.text(), "猫");
+}

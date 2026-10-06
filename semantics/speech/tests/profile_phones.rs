@@ -15,7 +15,7 @@ fn profile(bindings: Vec<SpeechFormantPhoneBinding>, language: &str) -> SpeechFo
     SpeechFormantVoiceProfile::new(
         "voice/fixture".into(),
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new(language.into()).unwrap(),
+        LanguageId::new(language.into()).unwrap(),
         BoundedSequence::try_from_iter(bindings).unwrap(),
     )
     .unwrap()

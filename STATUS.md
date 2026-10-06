@@ -39,6 +39,16 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Language identity ownership (#4955–#4956, development):** Language owns
+  language/variety identity, explicit variety relationships and exact text
+  values/revisions/occurrences. Speech, listening and translation consume the
+  same generated carriers. Bounded exact external mapping preserves private
+  provider names and uses the #4952 report boundary; unknown mappings remain
+  insufficient. Non-Latin text and stale-occurrence fixtures prove this semantic
+  seam, not parser accuracy or multilingual availability. Back coverage and
+  planner eligibility remain unfinished under #4957. See the
+  [Language contract](docs/architecture/language.md).
+
 - **Projection fidelity (#4952, development):** a bounded immutable core report
   distinguishes exact/declared transformation, permitted loss, insufficient
   results and canonical abnormal outcomes. Native evidence and score contracts

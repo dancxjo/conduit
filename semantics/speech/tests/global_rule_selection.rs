@@ -58,7 +58,7 @@ fn matching(id: &str) -> SpeechAllophoneRule {
 fn profile(rules: Vec<SpeechAllophoneRule>) -> SpeechAllophoneRuleProfile {
     SpeechAllophoneRuleProfile::new(
         SpeechInventoryId::new(fixture::BASIS[0].into()).unwrap(),
-        SpeechLanguageId::new(fixture::BASIS[1].into()).unwrap(),
+        LanguageId::new(fixture::BASIS[1].into()).unwrap(),
         BoundedSequence::try_from_iter(rules).unwrap(),
     )
     .unwrap()
@@ -305,7 +305,7 @@ fn foreign_profile_basis_and_invalid_feature_evidence_refuse_before_empty_choice
     ] {
         let profile = SpeechAllophoneRuleProfile::new(
             SpeechInventoryId::new(inventory.into()).unwrap(),
-            SpeechLanguageId::new(language.into()).unwrap(),
+            LanguageId::new(language.into()).unwrap(),
             BoundedSequence::new(),
         )
         .unwrap();

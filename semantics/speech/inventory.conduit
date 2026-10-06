@@ -3,7 +3,7 @@
 type SpeechPhoneInventoryBasis = {
     basis: SpeechTokenSequenceBasis
     inventory_id: SpeechInventoryId
-    inventory_language: SpeechLanguageId
+    inventory_language: LanguageId
     where .basis.inventory_id == .inventory_id
     where .basis.language == .inventory_language
 }
@@ -16,9 +16,9 @@ type SpeechPhoneDefinitionMatch = {
 # Intent is a requested realization, not an observed material token.
 type SpeechIntentInventoryBasis = {
     intent_inventory_id: SpeechInventoryId
-    intent_language: SpeechLanguageId
+    intent_language: LanguageId
     inventory_id: SpeechInventoryId
-    inventory_language: SpeechLanguageId
+    inventory_language: LanguageId
     where .intent_inventory_id == .inventory_id
     where .intent_language == .inventory_language
 }
@@ -73,6 +73,6 @@ type SpeechOccurrenceObservationMatch = {
 # This does not establish inventory membership or status permission.
 type SpeechAllophoneRuleProfile = {
     inventory_id: SpeechInventoryId
-    language: SpeechLanguageId
+    language: LanguageId
     rules: sequence SpeechAllophoneRule <= 8
 }

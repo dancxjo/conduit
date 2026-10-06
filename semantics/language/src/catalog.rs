@@ -37,7 +37,10 @@ pub fn install_linguistics_catalogs(
     startup: &mut conduit_plot::StartupCatalog,
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
-    for (name, value_type) in linguistic_types() {
+    for (name, value_type) in crate::identity_types()
+        .into_iter()
+        .chain(linguistic_types())
+    {
         startup
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
@@ -149,11 +152,6 @@ fn linguistic_limits() -> CapabilityLimits {
 
 fn linguistic_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
-        (
-            "LinguisticSyntacticLinkKind",
-            crate::LinguisticSyntacticLinkKind::semantic_type()
-                .expect("checked language syntax Type"),
-        ),
         (
             UNIVERSAL_DEPENDENCY_RELATION_TYPE,
             universal_dependency_relation_type(),

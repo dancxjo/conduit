@@ -63,6 +63,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             crate::protocol_operations::ProtocolOperations {
                 joins: zip,
                 states: crate::seeded_state::SeededStateOperationFactory::default(),
+                concats: crate::flow_concat_finite::FlowConcatFiniteOperationFactory::default(),
                 merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
             },
         )
@@ -86,6 +87,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             crate::protocol_operations::ProtocolOperations {
                 joins: crate::flow_zip::FlowZipOperationFactory::default(),
                 states,
+                concats: crate::flow_concat_finite::FlowConcatFiniteOperationFactory::default(),
                 merges: crate::flow_merge_finite::FlowMergeFiniteOperationFactory::default(),
             },
         )
@@ -128,11 +130,15 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             joins: zip,
             states,
             merges,
+            concats,
         } = operations;
         validate_fore(&definition)?;
         zip.validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         states
+            .validate_plan(&definition.internal_plan)
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        concats
             .validate_plan(&definition.internal_plan)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         merges
@@ -168,6 +174,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(CurrentSampleOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
+            .install(concats)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(merges)

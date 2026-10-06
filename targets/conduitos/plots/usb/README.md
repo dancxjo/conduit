@@ -356,6 +356,29 @@ selected base/resource, Plan/Play and attachment identities with a bounded
 transaction transcript and final lifecycle outcome. Emulator execution and
 physical/HIL compatibility remain separate proof classes.
 
+
+## HID keyboard state (development)
+
+`hid-keyboard-state.conduit` derives twenty fixed slots from validated,
+normalized previous and current reports: modifier changes in bit order, sorted
+releases, then sorted presses. Unchanged slots are explicit.
+
+`hid-keyboard-lifecycle.conduit` retains previous-report state and drains each
+batch through generic state, zip and merge Backs before pairing another command.
+The command entry finishes explicitly. The received-frame entry connects the
+checked decoder and normalization to that loop; invalid reports are observed
+without replacing previous state. Generic ordered concatenation appends a
+Source-authored finish command after the decoded report stream closes normally.
+The state loop drains all pending transitions before completing; cancellation
+remains a separate kernel outcome. Native device teardown proof is separate.
+
+Deterministic kernel conformance covers 64 report generations and 1,274 ordered
+transitions, held-output pressure, explicit finish, cancellation, and malformed
+wire reports, with zero Play allocations and storage reserved beforehand.
+Run it through `cargo xtask make conduitos usb-plots-check`. These tests establish
+neither an installed class offer nor interrupt endpoint execution, physical
+compatibility, or five-architecture USB emulator acceptance.
+
 ## Protocol references
 
 - [USB HID 1.11](https://www.usb.org/sites/default/files/documents/hid1_11.pdf),

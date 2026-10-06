@@ -50,6 +50,7 @@ impl PreparedPureProtocolPlay {
                         crate::expression_host_call::IMPLEMENTATION
                             | crate::structured_selector_host_call::IMPLEMENTATION
                             | crate::flow_zip::IMPLEMENTATION
+                            | crate::flow_concat_finite::IMPLEMENTATION
                             | crate::flow_merge_finite::IMPLEMENTATION
                             | crate::seeded_state::IMPLEMENTATION
                             | crate::current_sample::IMPLEMENTATION
@@ -64,6 +65,10 @@ impl PreparedPureProtocolPlay {
             .map_err(|_| Refusal::InvalidPlan)?;
         operations
             .states
+            .validate_plan(plan)
+            .map_err(|_| Refusal::InvalidPlan)?;
+        operations
+            .concats
             .validate_plan(plan)
             .map_err(|_| Refusal::InvalidPlan)?;
         operations
@@ -101,6 +106,9 @@ impl PreparedPureProtocolPlay {
             .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(operations.states)
+            .map_err(|_| Refusal::InvalidPlan)?;
+        registry
+            .install(operations.concats)
             .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(operations.merges)
