@@ -144,6 +144,7 @@ mod pure_protocol_owner;
 pub mod pure_protocol_play;
 #[cfg(target_arch = "x86_64")]
 pub mod source_keyboard_batch;
+pub mod source_pointer_sample;
 
 pub mod protocol_artifact;
 pub mod protocol_play;

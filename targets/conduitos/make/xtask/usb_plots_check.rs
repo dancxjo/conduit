@@ -85,6 +85,22 @@ pub fn execute(cross: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-p",
             "conduitos",
             "--test",
+            "usb_mouse_order",
+        ],
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduitos",
+            "--test",
+            "usb_mouse_lifecycle",
+        ],
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduitos",
+            "--test",
             "usb_hid_preparation",
         ],
         &[
