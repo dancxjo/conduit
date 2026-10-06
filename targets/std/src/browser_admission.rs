@@ -650,6 +650,14 @@ mod wardrobe_wire_tests {
 
     #[test]
     fn wardrobe_request_uses_correlated_revision_bound_action_shape() {
+        let body = conduit_body::Body::born(
+            "source/wardrobe-test".into(),
+            "checked/wardrobe-test".into(),
+            1,
+            "sign/birth".into(),
+        )
+        .unwrap();
+        let part_id = PartId::bind(&body.body_id, "browser", 1).unwrap();
         let mask = conduit_core::PlotIdentity {
             source_document_id: conduit_core::SourceDocumentId::from("source/mask"),
             checked_plot_id: conduit_core::CheckedPlotId::from("checked/mask"),
@@ -658,8 +666,8 @@ mod wardrobe_wire_tests {
         let request = OwnerFaceSnapshotRequest {
             schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
             credential_id: "credential/test".into(),
-            body_id: BodyId::from("body/test"),
-            part_id: PartId::from("part/test"),
+            body_id: body.body_id,
+            part_id,
             host_id: HostId::from("host/test"),
             boot_id: BootId::from("boot/test"),
             last_seen_revision: None,
