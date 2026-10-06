@@ -12,7 +12,6 @@ use conduit_presentation::{
     MaskWardrobeAction, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal,
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
-use std::os::unix::net::UnixStream;
 use std::path::Path;
 
 pub(crate) fn selected_speech_start(
