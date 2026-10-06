@@ -54,6 +54,8 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
         [1, 0, 9, 4, 0, 0, 0, 0],
         [0, 0, 4, 4, 0, 0, 0, 0],
         [0, 0, 5, 4, 0, 0, 0, 0],
+        [255, 0, 10, 11, 12, 13, 14, 15],
+        [0, 0, 16, 17, 18, 19, 20, 21],
     ]
     .iter()
     .map(|wire| ValuePayload {
@@ -73,7 +75,7 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
         value_kind: transition.value_kind.clone(),
         encoded: Vec::with_capacity(4096),
     };
-    let expected = [
+    let mut expected = vec![
         (224, true, 1),
         (4, true, 1),
         (9, true, 1),
@@ -81,7 +83,15 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
         (9, false, 0),
         (5, true, 0),
     ];
-    let tags = ["keyboard", "duplicate", "keyboard"];
+    expected.extend((224..232).map(|usage| (usage, true, 255)));
+    expected.extend([4, 5].map(|usage| (usage, false, 255)));
+    expected.extend((10..16).map(|usage| (usage, true, 255)));
+    expected.extend((224..232).map(|usage| (usage, false, 0)));
+    expected.extend((10..16).map(|usage| (usage, false, 0)));
+    expected.extend((16..22).map(|usage| (usage, true, 0)));
+    let batch_offsets = [0, 3, 6, 22];
+    let batch_lengths = [3, 3, 16, 20];
+    let tags = ["keyboard", "duplicate", "keyboard", "keyboard", "keyboard"];
     let mut retained_batch = Vec::with_capacity(4096);
     let mut next_input = 0;
     let mut next_observation = 0;
@@ -148,17 +158,27 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                             != 0;
                         assert_eq!(
                             (octet("usage"), pressed, octet("modifiers")),
-                            expected[next_event * 3 + count]
+                            expected[batch_offsets[next_event] + count]
                         );
                         count += 1;
                     }
                 }
-                assert_eq!(count, 3);
+                assert_eq!(count, batch_lengths[next_event]);
                 if next_event == 0 {
                     retained_batch.extend_from_slice(&event.encoded);
                 }
                 let report = decoder.decode(&event.encoded).unwrap();
-                assert_eq!(report.transitions().len(), 3);
+                assert_eq!(report.transitions().len(), batch_lengths[next_event]);
+                if report.transitions().len() > 8 {
+                    assert_eq!(
+                        report.admit(&mut ingress),
+                        Err(conduitos::keyboard_input::KeyboardIngressRefusal::Pressure)
+                    );
+                    assert_eq!(ingress.pending(), 0);
+                    next_event += 1;
+                    run.complete_output(&transition.port_id, sequence).unwrap();
+                    continue;
+                }
                 report.admit(&mut ingress).unwrap();
                 report.admit(&mut ingress).unwrap();
                 assert_eq!(ingress.pending(), 6);
@@ -170,7 +190,8 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                 let mut delivered = 0;
                 assert_eq!(
                     ingress.service(8, |key| {
-                        let (usage, pressed, modifiers) = expected[next_event * 3 + delivered % 3];
+                        let (usage, pressed, modifiers) =
+                            expected[batch_offsets[next_event] + delivered % 3];
                         assert_eq!(
                             key.encode(),
                             [usage, if pressed { 0 } else { 1 }, modifiers]
@@ -183,13 +204,13 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                 next_event += 1;
                 run.complete_output(&transition.port_id, sequence).unwrap();
             }
-            if next_observation == 3 && next_event == 2 {
+            if next_observation == 5 && next_event == 4 {
                 complete = true;
                 break;
             }
         }
         assert!(complete);
-        assert_eq!((next_input, next_observation, next_event), (3, 3, 2));
+        assert_eq!((next_input, next_observation, next_event), (5, 5, 4));
         assert_eq!(held_output_steps, 128);
         let mut drained = false;
         for _ in 0..4096 {
