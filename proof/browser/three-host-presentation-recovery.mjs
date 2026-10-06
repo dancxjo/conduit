@@ -20,7 +20,11 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
     const participation = globalThis.__conduitOwnerParticipation;
     return participation?.presence() !== 'available' && participation?.face() === null
       && [...document.querySelectorAll('[data-owner-action] button')]
-        .every(button => button.disabled);
+        .every(button => button.disabled)
+      && document.querySelector('[data-owner-wardrobe-evidence]')?.textContent
+        .includes('historical')
+      && document.querySelector('[data-owner-action-result]')?.textContent
+        .includes('no current action return');
   }, null, { timeout: 12_000 });
   const lost = await page.evaluate(() => ({
     presence: globalThis.__conduitOwnerParticipation.presence(),
