@@ -41,7 +41,7 @@ the existing decoded wire result and 2,048-byte endpoint payload retain their
 own bounds. Packaged preparation issues no authority. Execution conformance,
 pointer history, lifecycle and ordinary two-capture installation are pending.
 
-Deterministic conformance covers every key-slot permutation and motion octet.
+Existing report conformance covers every key-slot permutation and motion octet.
 Both class topologies also execute 64 frames through the production kernel with
 normal closure and zero allocations during Play. Held output acknowledgements
 retain the earlier report under pressure; malformed input emits its exact
