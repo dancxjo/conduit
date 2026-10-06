@@ -53,6 +53,13 @@ impl SelectedPlayback {
             return Err("selected speaker observation is ambiguous".into());
         }
         let voice = options.speech_voice.as_deref().unwrap_or("en-us");
+        let coverage = conduit_std_host::hosted_speech_synthesis::read_language_coverage(
+            options
+                .speech_language_coverage
+                .as_ref()
+                .ok_or("speech needs Language coverage")?,
+        )
+        .map_err(|error| error.to_string())?;
         let discovery = EspeakDiscovery::inspect(
             options
                 .speech_executable
@@ -66,6 +73,9 @@ impl SelectedPlayback {
             &options.speech_engine,
         )
         .map_err(|error| format!("selected speech provider refused: {error:?}"))?;
+        let discovery = discovery
+            .declare_language_coverage(coverage)
+            .map_err(|error| format!("selected speech Language coverage refused: {error:?}"))?;
         let config = StdHostConfig {
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
