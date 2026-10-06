@@ -143,7 +143,12 @@ fn prove(
                 "face":standby_face.clone(),
             }),
         )?;
-        wait_for_resume(directory, "resume-native-activation", child)?;
+        wait_for_resume(
+            directory,
+            "resume-native-activation",
+            child,
+            Duration::from_secs(120),
+        )?;
     }
     // An actual native user requests this Mask after the owner has selected
     // its admitted route. No policy changes occur in the guest or harness.
@@ -170,7 +175,12 @@ fn prove(
                 "show_ack":before_ack,
             }),
         )?;
-        wait_for_resume(directory, "resume-native-action", child)?;
+        wait_for_resume(
+            directory,
+            "resume-native-action",
+            child,
+            Duration::from_secs(120),
+        )?;
     }
     // The first available control is Wake; the second is the checked clock
     // interval argument. Traverse both through the ordinary native Mask.
@@ -196,7 +206,14 @@ fn prove(
                 "show_ack":after_ack,
             }),
         )?;
-        wait_for_resume(directory, "resume-native-finish", child)?;
+        // The guest must remain alive while the owner completes a full spoken
+        // Face and the separate model chapters before the final QMP receipt.
+        wait_for_resume(
+            directory,
+            "resume-native-finish",
+            child,
+            Duration::from_secs(45 * 60),
+        )?;
     }
     if child
         .try_wait()

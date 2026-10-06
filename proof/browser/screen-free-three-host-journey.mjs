@@ -235,7 +235,9 @@ try {
     '--speech-language-coverage', speechLanguageCoverage);
   if (model) liveArgs.push('--model', model, '--ollama-endpoint', modelEndpoint,
     '--admitted-memory-mib', modelMemory);
-  invoke(xtask, liveArgs, { timeout: 180_000 });
+  // A selected speaker completes the entire current Face before the producer
+  // can retain its terminal Play and same-stream WAV artifacts.
+  invoke(xtask, liveArgs, { timeout: speakerCard ? 45 * 60_000 : 180_000 });
   const reportFile = path.join(live, 'report.json');
   const report = await load(reportFile);
   assert.equal(report.body_id, bodyId);
