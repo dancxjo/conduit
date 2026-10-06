@@ -129,10 +129,12 @@ fn execute_mask(
         execution_id,
         presentation,
         retained,
-        real,
-        streaming,
+        run::SpeechPreparation {
+            real,
+            streaming,
+            language,
+        },
         &crate::RunControl::default(),
-        language,
     )?;
     let _terminal_report = report;
     let delivery = deliveries
