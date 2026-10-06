@@ -37,8 +37,8 @@ impl Mode {
 }
 
 enum Start {
-    Direct(DirectSpokenStart),
-    Llm(LlmSpokenStart),
+    Direct(Box<DirectSpokenStart>),
+    Llm(Box<LlmSpokenStart>),
 }
 
 impl Start {
@@ -83,8 +83,8 @@ impl TimerAdapter for NoWait {
 
 fn run_one(host: &mut StdHost, start: Start, control: &RunControl) -> Result<ResultShow, String> {
     match start {
-        Start::Direct(start) => run_direct(host, start, control),
-        Start::Llm(start) => run_llm(host, start, control),
+        Start::Direct(start) => run_direct(host, *start, control),
+        Start::Llm(start) => run_llm(host, *start, control),
     }
 }
 
@@ -282,8 +282,8 @@ impl DurableHostRuntime {
             return Err("owner spoken Mask needs an idle Body owner".into());
         };
         let start = match mode {
-            Mode::Direct => Start::Direct(owner.prepare_selected_direct_spoken_start()?),
-            Mode::Llm => Start::Llm(owner.prepare_selected_llm_spoken_start()?),
+            Mode::Direct => Start::Direct(Box::new(owner.prepare_selected_direct_spoken_start()?)),
+            Mode::Llm => Start::Llm(Box::new(owner.prepare_selected_llm_spoken_start()?)),
         };
         let seal = start.seal().clone();
         let operation_id =

@@ -323,7 +323,7 @@ fn install_configured(
             .and_then(|value| value.selected_model.clone()),
         selected_model::Change::Replace(selection) => {
             selection.validate()?;
-            Some(selection)
+            Some(*selection)
         }
         selected_model::Change::Remove => None,
     };

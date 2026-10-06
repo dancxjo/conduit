@@ -19,7 +19,7 @@ pub(super) struct Selection {
 
 pub(super) enum Change {
     Preserve,
-    Replace(Selection),
+    Replace(Box<Selection>),
     Remove,
 }
 
@@ -99,5 +99,5 @@ pub(super) fn change(options: InstalledModelOptions) -> Result<Change, String> {
         reviewed_offer: adapter.offer().clone(),
     };
     selection.validate()?;
-    Ok(Change::Replace(selection))
+    Ok(Change::Replace(Box::new(selection)))
 }

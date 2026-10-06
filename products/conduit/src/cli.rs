@@ -268,6 +268,9 @@ pub(crate) enum RendezvousCarrier {
 }
 
 #[derive(Debug, Subcommand)]
+// This one-shot command keeps its reviewed speech and model selections explicit
+// for Clap's flattened arguments; the enum is not retained in a running Play.
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum HostServiceCommand {
     /// Verify and install one reviewed release bundle without replacing durable identity.
     Install {

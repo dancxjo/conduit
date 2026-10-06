@@ -147,6 +147,9 @@ impl Owner {
         )
     }
 
+    // Each optional route is a distinct current witness. Keeping them explicit
+    // prevents a caller from silently substituting a different Mask route.
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn current_presentation_routes_with_native_and_speech<'a>(
         owner_offer: &'a conduit_core::HostAdvertisement,
         browser: Option<&'a super::participants::BrowserWindow>,

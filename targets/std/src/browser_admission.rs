@@ -650,14 +650,6 @@ mod wardrobe_wire_tests {
 
     #[test]
     fn wardrobe_request_uses_correlated_revision_bound_action_shape() {
-        let body = conduit_body::Body::born(
-            "source/wardrobe-test".into(),
-            "checked/wardrobe-test".into(),
-            1,
-            "sign/birth".into(),
-        )
-        .unwrap();
-        let part_id = PartId::bind(&body.body_id, "browser", 1).unwrap();
         let mask = conduit_core::PlotIdentity {
             source_document_id: conduit_core::SourceDocumentId::from("source/mask"),
             checked_plot_id: conduit_core::CheckedPlotId::from("checked/mask"),
