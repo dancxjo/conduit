@@ -23,10 +23,11 @@ pub fn usb_hid_endpoint_package() -> Result<ProtocolSourcePackage, ProtocolSourc
                 "HID endpoint imports",
             ))?;
     let source = format!(
-        "{endpoint_header}\n{lifecycle_header}\n{}\n{}\n{lifecycle_body}\n{endpoint_body}\n{}",
+        "{endpoint_header}\n{lifecycle_header}\n{}\n{}\n{lifecycle_body}\n{endpoint_body}\n{}\n{}",
         include_str!("../../plots/usb/hid-reports.conduit"),
         include_str!("../../plots/usb/hid-keyboard-state.conduit"),
-        include_str!("../../plots/usb/hid-keyboard-batches.conduit")
+        include_str!("../../plots/usb/hid-keyboard-batches.conduit"),
+        include_str!("../../plots/usb/hid-keyboard-order.conduit")
     );
     let value = |name: &str| ProtocolValueReference {
         type_name: name.into(),
