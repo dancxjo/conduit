@@ -115,6 +115,11 @@ edits the name, selects the reviewed Clock Plot, reviews the current Face, and
 explicitly activates Birth. The resulting Body is the one provisioned for QMP
 and joined by Chromium. Keep the TLS key and the entire new output directory
 private: it contains a live invitation and provisioned ISO.
+The current fixed-storage ConduitOS TLS client offers ECDSA P-256/P-384 and
+Ed25519 signatures, not RSA. Use a private P-256 route certificate whose SAN
+includes the guest route IP (`10.0.2.42`) and the owner-forward address. An
+RSA certificate can provision successfully but the guest cannot complete its
+TLS handshake.
 
 ```sh
 cargo xtask make conduitos screen-free-three-host-proof \
@@ -142,7 +147,10 @@ device playback, first inspect `conduit body speech-options --json`, then add
 the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
 `--speech-data`, and `--speech-engine` options. The selected device's playback
 receipts are in the Birth transcript; this remains distinct from attended
-human listening. Current selected playback uses a second StdHost sharing the
+human listening. Pass the exact regular `engine` path reported by
+`speech-options`, not a versioned-library symlink; provider discovery rejects
+symlinks to keep the bound bytes unambiguous. Current selected playback uses a
+second StdHost sharing the
 owner's Host and Boot identities; this run does not establish speech realized
 by the owner instance. The three speech provider options may also be used without a
 speaker selection to retain the same-run direct speech artifact after the
