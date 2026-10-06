@@ -84,7 +84,11 @@ pub(super) fn prove(
             journey.requests.first().cloned().into_iter().collect()
         }
     });
-    let receipt = conduit_std_host::local_model_proof::run(adapter, &presenter_requests)?;
+    let receipt = conduit_std_host::local_model_proof::run(
+        adapter,
+        &presenter_requests,
+        &conduit_tongues::specimen_language_request(),
+    )?;
     if let Some(journey) = journey.as_ref().filter(|_| journey_documentary) {
         if let Err(error) =
             super::host_local_model_journey::write(journey, &receipt, speech.as_ref())
