@@ -86,7 +86,10 @@ pub(super) fn run(
     parameters: InboundEndpointParameters,
 ) -> Result<(), &'static str> {
     let contract = EndpointReadContract::prepare().map_err(|_| "usb-endpoint-proof-contract")?;
-    #[cfg(feature = "usb-endpoint-read-proof")]
+    #[cfg(all(
+        feature = "usb-endpoint-read-proof",
+        not(feature = "usb-hid-endpoint-proof")
+    ))]
     let device = super::hid_boot_control_proof::run(controller, device, mapping, ids, base)?;
     let root_port = device.root_port;
     let slot = device.slot;
