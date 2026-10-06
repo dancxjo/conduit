@@ -127,6 +127,7 @@ impl TimerAdapter for NoopTimer {
 pub fn run(
     adapter: OllamaLocalModelAdapter,
     presenter_requests: &[GenerativePresenterRequest],
+    language: &conduit_language::LanguageRequest,
 ) -> Result<LocalModelLiveProofReceipt, Box<dyn std::error::Error>> {
     let proof_class = if adapter
         .offer()
@@ -241,6 +242,7 @@ pub fn run(
     let house_response_sha256 = sha256(house_response.as_bytes());
     let house_speech = conduit_tongues::run_speech_text(
         &house_response,
+        language,
         conduit_tongues::OutputCondition::DegradedWavArtifact,
         conduit_tongues::SpeechFault::None,
     )?;

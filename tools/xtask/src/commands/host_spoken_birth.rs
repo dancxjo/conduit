@@ -28,7 +28,10 @@ pub(super) fn prove(
         return Ok(());
     }
 
-    let awaiting = conduit_std_host::spoken_birth_journey::begin(bootstrap_text)?;
+    let awaiting = conduit_std_host::spoken_birth_journey::begin(
+        bootstrap_text,
+        &conduit_tongues::specimen_language_request(),
+    )?;
     let (_, evidence) = awaiting.confirm(
         conduit_std_host::spoken_birth_journey::ConfirmBirthAction::new(
             "action/xtask-confirm-birth",
@@ -38,6 +41,7 @@ pub(super) fn prove(
         1,
         SignId::from("sign/xtask-tongues-spoken-birth/born"),
         body_text,
+        &conduit_tongues::specimen_language_request(),
     )?;
     if opts.json {
         println!("{}", serde_json::to_string(&evidence)?);
