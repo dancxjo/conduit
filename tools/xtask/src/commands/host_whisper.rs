@@ -270,10 +270,48 @@ mod tests {
         std::fs::write(&model, b"bounded model").unwrap();
         std::fs::write(&pcm, vec![0_u8; 5_000 * BYTES_PER_SAMPLE]).unwrap();
 
+        use conduit_language::{
+            LanguageCoverage, LanguageExternalIdentity, LanguageId, LanguageMappingDeclaration,
+            LanguageRequest, LanguageVarietyPolicy,
+        };
+        use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
+        let provider = WhisperDiscovery::inspect(&executable, &model)
+            .unwrap()
+            .provider_identity();
+        let language = LanguageId::new("language/english".into()).unwrap();
+        let mapping = LanguageMappingDeclaration::new(
+            LanguageExternalIdentity::new(provider.clone(), "en".into()).unwrap(),
+            language.clone(),
+            None,
+        )
+        .unwrap();
+        let coverage = LanguageCoverage::new(
+            provider,
+            BoundedSequence::try_from_iter([language.clone()]).unwrap(),
+            BoundedSequence::try_from_iter([mapping]).unwrap(),
+            "whisper-entrance-fixture@1".into(),
+            BoundedSequence::try_from_iter([]).unwrap(),
+            false,
+        )
+        .unwrap();
+        let language_coverage = root.join("coverage.native");
+        let language_request = root.join("request.native");
+        std::fs::write(&language_coverage, coverage.encode().unwrap()).unwrap();
+        std::fs::write(
+            &language_request,
+            LanguageRequest::new(language, None, LanguageVarietyPolicy::LanguageSufficient)
+                .unwrap()
+                .encode()
+                .unwrap(),
+        )
+        .unwrap();
+
         prove(
             WhisperProofRequest {
                 executable,
                 model,
+                language_coverage,
+                language_request,
                 pcm_s16le_16000_mono: pcm,
                 threads: 2,
                 timeout_seconds: 2,
