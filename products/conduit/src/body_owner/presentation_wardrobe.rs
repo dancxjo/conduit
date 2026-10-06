@@ -155,12 +155,15 @@ impl OwnerPresentationWardrobe {
         face: &Presentation,
         current: &[CurrentOwnerPresentationRoute<'_>],
     ) -> Result<MaskReconciliation, OwnerPresentationWardrobeError> {
-        let next = OwnerPresentationPlan::seal_current(session, face, current)
-            .map_err(OwnerPresentationWardrobeError::Plan)?;
-        if next.plan_id == self.plan.plan_id {
-            self.reconcile(session, face, current)
-        } else {
-            self.replace(session, face, current)
+        match self.plan.admit_current_routes(session, face, current) {
+            // A missing witness withdraws availability from its existing
+            // route. It does not silently replace the immutable outer Plan.
+            Ok(_) => self.reconcile(session, face, current),
+            Err(OwnerPresentationPlanError::UnknownOrDuplicateWitness)
+            | Err(OwnerPresentationPlanError::StaleBodyOrFace) => {
+                self.replace(session, face, current)
+            }
+            Err(error) => Err(OwnerPresentationWardrobeError::Plan(error)),
         }
     }
 
