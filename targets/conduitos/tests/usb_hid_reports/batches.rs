@@ -3,11 +3,23 @@ use conduit_core::*;
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 
 #[test]
+#[cfg(target_arch = "x86_64")]
 fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
     let (schemas, mut run) = super::state_kernel::prepared_package(
         &conduitos::protocol_source::usb_hid_endpoint_package().unwrap(),
         "usb-hid-keyboard-received-batches",
     );
+    let package = conduitos::protocol_source::usb_hid_endpoint_package().unwrap();
+    let entry = conduitos::protocol_source::PreparedProtocolEntry::prepare(
+        &serde_json::to_vec(&package).unwrap(),
+        "usb-hid-keyboard-received-batches",
+    )
+    .unwrap();
+    let decoder = conduitos::source_keyboard_batch::SourceKeyboardBatchDecoder::prepare(
+        &entry.output_schema(&PortId::from("changes")).unwrap(),
+    )
+    .unwrap();
+    let mut ingress = conduitos::keyboard_input::KeyboardIngress::new();
     let frame_type = schemas.get(&PortId::from("frame")).unwrap().clone();
     let boundary = &run.kernel().definition().boundary;
     let begin = boundary
@@ -141,6 +153,29 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                     }
                 }
                 assert_eq!(count, 3);
+                let report = decoder.decode(&event.encoded).unwrap();
+                assert_eq!(report.transitions().len(), 3);
+                report.admit(&mut ingress).unwrap();
+                report.admit(&mut ingress).unwrap();
+                assert_eq!(ingress.pending(), 6);
+                assert_eq!(
+                    report.admit(&mut ingress),
+                    Err(conduitos::keyboard_input::KeyboardIngressRefusal::Pressure)
+                );
+                assert_eq!(ingress.pending(), 6);
+                let mut delivered = 0;
+                assert_eq!(
+                    ingress.service(8, |key| {
+                        let (usage, pressed, modifiers) = expected[next_event * 3 + delivered % 3];
+                        assert_eq!(
+                            key.encode(),
+                            [usage, if pressed { 0 } else { 1 }, modifiers]
+                        );
+                        delivered += 1;
+                    }),
+                    6
+                );
+                assert_eq!(ingress.pending(), 0);
                 next_event += 1;
                 run.complete_output(&transition.port_id, sequence).unwrap();
             }

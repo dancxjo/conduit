@@ -68,6 +68,24 @@ impl PreparedProtocolEntry {
             .or_else(|| conduit_core::StructuredInfoType::leaf(descriptor.value_kind.clone()).ok())
     }
 
+    /// Resolve the checked Fore schema for a native typed-output consumer.
+    pub fn output_schema(
+        &self,
+        port: &conduit_core::PortId,
+    ) -> Option<conduit_core::StructuredInfoType> {
+        let descriptor = self
+            .expanded
+            .front
+            .outputs()
+            .iter()
+            .find(|output| &output.port_id == port)?;
+        self.source
+            .checked
+            .structured_type(&descriptor.value_kind)
+            .cloned()
+            .or_else(|| conduit_core::StructuredInfoType::leaf(descriptor.value_kind.clone()).ok())
+    }
+
     pub fn resident(&self) -> conduit_body::ResidentPlot {
         conduit_body::ResidentPlot::new(
             self.expanded.expanded.source_document_id.clone(),
