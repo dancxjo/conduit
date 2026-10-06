@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { captureLlmChapter } from './three-host-llm-chapter.mjs';
 import { captureRunId } from './three-host-run-identity.mjs';
+import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-owner-speech.mjs';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
@@ -61,13 +62,14 @@ const run = (args) => {
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 };
-let server, browser, nativeProof;
+let server, browser, nativeProof, speechObserver;
 const nativeOutput = [];
 try {
   server = await startStaticProduct(handbook);
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
+  speechObserver = observeOwnerSpeech(page);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const ownerBefore = run(['body', 'status', '--state-dir', state, '--json']);
@@ -328,6 +330,18 @@ try {
     assert.equal(afterTerminalStatus.biography.membership.parts.some(part =>
       part.part_id === partId && part.current !== null), true);
   }
+  let ownerSelectedSpeech;
+  if (installed.selected_speech) {
+    const receipt = await captureOwnerSelectedSpeech(page, speechObserver, {
+      face: afterTerminal, bodyId, ownerHostId: ownerPart.current.host_id,
+      ownerBootId: ownerPart.current.boot_id,
+      providerSha256: installed.selected_speech.provider_sha256,
+    });
+    const bytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
+    await writeFile(path.join(output, 'owner-selected-speech.json'), bytes);
+    ownerSelectedSpeech = { ...receipt, path: 'owner-selected-speech.json', sha256: digest(bytes) };
+    assert.equal(run(['body', 'status', '--state-dir', state, '--json']).biography.body_id, bodyId);
+  }
   let directSpeech;
   if (directSpeechEnabled) {
     const directory = path.join(output, 'speech-direct');
@@ -352,6 +366,7 @@ try {
     assert.equal(receipt.owner_host_id, ownerPart.current.host_id);
     assert.equal(receipt.owner_boot_id, ownerPart.current.boot_id);
     assert.equal(receipt.face_id, afterTerminal.face_id);
+    assert.equal(receipt.face_revision.toString(), afterTerminal.face_revision);
     assert.equal(receipt.owner_snapshot_before_after_equal, true);
     assert.equal(receipt.direct_spoken_mask_show_observed, false);
     assert.equal(receipt.owner_sealed_spoken_mask_route_observed, false);
@@ -373,6 +388,10 @@ try {
       produced_pcm_bytes: receipt.produced_pcm_bytes,
       speech_receipt_sha256: digest(receiptBytes),
       speech_manifest_sha256: digest(manifestBytes),
+      source_show_id: receipt.source_show_id,
+      source_mask_kind: receipt.source_mask_kind,
+      face_id: receipt.face_id,
+      face_revision: afterTerminal.face_revision,
       playback_observed: receipt.playback_observed,
       human_hearing_observed: receipt.human_hearing_observed,
       wavs,
@@ -468,6 +487,7 @@ try {
       sha256: digest(wardrobeBytes),
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
+    ...(ownerSelectedSpeech ? { owner_selected_speech: ownerSelectedSpeech } : {}),
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
       model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
@@ -486,6 +506,7 @@ try {
   await writeFile(path.join(output, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`Three-host journey proof: ${path.join(output, 'report.json')}`);
 } finally {
+  speechObserver?.close();
   if (nativeProof?.exitCode === null) nativeProof.kill();
   await browser?.close();
   if (server) server.child.kill();

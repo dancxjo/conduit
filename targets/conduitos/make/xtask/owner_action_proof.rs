@@ -243,16 +243,16 @@ fn wait_for_standby(
                 && value.get("local_show_available") == Some(&Value::Bool(true))
         });
         if serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
-            && part
-                .last()
-                .is_some_and(|value| value.get("membership_installed") == Some(&Value::Bool(true)))
             && routes.iter().any(|value| {
                 value.get("status").and_then(Value::as_str) == Some("standby")
                     && value.get("activation").and_then(Value::as_str) == Some("F5")
             })
-            && shown.is_some()
         {
-            return Ok((part.last().unwrap().clone(), shown.unwrap().clone()));
+            if let (Some(part), Some(shown)) = (part.last(), shown) {
+                if part.get("membership_installed") == Some(&Value::Bool(true)) {
+                    return Ok((part.clone(), shown.clone()));
+                }
+            }
         }
         wait_or_refuse(child, deadline, "native-owner-standby-not-ready")?;
     }
