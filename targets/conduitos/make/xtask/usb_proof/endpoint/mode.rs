@@ -24,7 +24,14 @@ impl ProofMode {
     pub(super) fn arena_bytes(self) -> u64 {
         match self {
             Self::Raw => 16 * 1024 * 1024,
-            Self::Keyboard | Self::Mouse => conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES,
+            Self::Keyboard => conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES,
+            Self::Mouse => conduitos::make::USB_HID_MOUSE_ARENA_BYTES,
+        }
+    }
+    pub(super) fn qemu_memory(self) -> &'static str {
+        match self {
+            Self::Keyboard => "256M",
+            Self::Raw | Self::Mouse => "64M",
         }
     }
     pub(super) fn serial_name(self) -> &'static str {
