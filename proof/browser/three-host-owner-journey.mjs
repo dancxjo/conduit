@@ -96,6 +96,17 @@ try {
   assert.equal(joined.face.body_id, bodyId);
   assert.equal(joined.face.show_state, 'available');
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
+  const wardrobeEvidence = page.locator('[data-owner-wardrobe-evidence]');
+  const readWardrobe = async () => JSON.parse(await wardrobeEvidence.textContent());
+  const awaitWardrobeRevision = async prior => {
+    await page.waitForFunction(revision => {
+      try {
+        const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+        return report.wardrobe_revision_decimal !== revision;
+      } catch { return false; }
+    }, prior, { timeout: 12_000 });
+    return readWardrobe();
+  };
   // Join the browser first: its membership changes the owner Face. The QMP
   // guest must then receive that fresh revision before it submits an action.
   nativeProof = spawn(xtask, [
@@ -105,6 +116,31 @@ try {
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
   nativeProof.stdout.on('data', chunk => nativeOutput.push(chunk.toString()));
   nativeProof.stderr.on('data', chunk => nativeOutput.push(chunk.toString()));
+  const standby = await waitForFile(path.join(native, 'native-standby.json'));
+  assert.equal(standby.stage, 'standby');
+  assert.equal(standby.guest_part.membership_installed, true);
+  assert.equal(standby.guest_part.body_id, bodyId);
+  assert.equal(standby.face.interactions_admitted, false);
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(() => {
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .route_descriptions.some(route => route.mask_name === 'native-graphical'); } catch { return false; }
+  }, null, { timeout: 12_000 });
+  const nativeWardrobeBefore = await readWardrobe();
+  const nativeDescription = nativeWardrobeBefore.route_descriptions.find(route =>
+    route.mask_name === 'native-graphical');
+  const nativeRoute = nativeWardrobeBefore.admitted_routes.find(route =>
+    route.route_id === nativeDescription.route_id && route.currently_available);
+  assert.ok(nativeRoute, 'native Mask must have a current sealed route before user selection');
+  assert.notEqual(nativeWardrobeBefore.selected?.route_id, nativeRoute.route_id);
+  await page.getByRole('button', { name: 'Wear native-graphical', exact: true }).click();
+  const nativeWorn = await awaitWardrobeRevision(nativeWardrobeBefore.wardrobe_revision_decimal);
+  assert.equal(nativeWorn.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
+  await page.getByRole('button', { name: 'Prefer only native-graphical', exact: true }).click();
+  const nativePreferred = await awaitWardrobeRevision(nativeWorn.wardrobe_revision_decimal);
+  assert.equal(nativePreferred.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
+  assert.equal(nativePreferred.selected?.route_id, nativeRoute.route_id);
+  await writeFile(path.join(native, 'resume-native-activation'), 'continue\n');
   const arrived = await waitForFile(path.join(native, 'native-arrived.json'));
   assert.equal(arrived.stage, 'arrived');
   assert.equal(arrived.guest_part.membership_installed, true);
@@ -128,6 +164,22 @@ try {
   assert.equal(nativeAction.action.status, 'accepted');
   assert.equal(nativeAction.action.requested_interval_ms, 500);
   assert.equal(nativeAction.show_ack.show_id, nativeAction.face.show_id);
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(prior => {
+    try {
+      const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+      return report.face_id !== prior && report.route_descriptions.length > 0;
+    } catch { return false; }
+  }, nativePreferred.face_id, { timeout: 12_000 });
+  const beforeBrowserRestore = await readWardrobe();
+  const browserDescription = beforeBrowserRestore.route_descriptions.find(route =>
+    route.host_id === identity.hostId);
+  const currentBrowserRoute = beforeBrowserRestore.admitted_routes.find(route =>
+    route.route_id === browserDescription?.route_id && route.currently_available);
+  assert.ok(currentBrowserRoute, 'current browser route needs a sealed available witness');
+  await page.getByRole('button', { name: `Prefer only ${browserDescription.mask_name}`, exact: true }).click();
+  const browserRestored = await awaitWardrobeRevision(beforeBrowserRestore.wardrobe_revision_decimal);
+  assert.equal(browserRestored.selected?.route_id, currentBrowserRoute.route_id);
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(prior => {
     const face = globalThis.__conduitOwnerParticipation.face();
@@ -199,17 +251,6 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterTerminal.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-terminal.png') });
-  const wardrobeEvidence = page.locator('[data-owner-wardrobe-evidence]');
-  const readWardrobe = async () => JSON.parse(await wardrobeEvidence.textContent());
-  const awaitWardrobeRevision = async prior => {
-    await page.waitForFunction(revision => {
-      try {
-        const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
-        return report.wardrobe_revision_decimal !== revision;
-      } catch { return false; }
-    }, prior, { timeout: 12_000 });
-    return readWardrobe();
-  };
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(() => {
     if (!document.querySelector('[data-owner-wardrobe-status]').textContent
@@ -255,6 +296,8 @@ try {
   const wardrobeRecord = { schema: 'conduit.proof/owner-browser-wardrobe@1',
     source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
     browser_route_id: browserRoute.route_id,
+    native_selection: { standby, before: nativeWardrobeBefore, worn: nativeWorn,
+      preferred: nativePreferred, browser_restored: browserRestored },
     before: wardrobeBefore, doffed: wardrobeDoffed, worn: wardrobeWorn,
     preferred: wardrobePreferred, recovered: wardrobeRecovered };
   const wardrobeBytes = Buffer.from(`${JSON.stringify(wardrobeRecord, null, 2)}\n`);
@@ -342,7 +385,7 @@ try {
   assert.equal(browserBundle.reviewed_distribution.source_commit, nativeReceipt.source_commit);
   const screenshotPaths = ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
     'browser-after-terminal.png', 'browser-wardrobe.png',
-    'native/owner-before.png', 'native/owner-after.png'];
+    'native/owner-standby.png', 'native/owner-before.png', 'native/owner-after.png'];
   const screenshots = await Promise.all(screenshotPaths.map(async file => {
     const bytes = await readFile(path.join(output, file));
     return { path: file, bytes: bytes.length, sha256: digest(bytes) };
