@@ -202,6 +202,12 @@ impl EndpointRingCursor {
 }
 
 impl EndpointRingReservation {
+    /// Zero-based submission order within this retained endpoint ring. This
+    /// observation cannot reconstruct a reservation or authorize completion.
+    pub fn ordinal(&self) -> u64 {
+        self.sequence - 1
+    }
+
     /// Pointer arithmetic must be checked by the native DMA owner before use.
     pub fn normal(&self, buffer: u64) -> [u32; 4] {
         [
