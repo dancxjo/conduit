@@ -12,6 +12,35 @@ const SOURCE: &str = r#"plot authoring {
 "#;
 
 #[test]
+fn default_editor_installs_the_live_authoring_fixture_contracts() {
+    let editor = PlotEditor::from_source(
+        "fixture.conduit".into(),
+        "plot fixture {\n literal: text/literal(\"truth\")\n join: text/join(\"prefix\")\n upper: text/upper\n display: presentation/text\n map: math/map-quantity\n scalar: math/clamp\n wrapped: structured-info/wrap-quantity\n literal >> join >> upper >> display\n}\n".into(),
+    )
+    .unwrap();
+    assert!(editor.view().checked.source_document_id.is_some());
+    let inventory = editor.authoring_catalog().unwrap();
+    for id in [
+        "text/literal",
+        "text/join",
+        "text/upper",
+        "presentation/text",
+        "math/map-quantity",
+        "math/clamp",
+        "structured-info/wrap-quantity",
+    ] {
+        assert!(
+            inventory
+                .iter()
+                .find(|entry| entry.contract.kind_id.as_str() == id)
+                .unwrap()
+                .authorable,
+            "installed canonical contract must be authorable: {id}"
+        );
+    }
+}
+
+#[test]
 fn unchanged_revision_and_ports_do_not_hide_configuration_drift() {
     let original = conduit_semantic_catalog::standard_profile_catalog();
     let kind = original.canonical_kind(&KindId::from("text/join")).unwrap();

@@ -8,6 +8,28 @@ use conduit_semantic_catalog::{
 };
 
 #[test]
+fn text_palette_matches_the_installed_canonical_text_contracts() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut catalog = conduit_plot::ProfileCatalog::new();
+    conduit_text::install_text_catalogs(&mut startup, &mut catalog).unwrap();
+    let palette = GearPalette::standard().unwrap();
+    for id in ["text/literal", "text/upper", "text/join"] {
+        let entry = palette.find(&kind_id(id)).unwrap();
+        let kind = catalog.canonical_kind(&kind_id(id)).unwrap();
+        assert_eq!(entry.front, kind.checked_front());
+        assert_eq!(entry.kind_contract_revision, kind.kind_contract_revision);
+        assert_eq!(entry.semantic_laws, kind.semantic_laws);
+        assert_eq!(entry.limits, kind.limits);
+        assert_eq!(entry.configuration.len(), kind.configuration.len());
+        for (projected, field) in entry.configuration.iter().zip(&kind.configuration) {
+            assert_eq!(projected.key, field.key);
+            assert_eq!(projected.rule, field.rule);
+            assert_eq!(projected.default_value, field.default_value);
+        }
+    }
+}
+
+#[test]
 fn palette_exact_fore_revision_and_rules_are_source_catalog_truth() {
     let palette = GearPalette::standard().unwrap();
     let catalog = standard_profile_catalog();

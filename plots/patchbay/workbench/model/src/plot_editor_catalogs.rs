@@ -39,6 +39,8 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Pl
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)

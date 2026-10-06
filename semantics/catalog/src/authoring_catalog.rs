@@ -5,6 +5,15 @@ use conduit_core::Kind;
 
 pub(crate) fn nucleus_kind(contract: StandardKindContract, revision: &str) -> Kind {
     match contract.kind_id.as_str() {
+        conduit_text::TEXT_LITERAL_KIND => {
+            conduit_text::text_literal_semantics().into_semantic_contract()
+        }
+        conduit_text::TEXT_UPPER_KIND => {
+            conduit_text::text_upper_semantics().into_semantic_contract()
+        }
+        conduit_text::TEXT_JOIN_KIND => {
+            conduit_text::text_join_semantics().into_semantic_contract()
+        }
         MATH_CLAMP_KIND => math_clamp_semantic_contract(),
         MATH_SCALE_KIND => math_scale_semantic_contract(),
         MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
