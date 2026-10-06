@@ -158,6 +158,28 @@ impl LocalOwnerMaskRouteSeal {
         Ok(())
     }
 
+    /// The installed owner calls this before publishing a current local
+    /// speech witness. A Plan's retained grant list is not evidence that the
+    /// provider still possesses those grants after loss or reattachment.
+    pub fn validate_current_with_grants(
+        &self,
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        current_owner_offer: &HostAdvertisement,
+        current_grants: &[AuthorityGrant],
+    ) -> Result<(), LocalOwnerMaskRouteError> {
+        self.validate_current(session, face, current_owner_offer)?;
+        if self.authority_grants.len() != current_grants.len()
+            || self
+                .authority_grants
+                .iter()
+                .any(|grant| !current_grants.contains(grant))
+        {
+            return Err(LocalOwnerMaskRouteError::InvalidAuthorityGrant);
+        }
+        Ok(())
+    }
+
     pub fn validate_available_show(
         &self,
         session: &BodyLifecycleSession,

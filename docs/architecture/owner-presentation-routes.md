@@ -12,7 +12,11 @@ must not create a placeholder Wake or remove its available interval action.
 `LocalOwnerMaskRouteSeal` binds the Body, workset revision, exact Face identity,
 revision and basis, complete current Host/Boot/offer, and ordinary Mask Plan.
 It verifies the selected Back and resources and refuses remote fragments or
-Lines; a local terminal route has no cross-Host Cord to realize.
+Lines; a local terminal route has no cross-Host Cord to realize. A local Mask
+that needs Host Calls also binds the exact finite Host/Boot-scoped authority
+grants selected in its child Plan. A sealed grant records admission, not ongoing
+provider possession: the owner withdraws that route's current witness when its
+provider or selected output is lost.
 `RemoteOwnerMaskRouteSeal` additionally binds a current admitted Part and the
 exact directional Face and return Line offers, credentials, authority and bounds.
 Membership, presence and matching identifiers cannot substitute for these facts.
