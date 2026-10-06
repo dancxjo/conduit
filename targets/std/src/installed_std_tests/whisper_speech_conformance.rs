@@ -9,6 +9,28 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::time::Duration;
 
+fn declaration(discovery: WhisperDiscovery) -> WhisperDiscovery {
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en",
+        "language/english",
+    );
+    discovery.declare_language_coverage(coverage).unwrap()
+}
+
+fn checked(
+    source: &str,
+    root: &str,
+    startup: &conduit_plot::StartupCatalog,
+    catalog: &conduit_plot::ProfileCatalog,
+) -> conduit_plot::ExpandedCanonicalPlot {
+    let syntax = conduit_plot::parse_syntax_document(source);
+    let checked = conduit_plot::check_syntax_document(&syntax, startup).unwrap();
+    conduit_plot::expand_canonical_plot_for_authoring(&checked, root, catalog)
+        .unwrap()
+        .expanded
+}
+
 #[test]
 fn initialized_whisper_runs_portable_recognition_through_ordinary_plan_and_play() {
     let root =
@@ -24,8 +46,7 @@ fn initialized_whisper_runs_portable_recognition_through_ordinary_plan_and_play(
     .unwrap();
     fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
     fs::write(&model, b"bounded whisper model fixture").unwrap();
-    let adapter = WhisperDiscovery::inspect(&executable, &model)
-        .unwrap()
+    let adapter = declaration(WhisperDiscovery::inspect(&executable, &model).unwrap())
         .initialize(WhisperLimits {
             maximum_audio_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
             maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
@@ -58,15 +79,18 @@ fn initialized_whisper_runs_portable_recognition_through_ordinary_plan_and_play(
         &mut startup,
         &mut catalog,
     );
+    let language_request = crate::hosted_language::language_request_literal(
+        &crate::hosted_language::tests::request("language/english"),
+    );
     let source = format!(
-        "plot whisper_proof {{\n audio: {}\n recognize: speech/recognize\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
+        "plot whisper_proof {{\n audio: {}\n recognize: speech/recognize(language-request = {language_request})\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );
-    let plot = conduit_plot::parse(&source, &catalog).unwrap();
+    let plot = checked(&source, "whisper_proof", &startup, &catalog);
     let advertisements = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&plot, &advertisements).unwrap();
-    let plan = conduit_planner::plan_with_options(
+    let placements = conduit_planner::default_expanded_placements(&plot, &advertisements).unwrap();
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
         &plot,
         &advertisements,
         &placements,
@@ -132,8 +156,7 @@ fn initialized_whisper_assembles_a_bounded_clip_in_one_ordinary_play() {
     .unwrap();
     fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
     fs::write(&model, b"bounded whisper clip model fixture").unwrap();
-    let adapter = WhisperDiscovery::inspect(&executable, &model)
-        .unwrap()
+    let adapter = declaration(WhisperDiscovery::inspect(&executable, &model).unwrap())
         .initialize(WhisperLimits {
             maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
             maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
@@ -167,15 +190,18 @@ fn initialized_whisper_assembles_a_bounded_clip_in_one_ordinary_play() {
         &mut startup,
         &mut catalog,
     );
+    let language_request = crate::hosted_language::language_request_literal(
+        &crate::hosted_language::tests::request("language/english"),
+    );
     let source = format!(
-        "plot whisper_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
+        "plot whisper_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip(language-request = {language_request})\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );
-    let plot = conduit_plot::parse(&source, &catalog).unwrap();
+    let plot = checked(&source, "whisper_clip_proof", &startup, &catalog);
     let advertisements = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&plot, &advertisements).unwrap();
-    let plan = conduit_planner::plan_with_options(
+    let placements = conduit_planner::default_expanded_placements(&plot, &advertisements).unwrap();
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
         &plot,
         &advertisements,
         &placements,

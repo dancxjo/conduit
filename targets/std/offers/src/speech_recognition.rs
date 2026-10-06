@@ -7,13 +7,13 @@ use conduit_core::{
 };
 
 pub const WHISPER_SPEECH_PROFILE: &str = "std/whisper-s16le-16000-mono@1";
-pub const WHISPER_SPEECH_IMPLEMENTATION: &str = "std/hosted-whisper-speech@1";
-pub const WHISPER_SPEECH_ARTIFACT: &str = "conduit-std-host/whisper-speech@1";
+pub const WHISPER_SPEECH_IMPLEMENTATION: &str = "std/hosted-whisper-speech@2";
+pub const WHISPER_SPEECH_ARTIFACT: &str = "conduit-std-host/whisper-speech@2";
 pub const WHISPER_SPEECH_OPERATION: &str = "conduit.host/whisper-speech-recognize@1";
 pub const WHISPER_PROCESS_RESOURCE_CLASS: &str = "conduit.resource/whisper-process-slot@1";
 pub const WHISPER_CLIP_SPEECH_PROFILE: &str = "std/whisper-clip-s16le-16000-mono@1";
-pub const WHISPER_CLIP_SPEECH_IMPLEMENTATION: &str = "std/hosted-whisper-clip-speech@1";
-pub const WHISPER_CLIP_SPEECH_ARTIFACT: &str = "conduit-std-host/whisper-clip-speech@1";
+pub const WHISPER_CLIP_SPEECH_IMPLEMENTATION: &str = "std/hosted-whisper-clip-speech@2";
+pub const WHISPER_CLIP_SPEECH_ARTIFACT: &str = "conduit-std-host/whisper-clip-speech@2";
 pub const WHISPER_CLIP_SPEECH_OPERATION: &str = "conduit.host/whisper-clip-speech-recognize@1";
 
 pub fn whisper_speech_offer() -> CapabilityOffer {
