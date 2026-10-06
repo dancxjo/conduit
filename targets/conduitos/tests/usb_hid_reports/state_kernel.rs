@@ -26,11 +26,18 @@ pub(super) fn prepared(
     BTreeMap<PortId, StructuredInfoType>,
     PreparedPureProtocolPlay,
 ) {
-    let entry = PreparedProtocolEntry::prepare(
-        &serde_json::to_vec(&super::lifecycle::package()).unwrap(),
-        entry_name,
-    )
-    .unwrap();
+    prepared_package(&super::lifecycle::package(), entry_name)
+}
+
+pub(super) fn prepared_package(
+    package: &conduitos::protocol_source::ProtocolSourcePackage,
+    entry_name: &str,
+) -> (
+    BTreeMap<PortId, StructuredInfoType>,
+    PreparedPureProtocolPlay,
+) {
+    let entry =
+        PreparedProtocolEntry::prepare(&serde_json::to_vec(package).unwrap(), entry_name).unwrap();
     let mut host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/keyboard-source-host".into(),

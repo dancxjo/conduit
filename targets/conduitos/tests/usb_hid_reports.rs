@@ -3,6 +3,7 @@
 mod allocation;
 
 mod usb_hid_reports {
+    mod batches;
     pub(super) mod common;
     mod endpoint;
     mod endpoint_kernel;
