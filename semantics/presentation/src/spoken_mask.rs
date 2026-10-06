@@ -7,7 +7,9 @@ use alloc::string::String;
 use conduit_core::{ActivePlayId, PlacementId, PlanId, SignId};
 use serde::{Deserialize, Serialize};
 
-use crate::{GeneratedManifestation, ManifestationLifecycle, MaskShow, MaskShowError, Presentation};
+use crate::{
+    GeneratedManifestation, ManifestationLifecycle, MaskShow, MaskShowError, Presentation,
+};
 
 pub const SPOKEN_MASK_ARTIFACT_RECEIPT_KIND: &str =
     "conduit.presentation/spoken-mask-artifact-receipt@1";
