@@ -5,7 +5,10 @@ use conduit_plot::{PortableExpressionProgram, PreparedPortableExpressionEvaluato
 fn program(entry: &str) -> PortableExpressionProgram {
     let package = conduitos::protocol_source::usb_hid_endpoint_package().unwrap();
     let source = conduitos::protocol_source::PreparedProtocolSource::prepare(package).unwrap();
-    let expanded = source.expand(entry).unwrap().expanded;
+    let expanded = source
+        .expand(entry)
+        .unwrap_or_else(|error| panic!("{entry}: {error:?}"))
+        .expanded;
     assert_eq!(expanded.gears.len(), 1);
     let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
         panic!("pure Source expression")
