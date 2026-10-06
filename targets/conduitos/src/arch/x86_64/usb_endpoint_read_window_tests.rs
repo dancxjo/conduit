@@ -15,7 +15,7 @@ fn capture_dma_checks_every_buffer_extent_including_segment_edges() {
         (0x40000, 0xf801),
         (0x40000, 0x40000),
         (0x40000, 0x3f800),
-        (u64::MAX & !63, 0x10000),
+        (!63_u64, 0x10000),
         (0x40000, u64::MAX - 2048),
     ] {
         assert!(matches!(
