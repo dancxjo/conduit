@@ -3,10 +3,12 @@ use super::{
     presentation_wardrobe::{OwnerPresentationWardrobe, OwnerPresentationWardrobeError},
     Owner,
 };
+#[cfg(unix)]
+use conduit_presentation::MaskWardrobeAction;
 use conduit_presentation::{
-    CurrentOwnerPresentationRoute, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobeAction,
-    RemoteOwnerMaskRouteSeal,
+    CurrentOwnerPresentationRoute, LocalOwnerMaskRouteSeal, MaskShow, RemoteOwnerMaskRouteSeal,
 };
+#[cfg(unix)]
 use serde_json::{json, Value};
 
 impl Owner {
@@ -18,20 +20,28 @@ impl Owner {
         session: &conduit_body::BodyLifecycleSession,
         face: &conduit_presentation::Presentation,
     ) -> Result<Option<&'a LocalOwnerMaskRouteSeal>, String> {
-        let Some(seal) = cached else {
-            return Ok(None);
-        };
-        if host.is_playing() || !host.current().terminal_attachment_is_live()? {
+        #[cfg(not(unix))]
+        {
+            let _ = (host, cached, session, face);
             return Ok(None);
         }
-        match seal.validate_current(session, face, host.advertisement()) {
-            Ok(()) => Ok(Some(seal)),
-            Err(
-                conduit_presentation::LocalOwnerMaskRouteError::StaleBody
-                | conduit_presentation::LocalOwnerMaskRouteError::StaleFace
-                | conduit_presentation::LocalOwnerMaskRouteError::StaleHost,
-            ) => Ok(None),
-            Err(error) => Err(format!("attached terminal witness invalid: {error:?}")),
+        #[cfg(unix)]
+        {
+            let Some(seal) = cached else {
+                return Ok(None);
+            };
+            if host.is_playing() || !host.current().terminal_attachment_is_live()? {
+                return Ok(None);
+            }
+            match seal.validate_current(session, face, host.advertisement()) {
+                Ok(()) => Ok(Some(seal)),
+                Err(
+                    conduit_presentation::LocalOwnerMaskRouteError::StaleBody
+                    | conduit_presentation::LocalOwnerMaskRouteError::StaleFace
+                    | conduit_presentation::LocalOwnerMaskRouteError::StaleHost,
+                ) => Ok(None),
+                Err(error) => Err(format!("attached terminal witness invalid: {error:?}")),
+            }
         }
     }
 
@@ -129,6 +139,7 @@ impl Owner {
 
     /// The installed owner keeps the Body-lifetime wardrobe. The attached
     /// terminal supplies only its already sealed local route and actual Show.
+    #[cfg(unix)]
     pub(crate) fn acknowledge_attached_terminal_show(
         &mut self,
         seal: &LocalOwnerMaskRouteSeal,
@@ -184,6 +195,7 @@ impl Owner {
         Ok(())
     }
 
+    #[cfg(unix)]
     pub(crate) fn attached_terminal_wardrobe_report(
         &mut self,
         seal: &LocalOwnerMaskRouteSeal,
@@ -248,6 +260,7 @@ impl Owner {
         }))
     }
 
+    #[cfg(unix)]
     pub(crate) fn validate_selected_terminal_show(
         &mut self,
         seal: &LocalOwnerMaskRouteSeal,
@@ -272,6 +285,7 @@ impl Owner {
         Ok(())
     }
 
+    #[cfg(unix)]
     pub(crate) fn forget_attached_terminal_show(&mut self, seal: &LocalOwnerMaskRouteSeal) {
         if self.attached_terminal_route.as_ref() == Some(seal) {
             self.attached_terminal_route = None;
