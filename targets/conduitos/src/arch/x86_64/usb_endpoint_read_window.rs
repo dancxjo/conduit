@@ -1,6 +1,6 @@
 //! Admitted endpoint capture reservations under one native controller owner.
 //! This owner publishes and completes transfers; it never polls or interprets reports.
-#![allow(dead_code)] // Ordinary Root installation and native window proof are pending.
+#![allow(dead_code)] // Ordinary Root installation is pending; the native proof uses this owner.
 use super::super::{UsbDevice, dma::device_dma_pointer, endpoint_setup::ConfiguredInboundEndpoint};
 use super::{EndpointNativeRefusal, transfer::validated_residual};
 use crate::arch::x86_64::{hid_transfer_ring::publish, xhci::Event};
