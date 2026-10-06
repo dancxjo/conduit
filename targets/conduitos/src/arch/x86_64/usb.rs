@@ -46,6 +46,8 @@ pub(super) mod endpoint_read;
 mod endpoint_read_proof;
 #[cfg(feature = "usb-endpoint-read-proof")]
 pub use endpoint_read_proof::run_appliance as run_usb_endpoint_read_proof;
+#[path = "usb_endpoint_offer.rs"]
+mod endpoint_offer;
 #[path = "usb_endpoint_setup.rs"]
 mod endpoint_setup;
 pub use control_owner::{UsbControlCallRefusal, UsbControlHostCall, UsbControlSelection};
