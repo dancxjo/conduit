@@ -35,6 +35,10 @@ changed, startup fails explicitly. Reinstall with a new selection to recover,
 or use `--without-selected-speech` to remove it. Omit both selection flags to
 preserve the installed choice. Use an isolated state directory when trying
 this development entrance; a running service is not reconfigured in place.
+The selected voice Boot also reserves one create-new WAV destination under
+`spoken-artifacts/` for a direct spoken Show. A second retained audio artifact
+requires a fresh Boot until per-Play destinations are admitted; the speaker
+route remains subject to its current availability and playback checks.
 
 An already local Ollama model can be offered by that same installed Host Boot:
 add `--selected-model MODEL --model-endpoint http://127.0.0.1:11434

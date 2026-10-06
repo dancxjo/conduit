@@ -459,11 +459,19 @@ fn prepare_runtime(
     } else {
         StdHost::new_with_config(config)
     };
-    let selected_equipment = installation
-        .selected_speech
-        .as_ref()
-        .map(|selection| selection.attach_to_fresh_host(&mut host))
-        .transpose()?;
+    let selected_equipment = if let Some(selection) = &installation.selected_speech {
+        let artifact_dir = state_dir.join("spoken-artifacts");
+        fs::create_dir_all(&artifact_dir)
+            .map_err(|error| format!("create spoken artifact directory: {error}"))?;
+        restrict_directory(&artifact_dir)?;
+        // Each installed Boot owns one create-new artifact destination. A
+        // later spoken Show must obtain another admitted destination; it
+        // cannot overwrite a completed artifact or inherit a stale Boot.
+        let artifact = artifact_dir.join(format!("{}.wav", boot_id.replace('/', "_")));
+        Some(selection.attach_to_fresh_host_with_artifact(&mut host, &artifact)?)
+    } else {
+        None
+    };
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
         host_id: host.advertisement().host_id.as_str().into(),
