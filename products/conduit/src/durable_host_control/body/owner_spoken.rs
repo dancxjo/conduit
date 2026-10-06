@@ -20,6 +20,7 @@ struct ResultShow {
     artifact: SpokenMaskArtifactReceipt,
     generated_manifestation_identity: Option<String>,
     accepted_wording: Option<String>,
+    generation_evidence: Option<conduit_presentation::SpokenGenerationEvidence>,
     active_play_id: conduit_core::ActivePlayId,
     speaker_playback: Option<Value>,
 }
@@ -134,6 +135,7 @@ fn run_direct(
         artifact: shown.artifact,
         generated_manifestation_identity: None,
         accepted_wording: None,
+        generation_evidence: None,
         active_play_id: kernel.active_play_id,
         speaker_playback: None,
     })
@@ -197,6 +199,7 @@ fn run_llm(
         artifact: shown.artifact,
         generated_manifestation_identity: Some(shown.generated_manifestation_identity),
         accepted_wording: Some(shown.accepted_wording),
+        generation_evidence: Some(shown.generation_evidence),
         active_play_id: kernel.active_play_id,
         speaker_playback,
     })
@@ -393,6 +396,7 @@ impl DurableHostRuntime {
                         "stop_requested":worker.control.stop_requested(),
                         "generated_manifestation_identity":result.generated_manifestation_identity,
                         "accepted_wording":result.accepted_wording,
+                        "generation_evidence":result.generation_evidence,
                         "artifact":result.artifact,
                         "speaker_played":result.speaker_playback.is_some(),
                         "speaker_playback":result.speaker_playback}),

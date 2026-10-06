@@ -45,8 +45,18 @@ struct OwnerSpokenTerminal {
     show_id: String,
     active_play_id: String,
     accepted_wording: String,
+    generation_evidence: OwnerGenerationEvidence,
     speaker_played: bool,
     speaker_playback: Option<OwnerSpeakerPlay>,
+}
+
+#[derive(Deserialize)]
+struct OwnerGenerationEvidence {
+    provider_identity: String,
+    model_identity: String,
+    candidate_digest: String,
+    validation_receipt_identity: String,
+    original_model_output: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -151,6 +161,20 @@ pub(super) fn validate(
                     || Some(terminal.show_id.as_str()) != capture.show_id.as_deref()
                     || terminal.active_play_id == played.batch.play_id
                     || terminal.accepted_wording != words.text
+                    || terminal.generation_evidence.provider_identity
+                        != capture.provider_id.as_deref().unwrap_or_default()
+                    || terminal.generation_evidence.model_identity
+                        != capture.model_id.as_deref().unwrap_or_default()
+                    || terminal.generation_evidence.candidate_digest.is_empty()
+                    || terminal
+                        .generation_evidence
+                        .validation_receipt_identity
+                        .is_empty()
+                    || terminal
+                        .generation_evidence
+                        .original_model_output
+                        .as_deref()
+                        != words.original_model_output.as_deref()
                     || played.schema != "conduit.body/owner-spoken-speaker-play@1"
                     || played.source_face_revision_decimal != capture.face_revision
                     || played.host_id.is_empty()

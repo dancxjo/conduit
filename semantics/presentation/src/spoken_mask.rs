@@ -55,7 +55,19 @@ pub struct ArtifactAcknowledgedSpokenShow {
     pub generated_manifestation_identity: String,
     /// Exact validated outward Speech handed to synthesis for this Show.
     pub accepted_wording: String,
+    /// Retained from the same validated candidate that produced this Show.
+    pub generation_evidence: SpokenGenerationEvidence,
     pub artifact: SpokenMaskArtifactReceipt,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpokenGenerationEvidence {
+    pub provider_identity: String,
+    pub model_identity: String,
+    pub candidate_digest: String,
+    pub validation_receipt_identity: String,
+    pub original_model_output: Option<String>,
 }
 
 /// Direct Face wording needs its own artifact witness. It has no generated
@@ -91,6 +103,13 @@ impl ArtifactAcknowledgedSpokenShow {
         if self.generated_manifestation_identity.is_empty()
             || self.accepted_wording.is_empty()
             || self.accepted_wording.len() > MAX_GENERATED_WORDING_BYTES
+            || self.generation_evidence.provider_identity.is_empty()
+            || self.generation_evidence.model_identity.is_empty()
+            || self.generation_evidence.candidate_digest.is_empty()
+            || self
+                .generation_evidence
+                .validation_receipt_identity
+                .is_empty()
         {
             return Err(SpokenMaskShowError::StaleGeneration);
         }
@@ -109,6 +128,14 @@ impl ArtifactAcknowledgedSpokenShow {
     ) -> Result<(), SpokenMaskShowError> {
         self.validate_owner_artifact(presentation)?;
         if self.generated_manifestation_identity != generated.manifestation_identity()
+            || self.generation_evidence.provider_identity != generated.candidate().provider_identity
+            || self.generation_evidence.model_identity != generated.candidate().model_identity
+            || self.generation_evidence.candidate_digest
+                != generated.validation_receipt().candidate_digest()
+            || self.generation_evidence.validation_receipt_identity
+                != generated.validation_receipt().receipt_identity()
+            || self.generation_evidence.original_model_output.as_deref()
+                != generated.validation_receipt().raw_provider_output()
             || generated.source_presentation_identity() != presentation.identity.as_str()
             || generated.source_presentation_revision() != presentation.revision
             || generated

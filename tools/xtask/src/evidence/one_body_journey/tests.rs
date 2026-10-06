@@ -246,6 +246,13 @@ fn fixture_with_source_gap(
                             "outcome":"available", "mode":"llm-assisted",
                             "show_id":show, "active_play_id":format!("model-play-{offset}"),
                             "accepted_wording":words, "speaker_played":true,
+                            "generation_evidence":{
+                                "provider_identity":"synthetic-model",
+                                "model_identity":"synthetic-model-v1",
+                                "candidate_digest":"synthetic-candidate-digest",
+                                "validation_receipt_identity":"synthetic-validation-receipt",
+                                "original_model_output":words
+                            },
                             "speaker_playback":{
                                 "schema":"conduit.body/owner-spoken-speaker-play@1",
                                 "source_show_id":show,
@@ -466,6 +473,30 @@ fn rejects_model_artifact_when_the_listener_play_did_not_complete() {
         .unwrap_err()
         .contains("model wording lacks its completed selected speaker Play"));
     assert!(!fixture.output.exists());
+}
+
+#[test]
+fn rejects_model_transcript_from_a_different_owner_generation() {
+    let fixture = fixture(false, false, false, false);
+    let path = fixture.root.join("delivery-hear-1.json");
+    let mut terminal: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    terminal["generation_evidence"]["original_model_output"] = json!("Other model output");
+    let bytes = serde_json::to_vec(&terminal).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let declared = manifest["outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["id"] == "delivery-hear-1")
+        .unwrap();
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("model wording lacks its completed selected speaker Play"));
 }
 
 #[test]
