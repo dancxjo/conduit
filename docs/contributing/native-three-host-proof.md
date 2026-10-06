@@ -167,9 +167,12 @@ same Body, owner Host/Boot, release source, and subsequent three-Host proof.
 The run ID also binds that owner Host and Boot, so separate captures remain
 distinguishable even when identical Birth inputs yield the same Body ID.
 `three-host/walkthrough.html` opens with the Birth action and links the
-pre-Birth receipt. Without a selected speaker, the screen-free
-client emits text readout and this run does not prove audio. To select real
-device playback, first inspect `conduit body speech-options --json`, then add
+pre-Birth receipt. The walkthrough bundle retains verified copies of the Birth and later
+screen-free clock inputs and transcripts beside the page; the private
+invitation, spore, TLS material, and owner state stay outside that bundle.
+Without a selected speaker, the screen-free client emits text readout and
+this run does not prove audio. To select real device playback, first inspect
+`conduit body speech-options --json`, then add
 the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
 `--speech-data`, `--speech-engine`, and `--speech-language-coverage` options.
 The selected device's playback receipts are in the Birth transcript. The

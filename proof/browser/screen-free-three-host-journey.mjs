@@ -9,6 +9,7 @@ import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
+import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
@@ -340,6 +341,7 @@ try {
     start, lull,
     speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
   };
+  await retainScreenFreeSessions(output, live, report);
   const walkthrough = await writeThreeHostWalkthrough(live, handbook, report);
   report.walkthrough = {
     ...walkthrough,
