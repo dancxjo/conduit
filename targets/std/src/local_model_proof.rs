@@ -231,7 +231,7 @@ pub fn run(
     *generated_text
         .lock()
         .map_err(|_| "local proof response capture lock is poisoned")? = None;
-    let house = run_house(&mut host)?;
+    let house = run_house(&mut host, language)?;
     let house_response = generated_text
         .lock()
         .map_err(|_| "local proof response capture lock is poisoned")?
@@ -349,7 +349,11 @@ pub fn run_presenter_only(
     })
 }
 
-pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn std::error::Error>> {
+pub(crate) fn run_house(
+    host: &mut StdHost,
+    language: &conduit_language::LanguageRequest,
+) -> Result<(String, bool), Box<dyn std::error::Error>> {
+    let language_request = conduit_language::language_request_literal(language);
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
@@ -372,7 +376,7 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
         &mut profiles,
     );
     let source = format!(
-        "{}\n{}\nplot house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> recognized.result\n recognized.text >> addressed.recognized\n addresses.value >> addressed.addresses\n addressed.detection >> house.detection\n context.value >> house.context\n house.response >> sink.value\n}}\n",
+        "{}\n{}\nplot house-live-proof {{\n audio: {}\n recognize: speech/recognize(language-request = {language_request})\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> recognized.result\n recognized.text >> addressed.recognized\n addresses.value >> addressed.addresses\n addressed.detection >> house.detection\n context.value >> house.context\n house.response >> sink.value\n}}\n",
         include_str!("../../../plots/addressed-utterance/main.conduit"),
         include_str!("../../../plots/house-conversation/main.conduit"),
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,

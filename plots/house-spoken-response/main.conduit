@@ -4,7 +4,7 @@ plot house-spoken-response (
     response: Text >>
 ) {
     conversation: house-conversation
-    synthesize: speech/synthesize(maximum-output-bytes = 32768)
+    synthesize: speech/synthesize(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") }, maximum-output-bytes = 32768)
     speaker: audio/play
 
     detection >> conversation.detection
