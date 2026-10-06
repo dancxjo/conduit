@@ -71,7 +71,7 @@ pub(super) fn ready_entry(
 pub(super) fn ready_window_entry<const N: usize>(
     base_id: &str,
     provider_instance_id: &str,
-    device: UsbDevice,
+    device: &UsbDevice,
     configured: &ConfiguredInboundEndpoint,
     dma: &super::endpoint_read::window::EndpointReadWindowDma<'_, N>,
     contract: &EndpointReadContract,
@@ -93,7 +93,7 @@ pub(super) fn ready_window_entry<const N: usize>(
     }
     super::endpoint_read::window::validate_geometry::<N>(dma.ring_physical, dma.buffers_physical)
         .map_err(|_| "usb-endpoint-window-offer-geometry")?;
-    device_dma_pointer(&device).map_err(|_| "usb-endpoint-window-offer-device")?;
+    device_dma_pointer(device).map_err(|_| "usb-endpoint-window-offer-device")?;
     dma.cursor
         .ensure_idle()
         .map_err(|_| "usb-endpoint-window-offer-active")?;

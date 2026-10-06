@@ -175,3 +175,12 @@ pub(super) fn host_and_grants(
     }];
     Ok((host, grants))
 }
+
+/// Shared test metadata only; this does not initialize or possess a device.
+#[cfg(test)]
+pub(crate) fn fixture_host_and_grants(
+    contract: &EndpointReadContract,
+    subject: &EndpointReadProofSubject<'_>,
+) -> Result<(HostAdvertisement, [AuthorityGrant; 1]), &'static str> {
+    host_and_grants(contract, subject)
+}
