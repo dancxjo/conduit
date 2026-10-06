@@ -47,10 +47,21 @@ pub struct ArtifactAcknowledgedSpokenShow {
     pub artifact: SpokenMaskArtifactReceipt,
 }
 
+/// Direct Face wording needs its own artifact witness. It has no generated
+/// manifestation or model claim; the Show still belongs to the exact Mask
+/// Plan and becomes Available only after the audio artifact is acknowledged.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DirectArtifactAcknowledgedSpokenShow {
+    pub show: MaskShow,
+    pub artifact: SpokenMaskArtifactReceipt,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SpokenMaskShowError {
     InvalidArtifactIdentity,
     EmptyArtifact,
+    NotAvailable,
     StalePresentation,
     StaleGeneration,
     StalePlan,
@@ -63,45 +74,62 @@ impl ArtifactAcknowledgedSpokenShow {
         presentation: &Presentation,
         generated: &GeneratedManifestation,
     ) -> Result<(), SpokenMaskShowError> {
-        if self.artifact.artifact_identity.is_empty()
-            || self.artifact.artifact_identity.len() > MAX_SPOKEN_MASK_ARTIFACT_IDENTITY_BYTES
-            || self.artifact.content_sha256.len() != 64
-            || !self
-                .artifact
-                .content_sha256
-                .bytes()
-                .all(|byte| byte.is_ascii_hexdigit())
-        {
-            return Err(SpokenMaskShowError::InvalidArtifactIdentity);
-        }
-        if self.artifact.pcm_bytes == 0 || self.artifact.frames == 0 || self.artifact.blocks == 0 {
-            return Err(SpokenMaskShowError::EmptyArtifact);
-        }
+        self.artifact.validate_for(&self.show)?;
         if self.generated_manifestation_identity != generated.manifestation_identity()
             || generated.source_presentation_identity() != presentation.identity.as_str()
             || generated.source_presentation_revision() != presentation.revision
         {
             return Err(SpokenMaskShowError::StaleGeneration);
         }
-        if self.artifact.plan_id != self.show.planned_mask.plan.plan_id
-            || self.artifact.active_play_id != self.show.show.active_play_id
+        self.show
+            .validate(presentation)
+            .map_err(SpokenMaskShowError::InvalidShow)
+    }
+}
+
+impl DirectArtifactAcknowledgedSpokenShow {
+    pub fn validate(&self, presentation: &Presentation) -> Result<(), SpokenMaskShowError> {
+        self.artifact.validate_for(&self.show)?;
+        if self.show.show.lifecycle != ManifestationLifecycle::Available {
+            return Err(SpokenMaskShowError::NotAvailable);
+        }
+        self.show
+            .validate(presentation)
+            .map_err(SpokenMaskShowError::InvalidShow)
+    }
+}
+
+impl SpokenMaskArtifactReceipt {
+    fn validate_for(&self, show: &MaskShow) -> Result<(), SpokenMaskShowError> {
+        if self.artifact_identity.is_empty()
+            || self.artifact_identity.len() > MAX_SPOKEN_MASK_ARTIFACT_IDENTITY_BYTES
+            || self.content_sha256.len() != 64
             || !self
-                .show
+                .content_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err(SpokenMaskShowError::InvalidArtifactIdentity);
+        }
+        if self.pcm_bytes == 0 || self.frames == 0 || self.blocks == 0 {
+            return Err(SpokenMaskShowError::EmptyArtifact);
+        }
+        if self.plan_id != show.planned_mask.plan.plan_id
+            || self.active_play_id != show.show.active_play_id
+            || !show
                 .planned_mask
                 .plan
                 .fragments
                 .iter()
                 .flat_map(|fragment| &fragment.placements)
                 .any(|placement| {
-                    placement.placement_id == self.artifact.placement_id
+                    placement.placement_id == self.placement_id
                         && placement.kind_id.as_str() == SPOKEN_ARTIFACT_KIND
                 })
         {
             return Err(SpokenMaskShowError::StalePlan);
         }
-        self.show
-            .validate(presentation)
-            .map_err(SpokenMaskShowError::InvalidShow)
+        Ok(())
     }
 }
 
