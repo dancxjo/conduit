@@ -23,7 +23,7 @@ impl Owner {
         evidence: Option<&BrowserCarrierLineEvidence>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         let mut window = self.pending_browser.take().ok_or("window-not-active")?;
-        let result = (|| {
+        let result = (|| -> Result<RemoteOwnerMaskRouteSeal, String> {
             window.check(window_id).map_err(|_| "window-not-active")?;
             let WindowState::Active {
                 credential: active,
@@ -104,7 +104,9 @@ impl Owner {
             Ok(selected)
         })();
         self.pending_browser = Some(window);
-        result
+        let selected = result?;
+        self.admit_browser_presentation_route(&selected)?;
+        Ok(selected)
     }
 
     pub(crate) fn validate_browser_mask_show(
@@ -131,7 +133,7 @@ impl Owner {
     }
 
     pub(crate) fn validate_browser_mask_interaction(
-        &self,
+        &mut self,
         window_id: &str,
         binding: &LinkBindingId,
         request: &OwnerFaceSnapshotRequest,
@@ -150,7 +152,23 @@ impl Owner {
         };
         route
             .validate_interaction_payload(interaction.encode().len())
-            .map_err(|error| format!("browser-mask-interaction-refused:{error:?}"))
+            .map_err(|error| format!("browser-mask-interaction-refused:{error:?}"))?;
+        let face = self.local_face_snapshot()?;
+        let current = Self::current_presentation_routes(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            None,
+        );
+        let selected = self
+            .presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .selected_show(&self.session, &face, &current)
+            .map_err(super::super::super::presentation_wardrobe_runtime::wardrobe_error)?;
+        if selected != show {
+            return Err("stale owner Mask Show".into());
+        }
+        Ok(())
     }
 
     fn validate_browser_mask_route_show(
@@ -220,6 +238,14 @@ impl Owner {
         show: &MaskShow,
     ) -> Result<(), String> {
         self.validate_browser_mask_route_show(window_id, binding, request, show)?;
+        let window = self.pending_browser.as_ref().ok_or("window-not-active")?;
+        let seal = match &window.state {
+            WindowState::Active {
+                route: Some(route), ..
+            } => (**route).clone(),
+            _ => return Err("browser-mask-route-not-selected".into()),
+        };
+        self.acknowledge_selected_browser_show(&seal, show)?;
         let window = self.pending_browser.as_mut().ok_or("window-not-active")?;
         let WindowState::Active {
             acknowledged_show, ..

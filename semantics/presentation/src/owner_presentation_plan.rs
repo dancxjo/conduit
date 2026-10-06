@@ -34,6 +34,7 @@ pub enum CurrentOwnerPresentationRoute<'a> {
         mask_host_offer: &'a HostAdvertisement,
         face_line: &'a LineOffer,
         return_line: &'a LineOffer,
+        interaction_line: Option<&'a LineOffer>,
     },
 }
 
@@ -145,16 +146,27 @@ impl CurrentOwnerPresentationRoute<'_> {
                 mask_host_offer,
                 face_line,
                 return_line,
-            } => seal
-                .validate_current(
+                interaction_line,
+            } => match interaction_line {
+                Some(interaction_line) => seal.validate_current_with_interaction(
                     session,
                     face,
                     owner_offer,
                     mask_host_offer,
                     face_line,
                     return_line,
-                )
-                .map_err(OwnerPresentationPlanError::Remote),
+                    interaction_line,
+                ),
+                None => seal.validate_current(
+                    session,
+                    face,
+                    owner_offer,
+                    mask_host_offer,
+                    face_line,
+                    return_line,
+                ),
+            }
+            .map_err(OwnerPresentationPlanError::Remote),
         }
     }
 }

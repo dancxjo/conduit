@@ -272,8 +272,19 @@ fn validate_show(
             mask_host_offer,
             face_line,
             return_line,
-        } => seal
-            .validate_available_show(
+            interaction_line,
+        } => match interaction_line {
+            Some(interaction_line) => seal.validate_available_show_with_interaction(
+                session,
+                face,
+                owner_offer,
+                mask_host_offer,
+                face_line,
+                return_line,
+                interaction_line,
+                show,
+            ),
+            None => seal.validate_available_show(
                 session,
                 face,
                 owner_offer,
@@ -281,7 +292,8 @@ fn validate_show(
                 face_line,
                 return_line,
                 show,
-            )
-            .map_err(|_| OwnerPresentationWardrobeError::InvalidShow),
+            ),
+        }
+        .map_err(|_| OwnerPresentationWardrobeError::InvalidShow),
     }
 }

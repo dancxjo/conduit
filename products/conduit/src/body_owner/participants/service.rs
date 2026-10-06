@@ -220,6 +220,34 @@ enum PendingKind {
 }
 
 impl BrowserWindow {
+    pub(crate) fn current_mask_route(
+        &self,
+    ) -> Option<(
+        &RemoteOwnerMaskRouteSeal,
+        &HostAdvertisement,
+        &LineOffer,
+        &LineOffer,
+        &LineOffer,
+    )> {
+        self.check(&self.id).ok()?;
+        let WindowState::Active {
+            observation,
+            line_evidence: Some(lines),
+            route: Some(route),
+            ..
+        } = &self.state
+        else {
+            return None;
+        };
+        Some((
+            route,
+            &observation.advertisement,
+            &lines.face,
+            &lines.returned,
+            &lines.interaction,
+        ))
+    }
+
     fn check(&self, id: &str) -> Result<u64, String> {
         if self.id != id {
             return Err("browser admission window identity differs".into());
@@ -478,6 +506,14 @@ impl Owner {
             if let Err(error) = self.persist(root) {
                 self.session = before;
                 return Err(error);
+            }
+            if let WindowState::Active {
+                route: Some(route), ..
+            } = &window.state
+            {
+                if let Some(wardrobe) = &mut self.presentation_wardrobe {
+                    wardrobe.forget_show_for(&route.route_plan_id);
+                }
             }
             window.state = WindowState::Ready;
             Ok(self.session.evidence().clone())

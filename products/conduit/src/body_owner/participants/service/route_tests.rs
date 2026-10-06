@@ -394,6 +394,22 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .unwrap();
+    let wardrobe = owner.presentation_wardrobe.as_ref().unwrap();
+    assert_eq!(wardrobe.plan().routes.len(), 1);
+    assert_eq!(
+        wardrobe.control().selected.as_ref().unwrap().route_id,
+        format!("route/{}", selected.route_plan_id.as_str())
+    );
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        None,
+    );
+    assert!(wardrobe
+        .plan()
+        .admit_current_routes(&owner.session, &face, &current)
+        .is_ok());
     owner
         .validate_browser_mask_show(
             &authorized.window_id,
@@ -430,6 +446,23 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         .interaction
         .availability
         .availability = conduit_core::LineAvailability::Unavailable;
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        None,
+    );
+    assert_eq!(
+        owner
+            .presentation_wardrobe
+            .as_ref()
+            .unwrap()
+            .plan()
+            .admit_current_routes(&owner.session, &face, &current),
+        Err(conduit_presentation::OwnerPresentationPlanError::Remote(
+            conduit_presentation::RemoteOwnerMaskRouteError::LineUnavailable,
+        ))
+    );
     assert_eq!(
         owner.validate_browser_mask_show(
             &authorized.window_id,
