@@ -25,9 +25,9 @@ test('draft transitions run quick checks and ready transitions require exact-hea
   assert.match(candidate, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/);
   assert.match(job(candidate, 'proof'), /exhaustive: \$\{\{ !github.event.pull_request.draft \}\}/);
   assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.event.pull_request.head.sha \}\}/);
-  assert.match(job(candidate, 'candidate'), /always\(\) && !github.event.pull_request.draft/);
+  assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) \}\}/);
   assert.match(job(candidate, 'candidate'), /needs: proof/);
-  assert.match(job(candidate, 'candidate'), /run: test "\$RESULT" = success/);
+  assert.match(job(candidate, 'candidate'), /test "\$RESULT" = success/);
   assert.match(job(ci, 'preflight'), /name: candidate\/quick/);
   assert.match(ci, /exhaustive:\n        type: boolean\n        default: true/);
   assert.match(integration, /base: all/);
@@ -48,4 +48,18 @@ test('the actual AND gate rejects every failed, cancelled, or missing selected l
   assert.equal(passes({ DOCS_ONLY: 'true', UNIT: 'skipped', TARGET: 'skipped' }), true);
   assert.equal(passes({ EXHAUSTIVE: 'false', UNIT: 'skipped', TARGET: 'skipped' }), true);
   assert.equal(passes({ EXHAUSTIVE: 'false', PREFLIGHT: 'failure' }), false);
+});
+
+
+test('required candidate never certifies a draft or unsuccessful proof', () => {
+  const script = job(candidate, 'candidate').split('        run: |\n')[1].replace(/^          /gm, '');
+  function passes(draft, result) {
+    return spawnSync('bash', ['-e', '-c', script], {
+      env: { ...process.env, DRAFT: draft, RESULT: result },
+    }).status === 0;
+  }
+  assert.equal(passes('false', 'success'), true);
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) assert.equal(passes('true', result), false);
+  for (const result of ['failure', 'cancelled', 'skipped', '']) assert.equal(passes('false', result), false);
+  assert.equal(passes('', 'success'), false);
 });

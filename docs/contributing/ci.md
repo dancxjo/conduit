@@ -25,7 +25,8 @@ entrance also exposes `workspace-test-hosts-std` and the other named groups;
 `workspace-test-hosts` retains the aggregate local suite.
 
 The `candidate` job is an AND gate over all selected proof for the exact PR SHA.
-It is skipped on drafts and cannot certify them for admission. Ready docs-only
+It explicitly blocks admission on drafts while quick checks can pass; a skipped
+required check would count as successful in GitHub branch protection. Ready docs-only
 PRs require successful preflight. Integration always runs exhaustive proof for
 all targets and unit shards, with running work finishing and pending commits
 coalescing. Publication continues to consume those exact verified artifacts.
