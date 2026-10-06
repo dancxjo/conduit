@@ -383,6 +383,7 @@ export async function startOwnerParticipation(application, root) {
       for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
       wardrobeStatus.textContent = 'The owner window is closed. Wardrobe evidence is historical.';
       wardrobeStatus.dataset.refused = 'true';
+      wardrobeEvidence.textContent = 'Previous wardrobe evidence is historical.';
       if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
