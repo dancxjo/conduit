@@ -90,9 +90,7 @@ impl crate::StdHost {
             conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
             1,
         ));
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::whisper_clip_speech_offer());
+        advertisement.capabilities.push(adapter.clip_offer());
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
             left.capability_id
