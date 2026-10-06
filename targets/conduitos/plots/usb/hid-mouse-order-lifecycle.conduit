@@ -3,10 +3,15 @@ with flow/zip/feedback/paired as UsbMouseOrderCommandPair
 # This lifecycle drains the next wire ordinal before consuming another command.
 # EOF with a missing ordinal is a gap, never a synthetic report or clean drain.
 # Compact observations retain motion and invalid-report outcomes in wire order.
+# Internal outcome codes 0..12 represent the typed endings below; any other
+# code refuses as invalid-state. The external Fore retains the full typed end.
 type UsbMouseOrderSession = {
     terminal: Boolean
-    end: UsbMouseOrderEnd
+    end: U8
     order: UsbMouseOrderState
+    pointer-x: I64
+    pointer-y: I64
+    pointer-sequence: U64
 }
 type UsbMouseOrderCommand =
     observation UsbMouseOrderedObservation
@@ -20,13 +25,15 @@ type UsbMouseOrderCommand =
 type UsbMouseOrderMessage =
     session UsbMouseOrderSession
     | command UsbMouseOrderCommand
-    | observation UsbMouseOrderedObservation
-    | ended UsbMouseOrderEnd
+    | event UsbMousePointerEvent
 
+type UsbMouseOrderStop = {
+    code: U8
+}
 type UsbMouseOrderRoute =
     waiting UsbMouseOrderSession
-    | emitting UsbMouseOrderReady
-    | stopped UsbMouseOrderEnd
+    | emitting UsbMousePointerOrderReady
+    | stopped UsbMouseOrderStop
 type UsbMouseOrderEnd =
     closed
     | gap
@@ -38,21 +45,18 @@ type UsbMouseOrderEnd =
     | provider-lost
     | timeout
     | unsupported
-type UsbMouseOrderWork =
-    inserting UsbMouseOrderInsertion
-    | ending UsbMouseOrderEnd
+    | invalid-state
+    | invalid-motion
+    | sequence-exhausted
+type UsbMouseOrderWork = {
+    session: UsbMouseOrderSession
+    observation: UsbMouseOrderSlot
+    end: U8
+}
 
 plot usb-hid-mouse-order-session-initialize (
     order: UsbMouseOrderState...| >> session: UsbMouseOrderSession...|
-) = ({ terminal: false, end: closed(unit), order: . })
-
-plot usb-hid-mouse-order-session-ready (
-    ready: UsbMouseOrderReady...| >> session: UsbMouseOrderSession...|
-) = ({ terminal: false, end: closed(unit), order: .state })
-
-plot usb-hid-mouse-order-session-observation (
-    ready: UsbMouseOrderReady...| >> observation: UsbMouseOrderedObservation...|
-) = (.observation)
+) = ({ terminal: false, end: 0, order: ., pointer-x: 500000, pointer-y: 500000, pointer-sequence: 0 })
 
 plot usb-hid-mouse-order-session-message (
     state: UsbMouseOrderSession...| >> message: UsbMouseOrderMessage...|
@@ -62,45 +66,51 @@ plot usb-hid-mouse-order-command-message (
     input: UsbMouseOrderCommand...| >> message: UsbMouseOrderMessage...|
 ) = (command(.))
 
+plot usb-hid-mouse-order-end-code (
+    stop: UsbMouseOrderStop...| >> end: UsbMouseOrderEnd...|
+) = (.code <= 6 ? (.code == 0 ? closed(unit) : (.code == 1 ? gap(unit) : (.code == 2 ? stale(unit) : (.code == 3 ? duplicate(unit) : (.code == 4 ? outside-window(unit) : (.code == 5 ? pressure(unit) : (.code == 6 ? stalled(unit) : invalid-state(unit)))))))) : (.code == 7 ? provider-lost(unit) : (.code == 8 ? timeout(unit) : (.code == 9 ? unsupported(unit) : (.code == 10 ? invalid-state(unit) : (.code == 11 ? invalid-motion(unit) : (.code == 12 ? sequence-exhausted(unit) : invalid-state(unit))))))))
+
 plot usb-hid-mouse-order-session-route (
     session: UsbMouseOrderSession...| >> route: UsbMouseOrderRoute...|
-) = (.terminal ? stopped(.end) : ((.order.slots.0 is held ? .order.slots.0.held.ordinal == .order.expected : false) ? (.order.slots.0 is held ? emitting({ state: { expected: .order.expected + 1, slots: [vacant(unit), .order.slots.1] }, observation: .order.slots.0.held }) : waiting(.)) : ((.order.slots.1 is held ? .order.slots.1.held.ordinal == .order.expected : false) ? (.order.slots.1 is held ? emitting({ state: { expected: .order.expected + 1, slots: [.order.slots.0, vacant(unit)] }, observation: .order.slots.1.held }) : waiting(.)) : waiting(.))))
+) = (.terminal ? stopped({ code: .end }) : ((.order.slots.0 is held ? .order.slots.0.held.ordinal == .order.expected : false) ? (.order.slots.0 is held ? emitting({ ready: { state: { expected: .order.expected + 1, slots: [vacant(unit), .order.slots.1] }, observation: .order.slots.0.held }, previous: { position-x: .pointer-x, position-y: .pointer-y, sequence: .pointer-sequence } }) : waiting(.)) : ((.order.slots.1 is held ? .order.slots.1.held.ordinal == .order.expected : false) ? (.order.slots.1 is held ? emitting({ ready: { state: { expected: .order.expected + 1, slots: [.order.slots.0, vacant(unit)] }, observation: .order.slots.1.held }, previous: { position-x: .pointer-x, position-y: .pointer-y, sequence: .pointer-sequence } }) : waiting(.)) : waiting(.))))
 
 plot usb-hid-mouse-order-session-command (
     pair: UsbMouseOrderCommandPair...| >> work: UsbMouseOrderWork...|
-) = (.1 is observation ? inserting({ state: .0.order, observation: .1.observation }) : ending(.1 is finish ? (.0.order.slots.0 is vacant && .0.order.slots.1 is vacant ? closed(unit) : gap(unit)) : (.1 is stalled ? stalled(unit) : (.1 is provider-lost ? provider-lost(unit) : (.1 is timeout ? timeout(unit) : unsupported(unit))))))
-
-type UsbMouseOrderWorkAdmission =
-    accepted UsbMouseOrderState
-    | ended UsbMouseOrderEnd
+) = ({ session: .0, observation: (.1 is observation ? held(.1.observation) : vacant(unit)), end: (.1 is observation ? 0 : (.1 is finish ? (.0.order.slots.0 is vacant && .0.order.slots.1 is vacant ? 0 : 1) : (.1 is stalled ? 6 : (.1 is provider-lost ? 7 : (.1 is timeout ? 8 : 9))))) })
 
 plot usb-hid-mouse-order-work-update (
-    work: UsbMouseOrderWork...| >> update: UsbMouseOrderWorkAdmission...|
-) = (. is inserting ? (.inserting.observation.ordinal < .inserting.state.expected ? ended(stale(unit)) : (.inserting.observation.ordinal == 18446744073709551615 || .inserting.observation.ordinal - .inserting.state.expected >= 2 ? ended(outside-window(unit)) : ((.inserting.state.slots.0 is held ? .inserting.state.slots.0.held.ordinal == .inserting.observation.ordinal : false) || (.inserting.state.slots.1 is held ? .inserting.state.slots.1.held.ordinal == .inserting.observation.ordinal : false) ? ended(duplicate(unit)) : (.inserting.state.slots.0 is vacant ? accepted({ expected: .inserting.state.expected, slots: [held(.inserting.observation), .inserting.state.slots.1] }) : (.inserting.state.slots.1 is vacant ? accepted({ expected: .inserting.state.expected, slots: [.inserting.state.slots.0, held(.inserting.observation)] }) : ended(pressure(unit))))))) : ended(.ending))
+    work: UsbMouseOrderWork...| >> session: UsbMouseOrderSession...|
+) = ({ terminal: (.observation is held ? ((.observation.held.ordinal < .session.order.expected || (.observation.held.ordinal == 18446744073709551615 || (.observation.held.ordinal >= .session.order.expected ? .observation.held.ordinal - .session.order.expected >= 2 : false))) || (((.session.order.slots.0 is held ? .session.order.slots.0.held.ordinal == .observation.held.ordinal : false) || (.session.order.slots.1 is held ? .session.order.slots.1.held.ordinal == .observation.held.ordinal : false)) || (.session.order.slots.0 is held && .session.order.slots.1 is held))) : true), end: (.observation is held ? (.observation.held.ordinal < .session.order.expected ? 2 : ((.observation.held.ordinal == 18446744073709551615 || (.observation.held.ordinal >= .session.order.expected ? .observation.held.ordinal - .session.order.expected >= 2 : false)) ? 4 : (((.session.order.slots.0 is held ? .session.order.slots.0.held.ordinal == .observation.held.ordinal : false) || (.session.order.slots.1 is held ? .session.order.slots.1.held.ordinal == .observation.held.ordinal : false)) ? 3 : ((.session.order.slots.0 is held && .session.order.slots.1 is held) ? 5 : 0)))) : .end), order: (.observation is held ? (((.observation.held.ordinal < .session.order.expected || (.observation.held.ordinal == 18446744073709551615 || (.observation.held.ordinal >= .session.order.expected ? .observation.held.ordinal - .session.order.expected >= 2 : false))) || (((.session.order.slots.0 is held ? .session.order.slots.0.held.ordinal == .observation.held.ordinal : false) || (.session.order.slots.1 is held ? .session.order.slots.1.held.ordinal == .observation.held.ordinal : false)) || (.session.order.slots.0 is held && .session.order.slots.1 is held))) ? .session.order : { expected: .session.order.expected, slots: (.session.order.slots.0 is vacant ? [held(.observation.held), .session.order.slots.1] : [.session.order.slots.0, held(.observation.held)]) }) : .session.order), pointer-x: .session.pointer-x, pointer-y: .session.pointer-y, pointer-sequence: .session.pointer-sequence })
 
-plot usb-hid-mouse-order-update-session (
-    update: UsbMouseOrderWorkAdmission...| >> state: UsbMouseOrderSession...|
-) = (. is accepted ? { terminal: false, end: closed(unit), order: .accepted } : { terminal: true, end: .ended, order: { expected: 0, slots: [vacant(unit), vacant(unit)] } })
+plot usb-hid-mouse-order-session-ready (
+    pair: UsbMousePointerOrderPair...| >> session: UsbMouseOrderSession...|
+) = ({ terminal: !(.1 is ready || .1 is skipped), end: (.1 is ready || .1 is skipped ? 0 : (.1 is invalid-state ? 10 : (.1 is invalid-motion ? 11 : 12))), order: .0.ready.state, pointer-x: (.1 is ready ? .1.ready.state.position-x : (.1 is skipped ? .1.skipped.state.position-x : .0.previous.position-x)), pointer-y: (.1 is ready ? .1.ready.state.position-y : (.1 is skipped ? .1.skipped.state.position-y : .0.previous.position-y)), pointer-sequence: (.1 is ready ? .1.ready.state.sequence : (.1 is skipped ? .1.skipped.state.sequence : .0.previous.sequence)) })
 
 plot usb-hid-mouse-order-lifecycle (
     >> begin: Unit...|
     >> command: UsbMouseOrderCommand...| <= 4096B
-    observation: UsbMouseOrderedObservation...| >>
-    ended: UsbMouseOrderEnd...| >>
+    event: UsbMousePointerEvent...| >>
 ) {
     cell: state/seeded/flow/until
     join: flow/zip/feedback
+    motion: flow/zip/finite
+    advance: usb-hid-mouse-pointer-advance()
     route: usb-hid-mouse-order-session-route()
     work: usb-hid-mouse-order-session-command()
     replacements: flow/merge/finite
+    outputs: flow/concat/finite
     begin >> usb-hid-mouse-order-initialize() >> usb-hid-mouse-order-session-initialize() >> cell.seed
     cell.current >> route
     route >> select(UsbMouseOrderRoute.waiting, unmatched=drop) >> join.left
     command >> join.right
     join.paired >> work
-    work >> usb-hid-mouse-order-work-update() >> usb-hid-mouse-order-update-session() >> usb-hid-mouse-order-session-message() >> replacements.left
-    route >> select(UsbMouseOrderRoute.stopped, unmatched=drop) >> ended
-    route >> select(UsbMouseOrderRoute.emitting, unmatched=drop) >> usb-hid-mouse-order-session-observation() >> observation
-    route >> select(UsbMouseOrderRoute.emitting, unmatched=drop) >> usb-hid-mouse-order-session-ready() >> usb-hid-mouse-order-session-message() >> replacements.right
+    work >> usb-hid-mouse-order-work-update() >> usb-hid-mouse-order-session-message() >> replacements.left
+    route >> select(UsbMouseOrderRoute.emitting, unmatched=drop) >> motion.left
+    route >> select(UsbMouseOrderRoute.emitting, unmatched=drop) >> usb-hid-mouse-pointer-order-input() >> advance
+    advance >> motion.right
+    motion.paired >> usb-hid-mouse-order-session-ready() >> usb-hid-mouse-order-session-message() >> replacements.right
+    motion.paired >> usb-hid-mouse-pointer-order-result() >> usb-hid-mouse-pointer-event-result() >> usb-hid-mouse-pointer-event-message() >> outputs.left
+    route >> select(UsbMouseOrderRoute.stopped, unmatched=drop) >> usb-hid-mouse-order-end-code() >> usb-hid-mouse-pointer-event-end() >> usb-hid-mouse-pointer-event-message() >> outputs.right
     replacements.merged >> select(UsbMouseOrderMessage.session, unmatched=drop) >> cell.next
+    outputs.concatenated >> select(UsbMouseOrderMessage.event, unmatched=drop) >> event
 }

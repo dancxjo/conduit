@@ -8,38 +8,17 @@ plot usb-hid-mouse-capture-request (
 
 # One event Fore carries observations and their final outcome in order.
 # Concatenation waits for observation EOF before publishing the final outcome.
-type UsbMouseCaptureEvent =
-    observation UsbMouseOrderedObservation
-    | ended UsbMouseOrderEnd
-
-type UsbMouseCaptureEventAdmission =
-    available UsbMouseCaptureEvent
-    | invalid
-
-plot usb-hid-mouse-capture-observation-message (
-    observation: UsbMouseOrderedObservation...| >> message: UsbMouseOrderMessage...|
-) = (observation(.))
-
-plot usb-hid-mouse-capture-end-message (
-    end: UsbMouseOrderEnd...| >> message: UsbMouseOrderMessage...|
-) = (ended(.))
-
-plot usb-hid-mouse-capture-event (
-    message: UsbMouseOrderMessage...| <= 4096B >> event: UsbMouseCaptureEventAdmission...|
-) = (. is observation ? available(observation(.observation)) : (. is ended ? available(ended(.ended)) : invalid(unit)))
-
 plot usb-hid-mouse-capture-window (
     >> begin: Unit...|
     >> read0: Unit...|
     >> read1: Unit...|
-    event: UsbMouseCaptureEvent...| >>
+    event: UsbMousePointerEvent...| >>
 ) {
     state: usb-hid-mouse-order-lifecycle
     commands: flow/concat/finite
     transfer0: machine/usb/endpoint-read
     transfer1: machine/usb/endpoint-read
     completed: flow/merge/finite
-    events: flow/concat/finite
     begin >> state.begin
     begin >> usb-hid-mouse-endpoint-finish() >> usb-hid-mouse-order-command-message() >> commands.right
     read0 >> usb-hid-mouse-capture-request() >> transfer0.request
@@ -48,7 +27,5 @@ plot usb-hid-mouse-capture-window (
     transfer1.result >> usb-hid-mouse-endpoint-command-message() >> completed.right
     completed.merged >> commands.left
     commands.concatenated >> select(UsbMouseOrderMessage.command, unmatched=drop) >> state.command
-    state.observation >> usb-hid-mouse-capture-observation-message() >> events.left
-    state.ended >> usb-hid-mouse-capture-end-message() >> events.right
-    events.concatenated >> usb-hid-mouse-capture-event() >> select(UsbMouseCaptureEventAdmission.available, unmatched=drop) >> event
+    state.event >> event
 }

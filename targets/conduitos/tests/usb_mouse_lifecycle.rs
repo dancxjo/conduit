@@ -77,8 +77,7 @@ fn execute(ordinals: &[u64], expected: u64, terminal: &str, pressure: bool) {
     };
     let begin = input("begin");
     let input = input("command");
-    let observation = output("observation");
-    let ended = output("ended");
+    let observation = output("event");
     let final_command = match terminal {
         "closed" | "gap" => Some("finish"),
         "stalled" | "provider-lost" | "timeout" | "unsupported" => Some(terminal),
@@ -100,10 +99,6 @@ fn execute(ordinals: &[u64], expected: u64, terminal: &str, pressure: bool) {
     };
     let mut observed = ValuePayload {
         value_kind: observation.value_kind.clone(),
-        encoded: Vec::with_capacity(4096),
-    };
-    let mut end = ValuePayload {
-        value_kind: ended.value_kind.clone(),
         encoded: Vec::with_capacity(4096),
     };
     let mut next = 0;
@@ -138,51 +133,57 @@ fn execute(ordinals: &[u64], expected: u64, terminal: &str, pressure: bool) {
                 .output_into(&observation.port_id, &mut observed)
                 .unwrap()
             {
-                assert_eq!(sequence, received);
-                let value = validate_canonical_structured_value(&observed.encoded).unwrap();
-                assert_eq!(
-                    value
-                        .record_field("ordinal")
-                        .unwrap()
-                        .unwrap()
-                        .primitive_bytes("value/u64")
-                        .unwrap(),
-                    received.to_le_bytes()
-                );
-                assert!(
-                    value
-                        .record_field("observed")
-                        .unwrap()
-                        .unwrap()
-                        .variant_payload("short")
-                        .unwrap()
-                        .is_some()
-                );
-                if pressure && received == 0 && held < 128 {
-                    held += 1;
+                let event = validate_canonical_structured_value(&observed.encoded).unwrap();
+                if let Some(value) = event.variant_payload("observation").unwrap() {
+                    assert_eq!(sequence, received);
+                    assert_eq!(
+                        value
+                            .record_field("ordinal")
+                            .unwrap()
+                            .unwrap()
+                            .primitive_bytes("value/u64")
+                            .unwrap(),
+                        received.to_le_bytes()
+                    );
+                    assert!(
+                        value
+                            .record_field("observed")
+                            .unwrap()
+                            .unwrap()
+                            .variant_payload("short")
+                            .unwrap()
+                            .is_some()
+                    );
+                    if pressure && received == 0 && held < 128 {
+                        held += 1;
+                    } else {
+                        received += 1;
+                        run.complete_output(&observation.port_id, sequence).unwrap();
+                    }
                 } else {
-                    received += 1;
+                    assert!(!saw_end);
+                    assert_eq!(
+                        received, expected,
+                        "terminal cannot overtake held observations"
+                    );
+                    assert_eq!(sequence, expected);
+                    assert!(
+                        event
+                            .variant_payload("ended")
+                            .unwrap()
+                            .unwrap()
+                            .variant_payload(terminal)
+                            .unwrap()
+                            .is_some()
+                    );
+                    saw_end = true;
                     run.complete_output(&observation.port_id, sequence).unwrap();
                 }
-            }
-            if let Some(sequence) = run.output_into(&ended.port_id, &mut end).unwrap() {
-                assert!(!saw_end);
-                assert_eq!(
-                    received, expected,
-                    "terminal cannot overtake held observations"
-                );
-                assert_tag(&end.encoded, terminal);
-                saw_end = true;
-                run.complete_output(&ended.port_id, sequence).unwrap();
             }
             if status == KernelCompositeStatus::Complete {
                 assert_eq!(
                     run.output_terminal_into(&observation.port_id, &mut observed)
                         .unwrap(),
-                    Some(KernelCompositeTerminal::Normal)
-                );
-                assert_eq!(
-                    run.output_terminal_into(&ended.port_id, &mut end).unwrap(),
                     Some(KernelCompositeTerminal::Normal)
                 );
                 complete = true;
@@ -246,7 +247,7 @@ fn cancellation_revokes_a_held_observation_without_a_normal_finish() {
     let output = boundary
         .output_fronts
         .iter()
-        .find(|port| port.external_port.port_id.as_str() == "observation")
+        .find(|port| port.external_port.port_id.as_str() == "event")
         .unwrap()
         .external_port
         .clone();

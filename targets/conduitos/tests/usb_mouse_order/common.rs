@@ -118,14 +118,28 @@ pub(super) fn prepared() -> (
     StructuredInfoType,
     conduitos::pure_protocol_play::PreparedPureProtocolPlay,
 ) {
+    let (input, _, run) = prepared_entry("usb-hid-mouse-order-lifecycle", "command", "event");
+    (input, run)
+}
+
+pub(super) fn prepared_entry(
+    entry_name: &str,
+    input_port: &str,
+    output_port: &str,
+) -> (
+    StructuredInfoType,
+    StructuredInfoType,
+    conduitos::pure_protocol_play::PreparedPureProtocolPlay,
+) {
     use std::collections::BTreeMap;
     let package = conduitos::protocol_source::usb_hid_mouse_order_package().unwrap();
     let entry = conduitos::protocol_source::PreparedProtocolEntry::prepare(
         &serde_json::to_vec(&package).unwrap(),
-        "usb-hid-mouse-order-lifecycle",
+        entry_name,
     )
     .unwrap();
-    let schema = entry.input_schema(&PortId::from("command")).unwrap();
+    let schema = entry.input_schema(&PortId::from(input_port)).unwrap();
+    let output = entry.output_schema(&PortId::from(output_port)).unwrap();
     let mut host = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/mouse-source-host".into(),
@@ -162,5 +176,5 @@ pub(super) fn prepared() -> (
             additional_remote_items: 60000,
         })
         .unwrap();
-    (schema, run)
+    (schema, output, run)
 }

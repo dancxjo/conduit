@@ -29,18 +29,29 @@ pub fn usb_hid_mouse_order_package() -> Result<ProtocolSourcePackage, ProtocolSo
             .ok_or(ProtocolSourceRefusal::Specialization(
                 "HID mouse capture imports",
             ))?;
+    let pointer = include_str!("../../plots/usb/hid-mouse-pointer-events.conduit");
+    let (pointer_header, pointer_body) =
+        pointer
+            .split_once("\n\n")
+            .ok_or(ProtocolSourceRefusal::Specialization(
+                "HID pointer event imports",
+            ))?;
     let value = |name: &str| ProtocolValueReference {
         type_name: name.into(),
         maximum_bytes: 4096,
     };
     ProtocolSourcePackage::compile(
         format!(
-            "{header}\n{endpoint_header}\n{capture_header}\n{}\n{}\n{}\n{body}\n{endpoint_body}\n{capture_body}",
+            "{header}\n{endpoint_header}\n{capture_header}\n{pointer_header}\n{}\n{}\n{}\n{body}\n{endpoint_body}\n{capture_body}\n{pointer_body}",
             include_str!("../../plots/usb/hid-reports.conduit"),
             include_str!("../../plots/usb/hid-mouse-order.conduit"),
             include_str!("../../plots/usb/hid-mouse-pointer.conduit"),
         ),
         &[
+            ProtocolSpecializationRequest::Zip {
+                left: value("UsbMousePointerOrderReady"),
+                right: value("UsbMousePointerUpdate"),
+            },
             ProtocolSpecializationRequest::SeededUntil {
                 value: value("UsbMouseOrderSession"),
             },

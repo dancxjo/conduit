@@ -296,3 +296,6 @@ mod endpoint_decode;
 
 #[path = "usb_mouse_order/capture_kernel.rs"]
 mod capture_kernel;
+
+#[path = "usb_mouse_order/pointer_events.rs"]
+mod pointer_events;

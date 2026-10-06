@@ -1,0 +1,40 @@
+with flow/zip/finite/paired as UsbMousePointerOrderPair
+
+# Wire ordering and pointer history advance through one terminal-aware session.
+# The eight-item semantic queue envelope must be realized by Root admission.
+type UsbMousePointerOrderReady = {
+    ready: UsbMouseOrderReady
+    previous: UsbMousePointerState
+}
+type UsbMousePointerSampleEvent = {
+    ordinal: U64
+    sample: UsbMousePointerSample
+}
+type UsbMousePointerEvent =
+    sample UsbMousePointerSampleEvent
+    | observation UsbMouseOrderedObservation
+    | ended UsbMouseOrderEnd
+    | invalid-state
+    | invalid-motion
+    | sequence-exhausted
+
+plot usb-hid-mouse-pointer-order-input (
+    ready: UsbMousePointerOrderReady...| >> input: UsbMousePointerInput...|
+) = ({ state: .previous, observation: .ready.observation, queue-capacity: 8 })
+
+plot usb-hid-mouse-pointer-order-result (
+    pair: UsbMousePointerOrderPair...| >> update: UsbMousePointerUpdate...|
+) = (.1)
+
+plot usb-hid-mouse-pointer-event-result (
+    update: UsbMousePointerUpdate...| >> event: UsbMousePointerEvent...|
+) = (. is ready ? sample({ ordinal: .ready.ordinal, sample: .ready.sample }) : (. is skipped ? observation(.skipped.observation) : (. is invalid-state ? invalid-state(unit) : (. is invalid-motion ? invalid-motion(unit) : sequence-exhausted(unit)))))
+
+plot usb-hid-mouse-pointer-event-end (
+    end: UsbMouseOrderEnd...| >> event: UsbMousePointerEvent...|
+) = (ended(.))
+
+plot usb-hid-mouse-pointer-event-message (
+    event: UsbMousePointerEvent...| >> message: UsbMouseOrderMessage...|
+) = (event(.))
+

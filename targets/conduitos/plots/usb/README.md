@@ -41,20 +41,31 @@ their own bounds. Packaged preparation issues no authority. Expression proof
 preserves signed motion and buttons, distinguishes invalid observations, refuses
 duplicate/stale/distant ordinals, and reuses two slots across 128 observations.
 
-`hid-mouse-order-lifecycle.conduit` drains that state through the existing kernel,
-seeded state, feedback Zip and finite Merge. Kernel conformance covers held
-output pressure, 64 reuse cycles, normal drain, missing ordinals, each physical
-failure tag and cancellation. Prepared execution allocates nothing; cancellation
-revokes a held observation without fabricating normal completion.
+`hid-mouse-order-lifecycle.conduit` advances ordering and pointer history in one
+terminal-aware Source session through the existing kernel, feedback Zip, finite
+Zip, Merge and concatenation. One typed event Fore carries normalized samples,
+invalid observations and the final outcome in order under output pressure.
+Internal outcome codes keep the retained representation within the 4 KiB call
+surface; typed endings remain at the Fore, and unknown codes refuse explicitly.
+Kernel conformance covers held output pressure, 64 reuse cycles, normal drain,
+missing ordinals, each physical failure tag and cancellation. Prepared execution
+allocates nothing; cancellation does not fabricate normal completion.
 
-`hid-mouse-pointer.conduit` advances normalized position and event sequence only
-for valid ordered motion. It preserves the existing motion scale, coordinate
-clamp and primary button mapping, retains history for invalid observations, and
-refuses invalid state or sequence exhaustion. The mechanical
-`SourcePointerSampleDecoder` converts its checked sample to the existing portable
-pointer seam without interpreting reports. Expression and conversion allocation
-checks pass. Ordinary two-capture device installation remains pending; these
-fixtures establish Source/kernel behavior, not native endpoint execution.
+`hid-mouse-pointer.conduit` and `hid-mouse-pointer-events.conduit` derive normalized
+position and event sequence only from valid ordered motion. They preserve the
+existing scale, coordinate clamp and primary button mapping, retain history for
+invalid observations, and refuse invalid state or sequence exhaustion. The
+mechanical `SourcePointerSampleDecoder` converts the checked sample to the
+existing portable pointer seam without interpreting reports. Conformance checks
+motion / invalid report / motion history under 512 held steps with zero Play or
+conversion allocations and normal final drain.
+
+`hid-mouse-capture-window.conduit` binds two exact planned endpoint calls to that
+lifecycle. Kernel fixtures retain both calls, complete them out of order, wait
+for the missing ordinal and preserve normalized/invalid events under pressure.
+Preparation requires two admitted instances, resources and explicit authority.
+Ordinary two-capture device installation remains pending; these fixtures establish
+Source/kernel behavior, not native endpoint execution or installed class offers.
 
 Existing report conformance covers every key-slot permutation and motion octet.
 Both class topologies also execute 64 frames through the production kernel with

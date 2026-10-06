@@ -14,7 +14,7 @@ pub enum HidSourceRole {
     /// Eight calls and ordered class state; Root supplies the admitted window.
     KeyboardCapture,
     Mouse,
-    /// Two ordered calls; Root supplies the exact admitted endpoint window.
+    /// Two ordered calls with Source pointer history; Root supplies the window.
     MouseCapture,
 }
 

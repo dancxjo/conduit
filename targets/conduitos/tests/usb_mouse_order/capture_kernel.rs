@@ -184,9 +184,52 @@ fn two_live_mouse_calls_wait_for_the_missing_ordinal_and_drain_under_pressure() 
                 };
                 assert_eq!(output.port_id.as_str(), "event");
                 let event = validate_canonical_structured_value(&buffers[index].encoded).unwrap();
-                if let Some(value) = event.variant_payload("observation").unwrap() {
-                    assert_eq!(sequence, observations);
-
+                if let Some(sample) = event.variant_payload("sample").unwrap() {
+                    assert_eq!(observations, 0);
+                    assert_eq!(sequence, 0);
+                    assert_eq!(
+                        sample
+                            .record_field("ordinal")
+                            .unwrap()
+                            .unwrap()
+                            .primitive_bytes("value/u64")
+                            .unwrap(),
+                        0_u64.to_le_bytes()
+                    );
+                    let sample = sample.record_field("sample").unwrap().unwrap();
+                    for (name, expected) in [
+                        ("position-x", 1000000_i64),
+                        ("position-y", 0),
+                        ("delta-x", 508000),
+                        ("delta-y", -508000),
+                    ] {
+                        assert_eq!(
+                            sample
+                                .record_field(name)
+                                .unwrap()
+                                .unwrap()
+                                .primitive_bytes("value/i64")
+                                .unwrap(),
+                            expected.to_le_bytes()
+                        );
+                    }
+                    assert_eq!(
+                        sample
+                            .record_field("sequence")
+                            .unwrap()
+                            .unwrap()
+                            .primitive_bytes("value/u64")
+                            .unwrap(),
+                        1_u64.to_le_bytes()
+                    );
+                    if held < 128 {
+                        held += 1;
+                        continue;
+                    }
+                    observations += 1;
+                } else if let Some(value) = event.variant_payload("observation").unwrap() {
+                    assert_eq!(observations, 1);
+                    assert_eq!(sequence, 1);
                     assert_eq!(
                         value
                             .record_field("ordinal")
@@ -194,21 +237,17 @@ fn two_live_mouse_calls_wait_for_the_missing_ordinal_and_drain_under_pressure() 
                             .unwrap()
                             .primitive_bytes("value/u64")
                             .unwrap(),
-                        observations.to_le_bytes()
+                        1_u64.to_le_bytes()
                     );
                     assert!(
                         value
                             .record_field("observed")
                             .unwrap()
                             .unwrap()
-                            .variant_payload(if observations == 0 { "mouse" } else { "short" })
+                            .variant_payload("short")
                             .unwrap()
                             .is_some()
                     );
-                    if observations == 0 && held < 128 {
-                        held += 1;
-                        continue;
-                    }
                     observations += 1;
                 } else {
                     assert!(!ended);
