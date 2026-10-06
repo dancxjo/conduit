@@ -1,0 +1,63 @@
+# Retain two compact class observations before advancing pointer history.
+# Endpoint payloads and the existing decoded wire output retain their own
+# bounds. This state carries motion meaning, not another copy of the payload.
+# Descriptive ordinals grant no endpoint or controller authority.
+type UsbMouseMotion = {
+    buttons: U8
+    x: I16
+    y: I16
+}
+type UsbMouseCompactResult =
+    mouse UsbMouseMotion
+    | short
+    | malformed
+    | reserved
+    | invalid-motion
+type UsbMouseReceivedObservation = {
+    ordinal: U64
+    observed: UsbBootMouseResult
+}
+type UsbMouseOrderedObservation = {
+    ordinal: U64
+    observed: UsbMouseCompactResult
+}
+type UsbMouseOrderSlot =
+    vacant
+    | held UsbMouseOrderedObservation
+type UsbMouseOrderState = {
+    expected: U64
+    slots: collection UsbMouseOrderSlot = 2
+}
+type UsbMouseOrderInsertion = {
+    state: UsbMouseOrderState
+    observation: UsbMouseOrderedObservation
+}
+type UsbMouseOrderAdmission =
+    accepted UsbMouseOrderState
+    | stale
+    | duplicate
+    | outside-window
+    | pressure
+type UsbMouseOrderReady = {
+    state: UsbMouseOrderState
+    observation: UsbMouseOrderedObservation
+}
+type UsbMouseOrderDrain =
+    ready UsbMouseOrderReady
+    | waiting UsbMouseOrderState
+
+plot usb-hid-mouse-compact-observation (
+    input: UsbMouseReceivedObservation...| >> observation: UsbMouseOrderedObservation...|
+) = ({ ordinal: .ordinal, observed: (.observed is mouse ? mouse({ buttons: .observed.mouse.buttons, x: .observed.mouse.x, y: .observed.mouse.y }) : (.observed is short ? short(unit) : (.observed is malformed ? malformed(unit) : (.observed is reserved ? reserved(unit) : invalid-motion(unit))))) })
+
+plot usb-hid-mouse-order-initialize (
+    begin: Unit...| >> state: UsbMouseOrderState...|
+) = ({ expected: 0, slots: [vacant(unit), vacant(unit)] })
+
+plot usb-hid-mouse-order-insert (
+    input: UsbMouseOrderInsertion...| >> admitted: UsbMouseOrderAdmission...|
+) = (.observation.ordinal < .state.expected ? stale(unit) : (.observation.ordinal == 18446744073709551615 || .observation.ordinal - .state.expected >= 2 ? outside-window(unit) : ((.state.slots.0 is held ? .state.slots.0.held.ordinal == .observation.ordinal : false) || (.state.slots.1 is held ? .state.slots.1.held.ordinal == .observation.ordinal : false) ? duplicate(unit) : (.state.slots.0 is vacant ? accepted({ expected: .state.expected, slots: [held(.observation), .state.slots.1] }) : (.state.slots.1 is vacant ? accepted({ expected: .state.expected, slots: [.state.slots.0, held(.observation)] }) : pressure(unit))))))
+
+plot usb-hid-mouse-order-drain (
+    state: UsbMouseOrderState...| >> next: UsbMouseOrderDrain...|
+) = ((.slots.0 is held ? .slots.0.held.ordinal == .expected : false) ? (.slots.0 is held ? ready({ state: { expected: .expected + 1, slots: [vacant(unit), .slots.1] }, observation: .slots.0.held }) : waiting(.)) : ((.slots.1 is held ? .slots.1.held.ordinal == .expected : false) ? (.slots.1 is held ? ready({ state: { expected: .expected + 1, slots: [.slots.0, vacant(unit)] }, observation: .slots.1.held }) : waiting(.)) : waiting(.)))
