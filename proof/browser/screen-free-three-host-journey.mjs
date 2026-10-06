@@ -144,7 +144,7 @@ try {
     ...selectedSpeechArgs];
   await writeFile(path.join(output, 'birth-input.txt'), input, { mode: 0o600 });
   const transcript = speakerCard
-    ? await runPacedScreenFree(owner, birthArgs, birthCommands, 'birth> ',
+    ? await runPacedScreenFree(owner, birthArgs, birthCommands, ['birth> ', 'body> '],
       screenFreeSessionTimeout)
     : invoke(owner, birthArgs, { input, timeout: screenFreeSessionTimeout });
   await writeFile(path.join(output, 'birth-transcript.txt'), transcript, { mode: 0o600 });

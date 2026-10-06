@@ -5,8 +5,10 @@ import { spawn } from 'node:child_process';
 
 const MAX_TRANSCRIPT_BYTES = 8 * 1024 * 1024;
 
-export async function runPacedScreenFree(executable, args, commands, prompt, timeoutMs) {
-  if (!['birth> ', 'body> '].includes(prompt) || commands.length === 0 ||
+export async function runPacedScreenFree(executable, args, commands, prompts, timeoutMs) {
+  prompts = Array.isArray(prompts) ? prompts : [prompts];
+  if (prompts.length === 0 || prompts.some(prompt => !['birth> ', 'body> '].includes(prompt)) ||
+      new Set(prompts).size !== prompts.length || commands.length === 0 ||
       commands.some(command => !command || command.includes('\n') || command.includes('\r'))) {
     throw new Error('invalid paced screen-free commands or prompt');
   }
@@ -20,7 +22,7 @@ export async function runPacedScreenFree(executable, args, commands, prompt, tim
     failed ??= reason;
     child.kill();
   };
-  const deadline = setTimeout(() => stop(`screen-free ${prompt.trim()} deadline`), timeoutMs);
+  const deadline = setTimeout(() => stop(`screen-free ${prompts.join('/').trim()} deadline`), timeoutMs);
   child.stdout.on('data', chunk => {
     const prior = stdout.length;
     stdout += chunk.toString('utf8');
@@ -30,15 +32,19 @@ export async function runPacedScreenFree(executable, args, commands, prompt, tim
     }
     // A prompt may be split across two pipe chunks. Scan the overlap only
     // once, even when several prompts arrive in a single chunk.
-    let at = stdout.indexOf(prompt, Math.max(scanned, prior - prompt.length + 1));
-    while (at !== -1) {
-      const end = at + prompt.length;
+    const overlap = Math.max(...prompts.map(prompt => prompt.length)) - 1;
+    const nextPrompt = () => prompts.map(prompt => ({
+      prompt, at: stdout.indexOf(prompt, Math.max(scanned, prior - overlap)),
+    })).filter(found => found.at !== -1).sort((a, b) => a.at - b.at)[0];
+    let found = nextPrompt();
+    while (found) {
+      const end = found.at + found.prompt.length;
       scanned = end;
       if (sent < commands.length) {
         child.stdin.write(`${commands[sent++]}\n`);
         if (sent === commands.length) child.stdin.end();
       }
-      at = stdout.indexOf(prompt, scanned);
+      found = nextPrompt();
     }
   });
   child.stderr.on('data', chunk => {
