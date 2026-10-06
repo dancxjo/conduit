@@ -7,6 +7,7 @@ pub const PACKAGE: &str = "conduitos";
 const BODY: &str = "protocol_operations::tests::automatic_body";
 const CLOCK: &str = "protocol_operations::tests::automatic_clock";
 const USB_PLOTS: &str = "usb_protocol_plots";
+const USB_HID: &str = "usb_hid_reports";
 const LIBRARY: Step = Step::new(
     "check.test.conduitos.library",
     "ConduitOS portable library proof",
@@ -60,7 +61,9 @@ pub fn library_owner(name: &str) -> Result<WorkspaceShard, String> {
 }
 
 fn integration_owner(name: &str) -> WorkspaceShard {
-    if name == USB_PLOTS {
+    if name == USB_HID {
+        WorkspaceShard::TestHostsBrowser
+    } else if name == USB_PLOTS {
         WorkspaceShard::TestHostsWorkbench
     } else {
         WorkspaceShard::TestHostsConduitos
@@ -103,7 +106,9 @@ pub fn proofs(shard: WorkspaceShard) -> Result<Vec<ProtocolProof>, String> {
     }
     if matches!(
         shard,
-        WorkspaceShard::TestHostsConduitos | WorkspaceShard::TestHostsWorkbench
+        WorkspaceShard::TestHostsConduitos
+            | WorkspaceShard::TestHostsWorkbench
+            | WorkspaceShard::TestHostsBrowser
     ) {
         let metadata = Command::new("cargo")
             .args(["metadata", "--locked", "--no-deps", "--format-version", "1"])
@@ -187,8 +192,11 @@ fn integration_targets(metadata: &serde_json::Value) -> Result<Vec<String>, Stri
         }
     }
     targets.sort();
-    if !targets.iter().any(|name| name == USB_PLOTS) {
-        return Err("USB protocol plot proof missing".into());
+    if ![USB_PLOTS, USB_HID]
+        .iter()
+        .all(|required| targets.iter().any(|name| name == required))
+    {
+        return Err("USB protocol plot or HID report proof missing".into());
     }
     Ok(targets)
 }
@@ -284,9 +292,12 @@ mod tests {
         for name in &targets {
             assert!(matches!(
                 integration_owner(name),
-                WorkspaceShard::TestHostsWorkbench | WorkspaceShard::TestHostsConduitos
+                WorkspaceShard::TestHostsWorkbench
+                    | WorkspaceShard::TestHostsConduitos
+                    | WorkspaceShard::TestHostsBrowser
             ));
         }
+        assert_eq!(integration_owner(USB_HID), WorkspaceShard::TestHostsBrowser);
         assert_eq!(
             targets
                 .iter()

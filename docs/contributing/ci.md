@@ -18,7 +18,8 @@ products retain their broad unit shards; hosts split into std providers,
 browser runtime, ConduitOS, and workbench fixtures. Workspace Clippy runs
 alongside them. Ordinary packages belong to exactly one group. The sustained
 ConduitOS proof is partitioned across the same runners: automatic Body cases
-with std, automatic Clock cases with browser, USB protocol plots with workbench,
+with std, automatic Clock cases and HID reports with browser, USB protocol plots
+with workbench,
 and remaining library, default integration, and doc tests with ConduitOS.
 The native lane validates the compiled library inventory; Cargo metadata assigns
 every default integration target. Each group retains `--test-threads=1`.
