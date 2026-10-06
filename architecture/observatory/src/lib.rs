@@ -3,6 +3,7 @@
 extern crate alloc;
 
 mod causal_explanation;
+mod clock_quality;
 mod evidence_lineage;
 mod execution_artifact;
 mod model;
@@ -13,6 +14,7 @@ mod usefulness;
 mod validation;
 
 pub use causal_explanation::*;
+pub use clock_quality::*;
 pub use evidence_lineage::*;
 pub use execution_artifact::*;
 pub use model::*;
@@ -24,6 +26,8 @@ pub use validation::validate_snapshot;
 
 #[cfg(test)]
 mod causal_explanation_tests;
+#[cfg(test)]
+mod clock_quality_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
