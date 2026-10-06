@@ -149,7 +149,9 @@ the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
 receipts are in the Birth transcript; this remains distinct from attended
 human listening. Pass the exact regular `engine` path reported by
 `speech-options`, not a versioned-library symlink; provider discovery rejects
-symlinks to keep the bound bytes unambiguous. Current selected playback uses a
+symlinks to keep the bound bytes unambiguous. The producer waits for the next
+screen-free prompt before sending each selected-speaker command, so a queued
+command does not interrupt a full-Face reading. Current selected playback uses a
 second StdHost sharing the
 owner's Host and Boot identities; this run does not establish speech realized
 by the owner instance. The three speech provider options may also be used without a

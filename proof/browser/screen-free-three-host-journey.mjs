@@ -8,6 +8,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
+import { runPacedScreenFree } from './paced-screen-free-input.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
@@ -129,24 +130,33 @@ try {
     existsSync(path.join(state, 'body', 'owner-transaction.json')));
   const preBirthBytes = Buffer.from(`${JSON.stringify(preBirth, null, 2)}\n`);
   await writeFile(path.join(output, 'zero-body-before.json'), preBirthBytes, { mode: 0o600 });
-  const input = [
+  const birthCommands = [
     'read all',
     'next main',
     'focus creche.name', `edit value ${bodyName}`, 'activate',
     'focus creche.plot.0', 'edit value false', 'activate',
     'focus creche.plot.1', 'edit value true', 'activate',
     'read all', 'focus creche.birth', 'activate',
-    'read all', 'quit', '',
-  ].join('\n');
+    'read all', 'quit',
+  ];
+  const input = `${birthCommands.join('\n')}\n`;
   const birthArgs = ['body', 'birth', '--screen-free', '--state-dir', state,
     ...selectedSpeechArgs];
   await writeFile(path.join(output, 'birth-input.txt'), input, { mode: 0o600 });
-  const transcript = invoke(owner, birthArgs, { input, timeout: screenFreeSessionTimeout });
+  const transcript = speakerCard
+    ? await runPacedScreenFree(owner, birthArgs, birthCommands, 'birth> ',
+      screenFreeSessionTimeout)
+    : invoke(owner, birthArgs, { input, timeout: screenFreeSessionTimeout });
   await writeFile(path.join(output, 'birth-transcript.txt'), transcript, { mode: 0o600 });
-  for (const required of ['Installed Host screen-free Birth', 'Edit Body name requested',
-    'Include Plot. For Clock', 'Birth Body requested',
+  for (const required of ['Installed Host screen-free Birth',
     'Body retained by this installed Host:', 'Continuing retained Body']) {
     assert.ok(transcript.includes(required), `Birth transcript lacks ${required}`);
+  }
+  if (!speakerCard) {
+    for (const required of ['Edit Body name requested', 'Include Plot. For Clock',
+      'Birth Body requested']) {
+      assert.ok(transcript.includes(required), `Birth transcript lacks ${required}`);
+    }
   }
   const born = ownerJson(['body', 'status', '--state-dir', state, '--json']);
   const bornFace = ownerJson(['body', 'face', '--state-dir', state, '--json']);
@@ -228,14 +238,16 @@ try {
     action.intent === intent && action.availability === 'Available');
   const exercise = async (name, before, action) => {
     assert.ok(action, `the current owner Face offers no available ${name} action`);
-    const input = ['read all', `focus ${action.identity}`, 'activate',
-      'read all', 'quit', ''].join('\n');
+    const commands = ['read all', `focus ${action.identity}`, 'activate',
+      'read all', 'quit'];
+    const input = `${commands.join('\n')}\n`;
     const inputFile = `clock-${name}-input.txt`;
     const transcriptFile = `clock-${name}-transcript.txt`;
     await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
-    const transcript = invoke(owner,
-      ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs],
-      { input, timeout: screenFreeSessionTimeout });
+    const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
+    const transcript = speakerCard
+      ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout)
+      : invoke(owner, args, { input, timeout: screenFreeSessionTimeout });
     await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
     assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
     const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
