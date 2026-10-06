@@ -33,7 +33,7 @@ impl PreparedHidSourceKernel {
                     == super::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION
             })
             .count();
-        if endpoint_count != 1
+        if !(1..=8).contains(&endpoint_count)
             || !plan.activations.is_empty()
             || !plan.activation_preparations.is_empty()
         {
