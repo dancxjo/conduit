@@ -14,8 +14,9 @@ use conduit_body::{
 };
 use conduit_core::LinkBindingId;
 use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, Presentation,
-    RemoteOwnerMaskRouteSeal, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
+    FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse, Presentation, RemoteOwnerMaskRouteSeal,
+    MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
@@ -200,6 +201,30 @@ impl DurableHostRuntime {
             HostSource::Body { owner, .. } => {
                 owner.acknowledge_browser_mask_show(window_id, binding, request, show)
             }
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
+
+    pub(super) fn browser_wardrobe_report(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<serde_json::Value, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => owner.browser_wardrobe_report(
+                window_id,
+                binding,
+                request,
+                owner_plan_id,
+                basis_revision,
+                action,
+            ),
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }
