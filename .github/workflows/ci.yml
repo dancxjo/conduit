@@ -29,6 +29,7 @@ jobs:
     outputs:
       matrix: ${{ steps.scan.outputs.matrix }}
       unit-matrix: ${{ steps.scan.outputs.unit-matrix }}
+      conduitos-proof: ${{ steps.scan.outputs.conduitos-proof }}
       docs-only: ${{ steps.scan.outputs.docs-only }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -92,6 +93,7 @@ jobs:
       - name: Prove portable meaning
         env:
           SHARD: ${{ matrix.shard }}
+          CONDUIT_CI_CONDUITOS_PROOF: ${{ needs.preflight.outputs.conduitos-proof }}
         run: cargo xtask ci pipeline unit "$SHARD"
       - name: Retain acquisition measurements
         if: always()

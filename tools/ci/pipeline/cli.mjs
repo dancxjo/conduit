@@ -53,6 +53,7 @@ try {
       const plan = planChanges(paths, { full: base === 'all' });
       output('docs-only', String(plan.docsOnly));
       output('unit-matrix', { shard: plan.unitShards });
+      output('conduitos-proof', String(plan.conduitosProof));
       output('matrix', { include: TARGETS.filter(item => plan.families.includes(item.family)) });
       output('sha', head);
       break;

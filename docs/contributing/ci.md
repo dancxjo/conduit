@@ -16,8 +16,13 @@ proof and runs quick checks again. Keep actively changing work in draft.
 After preflight, unit and target proof start independently. Foundation and
 products retain their broad unit shards; hosts split into std providers,
 browser runtime, ConduitOS, and workbench fixtures. Workspace Clippy runs
-alongside them. The package ownership list still covers every workspace package
-exactly once, and each host group retains `--test-threads=1` for process isolation.
+alongside them. Ordinary packages belong to exactly one group. The sustained
+ConduitOS proof is partitioned across the same runners: automatic Body cases
+with std, automatic Clock cases with browser, USB protocol plots with workbench,
+and remaining library, default integration, and doc tests with ConduitOS.
+The native lane validates the compiled library inventory; Cargo metadata assigns
+every default integration target. Each group retains `--test-threads=1`.
+Isolated browser assets skip these native slices; Integration always proves them.
 A unit failure does not prevent independent targets from reporting defects.
 Reproduce a host group with `cargo xtask ci pipeline unit hosts-std` (or
 `hosts-browser`, `hosts-conduitos`, `hosts-workbench`). The full xtask check

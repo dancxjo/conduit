@@ -1,7 +1,9 @@
 //! Small entrance for CI work; Actions only schedules these commands.
 use std::process::Command;
 
-use crate::suites::{check::WORKSPACE_STEPS, workspace_shards::WorkspaceShard};
+use crate::suites::{
+    check::WORKSPACE_STEPS, host_protocol_shards, workspace_shards::WorkspaceShard,
+};
 
 pub(super) fn run(arguments: &[String]) -> Result<(), String> {
     if arguments.first().map(String::as_str) == Some("unit") {
@@ -70,6 +72,30 @@ fn unit(name: &str) -> Result<(), String> {
                 "FAILED: {name}/{}\nreproduce: cargo xtask ci pipeline unit {name}\ncandidate: {}\nIndependent target proof runs in parallel. See the test failure above for its exact test filter.",
                 step.id, String::from_utf8_lossy(&head.stdout).trim()
             ));
+        }
+    }
+    if host_protocol_shards::is_host_group(shard) {
+        let selected = host_protocol_shards::selected()?;
+        if !selected && shard == WorkspaceShard::TestHostsConduitos {
+            return Err("ConduitOS host group requires its portable protocol proof".into());
+        }
+        if selected {
+            if shard == WorkspaceShard::TestHostsConduitos {
+                host_protocol_shards::validate_library_partition()?;
+            }
+            for proof in host_protocol_shards::proofs(shard)? {
+                eprintln!("UNIT {name}: {}", proof.step.description);
+                let status = Command::new(proof.step.program)
+                    .args(&proof.arguments)
+                    .status()
+                    .map_err(|error| error.to_string())?;
+                if !status.success() {
+                    return Err(format!(
+                        "FAILED: {name}/{}\nreproduce: cargo xtask ci pipeline unit {name}",
+                        proof.step.id
+                    ));
+                }
+            }
         }
     }
     Ok(())

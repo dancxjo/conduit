@@ -58,7 +58,7 @@ export function planChanges(paths, { full = false } = {}) {
   if (!Array.isArray(paths) || paths.some((path) => typeof path !== "string")) {
     throw new TypeError("changed paths must be an array of strings");
   }
-  if (full || paths.length === 0) return { docsOnly: false, families: [...FAMILIES], unitShards: [...UNIT_SHARDS] };
+  if (full || paths.length === 0) return { docsOnly: false, families: [...FAMILIES], unitShards: [...UNIT_SHARDS], conduitosProof: true };
 
   const selected = new Set();
   const selectedUnits = new Set();
@@ -71,5 +71,6 @@ export function planChanges(paths, { full = false } = {}) {
     docsOnly: selected.size === 0,
     families: FAMILIES.filter((family) => selected.has(family)),
     unitShards: UNIT_SHARDS.filter((shard) => selectedUnits.has(shard)),
+    conduitosProof: selectedUnits.has("hosts-conduitos"),
   };
 }

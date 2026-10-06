@@ -135,7 +135,7 @@ package_test_shard!(
     HOST_CONDUITOS_TEST_STEP,
     "check.test.hosts-conduitos",
     "Conduitos host unit and integration tests",
-    ["conduit-conduitos-mask-offer", "conduitos",],
+    ["conduit-conduitos-mask-offer",],
     ["--", "--test-threads=1"]
 );
 
@@ -308,6 +308,7 @@ mod tests {
             .chain(HOST_BROWSER_TEST_PACKAGES)
             .chain(HOST_CONDUITOS_TEST_PACKAGES)
             .chain(HOST_WORKBENCH_TEST_PACKAGES)
+            .chain([&crate::suites::host_protocol_shards::PACKAGE])
             .chain(PRODUCT_TEST_PACKAGES)
             .copied()
             .collect();
@@ -327,6 +328,7 @@ mod tests {
             .chain(HOST_BROWSER_TEST_PACKAGES)
             .chain(HOST_CONDUITOS_TEST_PACKAGES)
             .chain(HOST_WORKBENCH_TEST_PACKAGES)
+            .chain([&crate::suites::host_protocol_shards::PACKAGE])
             .copied()
             .collect();
         assert_eq!(grouped, HOST_TEST_PACKAGES.iter().copied().collect());

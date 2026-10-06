@@ -1,4 +1,5 @@
 //! Workspace shard execution and selective package argument construction.
+use crate::suites::host_protocol_shards;
 use std::collections::BTreeSet;
 
 use crate::{
@@ -23,6 +24,23 @@ pub(super) fn run_workspace_shard(
             }
         } else {
             run_step(step, root, opts)?;
+        }
+    }
+    if host_protocol_shards::is_host_group(shard)
+        && planned_tests
+            .as_ref()
+            .is_none_or(|packages| packages.contains(host_protocol_shards::PACKAGE))
+        && host_protocol_shards::selected()
+            .map_err(|error| StepError::prereq("check.test.conduitos.plan", error))?
+    {
+        if shard == WorkspaceShard::TestHostsConduitos && !opts.dry_run {
+            host_protocol_shards::validate_library_partition()
+                .map_err(|error| StepError::prereq("check.test.conduitos.inventory", error))?;
+        }
+        for proof in host_protocol_shards::proofs(shard)
+            .map_err(|error| StepError::prereq("check.test.conduitos.plan", error))?
+        {
+            run_step_with_arguments(proof.step, &proof.arguments, root, opts)?;
         }
     }
     for step in WORKSPACE_STEPS
