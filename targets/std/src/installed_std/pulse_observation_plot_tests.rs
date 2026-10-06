@@ -71,13 +71,18 @@ fn reusable_pulse_plot_plans_and_executes_outside_choir() {
         .iter()
         .any(|placement| placement.implementation_id.as_str()
             == conduit_std_offers::PULSE_OBSERVE_IMPLEMENTATION));
-    struct Timer(Vec<Duration>);
+    struct Timer(Vec<Duration>, u64);
     impl crate::TimerAdapter for Timer {
         fn wait(&mut self, duration: Duration) {
             self.0.push(duration);
+            self.1 += duration.as_millis() as u64;
+        }
+
+        fn monotonic_now_ms(&mut self) -> Option<u64> {
+            Some(self.1)
         }
     }
-    let mut timer = Timer(Vec::with_capacity(3));
+    let mut timer = Timer(Vec::with_capacity(3), 0);
     let mut output = Vec::with_capacity(16384);
     let report = crate::installed_std::run_fragment(
         crate::installed_std::InstalledRunHost {

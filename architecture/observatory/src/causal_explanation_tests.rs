@@ -1,9 +1,107 @@
 use crate::*;
 use conduit_kernel::causal_evidence::{
-    CausalEdge, CausalEvidence, CausalRelationship, CausalTraceCompleteness, EvidenceIdentity,
-    EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit, EvidenceOutcome,
-    TerminalEvidenceCorrelation, TerminalEvidenceIndex,
+    BodyTimeMetadata, CausalEdge, CausalEvidence, CausalRelationship, CausalTraceCompleteness,
+    ClockCapture, ClockScale, ClockSourceMetadata, EvidenceIdentity, EvidenceMetadataFact,
+    EvidenceMetadataLookup, EvidenceMetadataVisit, EvidenceOutcome, TerminalEvidenceCorrelation,
+    TerminalEvidenceIndex,
 };
+
+struct ClockMetadata(EvidenceIdentity);
+
+impl EvidenceMetadataLookup for ClockMetadata {
+    fn visit<'a>(
+        &'a self,
+        evidence: EvidenceIdentity,
+        visitor: &mut dyn FnMut(EvidenceMetadataFact<'a>) -> bool,
+    ) -> EvidenceMetadataVisit {
+        if evidence != self.0 {
+            return EvidenceMetadataVisit::Missing;
+        }
+        let accepted = visitor(EvidenceMetadataFact::ClockObservation {
+            capture: ClockCapture::AtEvent,
+            local_ticks: 8_000,
+            local_scale: ClockScale::Milliseconds,
+            local_basis: "host/a/boot/2/steady",
+            body: Some(BodyTimeMetadata {
+                basis: "body/one",
+                generation: 12,
+                correlation_age_ticks: 3_200,
+                correlation_age_scale: ClockScale::Milliseconds,
+                earliest_ticks: 418_766,
+                center_ticks: 418_772,
+                latest_ticks: 418_778,
+                scale: ClockScale::Milliseconds,
+                source: ClockSourceMetadata::Peer {
+                    host: "host/reference",
+                    boot: "boot/reference",
+                    policy: "policy/clock",
+                },
+            }),
+        });
+        if accepted {
+            EvidenceMetadataVisit::Visited
+        } else {
+            EvidenceMetadataVisit::VisitorRefused
+        }
+    }
+}
+
+#[test]
+fn operator_inspection_keeps_clock_basis_bounds_and_source_without_public_leak() {
+    let effect = identity(2);
+    let mut evidence = CausalEvidence::<1>::default();
+    evidence
+        .record(CausalEdge {
+            effect,
+            relationship: CausalRelationship::CausedBy,
+            cause: identity(1),
+        })
+        .unwrap();
+    let metadata = ClockMetadata(effect);
+    let operator = explain_trace_with_metadata(
+        &evidence,
+        &metadata,
+        effect,
+        CausalExplanationVisibility::Operator,
+    )
+    .unwrap();
+    assert!(matches!(
+        &operator.nodes[0].metadata,
+        CausalExplanationMetadata::Visible(facts)
+            if facts.contains(&CausalExplanationMetadataFact::ClockObservation {
+                capture: ClockCapture::AtEvent,
+                local_ticks: 8_000,
+                local_scale: ClockScale::Milliseconds,
+                local_basis: "host/a/boot/2/steady".into(),
+                body: Some(BodyTimeExplanation {
+                    basis: "body/one".into(),
+                    generation: 12,
+                    correlation_age_ticks: 3_200,
+                    correlation_age_scale: ClockScale::Milliseconds,
+                    earliest_ticks: 418_766,
+                    center_ticks: 418_772,
+                    latest_ticks: 418_778,
+                    scale: ClockScale::Milliseconds,
+                    source: ClockSourceExplanation::Peer {
+                        host: "host/reference".into(),
+                        boot: "boot/reference".into(),
+                        policy: "policy/clock".into(),
+                    },
+                }),
+            })
+    ));
+    let public = explain_trace_with_metadata(
+        &evidence,
+        &metadata,
+        effect,
+        CausalExplanationVisibility::Public,
+    )
+    .unwrap();
+    assert_eq!(
+        public.nodes[0].metadata,
+        CausalExplanationMetadata::Redacted
+    );
+}
 
 struct ExactMetadata(EvidenceIdentity);
 

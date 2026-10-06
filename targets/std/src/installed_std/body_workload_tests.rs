@@ -151,6 +151,328 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
 }
 
 #[test]
+fn body_time_qualified_plan_requires_ready_monotonic_correlation_before_execution() {
+    use crate::body_execution::BodyRunRequest;
+    use conduit_body::BodyHostClockEvidence;
+    use conduit_core::{
+        BodyClockCorrelation, BodyTimeRequirement, BodyTimeTolerance, ClockProvenance,
+        MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, TemporalScale,
+    };
+
+    struct Clock(MonotonicInstant);
+
+    impl crate::TimerAdapter for Clock {
+        fn wait(&mut self, _: std::time::Duration) {}
+
+        fn monotonic_observation(
+            &mut self,
+            _host: &conduit_core::HostId,
+            _boot: &conduit_core::BootId,
+        ) -> Option<MonotonicInstant> {
+            Some(self.0.clone())
+        }
+    }
+
+    let (advertisement, plots) = workload();
+    let mut host = crate::StdHost::from_advertisement(advertisement.clone()).unwrap();
+    let mut body = Body::born(
+        plots[0].source_document_id.clone(),
+        plots[0].checked_plot_id.clone(),
+        1,
+        SignId::from("sign/time-born"),
+    )
+    .unwrap();
+    for (index, plot) in plots.iter().enumerate().skip(1) {
+        body = body
+            .admit_plot(
+                ResidentPlot::new(
+                    plot.source_document_id.clone(),
+                    plot.checked_plot_id.clone(),
+                ),
+                SignId::from(format!("sign/time-admit-{index}")),
+            )
+            .unwrap();
+    }
+    let wake = body.wake(1, SignId::from("sign/time-wake")).unwrap().1;
+    let requirement = BodyTimeRequirement::new(
+        wake.body_id.as_str().into(),
+        BodyTimeTolerance::new(10, TemporalScale::Milliseconds),
+        MonotonicDuration::new(1_000, TemporalScale::Microseconds),
+    )
+    .unwrap();
+    let plan = BodyPlan::seal_with_body_time(
+        &wake,
+        plots
+            .into_iter()
+            .map(|plan| BodyPlotPlan {
+                plot: ResidentPlot::new(
+                    plan.source_document_id.clone(),
+                    plan.checked_plot_id.clone(),
+                ),
+                plan,
+            })
+            .collect(),
+        requirement,
+    )
+    .unwrap();
+    let sample = MonotonicInstant::new(
+        1_000,
+        MonotonicClockIdentity::new(
+            advertisement.host_id.clone(),
+            advertisement.boot_id.clone(),
+            "test/steady".into(),
+            TemporalScale::Microseconds,
+            1,
+            1,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let correlation = |uncertainty| {
+        BodyClockCorrelation::new(
+            wake.body_id.as_str().into(),
+            TemporalScale::Milliseconds,
+            1,
+            sample.clone(),
+            10_000,
+            0,
+            100,
+            uncertainty,
+            10_000,
+            ClockProvenance::External {
+                provider_id: "provider/test".into(),
+                admission_reference: "proof/test".into(),
+                policy_id: "policy/test".into(),
+            },
+        )
+        .unwrap()
+    };
+    let control = crate::RunControl::default();
+    let request = || BodyRunRequest {
+        wake: &wake,
+        plan: &plan,
+        control: &control,
+        keyboard: None,
+    };
+    let mut output = Vec::new();
+    let mut timer = Clock(sample.clone());
+    assert!(host
+        .run_body_plan_to(request(), &mut output, &mut timer)
+        .unwrap_err()
+        .contains("requires an explicit clock correlation"));
+    assert!(host
+        .run_body_plan_to_with_body_time(request(), &mut output, &mut timer, &correlation(100))
+        .unwrap_err()
+        .contains("InsufficientQuality"));
+    assert!(host
+        .run_body_plan_to_with_body_time_bounds(
+            request(),
+            &mut output,
+            &mut timer,
+            &correlation(2),
+            MonotonicDuration::new(6, TemporalScale::Milliseconds),
+            MonotonicDuration::new(6, TemporalScale::Milliseconds),
+        )
+        .unwrap_err()
+        .contains("InsufficientQuality"));
+    let ready_outcome = host
+        .run_body_plan_to_with_body_time(request(), &mut output, &mut timer, &correlation(2))
+        .unwrap_err();
+    assert!(!ready_outcome.contains("BodyTime-qualified Plan"));
+    let ready_correlation = correlation(2);
+    let admission = plan
+        .admit_body_time(&[BodyHostClockEvidence {
+            sample: &sample,
+            correlation: &ready_correlation,
+            transport_uncertainty: MonotonicDuration::new(1, TemporalScale::Milliseconds),
+            scheduler_uncertainty: MonotonicDuration::new(1, TemporalScale::Milliseconds),
+        }])
+        .unwrap();
+    let admitted_outcome = host
+        .run_body_plan_to_with_admitted_body_time(request(), &mut output, &mut timer, &admission)
+        .unwrap_err();
+    assert!(!admitted_outcome.contains("BodyTime admission"));
+    let stale = MonotonicInstant::new(11_001, sample.clock().clone()).unwrap();
+    match host.prepare_remote_fragment_with_body_time(
+        &plan,
+        &admission,
+        &plan.plots[0].plan.fragments[0],
+        &mut Clock(stale),
+    ) {
+        Ok(fragment) => {
+            host.release_remote_fragment(fragment).unwrap();
+            panic!("stale clock admitted remote fragment");
+        }
+        Err(error) => assert!(error.contains("remote BodyTime fragment quality")),
+    }
+    assert!(output.is_empty());
+}
+
+#[test]
+fn body_time_qualified_play_fails_when_local_clock_disappears() {
+    use crate::body_execution::BodyRunRequest;
+    use conduit_core::{
+        BodyClockCorrelation, BodyTimeRequirement, BodyTimeTolerance, ClockProvenance,
+        MonotonicClockIdentity, MonotonicDuration, MonotonicInstant, TemporalScale,
+        TerminalDisposition,
+    };
+
+    struct DisappearingClock {
+        samples: Vec<MonotonicInstant>,
+    }
+
+    impl crate::TimerAdapter for DisappearingClock {
+        fn wait(&mut self, _: std::time::Duration) {}
+
+        fn monotonic_observation(
+            &mut self,
+            _host: &conduit_core::HostId,
+            _boot: &conduit_core::BootId,
+        ) -> Option<MonotonicInstant> {
+            if self.samples.is_empty() {
+                None
+            } else {
+                Some(self.samples.remove(0))
+            }
+        }
+    }
+
+    let (advertisement, plots) = workload();
+    let mut host = crate::StdHost::from_advertisement(advertisement.clone()).unwrap();
+    let plot = plots[1].clone();
+    let body = Body::born(
+        plot.source_document_id.clone(),
+        plot.checked_plot_id.clone(),
+        1,
+        SignId::from("sign/time-loss-born"),
+    )
+    .unwrap();
+    let wake = body.wake(1, SignId::from("sign/time-loss-wake")).unwrap().1;
+    let requirement = BodyTimeRequirement::new(
+        wake.body_id.as_str().into(),
+        BodyTimeTolerance::new(10, TemporalScale::Milliseconds),
+        MonotonicDuration::new(1_000, TemporalScale::Microseconds),
+    )
+    .unwrap();
+    let plan = BodyPlan::seal_with_body_time(
+        &wake,
+        vec![BodyPlotPlan {
+            plot: ResidentPlot::new(
+                plot.source_document_id.clone(),
+                plot.checked_plot_id.clone(),
+            ),
+            plan: plot,
+        }],
+        requirement,
+    )
+    .unwrap();
+    let sample = MonotonicInstant::new(
+        1_000,
+        MonotonicClockIdentity::new(
+            advertisement.host_id.clone(),
+            advertisement.boot_id.clone(),
+            "test/steady".into(),
+            TemporalScale::Microseconds,
+            1,
+            1,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let correlation = BodyClockCorrelation::new(
+        wake.body_id.as_str().into(),
+        TemporalScale::Milliseconds,
+        1,
+        sample.clone(),
+        10_000,
+        0,
+        100,
+        2,
+        10_000,
+        ClockProvenance::External {
+            provider_id: "provider/test".into(),
+            admission_reference: "proof/test".into(),
+            policy_id: "policy/test".into(),
+        },
+    )
+    .unwrap();
+    let control = crate::RunControl::default();
+    let mut output = Vec::new();
+    let report = host
+        .run_body_plan_to_with_body_time_bounds(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: None,
+            },
+            &mut output,
+            &mut DisappearingClock {
+                samples: vec![sample.clone()],
+            },
+            &correlation,
+            MonotonicDuration::new(1, TemporalScale::Milliseconds),
+            MonotonicDuration::new(1, TemporalScale::Milliseconds),
+        )
+        .unwrap();
+    assert!(matches!(
+        report.terminal,
+        TerminalDisposition::Failed { .. }
+    ));
+    assert!(report
+        .failure
+        .as_deref()
+        .unwrap()
+        .contains("lost its local monotonic clock"));
+    assert_eq!(
+        report.clock_quality,
+        Some(conduit_core::BodyTimeQuality::Unsupported {
+            reason: conduit_core::BodyTimeRefusal::Unavailable,
+        })
+    );
+    assert_eq!(
+        report.clock_execution_bounds,
+        Some((
+            MonotonicDuration::new(1, TemporalScale::Milliseconds),
+            MonotonicDuration::new(1, TemporalScale::Milliseconds),
+        ))
+    );
+    assert!(output.is_empty());
+    let stale = MonotonicInstant::new(11_001, sample.clock().clone()).unwrap();
+    let degraded = host
+        .run_body_plan_to_with_body_time(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: None,
+            },
+            &mut output,
+            &mut DisappearingClock {
+                samples: vec![sample, stale],
+            },
+            &correlation,
+        )
+        .unwrap();
+    assert!(matches!(
+        degraded.terminal,
+        TerminalDisposition::Failed { .. }
+    ));
+    assert!(degraded
+        .failure
+        .as_deref()
+        .unwrap()
+        .contains("lost clock quality: Unsupported { reason: Stale }"));
+    assert_eq!(
+        degraded.clock_quality,
+        Some(conduit_core::BodyTimeQuality::Unsupported {
+            reason: conduit_core::BodyTimeRefusal::Stale,
+        })
+    );
+    assert!(output.is_empty());
+}
+
+#[test]
 fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel() {
     let (host, plans) = workload();
     let first = &plans[0];
@@ -455,9 +777,17 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
             HostedKeyboardPoll::Cancelled
         }
     }
-    struct Clock;
+    struct Clock {
+        now_ms: u64,
+    }
     impl crate::TimerAdapter for Clock {
-        fn wait(&mut self, _: std::time::Duration) {}
+        fn wait(&mut self, duration: std::time::Duration) {
+            self.now_ms += duration.as_millis() as u64;
+        }
+
+        fn monotonic_now_ms(&mut self) -> Option<u64> {
+            Some(self.now_ms)
+        }
     }
     let (advertisement, plans) = workload();
     let mut host = crate::StdHost::from_advertisement(advertisement).unwrap();
@@ -510,7 +840,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
                 keyboard: None
             },
             &mut output,
-            &mut Clock
+            &mut Clock { now_ms: 0 }
         )
         .is_err());
     assert!(output.is_empty());
@@ -528,7 +858,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
                 keyboard: Some(&mut bad_keys),
             },
             &mut output,
-            &mut Clock,
+            &mut Clock { now_ms: 0 },
         )
         .unwrap();
     assert!(matches!(
@@ -569,7 +899,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
                 keyboard: Some(&mut keys),
             },
             &mut output,
-            &mut Clock,
+            &mut Clock { now_ms: 0 },
         )
         .unwrap();
     assert_eq!(
@@ -630,7 +960,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
                 keyboard: Some(&mut untouched),
             },
             &mut cancelled_output,
-            &mut Clock,
+            &mut Clock { now_ms: 0 },
         )
         .unwrap();
     assert!(matches!(

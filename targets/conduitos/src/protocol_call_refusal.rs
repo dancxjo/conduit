@@ -54,6 +54,8 @@ impl ProtocolCallRefusal {
             Self::Clock(Clock::SequenceExhausted) => (FailureCode::IdentityCapacityExhausted, 1062),
             Self::Clock(Clock::Cancelled) => (FailureCode::Cancelled, 1063),
             Self::Clock(Clock::Canonical(_)) => (FailureCode::InvalidInput, 1064),
+            Self::Clock(Clock::Temporal(_)) => (FailureCode::InvalidInput, 1065),
+            Self::Clock(Clock::Provider(_)) => (FailureCode::HostCallFailed, 1066),
             Self::I2c(I2c::WrongBinding | I2c::StaleRequest) => {
                 (FailureCode::InvalidLifecycle, 1030)
             }
