@@ -2,7 +2,7 @@
 # https://www.usb.org/sites/default/files/hid1_11.pdf
 # Source grants no device, endpoint or controller authority.
 type UsbHidReportFrame = {
-    wire: sequence U8 <= 8
+    wire: Bytes <= 2048B
     actual: U64
 }
 type UsbHidDecodeRequest = {
@@ -24,7 +24,7 @@ type UsbBootMouseReport = {
     buttons: U8
     x: I16
     y: I16
-    wire: sequence U8 <= 8
+    wire: Bytes <= 2048B
 }
 type UsbBootMouseResult =
     mouse UsbBootMouseReport
@@ -42,11 +42,12 @@ plot usb-hid-zero-reserved-report (
     frame: UsbHidReportFrame...| >> request: UsbHidDecodeRequest...|
 ) = ({ frame: ., zero_reserved: true })
 
-# Count/extent agree before indexed reads. Error usages retain their exact
-# wire code; duplicate nonzero usages are not repeated semantic presses.
+# Count/extent agree and the boot report ceiling is checked before indexed reads.
+# Error usages retain their exact wire code; duplicate nonzero usages are not
+# repeated semantic presses.
 plot usb-hid-keyboard-frame (
     request: UsbHidDecodeRequest...| >> result: UsbBootKeyboardResult...|
-) = (.frame.actual != sequence/length(.frame.wire) ? malformed(unit) : (.frame.actual < 8 ? short(unit) : (.zero_reserved && .frame.wire.1 != 0 ? reserved(unit) : ((.frame.wire.2 >= 1 && .frame.wire.2 <= 3) || (.frame.wire.3 >= 1 && .frame.wire.3 <= 3) || (.frame.wire.4 >= 1 && .frame.wire.4 <= 3) || (.frame.wire.5 >= 1 && .frame.wire.5 <= 3) || (.frame.wire.6 >= 1 && .frame.wire.6 <= 3) || (.frame.wire.7 >= 1 && .frame.wire.7 <= 3) ? report-error((.frame.wire.2 >= 1 && .frame.wire.2 <= 3 ? .frame.wire.2 : (.frame.wire.3 >= 1 && .frame.wire.3 <= 3 ? .frame.wire.3 : (.frame.wire.4 >= 1 && .frame.wire.4 <= 3 ? .frame.wire.4 : (.frame.wire.5 >= 1 && .frame.wire.5 <= 3 ? .frame.wire.5 : (.frame.wire.6 >= 1 && .frame.wire.6 <= 3 ? .frame.wire.6 : (.frame.wire.7 >= 1 && .frame.wire.7 <= 3 ? .frame.wire.7 : 0))))))) : (((((.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.3) || ((.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.4) || (.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.5))) || (((.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.6) || (.frame.wire.2 != 0 && .frame.wire.2 == .frame.wire.7)) || ((.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.4) || (.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.5)))) || ((((.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.6) || (.frame.wire.3 != 0 && .frame.wire.3 == .frame.wire.7)) || ((.frame.wire.4 != 0 && .frame.wire.4 == .frame.wire.5) || (.frame.wire.4 != 0 && .frame.wire.4 == .frame.wire.6))) || (((.frame.wire.4 != 0 && .frame.wire.4 == .frame.wire.7) || (.frame.wire.5 != 0 && .frame.wire.5 == .frame.wire.6)) || ((.frame.wire.5 != 0 && .frame.wire.5 == .frame.wire.7) || (.frame.wire.6 != 0 && .frame.wire.6 == .frame.wire.7))))) ? duplicate(unit) : keyboard({ modifiers: .frame.wire.0, keys: [.frame.wire.2, .frame.wire.3, .frame.wire.4, .frame.wire.5, .frame.wire.6, .frame.wire.7] }))))))
+) = ((.frame.actual != bytes/length(.frame.wire) || .frame.actual > 8) ? malformed(unit) : (.frame.actual < 8 ? short(unit) : (.zero_reserved && bytes/at(.frame.wire, 1) != 0 ? reserved(unit) : ((bytes/at(.frame.wire, 2) >= 1 && bytes/at(.frame.wire, 2) <= 3) || (bytes/at(.frame.wire, 3) >= 1 && bytes/at(.frame.wire, 3) <= 3) || (bytes/at(.frame.wire, 4) >= 1 && bytes/at(.frame.wire, 4) <= 3) || (bytes/at(.frame.wire, 5) >= 1 && bytes/at(.frame.wire, 5) <= 3) || (bytes/at(.frame.wire, 6) >= 1 && bytes/at(.frame.wire, 6) <= 3) || (bytes/at(.frame.wire, 7) >= 1 && bytes/at(.frame.wire, 7) <= 3) ? report-error((bytes/at(.frame.wire, 2) >= 1 && bytes/at(.frame.wire, 2) <= 3 ? bytes/at(.frame.wire, 2) : (bytes/at(.frame.wire, 3) >= 1 && bytes/at(.frame.wire, 3) <= 3 ? bytes/at(.frame.wire, 3) : (bytes/at(.frame.wire, 4) >= 1 && bytes/at(.frame.wire, 4) <= 3 ? bytes/at(.frame.wire, 4) : (bytes/at(.frame.wire, 5) >= 1 && bytes/at(.frame.wire, 5) <= 3 ? bytes/at(.frame.wire, 5) : (bytes/at(.frame.wire, 6) >= 1 && bytes/at(.frame.wire, 6) <= 3 ? bytes/at(.frame.wire, 6) : (bytes/at(.frame.wire, 7) >= 1 && bytes/at(.frame.wire, 7) <= 3 ? bytes/at(.frame.wire, 7) : 0))))))) : (((((bytes/at(.frame.wire, 2) != 0 && bytes/at(.frame.wire, 2) == bytes/at(.frame.wire, 3)) || ((bytes/at(.frame.wire, 2) != 0 && bytes/at(.frame.wire, 2) == bytes/at(.frame.wire, 4)) || (bytes/at(.frame.wire, 2) != 0 && bytes/at(.frame.wire, 2) == bytes/at(.frame.wire, 5)))) || (((bytes/at(.frame.wire, 2) != 0 && bytes/at(.frame.wire, 2) == bytes/at(.frame.wire, 6)) || (bytes/at(.frame.wire, 2) != 0 && bytes/at(.frame.wire, 2) == bytes/at(.frame.wire, 7))) || ((bytes/at(.frame.wire, 3) != 0 && bytes/at(.frame.wire, 3) == bytes/at(.frame.wire, 4)) || (bytes/at(.frame.wire, 3) != 0 && bytes/at(.frame.wire, 3) == bytes/at(.frame.wire, 5))))) || ((((bytes/at(.frame.wire, 3) != 0 && bytes/at(.frame.wire, 3) == bytes/at(.frame.wire, 6)) || (bytes/at(.frame.wire, 3) != 0 && bytes/at(.frame.wire, 3) == bytes/at(.frame.wire, 7))) || ((bytes/at(.frame.wire, 4) != 0 && bytes/at(.frame.wire, 4) == bytes/at(.frame.wire, 5)) || (bytes/at(.frame.wire, 4) != 0 && bytes/at(.frame.wire, 4) == bytes/at(.frame.wire, 6)))) || (((bytes/at(.frame.wire, 4) != 0 && bytes/at(.frame.wire, 4) == bytes/at(.frame.wire, 7)) || (bytes/at(.frame.wire, 5) != 0 && bytes/at(.frame.wire, 5) == bytes/at(.frame.wire, 6))) || ((bytes/at(.frame.wire, 5) != 0 && bytes/at(.frame.wire, 5) == bytes/at(.frame.wire, 7)) || (bytes/at(.frame.wire, 6) != 0 && bytes/at(.frame.wire, 6) == bytes/at(.frame.wire, 7)))))) ? duplicate(unit) : keyboard({ modifiers: bytes/at(.frame.wire, 0), keys: [bytes/at(.frame.wire, 2), bytes/at(.frame.wire, 3), bytes/at(.frame.wire, 4), bytes/at(.frame.wire, 5), bytes/at(.frame.wire, 6), bytes/at(.frame.wire, 7)] }))))))
 
 # Six alternating passes sort exactly six slots with no data-dependent work.
 # Zero slots remain in the fixed report and never become key transitions.
@@ -99,7 +100,7 @@ plot usb-hid-boot-keyboard-zero-reserved (
 # uninterpreted wire truth; an optional wheel is not silently advertised.
 plot usb-hid-mouse-frame (
     request: UsbHidDecodeRequest...| >> result: UsbBootMouseResult...|
-) = (.frame.actual != sequence/length(.frame.wire) ? malformed(unit) : (.frame.actual < 3 ? short(unit) : (.zero_reserved && (.frame.wire.0 & 248) != 0 ? reserved(unit) : (.frame.wire.1 == 128 || .frame.wire.2 == 128 ? invalid-motion(unit) : mouse({ buttons: .frame.wire.0 & 7, x: (.frame.wire.1 < 128 ? value/i16(.frame.wire.1) : value/i16(.frame.wire.1) - 256), y: (.frame.wire.2 < 128 ? value/i16(.frame.wire.2) : value/i16(.frame.wire.2) - 256), wire: .frame.wire })))))
+) = ((.frame.actual != bytes/length(.frame.wire) || .frame.actual > 8) ? malformed(unit) : (.frame.actual < 3 ? short(unit) : (.zero_reserved && (bytes/at(.frame.wire, 0) & 248) != 0 ? reserved(unit) : (bytes/at(.frame.wire, 1) == 128 || bytes/at(.frame.wire, 2) == 128 ? invalid-motion(unit) : mouse({ buttons: bytes/at(.frame.wire, 0) & 7, x: (bytes/at(.frame.wire, 1) < 128 ? value/i16(bytes/at(.frame.wire, 1)) : value/i16(bytes/at(.frame.wire, 1)) - 256), y: (bytes/at(.frame.wire, 2) < 128 ? value/i16(bytes/at(.frame.wire, 2)) : value/i16(bytes/at(.frame.wire, 2)) - 256), wire: .frame.wire })))))
 plot usb-hid-boot-mouse (
     >> frame: UsbHidReportFrame...|
     decoded: UsbBootMouseResult...| >>

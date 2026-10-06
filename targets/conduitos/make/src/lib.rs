@@ -130,6 +130,8 @@ fn package_catalog() -> PackageCatalogContribution {
             "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
             "profile-fragment/conduitos-usb-configuration-proof@1".into(),
             "profile-fragment/conduitos-usb-endpoint-read-proof@1".into(),
+            "profile-fragment/conduitos-usb-hid-endpoint-proof@1".into(),
+            "profile-fragment/conduitos-usb-hid-mouse-proof@1".into(),
             "profile-fragment/conduitos-hotplug-proof@1".into(),
             "profile-fragment/conduitos-ps2-input@1".into(),
         ],

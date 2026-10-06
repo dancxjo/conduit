@@ -78,6 +78,17 @@ pub(super) fn execute_usb_endpoint(opts: &GlobalOpts) -> Result<ImageRecord, Con
     assemble_architecture_proof(ConduitosArch::X86_64, opts)
 }
 
+pub(super) fn execute_usb_hid_endpoint(
+    opts: &GlobalOpts,
+    mouse: bool,
+) -> Result<ImageRecord, ConduitosError> {
+    let build = build::execute_usb_hid_endpoint(opts, mouse)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(ConduitosArch::X86_64, opts)
+}
+
 pub(super) fn execute_emergency_halt(opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
     let build = build::execute_emergency_halt(opts)?;
     build

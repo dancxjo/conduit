@@ -63,6 +63,12 @@ pub fn execute(
     args: super::command::UsbProofArgs,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
+    if args.hid_mouse {
+        return endpoint::execute_mouse(opts);
+    }
+    if args.hid_endpoint {
+        return endpoint::execute_hid(opts);
+    }
     if args.endpoint_read {
         return endpoint::execute(opts);
     }

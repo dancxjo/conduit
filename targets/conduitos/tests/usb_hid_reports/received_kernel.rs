@@ -43,7 +43,7 @@ fn malformed_wire_report_is_observed_without_replacing_previous_keyboard_state()
     .iter()
     .map(|wire| ValuePayload {
         value_kind: frame.value_kind.clone(),
-        encoded: crate::descriptor_frame::frame(&frame_type, wire, 8),
+        encoded: crate::usb_hid_reports::common::frame(&frame_type, wire, 8),
     })
     .collect();
     let begin_value = ValuePayload {

@@ -24,6 +24,8 @@ use conduit_core::*;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use core::fmt::Write;
 use sha2::{Digest, Sha256};
+#[path = "usb_endpoint_read_proof/hid.rs"]
+mod hid;
 #[path = "usb_endpoint_read_proof/kernel.rs"]
 mod kernel;
 #[path = "usb_endpoint_read_proof/possession.rs"]
@@ -54,7 +56,12 @@ pub fn run_appliance(
     if device.endpoint_count != 1
         || endpoint.address != 0x81
         || endpoint.transfer_type != 3
-        || endpoint.maximum_packet_size != 8
+        || endpoint.maximum_packet_size
+            != if cfg!(feature = "usb-hid-mouse-proof") {
+                4
+            } else {
+                8
+            }
     {
         return Err("usb-endpoint-proof-fixture-attachment");
     }
@@ -121,6 +128,9 @@ pub(super) fn run(
         )
     }
     .map_err(|_| "usb-endpoint-proof-configuration")?;
+    if cfg!(feature = "usb-hid-endpoint-proof") {
+        return hid::run(controller, device, configured, dma, ids, base);
+    }
     // Publish readiness and issue possession only after native configuration is acknowledged.
     let plan = planning::plan(
         &contract,
