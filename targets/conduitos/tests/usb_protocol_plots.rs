@@ -240,3 +240,8 @@ fn class_recognition_is_specific_and_does_not_publish_offers() {
         );
     }
 }
+
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
