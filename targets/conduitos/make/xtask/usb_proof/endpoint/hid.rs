@@ -88,24 +88,84 @@ fn validate_sign(
                 == conduitos::usb_base::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION
         })
         .count() as u8;
-    if sign.capture_buffers != captures
-        || sign.maximum_pending_transfers != captures
-        || sign.schema != "conduit.conduitos.usb-hid-endpoint/v1"
-        || sign.proof_class != "freestanding-emulator"
-        || sign.source_document_id != plan.source_document_id.as_str()
-        || sign.checked_plot_id != plan.checked_plot_id.as_str()
-        || sign.plan_id != plan.plan_id.as_str()
-        || sign.active_play_id != active.active_play_id.as_str()
-        || sign.device_instance_id != device
-        || sign.transfers != 128
-        || sign.cycle_transitions != 2
-        || sign.transcript_digest != expected
-        || !sign.normal_close
-        || !sign.acknowledged_stop
-        || !sign.fixture_protocol
-        || !sign.allocation_sealed
-    {
-        return Err(refusal("hid-proof-sign", format!("{sign:?}")));
+    for (field, wanted, actual) in [
+        (
+            "schema",
+            "conduit.conduitos.usb-hid-endpoint/v1",
+            sign.schema.as_str(),
+        ),
+        (
+            "proof_class",
+            "freestanding-emulator",
+            sign.proof_class.as_str(),
+        ),
+        (
+            "source_document_id",
+            plan.source_document_id.as_str(),
+            sign.source_document_id.as_str(),
+        ),
+        (
+            "checked_plot_id",
+            plan.checked_plot_id.as_str(),
+            sign.checked_plot_id.as_str(),
+        ),
+        ("plan_id", plan.plan_id.as_str(), sign.plan_id.as_str()),
+        (
+            "active_play_id",
+            active.active_play_id.as_str(),
+            sign.active_play_id.as_str(),
+        ),
+        (
+            "device_instance_id",
+            device,
+            sign.device_instance_id.as_str(),
+        ),
+        (
+            "transcript_digest",
+            expected,
+            sign.transcript_digest.as_str(),
+        ),
+    ] {
+        if wanted != actual {
+            return Err(refusal(
+                "hid-proof-sign",
+                format!("{field}: expected {wanted}, actual {actual}"),
+            ));
+        }
+    }
+    for (field, wanted, actual) in [
+        (
+            "capture_buffers",
+            u64::from(captures),
+            u64::from(sign.capture_buffers),
+        ),
+        (
+            "maximum_pending_transfers",
+            u64::from(captures),
+            u64::from(sign.maximum_pending_transfers),
+        ),
+        ("transfers", 128, u64::from(sign.transfers)),
+        ("cycle_transitions", 2, u64::from(sign.cycle_transitions)),
+    ] {
+        if wanted != actual {
+            return Err(refusal(
+                "hid-proof-sign",
+                format!("{field}: expected {wanted}, actual {actual}"),
+            ));
+        }
+    }
+    for (field, actual) in [
+        ("normal_close", sign.normal_close),
+        ("acknowledged_stop", sign.acknowledged_stop),
+        ("fixture_protocol", sign.fixture_protocol),
+        ("allocation_sealed", sign.allocation_sealed),
+    ] {
+        if !actual {
+            return Err(refusal(
+                "hid-proof-sign",
+                format!("{field}: expected true, actual false"),
+            ));
+        }
     }
     Ok(())
 }

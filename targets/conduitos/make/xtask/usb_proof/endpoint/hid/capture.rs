@@ -30,6 +30,9 @@ pub(super) fn expected_digest(outputs: &[PortDescriptor]) -> Result<String, Cond
     let StructuredInfoTypeShape::Collection { element: slot, .. } = slots_type.shape() else {
         return Err(refusal("hid-capture-proof-type", "slots collection"));
     };
+    // Source normalizes all six usages in ascending order, including zero.
+    // The sole nonzero usage is therefore slot 5; its release/press slots are
+    // 8 + 5 and 14 + 5 in the fixed 20-slot batch.
     let mut digest = Sha256::new();
     for sequence in 0..128_u64 {
         let pressed = sequence.is_multiple_of(2);
@@ -37,7 +40,7 @@ pub(super) fn expected_digest(outputs: &[PortDescriptor]) -> Result<String, Cond
             .map(|index| {
                 StructuredInfoValue::leaf(
                     key.clone(),
-                    vec![if pressed && index == 0 { 4 } else { 0 }],
+                    vec![if pressed && index == 5 { 4 } else { 0 }],
                 )
             })
             .collect::<Result<Vec<_>, _>>()
@@ -68,7 +71,7 @@ pub(super) fn expected_digest(outputs: &[PortDescriptor]) -> Result<String, Cond
         )?;
         let slots = (0..20)
             .map(|index| {
-                if index == if pressed { 14 } else { 8 } {
+                if index == if pressed { 19 } else { 13 } {
                     StructuredInfoValue::variant(
                         slot.clone(),
                         "changed",
