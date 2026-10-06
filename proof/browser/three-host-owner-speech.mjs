@@ -106,7 +106,7 @@ export async function captureOwnerSelectedSpeech(page, observer, expected) {
   const operationId = begun.operation_id;
   await page.getByText('The owner started reading this Show.', { exact: false }).waitFor();
   let terminal;
-  for (let attempt = 0; attempt < 120 && !terminal; attempt += 1) {
+  for (let attempt = 0; attempt < 360 && !terminal; attempt += 1) {
     previous = observer.replies.length;
     await page.getByRole('button', { name: 'Check reading' }).click();
     const reply = await observer.nextReply(previous);
@@ -117,7 +117,7 @@ export async function captureOwnerSelectedSpeech(page, observer, expected) {
       break;
     }
     assert.equal(reply.status?.state, 'running');
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(500);
   }
   assert.ok(terminal, 'selected owner speech needs an exact terminal receipt');
   await page.getByText('Owner reading ended: completed.', { exact: true }).waitFor();

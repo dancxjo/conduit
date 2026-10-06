@@ -51,7 +51,7 @@ export function acquisitionIdentity(target, { root = process.cwd(), env = proces
     cacheable: ['unit', 'browser', 'hosted-linux', 'conduitos-x86_64',
       'conduitos-aarch64', 'conduitos-ia32', 'conduitos-riscv64',
       'conduitos-loongarch64', 'avr', 'esp32-c3', 'esp32-s3',
-      'esp32-wroom', 'rp2040'].includes(target) };
+      'esp32-wroom', 'raspberry-pi', 'orange-pi', 'rp2040'].includes(target) };
 }
 
 export function emitAcquisitionKey(target) {

@@ -312,6 +312,9 @@ try {
   assert.equal(wardrobeRecovered.owner_plan_id, wardrobeBefore.owner_plan_id);
   assert.equal(wardrobeRecovered.selected?.route_id, browserRoute.route_id);
   assert.ok(wardrobeRecovered.show_id && !wardrobeRecovered.fresh_show_required);
+  const currentBrowserFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(currentBrowserFace.show_id, wardrobeRecovered.show_id);
+  assert.equal(currentBrowserFace.face_id, afterTerminal.face_id);
   await page.locator('.owner-wardrobe').screenshot({ path: path.join(output, 'browser-wardrobe.png') });
   const wardrobeRecord = { schema: 'conduit.proof/owner-browser-wardrobe@1',
     source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
@@ -333,7 +336,7 @@ try {
   let ownerSelectedSpeech;
   if (installed.selected_speech) {
     const receipt = await captureOwnerSelectedSpeech(page, speechObserver, {
-      face: afterTerminal, bodyId, ownerHostId: ownerPart.current.host_id,
+      face: currentBrowserFace, bodyId, ownerHostId: ownerPart.current.host_id,
       ownerBootId: ownerPart.current.boot_id,
       providerSha256: installed.selected_speech.provider_sha256,
     });
