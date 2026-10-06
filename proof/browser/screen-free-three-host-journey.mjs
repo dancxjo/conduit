@@ -149,10 +149,12 @@ try {
   const birthArgs = ['body', 'birth', '--screen-free', '--state-dir', state,
     ...selectedSpeechArgs];
   await writeFile(path.join(output, 'birth-input.txt'), input, { mode: 0o600 });
-  const transcript = speakerCard
+  const birthSession = speakerCard
     ? await runPacedScreenFree(owner, birthArgs, birthCommands, ['birth> ', 'body> '],
-      screenFreeSessionTimeout)
-    : invoke(owner, birthArgs, { input, timeout: screenFreeSessionTimeout });
+      screenFreeSessionTimeout) : null;
+  if (birthSession) assert.deepEqual(birthSession.commands, birthCommands);
+  const transcript = birthSession?.transcript ??
+    invoke(owner, birthArgs, { input, timeout: screenFreeSessionTimeout });
   await writeFile(path.join(output, 'birth-transcript.txt'), transcript, { mode: 0o600 });
   for (const required of ['Installed Host screen-free Birth',
     'Body retained by this installed Host:', 'Continuing retained Body']) {
@@ -252,9 +254,13 @@ try {
     const transcriptFile = `clock-${name}-transcript.txt`;
     await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
     const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
-    const transcript = speakerCard
-      ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout)
-      : invoke(owner, args, { input, timeout: screenFreeSessionTimeout });
+    const selected = speakerCard
+      ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
+        { retryStaleReadAll: 4 }) : null;
+    const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
+    if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
+    const transcript = selected?.transcript ??
+      invoke(owner, args, { input, timeout: screenFreeSessionTimeout });
     await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
     assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
     const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
@@ -275,8 +281,8 @@ try {
       result_face_id: after.presentation.identity,
       result_face_revision: after.presentation.revision,
       final_reading: reading.final,
-      input: { path: `../${inputFile}`, bytes: Buffer.byteLength(input),
-        sha256: digest(Buffer.from(input)) },
+      input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),
+        sha256: digest(Buffer.from(actualInput)) },
       transcript: { path: `../${transcriptFile}`, bytes: Buffer.byteLength(transcript),
         sha256: digest(Buffer.from(transcript)) },
       after,
