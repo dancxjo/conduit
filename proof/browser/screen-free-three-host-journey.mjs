@@ -34,6 +34,10 @@ const load = async file => JSON.parse(await readFile(file, 'utf8'));
 const selectedSpeechArgs = speakerCard ? ['--speak', '--speaker-card', speakerCard,
   '--speaker-device', speakerDevice, '--speech-executable', speechExecutable,
   '--speech-data', speechData, '--speech-engine', speechEngine] : [];
+// Full-Face playback is serialized at the selected ALSA device. The scripted
+// Birth and clock sessions each include multiple complete readings, not a
+// single generated artifact; retain a finite wall-clock deadline for them.
+const screenFreeSessionTimeout = speakerCard ? 30 * 60_000 : 30_000;
 const attestReading = (transcript, face, part, label) => {
   const receipts = transcript.split('\n').flatMap(line => {
     const start = line.indexOf('{"');
@@ -137,7 +141,7 @@ try {
   const birthArgs = ['body', 'birth', '--screen-free', '--state-dir', state,
     ...selectedSpeechArgs];
   await writeFile(path.join(output, 'birth-input.txt'), input, { mode: 0o600 });
-  const transcript = invoke(owner, birthArgs, { input, timeout: speakerCard ? 180_000 : 30_000 });
+  const transcript = invoke(owner, birthArgs, { input, timeout: screenFreeSessionTimeout });
   await writeFile(path.join(output, 'birth-transcript.txt'), transcript, { mode: 0o600 });
   for (const required of ['Installed Host screen-free Birth', 'Edit Body name requested',
     'Include Plot. For Clock', 'Birth Body requested',
@@ -231,7 +235,7 @@ try {
     await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
     const transcript = invoke(owner,
       ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs],
-      { input, timeout: speakerCard ? 180_000 : 30_000 });
+      { input, timeout: screenFreeSessionTimeout });
     await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
     assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
     const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
