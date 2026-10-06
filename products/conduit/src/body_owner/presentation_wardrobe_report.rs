@@ -21,10 +21,14 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes(
+        let current = Self::current_presentation_routes_with_native(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
+            self.pending_native_mask.as_ref(),
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         let wardrobe = self
             .presentation_wardrobe
