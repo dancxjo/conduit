@@ -210,29 +210,7 @@ fn read_native<T: NativeRustBinding>(path: &std::path::Path) -> Result<T, Hosted
     T::decode(&bytes).map_err(|_| HostedLanguageRefusal::Configuration)
 }
 
-/// Render only exact typed semantic startup facts. Host source paths and private
-/// mapping names remain outside the authored Plot.
-pub fn language_request_literal(request: &LanguageRequest) -> String {
-    let quote = |value: &str| serde_json::to_string(value).expect("native bounded text");
-    let variety = request.variety().as_ref().map_or_else(
-        || "none(\"\")".into(),
-        |variety| {
-            format!(
-                "some({{ identity: {}, language: {} }})",
-                quote(variety.identity().get()),
-                quote(variety.language().get())
-            )
-        },
-    );
-    let policy = match request.variety_policy() {
-        conduit_language::LanguageVarietyPolicy::LanguageSufficient => "language_sufficient(\"\")",
-        conduit_language::LanguageVarietyPolicy::ExactVariety => "exact_variety(\"\")",
-    };
-    format!(
-        "{{ language: {}, variety: {variety}, variety_policy: {policy} }}",
-        quote(request.language().get())
-    )
-}
+pub use conduit_language::language_request_literal;
 
 #[cfg(test)]
 pub(crate) mod tests;
