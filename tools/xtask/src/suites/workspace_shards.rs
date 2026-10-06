@@ -107,6 +107,53 @@ package_test_shard!(
     ["--", "--test-threads=1"]
 );
 
+// Separate runners isolate these host proof surfaces while each binary remains serial.
+package_test_shard!(
+    HOST_STD_TEST_PACKAGES,
+    HOST_STD_TEST_STEP,
+    "check.test.hosts-std",
+    "Std host unit and integration tests",
+    ["conduit-std-host", "conduit-std-offers",],
+    ["--", "--test-threads=1"]
+);
+
+package_test_shard!(
+    HOST_BROWSER_TEST_PACKAGES,
+    HOST_BROWSER_TEST_STEP,
+    "check.test.hosts-browser",
+    "Browser host unit and integration tests",
+    [
+        "conduit-browser-host",
+        "conduit-browser-runtime",
+        "conduit-browser-mask-offer",
+    ],
+    ["--", "--test-threads=1"]
+);
+
+package_test_shard!(
+    HOST_CONDUITOS_TEST_PACKAGES,
+    HOST_CONDUITOS_TEST_STEP,
+    "check.test.hosts-conduitos",
+    "Conduitos host unit and integration tests",
+    ["conduit-conduitos-mask-offer", "conduitos",],
+    ["--", "--test-threads=1"]
+);
+
+package_test_shard!(
+    HOST_WORKBENCH_TEST_PACKAGES,
+    HOST_WORKBENCH_TEST_STEP,
+    "check.test.hosts-workbench",
+    "Workbench host unit and integration tests",
+    [
+        "conduit-little-seismograph-fixture",
+        "patchbay-hosted",
+        "conduit-patchbay-workbench",
+        "patchbay-workbench-host-contract",
+        "conduit-browser-patchbay-workbench",
+    ],
+    ["--", "--test-threads=1"]
+);
+
 package_test_shard!(
     PRODUCT_TEST_PACKAGES,
     PRODUCT_TEST_STEP,
@@ -138,6 +185,10 @@ pub enum WorkspaceShard {
     Lint,
     TestFoundation,
     TestHosts,
+    TestHostsStd,
+    TestHostsBrowser,
+    TestHostsConduitos,
+    TestHostsWorkbench,
     TestProducts,
     Portable,
     Pico,
@@ -145,10 +196,13 @@ pub enum WorkspaceShard {
 
 impl WorkspaceShard {
     #[cfg(test)]
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 9] = [
         Self::Lint,
         Self::TestFoundation,
-        Self::TestHosts,
+        Self::TestHostsStd,
+        Self::TestHostsBrowser,
+        Self::TestHostsConduitos,
+        Self::TestHostsWorkbench,
         Self::TestProducts,
         Self::Portable,
         Self::Pico,
@@ -158,6 +212,10 @@ impl WorkspaceShard {
         match self {
             Self::TestFoundation => Some(&FOUNDATION_TEST_STEP),
             Self::TestHosts => Some(&HOST_TEST_STEP),
+            Self::TestHostsStd => Some(&HOST_STD_TEST_STEP),
+            Self::TestHostsBrowser => Some(&HOST_BROWSER_TEST_STEP),
+            Self::TestHostsConduitos => Some(&HOST_CONDUITOS_TEST_STEP),
+            Self::TestHostsWorkbench => Some(&HOST_WORKBENCH_TEST_STEP),
             Self::TestProducts => Some(&PRODUCT_TEST_STEP),
             _ => None,
         }
@@ -169,7 +227,11 @@ impl WorkspaceShard {
             Self::TestFoundation => {
                 matches!(step.id, "check.kernel-alloc" | "check.system-continuity")
             }
-            Self::TestHosts => false,
+            Self::TestHosts
+            | Self::TestHostsStd
+            | Self::TestHostsBrowser
+            | Self::TestHostsConduitos
+            | Self::TestHostsWorkbench => false,
             Self::TestProducts => false,
             Self::Portable => {
                 step.id.starts_with("check.no-std.")
@@ -188,10 +250,7 @@ impl WorkspaceShard {
 mod tests {
     use std::{collections::BTreeSet, process::Command};
 
-    use super::{
-        WorkspaceShard, FOUNDATION_TEST_PACKAGES, FOUNDATION_TEST_STEP, HOST_TEST_PACKAGES,
-        HOST_TEST_STEP, PRODUCT_TEST_PACKAGES, PRODUCT_TEST_STEP,
-    };
+    use super::*;
     use crate::suites::{
         check::WORKSPACE_STEPS, network_capability::NETWORK_CAPABILITY_STEPS,
         pico_compositions::PICO_COMPOSITION_STEPS,
@@ -245,7 +304,10 @@ mod tests {
             .collect();
         let assigned: Vec<_> = FOUNDATION_TEST_PACKAGES
             .iter()
-            .chain(HOST_TEST_PACKAGES)
+            .chain(HOST_STD_TEST_PACKAGES)
+            .chain(HOST_BROWSER_TEST_PACKAGES)
+            .chain(HOST_CONDUITOS_TEST_PACKAGES)
+            .chain(HOST_WORKBENCH_TEST_PACKAGES)
             .chain(PRODUCT_TEST_PACKAGES)
             .copied()
             .collect();
@@ -259,8 +321,23 @@ mod tests {
     }
 
     #[test]
+    fn host_groups_preserve_the_legacy_host_suite() {
+        let grouped: BTreeSet<_> = HOST_STD_TEST_PACKAGES
+            .iter()
+            .chain(HOST_BROWSER_TEST_PACKAGES)
+            .chain(HOST_CONDUITOS_TEST_PACKAGES)
+            .chain(HOST_WORKBENCH_TEST_PACKAGES)
+            .copied()
+            .collect();
+        assert_eq!(grouped, HOST_TEST_PACKAGES.iter().copied().collect());
+    }
+
+    #[test]
     fn every_test_shard_names_packages_with_an_explicit_package_flag() {
-        for step in [&FOUNDATION_TEST_STEP, &HOST_TEST_STEP, &PRODUCT_TEST_STEP] {
+        for step in WorkspaceShard::ALL
+            .into_iter()
+            .filter_map(WorkspaceShard::package_test_step)
+        {
             assert_eq!(step.args.first(), Some(&"test"), "{} command", step.id);
             assert_eq!(
                 step.args[1], "--no-fail-fast",
@@ -277,7 +354,7 @@ mod tests {
             for pair in packages.as_chunks::<2>().0 {
                 assert_eq!(pair[0], "-p", "{} package flag for {}", step.id, pair[1]);
             }
-            if step.id == "check.test.hosts" {
+            if step.id.starts_with("check.test.hosts") {
                 assert_eq!(
                     &options[package_end..],
                     ["--", "--test-threads=1"],

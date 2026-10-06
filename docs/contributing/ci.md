@@ -13,10 +13,23 @@ through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The pipeline scans the diff, checks patch hygiene, Rust formatting, locked
 workspace metadata and firmware lockfiles, artifact/publication invariants, and
-Actions syntax. Three
-broad unit shards cover foundation, hosts, and products; workspace Clippy runs
-alongside them. These use the repository's existing package ownership list.
-Expensive targets start only after every unit and lint shard passes.
+Actions syntax. This `candidate/quick` check runs on every PR update, including
+drafts. Draft PRs stop after quick checks; mark a PR ready for review to launch
+exhaustive proof for its current SHA. Returning it to draft cancels superseded
+proof and runs quick checks again. Keep actively changing work in draft.
+
+After preflight, unit and target proof start independently. Foundation and
+products retain their broad unit shards; hosts split into std providers,
+browser runtime, ConduitOS, and workbench fixtures. Workspace Clippy runs
+alongside them. The package ownership list still covers every workspace package
+exactly once, and each host group retains `--test-threads=1` for process isolation.
+A unit failure does not prevent independent targets from reporting defects.
+
+The `candidate` job is an AND gate over all selected proof for the exact PR SHA.
+It is skipped on drafts and cannot certify them for admission. Ready docs-only
+PRs require successful preflight. Integration always runs exhaustive proof for
+all targets and unit shards, with running work finishing and pending commits
+coalescing. Publication continues to consume those exact verified artifacts.
 
 Selection is deliberately small and conservative:
 

@@ -2,6 +2,7 @@ name: Candidate
 on:
   pull_request:
     branches: [dev]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 permissions:
   contents: read
 concurrency:
@@ -11,10 +12,11 @@ jobs:
   proof:
     uses: ./.github/workflows/ci.yml
     with:
+      exhaustive: ${{ !github.event.pull_request.draft }}
       sha: ${{ github.event.pull_request.head.sha }}
       base: ${{ github.event.pull_request.base.sha }}
   candidate:
-    if: ${{ always() }}
+    if: ${{ always() && !github.event.pull_request.draft }}
     needs: proof
     runs-on: ubuntu-24.04
     steps:
