@@ -1,5 +1,10 @@
 # CI for contributors and agents
 
+As of 6 October 2026, the repository's candidate, integration, publication,
+and acquisition workflows are manually disabled at the owner's request. This
+guide describes their checked-in behavior and local entrances. New pushes do
+not receive those workflow results or automatic promotion while disabled.
+
 Open ordinary pull requests to `dev`. Read the single required `candidate`
 result. Its failure identifies the command and source being checked; reproduce
 through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
@@ -106,6 +111,42 @@ than reported as a speedup. The report separately compares warm preparation
 against uncached setup alone, so the cost of populating a cache cannot hide
 a regression. Existing runner-image tools are part of the
 recorded baseline; “cold” does not mean an empty machine.
+
+The [6 October 2026 acquisition run](https://github.com/dancxjo/conduit/actions/runs/37441249185)
+completed exact cold/warm pairs for every target below at source
+`b4b2157910727c94bca6e7a02cf8358edcffe0de`. These are preparation
+times in seconds, including project-cache restore and save but excluding
+checkout, baseline runner provisioning, product build, and product proof.
+They measure that source and runner image, not a promise for later images.
+
+| Target | Cold | Warm | Saved |
+| --- | ---: | ---: | ---: |
+| Unit | 31.2 | 25.5 | 5.7 |
+| Preflight | 1.7 | 0.6 | 1.1 |
+| Browser | 54.4 | 41.3 | 13.1 |
+| Hosted Linux | 37.5 | 25.0 | 12.4 |
+| Hosted Windows | 2.7 | 1.7 | 1.1 |
+| Hosted macOS | 2.2 | 0.7 | 1.5 |
+| ConduitOS x86_64 | 63.9 | 56.2 | 7.8 |
+| ConduitOS AArch64 | 43.2 | 38.8 | 4.4 |
+| ConduitOS IA-32 | 61.3 | 43.6 | 17.7 |
+| ConduitOS RISC-V64 | 51.7 | 45.0 | 6.7 |
+| ConduitOS LoongArch64 | 73.0 | 60.3 | 12.7 |
+| ESP32-C3 | 55.2 | 30.2 | 25.0 |
+| ESP32-S3 | 220.0 | 34.6 | 185.4 |
+| ESP32-WROOM | 290.8 | 35.6 | 255.2 |
+| AVR | 87.1 | 39.6 | 47.5 |
+| Raspberry Pi | 39.7 | 29.4 | 10.3 |
+| Orange Pi | 44.4 | 39.7 | 4.8 |
+| RP2040 | 42.3 | 27.0 | 15.4 |
+
+IA-32's cold setup spent 51.7 seconds in the one APT transaction; the warm
+setup still spent 35.9 seconds updating private signed indices and installing
+authenticated cached packages. Rust target/component acquisition took about
+seven and six seconds respectively. The earlier 40-minute job therefore
+cannot be explained by IA-32 tool setup alone. Windows, macOS, and preflight
+warm restores cost more than uncached setup when cache restore overhead is
+included, so the pipeline does not retain acquisition caches for those lanes.
 
 ## Combined development
 
