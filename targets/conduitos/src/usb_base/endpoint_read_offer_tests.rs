@@ -78,6 +78,17 @@ fn eight_reads_require_eight_host_instances_resources_and_explicit_authority() {
             1
         );
     }
+    let mut kernel = crate::usb_base::hid_source_kernel::PreparedHidSourceKernel::prepare(
+        artifact,
+        conduit_composite::KernelCompositeSignStorage::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        kernel.kernel_mut().definition().internal_plan.fragments[0]
+            .placements
+            .len(),
+        8
+    );
     assert!(plan(host.clone(), &[]).is_err());
     let mut fewer_instances = host.clone();
     fewer_instances.capabilities[0].limits.max_active_instances = 7;
