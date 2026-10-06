@@ -32,6 +32,8 @@ mod clock_action;
 mod control_client;
 #[path = "body/owner_spoken.rs"]
 pub(super) mod owner_spoken;
+#[path = "body/owner_spoken_playback.rs"]
+mod owner_spoken_playback;
 #[path = "body/speech.rs"]
 pub(super) mod speech;
 #[cfg(unix)]

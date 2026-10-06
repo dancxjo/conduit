@@ -1,6 +1,8 @@
 //! The selected owner's one finite Face-to-artifact speech Play.
+use super::owner_spoken_playback::play_accepted_wording;
 use super::{DurableHostRuntime, HostSource};
 use crate::durable_host::owner::{DirectSpokenStart, LlmSpokenStart};
+use crate::durable_host::selected_speech::AttachedEquipment;
 use conduit_core::{port_id, ConnectionTrack};
 use conduit_presentation::{
     ArtifactAcknowledgedSpokenShow, DirectArtifactAcknowledgedSpokenShow, MaskShow,
@@ -19,6 +21,7 @@ struct ResultShow {
     generated_manifestation_identity: Option<String>,
     accepted_wording: Option<String>,
     active_play_id: conduit_core::ActivePlayId,
+    speaker_playback: Option<Value>,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -81,10 +84,15 @@ impl TimerAdapter for NoWait {
     fn wait(&mut self, _: Duration) {}
 }
 
-fn run_one(host: &mut StdHost, start: Start, control: &RunControl) -> Result<ResultShow, String> {
+fn run_one(
+    host: &mut StdHost,
+    start: Start,
+    equipment: Option<&AttachedEquipment>,
+    control: &RunControl,
+) -> Result<ResultShow, String> {
     match start {
         Start::Direct(start) => run_direct(host, *start, control),
-        Start::Llm(start) => run_llm(host, *start, control),
+        Start::Llm(start) => run_llm(host, *start, equipment, control),
     }
 }
 
@@ -127,12 +135,14 @@ fn run_direct(
         generated_manifestation_identity: None,
         accepted_wording: None,
         active_play_id: kernel.active_play_id,
+        speaker_playback: None,
     })
 }
 
 fn run_llm(
     host: &mut StdHost,
     start: LlmSpokenStart,
+    equipment: Option<&AttachedEquipment>,
     control: &RunControl,
 ) -> Result<ResultShow, String> {
     if !host.spoken_mask_artifact_route_is_current()
@@ -170,12 +180,25 @@ fn run_llm(
     {
         return Err("LLM spoken Show differs from its completed Play or route".into());
     }
+    let speaker_playback = equipment
+        .map(|equipment| {
+            play_accepted_wording(
+                host,
+                &start.face,
+                &shown.show,
+                &shown.accepted_wording,
+                equipment,
+                control,
+            )
+        })
+        .transpose()?;
     Ok(ResultShow {
         show: shown.show,
         artifact: shown.artifact,
         generated_manifestation_identity: Some(shown.generated_manifestation_identity),
         accepted_wording: Some(shown.accepted_wording),
         active_play_id: kernel.active_play_id,
+        speaker_playback,
     })
 }
 
@@ -285,6 +308,7 @@ impl DurableHostRuntime {
             Mode::Direct => Start::Direct(Box::new(owner.prepare_selected_direct_spoken_start()?)),
             Mode::Llm => Start::Llm(Box::new(owner.prepare_selected_llm_spoken_start()?)),
         };
+        let equipment = self.selected_speech_equipment.clone();
         let seal = start.seal().clone();
         let operation_id =
             crate::durable_host::fresh_identity("owner-spoken-mask", seal.route_plan_id.as_str());
@@ -296,7 +320,7 @@ impl DurableHostRuntime {
             .spawn(move || {
                 let mut host = receiver.recv().ok().flatten()?;
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    run_one(&mut host, start, &worker_control)
+                    run_one(&mut host, start, equipment.as_ref(), &worker_control)
                 }))
                 .unwrap_or_else(|_| Err("owner spoken Mask worker panicked".into()));
                 Some((host, result))
@@ -369,7 +393,9 @@ impl DurableHostRuntime {
                         "stop_requested":worker.control.stop_requested(),
                         "generated_manifestation_identity":result.generated_manifestation_identity,
                         "accepted_wording":result.accepted_wording,
-                        "artifact":result.artifact, "speaker_played":false}),
+                        "artifact":result.artifact,
+                        "speaker_played":result.speaker_playback.is_some(),
+                        "speaker_playback":result.speaker_playback}),
                     Err(detail) => json!({"schema":"conduit.body/owner-spoken-terminal@1",
                         "operation_id":worker.operation_id, "mode":worker.mode.name(),
                         "outcome":"show-refused", "route_plan_id":worker.seal.route_plan_id,
