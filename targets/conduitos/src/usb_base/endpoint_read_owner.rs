@@ -55,7 +55,11 @@ pub(crate) struct NativeEndpointReadSubmission {
 }
 
 pub(crate) enum NativeEndpointReadObservation<'a> {
-    Completed { actual: u16, input: &'a [u8] },
+    Completed {
+        ordinal: u64,
+        actual: u16,
+        input: &'a [u8],
+    },
     Disposition(EndpointReadDisposition),
 }
 
@@ -232,9 +236,13 @@ impl EndpointReadCallOwner {
             return Err(EndpointReadOwnerRefusal::StaleTransfer);
         }
         let encoded = match observation {
-            NativeEndpointReadObservation::Completed { actual, input } => self
+            NativeEndpointReadObservation::Completed {
+                ordinal,
+                actual,
+                input,
+            } => self
                 .encoder
-                .completed(submission.length, actual, input)
+                .completed(ordinal, submission.length, actual, input)
                 .map_err(EndpointReadOwnerRefusal::Result),
             NativeEndpointReadObservation::Disposition(disposition) => self
                 .encoder

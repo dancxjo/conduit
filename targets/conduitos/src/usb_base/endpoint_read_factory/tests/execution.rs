@@ -123,7 +123,7 @@ fn packed_endpoint_results_cross_the_production_kernel_without_growth_or_replay(
     };
     let mut encoder = PreparedEndpointReadResultEncoder::new(&contract).unwrap();
     let wire = core::array::from_fn::<_, 2048, _>(|n| n as u8);
-    let result = encoder.completed(2048, 2048, &wire).unwrap().to_vec();
+    let result = encoder.completed(0, 2048, 2048, &wire).unwrap().to_vec();
     let mut output = ValuePayload {
         value_kind: output_port.value_kind.clone(),
         encoded: Vec::with_capacity(4096),

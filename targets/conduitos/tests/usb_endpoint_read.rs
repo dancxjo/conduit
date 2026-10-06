@@ -79,16 +79,31 @@ fn all_received_extents_preserve_exact_octets_shortness_and_reusable_storage() {
     let contract = EndpointReadContract::prepare().unwrap();
     let mut encoder = PreparedEndpointReadResultEncoder::new(&contract).unwrap();
     let wire = core::array::from_fn::<_, 2048, _>(|index| index as u8);
-    let maximum_encoded = encoder.completed(2048, 2048, &wire).unwrap().len();
+    let maximum_encoded = encoder
+        .completed(u64::MAX, 2048, 2048, &wire)
+        .unwrap()
+        .len();
     println!("2048-byte endpoint result: {maximum_encoded} canonical bytes");
     let allocations = allocation::allocations(|| {
         for actual in 0..=2048_u16 {
             let bytes = encoder
-                .completed(2048, actual, &wire[..usize::from(actual)])
+                .completed(
+                    u64::from(actual),
+                    2048,
+                    actual,
+                    &wire[..usize::from(actual)],
+                )
                 .unwrap();
             assert!(bytes.len() <= 4096);
             let result = validate_canonical_structured_value(bytes).unwrap();
             let frame = result.variant_payload("completed").unwrap().unwrap();
+            let ordinal = frame
+                .record_field("ordinal")
+                .unwrap()
+                .unwrap()
+                .primitive_bytes("value/u64")
+                .unwrap();
+            assert_eq!(ordinal, u64::from(actual).to_le_bytes());
             let count = frame
                 .record_field("actual")
                 .unwrap()
@@ -112,19 +127,19 @@ fn all_received_extents_preserve_exact_octets_shortness_and_reusable_storage() {
     });
     assert_eq!(allocations, 0);
     assert_eq!(
-        encoder.completed(8, 9, &wire[..9]),
+        encoder.completed(0, 8, 9, &wire[..9]),
         Err(EndpointReadResultRefusal::ActualLength)
     );
     assert_eq!(
-        encoder.completed(8, 3, &wire[..8]),
+        encoder.completed(0, 8, 3, &wire[..8]),
         Err(EndpointReadResultRefusal::InputLength)
     );
     assert_eq!(
-        encoder.completed(0, 0, &[]),
+        encoder.completed(0, 0, 0, &[]),
         Err(EndpointReadResultRefusal::DataEnvelope)
     );
     assert_eq!(
-        encoder.completed(2049, 0, &[]),
+        encoder.completed(0, 2049, 0, &[]),
         Err(EndpointReadResultRefusal::DataEnvelope)
     );
 }

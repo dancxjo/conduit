@@ -93,6 +93,7 @@ fn identical_descriptive_ids_cannot_substitute_another_issuers_transfer() {
             owner.finish_quiesced(
                 &forged,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 8,
                     input: &[0; 8],
                 },
@@ -115,6 +116,7 @@ fn identical_descriptive_ids_cannot_substitute_another_issuers_transfer() {
             owner.finish_quiesced(
                 &genuine,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 8,
                     input: &[0; 8],
                 },

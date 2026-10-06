@@ -11,7 +11,7 @@ use conduit_plot::{
 };
 
 pub const ENDPOINT_READ_KIND: &str = "machine/usb/endpoint-read";
-pub const ENDPOINT_READ_CALL: &str = "conduit.host/usb-endpoint-read@1";
+pub const ENDPOINT_READ_CALL: &str = "conduit.host/usb-endpoint-read@2";
 pub const ENDPOINT_READ_MAXIMUM_BYTES: u32 = 4096;
 pub const ENDPOINT_READ_DATA_BYTES: u16 = 2048;
 pub const ENDPOINT_READ_TYPES: &str = include_str!("../../plots/usb/endpoint-read-types.conduit");
@@ -86,7 +86,7 @@ impl EndpointReadContract {
         ];
         let kind = Kind {
             kind_id: kind_id(ENDPOINT_READ_KIND),
-            kind_contract_revision: KindIdentity::from("machine/usb/endpoint-read@1"),
+            kind_contract_revision: KindIdentity::from("machine/usb/endpoint-read@2"),
             startup_parameters: vec![],
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input],

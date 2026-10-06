@@ -53,6 +53,7 @@ fn forged_frame(contract: &EndpointReadContract, wire: &[u8], actual: u64, short
     let frame = StructuredInfoValue::record(
         ty.clone(),
         vec![
+            value("ordinal", 0_u64.to_le_bytes().to_vec()),
             value("actual", actual.to_le_bytes().to_vec()),
             value("short", vec![u8::from(short)]),
             value("wire", wire.to_vec()),
@@ -139,7 +140,7 @@ fn endpoint_framing_keeps_actual_extent_and_distinct_transport_outcomes_without_
     for actual in 0..=8_u16 {
         let wire: Vec<_> = (0..actual).map(|index| index as u8).collect();
         cases.push((
-            encoder.completed(8, actual, &wire).unwrap().to_vec(),
+            encoder.completed(0, 8, actual, &wire).unwrap().to_vec(),
             "frame",
             Some(wire),
         ));

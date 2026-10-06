@@ -52,7 +52,7 @@ fn endpoint_completion_reaches_class_outputs_and_drains_under_pressure() {
             let completed = if lost {
             encoder.disposition(conduitos::usb_base::endpoint_read_result::EndpointReadDisposition::ProviderLost).unwrap()
         } else {
-            encoder.completed(8, 8, &[0, 0, 4, 0, 0, 0, 0, 0]).unwrap()
+            encoder.completed(0, 8, 8, &[0, 0, 4, 0, 0, 0, 0, 0]).unwrap()
         }.to_vec();
             let mut play = PreparedHidEndpointProofKernel::prepare(
                 artifact,
