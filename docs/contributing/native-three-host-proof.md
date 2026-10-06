@@ -115,6 +115,11 @@ edits the name, selects the reviewed Clock Plot, reviews the current Face, and
 explicitly activates Birth. The resulting Body is the one provisioned for QMP
 and joined by Chromium. Keep the TLS key and the entire new output directory
 private: it contains a live invitation and provisioned ISO.
+The current fixed-storage ConduitOS TLS client offers ECDSA P-256/P-384 and
+Ed25519 signatures, not RSA. Use a private P-256 route certificate whose SAN
+includes the guest route IP (`10.0.2.42`) and the owner-forward address. An
+RSA certificate can provision successfully but the guest cannot complete its
+TLS handshake.
 
 ```sh
 cargo xtask make conduitos screen-free-three-host-proof \
@@ -142,11 +147,39 @@ device playback, first inspect `conduit body speech-options --json`, then add
 the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
 `--speech-data`, and `--speech-engine` options. The selected device's playback
 receipts are in the Birth transcript; this remains distinct from attended
-human listening. Current selected playback uses a second StdHost sharing the
+human listening. Pass the exact regular `engine` path reported by
+`speech-options`, not a versioned-library symlink; provider discovery rejects
+symlinks to keep the bound bytes unambiguous. The producer waits for the next
+screen-free prompt before sending each selected-speaker command, so a queued
+command does not interrupt a full-Face reading. Current selected playback uses a
+second StdHost sharing the
 owner's Host and Boot identities; this run does not establish speech realized
 by the owner instance. The three speech provider options may also be used without a
 speaker selection to retain the same-run direct speech artifact after the
 three-Host actions; that does not turn the Birth readout into audio.
+
+When the Face changes during a selected-speaker reading, the client cancels
+the stale turn between speech Plays. The capture driver can request the current
+Face again, at most four times, and retains every command it actually sent.
+The active clock chapter uses concise orientation instead of an automatic
+full-Face reading that would outlast its 60-second admitted Play. A cancelled
+last turn or a Face that keeps changing fails this proof; neither is a
+completed spoken Show.
+
+After the live three-Host actions and speech captures, the same producer
+reenters the retained owner with `conduit body screen-free`. The three-Host
+producer has already retired the clock Play, so the Body is Lulled. It reads
+the current Face on request, focuses and activates the available Start clock
+action, receives concise current-Face orientation, then focuses and activates
+Stop clock before the bounded Play ends. It reads the resulting Lulled Face in
+full. The owner retires
+that Play and returns to Lulled. `three-host/report.json` binds both inputs
+and transcripts to the original Body, owner Host/Boot, run, source Faces,
+acknowledged Shows, semantic actions, and resulting Faces. If a speaker was
+selected, the readings must have completed playback receipts; otherwise this
+is text readout only. This proves screen-free control of the resident clock,
+not a complete screen-free traversal of all three-Host journey chapters or
+human listening.
 
 For a same-run finite model explanation, add `--model ALREADY_LOCAL_MODEL` with
 the three speech provider options. The optional `--ollama-endpoint` defaults to

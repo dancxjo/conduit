@@ -297,7 +297,7 @@ fn run_body(
     )
     .map_err(|error| error.to_string())?;
     let mut sequence = 0_u64;
-    for command in opening_commands(playback.is_some()) {
+    for command in opening_body_commands(playback.is_some()) {
         sequence += 1;
         reader
             .command(&face, &show, command, sequence)
@@ -340,10 +340,7 @@ fn run_body(
         if current.basis.body_id.as_ref() != Some(&body_id) {
             return Err("installed owner changed Body identity".into());
         }
-        if current.identity != face.identity
-            || current.revision != face.revision
-            || host != advertisement
-        {
+        if current != face || host != advertisement {
             // The line was entered while the previous Face was on offer. Even
             // a bare `activate` must never be reinterpreted after refreshing
             // the reader's focus and Show against a different owner state.
@@ -357,23 +354,30 @@ fn run_body(
                 .map_err(debug_error)?;
             writeln!(
                 output,
-                "Owner Face or Host Boot changed. Refused the pending command; Face revision {} is current. Enter read all or help, then choose an action again.",
+                "Owner Face or Host Boot changed. Face revision {} is current. Read-only help and read all use the new Face; actions must be chosen again.",
                 face.revision
             )
                 .map_err(|error| error.to_string())?;
-            emit_readout(
-                state_dir,
-                input,
-                playback.as_ref(),
-                &mut reader,
-                &face,
-                &show,
-                &advertisement,
-                &mut sequence,
-                OutputPhase::Body,
-                output,
-            )?;
-            continue;
+            if line != "read all" && line != "help" {
+                writeln!(
+                    output,
+                    "Refused the pending command because it named an older Face."
+                )
+                .map_err(|error| error.to_string())?;
+                emit_readout(
+                    state_dir,
+                    input,
+                    playback.as_ref(),
+                    &mut reader,
+                    &face,
+                    &show,
+                    &advertisement,
+                    &mut sequence,
+                    OutputPhase::Body,
+                    output,
+                )?;
+                continue;
+            }
         }
         if line == "refresh" {
             writeln!(output, "Owner Face revision {} is current.", face.revision)
@@ -409,6 +413,14 @@ fn run_body(
             output,
         )?;
         if let Some(interaction) = result.interaction {
+            writeln!(
+                output,
+                "Interaction: action={} face-revision={} show={}",
+                interaction.action_id,
+                face.revision,
+                show.show_id.as_str()
+            )
+            .map_err(|error| error.to_string())?;
             let correlated = execution.interact(interaction).map_err(debug_error)?;
             match durable_host_control::submit_local_face_interaction(
                 state_dir,
@@ -465,4 +477,15 @@ pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderComma
         .then_some(ReaderCommand::Help)
         .into_iter()
         .chain(std::iter::once(ReaderCommand::ReadAll))
+}
+
+/// A returning spoken user gets immediate orientation, then chooses whether
+/// to read the whole view. Reading it automatically can outlast a live Play
+/// and make its current Stop action unreachable through nonvisual input.
+fn opening_body_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
+    std::iter::once(if spoken {
+        ReaderCommand::Repeat
+    } else {
+        ReaderCommand::ReadAll
+    })
 }
