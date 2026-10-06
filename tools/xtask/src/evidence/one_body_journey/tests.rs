@@ -93,6 +93,26 @@ fn fixture_with_media(
     invalid_png: bool,
     silent_wav: bool,
 ) -> Fixture {
+    fixture_with_source_gap(
+        mixed_run,
+        stale_transcript,
+        omit_chapter,
+        repeat_action,
+        invalid_png,
+        silent_wav,
+        false,
+    )
+}
+
+fn fixture_with_source_gap(
+    mixed_run: bool,
+    stale_transcript: bool,
+    omit_chapter: bool,
+    repeat_action: bool,
+    invalid_png: bool,
+    silent_wav: bool,
+    omit_terminal_show: bool,
+) -> Fixture {
     let root = std::env::temp_dir().join(format!(
         "conduit-one-body-render-test-{}-{}",
         std::process::id(),
@@ -138,7 +158,9 @@ fn fixture_with_media(
         let sources: &[&str] = match *chapter {
             "birth" | "lull" => &["terminal"],
             "join" => &["qmp", "chromium"],
-            "see" | "return" => &["qmp"],
+            "see" if omit_terminal_show => &["qmp"],
+            "see" => &["qmp", "terminal"],
+            "return" => &["qmp"],
             "hear" => &["direct", "llm-assisted"],
             _ => &["chromium"],
         };
@@ -347,6 +369,15 @@ fn rejects_missing_media_before_creating_a_page() {
     let fixture = fixture(false, false, false, false);
     fs::remove_file(fixture.root.join("media-join-0.png")).unwrap();
     assert!(run(&fixture).is_err());
+    assert!(!fixture.output.exists());
+}
+
+#[test]
+fn rejects_visual_chapter_without_the_terminal_mask_capture() {
+    let fixture = fixture_with_source_gap(false, false, false, false, false, false, true);
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("chapter 'see' lacks its required user-visible capture source"));
     assert!(!fixture.output.exists());
 }
 
