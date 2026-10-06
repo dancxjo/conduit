@@ -46,6 +46,11 @@ fn proves_at(
         return proves_at(when_true, remaining, required, input, types)
             && proves_at(when_false, remaining, required, input, types);
     }
+    if let (Op::Collection(values), Some(rest)) = (&value.operation, remaining.strip_prefix("[]")) {
+        return values
+            .iter()
+            .all(|element| proves_at(element, rest, required, input, types));
+    }
     if remaining.is_empty() && matches!(value.operation, Op::Literal(_)) {
         let constant = PortableExpressionProgram {
             input_type: conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
@@ -103,7 +108,7 @@ fn constructed_member<'a>(
     if path.is_empty()
         || matches!(
             node.operation,
-            Op::Input | Op::Projection { .. } | Op::Conditional { .. }
+            Op::Input | Op::Projection { .. } | Op::Conditional { .. } | Op::Collection(_)
         )
     {
         return Ok(Some((node, path)));
@@ -154,6 +159,14 @@ fn input_path(node: &PortableExpressionNode) -> Option<String> {
             value,
             member: PortableExpressionProjection::TupleIndex(index),
         } => {
+            if let StructuredInfoTypeShape::Collection { length, .. } = value.value_type.shape() {
+                if *index >= length {
+                    return None;
+                }
+                let mut path = input_path(value)?;
+                path.push_str("[]");
+                return Some(path);
+            }
             let StructuredInfoTypeShape::Record { fields, .. } = value.value_type.shape() else {
                 return None;
             };
