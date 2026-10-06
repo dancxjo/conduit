@@ -3,7 +3,7 @@ use conduit_composite::{KernelCompositeStatus, KernelCompositeTerminal};
 use conduit_core::*;
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 
-fn command(ty: &StructuredInfoType, ordinal: Option<u64>) -> Vec<u8> {
+fn command(ty: &StructuredInfoType, ordinal: Option<u64>, keyboard: bool) -> Vec<u8> {
     let StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {
         panic!("command")
     };
@@ -36,6 +36,69 @@ fn command(ty: &StructuredInfoType, ordinal: Option<u64>) -> Vec<u8> {
             .value_type()
             .clone()
     };
+    let observed_type = field_type("observed");
+    let observed = if keyboard && ordinal != 1 {
+        let StructuredInfoTypeShape::Variant { cases, .. } = observed_type.shape() else {
+            panic!("observed")
+        };
+        let report_type = cases
+            .iter()
+            .find(|c| c.tag() == "keyboard")
+            .unwrap()
+            .payload_type();
+        let StructuredInfoTypeShape::Record { fields, .. } = report_type.shape() else {
+            panic!("report")
+        };
+        let keys_type = fields
+            .iter()
+            .find(|f| f.name() == "keys")
+            .unwrap()
+            .value_type();
+        let StructuredInfoTypeShape::Collection { element, .. } = keys_type.shape() else {
+            panic!("keys")
+        };
+        let keys = match ordinal {
+            0 => [9, 4, 0, 0, 0, 0],
+            2 => [5, 4, 0, 0, 0, 0],
+            _ => [0; 6],
+        };
+        let report = StructuredInfoValue::record(
+            report_type.clone(),
+            vec![
+                StructuredFieldValue::new(
+                    "modifiers",
+                    StructuredInfoValue::leaf(
+                        fields
+                            .iter()
+                            .find(|f| f.name() == "modifiers")
+                            .unwrap()
+                            .value_type()
+                            .clone(),
+                        vec![0],
+                    )
+                    .unwrap(),
+                )
+                .unwrap(),
+                StructuredFieldValue::new(
+                    "keys",
+                    StructuredInfoValue::collection(
+                        keys_type.clone(),
+                        keys.into_iter()
+                            .map(|key| {
+                                StructuredInfoValue::leaf(element.clone(), vec![key]).unwrap()
+                            })
+                            .collect(),
+                    )
+                    .unwrap(),
+                )
+                .unwrap(),
+            ],
+        )
+        .unwrap();
+        StructuredInfoValue::variant(observed_type, "keyboard", report).unwrap()
+    } else {
+        StructuredInfoValue::variant(observed_type, "short", unit()).unwrap()
+    };
     let observation = StructuredInfoValue::record(
         observation_type.clone(),
         vec![
@@ -45,11 +108,7 @@ fn command(ty: &StructuredInfoType, ordinal: Option<u64>) -> Vec<u8> {
                     .unwrap(),
             )
             .unwrap(),
-            StructuredFieldValue::new(
-                "observed",
-                StructuredInfoValue::variant(field_type("observed"), "short", unit()).unwrap(),
-            )
-            .unwrap(),
+            StructuredFieldValue::new("observed", observed).unwrap(),
         ],
     )
     .unwrap();
@@ -59,7 +118,7 @@ fn command(ty: &StructuredInfoType, ordinal: Option<u64>) -> Vec<u8> {
         .unwrap()
 }
 
-fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool) {
+fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool, keyboard: bool) {
     let (schemas, mut run) = super::state_kernel::prepared_package(
         &super::order_lifecycle::package(),
         "usb-hid-keyboard-order-lifecycle",
@@ -93,6 +152,33 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
         .unwrap()
         .external_port
         .clone();
+    let changes = boundary
+        .output_fronts
+        .iter()
+        .find(|p| p.external_port.port_id.as_str() == "changes")
+        .unwrap()
+        .external_port
+        .clone();
+    let entry = conduitos::protocol_source::PreparedProtocolEntry::prepare(
+        &serde_json::to_vec(&super::order_lifecycle::package()).unwrap(),
+        "usb-hid-keyboard-order-lifecycle",
+    )
+    .unwrap();
+    let decoder = conduitos::source_keyboard_batch::SourceKeyboardBatchDecoder::prepare(
+        &entry.output_schema(&changes.port_id).unwrap(),
+    )
+    .unwrap();
+    let mut batch = ValuePayload {
+        value_kind: changes.value_kind.clone(),
+        encoded: Vec::with_capacity(4096),
+    };
+    let expected_batches: [&[(u8, bool)]; 3] = [
+        &[(4, true), (9, true)],
+        &[(9, false), (5, true)],
+        &[(4, false), (5, false)],
+    ];
+    let mut batches = 0;
+    let mut held_batch_steps = 0;
     let ty = schemas.get(&input.port_id).unwrap();
     let inputs: Vec<_> = ordinals
         .iter()
@@ -101,7 +187,7 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
         .chain(matches!(terminal, "closed" | "gap").then_some(None))
         .map(|ordinal| ValuePayload {
             value_kind: input.value_kind.clone(),
-            encoded: command(ty, ordinal),
+            encoded: command(ty, ordinal, keyboard),
         })
         .collect();
     let seed = ValuePayload {
@@ -159,7 +245,11 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
                         .record_field("observed")
                         .unwrap()
                         .unwrap()
-                        .variant_payload("short")
+                        .variant_payload(if keyboard && received != 1 {
+                            "keyboard"
+                        } else {
+                            "short"
+                        })
                         .unwrap()
                         .is_some()
                 );
@@ -169,6 +259,26 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
                 }
                 run.complete_output(&observation.port_id, sequence).unwrap();
                 received += 1;
+            }
+            if let Some(sequence) = run.output_into(&changes.port_id, &mut batch).unwrap() {
+                assert!(keyboard);
+                assert_eq!(sequence, batches as u64);
+                if batches == 0 && held_batch_steps < 128 {
+                    held_batch_steps += 1;
+                    continue;
+                }
+                let decoded = decoder.decode(&batch.encoded).unwrap();
+                assert_eq!(decoded.transitions().len(), expected_batches[batches].len());
+                for (actual, &(usage, pressed)) in
+                    decoded.transitions().iter().zip(expected_batches[batches])
+                {
+                    assert_eq!(
+                        (actual.usage(), actual.pressed(), actual.modifiers()),
+                        (usage, pressed, 0)
+                    );
+                }
+                run.complete_output(&changes.port_id, sequence).unwrap();
+                batches += 1;
             }
             if let Some(sequence) = run.output_into(&ended.port_id, &mut end).unwrap() {
                 assert!(!saw_end);
@@ -187,6 +297,11 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
                     run.output_terminal_into(&ended.port_id, &mut end).unwrap(),
                     Some(KernelCompositeTerminal::Normal)
                 );
+                assert_eq!(
+                    run.output_terminal_into(&changes.port_id, &mut batch)
+                        .unwrap(),
+                    Some(KernelCompositeTerminal::Normal)
+                );
                 finished = true;
                 break;
             }
@@ -195,18 +310,25 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
     assert_eq!(allocations, 0);
     assert!(finished && saw_end);
     assert_eq!(received, expected_count);
+    assert_eq!(batches, if keyboard { 3 } else { 0 });
+    assert_eq!(held_batch_steps, if keyboard { 128 } else { 0 });
     assert_eq!(held_steps, if pressure { 128 } else { 0 });
 }
 
 #[test]
 fn ordered_source_drains_eight_observations_under_pressure_without_allocations() {
-    execute(&[7, 3, 0, 6, 1, 5, 2, 4], 8, "closed", true);
+    execute(&[7, 3, 0, 6, 1, 5, 2, 4], 8, "closed", true, false);
 }
 
 #[test]
 fn gaps_duplicates_stale_and_distant_ordinals_remain_explicit() {
-    execute(&[1], 0, "gap", false);
-    execute(&[1, 1], 0, "duplicate", false);
-    execute(&[0, 0], 1, "stale", false);
-    execute(&[8], 0, "outside-window", false);
+    execute(&[1], 0, "gap", false, false);
+    execute(&[1, 1], 0, "duplicate", false, false);
+    execute(&[0, 0], 1, "stale", false, false);
+    execute(&[8], 0, "outside-window", false, false);
+}
+
+#[test]
+fn keyboard_history_follows_wire_order_and_skips_invalid_reports_under_batch_pressure() {
+    execute(&[2, 1, 3, 0], 4, "closed", true, true);
 }

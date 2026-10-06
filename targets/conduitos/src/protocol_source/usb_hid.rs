@@ -68,9 +68,10 @@ pub fn usb_hid_keyboard_order_package() -> Result<ProtocolSourcePackage, Protoco
                 "HID ordering imports",
             ))?;
     let source = format!(
-        "{header}\n{}\n{}\n{body}",
+        "{header}\n{}\n{}\n{}\n{body}",
         include_str!("../../plots/usb/hid-reports.conduit"),
         include_str!("../../plots/usb/hid-keyboard-order.conduit"),
+        include_str!("../../plots/usb/hid-keyboard-state.conduit"),
     );
     let value = |name: &str| ProtocolValueReference {
         type_name: name.into(),
