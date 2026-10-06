@@ -1,6 +1,6 @@
 //! Exact startup environment binding and canonical accumulator encoding.
 use crate::prelude::*;
-use crate::{CanonicalStartupValue, CheckedCanonicalGear, CanonicalExpansionDiagnostic};
+use crate::{CanonicalExpansionDiagnostic, CanonicalStartupValue, CheckedCanonicalGear};
 use alloc::collections::BTreeMap;
 
 pub(super) fn bind_child_environment(
@@ -24,6 +24,22 @@ pub(super) fn substitute(
         CanonicalStartupValue::Literal(_) | CanonicalStartupValue::Quantity(_) => Ok(value.clone()),
         CanonicalStartupValue::Structured(value) if value.try_concrete().is_some() => {
             Ok(CanonicalStartupValue::Structured(value.clone()))
+        }
+        CanonicalStartupValue::Structured(expected) if expected.parameter_name().is_some() => {
+            let name = expected.parameter_name().expect("guarded parameter");
+            let Some(CanonicalStartupValue::Structured(actual)) = environment.get(name) else {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-039",
+                    format!("structured startup parameter '{name}' has no exact value"),
+                ));
+            };
+            if actual.value_type() != expected.value_type() || actual.try_concrete().is_none() {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-039",
+                    format!("structured startup parameter '{name}' differs from its exact type"),
+                ));
+            }
+            Ok(CanonicalStartupValue::Structured(actual.clone()))
         }
         CanonicalStartupValue::Structured(_) => Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-039",
@@ -129,4 +145,57 @@ pub(super) fn canonical_initial_bytes(
         })?;
     }
     Ok(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ExpressionSyntax, Span, SpannedText};
+    use conduit_core::{kind_id, StructuredInfoType};
+
+    fn value(schema: &str, parameter: bool) -> CanonicalStartupValue {
+        let expected = StructuredInfoType::nominal(
+            kind_id(schema),
+            StructuredInfoType::leaf(kind_id("value/u64")).unwrap(),
+        )
+        .unwrap();
+        let expression = ExpressionSyntax::Atomic(SpannedText {
+            text: if parameter { "request" } else { "7" }.into(),
+            span: Span {
+                start: 0,
+                end: 7,
+                line: 1,
+                column: 1,
+                end_line: 1,
+                end_column: 8,
+            },
+        });
+        CanonicalStartupValue::Structured(
+            crate::structured_startup::check_structured_expression(
+                &expression,
+                &expected,
+                &mut |atomic, _| {
+                    Ok(if parameter {
+                        CanonicalStartupValue::PlotParameter(atomic.text.clone())
+                    } else {
+                        CanonicalStartupValue::Literal(atomic.text.clone())
+                    })
+                },
+            )
+            .unwrap(),
+        )
+    }
+
+    #[test]
+    fn structured_parameter_requires_a_concrete_value_of_the_same_exact_type() {
+        let expected = value("fixture/request@1", true);
+        let actual = value("fixture/request@1", false);
+        let mut environment = BTreeMap::from([("request".into(), actual.clone())]);
+        assert_eq!(substitute(&expected, &environment).unwrap(), actual);
+        environment.insert("request".into(), value("fixture/other-request@1", false));
+        assert!(substitute(&expected, &environment).is_err());
+        environment.insert("request".into(), expected.clone());
+        assert!(substitute(&expected, &environment).is_err());
+        assert!(substitute(&expected, &BTreeMap::new()).is_err());
+    }
 }
