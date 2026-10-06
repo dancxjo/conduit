@@ -142,6 +142,7 @@ pub mod protocol_host_calls;
 pub mod protocol_operations;
 mod pure_protocol_owner;
 pub mod pure_protocol_play;
+pub mod source_pointer_sample;
 
 pub mod protocol_artifact;
 pub mod protocol_play;
