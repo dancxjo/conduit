@@ -14,8 +14,11 @@ use conduit_kernel::{HostCallId, NodeId, RequestId};
 
 #[path = "usb_endpoint_read_transfer.rs"]
 mod transfer;
+#[path = "usb_endpoint_read_window.rs"]
+mod window;
 use transfer::EndpointReadTransfer;
 pub(crate) use transfer::{EndpointNativeRefusal, EndpointReceiveDma};
+pub(crate) use window::{EndpointReadWindow, EndpointReadWindowDma, EndpointReadWindowSelection};
 
 pub(crate) struct UsbEndpointReadHostCall<'a> {
     controller: &'a mut XhciReady,

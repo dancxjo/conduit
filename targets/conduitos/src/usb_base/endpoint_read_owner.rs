@@ -268,6 +268,10 @@ impl EndpointReadCallOwner {
             .map_err(EndpointReadOwnerRefusal::Capability)
     }
 
+    pub(crate) fn binding_node(&self) -> NodeId {
+        self.node
+    }
+
     fn check_binding(
         &self,
         node: NodeId,
