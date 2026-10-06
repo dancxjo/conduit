@@ -10,8 +10,10 @@ while the ConduitOS guest remains live. The owner alone retains the
 Body and workload truth. The browser then doffs, wears, and explicitly prefers
 its Mask through the owner's controls before requesting a fresh Show. This
 proves the three-Host graphical and terminal presentation topology and one
-same-Plan browser wardrobe transition, not presentation-host loss,
-owner-selected speech, physical hardware, or the published journey.
+same-Plan browser wardrobe transition. With a selected speaker, it also
+retains the installed owner's completed speaker Plays and same-Play WAVs.
+It does not prove presentation-host loss, physical hardware, attended hearing,
+or the published journey.
 
 The browser joins first. After ConduitOS joins, its screen displays the
 owner Face read-only and asks the person to choose Native graphics in the
@@ -169,16 +171,18 @@ pre-Birth receipt. Without a selected speaker, the screen-free
 client emits text readout and this run does not prove audio. To select real
 device playback, first inspect `conduit body speech-options --json`, then add
 the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
-`--speech-data`, `--speech-engine`, and `--speech-language-coverage` options. The selected device's playback
-receipts are in the Birth transcript; this remains distinct from attended
-human listening. Pass the exact regular `engine` path reported by
+`--speech-data`, `--speech-engine`, and `--speech-language-coverage` options.
+The selected device's playback receipts are in the Birth transcript. The
+browser speech action retains the installed owner's completed speaker Play
+receipts. Each playable WAV is the PCM delivered to the speaker in that Plan
+and Play, verified against the producer's WAV and PCM hashes. A digitally
+silent Play remains in the receipt without an audio control. These receipts
+remain distinct from attended human listening. Pass the exact regular `engine` path reported by
 `speech-options`, not a versioned-library symlink; provider discovery rejects
 symlinks to keep the bound bytes unambiguous. The producer waits for the next
 screen-free prompt before sending each selected-speaker command, so a queued
-command does not interrupt a full-Face reading. Current selected playback uses a
-second StdHost sharing the
-owner's Host and Boot identities; this run does not establish speech realized
-by the owner instance. The speech provider options and explicit coverage declaration may also be used without a
+command does not interrupt a full-Face reading. The speech provider options
+and explicit coverage declaration may also be used without a
 speaker selection to retain the same-run direct speech artifact after the
 three-Host actions; that does not turn the Birth readout into audio.
 
