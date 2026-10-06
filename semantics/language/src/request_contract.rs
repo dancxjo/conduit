@@ -44,9 +44,5 @@ pub fn language_requirement_laws() -> Vec<conduit_core::KindSemanticLaw> {
 /// Install the exact owner schema; an incompatible namesake is not accepted.
 pub fn install_language_request_type(startup: &mut StartupCatalog) -> Result<(), String> {
     let expected = LanguageRequest::semantic_type().expect("checked Language Type");
-    match startup.structured_type("LanguageRequest") {
-        Some(actual) if actual == &expected => Ok(()),
-        Some(_) => Err("LanguageRequest differs from the Language-owned native schema".into()),
-        None => startup.insert_structured_type("LanguageRequest", expected),
-    }
+    startup.ensure_structured_type("LanguageRequest", expected)
 }
