@@ -121,10 +121,13 @@ fn device_decode_preserves_fields_and_cannot_read_padding_as_received_data() {
     trailing.push(0);
     assert!(prepared.evaluate(&trailing).is_err());
     let capacity = prepared.output_capacity();
-    for _ in 0..10_000 {
-        assert_eq!(prepared.evaluate(&input).unwrap(), expected);
-        assert_eq!(prepared.output_capacity(), capacity);
-    }
+    let allocations = super::allocation::allocations(|| {
+        for _ in 0..10_000 {
+            assert_eq!(prepared.evaluate(&input).unwrap(), expected);
+            assert_eq!(prepared.output_capacity(), capacity);
+        }
+    });
+    assert_eq!(allocations, 0, "prepared descriptor decoding must reuse admitted storage");
     let device = validate_canonical_structured_value(&expected)
         .unwrap()
         .variant_payload("device")
