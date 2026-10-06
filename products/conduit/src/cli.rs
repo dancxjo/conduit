@@ -1,7 +1,7 @@
 mod speech;
 pub(crate) use speech::{BirthSpeechOptions, InstalledSpeechOptions};
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 /// Product command-line entrance for installed Conduit workflows.
@@ -279,6 +279,8 @@ pub(crate) enum HostServiceCommand {
         no_start: bool,
         #[command(flatten)]
         speech: InstalledSpeechOptions,
+        #[command(flatten)]
+        model: InstalledModelOptions,
     },
     /// Run the durable host in the foreground for a platform service manager.
     Run {
@@ -303,6 +305,21 @@ pub(crate) enum HostServiceCommand {
     },
 }
 
+/// One reviewed local model offered by every fresh installed Host Boot.
+#[derive(Debug, Default, Args)]
+pub(crate) struct InstalledModelOptions {
+    /// Select an already local Ollama model for this installed Host.
+    #[arg(long, requires_all = ["model_endpoint", "model_memory_mib"])]
+    pub(crate) selected_model: Option<String>,
+    /// Remove the retained model selection on reinstall.
+    #[arg(long, conflicts_with = "selected_model")]
+    pub(crate) without_selected_model: bool,
+    #[arg(long, requires = "selected_model")]
+    pub(crate) model_endpoint: Option<String>,
+    #[arg(long, requires = "selected_model")]
+    pub(crate) model_memory_mib: Option<u32>,
+}
+
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
     /// List current selectable local speakers and verified speech providers.
@@ -310,6 +327,13 @@ pub(crate) enum BodyCommand {
         /// Emit a bounded machine-readable observation; opens no speaker.
         #[arg(long)]
         json: bool,
+    },
+    /// Produce an exact spoken Mask Show from the installed owner's current Face.
+    SpokenMask {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[command(subcommand)]
+        command: SpokenMaskCommand,
     },
     /// Enter the birth encounter for a Host that does not yet belong to a Body.
     Birth {
@@ -468,6 +492,37 @@ pub(crate) enum BodyCommand {
         /// Explicitly authorize retaining membership in the admitted body.
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_membership: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum SpokenMaskCommand {
+    /// Admit the direct or --llm Face-to-artifact child in the Body Plan.
+    Admit {
+        #[arg(long)]
+        llm: bool,
+    },
+    /// Wear and select that exact child before its Play.
+    Select {
+        #[arg(long)]
+        llm: bool,
+    },
+    /// Start one cancellable selected spoken Mask Play.
+    Start {
+        #[arg(long)]
+        llm: bool,
+    },
+    /// Inspect the exact operation's terminal or running state.
+    Status {
+        operation_id: String,
+        #[arg(long)]
+        llm: bool,
+    },
+    /// Request cancellation of the exact running operation.
+    Stop {
+        operation_id: String,
+        #[arg(long)]
+        llm: bool,
     },
 }
 
@@ -807,6 +862,61 @@ mod public_surface_tests {
                 .copied()
                 .chain(["--without-selected-speech", "--selected-speech"])
         )
+        .is_err());
+    }
+
+    #[test]
+    fn service_install_model_requires_exact_endpoint_and_memory() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        assert!(
+            Cli::try_parse_from(base.iter().copied().chain(["--selected-model", "local"])).is_err()
+        );
+        assert!(Cli::try_parse_from(
+            base.iter()
+                .copied()
+                .chain(["--model-endpoint", "http://127.0.0.1:11434"])
+        )
+        .is_err());
+        let selected = base.iter().copied().chain([
+            "--selected-model",
+            "local",
+            "--model-endpoint",
+            "http://127.0.0.1:11434",
+            "--model-memory-mib",
+            "2048",
+        ]);
+        assert!(matches!(
+            Cli::try_parse_from(selected).unwrap().command,
+            Some(Command::Host {
+                command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install {
+                        model: InstalledModelOptions {
+                            selected_model: Some(_),
+                            model_memory_mib: Some(2048),
+                            ..
+                        },
+                        ..
+                    }
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(base.iter().copied().chain([
+            "--without-selected-model",
+            "--selected-model",
+            "local",
+            "--model-endpoint",
+            "http://127.0.0.1:11434",
+            "--model-memory-mib",
+            "2048",
+        ]))
         .is_err());
     }
 }

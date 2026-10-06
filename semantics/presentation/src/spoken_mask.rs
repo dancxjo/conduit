@@ -7,7 +7,10 @@ use alloc::string::String;
 use conduit_core::{ActivePlayId, PlacementId, PlanId, SignId};
 use serde::{Deserialize, Serialize};
 
-use crate::{GeneratedManifestation, MaskShow, MaskShowError, Presentation};
+use crate::{
+    GeneratedContentRole, GeneratedManifestation, ManifestationLifecycle, MaskShow, MaskShowError,
+    Presentation, MAX_GENERATED_WORDING_BYTES,
+};
 
 pub const SPOKEN_MASK_ARTIFACT_RECEIPT_KIND: &str =
     "conduit.presentation/spoken-mask-artifact-receipt@1";
@@ -23,6 +26,8 @@ pub const GENERATED_MANIFESTATION_TO_SPEECH_STREAM_KIND: &str =
     "presentation/generated-manifestation-speech-stream";
 pub const ARTIFACT_ACKNOWLEDGED_SHOW_KIND: &str = "presentation/artifact-acknowledged-show";
 pub const CLOSING_NO_INTERACTION_KIND: &str = "presentation/no-interaction";
+pub const DIRECT_FACE_WORDING_KIND: &str = "presentation/direct-face-wording";
+pub const DIRECT_ARTIFACT_SHOW_KIND: &str = "presentation/direct-artifact-show";
 pub const SPOKEN_MASK_CONTRACT_REVISION: &str = "conduit.presentation/spoken-mask-stage@1";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -30,6 +35,10 @@ pub const SPOKEN_MASK_CONTRACT_REVISION: &str = "conduit.presentation/spoken-mas
 pub struct SpokenMaskArtifactReceipt {
     pub artifact_identity: String,
     pub content_sha256: String,
+    /// Host-retained local file, when this Back can expose one. This is an
+    /// evidence locator, never an authority or an authored Plot address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_locator: Option<String>,
     pub pcm_bytes: u32,
     pub frames: u32,
     pub blocks: u16,
@@ -44,6 +53,18 @@ pub struct SpokenMaskArtifactReceipt {
 pub struct ArtifactAcknowledgedSpokenShow {
     pub show: MaskShow,
     pub generated_manifestation_identity: String,
+    /// Exact validated outward Speech handed to synthesis for this Show.
+    pub accepted_wording: String,
+    pub artifact: SpokenMaskArtifactReceipt,
+}
+
+/// Direct Face wording needs its own artifact witness. It has no generated
+/// manifestation or model claim; the Show still belongs to the exact Mask
+/// Plan and becomes Available only after the audio artifact is acknowledged.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DirectArtifactAcknowledgedSpokenShow {
+    pub show: MaskShow,
     pub artifact: SpokenMaskArtifactReceipt,
 }
 
@@ -51,6 +72,7 @@ pub struct ArtifactAcknowledgedSpokenShow {
 pub enum SpokenMaskShowError {
     InvalidArtifactIdentity,
     EmptyArtifact,
+    NotAvailable,
     StalePresentation,
     StaleGeneration,
     StalePlan,
@@ -58,50 +80,101 @@ pub enum SpokenMaskShowError {
 }
 
 impl ArtifactAcknowledgedSpokenShow {
+    /// Outer-owner check after the trusted spoken Mask session has already
+    /// validated the generated candidate and minted this Show. This proves
+    /// artifact/Face/Plan/Play linkage, not the candidate's semantics by itself.
+    pub fn validate_owner_artifact(
+        &self,
+        presentation: &Presentation,
+    ) -> Result<(), SpokenMaskShowError> {
+        self.artifact.validate_for(&self.show)?;
+        if self.generated_manifestation_identity.is_empty()
+            || self.accepted_wording.is_empty()
+            || self.accepted_wording.len() > MAX_GENERATED_WORDING_BYTES
+        {
+            return Err(SpokenMaskShowError::StaleGeneration);
+        }
+        if self.show.show.lifecycle != ManifestationLifecycle::Available {
+            return Err(SpokenMaskShowError::NotAvailable);
+        }
+        self.show
+            .validate(presentation)
+            .map_err(SpokenMaskShowError::InvalidShow)
+    }
+
     pub fn validate(
         &self,
         presentation: &Presentation,
         generated: &GeneratedManifestation,
     ) -> Result<(), SpokenMaskShowError> {
-        if self.artifact.artifact_identity.is_empty()
-            || self.artifact.artifact_identity.len() > MAX_SPOKEN_MASK_ARTIFACT_IDENTITY_BYTES
-            || self.artifact.content_sha256.len() != 64
+        self.validate_owner_artifact(presentation)?;
+        if self.generated_manifestation_identity != generated.manifestation_identity()
+            || generated.source_presentation_identity() != presentation.identity.as_str()
+            || generated.source_presentation_revision() != presentation.revision
+            || generated
+                .content()
+                .iter()
+                .filter(|segment| segment.role == GeneratedContentRole::Speech)
+                .count()
+                != 1
+            || !generated.content().iter().any(|segment| {
+                segment.role == GeneratedContentRole::Speech
+                    && segment.bytes == self.accepted_wording.as_bytes()
+            })
+        {
+            return Err(SpokenMaskShowError::StaleGeneration);
+        }
+        Ok(())
+    }
+}
+
+impl DirectArtifactAcknowledgedSpokenShow {
+    pub fn validate(&self, presentation: &Presentation) -> Result<(), SpokenMaskShowError> {
+        self.artifact.validate_for(&self.show)?;
+        if self.show.show.lifecycle != ManifestationLifecycle::Available {
+            return Err(SpokenMaskShowError::NotAvailable);
+        }
+        self.show
+            .validate(presentation)
+            .map_err(SpokenMaskShowError::InvalidShow)
+    }
+}
+
+impl SpokenMaskArtifactReceipt {
+    fn validate_for(&self, show: &MaskShow) -> Result<(), SpokenMaskShowError> {
+        if self.artifact_identity.is_empty()
+            || self.artifact_identity.len() > MAX_SPOKEN_MASK_ARTIFACT_IDENTITY_BYTES
+            || self
+                .artifact_locator
+                .as_ref()
+                .is_some_and(|locator| locator.is_empty() || locator.len() > 4096)
+            || self.content_sha256.len() != 64
             || !self
-                .artifact
                 .content_sha256
                 .bytes()
                 .all(|byte| byte.is_ascii_hexdigit())
         {
             return Err(SpokenMaskShowError::InvalidArtifactIdentity);
         }
-        if self.artifact.pcm_bytes == 0 || self.artifact.frames == 0 || self.artifact.blocks == 0 {
+        if self.pcm_bytes == 0 || self.frames == 0 || self.blocks == 0 {
             return Err(SpokenMaskShowError::EmptyArtifact);
         }
-        if self.generated_manifestation_identity != generated.manifestation_identity()
-            || generated.source_presentation_identity() != presentation.identity.as_str()
-            || generated.source_presentation_revision() != presentation.revision
-        {
-            return Err(SpokenMaskShowError::StaleGeneration);
-        }
-        if self.artifact.plan_id != self.show.planned_mask.plan.plan_id
-            || self.artifact.active_play_id != self.show.show.active_play_id
-            || !self
-                .show
+        if self.plan_id != show.planned_mask.plan.plan_id
+            || self.active_play_id != show.show.active_play_id
+            || !show
                 .planned_mask
                 .plan
                 .fragments
                 .iter()
                 .flat_map(|fragment| &fragment.placements)
                 .any(|placement| {
-                    placement.placement_id == self.artifact.placement_id
+                    placement.placement_id == self.placement_id
                         && placement.kind_id.as_str() == SPOKEN_ARTIFACT_KIND
                 })
         {
             return Err(SpokenMaskShowError::StalePlan);
         }
-        self.show
-            .validate(presentation)
-            .map_err(SpokenMaskShowError::InvalidShow)
+        Ok(())
     }
 }
 
@@ -310,6 +383,44 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
                 PortTemporal::Flow { closes: true },
             )],
         ),
+        kind(
+            DIRECT_FACE_WORDING_KIND,
+            alloc::vec![port(
+                "presentation",
+                crate::PRESENTATION_VALUE_KIND,
+                PortDirection::Input,
+                PortTemporal::Value,
+            )],
+            alloc::vec![port(
+                "speech",
+                "value/text",
+                PortDirection::Output,
+                PortTemporal::Flow { closes: true },
+            )],
+        ),
+        kind(
+            DIRECT_ARTIFACT_SHOW_KIND,
+            alloc::vec![
+                port(
+                    "presentation",
+                    crate::PRESENTATION_VALUE_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+                port(
+                    "artifact",
+                    SPOKEN_MASK_ARTIFACT_RECEIPT_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+            ],
+            alloc::vec![port(
+                "show",
+                crate::SHOW_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
     ];
     // A closing Flow is explicit semantic meaning, not an implicit Value lift.
     // Keep the existing single-shot Value projection and its 256-byte contract.
@@ -344,6 +455,25 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
             },
         ]));
     kinds.push(stream);
+    let direct = kinds
+        .iter_mut()
+        .find(|kind| kind.kind_id.as_str() == DIRECT_FACE_WORDING_KIND)
+        .expect("direct Face wording Kind");
+    direct.kind_contract_revision =
+        KindIdentity::from("conduit.presentation/direct-face-wording@1");
+    direct
+        .semantic_laws
+        .push(conduit_core::KindSemanticLaw::ValueContracts(alloc::vec![
+            conduit_core::FrontValueContract {
+                location: conduit_core::FrontValueLocation::Output(port_id("speech")),
+                contract: conduit_core::CheckedValueContract::new(
+                    kind_id("value/text"),
+                    1024,
+                    alloc::vec::Vec::new(),
+                )
+                .expect("finite direct Face wording item"),
+            },
+        ]));
     let artifact = kinds
         .iter_mut()
         .find(|kind| kind.kind_id.as_str() == SPOKEN_ARTIFACT_KIND)

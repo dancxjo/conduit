@@ -271,6 +271,9 @@ fn main() {
             command: Some(cli::BodyCommand::Face { state_dir, json }),
         }) => body_face_json::run(&state_dir, json),
         Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::SpokenMask { state_dir, command }),
+        }) => durable_host_control::direct_spoken::run(&state_dir, command),
+        Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Start { state_dir, maximum_millis }),
         }) => durable_host_control::start_owned_body(&state_dir, maximum_millis),
         Some(cli::Command::Body {

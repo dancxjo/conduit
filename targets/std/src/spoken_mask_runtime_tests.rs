@@ -200,6 +200,17 @@ fn execute_spoken_mask(
     grant_id: &str,
     presentation: Presentation,
 ) -> (ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot) {
+    execute_spoken_mask_with_final_slot(plot_name, host_id, boot_id, grant_id, presentation, false)
+}
+
+fn execute_spoken_mask_with_final_slot(
+    plot_name: &str,
+    host_id: &str,
+    boot_id: &str,
+    grant_id: &str,
+    presentation: Presentation,
+    final_slot: bool,
+) -> (ArtifactAcknowledgedSpokenShow, conduit_core::Plan, MaskPlot) {
     let config = StdHostConfig {
         host_id: HostId::from(host_id),
         boot_id: BootId::from(boot_id),
@@ -220,15 +231,33 @@ fn execute_spoken_mask(
         config.host_id.as_str().replace('/', "-")
     ));
     let _ = std::fs::remove_file(&destination);
-    host.attach_deterministic_speech_and_wav_artifact(
+    let artifact_root = destination.with_extension("artifacts");
+    let selection = if final_slot {
+        let _ = std::fs::remove_dir_all(&artifact_root);
+        std::fs::create_dir(&artifact_root).unwrap();
+        for index in 0..63 {
+            std::fs::write(
+                artifact_root.join(format!("prior-{index}.wav")),
+                b"retained",
+            )
+            .unwrap();
+        }
+        crate::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+            &artifact_root,
+            config.boot_id.clone(),
+            config.offer_generation,
+        )
+        .unwrap()
+    } else {
         crate::hosted_wav_artifact::WavArtifactSelection::new(
             &destination,
             config.boot_id.clone(),
             config.offer_generation,
         )
-        .unwrap(),
-    )
-    .unwrap();
+        .unwrap()
+    };
+    host.attach_deterministic_speech_and_wav_artifact(selection.clone())
+        .unwrap();
 
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
@@ -367,15 +396,40 @@ fn execute_spoken_mask(
         serde_json::from_slice(&collector.0[0].bytes).unwrap();
     assert_eq!(shown.show.show.lifecycle, ManifestationLifecycle::Available);
     assert_eq!(shown.show.show.presentation_id, presentation.identity);
+    assert_eq!(shown.accepted_wording, presentation.text[0].text);
     assert!(shown.artifact.pcm_bytes > 0);
     assert!(shown.artifact.blocks > 0);
     let kernel = report.kernel.unwrap();
     assert_eq!(shown.artifact.plan_id, plan.plan_id);
     assert_eq!(shown.artifact.active_play_id, kernel.active_play_id);
-    assert!(destination.is_file());
-    assert!(std::fs::metadata(&destination).unwrap().len() > 44);
-    std::fs::remove_file(destination).unwrap();
+    if final_slot {
+        assert!(
+            !selection.is_unpublished(),
+            "a full pool refuses the next Play"
+        );
+        shown.show.validate(&presentation).unwrap();
+        let locator = shown.artifact.artifact_locator.as_ref().unwrap();
+        assert!(std::path::Path::new(locator).is_file());
+        assert!(std::fs::metadata(locator).unwrap().len() > 44);
+        std::fs::remove_dir_all(artifact_root).unwrap();
+    } else {
+        assert!(destination.is_file());
+        assert!(std::fs::metadata(&destination).unwrap().len() > 44);
+        std::fs::remove_file(destination).unwrap();
+    }
     (shown, plan, mask)
+}
+
+#[test]
+fn final_artifact_slot_still_acks_its_completed_show() {
+    execute_spoken_mask_with_final_slot(
+        "spoken-final-slot",
+        "host/spoken-final-slot",
+        "boot/spoken-final-slot",
+        "grant/spoken-final-slot",
+        presentation(),
+        true,
+    );
 }
 
 #[test]

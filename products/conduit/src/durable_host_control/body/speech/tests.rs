@@ -298,6 +298,8 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
         selected_speech_equipment: None,
         speech_worker: None,
         speech_terminal: None,
+        owner_spoken_worker: None,
+        owner_spoken_terminal: None,
     };
     assert!(runtime
         .start_browser_speech(

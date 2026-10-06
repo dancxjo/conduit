@@ -8,6 +8,47 @@ const MAXIMUM_WEB_RTC_GRANTS = 16;
 const OWNER_FACE_REQUEST_SCHEMA = "conduit.presentation/owner-face-request@1";
 const OWNER_FACE_RESPONSE_SCHEMA = "conduit.presentation/owner-face-response@1";
 const MAX_OWNER_FACE_RESPONSE_BYTES = 32768;
+const MAX_OWNER_WARDROBE_REPORT_BYTES = 64 * 1024;
+const MAX_OWNER_WARDROBE_RESPONSE_BYTES = MAX_OWNER_WARDROBE_REPORT_BYTES + 1024;
+const MAX_U64 = 18_446_744_073_709_551_615n;
+const wardrobeEncoder = new TextEncoder();
+
+export function checkedOwnerWardrobeResponse(frame, pending, frameLength) {
+  if (!pending || frame?.kind !== "face-wardrobe-response" || frame.protocol !== 1 ||
+      frame.request_id !== pending.requestId || !Number.isSafeInteger(frameLength) ||
+      frameLength < 1 || frameLength > MAX_OWNER_WARDROBE_RESPONSE_BYTES) {
+    throw new Error("unsolicited or mismatched owner wardrobe response");
+  }
+  if (frame.accepted === false && typeof frame.code === "string" && frame.code.length > 0 &&
+      frame.code.length <= 128 && frame.report === null) {
+    const error = new Error(`Body owner refused wardrobe: ${frame.code}`);
+    error.code = frame.code;
+    throw error;
+  }
+  if (frame.accepted !== true || frame.code !== "" ||
+      frame.report?.schema !== "conduit.body/owner-mask-wardrobe@1" ||
+      wardrobeEncoder.encode(JSON.stringify(frame.report)).length > MAX_OWNER_WARDROBE_REPORT_BYTES) {
+    throw new Error("invalid owner wardrobe response");
+  }
+  return frame.report;
+}
+
+function checkedWardrobeRevision(value) {
+  if (typeof value !== "string" || !/^(0|[1-9][0-9]{0,19})$/.test(value) ||
+      BigInt(value) > MAX_U64) throw new Error("wardrobe revision is not one exact u64");
+  return value;
+}
+
+export function checkedOwnerWardrobeRequestFrame({ requestId, request, ownerPlanId, basisRevision, action }) {
+  const revision = checkedWardrobeRevision(basisRevision);
+  const serialized = JSON.stringify({ kind: "face-wardrobe-request", protocol: 1,
+    request_id: requestId, request, owner_plan_id: ownerPlanId,
+    basis_revision: null, action });
+  const marker = '"basis_revision":null';
+  const pieces = serialized.split(marker);
+  if (pieces.length !== 2) throw new Error("owner wardrobe request has no unique revision slot");
+  return wardrobeEncoder.encode(`${pieces[0]}"basis_revision":${revision}${pieces[1]}`);
+}
 
 export function checkedSelectedSpeechResponse(frame, pending, frameLength) {
   if (!pending || frame?.kind !== "selected-speech-response" || frame.protocol !== 1 ||
@@ -186,6 +227,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   let pendingFaceSnapshot = null;
   let pendingFaceShow = null;
   let pendingFaceInteraction = null;
+  let pendingWardrobe = null;
+  let wardrobeSequence = 0;
   let pendingSelectedSpeech = null;
   let selectedSpeechSequence = 0;
   let pageLifecycle = document.visibilityState === "hidden" ? "hidden" : "visible";
@@ -339,6 +382,15 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       } else {
         pending.reject(new Error("invalid owner interaction response"));
       }
+    } else if (frame.kind === "face-wardrobe-response" && frame.protocol === 1) {
+      const pending = pendingWardrobe;
+      if (!pending || frame.request_id !== pending.requestId) {
+        throw new Error("unsolicited owner wardrobe response");
+      }
+      clearTimeout(pending.timeout);
+      pendingWardrobe = null;
+      try { pending.resolve(checkedOwnerWardrobeResponse(frame, pending, frameBytes.length)); }
+      catch (error) { pending.reject(error); }
     } else if (frame.kind === "selected-speech-response" && frame.protocol === 1) {
       const pending = pendingSelectedSpeech;
       if (!pending || frame.request_id !== pending.requestId) throw new Error("unsolicited or mismatched selected speech response");
@@ -594,6 +646,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingFaceInteraction.reject(new Error("owner interaction Line closed"));
         pendingFaceInteraction = null;
       }
+      if (pendingWardrobe) {
+        clearTimeout(pendingWardrobe.timeout);
+        pendingWardrobe.reject(new Error("owner wardrobe Line closed; action outcome unknown"));
+        pendingWardrobe = null;
+      }
       if (pendingSelectedSpeech) {
         clearTimeout(pendingSelectedSpeech.timeout);
         pendingSelectedSpeech.reject(new Error("selected speech owner Line closed"));
@@ -747,6 +804,40 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       pendingFaceInteraction = { resolve, reject, timeout };
     });
   }
+  function ownerWardrobe({ action = null, ownerPlanId = null, basisRevision = "0" } = {}) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error("current browser presence is required for owner wardrobe"));
+    }
+    if (pendingWardrobe) return Promise.reject(new Error("one owner wardrobe request is already pending"));
+    if ((action === null) !== (ownerPlanId === null) ||
+        (ownerPlanId !== null && (typeof ownerPlanId !== "string" || !ownerPlanId || ownerPlanId.length > 256))) {
+      return Promise.reject(new Error("wardrobe action needs its exact owner Plan"));
+    }
+    if (action !== null && (typeof action !== "object" || Array.isArray(action) ||
+        Object.keys(action).length !== 1 || !["Wear", "Doff", "Prefer"].includes(Object.keys(action)[0]))) {
+      return Promise.reject(new Error("wardrobe action is not a declared Wear, Doff, or Prefer"));
+    }
+    const requestId = `browser-wardrobe:${++wardrobeSequence}`;
+    const request = { schema: OWNER_FACE_REQUEST_SCHEMA, credential_id: credential.credential_id,
+      body_id: credential.body_id, part_id: credential.part_id, host_id: credential.host_id,
+      boot_id: credential.boot_id, last_seen_revision: null, last_seen_identity: null };
+    let bytes;
+    try { bytes = checkedOwnerWardrobeRequestFrame({ requestId, request, ownerPlanId, basisRevision, action }); }
+    catch (error) { return Promise.reject(error); }
+    if (bytes.length > INPUT_CAPACITY) return Promise.reject(new Error("owner wardrobe request exceeds its finite bound"));
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (pendingWardrobe?.requestId === requestId) {
+          pendingWardrobe = null;
+          if (action !== null) socket.close(1000, "Wardrobe action outcome unknown");
+          reject(new Error("owner wardrobe response deadline; action outcome unknown"));
+        }
+      }, MEDIA_PLAN_TIMEOUT_MILLIS);
+      pendingWardrobe = { requestId, resolve, reject, timeout };
+      try { socket.send(bytes); }
+      catch (error) { clearTimeout(timeout); pendingWardrobe = null; reject(error); }
+    });
+  }
   function acknowledgeFaceShow(showBytes) {
     if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("current browser presence is required for owner Show"));
@@ -831,6 +922,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     offerEvidence: () => offerEvidence,
     requestOfferEvidence,
     requestFaceSnapshot,
+    ownerWardrobe,
     acknowledgeFaceShow,
     selectedSpeech,
     state: () => state,

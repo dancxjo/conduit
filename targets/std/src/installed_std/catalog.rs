@@ -361,6 +361,8 @@ const FACTORIES: &[&BackFactory] = &[
     &super::spoken_mask_backs::GENERATED_STREAM_SPEECH_FACTORY,
     &SPOKEN_ARTIFACT_FACTORY,
     &SPOKEN_ARTIFACT_SHOW_FACTORY,
+    &super::spoken_mask_backs::DIRECT_FACE_WORDING_FACTORY,
+    &super::spoken_mask_backs::DIRECT_ARTIFACT_SHOW_FACTORY,
     &SPOKEN_NO_INTERACTION_FACTORY,
     &DETERMINISTIC_SPEECH_FACTORY,
     &super::speech_synthesis_back::ESPEAK_FACTORY,

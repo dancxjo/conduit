@@ -29,6 +29,14 @@ pub use reader_contract::{ReaderCommand, ReaderResult, SpokenFaceRefusal, Spoken
 #[cfg(test)]
 mod tests;
 
+/// The same bounded mechanical wording used by the interactive reader,
+/// available to an ordinary direct spoken Mask before it has produced a Show.
+/// This does not acknowledge speech, create a Show, or grant a Host effect.
+pub fn mechanical_face_clauses(face: &Presentation) -> Result<Vec<String>, SpokenFaceRefusal> {
+    let cursor = FaceReadingCursor::new(face).map_err(reading_refusal)?;
+    voice_clauses(face, cursor.plan())
+}
+
 /// One bounded speech turn at a time. Only one segment may be in flight, so
 /// producer pressure cannot turn an unacknowledged clip into a completed Show.
 pub struct SpokenFaceSession {

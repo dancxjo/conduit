@@ -89,6 +89,17 @@ fn face_with_action() -> (Presentation, MaskShow) {
 }
 
 #[test]
+fn mechanical_projection_matches_interactive_wording_before_any_show() {
+    let (face, show) = face_with_action();
+    let projected = mechanical_face_clauses(&face).unwrap();
+    let reader = SpokenFaceSession::new(face, show).unwrap();
+    assert_eq!(projected, reader.voiced);
+    assert!(projected
+        .iter()
+        .any(|clause| clause.contains("Create Body")));
+}
+
+#[test]
 fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects.clone();

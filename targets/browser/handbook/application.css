@@ -70,5 +70,11 @@
 .owner-face [data-owner-action] label { display: grid; gap: .3rem; font-weight: 700; }
 .owner-face [data-owner-action] select, .owner-face [data-owner-action] input { font: inherit; padding: .4rem .6rem; }
 .owner-face [data-owner-action] p { flex-basis: 100%; margin: 0; }
+.owner-wardrobe { margin-block: 2rem; padding: clamp(1rem,2vw,1.5rem); border: 1px solid var(--conduit-structure-secondary); border-radius: .75rem; }
+.owner-wardrobe > header { max-width: 70ch; }
+.owner-wardrobe-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap: .75rem; padding: 0; list-style: none; }
+.owner-wardrobe-list li { padding: 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-background); overflow-wrap: anywhere; }
+.owner-wardrobe-list h4 { margin: 0; }
+.owner-wardrobe-controls { display: flex; flex-wrap: wrap; gap: .5rem; }
 @media(max-width:900px) { .handbook-first-steps ol { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:540px) { .handbook-first-steps ol, .handbook-reading { grid-template-columns: 1fr; }.handbook-application { padding: 1rem; }.handbook-application select { max-width: 100%; }.handbook-controls button { flex: 1 1 8rem; } }

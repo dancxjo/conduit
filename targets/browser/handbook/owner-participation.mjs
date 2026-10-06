@@ -85,6 +85,14 @@ export async function startOwnerParticipation(application, root) {
       <button type="button" data-owner-face-refresh disabled>Refresh this Face</button>
       <details><summary>Inspect the current Face, route, Plan, and Show</summary><pre data-owner-face-evidence>No Show yet.</pre></details>
     </section>
+    <section class="owner-wardrobe" aria-labelledby="owner-wardrobe-title">
+      <header><p class="eyebrow">Owner policy · at rest</p><h3 id="owner-wardrobe-title">Choose how this Body can meet you</h3>
+        <p>Inspect the owner's eligible Mask routes, what is worn, and its preference order. Wear and doff change that Body policy; Prefer replaces the preference list with one Mask. These changes work only while the Body is lulled. The owner may refuse while a Plot is running; refresh after Lull. A selected route needs a fresh Show before interaction.</p></header>
+      <button type="button" data-owner-wardrobe-refresh disabled>Inspect current wardrobe</button>
+      <p role="status" data-owner-wardrobe-status>Join the Body to inspect its wardrobe.</p>
+      <div data-owner-wardrobe-rows></div>
+      <details><summary>Exact owner wardrobe report</summary><pre data-owner-wardrobe-evidence>No owner report yet.</pre></details>
+    </section>
     <section aria-labelledby="owner-speech-title"><h3 id="owner-speech-title">Hear this view</h3>
       <p>Ask the installed Linux owner to read the current Face through its selected speaker. Playback happens on that Host; this browser shows its reported outcome.</p>
       <button type="button" data-owner-speech-start disabled>Read this view aloud</button>
@@ -103,12 +111,98 @@ export async function startOwnerParticipation(application, root) {
   const faceDocument = root.querySelector('[data-owner-face-document]');
   const faceEvidence = root.querySelector('[data-owner-face-evidence]');
   const faceRefresh = root.querySelector('[data-owner-face-refresh]');
+  const wardrobeRefresh = root.querySelector('[data-owner-wardrobe-refresh]');
+  const wardrobeStatus = root.querySelector('[data-owner-wardrobe-status]');
+  const wardrobeRows = root.querySelector('[data-owner-wardrobe-rows]');
+  const wardrobeEvidence = root.querySelector('[data-owner-wardrobe-evidence]');
   const speechStart = root.querySelector('[data-owner-speech-start]');
   const speechStatus = root.querySelector('[data-owner-speech-status]');
   const speechStop = root.querySelector('[data-owner-speech-stop]');
   const speechResult = root.querySelector('[data-owner-speech-result]');
   let host, participation, expectedBodyId = null, faceView = null, faceBusy = false, actionSequence = 0;
   let speechOperationId = null, speechBusy = false;
+  let wardrobeReport = null, wardrobeBusy = false;
+  const renderWardrobe = current => {
+    const list = document.createElement('ul');
+    list.className = 'owner-wardrobe-list';
+    for (const route of current.rows) {
+      const item = document.createElement('li');
+      const name = document.createElement('h4'); name.textContent = route.maskName; item.append(name);
+      const facts = document.createElement('p');
+      facts.textContent = `Host ${route.hostId} · ${route.available ? 'available' : 'unavailable'} · ${route.worn ? 'worn' : 'not worn'} · ${route.preferenceRank ? `preference ${route.preferenceRank}` : 'not preferred'}${route.selected ? ' · selected Show route' : ''}`;
+      item.append(facts);
+      const controls = document.createElement('div'); controls.className = 'owner-wardrobe-controls';
+      for (const [verb, label, enabled] of [['wear', 'Wear', !route.worn], ['doff', 'Doff', route.worn], ['prefer', 'Prefer only', route.worn && (route.preferenceRank !== 1 || current.preferenceCount !== 1)]]) {
+        const button = document.createElement('button'); button.type = 'button';
+        button.textContent = `${label} ${route.maskName}`;
+        button.disabled = !enabled || wardrobeBusy;
+        button.addEventListener('click', () => changeWardrobe(current.raw, route.routeId, verb));
+        controls.append(button);
+      }
+      item.append(controls); list.append(item);
+    }
+    if (!current.rows.length) {
+      const empty = document.createElement('p'); empty.textContent = 'The owner reports no admitted Mask routes.';
+      wardrobeRows.replaceChildren(empty);
+    } else wardrobeRows.replaceChildren(list);
+    wardrobeEvidence.textContent = JSON.stringify(current.raw, null, 2);
+    wardrobeStatus.textContent = `Owner wardrobe revision ${current.revision}. ${current.rows.length} admitted routes. ${current.rows.filter(row => row.available).length} currently available. ${current.freshShowRequired ? 'A fresh Show is required.' : current.selectedShowId ? 'The owner reports a selected Show.' : 'No selected Show is reported.'}`;
+    delete wardrobeStatus.dataset.refused;
+  };
+  const refreshWardrobe = async () => {
+    if (!participation || wardrobeBusy || participation.presenceState() !== 'available') return;
+    wardrobeBusy = true; wardrobeRefresh.disabled = true;
+    wardrobeStatus.textContent = 'Inspecting the current owner wardrobe…';
+    try {
+      const current = await participation.inspectOwnerWardrobe();
+      wardrobeReport = current.raw;
+      if (faceView && (current.freshShowRequired || current.selectedShowId !== faceView.show_id)) {
+        faceView = null;
+        faceDocument.replaceChildren();
+        faceStatus.textContent = 'The owner selected another Show. Refresh this Face before interaction.';
+        delete root.dataset.ownerFaceShown;
+        delete root.dataset.ownerShowAcknowledged;
+        speechControls();
+      }
+      renderWardrobe(current);
+    } catch (error) {
+      wardrobeReport = null;
+      wardrobeRows.replaceChildren();
+      wardrobeStatus.textContent = `Owner wardrobe unavailable: ${error.message}`;
+      wardrobeStatus.dataset.refused = 'true';
+      wardrobeEvidence.textContent = 'Previous wardrobe evidence is historical.';
+    } finally { wardrobeBusy = false; wardrobeRefresh.disabled = participation?.presenceState() !== 'available'; }
+  };
+  const changeWardrobe = async (report, routeId, verb) => {
+    if (!participation || wardrobeBusy || report !== wardrobeReport) return;
+    wardrobeBusy = true; wardrobeRefresh.disabled = true;
+    for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
+    wardrobeStatus.textContent = `Asking the owner to ${verb} this Mask while the Body is at rest…`;
+    try {
+      const current = await participation.changeOwnerWardrobe(report, routeId, verb);
+      wardrobeReport = current.raw;
+      faceView = null;
+      faceDocument.replaceChildren();
+      delete root.dataset.ownerFaceShown;
+      delete root.dataset.ownerShowAcknowledged;
+      faceStatus.textContent = 'Wardrobe changed. Ask the owner for a fresh Face and Show.';
+      faceRefresh.disabled = false;
+      speechControls();
+      renderWardrobe(current);
+    } catch (error) {
+      wardrobeReport = null;
+      faceView = null;
+      faceDocument.replaceChildren();
+      delete root.dataset.ownerFaceShown;
+      delete root.dataset.ownerShowAcknowledged;
+      faceStatus.textContent = 'Wardrobe action refused or uncertain. Ask the owner for a fresh Face and Show.';
+      speechControls();
+      wardrobeRows.replaceChildren();
+      wardrobeStatus.textContent = `Owner refused ${verb}: ${error.message}. Inspect again before another change.`;
+      wardrobeStatus.dataset.refused = 'true';
+      wardrobeEvidence.textContent = 'The last wardrobe report is historical.';
+    } finally { wardrobeBusy = false; wardrobeRefresh.disabled = participation?.presenceState() !== 'available'; }
+  };
   const speechControls = () => {
     const current = participation?.presenceState() === 'available';
     speechStart.disabled = !current || !faceView || faceBusy || speechBusy || Boolean(speechOperationId);
@@ -276,12 +370,18 @@ export async function startOwnerParticipation(application, root) {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
       speechControls();
+      if (!wardrobeReport) queueMicrotask(refreshWardrobe);
     }
   };
   const showState = state => {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
     if (state === 'offline' || state.startsWith('refused:')) {
+      wardrobeReport = null;
+      wardrobeRefresh.disabled = true;
+      for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
+      wardrobeStatus.textContent = 'The owner window is closed. Wardrobe evidence is historical.';
+      wardrobeStatus.dataset.refused = 'true';
       if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
@@ -349,8 +449,10 @@ export async function startOwnerParticipation(application, root) {
           if (state === 'offline' || state.startsWith('refused:')) {
             leave.disabled = true;
             faceRefresh.disabled = true;
+            wardrobeRefresh.disabled = true;
           } else if (state === 'admitted' && participation?.presenceState() === 'available') {
             faceRefresh.disabled = false;
+            wardrobeRefresh.disabled = false;
             if (!faceView) queueMicrotask(refreshFace);
           }
         },
@@ -361,6 +463,7 @@ export async function startOwnerParticipation(application, root) {
       if (received) showBiography(received);
       if (participation.presenceState() === 'available') {
         faceRefresh.disabled = false;
+        wardrobeRefresh.disabled = false;
         queueMicrotask(refreshFace);
       }
     } catch (error) {
@@ -376,6 +479,7 @@ export async function startOwnerParticipation(application, root) {
     showState('leaving');
   });
   faceRefresh.addEventListener('click', refreshFace);
+  wardrobeRefresh.addEventListener('click', refreshWardrobe);
   speechStart.addEventListener('click', async () => {
     if (!participation || !faceView || speechBusy || speechOperationId) return;
     speechBusy = true; speechControls();

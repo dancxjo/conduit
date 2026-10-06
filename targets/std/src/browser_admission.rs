@@ -663,6 +663,14 @@ mod wardrobe_wire_tests {
             checked_plot_id: conduit_core::CheckedPlotId::from("checked/mask"),
             expanded_plot_id: conduit_core::ExpandedPlotId::from("expanded/mask"),
         };
+        let body = conduit_body::Body::born(
+            conduit_core::SourceDocumentId::from("source/wardrobe-test"),
+            conduit_core::CheckedPlotId::from("checked/wardrobe-test"),
+            1,
+            conduit_core::SignId::from("sign/wardrobe-test/born"),
+        )
+        .unwrap();
+        let part_id = PartId::bind(&body.body_id, "part/wardrobe-test", 1).unwrap();
         let request = OwnerFaceSnapshotRequest {
             schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
             credential_id: "credential/test".into(),

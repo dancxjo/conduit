@@ -95,6 +95,8 @@ pub struct ExternalForeDelivery {
 pub trait ExternalForeOutputAdapter {
     fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String>;
 }
+pub mod direct_spoken_mask;
+pub mod direct_spoken_mask_runtime;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
@@ -118,6 +120,7 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub mod llm_spoken_mask;
 pub mod spoken_face_mask;
 pub mod spoken_face_stream_execution;
 pub mod spoken_mask_journey;
