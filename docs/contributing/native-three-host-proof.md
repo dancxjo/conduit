@@ -226,3 +226,15 @@ playback, or human hearing. The private walkthrough has a separate chapter
 with both produced explanations and expandable original output, validation,
 refusal, and restoration receipts. No fixture or failed model request can stand
 in for a successful explanation.
+
+To capture **listener audio** for the model Mask in that same run, install the
+fresh owner Host with `--selected-model ALREADY_LOCAL_MODEL
+--model-endpoint http://127.0.0.1:11434 --model-memory-mib 3072` as well as
+the selected speaker and provider, before starting the service or Birth.
+Pass the same model to the proof entrance. The producer then selects the
+installed owner's sealed model route, waits for its validated Show and a
+separate selected-speaker audio Play, and retains the WAV from that audio
+Play's speaker/WAV fan-out. The prior model artifact and the diagnostic
+producer's WAVs remain separate, non-listener evidence. This establishes
+completed digital delivery to the selected ALSA device, not attended hearing
+or model-provider withdrawal from the installed owner's wardrobe.

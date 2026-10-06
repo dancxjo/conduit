@@ -10,6 +10,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { captureLlmChapter } from './three-host-llm-chapter.mjs';
+import { captureOwnerLlmSpeaker } from './three-host-owner-llm.mjs';
 import { captureRunId } from './three-host-run-identity.mjs';
 import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-owner-speech.mjs';
 import { retainOwnerSpeechArtifacts } from './three-host-owner-speech-artifacts.mjs';
@@ -421,6 +422,10 @@ try {
     modelRouteLoss = captured.routeLoss;
     modelRouteRestoration = captured.restoration;
   }
+  const ownerLlmSpeech = modelArgument && installed.selected_model?.model_name === modelArgument
+    ? await captureOwnerLlmSpeaker({ owner: run, state, output, installation: installed,
+      bodyId, runId, sourceCommit: installed.release_source_identity, model: modelArgument })
+    : undefined;
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(() => {
@@ -460,7 +465,9 @@ try {
   const nativeReceiptBytes = await readFile(path.join(native, 'owner-action-proof.json'));
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
-    proof_class: llmSpeech
+    proof_class: ownerLlmSpeech
+      ? 'live-local-installed-owner-qmp-pinned-chromium-selected-model-speaker'
+      : llmSpeech
       ? 'live-local-installed-owner-qmp-pinned-chromium-direct-and-llm-speech-route-loss-restoration'
       : directSpeech
         ? 'live-local-installed-owner-qmp-pinned-chromium-direct-speech'
@@ -524,6 +531,7 @@ try {
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
     ...(ownerSelectedSpeech ? { owner_selected_speech: ownerSelectedSpeech } : {}),
+    ...(ownerLlmSpeech ? { owner_llm_speech: ownerLlmSpeech } : {}),
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
       model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
