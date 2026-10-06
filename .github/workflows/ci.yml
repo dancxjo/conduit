@@ -61,7 +61,9 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.docs-only != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    # Hosts includes checked protocol preparation and sustained kernel proofs.
+    # Retain the complete shard when cold preparation exceeds forty minutes.
+    timeout-minutes: ${{ matrix.shard == 'hosts' && 70 || 40 }}
     strategy:
       fail-fast: false
       matrix:
