@@ -320,7 +320,7 @@ mod tests;
 
 mod usb_catalog;
 mod usb_hid;
-pub use usb_hid::usb_hid_endpoint_package;
+pub use usb_hid::{usb_hid_endpoint_package, usb_hid_keyboard_order_package};
 
 mod planning;
 pub use planning::ProtocolQueueLimits;

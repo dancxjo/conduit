@@ -1,37 +1,8 @@
 //! Ordering lifecycle admission through the production pure-protocol kernel.
-use conduitos::protocol_source::{
-    PreparedProtocolSource, ProtocolSourcePackage, ProtocolSpecializationRequest,
-    ProtocolValueReference,
-};
+use conduitos::protocol_source::{PreparedProtocolSource, ProtocolSourcePackage};
 
 pub(super) fn package() -> ProtocolSourcePackage {
-    let lifecycle = include_str!("../../plots/usb/hid-keyboard-order-lifecycle.conduit");
-    let (header, body) = lifecycle.split_once("\n\n").unwrap();
-    let source = format!(
-        "{header}\n{}\n{}\n{body}",
-        super::common::SOURCE,
-        include_str!("../../plots/usb/hid-keyboard-order.conduit"),
-    );
-    let value = |name: &str| ProtocolValueReference {
-        type_name: name.into(),
-        maximum_bytes: 4096,
-    };
-    ProtocolSourcePackage::compile(
-        source,
-        &[
-            ProtocolSpecializationRequest::SeededUntil {
-                value: value("UsbKeyboardOrderSession"),
-            },
-            ProtocolSpecializationRequest::FeedbackZip {
-                left: value("UsbKeyboardOrderSession"),
-                right: value("UsbKeyboardOrderCommand"),
-            },
-            ProtocolSpecializationRequest::Merge {
-                value: value("UsbKeyboardOrderSession"),
-            },
-        ],
-    )
-    .unwrap()
+    conduitos::protocol_source::usb_hid_keyboard_order_package().unwrap()
 }
 
 #[test]
