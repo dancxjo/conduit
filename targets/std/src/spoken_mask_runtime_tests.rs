@@ -248,7 +248,7 @@ fn execute_spoken_mask(
  validator: presentation/generated-semantic-validator
  accepted: presentation/retain-generated-validation
  speech: presentation/generated-manifestation-speech
- voice: speech/synthesize(maximum-output-bytes = 32768)
+ voice: speech/synthesize(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") }, maximum-output-bytes = 32768)
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
  artifact: presentation/spoken-artifact
  shown: presentation/artifact-acknowledged-show
@@ -428,7 +428,7 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
         "spoken-producer-callable",
         presentation(),
         retained,
-        &conduit_tongues::specimen_language_request(),
+        &crate::hosted_language::tests::request("language/english"),
     )
     .unwrap();
     assert_eq!(
