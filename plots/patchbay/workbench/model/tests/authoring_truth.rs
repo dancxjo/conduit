@@ -15,10 +15,18 @@ const SOURCE: &str = r#"plot authoring {
 fn default_editor_installs_the_live_authoring_fixture_contracts() {
     let editor = PlotEditor::from_source(
         "fixture.conduit".into(),
-        "plot fixture {\n literal: text/literal(\"truth\")\n join: text/join(\"prefix\")\n upper: text/upper\n display: presentation/text\n map: math/map-quantity\n scalar: math/clamp\n wrapped: structured-info/wrap-quantity\n literal >> join >> upper >> display\n}\n".into(),
+        "plot fixture {\n literal: text/literal(\"truth\")\n join: text/join(\"prefix\")\n upper: text/upper\n display: presentation/text\n map: math/map-quantity\n scalar: math/clamp\n wrapped: structured-info/wrap-quantity\n quantity: presentation/quantity\n literal >> join >> upper >> display\n map >> wrapped >> quantity\n}\n".into(),
     )
     .unwrap();
     assert!(editor.view().checked.source_document_id.is_some());
+    assert_eq!(
+        editor
+            .patchbay_graph_for_authoring("fixture")
+            .unwrap()
+            .cords
+            .len(),
+        5
+    );
     let inventory = editor.authoring_catalog().unwrap();
     for id in [
         "text/literal",
