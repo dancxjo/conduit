@@ -164,7 +164,7 @@ fn selected_playback_block_admission_covers_its_declared_duration() {
     assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_STREAM_MAXIMUM_BLOCKS));
     assert!(blocks <= u64::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS));
     assert_eq!(
-        SPOKEN_PLAYBACK_PLOT
+        spoken_playback_plot(&crate::hosted_language::tests::request("language/english"))
             .matches("maximum-blocks = 32768, maximum-audio-millis = 30000")
             .count(),
         2,
@@ -191,6 +191,7 @@ fn deterministic_playback(
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &"00".repeat(32),
         config,
         selection,
@@ -217,6 +218,7 @@ fn selected_playback_keeps_the_same_host_across_two_plays() {
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &"00".repeat(32),
         config.clone(),
         selection.clone(),
@@ -229,6 +231,7 @@ fn selected_playback_keeps_the_same_host_across_two_plays() {
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &"00".repeat(32),
         config,
         selection,
@@ -259,6 +262,7 @@ fn attached_host_entrance_refuses_a_missing_speech_provider() {
         &face,
         &show,
         &batch,
+        &crate::hosted_language::tests::request("language/english"),
         &selection,
         &authorization,
         &crate::RunControl::default(),
@@ -356,3 +360,6 @@ fn selected_speaker_loss_is_not_a_completed_spoken_show() {
 
 #[path = "tests/platform.rs"]
 mod platform;
+
+#[path = "tests/language.rs"]
+mod language;
