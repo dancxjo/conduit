@@ -7,7 +7,7 @@ use conduit_core::{
 };
 
 pub const LINGUISTICS_PROFILE: &str = "std/linguistics-kernel-hosted@1";
-pub const LINGUISTICS_ARTIFACT: &str = "conduit-std-host/linguistics@1";
+pub const LINGUISTICS_ARTIFACT: &str = "conduit-std-host/linguistics@2";
 pub const LINGUISTICS_HOST_CALL: &str = "conduit.host/linguistics@1";
 
 pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
@@ -22,9 +22,9 @@ fn offer(contract: Kind) -> CapabilityOffer {
     let mut offered = BackOfferBuilder::new(
         contract,
         Back {
-            capability_id: CapabilityId::from(format!("std/{kind}@1")),
+            capability_id: CapabilityId::from(format!("std/{kind}@2")),
             execution_profile_id: ExecutionProfileId::from(LINGUISTICS_PROFILE),
-            implementation_id: ImplementationId::from(format!("std/{kind}@1")),
+            implementation_id: ImplementationId::from(format!("std/{kind}@2")),
             artifact_id: ArtifactId::from(LINGUISTICS_ARTIFACT),
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from(LINGUISTICS_HOST_CALL),

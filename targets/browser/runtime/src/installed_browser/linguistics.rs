@@ -12,9 +12,9 @@ use conduit_core::{
 use conduit_kernel::{HostedValueStore, ValueStorage};
 use conduit_plot::rust_binding::NativeRustBinding;
 
-const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@1";
-const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@1";
-const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@1";
+const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@2";
+const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@2";
+const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@2";
 const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-structured-info@1";
 const HOST_CALL: &str = "conduit.host/browser-linguistics@1";
 
