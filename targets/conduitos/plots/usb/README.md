@@ -431,25 +431,40 @@ Deterministic conformance checks both class compositions and their bounded
 framing. Both class graphs also have the native emulator proofs below.
 
 The dedicated keyboard Source appliance enters through
-`cargo xtask make conduitos usb-proof --hid-endpoint`. It uses the same bounded
-xHCI endpoint owner as the raw endpoint proof and checks 128 alternating fixture
-presses/releases across two ring cycle transitions. The retained receipt checks
-exact Source/Plan/Play and attachment identities, the canonical class output
-transcript, normal closure and acknowledged stop. The production arena is sealed
-before Play, so the entire native transfer, drain and stop run refuses allocations.
-This command requires its own
-proof image with a 32 MiB preparation arena. Deterministic preparation with the
-production allocator peaks at 17,781,120 live bytes and releases all retained
-storage on retirement; the arena also admits allocation geometry and the native
-Root's storage. The endpoint call still admits at most 2,048 payload bytes on a
-4 KiB call surface. A retained x86_64 emulator run completes all 128 reports with
-the arena sealed. The appliance retains legacy attachment setup and an explicit
-Root fixture grant. This development proof does not establish an ordinary class
-offer, physical compatibility or five-architecture acceptance.
+`cargo xtask make conduitos usb-proof --hid-endpoint`. Its
+`hid-keyboard-capture-window.conduit` entry admits eight endpoint calls over eight
+retained DMA buffers before accepting the first completion. The native owner
+assigns an ordinal when publishing each physical transfer. Source retains up to
+eight out-of-order observations, drains them in ordinal order, and derives
+normalized reports and twenty-slot transition batches from the preceding valid
+report. Invalid reports occupy their ordinal without replacing keyboard history.
+Output pressure retains the pending observation and batch before that capture
+member is reused. There is no additional read or retry hidden by pressure.
+
+Deterministic kernel conformance completes the eight calls out of order and
+holds both output acknowledgements for 128 steps. It checks ordered observations,
+release/press history, normal closure and zero allocations throughout Play.
+The native emulator workload checks 128 alternating fixture presses/releases
+across two ring cycle transitions with all eight captures initially pending.
+Its independently expected transcript includes normalized key slots, physical
+ordinals and twenty-slot batches. The receipt binds exact Source, checked plot,
+Plan, Play and attachment identities, eight capture buffers, maximum pending
+transfers, normal closure and acknowledged device stop.
+
+This separate keyboard proof profile admits a 128 MiB preparation arena and
+256 MiB emulator memory. Deterministic preparation with the production allocator
+peaks at 63,450,784 live bytes and releases all retained storage on retirement;
+allocation geometry and native Root preparation also consume this finite arena.
+The arena is sealed before Play, including transfer, output drain and stop.
+Each endpoint call retains the 2,048-byte payload ceiling and 4 KiB call surface.
+The appliance uses legacy attachment setup and explicit Root fixture possession.
+Ordinary keyboard integration, physical compatibility and five-architecture
+acceptance remain separate work under #4831.
 
 The mouse counterpart enters through
 `cargo xtask make conduitos usb-proof --hid-mouse`. Its separate proof profile
-selects the existing mouse Source graph and injects 128 alternating button and
+admits a 32 MiB preparation arena and 64 MiB emulator memory, selects the
+existing single-call mouse Source graph, and injects 128 alternating button and
 relative-motion reports. The independent expectation follows
 [QEMU's HID report implementation](https://github.com/qemu/qemu/blob/v10.2.1/hw/input/hid.c):
 the three-octet boot prefix is decoded, and the fourth wheel octet remains
