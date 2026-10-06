@@ -38,6 +38,7 @@ pub(super) fn run_mask(
     )>,
     streaming: bool,
     control: &crate::RunControl,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<MaskRun, String> {
     use conduit_core::{
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
@@ -134,7 +135,7 @@ pub(super) fn run_mask(
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
-    let source = graph::source(plot_name, maximum_output_bytes, streaming);
+    let source = graph::source(plot_name, maximum_output_bytes, streaming, language);
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .map_err(|error| format!("check spoken Mask: {error:?}"))?;
     let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)

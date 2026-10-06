@@ -183,6 +183,7 @@ pub(super) fn run(
         candidate.clone(),
         speech.clone(),
         &wav,
+        &conduit_tongues::specimen_language_request(),
     )
     .inspect_err(|_| {
         let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
