@@ -93,10 +93,14 @@ pub struct AwaitingBirth {
 
 /// Execute Host-owned bootstrap speech through the in-process Tongues library.
 /// No Body has been constructed when this function runs.
-pub fn begin(bootstrap_text: &str) -> Result<AwaitingBirth, String> {
+pub fn begin(
+    bootstrap_text: &str,
+    language: &conduit_language::LanguageRequest,
+) -> Result<AwaitingBirth, String> {
     let fixture = headless_fixture()?;
     let speech = conduit_tongues::run_speech_text(
         bootstrap_text,
+        language,
         OutputCondition::DegradedWavArtifact,
         SpeechFault::None,
     )?;
@@ -131,6 +135,7 @@ impl AwaitingBirth {
         birth_sequence: u64,
         birth_sign_id: SignId,
         body_text: &str,
+        language: &conduit_language::LanguageRequest,
     ) -> Result<(Body, SpokenBirthJourneyEvidence), String> {
         let body = Body::born(
             source_document_id,
@@ -141,6 +146,7 @@ impl AwaitingBirth {
         .map_err(|error| format!("canonical Birth refused: {error}"))?;
         let speech = conduit_tongues::run_speech_text(
             body_text,
+            language,
             OutputCondition::DegradedWavArtifact,
             SpeechFault::None,
         )?;
@@ -206,7 +212,11 @@ mod tests {
 
     #[test]
     fn one_action_crosses_from_host_owned_tongues_speech_to_body_owned_speech() {
-        let awaiting = begin("No Body exists yet. Confirm to begin.").unwrap();
+        let awaiting = begin(
+            "No Body exists yet. Confirm to begin.",
+            &conduit_tongues::specimen_language_request(),
+        )
+        .unwrap();
         let (body, evidence) = awaiting
             .confirm(
                 ConfirmBirthAction::new("action/confirm-birth").unwrap(),
@@ -215,6 +225,7 @@ mod tests {
                 1,
                 SignId::from("sign/tongues-spoken-birth/born"),
                 "I am now speaking as the born Body.",
+                &conduit_tongues::specimen_language_request(),
             )
             .unwrap();
 
