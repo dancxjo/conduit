@@ -88,7 +88,11 @@ or public Pages proof.
 
 To retain a direct spoken reading in that same live three-host run, add
 `--speech-executable ESPEAK --speech-data ESPEAK_NG_DATA --speech-engine
-LIBESPEAK_NG` to the command. Use the installed engine's exact regular file,
+LIBESPEAK_NG --speech-language-coverage COVERAGE_NATIVE` to the command.
+Prepare the explicit provider-bound declaration through
+`cargo xtask make host declare-speech-language` as described in the
+[runtime speech guide](../proof/runtime-speech.md). Coverage is supplied Host
+metadata; provider discovery alone does not establish Language support. Use the installed engine's exact regular file,
 not its `.so.1` symlink. The driver calls the existing
 `one-body-spoken-chapter` producer after the terminal action, while QEMU and
 Chromium remain live. It assigns the speech action's run ID before synthesis
@@ -115,6 +119,10 @@ edits the name, selects the reviewed Clock Plot, reviews the current Face, and
 explicitly activates Birth. The resulting Body is the one provisioned for QMP
 and joined by Chromium. Keep the TLS key and the entire new output directory
 private: it contains a live invitation and provisioned ISO.
+Selected speech first gives command help, the focused Crèche orientation, and
+the first available control. The person can request the complete Face with
+`read all` when ready. This
+producer does request it, including the content beyond the graphical viewport.
 The current fixed-storage ConduitOS TLS client offers ECDSA P-256/P-384 and
 Ed25519 signatures, not RSA. Use a private P-256 route certificate whose SAN
 includes the guest route IP (`10.0.2.42`) and the owner-forward address. An
@@ -145,7 +153,7 @@ pre-Birth receipt. Without a selected speaker, the screen-free
 client emits text readout and this run does not prove audio. To select real
 device playback, first inspect `conduit body speech-options --json`, then add
 the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
-`--speech-data`, and `--speech-engine` options. The selected device's playback
+`--speech-data`, `--speech-engine`, and `--speech-language-coverage` options. The selected device's playback
 receipts are in the Birth transcript; this remains distinct from attended
 human listening. Pass the exact regular `engine` path reported by
 `speech-options`, not a versioned-library symlink; provider discovery rejects
@@ -154,7 +162,7 @@ screen-free prompt before sending each selected-speaker command, so a queued
 command does not interrupt a full-Face reading. Current selected playback uses a
 second StdHost sharing the
 owner's Host and Boot identities; this run does not establish speech realized
-by the owner instance. The three speech provider options may also be used without a
+by the owner instance. The speech provider options and explicit coverage declaration may also be used without a
 speaker selection to retain the same-run direct speech artifact after the
 three-Host actions; that does not turn the Birth readout into audio.
 
@@ -182,7 +190,7 @@ not a complete screen-free traversal of all three-Host journey chapters or
 human listening.
 
 For a same-run finite model explanation, add `--model ALREADY_LOCAL_MODEL` with
-the three speech provider options. The optional `--ollama-endpoint` defaults to
+the speech provider options and explicit coverage declaration. The optional `--ollama-endpoint` defaults to
 `http://127.0.0.1:11434`; `--admitted-memory-mib` defaults to 2048. The
 producer opens its own loopback forwarding route to the selected, already-local
 Ollama service, calls the existing `one-body-spoken-chapter --mode llm-assisted`

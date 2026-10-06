@@ -275,14 +275,28 @@ fn primary_view_explains_face_relationships_and_composition_without_new_meaning(
         .unwrap();
     let scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
     let spoken = plan_face_utterances(&original).unwrap();
-    for clause in spoken.clauses.iter().filter(|clause| {
-        matches!(
-            clause.provenance,
-            FaceUtteranceProvenance::Relationship(_) | FaceUtteranceProvenance::Composition(_)
-        )
-    }) {
+    assert!(
+        scene
+            .primary
+            .iter()
+            .any(|row| row.text == "Contains · Friendly name")
+    );
+    for clause in spoken
+        .clauses
+        .iter()
+        .filter(|clause| matches!(clause.provenance, FaceUtteranceProvenance::Composition(_)))
+    {
         assert!(scene.primary.iter().any(|row| row.text == clause.text));
     }
+    assert!(
+        spoken
+            .clauses
+            .iter()
+            .filter(|clause| {
+                matches!(clause.provenance, FaceUtteranceProvenance::Relationship(_))
+            })
+            .all(|clause| scene.details.iter().any(|row| row.text == clause.text))
+    );
     assert!(
         scene
             .primary
@@ -295,6 +309,61 @@ fn primary_view_explains_face_relationships_and_composition_without_new_meaning(
             .iter()
             .any(|row| row.text.contains("opaque/sha256"))
     );
+}
+
+#[test]
+fn primary_facts_are_compact_but_details_keep_exact_reader_wording() {
+    let mut original = face(32);
+    original.properties.extend([
+        PresentationProperty {
+            subject: "z-first".into(),
+            name: "lifecycle-state".into(),
+            value: PresentationPropertyValue::Text("lulled".into()),
+        },
+        PresentationProperty {
+            subject: "z-first".into(),
+            name: "workload-revision".into(),
+            value: PresentationPropertyValue::Count(2),
+        },
+    ]);
+    let original = Presentation::new_with_semantics(
+        33,
+        original.basis,
+        original.subjects,
+        original.relationships,
+        original.properties,
+        original.text,
+        original.actions,
+        original.disclosures,
+    )
+    .unwrap();
+    let scene = NativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
+    assert!(
+        scene
+            .primary
+            .iter()
+            .any(|row| row.text == "lifecycle state · \"lulled\"")
+    );
+    assert!(
+        scene
+            .primary
+            .iter()
+            .any(|row| row.text == "workload revision · 2")
+    );
+    for clause in plan_face_utterances(&original)
+        .unwrap()
+        .clauses
+        .iter()
+        .filter(|clause| matches!(clause.provenance, FaceUtteranceProvenance::Property(_)))
+    {
+        assert!(scene.details.iter().any(|row| row.text == clause.text));
+    }
+    let frame = scene.frame().unwrap();
+    assert!(frame.scene.commands().iter().any(|command| {
+        command.kind == GraphicsCommandKind::Rect
+            && command.paint == GraphicsPaintRole::Accent
+            && command.bounds.width == 3
+    }));
 }
 
 #[test]

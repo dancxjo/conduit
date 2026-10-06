@@ -23,6 +23,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod boot_selection;
 mod hid;
 mod identity;
 mod mode;
@@ -73,7 +74,7 @@ fn execute_mode(opts: &GlobalOpts, mode: ProofMode) -> Result<(), ConduitosError
         image::execute_usb_endpoint(opts)?;
     }
     let socket = paths.target.join(match mode {
-        ProofMode::Raw => "usb-endpoint-monitor.sock",
+        ProofMode::Raw => "endpoint.sock",
         ProofMode::Keyboard => "hid.sock",
         ProofMode::Mouse => "mouse.sock",
     });
@@ -141,11 +142,13 @@ fn execute_mode(opts: &GlobalOpts, mode: ProofMode) -> Result<(), ConduitosError
         return hid::retain(&paths, &serial, &boot, &xhci, &usb, mode);
     }
     let sign: EndpointSign = extract(&serial, "CONDUIT_USB_ENDPOINT_SIGN ")?;
+    let boot_selection = boot_selection::verify(&serial, &boot, &usb)?;
     validate(&boot, &usb, &sign)?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos.usb-endpoint-read-proof/v1", "base_commit": git_head(&paths.root)?,
         "proof_class": "freestanding-emulator", "qemu_controller": "qemu-xhci", "qemu_device": "usb-kbd",
-        "boot": boot, "controller": xhci, "device": usb, "endpoint": sign, "class_acceptance": false,
+        "boot": boot, "controller": xhci, "device": usb, "endpoint": sign,
+        "boot_selection": boot_selection, "class_acceptance": false,
     });
     let output = paths.target.join("usb-endpoint-read-proof.json");
     fs::write(

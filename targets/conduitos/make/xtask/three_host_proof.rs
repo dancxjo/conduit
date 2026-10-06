@@ -35,7 +35,7 @@ pub(super) struct Args {
     #[arg(long)]
     playwright: PathBuf,
     /// Optional installed eSpeak executable for a same-run direct reading.
-    #[arg(long, requires_all = ["speech_data", "speech_engine"])]
+    #[arg(long, requires_all = ["speech_data", "speech_engine", "speech_language_coverage"])]
     speech_executable: Option<PathBuf>,
     /// Exact installed eSpeak voice data tree.
     #[arg(long, requires = "speech_executable")]
@@ -43,6 +43,9 @@ pub(super) struct Args {
     /// Exact installed eSpeak engine library, not a symlink.
     #[arg(long, requires = "speech_executable")]
     speech_engine: Option<PathBuf>,
+    /// Native coverage bound to the exact selected speech provider source.
+    #[arg(long, requires = "speech_executable")]
+    speech_language_coverage: Option<PathBuf>,
     /// Already-local Ollama model for a same-run validated spoken chapter.
     #[arg(long, requires = "speech_executable")]
     model: Option<String>,
@@ -102,6 +105,12 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
                     .as_ref()
                     .expect("Clap requires speech engine"),
             ),
+            (
+                "speech-language-coverage",
+                args.speech_language_coverage
+                    .as_ref()
+                    .expect("Clap requires speech Language coverage"),
+            ),
         ] {
             if !path.exists() {
                 return Err(ConduitosError::refusal(
@@ -143,6 +152,11 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
                 args.speech_engine
                     .as_ref()
                     .expect("Clap requires speech engine"),
+            )
+            .arg(
+                args.speech_language_coverage
+                    .as_ref()
+                    .expect("Clap requires speech Language coverage"),
             );
     }
     if let Some(model) = &args.model {

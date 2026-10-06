@@ -417,6 +417,8 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
         "/usr/lib/espeak-ng-data",
         "--speech-engine",
         "/usr/lib/libespeak-ng.so.1",
+        "--speech-language-coverage",
+        "/unused/explicit-language-coverage.json",
     ]);
     assert!(!invalid_birth.status.success());
     assert!(String::from_utf8_lossy(&invalid_birth.stderr)
@@ -632,6 +634,7 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
 fn selected_installed_birth_speaks_one_current_face_clause() {
     let card = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_CARD").unwrap();
     let device = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_DEVICE").unwrap();
+    let coverage = std::env::var("CONDUIT_SPOKEN_TEST_LANGUAGE_COVERAGE").unwrap();
     let options = product(&["body", "speech-options", "--json"]);
     assert!(options.status.success());
     let options: Value = serde_json::from_slice(&options.stdout).unwrap();
@@ -676,6 +679,8 @@ fn selected_installed_birth_speaks_one_current_face_clause() {
             provider["data"].as_str().unwrap(),
             "--speech-engine",
             provider["engine"].as_str().unwrap(),
+            "--speech-language-coverage",
+            &coverage,
         ],
         b"stop\nfocus creche.name\n",
     );

@@ -175,6 +175,7 @@ mod vector_search_host;
 mod vision_describe_back;
 mod vision_experience_back;
 mod wav_artifact_back;
+mod whisper_language;
 mod whisper_speech_back;
 
 use self::back::InstalledBack;
@@ -282,6 +283,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         body_conversation_context,
     } = host;
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
+    let whisper_languages =
+        whisper_language::WhisperLanguages::prepare(fragment, &lowered.identity)?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
     if !supports(fragment)
@@ -2365,19 +2368,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION
                 || contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
             {
-                let recognition = if contract.as_str()
-                    == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
-                {
-                    whisper_speech_back::execute_clip(
-                        speech_recognition.as_deref_mut(),
-                        input,
-                        || control.requested_stop().is_some(),
-                    )
-                } else {
-                    whisper_speech_back::execute(speech_recognition.as_deref_mut(), input, || {
-                        control.requested_stop().is_some()
-                    })
-                };
+                let recognition = whisper_language::execute(
+                    speech_recognition.as_deref_mut(),
+                    whisper_languages.get(request.node)?,
+                    contract.as_str(),
+                    input,
+                    || control.requested_stop().is_some(),
+                );
                 let outcome = match recognition {
                     Ok(encoded) => {
                         let value = scheduler

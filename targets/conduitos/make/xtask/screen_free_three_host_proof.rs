@@ -51,12 +51,15 @@ pub(super) struct Args {
     speaker_card: Option<String>,
     #[arg(long, requires = "speaker_card")]
     speaker_device: Option<u16>,
-    #[arg(long, requires_all = ["speech_data", "speech_engine"])]
+    #[arg(long, requires_all = ["speech_data", "speech_engine", "speech_language_coverage"])]
     speech_executable: Option<PathBuf>,
     #[arg(long, requires = "speech_executable")]
     speech_data: Option<PathBuf>,
     #[arg(long, requires = "speech_executable")]
     speech_engine: Option<PathBuf>,
+    /// Explicit provider-bound Language coverage declaration.
+    #[arg(long, requires = "speech_executable")]
+    speech_language_coverage: Option<PathBuf>,
     /// Already-local Ollama model for a same-run validated spoken chapter.
     #[arg(long, requires = "speech_executable")]
     model: Option<String>,
@@ -136,6 +139,7 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
         &args.speech_executable,
         &args.speech_data,
         &args.speech_engine,
+        &args.speech_language_coverage,
     ] {
         if let Some(path) = path {
             command.arg(path);

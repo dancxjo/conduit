@@ -23,6 +23,7 @@ pub fn run(
     composition: StdHostComposition,
     adapter: WhisperSpeechAdapter,
     clip: Vec<u8>,
+    language_request: conduit_language::LanguageRequest,
 ) -> Result<WhisperClipPlanPlayReceipt, String> {
     conduit_audio::decode_pcm_clip(&clip)
         .map_err(|error| format!("decode admitted proof PCM clip: {error:?}"))?;
@@ -40,17 +41,26 @@ pub fn run(
         &mut startup,
         &mut catalog,
     );
+    let language_request = crate::hosted_language::language_request_literal(&language_request);
     let source = format!(
-        "plot whisper_recorded_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> sink.value\n}}\n",
+        "plot whisper_recorded_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip(language-request = {language_request})\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_RECOGNITION_SINK_KIND,
     );
-    let plot = conduit_plot::parse(&source, &catalog)
-        .map_err(|error| format!("parse Whisper clip proof Plot: {error}"))?;
+    let syntax = conduit_plot::parse_syntax_document(&source);
+    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
+        .map_err(|error| format!("check Whisper clip proof Plot: {error:?}"))?;
+    let plot = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "whisper_recorded_clip_proof",
+        &catalog,
+    )
+    .map_err(|error| format!("expand Whisper clip proof Plot: {error:?}"))?
+    .expanded;
     let advertisements = [host.advertisement().clone()];
-    let placements = conduit_planner::default_placements(&plot, &advertisements)
+    let placements = conduit_planner::default_expanded_placements(&plot, &advertisements)
         .map_err(|error| format!("place Whisper clip proof: {error}"))?;
-    let plan = conduit_planner::plan_with_options(
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
         &plot,
         &advertisements,
         &placements,

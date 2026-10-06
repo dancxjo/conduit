@@ -15,7 +15,10 @@ use conduit_core::{OfferGeneration, SignId};
 /// even when every PCM block is full. A 3,072-block limit covers only 3.48 s.
 /// The selected Host adapter holds at most two seconds of PCM under pressure.
 /// Short utterances below its startup lead begin on input close.
-pub const SPOKEN_PLAYBACK_PLOT: &str = "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {\n voice: speech/synthesize-stream(maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}.\n";
+pub fn spoken_playback_plot(language: &conduit_language::LanguageRequest) -> String {
+    let language_request = crate::hosted_language::language_request_literal(language);
+    format!("plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}}.\n")
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpokenPlaybackOutcome {
@@ -78,6 +81,7 @@ pub fn execute_real_spoken_batch_to_selected_playback(
     source_show: &MaskShow,
     batch: &SpokenBatch,
     discovery: EspeakDiscovery,
+    language: &conduit_language::LanguageRequest,
     config: StdHostConfig,
     selection: HostedPlaybackSelection,
     authorization: &ExplicitPlaybackAuthorization,
@@ -113,6 +117,7 @@ pub fn execute_real_spoken_batch_to_selected_playback(
         face,
         source_show,
         batch,
+        language,
         &provider_sha256,
         config,
         selection,
@@ -126,10 +131,12 @@ pub fn execute_real_spoken_batch_to_selected_playback(
 /// that Host across batches and must keep its selected speaker and initialized
 /// speech provider attached. This entrance never creates a second Host with
 /// copied Host/Boot identifiers and does not mint a spoken Mask Show.
+#[allow(clippy::too_many_arguments)]
 pub fn execute_spoken_batch_on_attached_host(
     face: &Presentation,
     source_show: &MaskShow,
     batch: &SpokenBatch,
+    language: &conduit_language::LanguageRequest,
     selection: &HostedPlaybackSelection,
     authorization: &ExplicitPlaybackAuthorization,
     control: &RunControl,
@@ -152,6 +159,7 @@ pub fn execute_spoken_batch_on_attached_host(
         face,
         source_show,
         batch,
+        language,
         &provider_sha256,
         config,
         selection.clone(),
@@ -166,6 +174,7 @@ pub(super) fn run_selected_spoken_playback(
     face: &Presentation,
     source_show: &MaskShow,
     batch: &SpokenBatch,
+    language: &conduit_language::LanguageRequest,
     provider_sha256: &str,
     config: StdHostConfig,
     selection: HostedPlaybackSelection,
@@ -195,8 +204,11 @@ pub(super) fn run_selected_spoken_playback(
         .map_err(SpokenStreamExecutionRefusal::Check)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)
         .map_err(SpokenStreamExecutionRefusal::Check)?;
-    let checked = check_syntax_document(&parse_syntax_document(SPOKEN_PLAYBACK_PLOT), &startup)
-        .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
+    let checked = check_syntax_document(
+        &parse_syntax_document(&spoken_playback_plot(language)),
+        &startup,
+    )
+    .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;
     let authoring =
         expand_canonical_plot_for_authoring(&checked, "spoken_face_playback", &profiles)
             .map_err(|error| SpokenStreamExecutionRefusal::Check(format!("{error:?}")))?;

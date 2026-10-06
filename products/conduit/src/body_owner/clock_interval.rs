@@ -16,6 +16,8 @@ const INTERVALS_MS: [u64; 4] = [250, 500, 1_000, 2_000];
 pub(super) const CLOCK_INTERVAL_ACTION: &str = "conduit.intent/change-clock-interval@1";
 pub(super) const CLOCK_START_ACTION: &str = "conduit.intent/start-clock@1";
 pub(super) const CLOCK_LULL_ACTION: &str = "conduit.intent/lull-clock@1";
+const BODY_WAKE_ACTION: &str = "conduit.intent/wake@1";
+const BODY_LULL_ACTION: &str = "conduit.intent/lull@1";
 pub(crate) const CLOCK_RUN_MAXIMUM_MILLIS: u64 = 60_000;
 
 pub(crate) fn is_clock_control_intent(intent: &str) -> bool {
@@ -108,12 +110,25 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
     });
     let mut actions = face.actions.clone();
     for action in &mut actions {
-        action.availability = PresentationActionAvailability::Unavailable {
-            reason_code: "owner-action-return-not-admitted".into(),
-            explanation:
-                "This owner return route currently accepts only the checked clock control actions."
+        if action.intent == BODY_WAKE_ACTION && terminal_attached {
+            action.availability = PresentationActionAvailability::Unavailable {
+                reason_code: "terminal-mask-attached".into(),
+                explanation: "Detach the terminal Mask before waking this clock Body.".into(),
+            };
+        } else if action.intent == BODY_LULL_ACTION && owner.current_play_id().is_none() {
+            action.availability = PresentationActionAvailability::Unavailable {
+                reason_code: "clock-not-playing".into(),
+                explanation: "The clock Play has not started yet.".into(),
+            };
+        } else if !matches!(action.intent.as_str(), BODY_WAKE_ACTION | BODY_LULL_ACTION)
+            && action.availability.is_available()
+        {
+            action.availability = PresentationActionAvailability::Unavailable {
+                reason_code: "owner-action-return-not-admitted".into(),
+                explanation: "This owner return route does not yet accept this semantic action."
                     .into(),
-        };
+            };
+        }
     }
     actions.push(PresentationAction {
         identity: format!(
@@ -212,10 +227,14 @@ impl Owner {
         let action = face
             .resolve_action(interaction.face_revision, &interaction.action_id)
             .map_err(debug)?;
+        // The installed clock's Wake prepares its current checked workset and
+        // starts the owner Play; Lull requests that same Play's terminal sign.
+        // These are the lifecycle operations performed by Start and Stop below,
+        // through one owner path rather than a Mask-owned state transition.
         match (action.intent.as_str(), interaction.arguments.len()) {
             (CLOCK_INTERVAL_ACTION, 1) => Ok(ClockAction::ChangeInterval),
-            (CLOCK_START_ACTION, 0) => Ok(ClockAction::Start),
-            (CLOCK_LULL_ACTION, 0) => Ok(ClockAction::Lull),
+            (CLOCK_START_ACTION | BODY_WAKE_ACTION, 0) => Ok(ClockAction::Start),
+            (CLOCK_LULL_ACTION | BODY_LULL_ACTION, 0) => Ok(ClockAction::Lull),
             _ => Err("owner action is not a current clock control".into()),
         }
     }

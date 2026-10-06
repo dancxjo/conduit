@@ -9,6 +9,9 @@ use conduit_plot::{
 
 const SOURCE: &str = include_str!("../plots/usb/protocol.conduit");
 
+#[path = "usb_protocol_plots/hid_boot_control.rs"]
+mod hid_boot_control;
+
 #[path = "usb_protocol_plots/configuration_descriptors.rs"]
 mod configuration_descriptors;
 

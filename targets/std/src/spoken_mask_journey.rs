@@ -37,9 +37,18 @@ pub fn execute_retained_manifestation_mask(
     execution_id: &str,
     presentation: conduit_presentation::Presentation,
     retained: conduit_presentation::GeneratedManifestationCandidate,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<SpokenMaskExecution, String> {
-    execute_mask(plot_name, execution_id, presentation, retained, None, false)
-        .map(|result| result.0)
+    execute_mask(
+        plot_name,
+        execution_id,
+        presentation,
+        retained,
+        None,
+        false,
+        language,
+    )
+    .map(|result| result.0)
 }
 
 /// Run a retained Presenter result through real, explicitly selected eSpeak and
@@ -52,6 +61,7 @@ pub fn execute_retained_manifestation_mask_with_espeak(
     retained: conduit_presentation::GeneratedManifestationCandidate,
     discovery: crate::hosted_speech_synthesis::EspeakDiscovery,
     destination: &std::path::Path,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<RetainedSpokenMaskExecution, String> {
     let (execution, artifact) = execute_mask(
         plot_name,
@@ -60,6 +70,7 @@ pub fn execute_retained_manifestation_mask_with_espeak(
         retained,
         Some((discovery, destination)),
         false,
+        language,
     )?;
     Ok(RetainedSpokenMaskExecution {
         execution,
@@ -77,6 +88,7 @@ pub fn execute_retained_manifestation_mask_with_streaming_espeak(
     retained: conduit_presentation::GeneratedManifestationCandidate,
     discovery: crate::hosted_speech_synthesis::EspeakDiscovery,
     destination: &std::path::Path,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<RetainedSpokenMaskExecution, String> {
     let (execution, artifact) = execute_mask(
         plot_name,
@@ -85,6 +97,7 @@ pub fn execute_retained_manifestation_mask_with_streaming_espeak(
         retained,
         Some((discovery, destination)),
         true,
+        language,
     )?;
     Ok(RetainedSpokenMaskExecution {
         execution,
@@ -102,6 +115,7 @@ fn execute_mask(
         &std::path::Path,
     )>,
     streaming: bool,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<(SpokenMaskExecution, Option<RetainedWavArtifact>), String> {
     let run::MaskRun {
         report,
@@ -115,8 +129,11 @@ fn execute_mask(
         execution_id,
         presentation,
         retained,
-        real,
-        streaming,
+        run::SpeechPreparation {
+            real,
+            streaming,
+            language,
+        },
         &crate::RunControl::default(),
     )?;
     let _terminal_report = report;

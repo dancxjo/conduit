@@ -136,6 +136,10 @@ pub(super) enum HostCommand {
     },
     /// Produce a bounded WAV through ordinary real speech Plan/Play, without playback.
     ProveSpeech(super::host_speech_proof::SpeechProofRequest),
+    /// Retain explicit Language metadata for one exact eSpeak voice/provider closure.
+    DeclareSpeechLanguage(super::host_language_declaration::SpeechDeclaration),
+    /// Retain explicit Language/private-row metadata for one exact Whisper source.
+    DeclareWhisperLanguage(super::host_language_declaration::WhisperDeclaration),
     /// Speak through Tongues as Host, perform one Birth, then speak as the Body.
     ProveSpokenBirth {
         /// Explicitly consume the one allowed Birth action.
@@ -154,6 +158,10 @@ pub(super) enum HostCommand {
         /// Exact already-local Whisper model file.
         #[arg(long)]
         model: PathBuf,
+        #[arg(long)]
+        language_coverage: PathBuf,
+        #[arg(long)]
+        language_request: PathBuf,
         /// Raw mono signed-16-le 16 kHz PCM recording, at most six seconds.
         #[arg(long)]
         pcm_s16le_16000_mono: PathBuf,
@@ -178,6 +186,10 @@ pub(super) enum HostCommand {
         whisper_executable: PathBuf,
         #[arg(long)]
         whisper_model: PathBuf,
+        #[arg(long)]
+        language_coverage: PathBuf,
+        #[arg(long)]
+        language_request: PathBuf,
         #[arg(long, default_value_t = 2)]
         whisper_threads: u8,
         #[arg(long, default_value_t = 30)]
@@ -260,6 +272,8 @@ mod tests {
             "--orifina-presenter",
             "--journey-documentary",
         ]);
+        assert!(Cli::try_parse_from(&args).is_err());
+        args.extend(["--speech-language-coverage", "/coverage.cov"]);
         assert!(Cli::try_parse_from(&args).is_ok());
     }
 }
