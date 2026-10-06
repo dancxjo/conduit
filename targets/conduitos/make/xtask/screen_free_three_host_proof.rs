@@ -69,6 +69,9 @@ pub(super) struct Args {
     /// Finite model memory admission in MiB.
     #[arg(long, default_value_t = 2048)]
     admitted_memory_mib: u32,
+    /// Private control socket of the exact model route selected at owner install.
+    #[arg(long, requires = "model")]
+    owner_model_route_control: Option<PathBuf>,
 }
 
 pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -151,7 +154,12 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
     if args.model.is_some() {
         command
             .arg(&args.ollama_endpoint)
-            .arg(args.admitted_memory_mib.to_string());
+            .arg(args.admitted_memory_mib.to_string())
+            .arg(
+                args.owner_model_route_control
+                    .as_ref()
+                    .map_or_else(|| "-".into(), |path| path.display().to_string()),
+            );
     }
     let status = command.status().map_err(|error| {
         ConduitosError::refusal("screen-free-three-host-launch", error.to_string())

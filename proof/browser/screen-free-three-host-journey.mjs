@@ -16,7 +16,8 @@ import { verifyGuestRouteCertificate } from './three-host-route-certificate.mjs'
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
   speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg,
-  speechLanguageCoverageArg, modelArg, modelEndpoint, modelMemory] = process.argv.slice(2);
+  speechLanguageCoverageArg, modelArg, modelEndpoint, modelMemory,
+  ownerModelRouteControlArg] = process.argv.slice(2);
 const [speakerCard, speakerDevice, speechExecutable, speechData, speechEngine, speechLanguageCoverage] =
   [speakerCardArg, speakerDeviceArg, speechExecutableArg, speechDataArg, speechEngineArg, speechLanguageCoverageArg]
     .map(value => value === '-' ? undefined : value);
@@ -258,6 +259,9 @@ try {
     '--speech-language-coverage', speechLanguageCoverage);
   if (model) liveArgs.push('--model', model, '--ollama-endpoint', modelEndpoint,
     '--admitted-memory-mib', modelMemory);
+  if (ownerModelRouteControlArg && ownerModelRouteControlArg !== '-') {
+    liveArgs.push('--owner-model-route-control', path.resolve(ownerModelRouteControlArg));
+  }
   // A selected speaker completes the entire current Face before the producer
   // can retain its terminal Play and same-stream WAV artifacts.
   invoke(xtask, liveArgs, { timeout: speakerCard ? 45 * 60_000 : 180_000 });

@@ -40,6 +40,8 @@ pub(super) enum ConduitosCommand {
     LiveThreeHostProof(Box<three_host_proof::Args>),
     /// Birth one Body through the installed screen-free client, then prove three live Hosts.
     ScreenFreeThreeHostProof(Box<screen_free_three_host_proof::Args>),
+    /// Hold one private model route for installed-owner provider-loss proof.
+    OwnerModelRoute(owner_model_route::Args),
     /// Prove the canonical IA-32 live artifact through legacy BIOS only.
     Ia32LegacyBiosProof,
     /// Seal two attended physical Mabel boots of one byte-verified IA-32 medium.

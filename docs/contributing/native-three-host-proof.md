@@ -250,3 +250,30 @@ Play's speaker/WAV fan-out. The prior model artifact and the diagnostic
 producer's WAVs remain separate, non-listener evidence. This establishes
 completed digital delivery to the selected ALSA device, not attended hearing
 or model-provider withdrawal from the installed owner's wardrobe.
+
+To exercise loss of the **installed owner's** selected model provider in a new
+run, hold an isolated loopback route before installing that owner. Use a private
+directory and leave this entrance running through install, Boot, Birth, capture,
+and restoration:
+
+```sh
+mkdir -m 700 PRIVATE_ROUTE_DIR
+cargo xtask make conduitos owner-model-route \
+  --upstream http://127.0.0.1:11434 \
+  --control-socket PRIVATE_ROUTE_DIR/model-control.sock
+```
+
+It prints a loopback `endpoint`. In a fresh installed zero-Body state, select
+the exact printed endpoint with `--selected-model`, `--model-endpoint`, and
+`--model-memory-mib` at `conduit host service install --no-start`. A direct
+Ollama endpoint in `installation.json` cannot be substituted later: the owner
+reobserves the selected offer at Boot. Add
+`--owner-model-route-control PRIVATE_ROUTE_DIR/model-control.sock` to the
+`screen-free-three-host-proof` command. The producer verifies that the private
+control socket names that exact installed endpoint, withdraws only that route,
+starts the owner-selected model Mask, checks its failed terminal result and
+absence of a new listener WAV, restores the same endpoint, and captures a new
+owner Show and same-Play speaker WAV. The shared Ollama service stays running.
+The route and control socket are producer equipment, not authored Plot facts.
+An existing installation that selected Ollama directly remains valid for
+listener-speech proof but cannot make this owner-provider-loss claim.
