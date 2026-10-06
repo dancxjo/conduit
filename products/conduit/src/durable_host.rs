@@ -26,6 +26,14 @@ const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 
+#[cfg(test)]
+#[path = "durable_host/selection_recovery_tests.rs"]
+mod selection_recovery_tests;
+
+#[path = "durable_host/installation_read.rs"]
+mod installation_read;
+use installation_read::{read_installation, read_installation_for_equipment_change};
+
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
@@ -244,7 +252,10 @@ fn install_configured(
     crate::durable_host_control::ensure_secret(state_dir)?;
     let install_path = state_dir.join("installation.json");
     let existing = if install_path.exists() {
-        Some(read_installation(&install_path)?)
+        Some(read_installation_for_equipment_change(
+            &install_path,
+            &change,
+        )?)
     } else {
         None
     };
@@ -694,42 +705,6 @@ fn verify_release_file(root: &Path, file: &ReleaseFile) -> Result<(), String> {
     Ok(())
 }
 
-fn read_installation(path: &Path) -> Result<Installation, String> {
-    let bytes = bounded_read(path, 64 * 1024)?;
-    let value: Installation =
-        serde_json::from_slice(&bytes).map_err(|error| format!("installation state: {error}"))?;
-    if value.schema != INSTALL_SCHEMA
-        || value.host_id.is_empty()
-        || !valid_digest(&value.release_bundle_sha256)
-    {
-        return Err("installation state is invalid".into());
-    }
-    if let Some(selection) = &value.selected_speech {
-        selection.validate()?;
-    }
-    if let Some(binding) = &value.body_state {
-        if binding.body_id.is_empty()
-            || !valid_digest(&binding.biography_sha256)
-            || digest(&bounded_read(
-                Path::new(&binding.biography_path),
-                2 * 1024 * 1024,
-            )?) != binding.biography_sha256
-        {
-            return Err("retained body biography identity is invalid or stale".into());
-        }
-    }
-    if value.body_state.is_some() && value.joined_body_state.is_some() {
-        return Err("installed host cannot own and join different Body state".into());
-    }
-    if let Some(binding) = &value.joined_body_state {
-        if !valid_digest(&binding.credential_sha256) {
-            return Err("retained body membership credential is invalid or stale".into());
-        }
-        membership::validate(binding, &value)?;
-    }
-    Ok(value)
-}
-
 fn write_service_definition(state_dir: &Path, installation: &Installation) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
@@ -1029,7 +1004,7 @@ mod tests {
     use conduit_body::{AdmissionManager, SpawnInvitationSecret};
     use std::path::PathBuf;
 
-    fn fixture() -> (PathBuf, PathBuf) {
+    pub(super) fn fixture() -> (PathBuf, PathBuf) {
         let root =
             std::env::temp_dir().join(fresh_identity("conduit-durable-host-test", "fixture"));
         let bundle = root.join("bundle");
@@ -1107,12 +1082,7 @@ mod tests {
         // Retained fixture represents previously reviewed equipment that has
         // since gone missing. The ordinary explicit CLI path reviews it before
         // persisting, and cannot manufacture this configuration from absence.
-        let selection: selected_speech::Selection = serde_json::from_value(serde_json::json!({
-            "card_id": "missing-card", "device": 0, "speaker_base_identity": "missing-card-identity",
-            "executable": "/missing/espeak-ng", "data_root": "/missing/espeak-ng-data",
-            "voice": "en-us", "engine_dependencies": ["/missing/libespeak-ng.so"],
-            "provider_sha256": "a".repeat(64),
-        })).unwrap();
+        let selection = selected_speech::fixture_retained_selection();
         let first = install_configured(
             &manifest,
             &state,

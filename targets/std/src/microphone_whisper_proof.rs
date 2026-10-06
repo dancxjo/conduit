@@ -30,8 +30,9 @@ pub fn run(
     composition: StdHostComposition,
     microphone: AlsaMicrophoneAdapter,
     whisper: WhisperSpeechAdapter,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<MicrophoneWhisperProofReceipt, Box<dyn std::error::Error>> {
-    run_inner(config, composition, microphone, whisper)
+    run_inner(config, composition, microphone, whisper, language)
 }
 
 /// Run the explicit microphone Plan/Play while retaining its bounded transcript
@@ -42,9 +43,10 @@ pub fn run_with_transcript(
     composition: StdHostComposition,
     microphone: AlsaMicrophoneAdapter,
     mut whisper: WhisperSpeechAdapter,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<(MicrophoneWhisperProofReceipt, String), Box<dyn std::error::Error>> {
     let transcript = whisper.enable_evidence_text();
-    let receipt = run_inner(config, composition, microphone, whisper)?;
+    let receipt = run_inner(config, composition, microphone, whisper, language)?;
     let text = String::from_utf8(transcript.bytes()?)?;
     if text.len() != receipt.recognized_text_bytes as usize {
         return Err("retained Whisper transcript differs from its receipt".into());
@@ -57,17 +59,18 @@ fn run_inner(
     composition: StdHostComposition,
     microphone: AlsaMicrophoneAdapter,
     whisper: WhisperSpeechAdapter,
+    language: &conduit_language::LanguageRequest,
 ) -> Result<MicrophoneWhisperProofReceipt, Box<dyn std::error::Error>> {
     let mut host = StdHost::new_with_microphone(config, composition, microphone)?;
     host.attach_whisper_clip_recognizer(whisper)?;
     let mut profiles = ProfileCatalog::new();
     let mut startup = StartupCatalog::new();
-    conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles)?;
-    let source = "plot microphone-whisper-proof {\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}\n";
+    let source = microphone_plot_source(language);
     let checked =
-        check_syntax_document(&parse_syntax_document(source), &startup).map_err(|error| {
+        check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
             format!(
                 "microphone Whisper Plot check: {} {}",
                 error.code, error.message
@@ -172,4 +175,33 @@ fn exactly_one<T>(mut values: Vec<T>, name: &str) -> Result<T, Box<dyn std::erro
         .into());
     }
     Ok(values.remove(0))
+}
+
+fn microphone_plot_source(language: &conduit_language::LanguageRequest) -> String {
+    let language = crate::hosted_language::language_request_literal(language);
+    format!("plot microphone-whisper-proof {{\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip(language-request = {language})\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}}\n")
+}
+
+#[cfg(test)]
+mod language_contract_tests {
+    use super::*;
+
+    #[test]
+    fn microphone_source_checks_with_an_explicit_language_request() {
+        let language = crate::hosted_language::tests::request("language/french");
+        let mut startup = StartupCatalog::new();
+        let mut profiles = ProfileCatalog::new();
+        conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)
+            .unwrap();
+        conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)
+            .unwrap();
+        conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles).unwrap();
+        let checked = check_syntax_document(
+            &parse_syntax_document(&microphone_plot_source(&language)),
+            &startup,
+        )
+        .unwrap();
+        conduit_plot::expand_canonical_plot(&checked, "microphone-whisper-proof", &profiles)
+            .unwrap();
+    }
 }

@@ -17,7 +17,7 @@ use conduit_plot::{
 use std::collections::BTreeMap;
 
 pub const SPEECH_FORM: &str = r#"plot tongues_text_to_speech {
-    tts: speech/synthesize
+    tts: speech/synthesize(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
     output: audio/play
     "Hello from Tongues." >> tts >> output
 }
@@ -29,10 +29,18 @@ pub struct PlannedSpeech {
 }
 
 pub fn plan_speech(condition: OutputCondition) -> Result<PlannedSpeech, String> {
-    plan_speech_text(crate::SPECIMEN_TEXT, condition)
+    plan_speech_text(
+        crate::SPECIMEN_TEXT,
+        &crate::specimen_language_request(),
+        condition,
+    )
 }
 
-pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<PlannedSpeech, String> {
+pub fn plan_speech_text(
+    text: &str,
+    language: &conduit_language::LanguageRequest,
+    condition: OutputCondition,
+) -> Result<PlannedSpeech, String> {
     if text.is_empty() {
         return Err("speech Text must not be empty".into());
     }
@@ -40,8 +48,9 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
         return Err("speech Text exceeds its finite byte bound".into());
     }
     let encoded = serde_json::to_string(text).map_err(|error| error.to_string())?;
+    let language_request = conduit_language::language_request_literal(language);
     let source = format!(
-        "plot tongues_text_to_speech {{\n    tts: speech/synthesize\n    output: audio/play\n    {encoded} >> tts >> output\n}}\n"
+        "plot tongues_text_to_speech {{\n    tts: speech/synthesize(language-request = {language_request})\n    output: audio/play\n    {encoded} >> tts >> output\n}}\n"
     );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
@@ -167,19 +176,48 @@ mod tests {
 
     #[test]
     fn bounded_text_is_part_of_exact_speech_plan_identity() {
-        let first = plan_speech_text("Rosehip says hello.", OutputCondition::DegradedWavArtifact)
-            .expect("bounded Text plans");
+        let first = plan_speech_text(
+            "Rosehip says hello.",
+            &crate::specimen_language_request(),
+            OutputCondition::DegradedWavArtifact,
+        )
+        .expect("bounded Text plans");
         let escaped = plan_speech_text(
             "Rosehip says \"hello\".\n",
+            &crate::specimen_language_request(),
             OutputCondition::DegradedWavArtifact,
         )
         .expect("escaped bounded Text plans");
         assert_ne!(first.plan.plan_id, escaped.plan.plan_id);
-        assert!(plan_speech_text("", OutputCondition::DegradedWavArtifact).is_err());
+        assert!(plan_speech_text(
+            "",
+            &crate::specimen_language_request(),
+            OutputCondition::DegradedWavArtifact
+        )
+        .is_err());
         assert!(plan_speech_text(
             &"x".repeat(crate::MAXIMUM_TEXT_BYTES as usize + 1),
+            &crate::specimen_language_request(),
             OutputCondition::DegradedWavArtifact,
         )
         .is_err());
+    }
+    #[test]
+    fn french_is_valid_semantic_input_but_not_the_english_starter_realization() {
+        let language = conduit_language::LanguageRequest::new(
+            conduit_language::LanguageId::new("language/french".into()).unwrap(),
+            None,
+            conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+        )
+        .unwrap();
+        conduit_language::validate_language_request(&language).unwrap();
+        let error = plan_speech_text("Bonjour.", &language, OutputCondition::DegradedWavArtifact)
+            .err()
+            .expect("English starter cannot realize French");
+        assert!(
+            error.contains("no eligible Back for requested Language coverage"),
+            "{error}"
+        );
+        assert!(error.contains("language/french"), "{error}");
     }
 }

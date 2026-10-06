@@ -82,21 +82,23 @@ impl WhisperSpeechBack {}
 pub(super) fn execute(
     adapter: Option<&mut crate::hosted_speech_recognition::WhisperSpeechAdapter>,
     input: &[u8],
+    language: &conduit_language::LanguageRequest,
     cancelled: impl FnMut() -> bool,
 ) -> Result<Vec<u8>, crate::hosted_speech_recognition::WhisperFailure> {
     adapter
         .ok_or(crate::hosted_speech_recognition::WhisperFailure::MissingProvider)?
-        .recognize(input, cancelled)
+        .recognize(input, language, cancelled)
 }
 
 pub(super) fn execute_clip(
     adapter: Option<&mut crate::hosted_speech_recognition::WhisperSpeechAdapter>,
     input: &[u8],
+    language: &conduit_language::LanguageRequest,
     cancelled: impl FnMut() -> bool,
 ) -> Result<Vec<u8>, crate::hosted_speech_recognition::WhisperFailure> {
     adapter
         .ok_or(crate::hosted_speech_recognition::WhisperFailure::MissingProvider)?
-        .recognize_clip(input, cancelled)
+        .recognize_clip(input, language, cancelled)
 }
 
 pub(super) fn failure_outcome(
@@ -105,11 +107,17 @@ pub(super) fn failure_outcome(
     use crate::hosted_speech_recognition::WhisperFailure as Whisper;
     let (disposition, code, detail) = match failure {
         Whisper::MissingProvider => (HostCallDisposition::Denied, FailureCode::HostCallDenied, 1),
+        Whisper::Language(refusal) => (
+            HostCallDisposition::Denied,
+            FailureCode::HostCallDenied,
+            refusal.host_detail(),
+        ),
         Whisper::InvalidPcm
         | Whisper::InvalidClip
         | Whisper::UnsupportedPcmProfile
         | Whisper::AudioOverflow => (HostCallDisposition::Failed, FailureCode::InvalidInput, 2),
         Whisper::Cancelled => (HostCallDisposition::Cancelled, FailureCode::Cancelled, 3),
+        Whisper::ProviderChanged => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 8),
         Whisper::Timeout => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 4),
         Whisper::OutputOverflow => (
             HostCallDisposition::Failed,
@@ -142,7 +150,7 @@ fn validate_offer(
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
-        || !placement.configuration.is_empty()
+        || placement.configuration.len() != 1
         || placement.resources.len() != 1
         || placement.resources[0].class_id
             != ResourceClassId::from(conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS)
@@ -150,6 +158,8 @@ fn validate_offer(
     {
         return Err("planned Whisper speech recognition does not match its installation".into());
     }
+    crate::hosted_language::admit(placement)
+        .map_err(|error| format!("Whisper Language preparation: {error:?}"))?;
     Ok(())
 }
 

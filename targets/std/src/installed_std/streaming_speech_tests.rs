@@ -8,7 +8,7 @@ use conduit_plot::{
 use std::{collections::BTreeMap, fs, time::Duration};
 const TEXT: &str = "This Body keeps the clock you started. Change the interval, then inspect the connections to see how your action reaches the running work. You can pause the Body without erasing its history. When you return, inspect the current host and the new plan before starting again. If a presentation host disappears, the Body must show what stopped and which admitted route can continue. Your preference chooses among available Masks; it never invents a missing host.";
 fn authoring() -> conduit_plot::ExpandedAuthoringPlot {
-    let source = "plot narrated (\n >> text: Text...| <= 1024B\n) {\n commit: speech/commit-generated-text\n voice: speech/synthesize-stream(maximum-output-bytes=1323000, maximum-audio-millis=30000, maximum-segments=32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz=48000, output-channel-layout=\"stereo-left-right\", maximum-blocks=32768, maximum-audio-millis=30000)\n artifact: audio/play(maximum-blocks=32768, maximum-audio-millis=30000)\n text >> commit.generated\n commit.segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n";
+    let source = "plot narrated (\n >> text: Text...| <= 1024B\n) {\n commit: speech/commit-generated-text\n voice: speech/synthesize-stream(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") }, maximum-output-bytes=1323000, maximum-audio-millis=30000, maximum-segments=32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz=48000, output-channel-layout=\"stereo-left-right\", maximum-blocks=32768, maximum-audio-millis=30000)\n artifact: audio/play(maximum-blocks=32768, maximum-audio-millis=30000)\n text >> commit.generated\n commit.segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}.\n";
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();
@@ -25,7 +25,7 @@ fn text_flow_enters_canonical_committed_segments_with_explicit_work_limits() {
         .expanded
         .gears
         .iter()
-        .any(|gear| gear.kind_contract_revision.as_str() == "conduit.speech/synthesize-stream@2"));
+        .any(|gear| gear.kind_contract_revision.as_str() == "conduit.speech/synthesize-stream@3"));
 }
 #[test]
 fn external_value_is_not_an_implicit_closing_flow() {
@@ -103,6 +103,12 @@ fn installed_espeak_narrates_a_chapter_through_incremental_plan_and_play() {
         &[engine],
     )
     .unwrap();
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en-us",
+        "language/english",
+    );
+    let discovery = discovery.declare_language_coverage(coverage).unwrap();
     let adapter = discovery
         .initialize(
             config.host_id.clone(),

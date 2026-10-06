@@ -9,11 +9,25 @@ implementation.
 Select the executable, its actual engine library file, and the installed voice
 data directory. For a typical x86-64 Linux installation:
 
+Declare the exact portable Language explicitly and bind it to the selected
+provider source before running speech. The private voice name does not determine
+Language identity. This declaration is Host metadata, not a pronunciation proof:
+
 ```sh
+cargo xtask make host declare-speech-language \
+  --executable /usr/bin/espeak-ng \
+  --data /usr/lib/x86_64-linux-gnu/espeak-ng-data \
+  --engine /usr/lib/x86_64-linux-gnu/libespeak-ng.so.1.1.51 \
+  --voice en-us --language language/english \
+  --output target/english-speech-coverage.native \
+  --request-output target/english-speech-request.native
+
 cargo xtask make host prove-speech \
   --executable /usr/bin/espeak-ng \
   --data /usr/lib/x86_64-linux-gnu/espeak-ng-data \
   --engine /usr/lib/x86_64-linux-gnu/libespeak-ng.so.1.1.51 \
+  --language-coverage target/english-speech-coverage.native \
+  --language-request target/english-speech-request.native \
   --voice en-us --text 'Hello.' --output target/hello-speech
 ```
 
@@ -69,7 +83,8 @@ Value projection remains distinct. A longer utterance does not mean unchecked
 model token deltas may become speech.
 
 To include runtime-produced speech in a current local-model documentary, add
-`--speech-executable`, `--speech-data`, `--speech-engine`, and optionally
+`--speech-executable`, `--speech-data`, `--speech-engine`,
+`--speech-language-coverage`, and optionally
 `--speech-voice` to `cargo xtask make host prove-local-model` together with
 `--orifina-presenter --journey-documentary`. This still requires an already-local
 model and an explicit `--admitted-memory-mib` limit. The retained current
@@ -80,3 +95,9 @@ state does not claim another model inference or synthesis occurred.
 A requested audio failure prevents sealing the documentary track. Without the
 speech options, the existing deterministic proof route remains explicitly
 identified and does not claim intelligible runtime speech.
+
+The `cargo xtask prove one-body-spoken-chapter` producer likewise requires
+`--speech-language-coverage` alongside its explicit executable, data, and engine
+selection. Its retained English Face proof supplies an explicit English semantic
+request; the selected voice name does not determine that request. Coverage is
+rechecked against the exact current provider before the spoken Mask is planned.

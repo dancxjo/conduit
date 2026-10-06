@@ -14,6 +14,7 @@ conduit-audio = { path = "../../../semantics/audio" }
 conduit-ai = { path = "../../../semantics/ai" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-data = { path = "../../../semantics/data" }
+conduit-language = { path = "../../../semantics/language" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-midi = { path = "../../../mechanisms/protocols/midi" }

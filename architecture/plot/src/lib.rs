@@ -57,6 +57,7 @@ mod syntax_check;
 mod syntax_highlight;
 mod syntax_identity;
 mod text_value;
+pub use text_value::text_startup_literal;
 mod type_form;
 mod value_pattern;
 mod value_pattern_lookahead;

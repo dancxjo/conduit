@@ -32,10 +32,11 @@ pub const SPEECH_WINDOW_TO_CLIP_REVISION: &str = "conduit.speech/window-to-clip@
 pub const SPEECH_RESULT_TO_EVENT_STREAM_KIND: &str = "speech/result-to-event-stream";
 pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str = "conduit.speech/result-to-event-stream@1";
 const STREAMING_RECOGNITION_BACK: &str = r#"plot speech/recognize-stream (
+    language-request: LanguageRequest
     audio: audio/pcm-frames@1...| >> events: speech/recognition-event@1...|
 ) {
     window: speech/window-to-clip
-    recognize: speech/recognize-clip
+    recognize: speech/recognize-clip(language-request)
     stream: speech/result-to-event-stream
 
     audio >> window.frames
@@ -407,7 +408,7 @@ mod tests {
             .get(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
             .unwrap();
         let expected = conduit_core::CheckedFront::new(
-            Vec::new(),
+            vec![conduit_language::language_request_parameter()],
             definition.inputs.clone(),
             definition.outputs.clone(),
             Some((
@@ -425,7 +426,7 @@ mod tests {
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "plot main (\n    >> audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >>\n) {\n    recognize: speech/recognize-stream\n    audio >> recognize.audio\n    recognize.events >> events\n}",
+                "plot main (\n    >> audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >>\n) {\n    recognize: speech/recognize-stream(language-request = { language: \"language/french\", variety: none(\"\"), variety_policy: language_sufficient(\"\") })\n    audio >> recognize.audio\n    recognize.events >> events\n}",
             ),
             &startup,
         )
@@ -437,6 +438,26 @@ mod tests {
         )
         .unwrap()
         .expanded;
+        let recognition = expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id.as_str() == crate::SPEECH_RECOGNIZE_CLIP_KIND)
+            .unwrap();
+        let request = conduit_language::LanguageRequest::new(
+            conduit_language::LanguageId::new("language/french".into()).unwrap(),
+            None,
+            conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+        )
+        .unwrap();
+        assert_eq!(
+            recognition
+                .configuration
+                .iter()
+                .find(|entry| entry.key == "language-request")
+                .unwrap()
+                .value,
+            conduit_language::language_request_configuration(request).unwrap()
+        );
         let kinds = expanded
             .gears
             .iter()

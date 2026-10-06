@@ -36,6 +36,13 @@ struct CanonicalStructuredStartupField {
 }
 
 impl CanonicalStructuredStartupValue {
+    pub(crate) fn parameter_name(&self) -> Option<&str> {
+        match &self.node {
+            CanonicalStructuredStartupNode::Parameter(name) => Some(name),
+            _ => None,
+        }
+    }
+
     pub fn value_type(&self) -> &StructuredInfoType {
         &self.value_type
     }

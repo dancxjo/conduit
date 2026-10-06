@@ -10,9 +10,9 @@ use conduit_plot::{
 use serde::{Deserialize, Serialize};
 
 pub const SPEECH_SYNTHESIZE_KIND: &str = "speech/synthesize";
-pub const SPEECH_SYNTHESIZE_REVISION: &str = "conduit.speech/synthesize@1";
+pub const SPEECH_SYNTHESIZE_REVISION: &str = "conduit.speech/synthesize@2";
 pub const SPEECH_SYNTHESIZE_STREAM_KIND: &str = "speech/synthesize-stream";
-pub const SPEECH_SYNTHESIZE_STREAM_REVISION: &str = "conduit.speech/synthesize-stream@2";
+pub const SPEECH_SYNTHESIZE_STREAM_REVISION: &str = "conduit.speech/synthesize-stream@3";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const AUDIO_PLAY_REVISION: &str = conduit_semantic_catalog::AUDIO_PLAY_REVISION;
 pub const TEXT_VALUE_KIND: &str = "value/text";
@@ -51,11 +51,14 @@ impl SpeechContract {
 }
 
 fn synthesis_startup_parameters() -> Vec<FrontStartupParameter> {
-    vec![FrontStartupParameter {
-        name: "maximum-output-bytes".into(),
-        value_type: kind_id("value/count"),
-        has_default: true,
-    }]
+    vec![
+        FrontStartupParameter {
+            name: "maximum-output-bytes".into(),
+            value_type: kind_id("value/count"),
+            has_default: true,
+        },
+        conduit_language::language_request_parameter(),
+    ]
 }
 
 pub fn synthesize_contract() -> SpeechContract {
@@ -145,6 +148,9 @@ fn synthesis_semantic_contract(contract: SpeechContract) -> Kind {
             maximum: u64::from(MAXIMUM_PCM_BYTES),
         },
     }];
+    kind.configuration
+        .push(conduit_language::language_request_field());
+    kind.semantic_laws = conduit_language::language_requirement_laws();
     kind
 }
 
@@ -189,6 +195,7 @@ pub fn install_speech_synthesis_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    conduit_language::install_language_request_type(startup)?;
     install_contract(startup, profile, synthesize_contract(), true)?;
     install_contract(startup, profile, streaming_synthesize_contract(), true)
 }
@@ -213,13 +220,18 @@ fn install_contract(
         startup_parameters: kind
             .configuration
             .iter()
-            .map(|field| StartupParameterSignature {
-                name: field.key.clone(),
-                value_type: "Count".into(),
-                default: match field.default_value {
-                    conduit_core::ConfigurationValue::U64(value) => Some(value.to_string()),
-                    _ => None,
-                },
+            .map(|field| {
+                if field.key == "language-request" {
+                    return conduit_language::language_request_signature();
+                }
+                StartupParameterSignature {
+                    name: field.key.clone(),
+                    value_type: "Count".into(),
+                    default: match field.default_value {
+                        conduit_core::ConfigurationValue::U64(value) => Some(value.to_string()),
+                        _ => None,
+                    },
+                }
             })
             .collect(),
     })?;
@@ -253,8 +265,12 @@ mod tests {
     #[test]
     fn semantic_contract_contains_no_realization_facts() {
         let synthesis = synthesize_contract();
-        assert_eq!(synthesis.startup_parameters.len(), 1);
+        assert_eq!(synthesis.startup_parameters.len(), 2);
         assert_eq!(synthesis.startup_parameters[0].name, "maximum-output-bytes");
+        assert_eq!(
+            synthesis.startup_parameters[1],
+            conduit_language::language_request_parameter()
+        );
         assert_eq!(
             synthesis
                 .clone()

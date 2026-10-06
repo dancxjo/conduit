@@ -6,6 +6,16 @@ pub const TONGUES_STARTER_PATH: &str = "crates/tongues-pipeline/src/starter.rs";
 pub const TONGUES_STARTER_ID: &str = "text_to_speech";
 pub const SPECIMEN_TEXT: &str = "Hello from Tongues.";
 
+/// Explicit semantic selection for the retained English starter specimen.
+pub fn specimen_language_request() -> conduit_language::LanguageRequest {
+    conduit_language::LanguageRequest::new(
+        conduit_language::LanguageId::new("language/english".into()).expect("fixture Language"),
+        None,
+        conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+    )
+    .expect("finite specimen request")
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TonguesSpecimenIdentity {
     pub repository: String,
