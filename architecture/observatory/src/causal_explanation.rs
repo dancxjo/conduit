@@ -5,8 +5,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_kernel::causal_evidence::{
     CausalEvidence, CausalEvidenceRefusal, CausalRelationship, CausalTraceCompleteness,
-    EvidenceIdentity, EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit,
-    EvidenceOutcome, TerminalEvidenceIndex,
+    ClockCapture, ClockScale, ClockSourceMetadata, EvidenceIdentity, EvidenceMetadataFact,
+    EvidenceMetadataLookup, EvidenceMetadataVisit, EvidenceOutcome, TerminalEvidenceIndex,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +57,13 @@ pub enum CausalExplanationMetadataFact {
     Implementation(String),
     Host(String),
     Boot(String),
+    ClockObservation {
+        capture: ClockCapture,
+        local_ticks: u64,
+        local_scale: ClockScale,
+        local_basis: String,
+        body: Option<BodyTimeExplanation>,
+    },
     Resource {
         pool: String,
         generation: Option<String>,
@@ -64,6 +71,32 @@ pub enum CausalExplanationMetadataFact {
     Authority {
         grant: String,
         contract: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BodyTimeExplanation {
+    pub basis: String,
+    pub generation: u64,
+    pub correlation_age_ticks: u64,
+    pub correlation_age_scale: ClockScale,
+    pub earliest_ticks: u64,
+    pub center_ticks: u64,
+    pub latest_ticks: u64,
+    pub scale: ClockScale,
+    pub source: ClockSourceExplanation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClockSourceExplanation {
+    Peer {
+        host: String,
+        boot: String,
+        policy: String,
+    },
+    External {
+        provider: String,
+        policy: String,
     },
 }
 
@@ -321,6 +354,43 @@ fn owned_metadata_fact(fact: EvidenceMetadataFact<'_>) -> CausalExplanationMetad
         }
         EvidenceMetadataFact::Host(value) => CausalExplanationMetadataFact::Host(value.into()),
         EvidenceMetadataFact::Boot(value) => CausalExplanationMetadataFact::Boot(value.into()),
+        EvidenceMetadataFact::ClockObservation {
+            capture,
+            local_ticks,
+            local_scale,
+            local_basis,
+            body,
+        } => CausalExplanationMetadataFact::ClockObservation {
+            capture,
+            local_ticks,
+            local_scale,
+            local_basis: local_basis.into(),
+            body: body.map(|body| BodyTimeExplanation {
+                basis: body.basis.into(),
+                generation: body.generation,
+                correlation_age_ticks: body.correlation_age_ticks,
+                correlation_age_scale: body.correlation_age_scale,
+                earliest_ticks: body.earliest_ticks,
+                center_ticks: body.center_ticks,
+                latest_ticks: body.latest_ticks,
+                scale: body.scale,
+                source: match body.source {
+                    ClockSourceMetadata::Peer { host, boot, policy } => {
+                        ClockSourceExplanation::Peer {
+                            host: host.into(),
+                            boot: boot.into(),
+                            policy: policy.into(),
+                        }
+                    }
+                    ClockSourceMetadata::External { provider, policy } => {
+                        ClockSourceExplanation::External {
+                            provider: provider.into(),
+                            policy: policy.into(),
+                        }
+                    }
+                },
+            }),
+        },
         EvidenceMetadataFact::Resource { pool, generation } => {
             CausalExplanationMetadataFact::Resource {
                 pool: pool.into(),

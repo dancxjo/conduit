@@ -62,6 +62,10 @@ impl TimerAdapter for RecordingTimer {
     fn wait(&mut self, duration: Duration) {
         self.waits.push(duration);
     }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        u64::try_from(self.waits.iter().map(Duration::as_millis).sum::<u128>()).ok()
+    }
 }
 
 struct StopAfterWaits {
@@ -79,6 +83,10 @@ impl TimerAdapter for StopAfterWaits {
                 self.control.request_stop(request).unwrap();
             }
         }
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        u64::try_from(self.waits.iter().map(Duration::as_millis).sum::<u128>()).ok()
     }
 }
 
@@ -466,7 +474,7 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     assert!(output.contains("/latest kind=state/latest"));
     assert!(output.contains("/split kind=flow/tee"));
     assert!(output.contains(" complete\n"));
-    assert_eq!(timer.waits, vec![Duration::ZERO; 3]);
+    assert!(timer.waits.is_empty());
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {

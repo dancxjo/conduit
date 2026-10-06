@@ -3,11 +3,20 @@ use crate::{
     hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel, RunControl,
     StdHost, TimerAdapter,
 };
-use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
-use conduit_core::{bind_sign, SignIdentity, TerminalDisposition};
+use conduit_body::{BodyPlan, BodyPlanTimeAdmission, BodyPlayIdentity, Wake};
+use conduit_core::{
+    bind_sign, BodyClockCorrelation, BodyTimeQuality, BodyTimeRefusal, BodyTimeRequirement,
+    MonotonicDuration, MonotonicInstant, SignIdentity, TerminalDisposition,
+};
 use conduit_kernel::{scheduler::HostCallRequest, KernelEvent};
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
+
+#[derive(Debug, Clone)]
+pub struct ObservedKernelEvent {
+    pub sequence: u32,
+    pub time: crate::body_causal_evidence::BodyEventTimeObservation,
+}
 
 pub struct BodyRunRequest<'a> {
     pub wake: &'a Wake,
@@ -29,6 +38,45 @@ pub struct BodyRunReport {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub kernel_events: Vec<KernelEvent>,
+    pub clock_observations: Vec<ObservedKernelEvent>,
+    pub clock_quality: Option<BodyTimeQuality>,
+    pub clock_execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
+}
+
+pub(crate) fn assess_body_clock(
+    requirement: &BodyTimeRequirement,
+    correlation: &BodyClockCorrelation,
+    sample: &MonotonicInstant,
+    execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
+) -> BodyTimeQuality {
+    match execution_bounds {
+        Some((transport, scheduler)) => {
+            requirement.assess_with_execution_bounds(correlation, sample, transport, scheduler)
+        }
+        None => requirement.assess(correlation, sample),
+    }
+}
+
+pub(crate) fn assess_continuing_body_clock(
+    requirement: &BodyTimeRequirement,
+    correlation: &BodyClockCorrelation,
+    sample: &MonotonicInstant,
+    execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
+    previous: Option<&BodyTimeQuality>,
+) -> BodyTimeQuality {
+    if let Some(BodyTimeQuality::Ready { now, .. }) = previous {
+        if sample.clock() != now.local_sample.clock() {
+            return BodyTimeQuality::Unsupported {
+                reason: BodyTimeRefusal::DifferentClock,
+            };
+        }
+        if sample.ticks() < now.local_sample.ticks() {
+            return BodyTimeQuality::Unsupported {
+                reason: BodyTimeRefusal::Regressed,
+            };
+        }
+    }
+    assess_body_clock(requirement, correlation, sample, execution_bounds)
 }
 
 impl StdHost {
@@ -54,6 +102,102 @@ impl StdHost {
         request: BodyRunRequest<'_>,
         output: &mut W,
         timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_to_with_start_and_clock(request, output, timer, None, None, started)
+    }
+
+    pub fn run_body_plan_to_with_body_time<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        correlation: &BodyClockCorrelation,
+    ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            Some(correlation),
+            None,
+            |_, _| Ok(()),
+        )
+    }
+
+    pub fn run_body_plan_to_with_body_time_bounds<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        correlation: &BodyClockCorrelation,
+        transport_uncertainty: MonotonicDuration,
+        scheduler_uncertainty: MonotonicDuration,
+    ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            Some(correlation),
+            Some((transport_uncertainty, scheduler_uncertainty)),
+            |_, _| Ok(()),
+        )
+    }
+
+    pub fn run_body_plan_to_with_admitted_body_time<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        admission: &BodyPlanTimeAdmission,
+    ) -> Result<BodyRunReport, String> {
+        if admission.plan_id() != &request.plan.plan_id {
+            return Err("BodyTime admission belongs to a different Body Plan".into());
+        }
+        let local = admission
+            .for_host(&self.advertisement.host_id, &self.advertisement.boot_id)
+            .ok_or_else(|| "BodyTime admission does not include this Host/Boot".to_string())?;
+        let (transport, scheduler) = local.execution_bounds();
+        self.run_body_plan_to_with_body_time_bounds(
+            request,
+            output,
+            timer,
+            local.correlation(),
+            transport,
+            scheduler,
+        )
+    }
+
+    pub fn run_body_plan_to_with_start_and_body_time<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        correlation: &BodyClockCorrelation,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            Some(correlation),
+            None,
+            started,
+        )
+    }
+
+    fn run_body_plan_to_with_start_and_clock<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        correlation: Option<&BodyClockCorrelation>,
+        execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -63,6 +207,26 @@ impl StdHost {
             .plan
             .validate_for(request.wake)
             .map_err(|error| format!("Body Plan validation: {error:?}"))?;
+        let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
+        {
+            let correlation = correlation.ok_or_else(|| {
+                "BodyTime-qualified Plan requires an explicit clock correlation".to_string()
+            })?;
+            let sample = timer
+                .monotonic_observation(&self.advertisement.host_id, &self.advertisement.boot_id)
+                .ok_or_else(|| "BodyTime-qualified Plan has no admitted local clock".to_string())?;
+            if sample.clock().host_id() != &self.advertisement.host_id
+                || sample.clock().boot_id() != &self.advertisement.boot_id
+            {
+                return Err("BodyTime-qualified Plan has a different Host/Boot clock".into());
+            }
+            match assess_body_clock(requirement, correlation, &sample, execution_bounds) {
+                quality @ BodyTimeQuality::Ready { .. } => Some(quality),
+                quality => return Err(format!("BodyTime-qualified Plan quality: {quality:?}")),
+            }
+        } else {
+            None
+        };
         let fragments = request
             .plan
             .plots
@@ -109,7 +273,17 @@ impl StdHost {
                 .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
             started(&play, &wake_at_start)?;
             let terminal_sign = sign(2);
-            let result = kernel.run(output, timer, request.keyboard, request.control);
+            let result = kernel.run(
+                output,
+                timer,
+                request.keyboard,
+                request.control,
+                &self.advertisement.host_id,
+                &self.advertisement.boot_id,
+                request.plan.body_time_requirement.as_ref().zip(correlation),
+                execution_bounds,
+                admitted_clock_quality,
+            );
             Ok(BodyRunReport {
                 play,
                 wake_at_start,
@@ -120,6 +294,9 @@ impl StdHost {
                 partitions: result.partitions,
                 requests: result.requests,
                 kernel_events: result.events,
+                clock_observations: result.clock_observations,
+                clock_quality: result.clock_quality,
+                clock_execution_bounds: result.clock_execution_bounds,
             })
         })();
         let mut release_errors = Vec::new();
@@ -149,5 +326,85 @@ pub(crate) fn finish_body_release(
             Ok(report)
         }
         Err(original) => Err(format!("{original}; {release_failure}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::{
+        BodyTimeTolerance, BootId, ClockProvenance, HostId, MonotonicClockIdentity, TemporalScale,
+    };
+
+    #[test]
+    fn continuing_body_clock_refuses_regression_and_basis_replacement() {
+        let clock = MonotonicClockIdentity::new(
+            HostId::from("host/a"),
+            BootId::from("boot/a"),
+            "steady".into(),
+            TemporalScale::Milliseconds,
+            1,
+            1,
+        )
+        .unwrap();
+        let initial = MonotonicInstant::new(1_000, clock.clone()).unwrap();
+        let correlation = BodyClockCorrelation::new(
+            "body/a".into(),
+            TemporalScale::Milliseconds,
+            1,
+            initial.clone(),
+            10_000,
+            0,
+            100,
+            1,
+            10_000,
+            ClockProvenance::External {
+                provider_id: "test/source".into(),
+                admission_reference: "test/admission".into(),
+                policy_id: "test/policy".into(),
+            },
+        )
+        .unwrap();
+        let requirement = BodyTimeRequirement::new(
+            "body/a".into(),
+            BodyTimeTolerance::new(10, TemporalScale::Milliseconds),
+            MonotonicDuration::new(100, TemporalScale::Milliseconds),
+        )
+        .unwrap();
+        let ready = assess_body_clock(&requirement, &correlation, &initial, None);
+        assert!(matches!(ready, BodyTimeQuality::Ready { .. }));
+        assert_eq!(
+            assess_continuing_body_clock(
+                &requirement,
+                &correlation,
+                &MonotonicInstant::new(999, clock.clone()).unwrap(),
+                None,
+                Some(&ready),
+            ),
+            BodyTimeQuality::Unsupported {
+                reason: BodyTimeRefusal::Regressed,
+            }
+        );
+        let replacement = MonotonicClockIdentity::new(
+            HostId::from("host/a"),
+            BootId::from("boot/b"),
+            "steady".into(),
+            TemporalScale::Milliseconds,
+            1,
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            assess_continuing_body_clock(
+                &requirement,
+                &correlation,
+                &MonotonicInstant::new(1_001, replacement).unwrap(),
+                None,
+                Some(&ready),
+            ),
+            BodyTimeQuality::Unsupported {
+                reason: BodyTimeRefusal::DifferentClock,
+            }
+        );
     }
 }

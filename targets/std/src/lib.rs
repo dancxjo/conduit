@@ -14,10 +14,12 @@ pub mod acoustic_emergency;
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_causal_evidence;
+pub mod body_clock_line;
 pub mod body_coordination;
 pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
+pub mod civil_deadline_wait;
 mod composition;
 #[cfg(test)]
 mod composition_test_offers;
@@ -138,7 +140,7 @@ pub use vision_ocr::{
     MAXIMUM_OCR_ITEMS,
 };
 mod remote_host_fragment;
-pub use remote_host_fragment::AdmittedRemoteFragment;
+pub use remote_host_fragment::{AdmittedRemoteFragment, RemoteBodyTimeStepRefusal};
 #[cfg(test)]
 mod body_chat_tests;
 #[cfg(test)]
@@ -359,6 +361,16 @@ pub struct SignalReceipt {
 pub trait TimerAdapter {
     fn wait(&mut self, duration: Duration);
 
+    /// An exact sample on an identified provider basis. Adapters that only
+    /// offer a duration or an unlabelled counter leave event time unsupported.
+    fn monotonic_observation(
+        &mut self,
+        _host_id: &conduit_core::HostId,
+        _boot_id: &conduit_core::BootId,
+    ) -> Option<conduit_core::MonotonicInstant> {
+        None
+    }
+
     /// Returns the current host/boot-scoped monotonic millisecond reading when
     /// this adapter offers the admitted deadline contract.
     fn monotonic_now_ms(&mut self) -> Option<u64> {
@@ -384,6 +396,7 @@ pub trait TimerAdapter {
 pub struct ThreadTimer;
 
 static THREAD_TIMER_EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+static THREAD_TIMER_BASIS: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
 
 impl TimerAdapter for ThreadTimer {
     fn wait(&mut self, duration: Duration) {
@@ -408,6 +421,37 @@ impl TimerAdapter for ThreadTimer {
                 .as_micros(),
         )
         .ok()
+    }
+
+    fn monotonic_observation(
+        &mut self,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
+    ) -> Option<conduit_core::MonotonicInstant> {
+        let basis = THREAD_TIMER_BASIS
+            .get_or_init(|| {
+                let mut nonce = [0u8; 16];
+                getrandom::fill(&mut nonce).ok()?;
+                Some(format!(
+                    "std/thread-timer/process-epoch/{:08x}{}",
+                    std::process::id(),
+                    nonce
+                        .iter()
+                        .map(|byte| format!("{byte:02x}"))
+                        .collect::<String>()
+                ))
+            })
+            .as_ref()?;
+        let identity = conduit_core::MonotonicClockIdentity::new(
+            host_id.clone(),
+            boot_id.clone(),
+            basis.clone(),
+            conduit_core::TemporalScale::Microseconds,
+            1,
+            1,
+        )
+        .ok()?;
+        conduit_core::MonotonicInstant::new(self.monotonic_now_micros()?, identity).ok()
     }
 }
 

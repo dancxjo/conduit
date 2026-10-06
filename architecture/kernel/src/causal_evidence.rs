@@ -66,6 +66,13 @@ pub enum EvidenceMetadataFact<'a> {
     Implementation(&'a str),
     Host(&'a str),
     Boot(&'a str),
+    ClockObservation {
+        capture: ClockCapture,
+        local_ticks: u64,
+        local_scale: ClockScale,
+        local_basis: &'a str,
+        body: Option<BodyTimeMetadata<'a>>,
+    },
     Resource {
         pool: &'a str,
         generation: Option<&'a str>,
@@ -75,6 +82,46 @@ pub enum EvidenceMetadataFact<'a> {
         grant: &'a str,
         contract: &'a str,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ClockCapture {
+    AtEvent,
+    AfterEvent,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ClockScale {
+    Seconds,
+    Milliseconds,
+    Microseconds,
+    Nanoseconds,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ClockSourceMetadata<'a> {
+    Peer {
+        host: &'a str,
+        boot: &'a str,
+        policy: &'a str,
+    },
+    External {
+        provider: &'a str,
+        policy: &'a str,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BodyTimeMetadata<'a> {
+    pub basis: &'a str,
+    pub generation: u64,
+    pub correlation_age_ticks: u64,
+    pub correlation_age_scale: ClockScale,
+    pub earliest_ticks: u64,
+    pub center_ticks: u64,
+    pub latest_ticks: u64,
+    pub scale: ClockScale,
+    pub source: ClockSourceMetadata<'a>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

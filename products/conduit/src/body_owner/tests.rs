@@ -379,7 +379,8 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         serde_json::to_value(conduit_core::TerminalDisposition::Cancelled {
             reason: conduit_core::CancellationReason::OperatorRequested,
         })
-        .unwrap()
+        .unwrap(),
+        "{receipt:?}"
     );
     assert!(
         receipt["output_utf8"]
