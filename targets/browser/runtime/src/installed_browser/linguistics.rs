@@ -5,16 +5,16 @@ use super::factory::{
 };
 use super::BrowserBack;
 use conduit_core::{
-    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
-    PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
+    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
+use conduit_plot::rust_binding::NativeRustBinding;
 
-const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@1";
-const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@1";
-const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@1";
+const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@2";
+const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@2";
+const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@2";
 const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-structured-info@1";
 const HOST_CALL: &str = "conduit.host/browser-linguistics@1";
 
@@ -139,7 +139,13 @@ fn prepare_tokenize(
     values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
     validate_placement(placement, &tokenize_offer())?;
-    let value = conduit_language::tokenize_four("tour/gear-lab", configuration_text(placement)?)
+    let material = conduit_language::configured_language_material(&placement.configuration)
+        .map_err(debug_error)?;
+    admit_prepared_language(
+        placement,
+        &conduit_language::language_material_request(&material),
+    )?;
+    let value = conduit_language::tokenize_four(&material)
         .map_err(|error| format!("tokenize four: {error:?}"))?;
     let canonical = value
         .canonical_bytes()
@@ -153,10 +159,26 @@ fn prepare_annotate(
     _values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
     validate_placement(placement, &annotate_offer())?;
+    let request = conduit_language::configured_language_request(&placement.configuration)
+        .map_err(debug_error)?;
+    admit_prepared_language(placement, &request)?;
     Ok(BrowserBack::unary(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
+}
+
+fn admit_prepared_language(
+    placement: &PlannedGear,
+    request: &conduit_language::LanguageRequest,
+) -> Result<(), String> {
+    let [property] = placement.realization_properties.as_slice() else {
+        return Err("prepared linguistic Back has no exact Language declaration".into());
+    };
+    let coverage = conduit_language::LanguageCoverage::decode(property.canonical_value())
+        .map_err(debug_error)?;
+    conduit_language::admit_language_coverage(request, Some(&coverage)).map_err(debug_error)?;
+    Ok(())
 }
 
 fn prepare_presentation(
@@ -170,9 +192,14 @@ fn prepare_presentation(
     ))
 }
 
-fn perform_annotate(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+fn perform_annotate(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     let tokens = StructuredInfoValue::from_canonical_bytes(input)
         .map_err(|error| format!("decode linguistic tokens: {error:?}"))?;
+    let native = conduit_language::LinguisticTokensFour::from_structured(tokens.clone())
+        .map_err(debug_error)?;
+    let request = conduit_language::configured_language_request(&placement.configuration)
+        .map_err(debug_error)?;
+    conduit_language::validate_linguistic_request(&request, &native).map_err(debug_error)?;
     let annotated = conduit_language::annotate_with_unicode_library(&tokens)
         .map_err(|error| format!("annotate four: {error:?}"))?;
     Ok(BrowserHostResult {
@@ -200,17 +227,6 @@ fn perform_presentation(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResu
     })
 }
 
-fn configuration_text(placement: &PlannedGear) -> Result<&str, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (&*entry.key, &entry.value) {
-            ("text", ConfigurationValue::Text(value)) => Some(value.as_str()),
-            _ => None,
-        })
-        .ok_or_else(|| "language/tokenize-four is missing its bounded text".into())
-}
-
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
 }
@@ -235,6 +251,93 @@ fn english_coverage() -> conduit_language::LanguageCoverage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn planned_linguistics() -> Vec<PlannedGear> {
+        let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
+        let syntax = conduit_plot::parse_syntax_document(
+            r#"plot preparation-language {
+            tokenize: language/tokenize-four(material = { identity: "text/fixture", language: "language/english", revision: "source/1", text: "Bright stars shine." })
+            annotate: language/annotate-four(language-request = { language: "language/english", variety: none(""), variety_policy: language_sufficient("") })
+            tokenize.tokens >> annotate.tokens
+        }"#,
+        );
+        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
+        let plot = conduit_plot::expand_canonical_plot(&checked, "preparation-language", &catalog)
+            .unwrap();
+        let hosts = [crate::installed_browser::advertisement_for_presentation(
+            "browser/fixture".into(),
+            "boot/fixture".into(),
+            crate::installed_browser::PresentationProfile::Annotation,
+        )];
+        let placements = conduit_planner::default_expanded_placements(&plot, &hosts).unwrap();
+        conduit_planner::plan_expanded_canonical_with_options(
+            &plot,
+            &hosts,
+            &placements,
+            &crate::installed_browser::local_bases(),
+            conduit_planner::PlanningOptions {
+                connection_bases: &std::collections::BTreeMap::new(),
+                line_candidates: &std::collections::BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity:
+                    crate::installed_browser::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+        )
+        .unwrap()
+        .fragments
+        .remove(0)
+        .placements
+    }
+
+    #[test]
+    fn browser_tokenizer_refuses_source_language_changed_after_planning() {
+        let mut placement = planned_linguistics()
+            .into_iter()
+            .find(|p| p.kind_id.as_str() == conduit_language::TOKENIZE_FOUR_KIND)
+            .unwrap();
+        let mut values = HostedValueStore::new(4, 32768, 131072).unwrap();
+        assert!(prepare_tokenize(&placement, &mut values).is_ok());
+        let material = conduit_language::LanguageText::new(
+            conduit_language::LanguageTextId::new("text/fixture".into()).unwrap(),
+            conduit_language::LanguageId::new("language/french".into()).unwrap(),
+            conduit_language::LanguageTextRevisionId::new("source/1".into()).unwrap(),
+            "Bright stars shine.".into(),
+        )
+        .unwrap();
+        placement
+            .configuration
+            .iter_mut()
+            .find(|e| e.key == "material")
+            .unwrap()
+            .value = conduit_language::language_material_configuration(material).unwrap();
+        assert!(prepare_tokenize(&placement, &mut values).is_err());
+    }
+
+    #[test]
+    fn browser_annotator_refuses_request_language_changed_after_planning() {
+        let mut placement = planned_linguistics()
+            .into_iter()
+            .find(|p| p.kind_id.as_str() == conduit_language::ANNOTATE_FOUR_KIND)
+            .unwrap();
+        let mut values = HostedValueStore::new(4, 32768, 131072).unwrap();
+        assert!(prepare_annotate(&placement, &mut values).is_ok());
+        let request = conduit_language::LanguageRequest::new(
+            conduit_language::LanguageId::new("language/french".into()).unwrap(),
+            None,
+            conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+        )
+        .unwrap();
+        placement
+            .configuration
+            .iter_mut()
+            .find(|e| e.key == "language-request")
+            .unwrap()
+            .value = conduit_language::language_request_configuration(request).unwrap();
+        assert!(prepare_annotate(&placement, &mut values).is_err());
+    }
 
     #[test]
     fn browser_linguistics_preserves_each_exact_semantic_contract() {

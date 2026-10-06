@@ -6,9 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
@@ -26,13 +25,13 @@ use crate::{
     ANNOTATION_BUNDLE_FOUR_TYPE, DEPENDENCY_ARC_TYPE, DEPENDENCY_EDGE_TYPE, DEPENDENCY_HEAD_TYPE,
     DEPENDENCY_SUBTYPE_TYPE, LANGUAGE_DEPENDENCY_RELATION_TYPE, LINGUISTIC_ANNOTATIONS_FOUR_TYPE,
     LINGUISTIC_ANNOTATION_TYPE, LINGUISTIC_LABEL_TYPE, LINGUISTIC_SEGMENT_TYPE,
-    LINGUISTIC_TOKENS_FOUR_TYPE, LINGUISTIC_TOKEN_TYPE, MAXIMUM_LINGUISTIC_TEXT_BYTES,
-    TEXT_SPAN_TYPE, UNIVERSAL_DEPENDENCY_RELATION_TYPE,
+    LINGUISTIC_TOKENS_FOUR_TYPE, LINGUISTIC_TOKEN_TYPE, TEXT_SPAN_TYPE,
+    UNIVERSAL_DEPENDENCY_RELATION_TYPE,
 };
 
 pub const TOKENIZE_FOUR_KIND: &str = "language/tokenize-four";
 pub const ANNOTATE_FOUR_KIND: &str = "language/annotate-four";
-pub const LINGUISTICS_REVISION: &str = "conduit.language/linguistics@2";
+pub const LINGUISTICS_REVISION: &str = "conduit.language/linguistics@3";
 
 pub fn install_linguistics_catalogs(
     startup: &mut conduit_plot::StartupCatalog,
@@ -48,14 +47,11 @@ pub fn install_linguistics_catalogs(
     startup
         .insert(KindSignature {
             kind: TOKENIZE_FOUR_KIND.into(),
-            startup_parameters: vec![
-                StartupParameterSignature {
-                    name: "text".into(),
-                    value_type: "Text".into(),
-                    default: None,
-                },
-                language_request_signature(),
-            ],
+            startup_parameters: vec![StartupParameterSignature {
+                name: "material".into(),
+                value_type: "LanguageText".into(),
+                default: None,
+            }],
         })
         .map_err(|error| error.to_string())?;
     startup
@@ -83,37 +79,46 @@ pub fn tokenize_four_definition() -> KindProjection {
             &linguistic_tokens_four_type(),
             PortDirection::Output,
         )],
-        configuration: vec![
-            language_request_field(),
-            KindConfigurationField {
-                key: "text".into(),
-                default_value: ConfigurationValue::Text(String::new()),
-                rule: KindConfigurationRule::TextBytes {
-                    maximum: MAXIMUM_LINGUISTIC_TEXT_BYTES,
-                },
+        configuration: vec![KindConfigurationField {
+            key: "material".into(),
+            default_value: crate::language_material_configuration(
+                crate::LanguageText::new(
+                    crate::LanguageTextId::new("request/placeholder".into())
+                        .expect("finite placeholder"),
+                    crate::LanguageId::new("request/placeholder".into())
+                        .expect("finite placeholder"),
+                    crate::LanguageTextRevisionId::new("request/placeholder".into())
+                        .expect("finite placeholder"),
+                    String::new(),
+                )
+                .expect("finite checker material"),
+            )
+            .expect("finite material"),
+            rule: KindConfigurationRule::Structured {
+                profile: crate::language_text_profile(),
             },
-        ],
+        }],
     }
 }
 
 pub fn tokenize_four_semantic_contract() -> Kind {
     let definition = tokenize_four_definition();
     Kind {
-        startup_parameters: vec![
-            FrontStartupParameter {
-                name: "text".into(),
-                value_type: kind_id("value/text"),
-                has_default: false,
-            },
-            language_request_parameter(),
-        ],
+        startup_parameters: vec![FrontStartupParameter {
+            name: "material".into(),
+            value_type: crate::language_text_profile(),
+            has_default: false,
+        }],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: language_requirement_laws(),
+        semantic_laws: vec![conduit_core::KindSemanticLaw::RealizationRequirement {
+            property_profile: crate::language_coverage_profile(),
+            configuration_key: "material".into(),
+        }],
         limits: linguistic_limits(),
     }
 }
