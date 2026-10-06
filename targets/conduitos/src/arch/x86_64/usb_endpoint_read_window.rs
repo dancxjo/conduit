@@ -166,6 +166,10 @@ impl<'a, const N: usize> EndpointReadWindow<'a, N> {
         self.count
     }
 
+    pub fn ring_position(&self) -> (usize, u32) {
+        self.dma.cursor.position()
+    }
+
     /// Publish one exact admitted Host Call. The sole controller owner rings
     /// this endpoint after publication; no new read is invented by this window.
     pub fn begin(
