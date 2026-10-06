@@ -2,19 +2,24 @@
 use conduit_core::*;
 use conduit_plot::{PortableExpressionProgram, PreparedPortableExpressionEvaluator};
 
-fn program(entry: &str) -> PortableExpressionProgram {
+fn programs<const N: usize>(entries: [&str; N]) -> [PortableExpressionProgram; N] {
+    // These operations belong to one exact inert package. Check it once;
+    // each entry still expands independently and owns its prepared evaluator.
     let package = conduitos::protocol_source::usb_hid_endpoint_package().unwrap();
     let source = conduitos::protocol_source::PreparedProtocolSource::prepare(package).unwrap();
-    let expanded = source
-        .expand(entry)
-        .unwrap_or_else(|error| panic!("{entry}: {error:?}"))
-        .expanded;
-    assert_eq!(expanded.gears.len(), 1);
-    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
-        panic!("pure Source expression")
-    };
-    PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
+    entries.map(|entry| {
+        let expanded = source
+            .expand(entry)
+            .unwrap_or_else(|error| panic!("{entry}: {error:?}"))
+            .expanded;
+        assert_eq!(expanded.gears.len(), 1);
+        let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
+            panic!("pure Source expression")
+        };
+        PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
+    })
 }
+
 fn field_type(ty: &StructuredInfoType, name: &str) -> StructuredInfoType {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
         panic!("record")
@@ -83,9 +88,11 @@ fn payload(bytes: &[u8], tag: &str) -> Vec<u8> {
 
 #[test]
 fn eight_observations_restore_wire_order_and_refuse_duplicate_stale_and_distant_values() {
-    let initialize = program("usb-hid-keyboard-order-initialize");
-    let insert = program("usb-hid-keyboard-order-insert");
-    let drain = program("usb-hid-keyboard-order-drain");
+    let [initialize, insert, drain] = programs([
+        "usb-hid-keyboard-order-initialize",
+        "usb-hid-keyboard-order-insert",
+        "usb-hid-keyboard-order-drain",
+    ]);
     let mut state = initialize.evaluate(&[]).unwrap();
     let mut prepared = PreparedPortableExpressionEvaluator::new(&drain).unwrap();
     for ordinal in [7, 3, 0, 6, 1, 5, 2, 4] {
