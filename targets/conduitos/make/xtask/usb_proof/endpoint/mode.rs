@@ -11,7 +11,7 @@ impl ProofMode {
         match self {
             Self::Raw => None,
             Self::Keyboard => Some("usb-hid-keyboard-capture-window"),
-            Self::Mouse => Some("usb-hid-mouse-endpoint"),
+            Self::Mouse => Some("usb-hid-mouse-capture-window"),
         }
     }
     pub(super) fn qemu_profile(self) -> &'static str {

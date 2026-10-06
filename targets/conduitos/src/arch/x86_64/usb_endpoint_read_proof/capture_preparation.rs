@@ -1,4 +1,4 @@
-//! Native eight-capture binding for the explicitly selected proof appliance.
+//! Native bounded capture binding for the explicitly selected proof appliance.
 //! Actual configuration establishes readiness; the proof Root issues possession.
 use super::*;
 use crate::arch::x86_64::usb::{
@@ -10,9 +10,9 @@ use crate::arch::x86_64::usb::{
 };
 use crate::usb_base::{hid_endpoint_proof_plan, hid_source_kernel::PreparedHidSourceKernel};
 
-pub(super) struct PreparedNativeCapture<'a> {
+pub(super) struct PreparedNativeCapture<'a, const N: usize = 8> {
     pub play: PreparedHidSourceKernel,
-    pub owner: EndpointReadWindow<'a, 8>,
+    pub owner: EndpointReadWindow<'a, N>,
     pub identity: NativeCaptureIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
@@ -30,14 +30,19 @@ pub(super) struct NativeCaptureIdentity {
 /// Root owns the actual configured endpoint and coherent mapped DMA, retained
 /// after every error until acknowledged hardware quiescence. This function
 /// neither rings a doorbell nor consumes controller events.
-pub(super) unsafe fn prepare<'a>(
+pub(super) unsafe fn prepare<'a, const N: usize>(
     controller: &XhciReady,
     device: UsbDevice,
     configured: ConfiguredInboundEndpoint,
-    dma: EndpointReadWindowDma<'a, 8>,
+    dma: EndpointReadWindowDma<'a, N>,
     ids: &BootIdentities,
     base: &[u8; 32],
-) -> Result<PreparedNativeCapture<'a>, &'static str> {
+) -> Result<PreparedNativeCapture<'a, N>, &'static str> {
+    let entry = match N {
+        8 => "usb-hid-keyboard-capture-window",
+        2 => "usb-hid-mouse-capture-window",
+        _ => return Err("usb-hid-capture-members"),
+    };
     let contract = EndpointReadContract::prepare().map_err(|_| "usb-hid-capture-contract")?;
     let device_id = identity::derive_usb_device(
         &ids.boot,
@@ -69,7 +74,7 @@ pub(super) unsafe fn prepare<'a>(
             endpoint_dci: configured.dci,
             endpoint_epoch: configured.endpoint_epoch,
         },
-        "usb-hid-keyboard-capture-window",
+        entry,
     )
     .map_err(|_| "usb-hid-capture-plan")?;
     preparation_stage("plan-ready")?;
@@ -92,14 +97,14 @@ pub(super) unsafe fn prepare<'a>(
         plan_id: plan.plan_id.clone(),
         active_play_id: active.active_play_id.clone(),
     };
-    let mut selections = Vec::with_capacity(8);
+    let mut selections = Vec::with_capacity(N);
     for gear in fragment
         .placements
         .iter()
         .filter(|gear| gear.implementation_id.as_str() == ENDPOINT_READ_IMPLEMENTATION)
     {
         let selected_base = gear.base.as_ref().ok_or("usb-hid-capture-base")?;
-        if selections.len() == 8
+        if selections.len() == N
             || selected_base.base_id != ready.base_id
             || selected_base.provider_instance_id != ready.provider_instance_id
             || selected_base.provider_generation != ready.provider_generation

@@ -4,7 +4,7 @@ mod mouse;
 use super::*;
 use conduit_core::*;
 use conduitos::{
-    protocol_source::{usb_hid_endpoint_package, PreparedProtocolSource},
+    protocol_source::{usb_hid_mouse_order_package, PreparedProtocolSource},
     usb_base::hid_endpoint_proof_plan,
 };
 
@@ -175,7 +175,7 @@ fn expected_digest(outputs: &[PortDescriptor], mode: ProofMode) -> Result<String
         return capture::expected_digest(outputs);
     }
     let source = PreparedProtocolSource::prepare(
-        usb_hid_endpoint_package()
+        usb_hid_mouse_order_package()
             .map_err(|error| refusal("hid-proof-source", format!("{error:?}")))?,
     )
     .map_err(|error| refusal("hid-proof-source", format!("{error:?}")))?;
@@ -253,8 +253,8 @@ mod tests {
                 acknowledged_stop: true,
                 fixture_protocol: true,
                 allocation_sealed: true,
-                capture_buffers: if mode == ProofMode::Keyboard { 8 } else { 1 },
-                maximum_pending_transfers: if mode == ProofMode::Keyboard { 8 } else { 1 },
+                capture_buffers: if mode == ProofMode::Keyboard { 8 } else { 2 },
+                maximum_pending_transfers: if mode == ProofMode::Keyboard { 8 } else { 2 },
             };
             validate_sign(plan, "proof/device", &expected, &specimen).unwrap();
             for (field, replacement) in [

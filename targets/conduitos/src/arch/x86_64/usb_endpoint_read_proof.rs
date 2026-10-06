@@ -27,6 +27,8 @@ use core::fmt::Write;
 use sha2::{Digest, Sha256};
 #[path = "usb_endpoint_read_proof/capture.rs"]
 mod capture;
+#[path = "usb_endpoint_read_proof/capture_kernel.rs"]
+mod capture_kernel;
 #[path = "usb_endpoint_read_proof/capture_preparation.rs"]
 mod capture_preparation;
 #[path = "usb_endpoint_read_proof/dma.rs"]
@@ -35,6 +37,8 @@ mod dma;
 mod hid;
 #[path = "usb_endpoint_read_proof/kernel.rs"]
 mod kernel;
+#[path = "usb_endpoint_read_proof/mouse_capture.rs"]
+mod mouse_capture;
 #[path = "usb_endpoint_read_proof/possession.rs"]
 mod possession;
 use dma::ProofDma;
@@ -108,11 +112,18 @@ pub(super) fn run(
     if storage.cursor.is_some() {
         return Err("usb-endpoint-proof-already-owned");
     }
-    let capture_window =
-        cfg!(feature = "usb-hid-endpoint-proof") && !cfg!(feature = "usb-hid-mouse-proof");
+    let capture_window = cfg!(feature = "usb-hid-endpoint-proof");
+    let capture_members = if cfg!(feature = "usb-hid-mouse-proof") {
+        2
+    } else {
+        8
+    };
     storage.cursor = Some(
-        EndpointRingCursor::with_maximum_pending(64, if capture_window { 8 } else { 1 })
-            .map_err(|_| "usb-endpoint-proof-ring")?,
+        EndpointRingCursor::with_maximum_pending(
+            64,
+            if capture_window { capture_members } else { 1 },
+        )
+        .map_err(|_| "usb-endpoint-proof-ring")?,
     );
     let ring_physical = physical + core::mem::offset_of!(ProofDma, ring) as u64;
     let buffers_physical = physical + core::mem::offset_of!(ProofDma, buffers) as u64;
@@ -137,6 +148,25 @@ pub(super) fn run(
         }
         .map_err(|_| "usb-endpoint-proof-configuration")?
     };
+    if capture_window && cfg!(feature = "usb-hid-mouse-proof") {
+        let buffers: &mut [[u8; 2048]; 2] = (&mut storage.buffers[..2])
+            .try_into()
+            .map_err(|_| "usb-hid-mouse-capture-buffers")?;
+        return mouse_capture::run(
+            controller,
+            device,
+            configured,
+            super::endpoint_read::window::EndpointReadWindowDma {
+                ring: &mut storage.ring,
+                buffers,
+                cursor: storage.cursor.as_mut().unwrap(),
+                ring_physical,
+                buffers_physical,
+            },
+            ids,
+            base,
+        );
+    }
     if capture_window {
         return capture::run(
             controller,

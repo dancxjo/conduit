@@ -1,4 +1,4 @@
-//! Explicit eight-capture appliance driven by the sole controller and shared kernel.
+//! Explicit two-capture mouse appliance; report history remains in checked Source.
 use super::capture_kernel::{admit_unit, publish_call, step_pure};
 use super::capture_preparation::prepare;
 use super::*;
@@ -10,15 +10,17 @@ pub(super) fn run(
     controller: &mut XhciReady,
     device: UsbDevice,
     configured: ConfiguredInboundEndpoint,
-    dma: EndpointReadWindowDma<'_, 8>,
+    dma: EndpointReadWindowDma<'_, 2>,
     ids: &BootIdentities,
     base: &[u8; 32],
 ) -> Result<(), &'static str> {
     let device_dma =
         super::super::dma::device_dma_pointer(&device).map_err(|_| "usb-hid-capture-device")?;
+    let decoder = prepare_sample_decoder()?;
+    let mut sample_bytes = Vec::with_capacity(4096);
     let mut capture = unsafe { prepare(controller, device, configured, dma, ids, base) }?;
     let (root_port, slot, dci) = capture.owner.target();
-    let reads: [PortId; 8] = (0..8)
+    let reads: [PortId; 2] = (0..2)
         .map(|index| {
             let name = alloc::format!("read{index}");
             capture
@@ -38,24 +40,10 @@ pub(super) fn run(
         .ok_or("usb-hid-capture-begin")?
         .port_id
         .clone();
-    let observation = capture
-        .outputs
-        .iter()
-        .position(|port| port.port_id.as_str() == "observation")
-        .ok_or("usb-hid-capture-observation")?;
-    let changes = capture
-        .outputs
-        .iter()
-        .position(|port| port.port_id.as_str() == "changes")
-        .ok_or("usb-hid-capture-changes")?;
-    let ended = capture
-        .outputs
-        .iter()
-        .position(|port| port.port_id.as_str() == "ended")
-        .ok_or("usb-hid-capture-ended")?;
-    if capture.outputs.len() != 3 {
-        return Err("usb-hid-capture-outputs");
+    if capture.outputs.len() != 1 || capture.outputs[0].port_id.as_str() != "event" {
+        return Err("usb-hid-mouse-capture-outputs");
     }
+    let event_port = capture.outputs[0].port_id.clone();
     let mut buffers: Vec<_> = capture
         .outputs
         .iter()
@@ -69,8 +57,8 @@ pub(super) fn run(
         encoded: Vec::new(),
     };
     let device_hex = identity::hex(&capture.device_id);
-    let mut pending = [None; 8];
-    let mut nodes = [None; 8];
+    let mut pending = [None; 2];
+    let mut nodes = [None; 2];
     let mut digest = Sha256::new();
     let mut wraps = 0;
     let mut cycle = 1;
@@ -83,7 +71,7 @@ pub(super) fn run(
         .start()
         .map_err(|_| "usb-hid-capture-start")?;
     admit_unit(&mut capture, &begin, 0, &unit, true)?;
-    for index in 0..8 {
+    for index in 0..2 {
         admit_unit(&mut capture, &reads[index], 0, &unit, false)?;
         let (node, admitted) = publish_call(&mut capture)?;
         if nodes[..index].contains(&Some(node)) {
@@ -93,7 +81,7 @@ pub(super) fn run(
         pending[index] = Some(admitted);
     }
     // Publish the complete window before the first emulator input/completion.
-    if capture.owner.pending_count() != 8 {
+    if capture.owner.pending_count() != 2 {
         return Err("usb-hid-capture-window");
     }
     controller.ring_endpoint(slot, dci);
@@ -139,79 +127,81 @@ pub(super) fn run(
             core::hint::spin_loop();
         }
         let member = member.ok_or("usb-hid-capture-timeout-retained-dma")?;
-        let mut seen = [false; 3];
+        let mut delivered = false;
         for _ in 0..8192 {
             step_pure(&mut capture)?;
-            for (index, port) in capture.outputs.iter().enumerate() {
-                if let Some(actual) = capture
+            if let Some(actual) = capture
+                .play
+                .kernel_mut()
+                .output_into(&event_port, &mut buffers[0])
+                .map_err(|_| "usb-hid-mouse-capture-output")?
+            {
+                if actual != sequence || buffers[0].encoded.capacity() != 4096 {
+                    return Err("usb-hid-mouse-capture-output-order");
+                }
+                let value = validate_canonical_structured_value(&buffers[0].encoded)
+                    .map_err(|_| "usb-hid-mouse-capture-event")?;
+                let sample = value
+                    .variant_payload("sample")
+                    .map_err(|_| "usb-hid-mouse-capture-event")?
+                    .ok_or("usb-hid-mouse-capture-event")?;
+                if sample
+                    .record_field("ordinal")
+                    .map_err(|_| "usb-hid-mouse-capture-ordinal")?
+                    .ok_or("usb-hid-mouse-capture-ordinal")?
+                    .primitive_bytes("value/u64")
+                    .map_err(|_| "usb-hid-mouse-capture-ordinal")?
+                    != sequence.to_le_bytes()
+                {
+                    return Err("usb-hid-mouse-capture-ordinal");
+                }
+                let sample = sample
+                    .record_field("sample")
+                    .map_err(|_| "usb-hid-mouse-capture-sample")?
+                    .ok_or("usb-hid-mouse-capture-sample")?;
+                sample_bytes.clear();
+                sample_bytes.extend_from_slice(sample.type_bytes());
+                sample_bytes.extend_from_slice(sample.value_node());
+                let normalized = decoder
+                    .decode(&sample_bytes)
+                    .map_err(|_| "usb-hid-mouse-capture-sample")?;
+                if normalized.sequence != sequence + 1
+                    || normalized.queue_capacity != 8
+                    || normalized.coalesced != 0
+                    || normalized.dropped != 0
+                {
+                    return Err("usb-hid-mouse-capture-history");
+                }
+                digest.update(sequence.to_le_bytes());
+                digest.update(event_port.as_str().as_bytes());
+                digest.update(&buffers[0].encoded);
+                capture
                     .play
                     .kernel_mut()
-                    .output_into(&port.port_id, &mut buffers[index])
-                    .map_err(|_| "usb-hid-capture-output")?
-                {
-                    if buffers[index].encoded.capacity() != 4096
-                        || seen[index]
-                        || (index != ended && actual != sequence)
-                        || (index == ended && (sequence != 127 || actual != 0 || ended_seen))
-                    {
-                        return Err("usb-hid-capture-output-order");
-                    }
-                    if index == observation {
-                        let value = validate_canonical_structured_value(&buffers[index].encoded)
-                            .map_err(|_| "usb-hid-capture-observation")?;
-                        if value
-                            .record_field("ordinal")
-                            .map_err(|_| "usb-hid-capture-observation")?
-                            .ok_or("usb-hid-capture-observation")?
-                            .primitive_bytes("value/u64")
-                            .map_err(|_| "usb-hid-capture-observation")?
-                            != sequence.to_le_bytes()
-                        {
-                            return Err("usb-hid-capture-wire-order");
-                        }
-                    }
-                    capture
-                        .play
-                        .kernel_mut()
-                        .complete_output(&port.port_id, actual)
-                        .map_err(|_| "usb-hid-capture-ack")?;
-                    seen[index] = true;
-                    ended_seen |= index == ended;
-                }
-            }
-            if seen[observation] && seen[changes] {
+                    .complete_output(&event_port, actual)
+                    .map_err(|_| "usb-hid-mouse-capture-ack")?;
+                delivered = true;
                 break;
             }
         }
-        if !seen[observation] || !seen[changes] {
-            return Err("usb-hid-capture-delivery");
-        }
-        // Digest in declared port order, independent of internal scheduling.
-        for (index, port) in capture
-            .outputs
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| *index != ended)
-        {
-            digest.update(sequence.to_le_bytes());
-            digest.update(port.port_id.as_str().as_bytes());
-            digest.update(&buffers[index].encoded);
+        if !delivered {
+            return Err("usb-hid-mouse-capture-delivery");
         }
         let (_, next_cycle) = capture.owner.ring_position();
         if next_cycle != cycle {
             wraps += 1;
             cycle = next_cycle;
         }
-        if sequence < 120 {
-            let next = sequence + 8;
-            admit_unit(&mut capture, &reads[member], next / 8, &unit, next >= 120)?;
+        if sequence < 126 {
+            let next = sequence + 2;
+            admit_unit(&mut capture, &reads[member], next / 2, &unit, next >= 126)?;
             let (node, admitted) = publish_call(&mut capture)?;
             if Some(node) != nodes[member] {
                 return Err("usb-hid-capture-rearm-node");
             }
             pending[member] = Some(admitted);
             controller.ring_endpoint(slot, dci);
-            if capture.owner.pending_count() != 8 {
+            if capture.owner.pending_count() != 2 {
                 return Err("usb-hid-capture-rearm-window");
             }
         }
@@ -222,16 +212,16 @@ pub(super) fn run(
         if let Some(sequence) = capture
             .play
             .kernel_mut()
-            .output_into(&capture.outputs[ended].port_id, &mut buffers[ended])
+            .output_into(&event_port, &mut buffers[0])
             .map_err(|_| "usb-hid-capture-ended")?
         {
-            if sequence != 0 || ended_seen {
+            if sequence != 128 || ended_seen {
                 return Err("usb-hid-capture-ended-order");
             }
             capture
                 .play
                 .kernel_mut()
-                .complete_output(&capture.outputs[ended].port_id, sequence)
+                .complete_output(&event_port, sequence)
                 .map_err(|_| "usb-hid-capture-ended-ack")?;
             ended_seen = true;
         }
@@ -248,14 +238,18 @@ pub(super) fn run(
     {
         return Err("usb-hid-capture-drain");
     }
-    let end = validate_canonical_structured_value(&buffers[ended].encoded)
+    let final_event = validate_canonical_structured_value(&buffers[0].encoded)
         .map_err(|_| "usb-hid-capture-end-value")?;
+    let end = final_event
+        .variant_payload("ended")
+        .map_err(|_| "usb-hid-capture-end-value")?
+        .ok_or("usb-hid-capture-end-value")?;
     if end.variant_tag().map_err(|_| "usb-hid-capture-end-value")? != "closed" {
         return Err("usb-hid-capture-abnormal-end");
     }
-    digest.update(0_u64.to_le_bytes());
-    digest.update(capture.outputs[ended].port_id.as_str().as_bytes());
-    digest.update(&buffers[ended].encoded);
+    digest.update(128_u64.to_le_bytes());
+    digest.update(event_port.as_str().as_bytes());
+    digest.update(&buffers[0].encoded);
     for (index, port) in capture.outputs.iter().enumerate() {
         if capture
             .play
@@ -288,7 +282,37 @@ pub(super) fn run(
     let digest_hex =
         core::str::from_utf8(digest_text.as_bytes()).map_err(|_| "usb-hid-capture-digest")?;
     let mut sign = FixedText::new();
-    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true,\"allocation_sealed\":true,\"capture_buffers\":8,\"maximum_pending_transfers\":8}}", capture.identity.source_document_id.as_str(), capture.identity.checked_plot_id.as_str(), capture.identity.plan_id.as_str(), capture.identity.active_play_id.as_str(), device_hex, wraps, digest_hex).map_err(|_| "usb-hid-capture-sign")?;
+    writeln!(sign, "CONDUIT_USB_HID_ENDPOINT_SIGN {{\"schema\":\"conduit.conduitos.usb-hid-endpoint/v1\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"device_instance_id\":\"{}\",\"transfers\":128,\"cycle_transitions\":{},\"transcript_digest\":\"{}\",\"normal_close\":true,\"acknowledged_stop\":true,\"fixture_protocol\":true,\"allocation_sealed\":true,\"capture_buffers\":2,\"maximum_pending_transfers\":2}}", capture.identity.source_document_id.as_str(), capture.identity.checked_plot_id.as_str(), capture.identity.plan_id.as_str(), capture.identity.active_play_id.as_str(), device_hex, wraps, digest_hex).map_err(|_| "usb-hid-capture-sign")?;
     early_write(sign.as_bytes());
     Ok(())
+}
+
+fn prepare_sample_decoder()
+-> Result<crate::source_pointer_sample::SourcePointerSampleDecoder, &'static str> {
+    use crate::protocol_source::{PreparedProtocolEntry, usb_hid_mouse_order_package};
+    let package = usb_hid_mouse_order_package().map_err(|_| "usb-hid-mouse-capture-package")?;
+    let bytes = serde_json::to_vec(&package).map_err(|_| "usb-hid-mouse-capture-package")?;
+    let entry = PreparedProtocolEntry::prepare(&bytes, "usb-hid-mouse-capture-window")
+        .map_err(|_| "usb-hid-mouse-capture-source")?;
+    let schema = entry
+        .output_schema(&PortId::from("event"))
+        .ok_or("usb-hid-mouse-capture-schema")?;
+    let StructuredInfoTypeShape::Variant { cases, .. } = schema.shape() else {
+        return Err("usb-hid-mouse-capture-schema");
+    };
+    let sample = cases
+        .iter()
+        .find(|case| case.tag() == "sample")
+        .ok_or("usb-hid-mouse-capture-schema")?
+        .payload_type();
+    let StructuredInfoTypeShape::Record { fields, .. } = sample.shape() else {
+        return Err("usb-hid-mouse-capture-schema");
+    };
+    let schema = fields
+        .iter()
+        .find(|field| field.name() == "sample")
+        .ok_or("usb-hid-mouse-capture-schema")?
+        .value_type();
+    crate::source_pointer_sample::SourcePointerSampleDecoder::prepare(schema)
+        .map_err(|_| "usb-hid-mouse-capture-schema")
 }
