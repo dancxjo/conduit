@@ -5,13 +5,88 @@ use conduit_core::{
     LinkAuthorityReference, LinkCredentialReference, LinkLimits,
 };
 use conduit_presentation::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal,
+    FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    RemoteOwnerMaskRouteSeal,
 };
 
 const WEBSOCKET: &conduit_host_browser_make::BrowserLineRealizationDescriptor =
     &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
 
 impl Owner {
+    pub(crate) fn browser_wardrobe_report(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<serde_json::Value, String> {
+        {
+            let window = self.pending_browser.as_ref().ok_or("window-not-active")?;
+            window.check(window_id).map_err(|_| "window-not-active")?;
+            let WindowState::Active {
+                credential,
+                observation,
+                line_authorization,
+                line_evidence: Some(lines),
+                route: Some(route),
+                ..
+            } = &window.state
+            else {
+                return Err("browser-wardrobe-face-route-unavailable".into());
+            };
+            if observation.observed_binding_id != *binding
+                || request.credential_id != credential.credential_id.as_str()
+                || request.body_id != credential.body_id
+                || request.part_id != credential.part_id
+                || request.host_id != credential.host_id
+                || request.boot_id != credential.boot_id
+            {
+                return Err("browser-wardrobe-carrier-mismatch".into());
+            }
+            let current = self.session.evidence().membership.parts.iter().any(|part| {
+                part.part_id == credential.part_id
+                    && part.current.as_ref().is_some_and(|host| {
+                        host.host_id == credential.host_id
+                            && host.boot_id == credential.boot_id
+                            && host.offer_generation == observation.advertisement.offer_generation
+                    })
+            });
+            if !current {
+                return Err("browser-wardrobe-part-unavailable".into());
+            }
+            let face = self.face_snapshot(request)?;
+            validate_carrier_evidence(
+                lines,
+                line_authorization,
+                window_id,
+                binding,
+                credential,
+                self.host.advertisement(),
+                &observation.advertisement,
+            )?;
+            route
+                .validate_current_with_interaction(
+                    &self.session,
+                    &face,
+                    self.host.advertisement(),
+                    &observation.advertisement,
+                    &lines.face,
+                    &lines.returned,
+                    &lines.interaction,
+                )
+                .map_err(|error| format!("browser-wardrobe-route-stale:{error:?}"))?;
+        }
+        if action.is_some()
+            && (self.session.evidence().body.state != BodyState::Lulled
+                || self.session.realization().is_some())
+        {
+            return Err("owner-wardrobe-requires-lulled-body".into());
+        }
+        self.owner_wardrobe_report(owner_plan_id, basis_revision, action)
+    }
+
     /// Called only by the worker holding the accepted browser socket. The
     /// serialized owner verifies its exact observed binding again and retains
     /// the selected route until replacement or browser leave.
