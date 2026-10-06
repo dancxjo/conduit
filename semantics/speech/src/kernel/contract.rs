@@ -6,7 +6,7 @@ use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog, StartupParamet
 pub const KIND: &str = "speech/utterance";
 pub const REVISION: &str = "conduit.speech/utterance@2";
 pub const PROFILE: &str = "conduit-native/english-s16le-8000-mono@1";
-pub const IMPLEMENTATION: &str = "conduit-native/checked-english-speech@2";
+pub const IMPLEMENTATION: &str = "conduit-native/checked-english-speech@3";
 pub const CAPABILITY: &str = "native-english-speech";
 
 pub fn contract() -> Kind {
