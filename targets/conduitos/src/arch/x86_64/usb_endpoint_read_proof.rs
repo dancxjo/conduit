@@ -25,26 +25,16 @@ use conduit_core::*;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use core::fmt::Write;
 use sha2::{Digest, Sha256};
+#[path = "usb_endpoint_read_proof/dma.rs"]
+mod dma;
 #[path = "usb_endpoint_read_proof/hid.rs"]
 mod hid;
 #[path = "usb_endpoint_read_proof/kernel.rs"]
 mod kernel;
 #[path = "usb_endpoint_read_proof/possession.rs"]
 mod possession;
-
-#[repr(C, align(4096))]
-struct ProofDma {
-    ring: [[u32; 4]; 64],
-    buffer: [u8; 2048],
-    input: [u8; 2112],
-    cursor: Option<EndpointRingCursor>,
-}
-static mut PROOF_DMA: ProofDma = ProofDma {
-    ring: [[0; 4]; 64],
-    buffer: [0; 2048],
-    input: [0; 2112],
-    cursor: None,
-};
+use dma::ProofDma;
+static mut PROOF_DMA: ProofDma = ProofDma::new();
 
 pub fn run_appliance(
     controller: &mut XhciReady,
@@ -117,10 +107,10 @@ pub(super) fn run(
     storage.cursor = Some(EndpointRingCursor::new(64).map_err(|_| "usb-endpoint-proof-ring")?);
     let mut dma = EndpointReceiveDma {
         ring: &mut storage.ring,
-        buffer: &mut storage.buffer,
+        buffer: &mut storage.buffers[0],
         cursor: storage.cursor.as_mut().unwrap(),
         ring_physical: physical + core::mem::offset_of!(ProofDma, ring) as u64,
-        buffer_physical: physical + core::mem::offset_of!(ProofDma, buffer) as u64,
+        buffer_physical: physical + core::mem::offset_of!(ProofDma, buffers) as u64,
     };
     let configured = unsafe {
         configure_inbound(
