@@ -6,12 +6,12 @@ use conduit_core::{
 };
 
 pub const DETERMINISTIC_SPEECH_PROFILE: &str = "conduit-proof/speech-s16le-22050-mono-p25@1";
-pub const DETERMINISTIC_SPEECH_IMPLEMENTATION: &str = "conduit-proof/deterministic-speech@1";
+pub const DETERMINISTIC_SPEECH_IMPLEMENTATION: &str = "conduit-proof/deterministic-speech@2";
 pub const DETERMINISTIC_STREAMING_SPEECH_PROFILE: &str =
     "conduit-proof/streaming-speech-s16le-22050-mono-p25@1";
 pub const DETERMINISTIC_STREAMING_SPEECH_IMPLEMENTATION: &str =
-    "conduit-proof/deterministic-streaming-speech@1";
-pub const DETERMINISTIC_SPEECH_ARTIFACT: &str = "conduit-std-host/proof-deterministic-speech@1";
+    "conduit-proof/deterministic-streaming-speech@2";
+pub const DETERMINISTIC_SPEECH_ARTIFACT: &str = "conduit-std-host/proof-deterministic-speech@2";
 pub const DETERMINISTIC_SPEECH_OPERATION: &str = "conduit.host/proof-speech-next@1";
 const _: () =
     assert!(conduit_tongues::MAXIMUM_PCM_BYTES == crate::AUDIO_CONVERT_PCM_INPUT_MAXIMUM_BYTES);
@@ -51,7 +51,7 @@ fn speech_offer(
     } else {
         conduit_tongues::synthesize_semantic_contract()
     };
-    BackOfferBuilder::new(
+    let mut offer = BackOfferBuilder::new(
         contract,
         Back {
             capability_id: CapabilityId::from(capability),
@@ -73,12 +73,72 @@ fn speech_offer(
             authority_requirements: Vec::new(),
         },
     )
-    .build()
+    .build();
+    offer.realization_properties = vec![proof_english_coverage(artifact)];
+    offer
+}
+
+/// This deterministic fixture produces proof audio, not a linguistic accuracy
+/// claim. Its declared English scope is finite and belongs to this artifact.
+fn proof_english_coverage(artifact: &str) -> conduit_core::StructuredConfigurationValue {
+    use conduit_language::{LanguageCoverage, LanguageId};
+    use conduit_plot::rust_binding::BoundedSequence;
+    let coverage = LanguageCoverage::new(
+        artifact.into(),
+        BoundedSequence::try_from_iter([
+            LanguageId::new("language/english".into()).expect("fixture Language")
+        ])
+        .expect("one fixture Language"),
+        BoundedSequence::try_from_iter([]).expect("no private provider mappings"),
+        "deterministic-proof-english@1".into(),
+        BoundedSequence::try_from_iter([]).expect("no exact fixture varieties"),
+        false,
+    )
+    .expect("finite fixture coverage");
+    conduit_language::language_coverage_property(coverage).expect("native fixture property")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn proof_offers_declare_only_their_exact_english_fixture_scope() {
+        use conduit_language::{LanguageId, LanguageRequest, LanguageVarietyPolicy};
+        for offer in [
+            deterministic_speech_offer(),
+            deterministic_streaming_speech_offer(),
+        ] {
+            let property = &offer.realization_properties[0];
+            use conduit_plot::rust_binding::NativeRustBinding;
+            let coverage =
+                conduit_language::LanguageCoverage::decode(property.canonical_value()).unwrap();
+            assert_eq!(
+                coverage.evidence(),
+                offer.implementation.artifact_id.as_str()
+            );
+            let request = |language: &str| {
+                LanguageRequest::new(
+                    LanguageId::new(language.into()).unwrap(),
+                    None,
+                    LanguageVarietyPolicy::LanguageSufficient,
+                )
+                .unwrap()
+            };
+            assert!(conduit_language::admit_language_coverage(
+                &request("language/english"),
+                Some(&coverage)
+            )
+            .is_ok());
+            assert_eq!(
+                conduit_language::admit_language_coverage(
+                    &request("language/french"),
+                    Some(&coverage)
+                ),
+                Err(conduit_language::LanguageCoverageRefusal::Language)
+            );
+        }
+    }
 
     #[test]
     fn deterministic_offer_preserves_portable_speech_front_and_bounds_each_block() {
