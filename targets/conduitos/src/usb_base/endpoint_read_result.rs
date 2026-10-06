@@ -100,8 +100,8 @@ impl PreparedEndpointReadResultEncoder {
         let completed = self
             .completed
             .record(&[
-                validate_canonical_structured_value(ordinal_value).map_err(Error::Canonical)?,
                 validate_canonical_structured_value(actual_value).map_err(Error::Canonical)?,
+                validate_canonical_structured_value(ordinal_value).map_err(Error::Canonical)?,
                 validate_canonical_structured_value(short).map_err(Error::Canonical)?,
                 validate_canonical_structured_value(wire).map_err(Error::Canonical)?,
             ])
