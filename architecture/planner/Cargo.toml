@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../core" }
+conduit-language = { path = "../../semantics/language" }
 conduit-plot = { path = "../plot" }
 sha2 = { version = "0.10", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }

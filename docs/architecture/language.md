@@ -3,7 +3,8 @@
 Language is the shared semantic layer for linguistic content. Particular
 languages are data and Back truth, not branches in Conduit's general model.
 This contract is owned by #4955; identity consolidation is owned by #4956 and
-realization coverage by #4957. The latter remains unfinished development work.
+realization coverage by #4957. These are development contracts pending complete
+proof and stable acceptance.
 
 `semantics/language/identity.conduit` owns `LanguageId`, `VarietyId`, their
 explicit `LanguageVariety` relationship, and `LanguageText` identity, revision,
@@ -66,3 +67,40 @@ Listening consumes an exact Language mapping projection before constructing its
 language hypothesis, preserving the selected variety and independently supplied
 confidence. Provider-private names remain in the projection report. This
 conversion does not establish ASR accuracy, coverage or an execution route.
+
+## Exact realization coverage
+
+`coverage.conduit` owns finite native `LanguageCoverage` and `LanguageRequest`
+contracts. Languages and explicit language/variety relationships are separate
+sets. A declaration names a revision, evidence reference, exact supported
+identities and optional provider-private mapping rows. It describes one
+concrete Back/artifact; it is not portable catalog availability. Omitted or
+empty coverage is undeclared. No provider name, language prefix or detection
+hypothesis supplies missing coverage.
+
+A portable Kind's `RealizationRequirement` law binds an exact structured
+request configuration field to a domain-owned coverage property. Core retains
+only finite typed realization properties, with no Language vocabulary. The
+planner checks the Language law after Fore compatibility and before ordinary
+resource/preference selection. Default, policy, characteristic and fixed
+placement paths share that gate. Unsupported requirement profiles refuse;
+they do not silently bypass admission.
+
+A request may be language-sufficient or require its exact variety. A Back can
+also declare variety sensitivity, requiring an explicitly supported variety
+regardless of a language-sufficient request. There is no implicit broader
+variety, English substitution or translation path. An explicit semantic
+transformation must be authored as different work.
+
+The selected declaration is copied into the Plan fingerprint. Preparation
+compares it with the current Host/Boot offer. Planner inspection and Patchbay
+`language_realization_details` expose requests and candidate decisions,
+including coverage revision and variety sensitivity; ordinary refusal text
+retains requested identities without dumping the full candidate table.
+
+The shipped four-token specimen now authors its Language request and advertises
+limited English fixture coverage on std and browser hosts. This proves exact
+selection for that specimen, not grammar accuracy or broad English support.
+Speech-facing realization coverage and the #4907 source-material seam remain
+separate pending work; a waveform renderer must not acquire a language grammar
+merely because a selected text frontend needs one.
