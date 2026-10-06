@@ -305,7 +305,10 @@ impl<'a, const N: usize> EndpointReadWindow<'a, N> {
     }
 }
 
-fn validate_geometry<const N: usize>(ring: u64, buffers: u64) -> Result<(), EndpointNativeRefusal> {
+pub(in crate::arch::x86_64::usb) fn validate_geometry<const N: usize>(
+    ring: u64,
+    buffers: u64,
+) -> Result<(), EndpointNativeRefusal> {
     use EndpointNativeRefusal::Mapping;
     if !(1..=8).contains(&N) || ring == 0 || ring & 63 != 0 || buffers == 0 {
         return Err(Mapping);
