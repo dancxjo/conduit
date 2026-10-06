@@ -1,10 +1,5 @@
 # CI for contributors and agents
 
-As of 6 October 2026, the repository's candidate, integration, publication,
-and acquisition workflows are manually disabled at the owner's request. This
-guide describes their checked-in behavior and local entrances. New pushes do
-not receive those workflow results or automatic promotion while disabled.
-
 Open ordinary pull requests to `dev`. Read the single required `candidate`
 result. Its failure identifies the command and source being checked; reproduce
 through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
