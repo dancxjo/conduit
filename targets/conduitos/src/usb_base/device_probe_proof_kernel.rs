@@ -1,4 +1,4 @@
-//! One admitted descriptor proof kernel with retained pure call owners.
+//! One admitted USB control proof kernel with retained pure call owners.
 //! Native transfer possession is supplied separately by the trusted proof root.
 use super::{
     control_factory::{CONTROL_IMPLEMENTATION, ControlOperationFactory},
@@ -55,6 +55,16 @@ impl PreparedDeviceProbeKernel {
         storage: KernelCompositeSignStorage,
     ) -> Result<Self, DeviceProbeKernelRefusal> {
         let artifact = super::configuration_probe_proof_plan::prepare(subject)
+            .map_err(DeviceProbeKernelRefusal::Plan)?;
+        Self::from_artifact(artifact, storage)
+    }
+
+    /// HID boot selection reuses this exact one-control-call appliance.
+    pub fn prepare_hid_boot(
+        subject: &ControlProofSubject<'_>,
+        storage: KernelCompositeSignStorage,
+    ) -> Result<Self, DeviceProbeKernelRefusal> {
+        let artifact = super::hid_boot_control_proof_plan::prepare(subject)
             .map_err(DeviceProbeKernelRefusal::Plan)?;
         Self::from_artifact(artifact, storage)
     }
