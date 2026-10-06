@@ -29,9 +29,7 @@ pub fn execute(arch: ConduitosArch, opts: &GlobalOpts) -> Result<GuestRun, Condu
 }
 
 mod boot;
-pub(super) use boot::{
-    boot_configuration, boot_once, boot_once_with_audio, inspect_wav, QemuWavCapture,
-};
+pub(super) use boot::{boot_configuration, boot_once, boot_once_with_audio, inspect_wav};
 
 fn validate_pc_speaker(
     boot: &GuestBootSign,
