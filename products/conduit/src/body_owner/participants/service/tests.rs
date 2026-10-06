@@ -86,6 +86,8 @@ fn advertise(owner: &mut Owner, window_id: &str) -> conduit_body::AdmissionChall
 #[path = "route_tests.rs"]
 mod route_tests;
 
+#[path = "native_face_reseal_tests.rs"]
+mod native_face_reseal_tests;
 #[path = "native_route_tests.rs"]
 mod native_route_tests;
 

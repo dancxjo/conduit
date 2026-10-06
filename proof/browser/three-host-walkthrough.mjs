@@ -48,8 +48,9 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       'The browser joins the Linux owner’s existing Body. It sees the current clock through its own graphical Mask, with a fresh Host and Boot identity.',
       figure('browser-before.png', 'Browser Face before the clock changes', 'The browser’s first acknowledged Face.')),
     chapter('native', 2 + offset, 'Meet the same Body on ConduitOS',
-      'Boot the provisioned ConduitOS image in QEMU. Its Part joins this Body; the native screen receives the owner’s current Face and acknowledges its Show.',
-      figure('native/owner-before.png', 'ConduitOS native Mask before its action', 'The QMP capture comes from the running guest.')),
+      'Boot the provisioned ConduitOS image in QEMU. Its Part joins this Body and first shows the owner’s current Face for reading. In the browser, inspect the owner’s wardrobe, wear the newly admitted Native graphical Mask, doff the browser Mask, and prefer Native graphics. The current browser Show stays valid until the person doffs it; preference alone does not interrupt that Show. Then press F5 on the native screen to request a fresh Show. The owner acknowledges that selected Show before any native action.',
+      figure('native/owner-standby.png', 'ConduitOS reading the owner Face while awaiting Mask selection', 'The native screen gives the person the F5 continuation instruction; the owner has not selected this Show yet.')
+      + figure('native/owner-before.png', 'ConduitOS native Mask after explicit selection', 'The QMP capture comes from the running guest after a browser wardrobe action and a real F5 key press.')),
     chapter('native-action', 3 + offset, 'Change the clock from ConduitOS',
       'Use the guest’s keyboard control to ask for 500 milliseconds. The owner accepts the typed action. Refresh the browser to see the same changed Face.',
       figure('native/owner-after.png', 'ConduitOS native Mask after changing the clock to 500 milliseconds', 'The guest shows the owner’s refreshed Face.')
@@ -64,6 +65,19 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       + escape(await readFile(path.join(output, 'terminal-face.txt'), 'utf8'))
       + '</pre></details>'),
   ]);
+  if (report.browser_wardrobe) {
+    const record = JSON.parse(await readFile(path.join(output, report.browser_wardrobe.path), 'utf8'));
+    assert.equal(record.schema, 'conduit.proof/owner-browser-wardrobe@1');
+    assert.equal(record.body_id, report.body_id);
+    assert.equal(record.run_id, report.run_id);
+    assert.equal(record.before.owner_plan_id, record.recovered.owner_plan_id);
+    assert.equal(record.recovered.show_id, report.browser_wardrobe.selected_show_id);
+    sections.push(chapter('wardrobe', 6 + offset, 'Change the Body’s wardrobe',
+      'Inspect the owner’s admitted Mask routes in the browser. Doff the browser Mask: its Show is withdrawn while the Body and immutable presentation Plan remain. Wear it again, explicitly prefer it, and request a fresh Face. The owner selects the already sealed route and acknowledges a new Show. This step exercises owner policy and same-Plan recovery; it does not stand in for a different Host losing its route.',
+      figure('browser-wardrobe.png', 'Browser wardrobe after doff, wear, preference, and fresh Show',
+        'The browser displays the owner’s current routes, preference, and selected Show.')
+      + `<details><summary>Inspect the exact owner transitions</summary><p>Owner Plan <code>${escape(record.before.owner_plan_id)}</code> · browser route <code>${escape(record.browser_route_id)}</code> · revisions ${escape(record.before.wardrobe_revision_decimal)} to ${escape(record.recovered.wardrobe_revision_decimal)}.</p><p><a href="browser-wardrobe.json">Read all five owner reports</a></p></details>`));
+  }
   if (report.direct_speech) {
     const clips = [];
     const produced = [];
@@ -77,7 +91,7 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     const featured = produced.find(item =>
       item.readable.includes('The current clock interval is 500 milliseconds'))
       ?? produced[0];
-    sections.push(chapter('direct-speech', 6 + offset, 'Hear the current Face',
+    sections.push(chapter('direct-speech', 7 + offset, 'Hear the current Face',
       `Request a mechanical full-Face reading while the three Hosts remain live. The runtime committed ${report.direct_speech.batch_count} ordered speech batches and produced real PCM WAV files. This capture does not claim speaker playback or human listening.`,
       `<figure class="audio-feature"><figcaption><strong>Listen to the current clock</strong><p>${escape(featured.readable)}</p></figcaption><audio controls preload="metadata" src="${featured.wav.path}"><a href="${featured.wav.path}">Download this produced speech clip</a></audio></figure><details><summary>Hear the complete ${clips.length}-batch Face reading</summary><ol class="audio-list">${clips.join('')}</ol></details>`));
   }
@@ -86,7 +100,7 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     const original = JSON.parse(await readFile(path.join(output, 'speech-llm',
       'original-model-output.json'))).output;
     const routeLoss = await readFile(path.join(output, 'model-route-loss.txt'), 'utf8');
-    sections.push(chapter('llm-speech', 7 + offset, 'Ask for a grounded explanation',
+    sections.push(chapter('llm-speech', 8 + offset, 'Ask for a grounded explanation',
       'Ask the local model to explain the current Face while the three Hosts remain live. The finite Presenter validates its original wording against that Face before an ordinary spoken Mask produces this WAV. The local spoken Show belongs to the proof Host, not an owner-sealed wardrobe route. Then withdraw only this capture’s loopback model route: the next request refuses without an audio file. Reopen a fresh route to the same service and ask again; the same Body and Face produce a second validated Show and WAV.',
       `<figure class="audio-feature"><figcaption><strong>Listen to the validated explanation</strong><p>${escape(report.llm_speech.validated_text)}</p></figcaption><audio controls preload="metadata" src="${report.llm_speech.wav.path}"><a href="${report.llm_speech.wav.path}">Download the produced explanation</a></audio></figure>`
       + `<details><summary>Compare the original model output and validated speech</summary><h3>Original model output</h3><pre>${escape(original)}</pre><h3>Validated spoken text</h3><p>${escape(report.llm_speech.validated_text)}</p><p><a href="speech-llm/validation.json">Inspect validation receipt</a> · <a href="speech-llm/model-validation.json">Inspect model validation</a></p></details>`
@@ -117,17 +131,19 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       `${sessions.join('')}<p><a href="report.json">Inspect the exact Face, Show, action, and result identities</a></p>`));
   }
   const ids = [...(report.birth ? ['birth'] : []), 'browser', 'native', 'native-action', 'browser-action', 'terminal-action'];
+  if (report.browser_wardrobe) ids.push('wardrobe');
   if (report.direct_speech) ids.push('direct-speech');
   if (report.llm_speech) ids.push('llm-speech');
   if (report.screen_free_clock) ids.push('screen-free-clock');
   const titles = [...(report.birth ? ['Birth'] : []), 'Browser', 'ConduitOS', 'Native action', 'Browser action', 'Terminal action'];
+  if (report.browser_wardrobe) titles.push('Wardrobe');
   if (report.direct_speech) titles.push('Direct speech');
   if (report.llm_speech) titles.push('Model explanation');
   if (report.screen_free_clock) titles.push('Screen-free clock');
   const stepLinks = ids.map((id, index) => `<li><a href="#${id}">${index + 1}. ${titles[index]}</a></li>`).join('');
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>One clock, three live Hosts · Conduit development proof</title><link rel="stylesheet" href="conduit.css"><link rel="stylesheet" href="chrome.css"><style>
 body{margin:0;background:var(--conduit-background);color:var(--conduit-text-primary)}.proof{max-width:74rem;margin:auto;padding:2rem 1.25rem 5rem}.proof h1,.proof h2{font-family:var(--conduit-font-editorial);line-height:1.15}.proof h1{font-size:clamp(2.5rem,6vw,5rem);max-width:14ch}.proof h2{font-size:clamp(1.8rem,3vw,2.8rem)}.proof p{max-width:68ch}.proof .lede{font-size:1.25rem;color:var(--conduit-text-secondary)}.proof .boundary{border-left:.25rem solid var(--conduit-emphasis);padding:1rem;background:var(--conduit-reading-paper)}.proof nav ol{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;padding:0;list-style:none}.proof a{color:var(--conduit-structure-primary)}.proof a:focus-visible,.proof summary:focus-visible{outline:3px solid var(--conduit-focus);outline-offset:3px}.proof article{padding:3rem 0;border-top:1px solid var(--conduit-structure-secondary)}.proof .step{color:var(--conduit-emphasis);font-weight:700;letter-spacing:.06em;text-transform:uppercase}.proof figure{margin:1.5rem 0 2.5rem}.proof img{display:block;width:100%;height:auto;border:1px solid var(--conduit-structure-secondary);border-radius:var(--conduit-radius-panel)}.proof figcaption{padding:.6rem 0;color:var(--conduit-text-secondary)}.proof details,.proof .audio-feature{padding:1rem;background:var(--conduit-reading-paper);border:1px solid var(--conduit-structure-secondary);border-radius:var(--conduit-radius-panel)}.proof pre{max-height:30rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.proof .audio-list{padding-left:1.5rem}.proof .audio-list li{padding:1rem 0;border-top:1px solid var(--conduit-structure-secondary)}.proof audio{width:min(100%,40rem)}
-</style></head><body data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#proof">Skip to the proof</a>${navigation}<main id="proof" class="proof"><header><p class="step">Development proof · captured from one run</p><h1>One clock, three live Hosts</h1><p class="lede">${report.birth ? 'Birth a shared clock through nonvisual controls, then change it' : 'Change a shared clock'} from ConduitOS, a browser, and a terminal. See each result where you meet the same Body; hear its current Face through direct${report.llm_speech ? ' and validated model-assisted' : ''} speech.</p><p class="boundary">This is a live local proof, not the complete eight-chapter public journey. QMP establishes emulator execution. Produced audio is distinct from speaker playback and human listening.</p></header><nav aria-label="Proof steps"><ol>${stepLinks}</ol></nav>${sections.join('')}<details><summary>Inspect source and evidence</summary><p>Body <code>${escape(report.body_id)}</code> · source <code>${escape(report.native_source_commit)}</code> · run <code>${escape(report.run_id)}</code>.</p><p><a href="report.json">Digest-bound proof report</a> · <a href="native/owner-action-proof.json">Native QMP receipt</a>${report.birth ? ' · <a href="../birth-input.txt">Screen-free input</a> · <a href="../birth-transcript.txt">Birth transcript</a>' : ''}${report.direct_speech ? ' · <a href="speech-direct/manifest.json">Direct speech manifest</a>' : ''}${report.llm_speech ? ' · <a href="speech-llm/manifest.json">Model-assisted speech manifest</a>' : ''} · <a href="https://github.com/dancxjo/conduit/wiki">Project wiki</a>.</p><p>The owner retains the workload truth. This capture does not prove wardrobe preference, host loss and recovery, owner-sealed spoken Mask selection, or release publication.</p></details></main></body></html>`;
+</style></head><body data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#proof">Skip to the proof</a>${navigation}<main id="proof" class="proof"><header><p class="step">Development proof · captured from one run</p><h1>One clock, three live Hosts</h1><p class="lede">${report.birth ? 'Birth a shared clock through nonvisual controls, then change it' : 'Change a shared clock'} from ConduitOS, a browser, and a terminal. See each result where you meet the same Body; hear its current Face through direct${report.llm_speech ? ' and validated model-assisted' : ''} speech.</p><p class="boundary">This is a live local proof, not the complete eight-chapter public journey. QMP establishes emulator execution. Produced audio is distinct from speaker playback and human listening.</p></header><nav aria-label="Proof steps"><ol>${stepLinks}</ol></nav>${sections.join('')}<details><summary>Inspect source and evidence</summary><p>Body <code>${escape(report.body_id)}</code> · source <code>${escape(report.native_source_commit)}</code> · run <code>${escape(report.run_id)}</code>.</p><p><a href="report.json">Digest-bound proof report</a> · <a href="native/owner-action-proof.json">Native QMP receipt</a>${report.birth ? ' · <a href="../birth-input.txt">Screen-free input</a> · <a href="../birth-transcript.txt">Birth transcript</a>' : ''}${report.direct_speech ? ' · <a href="speech-direct/manifest.json">Direct speech manifest</a>' : ''}${report.llm_speech ? ' · <a href="speech-llm/manifest.json">Model-assisted speech manifest</a>' : ''} · <a href="https://github.com/dancxjo/conduit/wiki">Project wiki</a>.</p><p>The owner retains the workload truth. This capture proves only browser-route doff, wear, explicit preference, and fresh Show under one owner Plan. It does not prove presentation-host loss and recovery, owner-sealed spoken Mask selection, or release publication.</p></details></main></body></html>`;
   const file = path.join(output, 'walkthrough.html');
   await writeFile(file, html);
   return { path: 'walkthrough.html', bytes: Buffer.byteLength(html) };

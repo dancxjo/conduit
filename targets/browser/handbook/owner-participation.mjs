@@ -135,7 +135,7 @@ export async function startOwnerParticipation(application, root) {
       for (const [verb, label, enabled] of [['wear', 'Wear', !route.worn], ['doff', 'Doff', route.worn], ['prefer', 'Prefer only', route.worn && (route.preferenceRank !== 1 || current.preferenceCount !== 1)]]) {
         const button = document.createElement('button'); button.type = 'button';
         button.textContent = `${label} ${route.maskName}`;
-        button.disabled = !enabled || wardrobeBusy;
+        button.disabled = !enabled;
         button.addEventListener('click', () => changeWardrobe(current.raw, route.routeId, verb));
         controls.append(button);
       }
@@ -152,6 +152,7 @@ export async function startOwnerParticipation(application, root) {
   const refreshWardrobe = async () => {
     if (!participation || wardrobeBusy || participation.presenceState() !== 'available') return;
     wardrobeBusy = true; wardrobeRefresh.disabled = true;
+    for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
     wardrobeStatus.textContent = 'Inspecting the current owner wardrobe…';
     try {
       const current = await participation.inspectOwnerWardrobe();

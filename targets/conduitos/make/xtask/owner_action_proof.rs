@@ -125,8 +125,34 @@ fn prove(
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
+    let (standby_part, standby_face) =
+        wait_for_standby(serial_path, child, Duration::from_secs(120))?;
+    let (standby_image, health) =
+        qmp_display::capture(&mut qmp, &mut reader, directory, "owner-standby")?;
+    if let Some(error) = health {
+        return Err(error);
+    }
+    if coordinate {
+        write_checkpoint(
+            directory,
+            "native-standby.json",
+            &json!({
+                "schema":"conduit.conduitos/native-owner-coordination@1",
+                "stage":"standby",
+                "guest_part":standby_part.clone(),
+                "face":standby_face.clone(),
+            }),
+        )?;
+        wait_for_resume(directory, "resume-native-activation", child)?;
+    }
+    // An actual native user requests this Mask after the owner has selected
+    // its admitted route. No policy changes occur in the guest or harness.
+    journey_input::key_pair(&mut qmp, &mut reader, "f5", "native-owner-activate")?;
     let (part, before, before_ack) =
         wait_for_arrival(serial_path, child, Duration::from_secs(120))?;
+    if part != standby_part || before.get("face_id") != standby_face.get("face_id") {
+        return Err(refusal("native-owner-standby-basis-changed"));
+    }
     let (before_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
@@ -194,10 +220,42 @@ fn prove(
         "action":action,
         "face_after":after,
         "show_ack_after":after_ack,
-        "screenshots":[before_image,after_image],
+        "screenshots":[standby_image,before_image,after_image],
         "qemu_alive_at_capture":true,
         "coordinated":coordinate,
     }))
+}
+
+fn wait_for_standby(
+    serial_path: &std::path::Path,
+    child: &mut Child,
+    timeout: Duration,
+) -> Result<(Value, Value), ConduitosError> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        let serial = bounded_serial(serial_path)?;
+        let part = records(&serial, GUEST_PART)?;
+        let faces = records(&serial, OWNER_FACE)?;
+        let routes = records(&serial, "CONDUIT_NATIVE_OWNER_ROUTE")?;
+        let shown = faces.iter().find(|value| {
+            value.get("status").and_then(Value::as_str) == Some("shown")
+                && value.get("interactions_admitted") == Some(&Value::Bool(false))
+                && value.get("local_show_available") == Some(&Value::Bool(true))
+        });
+        if serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
+            && part
+                .last()
+                .is_some_and(|value| value.get("membership_installed") == Some(&Value::Bool(true)))
+            && routes.iter().any(|value| {
+                value.get("status").and_then(Value::as_str) == Some("standby")
+                    && value.get("activation").and_then(Value::as_str) == Some("F5")
+            })
+            && shown.is_some()
+        {
+            return Ok((part.last().unwrap().clone(), shown.unwrap().clone()));
+        }
+        wait_or_refuse(child, deadline, "native-owner-standby-not-ready")?;
+    }
 }
 
 fn validate_success(
