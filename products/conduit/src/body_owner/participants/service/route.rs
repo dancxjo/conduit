@@ -4,12 +4,89 @@ use conduit_core::{
     BaseImplementationId, BaseInstanceId, CredentialReferenceId, LineAvailability,
     LinkAuthorityReference, LinkCredentialReference, LinkLimits,
 };
-use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
+use conduit_presentation::{
+    FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    RemoteOwnerMaskRouteSeal,
+};
 
 const WEBSOCKET: &conduit_host_browser_make::BrowserLineRealizationDescriptor =
     &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
 
 impl Owner {
+    pub(crate) fn browser_wardrobe_report(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<serde_json::Value, String> {
+        {
+            let window = self.pending_browser.as_ref().ok_or("window-not-active")?;
+            window.check(window_id).map_err(|_| "window-not-active")?;
+            let WindowState::Active {
+                credential,
+                observation,
+                line_authorization,
+                line_evidence: Some(lines),
+                route: Some(route),
+                ..
+            } = &window.state
+            else {
+                return Err("browser-wardrobe-face-route-unavailable".into());
+            };
+            if observation.observed_binding_id != *binding
+                || request.credential_id != credential.credential_id.as_str()
+                || request.body_id != credential.body_id
+                || request.part_id != credential.part_id
+                || request.host_id != credential.host_id
+                || request.boot_id != credential.boot_id
+            {
+                return Err("browser-wardrobe-carrier-mismatch".into());
+            }
+            let current = self.session.evidence().membership.parts.iter().any(|part| {
+                part.part_id == credential.part_id
+                    && part.current.as_ref().is_some_and(|host| {
+                        host.host_id == credential.host_id
+                            && host.boot_id == credential.boot_id
+                            && host.offer_generation == observation.advertisement.offer_generation
+                    })
+            });
+            if !current {
+                return Err("browser-wardrobe-part-unavailable".into());
+            }
+            let face = self.face_snapshot(request)?;
+            validate_carrier_evidence(
+                lines,
+                line_authorization,
+                window_id,
+                binding,
+                credential,
+                self.host.advertisement(),
+                &observation.advertisement,
+            )?;
+            route
+                .validate_current_with_interaction(
+                    &self.session,
+                    &face,
+                    self.host.advertisement(),
+                    &observation.advertisement,
+                    &lines.face,
+                    &lines.returned,
+                    &lines.interaction,
+                )
+                .map_err(|error| format!("browser-wardrobe-route-stale:{error:?}"))?;
+        }
+        if action.is_some()
+            && (self.session.evidence().body.state != BodyState::Lulled
+                || self.session.realization().is_some())
+        {
+            return Err("owner-wardrobe-requires-lulled-body".into());
+        }
+        self.owner_wardrobe_report(owner_plan_id, basis_revision, action)
+    }
+
     /// Called only by the worker holding the accepted browser socket. The
     /// serialized owner verifies its exact observed binding again and retains
     /// the selected route until replacement or browser leave.
@@ -21,7 +98,7 @@ impl Owner {
         evidence: Option<&BrowserCarrierLineEvidence>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         let mut window = self.pending_browser.take().ok_or("window-not-active")?;
-        let result = (|| {
+        let result = (|| -> Result<RemoteOwnerMaskRouteSeal, String> {
             window.check(window_id).map_err(|_| "window-not-active")?;
             let WindowState::Active {
                 credential: active,
@@ -75,13 +152,17 @@ impl Owner {
                 owner,
                 browser,
             )?;
-            let planned = conduit_browser_mask_offer::planned_mask(
+            let planned = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
                 browser,
+                owner,
+                &evidence.face,
+                &evidence.returned,
+                &evidence.interaction,
                 conduit_browser_mask_offer::MASK_SOURCE,
                 "browser-graphical",
             )?;
             let face = self.local_face_snapshot()?;
-            let selected = RemoteOwnerMaskRouteSeal::seal_current(
+            let selected = RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
                 &self.session,
                 &face,
                 owner,
@@ -89,6 +170,7 @@ impl Owner {
                 &planned,
                 &evidence.face,
                 &evidence.returned,
+                &evidence.interaction,
             )
             .map_err(|error| format!("browser-route-refused:{error:?}"))?;
             *route = Some(Box::new(selected.clone()));
@@ -97,7 +179,9 @@ impl Owner {
             Ok(selected)
         })();
         self.pending_browser = Some(window);
-        result
+        let selected = result?;
+        self.admit_browser_presentation_route(&selected)?;
+        Ok(selected)
     }
 
     pub(crate) fn validate_browser_mask_show(
@@ -119,6 +203,51 @@ impl Owner {
         };
         if acknowledged_show.as_deref() != Some(show) {
             return Err("browser-mask-show-not-acknowledged".into());
+        }
+        Ok(())
+    }
+
+    pub(crate) fn validate_browser_mask_interaction(
+        &mut self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<(), String> {
+        self.validate_browser_mask_show(window_id, binding, request, show)?;
+        let Some(BrowserWindow {
+            state: WindowState::Active {
+                route: Some(route), ..
+            },
+            ..
+        }) = self.pending_browser.as_ref()
+        else {
+            return Err("browser-mask-route-not-selected".into());
+        };
+        route
+            .validate_interaction_payload(interaction.encode().len())
+            .map_err(|error| format!("browser-mask-interaction-refused:{error:?}"))?;
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+        );
+        let selected = self
+            .presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .selected_show(&self.session, &face, &current)
+            .map_err(super::super::super::presentation_wardrobe_runtime::wardrobe_error)?;
+        if selected != show {
+            return Err("stale owner Mask Show".into());
         }
         Ok(())
     }
@@ -168,13 +297,14 @@ impl Owner {
             browser,
         )?;
         route
-            .validate_available_show(
+            .validate_available_show_with_interaction(
                 &self.session,
                 &face,
                 owner,
                 browser,
                 &evidence.face,
                 &evidence.returned,
+                &evidence.interaction,
                 show,
             )
             .map_err(|error| format!("browser-mask-show-refused:{error:?}"))?;
@@ -189,6 +319,14 @@ impl Owner {
         show: &MaskShow,
     ) -> Result<(), String> {
         self.validate_browser_mask_route_show(window_id, binding, request, show)?;
+        let window = self.pending_browser.as_ref().ok_or("window-not-active")?;
+        let seal = match &window.state {
+            WindowState::Active {
+                route: Some(route), ..
+            } => (**route).clone(),
+            _ => return Err("browser-mask-route-not-selected".into()),
+        };
+        self.acknowledge_selected_browser_show(&seal, show)?;
         let window = self.pending_browser.as_mut().ok_or("window-not-active")?;
         let WindowState::Active {
             acknowledged_show, ..
@@ -243,6 +381,13 @@ fn validate_carrier_evidence(
             owner,
             &issued.return_grant_id,
         ),
+        (
+            "interaction",
+            &evidence.interaction,
+            browser,
+            owner,
+            &issued.interaction_grant_id,
+        ),
     ] {
         if grant.as_str().is_empty()
             || !offer.validate_sign_identity()
@@ -273,9 +418,12 @@ fn validate_carrier_evidence(
             return Err("browser-line-evidence-mismatch".into());
         }
     }
-    if evidence.face.line_id == evidence.returned.line_id
-        || evidence.face.binding.binding_id == evidence.returned.binding.binding_id
-    {
+    let offers = [&evidence.face, &evidence.returned, &evidence.interaction];
+    if offers.iter().enumerate().any(|(index, left)| {
+        offers.iter().skip(index + 1).any(|right| {
+            left.line_id == right.line_id || left.binding.binding_id == right.binding.binding_id
+        })
+    }) {
         return Err("browser-line-evidence-mismatch".into());
     }
     Ok(())

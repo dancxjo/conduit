@@ -15,7 +15,7 @@ import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
   candidateId, ownerForward, outputArgument, playwrightArgument,
-  speechExecutableArgument, speechDataArgument, speechEngineArgument,
+  speechExecutableArgument, speechDataArgument, speechEngineArgument, speechLanguageCoverageArgument,
   modelArgument, modelEndpointArgument, modelMemoryArgument] = process.argv.slice(2);
 if (!playwrightArgument) {
   throw new Error('usage: three-host-owner-journey.mjs XTASK INSTALLED-OWNER OWNER-STATE HANDBOOK SPORE CANDIDATE-ID OWNER-FORWARD NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT');
@@ -29,6 +29,7 @@ const output = path.resolve(outputArgument);
 const directSpeechEnabled = Boolean(speechExecutableArgument);
 assert.equal(Boolean(speechDataArgument), directSpeechEnabled);
 assert.equal(Boolean(speechEngineArgument), directSpeechEnabled);
+assert.equal(Boolean(speechLanguageCoverageArgument), directSpeechEnabled);
 assert.ok(!modelArgument || directSpeechEnabled, 'LLM chapter requires direct speech provider');
 assert.equal(Boolean(modelArgument), Boolean(modelEndpointArgument));
 assert.equal(Boolean(modelArgument), Boolean(modelMemoryArgument));
@@ -215,6 +216,7 @@ try {
       '--speech-executable', speechExecutableArgument,
       '--speech-data', speechDataArgument,
       '--speech-engine', speechEngineArgument,
+      '--speech-language-coverage', speechLanguageCoverageArgument,
     ], { encoding: 'utf8', timeout: 100_000 });
     assert.equal(speech.status, 0, speech.stderr || speech.stdout);
     const receiptBytes = await readFile(path.join(directory, 'speech-receipt.json'));
@@ -254,7 +256,7 @@ try {
       wavs,
     };
   }
-  let llmSpeech, modelRouteLoss;
+  let llmSpeech, modelRouteLoss, modelRouteRestoration;
   if (modelArgument) {
     const captured = await captureLlmChapter({
       xtask, owner, state, output, sourceCommit: installed.release_source_identity,
@@ -262,11 +264,12 @@ try {
       ownerBootId: ownerPart.current.boot_id, faceId: afterTerminal.face_id,
       faceRevision: afterTerminal.face_revision,
       speechExecutable: speechExecutableArgument, speechData: speechDataArgument,
-      speechEngine: speechEngineArgument, model: modelArgument,
+      speechEngine: speechEngineArgument, speechLanguageCoverage: speechLanguageCoverageArgument, model: modelArgument,
       ollamaEndpoint: modelEndpointArgument, admittedMemoryMib: Number(modelMemoryArgument),
     });
     llmSpeech = captured.speech;
     modelRouteLoss = captured.routeLoss;
+    modelRouteRestoration = captured.restoration;
   }
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
@@ -290,7 +293,7 @@ try {
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
     proof_class: llmSpeech
-      ? 'live-local-installed-owner-qmp-pinned-chromium-direct-and-llm-speech-route-loss'
+      ? 'live-local-installed-owner-qmp-pinned-chromium-direct-and-llm-speech-route-loss-restoration'
       : directSpeech
         ? 'live-local-installed-owner-qmp-pinned-chromium-direct-speech'
         : 'live-local-installed-owner-qmp-pinned-chromium',
@@ -335,7 +338,8 @@ try {
       sha256: digest(Buffer.from(terminal.stdout)),
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
-    ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss } : {}),
+    ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
+      model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,

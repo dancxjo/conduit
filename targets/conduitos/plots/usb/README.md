@@ -356,6 +356,55 @@ selected base/resource, Plan/Play and attachment identities with a bounded
 transaction transcript and final lifecycle outcome. Emulator execution and
 physical/HIL compatibility remain separate proof classes.
 
+
+## HID keyboard state (development)
+
+`hid-keyboard-state.conduit` derives twenty fixed slots from validated,
+normalized previous and current reports: modifier changes in bit order, sorted
+releases, then sorted presses. Unchanged slots are explicit.
+
+`hid-keyboard-lifecycle.conduit` retains previous-report state and drains each
+batch through generic state, zip and merge Backs before pairing another command.
+The command entry finishes explicitly. The received-frame entry connects the
+checked decoder and normalization to that loop; invalid reports are observed
+without replacing previous state. Generic ordered concatenation appends a
+Source-authored finish command after the decoded report stream closes normally.
+The state loop drains all pending transitions before completing; cancellation
+remains a separate kernel outcome. Native device teardown proof is separate.
+
+Deterministic kernel conformance covers 64 report generations and 1,274 ordered
+transitions, held-output pressure, explicit finish, cancellation, and malformed
+wire reports, with zero Play allocations and storage reserved beforehand.
+Run it through `cargo xtask make conduitos usb-plots-check`. These tests establish
+neither an installed class offer nor interrupt endpoint execution, physical
+compatibility, or five-architecture USB emulator acceptance.
+
+## HID boot selection (development)
+
+`hid-boot-control.conduit` owns the HID boot-selection exchange over
+`machine/usb/control`. It constructs an interface-scoped, no-data SET_PROTOCOL
+request and requires an empty, non-short completion before reporting ready.
+Malformed, stalled, provider-lost and unsupported results remain distinct.
+Interface numbers are wire data; the selected attachment and transfer authority
+come from the containing Plan and native owner.
+
+The existing control proof kernel executes this Source with explicit fixture
+grants. `cargo xtask make conduitos usb-plots-check` covers all 256 interface
+numbers, inconsistent completions, preserved failures, and bounded kernel
+execution without hidden retries or Play allocations.
+
+`cargo xtask make conduitos usb-proof --endpoint-read` runs this checked
+exchange against the actual emulated keyboard before the raw endpoint workload.
+Its separate receipt correlates Source, checked plot, Plan, Play, attachment and
+interface identities, the independently expected transaction digest, normal
+close and quiescent release. The native owner has possession for one operation;
+endpoint reads require their own subsequent admission. The retained endpoint
+workload still crosses two complete ring cycles and acknowledges device stop.
+
+Ordinary HID setup still uses the retained Rust path. The dedicated emulator
+appliance establishes neither physical compatibility nor ordinary class offers
+or class acceptance on the five product architectures.
+
 ## Protocol references
 
 - [USB HID 1.11](https://www.usb.org/sites/default/files/documents/hid1_11.pdf),
@@ -364,3 +413,50 @@ physical/HIL compatibility remain separate proof classes.
   frequency control and Type-I PCM streaming.
 - [USB CDC specifications](https://www.usb.org/document-library/class-definitions-communication-devices-12),
   Ethernet Control Model packet-filter and communications interface contracts.
+
+HID report interpretation consumes packed `Bytes <= 2048B`, matching the bounded
+endpoint payload. The class plots require count/extent agreement and reject boot
+reports larger than eight bytes before reading an octet. Keyboard reports require
+eight bytes; mouse reports preserve three through eight actual bytes, including
+uninterpreted extensions. Short reports remain distinct from malformed reports.
+These are class bounds, independent of endpoint transfer admission.
+
+`hid-endpoint.conduit` connects the exact endpoint-read Fore to keyboard and
+mouse interpretation. Source constructs the eight-byte boot-report request,
+checks count, extent and shortness, and preserves stalled, provider-loss,
+unsupported and timeout observations separately. Only completed valid frames
+reach the class decoder. Preparing these graphs publishes no physical Back;
+execution requires a separately selected endpoint offer and actual possession.
+Deterministic conformance checks both class compositions and their bounded
+framing. Both class graphs also have the native emulator proofs below.
+
+The dedicated keyboard Source appliance enters through
+`cargo xtask make conduitos usb-proof --hid-endpoint`. It uses the same bounded
+xHCI endpoint owner as the raw endpoint proof and checks 128 alternating fixture
+presses/releases across two ring cycle transitions. The retained receipt checks
+exact Source/Plan/Play and attachment identities, the canonical class output
+transcript, normal closure and acknowledged stop. The production arena is sealed
+before Play, so the entire native transfer, drain and stop run refuses allocations.
+This command requires its own
+proof image with a 32 MiB preparation arena. Deterministic preparation with the
+production allocator peaks at 17,781,120 live bytes and releases all retained
+storage on retirement; the arena also admits allocation geometry and the native
+Root's storage. The endpoint call still admits at most 2,048 payload bytes on a
+4 KiB call surface. A retained x86_64 emulator run completes all 128 reports with
+the arena sealed. The appliance retains legacy attachment setup and an explicit
+Root fixture grant. This development proof does not establish an ordinary class
+offer, physical compatibility or five-architecture acceptance.
+
+The mouse counterpart enters through
+`cargo xtask make conduitos usb-proof --hid-mouse`. Its separate proof profile
+selects the existing mouse Source graph and injects 128 alternating button and
+relative-motion reports. The independent expectation follows
+[QEMU's HID report implementation](https://github.com/qemu/qemu/blob/v10.2.1/hw/input/hid.c):
+the three-octet boot prefix is decoded, and the fourth wheel octet remains
+uninterpreted wire truth. Mouse and keyboard receipts have separate paths and
+require their exact Boot profile, Plan, class transcript, sealed arena and
+acknowledged stop. A retained x86_64 mouse run completes all 128 reports across
+two ring cycle transitions with matching class outputs and the arena sealed
+through normal closure and acknowledged stop. The same appliance limitations
+apply: legacy attachment setup, explicit fixture authority, and no ordinary
+class offer, physical compatibility or five-architecture acceptance.

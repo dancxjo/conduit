@@ -364,23 +364,8 @@ pub(crate) fn local_bases() -> [BaseImplementationId; 1] {
     [BaseImplementationId::from(TOUR_LOCAL_BASE)]
 }
 
-pub(super) fn validate_placement(
-    placement: &conduit_core::PlannedGear,
-    offer: &CapabilityOffer,
-) -> Result<(), String> {
-    if placement.kind_id != offer.kind_id
-        || placement.kind_contract_revision != offer.kind_contract_revision
-        || placement.execution_profile_id != offer.implementation.execution_profile_id
-        || placement.implementation_id != offer.implementation.implementation_id
-        || placement.artifact_id != offer.implementation.artifact_id
-        || placement.inputs != offer.inputs
-        || placement.outputs != offer.outputs
-        || placement.host_calls != offer.host_calls
-    {
-        return Err("planned browser Gear does not match its installed capability".into());
-    }
-    Ok(())
-}
+mod placement_validation;
+pub(super) use placement_validation::validate_placement;
 
 #[cfg(test)]
 mod profile_tests {

@@ -10,6 +10,7 @@ use conduit_core::{
     SCALAR_INFO_ID,
 };
 
+mod byte_observation;
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
@@ -83,6 +84,7 @@ enum PreparedOperation {
     SequenceSelection(sequence_selection::PreparedSequenceSelection),
     Widen(Box<PreparedNode>),
     Inspection(inspection::PreparedInspection),
+    Bytes(byte_observation::PreparedByteObservation),
 }
 
 /// Finite canonical frame ceiling from an exact checked Type, including leaf framing.
@@ -293,6 +295,25 @@ fn prepare_node(
                 prepared_input,
             )?)
         }
+        PortableExpressionOperation::SemanticCall {
+            kind: call,
+            arguments,
+        } if matches!(call.as_str(), "bytes/length" | "bytes/at") => {
+            let expected = if call == "bytes/at" {
+                PrimitiveInfoKind::U8
+            } else {
+                PrimitiveInfoKind::U64
+            };
+            if kind != expected {
+                return Err(Refusal::InvalidProgram);
+            }
+            PreparedOperation::Bytes(byte_observation::PreparedByteObservation::new(
+                call,
+                arguments,
+                input_type,
+                prepared_input,
+            )?)
+        }
         PortableExpressionOperation::SemanticCall { kind: call, .. } if call == "sequence/at" => {
             PreparedOperation::SequenceSelection(
                 sequence_selection::PreparedSequenceSelection::new(
@@ -360,6 +381,7 @@ fn evaluate_node<'a>(
             primitive::evaluate_widen(expected, &operand)?
         }
         PreparedOperation::Inspection(inspection) => inspection.evaluate(input)?,
+        PreparedOperation::Bytes(observation) => observation.evaluate(input, input_kind)?,
         PreparedOperation::SequenceSelection(selection) => {
             PrimitiveValue::borrowed(expected, selection.evaluate(input)?)?
         }

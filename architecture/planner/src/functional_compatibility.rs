@@ -14,7 +14,7 @@ pub(crate) fn default_placements_unvalidated(
     let mut by_gear = BTreeMap::new();
     let mut selected_counts = BTreeMap::new();
     for gear in gears {
-        let mut candidates = hosts
+        let candidates = hosts
             .iter()
             .enumerate()
             .flat_map(|(host_index, host)| {
@@ -23,14 +23,18 @@ pub(crate) fn default_placements_unvalidated(
                     .map(move |offer| (host_index, host, offer))
             })
             .filter(|(_, _, offer)| gear.accepts_realization(offer))
-            .filter(|(_, host, offer)| {
-                selected_counts
-                    .get(&(host.host_id.clone(), offer.capability_id.clone()))
-                    .copied()
-                    .unwrap_or(0)
-                    < offer.limits.max_active_instances
-            })
             .collect::<Vec<_>>();
+        let mut candidates =
+            crate::language_coverage::filter_candidates(gear, candidates, |candidate| {
+                (candidate.1, candidate.2)
+            })?;
+        candidates.retain(|(_, host, offer)| {
+            selected_counts
+                .get(&(host.host_id.clone(), offer.capability_id.clone()))
+                .copied()
+                .unwrap_or(0)
+                < offer.limits.max_active_instances
+        });
         candidates.sort_by_key(|(host_index, _, offer)| {
             (
                 *host_index,

@@ -9,6 +9,10 @@ pub const MAXIMUM_REALIZATION_DECISION_RECORDS: usize = 256;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RealizationRejection {
+    LanguageCoverage {
+        request: conduit_language::LanguageRequest,
+        reason: conduit_language::LanguageCoverageRefusal,
+    },
     QueueItemBound,
     QueueByteBound,
     ResourceUnitCeiling,

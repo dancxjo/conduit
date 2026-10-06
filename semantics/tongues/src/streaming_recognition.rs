@@ -18,7 +18,7 @@ pub use speaking::StreamEvent as RecognitionEvent;
 pub use speaking::{SegmentId, StreamEvent, TextRole};
 
 pub const STREAMING_SPEECH_RECOGNIZE_KIND: &str = "speech/recognize-stream";
-pub const STREAMING_SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize-stream@1";
+pub const STREAMING_SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize-stream@2";
 pub const COMMIT_RECOGNIZED_TURN_KIND: &str = "speech/commit-recognized-turn";
 pub const COMMIT_RECOGNIZED_TURN_REVISION: &str = "conduit.speech/commit-recognized-turn@1";
 pub const COMMITTED_TURN_TO_TEXT_KIND: &str = "speech/committed-turn-to-text";

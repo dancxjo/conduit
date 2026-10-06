@@ -81,6 +81,7 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
         .map(|host| (host.host_id.clone(), host))
         .collect::<BTreeMap<_, _>>();
 
+    crate::language_coverage::validate_placements(plot.gears, hosts, placements)?;
     for host in hosts {
         validate_host_resources(host)?;
     }
@@ -189,6 +190,7 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
         )));
         placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
         planned_gears.push(conduit_core::planned_gear_from_parts! {
+            realization_properties: capability.realization_properties.clone(),
             placement_id,
             gear_id: gear.gear_id.clone(),
             kind_id: capability.kind_id.clone(),

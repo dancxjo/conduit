@@ -74,6 +74,10 @@ impl PreparedProtocolSource {
             .validate_plan(&plan)
             .map_err(|_| ProtocolSourceRefusal::Offer)?;
         self.operations
+            .concats
+            .validate_plan(&plan)
+            .map_err(|_| ProtocolSourceRefusal::Offer)?;
+        self.operations
             .merges
             .validate_plan(&plan)
             .map_err(|_| ProtocolSourceRefusal::Offer)?;
@@ -93,6 +97,15 @@ impl PreparedProtocolSource {
 }
 
 impl PreparedProtocolArtifact {
+    pub(crate) fn into_preparation_parts(
+        self,
+    ) -> (
+        conduit_composite::KernelCompositeDefinition,
+        ProtocolOperations,
+    ) {
+        (self.artifact.into_definition(), self.operations)
+    }
+
     pub fn artifact(&self) -> &AdmittedProtocolArtifact {
         &self.artifact
     }

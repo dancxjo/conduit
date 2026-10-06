@@ -19,6 +19,23 @@ impl StartupCatalog {
         Ok(())
     }
 
+    /// Register a shared owner schema idempotently. A different namesake or
+    /// value-Kind alias remains an error; existing refinements are preserved.
+    pub fn ensure_structured_type(
+        &mut self,
+        name: impl Into<String>,
+        value_type: conduit_core::StructuredInfoType,
+    ) -> Result<(), String> {
+        let name = name.into();
+        match self.structured_types.get(&name) {
+            Some(existing) if existing == &value_type => Ok(()),
+            Some(_) => Err(format!(
+                "structured startup type '{name}' differs from its owner schema"
+            )),
+            None => self.insert_structured_type(name, value_type),
+        }
+    }
+
     /// Returns the authored semantic Type name for an exact structured value Kind.
     ///
     /// Presentation surfaces use this to keep the stable human-facing Type name

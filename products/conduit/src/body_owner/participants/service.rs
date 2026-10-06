@@ -14,7 +14,9 @@ use conduit_body::{
     OfferDisclosureRequest, OfferDisclosureStage, PartReturnChallenge, PartReturnProof,
     RemoteProofClass,
 };
-use conduit_core::{AuthorityGrantId, HostAdvertisement, HostId, LineOffer, LinkBindingId};
+use conduit_core::{
+    AuthorityGrantId, HostAdvertisement, HostId, LineAvailability, LineOffer, LinkBindingId,
+};
 use conduit_presentation::RemoteOwnerMaskRouteSeal;
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In, MAX_BROWSER_ADMISSION_FRAME_BYTES,
@@ -43,7 +45,7 @@ pub(crate) struct BrowserAdmittedSnapshot {
     pub(crate) line_authorization: Option<BrowserLineAuthorization>,
 }
 
-/// Owner-issued authority for only the two directions of this admitted carrier.
+/// Owner-issued authority for the Face, Show, and interaction channels of this carrier.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct BrowserLineAuthorization {
     pub(crate) window_id: String,
@@ -51,6 +53,7 @@ pub(crate) struct BrowserLineAuthorization {
     pub(crate) credential_id: String,
     pub(crate) face_grant_id: AuthorityGrantId,
     pub(crate) return_grant_id: AuthorityGrantId,
+    pub(crate) interaction_grant_id: AuthorityGrantId,
 }
 
 impl BrowserLineAuthorization {
@@ -71,6 +74,10 @@ impl BrowserLineAuthorization {
                 "grant/{window_id}/{}/return",
                 binding.as_str()
             )),
+            interaction_grant_id: AuthorityGrantId::from(format!(
+                "grant/{window_id}/{}/interaction",
+                binding.as_str()
+            )),
         }
     }
 }
@@ -80,6 +87,7 @@ pub(crate) struct BrowserCarrierLineEvidence {
     pub(crate) authorization: BrowserLineAuthorization,
     pub(crate) face: LineOffer,
     pub(crate) returned: LineOffer,
+    pub(crate) interaction: LineOffer,
 }
 
 impl BrowserAdmittedSnapshot {
@@ -214,6 +222,40 @@ enum PendingKind {
 }
 
 impl BrowserWindow {
+    pub(crate) fn current_mask_route(
+        &self,
+    ) -> Option<(
+        &RemoteOwnerMaskRouteSeal,
+        &HostAdvertisement,
+        &LineOffer,
+        &LineOffer,
+        &LineOffer,
+    )> {
+        self.check(&self.id).ok()?;
+        let WindowState::Active {
+            observation,
+            line_evidence: Some(lines),
+            route: Some(route),
+            ..
+        } = &self.state
+        else {
+            return None;
+        };
+        if [&lines.face, &lines.returned, &lines.interaction]
+            .iter()
+            .any(|line| line.availability.availability != LineAvailability::Ready)
+        {
+            return None;
+        }
+        Some((
+            route,
+            &observation.advertisement,
+            &lines.face,
+            &lines.returned,
+            &lines.interaction,
+        ))
+    }
+
     fn check(&self, id: &str) -> Result<u64, String> {
         if self.id != id {
             return Err("browser admission window identity differs".into());
@@ -472,6 +514,14 @@ impl Owner {
             if let Err(error) = self.persist(root) {
                 self.session = before;
                 return Err(error);
+            }
+            if let WindowState::Active {
+                route: Some(route), ..
+            } = &window.state
+            {
+                if let Some(wardrobe) = &mut self.presentation_wardrobe {
+                    wardrobe.forget_show_for(&route.route_plan_id);
+                }
             }
             window.state = WindowState::Ready;
             Ok(self.session.evidence().clone())

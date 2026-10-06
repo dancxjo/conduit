@@ -10,6 +10,24 @@ pub(in crate::arch::x86_64::usb) fn issue(
     ),
     &'static str,
 > {
+    issue_bounded(plan, u32::from(planning::CONTROL_PROOF_TRANSFERS))
+}
+
+pub(in crate::arch::x86_64::usb) fn issue_bounded(
+    plan: &Plan,
+    maximum_operations: u32,
+) -> Result<
+    (
+        BaseCapabilityTable,
+        BaseCapabilityHandle,
+        BaseOperationClaim,
+    ),
+    &'static str,
+> {
+    if maximum_operations == 0 || maximum_operations > u32::from(planning::CONTROL_PROOF_TRANSFERS)
+    {
+        return Err("usb-control-proof-operation-bound");
+    }
     let fragment = &plan.fragments[0];
     let mut selected = fragment
         .placements
@@ -42,7 +60,7 @@ pub(in crate::arch::x86_64::usb) fn issue(
         maximum_result_bytes: CONTROL_MAXIMUM_BYTES,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations: u32::from(planning::CONTROL_PROOF_TRANSFERS),
+        maximum_operations,
     };
     let authority = BaseCapabilityAuthority {
         grant: AuthorityGrant {
@@ -64,7 +82,7 @@ pub(in crate::arch::x86_64::usb) fn issue(
         maximum_result_bytes: CONTROL_MAXIMUM_BYTES,
         maximum_work_units: 1,
         maximum_in_flight: 1,
-        maximum_operations: u32::from(planning::CONTROL_PROOF_TRANSFERS),
+        maximum_operations,
     };
     let claim = BaseOperationClaim {
         host_id: scope.host_id.clone(),

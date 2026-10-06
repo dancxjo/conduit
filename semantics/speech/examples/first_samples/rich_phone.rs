@@ -35,7 +35,7 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
     let pronounced =
         conduit_speech::pronounce("Hello, world!", &mut storage).map_err(|e| format!("{e:?}"))?;
     let inventory_id = SpeechInventoryId::new("fixture/inventory".into()).unwrap();
-    let language = SpeechLanguageId::new("en".into()).unwrap();
+    let language = LanguageId::new("en".into()).unwrap();
     let revision = SpeechSegmentRevisionId::new("fixture/revision".into()).unwrap();
     let sequence = SpeechSegmentSequenceId::new("fixture/phones".into()).unwrap();
     let utterance = SpeechUtteranceId::new("fixture/hello".into()).unwrap();

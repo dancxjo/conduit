@@ -17,6 +17,17 @@ use conduit_std_host::hosted_linguistics::{linguistics_std_offers, LINGUISTICS_H
 
 const SOURCE: &str = include_str!("../../../plots/linguistic-annotations/main.conduit");
 
+fn material(identity: &str, text: &str) -> conduit_language::LanguageText {
+    use conduit_language::{LanguageId, LanguageText, LanguageTextId, LanguageTextRevisionId};
+    LanguageText::new(
+        LanguageTextId::new(identity.into()).unwrap(),
+        LanguageId::new("language/english".into()).unwrap(),
+        LanguageTextRevisionId::new("source/1".into()).unwrap(),
+        text.into(),
+    )
+    .unwrap()
+}
+
 #[test]
 fn canonical_plot_tokenizes_and_projects_annotations_without_json() {
     let mut startup = StartupCatalog::new();
@@ -87,7 +98,7 @@ fn canonical_plot_tokenizes_and_projects_annotations_without_json() {
 
 #[test]
 fn tokenizer_uses_unicode_scalar_spans_and_explicit_optional_fields() {
-    let tokens = tokenize_four("text/example", "Élan stars shine.").unwrap();
+    let tokens = tokenize_four(&material("text/example", "Élan stars shine.")).unwrap();
     assert_eq!(
         provenance_tag(record_field(&tokens, "provenance")),
         "deterministic_rule"
@@ -114,7 +125,7 @@ fn tokenizer_uses_unicode_scalar_spans_and_explicit_optional_fields() {
 
 #[test]
 fn library_annotations_and_dependencies_are_finite_and_exact() {
-    let tokens = tokenize_four("text/example", "Bright stars shine.").unwrap();
+    let tokens = tokenize_four(&material("text/example", "Bright stars shine.")).unwrap();
     let annotated = annotate_with_unicode_library(&tokens).unwrap();
     assert_eq!(
         provenance_tag(record_field(&annotated, "provenance")),
@@ -142,7 +153,7 @@ fn library_annotations_and_dependencies_are_finite_and_exact() {
 
 #[test]
 fn model_provenance_is_distinct_and_provider_token_ids_are_not_semantics() {
-    let tokens = tokenize_four("text/example", "Bright stars shine.").unwrap();
+    let tokens = tokenize_four(&material("text/example", "Bright stars shine.")).unwrap();
     let modeled = annotate_with_model_fixture(&tokens, "model/example@1").unwrap();
     assert_eq!(
         provenance_tag(record_field(&modeled, "provenance")),
@@ -158,7 +169,7 @@ fn model_provenance_is_distinct_and_provider_token_ids_are_not_semantics() {
 #[test]
 fn tokenizer_refuses_non_four_token_and_oversized_inputs() {
     assert_eq!(
-        tokenize_four("text/short", "only three words"),
+        tokenize_four(&material("text/short", "only three words")),
         Err(LinguisticRefusal::WrongTokenCount {
             expected: LINGUISTIC_TOKEN_COUNT,
             actual: 3,
@@ -166,7 +177,7 @@ fn tokenizer_refuses_non_four_token_and_oversized_inputs() {
     );
     let oversized = "a".repeat(MAXIMUM_LINGUISTIC_TEXT_BYTES as usize + 1);
     assert_eq!(
-        tokenize_four("text/large", &oversized),
+        tokenize_four(&material("text/large", &oversized)),
         Err(LinguisticRefusal::TextTooLarge)
     );
     assert!(linguistic_tokens_four_type().profile().is_ok());
@@ -238,4 +249,45 @@ fn leaf_count(value: &StructuredInfoValue) -> u64 {
         panic!("expected leaf")
     };
     conduit_core::decode_count(bytes).unwrap()
+}
+
+#[test]
+fn shipped_english_specimen_refuses_valid_french_before_realization() {
+    let source = SOURCE.replace("language/english", "language/french");
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_linguistics_catalogs(&mut startup, &mut profile).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+    for stage in checked.plots[0]
+        .cords
+        .iter()
+        .flat_map(|cord| cord.stages.iter())
+    {
+        if let CheckedCordStage::StructuredSelector { selector, .. } = stage {
+            profile
+                .insert(structured_selector_definition(
+                    selector,
+                    PortTemporal::Value,
+                ))
+                .unwrap();
+        }
+    }
+    let authored =
+        expand_canonical_plot_for_authoring(&checked, "linguistic-annotations", &profile).unwrap();
+    let host = host(linguistics_std_offers());
+    let error =
+        conduit_planner::default_expanded_placements(&authored.expanded, &[host]).unwrap_err();
+    let conduit_planner::PlannerError::LanguageCoverageUnsatisfied(evidence) = error else {
+        panic!("unexpected {error:?}")
+    };
+    let conduit_planner::LanguageCoverageUnsatisfied {
+        requirements,
+        candidates,
+        ..
+    } = *evidence;
+    assert_eq!(requirements[0].request.language().get(), "language/french");
+    assert_eq!(
+        candidates[0].checks[0].result,
+        Err(conduit_language::LanguageCoverageRefusal::Language)
+    );
 }

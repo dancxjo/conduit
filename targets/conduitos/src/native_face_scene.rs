@@ -388,17 +388,7 @@ impl NativeFaceScene {
             } else {
                 row.paint
             };
-            if row.control.is_some() {
-                push(
-                    &mut scene,
-                    GraphicsCommand::rect(
-                        row.bounds,
-                        self.screen,
-                        outline,
-                        GraphicsShapeStyle::Stroke,
-                    ),
-                )?;
-            }
+            layout::append_row_chrome(&mut scene, row, self.screen, outline, self.showing_details)?;
             push(
                 &mut scene,
                 GraphicsCommand::text(row.text_bounds(), self.screen, row.paint, &row.text)

@@ -41,6 +41,12 @@ fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrie
     BrowserCarrierLineEvidence {
         face: line("face", owner, browser, &authorization.face_grant_id),
         returned: line("return", browser, owner, &authorization.return_grant_id),
+        interaction: line(
+            "interaction",
+            browser,
+            owner,
+            &authorization.interaction_grant_id,
+        ),
         authorization,
     }
 }
@@ -48,6 +54,8 @@ fn fixture_carrier_evidence(snapshot: &BrowserAdmittedSnapshot) -> BrowserCarrie
 #[test]
 fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() {
     let (mut owner, root, _) = setup();
+    let (terminal, _terminal_peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    owner.host.attach_terminal_mask(terminal).unwrap();
     let mut advertisement = host("host/browser-test", "boot/browser/first")
         .advertisement()
         .clone();
@@ -109,6 +117,31 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
                 signature: secret.sign(&challenge.signing_transcript()).to_vec(),
             },
         )
+        .unwrap();
+    let (terminal_face, terminal_seal) = owner.seal_attached_terminal_route().unwrap();
+    let terminal_placement = terminal_seal.planned_mask.show_placement();
+    let terminal_play = conduit_core::bind_active_play(
+        &terminal_seal.planned_mask.plan.plan_id,
+        &terminal_placement.host_id,
+        &terminal_placement.boot_id,
+        1,
+    );
+    let terminal_show = conduit_presentation::MaskShow::prepared(
+        &terminal_seal.planned_mask,
+        &terminal_face,
+        terminal_play,
+        terminal_face.subjects[0].identity.clone(),
+        "terminal/test".into(),
+        conduit_core::SignId::from("sign/test/terminal-prepared"),
+    )
+    .unwrap()
+    .transition(
+        conduit_presentation::ManifestationLifecycle::Available,
+        conduit_core::SignId::from("sign/test/terminal-available"),
+    )
+    .unwrap();
+    owner
+        .acknowledge_attached_terminal_show(&terminal_seal, &terminal_show)
         .unwrap();
     let carrier_evidence = fixture_carrier_evidence(&snapshot);
     // The admission authorization may expire while this exact admitted
@@ -201,6 +234,18 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         ),
         Err("browser-line-evidence-mismatch".into())
     );
+    let mut lost_interaction = carrier_evidence.clone();
+    lost_interaction.interaction.availability.availability =
+        conduit_core::LineAvailability::Unavailable;
+    assert_eq!(
+        owner.browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &current_binding,
+            Some(&lost_interaction)
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
     let mut wrong_base = carrier_evidence.clone();
     wrong_base.face.binding.base = conduit_core::BaseImplementationId::from("base/forged");
     assert_eq!(
@@ -223,6 +268,36 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         ),
         Err("browser-line-evidence-mismatch".into())
     );
+    let wardrobe_request = conduit_presentation::OwnerFaceSnapshotRequest {
+        schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: snapshot.credential.credential_id.as_str().into(),
+        body_id: snapshot.credential.body_id.clone(),
+        part_id: snapshot.credential.part_id.clone(),
+        host_id: snapshot.credential.host_id.clone(),
+        boot_id: snapshot.credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    let terminal_only_plan_id = owner
+        .presentation_wardrobe
+        .as_ref()
+        .unwrap()
+        .plan()
+        .plan_id
+        .clone();
+    assert_eq!(
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&terminal_only_plan_id),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Prefer(vec![
+                terminal_seal.planned_mask.mask.plot_identity.clone(),
+            ])),
+        ),
+        Err("browser-wardrobe-face-route-unavailable".into())
+    );
     let selected = owner
         .browser_mask_route(
             &authorized.window_id,
@@ -231,8 +306,162 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             Some(&carrier_evidence),
         )
         .unwrap();
+    let owner_plan_id = owner
+        .presentation_wardrobe
+        .as_ref()
+        .unwrap()
+        .plan()
+        .plan_id
+        .clone();
+    let report = owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            None,
+            0,
+            None,
+        )
+        .unwrap();
+    assert_eq!(report["schema"], "conduit.body/owner-mask-wardrobe@1");
+    assert_eq!(report["wardrobe_revision_decimal"], "0");
+    assert_eq!(report["admitted_routes"].as_array().unwrap().len(), 2);
+    assert_eq!(report["route_descriptions"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&conduit_core::PlanId::from("plan/unknown")),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Prefer(vec![
+                terminal_seal.planned_mask.mask.plot_identity.clone(),
+            ])),
+        ),
+        Err("owner-wardrobe-plan-stale".into())
+    );
+    let WindowState::Active {
+        route: Some(route), ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    route.face_revision += 1;
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            None,
+            0,
+            None,
+        )
+        .is_err());
+    let WindowState::Active {
+        route: Some(route), ..
+    } = &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    route.face_revision -= 1;
+    let browser_mask = selected.planned_mask.mask.plot_identity.clone();
+    let apply = |owner: &mut Owner, revision, action| {
+        owner.browser_wardrobe_report(
+            &authorized.window_id,
+            &current_binding,
+            &wardrobe_request,
+            Some(&owner_plan_id),
+            revision,
+            Some(action),
+        )
+    };
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/forged"),
+            &wardrobe_request,
+            None,
+            0,
+            None,
+        )
+        .is_err());
+    apply(
+        &mut owner,
+        0,
+        conduit_presentation::MaskWardrobeAction::Wear(browser_mask.clone()),
+    )
+    .unwrap();
+    assert!(apply(
+        &mut owner,
+        0,
+        conduit_presentation::MaskWardrobeAction::Prefer(vec![browser_mask.clone()])
+    )
+    .is_err());
+    apply(
+        &mut owner,
+        1,
+        conduit_presentation::MaskWardrobeAction::Doff(
+            terminal_seal.planned_mask.mask.plot_identity.clone(),
+        ),
+    )
+    .unwrap();
+    let report = apply(
+        &mut owner,
+        2,
+        conduit_presentation::MaskWardrobeAction::Prefer(vec![browser_mask]),
+    )
+    .unwrap();
+    assert_eq!(report["owner_plan_id"], serde_json::json!(owner_plan_id));
+    assert_eq!(report["wardrobe_revision_decimal"], "3");
     assert_eq!(selected.mask_host.host_id, snapshot.credential.host_id);
+    let fores = &selected.planned_mask.plan.fragments[0].fore_ports;
+    let selected_line = |name| {
+        fores
+            .iter()
+            .find(|fore| fore.front_port_id.as_str() == name)
+            .unwrap()
+            .selected_line
+            .clone()
+    };
+    assert_eq!(
+        selected_line("face"),
+        Some(carrier_evidence.face.admitted_line())
+    );
+    assert_eq!(
+        selected_line("show"),
+        Some(carrier_evidence.returned.admitted_line())
+    );
+    assert_eq!(
+        selected_line("interaction"),
+        Some(carrier_evidence.interaction.admitted_line())
+    );
+    assert_eq!(
+        selected.interaction_line,
+        Some(carrier_evidence.interaction.admitted_line())
+    );
+    let mut missing_interaction = selected.clone();
+    missing_interaction.interaction_line = None;
+    assert_eq!(
+        missing_interaction.verify_seal(),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::InvalidSeal)
+    );
+    assert_eq!(selected.validate_interaction_payload(128), Ok(()));
+    assert_eq!(
+        selected.validate_interaction_payload(conduit_presentation::MAX_FACE_INTERACTION_BYTES + 1),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::ReturnExceedsFore)
+    );
     let issued_face = owner.local_face_snapshot().unwrap();
+    assert_eq!(
+        selected.validate_current(
+            &owner.session,
+            &issued_face,
+            owner.host.advertisement(),
+            &browser_offer,
+            &carrier_evidence.face,
+            &carrier_evidence.returned,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::MissingOrInvalidLine)
+    );
     let issued_response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
         schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
         presentation: Box::new(issued_face),
@@ -329,6 +558,34 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
             &available_show,
         )
         .unwrap();
+    let wardrobe = owner.presentation_wardrobe.as_ref().unwrap();
+    assert_eq!(wardrobe.plan().routes.len(), 2);
+    assert_eq!(
+        wardrobe.control().selected.as_ref().unwrap().route_id,
+        format!("route/{}", selected.route_plan_id.as_str())
+    );
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    let admitted = wardrobe
+        .plan()
+        .admit_current_routes(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(admitted.routes().len(), 2);
+    assert!(admitted
+        .routes()
+        .iter()
+        .all(|route| route.currently_available));
+    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
     owner
         .validate_browser_mask_show(
             &authorized.window_id,
@@ -358,6 +615,95 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         unreachable!()
     };
     *line_evidence = retained;
+    let current_interaction = line_evidence.as_ref().unwrap().interaction.clone();
+    line_evidence
+        .as_mut()
+        .unwrap()
+        .interaction
+        .availability
+        .availability = conduit_core::LineAvailability::Unavailable;
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    let wardrobe = owner.presentation_wardrobe.as_mut().unwrap();
+    let lost = wardrobe
+        .admit_or_replace(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, owner_plan_id);
+    assert!(matches!(
+        lost.show,
+        conduit_presentation::MaskShowDisposition::NoCurrentShow { .. }
+    ));
+    let admitted = wardrobe
+        .plan()
+        .admit_current_routes(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(
+        admitted
+            .routes()
+            .iter()
+            .filter(|route| route.currently_available)
+            .count(),
+        1
+    );
+    assert_eq!(
+        owner.validate_browser_mask_show(
+            &authorized.window_id,
+            &current_binding,
+            &face_request,
+            &available_show,
+        ),
+        Err("browser-line-evidence-mismatch".into())
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    line_evidence.as_mut().unwrap().interaction = current_interaction.clone();
+    line_evidence
+        .as_mut()
+        .unwrap()
+        .interaction
+        .binding
+        .binding_id = LinkBindingId::from("binding/forged-ready-interaction");
+    let face = owner.local_face_snapshot().unwrap();
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Owner::current_attached_terminal_route(
+            &owner.host,
+            owner.attached_terminal_route.as_ref(),
+            &owner.session,
+            &face,
+        )
+        .unwrap(),
+    );
+    assert!(owner
+        .presentation_wardrobe
+        .as_mut()
+        .unwrap()
+        .admit_or_replace(&owner.session, &face, &current)
+        .is_err());
+    assert_eq!(
+        owner.presentation_wardrobe.as_ref().unwrap().plan().plan_id,
+        owner_plan_id
+    );
+    let WindowState::Active { line_evidence, .. } =
+        &mut owner.pending_browser.as_mut().unwrap().state
+    else {
+        unreachable!()
+    };
+    line_evidence.as_mut().unwrap().interaction = current_interaction;
     assert_eq!(
         owner
             .browser_mask_route(

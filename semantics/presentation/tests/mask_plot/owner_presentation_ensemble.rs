@@ -276,6 +276,115 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
         &return_line,
     )
     .unwrap();
+    let choices = [
+        conduit_planner::ExternalForeLineChoice {
+            host_id: browser_offer.host_id.clone(),
+            boot_id: browser_offer.boot_id.clone(),
+            direction: PortDirection::Input,
+            front_port_id: browser.mask.face_input.front_port_id.clone(),
+            track: conduit_core::ConnectionTrack::Payload,
+            peer_host_id: owner_offer.host_id.clone(),
+            peer_boot_id: owner_offer.boot_id.clone(),
+            line_id: face_line.line_id.clone(),
+        },
+        conduit_planner::ExternalForeLineChoice {
+            host_id: browser_offer.host_id.clone(),
+            boot_id: browser_offer.boot_id.clone(),
+            direction: PortDirection::Output,
+            front_port_id: browser.mask.show_output.front_port_id.clone(),
+            track: conduit_core::ConnectionTrack::Payload,
+            peer_host_id: owner_offer.host_id.clone(),
+            peer_boot_id: owner_offer.boot_id.clone(),
+            line_id: return_line.line_id.clone(),
+        },
+    ];
+    let mut selected_plan = conduit_planner::bind_external_fore_lines(
+        &browser.plan,
+        &choices,
+        &[face_line.clone(), return_line.clone()],
+        &[BaseImplementationId::from(
+            "conduit.base/websocket-rfc6455@1",
+        )],
+    )
+    .unwrap();
+    for fore in &mut selected_plan.fragments[0].fore_ports {
+        if fore.selected_line.is_some() {
+            fore.byte_capacity = conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES as u32;
+        }
+    }
+    selected_plan = conduit_core::seal_plan_with_activation_entries(
+        browser.mask.plot_identity.clone(),
+        selected_plan.completion_policy,
+        selected_plan.realization_backs.clone(),
+        selected_plan.activations.clone(),
+        selected_plan.fragments,
+    );
+    let selected_browser = PlannedMaskPlot::admit(&browser.mask, &selected_plan).unwrap();
+    let selected_remote = RemoteOwnerMaskRouteSeal::seal_lulled(
+        &session,
+        &face,
+        &owner_offer,
+        &browser_offer,
+        &selected_browser,
+        &face_line,
+        &return_line,
+    )
+    .unwrap();
+    selected_remote.verify_seal().unwrap();
+    assert_ne!(selected_remote.route_plan_id, remote.route_plan_id);
+    let large_face = Presentation::new(
+        4,
+        face.basis.clone(),
+        face.subjects.clone(),
+        vec![],
+        vec![],
+        (0..40)
+            .map(|_| PresentationText {
+                subject: face.subjects[0].identity.clone(),
+                text: "x".repeat(1_000),
+            })
+            .collect(),
+    )
+    .unwrap();
+    assert!(
+        serde_json::to_vec(&large_face).unwrap().len()
+            > conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES
+    );
+    assert_eq!(
+        RemoteOwnerMaskRouteSeal::seal_lulled(
+            &session,
+            &large_face,
+            &owner_offer,
+            &browser_offer,
+            &selected_browser,
+            &face_line,
+            &return_line,
+        ),
+        Err(RemoteOwnerMaskRouteError::FaceExceedsFore)
+    );
+    assert_eq!(
+        selected_remote.validate_return_payload(40 * 1024),
+        Err(RemoteOwnerMaskRouteError::ReturnExceedsFore)
+    );
+    assert_eq!(remote.validate_return_payload(40 * 1024), Ok(()));
+    let mut wrong_return = return_line.clone();
+    wrong_return.line_id = conduit_core::LineId::from("line/mixed/other-return");
+    wrong_return.availability.line_id = wrong_return.line_id.clone();
+    wrong_return.binding.binding_id =
+        conduit_core::LinkBindingId::from("binding/mixed/other-return");
+    wrong_return.availability.binding_id = wrong_return.binding.binding_id.clone();
+    assert_eq!(
+        RemoteOwnerMaskRouteSeal::seal_lulled(
+            &session,
+            &face,
+            &owner_offer,
+            &browser_offer,
+            &selected_browser,
+            &face_line,
+            &wrong_return,
+        ),
+        Err(RemoteOwnerMaskRouteError::InvalidSeal)
+    );
     let witnesses = [
         CurrentOwnerPresentationRoute::Local {
             seal: &local,
@@ -287,6 +396,7 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
             mask_host_offer: &browser_offer,
             face_line: &face_line,
             return_line: &return_line,
+            interaction_line: None,
         },
     ];
     let ensemble = OwnerPresentationPlan::seal_current(&session, &face, &witnesses).unwrap();
@@ -352,6 +462,7 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
                     mask_host_offer: &browser_offer,
                     face_line: &face_line,
                     return_line: &lost_return,
+                    interaction_line: None,
                 },
             ]
         ),
@@ -373,6 +484,7 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
                     mask_host_offer: &browser_offer,
                     face_line: &wrong_boot,
                     return_line: &return_line,
+                    interaction_line: None,
                 },
             ]
         ),

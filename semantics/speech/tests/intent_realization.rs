@@ -12,8 +12,8 @@ fn provenance() -> SpeechEvidenceProvenance {
 fn sources() -> BoundedSequence<LanguageSegmentRef, 8> {
     BoundedSequence::try_from_iter([LanguageSegmentRef::text(
         LanguageTextSegmentKind::Word,
-        SpeechLanguageId::new("en".into()).unwrap(),
-        ListeningTextRange::new(1, 0).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
+        LanguageTextRange::new(1, 0).unwrap(),
         LanguageTextRevisionId::new("source revision".into()).unwrap(),
         LanguageTextId::new("source".into()).unwrap(),
     )
@@ -24,7 +24,7 @@ fn segment() -> SpeechUtteranceIntentEvent {
     SpeechUtteranceIntentEvent::segment(
         LanguageSpeechTokenRef::new(
             SpeechInventoryId::new("inventory".into()).unwrap(),
-            SpeechLanguageId::new("en".into()).unwrap(),
+            LanguageId::new("en".into()).unwrap(),
             0,
             SpeechSegmentRevisionId::new("revision".into()).unwrap(),
             SpeechSegmentSequenceId::new("phones".into()).unwrap(),
@@ -56,7 +56,7 @@ fn utterance(events: Vec<SpeechUtteranceIntentEvent>) -> SpeechUtteranceIntent {
     SpeechUtteranceIntent::new(
         BoundedSequence::try_from_iter(events).unwrap(),
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         provenance(),
         SpeechSegmentRevisionId::new("revision".into()).unwrap(),
         SpeechUtteranceId::new("utterance".into()).unwrap(),
@@ -91,7 +91,7 @@ fn voice() -> SpeechFormantVoiceProfile {
     SpeechFormantVoiceProfile::new(
         "fixture".into(),
         SpeechInventoryId::new("inventory".into()).unwrap(),
-        SpeechLanguageId::new("en".into()).unwrap(),
+        LanguageId::new("en".into()).unwrap(),
         BoundedSequence::try_from_iter([SpeechFormantPhoneBinding::new(
             fixture::definition("opaque/t"),
             EnglishPhone::T,

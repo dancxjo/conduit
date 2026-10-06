@@ -12,6 +12,7 @@ pub mod control_result;
 pub(crate) mod control_ring;
 
 pub mod device_probe_proof_plan;
+pub mod hid_boot_control_proof_plan;
 
 pub mod device_probe_proof_kernel;
 
@@ -27,3 +28,7 @@ pub mod endpoint_read_owner;
 pub(crate) mod endpoint_ring;
 
 pub mod endpoint_read_proof_plan;
+
+pub mod hid_endpoint_proof_plan;
+
+pub mod hid_endpoint_proof_kernel;

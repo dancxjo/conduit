@@ -27,18 +27,27 @@ pub(super) struct MaskRun {
     pub destination: std::path::PathBuf,
     pub real_speech: bool,
 }
+pub(super) struct SpeechPreparation<'a> {
+    pub real: Option<(
+        crate::hosted_speech_synthesis::EspeakDiscovery,
+        &'a std::path::Path,
+    )>,
+    pub streaming: bool,
+    pub language: &'a conduit_language::LanguageRequest,
+}
 pub(super) fn run_mask(
     plot_name: &str,
     execution_id: &str,
     presentation: conduit_presentation::Presentation,
     retained: conduit_presentation::GeneratedManifestationCandidate,
-    real: Option<(
-        crate::hosted_speech_synthesis::EspeakDiscovery,
-        &std::path::Path,
-    )>,
-    streaming: bool,
+    speech: SpeechPreparation<'_>,
     control: &crate::RunControl,
 ) -> Result<MaskRun, String> {
+    let SpeechPreparation {
+        real,
+        streaming,
+        language,
+    } = speech;
     use conduit_core::{
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
         SignId,
@@ -134,7 +143,7 @@ pub(super) fn run_mask(
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
-    let source = graph::source(plot_name, maximum_output_bytes, streaming);
+    let source = graph::source(plot_name, maximum_output_bytes, streaming, language);
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
         .map_err(|error| format!("check spoken Mask: {error:?}"))?;
     let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)

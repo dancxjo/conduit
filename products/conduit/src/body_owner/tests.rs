@@ -25,6 +25,97 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
 }
 
 #[test]
+fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability() {
+    use conduit_presentation::{CurrentOwnerPresentationRoute, MaskShowDisposition};
+
+    let checked = source();
+    let mut owner = Owner::open(
+        host("boot/wardrobe-loss"),
+        resident(&checked),
+        None,
+        "Wardrobe",
+    )
+    .unwrap();
+    let (attached, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    owner.host.attach_terminal_mask(attached).unwrap();
+    let (face, seal) = owner.seal_attached_terminal_route().unwrap();
+    owner.attached_terminal_route = Some(seal.clone());
+    assert!(Owner::current_attached_terminal_route(
+        &owner.host,
+        owner.attached_terminal_route.as_ref(),
+        &owner.session,
+        &face,
+    )
+    .unwrap()
+    .is_some());
+    let next_face = conduit_presentation::Presentation::new(
+        face.revision + 1,
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+    )
+    .unwrap();
+    assert!(Owner::current_attached_terminal_route(
+        &owner.host,
+        owner.attached_terminal_route.as_ref(),
+        &owner.session,
+        &next_face,
+    )
+    .unwrap()
+    .is_none());
+    let current = [CurrentOwnerPresentationRoute::Local {
+        seal: &seal,
+        owner_offer: owner.host.advertisement(),
+    }];
+    let mask = seal.planned_mask.mask.plot_identity.clone();
+    let mut wardrobe = presentation_wardrobe::OwnerPresentationWardrobe::seal(
+        &owner.session,
+        &face,
+        &current,
+        vec![mask.clone()],
+        vec![mask],
+    )
+    .unwrap();
+    let plan_id = wardrobe.plan().plan_id.clone();
+    let lost = wardrobe
+        .admit_or_replace(&owner.session, &face, &[])
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+    assert!(matches!(
+        lost.show,
+        MaskShowDisposition::NoCurrentShow { .. }
+    ));
+    assert!(
+        !wardrobe
+            .plan()
+            .admit_current_routes(&owner.session, &face, &[])
+            .unwrap()
+            .routes()[0]
+            .currently_available
+    );
+    let restored = wardrobe
+        .admit_or_replace(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+    assert!(matches!(
+        restored.show,
+        MaskShowDisposition::SelectSealed { .. }
+    ));
+    let mut stale_offer = owner.host.advertisement().clone();
+    stale_offer.offer_generation.0 += 1;
+    let stale = [CurrentOwnerPresentationRoute::Local {
+        seal: &seal,
+        owner_offer: &stale_offer,
+    }];
+    assert!(wardrobe
+        .admit_or_replace(&owner.session, &face, &stale)
+        .is_err());
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+}
+
+#[test]
 fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
     let root = std::env::temp_dir().join(super::super::super::fresh_identity(
         "owner-face-names",
@@ -215,8 +306,17 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
         .unwrap();
+    let lull = playing_face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/lull@1")
+        .unwrap();
     assert_eq!(
         stop.availability,
+        conduit_presentation::PresentationActionAvailability::Available
+    );
+    assert_eq!(
+        lull.availability,
         conduit_presentation::PresentationActionAvailability::Available
     );
     let response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
@@ -428,6 +528,11 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .iter()
         .find(|action| action.intent == super::clock_interval::CLOCK_START_ACTION)
         .unwrap();
+    let wake = face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/wake@1")
+        .unwrap();
     let stop = face
         .actions
         .iter()
@@ -437,6 +542,17 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         start.availability,
         PresentationActionAvailability::Available
     );
+    assert_eq!(wake.availability, PresentationActionAvailability::Available);
+    let overview = face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/open-body-overview@1")
+        .unwrap();
+    assert!(matches!(
+        &overview.availability,
+        PresentationActionAvailability::Unavailable { reason_code, .. }
+            if reason_code == "owner-action-return-not-admitted"
+    ));
     assert!(start.arguments.is_empty());
     assert!(matches!(
         stop.availability,
@@ -452,6 +568,14 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
     assert_eq!(
         owner
             .resolve_clock_interaction(&show, &start_interaction)
+            .unwrap(),
+        super::clock_interval::ClockAction::Start
+    );
+    let wake_interaction =
+        FaceInteraction::new(&face, &show, &wake.identity, &wake.target, vec![], 1).unwrap();
+    assert_eq!(
+        owner
+            .resolve_clock_interaction(&show, &wake_interaction)
             .unwrap(),
         super::clock_interval::ClockAction::Start
     );
@@ -494,6 +618,9 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .is_err());
     assert!(owner
         .resolve_clock_interaction(&show, &start_interaction)
+        .is_err());
+    assert!(owner
+        .resolve_clock_interaction(&show, &wake_interaction)
         .is_err());
     assert_eq!(owner.session.evidence().body.workload_revision, 2);
     assert_eq!(

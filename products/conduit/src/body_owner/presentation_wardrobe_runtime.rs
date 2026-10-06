@@ -3,14 +3,143 @@ use super::{
     presentation_wardrobe::{OwnerPresentationWardrobe, OwnerPresentationWardrobeError},
     Owner,
 };
+#[cfg(unix)]
+use conduit_presentation::MaskWardrobeAction;
 use conduit_presentation::{
-    CurrentOwnerPresentationRoute, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobeAction,
+    CurrentOwnerPresentationRoute, LocalOwnerMaskRouteSeal, MaskShow, RemoteOwnerMaskRouteSeal,
 };
+#[cfg(unix)]
 use serde_json::{json, Value};
 
 impl Owner {
+    /// The adapter owns the socket and Show execution; the owner retains only
+    /// its exact route witness while that attached provider is still live.
+    pub(crate) fn current_attached_terminal_route<'a>(
+        host: &super::OwnerHost,
+        cached: Option<&'a LocalOwnerMaskRouteSeal>,
+        session: &conduit_body::BodyLifecycleSession,
+        face: &conduit_presentation::Presentation,
+    ) -> Result<Option<&'a LocalOwnerMaskRouteSeal>, String> {
+        #[cfg(not(unix))]
+        {
+            let _ = (host, cached, session, face);
+            return Ok(None);
+        }
+        #[cfg(unix)]
+        {
+            let Some(seal) = cached else {
+                return Ok(None);
+            };
+            if host.is_playing() || !host.current().terminal_attachment_is_live()? {
+                return Ok(None);
+            }
+            match seal.validate_current(session, face, host.advertisement()) {
+                Ok(()) => Ok(Some(seal)),
+                Err(
+                    conduit_presentation::LocalOwnerMaskRouteError::StaleBody
+                    | conduit_presentation::LocalOwnerMaskRouteError::StaleFace
+                    | conduit_presentation::LocalOwnerMaskRouteError::StaleHost,
+                ) => Ok(None),
+                Err(error) => Err(format!("attached terminal witness invalid: {error:?}")),
+            }
+        }
+    }
+
+    pub(crate) fn current_presentation_routes<'a>(
+        owner_offer: &'a conduit_core::HostAdvertisement,
+        browser: Option<&'a super::participants::BrowserWindow>,
+        local: Option<&'a LocalOwnerMaskRouteSeal>,
+    ) -> Vec<CurrentOwnerPresentationRoute<'a>> {
+        let mut current = Vec::with_capacity(2);
+        if let Some(seal) = local {
+            current.push(CurrentOwnerPresentationRoute::Local { seal, owner_offer });
+        }
+        if let Some((seal, mask_host_offer, face_line, return_line, interaction_line)) =
+            browser.and_then(super::participants::BrowserWindow::current_mask_route)
+        {
+            current.push(CurrentOwnerPresentationRoute::Remote {
+                seal,
+                owner_offer,
+                mask_host_offer,
+                face_line,
+                return_line,
+                interaction_line: Some(interaction_line),
+            });
+        }
+        current
+    }
+
+    pub(crate) fn admit_browser_presentation_route(
+        &mut self,
+        seal: &RemoteOwnerMaskRouteSeal,
+    ) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+        );
+        if !current.iter().any(|route| {
+            matches!(route,
+                CurrentOwnerPresentationRoute::Remote { seal: found, .. }
+                    if found.route_plan_id == seal.route_plan_id
+            )
+        }) {
+            return Err("browser presentation route is no longer current".into());
+        }
+        if let Some(wardrobe) = &mut self.presentation_wardrobe {
+            wardrobe
+                .admit_or_replace(&self.session, &face, &current)
+                .map_err(wardrobe_error)?;
+        } else {
+            let mask = seal.planned_mask.mask.plot_identity.clone();
+            self.presentation_wardrobe = Some(
+                OwnerPresentationWardrobe::seal(
+                    &self.session,
+                    &face,
+                    &current,
+                    vec![mask.clone()],
+                    vec![mask],
+                )
+                .map_err(wardrobe_error)?,
+            );
+        }
+        Ok(())
+    }
+
+    pub(crate) fn acknowledge_selected_browser_show(
+        &mut self,
+        seal: &RemoteOwnerMaskRouteSeal,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+        );
+        self.presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .acknowledge_selected_show(&self.session, &face, &current, &seal.route_plan_id, show)
+            .map_err(wardrobe_error)
+    }
+
     /// The installed owner keeps the Body-lifetime wardrobe. The attached
     /// terminal supplies only its already sealed local route and actual Show.
+    #[cfg(unix)]
     pub(crate) fn acknowledge_attached_terminal_show(
         &mut self,
         seal: &LocalOwnerMaskRouteSeal,
@@ -18,10 +147,11 @@ impl Owner {
     ) -> Result<(), String> {
         self.validate_attached_terminal_route(seal, show)?;
         let face = self.local_face_snapshot()?;
-        let current = [CurrentOwnerPresentationRoute::Local {
-            seal,
-            owner_offer: self.host.advertisement(),
-        }];
+        let current = Self::current_presentation_routes(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            Some(seal),
+        );
         if let Some(wardrobe) = &mut self.presentation_wardrobe {
             wardrobe
                 .admit_or_replace(&self.session, &face, &current)
@@ -61,9 +191,11 @@ impl Owner {
                 )
                 .map_err(wardrobe_error)?;
         }
+        self.attached_terminal_route = Some(seal.clone());
         Ok(())
     }
 
+    #[cfg(unix)]
     pub(crate) fn attached_terminal_wardrobe_report(
         &mut self,
         seal: &LocalOwnerMaskRouteSeal,
@@ -73,10 +205,11 @@ impl Owner {
     ) -> Result<Value, String> {
         self.validate_attached_terminal_route(seal, show)?;
         let face = self.local_face_snapshot()?;
-        let current = [CurrentOwnerPresentationRoute::Local {
-            seal,
-            owner_offer: self.host.advertisement(),
-        }];
+        let current = Self::current_presentation_routes(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            Some(seal),
+        );
         let wardrobe = self
             .presentation_wardrobe
             .as_mut()
@@ -123,20 +256,22 @@ impl Owner {
             "fresh_show_required": selected.is_some() && show_id.is_none(),
             "reconciliation": reconciliation,
             "transition": transition,
-            "unadmitted_masks": "browser route awaits ordinary Mask Plan carrier-Line selection",
+            "unadmitted_masks": "other Mask routes require current sealed Host and Line witnesses",
         }))
     }
 
+    #[cfg(unix)]
     pub(crate) fn validate_selected_terminal_show(
         &mut self,
         seal: &LocalOwnerMaskRouteSeal,
         show: &MaskShow,
     ) -> Result<(), String> {
         let face = self.local_face_snapshot()?;
-        let current = [CurrentOwnerPresentationRoute::Local {
-            seal,
-            owner_offer: self.host.advertisement(),
-        }];
+        let current = Self::current_presentation_routes(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            Some(seal),
+        );
         let wardrobe = self
             .presentation_wardrobe
             .as_mut()
@@ -150,13 +285,17 @@ impl Owner {
         Ok(())
     }
 
+    #[cfg(unix)]
     pub(crate) fn forget_attached_terminal_show(&mut self, seal: &LocalOwnerMaskRouteSeal) {
+        if self.attached_terminal_route.as_ref() == Some(seal) {
+            self.attached_terminal_route = None;
+        }
         if let Some(wardrobe) = &mut self.presentation_wardrobe {
             wardrobe.forget_show_for(&seal.route_plan_id);
         }
     }
 }
 
-fn wardrobe_error(error: OwnerPresentationWardrobeError) -> String {
+pub(crate) fn wardrobe_error(error: OwnerPresentationWardrobeError) -> String {
     format!("owner presentation wardrobe refused: {error:?}")
 }

@@ -4,10 +4,14 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    println!("cargo:rerun-if-changed=identity.conduit");
+    println!("cargo:rerun-if-changed=coverage.conduit");
     println!("cargo:rerun-if-changed=syntax.conduit");
     let source = format!(
-        "{}\n{}",
+        "{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
+        include_str!("identity.conduit"),
+        include_str!("coverage.conduit"),
         include_str!("syntax.conduit")
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())

@@ -380,7 +380,7 @@ mod tests {
                 reader.take_text_readout().unwrap().unwrap()
             })
             .collect::<Vec<_>>();
-        assert_eq!(readings.len(), 2);
+        assert_eq!(readings.len(), 3);
         for reading in &readings {
             assert_eq!(reading.face_id, face.identity.as_str());
             assert_eq!(reading.show_id, show.show_id.as_str());
@@ -396,18 +396,14 @@ mod tests {
         ] {
             assert!(help.contains(command), "missing command {command}");
         }
-        assert!(readings[1]
-            .clauses
-            .iter()
-            .any(|clause| clause.contains("A body of your own")));
-        assert!(readings[1]
-            .clauses
-            .iter()
-            .any(|clause| clause.contains("Friendly Body name")));
-        assert!(readings[1]
-            .clauses
-            .iter()
-            .any(|clause| clause.contains("edit value")));
+        assert_eq!(readings[1].clauses.len(), 1);
+        assert!(readings[1].clauses[0].contains("A body of your own"));
+        assert_eq!(readings[2].clauses.len(), 1);
+        assert!(
+            readings[2].clauses[0].contains("Friendly Body name"),
+            "{:?}",
+            readings[2].clauses[0]
+        );
         assert_eq!(
             installed::opening_commands(false).collect::<Vec<_>>(),
             vec![ReaderCommand::ReadAll]

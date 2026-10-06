@@ -131,6 +131,12 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         for characteristic in &gear.realization_characteristics {
             characteristic::push_characteristic_canonical(&mut canonical, characteristic);
         }
+        if !gear.realization_properties.is_empty() {
+            crate::realization_properties::push_canonical(
+                &mut canonical,
+                &gear.realization_properties,
+            );
+        }
         canonical.extend_from_slice(&gear.limits.max_active_instances.to_le_bytes());
         canonical.extend_from_slice(&gear.limits.max_queue_items.to_le_bytes());
         push_u32(&mut canonical, gear.limits.max_queue_bytes);
@@ -459,6 +465,14 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
     push_u32(canonical, contract.laws.len() as u32);
     for law in &contract.laws {
         match law {
+            Law::RealizationRequirement {
+                property_profile,
+                configuration_key,
+            } => {
+                canonical.push(18);
+                push_string(canonical, property_profile.as_str());
+                push_string(canonical, configuration_key);
+            }
             Law::Terminal(value) => {
                 use crate::KindTerminalBehavior as Terminal;
                 canonical.push(0);

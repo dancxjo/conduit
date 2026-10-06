@@ -3,7 +3,8 @@
 use super::*;
 use conduit_body::Body;
 use conduit_core::{
-    kind_id, CheckedPlotId, CheckedValueContract, SignId, SourceDocumentId, ValueConstraint,
+    kind_id, process_owned_line_offer_with_limits, BaseImplementationId, CheckedPlotId,
+    CheckedValueContract, LineOffer, LinkLimits, SignId, SourceDocumentId, ValueConstraint,
 };
 use conduit_presentation::{
     Face, FaceActionArgument, FaceContext, FaceFocus, PresentationAction,
@@ -55,6 +56,152 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
             face_revision: prepared.face_revision,
         })
         .is_err());
+}
+
+#[test]
+fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
+    let body = Body::born(
+        SourceDocumentId::from("source/selected-owner-face"),
+        CheckedPlotId::from("checked/selected-owner-face"),
+        1,
+        SignId::from("sign/selected-owner-face"),
+    )
+    .unwrap();
+    let face = Face::project(
+        &body,
+        None,
+        4,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .unwrap()
+    .presentation;
+    let basis = HostBasis {
+        body_id: body.body_id,
+        host_id: HostId::from("host/selected-browser"),
+        boot_id: BootId::from("boot/selected-browser"),
+    };
+    let browser = crate::installed_browser::membership_advertisement(
+        basis.host_id.clone(),
+        basis.boot_id.clone(),
+    );
+    let mut owner = browser.clone();
+    owner.host_id = HostId::from("host/selected-owner");
+    owner.boot_id = BootId::from("boot/selected-owner");
+    let limits = LinkLimits {
+        maximum_in_flight_items: 1,
+        maximum_payload_bytes: 64 * 1024,
+        maximum_buffered_bytes: 256 * 1024,
+        maximum_frame_bytes: 64 * 1024,
+    };
+    let line = |id: &str,
+                source: &conduit_core::HostAdvertisement,
+                sink: &conduit_core::HostAdvertisement|
+     -> LineOffer {
+        let mut offered = process_owned_line_offer_with_limits(
+            id,
+            &format!("binding/{id}"),
+            BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
+            "websocket/selected",
+            source,
+            sink,
+            limits,
+        );
+        offered.contract = conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0].contract;
+        offered
+    };
+    let face_line = line("face/selected", &owner, &browser);
+    let return_line = line("return/selected", &browser, &owner);
+    let planned = conduit_browser_mask_offer::planned_owner_face_show_mask(
+        &browser,
+        &owner,
+        &face_line,
+        &return_line,
+        conduit_browser_mask_offer::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    assert!(OwnerBrowserMask::prepare_planned(
+        HostBasis {
+            body_id: basis.body_id.clone(),
+            host_id: basis.host_id.clone(),
+            boot_id: basis.boot_id.clone(),
+        },
+        face.clone(),
+        planned.clone(),
+        None,
+        Some((return_line.admitted_line(), face_line.admitted_line(), None)),
+        1,
+        false,
+    )
+    .is_err());
+    let interaction_line = line("interaction/selected", &browser, &owner);
+    let full_plan = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
+        &browser,
+        &owner,
+        &face_line,
+        &return_line,
+        &interaction_line,
+        conduit_browser_mask_offer::MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let full_basis = HostBasis {
+        body_id: basis.body_id.clone(),
+        host_id: basis.host_id.clone(),
+        boot_id: basis.boot_id.clone(),
+    };
+    assert!(OwnerBrowserMask::prepare_planned(
+        full_basis,
+        face.clone(),
+        full_plan.clone(),
+        None,
+        Some((face_line.admitted_line(), return_line.admitted_line(), None)),
+        1,
+        false,
+    )
+    .is_err());
+    OwnerBrowserMask::prepare_planned(
+        HostBasis {
+            body_id: basis.body_id.clone(),
+            host_id: basis.host_id.clone(),
+            boot_id: basis.boot_id.clone(),
+        },
+        face.clone(),
+        full_plan,
+        None,
+        Some((
+            face_line.admitted_line(),
+            return_line.admitted_line(),
+            Some(interaction_line.admitted_line()),
+        )),
+        1,
+        false,
+    )
+    .unwrap();
+    let mut mask = OwnerBrowserMask::prepare_planned(
+        basis,
+        face,
+        planned,
+        None,
+        Some((face_line.admitted_line(), return_line.admitted_line(), None)),
+        1,
+        false,
+    )
+    .unwrap();
+    let prepared = mask.view();
+    mask.acknowledge(Acknowledgement {
+        show_id: prepared.show_id,
+        face_id: prepared.face_id,
+        face_revision: prepared.face_revision,
+    })
+    .unwrap();
+    assert_eq!(mask.view().show_state, "available");
+    assert!(
+        serde_json::to_vec(&mask.show).unwrap().len()
+            <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES
+    );
 }
 
 #[test]

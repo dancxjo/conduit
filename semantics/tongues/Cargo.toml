@@ -26,6 +26,7 @@ conduit-audio = { path = "../audio" }
 conduit-ai = { path = "../ai", features = ["plot-catalog"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-data = { path = "../data" }
+conduit-language = { path = "../language" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-planner = { path = "../../architecture/planner" }

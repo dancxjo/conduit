@@ -7,7 +7,7 @@ use conduit_core::{
 };
 
 pub const LINGUISTICS_PROFILE: &str = "std/linguistics-kernel-hosted@1";
-pub const LINGUISTICS_ARTIFACT: &str = "conduit-std-host/linguistics@1";
+pub const LINGUISTICS_ARTIFACT: &str = "conduit-std-host/linguistics@2";
 pub const LINGUISTICS_HOST_CALL: &str = "conduit.host/linguistics@1";
 
 pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
@@ -19,12 +19,12 @@ pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
 
 fn offer(contract: Kind) -> CapabilityOffer {
     let kind = contract.kind_id.as_str().to_owned();
-    BackOfferBuilder::new(
+    let mut offered = BackOfferBuilder::new(
         contract,
         Back {
-            capability_id: CapabilityId::from(format!("std/{kind}@1")),
+            capability_id: CapabilityId::from(format!("std/{kind}@2")),
             execution_profile_id: ExecutionProfileId::from(LINGUISTICS_PROFILE),
-            implementation_id: ImplementationId::from(format!("std/{kind}@1")),
+            implementation_id: ImplementationId::from(format!("std/{kind}@2")),
             artifact_id: ArtifactId::from(LINGUISTICS_ARTIFACT),
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from(LINGUISTICS_HOST_CALL),
@@ -37,5 +37,28 @@ fn offer(contract: Kind) -> CapabilityOffer {
             authority_requirements: Vec::new(),
         },
     )
-    .build()
+    .build();
+    offered.realization_properties =
+        vec![
+            conduit_language::language_coverage_property(english_coverage())
+                .expect("bounded fixture coverage"),
+        ];
+    offered
+}
+
+fn english_coverage() -> conduit_language::LanguageCoverage {
+    use conduit_plot::rust_binding::BoundedSequence;
+    conduit_language::LanguageCoverage::new(
+        "repository/four-token-English-rule-fixture".into(),
+        BoundedSequence::try_from_iter([conduit_language::LanguageId::new(
+            "language/english".into(),
+        )
+        .expect("finite identity")])
+        .expect("one language"),
+        BoundedSequence::try_from_iter([]).expect("no mappings"),
+        "four-token-rules@1".into(),
+        BoundedSequence::try_from_iter([]).expect("undeclared varieties"),
+        false,
+    )
+    .expect("bounded coverage")
 }

@@ -38,7 +38,7 @@ fn phoneme(
 }
 pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
     let inventory_id = SpeechInventoryId::new("choice/inventory".into()).unwrap();
-    let language = SpeechLanguageId::new("en".into()).unwrap();
+    let language = LanguageId::new("en".into()).unwrap();
     let rule = SpeechPhonemeAllophone::new(
         BoundedSequence::new(),
         SpeechConfidence::new(IeeeF32::from_value(1.0)).unwrap(),
@@ -98,7 +98,7 @@ pub fn write(output: &str) -> Result<(), Box<dyn std::error::Error>> {
     let sources = BoundedSequence::try_from_iter([LanguageSegmentRef::text(
         LanguageTextSegmentKind::Word,
         language.clone(),
-        ListeningTextRange::new(4, 0).unwrap(),
+        LanguageTextRange::new(4, 0).unwrap(),
         LanguageTextRevisionId::new("choice/text-revision".into()).unwrap(),
         LanguageTextId::new("choice/text".into()).unwrap(),
     )

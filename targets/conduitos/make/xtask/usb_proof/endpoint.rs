@@ -23,7 +23,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod boot_selection;
+mod hid;
 mod identity;
+mod mode;
+use mode::ProofMode;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,6 +52,15 @@ struct EndpointSign {
 }
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    execute_mode(opts, ProofMode::Raw)
+}
+pub(super) fn execute_hid(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    execute_mode(opts, ProofMode::Keyboard)
+}
+pub(super) fn execute_mouse(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    execute_mode(opts, ProofMode::Mouse)
+}
+fn execute_mode(opts: &GlobalOpts, mode: ProofMode) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal(
             "dry-run-has-no-proof",
@@ -55,9 +68,17 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    image::execute_usb_endpoint(opts)?;
-    let socket = paths.target.join("usb-endpoint-monitor.sock");
-    let serial_path = paths.target.join("usb-endpoint-serial.log");
+    if mode.entry().is_some() {
+        image::execute_usb_hid_endpoint(opts, mode == ProofMode::Mouse)?;
+    } else {
+        image::execute_usb_endpoint(opts)?;
+    }
+    let socket = paths.target.join(match mode {
+        ProofMode::Raw => "endpoint.sock",
+        ProofMode::Keyboard => "hid.sock",
+        ProofMode::Mouse => "mouse.sock",
+    });
+    let serial_path = paths.target.join(mode.serial_name());
     for path in [&socket, &serial_path] {
         if path.exists() {
             fs::remove_file(path).map_err(|e| refusal("endpoint-proof-path", e.to_string()))?;
@@ -91,7 +112,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-device",
             "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
             "-device",
-            "usb-kbd,bus=conduitos-xhci.0,port=1",
+            mode.device(),
             "-cdrom",
             paths
                 .iso
@@ -104,7 +125,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| refusal("endpoint-proof-qemu", e.to_string()))?;
-    let outcome = drive(&socket, &serial_path, &mut child);
+    let outcome = drive(&socket, &serial_path, &mut child, mode);
     if outcome.is_err() {
         let _ = child.kill();
         let _ = child.wait();
@@ -112,17 +133,22 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     outcome?;
     let serial = read_serial(&serial_path)?;
     let boot: GuestBootSign = extract(&serial, "CONDUIT_BOOT_SIGN ")?;
-    identity::validate_boot(&boot)?;
+    identity::validate_boot_mode(&boot, mode)?;
     let xhci: GuestXhciSign = extract(&serial, "CONDUIT_XHCI_SIGN ")?;
     run::validate_xhci(&boot, &xhci)?;
     let usb: GuestUsbSign = extract(&serial, "CONDUIT_USB_SIGN ")?;
     usb_run::validate(&boot, &xhci, &usb)?;
+    if mode.entry().is_some() {
+        return hid::retain(&paths, &serial, &boot, &xhci, &usb, mode);
+    }
     let sign: EndpointSign = extract(&serial, "CONDUIT_USB_ENDPOINT_SIGN ")?;
+    let boot_selection = boot_selection::verify(&serial, &boot, &usb)?;
     validate(&boot, &usb, &sign)?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos.usb-endpoint-read-proof/v1", "base_commit": git_head(&paths.root)?,
         "proof_class": "freestanding-emulator", "qemu_controller": "qemu-xhci", "qemu_device": "usb-kbd",
-        "boot": boot, "controller": xhci, "device": usb, "endpoint": sign, "class_acceptance": false,
+        "boot": boot, "controller": xhci, "device": usb, "endpoint": sign,
+        "boot_selection": boot_selection, "class_acceptance": false,
     });
     let output = paths.target.join("usb-endpoint-read-proof.json");
     fs::write(
@@ -135,7 +161,12 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-fn drive(socket: &Path, serial: &Path, child: &mut Child) -> Result<(), ConduitosError> {
+fn drive(
+    socket: &Path,
+    serial: &Path,
+    child: &mut Child,
+    mode: ProofMode,
+) -> Result<(), ConduitosError> {
     let trace = serial.with_extension("qmp.jsonl");
     let (mut stream, mut reader) = qmp::connect_traced(socket, child, Some(&trace))?;
     for sequence in 0..128 {
@@ -149,7 +180,7 @@ fn drive(socket: &Path, serial: &Path, child: &mut Child) -> Result<(), Conduito
                 Duration::from_secs(5)
             },
         )?;
-        let command = serde_json::json!({"execute":"input-send-event", "arguments":{"events":[{"type":"key", "data":{"down":sequence % 2 == 0,"key":{"type":"qcode","data":"a"}}}]}}).to_string();
+        let command = mode.input_command(sequence);
         qmp::request(
             &mut stream,
             &mut reader,

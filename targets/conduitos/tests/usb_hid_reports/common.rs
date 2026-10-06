@@ -4,8 +4,12 @@ use conduit_plot::*;
 pub const SOURCE: &str = include_str!("../../plots/usb/hid-reports.conduit");
 
 pub fn program(entry: &str) -> PortableExpressionProgram {
+    program_from(SOURCE, entry)
+}
+
+pub fn program_from(source: &str, entry: &str) -> PortableExpressionProgram {
     let checked =
-        check_syntax_document(&parse_syntax_document(SOURCE), &StartupCatalog::new()).unwrap();
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new())
         .unwrap()
         .expanded;
@@ -30,7 +34,7 @@ pub fn request(
         .find(|field| field.name() == "frame")
         .unwrap()
         .value_type();
-    let frame = crate::descriptor_frame::frame(frame_type, wire, actual);
+    let frame = crate::usb_hid_reports::common::frame(frame_type, wire, actual);
     StructuredInfoValue::record(
         program.input_type.clone(),
         vec![
@@ -69,4 +73,38 @@ pub fn tag(bytes: &[u8], expected: &str) {
             .is_some(),
         "expected {expected}"
     );
+}
+
+/// HID receives the admitted packed wire extent, without octet collection framing.
+pub fn frame(ty: &StructuredInfoType, wire: &[u8], actual: u64) -> Vec<u8> {
+    let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
+        panic!("frame record")
+    };
+    let field_type = |name: &str| {
+        fields
+            .iter()
+            .find(|field| field.name() == name)
+            .unwrap()
+            .value_type()
+            .clone()
+    };
+    StructuredInfoValue::record(
+        ty.clone(),
+        vec![
+            StructuredFieldValue::new(
+                "wire",
+                StructuredInfoValue::leaf(field_type("wire"), wire.to_vec()).unwrap(),
+            )
+            .unwrap(),
+            StructuredFieldValue::new(
+                "actual",
+                StructuredInfoValue::leaf(field_type("actual"), actual.to_le_bytes().to_vec())
+                    .unwrap(),
+            )
+            .unwrap(),
+        ],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap()
 }

@@ -39,29 +39,58 @@ fn main() {
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit")
     );
-    let syntax_type = conduit_language::LinguisticSyntacticLinkKind::semantic_type()
-        .expect("language-owned syntax Type");
+    let language_types = conduit_language::identity_types();
     let mut semantic_catalog = StartupCatalog::new();
-    semantic_catalog
-        .insert_structured_type("LinguisticSyntacticLinkKind", syntax_type.clone())
-        .expect("language syntax installs once");
+    for (name, ty) in &language_types {
+        semantic_catalog
+            .insert_structured_type(*name, ty.clone())
+            .expect("Language-owned Type installs once");
+    }
     let semantic =
         check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
             .expect("Speaking segment and listening contracts check");
-    let StructuredInfoTypeShape::Variant { schema, .. } = syntax_type.shape() else {
-        panic!("language syntax is a variant")
-    };
-    let syntax_identity = schema.as_str().to_owned();
+    let identities = language_types
+        .iter()
+        .map(|(_, ty)| match ty.shape() {
+            StructuredInfoTypeShape::Nominal { schema, .. }
+            | StructuredInfoTypeShape::Record { schema, .. }
+            | StructuredInfoTypeShape::Variant { schema, .. } => schema.as_str().to_owned(),
+            _ => panic!("Language identity has a nominal boundary"),
+        })
+        .collect::<Vec<_>>();
+    let paths = language_types
+        .iter()
+        .map(|(name, _)| format!("conduit_language::{name}"))
+        .collect::<Vec<_>>();
+    // LanguageVariety is metadata, not consumed by a speech value yet.
+    let bindings = identities
+        .iter()
+        .zip(&paths)
+        .zip(&language_types)
+        .filter(|(_, (name, _))| {
+            !matches!(
+                *name,
+                "LanguageVariety" | "LanguageTextReferenceMatch" | "LanguageExternalIdentity"
+            )
+        })
+        .map(
+            |((identity, path), _)| conduit_plot::rust_binding::ExternalNativeRustBinding {
+                semantic_identity: identity,
+                rust_type_path: path,
+            },
+        )
+        .collect::<Vec<_>>();
+    let external_types = language_types
+        .iter()
+        .map(|(_, ty)| ty.clone())
+        .collect::<Vec<_>>();
     let bindings = conduit_plot::rust_binding::generate_rust_bindings_with_external_bindings(
         &semantic.native_types,
-        &[syntax_type],
-        &[conduit_plot::rust_binding::ExternalNativeRustBinding {
-            semantic_identity: &syntax_identity,
-            rust_type_path: "conduit_language::LinguisticSyntacticLinkKind",
-        }],
+        &external_types,
+        &bindings,
         &conduit_plot::rust_binding::RustBindingOptions::default(),
     )
-    .expect("Speaking bindings consume language-owned syntax");
+    .expect("Speaking bindings consume Language-owned identities");
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("semantic_types.rs"),
         bindings.source,

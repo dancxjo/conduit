@@ -264,6 +264,30 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     let after = local_face(&state);
     assert_ne!(before["presentation"], after["presentation"]);
 
+    // Read-only recovery uses the newly projected Face in the same turn;
+    // unlike Activate, it cannot accidentally act on the old Show.
+    input.write_all(b"read all\n").unwrap();
+    let refreshed = read_until_prompt(&mut output, b"body> ");
+    assert!(refreshed.contains("Text Face revision="), "{refreshed}");
+    assert!(
+        !refreshed.contains("Refused the pending command"),
+        "{refreshed}"
+    );
+
+    let lull_action = action_id(&after, "conduit.intent/lull-clock@1");
+    input
+        .write_all(format!("focus {lull_action}\n").as_bytes())
+        .unwrap();
+    let _focused_lull = read_until_prompt(&mut output, b"body> ");
+    let lulled = product(&["body", "lull", "--state-dir", path(&state)]);
+    assert!(
+        lulled.status.success(),
+        "{}",
+        String::from_utf8_lossy(&lulled.stderr)
+    );
+    let after_lull = local_face(&state);
+    assert_ne!(after["presentation"], after_lull["presentation"]);
+
     input.write_all(b"activate\n").unwrap();
     let stale = read_until_prompt(&mut output, b"body> ");
     assert!(stale.contains("Refused the pending command"), "{stale}");
@@ -277,7 +301,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     service = start_service(&state);
     let rebooted = local_face(&state);
     assert_eq!(
-        after["presentation"]["basis"]["body_id"],
+        after_lull["presentation"]["basis"]["body_id"],
         rebooted["presentation"]["basis"]["body_id"]
     );
     assert_ne!(
@@ -393,6 +417,8 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
         "/usr/lib/espeak-ng-data",
         "--speech-engine",
         "/usr/lib/libespeak-ng.so.1",
+        "--speech-language-coverage",
+        "/unused/explicit-language-coverage.json",
     ]);
     assert!(!invalid_birth.status.success());
     assert!(String::from_utf8_lossy(&invalid_birth.stderr)
@@ -608,6 +634,7 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
 fn selected_installed_birth_speaks_one_current_face_clause() {
     let card = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_CARD").unwrap();
     let device = std::env::var("CONDUIT_SPOKEN_TEST_ALSA_DEVICE").unwrap();
+    let coverage = std::env::var("CONDUIT_SPOKEN_TEST_LANGUAGE_COVERAGE").unwrap();
     let options = product(&["body", "speech-options", "--json"]);
     assert!(options.status.success());
     let options: Value = serde_json::from_slice(&options.stdout).unwrap();
@@ -652,6 +679,8 @@ fn selected_installed_birth_speaks_one_current_face_clause() {
             provider["data"].as_str().unwrap(),
             "--speech-engine",
             provider["engine"].as_str().unwrap(),
+            "--speech-language-coverage",
+            &coverage,
         ],
         b"stop\nfocus creche.name\n",
     );

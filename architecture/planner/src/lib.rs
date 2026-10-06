@@ -1011,3 +1011,12 @@ fn hex(nibble: u8) -> char {
 
 #[cfg(test)]
 mod tests;
+
+mod language_coverage;
+pub use language_coverage::{
+    inspect_language_coverage, LanguageCoverageCandidateEvidence, LanguageCoverageCheck,
+    LanguageCoverageRequirement, LanguageCoverageUnsatisfied,
+};
+
+#[cfg(test)]
+mod language_coverage_tests;

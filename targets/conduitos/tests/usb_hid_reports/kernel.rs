@@ -20,7 +20,7 @@ fn checked_keyboard_class_sorts_64_frames_and_closes_without_allocations() {
     assert_eq!(outputs.len(), 2);
     let input = ValuePayload {
         value_kind: input_port.value_kind.clone(),
-        encoded: crate::descriptor_frame::frame(
+        encoded: crate::usb_hid_reports::common::frame(
             &run.input_schema,
             &[0x5a, 0, 255, 4, 9, 8, 7, 6],
             8,
@@ -127,7 +127,11 @@ fn checked_mouse_class_decodes_64_frames_and_closes_without_allocations() {
     let output_port = outputs[0].external_port.clone();
     let input = ValuePayload {
         value_kind: input_port.value_kind.clone(),
-        encoded: crate::descriptor_frame::frame(&run.input_schema, &[0xf9, 127, 255, 0xab], 4),
+        encoded: crate::usb_hid_reports::common::frame(
+            &run.input_schema,
+            &[0xf9, 127, 255, 0xab],
+            4,
+        ),
     };
     let mut output = ValuePayload {
         value_kind: output_port.value_kind.clone(),
@@ -194,12 +198,9 @@ fn checked_mouse_class_decodes_64_frames_and_closes_without_allocations() {
                             .record_field("wire")
                             .unwrap()
                             .unwrap()
-                            .collection_index(3)
-                            .unwrap()
-                            .unwrap()
-                            .primitive_bytes("value/u8")
-                            .unwrap(),
-                        [0xab]
+                            .primitive_bytes("value/bytes")
+                            .unwrap()[3],
+                        0xab
                     );
                     run.kernel
                         .complete_output(&output_port.port_id, actual)

@@ -72,8 +72,8 @@ async function stopRoute(route) {
 
 export async function captureLlmChapter({ xtask, owner, state, output, sourceCommit, runId,
   bodyId, ownerHostId, ownerBootId, faceId, faceRevision,
-  speechExecutable, speechData, speechEngine, model, ollamaEndpoint, admittedMemoryMib }) {
-  const route = await startRoute(ollamaEndpoint);
+  speechExecutable, speechData, speechEngine, speechLanguageCoverage, model, ollamaEndpoint, admittedMemoryMib }) {
+  let route = await startRoute(ollamaEndpoint);
   const actionId = 'explain-current-face-llm';
   const args = (directory, action) => [
     'prove', 'one-body-spoken-chapter', '--mode', 'llm-assisted',
@@ -83,6 +83,7 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
     '--admitted-memory-mib', String(admittedMemoryMib),
     '--speech-executable', speechExecutable, '--speech-data', speechData,
     '--speech-engine', speechEngine,
+    '--speech-language-coverage', speechLanguageCoverage,
   ];
   try {
     const directory = path.join(output, 'speech-llm');
@@ -203,8 +204,109 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
       exit_status: refused.status,
       transcript: { path: 'model-route-loss.txt', sha256: digest(Buffer.from(refusalText)) },
     };
-    return { speech, routeLoss };
+    route = await startRoute(ollamaEndpoint);
+    const restoredDir = path.join(output, 'speech-llm-restored');
+    const restoredActionId = 'explain-after-model-route-restoration';
+    const restored = spawnSync(xtask, args(restoredDir, restoredActionId),
+      { encoding: 'utf8', timeout: 180_000, maxBuffer: 4 * 1024 * 1024 });
+    assert.equal(restored.status, 0, restored.error ?? restored.stderr ?? restored.stdout);
+    const [restoredManifestBytes, restoredReceiptBytes, restoredOriginalBytes,
+      restoredValidationBytes, restoredWordsBytes, restoredModelValidationBytes,
+      restoredModelProofBytes, restoredWav] = await Promise.all([
+      'manifest.json', 'speech-receipt.json', 'original-model-output.json',
+      'validation.json', 'speech-transcript.json', 'model-validation.json',
+      'model-proof.json', 'speech.wav',
+    ].map(name => readFile(path.join(restoredDir, name))));
+    const [restoredManifest, restoredReceipt, restoredOriginal, restoredValidation,
+      restoredWords, restoredModelValidation, restoredModelProof] = [
+      restoredManifestBytes, restoredReceiptBytes, restoredOriginalBytes,
+      restoredValidationBytes, restoredWordsBytes, restoredModelValidationBytes,
+      restoredModelProofBytes,
+    ].map(bytes => JSON.parse(bytes));
+    const restoration = assertRestoredSpeech({
+      sourceCommit, runId, bodyId, ownerHostId, ownerBootId, faceId, faceRevision,
+      actionId: restoredActionId, initial: receipt, routeLoss,
+      manifest: restoredManifest, receipt: restoredReceipt, original: restoredOriginal,
+      validation: restoredValidation, words: restoredWords,
+      modelValidation: restoredModelValidation, modelProof: restoredModelProof,
+      wav: restoredWav,
+    });
+    return {
+      speech, routeLoss,
+      restoration: {
+        ...restoration,
+        configured_endpoint: route.endpoint,
+        speech_receipt_sha256: digest(restoredReceiptBytes),
+        speech_manifest_sha256: digest(restoredManifestBytes),
+        wav: { path: 'speech-llm-restored/speech.wav', bytes: restoredWav.length,
+          sha256: digest(restoredWav) },
+      },
+    };
   } finally {
     await stopRoute(route);
   }
+}
+
+export function assertRestoredSpeech({ sourceCommit, runId, bodyId, ownerHostId,
+  ownerBootId, faceId, faceRevision, actionId, initial, routeLoss, manifest,
+  receipt, original, validation, words, modelValidation, modelProof, wav }) {
+  assert.equal(routeLoss.speech_wav_produced, false);
+  assert.equal(manifest.result, 'complete');
+  assert.equal(receipt.proof_class, 'live-local-model');
+  for (const item of [receipt, validation]) {
+    assert.equal(item.source_commit, sourceCommit);
+    assert.equal(item.run_id, runId);
+    assert.equal(item.body_id, bodyId);
+    assert.equal(item.owner_host_id, ownerHostId);
+    assert.equal(item.owner_boot_id, ownerBootId);
+    assert.equal(item.face_id, faceId);
+    assertExactFaceRevision(faceRevision, item.face_revision);
+  }
+  assert.equal(receipt.action_id, actionId);
+  assert.notEqual(receipt.action_id, initial.action_id);
+  assert.equal(receipt.owner_snapshot_before_after_equal, true);
+  assert.equal(receipt.local_spoken_mask_show_observed, true);
+  assert.equal(receipt.owner_sealed_spoken_mask_route_observed, false);
+  assert.equal(receipt.playback_observed, false);
+  assert.equal(receipt.human_hearing_observed, false);
+  assert.equal(receipt.provider_id, initial.provider_id);
+  assert.equal(receipt.model_id, initial.model_id);
+  assert.equal(receipt.model_content_identity, initial.model_content_identity);
+  assert.equal(receipt.model_content_identity, modelProof.model_content_identity);
+  assert.equal(validation.accepted, true);
+  assert.equal(validation.presenter_play_completed, true);
+  assert.ok(typeof original.output === 'string' && original.output.length > 0);
+  assert.equal(original.sha256, digest(Buffer.from(original.output)));
+  assert.equal(validation.original_model_output_sha256, original.sha256);
+  assert.equal(receipt.original_model_output_sha256, original.sha256);
+  assert.equal(words.original_model_output, original.output);
+  assert.equal(words.text, validation.accepted_wording);
+  assert.equal(words.source_commit, sourceCommit);
+  assert.equal(words.run_id, runId);
+  assert.equal(words.body_id, bodyId);
+  assert.equal(words.face_revision, faceRevision);
+  assert.equal(receipt.accepted_wording_sha256, digest(Buffer.from(words.text)));
+  const showId = receipt.acknowledged_show.show.show_id;
+  assert.equal(words.show_id, showId);
+  assert.equal(modelValidation.show_id, showId);
+  assert.equal(modelValidation.accepted, true);
+  assert.equal(modelValidation.source_commit, sourceCommit);
+  assert.equal(modelValidation.run_id, runId);
+  assert.equal(modelValidation.body_id, bodyId);
+  assert.equal(modelValidation.face_revision, faceRevision);
+  assert.equal(modelValidation.original_output_sha256, original.sha256);
+  assert.equal(modelValidation.validated_text_sha256, digest(Buffer.from(words.text)));
+  for (const item of [validation, receipt, modelValidation]) {
+    assert.equal(item.provider_id, initial.provider_id);
+    assert.equal(item.model_id, initial.model_id);
+  }
+  assert.equal(receipt.wav_artifact.wav_sha256, digest(wav));
+  assert.equal(receipt.wav_artifact.wav_bytes, wav.length);
+  assert.ok(wav.length > 44 && wav.subarray(0, 4).toString() === 'RIFF');
+  return { action_id: actionId, proof_class: receipt.proof_class,
+    show_id: showId, validated_text: words.text,
+    model_content_identity: receipt.model_content_identity,
+    original_model_output_sha256: original.sha256,
+    owner_face_unchanged: true, model_route_restored: true,
+    playback_observed: false, human_hearing_observed: false };
 }

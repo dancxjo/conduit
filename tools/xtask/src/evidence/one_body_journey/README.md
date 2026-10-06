@@ -8,6 +8,7 @@ Each chapter receipt is `conduit.journey/chapter-receipt@1` JSON with the same s
 
 Media requirements:
 
+- Match the chapter's user-facing medium, not merely the bundle-wide inventory: Birth and Lull need terminal captures; Join needs both Chromium and QMP captures; Start needs Chromium; See needs QMP and terminal; Hear needs runtime speech. Loss and Return still need their own correlated visible results. These source labels are documentary checks, not independent proof that an action occurred.
 - Screenshots are `screenshot` outputs with `image/png` and a Chromium or QMP capture receipt. The resulting page needs at least one of each.
 - Terminal captures are UTF-8 `console-transcript` outputs with `text/plain; charset=utf-8` and a terminal capture receipt. The page shows a bounded excerpt and links the complete capture.
 - Speech is structurally valid PCM16 `audio/wav` with nonzero sample bytes and a runtime-speech capture receipt. That receipt also carries `show_id`, `plan_id`, `play_id`, exact `voice_id`, `transcript_id`, `transcript_sha256`, and `speech_mode` (`direct` or `llm-assisted`). Its `conduit.journey/speech-transcript@1` JSON repeats source/run/Body/chapter, Show and Face revision and the exact spoken `text`. The `hear` chapter must contain both speech modes.

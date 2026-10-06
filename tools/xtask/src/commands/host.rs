@@ -39,6 +39,8 @@ mod host_whisper;
 mod host_cli;
 pub use host_cli::HostArgs;
 use host_cli::{HostCommand, HostConfigCommand, RpiHostAction};
+#[path = "host_language_declaration.rs"]
+mod host_language_declaration;
 #[path = "host_speech.rs"]
 mod host_speech;
 #[path = "host_speech_proof.rs"]
@@ -56,6 +58,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         HostCommand::ProveWhisper {
             executable,
             model,
+            language_coverage,
+            language_request,
             pcm_s16le_16000_mono,
             threads,
             timeout_seconds,
@@ -63,6 +67,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             host_whisper::WhisperProofRequest {
                 executable,
                 model,
+                language_coverage,
+                language_request,
                 pcm_s16le_16000_mono,
                 threads,
                 timeout_seconds,
@@ -77,6 +83,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             capture_timeout_seconds,
             whisper_executable,
             whisper_model,
+            language_coverage,
+            language_request,
             whisper_threads,
             whisper_timeout_seconds,
             authorize_capture,
@@ -89,6 +97,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 capture_timeout_seconds,
                 whisper_executable,
                 whisper_model,
+                language_coverage,
+                language_request,
                 whisper_threads,
                 whisper_timeout_seconds,
                 authorize_capture,
@@ -235,6 +245,12 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             opts,
         ),
         HostCommand::ProveSpeech(request) => host_speech_proof::prove(request, opts),
+        HostCommand::DeclareSpeechLanguage(request) => {
+            host_language_declaration::speech(request, opts)
+        }
+        HostCommand::DeclareWhisperLanguage(request) => {
+            host_language_declaration::whisper(request, opts)
+        }
         HostCommand::InspectLocalModel {
             model,
             ollama_endpoint,

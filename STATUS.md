@@ -39,6 +39,24 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Language identity ownership (#4955–#4956, development):** Language owns
+  language/variety identity, explicit variety relationships and exact text
+  values/revisions/occurrences. Speech, listening and translation consume the
+  same generated carriers. Bounded exact external mapping preserves private
+  provider names and uses the #4952 report boundary; unknown mappings remain
+  insufficient. Non-Latin text and stale-occurrence fixtures prove this semantic
+  seam, not parser accuracy or multilingual availability. The #4957 development
+  slice now binds explicit Language/Variety requests to finite Back coverage,
+  gates default/policy/fixed placement planning, and retains exact declarations
+  in Plans. The four-token std/browser specimen retains exact Language-owned
+  source material and advertises limited English coverage. Native English
+  speech requires its declared experimental pronunciation variety. Hosted
+  eSpeak and Whisper offers start undeclared and require artifact-bound coverage
+  with explicit private voice/model-language mappings. Generic planner coverage
+  has stable acceptance; final source-material and speech-consumer proof and
+  acceptance remain open. See the
+  [Language contract](docs/architecture/language.md).
+
 - **Projection fidelity (#4952, development):** a bounded immutable core report
   distinguishes exact/declared transformation, permitted loss, insufficient
   results and canonical abnormal outcomes. Native evidence and score contracts

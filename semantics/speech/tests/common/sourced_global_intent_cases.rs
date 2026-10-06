@@ -17,7 +17,7 @@ fn sourced_global_admission_retains_exact_coverage_and_refuses_stale_late_materi
     let text = |revision: &str| {
         LanguageText::new(
             LanguageTextId::new("source".into()).unwrap(),
-            SpeechLanguageId::new("en".into()).unwrap(),
+            LanguageId::new("en".into()).unwrap(),
             LanguageTextRevisionId::new(revision.into()).unwrap(),
             "t".into(),
         )
