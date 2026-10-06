@@ -781,6 +781,22 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         &["target/debug/browser-body-camera-realization-capstone"],
     ),
     Step::typed(
+        "prove.browser-host.text-lab-live-server-build",
+        "Build the live Text Lab server used by the HTML Patchbay matrix",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-std-host",
+            "--bin",
+            "text-lab-live-server",
+        ],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/debug/text-lab-live-server"],
+    ),
+    Step::typed(
         "prove.browser-host.playwright",
         "Run browser host test suite",
         "npm",

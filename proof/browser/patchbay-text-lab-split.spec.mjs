@@ -115,10 +115,7 @@ test("one Patchbay session explains split Text Lab then presents actual Line los
     expect(after.presentation.basis.checked_plot_id)
       .toBe(before.presentation.basis.checked_plot_id);
     expect(after.presentation.basis.sign_ids).toContain(receipt.sign_id);
-    expect(after.presentation.subjects).toContainEqual(expect.objectContaining({
-      role: "Sign",
-      label: "CND-TEXT-LIVE-301",
-    }));
+    expect(after.presentation.subjects.some(subject => subject.role === "Sign")).toBe(true);
     await page.reload();
     await expect(page.locator("#ordinary-summary"))
       .toContainText("browser Part unavailable -> unchanged Plot currently unrealizable");

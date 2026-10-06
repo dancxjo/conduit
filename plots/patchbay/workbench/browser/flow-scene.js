@@ -173,7 +173,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
         const properties = subjectProperties.get(port.identity) || new Map();
         return {
           id: port.identity,
-          label: port.label,
+          label: port.name,
           accessibilityName: port.name,
           direction: properties.get("direction"),
           valueKind: properties.get("value-kind") || "typed value",
