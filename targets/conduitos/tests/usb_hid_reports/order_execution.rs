@@ -118,11 +118,21 @@ fn command(ty: &StructuredInfoType, ordinal: Option<u64>, keyboard: bool) -> Vec
         .unwrap()
 }
 
-fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool, keyboard: bool) {
-    let (schemas, mut run) = super::state_kernel::prepared_package(
-        &super::order_lifecycle::package(),
-        "usb-hid-keyboard-order-lifecycle",
-    );
+fn execute(
+    ordinals: &[u64],
+    expected_count: u64,
+    terminal: &str,
+    pressure: bool,
+    keyboard: bool,
+    endpoint: bool,
+) {
+    let entry_name = if endpoint {
+        "usb-hid-keyboard-ordered-results"
+    } else {
+        "usb-hid-keyboard-order-lifecycle"
+    };
+    let (schemas, mut run) =
+        super::state_kernel::prepared_package(&super::order_lifecycle::package(), entry_name);
     let boundary = &run.kernel().definition().boundary;
     let begin = boundary
         .input_fronts
@@ -134,7 +144,7 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
     let input = boundary
         .input_fronts
         .iter()
-        .find(|p| p.external_port.port_id.as_str() == "command")
+        .find(|p| p.external_port.port_id.as_str() == if endpoint { "result" } else { "command" })
         .unwrap()
         .external_port
         .clone();
@@ -161,7 +171,7 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
         .clone();
     let entry = conduitos::protocol_source::PreparedProtocolEntry::prepare(
         &serde_json::to_vec(&super::order_lifecycle::package()).unwrap(),
-        "usb-hid-keyboard-order-lifecycle",
+        entry_name,
     )
     .unwrap();
     let decoder = conduitos::source_keyboard_batch::SourceKeyboardBatchDecoder::prepare(
@@ -180,16 +190,55 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
     let mut batches = 0;
     let mut held_batch_steps = 0;
     let ty = schemas.get(&input.port_id).unwrap();
-    let inputs: Vec<_> = ordinals
+    let contract =
+        conduitos::usb_base::endpoint_read_contract::EndpointReadContract::prepare().unwrap();
+    let mut encoder =
+        conduitos::usb_base::endpoint_read_result::PreparedEndpointReadResultEncoder::new(
+            &contract,
+        )
+        .unwrap();
+    let mut inputs: Vec<_> = ordinals
         .iter()
         .copied()
         .map(Some)
-        .chain(matches!(terminal, "closed" | "gap").then_some(None))
+        .chain((!endpoint && matches!(terminal, "closed" | "gap")).then_some(None))
         .map(|ordinal| ValuePayload {
             value_kind: input.value_kind.clone(),
-            encoded: command(ty, ordinal, keyboard),
+            encoded: if endpoint {
+                let ordinal = ordinal.unwrap();
+                let wire = match ordinal {
+                    0 => [0, 0, 9, 4, 0, 0, 0, 0],
+                    2 => [0, 0, 5, 4, 0, 0, 0, 0],
+                    _ => [0; 8],
+                };
+                let actual = if !keyboard || ordinal == 1 { 0 } else { 8 };
+                encoder
+                    .completed(ordinal, 8, actual, &wire[..usize::from(actual)])
+                    .unwrap()
+                    .to_vec()
+            } else {
+                command(ty, ordinal, keyboard)
+            },
         })
         .collect();
+    if endpoint
+        && matches!(
+            terminal,
+            "stalled" | "provider-lost" | "timeout" | "unsupported"
+        )
+    {
+        use conduitos::usb_base::endpoint_read_result::EndpointReadDisposition;
+        let disposition = match terminal {
+            "stalled" => EndpointReadDisposition::Stalled,
+            "provider-lost" => EndpointReadDisposition::ProviderLost,
+            "timeout" => EndpointReadDisposition::Timeout,
+            _ => EndpointReadDisposition::Unsupported,
+        };
+        inputs.push(ValuePayload {
+            value_kind: input.value_kind.clone(),
+            encoded: encoder.disposition(disposition).unwrap().to_vec(),
+        });
+    }
     let seed = ValuePayload {
         value_kind: begin.value_kind.clone(),
         encoded: vec![],
@@ -282,8 +331,24 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
             }
             if let Some(sequence) = run.output_into(&ended.port_id, &mut end).unwrap() {
                 assert!(!saw_end);
+                let end_value = validate_canonical_structured_value(&end.encoded).unwrap();
+                let actual_end = [
+                    "closed",
+                    "gap",
+                    "stale",
+                    "duplicate",
+                    "outside-window",
+                    "pressure",
+                    "stalled",
+                    "provider-lost",
+                    "timeout",
+                    "unsupported",
+                ]
+                .into_iter()
+                .find(|tag| end_value.variant_payload(tag).unwrap().is_some())
+                .unwrap();
+                assert_eq!(actual_end, terminal);
                 assert_eq!(received, expected_count);
-                super::common::tag(&end.encoded, terminal);
                 run.complete_output(&ended.port_id, sequence).unwrap();
                 saw_end = true;
             }
@@ -317,18 +382,30 @@ fn execute(ordinals: &[u64], expected_count: u64, terminal: &str, pressure: bool
 
 #[test]
 fn ordered_source_drains_eight_observations_under_pressure_without_allocations() {
-    execute(&[7, 3, 0, 6, 1, 5, 2, 4], 8, "closed", true, false);
+    execute(&[7, 3, 0, 6, 1, 5, 2, 4], 8, "closed", true, false, false);
 }
 
 #[test]
 fn gaps_duplicates_stale_and_distant_ordinals_remain_explicit() {
-    execute(&[1], 0, "gap", false, false);
-    execute(&[1, 1], 0, "duplicate", false, false);
-    execute(&[0, 0], 1, "stale", false, false);
-    execute(&[8], 0, "outside-window", false, false);
+    execute(&[1], 0, "gap", false, false, false);
+    execute(&[1, 1], 0, "duplicate", false, false, false);
+    execute(&[0, 0], 1, "stale", false, false, false);
+    execute(&[8], 0, "outside-window", false, false, false);
 }
 
 #[test]
 fn keyboard_history_follows_wire_order_and_skips_invalid_reports_under_batch_pressure() {
-    execute(&[2, 1, 3, 0], 4, "closed", true, true);
+    execute(&[2, 1, 3, 0], 4, "closed", true, true, false);
+}
+
+#[test]
+fn completed_endpoint_octets_reach_ordered_keyboard_batches_in_one_kernel() {
+    execute(&[2, 1, 3, 0], 4, "closed", true, true, true);
+}
+
+#[test]
+fn endpoint_physical_failures_follow_completed_prefix_and_remain_explicit() {
+    for terminal in ["stalled", "provider-lost", "timeout", "unsupported"] {
+        execute(&[0], 1, terminal, false, false, true);
+    }
 }
