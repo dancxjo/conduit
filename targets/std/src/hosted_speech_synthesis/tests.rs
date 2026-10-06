@@ -34,7 +34,14 @@ fn fixture() -> (Fixture, EspeakDiscovery) {
     (Fixture(root), discovery)
 }
 fn adapter(discovery: EspeakDiscovery) -> EspeakSpeechAdapter {
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en-us",
+        "language/english",
+    );
     discovery
+        .declare_language_coverage(coverage)
+        .unwrap()
         .initialize(
             "host/speech".into(),
             "boot/speech".into(),
@@ -48,13 +55,17 @@ fn placement(adapter: &EspeakSpeechAdapter) -> PlannedGear {
     let offer = adapter.offer();
     let resource = adapter.resource_offer();
     let grant = adapter.authority_grant();
-    conduit_core::planned_gear_from_parts! {
+    let realization_properties = offer.realization_properties;
+    let mut placement = conduit_core::planned_gear_from_parts! {
         placement_id: "placement/speech".into(),
         gear_id: "speech".into(),
         kind_id: offer.kind_id,
         kind_contract_revision: offer.kind_contract_revision,
         execution_profile_id: offer.implementation.execution_profile_id,
         configuration: vec![ConfigurationEntry {
+            key: "language-request".into(),
+            value: conduit_language::language_request_configuration(crate::hosted_language::tests::request("language/english")).unwrap(),
+        }, ConfigurationEntry {
             key: "maximum-output-bytes".into(),
             value: ConfigurationValue::U64(u64::from(conduit_tongues::MAXIMUM_PCM_BYTES)),
         }],
@@ -90,7 +101,9 @@ fn placement(adapter: &EspeakSpeechAdapter) -> PlannedGear {
             capability_id: grant.capability_id,
         }],
         pool_references: vec![],
-    }
+    };
+    placement.realization_properties = realization_properties;
+    placement
 }
 #[test]
 #[cfg(unix)]
@@ -224,5 +237,47 @@ fn installed_espeak_produces_real_bounded_pcm_from_parameter_like_text() {
     assert_eq!(
         receipt.text_sha256,
         format!("{:x}", Sha256::digest(b"--help"))
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn selected_voice_needs_exact_artifact_mapping_and_coverage() {
+    let (_files, discovery) = fixture();
+    let foreign = crate::hosted_language::tests::fixture_coverage(
+        "espeak/provider/other",
+        "en-us",
+        "language/english",
+    );
+    assert_eq!(
+        discovery.clone().declare_language_coverage(foreign),
+        Err(EspeakFailure::Language(HostedLanguageRefusal::Artifact))
+    );
+    let wrong_voice = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "fr",
+        "language/english",
+    );
+    assert_eq!(
+        discovery.clone().declare_language_coverage(wrong_voice),
+        Err(EspeakFailure::Language(HostedLanguageRefusal::Mapping))
+    );
+    let adapter = adapter(discovery);
+    let mut french = placement(&adapter);
+    french.configuration[0].value = conduit_language::language_request_configuration(
+        crate::hosted_language::tests::request("language/french"),
+    )
+    .unwrap();
+    assert_eq!(
+        adapter.validate_placement(&french),
+        Err(EspeakFailure::Language(HostedLanguageRefusal::Coverage(
+            conduit_language::LanguageCoverageRefusal::Language
+        )))
+    );
+    let mut stale_declaration = placement(&adapter);
+    stale_declaration.realization_properties.clear();
+    assert_eq!(
+        adapter.validate_placement(&stale_declaration),
+        Err(EspeakFailure::WrongPlacement)
     );
 }

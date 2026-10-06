@@ -207,6 +207,8 @@ fn maximum_blocks(placement: &PlannedGear) -> Result<u16, String> {
 }
 
 pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
+    crate::hosted_language::admit(placement)
+        .map_err(|error| format!("synthesis Language preparation: {error:?}"))?;
     let offer = match placement.implementation_id.as_str() {
         conduit_std_offers::DETERMINISTIC_SPEECH_IMPLEMENTATION => {
             conduit_std_offers::deterministic_speech_offer()
