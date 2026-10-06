@@ -241,7 +241,8 @@ try {
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(1000ms\)/);
   assert.deepEqual(errors, []);
   const terminal = spawnSync(owner, ['body', 'terminal', '--state-dir', state], {
-    input: 'inspect\ncontrol next\ntype 500\napply\nquit\n', encoding: 'utf8', timeout: 10_000,
+    // The lulled Face exposes Wake first, then the checked clock argument.
+    input: 'inspect\ncontrol next\ncontrol next\ntype 500\napply\nquit\n', encoding: 'utf8', timeout: 10_000,
   });
   assert.equal(terminal.status, 0, terminal.stderr);
   const terminalShows = [...terminal.stdout.matchAll(/Owner Face revision (\d+) · Show (\S+) · Host (\S+) · Boot (\S+)/g)];
