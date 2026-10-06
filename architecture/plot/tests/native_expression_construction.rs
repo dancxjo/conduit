@@ -230,3 +230,28 @@ fn variant_payload_projection_preserves_exact_forwarded_refinements() {
             .contains("law validator")
     );
 }
+
+#[test]
+fn fixed_collections_preserve_each_exact_element_refinement() {
+    let source = "type Address = {\n address: U8 in 8..=119\n}\ntype Batch = {\n addresses: collection Address = 2\n}\nplot choose (\n >> input: Batch\n output: Batch >>\n) = ({addresses: [.addresses.1, {address: .addresses.0.address}]})\n";
+    assert!(compile(source).is_ok());
+    assert!(
+        compile(&source.replace(".addresses.0.address", ".addresses.0.address + 1"))
+            .unwrap_err()
+            .contains("law validator")
+    );
+    assert!(
+        compile(&source.replace(".addresses.0.address", "0"))
+            .unwrap_err()
+            .contains("law validator")
+    );
+    let broad = "type Broad = {\n address: U8 in 0..=255\n}\ntype BroadBatch = {\n addresses: collection Broad = 2\n}\n";
+    assert!(
+        compile(&format!(
+            "{broad}{}",
+            source.replace("input: Batch", "input: BroadBatch").replace("[.addresses.1,", "[{address: .addresses.1.address},")
+        ))
+        .unwrap_err()
+        .contains("law validator")
+    );
+}
