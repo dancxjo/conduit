@@ -4,7 +4,7 @@ mod mouse;
 use super::*;
 use conduit_core::*;
 use conduitos::{
-    protocol_source::{PreparedProtocolSource, usb_hid_endpoint_package},
+    protocol_source::{usb_hid_endpoint_package, PreparedProtocolSource},
     usb_base::hid_endpoint_proof_plan,
 };
 

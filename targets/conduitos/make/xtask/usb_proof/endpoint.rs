@@ -1,10 +1,10 @@
 //! Dedicated raw endpoint emulator proof; does not establish class acceptance.
 use super::super::{
-    ConduitosArch, ConduitosError, image,
-    profile::{EXPECTED_QEMU_SUCCESS, Paths},
+    image,
+    profile::{Paths, EXPECTED_QEMU_SUCCESS},
     qmp,
-    report::{GuestBootSign, GuestUsbSign, GuestXhciSign, git_head},
-    run, usb_run,
+    report::{git_head, GuestBootSign, GuestUsbSign, GuestXhciSign},
+    run, usb_run, ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use conduit_core::bind_active_play;
