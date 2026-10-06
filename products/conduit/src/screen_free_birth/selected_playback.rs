@@ -166,6 +166,7 @@ impl SelectedPlayback {
             "outcome": format!("{:?}", result.outcome),
             "face_id": result.face_id,
             "face_revision": result.face_revision,
+            "face_revision_decimal": result.face_revision.to_string(),
             "source_show_id": result.source_show_id,
             "stream_identity": result.stream_identity,
             "source_segments_sha256": result.source_segments_sha256,

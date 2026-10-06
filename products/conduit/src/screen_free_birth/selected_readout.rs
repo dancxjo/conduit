@@ -213,6 +213,7 @@ fn write_turn(
             "schema": "conduit.body/spoken-face-turn@1",
             "face_id": terminal.face_id,
             "face_revision": terminal.face_revision,
+            "face_revision_decimal": terminal.face_revision.to_string(),
             "source_show_id": terminal.show_id,
             "outcome": format!("{:?}", terminal.outcome),
             "completed_segments": terminal.completed_segments,
