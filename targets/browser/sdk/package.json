@@ -20,6 +20,7 @@
     "browser-sdk-events.mjs",
     "browser-sdk-face.mjs",
     "browser-sdk-face-actions.mjs",
+    "browser-sdk-wardrobe.mjs",
     "host/assets/*.js",
     "host/assets/*.mjs",
     "browser-sdk.d.ts",
