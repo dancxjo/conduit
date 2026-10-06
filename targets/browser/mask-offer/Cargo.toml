@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
-conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+conduit-presentation = { path = "../../../semantics/presentation", default-features = false, features = ["plot-catalog"] }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }
+conduit-host-browser-make = { path = "../make" }

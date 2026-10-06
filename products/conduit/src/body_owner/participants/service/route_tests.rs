@@ -232,6 +232,24 @@ fn browser_mask_planning_requires_the_reviewed_back_and_presentation_resource() 
         )
         .unwrap();
     assert_eq!(selected.mask_host.host_id, snapshot.credential.host_id);
+    let fores = &selected.planned_mask.plan.fragments[0].fore_ports;
+    let selected_line = |name| {
+        fores
+            .iter()
+            .find(|fore| fore.front_port_id.as_str() == name)
+            .unwrap()
+            .selected_line
+            .clone()
+    };
+    assert_eq!(
+        selected_line("face"),
+        Some(carrier_evidence.face.admitted_line())
+    );
+    assert_eq!(
+        selected_line("show"),
+        Some(carrier_evidence.returned.admitted_line())
+    );
+    assert_eq!(selected_line("interaction"), None);
     let issued_face = owner.local_face_snapshot().unwrap();
     let issued_response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
         schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
