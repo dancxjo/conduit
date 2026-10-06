@@ -51,3 +51,57 @@ fn product_service_runs_presentation_only_from_idle_ingress_turn() {
     assert_eq!(control, ProductInputControl::Continue);
     assert!(service_seen);
 }
+
+#[cfg(target_arch = "x86_64")]
+#[test]
+fn source_batch_retains_pressure_and_yield_without_duplicate_delivery() {
+    let mut batch =
+        crate::source_keyboard_batch::fixture_pending_batch(core::array::from_fn(|index| {
+            HidKeyTransition::new(4 + index as u8, true, 0)
+        }));
+    let mut ingress = KeyboardIngress::new();
+    for _ in 0..INGRESS_CAPACITY {
+        ingress.admit(HidKeyTransition::new(30, true, 0)).unwrap();
+    }
+    let mut delivered = alloc::vec::Vec::new();
+    service_source_batch(&mut batch, &mut ingress, &mut |event| {
+        match event {
+            ProductInputEvent::Key(key) => delivered.push(key.usage()),
+            ProductInputEvent::LocalRescue(_) => {
+                panic!("pressure must retain the Source transition")
+            }
+            ProductInputEvent::Service => panic!("queued keys precede service"),
+            ProductInputEvent::Lost(_) => panic!("unexpected loss"),
+        }
+        Ok(ProductInputControl::Continue)
+    })
+    .unwrap();
+    assert_eq!(batch.pending(), 20);
+    assert_eq!(delivered, alloc::vec![30; INGRESS_CAPACITY]);
+    delivered.clear();
+    assert_eq!(
+        service_source_batch(&mut batch, &mut ingress, &mut |event| {
+            assert!(matches!(event, ProductInputEvent::LocalRescue(_)));
+            Ok(ProductInputControl::Yield)
+        })
+        .unwrap(),
+        ProductInputControl::Yield
+    );
+    assert_eq!(batch.pending(), 19);
+    assert_eq!(ingress.pending(), 1);
+    let mut rescue_count = 1;
+    while batch.pending() != 0 || ingress.pending() != 0 {
+        service_source_batch(&mut batch, &mut ingress, &mut |event| {
+            match event {
+                ProductInputEvent::Key(key) => delivered.push(key.usage()),
+                ProductInputEvent::LocalRescue(_) => rescue_count += 1,
+                ProductInputEvent::Service => panic!("queued keys precede service"),
+                ProductInputEvent::Lost(_) => panic!("unexpected loss"),
+            }
+            Ok(ProductInputControl::Continue)
+        })
+        .unwrap();
+    }
+    assert_eq!(rescue_count, 20);
+    assert_eq!(delivered, (4_u8..24).collect::<alloc::vec::Vec<_>>());
+}

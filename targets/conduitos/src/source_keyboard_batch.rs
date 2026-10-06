@@ -132,3 +132,15 @@ impl PendingSourceKeyboardBatch {
         Ok(true)
     }
 }
+
+#[cfg(test)]
+pub(crate) fn fixture_pending_batch(
+    transitions: [HidKeyTransition; 20],
+) -> PendingSourceKeyboardBatch {
+    SourceKeyboardBatch {
+        transitions,
+        count: 20,
+    }
+    .into_pending()
+    .unwrap()
+}
