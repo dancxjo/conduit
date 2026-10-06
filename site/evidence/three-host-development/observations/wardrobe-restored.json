@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.proof/browser-capture-observation@1",
+  "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "browser_host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+  "browser_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+  "cause": {
+    "kind": "owner-wardrobe-transition",
+    "owner_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+    "revision_before": "6",
+    "revision_after": "9",
+    "selected_route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+    "selected_show_id": "show/0fd8ddd14e207c934c189f3821a3daeebc99eb65cc899b69b770d81834d7f267"
+  },
+  "resulting_face": {
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": "13",
+    "show_id": "show/0fd8ddd14e207c934c189f3821a3daeebc99eb65cc899b69b770d81834d7f267"
+  },
+  "capture": {
+    "source": "pinned-chromium",
+    "path": "browser-wardrobe.png",
+    "bytes": 83331,
+    "sha256": "e22b75d87e6a35aca0672383056b7e7c0fb266a6d82baedcce24735ff9140141"
+  }
+}

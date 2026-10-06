@@ -146,6 +146,10 @@ Ed25519 signatures, not RSA. Use a private P-256 route certificate whose SAN
 includes the guest route IP (`10.0.2.42`) and the owner-forward address. An
 RSA certificate can provision successfully but the guest cannot complete its
 TLS handshake.
+The embedded verifier also matches its route name against a DNS SAN or common
+name. For this IP route, set the certificate common name to `10.0.2.42` as well
+as including the IP SAN. A certificate with only the IP SAN can provision but
+will be refused at guest TLS authentication.
 
 ```sh
 cargo xtask make conduitos screen-free-three-host-proof \

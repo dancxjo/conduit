@@ -37,6 +37,7 @@ fn add(
     let extension = match kind {
         EvidenceKind::Screenshot => "png",
         EvidenceKind::Audio => "wav",
+        EvidenceKind::Document => "html",
         EvidenceKind::ConsoleTranscript => "txt",
         EvidenceKind::MachineReadableManifest => "json",
     };

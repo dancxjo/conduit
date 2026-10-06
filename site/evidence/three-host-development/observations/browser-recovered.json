@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.proof/browser-capture-observation@1",
+  "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "browser_host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+  "browser_boot_id": "browser-boot/543d806e-4a9b-49dd-af75-f311ab308b75",
+  "cause": {
+    "kind": "browser-presentation-recovery",
+    "browser_part_id": "4cd5bdcfe3f783d67c3e3e034e513d8246e8438a07a2ae06436802dcd20c16e7",
+    "lost_boot_id": "browser-boot/71b019b9-1d57-4700-b180-3b35fa1e6cc6",
+    "recovered_boot_id": "browser-boot/543d806e-4a9b-49dd-af75-f311ab308b75",
+    "old_show_id": "show/61b88b1ea2dd209e64c5f2abb131fedaad963589e48d55f8cb071aac56ef32be",
+    "recovered_show_id": "show/f0c9807e35397fcbc584b1b48e97a74fa709810d25ac22d4ec59908a7bf48d0b"
+  },
+  "resulting_face": {
+    "face_id": "05a8c7ea515cd57acabff40d5aa491c3c11b6115d835fac3e700c632d5c7d031",
+    "face_revision": "15",
+    "show_id": "show/f0c9807e35397fcbc584b1b48e97a74fa709810d25ac22d4ec59908a7bf48d0b"
+  },
+  "capture": {
+    "source": "pinned-chromium",
+    "path": "browser-after-recovery.png",
+    "bytes": 162302,
+    "sha256": "ce37bbd2771ff405241dcabbfe7fea153255ef3a9bde31c6f172fa5044c87cdd"
+  }
+}

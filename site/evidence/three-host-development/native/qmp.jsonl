@@ -1,0 +1,37 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-4807-evidence-78c7da11/screenfree-cn-72be39434/three-host/native/owner-standby.ppm\"},\"execute\":\"screendump\",\"id\":\"1:owner-standby\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:owner-standby\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"2:native-owner-activate\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"2:native-owner-activate\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"3:native-owner-activate\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:native-owner-activate\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-4807-evidence-78c7da11/screenfree-cn-72be39434/three-host/native/owner-before.ppm\"},\"execute\":\"screendump\",\"id\":\"4:owner-before\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"4:owner-before\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"5:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"5:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"6:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"6:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"7:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"7:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"8:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"8:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"9:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"9:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"10:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"10:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"11:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"11:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"12:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"12:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"13:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"13:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"14:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"14:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"15:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"15:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"16:native-owner-clock-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"16:native-owner-clock-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-4807-evidence-78c7da11/screenfree-cn-72be39434/three-host/native/owner-after.ppm\"},\"execute\":\"screendump\",\"id\":\"17:owner-after\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"17:owner-after\"}\r\n"}
