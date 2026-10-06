@@ -18,11 +18,13 @@ const LOCAL: &str = "plot clock-demo {\n    freq = 1s\n    clock: time/every(fre
 struct RecordingTimer {
     waits: Vec<Duration>,
     stop: Option<RunControl>,
+    now_ms: u64,
 }
 
 impl TimerAdapter for RecordingTimer {
     fn wait(&mut self, duration: Duration) {
         self.waits.push(duration);
+        self.now_ms += u64::try_from(duration.as_millis()).unwrap();
         if self.waits.len() >= 16 {
             if let Some(control) = self.stop.take() {
                 control
@@ -30,6 +32,10 @@ impl TimerAdapter for RecordingTimer {
                     .unwrap();
             }
         }
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(self.now_ms)
     }
 }
 
@@ -94,6 +100,7 @@ fn duration_spellings_have_one_semantic_identity_and_execute_until_explicit_stop
     let mut timer = RecordingTimer {
         waits: Vec::with_capacity(16),
         stop: Some(control.clone()),
+        now_ms: 0,
     };
     let report = host
         .run_fragment_controlled_to(plan.fragments[0].clone(), &mut output, &mut timer, &control)

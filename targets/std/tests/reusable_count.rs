@@ -13,11 +13,13 @@ const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 struct RecordingTimer {
     waits: Vec<Duration>,
     stop: Option<RunControl>,
+    now_ms: u64,
 }
 
 impl TimerAdapter for RecordingTimer {
     fn wait(&mut self, duration: Duration) {
         self.waits.push(duration);
+        self.now_ms += u64::try_from(duration.as_millis()).unwrap();
         if self.waits.len() >= 20 {
             if let Some(control) = self.stop.take() {
                 control
@@ -25,6 +27,10 @@ impl TimerAdapter for RecordingTimer {
                     .unwrap();
             }
         }
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(self.now_ms)
     }
 }
 
@@ -83,6 +89,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
     let mut timer = RecordingTimer {
         waits: Vec::with_capacity(20),
         stop: Some(control.clone()),
+        now_ms: 0,
     };
     let report = host
         .run_fragment_controlled_to(plan.fragments[0].clone(), &mut output, &mut timer, &control)
