@@ -29,7 +29,9 @@ impl StartupCatalog {
         let name = name.into();
         match self.structured_types.get(&name) {
             Some(existing) if existing == &value_type => Ok(()),
-            Some(_) => Err(format!("structured startup type '{name}' differs from its owner schema")),
+            Some(_) => Err(format!(
+                "structured startup type '{name}' differs from its owner schema"
+            )),
             None => self.insert_structured_type(name, value_type),
         }
     }
