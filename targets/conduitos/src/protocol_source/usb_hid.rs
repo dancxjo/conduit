@@ -56,3 +56,39 @@ pub fn usb_hid_endpoint_package() -> Result<ProtocolSourcePackage, ProtocolSourc
         ],
     )
 }
+
+/// Assemble wire-order policy with the existing bounded state, feedback and
+/// merge operations. This package grants no endpoint or input authority.
+pub fn usb_hid_keyboard_order_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
+    let lifecycle = include_str!("../../plots/usb/hid-keyboard-order-lifecycle.conduit");
+    let (header, body) =
+        lifecycle
+            .split_once("\n\n")
+            .ok_or(ProtocolSourceRefusal::Specialization(
+                "HID ordering imports",
+            ))?;
+    let source = format!(
+        "{header}\n{}\n{}\n{body}",
+        include_str!("../../plots/usb/hid-reports.conduit"),
+        include_str!("../../plots/usb/hid-keyboard-order.conduit"),
+    );
+    let value = |name: &str| ProtocolValueReference {
+        type_name: name.into(),
+        maximum_bytes: 4096,
+    };
+    ProtocolSourcePackage::compile(
+        source,
+        &[
+            ProtocolSpecializationRequest::SeededUntil {
+                value: value("UsbKeyboardOrderSession"),
+            },
+            ProtocolSpecializationRequest::FeedbackZip {
+                left: value("UsbKeyboardOrderSession"),
+                right: value("UsbKeyboardOrderCommand"),
+            },
+            ProtocolSpecializationRequest::Merge {
+                value: value("UsbKeyboardOrderSession"),
+            },
+        ],
+    )
+}
