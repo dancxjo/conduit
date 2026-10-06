@@ -30,8 +30,6 @@ struct PcSpeakerProofRecord {
     mechanism: &'static str,
     timer_preservation: &'static str,
     positive: GuestPcSpeakerSign,
-    /// Captured at QEMU's audio backend in the same boot as `positive`.
-    qemu_audio: run::QemuWavCapture,
     deterministic_negative_command: &'static str,
     deterministic_negative_cases: &'static [&'static str],
     physical_audio_observation_claimed: bool,
@@ -47,14 +45,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
     image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
-    let audio_path = paths.target.join("pc-speaker-proof-audio.wav");
-    if audio_path.exists() {
-        fs::remove_file(&audio_path).map_err(|error| {
-            ConduitosError::refusal("pc-speaker-audio-stale", error.to_string())
-        })?;
-    }
-    let positive = run::boot_once_with_audio(&paths, opts, &audio_path)?;
-    let qemu_audio = run::inspect_wav(&audio_path)?;
+    let positive = run::boot_once(&paths, opts)?;
     let status = Command::new("cargo")
         .args(["test", "-p", "conduitos", "--lib", "pc_speaker"])
         .current_dir(&paths.root)
@@ -76,7 +67,6 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         mechanism: "pit-channel-2+system-control-b-gate",
         timer_preservation: "pit-channel-0-untouched",
         positive: positive.pc_speaker,
-        qemu_audio,
         deterministic_negative_command: "cargo test -p conduitos --lib pc_speaker",
         deterministic_negative_cases: &NEGATIVE_CASES,
         physical_audio_observation_claimed: false,

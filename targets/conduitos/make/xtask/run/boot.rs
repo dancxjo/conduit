@@ -139,17 +139,10 @@ fn boot_with_memory(
         monitor_socket.to_string_lossy()
     );
     let serial_target = format!("file:{}", serial_path.to_string_lossy());
-    let audio_backend =
-        wav.map(|wav| format!("wav,id=conduitos-opl2-audio,path={}", wav.display()));
-    let machine = if wav.is_some() {
-        "q35,pcspk-audiodev=conduitos-opl2-audio"
-    } else {
-        "q35"
-    };
     let mut command = Command::new("qemu-system-x86_64");
     command.args([
         "-M",
-        machine,
+        "q35",
         "-cpu",
         "max",
         "-m",
@@ -178,9 +171,7 @@ fn boot_with_memory(
         "-device",
         "usb-kbd,bus=conduitos-xhci.0,port=1",
         "-audiodev",
-        audio_backend
-            .as_deref()
-            .unwrap_or("none,id=conduitos-opl2-audio"),
+        "none,id=conduitos-opl2-audio",
         "-device",
         "adlib,audiodev=conduitos-opl2-audio",
         "-cdrom",
@@ -202,6 +193,8 @@ fn boot_with_memory(
         })?;
     if qemu_profile == conduitos::make::USB_CONFIGURATION_QEMU_PROFILE {
         hid_qmp::inject_configuration(&monitor_socket, &serial_path, &mut child)?;
+    } else if let Some(wav) = wav {
+        hid_qmp::inject_with_capture(&monitor_socket, &serial_path, &mut child, wav)?;
     } else {
         hid_qmp::inject(&monitor_socket, &serial_path, &mut child)?;
     }
