@@ -449,6 +449,13 @@ try {
       report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
     }
     if (report.selected?.route_id !== browserRoute.route_id) {
+      const selectedDescription = report.route_descriptions.find(route =>
+        route.route_id === report.selected?.route_id);
+      assert.ok(selectedDescription, 'owner model handoff needs the selected Mask name');
+      await page.getByRole('button', { name: `Doff ${selectedDescription.mask_name}`, exact: true }).click();
+      report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
+    }
+    if (report.selected?.route_id !== browserRoute.route_id) {
       await page.getByRole('button', { name: `Prefer only ${browserDescription.mask_name}`, exact: true }).click();
       report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
     }
