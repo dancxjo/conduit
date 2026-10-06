@@ -14,7 +14,7 @@ export async function retainOwnerSpeechArtifacts(state, output, batches) {
   await mkdir(destination, { mode: 0o700 });
   const names = new Set();
   const plays = new Set();
-  return Promise.all(batches.map(async batch => {
+  const retained = await Promise.all(batches.map(async batch => {
     const name = batch.wav_artifact_id;
     assert.match(name, /^play-[0-9a-f]{64}\.wav$/);
     assert.equal(names.has(name), false, 'speaker WAV artifact identity repeated');
@@ -51,12 +51,15 @@ export async function retainOwnerSpeechArtifacts(state, output, batches) {
     assert.equal(bytes.readUInt16LE(34), 16);
     assert.equal(bytes.toString('ascii', 36, 40), 'data');
     assert.equal(bytes.readUInt32LE(40), batch.pcm_bytes);
-    assert.ok(bytes.subarray(44).some(value => value !== 0), 'speaker WAV was silent');
+    const audible = bytes.subarray(44).some(value => value !== 0);
     assert.equal(sha256(bytes), batch.wav_sha256);
     assert.equal(sha256(bytes.subarray(44)), batch.pcm_sha256);
     const relative = `owner-selected-speech/${name}`;
     await writeFile(path.join(output, relative), bytes, { flag: 'wx', mode: 0o600 });
     return { ...batch, wav: { path: relative, sha256: batch.wav_sha256,
-      bytes: batch.wav_bytes, source: 'same-selected-speaker-play' } };
+      bytes: batch.wav_bytes, source: 'same-selected-speaker-play', audible } };
   }));
+  assert.ok(retained.some(batch => batch.wav.audible),
+    'selected speaker completed no audible Play');
+  return retained;
 }

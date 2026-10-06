@@ -88,14 +88,18 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     assert.equal(speech.human_hearing_observed, false);
     const clips = speech.batches.map((batch, index) => {
       assert.equal(batch.wav.source, 'same-selected-speaker-play');
-      return `<li><p>${escape(batch.spoken_segments.join(' '))}</p><audio controls preload="none" src="${escape(batch.wav.path)}"><a href="${escape(batch.wav.path)}">Download speaker Play ${index + 1}</a></audio></li>`;
+      return `<li><p>${escape(batch.spoken_segments.join(' '))}</p>${batch.wav.audible
+        ? `<audio controls preload="none" src="${escape(batch.wav.path)}"><a href="${escape(batch.wav.path)}">Download speaker Play ${index + 1}</a></audio>`
+        : '<p>This completed Play delivered digital silence; no audible clip is offered.</p>'}</li>`;
     });
-    const featured = speech.batches.find(batch => batch.spoken_segments.some(text =>
-      text.includes('The current clock interval is 500 milliseconds'))) ?? speech.batches[0];
+    const audible = speech.batches.filter(batch => batch.wav.audible);
+    assert.ok(audible.length > 0, 'the selected speaker chapter needs an audible Play');
+    const featured = audible.find(batch => batch.spoken_segments.some(text =>
+      text.includes('The current clock interval is 500 milliseconds'))) ?? audible[0];
     sections.push(chapter('owner-selected-speech', sections.length + 1,
       'Ask the owner to read this view aloud',
-      `From the joined browser, select “Read this view aloud,” then check its outcome. The installed Linux owner reports ${speech.batches.length} completed speaker Plays through its preselected equipment. Each playable WAV records the PCM fanned to the speaker in that same Plan and Play; the words beside it are the ordered committed segments. This establishes the device's completed output path, not attended human hearing.`,
-      `<figure class="audio-feature"><figcaption><strong>Listen to this speaker Play</strong><p>${escape(featured.spoken_segments.join(' '))}</p></figcaption><audio controls preload="metadata" src="${escape(featured.wav.path)}"><a href="${escape(featured.wav.path)}">Download this speaker Play</a></audio></figure><details><summary>Hear every completed speaker Play</summary><ol class="audio-list">${clips.join('')}</ol></details><details><summary>Inspect the exact output</summary><p>Browser route Plan <code>${escape(speech.browser_route_plan_id)}</code> · source Show <code>${escape(speech.source_show_id)}</code>.</p><ol>${speech.batches.map(batch => `<li>Stream <code>${escape(batch.stream_identity)}</code> · Plan <code>${escape(batch.plan_id)}</code> · Play <code>${escape(batch.play_id)}</code> · ${batch.speaker_blocks_committed} speaker blocks committed · WAV SHA-256 <code>${escape(batch.wav.sha256)}</code>.</li>`).join('')}</ol><p><a href="${speech.path}">Inspect the selected speech receipt</a>.</p></details>`));
+      `From the joined browser, select “Read this view aloud,” then check its outcome. The installed Linux owner reports ${speech.batches.length} completed speaker Plays through its preselected equipment; ${audible.length} carried non-silent PCM. Each playable WAV records the PCM fanned to the speaker in that same Plan and Play; the words beside it are the ordered committed segments. This establishes the device's completed output path, not attended human hearing.`,
+      `<figure class="audio-feature"><figcaption><strong>Listen to this speaker Play</strong><p>${escape(featured.spoken_segments.join(' '))}</p></figcaption><audio controls preload="metadata" src="${escape(featured.wav.path)}"><a href="${escape(featured.wav.path)}">Download this speaker Play</a></audio></figure><details><summary>Inspect every completed speaker Play</summary><ol class="audio-list">${clips.join('')}</ol></details><details><summary>Inspect the exact output</summary><p>Browser route Plan <code>${escape(speech.browser_route_plan_id)}</code> · source Show <code>${escape(speech.source_show_id)}</code>.</p><ol>${speech.batches.map(batch => `<li>Stream <code>${escape(batch.stream_identity)}</code> · Plan <code>${escape(batch.plan_id)}</code> · Play <code>${escape(batch.play_id)}</code> · ${batch.speaker_blocks_committed} speaker blocks committed · ${batch.wav.audible ? 'audible PCM' : 'digital silence'} · WAV SHA-256 <code>${escape(batch.wav.sha256)}</code>.</li>`).join('')}</ol><p><a href="${speech.path}">Inspect the selected speech receipt</a>.</p></details>`));
   }
   if (report.direct_speech) {
     sections.push(chapter('direct-speech', sections.length + 1, 'Inspect a separate speech diagnostic',

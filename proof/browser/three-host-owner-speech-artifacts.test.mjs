@@ -21,6 +21,11 @@ pcm.copy(wav, 44);
 const batch = { play_id: 'play/one', wav_artifact_id: name, wav_sha256: hash(wav),
   wav_bytes: wav.length, pcm_sha256: hash(pcm), pcm_bytes: pcm.length,
   pcm_blocks: 2, speaker_blocks_committed: 2, speaker_frames_committed: 100 };
+const silentName = `play-${'c'.repeat(64)}.wav`;
+const silentWav = Buffer.from(wav);
+silentWav.fill(0, 44);
+const silentBatch = { ...batch, play_id: 'play/silence', wav_artifact_id: silentName,
+  wav_sha256: hash(silentWav), pcm_sha256: hash(silentWav.subarray(44)) };
 
 test('retains the selected speaker Play bytes and rejects substitution or symlink', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'conduit-owner-speech-'));
@@ -33,6 +38,7 @@ test('retains the selected speaker Play bytes and rejects substitution or symlin
     await mkdir(output);
     const [retained] = await retainOwnerSpeechArtifacts(state, output, [batch]);
     assert.equal(retained.wav.source, 'same-selected-speaker-play');
+    assert.equal(retained.wav.audible, true);
     assert.deepEqual(await readFile(path.join(output, retained.wav.path)), wav);
     const tampered = path.join(root, 'tampered');
     await mkdir(tampered);
@@ -43,5 +49,25 @@ test('retains the selected speaker Play bytes and rejects substitution or symlin
     const linked = path.join(root, 'symlink');
     await mkdir(linked);
     await assert.rejects(retainOwnerSpeechArtifacts(state, linked, [batch]));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('retains silent delivered PCM but offers a clip only for an audible Play', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'conduit-owner-speech-'));
+  try {
+    const state = path.join(root, 'state');
+    await mkdir(path.join(state, 'spoken-artifacts'), { recursive: true });
+    await writeFile(path.join(state, 'spoken-artifacts', name), wav);
+    await writeFile(path.join(state, 'spoken-artifacts', silentName), silentWav);
+    const output = path.join(root, 'mixed');
+    await mkdir(output);
+    const retained = await retainOwnerSpeechArtifacts(state, output, [silentBatch, batch]);
+    assert.equal(retained[0].wav.audible, false);
+    assert.equal(retained[1].wav.audible, true);
+    assert.deepEqual(await readFile(path.join(output, retained[0].wav.path)), silentWav);
+    const allSilent = path.join(root, 'all-silent');
+    await mkdir(allSilent);
+    await assert.rejects(retainOwnerSpeechArtifacts(state, allSilent, [silentBatch]),
+      /no audible Play/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
