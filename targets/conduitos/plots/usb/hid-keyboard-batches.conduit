@@ -1,0 +1,72 @@
+# Ordinary input admits all changes from one report atomically. This profile
+# shares decoding and delta meaning with the ordered-transition profile.
+plot usb-hid-keyboard-batch-ready (
+    pair: UsbKeyboardBatchPair...| >> state: UsbKeyboardState...|
+) = ({ terminal: false, busy: false, previous: .0.current, changes: .1, cursor: 0 })
+
+plot usb-hid-keyboard-batch-observation (
+    pair: UsbKeyboardBatchPair...| >> changes: UsbKeyboardTransitionBatch...|
+) = (.1)
+
+plot usb-hid-keyboard-batch-lifecycle (
+    >> begin: Unit...|
+    >> command: UsbKeyboardCommand...| <= 4096B
+    changes: UsbKeyboardTransitionBatch...| >>
+) {
+    cell: state/seeded/flow/until
+    route: usb-hid-keyboard-route()
+    join: flow/zip/feedback
+    work: usb-hid-keyboard-command()
+    batch: flow/zip/finite
+    updates: flow/merge/finite
+    receive: usb-hid-keyboard-receive
+    begin >> usb-hid-keyboard-initialize() >> cell.seed
+    cell.current >> route
+    route >> select(UsbKeyboardRoute.waiting, unmatched=drop) >> join.left
+    command >> join.right
+    join.paired >> work
+    work >> receive.work
+    receive.received >> batch.left
+    receive.received >> usb-hid-keyboard-transitions() >> batch.right
+    batch.paired >> usb-hid-keyboard-batch-observation() >> changes
+    batch.paired >> usb-hid-keyboard-batch-ready() >> updates.left
+    work >> select(UsbKeyboardWork.finished, unmatched=drop) >> updates.right
+    updates.merged >> cell.next
+}
+
+plot usb-hid-keyboard-received-batches (
+    >> begin: Unit...|
+    >> frame: UsbHidReportFrame...|
+    observed: UsbBootKeyboardResult...| >>
+    changes: UsbKeyboardTransitionBatch...| >>
+) {
+    decode: usb-hid-boot-keyboard-zero-reserved
+    commands: flow/concat/finite
+    state: usb-hid-keyboard-batch-lifecycle
+    begin >> state.begin
+    begin >> usb-hid-keyboard-finish-command() >> commands.right
+    frame >> decode.frame
+    decode.observed >> observed
+    decode.decoded >> usb-hid-keyboard-report-command() >> commands.left
+    commands.concatenated >> state.command
+    state.changes >> changes
+}
+
+plot usb-hid-keyboard-batch-endpoint (
+    >> begin: Unit...|
+    >> read: Unit...|
+    received: UsbHidTransferFrame...| >>
+    observed: UsbBootKeyboardResult...| >>
+    changes: UsbKeyboardTransitionBatch...| >>
+) {
+    transfer: machine/usb/endpoint-read
+    framing: usb-hid-endpoint-frame()
+    keyboard: usb-hid-keyboard-received-batches
+    begin >> keyboard.begin
+    read >> usb-hid-endpoint-request() >> transfer.request
+    transfer.result >> framing
+    framing >> received
+    framing >> select(UsbHidTransferFrame.frame, unmatched=drop) >> keyboard.frame
+    keyboard.observed >> observed
+    keyboard.changes >> changes
+}
