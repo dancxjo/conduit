@@ -62,10 +62,34 @@ impl NativeProtocolIssuer {
     /// active identity must be the actual retained fragment Play identity;
     /// this preparation does not create or start a Play.
     pub fn issue(
+        self,
+        plan: &Plan,
+        active: &ActivePlayIdentity,
+        implementation: &ImplementationId,
+        work_units: u64,
+    ) -> Result<NativeProtocolPossession, NativeProtocolIssueRefusal> {
+        self.issue_inner(plan, active, implementation, None, work_units)
+    }
+
+    /// Consume this Root issuer for one exact placement in an admitted window.
+    /// Selecting a placement does not expand its retained authority or resources.
+    pub fn issue_selected(
+        self,
+        plan: &Plan,
+        active: &ActivePlayIdentity,
+        implementation: &ImplementationId,
+        placement: &PlacementId,
+        work_units: u64,
+    ) -> Result<NativeProtocolPossession, NativeProtocolIssueRefusal> {
+        self.issue_inner(plan, active, implementation, Some(placement), work_units)
+    }
+
+    fn issue_inner(
         mut self,
         plan: &Plan,
         active: &ActivePlayIdentity,
         implementation: &ImplementationId,
+        placement: Option<&PlacementId>,
         work_units: u64,
     ) -> Result<NativeProtocolPossession, NativeProtocolIssueRefusal> {
         use NativeProtocolIssueRefusal as Error;
@@ -88,10 +112,10 @@ impl NativeProtocolIssuer {
         {
             return Err(Error::WrongSelection);
         }
-        let mut matches = fragment
-            .placements
-            .iter()
-            .filter(|gear| &gear.implementation_id == implementation);
+        let mut matches = fragment.placements.iter().filter(|gear| {
+            &gear.implementation_id == implementation
+                && placement.is_none_or(|selected| &gear.placement_id == selected)
+        });
         let gear = matches.next().ok_or(Error::WrongSelection)?;
         let base = gear.base.as_ref().ok_or(Error::WrongSelection)?;
         let [call] = gear.host_calls.as_slice() else {
@@ -173,3 +197,7 @@ impl NativeProtocolIssuer {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "issuer_tests.rs"]
+mod tests;
