@@ -1498,6 +1498,7 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-human",
+ "conduit-language",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",

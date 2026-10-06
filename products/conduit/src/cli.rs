@@ -1,7 +1,7 @@
 mod speech;
 pub(crate) use speech::{BirthSpeechOptions, InstalledSpeechOptions};
 
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 /// Product command-line entrance for installed Conduit workflows.
