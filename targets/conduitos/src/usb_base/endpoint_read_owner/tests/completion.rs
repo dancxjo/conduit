@@ -89,6 +89,7 @@ fn endpoint_and_device_generation_changes_never_release_a_pending_receive() {
             owner.finish_quiesced(
                 &submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 8,
                     input: &[0; 8],
                 },

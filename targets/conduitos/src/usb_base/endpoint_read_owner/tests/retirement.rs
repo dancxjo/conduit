@@ -45,6 +45,7 @@ fn software_revocation_retains_the_transfer_until_exact_stop_acknowledgement() {
             owner.finish_quiesced(
                 &submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 8,
                     input: &[0; 8],
                 },
@@ -105,6 +106,7 @@ fn revocation_keeps_physical_pending_and_rejects_late_software_completion() {
             owner.finish_quiesced(
                 &submission,
                 NativeEndpointReadObservation::Completed {
+                    ordinal: 0,
                     actual: 8,
                     input: &[0; 8],
                 },
