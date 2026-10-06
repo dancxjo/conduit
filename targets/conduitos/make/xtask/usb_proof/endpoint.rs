@@ -74,7 +74,7 @@ fn execute_mode(opts: &GlobalOpts, mode: ProofMode) -> Result<(), ConduitosError
         image::execute_usb_endpoint(opts)?;
     }
     let socket = paths.target.join(match mode {
-        ProofMode::Raw => "usb-endpoint-monitor.sock",
+        ProofMode::Raw => "endpoint.sock",
         ProofMode::Keyboard => "hid.sock",
         ProofMode::Mouse => "mouse.sock",
     });
