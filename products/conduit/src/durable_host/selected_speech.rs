@@ -7,10 +7,14 @@ use conduit_std_host::{
         HostedPlaybackSelection,
     },
     hosted_speech_synthesis::EspeakDiscovery,
+    hosted_wav_artifact::WavArtifactSelection,
     StdHost,
 };
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -107,6 +111,32 @@ impl Selection {
         &self,
         host: &mut StdHost,
     ) -> Result<AttachedEquipment, String> {
+        self.attach_to_fresh_host_with_optional_artifact(host, None)
+    }
+
+    /// Select the speaker, voice, and one create-new WAV destination before
+    /// this Boot is advertised. The destination can complete once per Boot;
+    /// a later spoken Show requires a new Boot or an admitted per-Play output
+    /// selection, never replacement of an already published artifact.
+    pub(super) fn attach_to_fresh_host_with_artifact(
+        &self,
+        host: &mut StdHost,
+        destination: &Path,
+    ) -> Result<AttachedEquipment, String> {
+        if destination.exists() {
+            return Err("selected spoken artifact destination already exists".into());
+        }
+        let offer = host.advertisement();
+        let artifact =
+            WavArtifactSelection::new(destination, offer.boot_id.clone(), offer.offer_generation)?;
+        self.attach_to_fresh_host_with_optional_artifact(host, Some(artifact))
+    }
+
+    fn attach_to_fresh_host_with_optional_artifact(
+        &self,
+        host: &mut StdHost,
+        artifact: Option<WavArtifactSelection>,
+    ) -> Result<AttachedEquipment, String> {
         self.validate()?;
         let observation = observe_speaker(&self.card_id, self.device)?;
         if observation.base_identity != self.speaker_base_identity {
@@ -142,7 +172,11 @@ impl Selection {
             )
             .map_err(|error| format!("initialize configured eSpeak provider: {error:?}"))?;
         host.attach_selected_playback(playback.clone())?;
-        host.attach_espeak_speech_for_selected_playback(adapter)?;
+        if let Some(artifact) = artifact {
+            host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
+        } else {
+            host.attach_espeak_speech_for_selected_playback(adapter)?;
+        }
         Ok(AttachedEquipment {
             playback,
             authorization: ExplicitPlaybackAuthorization::new(&format!(
