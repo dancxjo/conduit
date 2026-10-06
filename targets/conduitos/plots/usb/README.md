@@ -38,8 +38,11 @@ refuses the out-of-domain `0x80` displacement rather than clamping it.
 `hid-mouse-order.conduit` adds a two-observation ordering state ahead of pointer
 history. It retains compact motion and distinct invalid-report observations;
 the existing decoded wire result and 2,048-byte endpoint payload retain their
-own bounds. Packaged preparation issues no authority. Execution conformance,
-pointer history, lifecycle and ordinary two-capture installation are pending.
+own bounds. Packaged preparation issues no authority. Prepared-expression conformance
+preserves signed motion and buttons, distinguishes invalid observations, refuses
+duplicate/stale/distant ordinals, and reuses two slots across 128 observations.
+Projection and drain allocation checks pass. Pointer history, kernel lifecycle
+and ordinary two-capture installation remain pending.
 
 Existing report conformance covers every key-slot permutation and motion octet.
 Both class topologies also execute 64 frames through the production kernel with
