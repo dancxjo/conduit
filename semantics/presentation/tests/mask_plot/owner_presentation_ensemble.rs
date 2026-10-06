@@ -47,6 +47,22 @@ fn owner_presentation_ensemble_preserves_child_plans_and_reconciles_sealed_alter
     .unwrap();
     let browser_seal =
         LocalOwnerMaskRouteSeal::seal_lulled(&session, &face, &browser_host, &browser).unwrap();
+    let mut invented_authority = browser_seal.clone();
+    invented_authority
+        .authority_grants
+        .push(conduit_core::AuthorityGrant {
+            grant_id: conduit_core::AuthorityGrantId::from("grant/invented"),
+            contract_id: conduit_core::AuthorityContractId::from("authority/invented"),
+            host_call_contract_id: conduit_core::HostCallContractId::from("host-call/invented"),
+            subject_kind: kind_id("subject/invented"),
+            host_id: browser_host.host_id.clone(),
+            boot_id: browser_host.boot_id.clone(),
+            capability_id: conduit_core::CapabilityId::from("capability/invented"),
+        });
+    assert_eq!(
+        invented_authority.verify_seal(),
+        Err(conduit_presentation::LocalOwnerMaskRouteError::InvalidAuthorityGrant)
+    );
     let alternate_seal =
         LocalOwnerMaskRouteSeal::seal_lulled(&session, &face, &alternate_host, &alternate).unwrap();
     let witnesses = [

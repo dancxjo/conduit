@@ -4,9 +4,9 @@
 //! keeps its own Plan and Play. A later cross-Host route must admit its actual
 //! external Lines; this local entrance refuses remote fragments explicitly.
 
-use alloc::{format, string::String};
+use alloc::{format, string::String, vec::Vec};
 use conduit_body::{BodyId, BodyLifecycleSession, BodyState};
-use conduit_core::{verify_plan, HostAdvertisement, PlanId, PROTOCOL_VERSION};
+use conduit_core::{verify_plan, AuthorityGrant, HostAdvertisement, PlanId, PROTOCOL_VERSION};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -28,6 +28,10 @@ pub struct LocalOwnerMaskRouteSeal {
     pub face_basis: PresentationBasis,
     pub owner_offer: HostAdvertisement,
     pub planned_mask: PlannedMaskPlot,
+    /// Exact grants supplied by the owning Host for this local Mask Plan.
+    /// The owner must withdraw the current witness when a provider is lost.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub authority_grants: Vec<AuthorityGrant>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,6 +44,7 @@ pub enum LocalOwnerMaskRouteError {
     RemoteLineRequired,
     StaleOrMissingOffer,
     UnsupportedAuthority,
+    InvalidAuthorityGrant,
     SealCapacityExceeded,
     InvalidSeal,
     StaleBody,
@@ -59,6 +64,19 @@ impl LocalOwnerMaskRouteSeal {
         owner_offer: &HostAdvertisement,
         planned_mask: &PlannedMaskPlot,
     ) -> Result<Self, LocalOwnerMaskRouteError> {
+        Self::seal_lulled_with_grants(session, face, owner_offer, planned_mask, &[])
+    }
+
+    /// Seal a local Mask with explicit Host/Boot-scoped authority. Grant
+    /// possession is checked again by the owner before supplying a current
+    /// witness; retaining the sealed Plan never keeps a lost provider alive.
+    pub fn seal_lulled_with_grants(
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        owner_offer: &HostAdvertisement,
+        planned_mask: &PlannedMaskPlot,
+        grants: &[AuthorityGrant],
+    ) -> Result<Self, LocalOwnerMaskRouteError> {
         let body = &session.evidence().body;
         if body.state != BodyState::Lulled {
             return Err(LocalOwnerMaskRouteError::WorkloadNotLulled);
@@ -75,7 +93,7 @@ impl LocalOwnerMaskRouteSeal {
         {
             return Err(LocalOwnerMaskRouteError::WrongFaceBasis);
         }
-        validate_single_host_mask(owner_offer, planned_mask, false)?;
+        validate_local_grants(owner_offer, planned_mask, grants)?;
         let mut route = Self {
             route_plan_id: PlanId::from("unsealed"),
             body_id: body.body_id.clone(),
@@ -85,13 +103,18 @@ impl LocalOwnerMaskRouteSeal {
             face_basis: face.basis.clone(),
             owner_offer: owner_offer.clone(),
             planned_mask: planned_mask.clone(),
+            authority_grants: grants.to_vec(),
         };
         route.route_plan_id = route.bind_identity()?;
         Ok(route)
     }
 
     pub fn verify_seal(&self) -> Result<(), LocalOwnerMaskRouteError> {
-        validate_single_host_mask(&self.owner_offer, &self.planned_mask, false)?;
+        validate_local_grants(
+            &self.owner_offer,
+            &self.planned_mask,
+            &self.authority_grants,
+        )?;
         if self.face_basis.body_id.as_ref() != Some(&self.body_id)
             || self.face_basis.wake_id.is_some()
             || self.face_basis.plan_id.is_some()
@@ -169,6 +192,7 @@ impl LocalOwnerMaskRouteSeal {
             &self.face_basis,
             &self.owner_offer,
             &self.planned_mask,
+            &self.authority_grants,
         ))
         .map_err(|_| LocalOwnerMaskRouteError::InvalidSeal)?;
         if bytes.len() > MAX_LOCAL_ROUTE_SEAL_BYTES {
@@ -274,6 +298,52 @@ pub(crate) fn validate_single_host_mask(
             .any(|cord| cord.selected_line.is_some() || !cord.admitted_lines.is_empty())
         {
             return Err(LocalOwnerMaskRouteError::RemoteLineRequired);
+        }
+    }
+    Ok(())
+}
+
+fn validate_local_grants(
+    host: &HostAdvertisement,
+    planned: &PlannedMaskPlot,
+    grants: &[AuthorityGrant],
+) -> Result<(), LocalOwnerMaskRouteError> {
+    if grants.len() > 16 {
+        return Err(LocalOwnerMaskRouteError::InvalidAuthorityGrant);
+    }
+    validate_single_host_mask(host, planned, !grants.is_empty())?;
+    let bindings = planned
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .flat_map(|placement| &placement.authority)
+        .collect::<alloc::vec::Vec<_>>();
+    if bindings.len() != grants.len() {
+        return Err(LocalOwnerMaskRouteError::InvalidAuthorityGrant);
+    }
+    for (index, grant) in grants.iter().enumerate() {
+        if grant.grant_id.as_str().is_empty()
+            || grant.host_id != host.host_id
+            || grant.boot_id != host.boot_id
+            || grants[..index]
+                .iter()
+                .any(|prior| prior.grant_id == grant.grant_id)
+            || bindings
+                .iter()
+                .filter(|binding| {
+                    binding.grant_id == grant.grant_id
+                        && binding.contract_id == grant.contract_id
+                        && binding.host_call_contract_id == grant.host_call_contract_id
+                        && binding.subject_kind == grant.subject_kind
+                        && binding.host_id == grant.host_id
+                        && binding.boot_id == grant.boot_id
+                        && binding.capability_id == grant.capability_id
+                })
+                .count()
+                != 1
+        {
+            return Err(LocalOwnerMaskRouteError::InvalidAuthorityGrant);
         }
     }
     Ok(())
