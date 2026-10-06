@@ -303,7 +303,7 @@ fn validate(
     for sequence in 0..128_u64 {
         let frame = [0, 0, if sequence % 2 == 0 { 4 } else { 0 }, 0, 0, 0, 0, 0];
         let bytes = encoder
-            .completed(8, 8, &frame)
+            .completed(sequence, 8, 8, &frame)
             .map_err(|e| refusal("endpoint-proof-contract", format!("{e:?}")))?;
         transcript.update(sequence.to_le_bytes());
         transcript.update((bytes.len() as u32).to_le_bytes());
