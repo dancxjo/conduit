@@ -1,0 +1,41 @@
+{
+  "schema": "conduit.patchbay.workspace/v1",
+  "basis": { "source_document_id": "source/exact", "checked_plot_id": "checked/exact" },
+  "active_layout": "Teaching",
+  "layouts": [
+    {
+      "name": "Teaching",
+      "positions": [
+        { "subject": "gear/source", "x": 80, "y": 100 },
+        { "subject": "gear/configured", "x": 350, "y": 100 },
+        { "subject": "gear/adapter", "x": 600, "y": 100 },
+        { "subject": "gear/branch", "x": 850, "y": 100 },
+        { "subject": "gear/sink", "x": 1100, "y": 100 }
+      ],
+      "routes": [
+        { "subject": "cord/first", "style": "straight", "points": [] },
+        { "subject": "cord/second", "style": "curved", "points": [] },
+        { "subject": "cord/third", "style": "orthogonal", "points": [] },
+        { "subject": "cord/fourth", "style": "manual", "points": [{ "x": 950, "y": 220 }] }
+      ],
+      "frames": [{ "id": "explanation", "title": "Not a composite", "members": ["gear/configured", "gear/adapter"], "x": 300, "y": 50, "width": 600, "height": 300, "collapsed": false }],
+      "notes": [{ "id": "note", "text": "A bend is not a runtime hop.", "subject": "cord/fourth", "x": 950, "y": 250 }],
+      "collapsed": ["gear/sink"],
+      "viewport": { "x": 10, "y": 20, "zoom": 0.8 },
+      "lens": "plan"
+    },
+    {
+      "name": "Vertical",
+      "positions": [
+        { "subject": "gear/source", "x": -600, "y": 800 },
+        { "subject": "gear/configured", "x": -600, "y": 500 },
+        { "subject": "gear/adapter", "x": -600, "y": 200 },
+        { "subject": "gear/branch", "x": -600, "y": -100 },
+        { "subject": "gear/sink", "x": -600, "y": -400 }
+      ],
+      "routes": [], "frames": [], "notes": [], "collapsed": [],
+      "viewport": { "x": 700, "y": 500, "zoom": 0.4 },
+      "lens": "signs"
+    }
+  ]
+}

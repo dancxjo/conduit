@@ -1,5 +1,4 @@
 //! Projection from exact checked and expanded Plot truth.
-use crate::graph::temporal_compatible;
 use crate::{prelude::*, *};
 use conduit_core::{
     CheckedValueContract, FrontValueLocation, GearId, PortDescriptor, PortDirection,
@@ -74,7 +73,7 @@ impl PatchbayGraph {
             })
             .collect::<Result<Vec<_>, PatchbayGraphError>>()?;
         let mut cords = Vec::with_capacity(plot.connections.len());
-        for (index, connection) in plot.connections.iter().enumerate() {
+        for connection in &plot.connections {
             let source = port_identity(
                 &connection.source_gear_id,
                 PortDirection::Output,
@@ -96,15 +95,43 @@ impl PatchbayGraph {
             let (Some(source_port), Some(sink_port)) = (source_port, sink_port) else {
                 return Err(PatchbayGraphError::MissingCordEndpoint);
             };
-            if source_port.descriptor.value_kind != connection.value_kind
-                || sink_port.descriptor.value_kind != connection.value_kind
-                || source_port.descriptor.temporal != connection.temporal
-                || !temporal_compatible(connection.temporal, sink_port.descriptor.temporal)
+            let expected_kind = match connection.track {
+                conduit_core::ConnectionTrack::Payload => {
+                    Some(source_port.descriptor.value_kind.clone())
+                }
+                conduit_core::ConnectionTrack::NormalClose
+                | conduit_core::ConnectionTrack::Quiescence => {
+                    Some(conduit_core::kind_id(conduit_core::UNIT_INFO_ID))
+                }
+                conduit_core::ConnectionTrack::AbnormalTerminal => {
+                    source_port.descriptor.abnormal_kind.clone()
+                }
+            };
+            let expected_temporal = if connection.track == conduit_core::ConnectionTrack::Payload {
+                source_port.descriptor.temporal
+            } else {
+                conduit_core::PortTemporal::Value
+            };
+            if expected_kind.as_ref() != Some(&connection.value_kind)
+                || expected_temporal != connection.temporal
+                || conduit_plot::validate_connection_contract(
+                    &source_port.descriptor,
+                    &sink_port.descriptor,
+                    connection.track,
+                )
+                .is_err()
             {
                 return Err(PatchbayGraphError::CordContractMismatch);
             }
             cords.push(PatchbayCord {
-                identity: format!("cord/{index}/{source}->{sink}"),
+                // Length-prefix endpoints so delimiters in semantic names cannot
+                // alias another tuple. Order in the expanded inventory is irrelevant.
+                identity: format!(
+                    "cord/{}/{}/{source}/{}/{sink}",
+                    connection.track.as_str(),
+                    source.len(),
+                    sink.len(),
+                ),
                 source_port: source,
                 sink_port: sink,
                 value_kind: connection.value_kind.clone(),

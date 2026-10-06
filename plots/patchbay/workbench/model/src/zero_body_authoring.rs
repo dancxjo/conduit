@@ -26,6 +26,19 @@ impl PlotCandidate {
 }
 
 impl ZeroBodyFrontDoor {
+    pub fn opened_plot_editor(&self) -> Option<crate::PlotEditor> {
+        let OpenedFrontDoorSubject::Plot {
+            checked_plot_id, ..
+        } = self.opened.as_ref()?
+        else {
+            return None;
+        };
+        self.plots
+            .iter()
+            .find(|plot| &plot.checked_plot_id == checked_plot_id)
+            .map(|plot| plot.editor.clone())
+    }
+
     pub fn opened_plot_document(&self) -> Option<PlotDocumentView> {
         let OpenedFrontDoorSubject::Plot {
             checked_plot_id, ..

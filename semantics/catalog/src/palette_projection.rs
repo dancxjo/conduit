@@ -2,7 +2,16 @@
 
 pub use crate::{KindConfigurationRule, PaletteCategory, PaletteIconKey};
 use alloc::{string::String, vec::Vec};
-use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
+use conduit_core::{
+    CapabilityLimits, CheckedFront, ConfigurationValue, KindId, KindIdentity, KindSemanticLaw,
+    PortDescriptor,
+};
+
+/// Portable discovery membership, never a statement of current Host availability.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PaletteProfile {
+    PortableAuthoring,
+}
 
 /// Deliberate finite Patchbay capacity, not a snapshot of today's catalog size.
 pub const MAX_PALETTE_ENTRIES: usize = 128;
@@ -18,6 +27,10 @@ pub struct PaletteConfigurationSummary {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PaletteEntry {
     pub kind_id: KindId,
+    pub kind_contract_revision: KindIdentity,
+    pub front: CheckedFront,
+    pub semantic_laws: Vec<KindSemanticLaw>,
+    pub profile: PaletteProfile,
     pub plain_name: String,
     pub summary: String,
     pub inputs: Vec<PortDescriptor>,
@@ -71,21 +84,25 @@ impl GearPalette {
     /// Projects the supported executable nucleus, rather than maintaining a
     /// Patchbay-private list of Kind contracts.
     pub fn standard() -> Result<Self, PaletteError> {
-        let contracts = crate::palette_contracts();
+        let contracts = crate::authoring_catalog::palette_semantics();
         if contracts.len() > MAX_PALETTE_ENTRIES {
             return Err(PaletteError::CatalogTooLarge);
         }
         let mut entries = Vec::with_capacity(contracts.len());
-        for contract in contracts {
+        for (contract, kind) in contracts {
             let metadata = crate::palette_metadata(&contract.kind_id)
                 .ok_or_else(|| PaletteError::MissingMetadata(contract.kind_id.clone()))?;
             entries.push(PaletteEntry {
+                kind_contract_revision: kind.kind_contract_revision.clone(),
+                front: kind.checked_front(),
+                semantic_laws: kind.semantic_laws,
+                profile: PaletteProfile::PortableAuthoring,
                 kind_id: contract.kind_id,
                 plain_name: contract.plain_name,
                 summary: contract.summary,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
+                inputs: kind.inputs,
+                outputs: kind.outputs,
+                configuration: kind
                     .configuration
                     .into_iter()
                     .map(|field| PaletteConfigurationSummary {
@@ -94,7 +111,7 @@ impl GearPalette {
                         rule: field.rule,
                     })
                     .collect(),
-                limits: contract.limits,
+                limits: kind.limits,
                 category: metadata.category,
                 tags: metadata.tags,
                 icon: metadata.icon,

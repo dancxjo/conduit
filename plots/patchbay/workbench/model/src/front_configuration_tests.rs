@@ -341,7 +341,7 @@ fn invalid_and_stale_edits_are_immediate_atomic_refusals() {
         )
         .unwrap_err();
     assert!(
-        matches!(error, PlotEditorError::InvalidConfiguration(ref message) if message.contains("1 through 8")),
+        matches!(error, PlotEditorError::InvalidConfiguration(ref message) if message.contains("CND-FRM-040")),
         "{error:?}"
     );
     assert_eq!(editor.view().source, source);
@@ -397,7 +397,7 @@ fn finite_text_contract_projects_an_exact_choice_and_rejects_invented_values() {
             "operator",
             ConfigurationValue::Text("contains".into()),
         ),
-        Err(PlotEditorError::InvalidConfiguration(message)) if message.contains("choose one of")
+        Err(PlotEditorError::InvalidConfiguration(message)) if message.contains("CND-FRM-040")
     ));
     assert_eq!(editor.view().source, source);
 }

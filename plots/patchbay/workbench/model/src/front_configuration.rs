@@ -45,7 +45,7 @@ impl PlotEditor {
                 "configuration is not representable by the common interaction contract".into(),
             )
         })?;
-        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
+        let field = conduit_semantic_catalog::supported_nucleus_contracts()
             .into_iter()
             .find(|contract| contract.kind_id == gear.kind_id)
             .and_then(|contract| {
@@ -54,8 +54,7 @@ impl PlotEditor {
                     .into_iter()
                     .find(|field| field.key == key)
             })
-            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?
-            .rule;
+            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
         proposal
             .validate_against(&interaction.contract, &interaction.state)
             .map_err(|refusal| {
@@ -63,7 +62,8 @@ impl PlotEditor {
                     "common interaction refused: {refusal:?}"
                 ))
             })?;
-        let value = configuration_from_proposal(&interaction.contract.family, &rule, proposal)?;
+        let value =
+            configuration_from_proposal(&interaction.contract.family, &field.rule, proposal)?;
         self.set_gear_configuration_exact(
             offered_revision,
             offered_expanded_plot_id,
@@ -97,7 +97,7 @@ impl PlotEditor {
             .iter()
             .find(|control| control.key == key)
             .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
-        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
+        let field = conduit_semantic_catalog::supported_nucleus_contracts()
             .into_iter()
             .find(|contract| contract.kind_id == gear.kind_id)
             .and_then(|contract| {
@@ -106,13 +106,9 @@ impl PlotEditor {
                     .into_iter()
                     .find(|field| field.key == key)
             })
-            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?
-            .rule;
-        if !accepts(&rule, &value) {
-            return Err(PlotEditorError::InvalidConfiguration(
-                configuration_refusal(&rule),
-            ));
-        }
+            .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
+        conduit_plot::validate_configuration_value(&field, &value)
+            .map_err(|error| PlotEditorError::InvalidConfiguration(error.to_string()))?;
         let interaction = control.interaction.as_ref().ok_or_else(|| {
             PlotEditorError::InvalidConfiguration(
                 "configuration is not representable by the common interaction contract".into(),
@@ -159,11 +155,8 @@ impl PlotEditor {
             .iter()
             .find(|field| field.key == key)
             .ok_or_else(|| PlotEditorError::UnknownConfiguration(key.into()))?;
-        if !accepts(&field.rule, &value) {
-            return Err(PlotEditorError::InvalidConfiguration(
-                configuration_refusal(&field.rule),
-            ));
-        }
+        conduit_plot::validate_configuration_value(field, &value)
+            .map_err(|error| PlotEditorError::InvalidConfiguration(error.to_string()))?;
 
         let document = parse_syntax_document(&self.source);
         let plot = document
@@ -355,72 +348,6 @@ fn configuration_from_proposal(
         _ => Err(PlotEditorError::InvalidConfiguration(
             "unsupported configuration interaction family".into(),
         )),
-    }
-}
-
-fn accepts(rule: &KindConfigurationRule, value: &ConfigurationValue) -> bool {
-    match (rule, value) {
-        (KindConfigurationRule::Any, ConfigurationValue::Bool(_)) => true,
-        (KindConfigurationRule::U64Range { minimum, maximum }, ConfigurationValue::U64(value))
-        | (
-            KindConfigurationRule::DurationMillis { minimum, maximum },
-            ConfigurationValue::U64(value),
-        ) => (*minimum..=*maximum).contains(value),
-        (KindConfigurationRule::I64Range { minimum, maximum }, ConfigurationValue::I64(value)) => {
-            (*minimum..=*maximum).contains(value)
-        }
-        (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
-            value.len() <= *maximum as usize
-        }
-        (KindConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
-            values.contains(value)
-        }
-        (
-            KindConfigurationRule::QuantityRange {
-                minimum,
-                maximum,
-                canonical_unit,
-            },
-            ConfigurationValue::Quantity(value),
-        ) => value
-            .convert(*canonical_unit)
-            .map(|value| (*minimum..=*maximum).contains(&value.value()))
-            .unwrap_or(false),
-        _ => false,
-    }
-}
-
-fn configuration_refusal(rule: &KindConfigurationRule) -> String {
-    match rule {
-        KindConfigurationRule::Any => "expected a Boolean value".into(),
-        KindConfigurationRule::U64Range { minimum, maximum } => {
-            format!("enter a number from {minimum} through {maximum}")
-        }
-        KindConfigurationRule::I64Range { minimum, maximum } => {
-            format!("enter scalar microunits from {minimum} through {maximum}")
-        }
-        KindConfigurationRule::DurationMillis { minimum, maximum } => {
-            format!("enter milliseconds from {minimum} through {maximum}")
-        }
-        KindConfigurationRule::QuantityRange {
-            minimum,
-            maximum,
-            canonical_unit,
-        } => {
-            format!(
-                "enter an exact {} quantity from {minimum} through {maximum}",
-                canonical_unit.semantic_id()
-            )
-        }
-        KindConfigurationRule::TextBytes { maximum } => {
-            format!("enter at most {maximum} bytes of text")
-        }
-        KindConfigurationRule::TextOneOf { values } => {
-            format!("choose one of {}", values.join(", "))
-        }
-        KindConfigurationRule::Structured { profile } => {
-            format!("enter a value with exact profile {}", profile.as_str())
-        }
     }
 }
 

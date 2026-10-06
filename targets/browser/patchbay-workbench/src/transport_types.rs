@@ -28,6 +28,11 @@ pub struct BrowserPaletteConfiguration {
 #[serde(deny_unknown_fields)]
 pub struct BrowserPaletteEntry {
     pub kind_id: String,
+    pub kind_contract_revision: conduit_core::KindIdentity,
+    pub front: conduit_core::CheckedFront,
+    pub limits: conduit_core::CapabilityLimits,
+    pub authorable: bool,
+    pub startup_parameters: Vec<conduit_patchbay_workbench::AuthoringStartupParameter>,
     pub name: String,
     pub summary: String,
     pub category: String,
@@ -42,11 +47,21 @@ pub struct BrowserPaletteEntry {
 #[serde(deny_unknown_fields)]
 pub struct BrowserAuthoring {
     pub source_document_id: String,
+    pub checked_plot_id: String,
     pub source_revision: u64,
     pub saved_revision: u64,
     pub expanded_plot_id: String,
     pub source_path: String,
     pub palette: Vec<BrowserPaletteEntry>,
+    pub configuration: Vec<BrowserGearConfiguration>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserGearConfiguration {
+    pub gear_identity: String,
+    pub key: String,
+    pub value: conduit_core::ConfigurationValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

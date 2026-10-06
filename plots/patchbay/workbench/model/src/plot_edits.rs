@@ -1,87 +1,11 @@
 //! Bounded source-preserving semantic edits over the canonical Plot document.
 
 use crate::plot_editor::{
-    check_revision, ensure_source_bound, GraphItemKind, PlotEditor, PlotEditorError,
+    check_revision_with_catalog, ensure_source_bound, GraphItemKind, PlotEditor, PlotEditorError,
 };
 use crate::PatchbayGraph;
 
 impl PlotEditor {
-    /// Places one fresh semantic Gear by editing canonical Plot source. The
-    /// offered revision is a stale-gesture precondition; no model state changes
-    /// unless the resulting source parses and checks successfully.
-    pub fn place_palette_kind(
-        &mut self,
-        offered_revision: u64,
-        kind_id: &conduit_core::KindId,
-    ) -> Result<String, PlotEditorError> {
-        if offered_revision != self.revision {
-            return Err(PlotEditorError::StaleRevision {
-                current: self.revision,
-                offered: offered_revision,
-            });
-        }
-        let palette = conduit_semantic_catalog::GearPalette::standard()
-            .map_err(|error| PlotEditorError::Catalog(format!("{error:?}")))?;
-        let Some(entry) = palette.find(kind_id) else {
-            return Err(PlotEditorError::UnknownPaletteKind(kind_id.as_str().into()));
-        };
-        let plot = self
-            .checked
-            .plots
-            .iter()
-            .find(|plot| plot.name == self.open_plot)
-            .ok_or_else(|| PlotEditorError::UnknownPlot(self.open_plot.clone()))?;
-        let stem = canonical_gear_stem(kind_id.as_str())?;
-        let mut suffix = 1_u32;
-        let name = loop {
-            let candidate = if suffix == 1 {
-                stem.clone()
-            } else {
-                format!("{stem}-{suffix}")
-            };
-            let identity = format!("plot/{}/gear/{candidate}", self.open_plot);
-            if !plot.items.iter().any(|item| item.identity == identity) {
-                break candidate;
-            }
-            suffix = suffix
-                .checked_add(1)
-                .ok_or(PlotEditorError::GraphTooLarge)?;
-        };
-        let close = self.source[plot.source_span.start..plot.source_span.end]
-            .rfind('}')
-            .map(|offset| plot.source_span.start + offset)
-            .ok_or_else(|| PlotEditorError::UnknownPlot(self.open_plot.clone()))?;
-        let mut candidate = self.source.clone();
-        let invocation = if entry.configuration.is_empty() {
-            kind_id.as_str().to_owned()
-        } else {
-            let arguments = entry
-                .configuration
-                .iter()
-                .map(|field| {
-                    crate::front_configuration::configuration_spelling(
-                        &field.rule,
-                        &field.default_value,
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("{}({arguments})", kind_id.as_str())
-        };
-        candidate.insert_str(close, &format!("    {name}: {invocation}\n"));
-        ensure_source_bound(&candidate)?;
-        let next_revision = self.revision.saturating_add(1);
-        let checked = check_revision(next_revision, &candidate)?;
-        if let Some(diagnostic) = checked.diagnostics.first() {
-            return Err(PlotEditorError::Catalog(diagnostic.message.clone()));
-        }
-        self.source = candidate;
-        self.revision = next_revision;
-        self.checked = checked;
-        self.selection = None;
-        Ok(name)
-    }
-
     /// Duplicates the exact authored gear statement with a fresh local name.
     pub fn duplicate_gear(
         &mut self,
@@ -227,30 +151,7 @@ impl PlotEditor {
                 .find(|port| port.identity == sink_port_identity)
                 .map(|port| (composition, port))
         });
-        match graph.connection_compatibility(source_port_identity, sink_port_identity) {
-            crate::PatchbayPortCompatibility::Compatible => {}
-            crate::PatchbayPortCompatibility::DuplicateCord => {
-                return Err(PlotEditorError::DuplicateCord)
-            }
-            crate::PatchbayPortCompatibility::IncompatibleInfo { source, sink } => {
-                return Err(PlotEditorError::IncompatiblePorts(format!(
-                    "Info {} cannot feed {}",
-                    source.as_str(),
-                    sink.as_str()
-                )))
-            }
-            crate::PatchbayPortCompatibility::IncompatibleTemporal { source, sink } => {
-                return Err(PlotEditorError::IncompatiblePorts(format!(
-                    "temporal contract {source:?} cannot feed {sink:?}"
-                )))
-            }
-            crate::PatchbayPortCompatibility::UnknownPort
-            | crate::PatchbayPortCompatibility::InvalidDirection => {
-                return Err(PlotEditorError::UnknownPort(format!(
-                    "{source_port_identity} >> {sink_port_identity}"
-                )))
-            }
-        }
+        require_compatible_connection(&graph, source_port_identity, sink_port_identity)?;
         let source_reference = if let Some(source) = internal_source {
             let source_name = direct_gear_name(&self.open_plot, source.gear_id.as_str())?;
             format!("{source_name}.{}", source.descriptor.port_id.as_str())
@@ -386,26 +287,16 @@ impl PlotEditor {
             (None, Some(sink)) => (old_source_port, sink),
             _ => return Err(PlotEditorError::UnknownPort(endpoint_port_identity.into())),
         };
-        if source_port.descriptor.value_kind != sink_port.descriptor.value_kind {
-            return Err(PlotEditorError::IncompatiblePorts(format!(
-                "Info {} cannot feed {}",
-                source_port.descriptor.value_kind.as_str(),
-                sink_port.descriptor.value_kind.as_str()
-            )));
-        }
-        if source_port.descriptor.temporal != sink_port.descriptor.temporal {
-            return Err(PlotEditorError::IncompatiblePorts(format!(
-                "temporal contract {:?} cannot feed {:?}",
-                source_port.descriptor.temporal, sink_port.descriptor.temporal
-            )));
-        }
-        if graph.cords.iter().any(|candidate| {
-            candidate.identity != cord_identity
-                && candidate.source_port == source_port.identity
-                && candidate.sink_port == sink_port.identity
-        }) {
-            return Err(PlotEditorError::DuplicateCord);
-        }
+        // The Cord being replaced must not count as a duplicate of itself.
+        let mut candidate_graph = graph.clone();
+        candidate_graph
+            .cords
+            .retain(|candidate| candidate.identity != cord_identity);
+        require_compatible_connection(
+            &candidate_graph,
+            &source_port.identity,
+            &sink_port.identity,
+        )?;
         let old_source = direct_port_reference(&self.open_plot, &cord.source_port, "output")?;
         let old_sink = direct_port_reference(&self.open_plot, &cord.sink_port, "input")?;
         let plot = self.open_graph_plot()?;
@@ -459,7 +350,8 @@ impl PlotEditor {
     pub(crate) fn apply_candidate(&mut self, candidate: String) -> Result<(), PlotEditorError> {
         ensure_source_bound(&candidate)?;
         let next_revision = self.revision.saturating_add(1);
-        let checked = check_revision(next_revision, &candidate)?;
+        let checked =
+            check_revision_with_catalog(next_revision, &candidate, &self.startup_catalog)?;
         if let Some(diagnostic) = checked.diagnostics.first() {
             return Err(PlotEditorError::Catalog(diagnostic.message.clone()));
         }
@@ -531,14 +423,34 @@ fn line_range(source: &str, start: usize, end: usize) -> (usize, usize) {
     (line_start, line_end)
 }
 
-fn canonical_gear_stem(kind: &str) -> Result<String, PlotEditorError> {
-    let stem = kind.rsplit('/').next().unwrap_or(kind);
-    if stem.is_empty()
-        || !stem
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
-    {
-        return Err(PlotEditorError::InvalidGearName);
+fn require_compatible_connection(
+    graph: &PatchbayGraph,
+    source_port_identity: &str,
+    sink_port_identity: &str,
+) -> Result<(), PlotEditorError> {
+    match graph.connection_compatibility(source_port_identity, sink_port_identity) {
+        crate::PatchbayPortCompatibility::Compatible => {}
+        crate::PatchbayPortCompatibility::DuplicateCord => {
+            return Err(PlotEditorError::DuplicateCord)
+        }
+        crate::PatchbayPortCompatibility::IncompatibleInfo { source, sink } => {
+            return Err(PlotEditorError::IncompatiblePorts(format!(
+                "Info {} cannot feed {}",
+                source.as_str(),
+                sink.as_str()
+            )))
+        }
+        crate::PatchbayPortCompatibility::IncompatibleTemporal { source, sink } => {
+            return Err(PlotEditorError::IncompatiblePorts(format!(
+                "temporal contract {source:?} cannot feed {sink:?}"
+            )))
+        }
+        crate::PatchbayPortCompatibility::UnknownPort
+        | crate::PatchbayPortCompatibility::InvalidDirection => {
+            return Err(PlotEditorError::UnknownPort(format!(
+                "{source_port_identity} >> {sink_port_identity}"
+            )))
+        }
     }
-    Ok(stem.into())
+    Ok(())
 }
