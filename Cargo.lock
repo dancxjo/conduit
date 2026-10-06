@@ -554,8 +554,8 @@ name = "conduit"
 version = "0.1.0"
 dependencies = [
  "clap",
- "conduit-alife",
  "conduit-ai",
+ "conduit-alife",
  "conduit-birth-plot",
  "conduit-body",
  "conduit-body-make",
