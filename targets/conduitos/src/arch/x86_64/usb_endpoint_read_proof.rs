@@ -1,4 +1,5 @@
-//! Explicit raw endpoint proof appliance; no report decoding or class policy.
+//! Explicit raw endpoint proof appliance following separately admitted Source setup.
+//! Report interpretation stays outside this raw-transfer fixture.
 #![allow(dead_code)] // Invoked only by the explicitly selected raw endpoint proof appliance.
 use super::{
     UsbDevice,
@@ -85,6 +86,8 @@ pub(super) fn run(
     parameters: InboundEndpointParameters,
 ) -> Result<(), &'static str> {
     let contract = EndpointReadContract::prepare().map_err(|_| "usb-endpoint-proof-contract")?;
+    #[cfg(feature = "usb-endpoint-read-proof")]
+    let device = super::hid_boot_control_proof::run(controller, device, mapping, ids, base)?;
     let root_port = device.root_port;
     let slot = device.slot;
     let epoch = device.attachment_epoch;
