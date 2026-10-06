@@ -6,11 +6,12 @@ use std::{
 };
 
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_presentation::Presentation;
 use conduit_std_host::spoken_face_mask::SpokenFaceSession;
-use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
+use conduit_std_host::terminal_face_mask::TerminalMaskExecution;
 use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 
+use super::installed_presentation::present;
 use super::opening_readout::opening_body_commands;
 pub(super) use super::opening_readout::opening_commands;
 use super::{
@@ -296,7 +297,7 @@ fn run_body(
     let mut wardrobe_report = None;
     writeln!(
         output,
-        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh, wardrobe, wardrobe wear/doff ROUTE, wardrobe prefer ROUTE ... . Inspect first and use exact route IDs. Preference ranks routes; doff the current route to allow selection of the next preferred route. Wardrobe reports are text; selected speaker playback does not voice them yet.",
+        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh, wardrobe, wardrobe wear/doff CHOICE, wardrobe prefer CHOICE ... . Inspect first and use each numbered choice or its exact route ID. Preference ranks routes; doff the current route to allow selection of the next preferred route. Selected speaker sessions announce the owner's current wardrobe and result.",
         body_id.as_str()
     )
     .map_err(|error| error.to_string())?;
@@ -393,7 +394,23 @@ fn run_body(
             continue;
         }
         #[cfg(unix)]
-        if super::wardrobe::handle(state_dir, &line, &mut wardrobe_report, output)? {
+        if super::wardrobe::handle(
+            state_dir,
+            &line,
+            &mut wardrobe_report,
+            playback
+                .as_ref()
+                .map(|selected| super::wardrobe_speech::Announcement {
+                    state_dir,
+                    input,
+                    selected,
+                    face: &face,
+                    show: &show,
+                    host: &advertisement,
+                })
+                .as_mut(),
+            output,
+        )? {
             continue;
         }
         let command = match parse_command(&line, &reader, &face) {
@@ -473,17 +490,4 @@ fn run_body(
             )?;
         }
     }
-}
-
-fn present(
-    face: &Presentation,
-    execution: &mut HostedTerminalMaskExecution,
-    output: &mut impl Write,
-) -> Result<MaskShow, String> {
-    let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24).map_err(debug_error)?;
-    mask.present(execution, output).map_err(debug_error)?;
-    writeln!(output).map_err(|error| error.to_string())?;
-    mask.show()
-        .cloned()
-        .ok_or_else(|| "terminal did not acknowledge a Show".into())
 }

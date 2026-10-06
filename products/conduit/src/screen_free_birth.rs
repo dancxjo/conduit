@@ -32,6 +32,7 @@ use audio::BirthSpeechOutput;
 mod command_input;
 mod input;
 mod installed;
+mod installed_presentation;
 mod opening_readout;
 #[cfg(test)]
 use input::MAX_SCREEN_FREE_COMMAND_BYTES;
@@ -45,6 +46,8 @@ mod selected_readout;
 mod speech_options;
 #[cfg(unix)]
 mod wardrobe;
+#[cfg(unix)]
+mod wardrobe_speech;
 pub(crate) use speech_options::run as speech_options;
 
 #[cfg(test)]

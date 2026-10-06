@@ -33,6 +33,12 @@ impl InputEvent {
 pub(super) trait CommandInput {
     fn next(&mut self) -> InputEvent;
 
+    /// Any new command can stop a wardrobe announcement; it is then handled
+    /// against a fresh observed owner report instead of being lost in speech.
+    fn interrupting_announcement(&mut self) -> bool {
+        false
+    }
+
     /// Only the selected spoken path consumes input during Play. The first
     /// An accepted queued command interrupts speech, then runs in exact order.
     /// Refused input stays queued until the current Play completes.
@@ -99,6 +105,28 @@ impl CommandInput for SpokenInput {
             .unwrap_or_else(|| self.receiver.recv().unwrap_or(InputEvent::Eof))
     }
 
+    fn interrupting_announcement(&mut self) -> bool {
+        if self.pending.is_some() {
+            return false;
+        }
+        match self.receiver.try_recv() {
+            Ok(InputEvent::Line(line)) if line == "stop" => true,
+            Ok(event @ InputEvent::Line(_)) => {
+                self.pending = Some(event);
+                true
+            }
+            Ok(event) => {
+                self.pending = Some(event);
+                false
+            }
+            Err(TryRecvError::Empty) => false,
+            Err(TryRecvError::Disconnected) => {
+                self.pending = Some(InputEvent::Eof);
+                false
+            }
+        }
+    }
+
     fn interrupting_command(
         &mut self,
         reader: &SpokenFaceSession,
@@ -135,5 +163,32 @@ impl CommandInput for SpokenInput {
                 false
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod announcement_tests {
+    use super::*;
+
+    #[test]
+    fn next_wardrobe_choice_interrupts_and_is_not_lost() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let mut input = SpokenInput::from_receiver(receiver);
+        sender
+            .send(InputEvent::Line("wardrobe prefer 2".into()))
+            .unwrap();
+        assert!(input.interrupting_announcement());
+        assert!(!input.interrupting_announcement());
+        assert!(matches!(input.next(), InputEvent::Line(line) if line == "wardrobe prefer 2"));
+    }
+
+    #[test]
+    fn stop_interrupts_without_becoming_a_second_action() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let mut input = SpokenInput::from_receiver(receiver);
+        sender.send(InputEvent::Line("stop".into())).unwrap();
+        assert!(input.interrupting_announcement());
+        sender.send(InputEvent::Line("wardrobe".into())).unwrap();
+        assert!(matches!(input.next(), InputEvent::Line(line) if line == "wardrobe"));
     }
 }
