@@ -11,6 +11,11 @@ use crate::spoken_face_mask::{SpokenBatchDelivery, SpokenBatchPlaybackReceipt};
 use crate::RunControl;
 use conduit_core::{CapabilityId, GearId, OfferGeneration, SignId};
 use conduit_planner::PlacementChoice;
+use std::io::Read;
+#[cfg(unix)]
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+
+const MAXIMUM_CAPTURE_WAV_BYTES: u64 = 44 + 30 * 48_000 * 4;
 
 /// At 25 source frames per block, 16,384 blocks cover the admitted 16,384 ms
 /// even when every PCM block is full. A 3,072-block limit covers only 3.48 s.
@@ -299,7 +304,11 @@ pub(super) fn run_selected_spoken_playback(
         },
     );
     if capture {
-        if !host.spoken_mask_artifact_route_is_current() {
+        if !host.wav_artifact.as_ref().is_some_and(|artifact| {
+            artifact.boot_id == config.boot_id
+                && artifact.offer_generation == config.offer_generation
+                && artifact.is_unpublished()
+        }) {
             return Err(SpokenStreamExecutionRefusal::Plan(
                 "selected retained WAV artifact capacity is unavailable".into(),
             ));
@@ -479,8 +488,36 @@ pub(super) fn run_selected_spoken_playback(
             .as_ref()
             .ok_or(SpokenStreamExecutionRefusal::IncompleteArtifact)?;
         let path = PathBuf::from(locator);
-        let bytes =
-            fs::read(&path).map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
+        if !metadata.is_file()
+            || metadata.file_type().is_symlink()
+            || metadata.len() > MAXIMUM_CAPTURE_WAV_BYTES
+        {
+            return Err(SpokenStreamExecutionRefusal::IncompleteArtifact);
+        }
+        let mut options = fs::OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        options.custom_flags(libc::O_NOFOLLOW);
+        let mut file = options
+            .open(&path)
+            .map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
+        let opened = file
+            .metadata()
+            .map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
+        if !opened.is_file() || opened.len() != metadata.len() {
+            return Err(SpokenStreamExecutionRefusal::IncompleteArtifact);
+        }
+        #[cfg(unix)]
+        if opened.dev() != metadata.dev() || opened.ino() != metadata.ino() {
+            return Err(SpokenStreamExecutionRefusal::IncompleteArtifact);
+        }
+        let mut bytes = Vec::with_capacity(metadata.len() as usize);
+        file.by_ref()
+            .take(MAXIMUM_CAPTURE_WAV_BYTES + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|_| SpokenStreamExecutionRefusal::IncompleteArtifact)?;
         if !wav.completed
             || wav.pcm_bytes == 0
             || wav.blocks == 0
@@ -489,6 +526,7 @@ pub(super) fn run_selected_spoken_playback(
             || bytes.get(8..12) != Some(b"WAVE")
             || u64::from(wav.frames) != playback.metrics.frames_committed
             || u32::from(wav.blocks) != playback.metrics.blocks_committed
+            || wav.pcm_sha256.as_deref() != Some(playback.committed_pcm_sha256.as_str())
             || wav.pcm_sha256.as_deref()
                 != Some(format!("{:x}", Sha256::digest(&bytes[44..])).as_str())
         {

@@ -326,12 +326,34 @@ fn play_selected(
                 return Err(SpeechFailure::Failed("selected speaker Play failed".into()))
             }
         };
+        // Browser carriers receive only an exact file identity. A local proof
+        // reader resolves it beneath this installation's spoken-artifacts root.
+        let artifact_id = capture
+            .wav_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| {
+                name.len() == 73
+                    && name.starts_with("play-")
+                    && name.ends_with(".wav")
+                    && name[5..69].bytes().all(|byte| byte.is_ascii_hexdigit())
+            })
+            .ok_or_else(|| SpeechFailure::Failed("same-Play WAV locator is invalid".into()))?;
+        // The admitted reader supplied at most one 64-byte committed segment
+        // here; the playback entrance validated its ordered source digest.
+        let spoken_segments: Vec<&str> = batch
+            .segments
+            .iter()
+            .map(|segment| segment.segment.text.as_str())
+            .collect();
         receipts.push(json!({"stream_identity":result.stream_identity,
             "source_segments_sha256":result.source_segments_sha256,
+            "spoken_segments":spoken_segments,
             "plan_id":result.playback_plan_id, "play_id":result.playback_play_id,
             "provider_sha256":result.provider_sha256,
             "speaker_blocks_committed":result.playback.metrics.blocks_committed,
-            "wav_path":capture.wav_path, "wav_sha256":capture.wav_sha256,
+            "speaker_frames_committed":result.playback.metrics.frames_committed,
+            "wav_artifact_id":artifact_id, "wav_sha256":capture.wav_sha256,
             "wav_bytes":capture.wav_bytes, "pcm_sha256":capture.pcm_sha256,
             "pcm_bytes":capture.pcm_bytes, "pcm_blocks":capture.pcm_blocks,
             "outcome":outcome}));
