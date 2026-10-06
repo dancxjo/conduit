@@ -30,6 +30,7 @@ fn eight_admitted_reservations_preserve_order_pressure_and_reuse_without_growth(
             assert_eq!(cursor.position(), position);
             assert_eq!(cursor.pending_count(), 8);
             let first = retained[head].take().unwrap();
+            assert_eq!(first.ordinal(), sequence as u64);
             assert_eq!(
                 (first.slot, first.cycle),
                 (sequence % 63, 1 ^ ((sequence / 63) & 1) as u32)
