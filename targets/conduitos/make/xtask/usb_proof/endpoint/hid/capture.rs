@@ -92,14 +92,11 @@ pub(super) fn expected_digest(outputs: &[PortDescriptor]) -> Result<String, Cond
             .collect::<Result<Vec<_>, _>>()?;
         let batch_value = record(
             &batch,
-            vec![
-                StructuredFieldValue::new(
-                    "slots",
-                    StructuredInfoValue::collection(slots_type.clone(), slots)
-                        .map_err(value_error)?,
-                )
-                .map_err(value_error)?,
-            ],
+            vec![StructuredFieldValue::new(
+                "slots",
+                StructuredInfoValue::collection(slots_type.clone(), slots).map_err(value_error)?,
+            )
+            .map_err(value_error)?],
         )?;
         for port in outputs
             .iter()

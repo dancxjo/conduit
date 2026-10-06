@@ -1,5 +1,5 @@
 //! Proof-specific Boot disposition: no product input offer is initialized.
-use super::{ConduitosError, GuestBootSign, refusal};
+use super::{refusal, ConduitosError, GuestBootSign};
 
 pub(super) fn validate_boot_mode(
     sign: &GuestBootSign,
