@@ -56,8 +56,23 @@ impl AttachedEquipment {
 
 impl Selection {
     pub(super) fn validate(&self) -> Result<(), String> {
-        self.validate_inputs()?;
+        self.validate_identity()?;
         self.coverage()?;
+        Ok(())
+    }
+
+    /// Only explicit replacement/removal may supersede missing legacy coverage.
+    /// Existing identity and any supplied declaration remain validated.
+    pub(super) fn validate_for_reselection(&self) -> Result<(), String> {
+        self.validate_identity()?;
+        if self.language_coverage.is_some() {
+            self.coverage()?;
+        }
+        Ok(())
+    }
+
+    fn validate_identity(&self) -> Result<(), String> {
+        self.validate_inputs()?;
         if self.speaker_base_identity.is_empty()
             || self.speaker_base_identity.len() > 256
             || self.provider_sha256.len() != 64
@@ -258,6 +273,21 @@ fn observe_speaker(card_id: &str, device: u16) -> Result<AlsaPlaybackObservation
         return Err("configured speaker observation is ambiguous".into());
     }
     Ok(observation)
+}
+
+#[cfg(test)]
+pub(super) fn fixture_retained_selection() -> Selection {
+    Selection {
+        card_id: "missing-card".into(),
+        device: 0,
+        speaker_base_identity: "missing-card-identity".into(),
+        executable: "/missing/espeak-ng".into(),
+        data_root: "/missing/espeak-ng-data".into(),
+        voice: "en-us".into(),
+        engine_dependencies: vec!["/missing/libespeak-ng.so".into()],
+        provider_sha256: "a".repeat(64),
+        language_coverage: Some(fixture_language_coverage(&"a".repeat(64))),
+    }
 }
 
 #[cfg(test)]
