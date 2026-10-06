@@ -82,6 +82,7 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
         (5, true, 0),
     ];
     let tags = ["keyboard", "duplicate", "keyboard"];
+    let mut retained_batch = Vec::with_capacity(4096);
     let mut next_input = 0;
     let mut next_observation = 0;
     let mut next_event = 0;
@@ -153,6 +154,9 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
                     }
                 }
                 assert_eq!(count, 3);
+                if next_event == 0 {
+                    retained_batch.extend_from_slice(&event.encoded);
+                }
                 let report = decoder.decode(&event.encoded).unwrap();
                 assert_eq!(report.transitions().len(), 3);
                 report.admit(&mut ingress).unwrap();
@@ -215,4 +219,28 @@ fn whole_source_batches_preserve_report_order_under_pressure_without_growth() {
         );
     });
     assert_eq!(allocations, 0);
+    let value = validate_canonical_structured_value(&retained_batch).unwrap();
+    let slots = value.record_field("slots").unwrap().unwrap();
+    let changed = slots
+        .collection_index(0)
+        .unwrap()
+        .unwrap()
+        .variant_payload("changed")
+        .unwrap()
+        .unwrap();
+    let pressed = changed
+        .record_field("pressed")
+        .unwrap()
+        .unwrap()
+        .primitive_bytes("value/bool")
+        .unwrap();
+    let offset = pressed.as_ptr() as usize - retained_batch.as_ptr() as usize;
+    retained_batch[offset] = 255;
+    assert!(decoder.decode(&retained_batch).is_err());
+    retained_batch[offset] = 1;
+    assert!(
+        decoder
+            .decode(&retained_batch[..retained_batch.len() - 1])
+            .is_err()
+    );
 }
