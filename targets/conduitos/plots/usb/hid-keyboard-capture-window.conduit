@@ -1,0 +1,86 @@
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+
+# Eight exact planned calls share an admitted endpoint capture window. Physical
+# ordinals come from the selected Back; class state advances only in wire order.
+# Root admits a new read only after its prior ordered observation is delivered.
+plot usb-hid-keyboard-capture-request (
+    read: Unit...| >> request: UsbEndpointReadRequest...| <= 4096B
+) = ({ length: 8 })
+
+plot usb-hid-keyboard-capture-window (
+    >> begin: Unit...|
+    >> read0: Unit...|
+    >> read1: Unit...|
+    >> read2: Unit...|
+    >> read3: Unit...|
+    >> read4: Unit...|
+    >> read5: Unit...|
+    >> read6: Unit...|
+    >> read7: Unit...|
+    observation: UsbKeyboardOrderedObservation...| >>
+    changes: UsbKeyboardTransitionBatch...| >>
+    ended: UsbKeyboardOrderEnd...| >>
+) {
+    state: usb-hid-keyboard-order-lifecycle
+    commands: flow/concat/finite
+    transfer0: machine/usb/endpoint-read
+    decode0: usb-hid-keyboard-endpoint-command-message
+    transfer1: machine/usb/endpoint-read
+    decode1: usb-hid-keyboard-endpoint-command-message
+    transfer2: machine/usb/endpoint-read
+    decode2: usb-hid-keyboard-endpoint-command-message
+    transfer3: machine/usb/endpoint-read
+    decode3: usb-hid-keyboard-endpoint-command-message
+    transfer4: machine/usb/endpoint-read
+    decode4: usb-hid-keyboard-endpoint-command-message
+    transfer5: machine/usb/endpoint-read
+    decode5: usb-hid-keyboard-endpoint-command-message
+    transfer6: machine/usb/endpoint-read
+    decode6: usb-hid-keyboard-endpoint-command-message
+    transfer7: machine/usb/endpoint-read
+    decode7: usb-hid-keyboard-endpoint-command-message
+    pair01: flow/merge/finite
+    pair23: flow/merge/finite
+    pair45: flow/merge/finite
+    pair67: flow/merge/finite
+    half03: flow/merge/finite
+    half47: flow/merge/finite
+    all: flow/merge/finite
+    begin >> state.begin
+    begin >> usb-hid-keyboard-endpoint-finish() >> commands.right
+    read0 >> usb-hid-keyboard-capture-request() >> transfer0.request
+    transfer0.result >> decode0.result
+    decode0.message >> pair01.left
+    read1 >> usb-hid-keyboard-capture-request() >> transfer1.request
+    transfer1.result >> decode1.result
+    decode1.message >> pair01.right
+    read2 >> usb-hid-keyboard-capture-request() >> transfer2.request
+    transfer2.result >> decode2.result
+    decode2.message >> pair23.left
+    read3 >> usb-hid-keyboard-capture-request() >> transfer3.request
+    transfer3.result >> decode3.result
+    decode3.message >> pair23.right
+    read4 >> usb-hid-keyboard-capture-request() >> transfer4.request
+    transfer4.result >> decode4.result
+    decode4.message >> pair45.left
+    read5 >> usb-hid-keyboard-capture-request() >> transfer5.request
+    transfer5.result >> decode5.result
+    decode5.message >> pair45.right
+    read6 >> usb-hid-keyboard-capture-request() >> transfer6.request
+    transfer6.result >> decode6.result
+    decode6.message >> pair67.left
+    read7 >> usb-hid-keyboard-capture-request() >> transfer7.request
+    transfer7.result >> decode7.result
+    decode7.message >> pair67.right
+    pair01.merged >> half03.left
+    pair23.merged >> half03.right
+    pair45.merged >> half47.left
+    pair67.merged >> half47.right
+    half03.merged >> all.left
+    half47.merged >> all.right
+    all.merged >> select(UsbKeyboardOrderMessage.command, unmatched=drop) >> commands.left
+    commands.concatenated >> state.command
+    state.observation >> observation
+    state.changes >> changes
+    state.ended >> ended
+}
