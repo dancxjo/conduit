@@ -25,6 +25,71 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
 }
 
 #[test]
+fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability() {
+    use conduit_presentation::{CurrentOwnerPresentationRoute, MaskShowDisposition};
+
+    let checked = source();
+    let mut owner = Owner::open(
+        host("boot/wardrobe-loss"),
+        resident(&checked),
+        None,
+        "Wardrobe",
+    )
+    .unwrap();
+    let (attached, _peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    owner.host.attach_terminal_mask(attached).unwrap();
+    let (face, seal) = owner.seal_attached_terminal_route().unwrap();
+    let current = [CurrentOwnerPresentationRoute::Local {
+        seal: &seal,
+        owner_offer: owner.host.advertisement(),
+    }];
+    let mask = seal.planned_mask.mask.plot_identity.clone();
+    let mut wardrobe = presentation_wardrobe::OwnerPresentationWardrobe::seal(
+        &owner.session,
+        &face,
+        &current,
+        vec![mask.clone()],
+        vec![mask],
+    )
+    .unwrap();
+    let plan_id = wardrobe.plan().plan_id.clone();
+    let lost = wardrobe
+        .admit_or_replace(&owner.session, &face, &[])
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+    assert!(matches!(
+        lost.show,
+        MaskShowDisposition::NoCurrentShow { .. }
+    ));
+    assert!(
+        !wardrobe
+            .plan()
+            .admit_current_routes(&owner.session, &face, &[])
+            .unwrap()
+            .routes()[0]
+            .currently_available
+    );
+    let restored = wardrobe
+        .admit_or_replace(&owner.session, &face, &current)
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+    assert!(matches!(
+        restored.show,
+        MaskShowDisposition::SelectSealed { .. }
+    ));
+    let mut stale_offer = owner.host.advertisement().clone();
+    stale_offer.offer_generation.0 += 1;
+    let stale = [CurrentOwnerPresentationRoute::Local {
+        seal: &seal,
+        owner_offer: &stale_offer,
+    }];
+    assert!(wardrobe
+        .admit_or_replace(&owner.session, &face, &stale)
+        .is_err());
+    assert_eq!(wardrobe.plan().plan_id, plan_id);
+}
+
+#[test]
 fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
     let root = std::env::temp_dir().join(super::super::super::fresh_identity(
         "owner-face-names",
