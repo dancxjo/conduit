@@ -7,9 +7,11 @@ interval to 500 ms; the browser reads that new Face and changes it back to
 1000 ms. The Linux terminal then inspects the same current Face through its
 local Mask, changes the interval to 500 ms, and the browser sees that result
 while the ConduitOS guest remains live. The owner alone retains the
-Body and workload truth. This proves the three-Host graphical and terminal
-presentation topology, not Mask preference, speech, physical hardware, or the
-published journey.
+Body and workload truth. The browser then doffs, wears, and explicitly prefers
+its Mask through the owner's controls before requesting a fresh Show. This
+proves the three-Host graphical and terminal presentation topology and one
+same-Plan browser wardrobe transition, not presentation-host loss,
+owner-selected speech, physical hardware, or the published journey.
 
 Start from a clean checkout at one commit. Check tools with
 `cargo xtask doctor browser` and the ConduitOS prerequisites in
@@ -78,10 +80,11 @@ Face stale. It requires three distinct current Host/Boot pairs before either
 user action. QMP keyboard input, browser controls, both owner responses, and
 the browser's refreshed Face are real product paths. The terminal transcript
 comes from `conduit body terminal` and includes the current Face, acknowledged
-local Shows, and its semantic action. The resulting `report.json` hashes six
-screenshots,
-the terminal transcript, and the exact Rust native receipt;
+local Shows, and its semantic action. The resulting `report.json` hashes seven
+screenshots, the terminal transcript, and the exact Rust native receipt;
 `native/owner-action-proof.json` retains the unrounded Face and Show revisions.
+`browser-wardrobe.json` retains the five owner-produced reports, including the
+unchanged owner Plan, three explicit policy actions, and fresh acknowledged Show.
 Do not copy the invitation or private ISO into the evidence directory or onto
 the website. A successful local receipt is not CI, accepted-release, physical,
 or public Pages proof.
@@ -90,7 +93,7 @@ To retain a direct spoken reading in that same live three-host run, add
 `--speech-executable ESPEAK --speech-data ESPEAK_NG_DATA --speech-engine
 LIBESPEAK_NG` to the command. Use the installed engine's exact regular file,
 not its `.so.1` symlink. The driver calls the existing
-`one-body-spoken-chapter` producer after the terminal action, while QEMU and
+`one-body-spoken-chapter` producer after the wardrobe action, while QEMU and
 Chromium remain live. It assigns the speech action's run ID before synthesis
 and retains the complete producer manifest, receipt, transcript, and every
 streamed WAV batch under `speech-direct/`. The combined report checks Body,

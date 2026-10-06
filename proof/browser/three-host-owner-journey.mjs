@@ -199,6 +199,66 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterTerminal.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-terminal.png') });
+  const wardrobeEvidence = page.locator('[data-owner-wardrobe-evidence]');
+  const readWardrobe = async () => JSON.parse(await wardrobeEvidence.textContent());
+  const awaitWardrobeRevision = async prior => {
+    await page.waitForFunction(revision => {
+      try {
+        const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+        return report.wardrobe_revision_decimal !== revision;
+      } catch { return false; }
+    }, prior, { timeout: 12_000 });
+    return readWardrobe();
+  };
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(() => {
+    if (!document.querySelector('[data-owner-wardrobe-status]').textContent
+      .startsWith('Owner wardrobe revision ')) return false;
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .schema === 'conduit.body/owner-mask-wardrobe@1'; } catch { return false; }
+  }, null, { timeout: 12_000 });
+  const wardrobeBefore = await readWardrobe();
+  assert.equal(wardrobeBefore.body_id, bodyId);
+  const browserRoute = wardrobeBefore.admitted_routes.find(route =>
+    route.currently_available && route.route_id === wardrobeBefore.selected?.route_id);
+  assert.ok(browserRoute, 'the browser must be the selected available Mask before doff');
+  const browserMask = wardrobeBefore.route_descriptions.find(route =>
+    route.route_id === browserRoute.route_id)?.mask_name;
+  assert.ok(browserMask, 'the selected browser route needs its owner name');
+  await page.getByRole('button', { name: `Doff ${browserMask}`, exact: true }).click();
+  const wardrobeDoffed = await awaitWardrobeRevision(wardrobeBefore.wardrobe_revision_decimal);
+  assert.equal(wardrobeDoffed.owner_plan_id, wardrobeBefore.owner_plan_id);
+  assert.equal(wardrobeDoffed.selected, null);
+  assert.equal(wardrobeDoffed.wardrobe.worn.some(mask =>
+    mask.checked_plot_id === browserRoute.mask_plot.checked_plot_id), false);
+  await page.getByRole('button', { name: `Wear ${browserMask}`, exact: true }).click();
+  const wardrobeWorn = await awaitWardrobeRevision(wardrobeDoffed.wardrobe_revision_decimal);
+  assert.equal(wardrobeWorn.owner_plan_id, wardrobeBefore.owner_plan_id);
+  await page.getByRole('button', { name: `Prefer only ${browserMask}`, exact: true }).click();
+  const wardrobePreferred = await awaitWardrobeRevision(wardrobeWorn.wardrobe_revision_decimal);
+  assert.equal(wardrobePreferred.owner_plan_id, wardrobeBefore.owner_plan_id);
+  assert.equal(wardrobePreferred.selected?.route_id, browserRoute.route_id);
+  assert.equal(wardrobePreferred.fresh_show_required, true);
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(() => Boolean(document.querySelector('[data-handbook-application]')
+    ?.dataset.ownerShowAcknowledged), null, { timeout: 12_000 });
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(prior => {
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .show_id !== prior; } catch { return false; }
+  }, wardrobePreferred.show_id, { timeout: 12_000 });
+  const wardrobeRecovered = await readWardrobe();
+  assert.equal(wardrobeRecovered.owner_plan_id, wardrobeBefore.owner_plan_id);
+  assert.equal(wardrobeRecovered.selected?.route_id, browserRoute.route_id);
+  assert.ok(wardrobeRecovered.show_id && !wardrobeRecovered.fresh_show_required);
+  await page.locator('.owner-wardrobe').screenshot({ path: path.join(output, 'browser-wardrobe.png') });
+  const wardrobeRecord = { schema: 'conduit.proof/owner-browser-wardrobe@1',
+    source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
+    browser_route_id: browserRoute.route_id,
+    before: wardrobeBefore, doffed: wardrobeDoffed, worn: wardrobeWorn,
+    preferred: wardrobePreferred, recovered: wardrobeRecovered };
+  const wardrobeBytes = Buffer.from(`${JSON.stringify(wardrobeRecord, null, 2)}\n`);
+  await writeFile(path.join(output, 'browser-wardrobe.json'), wardrobeBytes);
   const afterTerminalStatus = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(afterTerminalStatus.biography.membership.parts.length, 3);
   for (const partId of [ownerPart.part_id, arrived.guest_part.part_id, joined.credential.part_id]) {
@@ -281,7 +341,7 @@ try {
   const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json')));
   assert.equal(browserBundle.reviewed_distribution.source_commit, nativeReceipt.source_commit);
   const screenshotPaths = ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
-    'browser-after-terminal.png',
+    'browser-after-terminal.png', 'browser-wardrobe.png',
     'native/owner-before.png', 'native/owner-after.png'];
   const screenshots = await Promise.all(screenshotPaths.map(async file => {
     const bytes = await readFile(path.join(output, file));
@@ -334,6 +394,14 @@ try {
       path: 'terminal-face.txt',
       bytes: Buffer.byteLength(terminal.stdout),
       sha256: digest(Buffer.from(terminal.stdout)),
+    },
+    browser_wardrobe: {
+      route_id: browserRoute.route_id, owner_plan_id: wardrobeBefore.owner_plan_id,
+      revision_before: wardrobeBefore.wardrobe_revision_decimal,
+      revision_after: wardrobeRecovered.wardrobe_revision_decimal,
+      selected_show_id: wardrobeRecovered.show_id,
+      path: 'browser-wardrobe.json', bytes: wardrobeBytes.length,
+      sha256: digest(wardrobeBytes),
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
