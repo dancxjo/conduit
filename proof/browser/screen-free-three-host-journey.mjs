@@ -115,6 +115,20 @@ const invoke = (executable, args, options = {}) => {
 const ownerJson = args => JSON.parse(invoke(owner, args));
 const installation = await load(path.join(state, 'installation.json'));
 assert.equal(installation.product_executable, owner, 'installed owner executable differs');
+const guestBuild = await load(path.join(build, 'build-manifest.json'));
+const browserBundle = await load(path.join(handbook, 'sdk/bundle/conduit-browser-image.json'));
+assert.equal(guestBuild.source_identity, installation.release_source_identity,
+  'ConduitOS image must share the installed owner source before screen-free Birth');
+assert.equal(browserBundle.reviewed_distribution.source_commit, installation.release_source_identity,
+  'Handbook browser bundle must share the installed owner source before screen-free Birth');
+if (speakerCard && model) {
+  assert.equal(installation.selected_model?.model_name, model,
+    'installed owner must select the listener model before screen-free Birth');
+  assert.equal(installation.selected_speech?.card_id, speakerCard,
+    'installed owner must select the listener speaker before screen-free Birth');
+  assert.equal(installation.selected_speech?.device, Number(speakerDevice),
+    'installed owner must select the listener device before screen-free Birth');
+}
 assert.equal(existsSync(path.join(state, 'body', 'biography.json')), false,
   'this producer requires an installed zero-Body Host');
 assert.equal(existsSync(path.join(state, 'body', 'owner-transaction.json')), false,

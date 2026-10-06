@@ -43,6 +43,14 @@ export async function captureOwnerLlmSpeaker({ owner, state, output, installatio
   assert.equal(terminal.speaker_played, true);
   assert.equal(terminal.route_plan_id, selected.route_plan_id);
   assert.equal(terminal.source_face_id, before.presentation.identity);
+  const generation = terminal.generation_evidence;
+  assert.ok(generation?.provider_identity && generation.model_identity,
+    'selected model Show lost its provider and model identities');
+  assert.ok(generation.candidate_digest && generation.validation_receipt_identity,
+    'selected model Show lost its same-generation validation identity');
+  assert.ok(generation.original_model_output &&
+    Buffer.byteLength(generation.original_model_output) <= 2048,
+  'selected model Show lost its bounded original model output');
   const played = terminal.speaker_playback;
   assert.equal(played.schema, 'conduit.body/owner-spoken-speaker-play@1');
   assert.equal(played.outcome, 'completed');
@@ -90,6 +98,11 @@ export async function captureOwnerLlmSpeaker({ owner, state, output, installatio
     model_artifact_play_id: terminal.active_play_id,
     listener_plan_id: played.plan_id, listener_play_id: played.play_id,
     accepted_wording: terminal.accepted_wording,
+    provider_identity: generation.provider_identity,
+    model_identity: generation.model_identity,
+    candidate_digest: generation.candidate_digest,
+    validation_receipt_identity: generation.validation_receipt_identity,
+    original_model_output_sha256: digest(Buffer.from(generation.original_model_output)),
     terminal: { path: 'owner-llm-selected/terminal.json', sha256: digest(terminalBytes) },
     wav: { path: `owner-llm-selected/${path.basename(source)}`,
       bytes: wav.length, sha256: digest(wav) },
