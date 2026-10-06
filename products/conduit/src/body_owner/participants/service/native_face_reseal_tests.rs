@@ -200,6 +200,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         .unwrap();
     let window = owner.pending_browser.as_ref().unwrap();
     let (browser_route, ..) = window.current_mask_route().unwrap();
+    let browser_route = browser_route.clone();
     assert_eq!(browser_route.face_id, current_face.identity);
     assert_eq!(browser_route.face_revision, current_face.revision);
     assert_eq!(native.face_id, current_face.identity);
@@ -215,5 +216,104 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
     assert_ne!(plan.plan_id, old_plan);
     assert_eq!(plan.routes.len(), 2);
     assert_eq!(plan.face_revision, current_face.revision);
+
+    // A checked workset replacement on this same lulled Body advances its
+    // workload revision. The old browser seal is stale for that reason, not
+    // merely for a changed Face revision. Its still-current carrier may be
+    // resealed, while the old Show and native witness must be withdrawn.
+    let body_id = owner.session.evidence().body_id.clone();
+    let old_revision = owner.session.evidence().body.workload_revision;
+    let old_resident = owner.resident.clone().unwrap();
+    let next = crate::plot_source::parse(
+        "plot revised {\n show: presentation/text\n \"Revised.\" >> show\n}.",
+    )
+    .unwrap()
+    .expand_entry_for_authoring()
+    .unwrap();
+    let next_resident = ResidentPlot::new(
+        next.expanded.source_document_id.clone(),
+        next.expanded.checked_plot_id.clone(),
+    );
+    let owner_host = owner.host.advertisement();
+    owner
+        .session
+        .remove_plot(
+            old_revision,
+            &old_resident,
+            &owner_host.host_id,
+            &owner_host.boot_id,
+        )
+        .unwrap();
+    owner
+        .session
+        .admit_plot(
+            old_revision + 1,
+            next_resident.clone(),
+            &owner_host.host_id,
+            &owner_host.boot_id,
+        )
+        .unwrap();
+    owner.resident = Some(next_resident);
+    owner.resident_name = Some(next.expanded.name);
+    let changed_face = owner.local_face_snapshot().unwrap();
+    assert_eq!(owner.session.evidence().body_id, body_id);
+    assert_ne!(
+        owner.session.evidence().body.workload_revision,
+        old_revision
+    );
+    assert!(matches!(
+        browser_route.validate_current_with_interaction(
+            &owner.session,
+            &changed_face,
+            owner.host.advertisement(),
+            owner
+                .pending_browser
+                .as_ref()
+                .unwrap()
+                .current_mask_route()
+                .unwrap()
+                .1,
+            &browser_lines.face,
+            &browser_lines.returned,
+            &browser_lines.interaction,
+        ),
+        Err(conduit_presentation::RemoteOwnerMaskRouteError::StaleBody)
+    ));
+    owner.refresh_browser_mask_route_for_current_face().unwrap();
+    let window = owner.pending_browser.as_ref().unwrap();
+    let (resealed_browser, ..) = window.current_mask_route().unwrap();
+    assert_eq!(resealed_browser.body_id, body_id);
+    assert_eq!(
+        resealed_browser.workload_revision,
+        owner.session.evidence().body.workload_revision
+    );
+    assert_eq!(resealed_browser.face_id, changed_face.identity);
+    let WindowState::Active {
+        acknowledged_show, ..
+    } = &window.state
+    else {
+        panic!("expected active browser")
+    };
+    assert!(acknowledged_show.is_none());
+    let resealed_native = owner
+        .seal_native_mask_route(
+            &receipt,
+            &face_line,
+            &return_line,
+            crate::durable_host::current_time_millis().unwrap() + 60_000,
+        )
+        .unwrap();
+    assert_eq!(resealed_native.body_id, body_id);
+    assert_eq!(resealed_native.face_id, changed_face.identity);
+    assert_eq!(
+        owner
+            .presentation_wardrobe
+            .as_ref()
+            .unwrap()
+            .plan()
+            .routes
+            .len(),
+        2
+    );
     std::fs::remove_dir_all(root).unwrap();
 }

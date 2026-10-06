@@ -37,7 +37,11 @@ impl Owner {
             interaction_line,
         ) {
             Ok(()) => return Ok(()),
-            Err(RemoteOwnerMaskRouteError::StaleFace) => {}
+            // An accepted workset replacement advances the same Body's
+            // workload revision as well as its Face. Re-seal only through
+            // browser_mask_route, which rechecks the current credential,
+            // attached carrier, Host offers, and exact Lines.
+            Err(RemoteOwnerMaskRouteError::StaleFace | RemoteOwnerMaskRouteError::StaleBody) => {}
             Err(error) => return Err(format!("browser route cannot refresh: {error:?}")),
         }
         let WindowState::Active {
