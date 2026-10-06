@@ -23,6 +23,19 @@ use alloc::vec::Vec;
 use conduit_core::*;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
+#[derive(Debug)]
+pub(super) enum CaptureBindingRefusal {
+    Contract(StructuredInfoRefusal),
+    Readiness(&'static str),
+    Fragment,
+    Lowering(conduit_plan_lowering::lowering::LoweringError),
+    Members,
+    Base,
+    WrongReadiness,
+    Possession(crate::protocol_source::NativeProtocolIssueRefusal),
+    Native(super::endpoint_read::EndpointNativeRefusal),
+}
+
 pub(super) struct PreparedSourceCapture<'a, const N: usize> {
     pub play: PreparedHidSourceKernel,
     pub owner: EndpointReadWindow<'a, N>,
@@ -176,8 +189,8 @@ pub(super) unsafe fn bind<'a, const N: usize>(
     mut play: PreparedHidSourceKernel,
     issuers: [NativeProtocolIssuer; N],
     work_units: u64,
-) -> Result<PreparedSourceCapture<'a, N>, &'static str> {
-    let contract = EndpointReadContract::prepare().map_err(|_| "usb-source-capture-contract")?;
+) -> Result<PreparedSourceCapture<'a, N>, CaptureBindingRefusal> {
+    let contract = EndpointReadContract::prepare().map_err(CaptureBindingRefusal::Contract)?;
     let ready = ready_window_entry(
         base_id,
         provider_instance_id,
@@ -185,13 +198,14 @@ pub(super) unsafe fn bind<'a, const N: usize>(
         &configured,
         &dma,
         &contract,
-    )?;
+    )
+    .map_err(CaptureBindingRefusal::Readiness)?;
     let plan = &play.kernel_mut().definition().internal_plan;
     if plan.fragments.len() != 1 {
-        return Err("usb-source-capture-fragment");
+        return Err(CaptureBindingRefusal::Fragment);
     }
     let fragment = &plan.fragments[0];
-    let lowered = lower_plan_fragment(fragment).map_err(|_| "usb-source-capture-lowering")?;
+    let lowered = lower_plan_fragment(fragment).map_err(CaptureBindingRefusal::Lowering)?;
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     let implementation = ImplementationId::from(ENDPOINT_READ_IMPLEMENTATION);
     let gears: Vec<_> = fragment
@@ -200,11 +214,11 @@ pub(super) unsafe fn bind<'a, const N: usize>(
         .filter(|gear| gear.implementation_id == implementation)
         .collect();
     if gears.len() != N {
-        return Err("usb-source-capture-members");
+        return Err(CaptureBindingRefusal::Members);
     }
     let mut selections = Vec::with_capacity(N);
     for (gear, issuer) in gears.into_iter().zip(issuers) {
-        let base = gear.base.as_ref().ok_or("usb-source-capture-base")?;
+        let base = gear.base.as_ref().ok_or(CaptureBindingRefusal::Base)?;
         if base.base_id != ready.base_id
             || base.provider_instance_id != ready.provider_instance_id
             || base.provider_generation != ready.provider_generation
@@ -215,7 +229,7 @@ pub(super) unsafe fn bind<'a, const N: usize>(
             || gear.resources.len() != 1
             || gear.resources[0].pool_id != ready.resources[0].pool_id
         {
-            return Err("usb-source-capture-readiness");
+            return Err(CaptureBindingRefusal::WrongReadiness);
         }
         let possession = issuer
             .issue_selected(
@@ -225,7 +239,7 @@ pub(super) unsafe fn bind<'a, const N: usize>(
                 &gear.placement_id,
                 work_units,
             )
-            .map_err(|_| "usb-source-capture-possession")?;
+            .map_err(CaptureBindingRefusal::Possession)?;
         selections.push(EndpointReadWindowSelection {
             table: possession.table,
             handle: possession.handle,
@@ -240,7 +254,7 @@ pub(super) unsafe fn bind<'a, const N: usize>(
     }
     let selections = selections
         .try_into()
-        .map_err(|_| "usb-source-capture-members")?;
+        .map_err(|_| CaptureBindingRefusal::Members)?;
     let owner = unsafe {
         EndpointReadWindow::bind_selected(
             controller.maximum_ports(),
@@ -252,7 +266,7 @@ pub(super) unsafe fn bind<'a, const N: usize>(
             &contract,
         )
     }
-    .map_err(|_| "usb-source-capture-binding")?;
+    .map_err(CaptureBindingRefusal::Native)?;
     Ok(PreparedSourceCapture {
         play,
         owner,
