@@ -31,7 +31,7 @@ impl ExternalForeOutputAdapter for OneShow {
             || output.front_port_id != port_id("show")
             || output.track != ConnectionTrack::Payload
             || output.sequence != 0
-            || output.bytes.len() > 65_536
+            || output.bytes.len() > 262_144
         {
             return Err("direct spoken Mask emitted an unexpected Show".into());
         }
@@ -100,7 +100,7 @@ impl DurableHostRuntime {
         let seal = owner.admit_direct_spoken_route()?;
         Ok(json!({"schema":"conduit.body/direct-spoken-route@1",
             "route_plan_id":seal.route_plan_id, "mask_plot":seal.planned_mask.mask.plot_identity,
-            "selected":false, "show":null}))
+            "selection_unchanged":true, "show":null}))
     }
 
     pub(in crate::durable_host_control) fn select_direct_spoken(

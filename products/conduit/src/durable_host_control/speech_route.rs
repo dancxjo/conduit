@@ -12,6 +12,7 @@ use std::{
     io::{Read, Write},
     os::unix::net::UnixStream,
     path::Path,
+    time::Duration,
 };
 
 pub(crate) const MAGIC: &[u8; 8] = b"SDSPCH01";
@@ -91,6 +92,12 @@ pub(super) fn call(
     let mut secret = read_secret(&state_dir.join("control.token"))?;
     let mut stream = UnixStream::connect(state_dir.join("control.sock"))
         .map_err(|error| format!("connect to selected speech owner: {error}"))?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .map_err(|error| format!("bound selected speech control read: {error}"))?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(2)))
+        .map_err(|error| format!("bound selected speech control write: {error}"))?;
     stream.write_all(MAGIC).map_err(|error| error.to_string())?;
     let mut request = request(secret.to_vec());
     secret.fill(0);
