@@ -8,6 +8,8 @@ use core::{
     ptr::{read_volatile, write_volatile},
 };
 
+#[path = "xhci_deferred_events.rs"]
+mod deferred_events;
 #[path = "xhci_event.rs"]
 mod event;
 
@@ -38,6 +40,7 @@ pub enum XhciError {
     StartTimeout,
     CommandRingFull,
     UnexpectedCompletion,
+    EventPressure,
     CommandTimeout,
     DmaAddressInvalid,
 }
@@ -56,6 +59,7 @@ impl XhciError {
             Self::StartTimeout => "xhci-start-timeout",
             Self::CommandRingFull => "xhci-command-ring-full",
             Self::UnexpectedCompletion => "xhci-unexpected-completion",
+            Self::EventPressure => "xhci-event-pressure",
             Self::CommandTimeout => "xhci-command-timeout",
             Self::DmaAddressInvalid => "xhci-dma-address-invalid",
         }
@@ -90,6 +94,7 @@ pub struct XhciReady {
     event_cycle: u32,
     maximum_ports: u8,
     context_bytes: u8,
+    deferred_events: deferred_events::DeferredEvents,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -163,6 +168,7 @@ pub fn initialize_xhci(
         event_cycle: 1,
         maximum_ports: registers.maximum_ports,
         context_bytes: registers.context_bytes,
+        deferred_events: deferred_events::DeferredEvents::new(),
     })
 }
 
@@ -332,6 +338,7 @@ impl XhciReady {
     }
 
     pub(super) fn command(&mut self, mut trb: [u32; 4]) -> Result<Event, XhciError> {
+        self.deferred_events.ensure_room()?;
         if self.command_enqueue >= COMMAND_TRBS - 1 {
             return Err(XhciError::CommandRingFull);
         }
@@ -344,8 +351,9 @@ impl XhciReady {
         self.command_enqueue += 1;
         unsafe { write32(self.doorbell, 0) };
         for _ in 0..EVENT_TRBS {
-            let event = self.next_event()?;
-            if event.event_type == 34 {
+            let event = self.next_command_event()?;
+            if matches!(event.event_type, 32 | 34) {
+                self.deferred_events.retain(event)?;
                 continue;
             }
             if event.event_type != 33 || event.pointer != pointer {
@@ -357,9 +365,10 @@ impl XhciReady {
     }
 
     /// Retires one removed slot while boundedly draining only its stale
-    /// transfer completions. Port-change events are controller observations,
-    /// not command completions or semantic input.
+    /// transfer completions. Foreign transfers and port changes remain queued
+    /// for the sole Root consumer; only the exact ACK permits Slot retirement.
     pub(super) fn disable_removed_slot(&mut self, slot: u8) -> Result<u8, XhciError> {
+        self.deferred_events.ensure_room()?;
         if slot == 0 || self.command_enqueue >= COMMAND_TRBS - 1 {
             return Err(XhciError::CommandRingFull);
         }
@@ -378,15 +387,17 @@ impl XhciReady {
         unsafe { write32(self.doorbell, 0) };
         let mut stale_transfers = 0_u8;
         for _ in 0..EVENT_TRBS {
-            let event = self.next_event()?;
+            let event = self.next_command_event()?;
             match event.event_type {
-                34 => continue,
+                34 => self.deferred_events.retain(event)?,
+                32 if event.slot != slot => self.deferred_events.retain(event)?,
                 32 if event.slot == slot => {
                     stale_transfers = stale_transfers
                         .checked_add(1)
                         .ok_or(XhciError::UnexpectedCompletion)?;
                 }
                 33 if event.pointer == pointer && event.completion_code == 1 => {
+                    stale_transfers += self.deferred_events.retire_slot(slot);
                     unsafe {
                         write_volatile(core::ptr::addr_of_mut!(DMA.dcbaa[usize::from(slot)]), 0)
                     };
@@ -400,6 +411,19 @@ impl XhciReady {
 
     pub(super) fn ring_endpoint(&self, slot: u8, endpoint: u8) {
         unsafe { write32(self.doorbell + usize::from(slot) * 4, u32::from(endpoint)) }
+    }
+
+    fn next_command_event(&mut self) -> Result<Event, XhciError> {
+        // Preserve space before consuming a hardware event. Failure leaves DMA
+        // owned and the command pending; it cannot manufacture a stop ACK.
+        self.deferred_events.ensure_room()?;
+        for _ in 0..POLL_STEPS {
+            if let Some(event) = self.poll_hardware_event() {
+                return Ok(event);
+            }
+            spin_loop();
+        }
+        Err(XhciError::CommandTimeout)
     }
 
     pub(super) fn next_event(&mut self) -> Result<Event, XhciError> {
