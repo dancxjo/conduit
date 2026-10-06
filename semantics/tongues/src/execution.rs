@@ -169,15 +169,21 @@ pub fn run_speech(
     condition: OutputCondition,
     fault: SpeechFault,
 ) -> Result<SpeechRunReceipt, String> {
-    run_speech_text(SPECIMEN_TEXT, condition, fault)
+    run_speech_text(
+        SPECIMEN_TEXT,
+        &crate::specimen_language_request(),
+        condition,
+        fault,
+    )
 }
 
 pub fn run_speech_text(
     text: &str,
+    language: &conduit_language::LanguageRequest,
     condition: OutputCondition,
     fault: SpeechFault,
 ) -> Result<SpeechRunReceipt, String> {
-    let planned = plan_speech_text(text, condition)?;
+    let planned = plan_speech_text(text, language, condition)?;
     let plan_id = planned.plan.plan_id.as_str().to_owned();
     let text_sha256 = sha256(text.as_bytes());
     let terminal = match fault {

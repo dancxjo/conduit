@@ -265,8 +265,12 @@ mod tests {
     #[test]
     fn semantic_contract_contains_no_realization_facts() {
         let synthesis = synthesize_contract();
-        assert_eq!(synthesis.startup_parameters.len(), 1);
+        assert_eq!(synthesis.startup_parameters.len(), 2);
         assert_eq!(synthesis.startup_parameters[0].name, "maximum-output-bytes");
+        assert_eq!(
+            synthesis.startup_parameters[1],
+            conduit_language::language_request_parameter()
+        );
         assert_eq!(
             synthesis
                 .clone()

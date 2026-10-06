@@ -408,7 +408,7 @@ mod tests {
             .get(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
             .unwrap();
         let expected = conduit_core::CheckedFront::new(
-            Vec::new(),
+            vec![conduit_language::language_request_parameter()],
             definition.inputs.clone(),
             definition.outputs.clone(),
             Some((
