@@ -230,12 +230,35 @@ fn fixture_with_source_gap(
                     let delivery = format!("delivery-{chapter}-{offset}");
                     let delivery_receipt = if guest_audio && offset == 0 {
                         json!({
-                            "schema":"conduit.conduitos.opl2-proof/v1",
+                            "schema":"conduit.conduitos/speech-audio-proof@1",
                             "status":"completed", "boot_id":"guest-boot",
                             "plan_id":format!("plan-{offset}"),
                             "active_play_id":format!("play-{offset}"),
+                            "source_show_id":show, "face_revision_decimal":"5",
+                            "spoken_text_sha256":digest(words.as_bytes()),
+                            "voice_id":"synthetic-voice-v1",
                             "qemu_audio":{"source":"same-run-qemu-wav-output",
                                 "sha256":sha, "bytes":bytes.len(), "nonzero_samples":1}
+                        })
+                    } else if *source == "llm-assisted" {
+                        json!({
+                            "schema":"conduit.body/owner-spoken-terminal@1",
+                            "outcome":"available", "mode":"llm-assisted",
+                            "show_id":show, "active_play_id":format!("model-play-{offset}"),
+                            "accepted_wording":words, "speaker_played":true,
+                            "speaker_playback":{
+                                "schema":"conduit.body/owner-spoken-speaker-play@1",
+                                "source_show_id":show,
+                                "source_face_revision_decimal":"5",
+                                "host_id":"synthetic-owner", "boot_id":"synthetic-boot",
+                                "provider_sha256":"a".repeat(64),
+                                "plan_id":format!("plan-{offset}"),
+                                "play_id":format!("play-{offset}"), "outcome":"completed",
+                                "wav_sha256":sha, "wav_bytes":bytes.len(),
+                                "pcm_sha256":digest(&bytes[44..]), "pcm_bytes":bytes.len()-44,
+                                "pcm_blocks":1, "speaker_blocks_committed":1,
+                                "speaker_frames_committed":1, "spoken_segments":[words]
+                            }
                         })
                     } else {
                         json!({
@@ -421,12 +444,63 @@ fn rejects_playable_wav_without_the_same_speaker_play() {
 }
 
 #[test]
+fn rejects_model_artifact_when_the_listener_play_did_not_complete() {
+    let fixture = fixture(false, false, false, false);
+    let path = fixture.root.join("delivery-hear-1.json");
+    let mut terminal: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    terminal["speaker_played"] = json!(false);
+    let bytes = serde_json::to_vec(&terminal).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let declared = manifest["outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["id"] == "delivery-hear-1")
+        .unwrap();
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("model wording lacks its completed selected speaker Play"));
+    assert!(!fixture.output.exists());
+}
+
+#[test]
 fn renders_guest_audio_only_with_the_same_run_qemu_receipt() {
     let fixture =
         fixture_with_source_gap(false, false, false, false, false, false, false, false, true);
     run(&fixture).unwrap();
     let page = fs::read_to_string(fixture.output.join("index.html")).unwrap();
     assert!(page.contains("Captured from the same-run QEMU output"));
+}
+
+#[test]
+fn guest_opl2_sound_cannot_masquerade_as_spoken_audio() {
+    let fixture =
+        fixture_with_source_gap(false, false, false, false, false, false, false, false, true);
+    let path = fixture.root.join("delivery-hear-0.json");
+    let mut receipt: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    receipt["schema"] = json!("conduit.conduitos.opl2-proof/v1");
+    let bytes = serde_json::to_vec(&receipt).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let declared = manifest["outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["id"] == "delivery-hear-0")
+        .unwrap();
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("audio WAV differs from the guest run's QEMU output"));
+    assert!(!fixture.output.exists());
 }
 
 #[test]

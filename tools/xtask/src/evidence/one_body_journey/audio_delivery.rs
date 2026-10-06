@@ -22,7 +22,7 @@ struct SpeakerTerminal {
     batches: Vec<SpeakerBatch>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 struct SpeakerBatch {
     plan_id: String,
     play_id: String,
@@ -38,12 +38,40 @@ struct SpeakerBatch {
 }
 
 #[derive(Deserialize)]
+struct OwnerSpokenTerminal {
+    schema: String,
+    outcome: String,
+    mode: String,
+    show_id: String,
+    active_play_id: String,
+    accepted_wording: String,
+    speaker_played: bool,
+    speaker_playback: Option<OwnerSpeakerPlay>,
+}
+
+#[derive(Deserialize)]
+struct OwnerSpeakerPlay {
+    schema: String,
+    source_show_id: String,
+    source_face_revision_decimal: String,
+    host_id: String,
+    boot_id: String,
+    provider_sha256: String,
+    #[serde(flatten)]
+    batch: SpeakerBatch,
+}
+
+#[derive(Deserialize)]
 struct GuestAudioProof {
     schema: String,
     status: String,
     boot_id: String,
     plan_id: String,
     active_play_id: String,
+    source_show_id: String,
+    face_revision_decimal: String,
+    spoken_text_sha256: String,
+    voice_id: String,
     qemu_audio: GuestAudio,
 }
 
@@ -107,29 +135,57 @@ pub(super) fn validate(
             if capture.qemu_boot_id.is_some() {
                 return Err("speaker Play carries a guest Boot claim".into());
             }
-            let terminal: SpeakerTerminal = read_json(root, provenance)?;
             let pcm = speaker_pcm(&root.join(&artifact.path))?;
-            let matching: Vec<_> = terminal
-                .batches
-                .iter()
-                .filter(|batch| Some(batch.play_id.as_str()) == capture.play_id.as_deref())
-                .collect();
-            if terminal.schema != "conduit.body/selected-speech-terminal@1"
-                || terminal.outcome != "completed"
-                || !terminal.source_show_still_current
-                || terminal.face_revision.to_string() != terminal.face_revision_decimal
-                || terminal.face_revision_decimal != capture.face_revision
-                || Some(terminal.source_show_id.as_str()) != capture.show_id.as_deref()
-                || terminal.host_id.is_empty()
-                || terminal.boot_id.is_empty()
-                || terminal.provider_sha256.len() != 64
-                || terminal.batches.is_empty()
-                || terminal.batches.len() > 64
-                || matching.len() != 1
-            {
-                return Err("audio is not bound to a completed selected speaker Play".into());
-            }
-            let batch = matching[0];
+            let schema: serde_json::Value = read_json(root, provenance)?;
+            let batch = if schema["schema"] == "conduit.body/owner-spoken-terminal@1" {
+                let terminal: OwnerSpokenTerminal = read_json(root, provenance)?;
+                let played = terminal
+                    .speaker_playback
+                    .ok_or("model spoken Show has no selected speaker Play")?;
+                if terminal.schema != "conduit.body/owner-spoken-terminal@1"
+                    || terminal.outcome != "available"
+                    || terminal.mode != "llm-assisted"
+                    || capture.speech_mode.as_deref() != Some("llm-assisted")
+                    || !terminal.speaker_played
+                    || terminal.show_id != played.source_show_id
+                    || Some(terminal.show_id.as_str()) != capture.show_id.as_deref()
+                    || terminal.active_play_id == played.batch.play_id
+                    || terminal.accepted_wording != words.text
+                    || played.schema != "conduit.body/owner-spoken-speaker-play@1"
+                    || played.source_face_revision_decimal != capture.face_revision
+                    || played.host_id.is_empty()
+                    || played.boot_id.is_empty()
+                    || played.provider_sha256.len() != 64
+                    || played.batch.spoken_segments.concat() != words.text
+                {
+                    return Err("model wording lacks its completed selected speaker Play".into());
+                }
+                played.batch
+            } else {
+                let terminal: SpeakerTerminal = read_json(root, provenance)?;
+                let matching: Vec<_> = terminal
+                    .batches
+                    .iter()
+                    .filter(|batch| Some(batch.play_id.as_str()) == capture.play_id.as_deref())
+                    .collect();
+                if capture.speech_mode.as_deref() != Some("direct")
+                    || terminal.schema != "conduit.body/selected-speech-terminal@1"
+                    || terminal.outcome != "completed"
+                    || !terminal.source_show_still_current
+                    || terminal.face_revision.to_string() != terminal.face_revision_decimal
+                    || terminal.face_revision_decimal != capture.face_revision
+                    || Some(terminal.source_show_id.as_str()) != capture.show_id.as_deref()
+                    || terminal.host_id.is_empty()
+                    || terminal.boot_id.is_empty()
+                    || terminal.provider_sha256.len() != 64
+                    || terminal.batches.is_empty()
+                    || terminal.batches.len() > 64
+                    || matching.len() != 1
+                {
+                    return Err("audio is not bound to a completed selected speaker Play".into());
+                }
+                matching[0].clone()
+            };
             if batch.outcome != "completed"
                 || Some(batch.plan_id.as_str()) != capture.plan_id.as_deref()
                 || batch.wav_sha256 != artifact.sha256
@@ -140,18 +196,26 @@ pub(super) fn validate(
                 || batch.pcm_blocks != batch.speaker_blocks_committed
                 || batch.speaker_frames_committed != pcm.frames
                 || batch.spoken_segments.is_empty()
-                || batch.spoken_segments.join(" ") != words.text
+                || (if capture.speech_mode.as_deref() == Some("llm-assisted") {
+                    batch.spoken_segments.concat()
+                } else {
+                    batch.spoken_segments.join(" ")
+                }) != words.text
             {
                 return Err("audio WAV differs from the selected speaker Play".into());
             }
         }
         "qemu-audio" => {
             let guest: GuestAudioProof = read_json(root, provenance)?;
-            if guest.schema != "conduit.conduitos.opl2-proof/v1"
+            if guest.schema != "conduit.conduitos/speech-audio-proof@1"
                 || guest.status != "completed"
                 || Some(guest.boot_id.as_str()) != capture.qemu_boot_id.as_deref()
                 || Some(guest.plan_id.as_str()) != capture.plan_id.as_deref()
                 || Some(guest.active_play_id.as_str()) != capture.play_id.as_deref()
+                || Some(guest.source_show_id.as_str()) != capture.show_id.as_deref()
+                || guest.face_revision_decimal != capture.face_revision
+                || guest.spoken_text_sha256 != digest(words.text.as_bytes())
+                || Some(guest.voice_id.as_str()) != capture.voice_id.as_deref()
                 || guest.qemu_audio.source != "same-run-qemu-wav-output"
                 || guest.qemu_audio.nonzero_samples == 0
                 || guest.qemu_audio.sha256 != artifact.sha256
