@@ -109,7 +109,10 @@ pub(super) fn run(
             .iter()
             .map(|item| item.segment.text.len())
             .sum::<usize>();
-        let output = execute_real_spoken_batch(face, &show, &batch, speech.clone(), &wav_path)
+        let output = execute_real_spoken_batch(face, &show, &batch, speech.clone(), &conduit_language::LanguageRequest::new(
+    conduit_language::LanguageId::new("language/english".into()).expect("English mechanical Mask Language"),
+    None, conduit_language::LanguageVarietyPolicy::LanguageSufficient,
+).expect("explicit mechanical Mask request"), &wav_path)
             .map_err(|error| {
                 let _ = manifest.finish(EvidenceResult::DiagnosticIncomplete);
                 format!(

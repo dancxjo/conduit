@@ -35,6 +35,7 @@ fn installed_espeak_stream_drains_selected_alsa_speaker() {
         )],
     )
     .unwrap();
+    let discovery = declare_english_fixture(discovery);
     let (face, show) = source(2);
     let (_, batch) = batch(&face, &show);
     let authorization = ExplicitPlaybackAuthorization::new("grant/local-spoken-speaker").unwrap();
@@ -43,6 +44,7 @@ fn installed_espeak_stream_drains_selected_alsa_speaker() {
         &show,
         &batch,
         discovery,
+        &crate::hosted_language::tests::request("language/english"),
         config,
         selected,
         &authorization,
@@ -73,11 +75,20 @@ fn installed_espeak_produces_exact_plan_play_pcm_receipt() {
         )],
     )
     .unwrap();
+    let discovery = declare_english_fixture(discovery);
     let directory =
         std::env::temp_dir().join(format!("conduit-spoken-face-real-{}", std::process::id()));
     fs::create_dir(&directory).unwrap();
     let wav = directory.join("speech.wav");
-    let result = execute_real_spoken_batch(&face, &show, &batch, discovery, &wav).unwrap();
+    let result = execute_real_spoken_batch(
+        &face,
+        &show,
+        &batch,
+        discovery,
+        &crate::hosted_language::tests::request("language/english"),
+        &wav,
+    )
+    .unwrap();
     assert!(result.receipt.pcm_bytes > 0);
     assert!(result.receipt.pcm_blocks > 0);
     assert_eq!(result.receipt.wav_bytes, fs::metadata(&wav).unwrap().len());
@@ -134,4 +145,13 @@ fn installed_espeak_produces_exact_plan_play_pcm_receipt() {
     assert_eq!(terminal.outcome, SpokenTurnOutcome::Completed);
     assert_eq!(terminal.completed_segments, 2);
     eprintln!("real spoken Face WAV: {}", wav.display());
+}
+
+fn declare_english_fixture(discovery: EspeakDiscovery) -> EspeakDiscovery {
+    let coverage = crate::hosted_language::tests::fixture_coverage(
+        &discovery.provider_identity(),
+        "en-us",
+        "language/english",
+    );
+    discovery.declare_language_coverage(coverage).unwrap()
 }
