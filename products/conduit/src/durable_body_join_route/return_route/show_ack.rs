@@ -53,7 +53,20 @@ pub(super) fn acknowledge_show(
                     ack.request,
                     ack.show,
                 )
-                .map_err(|_| "show-refused")
+                .map_err(|error| {
+                    let code = if error.len() <= 128
+                        && error.bytes().all(|byte| (32..=126).contains(&byte))
+                    {
+                        error.as_str()
+                    } else {
+                        "show-refused-detail-invalid"
+                    };
+                    eprintln!(
+                        "CONDUIT_OWNER_RETURN_DIAGNOSTIC {}",
+                        serde_json::json!({"phase":"show-ack-refused","code":code})
+                    );
+                    "show-refused"
+                })
             }
             Ok(_) => Err("show-grant-or-basis-invalid"),
             Err(_) => Err("show-frame-invalid"),

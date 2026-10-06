@@ -11,7 +11,7 @@ use crate::remote_cord_sessions::RemoteCordSessions;
 use conduit_core::{
     bind_active_play, kind_id, HostAdvertisement, HostCallContractId, PlanFragment,
 };
-use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
+use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome};
 use conduit_kernel::{
     BoundedValueRef, CordId, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
     RemoteEndpointId,
@@ -21,6 +21,7 @@ use conduit_plan_lowering::lowering::{
 };
 use conduit_wire::SessionMessage;
 
+mod body_time_step;
 mod vision;
 mod voice;
 
@@ -53,6 +54,7 @@ pub struct RemoteHostWork {
 
 pub struct InstalledRemoteFragment {
     scheduler: InstalledScheduler,
+    body_time_required: bool,
     lowered: LoweredPlanFragment,
     placements: Vec<conduit_core::PlannedGear>,
     whisper_languages: super::whisper_language::WhisperLanguages,
@@ -186,6 +188,7 @@ impl InstalledRemoteFragment {
         let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
         Ok(Self {
             scheduler,
+            body_time_required: false,
             lowered,
             placements: fragment.placements.clone(),
             whisper_languages,
@@ -215,11 +218,6 @@ impl InstalledRemoteFragment {
     }
     pub fn sessions_mut(&mut self) -> &mut RemoteCordSessions {
         &mut self.sessions
-    }
-    pub fn step(&mut self) -> Result<SchedulerStatus, String> {
-        self.scheduler
-            .step()
-            .map_err(|error| format!("step remote std fragment: {error:?}"))
     }
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()

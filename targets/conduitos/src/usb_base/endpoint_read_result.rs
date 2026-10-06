@@ -27,6 +27,7 @@ pub struct PreparedEndpointReadResultEncoder {
     result: PreparedStructuredComposer,
     completed: PreparedStructuredComposer,
     wire: PreparedStructuredComposer,
+    ordinal: PreparedStructuredComposer,
     actual: PreparedStructuredComposer,
     short: PreparedStructuredComposer,
     unit: Vec<u8>,
@@ -57,6 +58,7 @@ impl PreparedEndpointReadResultEncoder {
                 &primitive("value/bytes")?,
                 ENDPOINT_READ_MAXIMUM_BYTES as usize,
             )?,
+            ordinal: PreparedStructuredComposer::new(&primitive("value/u64")?, 64)?,
             actual: PreparedStructuredComposer::new(&primitive("value/u64")?, 64)?,
             short: PreparedStructuredComposer::new(&primitive("value/bool")?, 64)?,
             unit,
@@ -64,6 +66,7 @@ impl PreparedEndpointReadResultEncoder {
     }
     pub fn completed(
         &mut self,
+        ordinal: u64,
         requested: u16,
         actual: u16,
         input: &[u8],
@@ -81,6 +84,10 @@ impl PreparedEndpointReadResultEncoder {
         if input.len() != usize::from(actual) {
             return Err(Error::InputLength);
         }
+        let ordinal_value = self
+            .ordinal
+            .leaf(&ordinal.to_le_bytes())
+            .map_err(Error::Canonical)?;
         let wire = self.wire.leaf(input).map_err(Error::Canonical)?;
         let actual_value = self
             .actual
@@ -94,6 +101,7 @@ impl PreparedEndpointReadResultEncoder {
             .completed
             .record(&[
                 validate_canonical_structured_value(actual_value).map_err(Error::Canonical)?,
+                validate_canonical_structured_value(ordinal_value).map_err(Error::Canonical)?,
                 validate_canonical_structured_value(short).map_err(Error::Canonical)?,
                 validate_canonical_structured_value(wire).map_err(Error::Canonical)?,
             ])

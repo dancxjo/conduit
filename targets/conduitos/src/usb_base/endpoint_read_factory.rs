@@ -11,11 +11,11 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
-pub const ENDPOINT_READ_IMPLEMENTATION: &str = "conduitos/usb-endpoint-read@1";
+pub const ENDPOINT_READ_IMPLEMENTATION: &str = "conduitos/usb-endpoint-read@2";
 pub const ENDPOINT_READ_PROFILE: &str = "conduitos/usb-endpoint-read-cooperative-bounded@1";
 pub const ENDPOINT_READ_BASE: &str = "conduitos.base/usb-controller@1";
 pub const ENDPOINT_READ_ATTACHMENT: &str = "machine/usb/endpoint-in-attachment";
-pub const ENDPOINT_READ_AUTHORITY: &str = "conduitos.authority/usb-endpoint-read@1";
+pub const ENDPOINT_READ_AUTHORITY: &str = "conduitos.authority/usb-endpoint-read@2";
 
 /// Kernel preparation does not issue possession or select a physical device.
 /// Native effects must still pass the independently bound EndpointReadCallOwner.
@@ -41,13 +41,15 @@ impl EndpointReadOperationFactory {
         };
         if gear.implementation_id != self.implementation
             || gear.execution_profile_id.as_str() != ENDPOINT_READ_PROFILE
-            || gear.capability_id.as_str() != ENDPOINT_READ_IMPLEMENTATION
+            || gear.capability_id.as_str().is_empty()
             || gear.kind_id != kind.kind_id
             || gear.kind_contract_revision != kind.kind_contract_revision
             || gear.inputs != kind.inputs
             || gear.outputs != kind.outputs
             || gear.semantic_contract != kind.semantic_contract()
-            || gear.limits != kind.limits
+            || !(1..=8).contains(&gear.limits.max_active_instances)
+            || gear.limits.max_queue_items != kind.limits.max_queue_items
+            || gear.limits.max_queue_bytes != kind.limits.max_queue_bytes
             || !gear.configuration.is_empty()
             || base.implementation_id.as_str() != ENDPOINT_READ_BASE
             || base.mechanism_family.as_str() != ENDPOINT_READ_ATTACHMENT

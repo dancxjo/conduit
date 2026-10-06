@@ -20,6 +20,10 @@ impl TimerAdapter for StopOnFirstWait {
             .request_stop(RunControlRequestId::new("patchbay/stop-1").unwrap())
             .expect("the first exact Stop request is admitted");
     }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(0)
+    }
 }
 
 #[test]

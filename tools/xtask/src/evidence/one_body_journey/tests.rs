@@ -101,9 +101,12 @@ fn fixture_with_media(
         invalid_png,
         silent_wav,
         false,
+        false,
+        false,
     )
 }
 
+#[allow(clippy::too_many_arguments)] // Independent malformed-evidence switches keep each case explicit.
 fn fixture_with_source_gap(
     mixed_run: bool,
     stale_transcript: bool,
@@ -112,6 +115,8 @@ fn fixture_with_source_gap(
     invalid_png: bool,
     silent_wav: bool,
     omit_terminal_show: bool,
+    omit_audio_delivery: bool,
+    guest_audio: bool,
 ) -> Fixture {
     let root = std::env::temp_dir().join(format!(
         "conduit-one-body-render-test-{}-{}",
@@ -144,6 +149,11 @@ fn fixture_with_source_gap(
             format!("action-{chapter}")
         };
         let chapter_receipt = format!("receipt-{chapter}");
+        let face_revision = if *chapter == "hear" {
+            "5".to_owned()
+        } else {
+            format!("face-{chapter}")
+        };
         json_output(
             &root,
             &mut manifest,
@@ -151,7 +161,7 @@ fn fixture_with_source_gap(
             &json!({
                 "schema":"conduit.journey/chapter-receipt@1", "source_commit":commit,
                 "run_id":"test-run", "body_id":"test-body", "chapter_id":chapter,
-                "action_ids":[action], "resulting_face_revision":format!("face-{chapter}"),
+                "action_ids":[action], "resulting_face_revision":face_revision,
                 "outcome":"completed"
             }),
         );
@@ -175,7 +185,7 @@ fn fixture_with_source_gap(
                     b"synthetic terminal fixture".to_vec(),
                 ),
                 "direct" | "llm-assisted" => {
-                    let mut bytes = Vec::from(&b"RIFF\x28\0\0\0WAVEfmt \x10\0\0\0\x01\0\x01\0\x80\x3e\0\0\0\x7d\0\0\x02\0\x10\0data\x04\0\0\0\x01\0\0\0"[..]);
+                    let mut bytes = Vec::from(&b"RIFF\x28\0\0\0WAVEfmt \x10\0\0\0\x01\0\x02\0\x80\xbb\0\0\0\xee\x02\0\x04\0\x10\0data\x04\0\0\0\x01\0\0\0"[..]);
                     if silent_wav {
                         bytes[44] = 0;
                     }
@@ -198,6 +208,7 @@ fn fixture_with_source_gap(
             let mut transcript_id = None;
             let mut transcript_sha256 = None;
             let mut validation_id = None;
+            let mut audio_provenance_id = None;
             if kind == EvidenceKind::Audio {
                 let transcript = format!("transcript-{offset}");
                 let words = "The clock is running.";
@@ -209,12 +220,74 @@ fn fixture_with_source_gap(
                     &json!({
                         "schema":"conduit.journey/speech-transcript@1", "source_commit":commit,
                         "run_id":"test-run", "body_id":"test-body", "chapter_id":chapter,
-                        "show_id":show, "face_revision": if stale_transcript && offset == 0 { "old-face".to_owned() } else { format!("face-{chapter}") },
+                        "show_id":show, "face_revision": if stale_transcript && offset == 0 { "old-face".to_owned() } else { face_revision.clone() },
                         "text":words, "original_model_output":if *source == "llm-assisted" { Some(words) } else { None }
                     }),
                 );
                 transcript_id = Some(transcript);
                 transcript_sha256 = Some(transcript_sha);
+                if !(omit_audio_delivery && offset == 0) {
+                    let delivery = format!("delivery-{chapter}-{offset}");
+                    let delivery_receipt = if guest_audio && offset == 0 {
+                        json!({
+                            "schema":"conduit.conduitos/speech-audio-proof@1",
+                            "status":"completed", "boot_id":"guest-boot",
+                            "plan_id":format!("plan-{offset}"),
+                            "active_play_id":format!("play-{offset}"),
+                            "source_show_id":show, "face_revision_decimal":"5",
+                            "spoken_text_sha256":digest(words.as_bytes()),
+                            "voice_id":"synthetic-voice-v1",
+                            "qemu_audio":{"source":"same-run-qemu-wav-output",
+                                "sha256":sha, "bytes":bytes.len(), "nonzero_samples":1}
+                        })
+                    } else if *source == "llm-assisted" {
+                        json!({
+                            "schema":"conduit.body/owner-spoken-terminal@1",
+                            "outcome":"available", "mode":"llm-assisted",
+                            "show_id":show, "active_play_id":format!("model-play-{offset}"),
+                            "accepted_wording":words, "speaker_played":true,
+                            "generation_evidence":{
+                                "provider_identity":"synthetic-model",
+                                "model_identity":"synthetic-model-v1",
+                                "candidate_digest":"synthetic-candidate-digest",
+                                "validation_receipt_identity":"synthetic-validation-receipt",
+                                "original_model_output":words
+                            },
+                            "speaker_playback":{
+                                "schema":"conduit.body/owner-spoken-speaker-play@1",
+                                "source_show_id":show,
+                                "source_face_revision_decimal":"5",
+                                "host_id":"synthetic-owner", "boot_id":"synthetic-boot",
+                                "provider_sha256":"a".repeat(64),
+                                "plan_id":format!("plan-{offset}"),
+                                "play_id":format!("play-{offset}"), "outcome":"completed",
+                                "wav_sha256":sha, "wav_bytes":bytes.len(),
+                                "pcm_sha256":digest(&bytes[44..]), "pcm_bytes":bytes.len()-44,
+                                "pcm_blocks":1, "speaker_blocks_committed":1,
+                                "speaker_frames_committed":1, "spoken_segments":[words]
+                            }
+                        })
+                    } else {
+                        json!({
+                            "schema":"conduit.body/selected-speech-terminal@1",
+                            "outcome":"completed", "face_revision":5,
+                            "face_revision_decimal":"5",
+                            "source_show_id":show, "source_show_still_current":true,
+                            "host_id":"synthetic-owner", "boot_id":"synthetic-boot",
+                            "provider_sha256":"a".repeat(64),
+                            "batches":[{
+                                "plan_id":format!("plan-{offset}"),
+                                "play_id":format!("play-{offset}"), "outcome":"completed",
+                                "wav_sha256":sha, "wav_bytes":bytes.len(),
+                                "pcm_sha256":digest(&bytes[44..]), "pcm_bytes":bytes.len()-44,
+                                "pcm_blocks":1, "speaker_blocks_committed":1,
+                                "speaker_frames_committed":1, "spoken_segments":[words]
+                            }]
+                        })
+                    };
+                    json_output(&root, &mut manifest, &delivery, &delivery_receipt);
+                    audio_provenance_id = Some(delivery);
+                }
                 if *source == "llm-assisted" {
                     let validation = "model-validation";
                     json_output(
@@ -224,7 +297,7 @@ fn fixture_with_source_gap(
                         &json!({
                             "schema":"conduit.journey/model-validation@1", "source_commit":commit,
                             "run_id":"test-run", "body_id":"test-body", "show_id":show,
-                        "face_revision":format!("face-{chapter}"), "provider_id":"synthetic-model",
+                        "face_revision":face_revision, "provider_id":"synthetic-model",
                         "model_id":"synthetic-model-v1",
                             "original_output_sha256":digest(words.as_bytes()),
                             "validated_text_sha256":digest(words.as_bytes()), "accepted":true
@@ -241,17 +314,19 @@ fn fixture_with_source_gap(
                     "schema":"conduit.journey/capture-receipt@1", "source_commit":commit,
                     "run_id":if mixed_run && index == 4 && offset == 0 { "other-run" } else { "test-run" },
                     "body_id":"test-body", "chapter_id":chapter, "action_id":action,
-                    "face_revision":format!("face-{chapter}"), "media_output_id":artifact,
-                    "media_sha256":sha, "capture_source":match *source { "direct" | "llm-assisted" => "runtime-speech", other => other },
+                    "face_revision":face_revision, "media_output_id":artifact,
+                    "media_sha256":sha, "capture_source":match *source { "direct" if guest_audio => "qemu-audio", "direct" | "llm-assisted" => "speaker-play", other => other },
                     "show_id":if kind == EvidenceKind::Audio { Some(format!("show-{offset}")) } else { None },
-                    "plan_id":if kind == EvidenceKind::Audio { Some("plan-1") } else { None },
-                    "play_id":if kind == EvidenceKind::Audio { Some("play-1") } else { None },
+                    "plan_id":if kind == EvidenceKind::Audio { Some(format!("plan-{offset}")) } else { None },
+                    "play_id":if kind == EvidenceKind::Audio { Some(format!("play-{offset}")) } else { None },
                     "transcript_id":transcript_id, "transcript_sha256":transcript_sha256,
                 "speech_mode":if kind == EvidenceKind::Audio { Some(*source) } else { None },
                 "voice_id":if kind == EvidenceKind::Audio { Some("synthetic-voice-v1") } else { None },
                 "provider_id":if *source == "llm-assisted" { Some("synthetic-model") } else { None },
                 "model_id":if *source == "llm-assisted" { Some("synthetic-model-v1") } else { None },
-                    "validation_id":validation_id
+                    "validation_id":validation_id,
+                    "audio_provenance_id":audio_provenance_id,
+                    "qemu_boot_id":if *source == "direct" && guest_audio { Some("guest-boot") } else { None }
                 }),
             );
             media.push(json!({"output_id":artifact,"receipt_id":capture_id,"alt":format!("Synthetic {source} capture") }));
@@ -295,7 +370,8 @@ fn renders_only_complete_correlated_synthetic_fixture() {
     run(&fixture).unwrap();
     let page = fs::read_to_string(fixture.output.join("index.html")).unwrap();
     assert!(page.contains("Chapter 8 of 8"));
-    assert!(page.contains("Words in produced audio (llm-assisted)"));
+    assert!(page.contains("Words in recorded audio (llm-assisted)"));
+    assert!(page.contains("Captured from the selected speaker Play"));
     assert!(page.contains("class=\"chapter-run\""));
     assert!(page.contains("Open full-size capture"));
     assert!(page.contains("Direct mechanical reading"));
@@ -365,6 +441,100 @@ fn rejects_silent_wav_even_with_matching_digest() {
 }
 
 #[test]
+fn rejects_playable_wav_without_the_same_speaker_play() {
+    let fixture =
+        fixture_with_source_gap(false, false, false, false, false, false, false, true, false);
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("lacks the selected speaker or QEMU delivery receipt"));
+    assert!(!fixture.output.exists());
+}
+
+#[test]
+fn rejects_model_artifact_when_the_listener_play_did_not_complete() {
+    let fixture = fixture(false, false, false, false);
+    let path = fixture.root.join("delivery-hear-1.json");
+    let mut terminal: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    terminal["speaker_played"] = json!(false);
+    let bytes = serde_json::to_vec(&terminal).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let declared = manifest["outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["id"] == "delivery-hear-1")
+        .unwrap();
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("model wording lacks its completed selected speaker Play"));
+    assert!(!fixture.output.exists());
+}
+
+#[test]
+fn rejects_model_transcript_from_a_different_owner_generation() {
+    let fixture = fixture(false, false, false, false);
+    let path = fixture.root.join("delivery-hear-1.json");
+    let mut terminal: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    terminal["generation_evidence"]["original_model_output"] = json!("Other model output");
+    let bytes = serde_json::to_vec(&terminal).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let declared = manifest["outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["id"] == "delivery-hear-1")
+        .unwrap();
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("model wording lacks its completed selected speaker Play"));
+}
+
+#[test]
+fn renders_guest_audio_only_with_the_same_run_qemu_receipt() {
+    let fixture =
+        fixture_with_source_gap(false, false, false, false, false, false, false, false, true);
+    run(&fixture).unwrap();
+    let page = fs::read_to_string(fixture.output.join("index.html")).unwrap();
+    assert!(page.contains("Captured from the same-run QEMU output"));
+}
+
+#[test]
+fn guest_opl2_sound_cannot_masquerade_as_spoken_audio() {
+    let fixture =
+        fixture_with_source_gap(false, false, false, false, false, false, false, false, true);
+    let path = fixture.root.join("delivery-hear-0.json");
+    let mut receipt: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    receipt["schema"] = json!("conduit.conduitos.opl2-proof/v1");
+    let bytes = serde_json::to_vec(&receipt).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let declared = manifest["outputs"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|output| output["id"] == "delivery-hear-0")
+        .unwrap();
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    assert!(run(&fixture)
+        .unwrap_err()
+        .contains("audio WAV differs from the guest run's QEMU output"));
+    assert!(!fixture.output.exists());
+}
+
+#[test]
 fn rejects_missing_media_before_creating_a_page() {
     let fixture = fixture(false, false, false, false);
     fs::remove_file(fixture.root.join("media-join-0.png")).unwrap();
@@ -374,7 +544,8 @@ fn rejects_missing_media_before_creating_a_page() {
 
 #[test]
 fn rejects_visual_chapter_without_the_terminal_mask_capture() {
-    let fixture = fixture_with_source_gap(false, false, false, false, false, false, true);
+    let fixture =
+        fixture_with_source_gap(false, false, false, false, false, false, true, false, false);
     assert!(run(&fixture)
         .unwrap_err()
         .contains("chapter 'see' lacks its required user-visible capture source"));

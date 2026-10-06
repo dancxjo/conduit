@@ -1,15 +1,17 @@
 //! Bounded causal evidence projected from actual std-host Body execution.
 
 use crate::body_execution::BodyRunReport;
-use conduit_body::{BodyPlan, Wake, WakeId, WakeLifecycle, WakeLifecycleEvent};
+use conduit_body::{BodyId, BodyPlan, Wake, WakeId, WakeLifecycle, WakeLifecycleEvent};
 use conduit_core::{
-    AuthorityBinding, BootId, GearId, HostId, ImplementationId, KindId, PlacementId, PlanId,
-    ResourceBinding, SourceDocumentId, TerminalDisposition, TerminalInfo,
+    AuthorityBinding, BootId, ClockProvenance, GearId, HostId, ImplementationId, KindId,
+    PlacementId, PlanId, ResourceBinding, SourceDocumentId, TemporalScale, TerminalDisposition,
+    TerminalInfo,
 };
 use conduit_kernel::{
     causal_evidence::{
-        CausalEdge, CausalEvidence, CausalEvidenceRefusal, CausalRelationship, EvidenceIdentity,
-        EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit, EvidenceOutcome,
+        BodyTimeMetadata, CausalEdge, CausalEvidence, CausalEvidenceRefusal, CausalRelationship,
+        ClockCapture, ClockScale, ClockSourceMetadata, EvidenceIdentity, EvidenceMetadataFact,
+        EvidenceMetadataLookup, EvidenceMetadataVisit, EvidenceOutcome,
         TerminalEvidenceCorrelation, TerminalEvidenceIndex,
     },
     KernelEvent, KernelEventKind,
@@ -22,6 +24,8 @@ mod graph;
 use graph::{record_intra_run_edges, record_planned_recovery_edges, record_planned_transfer_edges};
 mod identity;
 use identity::{digest_u64, evidence_sign, execution_envelope};
+mod time;
+pub use time::{BodyEventTimeObservation, EventTimeCapture};
 
 pub const MAXIMUM_BODY_CAUSAL_NODES: usize = 128;
 pub const MAXIMUM_BODY_CAUSAL_EDGES: usize = 128;
@@ -40,6 +44,9 @@ pub enum BodyCausalEvidenceRefusal {
     NoUnresolvedSemanticAbnormal,
     NotFailed,
     Causal(CausalEvidenceRefusal),
+    UnknownClockEvent,
+    ConflictingClockObservation,
+    InvalidClockObservation,
 }
 
 impl From<CausalEvidenceRefusal> for BodyCausalEvidenceRefusal {
@@ -54,6 +61,7 @@ struct BodyCausalNode {
     outcome: EvidenceOutcome,
     source_document_id: SourceDocumentId,
     source_span: Option<conduit_core::SourceSpan>,
+    body_id: BodyId,
     wake_id: WakeId,
     plan_id: PlanId,
     play_id: conduit_core::ActivePlayId,
@@ -69,6 +77,7 @@ struct BodyCausalNode {
     kernel_port: Option<conduit_kernel::PortId>,
     kernel_sequence: u32,
     semantic_terminal: bool,
+    observed_time: Option<BodyEventTimeObservation>,
 }
 
 /// Exact bounded evidence for one run or one successful replacement pair.
@@ -287,6 +296,49 @@ impl EvidenceMetadataLookup for BodyRunCausalRecord {
             ))?;
             emit(EvidenceMetadataFact::Host(node.host_id.as_str()))?;
             emit(EvidenceMetadataFact::Boot(node.boot_id.as_str()))?;
+            if let Some(observation) = &node.observed_time {
+                let local = observation.local();
+                let body = observation.body().map(|estimate| BodyTimeMetadata {
+                    basis: &estimate.body_basis,
+                    generation: estimate.generation,
+                    correlation_age_ticks: estimate.correlation_age_ticks,
+                    correlation_age_scale: clock_scale(estimate.local_sample.clock().scale()),
+                    earliest_ticks: estimate.earliest_ticks,
+                    center_ticks: estimate.center_ticks,
+                    latest_ticks: estimate.latest_ticks,
+                    scale: clock_scale(estimate.scale),
+                    source: match &estimate.provenance {
+                        ClockProvenance::Peer {
+                            host_id,
+                            boot_id,
+                            policy_id,
+                            ..
+                        } => ClockSourceMetadata::Peer {
+                            host: host_id.as_str(),
+                            boot: boot_id.as_str(),
+                            policy: policy_id,
+                        },
+                        ClockProvenance::External {
+                            provider_id,
+                            policy_id,
+                            ..
+                        } => ClockSourceMetadata::External {
+                            provider: provider_id,
+                            policy: policy_id,
+                        },
+                    },
+                });
+                emit(EvidenceMetadataFact::ClockObservation {
+                    capture: match observation.capture() {
+                        EventTimeCapture::AtEvent => ClockCapture::AtEvent,
+                        EventTimeCapture::AfterEvent => ClockCapture::AfterEvent,
+                    },
+                    local_ticks: local.ticks(),
+                    local_scale: clock_scale(local.clock().scale()),
+                    local_basis: local.clock().basis_id(),
+                    body,
+                })?;
+            }
             for resource in &node.resources {
                 emit(EvidenceMetadataFact::Resource {
                     pool: resource.pool_id.as_str(),
@@ -308,6 +360,15 @@ impl EvidenceMetadataLookup for BodyRunCausalRecord {
     }
 }
 
+const fn clock_scale(scale: TemporalScale) -> ClockScale {
+    match scale {
+        TemporalScale::Seconds => ClockScale::Seconds,
+        TemporalScale::Milliseconds => ClockScale::Milliseconds,
+        TemporalScale::Microseconds => ClockScale::Microseconds,
+        TemporalScale::Nanoseconds => ClockScale::Nanoseconds,
+    }
+}
+
 fn collect_nodes(
     plan: &BodyPlan,
     report: &BodyRunReport,
@@ -325,6 +386,20 @@ fn collect_nodes(
     let mut nodes = Vec::with_capacity(relevant.len());
     for event in relevant {
         let (fragment, placement) = resolve_event(plan, &report.partitions, event)?;
+        let observed_time = report
+            .clock_observations
+            .iter()
+            .find(|observation| observation.sequence == event.sequence)
+            .map(|observation| {
+                observation.time.validate()?;
+                if observation.time.local().clock().host_id() != &placement.host_id
+                    || observation.time.local().clock().boot_id() != &placement.boot_id
+                {
+                    return Err(BodyCausalEvidenceRefusal::InvalidClockObservation);
+                }
+                Ok(observation.time.clone())
+            })
+            .transpose()?;
         if placement.resources.len() > MAXIMUM_BODY_NODE_RESOURCES
             || placement.authority.len() > MAXIMUM_BODY_NODE_AUTHORITIES
         {
@@ -339,6 +414,7 @@ fn collect_nodes(
             outcome: outcome(event.kind),
             source_document_id: fragment.source_document_id.clone(),
             source_span: placement.source_span,
+            body_id: plan.body_id.clone(),
             wake_id: plan.wake_id.clone(),
             plan_id: plan.plan_id.clone(),
             play_id: report.play.active_play_id.clone(),
@@ -354,6 +430,7 @@ fn collect_nodes(
             kernel_port: event.port,
             kernel_sequence: event.sequence,
             semantic_terminal: false,
+            observed_time,
         });
     }
     if nodes.iter().enumerate().any(|(index, node)| {

@@ -2,6 +2,211 @@ use super::*;
 use conduit_body::{Body, BodyPlayIdentity};
 use conduit_core::{FailureReason, SignId};
 
+fn clock_observation(
+    body_basis: &str,
+    host: &str,
+    boot: &str,
+    local_ticks: u64,
+    body_ticks: u64,
+) -> BodyEventTimeObservation {
+    let local = conduit_core::MonotonicInstant::new(
+        local_ticks,
+        conduit_core::MonotonicClockIdentity::new(
+            host.into(),
+            boot.into(),
+            "steady".into(),
+            conduit_core::TemporalScale::Milliseconds,
+            1,
+            1,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let correlation = conduit_core::BodyClockCorrelation::new(
+        body_basis.into(),
+        conduit_core::TemporalScale::Milliseconds,
+        1,
+        local.clone(),
+        body_ticks,
+        0,
+        100,
+        2,
+        100,
+        conduit_core::ClockProvenance::External {
+            provider_id: "provider/test".into(),
+            admission_reference: "admitted/test".into(),
+            policy_id: "policy/test".into(),
+        },
+    )
+    .unwrap();
+    BodyEventTimeObservation::new(local, Some(correlation)).unwrap()
+}
+
+#[test]
+fn causal_send_receive_survives_overlapping_inverted_physical_estimates() {
+    let send = EvidenceIdentity {
+        sign: 1,
+        execution: 1,
+        host_session: 1,
+    };
+    let receive = EvidenceIdentity {
+        sign: 2,
+        execution: 1,
+        host_session: 2,
+    };
+    let independent = EvidenceIdentity {
+        sign: 3,
+        execution: 1,
+        host_session: 3,
+    };
+    let mut receive_node = node(
+        receive,
+        KernelEventKind::ValueConsumed,
+        EvidenceOutcome::InfoConsumed,
+    );
+    receive_node.host_id = "host/receive".into();
+    receive_node.boot_id = "boot/receive".into();
+    let mut send_node = node(
+        send,
+        KernelEventKind::ValueRouted,
+        EvidenceOutcome::InfoRouted,
+    );
+    send_node.host_id = "host/send".into();
+    send_node.boot_id = "boot/send".into();
+    let mut independent_node = node(
+        independent,
+        KernelEventKind::ValueRouted,
+        EvidenceOutcome::InfoRouted,
+    );
+    independent_node.host_id = "host/independent".into();
+    independent_node.boot_id = "boot/independent".into();
+    let mut graph = CausalEvidence::default();
+    graph
+        .record(CausalEdge {
+            effect: receive,
+            relationship: CausalRelationship::CausedBy,
+            cause: send,
+        })
+        .unwrap();
+    let mut record = BodyRunCausalRecord {
+        graph,
+        terminals: TerminalEvidenceIndex::default(),
+        nodes: vec![send_node, receive_node, independent_node],
+    };
+    let body_id = wake().body_id;
+    let sent_at = clock_observation(body_id.as_str(), "host/send", "boot/send", 100, 10_006);
+    let received_at = clock_observation(
+        body_id.as_str(),
+        "host/receive",
+        "boot/receive",
+        9_000,
+        10_000,
+    );
+    assert_eq!(
+        record.attach_time(
+            send,
+            clock_observation("body/other", "host/send", "boot/send", 100, 10_006)
+        ),
+        Err(BodyCausalEvidenceRefusal::InvalidClockObservation)
+    );
+    record.attach_time(send, sent_at.clone()).unwrap();
+    record.attach_time(receive, received_at).unwrap();
+    record
+        .attach_time(
+            independent,
+            clock_observation(
+                body_id.as_str(),
+                "host/independent",
+                "boot/independent",
+                42,
+                11_000,
+            ),
+        )
+        .unwrap();
+    assert_eq!(
+        record.physical_relation(send, receive),
+        Ok(Some(conduit_core::BodyTimeRelation::Indeterminate))
+    );
+    assert_eq!(
+        record
+            .graph()
+            .cause_of(receive, CausalRelationship::CausedBy),
+        Ok(send)
+    );
+    assert_eq!(
+        record.physical_relation(send, independent),
+        Ok(Some(conduit_core::BodyTimeRelation::Before))
+    );
+    assert_eq!(
+        record
+            .graph()
+            .cause_of(independent, CausalRelationship::CausedBy),
+        Err(CausalEvidenceRefusal::Unknown)
+    );
+    assert_eq!(
+        record.attach_time(send, sent_at.clone()),
+        Err(BodyCausalEvidenceRefusal::ConflictingClockObservation)
+    );
+    let encoded = serde_json::to_string(&sent_at).unwrap();
+    let replayed: BodyEventTimeObservation = serde_json::from_str(&encoded).unwrap();
+    replayed.validate().unwrap();
+    assert_eq!(replayed, sent_at);
+    assert_eq!(replayed.capture(), EventTimeCapture::AtEvent);
+    assert_eq!(replayed.body().unwrap().generation, 1);
+    assert_eq!(
+        replayed.correlation().unwrap().generation(),
+        replayed.body().unwrap().generation
+    );
+    let mut forged: serde_json::Value = serde_json::from_str(&encoded).unwrap();
+    for field in ["earliest_ticks", "center_ticks", "latest_ticks"] {
+        forged["body"][field] =
+            serde_json::Value::from(forged["body"][field].as_u64().unwrap() + 100);
+    }
+    let forged: BodyEventTimeObservation = serde_json::from_value(forged).unwrap();
+    assert_eq!(
+        forged.validate(),
+        Err(BodyCausalEvidenceRefusal::InvalidClockObservation)
+    );
+    let operator = conduit_observatory::explain_trace_with_metadata(
+        record.graph(),
+        &record,
+        receive,
+        conduit_observatory::CausalExplanationVisibility::Operator,
+    )
+    .unwrap();
+    assert!(operator.nodes.iter().any(|node| {
+        matches!(
+            &node.metadata,
+            conduit_observatory::CausalExplanationMetadata::Visible(facts)
+                if facts.iter().any(|fact| matches!(
+                    fact,
+                    conduit_observatory::CausalExplanationMetadataFact::ClockObservation {
+                        capture: conduit_kernel::causal_evidence::ClockCapture::AtEvent,
+                        body: Some(body),
+                        ..
+                    } if body.basis == body_id.as_str()
+                        && body.generation == 1
+                        && body.correlation_age_ticks == 0
+                        && body.correlation_age_scale
+                            == conduit_kernel::causal_evidence::ClockScale::Milliseconds
+                        && body.earliest_ticks <= body.center_ticks
+                        && body.center_ticks <= body.latest_ticks
+                ))
+        )
+    }));
+    let public = conduit_observatory::explain_trace_with_metadata(
+        record.graph(),
+        &record,
+        receive,
+        conduit_observatory::CausalExplanationVisibility::Public,
+    )
+    .unwrap();
+    assert!(public.nodes.iter().all(|node| matches!(
+        node.metadata,
+        conduit_observatory::CausalExplanationMetadata::Redacted
+    )));
+}
+
 fn wake() -> conduit_body::Wake {
     Body::born(
         "source/test".into(),
@@ -32,6 +237,7 @@ fn node(
             end_line: 2,
             end_column: 11,
         }),
+        body_id: wake().body_id,
         wake_id: wake().wake_id,
         plan_id: "plan/test".into(),
         play_id: "play/test".into(),
@@ -47,6 +253,7 @@ fn node(
         kernel_port: None,
         kernel_sequence: evidence.sign as u32,
         semantic_terminal: false,
+        observed_time: None,
     }
 }
 
@@ -74,6 +281,9 @@ fn report(terminal: TerminalDisposition) -> BodyRunReport {
         partitions: Vec::new(),
         requests: Vec::new(),
         kernel_events: Vec::new(),
+        clock_observations: Vec::new(),
+        clock_quality: None,
+        clock_execution_bounds: None,
     }
 }
 

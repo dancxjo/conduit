@@ -1,7 +1,7 @@
 //! Short authenticated owner operations used by the loopback browser worker.
 //! Network waits remain on that worker; this control carrier never decides
 //! admission, membership, authority, or elapsed authorization time.
-use super::speech_route::{SpeechReply, SpeechRequest, MAGIC};
+use super::speech_route::{call as speech_call, SpeechReply, SpeechRequest};
 use super::{read_frame, read_secret, write_frame, Request, Response, PROTOCOL};
 use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
 use conduit_body::{
@@ -13,30 +13,6 @@ use conduit_presentation::{
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use std::path::Path;
-use std::{io::Write, os::unix::net::UnixStream};
-
-fn speech_call(
-    state_dir: &Path,
-    request: impl FnOnce(Vec<u8>) -> SpeechRequest,
-) -> Result<SpeechReply, String> {
-    let mut secret = read_secret(&state_dir.join("control.token"))?;
-    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
-        .map_err(|error| format!("connect to selected speech owner: {error}"))?;
-    stream.write_all(MAGIC).map_err(|error| error.to_string())?;
-    let mut request = request(secret.to_vec());
-    secret.fill(0);
-    let sent = write_frame(&mut stream, &request);
-    match &mut request {
-        SpeechRequest::Start { token, .. }
-        | SpeechRequest::Status { token, .. }
-        | SpeechRequest::Stop { token, .. } => token.fill(0),
-    }
-    sent?;
-    stream
-        .shutdown(std::net::Shutdown::Write)
-        .map_err(|error| error.to_string())?;
-    read_frame(&mut stream)
-}
 
 pub(crate) fn selected_speech_start(
     state_dir: &Path,

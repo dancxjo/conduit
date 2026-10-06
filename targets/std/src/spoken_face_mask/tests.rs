@@ -89,6 +89,46 @@ fn face_with_action() -> (Presentation, MaskShow) {
 }
 
 #[test]
+fn mechanical_projection_matches_interactive_wording_before_any_show() {
+    let (face, show) = face_with_action();
+    let projected = mechanical_face_clauses(&face).unwrap();
+    let reader = SpokenFaceSession::new(face, show).unwrap();
+    assert_eq!(projected, reader.voiced);
+    assert!(projected
+        .iter()
+        .any(|clause| clause.contains("Create Body")));
+}
+
+#[test]
+fn accepted_wording_keeps_exact_text_and_current_show_in_one_bounded_flow() {
+    let (face, show) = face_with_action();
+    let wording = "Welcome to your Body. Its clock is ready, and the current state is retained.";
+    let batch =
+        SpokenBatch::from_accepted_wording(&face, &show, wording, "accepted/model/one".into())
+            .unwrap();
+    assert!(batch.segments.len() > 1);
+    assert_eq!(
+        batch
+            .segments
+            .iter()
+            .map(|item| item.segment.text.as_str())
+            .collect::<String>(),
+        wording
+    );
+    assert_eq!(batch.source_show_id, show.show_id.as_str());
+    assert_eq!(
+        batch.segments.last().unwrap().segment.reason,
+        SpeechCommitReason::FinalFlush
+    );
+    assert!(batch.validate(&face, &show).is_ok());
+    assert!(SpokenBatch::from_accepted_wording(&face, &show, "", "empty".into()).is_err());
+    assert!(
+        SpokenBatch::from_accepted_wording(&face, &show, &"x".repeat(1025), "too-long".into())
+            .is_err()
+    );
+}
+
+#[test]
 fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects.clone();

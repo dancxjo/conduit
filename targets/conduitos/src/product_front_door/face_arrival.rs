@@ -107,6 +107,10 @@ impl FaceArrival {
         interactions_admitted: bool,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
+        // Arrival and the owner Body have independent Face revision sequences.
+        // Retire the local surface once; revisions remain monotonic within the
+        // newly admitted owner surface thereafter.
+        self.retire_arrival_surface()?;
         let face_id: alloc::string::String = face.identity.as_str().into();
         let revision = face.revision;
         let observation = self.next_observation;
@@ -185,7 +189,33 @@ impl FaceArrival {
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         let face = self.owner_face.clone().ok_or("owner-face-absent")?;
+        self.retire_owner_surface()?;
         self.present_owner_face(face, false, display)
+    }
+
+    /// A local user resumes the admitted return route only after the owner
+    /// has explicitly selected this Mask. A fresh surface yields a fresh Show
+    /// for the unchanged Face; no stale read-only Show crosses the return Line.
+    pub(super) fn activate_owner_route(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
+        let face = self.owner_face.clone().ok_or("owner-face-absent")?;
+        self.retire_owner_surface()?;
+        self.present_owner_face(face, true, display)
+    }
+
+    pub(super) fn show_owner_standby(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        self.mask
+            .show_local_notice(
+                "Choose Native graphics in the owner wardrobe, then press F5",
+                display,
+            )
+            .map_err(|error| error.as_str())?;
+        Ok(())
     }
 
     pub(super) fn show_owner_result(
@@ -236,6 +266,17 @@ impl FaceArrival {
             .creche_face(&self.basis)
             .map_err(|error| error.as_str())?;
         self.present(face, display)
+    }
+
+    fn retire_arrival_surface(&mut self) -> Result<(), &'static str> {
+        if self.owner_face.is_none() {
+            self.mask.suspend().map_err(|error| error.as_str())?;
+        }
+        Ok(())
+    }
+
+    fn retire_owner_surface(&mut self) -> Result<(), &'static str> {
+        self.mask.suspend().map_err(|error| error.as_str())
     }
 
     fn present(
@@ -311,5 +352,215 @@ impl FaceArrival {
                 }
             }
         }
+    }
+}
+
+#[cfg(all(test, feature = "native-compositor"))]
+mod tests {
+    use super::*;
+    use alloc::vec;
+    use conduit_presentation::{Face, FaceContext, FaceFocus};
+
+    struct Display;
+
+    impl PixelTarget for Display {
+        fn format(&self) -> crate::display::DisplayFormat {
+            crate::display::DisplayFormat {
+                width: 640,
+                height: 480,
+                pitch: 2560,
+                bits_per_pixel: 32,
+                red_shift: 16,
+                green_shift: 8,
+                blue_shift: 0,
+            }
+        }
+
+        fn write_pixel(
+            &mut self,
+            _: u32,
+            _: u32,
+            _: u32,
+        ) -> Result<(), crate::display::DisplayError> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn owner_face_retires_arrival_revision_domain_once() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let mut arrival = FaceArrival::prepare(
+            "host/native".into(),
+            "boot/native".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            &provider,
+            None,
+        )
+        .unwrap();
+        let body = conduit_body::Body::born(
+            "source/shared-clock".into(),
+            "checked/shared-clock".into(),
+            1,
+            "sign/owner-born".into(),
+        )
+        .unwrap();
+        let face_at = |revision| {
+            Face::project(
+                &body,
+                None,
+                revision,
+                FaceContext::Overview,
+                FaceFocus::Body,
+                vec![],
+            )
+            .unwrap()
+            .presentation
+        };
+        let local = face_at(9);
+        let owner = face_at(7);
+        assert_ne!(local.identity, owner.identity);
+        assert_eq!(local.revision, 9);
+        assert_eq!(owner.revision, 7);
+        let mut display = Display;
+        arrival.present(local, &mut display).unwrap();
+        let local_show = arrival.mask.show().unwrap().show_id.clone();
+
+        arrival.retire_arrival_surface().unwrap();
+        assert!(arrival.mask.show().is_none());
+        arrival.owner_face = Some(owner.clone());
+        let receipt = arrival
+            .mask
+            .present(
+                owner.clone(),
+                arrival.next_observation,
+                arrival.next_play,
+                &mut display,
+            )
+            .unwrap();
+        assert_eq!(receipt.presentation_id, owner.identity);
+        assert_ne!(arrival.mask.show().unwrap().show_id, local_show);
+        assert_eq!(arrival.mask.scene().unwrap().presentation(), &owner);
+
+        arrival.retire_arrival_surface().unwrap();
+        assert_eq!(
+            arrival
+                .mask
+                .present(
+                    owner,
+                    arrival.next_observation + 1,
+                    arrival.next_play + 1,
+                    &mut display
+                )
+                .map_err(|error| error.as_str()),
+            Err("compositor-surface-revision-stale")
+        );
+    }
+
+    #[test]
+    fn route_loss_retires_owner_show_before_read_only_republication() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let mut arrival = FaceArrival::prepare(
+            "host/native".into(),
+            "boot/native".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            &provider,
+            None,
+        )
+        .unwrap();
+        let body = conduit_body::Body::born(
+            "source/shared-clock".into(),
+            "checked/shared-clock".into(),
+            1,
+            "sign/owner-born".into(),
+        )
+        .unwrap();
+        let face = Face::project(
+            &body,
+            None,
+            7,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .presentation;
+        let mut display = Display;
+        arrival
+            .mask
+            .present(face.clone(), 1, 1, &mut display)
+            .unwrap();
+        arrival.owner_face = Some(face.clone());
+        let active_show = arrival.mask.show().unwrap().show_id.clone();
+
+        arrival.retire_owner_surface().unwrap();
+        assert!(arrival.mask.show().is_none());
+        let read_only = arrival
+            .mask
+            .present_read_only(face.clone(), 2, 2, &mut display)
+            .unwrap();
+        assert_eq!(read_only.presentation_id, face.identity);
+        assert_ne!(arrival.mask.show().unwrap().show_id, active_show);
+        assert_eq!(arrival.mask.scene().unwrap().presentation(), &face);
+        assert_eq!(
+            arrival
+                .mask
+                .present_read_only(face, 3, 3, &mut display)
+                .map_err(|error| error.as_str()),
+            Err("compositor-surface-revision-stale")
+        );
+    }
+
+    #[test]
+    fn read_only_owner_standby_requires_fresh_show_for_explicit_activation() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let mut arrival = FaceArrival::prepare(
+            "host/native".into(),
+            "boot/native".into(),
+            OfferGeneration(1),
+            "build",
+            provider.entry.base_id.clone(),
+            &provider,
+            None,
+        )
+        .unwrap();
+        let body = conduit_body::Body::born(
+            "source/shared-clock".into(),
+            "checked/shared-clock".into(),
+            1,
+            "sign/owner-born".into(),
+        )
+        .unwrap();
+        let face = Face::project(
+            &body,
+            None,
+            7,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![],
+        )
+        .unwrap()
+        .presentation;
+        let mut display = Display;
+        arrival
+            .mask
+            .present_read_only(face.clone(), 1, 1, &mut display)
+            .unwrap();
+        arrival.owner_face = Some(face.clone());
+        let standby_show = arrival.mask.show().unwrap().show_id.clone();
+        assert!(arrival.mask.scene().is_some());
+
+        arrival.retire_owner_surface().unwrap();
+        assert!(arrival.mask.show().is_none());
+        let activated = arrival
+            .mask
+            .present(face.clone(), 2, 2, &mut display)
+            .unwrap();
+        assert_eq!(activated.presentation_id, face.identity);
+        assert_ne!(arrival.mask.show().unwrap().show_id, standby_show);
+        assert_eq!(arrival.mask.scene().unwrap().presentation(), &face);
     }
 }

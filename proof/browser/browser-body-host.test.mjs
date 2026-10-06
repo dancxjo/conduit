@@ -4,7 +4,7 @@ import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browse
 
 const ABI_IDENTITY = new TextEncoder().encode("conduit.browser/runtime-abi");
 
-function fixture({ applicationEvent = false, timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
+function fixture({ applicationEvent = false, timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, clock = false, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
   const memory = new WebAssembly.Memory({ initial: 8 });
   let length = 0, starts = 0, cancels = 0, polls = 0, completions = 0, request;
   const output = value => {
@@ -57,6 +57,7 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
   });
   const resource = inputUnits > 0
     ? { pool_id: "browser/window-input", class_id: "conduit.resource/browser-window-input@1", units: inputUnits }
+    : clock ? { pool_id: "browser/monotonic-millisecond-timer", class_id: "conduit.resource/monotonic-millisecond-timer-slot@1", units: 1 }
     : timerEffects ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
       : { pool_id: "browser/presentation", class_id: "conduit.resource/presentation-slot@1", units: 1 };
   const placements = Array.from({ length: timerEffects || 1 }, (_, index) => ({ placement_id: `placement-${index}`, gear_id: `gear-${index}`, resources: [resource] }));
@@ -73,6 +74,21 @@ test("one acquired window-input adapter reports every admitted logical input uni
   const owner = acquireBrowserBodyHost(f);
   assert.equal(owner.observations()[0].unreserved_units, 16);
   owner.close();
+});
+
+test("acquired browser clock exposes a basis-qualified sample and refuses after close", () => {
+  const owner = acquireBrowserBodyHost(fixture({ clock: true }));
+  const first = owner.monotonicObservation();
+  const second = owner.monotonicObservation();
+  assert.deepEqual([first.host_id, first.boot_id, first.scale], ["host", "boot", "Microseconds"]);
+  assert.match(first.basis_id, /^browser\/performance-[0-9a-f]{32}$/);
+  assert.equal(second.basis_id, first.basis_id);
+  assert.ok(second.ticks >= first.ticks);
+  owner.close();
+  assert.throws(() => owner.monotonicObservation(), /resources lost/);
+  const withoutClock = acquireBrowserBodyHost(fixture({ timer: true }));
+  assert.throws(() => withoutClock.monotonicObservation(), /clock not acquired/);
+  withoutClock.close();
 });
 
 test("three admitted timer slots run independently through the page Host", async () => {

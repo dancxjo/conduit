@@ -32,9 +32,10 @@ pub(super) fn wait_for_resume(
     directory: &Path,
     name: &str,
     child: &mut Child,
+    timeout: Duration,
 ) -> Result<(), ConduitosError> {
     let marker = directory.join(name);
-    let deadline = Instant::now() + Duration::from_secs(120);
+    let deadline = Instant::now() + timeout;
     loop {
         match fs::metadata(&marker) {
             Ok(metadata) if metadata.is_file() && metadata.len() <= 16 => {

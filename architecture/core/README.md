@@ -61,6 +61,9 @@ depends on semantic, application, target, or proof packages.
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |
 | `temporal_clock.rs` | generic mechanism | Explicit host/boot monotonic-clock identity and wall-clock correlation truth. |
+| `body_time.rs` | generic mechanism | Bounded Host-local to BodyTime correlation, drift estimation, non-regressing reconciliation, and physical interval relation. |
+| `body_time_exchange.rs` | generic mechanism | Four-stamp peer exchange and exact Body, Host, Boot, policy, and generation checks. |
+| `body_time_quality.rs` | generic mechanism | Typed uncertainty tolerance and finite-horizon quality admission with execution bounds. |
 | `temporal_civil_conversion.rs` | generic value mechanism | Exact offset-only conversion between retained temporal primitives. |
 | `temporal_quantity.rs` | generic value mechanism | Exact conversion between generic temporal scales and quantities. |
 

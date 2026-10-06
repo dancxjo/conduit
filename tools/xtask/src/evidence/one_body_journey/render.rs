@@ -12,6 +12,10 @@ const CSS: &str = r#"
 .journey .lede{font-size:1.2rem;max-width:64ch}
 .journey .chapter-links{display:flex;flex-wrap:wrap;gap:.65rem;margin:2rem 0;padding:0;list-style:none}
 .journey .chapter-links a,.journey .next-link{display:inline-block;padding:.55rem .8rem;border:1px solid var(--conduit-structure-secondary);border-radius:.35rem}
+.journey .chapter-links a:hover,.journey .chapter-links a:focus-visible,.journey .chapter-navigation a:hover,.journey .chapter-navigation a:focus-visible{background:var(--conduit-surface)}
+.journey .chapter-links a:focus-visible,.journey .chapter-navigation a:focus-visible{outline:3px solid var(--conduit-emphasis);outline-offset:3px}
+.journey .chapter-navigation{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;margin-top:1.5rem}
+.journey .chapter-navigation a{display:inline-block;padding:.55rem .8rem;border:1px solid var(--conduit-structure-secondary);border-radius:.35rem}
 .journey .chapter-run{border-left:2px solid var(--conduit-structure-secondary);margin:2.5rem 0 2.5rem 1.1rem;padding-left:2.5rem}
 .journey article{position:relative;border:1px solid var(--conduit-structure-secondary);border-top:3px solid var(--conduit-structure-primary);border-radius:.5rem;background:var(--conduit-surface);padding:clamp(1rem,3vw,2rem);margin:2.5rem 0;box-shadow:0 1rem 2.5rem rgb(0 0 0 / .12)}
 .journey .rail-number{position:absolute;left:-3.6rem;top:1.1rem;display:grid;place-items:center;width:2.15rem;height:2.15rem;border:2px solid var(--conduit-structure-primary);border-radius:50%;background:var(--conduit-background);color:var(--conduit-text-primary);font-family:var(--conduit-font-mono,monospace);font-size:.8rem;font-weight:700}
@@ -135,9 +139,10 @@ fn document(
                     let transcript = item.transcript.ok_or("validated audio lost transcript")?;
                     let transcript_href = safe_asset_path(&transcript.path)?;
                     let mode = item.mode.ok_or("validated audio lost speech mode")?;
+                    let delivery = item.delivery_source.ok_or("validated audio lost delivery source")?;
                     let label = if mode == "direct" { "Direct mechanical reading" } else { "Finite model-assisted wording" };
-                    media.push_str(&format!("<figure class=\"audio-card\"><figcaption><strong>{}</strong>{}</figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download produced speech</a></audio><p><strong>Words in produced audio ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
-                        label, escape(item.alt), escape(&href), escape(&href), escape(mode),
+                    media.push_str(&format!("<figure class=\"audio-card\"><figcaption><strong>{}</strong>{}<p>Captured from the {}</p></figcaption><audio controls preload=\"none\" src=\"{}\"><a href=\"{}\">Download this output recording</a></audio><p><strong>Words in recorded audio ({}):</strong> {}</p><p><a href=\"{}\">Transcript and source identity</a></p></figure>",
+                        label, escape(item.alt), escape(delivery), escape(&href), escape(&href), escape(mode),
                         escape(item.transcript_text.as_deref().unwrap_or("")), escape(&transcript_href)));
                     if let Some(validation) = item.validation {
                         evidence_links.push_str(&format!("<li><a href=\"{}\">Original model output and validation receipt</a></li>",
@@ -154,22 +159,31 @@ fn document(
             .map(|note| format!("<li>{}</li>", escape(note)))
             .collect::<String>();
         let receipt = safe_asset_path(&chapter.receipt.path)?;
+        let previous = if index > 0 {
+            format!(
+                "<a href=\"#{}\">← Back to {}</a>",
+                escape(&chapters[index - 1].story.id),
+                escape(&chapters[index - 1].story.title)
+            )
+        } else {
+            "<a href=\"#chapters\">All chapters</a>".into()
+        };
         let next = if index + 1 < chapters.len() {
             format!(
-                "<a class=\"next-link\" href=\"#{}\">Continue to {}</a>",
+                "<a href=\"#{}\">Continue to {} →</a>",
                 escape(&chapters[index + 1].story.id),
                 escape(&chapters[index + 1].story.title)
             )
         } else {
-            "<a class=\"next-link\" href=\"/conduit/journeys/\">Explore other journeys</a>".into()
+            "<a href=\"/conduit/journeys/\">Explore other journeys →</a>".into()
         };
-        content.push_str(&format!("<article id=\"{}\" aria-labelledby=\"title-{}\"><span class=\"rail-number\" aria-hidden=\"true\">{:02}</span><p class=\"step\">Chapter {} of 8</p><h2 id=\"title-{}\">{}</h2><dl class=\"story\"><dt>You want to</dt><dd>{}</dd><dt>Do this</dt><dd>{}</dd><dt>What changes</dt><dd>{}</dd><dt>Why it matters</dt><dd>{}</dd><dt>Try next</dt><dd>{}</dd></dl><div class=\"media-grid\">{media}</div><details><summary>Evidence and limits</summary><p><a href=\"{}\">Chapter action receipt</a></p><ul>{evidence_links}</ul><h3>What this does not establish</h3><ul>{limitations}</ul></details><p>{next}</p></article>",
+        content.push_str(&format!("<article id=\"{}\" aria-labelledby=\"title-{}\"><span class=\"rail-number\" aria-hidden=\"true\">{:02}</span><p class=\"step\">Chapter {} of 8</p><h2 id=\"title-{}\">{}</h2><dl class=\"story\"><dt>You want to</dt><dd>{}</dd><dt>Do this</dt><dd>{}</dd><dt>What changes</dt><dd>{}</dd><dt>Why it matters</dt><dd>{}</dd><dt>Try next</dt><dd>{}</dd></dl><div class=\"media-grid\">{media}</div><details><summary>Evidence and limits</summary><p><a href=\"{}\">Chapter action receipt</a></p><ul>{evidence_links}</ul><h3>What this does not establish</h3><ul>{limitations}</ul></details><nav class=\"chapter-navigation\" aria-label=\"Continue from chapter {}\">{previous}{next}</nav></article>",
             escape(&chapter.story.id), escape(&chapter.story.id), step, step, escape(&chapter.story.id), escape(&chapter.story.title),
             escape(&chapter.story.intention), escape(&chapter.story.action), escape(&chapter.story.result),
-            escape(&chapter.story.why), escape(&chapter.story.next), escape(&receipt)));
+            escape(&chapter.story.why), escape(&chapter.story.next), escape(&receipt), step));
     }
     let inventory = complete_evidence_inventory(evidence, chapters)?;
-    Ok(format!("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>One Body, five ways to meet it — Conduit</title><style>{}\n{CSS}</style></head><body data-application-theme=\"conduit.presentation/phosphor@1\">{}<main class=\"journey\"><header><p class=\"step\">A real user journey · eight chapters</p><h1>One Body, five ways to meet it</h1><p class=\"lede\">Start a clock, move between browser, ConduitOS and terminal, hear its current state, then see what happens when a place or provider disappears. Every capture below belongs to one recorded run.</p><p class=\"boundary\">The captured run proves only the actions and effects named in its receipts. QEMU is emulator evidence; audio production and playback are separate from attended human listening.</p></header><nav aria-label=\"Journey chapters\"><ol class=\"chapter-links\">{links}</ol></nav><div class=\"chapter-run\">{content}</div><details><summary>Source and complete evidence inventory</summary><p>Source commit: <code>{}</code></p><p>Run: <code>{}</code> · Body: <code>{}</code></p><p><a href=\"{}\">Journey document</a> · <a href=\"manifest.json\">Digest-bound evidence manifest</a></p>{inventory}</details></main></body></html>",
+    Ok(format!("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>One Body, five ways to meet it — Conduit</title><style>{}\n{CSS}</style></head><body data-application-theme=\"conduit.presentation/phosphor@1\">{}<main class=\"journey\"><header><p class=\"step\">A recorded user journey · eight chapters</p><h1>One Body, five ways to meet it</h1><p class=\"lede\">Start a clock, move between browser, ConduitOS and terminal, hear its current state, then see what happens when a place or provider disappears. Every capture below belongs to one recorded run.</p><p class=\"boundary\">The captured run proves only the actions and effects named in its receipts. QEMU is emulator evidence; audio production and playback are separate from attended human listening.</p></header><nav id=\"chapters\" aria-label=\"Journey chapters\"><h2>Choose a chapter</h2><ol class=\"chapter-links\">{links}</ol></nav><div class=\"chapter-run\">{content}</div><details><summary>Source and complete evidence inventory</summary><p>Source commit: <code>{}</code></p><p>Run: <code>{}</code> · Body: <code>{}</code></p><p><a href=\"{}\">Journey document</a> · <a href=\"manifest.json\">Digest-bound evidence manifest</a></p>{inventory}</details></main></body></html>",
         crate::site::styles(), crate::site::navigation("journeys"), escape(&evidence.commit),
         escape(&journey.run_id), escape(&journey.body_id),
         escape(&safe_asset_path(&evidence.outputs.iter().find(|output| output.id == "journey").ok_or("missing journey document")?.path)?)))

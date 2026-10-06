@@ -125,8 +125,39 @@ fn prove(
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
+    let (standby_part, standby_face) =
+        wait_for_standby(serial_path, child, Duration::from_secs(120))?;
+    let (standby_image, health) =
+        qmp_display::capture(&mut qmp, &mut reader, directory, "owner-standby")?;
+    if let Some(error) = health {
+        return Err(error);
+    }
+    if coordinate {
+        write_checkpoint(
+            directory,
+            "native-standby.json",
+            &json!({
+                "schema":"conduit.conduitos/native-owner-coordination@1",
+                "stage":"standby",
+                "guest_part":standby_part.clone(),
+                "face":standby_face.clone(),
+            }),
+        )?;
+        wait_for_resume(
+            directory,
+            "resume-native-activation",
+            child,
+            Duration::from_secs(120),
+        )?;
+    }
+    // An actual native user requests this Mask after the owner has selected
+    // its admitted route. No policy changes occur in the guest or harness.
+    journey_input::key_pair(&mut qmp, &mut reader, "f5", "native-owner-activate")?;
     let (part, before, before_ack) =
         wait_for_arrival(serial_path, child, Duration::from_secs(120))?;
+    if part != standby_part || before.get("face_id") != standby_face.get("face_id") {
+        return Err(refusal("native-owner-standby-basis-changed"));
+    }
     let (before_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
@@ -144,11 +175,16 @@ fn prove(
                 "show_ack":before_ack,
             }),
         )?;
-        wait_for_resume(directory, "resume-native-action", child)?;
+        wait_for_resume(
+            directory,
+            "resume-native-action",
+            child,
+            Duration::from_secs(120),
+        )?;
     }
-    // Keyboard traffic is the actual native Mask Fore: focus the only
-    // available clock interval action, replace it with 500, then submit.
-    for key in ["tab", "5", "0", "0", "ret"] {
+    // The first available control is Wake; the second is the checked clock
+    // interval argument. Traverse both through the ordinary native Mask.
+    for key in ["tab", "tab", "5", "0", "0", "ret"] {
         journey_input::key_pair(&mut qmp, &mut reader, key, "native-owner-clock-input")?;
     }
     let (action, after, after_ack) = wait_for_action(serial_path, child, Duration::from_secs(30))?;
@@ -170,7 +206,14 @@ fn prove(
                 "show_ack":after_ack,
             }),
         )?;
-        wait_for_resume(directory, "resume-native-finish", child)?;
+        // The guest must remain alive while the owner completes a full spoken
+        // Face and the separate model chapters before the final QMP receipt.
+        wait_for_resume(
+            directory,
+            "resume-native-finish",
+            child,
+            Duration::from_secs(45 * 60),
+        )?;
     }
     if child
         .try_wait()
@@ -194,10 +237,42 @@ fn prove(
         "action":action,
         "face_after":after,
         "show_ack_after":after_ack,
-        "screenshots":[before_image,after_image],
+        "screenshots":[standby_image,before_image,after_image],
         "qemu_alive_at_capture":true,
         "coordinated":coordinate,
     }))
+}
+
+fn wait_for_standby(
+    serial_path: &std::path::Path,
+    child: &mut Child,
+    timeout: Duration,
+) -> Result<(Value, Value), ConduitosError> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        let serial = bounded_serial(serial_path)?;
+        let part = records(&serial, GUEST_PART)?;
+        let faces = records(&serial, OWNER_FACE)?;
+        let routes = records(&serial, "CONDUIT_NATIVE_OWNER_ROUTE")?;
+        let shown = faces.iter().find(|value| {
+            value.get("status").and_then(Value::as_str) == Some("shown")
+                && value.get("interactions_admitted") == Some(&Value::Bool(false))
+                && value.get("local_show_available") == Some(&Value::Bool(true))
+        });
+        if serial.contains("CONDUIT_BOOT_STAGE front-door-ready")
+            && routes.iter().any(|value| {
+                value.get("status").and_then(Value::as_str) == Some("standby")
+                    && value.get("activation").and_then(Value::as_str) == Some("F5")
+            })
+        {
+            if let (Some(part), Some(shown)) = (part.last(), shown) {
+                if part.get("membership_installed") == Some(&Value::Bool(true)) {
+                    return Ok((part.clone(), shown.clone()));
+                }
+            }
+        }
+        wait_or_refuse(child, deadline, "native-owner-standby-not-ready")?;
+    }
 }
 
 fn validate_success(
@@ -323,23 +398,33 @@ fn wait_for_action(
                 ));
             }
         }
-        let shown: Vec<&Value> = faces
-            .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("shown"))
-            .collect();
-        let acknowledged: Vec<&Value> = faces
-            .iter()
-            .filter(|value| value.get("status").and_then(Value::as_str) == Some("acknowledged"))
-            .collect();
-        if let (Some(action), Some(after), Some(ack)) =
-            (actions.last(), shown.get(1), acknowledged.get(1))
-        {
-            if ack.get("show_id") == after.get("show_id") {
-                return Ok((action.clone(), (*after).clone(), (*ack).clone()));
+        if let Some(action) = actions.last() {
+            if let Some((after, ack)) = refreshed_show_after_action(action, &faces) {
+                return Ok((action.clone(), after, ack));
             }
         }
         wait_or_refuse(child, deadline, "native-owner-action-not-observed")?;
     }
+}
+
+fn refreshed_show_after_action(action: &Value, faces: &[Value]) -> Option<(Value, Value)> {
+    let prior_face = action.get("face_id")?;
+    let prior_revision = action.get("face_revision")?.as_u64()?;
+    faces.iter().enumerate().find_map(|(index, after)| {
+        if after.get("status")?.as_str()? != "shown"
+            || after.get("interactions_admitted") != Some(&Value::Bool(true))
+            || after.get("face_id") == Some(prior_face)
+            || after.get("face_revision")?.as_u64()? <= prior_revision
+        {
+            return None;
+        }
+        let show_id = after.get("show_id")?;
+        let ack = faces[index + 1..].iter().find(|face| {
+            face.get("status").and_then(Value::as_str) == Some("acknowledged")
+                && face.get("show_id") == Some(show_id)
+        })?;
+        Some((after.clone(), ack.clone()))
+    })
 }
 
 fn bounded_serial(path: &std::path::Path) -> Result<String, ConduitosError> {
@@ -466,5 +551,23 @@ mod tests {
         let mut wrong_value = accepted;
         wrong_value["requested_interval_ms"] = json!(250);
         assert!(validate_success(&before, &before_ack, &wrong_value, &after, &after_ack).is_err());
+    }
+
+    #[test]
+    fn action_proof_correlates_refreshed_show_after_standby() {
+        let action = json!({"face_id":"face/one","face_revision":7});
+        let mut faces = vec![
+            json!({"status":"shown","face_id":"face/one","face_revision":7,"show_id":"show/standby","interactions_admitted":false}),
+            json!({"status":"shown","face_id":"face/one","face_revision":7,"show_id":"show/active","interactions_admitted":true}),
+            json!({"status":"acknowledged","show_id":"show/active"}),
+            json!({"status":"shown","face_id":"face/two","face_revision":9,"show_id":"show/refreshed","interactions_admitted":true}),
+        ];
+        assert!(refreshed_show_after_action(&action, &faces).is_none());
+        faces.push(json!({"status":"acknowledged","show_id":"show/active"}));
+        assert!(refreshed_show_after_action(&action, &faces).is_none());
+        faces.push(json!({"status":"acknowledged","show_id":"show/refreshed"}));
+        let (after, ack) = refreshed_show_after_action(&action, &faces).unwrap();
+        assert_eq!(after["show_id"], "show/refreshed");
+        assert_eq!(ack["show_id"], after["show_id"]);
     }
 }

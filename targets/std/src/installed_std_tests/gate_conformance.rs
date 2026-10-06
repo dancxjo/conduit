@@ -62,7 +62,7 @@ fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure(
     let report = host
         .run_fragment_to(fragment.clone(), &mut output, &mut timer)
         .expect("latest/tee/gate execute through the production kernel");
-    assert_eq!(timer.waits, vec![Duration::ZERO; 9]);
+    assert!(timer.waits.is_empty());
     let output = String::from_utf8(output).expect("gate report is UTF-8");
     assert!(output.contains("/latest kind=state/latest"));
     assert!(output.contains("/split kind=flow/tee"));

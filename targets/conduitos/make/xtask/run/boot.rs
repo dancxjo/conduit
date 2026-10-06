@@ -1,12 +1,99 @@
 //! Boot one admitted proof image and validate its exact guest transcript.
 use super::*;
 use std::{
+    path::Path,
     thread,
     time::{Duration, Instant},
 };
 
+#[derive(serde::Serialize)]
+pub(crate) struct QemuWavCapture {
+    pub path: String,
+    pub sha256: String,
+    pub bytes: u64,
+    pub sample_rate_hz: u32,
+    pub channels: u16,
+    pub nonzero_samples: usize,
+    pub source: &'static str,
+}
+
+pub(crate) fn inspect_wav(path: &Path) -> Result<QemuWavCapture, ConduitosError> {
+    const MAX_WAV_BYTES: u64 = 32 * 1024 * 1024;
+    let size = fs::metadata(path)
+        .map_err(|error| ConduitosError::refusal("qemu-audio-missing", error.to_string()))?
+        .len();
+    if !(48..=MAX_WAV_BYTES).contains(&size) {
+        return Err(ConduitosError::refusal(
+            "qemu-audio-size-invalid",
+            format!("QEMU WAV has {size} bytes; expected 48..={MAX_WAV_BYTES}"),
+        ));
+    }
+    let bytes = fs::read(path)
+        .map_err(|error| ConduitosError::refusal("qemu-audio-read-failed", error.to_string()))?;
+    let word = |start| u16::from_le_bytes([bytes[start], bytes[start + 1]]);
+    let dword = |start| u32::from_le_bytes(bytes[start..start + 4].try_into().unwrap());
+    if &bytes[..4] != b"RIFF"
+        || &bytes[8..12] != b"WAVE"
+        || &bytes[12..16] != b"fmt "
+        || dword(16) != 16
+        || word(20) != 1
+        || &bytes[36..40] != b"data"
+        || dword(4) as u64 + 8 != size
+        || dword(40) as u64 + 44 != size
+        || size % 4 != 0
+        || word(22) != 2
+        || word(34) != 16
+        || dword(24) != 44_100
+        || dword(28) != 176_400
+        || word(32) != 4
+    {
+        return Err(ConduitosError::refusal(
+            "qemu-audio-format-invalid",
+            "QEMU WAV must be exact RIFF PCM16 stereo 44.1 kHz",
+        ));
+    }
+    let nonzero_samples = bytes[44..]
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .filter(|sample| sample[0] != 0 || sample[1] != 0)
+        .count();
+    if nonzero_samples == 0 {
+        return Err(ConduitosError::refusal(
+            "qemu-audio-silent",
+            "QEMU output contained no audible PCM samples",
+        ));
+    }
+    Ok(QemuWavCapture {
+        path: path.display().to_string(),
+        sha256: super::super::report::sha256_file(path)?,
+        bytes: size,
+        sample_rate_hz: 44_100,
+        channels: 2,
+        nonzero_samples,
+        source: "same-run-qemu-wav-output",
+    })
+}
+
 pub(crate) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
-    boot_with_memory(paths, opts, "64M", QEMU_PROFILE, 16 * 1024 * 1024)
+    boot_with_memory(paths, opts, "64M", QEMU_PROFILE, 16 * 1024 * 1024, None)
+}
+
+/// Record the actual QEMU mixer output of this boot. The caller owns the WAV
+/// path and must keep it with the returned boot/Plan/Play identities.
+pub(crate) fn boot_once_with_audio(
+    paths: &Paths,
+    opts: &GlobalOpts,
+    wav: &std::path::Path,
+) -> Result<GuestRun, ConduitosError> {
+    boot_with_memory(
+        paths,
+        opts,
+        "64M",
+        QEMU_PROFILE,
+        16 * 1024 * 1024,
+        Some(wav),
+    )
 }
 
 pub(crate) fn boot_configuration(
@@ -19,6 +106,7 @@ pub(crate) fn boot_configuration(
         "512M",
         conduitos::make::USB_CONFIGURATION_QEMU_PROFILE,
         conduitos::make::USB_CONFIGURATION_ARENA_BYTES,
+        None,
     )
 }
 
@@ -28,56 +116,72 @@ fn boot_with_memory(
     memory: &str,
     qemu_profile: &str,
     arena_bytes: u64,
+    wav: Option<&std::path::Path>,
 ) -> Result<GuestRun, ConduitosError> {
     let monitor_socket = paths.target.join("hid-monitor.sock");
     let serial_path = paths.target.join("boot-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
+    if let Some(wav) = wav {
+        if wav.exists() {
+            return Err(ConduitosError::refusal(
+                "qemu-audio-output-exists",
+                format!("audio capture must be new: {}", wav.display()),
+            ));
+        }
+        if wav.to_str().is_none_or(|path| path.contains(',')) {
+            return Err(ConduitosError::refusal(
+                "qemu-audio-output-path-invalid",
+                "QEMU WAV output path must be UTF-8 without option separators",
+            ));
+        }
+    }
     let monitor = format!(
         "unix:{},server=on,wait=off",
         monitor_socket.to_string_lossy()
     );
     let serial_target = format!("file:{}", serial_path.to_string_lossy());
-    let mut child = Command::new("qemu-system-x86_64")
-        .args([
-            "-M",
-            "q35",
-            "-cpu",
-            "max",
-            "-m",
-            memory,
-            "-smp",
-            "1",
-            "-display",
-            "none",
-            "-vga",
-            "std",
-            "-monitor",
-            "none",
-            "-qmp",
-            &monitor,
-            "-serial",
-            &serial_target,
-            "-no-reboot",
-            "-net",
-            "none",
-            "-rtc",
-            "base=2026-08-09T00:00:00,clock=vm",
-            "-device",
-            "isa-debug-exit,iobase=0xf4,iosize=0x04",
-            "-device",
-            "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
-            "-device",
-            "usb-kbd,bus=conduitos-xhci.0,port=1",
-            "-audiodev",
-            "none,id=conduitos-opl2-audio",
-            "-device",
-            "adlib,audiodev=conduitos-opl2-audio",
-            "-cdrom",
-            paths.iso.to_str().unwrap(),
-            "-boot",
-            "d",
-        ])
+    let mut command = Command::new("qemu-system-x86_64");
+    command.args([
+        "-M",
+        "q35",
+        "-cpu",
+        "max",
+        "-m",
+        memory,
+        "-smp",
+        "1",
+        "-display",
+        "none",
+        "-vga",
+        "std",
+        "-monitor",
+        "none",
+        "-qmp",
+        &monitor,
+        "-serial",
+        &serial_target,
+        "-no-reboot",
+        "-net",
+        "none",
+        "-rtc",
+        "base=2026-08-09T00:00:00,clock=vm",
+        "-device",
+        "isa-debug-exit,iobase=0xf4,iosize=0x04",
+        "-device",
+        "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
+        "-device",
+        "usb-kbd,bus=conduitos-xhci.0,port=1",
+        "-audiodev",
+        "none,id=conduitos-opl2-audio",
+        "-device",
+        "adlib,audiodev=conduitos-opl2-audio",
+        "-cdrom",
+        paths.iso.to_str().unwrap(),
+        "-boot",
+        "d",
+    ]);
+    let mut child = command
         .current_dir(&paths.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -91,6 +195,8 @@ fn boot_with_memory(
         })?;
     if qemu_profile == conduitos::make::USB_CONFIGURATION_QEMU_PROFILE {
         hid_qmp::inject_configuration(&monitor_socket, &serial_path, &mut child)?;
+    } else if let Some(wav) = wav {
+        hid_qmp::inject_with_capture(&monitor_socket, &serial_path, &mut child, wav)?;
     } else {
         hid_qmp::inject(&monitor_socket, &serial_path, &mut child)?;
     }

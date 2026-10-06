@@ -8,6 +8,7 @@ fn legacy() -> (PathBuf, PathBuf, String) {
         &manifest,
         &state,
         selected_speech::Change::Replace(selected_speech::fixture_retained_selection()),
+        selected_model::Change::Preserve,
     )
     .unwrap();
     let path = state.join("installation.json");
@@ -58,7 +59,8 @@ fn legacy_selection_requires_explicit_replacement_or_removal() {
         let before: serde_json::Value =
             serde_json::from_slice(&fs::read(state.join("installation.json")).unwrap()).unwrap();
         let repaired =
-            install_configured(&manifest, &state, change).expect("explicit selection recovery");
+            install_configured(&manifest, &state, change, selected_model::Change::Preserve)
+                .expect("explicit selection recovery");
         assert_eq!(repaired.host_id, host_id);
         assert_eq!(
             serde_json::to_value(&repaired).unwrap()["body_state"],
@@ -84,7 +86,13 @@ fn selection_recovery_cannot_bypass_body_identity_validation() {
     });
     write_json_atomic(&path, &value).unwrap();
     let before = fs::read(&path).unwrap();
-    assert!(install_configured(&manifest, &state, selected_speech::Change::Remove).is_err());
+    assert!(install_configured(
+        &manifest,
+        &state,
+        selected_speech::Change::Remove,
+        selected_model::Change::Preserve,
+    )
+    .is_err());
     assert_eq!(fs::read(&path).unwrap(), before);
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
@@ -99,7 +107,8 @@ fn replacement_cannot_reuse_undeclared_legacy_selection() {
     assert!(install_configured(
         &manifest,
         &state,
-        selected_speech::Change::Replace(unreviewed)
+        selected_speech::Change::Replace(unreviewed),
+        selected_model::Change::Preserve,
     )
     .unwrap_err()
     .contains("reselect"));

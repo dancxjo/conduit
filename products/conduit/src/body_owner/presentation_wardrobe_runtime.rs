@@ -12,63 +12,6 @@ use conduit_presentation::{
 use serde_json::{json, Value};
 
 impl Owner {
-    /// The adapter owns the socket and Show execution; the owner retains only
-    /// its exact route witness while that attached provider is still live.
-    pub(crate) fn current_attached_terminal_route<'a>(
-        host: &super::OwnerHost,
-        cached: Option<&'a LocalOwnerMaskRouteSeal>,
-        session: &conduit_body::BodyLifecycleSession,
-        face: &conduit_presentation::Presentation,
-    ) -> Result<Option<&'a LocalOwnerMaskRouteSeal>, String> {
-        #[cfg(not(unix))]
-        {
-            let _ = (host, cached, session, face);
-            return Ok(None);
-        }
-        #[cfg(unix)]
-        {
-            let Some(seal) = cached else {
-                return Ok(None);
-            };
-            if host.is_playing() || !host.current().terminal_attachment_is_live()? {
-                return Ok(None);
-            }
-            match seal.validate_current(session, face, host.advertisement()) {
-                Ok(()) => Ok(Some(seal)),
-                Err(
-                    conduit_presentation::LocalOwnerMaskRouteError::StaleBody
-                    | conduit_presentation::LocalOwnerMaskRouteError::StaleFace
-                    | conduit_presentation::LocalOwnerMaskRouteError::StaleHost,
-                ) => Ok(None),
-                Err(error) => Err(format!("attached terminal witness invalid: {error:?}")),
-            }
-        }
-    }
-
-    pub(crate) fn current_presentation_routes<'a>(
-        owner_offer: &'a conduit_core::HostAdvertisement,
-        browser: Option<&'a super::participants::BrowserWindow>,
-        local: Option<&'a LocalOwnerMaskRouteSeal>,
-    ) -> Vec<CurrentOwnerPresentationRoute<'a>> {
-        let mut current = Vec::with_capacity(2);
-        if let Some(seal) = local {
-            current.push(CurrentOwnerPresentationRoute::Local { seal, owner_offer });
-        }
-        if let Some((seal, mask_host_offer, face_line, return_line, interaction_line)) =
-            browser.and_then(super::participants::BrowserWindow::current_mask_route)
-        {
-            current.push(CurrentOwnerPresentationRoute::Remote {
-                seal,
-                owner_offer,
-                mask_host_offer,
-                face_line,
-                return_line,
-                interaction_line: Some(interaction_line),
-            });
-        }
-        current
-    }
-
     pub(crate) fn admit_browser_presentation_route(
         &mut self,
         seal: &RemoteOwnerMaskRouteSeal,
@@ -80,10 +23,28 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes(
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         if !current.iter().any(|route| {
             matches!(route,
@@ -125,16 +86,181 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes(
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         self.presentation_wardrobe
             .as_mut()
             .ok_or("owner presentation wardrobe is not admitted")?
             .acknowledge_selected_show(&self.session, &face, &current, &seal.route_plan_id, show)
             .map_err(wardrobe_error)
+    }
+
+    pub(crate) fn admit_native_presentation_route(
+        &mut self,
+        seal: &RemoteOwnerMaskRouteSeal,
+    ) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        if !current.iter().any(|route| {
+            matches!(route,
+                CurrentOwnerPresentationRoute::Remote { seal: found, .. }
+                    if found.route_plan_id == seal.route_plan_id
+            )
+        }) {
+            return Err("native presentation route is no longer current".into());
+        }
+        if let Some(wardrobe) = &mut self.presentation_wardrobe {
+            wardrobe
+                .admit_or_replace(&self.session, &face, &current)
+                .map_err(wardrobe_error)?;
+        } else {
+            let mask = seal.planned_mask.mask.plot_identity.clone();
+            self.presentation_wardrobe = Some(
+                OwnerPresentationWardrobe::seal(
+                    &self.session,
+                    &face,
+                    &current,
+                    vec![mask.clone()],
+                    vec![mask],
+                )
+                .map_err(wardrobe_error)?,
+            );
+        }
+        Ok(())
+    }
+
+    pub(crate) fn acknowledge_selected_native_show(
+        &mut self,
+        seal: &RemoteOwnerMaskRouteSeal,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        self.presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .acknowledge_selected_show(&self.session, &face, &current, &seal.route_plan_id, show)
+            .map_err(wardrobe_error)
+    }
+
+    pub(crate) fn validate_selected_native_show(&mut self, show: &MaskShow) -> Result<(), String> {
+        let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
+            self.host.advertisement(),
+            self.pending_browser.as_ref(),
+            local,
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
+        );
+        let selected = self
+            .presentation_wardrobe
+            .as_mut()
+            .ok_or("owner presentation wardrobe is not admitted")?
+            .selected_show(&self.session, &face, &current)
+            .map_err(wardrobe_error)?;
+        if selected != show {
+            return Err("native Mask Show differs from selected owner Show".into());
+        }
+        Ok(())
     }
 
     /// The installed owner keeps the Body-lifetime wardrobe. The attached
@@ -147,10 +273,28 @@ impl Owner {
     ) -> Result<(), String> {
         self.validate_attached_terminal_route(seal, show)?;
         let face = self.local_face_snapshot()?;
-        let current = Self::current_presentation_routes(
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             Some(seal),
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         if let Some(wardrobe) = &mut self.presentation_wardrobe {
             wardrobe
@@ -205,10 +349,28 @@ impl Owner {
     ) -> Result<Value, String> {
         self.validate_attached_terminal_route(seal, show)?;
         let face = self.local_face_snapshot()?;
-        let current = Self::current_presentation_routes(
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             Some(seal),
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         let wardrobe = self
             .presentation_wardrobe
@@ -267,10 +429,28 @@ impl Owner {
         show: &MaskShow,
     ) -> Result<(), String> {
         let face = self.local_face_snapshot()?;
-        let current = Self::current_presentation_routes(
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             Some(seal),
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
         let wardrobe = self
             .presentation_wardrobe

@@ -77,9 +77,24 @@ pub(super) fn apply(
                                 grant.expires_at_millis,
                             )
                         });
-                    if let Ok(selected) = selected {
-                        *route = Some(Box::new(selected));
-                        *interactions_admitted = true;
+                    match selected {
+                        Ok(selected) => {
+                            *route = Some(Box::new(selected));
+                            *interactions_admitted = true;
+                        }
+                        Err(error) => {
+                            let code = if error.len() <= 256
+                                && error.bytes().all(|byte| (32..=126).contains(&byte))
+                            {
+                                error.as_str()
+                            } else {
+                                "refreshed-route-detail-invalid"
+                            };
+                            eprintln!(
+                                "CONDUIT_OWNER_RETURN_DIAGNOSTIC {}",
+                                serde_json::json!({"phase":"refreshed-route-refused","code":code})
+                            );
+                        }
                     }
                 }
             }

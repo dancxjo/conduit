@@ -21,6 +21,40 @@ pub(in crate::arch::x86_64::usb) fn issue(
     if selected.next().is_some() {
         return Err("usb-endpoint-read-proof-possession");
     }
+    issue_selected(plan, &gear.placement_id, [71; 32])
+}
+
+/// Explicit appliance issuance for one exact selected endpoint call. Root
+/// supplies an independently keyed table for each retained owner; matching
+/// descriptions alone never produce possession. This remains proof-only.
+pub(in crate::arch::x86_64::usb) fn issue_selected(
+    plan: &Plan,
+    placement: &PlacementId,
+    key: [u8; 32],
+) -> Result<
+    (
+        BaseCapabilityTable,
+        BaseCapabilityHandle,
+        BaseOperationClaim,
+    ),
+    &'static str,
+> {
+    if !verify_plan(plan) || plan.fragments.len() != 1 {
+        return Err("usb-endpoint-read-proof-possession");
+    }
+    let fragment = &plan.fragments[0];
+    let gear = fragment
+        .placements
+        .iter()
+        .find(|gear| &gear.placement_id == placement)
+        .ok_or("usb-endpoint-read-proof-possession")?;
+    if gear.implementation_id.as_str() != ENDPOINT_READ_IMPLEMENTATION
+        || gear.authority.len() != 1
+        || gear.resources.len() != 1
+        || gear.host_calls.len() != 1
+    {
+        return Err("usb-endpoint-read-proof-possession");
+    }
     let base = gear
         .base
         .as_ref()
@@ -92,7 +126,7 @@ pub(in crate::arch::x86_64::usb) fn issue(
         scope.boot_id.clone(),
         scope.base_instance_id.clone(),
         scope.base_provider_generation,
-        [71; 32],
+        key,
         1,
     )
     .map_err(|_| "usb-endpoint-read-proof-possession")?;
@@ -101,3 +135,7 @@ pub(in crate::arch::x86_64::usb) fn issue(
         .map_err(|_| "usb-endpoint-read-proof-possession")?;
     Ok((table, handle, claim))
 }
+
+#[cfg(test)]
+#[path = "possession_tests.rs"]
+mod tests;

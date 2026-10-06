@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "program_to_body_follow": follow_entry,
         "manifestations": {
             "browser": "pinned Chromium; one worker; zero retries",
-            "native": "deterministic semantic and composition tests",
+            "native": "not exercised: legacy shell retired",
             "linear": "the same ordered biography records",
             "exact": "the same body, Sign, record, Plan, Cord, and Line identities",
         },

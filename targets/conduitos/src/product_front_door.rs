@@ -40,6 +40,7 @@ use journey_sign::emit_journey_sign;
 
 const ENTER: u8 = 40;
 const F1: u8 = 58;
+const F5: u8 = 62;
 const F10: u8 = 67;
 const F11: u8 = 68;
 
@@ -168,20 +169,17 @@ pub fn run(
     )
     .map_err(|error| error.as_str())?;
     let owner_face_presented = owner_face.is_some();
-    let mut receipt = if let Some(owner_face) = owner_face {
-        let admitted = owner_route.as_ref().is_some_and(|route| route.available());
-        face_arrival.present_owner_face(owner_face.into_presentation(), admitted, display)?
+    let mut owner_route_standby = owner_route.as_ref().is_some_and(|route| route.available());
+    let receipt = if let Some(owner_face) = owner_face {
+        face_arrival.present_owner_face(owner_face.into_presentation(), false, display)?
     } else if provisioned_guest {
         face_arrival.present_pending_join(&front_door, display)?
     } else {
         face_arrival.present_first(&front_door, display)?
     };
-    if let Some(route) = owner_route.as_mut()
-        && let Err(reason) = face_arrival.acknowledge_owner_show(route, *identities)
-    {
-        owner_route = None;
-        receipt = face_arrival.retire_owner_route(display)?;
-        face_arrival.show_owner_result(false, false, reason, display)?;
+    if owner_route_standby {
+        face_arrival.show_owner_standby(display)?;
+        arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"standby\",\"activation\":\"F5\"}\n");
     }
     if let Some(reason) = owner_return_refusal {
         face_arrival.show_owner_result(false, false, reason, display)?;
@@ -211,6 +209,7 @@ pub fn run(
                         if owner_route.as_ref().is_some_and(|route| !route.available()) =>
                     {
                         owner_route = None;
+                        owner_route_standby = false;
                         face_arrival.retire_owner_route(display)?;
                         face_arrival.show_owner_result(false, false, "return-expired", display)?;
                         arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"expired\"}\n");
@@ -219,6 +218,32 @@ pub fn run(
                         rescue_guest::observe(identities, rescue_matcher, local, true);
                     }
                     ProductInputEvent::Key(event) if owner_face_presented => {
+                        if owner_route_standby
+                            && event.transition() == KeyTransition::Pressed
+                            && event.usage() == F5
+                        {
+                            face_arrival.activate_owner_route(display)?;
+                            let route = owner_route
+                                .as_mut()
+                                .ok_or("native-owner-return-unavailable")?;
+                            match face_arrival.acknowledge_owner_show(route, *identities) {
+                                Ok(()) => {
+                                    owner_route_standby = false;
+                                    arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"active\"}\n");
+                                }
+                                Err(reason) => {
+                                    arch::early_write(b"CONDUIT_NATIVE_OWNER_SHOW_ACK {\"status\":\"refused\",\"code\":\"");
+                                    arch::early_write(reason.as_bytes());
+                                    arch::early_write(b"\"}\n");
+                                    owner_route = None;
+                                    owner_route_standby = false;
+                                    face_arrival.retire_owner_route(display)?;
+                                    face_arrival
+                                        .show_owner_result(false, false, reason, display)?;
+                                }
+                            }
+                            return Ok(ProductInputControl::Continue);
+                        }
                         let input = match face_arrival.accept_guest_key(event, display) {
                             Ok(input) => input,
                             Err(reason) => {

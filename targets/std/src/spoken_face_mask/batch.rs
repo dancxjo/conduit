@@ -14,6 +14,74 @@ pub struct SpokenBatch {
 }
 
 impl SpokenBatch {
+    /// Turn semantically accepted generated wording into one bounded speech
+    /// Flow for the same selected speaker and WAV fan-out used by Face reading.
+    /// The supplied Show is the generated Mask Show, never a new authority.
+    pub fn from_accepted_wording(
+        face: &Presentation,
+        show: &MaskShow,
+        wording: &str,
+        stream_identity: String,
+    ) -> Result<Self, SpokenFaceRefusal> {
+        check_show(face, show)?;
+        if wording.is_empty() || wording.len() > 1024 || stream_identity.is_empty() {
+            return Err(SpokenFaceRefusal::VoiceBound);
+        }
+        let mut remaining = wording;
+        let mut segments = Vec::new();
+        while !remaining.is_empty() {
+            if segments.len() == conduit_tongues::MAXIMUM_COMMITTED_SEGMENTS {
+                return Err(SpokenFaceRefusal::VoiceBound);
+            }
+            let mut end = remaining.len().min(64);
+            while !remaining.is_char_boundary(end) {
+                end -= 1;
+            }
+            if end == 0 {
+                return Err(SpokenFaceRefusal::VoiceBound);
+            }
+            if end < remaining.len() {
+                if let Some((index, character)) = remaining[..end]
+                    .char_indices()
+                    .rev()
+                    .find(|(index, character)| *index >= end / 2 && character.is_whitespace())
+                {
+                    end = index + character.len_utf8();
+                }
+            }
+            let (text, rest) = remaining.split_at(end);
+            segments.push(SpokenSegment {
+                face_id: face.identity.as_str().into(),
+                face_revision: face.revision,
+                show_id: show.show_id.as_str().into(),
+                clause_index: None,
+                clause_provenance: None,
+                segment: SpeakableSegment {
+                    stream_identity: stream_identity.clone(),
+                    sequence: segments.len() as u32,
+                    text: text.into(),
+                    reason: if rest.is_empty() {
+                        SpeechCommitReason::FinalFlush
+                    } else {
+                        SpeechCommitReason::TonguesBoundary
+                    },
+                },
+                text_sha256: format!("{:x}", Sha256::digest(text.as_bytes())),
+            });
+            remaining = rest;
+        }
+        let batch = Self {
+            face_id: face.identity.as_str().into(),
+            face_revision: face.revision,
+            source_show_id: show.show_id.as_str().into(),
+            stream_identity,
+            source_segments_sha256: source_digest(&segments),
+            segments,
+        };
+        batch.validate(face, show)?;
+        Ok(batch)
+    }
+
     pub fn validate(&self, face: &Presentation, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
         check_show(face, show)?;
         if self.face_id != face.identity.as_str() || self.face_revision != face.revision {

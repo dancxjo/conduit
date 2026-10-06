@@ -3,16 +3,17 @@ import { test } from 'node:test';
 import { createHash } from 'node:crypto';
 import { assertExactFaceRevision, assertRestoredSpeech } from './three-host-llm-chapter.mjs';
 
-test('browser decimal Face revision matches exact numeric receipt', () => {
-  assert.doesNotThrow(() => assertExactFaceRevision('13', 13));
-  assert.throws(() => assertExactFaceRevision('13', 14));
-  assert.throws(() => assertExactFaceRevision('013', 13));
-  assert.throws(() => assertExactFaceRevision(13, 13));
+test('browser decimal Face revision matches the exact receipt value', () => {
+  assert.doesNotThrow(() => assertExactFaceRevision('13', '13'));
+  assert.throws(() => assertExactFaceRevision('13', '14'));
+  assert.throws(() => assertExactFaceRevision('013', '13'));
+  assert.throws(() => assertExactFaceRevision(13, '13'));
 });
 
-test('unsafe numeric Face revision refuses instead of rounding', () => {
-  assert.throws(() => assertExactFaceRevision('9007199254740992', 9007199254740992),
-    /exact safe integer/);
+test('large Face revisions remain exact across the browser boundary', () => {
+  assert.doesNotThrow(() => assertExactFaceRevision('9007199254740993', '9007199254740993'));
+  assert.throws(() => assertExactFaceRevision('9007199254740993', '9007199254740992'));
+  assert.throws(() => assertExactFaceRevision('9007199254740993', 9007199254740993));
 });
 
 test('restored model route must retain the exact owner Face, model, validation, and audio', () => {
@@ -28,7 +29,8 @@ test('restored model route must retain the exact owner Face, model, validation, 
   const receipt = {
     proof_class: 'live-local-model', source_commit: 'commit', run_id: 'run',
     body_id: 'body', owner_host_id: 'host', owner_boot_id: 'boot',
-    face_id: 'face', face_revision: 14, action_id: 'explain-after-restoration',
+    face_id: 'face', face_revision: 14, face_revision_decimal: '14',
+    action_id: 'explain-after-restoration',
     owner_snapshot_before_after_equal: true, local_spoken_mask_show_observed: true,
     owner_sealed_spoken_mask_route_observed: false,
     playback_observed: false, human_hearing_observed: false,
@@ -41,7 +43,8 @@ test('restored model route must retain the exact owner Face, model, validation, 
   const validation = {
     source_commit: 'commit', run_id: 'run', body_id: 'body',
     owner_host_id: 'host', owner_boot_id: 'boot', face_id: 'face',
-    face_revision: 14, accepted: true, presenter_play_completed: true,
+    face_revision: 14, face_revision_decimal: '14',
+    accepted: true, presenter_play_completed: true,
     original_model_output_sha256: original.sha256, accepted_wording: words.text,
     provider_id: receipt.provider_id, model_id: receipt.model_id,
   };
@@ -63,7 +66,7 @@ test('restored model route must retain the exact owner Face, model, validation, 
   };
   assert.equal(assertRestoredSpeech(proof).model_route_restored, true);
   assert.throws(() => assertRestoredSpeech({ ...proof,
-    receipt: { ...receipt, face_revision: 15 } }));
+    receipt: { ...receipt, face_revision_decimal: '15' } }));
   assert.throws(() => assertRestoredSpeech({ ...proof,
     receipt: { ...receipt, model_content_identity: 'different' } }));
   assert.throws(() => assertRestoredSpeech({ ...proof,

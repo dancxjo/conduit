@@ -7,11 +7,16 @@ use conduit_plot::parse_with_startup;
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-struct Timer(Vec<Duration>);
+struct Timer(Vec<Duration>, u64);
 
 impl crate::TimerAdapter for Timer {
     fn wait(&mut self, duration: Duration) {
         self.0.push(duration);
+        self.1 += duration.as_millis() as u64;
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(self.1)
     }
 }
 
@@ -85,7 +90,7 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_plot() {
         .unwrap();
     assert_eq!(coalesced.byte_capacity, SCALAR_ENCODED_LEN as u32);
 
-    let mut timer = Timer(Vec::with_capacity(3));
+    let mut timer = Timer(Vec::with_capacity(3), 0);
     let mut output = Vec::with_capacity(16_384);
     let report = super::run_fragment(
         super::InstalledRunHost {
@@ -108,7 +113,8 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_plot() {
     )
     .unwrap();
 
-    assert_eq!(timer.0, [Duration::ZERO; 3]);
+    assert!(timer.0.is_empty());
+    assert_eq!(timer.1, 0);
     assert!(matches!(
         report
             .observations

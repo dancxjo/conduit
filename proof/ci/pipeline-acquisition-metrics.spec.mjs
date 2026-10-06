@@ -31,12 +31,13 @@ test('curated caches exclude product evidence, installed system packages and arb
   }
   assert.ok(acquisitionIdentity('browser', options).paths.includes('/test/home/.cache/ms-playwright'));
   assert.ok(!acquisitionIdentity('rp2040', options).paths.includes('/test/home/.cache/ms-playwright'));
-  for (const target of ['browser', 'avr', 'esp32-c3', 'esp32-s3', 'esp32-wroom', 'rp2040']) {
+  for (const target of ['unit', 'browser', 'hosted-linux', 'conduitos-x86_64',
+    'conduitos-aarch64', 'conduitos-ia32', 'conduitos-riscv64',
+    'conduitos-loongarch64', 'avr', 'esp32-c3', 'esp32-s3', 'esp32-wroom',
+    'raspberry-pi', 'orange-pi', 'rp2040']) {
     assert.equal(acquisitionIdentity(target, options).cacheable, true, target);
   }
-  for (const target of ['preflight', 'unit', 'hosted-linux', 'hosted-windows', 'hosted-macos',
-    'conduitos-x86_64', 'conduitos-aarch64', 'conduitos-ia32', 'conduitos-riscv64',
-    'conduitos-loongarch64', 'raspberry-pi', 'orange-pi']) {
+  for (const target of ['preflight', 'hosted-windows', 'hosted-macos']) {
     assert.equal(acquisitionIdentity(target, options).cacheable, false, target);
   }
   assert.throws(() => acquisitionIdentity('../../escape', options));

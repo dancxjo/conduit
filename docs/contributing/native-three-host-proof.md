@@ -7,9 +7,26 @@ interval to 500 ms; the browser reads that new Face and changes it back to
 1000 ms. The Linux terminal then inspects the same current Face through its
 local Mask, changes the interval to 500 ms, and the browser sees that result
 while the ConduitOS guest remains live. The owner alone retains the
-Body and workload truth. This proves the three-Host graphical and terminal
-presentation topology, not Mask preference, speech, physical hardware, or the
-published journey.
+Body and workload truth. The browser then doffs, wears, and explicitly prefers
+its Mask through the owner's controls before requesting a fresh Show. This
+proves the three-Host graphical and terminal presentation topology and one
+same-Plan browser wardrobe transition. With a selected speaker, it also
+retains the installed owner's completed speaker Plays and same-Play WAVs.
+It does not prove presentation-host loss, physical hardware, attended hearing,
+or the published journey.
+
+The browser joins first. After ConduitOS joins, its screen displays the
+owner Face read-only and asks the person to choose Native graphics in the
+owner's wardrobe. In the browser, inspect the newly admitted native route,
+Wear it, Doff the browser Mask, and Prefer native graphics. Preference alone
+does not preempt a currently valid browser Show. Press F5 on the native screen to request a fresh Show;
+the owner acknowledges that Show before the native clock action. The proof
+drives these same user actions through the browser controls and QMP keyboard.
+After the native action, the person wears the browser Mask, doffs the native
+Mask, and prefers the browser again before refreshing its Face.
+The standby screenshot and owner wardrobe transitions are retained alongside
+the action screenshots. An early F5 can be refused; it never changes wardrobe
+policy by itself.
 
 Start from a clean checkout at one commit. Check tools with
 `cargo xtask doctor browser` and the ConduitOS prerequisites in
@@ -78,10 +95,11 @@ Face stale. It requires three distinct current Host/Boot pairs before either
 user action. QMP keyboard input, browser controls, both owner responses, and
 the browser's refreshed Face are real product paths. The terminal transcript
 comes from `conduit body terminal` and includes the current Face, acknowledged
-local Shows, and its semantic action. The resulting `report.json` hashes six
-screenshots,
-the terminal transcript, and the exact Rust native receipt;
+local Shows, and its semantic action. The resulting `report.json` hashes seven
+screenshots, the terminal transcript, and the exact Rust native receipt;
 `native/owner-action-proof.json` retains the unrounded Face and Show revisions.
+`browser-wardrobe.json` retains the five owner-produced reports, including the
+unchanged owner Plan, three explicit policy actions, and fresh acknowledged Show.
 Do not copy the invitation or private ISO into the evidence directory or onto
 the website. A successful local receipt is not CI, accepted-release, physical,
 or public Pages proof.
@@ -94,7 +112,7 @@ Prepare the explicit provider-bound declaration through
 [runtime speech guide](../proof/runtime-speech.md). Coverage is supplied Host
 metadata; provider discovery alone does not establish Language support. Use the installed engine's exact regular file,
 not its `.so.1` symlink. The driver calls the existing
-`one-body-spoken-chapter` producer after the terminal action, while QEMU and
+`one-body-spoken-chapter` producer after the wardrobe action, while QEMU and
 Chromium remain live. It assigns the speech action's run ID before synthesis
 and retains the complete producer manifest, receipt, transcript, and every
 streamed WAV batch under `speech-direct/`. The combined report checks Body,
@@ -153,16 +171,18 @@ pre-Birth receipt. Without a selected speaker, the screen-free
 client emits text readout and this run does not prove audio. To select real
 device playback, first inspect `conduit body speech-options --json`, then add
 the exact `--speaker-card`, `--speaker-device`, `--speech-executable`,
-`--speech-data`, `--speech-engine`, and `--speech-language-coverage` options. The selected device's playback
-receipts are in the Birth transcript; this remains distinct from attended
-human listening. Pass the exact regular `engine` path reported by
+`--speech-data`, `--speech-engine`, and `--speech-language-coverage` options.
+The selected device's playback receipts are in the Birth transcript. The
+browser speech action retains the installed owner's completed speaker Play
+receipts. Each playable WAV is the PCM delivered to the speaker in that Plan
+and Play, verified against the producer's WAV and PCM hashes. A digitally
+silent Play remains in the receipt without an audio control. These receipts
+remain distinct from attended human listening. Pass the exact regular `engine` path reported by
 `speech-options`, not a versioned-library symlink; provider discovery rejects
 symlinks to keep the bound bytes unambiguous. The producer waits for the next
 screen-free prompt before sending each selected-speaker command, so a queued
-command does not interrupt a full-Face reading. Current selected playback uses a
-second StdHost sharing the
-owner's Host and Boot identities; this run does not establish speech realized
-by the owner instance. The speech provider options and explicit coverage declaration may also be used without a
+command does not interrupt a full-Face reading. The speech provider options
+and explicit coverage declaration may also be used without a
 speaker selection to retain the same-run direct speech artifact after the
 three-Host actions; that does not turn the Birth readout into audio.
 
@@ -206,3 +226,15 @@ playback, or human hearing. The private walkthrough has a separate chapter
 with both produced explanations and expandable original output, validation,
 refusal, and restoration receipts. No fixture or failed model request can stand
 in for a successful explanation.
+
+To capture **listener audio** for the model Mask in that same run, install the
+fresh owner Host with `--selected-model ALREADY_LOCAL_MODEL
+--model-endpoint http://127.0.0.1:11434 --model-memory-mib 3072` as well as
+the selected speaker and provider, before starting the service or Birth.
+Pass the same model to the proof entrance. The producer then selects the
+installed owner's sealed model route, waits for its validated Show and a
+separate selected-speaker audio Play, and retains the WAV from that audio
+Play's speaker/WAV fan-out. The prior model artifact and the diagnostic
+producer's WAVs remain separate, non-listener evidence. This establishes
+completed digital delivery to the selected ALSA device, not attended hearing
+or model-provider withdrawal from the installed owner's wardrobe.

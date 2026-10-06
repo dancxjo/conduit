@@ -25,6 +25,17 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
 }
 
 #[test]
+fn spoken_next_play_capacity_report_is_safe_while_worker_owns_host() {
+    let plot = source();
+    let mut owner =
+        Owner::open(host("boot/spoken-capacity"), resident(&plot), None, "Test").unwrap();
+    let taken = owner.host.take_for_play().unwrap();
+    assert!(owner.host.is_playing());
+    assert!(!super::presentation_wardrobe_report::spoken_artifact_can_start_new_play(&owner.host));
+    owner.host.restore_after_play(taken).unwrap();
+}
+
+#[test]
 fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability() {
     use conduit_presentation::{CurrentOwnerPresentationRoute, MaskShowDisposition};
 
@@ -131,6 +142,7 @@ fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = source();
@@ -275,6 +287,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(CLOCK_SOURCE)
@@ -366,7 +379,8 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         serde_json::to_value(conduit_core::TerminalDisposition::Cancelled {
             reason: conduit_core::CancellationReason::OperatorRequested,
         })
-        .unwrap()
+        .unwrap(),
+        "{receipt:?}"
     );
     assert!(
         receipt["output_utf8"]
@@ -400,6 +414,7 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let initial = crate::plot_source::parse(CLOCK_SOURCE)
@@ -501,6 +516,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let checked = crate::plot_source::parse(CLOCK_SOURCE)
@@ -702,6 +718,7 @@ fn actual_execution_receipt_survives_fresh_boot_as_history_only() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();
@@ -755,6 +772,7 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
         body_state: None,
         joined_body_state: None,
         selected_speech: None,
+        selected_model: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = source();

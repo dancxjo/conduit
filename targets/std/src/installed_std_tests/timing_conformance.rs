@@ -8,6 +8,39 @@ struct ScheduledTimer {
     late_by_ms: u64,
 }
 
+struct MissingMonotonicTimer;
+
+struct EarlyWakeTimer {
+    now_ms: u64,
+    waits: u64,
+}
+
+impl TimerAdapter for EarlyWakeTimer {
+    fn wait(&mut self, duration: Duration) {
+        self.now_ms = self
+            .now_ms
+            .saturating_add(u64::try_from(duration.as_millis()).unwrap_or(u64::MAX));
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(self.now_ms)
+    }
+
+    fn wait_until_monotonic_ms(&mut self, deadline_ms: u64) -> bool {
+        self.waits += 1;
+        self.now_ms = if self.waits == 1 {
+            deadline_ms.saturating_sub(1)
+        } else {
+            deadline_ms
+        };
+        true
+    }
+}
+
+impl TimerAdapter for MissingMonotonicTimer {
+    fn wait(&mut self, _duration: Duration) {}
+}
+
 impl TimerAdapter for ScheduledTimer {
     fn wait(&mut self, duration: Duration) {
         self.now_ms = self
@@ -207,19 +240,33 @@ fn identical_simulated_schedules_have_identical_normalized_output_and_signs() {
 }
 
 #[test]
+fn early_monotonic_wake_does_not_fire_a_deadline() {
+    let mut timed_host = host("early-monotonic-wake");
+    let planned = fragment(&timed_host, DELAY_FORM);
+    let mut output = Vec::with_capacity(4_096);
+    let mut timer = EarlyWakeTimer {
+        now_ms: 0,
+        waits: 0,
+    };
+    let report = timed_host
+        .run_fragment_to(planned, &mut output, &mut timer)
+        .expect("an early wake retries on the same monotonic basis");
+    assert!(report.kernel.is_some());
+    assert!(timer.waits >= 2);
+}
+
+#[test]
 fn missing_or_regressed_monotonic_base_fails_deterministically() {
     let baseline = host("missing-deadline-base");
     let planned = fragment(&baseline, TIMEOUT_FORM);
     let mut output = Vec::with_capacity(4_096);
-    let mut unavailable = RecordingTimer {
-        waits: Vec::with_capacity(4),
-    };
+    let mut unavailable = MissingMonotonicTimer;
     let mut missing_host = baseline;
     let error = missing_host
         .run_fragment_to(planned, &mut output, &mut unavailable)
-        .expect_err("an unavailable monotonic Base cannot execute a deadline");
+        .expect_err("an unavailable monotonic Base cannot execute elapsed timing");
     assert!(
-        error.contains("monotonic deadline Base is unavailable"),
+        error.contains("monotonic wait Base is unavailable"),
         "unexpected missing-Base failure: {error}"
     );
 

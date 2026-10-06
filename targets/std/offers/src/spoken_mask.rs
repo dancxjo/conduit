@@ -12,6 +12,8 @@ pub const GENERATED_STREAM_SPEECH_IMPLEMENTATION: &str =
 pub const GENERATED_SPEECH_IMPLEMENTATION: &str = "std/spoken-mask-generated-speech@1";
 pub const SPOKEN_ARTIFACT_IMPLEMENTATION: &str = "std/spoken-mask-wav-artifact@1";
 pub const ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-artifact-show@1";
+pub const DIRECT_FACE_WORDING_IMPLEMENTATION: &str = "std/spoken-mask-direct-face-wording@1";
+pub const DIRECT_ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-direct-artifact-show@1";
 pub const NO_INTERACTION_IMPLEMENTATION: &str = "std/spoken-mask-no-interaction@1";
 pub const VALIDATION_ENVELOPE_IMPLEMENTATION: &str = "std/generated-validation-envelope@2";
 pub const GENERATED_VALIDATOR_IMPLEMENTATION: &str = "std/generated-semantic-validator@2";
@@ -21,6 +23,9 @@ pub const GENERATED_SPEECH_OPERATION: &str = "conduit.host/spoken-mask-speech@1"
 pub const SPOKEN_ARTIFACT_OPERATION: &str = "conduit.host/spoken-mask-artifact@1";
 pub const REGISTER_MANIFESTATION_OPERATION: &str = "conduit.host/spoken-mask-register@1";
 pub const ARTIFACT_SHOW_OPERATION: &str = "conduit.host/spoken-mask-show@1";
+pub const DIRECT_FACE_WORDING_OPERATION: &str = "conduit.host/spoken-mask-direct-wording@1";
+pub const REGISTER_DIRECT_FACE_OPERATION: &str = "conduit.host/spoken-mask-register-direct-face@1";
+pub const DIRECT_ARTIFACT_SHOW_OPERATION: &str = "conduit.host/spoken-mask-direct-show@1";
 pub const REGISTER_GENERATED_CANDIDATE_OPERATION: &str =
     "conduit.host/register-generated-candidate@1";
 pub const RETAIN_GENERATED_ASSESSMENT_OPERATION: &str =
@@ -141,6 +146,33 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
                     0,
                 ),
                 call(ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
+            ],
+            vec![],
+            vec![],
+        ),
+        semantic_offer(
+            conduit_presentation::DIRECT_FACE_WORDING_KIND,
+            "spoken-mask-direct-face-wording",
+            DIRECT_FACE_WORDING_IMPLEMENTATION,
+            vec![call(
+                DIRECT_FACE_WORDING_OPERATION,
+                conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                1024,
+            )],
+            vec![],
+            vec![],
+        ),
+        semantic_offer(
+            conduit_presentation::DIRECT_ARTIFACT_SHOW_KIND,
+            "spoken-mask-direct-artifact-show",
+            DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
+            vec![
+                call(
+                    REGISTER_DIRECT_FACE_OPERATION,
+                    conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                    0,
+                ),
+                call(DIRECT_ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
             ],
             vec![],
             vec![],

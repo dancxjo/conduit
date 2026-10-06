@@ -1,6 +1,7 @@
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 import { checkedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
+import { checkedOwnerWardrobeReport, checkedOwnerWardrobeAction } from "./browser-sdk-wardrobe.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
@@ -201,6 +202,22 @@ export class BrowserBodyParticipation {
   requestOfferEvidence(options) { return this.#state.membership.requestOfferEvidence(options); }
   /** One bounded owner-produced Face on this exact admitted browser carrier. */
   ownerFaceSnapshot(options) { return this.#state.membership.requestFaceSnapshot(options); }
+  /** Inspect current owner policy, or apply one explicit revision-bound change at rest. */
+  async inspectOwnerWardrobe() {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential) throw new Error("current browser presence is required for owner wardrobe");
+    return checkedOwnerWardrobeReport(await this.#state.membership.ownerWardrobe(), credential.body_id);
+  }
+  async changeOwnerWardrobe(report, routeId, verb) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential) throw new Error("current browser presence is required for owner wardrobe");
+    const action = checkedOwnerWardrobeAction(report, credential.body_id, routeId, verb);
+    this.#state.lastOwnerShow = null;
+    const checked = checkedOwnerWardrobeReport(report, credential.body_id);
+    return checkedOwnerWardrobeReport(await this.#state.membership.ownerWardrobe({
+      action, ownerPlanId: checked.ownerPlanId, basisRevision: checked.revision,
+    }), credential.body_id);
+  }
   /** Run the exact owner Face through this Host's checked browser Mask Plot. */
   async prepareOwnerFaceMask(options) {
     this.#state.lastOwnerShow = null;

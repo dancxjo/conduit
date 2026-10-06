@@ -15,7 +15,7 @@ use conduit_presentation::{
     Presentation,
 };
 use conduit_std_host::body_execution::BodyRunRequest;
-use conduit_std_host::{RunControl, RunControlRequestId, StdHost, TimerAdapter};
+use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
 pub(crate) use participants::run_service_window;
 pub(crate) use participants::{
@@ -35,6 +35,12 @@ pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
+#[path = "direct_spoken_route.rs"]
+mod direct_spoken_route;
+pub(crate) use direct_spoken_route::DirectSpokenStart;
+#[path = "llm_spoken_route.rs"]
+mod llm_spoken_route;
+pub(crate) use llm_spoken_route::LlmSpokenStart;
 #[path = "native_mask_route.rs"]
 mod native_mask_route;
 #[path = "presentation_wardrobe.rs"]
@@ -43,6 +49,8 @@ mod presentation_wardrobe;
 mod presentation_wardrobe_report;
 #[path = "presentation_wardrobe_runtime.rs"]
 mod presentation_wardrobe_runtime;
+#[path = "presentation_wardrobe_witness.rs"]
+mod presentation_wardrobe_witness;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
@@ -136,6 +144,8 @@ pub(crate) struct Owner {
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     attached_terminal_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
+    direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
+    llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
 }
 impl Owner {
@@ -226,6 +236,8 @@ impl Owner {
             pending_browser: None,
             pending_native_mask: None,
             attached_terminal_route: None,
+            direct_spoken_route: None,
+            llm_spoken_route: None,
             presentation_wardrobe: None,
         })
     }
@@ -247,6 +259,8 @@ impl Owner {
             pending_browser: None,
             pending_native_mask: None,
             attached_terminal_route: None,
+            direct_spoken_route: None,
+            llm_spoken_route: None,
             presentation_wardrobe: None,
         })
     }
@@ -513,6 +527,22 @@ impl TimerAdapter for DeadlineTimer {
                 RunControlRequestId::new("owner/run-deadline").expect("bounded request"),
             );
         }
+    }
+
+    fn monotonic_observation(
+        &mut self,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
+    ) -> Option<conduit_core::MonotonicInstant> {
+        ThreadTimer.monotonic_observation(host_id, boot_id)
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        ThreadTimer.monotonic_now_ms()
+    }
+
+    fn monotonic_now_micros(&mut self) -> Option<u64> {
+        ThreadTimer.monotonic_now_micros()
     }
 }
 

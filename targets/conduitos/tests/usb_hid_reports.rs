@@ -3,6 +3,8 @@
 mod allocation;
 
 mod usb_hid_reports {
+    mod batches;
+    mod capture_kernel;
     pub(super) mod common;
     mod endpoint;
     mod endpoint_kernel;
@@ -11,6 +13,9 @@ mod usb_hid_reports {
     mod keyboard;
     mod lifecycle;
     mod mouse;
+    mod order_execution;
+    mod order_lifecycle;
+    mod ordering;
     mod pressure;
     mod received_kernel;
     mod state_kernel;
