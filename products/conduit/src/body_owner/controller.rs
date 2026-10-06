@@ -134,6 +134,7 @@ pub(crate) struct Owner {
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
+    attached_terminal_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
 }
 impl Owner {
@@ -223,6 +224,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            attached_terminal_route: None,
             presentation_wardrobe: None,
         })
     }
@@ -243,6 +245,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            attached_terminal_route: None,
             presentation_wardrobe: None,
         })
     }

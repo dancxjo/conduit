@@ -10,6 +10,31 @@ use conduit_presentation::{
 use serde_json::{json, Value};
 
 impl Owner {
+    /// The adapter owns the socket and Show execution; the owner retains only
+    /// its exact route witness while that attached provider is still live.
+    pub(crate) fn current_attached_terminal_route<'a>(
+        host: &super::OwnerHost,
+        cached: Option<&'a LocalOwnerMaskRouteSeal>,
+        session: &conduit_body::BodyLifecycleSession,
+        face: &conduit_presentation::Presentation,
+    ) -> Result<Option<&'a LocalOwnerMaskRouteSeal>, String> {
+        let Some(seal) = cached else {
+            return Ok(None);
+        };
+        if host.is_playing() || !host.current().terminal_attachment_is_live()? {
+            return Ok(None);
+        }
+        match seal.validate_current(session, face, host.advertisement()) {
+            Ok(()) => Ok(Some(seal)),
+            Err(
+                conduit_presentation::LocalOwnerMaskRouteError::StaleBody
+                | conduit_presentation::LocalOwnerMaskRouteError::StaleFace
+                | conduit_presentation::LocalOwnerMaskRouteError::StaleHost,
+            ) => Ok(None),
+            Err(error) => Err(format!("attached terminal witness invalid: {error:?}")),
+        }
+    }
+
     pub(crate) fn current_presentation_routes<'a>(
         owner_offer: &'a conduit_core::HostAdvertisement,
         browser: Option<&'a super::participants::BrowserWindow>,
@@ -39,10 +64,16 @@ impl Owner {
         seal: &RemoteOwnerMaskRouteSeal,
     ) -> Result<(), String> {
         let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
         let current = Self::current_presentation_routes(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
-            None,
+            local,
         );
         if !current.iter().any(|route| {
             matches!(route,
@@ -78,10 +109,16 @@ impl Owner {
         show: &MaskShow,
     ) -> Result<(), String> {
         let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
         let current = Self::current_presentation_routes(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
-            None,
+            local,
         );
         self.presentation_wardrobe
             .as_mut()
@@ -143,6 +180,7 @@ impl Owner {
                 )
                 .map_err(wardrobe_error)?;
         }
+        self.attached_terminal_route = Some(seal.clone());
         Ok(())
     }
 
@@ -235,6 +273,9 @@ impl Owner {
     }
 
     pub(crate) fn forget_attached_terminal_show(&mut self, seal: &LocalOwnerMaskRouteSeal) {
+        if self.attached_terminal_route.as_ref() == Some(seal) {
+            self.attached_terminal_route = None;
+        }
         if let Some(wardrobe) = &mut self.presentation_wardrobe {
             wardrobe.forget_show_for(&seal.route_plan_id);
         }

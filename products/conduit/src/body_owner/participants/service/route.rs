@@ -154,10 +154,16 @@ impl Owner {
             .validate_interaction_payload(interaction.encode().len())
             .map_err(|error| format!("browser-mask-interaction-refused:{error:?}"))?;
         let face = self.local_face_snapshot()?;
+        let local = Self::current_attached_terminal_route(
+            &self.host,
+            self.attached_terminal_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
         let current = Self::current_presentation_routes(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
-            None,
+            local,
         );
         let selected = self
             .presentation_wardrobe

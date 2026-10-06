@@ -14,7 +14,9 @@ use conduit_body::{
     OfferDisclosureRequest, OfferDisclosureStage, PartReturnChallenge, PartReturnProof,
     RemoteProofClass,
 };
-use conduit_core::{AuthorityGrantId, HostAdvertisement, HostId, LineOffer, LinkBindingId};
+use conduit_core::{
+    AuthorityGrantId, HostAdvertisement, HostId, LineAvailability, LineOffer, LinkBindingId,
+};
 use conduit_presentation::RemoteOwnerMaskRouteSeal;
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In, MAX_BROWSER_ADMISSION_FRAME_BYTES,
@@ -239,6 +241,12 @@ impl BrowserWindow {
         else {
             return None;
         };
+        if [&lines.face, &lines.returned, &lines.interaction]
+            .iter()
+            .any(|line| line.availability.availability != LineAvailability::Ready)
+        {
+            return None;
+        }
         Some((
             route,
             &observation.advertisement,
