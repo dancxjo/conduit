@@ -36,6 +36,20 @@ pub(super) fn prepared_package(
     BTreeMap<PortId, StructuredInfoType>,
     PreparedPureProtocolPlay,
 ) {
+    let (inputs, _, run) = prepared_package_schemas(package, entry_name);
+    (inputs, run)
+}
+
+// Resolve both boundary schemas before consuming the checked entry into its
+// fresh Plan. Schema consumers need no second Source check or expansion.
+pub(super) fn prepared_package_schemas(
+    package: &conduitos::protocol_source::ProtocolSourcePackage,
+    entry_name: &str,
+) -> (
+    BTreeMap<PortId, StructuredInfoType>,
+    BTreeMap<PortId, StructuredInfoType>,
+    PreparedPureProtocolPlay,
+) {
     let entry =
         PreparedProtocolEntry::prepare(&serde_json::to_vec(package).unwrap(), entry_name).unwrap();
     let mut host = HostAdvertisement {
@@ -64,6 +78,18 @@ pub(super) fn prepared_package(
             )
         })
         .collect();
+    let output_schemas = entry
+        .expanded()
+        .front
+        .outputs()
+        .iter()
+        .map(|port| {
+            (
+                port.port_id.clone(),
+                entry.output_schema(&port.port_id).unwrap(),
+            )
+        })
+        .collect();
     let artifact = entry
         .plan(
             &hosts,
@@ -86,7 +112,7 @@ pub(super) fn prepared_package(
             additional_remote_items: 60000,
         })
         .unwrap();
-    (schemas, run)
+    (schemas, output_schemas, run)
 }
 
 fn fixture() -> Fixture {
