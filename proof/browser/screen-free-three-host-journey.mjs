@@ -131,13 +131,15 @@ try {
   const preBirthBytes = Buffer.from(`${JSON.stringify(preBirth, null, 2)}\n`);
   await writeFile(path.join(output, 'zero-body-before.json'), preBirthBytes, { mode: 0o600 });
   const birthCommands = [
-    'read all',
+    // Selected speech already opens with Help and a complete Face reading.
+    ...(speakerCard ? [] : ['read all']),
     'next main',
     'focus creche.name', `edit value ${bodyName}`, 'activate',
     'focus creche.plot.0', 'edit value false', 'activate',
     'focus creche.plot.1', 'edit value true', 'activate',
     'read all', 'focus creche.birth', 'activate',
-    'read all', 'quit',
+    // Birth enters the retained Body, whose spoken entrance reads its Face.
+    ...(speakerCard ? [] : ['read all']), 'quit',
   ];
   const input = `${birthCommands.join('\n')}\n`;
   const birthArgs = ['body', 'birth', '--screen-free', '--state-dir', state,
@@ -238,7 +240,8 @@ try {
     action.intent === intent && action.availability === 'Available');
   const exercise = async (name, before, action) => {
     assert.ok(action, `the current owner Face offers no available ${name} action`);
-    const commands = ['read all', `focus ${action.identity}`, 'activate',
+    const commands = [...(speakerCard ? [] : ['read all']),
+      `focus ${action.identity}`, 'activate',
       'read all', 'quit'];
     const input = `${commands.join('\n')}\n`;
     const inputFile = `clock-${name}-input.txt`;
