@@ -179,6 +179,9 @@ pub fn run(
     if let Some(route) = owner_route.as_mut()
         && let Err(reason) = face_arrival.acknowledge_owner_show(route, *identities)
     {
+        arch::early_write(b"CONDUIT_NATIVE_OWNER_SHOW_ACK {\"status\":\"refused\",\"code\":\"");
+        arch::early_write(reason.as_bytes());
+        arch::early_write(b"\"}\n");
         owner_route = None;
         receipt = face_arrival.retire_owner_route(display)?;
         face_arrival.show_owner_result(false, false, reason, display)?;
