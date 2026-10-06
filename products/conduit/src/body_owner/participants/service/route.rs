@@ -75,8 +75,11 @@ impl Owner {
                 owner,
                 browser,
             )?;
-            let planned = conduit_browser_mask_offer::planned_mask(
+            let planned = conduit_browser_mask_offer::planned_owner_face_show_mask(
                 browser,
+                owner,
+                &evidence.face,
+                &evidence.returned,
                 conduit_browser_mask_offer::MASK_SOURCE,
                 "browser-graphical",
             )?;

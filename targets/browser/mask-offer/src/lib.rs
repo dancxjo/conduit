@@ -17,6 +17,9 @@ use conduit_presentation::{
     PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
+mod remote;
+pub use remote::planned_owner_face_show_mask;
+
 pub const MASK_BYTES: u32 = 512 * 1024;
 const MASK_OPERATION: &str = "browser.host/dom-mask@1";
 
@@ -96,10 +99,25 @@ pub fn offer() -> conduit_core::CapabilityOffer {
 pub const MASK_SOURCE: &str = "plot browser-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 pub const ALTERNATE_MASK_SOURCE: &str = "plot browser-graphical-alternate (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 
+#[derive(Clone, Copy)]
+struct OwnerCarrierForeLimits {
+    face_bytes: u32,
+    show_bytes: u32,
+}
+
 pub fn planned_mask(
     host: &HostAdvertisement,
     source: &str,
     name: &str,
+) -> Result<PlannedMaskPlot, String> {
+    planned_mask_with_fore_limits(host, source, name, None)
+}
+
+fn planned_mask_with_fore_limits(
+    host: &HostAdvertisement,
+    source: &str,
+    name: &str,
+    owner_carrier: Option<OwnerCarrierForeLimits>,
 ) -> Result<PlannedMaskPlot, String> {
     let definition = kind();
     let mut startup = StartupCatalog::new();
@@ -130,6 +148,28 @@ pub fn planned_mask(
         (PortDirection::Output, authoring.output_bindings.as_slice()),
     ] {
         for binding in bindings {
+            let (item_capacity, byte_capacity) = match owner_carrier {
+                Some(limits)
+                    if direction == PortDirection::Input
+                        && binding.front_port_id == mask.face_input.front_port_id =>
+                {
+                    (1, limits.face_bytes)
+                }
+                Some(limits)
+                    if direction == PortDirection::Output
+                        && binding.front_port_id == mask.show_output.front_port_id =>
+                {
+                    (1, limits.show_bytes)
+                }
+                Some(_)
+                    if direction == PortDirection::Output
+                        && binding.front_port_id == mask.interaction_output.front_port_id =>
+                {
+                    (1, conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32)
+                }
+                Some(_) => return Err("unexpected browser Mask Fore boundary".into()),
+                None => (4, MASK_BYTES),
+            };
             boundary_limits.insert(
                 conduit_planner::ForeBoundaryKey {
                     direction,
@@ -137,8 +177,8 @@ pub fn planned_mask(
                     track: binding.track,
                 },
                 conduit_planner::ConnectionQueueLimits {
-                    item_capacity: 4,
-                    byte_capacity: MASK_BYTES,
+                    item_capacity,
+                    byte_capacity,
                 },
             );
         }

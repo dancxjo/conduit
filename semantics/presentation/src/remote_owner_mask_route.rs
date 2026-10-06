@@ -92,7 +92,9 @@ pub enum RemoteOwnerMaskRouteError {
     MissingOrInvalidLine,
     LineUnavailable,
     FaceExceedsLine,
+    FaceExceedsFore,
     ReturnExceedsLine,
+    ReturnExceedsFore,
     SealCapacityExceeded,
     InvalidSeal,
     StaleBody,
@@ -182,6 +184,16 @@ impl RemoteOwnerMaskRouteSeal {
             face_line: face_line.admitted_line(),
             return_line: return_line.admitted_line(),
         };
+        seal.verify_selected_fore_lines()?;
+        if seal
+            .selected_fore_byte_capacity(
+                &seal.planned_mask.mask.face_input.front_port_id,
+                conduit_core::PortDirection::Input,
+            )
+            .is_some_and(|limit| face_bytes.len() > limit)
+        {
+            return Err(RemoteOwnerMaskRouteError::FaceExceedsFore);
+        }
         seal.route_plan_id = seal.bind_identity()?;
         Ok(seal)
     }
@@ -199,6 +211,7 @@ impl RemoteOwnerMaskRouteSeal {
         validate_mask_basis(&self.mask_host, &self.planned_mask)?;
         validate_admitted_line(&self.face_line, &self.owner_host, &self.mask_host)?;
         validate_admitted_line(&self.return_line, &self.mask_host, &self.owner_host)?;
+        self.verify_selected_fore_lines()?;
         if self.face_line.line_id == self.return_line.line_id
             || self.face_line.binding.binding_id == self.return_line.binding.binding_id
             || self.bind_identity()? != self.route_plan_id
@@ -303,6 +316,76 @@ impl RemoteOwnerMaskRouteSeal {
     pub fn validate_return_payload(&self, bytes: usize) -> Result<(), RemoteOwnerMaskRouteError> {
         if bytes == 0 || bytes > self.return_line.binding.limits.maximum_payload_bytes as usize {
             return Err(RemoteOwnerMaskRouteError::ReturnExceedsLine);
+        }
+        if self
+            .selected_fore_byte_capacity(
+                &self.planned_mask.mask.show_output.front_port_id,
+                conduit_core::PortDirection::Output,
+            )
+            .is_some_and(|limit| bytes > limit)
+        {
+            return Err(RemoteOwnerMaskRouteError::ReturnExceedsFore);
+        }
+        Ok(())
+    }
+
+    fn selected_fore_byte_capacity(
+        &self,
+        port: &conduit_core::PortId,
+        direction: conduit_core::PortDirection,
+    ) -> Option<usize> {
+        self.planned_mask
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| fragment.fore_ports.iter())
+            .find(|fore| fore.front_port_id == *port && fore.direction == direction)
+            .and_then(|fore| {
+                fore.selected_line
+                    .as_ref()
+                    .map(|_| fore.byte_capacity as usize)
+            })
+    }
+
+    /// Existing unbound routes remain provisional. Once any Fore selects a
+    /// Line, the Face and Show choices must both match this route exactly;
+    /// the interaction return is not yet a selected Line.
+    fn verify_selected_fore_lines(&self) -> Result<(), RemoteOwnerMaskRouteError> {
+        let fores = || {
+            self.planned_mask
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| fragment.fore_ports.iter())
+        };
+        if fores().all(|fore| fore.selected_line.is_none()) {
+            return Ok(());
+        }
+        let exact = |port: &conduit_core::PortId,
+                     direction: conduit_core::PortDirection,
+                     line: &AdmittedLine| {
+            let mut matching = fores().filter(|fore| {
+                fore.front_port_id == *port
+                    && fore.direction == direction
+                    && fore.track == conduit_core::ConnectionTrack::Payload
+            });
+            matches!(matching.next(), Some(fore) if fore.selected_line.as_ref() == Some(line))
+                && matching.next().is_none()
+        };
+        if !exact(
+            &self.planned_mask.mask.face_input.front_port_id,
+            conduit_core::PortDirection::Input,
+            &self.face_line,
+        ) || !exact(
+            &self.planned_mask.mask.show_output.front_port_id,
+            conduit_core::PortDirection::Output,
+            &self.return_line,
+        ) || fores().any(|fore| {
+            fore.front_port_id == self.planned_mask.mask.interaction_output.front_port_id
+                && fore.direction == conduit_core::PortDirection::Output
+                && fore.selected_line.is_some()
+        }) {
+            return Err(RemoteOwnerMaskRouteError::InvalidSeal);
         }
         Ok(())
     }
