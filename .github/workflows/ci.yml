@@ -28,6 +28,7 @@ jobs:
     timeout-minutes: 15
     outputs:
       matrix: ${{ steps.scan.outputs.matrix }}
+      unit-matrix: ${{ steps.scan.outputs.unit-matrix }}
       docs-only: ${{ steps.scan.outputs.docs-only }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -70,8 +71,7 @@ jobs:
     timeout-minutes: ${{ startsWith(matrix.shard, 'hosts-') && 70 || 40 }}
     strategy:
       fail-fast: false
-      matrix:
-        shard: [foundation, hosts-std, hosts-browser, hosts-conduitos, hosts-workbench, products, lint]
+      matrix: ${{ fromJSON(needs.preflight.outputs.unit-matrix) }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:

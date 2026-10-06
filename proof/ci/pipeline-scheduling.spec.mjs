@@ -16,6 +16,7 @@ test('independent proof starts after preflight and preserves complete aggregatio
     assert.match(job(ci, name), /if: inputs.exhaustive && needs.preflight.outputs.docs-only != 'true'/);
     assert.match(job(ci, name), /fail-fast: false/);
   }
+  assert.match(job(ci, 'unit'), /matrix: \$\{\{ fromJSON\(needs.preflight.outputs.unit-matrix\) \}\}/);
   assert.match(job(ci, 'complete'), /needs: \[preflight, unit, target\]/);
   assert.match(job(ci, 'complete'), /if: \$\{\{ always\(\) \}\}/);
 });

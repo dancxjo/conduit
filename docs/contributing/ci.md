@@ -38,6 +38,11 @@ Selection is deliberately small and conservative:
 | ConduitOS | ConduitOS and Orange Pi |
 | Shared code, manifests, tools, workflows, unknown paths | All |
 
+Unit selection is conservative too: isolated browser proof scripts and site
+assets select browser and workbench host fixtures, products/tooling tests, and
+workspace Clippy. Other source changes, dependency files, unknown paths, and
+mixed changes retain every unit shard. Integration always selects all shards.
+
 Both names of a rename are included. An empty diff selects all. There are no
 receipt-reuse fingerprints or path dependency controllers. The selection rules
 live in `tools/ci/pipeline/plan.mjs`.
