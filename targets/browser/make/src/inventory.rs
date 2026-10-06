@@ -104,7 +104,7 @@ pub const BROWSER_HUMAN_PRESENTATION_REALIZATIONS: &[BrowserRealizationDescripto
         "browser/dom-presentation@1",
         "presentation/structured-info",
         "browser/presentation-structured-info@1",
-        "conduit-browser-runtime/installed-linguistics@1",
+        "conduit-browser-runtime/installed-linguistics@2",
         "conduit.host/browser-linguistics@1",
         limits(1, 1, 4_096),
     ),
