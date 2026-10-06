@@ -49,7 +49,7 @@ pub fn usb_hid_mouse_order_package() -> Result<ProtocolSourcePackage, ProtocolSo
                 right: value("UsbMouseOrderCommand"),
             },
             ProtocolSpecializationRequest::Concat {
-                value: value("UsbMouseOrderCommand"),
+                value: value("UsbMouseOrderMessage"),
             },
             ProtocolSpecializationRequest::Merge {
                 value: value("UsbMouseOrderMessage"),

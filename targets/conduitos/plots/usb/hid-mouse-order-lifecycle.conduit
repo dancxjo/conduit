@@ -20,6 +20,8 @@ type UsbMouseOrderCommand =
 type UsbMouseOrderMessage =
     session UsbMouseOrderSession
     | command UsbMouseOrderCommand
+    | observation UsbMouseOrderedObservation
+    | ended UsbMouseOrderEnd
 
 type UsbMouseOrderRoute =
     waiting UsbMouseOrderSession

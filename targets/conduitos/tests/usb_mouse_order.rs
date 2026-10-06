@@ -293,3 +293,6 @@ mod pointer_history;
 
 #[path = "usb_mouse_order/endpoint_decode.rs"]
 mod endpoint_decode;
+
+#[path = "usb_mouse_order/capture_kernel.rs"]
+mod capture_kernel;

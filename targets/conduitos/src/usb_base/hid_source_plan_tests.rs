@@ -164,7 +164,7 @@ fn ordered_mouse_class_requires_two_admitted_calls_in_the_shared_kernel() {
     assert_eq!(run.kernel_mut().definition().boundary.input_fronts.len(), 3);
     assert_eq!(
         run.kernel_mut().definition().boundary.output_fronts.len(),
-        2
+        1
     );
     assert!(prepare(HidSourceRole::MouseCapture, &host, &[]).is_err());
     let mut stale = grants.clone();
