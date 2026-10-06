@@ -653,7 +653,7 @@ impl BodyKernel {
                         {
                             continue;
                         }
-                        if !keys.is_pending() {
+                        if !keys.is_pending() && deadlines.is_empty() {
                             return Err("Body kernel has no admitted progress source".into());
                         }
                         std::thread::yield_now();

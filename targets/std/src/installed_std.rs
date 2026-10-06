@@ -3348,7 +3348,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if deadlines.complete_next(&mut scheduler, timer)? {
                     continue;
                 }
-                if pending_midi_input
+                if !deadlines.is_empty()
+                    || pending_midi_input
                     || keyboard_host.is_pending()
                     || body_conversation_context_host.is_pending()
                 {

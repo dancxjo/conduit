@@ -10,6 +10,33 @@ struct ScheduledTimer {
 
 struct MissingMonotonicTimer;
 
+struct EarlyWakeTimer {
+    now_ms: u64,
+    waits: u64,
+}
+
+impl TimerAdapter for EarlyWakeTimer {
+    fn wait(&mut self, duration: Duration) {
+        self.now_ms = self
+            .now_ms
+            .saturating_add(u64::try_from(duration.as_millis()).unwrap_or(u64::MAX));
+    }
+
+    fn monotonic_now_ms(&mut self) -> Option<u64> {
+        Some(self.now_ms)
+    }
+
+    fn wait_until_monotonic_ms(&mut self, deadline_ms: u64) -> bool {
+        self.waits += 1;
+        self.now_ms = if self.waits == 1 {
+            deadline_ms.saturating_sub(1)
+        } else {
+            deadline_ms
+        };
+        true
+    }
+}
+
 impl TimerAdapter for MissingMonotonicTimer {
     fn wait(&mut self, _duration: Duration) {}
 }
@@ -210,6 +237,22 @@ fn identical_simulated_schedules_have_identical_normalized_output_and_signs() {
             right.kernel.expect("right kernel report").kernel_sign
         );
     }
+}
+
+#[test]
+fn early_monotonic_wake_does_not_fire_a_deadline() {
+    let mut timed_host = host("early-monotonic-wake");
+    let planned = fragment(&timed_host, DELAY_FORM);
+    let mut output = Vec::with_capacity(4_096);
+    let mut timer = EarlyWakeTimer {
+        now_ms: 0,
+        waits: 0,
+    };
+    let report = timed_host
+        .run_fragment_to(planned, &mut output, &mut timer)
+        .expect("an early wake retries on the same monotonic basis");
+    assert_eq!(report.terminal, TerminalDisposition::Completed);
+    assert!(timer.waits >= 2);
 }
 
 #[test]
