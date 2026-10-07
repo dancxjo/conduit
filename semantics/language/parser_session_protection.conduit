@@ -1,0 +1,24 @@
+# Draft: only a private retained Session may consume this compact proposal.
+# Full Native stable fact and selected model/policy custody remain retained.
+# Endpoint extraction is mechanical; Source admits exact full token equality.
+type LanguageParserProtectedProjectionContext = {
+ fact: LanguageParserJointStableFact
+ dependent_token: LanguageLexicalToken
+ head_token: LanguageLexicalToken
+ where .dependent_token == sequence/at(.fact.query.beam.lexical.tape.tokens,.fact.query.dependent)
+ where sequence/at(.fact.query.beam.candidate0.parser.state.heads,.fact.query.dependent) < 4 ? .head_token == sequence/at(.fact.query.beam.lexical.tape.tokens,sequence/at(.fact.query.beam.candidate0.parser.state.heads,.fact.query.dependent)) : .head_token == .dependent_token
+}
+type LanguageParserProtectedEdgeProposal = {
+ origin_basis: LanguageParserBasis
+ current_basis: LanguageParserBasis
+ dependent: U64
+ head: U64
+ dependent_choice: U64
+ head_choice: U64
+ relation: LanguageParserRelation
+ dependent_occurrence: LinguisticTokenIdentity
+ head_occurrence: LinguisticTokenIdentity
+}
+plot language-parser-protected-edge-projection (
+ input: LanguageParserProtectedProjectionContext...| >> output: LanguageParserProtectedEdgeProposal...|
+) = { origin_basis: .fact.query.beam.basis, current_basis: .fact.query.beam.basis, dependent: .fact.query.dependent, head: sequence/at(.fact.query.beam.candidate0.parser.state.heads,.fact.query.dependent), dependent_choice: sequence/at(.fact.query.beam.candidate0.choices,.fact.query.dependent), head_choice: (sequence/at(.fact.query.beam.candidate0.parser.state.heads,.fact.query.dependent) < 4 ? sequence/at(.fact.query.beam.candidate0.choices,sequence/at(.fact.query.beam.candidate0.parser.state.heads,.fact.query.dependent)) : 0), relation: (.fact.query.dependent == 0 ? .fact.query.beam.candidate0.parser.state.relation0 : (.fact.query.dependent == 1 ? .fact.query.beam.candidate0.parser.state.relation1 : (.fact.query.dependent == 2 ? .fact.query.beam.candidate0.parser.state.relation2 : .fact.query.beam.candidate0.parser.state.relation3))), dependent_occurrence: .dependent_token.identity, head_occurrence: .head_token.identity }

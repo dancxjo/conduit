@@ -174,5 +174,6 @@ pub use generated::LanguageParserStableDependencyAdmission;
 pub use generated::LanguageParserCommittedDependencyAdmission;
 pub use generated::{
     LanguageParserJointProtectedBranchQuery, LanguageParserJointRebaseContext,
-    LanguageParserJointRebaseProposal,
+    LanguageParserJointRebaseProposal, LanguageParserProtectedEdgeProposal,
+    LanguageParserProtectedProjectionContext,
 };
