@@ -21,6 +21,11 @@ fn full_tape_coverage_refuses_omitted_hello_and_retains_source_phone_mapping() {
         prepare_complete_spoken_order(&case.lexical, &case.participation, &[0]),
         Err(SpeechPlanCoverageRefusal::NativeOrder(_))
     ));
+    let foreign = language::case(0, "coverage/foreign-revision", None);
+    assert!(matches!(
+        prepare_complete_spoken_order(&case.lexical, &foreign.participation, &[0, 1]),
+        Err(SpeechPlanCoverageRefusal::ForeignRole { .. })
+    ));
     let order =
         prepare_complete_spoken_order(&case.lexical, &case.participation, &case.spoken_ordinals)
             .unwrap();
@@ -70,6 +75,15 @@ fn full_tape_coverage_refuses_omitted_hello_and_retains_source_phone_mapping() {
                 composed.source.utterance_id().clone(),
             )
             .unwrap();
+            assert!(SpeechPhoneCompositionWitness::new(
+                current.clone(),
+                ((global + 1) % 32) as u32,
+                layout.clone(),
+                original.clone(),
+                target.clone(),
+                position as u64,
+            )
+            .is_err());
             witnesses.push(
                 SpeechPhoneCompositionWitness::new(
                     current.clone(),
