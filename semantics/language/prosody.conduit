@@ -1,0 +1,80 @@
+# Linguistic intent has no milliseconds, sample rate or acoustic coefficients.
+type LanguageProsodyBoundary =
+    none
+    | minor_phrase
+    | major_phrase
+
+type LanguageProsodyProminence =
+    neutral
+    | prominent
+
+type LanguageProsodyPitch =
+    level
+    | rising
+    | falling
+
+type LanguageProsodyChoice = {
+    boundary: LanguageProsodyBoundary
+    prominence: LanguageProsodyProminence
+    pitch: LanguageProsodyPitch
+}
+type LanguageProsodyProfile = {
+    identity: Text <= 64B not in [""]
+    language: LanguageId
+    vocative: LanguageProsodyChoice
+    fallback: LanguageProsodyChoice
+    provenance: LinguisticDerivationProvenance
+}
+type LanguageRichProsodyRequest = {
+    source: LanguageTextRevision
+    token: LanguageLexicalToken
+    lexical_profile: LanguageLexicalProfile
+    discourse: LanguageVocativeDiscourseFact
+    profile: LanguageProsodyProfile
+    where .token.completeness is complete
+    where .token.category is word
+    where .profile.language == .source.material.language
+    where .lexical_profile.language == .source.material.language
+    where .token.identity.text_identity == .source.material.identity
+    where .token.identity.text_revision == .source.material.revision
+    where .discourse.source == .source
+    where .discourse.source.material.identity == .source.material.identity
+    where .discourse.source.material.revision == .source.material.revision
+    where .discourse.basis.dependent.token.ordinal == .token.identity.ordinal
+    where .discourse.basis.dependent.token.text_identity == .token.identity.text_identity
+    where .discourse.basis.dependent.token.text_revision == .token.identity.text_revision
+}
+type LanguageFallbackProsodyRequest = {
+    source: LanguageTextRevision
+    token: LanguageLexicalToken
+    lexical_profile: LanguageLexicalProfile
+    profile: LanguageProsodyProfile
+    where .token.completeness is complete
+    where .token.category is word
+    where .profile.language == .source.material.language
+    where .lexical_profile.language == .source.material.language
+    where .token.identity.text_identity == .source.material.identity
+    where .token.identity.text_revision == .source.material.revision
+}
+type LanguageRichProsodyAccepted = {
+    request: LanguageRichProsodyRequest
+    choice: LanguageProsodyChoice
+    where .choice.boundary == .request.profile.vocative.boundary
+    where .choice.prominence == .request.profile.vocative.prominence
+    where .choice.pitch == .request.profile.vocative.pitch
+}
+type LanguageFallbackProsodyAccepted = {
+    request: LanguageFallbackProsodyRequest
+    choice: LanguageProsodyChoice
+    where .choice.boundary == .request.profile.fallback.boundary
+    where .choice.prominence == .request.profile.fallback.prominence
+    where .choice.pitch == .request.profile.fallback.pitch
+}
+plot language/vocative-prosody (
+    >> value: LanguageRichProsodyRequest
+    result: LanguageProsodyChoice >>
+) = (.profile.vocative)
+plot language/fallback-prosody (
+    >> value: LanguageFallbackProsodyRequest
+    result: LanguageProsodyChoice >>
+) = (.profile.fallback)

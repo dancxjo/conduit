@@ -10,10 +10,13 @@ mod generated {
 pub use generated::{
     AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef, LanguageCoverage,
     LanguageDependencyArc, LanguageDependencyHead, LanguageDependencyRelation,
-    LanguageDependencySubtype, LanguageDiscourseRole, LanguageExternalIdentity, LanguageId,
+    LanguageDependencySubtype, LanguageDiscourseRole, LanguageExternalIdentity,
+    LanguageFallbackProsodyAccepted, LanguageFallbackProsodyRequest, LanguageId,
     LanguageLexicalCandidate, LanguageLexicalCompleteness, LanguageLexicalEntry,
     LanguageLexicalPos, LanguageLexicalProfile, LanguageLexicalTape, LanguageLexicalToken,
-    LanguageMappingDeclaration, LanguageRequest, LanguageText, LanguageTextFinality,
+    LanguageMappingDeclaration, LanguageProsodyBoundary, LanguageProsodyChoice,
+    LanguageProsodyPitch, LanguageProsodyProfile, LanguageProsodyProminence, LanguageRequest,
+    LanguageRichProsodyAccepted, LanguageRichProsodyRequest, LanguageText, LanguageTextFinality,
     LanguageTextId, LanguageTextPriorRevision, LanguageTextRange, LanguageTextReferenceMatch,
     LanguageTextRevision, LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef,
     LanguageUniversalDependencyRelation, LanguageVariety, LanguageVarietyPolicy,
@@ -72,3 +75,5 @@ pub use text_revision::*;
 pub mod lexical;
 
 pub mod discourse;
+
+pub mod prosody;
