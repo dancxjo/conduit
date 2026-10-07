@@ -5,6 +5,8 @@ import { acquire, command, digest, xtask } from './common.mjs';
 import { retainedOneBodyEvidence } from '../one-body-evidence.mjs';
 import { retainedThreeHostDevelopmentEvidence, THREE_HOST_DEVELOPMENT_PROOF,
   THREE_HOST_DEVELOPMENT_SUITE } from '../three-host-development-evidence.mjs';
+import { retainedDirectSpokenDevelopmentEvidence, DIRECT_SPOKEN_DEVELOPMENT_PROOF,
+  DIRECT_SPOKEN_DEVELOPMENT_SUITE } from '../direct-spoken-development-evidence.mjs';
 
 // Retain the last documentary publication as history, never as new execution.
 const HISTORY = 'd9b79319bd78c72e4a6b48ef524e269300a82bdf';
@@ -54,7 +56,28 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     if (existsSync(destination)) throw new Error('Retained One Body route already exists');
     cpSync(threeHostDevelopment.root, destination, { recursive: true, errorOnExist: true });
   }
+  const directSpokenDevelopment = retainedDirectSpokenDevelopmentEvidence();
+  if (directSpokenDevelopment) {
+    xtask('prove', 'verify', '--root', directSpokenDevelopment.root,
+      '--commit', directSpokenDevelopment.sourceCommit, '--result', 'diagnostic-incomplete',
+      '--proof', DIRECT_SPOKEN_DEVELOPMENT_PROOF, '--suite', DIRECT_SPOKEN_DEVELOPMENT_SUITE);
+    const destination = path.join(directory, 'journeys/current/direct-spoken-development');
+    if (existsSync(destination)) throw new Error('Retained direct spoken route already exists');
+    cpSync(directSpokenDevelopment.root, destination, { recursive: true, errorOnExist: true });
+  }
   xtask('prove', 'refresh-gallery', path.join(directory, 'journeys'));
+  if (directSpokenDevelopment) {
+    const landing = path.join(directory, 'journeys/index.html');
+    const html = readFileSync(landing, 'utf8');
+    const anchor = '<!-- conduit-three-body-flagship@2 -->';
+    if (!html.includes(anchor)) throw new Error('Journeys catalogue has no direct speech card seam');
+    const card = '<article class="journey-card"><p class="eyebrow">Separate live speech proof</p>'
+      + '<h2>Hear the whole Face</h2><p>Listen to 11 bounded parts of one installed Linux Host reading.'
+      + ' The WAVs came from the Plays delivered to its selected speaker; this is a separate development run,'
+      + ' not a chapter of the three-host journey or a claim of human hearing.</p>'
+      + '<a href="current/direct-spoken-development/">Listen to the direct reading</a></article>';
+    writeFileSync(landing, html.replace(anchor, `${card}${anchor}`));
+  }
   // The catalogue refresh writes the historical Field Station introduction.
   // Replace it with this build's complete captured walkthrough afterwards.
   renderFieldStation('target/journeys/field-station-clock', path.join(directory, 'journeys/verticals/field-station-clock'), sourceCommit);
@@ -97,6 +120,11 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     ...(threeHostDevelopment && { oneBodyDevelopment: { captureSourceCommit: threeHostDevelopment.sourceCommit,
       publicationSourceCommit: sourceCommit, path: 'journeys/current/one-body-five-masks/',
       proof: 'retained-local-development-evidence' } }),
+    ...(directSpokenDevelopment && { directSpokenDevelopment: {
+      captureSourceCommit: directSpokenDevelopment.sourceCommit, publicationSourceCommit: sourceCommit,
+      path: 'journeys/current/direct-spoken-development/', proof: 'separate-retained-local-selected-alsa-evidence',
+      humanListeningObserved: false,
+    } }),
   }, null, 2));
 }
 
