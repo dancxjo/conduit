@@ -26,8 +26,10 @@ fn main() {
     println!("cargo:rerun-if-changed=control_projection.conduit");
     println!("cargo:rerun-if-changed=context_match.conduit");
     println!("cargo:rerun-if-changed=linguistic_prosody.conduit");
+    println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
+    println!("cargo:rerun-if-changed=pitch_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
@@ -39,7 +41,8 @@ fn main() {
         include_str!("profile_phones.conduit"),
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit"),
-        include_str!("linguistic_prosody.conduit")
+        include_str!("linguistic_prosody.conduit"),
+        include_str!("pitch_trajectory.conduit")
     );
     let mut language_types = conduit_language::identity_types();
     language_types.extend(
@@ -109,7 +112,6 @@ fn main() {
                     | "LanguageExternalIdentity"
                     | "LanguageProsodyBoundary"
                     | "LanguageProsodyProminence"
-                    | "LanguageProsodyPitch"
             )
         })
         .map(
@@ -167,6 +169,7 @@ fn main() {
         include_str!("control_projection.conduit"),
         include_str!("context_match.conduit")
     );
+    let source = format!("{}\n{}", source, include_str!("pitch_projection.conduit"));
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked =

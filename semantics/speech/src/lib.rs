@@ -76,6 +76,8 @@ pub mod intent_prosody;
 #[cfg(feature = "semantic-bindings")]
 pub mod linguistic_prosody;
 #[cfg(feature = "semantic-bindings")]
+pub mod pitch_trajectory;
+#[cfg(feature = "semantic-bindings")]
 pub mod intent_realization;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_sources;

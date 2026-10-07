@@ -1,0 +1,38 @@
+# Linear interpolation is in exact fundamental-cycle duration, not frequency,
+# samples or a guessed punctuation contour. Endpoints retain authored fractions.
+type SpeechLinearPitchTrajectory = {
+    duration: SpeechExactDuration
+    start: SpeechFundamentalCycle
+    end: SpeechFundamentalCycle
+    where .duration.numerator_seconds > 0
+}
+type SpeechSegmentPitchAdmission = {
+    segment: SpeechPlannedSegmentIntent
+    requested: LanguageProsodyPitch
+    trajectory: SpeechLinearPitchTrajectory
+    where .segment.prosody.duration is known ? .segment.prosody.duration.known == .trajectory.duration : false
+    where .segment.prosody.fundamental_cycle is known ? .segment.prosody.fundamental_cycle.known == .trajectory.start : false
+    where .requested is rising ? .trajectory.end.numerator_seconds * .trajectory.start.denominator < .trajectory.start.numerator_seconds * .trajectory.end.denominator : (.requested is falling ? .trajectory.end.numerator_seconds * .trajectory.start.denominator > .trajectory.start.numerator_seconds * .trajectory.end.denominator : .trajectory.end.numerator_seconds * .trajectory.start.denominator == .trajectory.start.numerator_seconds * .trajectory.end.denominator)
+}
+# Exact physical sample position may include the endpoint for inspection.
+type SpeechPitchAtFrameRequest = {
+    admission: SpeechSegmentPitchAdmission
+    frame: U64
+    sample_rate_hz: U64 in 1..=192000
+    where .frame * .admission.trajectory.duration.denominator <= .admission.trajectory.duration.numerator_seconds * .sample_rate_hz
+}
+# Exact offered acoustic profile must answer the accepted symbolic category.
+type SpeechLinguisticTrajectoryAdmission = {
+    profile_id: Text <= 64B not in [""]
+    language: LanguageId
+    requested: LanguageProsodyChoice
+    binding: SpeechLinguisticProsodyBinding
+    pitch: SpeechSegmentPitchAdmission
+    where .profile_id == .binding.profile_id
+    where .language == .binding.language
+    where .requested == .binding.choice
+    where .requested.pitch == .pitch.requested
+    where .binding.realization.segment == .pitch.segment.prosody
+    where .requested.boundary is none ? (.binding.realization.boundary_kind is known ? .binding.realization.boundary_kind.known is word : false) : (.binding.realization.boundary_kind is known ? .binding.realization.boundary_kind.known is phrase : false)
+    where .requested.boundary is none ? (.binding.realization.boundary_duration is known ? .binding.realization.boundary_duration.known.numerator_seconds == 0 : false) : true
+}
