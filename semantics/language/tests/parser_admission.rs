@@ -1,9 +1,6 @@
 use conduit_core::*;
+use conduit_language as admitted;
 use conduit_plot::rust_binding::NativeRustBinding;
-#[allow(dead_code)]
-mod admitted {
-    include!(concat!(env!("OUT_DIR"), "/parser_admission_types.rs"));
-}
 #[path = "common/parser_fixture.rs"]
 mod fixture;
 use fixture::*;

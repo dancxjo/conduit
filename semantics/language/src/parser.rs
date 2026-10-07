@@ -122,5 +122,14 @@ pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::Structured
             "LanguageParserFrontierResult",
             crate::LanguageParserFrontierResult::semantic_type().expect("checked Language Type")
         ),
+        (
+            "LanguageParserAdmittedBeam",
+            crate::LanguageParserAdmittedBeam::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserAdmittedAgreementQuery",
+            crate::LanguageParserAdmittedAgreementQuery::semantic_type()
+                .expect("checked Language Type")
+        ),
     ]
 }
