@@ -65,14 +65,21 @@ fn model_custody_refuses_changed_content_signature_extent_and_access() {
     let mut changed = bytes.to_vec();
     changed[0] ^= 1;
     assert!(matches!(
-        AdmittedModelResource::adopt(artifact.clone(), signature.clone(), Arc::from(changed), &grant),
+        AdmittedModelResource::adopt(
+            artifact.clone(),
+            signature.clone(),
+            Arc::from(changed),
+            &grant
+        ),
         Err(ModelResourceRefusal::Content)
     ));
     let mut wrong_signature = signature.clone();
     wrong_signature.compatibility_version += 1;
     assert!(matches!(
         AdmittedModelResource::adopt(artifact.clone(), wrong_signature, bytes.clone(), &grant),
-        Err(ModelResourceRefusal::Compatibility(ModelCompatibilityRefusal::SignatureMismatch))
+        Err(ModelResourceRefusal::Compatibility(
+            ModelCompatibilityRefusal::SignatureMismatch
+        ))
     ));
     let mut wrong_extent = artifact.clone();
     wrong_extent.content.extent.bytes += 1;
@@ -95,7 +102,12 @@ fn model_custody_refuses_changed_content_signature_extent_and_access() {
     wrong_grants.push(short);
     for invalid in wrong_grants {
         assert!(matches!(
-            AdmittedModelResource::adopt(artifact.clone(), signature.clone(), bytes.clone(), &invalid),
+            AdmittedModelResource::adopt(
+                artifact.clone(),
+                signature.clone(),
+                bytes.clone(),
+                &invalid
+            ),
             Err(ModelResourceRefusal::Authority(_))
         ));
     }

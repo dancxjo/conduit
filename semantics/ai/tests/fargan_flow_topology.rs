@@ -87,8 +87,13 @@ fn closing_conditioning_rejects_transposed_or_foreign_tensor_shapes() {
         );
         let refused = match check_syntax_document(&parse_syntax_document(&authored), &startup) {
             Err(_) => true,
-            Ok(checked) => expand_canonical_plot_for_authoring(&checked,"speech/flow-fargan-conditioning",&profiles).is_err(),
+            Ok(checked) => expand_canonical_plot_for_authoring(
+                &checked,
+                "speech/flow-fargan-conditioning",
+                &profiles,
+            )
+            .is_err(),
         };
-        assert!(refused,"{shape}");
+        assert!(refused, "{shape}");
     }
 }
