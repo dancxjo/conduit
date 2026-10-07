@@ -35,15 +35,15 @@ plot language-parser-fact-shift (
 
 plot language-parser-fact-reduce (
     input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
-) = { context: .context, shift: .shift, reduce: .context.admitted && (.context.request.state.depth > 1 && (.context.top < 4 && sequence/at(.context.request.state.heads, .context.top) < 5)), left: .left, right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+) = { context: .context, shift: .shift, reduce: (.context.admitted ? (.context.request.state.depth > 1 && (.context.top < 4 && sequence/at(.context.request.state.heads, .context.top) < 5)) : false), left: .left, right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
 
 plot language-parser-fact-left (
     input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
-) = { context: .context, shift: .shift, reduce: .reduce, left: .context.admitted && ((.context.request.state.unread < .context.request.state.token_count && .context.request.state.depth > 1) && (.context.top < 4 && (.context.top >= .context.request.state.committed && sequence/at(.context.request.state.heads, .context.top) == 5))), right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+) = { context: .context, shift: .shift, reduce: .reduce, left: (.context.admitted ? ((.context.request.state.unread < .context.request.state.token_count && .context.request.state.depth > 1) && (.context.top < 4 && (.context.top >= .context.request.state.committed && sequence/at(.context.request.state.heads, .context.top) == 5))) : false), right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
 
 plot language-parser-fact-right (
     input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
-) = { context: .context, shift: .shift, reduce: .reduce, left: .left, right: .context.admitted && ((.context.request.state.unread < .context.request.state.token_count && .context.request.state.depth < 5) && (.context.request.state.unread >= .context.request.state.committed && sequence/at(.context.request.state.heads, .context.request.state.unread) == 5)), right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+) = { context: .context, shift: .shift, reduce: .reduce, left: .left, right: (.context.admitted ? ((.context.request.state.unread < .context.request.state.token_count && .context.request.state.depth < 5) && (.context.request.state.unread >= .context.request.state.committed && sequence/at(.context.request.state.heads, .context.request.state.unread) == 5)) : false), right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
 
 plot language-parser-fact-right-root (
     input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|

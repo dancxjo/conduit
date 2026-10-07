@@ -99,6 +99,16 @@ fn source_mask_matches_actual_transition_acceptance_for_every_action_class() {
             "foreign-analysis",
         ),
     );
+    let unread_five = scalar(&initial, "unread", 5);
+    let unread_max = scalar(&initial, "unread", u64::MAX);
+    let invalid_top = replace(
+        &scalar(&initial, "depth", 2),
+        "stack",
+        numbers_like(field(&initial, "stack"), [4, u64::MAX, 4, 4, 4]),
+    );
+    for invalid in [&unread_five, &unread_max, &invalid_top] {
+        assert!(!f.native_ok(invalid));
+    }
     let states = [
         (initial.clone(), field(&initial, "basis").clone()),
         (shifted.clone(), field(&shifted, "basis").clone()),
@@ -111,6 +121,9 @@ fn source_mask_matches_actual_transition_acceptance_for_every_action_class() {
         ),
         (invalid.clone(), field(&invalid, "basis").clone()),
         (initial, foreign),
+        (unread_five.clone(), field(&unread_five, "basis").clone()),
+        (unread_max.clone(), field(&unread_max, "basis").clone()),
+        (invalid_top.clone(), field(&invalid_top, "basis").clone()),
     ];
     let mut sequence = 0;
     for (case, (state, basis)) in states.into_iter().enumerate() {
@@ -134,6 +147,9 @@ fn source_mask_matches_actual_transition_acceptance_for_every_action_class() {
                 assert!(f.native_ok(field(&result, "state")));
             } else {
                 assert_eq!(field(&result, "state"), &state);
+                if case == 6 || case >= 8 {
+                    assert_eq!(tag(field(&result, "refusal")), "invalid_state");
+                }
             }
             sequence += 1;
         }
@@ -147,5 +163,5 @@ fn source_mask_matches_actual_transition_acceptance_for_every_action_class() {
             assert!(selected.is_empty());
         }
     }
-    assert_eq!(sequence, 608);
+    assert_eq!(sequence, 836);
 }
