@@ -63,6 +63,7 @@ pub(super) fn is_numeric(
     is_fixed_integer(value_type, context)
         || represented_kind(value_type, context).is_some_and(|kind| {
             matches!(kind, "value/count" | "value/scalar")
+                || kind == conduit_core::F32_INFO_ID
                 || kind == conduit_core::QUANTITY_INFO_ID
                 || conduit_core::quantity_info_dimension(kind).is_some()
                 || value_type
