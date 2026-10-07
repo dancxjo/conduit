@@ -206,7 +206,7 @@ fn early_lexical_intent_retains_exact_fact_source_and_phone_sequence() {
                 panic!("only exact phone segments")
             };
             assert_eq!(*segment.occurrence().ordinal(), ordinal as u32);
-            assert_eq!(segment.sources().as_slice(), &[reference.clone()]);
+            assert_eq!(segment.sources().as_slice(), std::slice::from_ref(&reference));
             assert_eq!(segment.prosody(), &prosody);
         }
         let bytes = intent.intent().clone().encode().unwrap();
