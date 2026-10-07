@@ -189,7 +189,8 @@ impl SelectedPlayback {
         show: &MaskShow,
         batch: &SpokenBatch,
         result: &SpokenPlaybackExecution,
-    ) -> Result<(), String> {
+    ) -> Result<Vec<serde_json::Value>, String> {
+        let spoken_segments = verified_spoken_segments(face, show, batch)?;
         if result.face_id != face.identity.as_str()
             || result.face_revision != face.revision
             || result.source_show_id != show.show_id.as_str()
@@ -219,10 +220,14 @@ impl SelectedPlayback {
         } else if result.same_play_capture.is_some() {
             return Err("incomplete selected speaker Play claimed a completed WAV".into());
         }
-        Ok(())
+        Ok(spoken_segments)
     }
 
-    pub(super) fn receipt_json(&self, result: &SpokenPlaybackExecution) -> serde_json::Value {
+    pub(super) fn receipt_json(
+        &self,
+        result: &SpokenPlaybackExecution,
+        spoken_segments: &[serde_json::Value],
+    ) -> serde_json::Value {
         serde_json::json!({
             "schema": "conduit.body/spoken-face-playback@1",
             "outcome": format!("{:?}", result.outcome),
@@ -232,6 +237,7 @@ impl SelectedPlayback {
             "source_show_id": result.source_show_id,
             "stream_identity": result.stream_identity,
             "source_segments_sha256": result.source_segments_sha256,
+            "spoken_segments": spoken_segments,
             "voice": self.voice,
             "provider_sha256": result.provider_sha256,
             "host_id": result.host_id,
@@ -257,4 +263,37 @@ impl SelectedPlayback {
             })),
         })
     }
+}
+
+/// Preserve exact committed words and all fields in the canonical source
+/// digest. The caller may publish these only after the same Play's receipt has
+/// been checked against this validated, one-segment Birth batch.
+pub(super) fn verified_spoken_segments(
+    face: &Presentation,
+    show: &MaskShow,
+    batch: &SpokenBatch,
+) -> Result<Vec<serde_json::Value>, String> {
+    batch
+        .validate(face, show)
+        .map_err(|error| format!("selected speech source digest refused: {error:?}"))?;
+    if batch.segments.len() != 1 || batch.segments[0].segment.text.len() > 64 {
+        return Err("selected Birth speech exceeds its one-segment, 64-byte batch bound".into());
+    }
+    Ok(batch
+        .segments
+        .iter()
+        .map(|item| {
+            serde_json::json!({
+                "sequence": item.segment.sequence,
+                "text": item.segment.text,
+                "text_sha256": item.text_sha256,
+                "reason_code": 1,
+                "face_id": item.face_id,
+                "face_revision_decimal": item.face_revision.to_string(),
+                "show_id": item.show_id,
+                "clause_index": item.clause_index,
+                "clause_provenance_debug": format!("{:?}", item.clause_provenance),
+            })
+        })
+        .collect())
 }
