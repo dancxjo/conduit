@@ -51,6 +51,7 @@ fn main() {
         include_str!("lexical_pronunciation.conduit")
     );
     let mut language_types = conduit_language::identity_types();
+    language_types.extend(conduit_language::revision_lineage_types());
     language_types.extend(
         conduit_language::prosody::prosody_types()
             .into_iter()
