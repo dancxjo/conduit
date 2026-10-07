@@ -11,6 +11,10 @@ pub struct Case {
     pub rich: PreparedRichProsody,
     pub fallback: Vec<PreparedFallbackProsody>,
     pub selections: Vec<PreparedPronunciationSelection>,
+    pub spoken_ordinals: Vec<usize>,
+    #[allow(dead_code)]
+    // Retained by graph receipt proofs; shared legacy fixtures also construct it.
+    pub participation: Vec<conduit_speech::text_token_role::PreparedTextTokenRole>,
     pub phones: SpeechPronunciationProfile,
     pub inventory: SpeechInventory,
     pub voice: SpeechFormantVoiceProfile,
@@ -219,8 +223,40 @@ pub fn admitted_graph(
     arcs: Vec<LanguageDependencyArc>,
     vocative: usize,
 ) -> Case {
+    let count = lexical.tape().tokens().len();
+    admitted_graph_with_choices(lexical, analysis, arcs, vocative, &vec![0; count])
+}
+pub fn admitted_graph_with_choices(
+    lexical: PreparedLexicalTape,
+    analysis: LanguageAnalysisRevisionId,
+    arcs: Vec<LanguageDependencyArc>,
+    vocative: usize,
+    choices: &[usize],
+) -> Case {
     let source = lexical.tape().source().clone();
     let revision = source.material().revision().get();
+    let participation = arcs
+        .iter()
+        .enumerate()
+        .map(|(ordinal, arc)| {
+            conduit_speech::text_token_role::prepare_text_token_role(
+                &lexical,
+                ordinal,
+                &analysis,
+                arc,
+                choices[ordinal] as u64,
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let spoken_ordinals = participation
+        .iter()
+        .enumerate()
+        .filter_map(|(ordinal, role)| {
+            matches!(role.result().role(), SpeechTextTokenRole::Spoken).then_some(ordinal)
+        })
+        .collect::<Vec<_>>();
+    assert!(spoken_ordinals.contains(&vocative));
     let fact_identity = format!("proof/fact/{revision}");
     let fact_identity = if fact_identity.len() <= 64 {
         fact_identity
@@ -255,15 +291,28 @@ pub fn admitted_graph(
     )
     .unwrap();
     let rich = prepare_rich_prosody(&lexical, vocative, discourse.fact(), &profile).unwrap();
-    let fallback = (0..lexical.tape().tokens().len())
+    let fallback = spoken_ordinals
+        .iter()
+        .copied()
         .map(|ordinal| prepare_fallback_prosody(&lexical, ordinal, &profile).unwrap())
         .collect();
-    let selections = arcs
+    let selections = spoken_ordinals
         .iter()
-        .enumerate()
-        .map(|(ordinal, arc)| {
-            prepare_pronunciation_selection(&lexical, ordinal, &analysis, arc, &selection_profile())
-                .unwrap()
+        .copied()
+        .map(|ordinal| {
+            let selected = prepare_pronunciation_selection(
+                &lexical,
+                ordinal,
+                &analysis,
+                &arcs[ordinal],
+                &selection_profile(),
+            )
+            .unwrap();
+            assert_eq!(
+                selected.candidate(),
+                &lexical.tape().tokens()[ordinal].candidates()[choices[ordinal]]
+            );
+            selected
         })
         .collect();
     use conduit_speech::semantic::EnglishPhone as E;
@@ -324,6 +373,8 @@ pub fn admitted_graph(
         rich,
         fallback,
         selections,
+        spoken_ordinals,
+        participation,
         phones: phones(),
         inventory,
         voice,

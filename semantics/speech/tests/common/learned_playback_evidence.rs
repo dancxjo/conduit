@@ -50,11 +50,12 @@ pub fn retain(
         "original_word_intent_bytes":native(&composite.words[index])
     })).collect::<Vec<_>>();
     let correspondence = composite.correspondence.iter().map(|(old,current)| serde_json::json!({"previous_bytes":native(old),"current_bytes":native(current)})).collect::<Vec<_>>();
-    let evidence = serde_json::json!({"proof":"actual-native-teaching-graph-playback@1","position":position,
+    let participation = case.participation.iter().map(|role| serde_json::json!({"request_bytes":native(role.request()),"result_bytes":native(role.result())})).collect::<Vec<_>>();
+    let evidence = serde_json::json!({"proof":"actual-native-graph-playback@1","position":position,
         "text":case.lexical.tape().source().material().text(),"heldout_accuracy":false,"general_parser_accuracy":false,
         "physical_playback":false,"renderer":"formant","fargan_neural_waveform":false,"scheduler_delivery_played_frames":0,
         "pcm_frames":pcm.len()/2,"native_encoding":"canonical-bytes@1","playback_occurrence_limit":32,
-        "graph_receipt":graph,"playback_basis_bytes":native(tape.basis()),"pronunciation":receipts,
+        "graph_receipt":graph,"playback_basis_bytes":native(tape.basis()),"pronunciation":receipts,"token_participation":participation,"spoken_ordinals":case.spoken_ordinals,
         "phonetic_correspondence":correspondence,"epoch":epoch,"atomic_pressure_preserves_pcm":true,"cancel_stops_future_queue":true});
     std::fs::write(
         directory.join(format!("learned-vocative-{position}.json")),
