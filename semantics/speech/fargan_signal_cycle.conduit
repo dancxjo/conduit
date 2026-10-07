@@ -53,7 +53,7 @@ plot speech/flow-fargan-signal-cycle (
     result: FarganPcm16EpochResult...| >>
 ) {
     cell: state/seeded/flow/finite/typed-a3cb06058619443acfa1b6efbaa438b7f7fefab0f6a7f8bad53a277fee7b5143
-    paired: flow/zip/feedback/typed-6971d26946c7df265dcdac62152a6ebd2c7f997419da177fe8f8c098dbf19947
+    paired: flow/zip/feedback/typed-1c8c7799ccf7964edd62d92571a88c9e1bc4118e4f4ac770c91713ee7bbf4d0b
     weak: structure/flow-nominal-weakening/typed-7970f22d7e24c9998145730950807fcca1cf07be534126017d33066c7d669aa14b242fa2780af1f3bc8724ff84f962584af7c7080968c549c1c0f1b8ed4322a5
     matcher: speech/flow-fargan-signal-cycle-matches
     guard: value/flow-assert-true/typed-4b242fa2780af1f3bc8724ff84f962584af7c7080968c549c1c0f1b8ed4322a5
