@@ -10,6 +10,61 @@ const MAX_PUBLIC_CLIPS = 12;
 const MAX_CLIP_BYTES = 4 * 1024 * 1024;
 const MAX_PUBLIC_BYTES = 48 * 1024 * 1024;
 const hex = value => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+const escapeHtml = value => value.replace(/[&<>"']/g, character => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+})[character]);
+
+function verifiedWords(played) {
+  const segments = played.spoken_segments;
+  assert.ok(Array.isArray(segments) && segments.length === 1,
+    'selected Birth speaker Play needs its one bounded ordered SpokenBatch segment');
+  const hash = createHash('sha256');
+  hash.update(Buffer.from('conduit.spoken-face/segments@1\0'));
+  const words = [];
+  for (const [index, segment] of segments.entries()) {
+    assert.equal(segment.sequence, index);
+    assert.equal(typeof segment.text, 'string');
+    const textBytes = Buffer.from(segment.text, 'utf8');
+    assert.ok(textBytes.length > 0 && textBytes.length <= 64,
+      'selected segment exceeds the bounded spoken input');
+    assert.ok(hex(segment.text_sha256));
+    assert.equal(digest(textBytes), segment.text_sha256);
+    assert.equal(segment.reason_code, 1);
+    assert.equal(segment.face_id, played.face_id);
+    assert.equal(segment.face_revision_decimal, played.face_revision_decimal);
+    assert.equal(segment.show_id, played.source_show_id);
+    assert.ok(segment.clause_index === null ||
+      (Number.isSafeInteger(segment.clause_index) && segment.clause_index >= 0));
+    assert.equal(typeof segment.clause_provenance_debug, 'string');
+    assert.ok(segment.clause_provenance_debug.length > 0 &&
+      Buffer.byteLength(segment.clause_provenance_debug) <= 4096);
+    const sequence = Buffer.alloc(4);
+    sequence.writeUInt32LE(index);
+    const length = Buffer.alloc(4);
+    length.writeUInt32LE(textBytes.length);
+    const faceRevision = Buffer.alloc(8);
+    faceRevision.writeBigUInt64LE(BigInt(segment.face_revision_decimal));
+    const clauseIndex = Buffer.alloc(8);
+    clauseIndex.writeBigUInt64LE(segment.clause_index === null
+      ? 0xffff_ffff_ffff_ffffn : BigInt(segment.clause_index));
+    hash.update(sequence);
+    hash.update(length);
+    hash.update(textBytes);
+    hash.update(Buffer.from(segment.text_sha256));
+    hash.update(Buffer.from([segment.reason_code]));
+    hash.update(Buffer.from(segment.face_id));
+    hash.update(faceRevision);
+    hash.update(Buffer.from(segment.show_id));
+    hash.update(clauseIndex);
+    hash.update(Buffer.from(segment.clause_provenance_debug));
+    words.push(segment.text);
+  }
+  assert.equal(hash.digest('hex'), played.source_segments_sha256,
+    'published words differ from the committed SpokenBatch source digest');
+  const text = words.join('');
+  return { spoken_words: text, spoken_words_html: escapeHtml(text),
+    spoken_segment_sha256: segments.map(segment => segment.text_sha256) };
+}
 
 export function playbackReceipts(output) {
   return output.split('\n').flatMap(line => {
@@ -61,7 +116,7 @@ function selectedReceipt(played, chapter, ownerPart, installation, turn) {
   assert.equal(capture.wav_bytes, capture.pcm_bytes + 44);
   assert.equal(capture.pcm_blocks, played.speaker_blocks_committed);
   assert.equal(capture.pcm_bytes / 4, played.speaker_frames_committed);
-  return capture;
+  return { capture, words: verifiedWords(played) };
 }
 
 export async function retainSelectedScreenFreePlays({ state, privateRoot, walkthroughRoot,
@@ -112,7 +167,7 @@ export async function retainSelectedScreenFreePlays({ state, privateRoot, walkth
       const turn = ended.find(item => played.face_id === item.face_id &&
         played.face_revision_decimal === item.face_revision_decimal &&
         played.source_show_id === item.source_show_id);
-      const capture = selectedReceipt(played, chapter, ownerPart, installation, turn);
+      const { capture, words } = selectedReceipt(played, chapter, ownerPart, installation, turn);
       const sourceRoot = path.join(state, 'screen-free-spoken-artifacts');
       const sourceName = path.basename(capture.wav_artifact_locator);
       assert.match(sourceName, /^play-[0-9a-f]{64}\.wav$/);
@@ -138,6 +193,7 @@ export async function retainSelectedScreenFreePlays({ state, privateRoot, walkth
         face_id: played.face_id, face_revision: played.face_revision_decimal,
         source_show_id: played.source_show_id, stream_identity: played.stream_identity,
         source_segments_sha256: played.source_segments_sha256,
+        ...words,
         provider_sha256: played.provider_sha256, selected_resource_pool_id: played.selected_resource_pool_id,
         authority_grant_id: played.authority_grant_id,
         plan_id: played.plan_id, play_id: played.play_id,

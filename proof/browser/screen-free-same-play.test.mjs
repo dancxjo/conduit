@@ -29,6 +29,22 @@ async function fixture() {
     speaker_base_identity: 'speaker/test', card_id: 'Loopback', device: 0,
     provider_sha256: 'b'.repeat(64),
   } };
+  const words = 'Review <choices> & birth.';
+  const text = Buffer.from(words);
+  const segment = { sequence: 0, text: words, text_sha256: digest(text),
+    reason_code: 1, face_id: 'face/test', face_revision_decimal: '4',
+    show_id: 'show/test', clause_index: null,
+    clause_provenance_debug: 'None' };
+  const sequence = Buffer.alloc(4);
+  const length = Buffer.alloc(4); length.writeUInt32LE(text.length);
+  const revision = Buffer.alloc(8); revision.writeBigUInt64LE(4n);
+  const noClause = Buffer.alloc(8); noClause.writeBigUInt64LE(0xffff_ffff_ffff_ffffn);
+  const sourceDigest = digest(Buffer.concat([
+    Buffer.from('conduit.spoken-face/segments@1\0'), sequence, length, text,
+    Buffer.from(segment.text_sha256), Buffer.from([1]),
+    Buffer.from(segment.face_id), revision, Buffer.from(segment.show_id),
+    noClause, Buffer.from(segment.clause_provenance_debug),
+  ]));
   const played = { schema: 'conduit.body/spoken-face-playback@1', outcome: 'Completed',
     speaker_lifecycle: 'StoppedClosed', speaker_underruns: 0,
     speaker_frames_committed: 2, speaker_blocks_committed: 1,
@@ -37,7 +53,8 @@ async function fixture() {
     provider_sha256: installation.selected_speech.provider_sha256,
     selected_resource_pool_id: 'std/audio/alsa/speaker/test/card-Loopback/device-0',
     authority_grant_id: 'grant/conduit/installed-screen-free-selected-speaker',
-    source_segments_sha256: 'c'.repeat(64), stream_identity: 'stream/test',
+    source_segments_sha256: sourceDigest, spoken_segments: [segment],
+    stream_identity: 'stream/test',
     plan_id: 'plan/test', play_id: 'play/test', same_play_capture: {
       wav_artifact_locator: locator, wav_sha256: digest(wav), wav_bytes: wav.length,
       pcm_sha256: digest(pcm), pcm_bytes: pcm.length, pcm_blocks: 1,
@@ -59,6 +76,9 @@ test('publishes only the selected original listener WAV with exact identities', 
     const report = await retainSelectedScreenFreePlays(args);
     assert.equal(report.public_selected_clip_count, 1);
     assert.equal(report.full_private_playback_receipt_count, 1);
+    assert.equal(report.selected[0].spoken_words, 'Review <choices> & birth.');
+    assert.equal(report.selected[0].spoken_words_html,
+      'Review &lt;choices&gt; &amp; birth.');
     assert.deepEqual(await readFile(path.join(args.walkthroughRoot,
       report.selected[0].path)), wav);
     const privateManifest = JSON.parse(await readFile(path.join(root,
@@ -89,5 +109,19 @@ test('rejects altered source PCM even when the receipt is still present', async 
     await writeFile(file, altered);
     await assert.rejects(retainSelectedScreenFreePlays(args),
       /Expected values to be strictly equal/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('rejects words that do not match the committed source digest', async () => {
+  const { root, args, played } = await fixture();
+  try {
+    played.spoken_segments[0].text = 'Invented words';
+    played.spoken_segments[0].text_sha256 = digest(Buffer.from('Invented words'));
+    args.chapters[0].output = `${JSON.stringify(played)}\n${JSON.stringify({
+      schema: 'conduit.body/spoken-face-turn@1', outcome: 'Completed',
+      face_id: played.face_id, face_revision_decimal: played.face_revision_decimal,
+      source_show_id: played.source_show_id })}\n`;
+    await assert.rejects(retainSelectedScreenFreePlays(args),
+      /published words differ from the committed SpokenBatch source digest/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
