@@ -155,12 +155,12 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             "spoken-mask-artifact-show",
             ARTIFACT_SHOW_IMPLEMENTATION,
             vec![
-                call(ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
                 call(
                     REGISTER_MANIFESTATION_OPERATION,
                     conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
                     0,
                 ),
+                call(ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
             ],
             vec![],
             vec![],
@@ -182,12 +182,12 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             "spoken-mask-direct-artifact-show",
             DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
             vec![
-                call(DIRECT_ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
                 call(
                     REGISTER_DIRECT_FACE_OPERATION,
                     conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
                     0,
                 ),
+                call(DIRECT_ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
             ],
             vec![],
             vec![],
