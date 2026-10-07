@@ -23,21 +23,16 @@ impl FixedTensorPortBinding {
     ) -> Result<Self, FixedBindingRefusal> {
         // Admit only exact owned profiles and their fixed dimensions. Structural
         // encoding alone cannot enforce nominal singleton refinements.
-        let expected = [
-            ("NumericEmbedding224x12", &[224, 12][..]),
-            ("NumericF32MatrixRef3x2", &[3, 2][..]),
-            ("NumericF32MatrixRef32x64", &[32, 64][..]),
-            ("NumericF32MatrixRef192x128", &[192, 128][..]),
-            ("NumericF32MatrixRef128x320", &[128, 320][..]),
-            ("NumericF32BiasRef2", &[2][..]),
-            ("NumericF32BiasRef64", &[64][..]),
-            ("NumericF32BiasRef128", &[128][..]),
-            ("NumericF32BiasRef320", &[320][..]),
-        ];
-        let admitted = expected.iter().any(|(name, dimensions)| {
-            crate::fixed_numeric_catalog::fixed_numeric_type(name)
-                .is_ok_and(|owned| owned == *profile && tensor.dimensions.as_slice() == *dimensions)
-        });
+        let name = match tensor.dimensions.as_slice() {
+            [columns, rows] => alloc::format!("NumericF32MatrixRef{columns}x{rows}"),
+            [length] => alloc::format!("NumericF32BiasRef{length}"),
+            _ => return Err(FixedBindingRefusal::Shape),
+        };
+        let admitted = crate::fixed_numeric_catalog::fixed_numeric_type(&name)
+            .is_ok_and(|owned| owned == *profile)
+            || (tensor.dimensions.as_slice() == [224, 12]
+                && crate::fixed_numeric_catalog::fixed_numeric_type("NumericEmbedding224x12")
+                    .is_ok_and(|owned| owned == *profile));
         if !admitted {
             return Err(FixedBindingRefusal::Shape);
         }

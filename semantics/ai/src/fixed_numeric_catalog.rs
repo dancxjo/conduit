@@ -11,6 +11,7 @@ use conduit_plot::{
 };
 
 pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
+pub const FIXED_NUMERIC_SIGNAL_SOURCE: &str = include_str!("../fixed_numeric_signal.conduit");
 pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@1";
 
 pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
@@ -19,9 +20,15 @@ pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
         "ResourceRef",
         kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
     )?;
-    check_syntax_document(&parse_syntax_document(FIXED_NUMERIC_SOURCE), &catalog)
-        .map(|document| document.native_types)
-        .map_err(|error| format!("{}: {}", error.code, error.message))
+    check_syntax_document(
+        &parse_syntax_document(&format!(
+            "{}\n{}",
+            FIXED_NUMERIC_SOURCE, FIXED_NUMERIC_SIGNAL_SOURCE
+        )),
+        &catalog,
+    )
+    .map(|document| document.native_types)
+    .map_err(|error| format!("{}: {}", error.code, error.message))
 }
 
 pub fn fixed_numeric_type(name: &str) -> Result<StructuredInfoType, String> {
@@ -133,13 +140,27 @@ pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
     specs
         .into_iter()
         .map(|(name, inputs, outputs)| {
+            (
+                String::from(name),
+                inputs
+                    .into_iter()
+                    .map(|(n, t)| (String::from(n), String::from(t)))
+                    .collect(),
+                outputs
+                    .into_iter()
+                    .map(|(n, t)| (String::from(n), String::from(t)))
+                    .collect(),
+            )
+        })
+        .chain(crate::fixed_numeric_signal_catalog::fixed_signal_specs())
+        .map(|(name, inputs, outputs)| {
             let inputs: Vec<_> = inputs
                 .into_iter()
-                .map(|(n, t)| port(n, t, PortDirection::Input))
+                .map(|(n, t)| port(&n, &t, PortDirection::Input))
                 .collect::<Result<_, _>>()?;
             let outputs: Vec<_> = outputs
                 .into_iter()
-                .map(|(n, t)| port(n, t, PortDirection::Output))
+                .map(|(n, t)| port(&n, &t, PortDirection::Output))
                 .collect::<Result<_, _>>()?;
             // Each queue and value has a finite envelope. Resource bytes remain
             // separately admitted and borrowed; they are not copied into queues.
@@ -156,7 +177,7 @@ pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
                 })
                 .collect();
             Ok(Kind {
-                kind_id: kind_id(name),
+                kind_id: kind_id(&name),
                 kind_contract_revision: KindIdentity::from(format!(
                     "{FIXED_NUMERIC_REVISION}/{name}"
                 )),
@@ -185,7 +206,7 @@ pub fn install_fixed_numeric_catalogs(
         kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
     )?;
     for ty in fixed_numeric_types()? {
-        startup.insert_structured_type(ty.name, ty.value_type)?;
+        startup.insert_checked_native_type(ty.name.clone(), &ty)?;
     }
     for kind in fixed_numeric_contracts()? {
         startup.insert(KindSignature {

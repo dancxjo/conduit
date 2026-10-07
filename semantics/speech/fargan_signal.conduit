@@ -1,0 +1,454 @@
+# Pinned xiph/opus503d81b138d76621aae4b12786e90de48aa8db3a.
+# One signal subframe=40 samples; caller owns cadence and atomic PCM/state commit.
+# Explicit z,r,h slices implement upstream reset-after GRU; no hidden gate order.
+# This source proves topology only, not executable synthesis.
+plot speech/fargan-gru272x160 (
+    >> value: NumericF32Vector272
+    >> prior: NumericF32Vector160
+    >> input_weights: NumericF32MatrixRef272x480
+    >> recurrent_weights: NumericF32MatrixRef160x480
+    next_state: NumericF32Vector160 >>
+) {
+    input_affine: numeric/linear272x480
+    recurrent_affine: numeric/linear160x480
+    z_input: numeric/slice480x160
+    z_recurrent: numeric/slice480x160
+    r_input: numeric/slice480x160
+    r_recurrent: numeric/slice480x160
+    h_input: numeric/slice480x160
+    h_recurrent: numeric/slice480x160
+    z_sum: numeric/add160
+    z_sigmoid: numeric/sigmoid160
+    r_sum: numeric/add160
+    r_sigmoid: numeric/sigmoid160
+    reset: numeric/multiply160
+    candidate_sum: numeric/add160
+    candidate: numeric/tanh160
+    complement: numeric/complement160
+    retained: numeric/multiply160
+    updated: numeric/multiply160
+    blend: numeric/add160
+    value >> input_affine.value
+    input_weights >> input_affine.weights
+    prior >> recurrent_affine.value
+    recurrent_weights >> recurrent_affine.weights
+    input_affine.result >> z_input.value
+    prior >> (0) >> z_input.start
+    recurrent_affine.result >> z_recurrent.value
+    prior >> (0) >> z_recurrent.start
+    input_affine.result >> r_input.value
+    prior >> (160) >> r_input.start
+    recurrent_affine.result >> r_recurrent.value
+    prior >> (160) >> r_recurrent.start
+    input_affine.result >> h_input.value
+    prior >> (320) >> h_input.start
+    recurrent_affine.result >> h_recurrent.value
+    prior >> (320) >> h_recurrent.start
+    z_input.result >> z_sum.left
+    z_recurrent.result >> z_sum.right
+    z_sum.result >> z_sigmoid.value
+    r_input.result >> r_sum.left
+    r_recurrent.result >> r_sum.right
+    r_sum.result >> r_sigmoid.value
+    r_sigmoid.result >> reset.left
+    h_recurrent.result >> reset.right
+    h_input.result >> candidate_sum.left
+    reset.result >> candidate_sum.right
+    candidate_sum.result >> candidate.value
+    z_sigmoid.result >> complement.value
+    z_sigmoid.result >> retained.left
+    prior >> retained.right
+    complement.result >> updated.left
+    candidate.result >> updated.right
+    retained.result >> blend.left
+    updated.result >> blend.right
+    blend.result >> next_state
+}
+
+plot speech/fargan-gru240x128 (
+    >> value: NumericF32Vector240
+    >> prior: NumericF32Vector128
+    >> input_weights: NumericF32MatrixRef240x384
+    >> recurrent_weights: NumericF32MatrixRef128x384
+    next_state: NumericF32Vector128 >>
+) {
+    input_affine: numeric/linear240x384
+    recurrent_affine: numeric/linear128x384
+    z_input: numeric/slice384x128
+    z_recurrent: numeric/slice384x128
+    r_input: numeric/slice384x128
+    r_recurrent: numeric/slice384x128
+    h_input: numeric/slice384x128
+    h_recurrent: numeric/slice384x128
+    z_sum: numeric/add128
+    z_sigmoid: numeric/sigmoid128
+    r_sum: numeric/add128
+    r_sigmoid: numeric/sigmoid128
+    reset: numeric/multiply128
+    candidate_sum: numeric/add128
+    candidate: numeric/tanh128
+    complement: numeric/complement128
+    retained: numeric/multiply128
+    updated: numeric/multiply128
+    blend: numeric/add128
+    value >> input_affine.value
+    input_weights >> input_affine.weights
+    prior >> recurrent_affine.value
+    recurrent_weights >> recurrent_affine.weights
+    input_affine.result >> z_input.value
+    prior >> (0) >> z_input.start
+    recurrent_affine.result >> z_recurrent.value
+    prior >> (0) >> z_recurrent.start
+    input_affine.result >> r_input.value
+    prior >> (128) >> r_input.start
+    recurrent_affine.result >> r_recurrent.value
+    prior >> (128) >> r_recurrent.start
+    input_affine.result >> h_input.value
+    prior >> (256) >> h_input.start
+    recurrent_affine.result >> h_recurrent.value
+    prior >> (256) >> h_recurrent.start
+    z_input.result >> z_sum.left
+    z_recurrent.result >> z_sum.right
+    z_sum.result >> z_sigmoid.value
+    r_input.result >> r_sum.left
+    r_recurrent.result >> r_sum.right
+    r_sum.result >> r_sigmoid.value
+    r_sigmoid.result >> reset.left
+    h_recurrent.result >> reset.right
+    h_input.result >> candidate_sum.left
+    reset.result >> candidate_sum.right
+    candidate_sum.result >> candidate.value
+    z_sigmoid.result >> complement.value
+    z_sigmoid.result >> retained.left
+    prior >> retained.right
+    complement.result >> updated.left
+    candidate.result >> updated.right
+    retained.result >> blend.left
+    updated.result >> blend.right
+    blend.result >> next_state
+}
+
+plot speech/fargan-gru208x128 (
+    >> value: NumericF32Vector208
+    >> prior: NumericF32Vector128
+    >> input_weights: NumericF32MatrixRef208x384
+    >> recurrent_weights: NumericF32MatrixRef128x384
+    next_state: NumericF32Vector128 >>
+) {
+    input_affine: numeric/linear208x384
+    recurrent_affine: numeric/linear128x384
+    z_input: numeric/slice384x128
+    z_recurrent: numeric/slice384x128
+    r_input: numeric/slice384x128
+    r_recurrent: numeric/slice384x128
+    h_input: numeric/slice384x128
+    h_recurrent: numeric/slice384x128
+    z_sum: numeric/add128
+    z_sigmoid: numeric/sigmoid128
+    r_sum: numeric/add128
+    r_sigmoid: numeric/sigmoid128
+    reset: numeric/multiply128
+    candidate_sum: numeric/add128
+    candidate: numeric/tanh128
+    complement: numeric/complement128
+    retained: numeric/multiply128
+    updated: numeric/multiply128
+    blend: numeric/add128
+    value >> input_affine.value
+    input_weights >> input_affine.weights
+    prior >> recurrent_affine.value
+    recurrent_weights >> recurrent_affine.weights
+    input_affine.result >> z_input.value
+    prior >> (0) >> z_input.start
+    recurrent_affine.result >> z_recurrent.value
+    prior >> (0) >> z_recurrent.start
+    input_affine.result >> r_input.value
+    prior >> (128) >> r_input.start
+    recurrent_affine.result >> r_recurrent.value
+    prior >> (128) >> r_recurrent.start
+    input_affine.result >> h_input.value
+    prior >> (256) >> h_input.start
+    recurrent_affine.result >> h_recurrent.value
+    prior >> (256) >> h_recurrent.start
+    z_input.result >> z_sum.left
+    z_recurrent.result >> z_sum.right
+    z_sum.result >> z_sigmoid.value
+    r_input.result >> r_sum.left
+    r_recurrent.result >> r_sum.right
+    r_sum.result >> r_sigmoid.value
+    r_sigmoid.result >> reset.left
+    h_recurrent.result >> reset.right
+    h_input.result >> candidate_sum.left
+    reset.result >> candidate_sum.right
+    candidate_sum.result >> candidate.value
+    z_sigmoid.result >> complement.value
+    z_sigmoid.result >> retained.left
+    prior >> retained.right
+    complement.result >> updated.left
+    candidate.result >> updated.right
+    retained.result >> blend.left
+    updated.result >> blend.right
+    blend.result >> next_state
+}
+
+plot speech/fargan-glu128 (
+    >> value: NumericF32Vector128
+    >> weights: NumericF32MatrixRef128x128
+    >> bias: NumericF32BiasRef128
+    result: NumericF32Vector128 >>
+) {
+    gate: numeric/dense128x128
+    activation: numeric/sigmoid128
+    multiply: numeric/multiply128
+    value >> gate.value
+    weights >> gate.weights
+    bias >> gate.bias
+    gate.result >> activation.value
+    value >> multiply.left
+    activation.result >> multiply.right
+    multiply.result >> result
+}
+
+plot speech/fargan-glu160 (
+    >> value: NumericF32Vector160
+    >> weights: NumericF32MatrixRef160x160
+    >> bias: NumericF32BiasRef160
+    result: NumericF32Vector160 >>
+) {
+    gate: numeric/dense160x160
+    activation: numeric/sigmoid160
+    multiply: numeric/multiply160
+    value >> gate.value
+    weights >> gate.weights
+    bias >> gate.bias
+    gate.result >> activation.value
+    value >> multiply.left
+    activation.result >> multiply.right
+    multiply.result >> result
+}
+
+plot speech/fargan-glu192 (
+    >> value: NumericF32Vector192
+    >> weights: NumericF32MatrixRef192x192
+    >> bias: NumericF32BiasRef192
+    result: NumericF32Vector192 >>
+) {
+    gate: numeric/dense192x192
+    activation: numeric/sigmoid192
+    multiply: numeric/multiply192
+    value >> gate.value
+    weights >> gate.weights
+    bias >> gate.bias
+    gate.result >> activation.value
+    value >> multiply.left
+    activation.result >> multiply.right
+    multiply.result >> result
+}
+
+type FarganSignalState = {
+    conv_history: NumericF32Vector164
+    gru1: NumericF32Vector160
+    gru2: NumericF32Vector128
+    gru3: NumericF32Vector128
+}
+# Minimal numerical state:128 conditioning+164 signal-history+416 GRU+256 pitch
+# +1 deemphasis=965 f32 values, plus previous_period. Source/control basis,
+# initialization, finite progression, and lifecycle belong to the outer Play.
+type FarganNetworkState = {
+    conditioning_history: NumericHistory2x64
+    signal: FarganSignalState
+    pitch_history: NumericF32Vector256
+    deemphasis: NumericF32Vector1
+    previous_period: FarganPeriod
+}
+type FarganSignalResult = {
+    raw_pcm: NumericF32Vector40
+    next_state: FarganSignalState
+}
+plot speech/fargan-signal-result (
+    >> value: NumericPair40_164_160_128x128
+    result: FarganSignalResult >>
+) = ({raw_pcm: .0.0.0.0, next_state: {conv_history: .0.0.0.1, gru1: .0.0.1, gru2: .0.1, gru3: .1}})
+
+plot speech/fargan-signal-subframe (
+    >> condition: NumericF32Vector80
+    >> prediction: NumericF32Vector44
+    >> previous: NumericF32Vector40
+    >> gain: NumericF32Vector1
+    >> conv_history: NumericF32Vector164
+    >> gru1_state: NumericF32Vector160
+    >> gru2_state: NumericF32Vector128
+    >> gru3_state: NumericF32Vector128
+    >> conv_weights: NumericF32MatrixRef328x192
+    >> conv_bias: NumericF32BiasRef192
+    >> conv_glu_weights: NumericF32MatrixRef192x192
+    >> conv_glu_bias: NumericF32BiasRef192
+    >> pitch_gate_weights: NumericF32MatrixRef192x4
+    >> pitch_gate_bias: NumericF32BiasRef4
+    >> gru1_input_weights: NumericF32MatrixRef272x480
+    >> gru1_recurrent_weights: NumericF32MatrixRef160x480
+    >> gru2_input_weights: NumericF32MatrixRef240x384
+    >> gru2_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru3_input_weights: NumericF32MatrixRef208x384
+    >> gru3_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru1_glu_weights: NumericF32MatrixRef160x160
+    >> gru1_glu_bias: NumericF32BiasRef160
+    >> gru2_glu_weights: NumericF32MatrixRef128x128
+    >> gru2_glu_bias: NumericF32BiasRef128
+    >> gru3_glu_weights: NumericF32MatrixRef128x128
+    >> gru3_glu_bias: NumericF32BiasRef128
+    >> skip_weights: NumericF32MatrixRef688x128
+    >> skip_bias: NumericF32BiasRef128
+    >> skip_glu_weights: NumericF32MatrixRef128x128
+    >> skip_glu_bias: NumericF32BiasRef128
+    >> output_weights: NumericF32MatrixRef128x40
+    >> output_bias: NumericF32BiasRef40
+    result: FarganSignalResult >>
+) {
+    join1: numeric/pair40x164
+    join2: numeric/pair40-164x160
+    join3: numeric/pair40-164-160x128
+    join4: numeric/pair40-164-160-128x128
+    aggregate: speech/fargan-signal-result
+    condition_prediction: numeric/concatenate80x44
+    input: numeric/concatenate124x40
+    window: numeric/concatenate164x164
+    conv: numeric/dense328x192
+    conv_tanh: numeric/tanh192
+    conv_glu: speech/fargan-glu192
+    pitch_gate: numeric/dense192x4
+    pitch_sigmoid: numeric/sigmoid4
+    prediction_center: numeric/slice44x40
+    pitch1: numeric/slice4x1
+    prediction1: numeric/scale40
+    input1a: numeric/concatenate192x40
+    input1b: numeric/concatenate232x40
+    gru1: speech/fargan-gru272x160
+    glu1: speech/fargan-glu160
+    pitch2: numeric/slice4x1
+    prediction2: numeric/scale40
+    input2a: numeric/concatenate160x40
+    input2b: numeric/concatenate200x40
+    gru2: speech/fargan-gru240x128
+    glu2: speech/fargan-glu128
+    pitch3: numeric/slice4x1
+    prediction3: numeric/scale40
+    input3a: numeric/concatenate128x40
+    input3b: numeric/concatenate168x40
+    gru3: speech/fargan-gru208x128
+    glu3: speech/fargan-glu128
+    pitch4: numeric/slice4x1
+    prediction4: numeric/scale40
+    skip1: numeric/concatenate160x128
+    skip2: numeric/concatenate288x128
+    skip3: numeric/concatenate416x192
+    skip4: numeric/concatenate608x40
+    skip5: numeric/concatenate648x40
+    skip: numeric/dense688x128
+    skip_tanh: numeric/tanh128
+    skip_glu: speech/fargan-glu128
+    output: numeric/dense128x40
+    output_tanh: numeric/tanh40
+    output_gain: numeric/scale40
+    condition >> condition_prediction.left
+    prediction >> condition_prediction.right
+    condition_prediction.result >> input.left
+    previous >> input.right
+    input.result >> join1.right
+    conv_history >> window.left
+    input.result >> window.right
+    window.result >> conv.value
+    conv_weights >> conv.weights
+    conv_bias >> conv.bias
+    conv.result >> conv_tanh.value
+    conv_tanh.result >> conv_glu.value
+    conv_glu_weights >> conv_glu.weights
+    conv_glu_bias >> conv_glu.bias
+    conv_glu.result >> pitch_gate.value
+    pitch_gate_weights >> pitch_gate.weights
+    pitch_gate_bias >> pitch_gate.bias
+    pitch_gate.result >> pitch_sigmoid.value
+    prediction >> prediction_center.value
+    prediction >> (2) >> prediction_center.start
+    pitch_sigmoid.result >> pitch1.value
+    prediction >> (0) >> pitch1.start
+    prediction_center.result >> prediction1.value
+    pitch1.result >> prediction1.scale
+    conv_glu.result >> input1a.left
+    prediction1.result >> input1a.right
+    input1a.result >> input1b.left
+    previous >> input1b.right
+    input1b.result >> gru1.value
+    gru1_state >> gru1.prior
+    gru1_input_weights >> gru1.input_weights
+    gru1_recurrent_weights >> gru1.recurrent_weights
+    gru1.next_state >> join2.right
+    gru1.next_state >> glu1.value
+    gru1_glu_weights >> glu1.weights
+    gru1_glu_bias >> glu1.bias
+    pitch_sigmoid.result >> pitch2.value
+    prediction >> (1) >> pitch2.start
+    prediction_center.result >> prediction2.value
+    pitch2.result >> prediction2.scale
+    glu1.result >> input2a.left
+    prediction2.result >> input2a.right
+    input2a.result >> input2b.left
+    previous >> input2b.right
+    input2b.result >> gru2.value
+    gru2_state >> gru2.prior
+    gru2_input_weights >> gru2.input_weights
+    gru2_recurrent_weights >> gru2.recurrent_weights
+    gru2.next_state >> join3.right
+    gru2.next_state >> glu2.value
+    gru2_glu_weights >> glu2.weights
+    gru2_glu_bias >> glu2.bias
+    pitch_sigmoid.result >> pitch3.value
+    prediction >> (2) >> pitch3.start
+    prediction_center.result >> prediction3.value
+    pitch3.result >> prediction3.scale
+    glu2.result >> input3a.left
+    prediction3.result >> input3a.right
+    input3a.result >> input3b.left
+    previous >> input3b.right
+    input3b.result >> gru3.value
+    gru3_state >> gru3.prior
+    gru3_input_weights >> gru3.input_weights
+    gru3_recurrent_weights >> gru3.recurrent_weights
+    gru3.next_state >> join4.right
+    gru3.next_state >> glu3.value
+    gru3_glu_weights >> glu3.weights
+    gru3_glu_bias >> glu3.bias
+    pitch_sigmoid.result >> pitch4.value
+    prediction >> (3) >> pitch4.start
+    prediction_center.result >> prediction4.value
+    pitch4.result >> prediction4.scale
+    glu1.result >> skip1.left
+    glu2.result >> skip1.right
+    skip1.result >> skip2.left
+    glu3.result >> skip2.right
+    skip2.result >> skip3.left
+    conv_glu.result >> skip3.right
+    skip3.result >> skip4.left
+    prediction4.result >> skip4.right
+    skip4.result >> skip5.left
+    previous >> skip5.right
+    skip5.result >> skip.value
+    skip_weights >> skip.weights
+    skip_bias >> skip.bias
+    skip.result >> skip_tanh.value
+    skip_tanh.result >> skip_glu.value
+    skip_glu_weights >> skip_glu.weights
+    skip_glu_bias >> skip_glu.bias
+    skip_glu.result >> output.value
+    output_weights >> output.weights
+    output_bias >> output.bias
+    output.result >> output_tanh.value
+    output_tanh.result >> output_gain.value
+    gain >> output_gain.scale
+    output_gain.result >> join1.left
+    join1.result >> join2.left
+    join2.result >> join3.left
+    join3.result >> join4.left
+    join4.result >> aggregate.value
+    aggregate.result >> result
+}
