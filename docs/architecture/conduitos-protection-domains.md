@@ -172,7 +172,7 @@ a complete normal graphical Body run.
 | IA-32 | The normal legacy BIOS product's checked text region runs in CPL3 through the shared production adapter; independent emulator checks cover memory/privilege denials, capability/lifecycle refusals, loop preemption, floating-state restoration and Source timer coexistence | Broader ordinary implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | AArch64 | Supported emulator proof runs the normal text region at EL0, with a gated serial effect, completion revocation, nineteen independent boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | RISC-V64 | Supported emulator proof runs the normal text region in U-mode, with a gated serial effect, completion revocation, twenty-two boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
-| LoongArch64 | Separately compiled pure image; normal product boots with normalized memory, executable bounds and the requested Limine entry contract | No earned ordinary least-privileged execution proof |
+| LoongArch64 | Ordinary text region at PLV3; normal product and independent boundary proofs passed on a locally corrected diagnostic emulator | Stock QEMU 10.2.1 refuses the unsupported counter control; no stock-emulator, hardware or release parity claim |
 | ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
 
 IA-32 owns a flat GDT and a bounded TSS with an out-of-range I/O bitmap.
@@ -278,8 +278,7 @@ Limine base revision 6 defines the privileged entry, page-table roots and
 Rust target ABI. The retained provenance reports the same requested revision.
 The normal product completed two independent emulator boots, retaining its
 text-and-timer result and native Patchbay projection. This establishes the
-boot facts needed to construct domains; LoongArch64 protected execution is
-still unfinished.
+boot facts needed to construct domains.
 
 The reviewed LoongArch virtual profile now supplies a fresh, finite 4 KiB
 cryptographic input from Linux `getrandom` through a private emulator firmware
@@ -292,6 +291,35 @@ state restoration, finite capacity and consumed-storage erasure; a missing-input
 boot checked refusal and cleared output. The normal product also completed two
 boots with the host input integration. This is local virtual-platform provider
 evidence, not a physical LoongArch RNG or a protected-execution claim.
+
+The ordinary LoongArch text region now uses the shared production adapter at
+PLV3. Root creates fixed four-level 4 KiB address spaces, boundedly verifies
+inherited high-half leaves for PLV0-only access, removes inherited low mappings,
+and admits only immutable code/constants, the shared frame and a private stack.
+Root owns a stackless, bounded TLB refill walk which stops at missing directories
+and retains all page protections, including NX. The private exception stack
+does not rely on the application stack. The syscall gate checks the exact
+instruction from Root's immutable admitted code copy at the bounded saved PC.
+All scalar floating registers, FCSR and condition flags are restored before
+Root Rust or its IRQ handler executes. The independent countdown budget returns
+unresponsive entries after three interrupts while retaining a Source timer wake.
+
+`cargo xtask make conduitos loongarch64-ordinary-domain-proof` passed two normal
+product boots and two instrumented boots. The normal original text/timer Source
+completed with three PLV3 entries, one exact UART capability operation and
+completion revocation; its receipt records 126,976 backend bytes, 22,382 Root
+metadata bytes and `rdtime` timing. Twenty-three independent memory, privilege,
+gate, loop and invalid-stack cases passed, as did the shared capability/lifecycle
+refusals, floating-state comparison and Source timer coexistence.
+
+These results use a locally built QEMU 10.2.1 with the two reviewed
+[diagnostic corrections](../../targets/conduitos/proof/tools/loongarch64/README.md).
+Stock QEMU marks MISC read-only; Root returns the explicit
+`protected-execution-unsupported` refusal before application entry. A second
+emulator correction prevents recursive faults while recording inaccessible
+instructions. The receipt records the actual emulator version and executable
+digest. This diagnostic proof does not establish stock-emulator support,
+physical execution or accepted-release parity.
 
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.

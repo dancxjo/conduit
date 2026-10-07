@@ -26,6 +26,7 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         refuse("unavailable-or-stale-trap-controller");
     }
     let boot_record = boot::normalize_boot().unwrap_or_else(|error| refuse(error.as_str()));
+    arch::initialize_domains(&boot_record);
     let arena = boot_record
         .hhdm_offset
         .checked_add(boot_record.runtime_arena.physical_start)
@@ -128,7 +129,11 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         None,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
-    let before = BOOT_ARENA.seal();
+    let before = if cfg!(feature = "ordinary-domain-proof") {
+        BOOT_ARENA.used()
+    } else {
+        BOOT_ARENA.seal()
+    };
     let (mut clock, mut timer, mut serial, mut interrupts, mut idle) = (
         arch::Clock::new(),
         arch::Timer::new(),
@@ -148,6 +153,8 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     if BOOT_ARENA.used() != before {
         refuse("allocation-during-play");
     }
+    #[cfg(feature = "ordinary-domain-proof")]
+    conduitos::loongarch64_domain_proof::run(&prepared.plan, &offer);
     arch::present(b"CONDUIT_LOONGARCH64_PRODUCT {\"schema\":\"conduit.conduitos/loongarch64-product@1\",\"status\":\"ready\",\"profile_id\":\"");
     arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");

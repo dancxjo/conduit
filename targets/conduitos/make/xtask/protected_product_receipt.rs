@@ -19,6 +19,7 @@ fn validate(cost: &Value, product: &Value, architecture: &str) -> Result<(), Con
         "ia32" => (131072, "tsc"),
         "aarch64" => (126976, "cntvct"),
         "riscv64" => (118784, "time"),
+        "loongarch64" => (126976, "rdtime"),
         _ => return Err(refusal("unreviewed product domain architecture")),
     };
     if cost["schema"] != "conduit.conduitos/domain-cost@1"
@@ -160,6 +161,29 @@ mod tests {
             let mut altered = cost.clone();
             altered[field] = replacement;
             assert!(validate(&altered, &product, "riscv64").is_err(), "{field}");
+        }
+    }
+    #[test]
+    fn loongarch64_cost_requires_its_own_storage_clock_and_current_owner() {
+        let (mut cost, product) = records();
+        cost["architecture"] = json!("loongarch64");
+        cost["reserved_bytes"] = json!(126976);
+        cost["teardown_zeroed_bytes"] = json!(126976);
+        cost["tick_unit"] = json!("rdtime");
+        assert!(validate(&cost, &product, "loongarch64").is_ok());
+        for (field, replacement) in [
+            ("reserved_bytes", json!(118784)),
+            ("tick_unit", json!("time")),
+            ("plan_id", json!("stale")),
+            ("play_id", json!("stale")),
+            ("teardown_zeroed_bytes", json!(0)),
+        ] {
+            let mut altered = cost.clone();
+            altered[field] = replacement;
+            assert!(
+                validate(&altered, &product, "loongarch64").is_err(),
+                "{field}"
+            );
         }
     }
 }

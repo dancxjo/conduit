@@ -124,6 +124,10 @@ pub fn consumed_storage_erased() -> bool {
     let state = unsafe { &*POOL.0.get() };
     state.bytes[..state.used].iter().all(|byte| *byte == 0)
 }
+#[cfg(feature = "ordinary-domain-proof")]
+pub fn storage_address() -> u64 {
+    core::ptr::addr_of!(POOL) as u64
+}
 fn select(index: u16) {
     unsafe {
         SELECT.write_volatile(index.to_be());

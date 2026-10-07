@@ -12,6 +12,13 @@ use super::{
 
 static TIMER_ARM_PENDING: AtomicBool = AtomicBool::new(false);
 
+#[cfg(feature = "ordinary-domain-proof")]
+pub(super) fn start_pending_source_timer() {
+    if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) && !timer_arm() {
+        super::emergency_halt();
+    }
+}
+
 pub struct Clock(u64);
 impl Clock {
     pub const fn new() -> Self {
@@ -49,9 +56,11 @@ impl TimerBase for Timer {
         Ok(token)
     }
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError> {
+        let interest = self.slots.cancel(token)?;
         self.active = None;
         TIMER_ARM_PENDING.store(false, Ordering::Release);
-        self.slots.cancel(token)
+        super::domain_budget::source_cancel();
+        Ok(interest)
     }
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError> {
         match pop_interrupt() {
@@ -79,6 +88,10 @@ impl Serial {
     }
 }
 impl SerialBase for Serial {
+    fn provider_generation(&self) -> Option<u64> {
+        // One fixed Boot-owned UART provider; replacement requires a new Boot.
+        Some(1)
+    }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         present(bytes);
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;

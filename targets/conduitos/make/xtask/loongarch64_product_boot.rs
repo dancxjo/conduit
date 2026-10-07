@@ -73,6 +73,9 @@ fn boot_once(
     {
         return Err(refusal("profile-built-make-mismatch", product.to_string()));
     }
+    let mut product = product;
+    product["ordinary_domain"] =
+        super::protected_product_receipt::capture(&text, &product, "loongarch64")?;
     let snapshot = parse_one(&text, OBSERVATORY_PREFIX, "Observatory")?;
     conduit_observatory::validate_snapshot(
         &serde_json::from_value(snapshot.clone()).map_err(invalid)?,

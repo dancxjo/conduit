@@ -32,6 +32,11 @@ The supported RISC-V64 emulator proof runs the same normal text region in
 U-mode, verifies twenty-two independent boundary cases and the shared
 capability/lifecycle checks, restores all floating registers and FCSR before
 Root Rust code executes, and preserves one Source wake during budget preemption.
+The LoongArch64 text region now executes at PLV3 in a locally corrected
+diagnostic emulator, with twenty-three boundary cases, shared capability and
+lifecycle refusals, complete scalar floating/condition-state restoration and
+Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
+counter-disable control and receives `protected-execution-unsupported`.
 Other ordinary implementations and architectures remain unfinished.
 DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).

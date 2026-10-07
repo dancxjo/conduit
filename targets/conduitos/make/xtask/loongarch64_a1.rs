@@ -254,6 +254,10 @@ fn product_refusal(text: &str) -> Option<&str> {
         .find_map(|line| {
             line.trim_end_matches('\r')
                 .strip_prefix("CONDUIT_LOONGARCH64_PRODUCT_REFUSAL ")
+                .or_else(|| {
+                    line.trim_end_matches('\r')
+                        .strip_prefix("CONDUIT_LOONGARCH64_DOMAIN_REFUSAL ")
+                })
         })
 }
 
@@ -301,6 +305,9 @@ pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError>
         .root
         .join("target/conduitos/toolchain/riscv64-root/usr/bin/qemu-system-loongarch64");
     let qemu = [
+        paths
+            .root
+            .join("target/conduitos/toolchain/loongarch64-misc-drdtl/qemu-system-loongarch64"),
         local_qemu,
         PathBuf::from("/usr/bin/qemu-system-loongarch64"),
     ]
@@ -423,7 +430,7 @@ fn command(program: &str, args: &[&str], cwd: &Path) -> Result<(), ConduitosErro
     }
 }
 
-fn version(qemu: &Path, paths: &Paths) -> Result<String, ConduitosError> {
+pub(super) fn version(qemu: &Path, paths: &Paths) -> Result<String, ConduitosError> {
     let output = Command::new(qemu)
         .arg("--version")
         .current_dir(&paths.root)

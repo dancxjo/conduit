@@ -338,3 +338,10 @@ pub mod ia32_domain_proof;
     feature = "ordinary-domain-proof"
 ))]
 pub mod riscv64_domain_proof;
+
+#[cfg(all(
+    target_arch = "loongarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod loongarch64_domain_proof;

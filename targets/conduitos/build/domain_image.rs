@@ -22,6 +22,7 @@ pub fn generate() {
         "domain/probes_ia32.rs",
         "domain/probes_aarch64.rs",
         "domain/probes_riscv64.rs",
+        "domain/probes_loongarch64.rs",
         "domain/probe_gate.rs",
         "domain/linker.ld",
         "src/text_transform.rs",
@@ -40,6 +41,9 @@ pub fn generate() {
                 && env::var_os("CARGO_FEATURE_AARCH64_ORANGE_PI_5").is_none()
         }
         "riscv64" => target_os == "none" && env::var_os("CARGO_FEATURE_RISCV64_PRODUCT").is_some(),
+        "loongarch64" => {
+            target_os == "none" && env::var_os("CARGO_FEATURE_LOONGARCH64_PRODUCT").is_some()
+        }
         _ => false,
     };
     if protected {
@@ -113,7 +117,7 @@ pub fn generate() {
         .env("CARGO_ENCODED_RUSTFLAGS", flags.join("\u{1f}"));
     if matches!(
         architecture.as_str(),
-        "x86_64" | "x86" | "aarch64" | "riscv64"
+        "x86_64" | "x86" | "aarch64" | "riscv64" | "loongarch64"
     ) && env::var_os("CARGO_FEATURE_ORDINARY_DOMAIN_PROOF").is_some()
     {
         compiler.args(["--features", "proof"]);

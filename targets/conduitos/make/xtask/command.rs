@@ -112,6 +112,8 @@ pub(super) enum ConduitosCommand {
     Aarch64OrdinaryDomainProof,
     /// Prove ordinary RISC-V64 U-mode execution and independent boundary checks.
     Riscv64OrdinaryDomainProof,
+    /// Prove ordinary LoongArch64 PLV3 execution and independent boundary checks.
+    Loongarch64OrdinaryDomainProof,
     /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
     VirtioNetProof,
 }

@@ -18,6 +18,7 @@ use super::{
 pub(super) mod aarch64_domain;
 mod backbone;
 pub(super) mod ia32_domain;
+pub(super) mod loongarch64_domain;
 pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(

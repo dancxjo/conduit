@@ -169,3 +169,16 @@ pub use aarch64::{TextDomain, initialize_domains};
 pub use ia32::RdrandEntropy as DomainEntropy;
 #[cfg(target_arch = "x86_64")]
 pub use x86_64::RdrandEntropy as DomainEntropy;
+
+#[cfg(all(target_arch = "loongarch64", feature = "ordinary-domain-proof"))]
+pub use loongarch64::entropy_storage_address;
+#[cfg(all(
+    target_arch = "loongarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use loongarch64::start_pending_source_timer;
+#[cfg(target_arch = "loongarch64")]
+pub use loongarch64::{FwCfgEntropy as DomainEntropy, early_write};
+#[cfg(all(target_arch = "loongarch64", feature = "loongarch64-product"))]
+pub use loongarch64::{TextDomain, initialize_domains};
