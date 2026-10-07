@@ -1,6 +1,8 @@
 //! Native Host adapter around the one fixed production scheduler.
 mod effects;
 mod preparation;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protection;
 #[cfg(test)]
 mod tests;
 
@@ -54,6 +56,7 @@ struct Binding {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlayRefusal {
     Preparation,
+    Protection(crate::composition::MachineRunError),
     Kernel,
     Scheduler(conduit_kernel::scheduler::SchedulerError),
     HostFailure(conduit_kernel::Failure),
@@ -66,6 +69,7 @@ pub enum PlayRefusal {
 impl PlayRefusal {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Protection(error) => error.as_str(),
             Self::Preparation => "native-body-play-preparation-refused",
             Self::Kernel => "native-body-kernel-boundary-refused",
             Self::Scheduler(_) => "native-body-kernel-step-refused",
@@ -102,6 +106,12 @@ impl NativePresentation {
 }
 
 pub struct NativeWorksetPlay {
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    protected: [Option<
+        crate::text_protection::ProtectedText<crate::protected_region::BodyRegionBinding>,
+    >; PLOTS],
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    protection_admissions: [Option<crate::text_protection::BodyTextAdmission>; PLOTS],
     scheduler: Box<Scheduler>,
     bindings: [Option<Binding>; NODES],
     keymaps: [ConduitIntlKeymap; PLOTS],
@@ -115,6 +125,8 @@ pub struct NativeWorksetPlay {
     input_owners: [Option<AdmittedPlotInput>; PLOTS],
     plot_count: usize,
     cancelled: bool,
+    admitted_plan: conduit_core::PlanId,
+    active_body_play: Option<conduit_body::BodyPlayIdentity>,
 }
 
 impl NativeWorksetPlay {
@@ -156,8 +168,30 @@ impl NativeWorksetPlay {
         }
         Ok(())
     }
-    pub fn start(&mut self) -> Result<(), PlayRefusal> {
-        self.drive()
+    pub fn start_for(
+        &mut self,
+        plan: &conduit_body::BodyPlan,
+        play: &conduit_body::BodyPlayIdentity,
+    ) -> Result<(), PlayRefusal> {
+        if self.cancelled
+            || self.active_body_play.is_some()
+            || plan.plan_id != self.admitted_plan
+            || plan.verify_seal().is_err()
+            || !play.validate_for(plan)
+        {
+            return Err(PlayRefusal::Preparation);
+        }
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if let Err(error) = self.activate_protection(plan, play) {
+            let _ = self.cancel();
+            return Err(error);
+        }
+        self.active_body_play = Some(play.clone());
+        if let Err(error) = self.drive() {
+            let _ = self.cancel();
+            return Err(error);
+        }
+        Ok(())
     }
     pub fn sign_retention_gap(&self) -> Option<conduit_kernel::SignRetentionGap> {
         conduit_kernel::SignQuery::retention_gap(self.scheduler.signs())
@@ -302,6 +336,8 @@ impl NativeWorksetPlay {
         Ok(true)
     }
     pub fn cancel(&mut self) -> Result<(), PlayRefusal> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayCancelled);
         self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel)?;
         self.pending.fill(None);
         self.application_requests.fill(None);
@@ -309,6 +345,7 @@ impl NativeWorksetPlay {
         for keymap in &mut self.keymaps {
             keymap.reset();
         }
+        self.active_body_play = None;
         self.cancelled = true;
         Ok(())
     }
@@ -320,6 +357,14 @@ impl NativeWorksetPlay {
             .ok_or(PlayRefusal::Kernel)
     }
     fn drive(&mut self) -> Result<(), PlayRefusal> {
+        let result = self.drive_inner();
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err() {
+            self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayFailed);
+        }
+        result
+    }
+    fn drive_inner(&mut self) -> Result<(), PlayRefusal> {
         for _ in 0..512 {
             while let Some(request) = self.scheduler.next_host_request() {
                 let binding = self.binding(request.node)?;

@@ -2,22 +2,82 @@
 use crate::{
     arch::TextDomain,
     composition::MachineRunError,
-    protected_region::{DomainReturn, ProtectedRegion, RegionBinding},
+    protected_region::{DomainBinding, DomainReturn, ProtectedRegion, RegionBinding},
     protection_domain::{KernelCapabilityTable, KernelRevocationCause, ProtectionDomainId},
     text_upper::{MAXIMUM_BYTES, UppercaseText},
 };
 use conduit_core::{ActivePlayIdentity, Plan};
 use core::sync::atomic::{AtomicU32, Ordering};
 
+mod body;
+pub(crate) use body::BodyTextAdmission;
+
 static NEXT_DOMAIN: AtomicU32 = AtomicU32::new(1);
 pub(crate) const ROOT_METADATA_CEILING: u32 =
     core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>() as u32
         + 2 * (4 * 64 + 64);
 
-pub(crate) struct ProtectedText {
-    region: ProtectedRegion<TextDomain>,
+pub(crate) trait TextOwner: DomainBinding {
+    fn scope(
+        &self,
+        serial: &crate::domain_serial_scope::SerialScope,
+        generation: Option<u64>,
+    ) -> Result<
+        crate::protection_domain::KernelCapabilityScope,
+        crate::protected_region::DomainRefusal,
+    >;
+    fn region_id(&self) -> &str;
+    fn plan_id(&self) -> &str;
+    fn play_id(&self) -> &str;
+}
+
+impl TextOwner for RegionBinding {
+    fn scope(
+        &self,
+        serial: &crate::domain_serial_scope::SerialScope,
+        generation: Option<u64>,
+    ) -> Result<
+        crate::protection_domain::KernelCapabilityScope,
+        crate::protected_region::DomainRefusal,
+    > {
+        serial.current(self, generation)
+    }
+    fn region_id(&self) -> &str {
+        self.region.as_str()
+    }
+    fn plan_id(&self) -> &str {
+        self.active.plan_id.as_str()
+    }
+    fn play_id(&self) -> &str {
+        self.active.active_play_id.as_str()
+    }
+}
+impl TextOwner for crate::protected_region::BodyRegionBinding {
+    fn scope(
+        &self,
+        serial: &crate::domain_serial_scope::SerialScope,
+        generation: Option<u64>,
+    ) -> Result<
+        crate::protection_domain::KernelCapabilityScope,
+        crate::protected_region::DomainRefusal,
+    > {
+        serial.current_body(self, generation)
+    }
+    fn region_id(&self) -> &str {
+        self.region.as_str()
+    }
+    fn plan_id(&self) -> &str {
+        self.active.plan_id.as_str()
+    }
+    fn play_id(&self) -> &str {
+        self.active.active_play_id.as_str()
+    }
+}
+
+pub(crate) struct ProtectedText<I: TextOwner = RegionBinding> {
+    region: ProtectedRegion<TextDomain, I>,
     capabilities: KernelCapabilityTable,
-    current: RegionBinding,
+    current: I,
     serial: crate::domain_serial_scope::SerialScope,
     serial_handle: crate::protection_domain::KernelCapabilityHandle,
     diagnostic_fixture: bool,
@@ -98,6 +158,70 @@ impl ProtectedText {
             .map_err(MachineRunError::ProtectionDomain)?
             .preparation_cost(started, root_metadata_bytes);
         Ok(protected)
+    }
+}
+
+impl<I: TextOwner> ProtectedText<I> {
+    pub fn reset_keymap(&mut self) -> Result<(), MachineRunError> {
+        self.region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?
+            .initialize_keymap()
+            .map_err(MachineRunError::ProtectionDomain)?;
+        self.return_from_pure()
+    }
+
+    pub fn keymap(&mut self, input: &[u8]) -> Result<Option<UppercaseText>, MachineRunError> {
+        self.region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?
+            .keymap_input(input)
+            .map_err(MachineRunError::ProtectionDomain)?;
+        self.return_from_pure()?;
+        let backend = self
+            .region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?;
+        if backend.status() != 0 {
+            return Err(MachineRunError::KernelFailure);
+        }
+        let mut output = UppercaseText {
+            bytes: [0; MAXIMUM_BYTES],
+            len: 0,
+        };
+        output.len = backend
+            .output(&mut output.bytes)
+            .map_err(MachineRunError::ProtectionDomain)?;
+        if output.len > 4 || core::str::from_utf8(output.as_bytes()).is_err() {
+            self.region.fault(
+                crate::protected_region::DomainFault::InvalidGate,
+                &mut self.capabilities,
+            );
+            return Err(MachineRunError::ProtectionFault(
+                crate::protected_region::DomainFault::InvalidGate,
+            ));
+        }
+        Ok((output.len != 0).then_some(output))
+    }
+
+    fn return_from_pure(&mut self) -> Result<(), MachineRunError> {
+        match self
+            .region
+            .resume(&self.current, 1, &mut self.capabilities)
+            .map_err(MachineRunError::ProtectionDomain)?
+        {
+            DomainReturn::Yielded => Ok(()),
+            DomainReturn::Fault(fault) => Err(MachineRunError::ProtectionFault(fault)),
+            _ => {
+                self.region.fault(
+                    crate::protected_region::DomainFault::InvalidGate,
+                    &mut self.capabilities,
+                );
+                Err(MachineRunError::ProtectionFault(
+                    crate::protected_region::DomainFault::InvalidGate,
+                ))
+            }
+        }
     }
 
     pub fn uppercase(&mut self, input: &[u8]) -> Result<UppercaseText, MachineRunError> {
@@ -182,8 +306,8 @@ impl ProtectedText {
     ) -> Result<(), MachineRunError> {
         use crate::protected_region::DomainFault;
         let current = self
-            .serial
-            .current(&self.current, serial.provider_generation())
+            .current
+            .scope(&self.serial, serial.provider_generation())
             .map_err(|refusal| {
                 self.revoke(KernelRevocationCause::BaseReplaced);
                 MachineRunError::ProtectionDomain(refusal)
@@ -235,7 +359,7 @@ impl ProtectedText {
         let lease = self
             .capabilities
             .authorize_current(
-                self.current.domain,
+                self.current.domain(),
                 crate::protection_domain::KernelCapabilityHandle::from_untrusted(raw),
                 &current,
                 claim,
@@ -250,8 +374,8 @@ impl ProtectedText {
             return Err(MachineRunError::SerialBaseFailure);
         }
         if self
-            .serial
-            .current(&self.current, serial.provider_generation())
+            .current
+            .scope(&self.serial, serial.provider_generation())
             .is_err()
         {
             self.revoke(KernelRevocationCause::BaseReplaced);
@@ -312,7 +436,7 @@ fn capability_table(generation: u64) -> Result<KernelCapabilityTable, MachineRun
     table
 }
 
-impl Drop for ProtectedText {
+impl<I: TextOwner> Drop for ProtectedText<I> {
     fn drop(&mut self) {
         self.revoke(KernelRevocationCause::PlayCancelled);
         use core::fmt::Write;
@@ -322,8 +446,8 @@ impl Drop for ProtectedText {
         }
         let mut sign = crate::sign_format::FixedText::new();
         if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"x86_64\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"tsc\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
-            self.current.region.as_str(), self.current.active.plan_id.as_str(),
-            self.current.active.active_play_id.as_str(), self.current.domain.0, self.diagnostic_fixture, self.region.state(),
+            self.current.region_id(), self.current.plan_id(),
+            self.current.play_id(), self.current.domain().0, self.diagnostic_fixture, self.region.state(),
             cost.entries, cost.interrupt_entries, cost.source_timer_interrupts, cost.privilege_transitions, cost.gate_transitions, cost.copied_bytes, cost.setup_copied_bytes,
             cost.base_gate_transitions, cost.tlb_flushes, cost.setup_ticks, cost.teardown_ticks,
             cost.teardown_zeroed_bytes, cost.shared_peak_bytes, cost.root_metadata_bytes, cost.address_space_switches,

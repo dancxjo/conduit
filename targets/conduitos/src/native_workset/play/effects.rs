@@ -16,6 +16,14 @@ impl NativeWorksetPlay {
             .map_err(|_| PlayRefusal::Kernel)?;
         match binding.effect {
             Effect::Keymap => {
+                #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                if let Some(domain) = &mut self.protected[plot] {
+                    let result = domain.keymap(input);
+                    return match result {
+                        Ok(text) => self.output(request, text.as_ref().map(|text| text.as_bytes())),
+                        Err(error) => self.protected_failure(request, error),
+                    };
+                }
                 let event = KeyEvent::decode(input).map_err(|_| PlayRefusal::Kernel)?;
                 match self.keymaps[plot].apply(event) {
                     KeymapDisposition::Text(text) => {
@@ -31,6 +39,16 @@ impl NativeWorksetPlay {
                 }
             }
             Effect::Upper => {
+                #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                let text = match self.protected[plot]
+                    .as_mut()
+                    .ok_or(PlayRefusal::Preparation)?
+                    .uppercase(input)
+                {
+                    Ok(text) => text,
+                    Err(error) => return self.protected_failure(request, error),
+                };
+                #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
                 let text = crate::text_upper::uppercase(input).map_err(|_| PlayRefusal::Kernel)?;
                 self.output(request, Some(text.as_bytes()))
             }
@@ -51,6 +69,15 @@ impl NativeWorksetPlay {
             }
             Effect::Presentation => {
                 let text = NativePresentation::new(input)?;
+                if self.presentations[plot].is_some() {
+                    return Err(PlayRefusal::InputPressure);
+                }
+                #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                if let Some(domain) = &mut self.protected[plot] {
+                    if let Err(error) = domain.present(input, &mut crate::arch::Serial::new()) {
+                        return self.protected_failure(request, error);
+                    }
+                }
                 self.output(request, None)?;
                 if self.presentations[plot].replace(text).is_some() {
                     return Err(PlayRefusal::InputPressure);
@@ -150,7 +177,7 @@ impl NativeWorksetPlay {
         Err(PlayRefusal::HostFailure(Failure { code, detail }))
     }
 
-    fn complete_failure(
+    pub(super) fn complete_failure(
         &mut self,
         request: HostCallRequest,
         code: FailureCode,
@@ -170,6 +197,8 @@ impl NativeWorksetPlay {
     }
 
     pub fn input_lost(&mut self) -> Result<(), PlayRefusal> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.revoke_protection(crate::protection_domain::KernelRevocationCause::ProviderLost);
         for request in self.pending.into_iter().flatten() {
             self.complete_failure(request, FailureCode::HostCallFailed, 81)?;
         }

@@ -17,6 +17,7 @@ pub struct TextDomain {
     space: AddressSpace,
     cost: DomainCost,
     quarantined: bool,
+    keymap_initialized: bool,
     #[cfg(feature = "ordinary-domain-proof")]
     gate_probe: (u32, u64),
 }
@@ -48,6 +49,7 @@ impl TextDomain {
                 ..DomainCost::default()
             },
             quarantined: false,
+            keymap_initialized: false,
             #[cfg(feature = "ordinary-domain-proof")]
             gate_probe: (0, 0),
         })
@@ -91,6 +93,20 @@ impl TextDomain {
     }
     pub fn status(&mut self) -> u32 {
         self.space.frame().status
+    }
+    pub fn initialize_keymap(&mut self) -> Result<(), DomainRefusal> {
+        self.input(&[])?;
+        self.space.frame().command = 3;
+        self.keymap_initialized = false;
+        Ok(())
+    }
+    pub fn keymap_input(&mut self, input: &[u8]) -> Result<(), DomainRefusal> {
+        if !self.keymap_initialized {
+            return Err(DomainRefusal::InvalidLifecycle);
+        }
+        self.input(input)?;
+        self.space.frame().command = 4;
+        Ok(())
     }
     pub fn presentation(&mut self, input: &[u8], handle: u64) -> Result<(), DomainRefusal> {
         self.input(input)?;
@@ -153,6 +169,13 @@ impl DomainBackend for TextDomain {
         self.cost.address_space_switches += 2;
         self.cost.tlb_flushes += 2;
         let result = domain_transition::enter(&self.space)?;
+        if self.space.frame().command == 3
+            && self.space.frame().status == 0
+            && result.origin == 0
+            && result.value == 0
+        {
+            self.keymap_initialized = true;
+        }
         self.cost.scheduler_returns += 1;
         let (budget_irqs, source_irqs) = super::domain_budget::user_interrupts();
         let interrupts = u64::from(budget_irqs) + u64::from(source_irqs);

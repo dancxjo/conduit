@@ -1,0 +1,23 @@
+[package]
+name = "conduitos-domain"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+resolver = "2"
+
+[[bin]]
+name = "conduitos-domain"
+path = "main.rs"
+
+[dependencies]
+conduit-human = { path = "../../../semantics/human" }
+
+[features]
+proof = []
+
+[profile.release]
+panic = "abort"
+opt-level = 2
+codegen-units = 1
+lto = false

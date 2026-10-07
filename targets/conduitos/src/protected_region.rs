@@ -54,6 +54,18 @@ impl RegionBinding {
     }
 }
 
+/// Root-selected execution identity; native Body Plays retain their own identity.
+pub trait DomainBinding: Clone + Eq {
+    fn domain(&self) -> ProtectionDomainId;
+}
+impl DomainBinding for RegionBinding {
+    fn domain(&self) -> ProtectionDomainId {
+        self.domain
+    }
+}
+mod body_binding;
+pub use body_binding::BodyRegionBinding;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DomainRefusal {
     Unsupported,
@@ -173,16 +185,16 @@ pub enum DomainState {
     Faulted(DomainFault),
 }
 
-pub struct ProtectedRegion<B: DomainBackend> {
-    binding: RegionBinding,
+pub struct ProtectedRegion<B: DomainBackend, I: DomainBinding = RegionBinding> {
+    binding: I,
     backend: B,
     state: DomainState,
 }
 
-impl<B: DomainBackend> ProtectedRegion<B> {
+impl<B: DomainBackend, I: DomainBinding> ProtectedRegion<B, I> {
     /// Called only after the backend installs the admitted code/state/stack
     /// and explicit bounded windows with processor-enforced permissions.
-    pub fn installed(binding: RegionBinding, backend: B) -> Self {
+    pub fn installed(binding: I, backend: B) -> Self {
         Self {
             binding,
             backend,
@@ -190,7 +202,7 @@ impl<B: DomainBackend> ProtectedRegion<B> {
         }
     }
 
-    pub fn binding(&self) -> &RegionBinding {
+    pub fn binding(&self) -> &I {
         &self.binding
     }
     pub fn state(&self) -> DomainState {
@@ -208,7 +220,7 @@ impl<B: DomainBackend> ProtectedRegion<B> {
 
     pub fn resume(
         &mut self,
-        current: &RegionBinding,
+        current: &I,
         maximum_work: u32,
         capabilities: &mut KernelCapabilityTable,
     ) -> Result<DomainReturn, DomainRefusal> {
@@ -250,7 +262,7 @@ impl<B: DomainBackend> ProtectedRegion<B> {
         if !matches!(self.state, DomainState::Ready | DomainState::Suspended) {
             return;
         }
-        capabilities.revoke_domain(self.binding.domain, cause);
+        capabilities.revoke_domain(self.binding.domain(), cause);
         self.backend.quarantine();
         self.state = DomainState::Revoked(cause);
     }

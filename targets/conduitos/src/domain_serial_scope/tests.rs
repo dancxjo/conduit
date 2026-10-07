@@ -82,3 +82,69 @@ fn exact_selected_provider_and_offer_replacements_refuse_before_issuance() {
         );
     }
 }
+
+#[test]
+fn native_scope_uses_aggregate_body_identity_and_refuses_replacement() {
+    use crate::{native_workset, protected_region::BodyRegionBinding};
+    let (ids, fixed) = native_workset::tests::fixture();
+    let wake = native_workset::tests::wake(&native_workset::inventory());
+    let prepared = native_workset::prepare(&wake, &ids, &fixed, "build").unwrap();
+    let plan = prepared.plan();
+    let plot = native_workset::resident(native_workset::NativePlot::KeyboardCanvas).unwrap();
+    let partition = plan.plots.iter().find(|p| p.plot == plot).unwrap();
+    let fragment = &partition.plan.fragments[0];
+    let play = conduit_body::BodyPlayIdentity::bind(plan, 9);
+    let binding = BodyRegionBinding::admit(
+        plan,
+        &play,
+        &plot,
+        &fragment.host_id,
+        &fragment.boot_id,
+        &fragment.execution_regions[0].region_id,
+        ProtectionDomainId(1),
+    )
+    .unwrap();
+    let scope = SerialScope::admit_body(plan, &binding, &fixed).unwrap();
+    assert_eq!(scope.scope.maximum_operations, 8);
+    let pending = SerialScope::prepare_body(
+        plan,
+        &plot,
+        &binding.host,
+        &binding.boot,
+        &binding.region,
+        &fixed,
+    )
+    .unwrap();
+    assert_eq!(pending.scope.play, [0; 32]);
+    assert!(pending.current_body(&binding, Some(1)).is_err());
+    let activated = pending.activate_body(plan, &binding).unwrap();
+    assert_eq!(activated.scope, scope.scope);
+    assert!(activated.activate_body(plan, &binding).is_err());
+    let mut wrong_owner = binding.clone();
+    wrong_owner.plot = native_workset::resident(native_workset::NativePlot::MemoryLantern).unwrap();
+    assert!(scope.current_body(&wrong_owner, Some(1)).is_err());
+    assert!(pending.activate_body(plan, &wrong_owner).is_err());
+
+    assert_eq!(
+        scope.scope.plan,
+        identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()])
+    );
+    assert_ne!(
+        scope.scope.plan,
+        parse_identity(partition.plan.plan_id.as_str()).unwrap()
+    );
+    assert_eq!(scope.current_body(&binding, Some(1)), Ok(scope.scope));
+    assert!(scope.current_body(&binding, Some(2)).is_err());
+    let mut other = binding.clone();
+    other.active = conduit_body::BodyPlayIdentity::bind(plan, 10);
+    assert!(scope.current_body(&other, Some(1)).is_err());
+    assert_ne!(
+        SerialScope::admit_body(plan, &other, &fixed)
+            .unwrap()
+            .scope
+            .play,
+        scope.scope.play
+    );
+    other.partition_plan = "00".repeat(32).into();
+    assert!(SerialScope::admit_body(plan, &other, &fixed).is_err());
+}

@@ -13,12 +13,13 @@ preserves older proof receipts and limitations.
 for the ordered actions, captured screens, and exact emulator evidence.
 
 Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
-is in progress: a local x86_64 emulator run exercised checked ordinary text
-Source with its computation in CPL3 and serial presentation admitted through
-a scoped domain capability gate. Seventeen hostile entries and malformed
-capability/lifecycle requests returned to Root; other product paths and
-architectures are unfinished,
-and DMA/driver isolation remain false. This is not accepted-release evidence.
+is in progress: local x86_64 emulator proofs exercise checked text Source and
+the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
+presentation. The keyboard domain binds the actual Body Plan and Play; Stop
+revokes it. Seventeen hostile entries, malformed capability requests and
+retained Compose state are checked. Pure-chain batching, other product paths
+and architectures remain unfinished. DMA/driver isolation remain false; this
+is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
 
 ## What exists

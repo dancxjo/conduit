@@ -2,7 +2,7 @@
 use crate::{
     machine::BaseKind,
     offer::{BaseProviderBinding, HostOffer, TEXT_PRESENTATION_IMPLEMENTATION},
-    protected_region::{DomainRefusal, RegionBinding},
+    protected_region::{BodyRegionBinding, DomainRefusal, RegionBinding},
     protection_domain::KernelCapabilityScope,
 };
 use conduit_core::Plan;
@@ -10,12 +10,74 @@ use sha2::{Digest, Sha256};
 
 pub const SERIAL_PRESENT_OPERATION: u32 = 7;
 
+#[derive(Clone, Copy)]
 pub struct SerialScope {
     pub scope: KernelCapabilityScope,
     pub provider: BaseProviderBinding,
+    body_owner: Option<[u8; 32]>,
 }
 
 impl SerialScope {
+    /// Validate the selected Body partition before activation. No handle is
+    /// issued here; the active Body Play replaces the empty play field later.
+    pub fn prepare_body(
+        plan: &conduit_body::BodyPlan,
+        plot: &conduit_body::ResidentPlot,
+        host: &conduit_core::HostId,
+        boot: &conduit_core::BootId,
+        region: &conduit_core::ExecutionRegionId,
+        fixed: &HostOffer<'_>,
+    ) -> Result<Self, DomainRefusal> {
+        plan.verify_seal()
+            .map_err(|_| DomainRefusal::WrongBinding)?;
+        let partition = plan
+            .plots
+            .iter()
+            .find(|partition| &partition.plot == plot)
+            .ok_or(DomainRefusal::WrongBinding)?;
+        let mut prepared = Self::admit_selected(
+            &partition.plan,
+            host,
+            boot,
+            region,
+            identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()]),
+            [0; 32],
+            fixed,
+        )?;
+        prepared.body_owner = Some(body_owner(plot, region));
+        Ok(prepared)
+    }
+
+    pub fn activate_body(
+        &self,
+        plan: &conduit_body::BodyPlan,
+        binding: &BodyRegionBinding,
+    ) -> Result<Self, DomainRefusal> {
+        if BodyRegionBinding::admit(
+            plan,
+            &binding.active,
+            &binding.plot,
+            &binding.host,
+            &binding.boot,
+            &binding.region,
+            binding.domain,
+        )? != *binding
+            || self.scope.plan != identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()])
+            || self.scope.host != parse_identity(binding.host.as_str())?
+            || self.scope.boot != parse_identity(binding.boot.as_str())?
+            || self.scope.play != [0; 32]
+            || self.body_owner != Some(body_owner(&binding.plot, &binding.region))
+        {
+            return Err(DomainRefusal::WrongBinding);
+        }
+        let mut active = *self;
+        active.scope.play = identity(
+            b"body-play",
+            &[binding.active.active_play_id.as_str().as_bytes()],
+        );
+        Ok(active)
+    }
+
     pub fn admit(
         plan: &Plan,
         binding: &RegionBinding,
@@ -23,19 +85,78 @@ impl SerialScope {
     ) -> Result<Self, DomainRefusal> {
         // Admission runs during preparation; no serialized Plan work occurs in Play.
         RegionBinding::admit(plan, &binding.active, &binding.region, binding.domain)?;
+        let mut selected = Self::admit_selected(
+            plan,
+            &binding.active.host_id,
+            &binding.active.boot_id,
+            &binding.region,
+            parse_identity(binding.active.plan_id.as_str())?,
+            parse_identity(binding.active.active_play_id.as_str())?,
+            fixed,
+        )?;
+        // This ordinary literal composition emits one value. The presentation
+        // kind's larger configured ceiling does not grant additional effects.
+        selected.scope.maximum_operations = 1;
+        Ok(selected)
+    }
+
+    pub fn admit_body(
+        plan: &conduit_body::BodyPlan,
+        binding: &BodyRegionBinding,
+        fixed: &HostOffer<'_>,
+    ) -> Result<Self, DomainRefusal> {
+        let admitted = BodyRegionBinding::admit(
+            plan,
+            &binding.active,
+            &binding.plot,
+            &binding.host,
+            &binding.boot,
+            &binding.region,
+            binding.domain,
+        )?;
+        if admitted != *binding {
+            return Err(DomainRefusal::WrongBinding);
+        }
+        let partition = plan
+            .plots
+            .iter()
+            .find(|partition| partition.plot == binding.plot)
+            .ok_or(DomainRefusal::WrongBinding)?;
+        let mut admitted = Self::admit_selected(
+            &partition.plan,
+            &binding.host,
+            &binding.boot,
+            &binding.region,
+            identity(b"body-plan", &[plan.plan_id.as_str().as_bytes()]),
+            identity(
+                b"body-play",
+                &[binding.active.active_play_id.as_str().as_bytes()],
+            ),
+            fixed,
+        )?;
+        admitted.body_owner = Some(body_owner(&binding.plot, &binding.region));
+        Ok(admitted)
+    }
+
+    fn admit_selected(
+        plan: &Plan,
+        host: &conduit_core::HostId,
+        boot: &conduit_core::BootId,
+        region_id: &conduit_core::ExecutionRegionId,
+        plan_id: [u8; 32],
+        play_id: [u8; 32],
+        fixed: &HostOffer<'_>,
+    ) -> Result<Self, DomainRefusal> {
         fixed.validate().map_err(|_| DomainRefusal::WrongBinding)?;
-        if binding.active.host_id.as_str() != crate::identity::hex(&fixed.host_id)
-            || binding.active.boot_id.as_str() != crate::identity::hex(&fixed.boot_id)
+        if host.as_str() != crate::identity::hex(&fixed.host_id)
+            || boot.as_str() != crate::identity::hex(&fixed.boot_id)
         {
             return Err(DomainRefusal::WrongBinding);
         }
         let fragment = plan
             .fragments
             .iter()
-            .find(|fragment| {
-                fragment.host_id == binding.active.host_id
-                    && fragment.boot_id == binding.active.boot_id
-            })
+            .find(|fragment| &fragment.host_id == host && &fragment.boot_id == boot)
             .ok_or(DomainRefusal::WrongBinding)?;
         if fragment.offer_generation.0 != fixed.generation {
             return Err(DomainRefusal::WrongBinding);
@@ -43,7 +164,7 @@ impl SerialScope {
         let region = fragment
             .execution_regions
             .iter()
-            .find(|region| region.region_id == binding.region)
+            .find(|region| &region.region_id == region_id)
             .ok_or(DomainRefusal::WrongBinding)?;
         let mut placements = fragment.placements.iter().filter(|placement| {
             placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
@@ -114,12 +235,24 @@ impl SerialScope {
             })
             .ok_or(DomainRefusal::WrongBinding)?;
         let _ = pool;
+        let maximum_operations = placement
+            .configuration
+            .iter()
+            .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+                ("maximum-values", conduit_core::ConfigurationValue::U64(value)) => {
+                    u32::try_from(*value)
+                        .ok()
+                        .filter(|value| (1..=8).contains(value))
+                }
+                _ => None,
+            })
+            .ok_or(DomainRefusal::WrongBinding)?;
         Ok(Self {
             scope: KernelCapabilityScope {
                 host: fixed.host_id,
                 boot: fixed.boot_id,
-                plan: parse_identity(binding.active.plan_id.as_str())?,
-                play: parse_identity(binding.active.active_play_id.as_str())?,
+                plan: plan_id,
+                play: play_id,
                 implementation: identity(
                     b"implementation",
                     &[
@@ -152,13 +285,35 @@ impl SerialScope {
                 maximum_parameter_bytes: call.maximum_input_bytes,
                 maximum_work_units: 1,
                 maximum_in_flight: 1,
-                maximum_operations: 1,
+                maximum_operations,
             },
             provider,
+            body_owner: None,
         })
     }
 
     /// The caller supplies current Root facts, never values from the user frame.
+    pub fn current_body(
+        &self,
+        binding: &BodyRegionBinding,
+        provider_generation: Option<u64>,
+    ) -> Result<KernelCapabilityScope, DomainRefusal> {
+        if self.body_owner != Some(body_owner(&binding.plot, &binding.region))
+            || provider_generation != Some(self.provider.provider_generation)
+            || identity(b"body-plan", &[binding.active.plan_id.as_str().as_bytes()])
+                != self.scope.plan
+            || identity(
+                b"body-play",
+                &[binding.active.active_play_id.as_str().as_bytes()],
+            ) != self.scope.play
+            || parse_identity(binding.host.as_str())? != self.scope.host
+            || parse_identity(binding.boot.as_str())? != self.scope.boot
+        {
+            return Err(DomainRefusal::WrongBinding);
+        }
+        Ok(self.scope)
+    }
+
     pub fn current(
         &self,
         binding: &RegionBinding,
@@ -174,6 +329,20 @@ impl SerialScope {
         }
         Ok(self.scope)
     }
+}
+
+fn body_owner(
+    plot: &conduit_body::ResidentPlot,
+    region: &conduit_core::ExecutionRegionId,
+) -> [u8; 32] {
+    identity(
+        b"body-region-owner",
+        &[
+            plot.source_document_id.as_str().as_bytes(),
+            plot.checked_plot_id.as_str().as_bytes(),
+            region.as_str().as_bytes(),
+        ],
+    )
 }
 
 fn identity(domain: &[u8], fields: &[&[u8]]) -> [u8; 32] {
