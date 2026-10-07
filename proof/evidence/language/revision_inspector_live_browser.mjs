@@ -21,10 +21,10 @@ try {
   console.log(JSON.stringify({ event: 'observer_attached', started, initial }));
   await page.waitForFunction(after => evidence.events.some((event, index) =>
     index >= after && event.event === 'snapshot' &&
-    typeof event.receipt?.beam_bytes === 'string' && event.receipt?.model_invocations > 0
+    (typeof (event.receipt ?? event).beam_bytes === 'string' || Array.isArray((event.receipt ?? event).beam_bytes)) && (event.receipt ?? event).model_invocations > 0
   ), initial.count, { timeout: 60 * 60 * 1000 });
   const observed = await page.evaluate(after => {
-    const index = evidence.events.findIndex((event, index) => index >= after && event.event === 'snapshot' && typeof event.receipt?.beam_bytes === 'string' && event.receipt?.model_invocations > 0);
+    const index = evidence.events.findIndex((event, index) => index >= after && event.event === 'snapshot' && (typeof (event.receipt ?? event).beam_bytes === 'string' || Array.isArray((event.receipt ?? event).beam_bytes)) && (event.receipt ?? event).model_invocations > 0);
     document.getElementById('event').value = index;
     document.getElementById('event').dispatchEvent(new Event('input'));
     return { index, event: evidence.events[index], observation: window.liveObservation };
@@ -34,8 +34,10 @@ try {
   const actual = complete.split('\n').filter(line => line.trim()).map(JSON.parse);
   assert.deepEqual(observed.event, actual[observed.index]);
   const displayed = JSON.parse(await page.locator('#raw').textContent());
-  assert.deepEqual(displayed.receipt, observed.event.receipt);
-  assert(observed.event.receipt.candidates.length > 0);
+  const receipt = observed.event.receipt ?? observed.event;
+  assert.deepEqual(observed.event.receipt ? displayed.receipt : displayed, receipt);
+  assert(receipt.candidates.length > 0);
+  if (Array.isArray(receipt.beam_bytes)) assert(receipt.beam_bytes.length > 0 && receipt.beam_bytes.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255));
   assert.deepEqual(errors, []);
   await page.screenshot({ path: join(output, 'actual-native-snapshot.png'), fullPage: true });
   const result = {
