@@ -141,4 +141,12 @@ pub use generated::{
     LanguageParserWindow8RawWalk, LanguageParserWindow8RootCount, LanguageParserWindow8StateProof,
     LanguageParserWindow8WalkQuery,
 };
+pub use generated::{
+    LanguageParserWindow8Available, LanguageParserWindow8CodeQuery,
+    LanguageParserWindow8Completion, LanguageParserWindow8Features, LanguageParserWindow8Lexical,
+    LanguageParserWindow8Ordinal, LanguageParserWindow8RawCodes, LanguageParserWindow8RawContext,
+    LanguageParserWindow8RawFeatureContext, LanguageParserWindow8RawFeatureQuery,
+    LanguageParserWindow8RawModelFeatures, LanguageParserWindow8RawProjection,
+    LanguageParserWindow8RawRequest, LanguageParserWindow8RawResult,
+};
 pub mod parser_window8;

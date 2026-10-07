@@ -56,6 +56,40 @@ fn main() {
         ),
         ("language-window8-walk-follow", "window8_walk_follow.hex"),
         ("language-window8-root-count", "window8_root_count.hex"),
+        ("language-window8-move-context", "window8_move_context.hex"),
+        (
+            "language-window8-move-legal-shift",
+            "window8_move_legal_shift.hex",
+        ),
+        (
+            "language-window8-move-legal-reduce",
+            "window8_move_legal_reduce.hex",
+        ),
+        (
+            "language-window8-move-legal-left",
+            "window8_move_legal_left.hex",
+        ),
+        (
+            "language-window8-move-legal-right-root",
+            "window8_move_legal_right_root.hex",
+        ),
+        (
+            "language-window8-move-legal-right-nonroot",
+            "window8_move_legal_right_nonroot.hex",
+        ),
+        ("language-window8-move-apply", "window8_move_apply.hex"),
+        ("language-window8-complete", "window8_complete.hex"),
+        ("language-window8-available", "window8_available.hex"),
+        ("language-window8-empty-codes", "window8_empty_codes.hex"),
+        ("language-window8-token-codes", "window8_token_codes.hex"),
+        (
+            "language-window8-feature-context",
+            "window8_feature_context.hex",
+        ),
+        (
+            "language-window8-feature-values",
+            "window8_feature_values.hex",
+        ),
         ("language/vocative-discourse", "discourse_program.hex"),
         ("language/vocative-prosody", "rich_prosody_program.hex"),
         ("language/fallback-prosody", "fallback_prosody_program.hex"),
