@@ -202,6 +202,108 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
 }
 
 #[test]
+fn retained_nonvisual_client_changes_the_owner_terminal_wardrobe() {
+    let state = std::env::temp_dir().join(format!(
+        "conduit-screen-free-wardrobe-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&state).unwrap();
+    seed_installation(&state);
+    let mut service = start_service(&state);
+    let born = product_with_stdin(
+        &[
+            "body",
+            "birth",
+            "--screen-free",
+            "--state-dir",
+            path(&state),
+        ],
+        b"focus creche.plot.1\nedit value true\nactivate\nfocus creche.birth\nactivate\nquit\n",
+    );
+    assert!(
+        born.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&born.stderr),
+        String::from_utf8_lossy(&born.stdout)
+    );
+    let body_id = host_service_status(&state)["body_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    // A second foreground terminal is a genuine owner-selected provider. Its
+    // open connection holds the route while the nonvisual client changes the
+    // same service-owned wardrobe through authenticated local control.
+    let mut terminal = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .args([
+            "body",
+            "terminal",
+            "--state-dir",
+            path(&state),
+            "--owner-show",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut terminal_input = terminal.stdin.take().unwrap();
+    let mut terminal_output = terminal.stdout.take().unwrap();
+    let attached = read_until_prompt(
+        &mut terminal_output,
+        b"browser selection awaits a complete carrier-Line Mask Plan.\n",
+    );
+    assert!(attached.contains("Owner terminal Show"), "{attached}");
+
+    let changed = product_with_stdin(
+        &["body", "screen-free", "--state-dir", path(&state)],
+        b"wardrobe\nwardrobe doff terminal\nwardrobe wear terminal\nwardrobe prefer terminal\nwardrobe\nquit\n",
+    );
+    assert!(
+        changed.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&changed.stderr),
+        String::from_utf8_lossy(&changed.stdout)
+    );
+    let readout = String::from_utf8(changed.stdout).unwrap();
+    assert!(!readout.contains("Wardrobe refused"), "{readout}");
+    for revision in 0..=3 {
+        assert!(
+            readout.contains(&format!("Owner wardrobe revision {revision}.")),
+            "{readout}"
+        );
+    }
+    assert!(readout.contains("terminal on Host"), "{readout}");
+    assert!(readout.contains("Current Mask wardrobe"), "{readout}");
+    assert!(
+        readout.contains("No current Show is acknowledged"),
+        "{readout}"
+    );
+    assert!(
+        readout.contains("Current acknowledged Show: none"),
+        "{readout}"
+    );
+    assert_eq!(host_service_status(&state)["body_id"], body_id);
+
+    terminal_input.write_all(b"quit\n").unwrap();
+    let status = terminal.wait().unwrap();
+    let mut stderr = String::new();
+    terminal
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut stderr)
+        .unwrap();
+    assert!(status.success(), "terminal detachment: {stderr}");
+    stop_service(&mut service);
+    fs::remove_dir_all(state).unwrap();
+}
+
+#[test]
 fn post_birth_refuses_stale_activation_and_controls_clock() {
     let state = std::env::temp_dir().join(format!(
         "conduit-screen-free-stale-action-{}-{}",

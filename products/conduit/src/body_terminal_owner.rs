@@ -7,6 +7,8 @@ use conduit_presentation::{FaceInteraction, FaceInteractionArgument};
 use std::{
     io::{BufRead, Read, Write},
     path::Path,
+    thread,
+    time::{Duration, Instant},
 };
 
 const MAX_COMMAND_BYTES: u64 = 256;
@@ -37,12 +39,21 @@ pub(crate) fn run(
             let attached_boot = attached.advertisement.boot_id.clone();
             let attached_generation = attached.advertisement.offer_generation;
             drop(attached);
-            let (_, retired) = crate::durable_host_control::local_face_snapshot(state_dir)?;
-            if retired.host_id != attached_host
-                || retired.boot_id != attached_boot
-                || retired.offer_generation <= attached_generation
-            {
-                return Err("owner terminal detachment was not acknowledged".into());
+            // The service observes the closed provider socket on its next
+            // turn. Observe that retirement before reporting a clean exit.
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                let (_, retired) = crate::durable_host_control::local_face_snapshot(state_dir)?;
+                if retired.host_id != attached_host || retired.boot_id != attached_boot {
+                    return Err("owner terminal Host Boot changed during detachment".into());
+                }
+                if retired.offer_generation > attached_generation {
+                    break;
+                }
+                if Instant::now() >= deadline {
+                    return Err("owner terminal detachment was not acknowledged".into());
+                }
+                thread::sleep(Duration::from_millis(20));
             }
             return Ok(());
         }
