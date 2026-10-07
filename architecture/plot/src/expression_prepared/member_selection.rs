@@ -1,11 +1,12 @@
 //! Borrow nested exact members; only a structured final result needs scratch.
-use super::{storage_bound, Refusal};
+use super::{storage_bound, EvaluationInput, PreparedPortableExpressionEvaluator, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 
 pub(super) struct PreparedMemberSelection {
     steps: Vec<Member>,
+    source: Option<Box<PreparedPortableExpressionEvaluator>>,
     output_type: Vec<u8>,
     output: Vec<u8>,
     primitive: bool,
@@ -24,11 +25,12 @@ pub(super) fn prepare(
         node: &'a PortableExpressionNode,
         input: &StructuredInfoType,
         steps: &mut Vec<Member>,
+        computed: &mut Option<&'a PortableExpressionNode>,
     ) -> Result<&'a StructuredInfoType, Refusal> {
         match &node.operation {
             PortableExpressionOperation::Input if &node.value_type == input => Ok(&node.value_type),
             PortableExpressionOperation::Projection { value, member } => {
-                let source = collect(value, input, steps)?;
+                let source = collect(value, input, steps, computed)?;
                 let (selected, step) = match (source.shape(), member) {
                     (
                         StructuredInfoTypeShape::Record { fields, .. },
@@ -81,17 +83,32 @@ pub(super) fn prepare(
                 steps.push(step);
                 Ok(&node.value_type)
             }
-            _ => Err(Refusal::InvalidProgram),
+            _ => {
+                *computed = Some(node);
+                Ok(&node.value_type)
+            }
         }
     }
     let mut steps = Vec::new();
-    collect(node, input, &mut steps)?;
+    let mut computed = None;
+    collect(node, input, &mut steps, &mut computed)?;
     if steps.is_empty() {
         return Err(Refusal::InvalidProgram);
     }
     let primitive = is_primitive(&node.value_type);
+    let source = computed
+        .map(|node| {
+            PreparedPortableExpressionEvaluator::new(&crate::PortableExpressionProgram {
+                input_type: input.clone(),
+                output_type: node.value_type.clone(),
+                root: node.clone(),
+            })
+        })
+        .transpose()?
+        .map(Box::new);
     Ok(PreparedMemberSelection {
         steps,
+        source,
         output_type: node
             .value_type
             .canonical_bytes()
@@ -105,9 +122,16 @@ pub(super) fn prepare(
     })
 }
 impl PreparedMemberSelection {
-    pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
-        let mut value = conduit_core::validate_canonical_structured_value(input)
-            .map_err(|_| Refusal::InvalidInput)?;
+    pub(super) fn evaluate<'a>(
+        &'a mut self,
+        input: EvaluationInput<'a>,
+    ) -> Result<&'a [u8], Refusal> {
+        let mut value = if let Some(source) = &mut self.source {
+            conduit_core::validate_canonical_structured_value(source.evaluate_input(input)?)
+                .map_err(|_| Refusal::InvalidInput)?
+        } else {
+            input.structured()?
+        };
         for step in &self.steps {
             value = match step {
                 Member::Field(name) => value.record_field(name),

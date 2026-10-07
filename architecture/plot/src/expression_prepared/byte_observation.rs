@@ -1,6 +1,7 @@
 //! Observations of packed bytes retain their actual extent, without collection framing.
 use super::{
-    evaluate_node, prepare_node, primitive::PrimitiveValue, PreparedInput, PreparedNode, Refusal,
+    evaluate_node, prepare_node, primitive::PrimitiveValue, EvaluationInput, PreparedInput,
+    PreparedNode, Refusal,
 };
 use crate::PortableExpressionNode;
 use alloc::boxed::Box;
@@ -53,11 +54,12 @@ impl PreparedByteObservation {
         &mut self,
         input: &[u8],
         input_kind: Option<PrimitiveInfoKind>,
+        canonical: EvaluationInput<'_>,
     ) -> Result<PrimitiveValue<'_>, Refusal> {
-        let source = evaluate_node(&mut self.source, input, input_kind)?;
+        let source = evaluate_node(&mut self.source, input, input_kind, canonical)?;
         let bytes = source.as_slice();
         if let Some(index) = &mut self.index {
-            let index_value = evaluate_node(index, input, input_kind)?;
+            let index_value = evaluate_node(index, input, input_kind, canonical)?;
             let encoded = index_value.as_slice();
             let index = u64::from_le_bytes(encoded.try_into().map_err(|_| Refusal::InvalidInput)?);
             let index = usize::try_from(index).map_err(|_| Refusal::InvalidInput)?;

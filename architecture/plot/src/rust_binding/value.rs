@@ -20,6 +20,10 @@ pub enum NativeBindingRefusal {
     },
 }
 
+/// Allocating conformance entrance used by generated constructors. Supported
+/// laws share complete canonical-input validation; laws that cannot prepare
+/// retain the reference evaluator and original first-failure order. Bounded
+/// Play callers prepare a complete `PreparedNativeInvariantAdmission` instead.
 pub fn validate_native_invariants(
     value: &StructuredInfoValue,
     invariants: &[crate::PortableExpressionProgram],
@@ -27,11 +31,27 @@ pub fn validate_native_invariants(
     let input = value
         .canonical_bytes()
         .map_err(NativeBindingRefusal::InvalidValue)?;
+    let validated = crate::expression_prepared::PreparedCanonicalInput::new(&input).ok();
     for (index, invariant) in invariants.iter().enumerate() {
-        let result = invariant
-            .evaluate(&input)
-            .map_err(NativeBindingRefusal::InvalidInvariant)?;
-        let accepted = conduit_core::InfoBool::decode(&result)
+        let prepared = validated.as_ref().and_then(|input| {
+            crate::PreparedPortableExpressionEvaluator::new(invariant)
+                .ok()
+                .map(|evaluator| (input, evaluator))
+        });
+        let owned;
+        let mut evaluator;
+        let result = if let Some((input, prepared)) = prepared {
+            evaluator = prepared;
+            evaluator
+                .evaluate_canonical(input)
+                .map_err(NativeBindingRefusal::InvalidInvariant)?
+        } else {
+            owned = invariant
+                .evaluate(&input)
+                .map_err(NativeBindingRefusal::InvalidInvariant)?;
+            &owned
+        };
+        let accepted = conduit_core::InfoBool::decode(result)
             .map(conduit_core::InfoBool::get)
             .map_err(|_| {
                 NativeBindingRefusal::InvalidInvariant(
