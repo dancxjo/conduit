@@ -11,6 +11,7 @@ fn main() {
     println!("cargo:rerun-if-changed=revision_lineage.conduit");
     println!("cargo:rerun-if-changed=lexical.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
+    println!("cargo:rerun-if-changed=parser_window8.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=parser_scorer.conduit");
     println!("cargo:rerun-if-changed=parser_mask.conduit");
@@ -31,6 +32,7 @@ fn main() {
         include_str!("revision_lineage.conduit"),
         include_str!("lexical.conduit"),
         include_str!("parser.conduit"),
+        include_str!("parser_window8.conduit"),
         include_str!("parser_beam.conduit"),
         include_str!("parser_scorer.conduit"),
         include_str!("parser_mask.conduit"),
@@ -47,6 +49,13 @@ fn main() {
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
     for (plot, file) in [
+        ("language-window8-initialize", "window8_initialize.hex"),
+        (
+            "language-window8-walk-initialize",
+            "window8_walk_initialize.hex",
+        ),
+        ("language-window8-walk-follow", "window8_walk_follow.hex"),
+        ("language-window8-root-count", "window8_root_count.hex"),
         ("language/vocative-discourse", "discourse_program.hex"),
         ("language/vocative-prosody", "rich_prosody_program.hex"),
         ("language/fallback-prosody", "fallback_prosody_program.hex"),

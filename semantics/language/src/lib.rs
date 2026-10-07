@@ -134,3 +134,11 @@ pub use generated::{
 pub use generated::{
     LanguageParserRevisionContext, LanguageParserRevisionRefusal, LanguageParserRevisionResult,
 };
+
+// Independent finite eight-token structural profile.
+pub use generated::{
+    LanguageParserWindow8Ancestry, LanguageParserWindow8Begin, LanguageParserWindow8RawState,
+    LanguageParserWindow8RawWalk, LanguageParserWindow8RootCount, LanguageParserWindow8StateProof,
+    LanguageParserWindow8WalkQuery,
+};
+pub mod parser_window8;
