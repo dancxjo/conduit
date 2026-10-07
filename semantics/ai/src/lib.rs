@@ -210,6 +210,7 @@ pub mod fixed_numeric_pair_back;
 pub mod fixed_numeric_pair_catalog;
 pub mod fixed_numeric_preparation;
 mod fixed_numeric_signal_catalog;
+pub mod fixed_numeric_value_capacity;
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_window_back;
 

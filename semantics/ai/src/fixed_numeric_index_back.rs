@@ -1,4 +1,5 @@
 //! Explicit bounded slicing/gathering without speech wrapping or pitch policy.
+pub use crate::fixed_numeric_value_capacity::INDEX_IMPLEMENTATION;
 use crate::{
     fixed_neural::{fixed_gather, fixed_slice},
     fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
@@ -12,7 +13,6 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
-pub const INDEX_IMPLEMENTATION: &str = "conduit.numeric/scalar-explicit-index@1";
 pub const FLOW_INDEX_IMPLEMENTATION: &str = "conduit.numeric/closing-flow-index@1";
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FixedIndexOperation {
@@ -100,7 +100,9 @@ impl<const INPUT: usize, const OUTPUT: usize> FixedIndexBack<INPUT, OUTPUT> {
                 placement,
             )
         } else {
-            fixed_index_offer::<INPUT, OUTPUT>(operation)
+            fixed_index_offer::<INPUT, OUTPUT>(operation).and_then(|base| {
+                crate::fixed_numeric_value_capacity::value_offer_for_placement(base, placement)
+            })
         }
         .map_err(|_| {
             FixedIndexPreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)
