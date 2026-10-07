@@ -15,6 +15,39 @@ use std::{
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const N: usize = 1024;
 const C: usize = 2048;
+trait RuntimeTensor {
+    fn value_type(&self) -> &StructuredInfoType;
+    fn tensor(&self) -> &conduit_data::TensorValue;
+    fn adopt(
+        &self,
+    ) -> std::sync::Arc<conduit_ai::fixed_tensor_resource::AdmittedFixedTensorResource>;
+}
+impl RuntimeTensor for Resource {
+    fn value_type(&self) -> &StructuredInfoType {
+        &self.value_type
+    }
+    fn tensor(&self) -> &conduit_data::TensorValue {
+        &self.tensor
+    }
+    fn adopt(
+        &self,
+    ) -> std::sync::Arc<conduit_ai::fixed_tensor_resource::AdmittedFixedTensorResource> {
+        Resource::adopt(self)
+    }
+}
+impl RuntimeTensor for super::custody::RetainedTensor {
+    fn value_type(&self) -> &StructuredInfoType {
+        &self.value_type
+    }
+    fn tensor(&self) -> &conduit_data::TensorValue {
+        self.resource.tensor()
+    }
+    fn adopt(
+        &self,
+    ) -> std::sync::Arc<conduit_ai::fixed_tensor_resource::AdmittedFixedTensorResource> {
+        self.resource.clone()
+    }
+}
 enum Driver {
     Source {
         references: Vec<ValueRef>,
@@ -147,10 +180,10 @@ struct StreamResultAndTiming {
     cords: usize,
     drained: bool,
 }
-fn run_epoch_stream_plan(
+fn run_epoch_stream_plan<R: RuntimeTensor>(
     plan: Plan,
     context: &super::EpochProfiles,
-    resources: &Resources,
+    resources: &BTreeMap<String, R>,
     input_values: BTreeMap<String, Vec<Vec<u8>>>,
     seeded: Option<conduitos::seeded_state::SeededStateOperationFactory>,
     expected: usize,
@@ -215,7 +248,7 @@ fn run_epoch_stream_plan(
         .collect();
     for (name, resource) in resources {
         let binding =
-            FixedTensorPortBinding::prepare(&resource.value_type, &resource.tensor).unwrap();
+            FixedTensorPortBinding::prepare(resource.value_type(), resource.tensor()).unwrap();
         fixtures.insert(name.clone(), vec![store.store(binding.encoded()).unwrap()]);
     }
     let mut adopted = BTreeMap::new();
@@ -347,7 +380,8 @@ fn run_epoch_stream_plan(
     );
     let mut cord_specs: Vec<_> = lowered.cords.iter().map(|c| c.spec).collect();
     cord_specs.resize(C, conduit_kernel::scheduler::CordSpec::inactive());
-    let mut scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,1024,1024>::new_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(32768,32768*core::mem::size_of::<KernelEvent>()as u32).unwrap()).unwrap();
+    let sign_capacity = 32768u16;
+    let mut scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,1024,1024>::new_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(sign_capacity,(usize::from(sign_capacity)*core::mem::size_of::<KernelEvent>()) as u32).unwrap()).unwrap();
     let preparation = start.elapsed();
     let execute = Instant::now();
     let mut drained = false;
@@ -557,5 +591,65 @@ fn ordinary_signal_cycle_reuses_four_subframes_and_drains_final_feedback() {
             let pcm=v.record_field("pcm_i16").unwrap().unwrap();assert_eq!(pcm.collection_length().unwrap(),160);
         }
         eprintln!("synthetic closing signal cycle: planning{planning:?} ownerprep{:?} execute{:?} {} nodes {} cords; three160sample aggregates; no warmup/pretrained/nativeutterance claim",result.preparation,result.execution,result.nodes,result.cords);
+    }).unwrap().join().unwrap();
+}
+
+#[test]
+#[ignore = "private pinned scalar float oracle and model; set CONDUIT_FARGAN_MODEL_FIXTURE"]
+fn pinned_source_signal_cycle_retains_model_and_measures_free_running_error() {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+        use super::case_state::*;
+        use sha2::{Digest,Sha256};
+        let root=std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
+        let model=super::custody::RetainedSignalModel::load(&root);
+        let oracle=std::fs::read(root.join("subframe-float-oracle.bin")).unwrap();
+        assert_eq!(format!("{:x}",Sha256::digest(&oracle)),"bf52f0431af52435e775818d7e7fe65ccf8b6ff7de38e57eab4b0db9935feccf");
+        assert_eq!(oracle.len(),96*7180);
+        let records:Vec<_>=oracle.as_chunks::<7180>().0.iter().map(|record| {
+            let period=u16::try_from(i32::from_le_bytes(record[..4].try_into().unwrap())).unwrap();
+            let floats:Vec<_>=record[4..].as_chunks::<4>().0.iter().map(|v|f32::from_le_bytes(*v)).collect();assert!(floats.iter().all(|v|v.is_finite()));(period,floats)
+        }).collect();
+        let (context,seeded,ids)=super::prepared_signal_cycle_profiles_with_capacity(true);
+        for id in ids.values() {assert!(include_str!("../../../speech/fargan_signal_cycle.conduit").contains(id));}
+        let template=super::signal_cycle_template();
+        let checked_template=conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(&template),&context.startup).unwrap();
+        assert!(checked_template.plots.iter().any(|p|p.name=="speech/flow-fargan-signal-cycle"));
+        let material=model.basis_material(&template,b"pinned scalar oracle development; no native voice or linguistic commitment",&oracle);
+        let basis=semantic_digest("speech/fargan-signal-development-basis@1",&material);
+        let selected=super::custody::anchor_literal(&model,basis);
+        let source=template.replace("selected: FarganModelFrameAnchor\n",&format!("selected: FarganModelFrameAnchor = {selected}\n"));
+        let (plan,context)=super::prepare_authored_epoch_entry(context,source,"speech/flow-fargan-signal-cycle",true,seeded.offers().cloned().collect()).unwrap();
+        let definition=super::declarations::exact_epoch_declarations()+"\n"+include_str!("../../../speech/fargan_epoch_feedback.conduit");
+        let types=conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(&definition),&conduit_plot::StartupCatalog::new()).unwrap();
+        let ty=|name:&str|&types.native_types.iter().find(|t|t.name==name).unwrap().value_type;
+        fn record(ty:&StructuredInfoType,mut field:impl FnMut(&str,&StructuredInfoType)->StructuredInfoValue)->StructuredInfoValue {
+            match ty.shape() {StructuredInfoTypeShape::Nominal {representation,..}=>StructuredInfoValue::nominal(ty.clone(),record(representation,field)).unwrap(),StructuredInfoTypeShape::Record {fields,..}=>StructuredInfoValue::record(ty.clone(),fields.iter().map(|f|StructuredFieldValue::new(f.name(),field(f.name(),f.value_type())).unwrap()).collect()).unwrap(),_=>panic!("record")}
+        }
+        fn u16value(ty:&StructuredInfoType,x:u16)->StructuredInfoValue {match ty.shape(){StructuredInfoTypeShape::Nominal {representation,..}=>StructuredInfoValue::nominal(ty.clone(),u16value(representation,x)).unwrap(),_=>StructuredInfoValue::leaf(ty.clone(),x.to_le_bytes().to_vec()).unwrap()}}
+        let prior=State::from_oracle(&records[0].1[80..917]);
+        let seed=record(ty("FarganSignalEpochFeedback"),|name,ty|match name {"state"=>StructuredInfoValue::from_canonical_bytes(&prior.encode(ty)).unwrap(),"conditioned_period"=>u16value(ty,records[0].0),"next_epoch"=>StructuredInfoValue::leaf(ty.clone(),0u64.to_le_bytes().to_vec()).unwrap(),_=>panic!("seed field")}).canonical_bytes().unwrap();
+        let events:Vec<_>=records.as_chunks::<4>().0.iter().enumerate().map(|(epoch,group)| {
+            assert!(group.iter().all(|r|r.0==group[0].0));
+            let condition:Vec<_>=group.iter().flat_map(|r|r.1[..80].iter().copied()).collect();
+            let next=records.get((epoch+1)*4).map_or(group[0].0,|r|r.0);
+            record(ty("FarganSignalConditionEpoch"),|name,ty|match name {"condition"=>vector(ty,&condition),"next_period"=>u16value(ty,next),"epoch"=>StructuredInfoValue::leaf(ty.clone(),(epoch as u64).to_le_bytes().to_vec()).unwrap(),_=>panic!("event field")}).canonical_bytes().unwrap()
+        }).collect();
+        let result=run_epoch_stream_plan(plan,&context,&model.resources,BTreeMap::from([("seed".into(),vec![seed]),("events".into(),events)]),Some(seeded),24,ExecutionMode::Normal).expect("pinned signal cycle must commit24 frames and final returned state");
+        assert!(result.drained);
+        let mut maximum_pcm=0i32;let mut pcm_squared=0f64;let mut maximum_state=0f32;
+        for (epoch,value) in result.values.iter().enumerate() {
+            let actual=field(value,"pcm_i16");let StructuredInfoValueShape::Collection(actual)=actual.shape() else {panic!("pcm")};
+            let expected:Vec<_>=records[epoch*4..epoch*4+4].iter().flat_map(|r|r.1[917..957].iter()).map(|sample|(sample.clamp(-1.,32767./32768.)*32768.).round() as i16).collect();
+            for (sample,expected) in actual.iter().zip(expected) {let StructuredInfoValueShape::Leaf(raw)=sample.shape() else {panic!("I16")};let error=(i32::from(i16::from_le_bytes(raw.try_into().unwrap()))-i32::from(expected)).abs();maximum_pcm=maximum_pcm.max(error);pcm_squared+=f64::from(error).powi(2);}
+            let state=State::from_result(value).flattened();let expected=&records[epoch*4+3].1[957..];
+            for (a,b) in state.iter().zip(expected) {maximum_state=maximum_state.max((a-b).abs());}
+        }
+        eprintln!("pinned free-running signal24epochs: maxPCM16error={maximum_pcm}, RMSPCM16error={}, maxstateabs={maximum_state}, prep{:?}, execute{:?}; C-conditioning inputs and C-warmed seed; no Source startup/native utterance/bit parity claim",(pcm_squared/(24.*160.)).sqrt(),result.preparation,result.execution);
+        // Empirical regression bounds for this pinned24epoch trace only.
+        // Same float storage does not imply C activation/rounding parity.
+        assert!(maximum_state.is_finite() && maximum_state <= 0.006);
+        assert!(maximum_pcm <= 1);
+        assert!((pcm_squared/(24.*160.)).sqrt() <= 0.15);
+        assert_eq!(result.values.len(),24);
     }).unwrap().join().unwrap();
 }
