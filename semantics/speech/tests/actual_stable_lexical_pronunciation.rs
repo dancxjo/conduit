@@ -48,11 +48,41 @@ fn readmit_checked(value: &StructuredInfoValue) -> LanguageParserWindow8CheckedH
 #[test]
 #[ignore = "requires actual available Partial receipt via CONDUIT_AVAILABLE_LEXICAL_RECEIPT"]
 fn actual_partial_verb_fact_reaches_source_pronunciation_with_whole_custody() {
-    let row: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(std::env::var("CONDUIT_AVAILABLE_LEXICAL_RECEIPT").unwrap()).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(row["text"], "I record the ");
+    check_actual(
+        "CONDUIT_AVAILABLE_LEXICAL_RECEIPT",
+        "I record the ",
+        1,
+        1,
+        LanguageLexicalPos::Verb,
+        1,
+    );
+}
+
+#[test]
+#[ignore = "requires actual recorded dep3 fact via CONDUIT_AVAILABLE_NOUN_LEXICAL_RECEIPT"]
+fn actual_partial_noun_fact_reaches_source_pronunciation_with_whole_custody() {
+    check_actual(
+        "CONDUIT_AVAILABLE_NOUN_LEXICAL_RECEIPT",
+        "I record the record ",
+        3,
+        0,
+        LanguageLexicalPos::Noun,
+        0,
+    );
+}
+
+fn check_actual(
+    receipt_variable: &str,
+    text: &str,
+    expected_dependent: u64,
+    choice: u64,
+    pos: LanguageLexicalPos,
+    pronunciation_row: usize,
+) {
+    let row: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(std::env::var(receipt_variable).unwrap()).unwrap())
+            .unwrap();
+    assert_eq!(row["text"], text);
     assert_eq!(row["complete"], false);
     assert!(row["lexical_fact_refusal"].is_null());
     let bytes = hex(row["lexical_fact_bytes"].as_str().unwrap());
@@ -94,7 +124,7 @@ fn actual_partial_verb_fact_reaches_source_pronunciation_with_whole_custody() {
     let dependent = u64::from_le_bytes(dependent_bytes.try_into().unwrap());
     let fresh_query = LanguageParserWindow8FactQuery::new(dependent, fresh_snapshot).unwrap();
     let fact = LanguageParserWindow8StableLexicalFact::new(fresh_query).unwrap();
-    assert_eq!(*fact.query().dependent(), 1);
+    assert_eq!(*fact.query().dependent(), expected_dependent);
     let fresh_bytes = fact.clone().encode().unwrap();
     assert_eq!(
         LanguageParserWindow8StableLexicalFact::decode(&fresh_bytes).unwrap(),
@@ -106,7 +136,7 @@ fn actual_partial_verb_fact_reaches_source_pronunciation_with_whole_custody() {
         *native_tape.source().finality(),
         LanguageTextFinality::Partial
     );
-    assert_eq!(native_tape.source().material().text(), "I record the ");
+    assert_eq!(native_tape.source().material().text(), text);
     let hypotheses = [
         snapshot.candidate0().hypothesis(),
         snapshot.candidate1().hypothesis(),
@@ -116,10 +146,13 @@ fn actual_partial_verb_fact_reaches_source_pronunciation_with_whole_custody() {
     assert!(hypotheses.iter().all(|hypothesis| *hypothesis.active()));
     assert!(hypotheses
         .iter()
-        .all(|hypothesis| hypothesis.choices()[1] == 1));
-    assert!(hypotheses.iter().any(|hypothesis| {
-        hypothesis.state().heads()[..native_tape.tokens().len()].contains(&9)
-    }));
+        .all(|hypothesis| *hypothesis.selected() > expected_dependent
+            && hypothesis.choices()[expected_dependent as usize] == choice));
+    if expected_dependent == 1 {
+        assert!(hypotheses.iter().any(|hypothesis| {
+            hypothesis.state().heads()[..native_tape.tokens().len()].contains(&9)
+        }));
+    }
     let lexical = conduit_language::lexical::prepare_lexical_tape(
         native_tape.source(),
         native_tape.profile(),
@@ -128,13 +161,22 @@ fn actual_partial_verb_fact_reaches_source_pronunciation_with_whole_custody() {
     .unwrap();
     let selection = prepare_stable_lexical_selection(&lexical, &fact).unwrap();
     assert!(std::ptr::eq(selection.fact(), &fact));
-    assert_eq!(*selection.candidate().pos(), LanguageLexicalPos::Verb);
+    assert_eq!(*selection.candidate().pos(), pos);
     assert_eq!(selection.candidate().lemma(), "record");
     let profile = speech_fixture::profile();
     let pronunciation = prepare_stable_lexical_pronunciation(&selection, &profile).unwrap();
     assert!(std::ptr::eq(pronunciation.selection().fact(), &fact));
-    assert_eq!(*pronunciation.row_selection().index(), 1);
-    assert_eq!(pronunciation.result().phones(), profile.rows()[1].phones());
-    assert_ne!(pronunciation.result().phones(), profile.rows()[0].phones());
+    assert_eq!(
+        *pronunciation.row_selection().index(),
+        pronunciation_row as u64
+    );
+    assert_eq!(
+        pronunciation.result().phones(),
+        profile.rows()[pronunciation_row].phones()
+    );
+    assert_ne!(
+        pronunciation.result().phones(),
+        profile.rows()[1 - pronunciation_row].phones()
+    );
     assert_eq!(pronunciation.request().candidate(), selection.candidate());
 }
