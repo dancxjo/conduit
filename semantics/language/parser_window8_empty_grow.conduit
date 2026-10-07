@@ -1,0 +1,38 @@
+type LanguageParserWindow8EmptyPrefix = {
+    state: LanguageParserWindow8RawState
+    lexical: LanguageParserWindow8Lexical
+    basis: LanguageParserBasis
+    where .lexical.token_count == 0 && .state.token_count == 0
+    where variant/is(.lexical.tape.source.finality,"partial")
+    where .state.unread == 0 && .state.committed == 0 && .state.depth == 1
+    where .state.stack.0 == 8 && .state.stack.1 == 8 && .state.stack.2 == 8 && .state.stack.3 == 8 && .state.stack.4 == 8 && .state.stack.5 == 8 && .state.stack.6 == 8 && .state.stack.7 == 8 && .state.stack.8 == 8
+    where .state.heads.0 == 9 && .state.heads.1 == 9 && .state.heads.2 == 9 && .state.heads.3 == 9 && .state.heads.4 == 9 && .state.heads.5 == 9 && .state.heads.6 == 9 && .state.heads.7 == 9 && .state.heads.8 == 8
+    where !variant/is(.state.relation0.base,"root") && !variant/is(.state.relation1.base,"root") && !variant/is(.state.relation2.base,"root") && !variant/is(.state.relation3.base,"root") && !variant/is(.state.relation4.base,"root") && !variant/is(.state.relation5.base,"root") && !variant/is(.state.relation6.base,"root") && !variant/is(.state.relation7.base,"root")
+    where .state.basis.text == .basis.text && .state.basis.source_revision == .basis.source_revision && .state.basis.analysis_revision == .basis.analysis_revision
+    where .basis.text == .lexical.tape.source.material.identity && .basis.source_revision == .lexical.tape.source.material.revision
+}
+# First complete token after an exact partial prefix with no complete tokens.
+# No closed provisional tree, protected fact, or playback authority is reopened.
+type LanguageParserWindow8EmptyGrowContext = {
+    previous: LanguageParserWindow8EmptyPrefix
+    next: LanguageParserWindow8Lexical
+    lineage: LanguageTextRevisionLineage
+    basis: LanguageParserBasis
+    choices: collection U64 = 8
+    selected: U64 in 0..=8
+    where .previous.lexical.token_count == 0
+    where .previous.state.token_count == 0
+    where .previous.state.unread == 0 && .previous.state.committed == 0
+    where .previous.state.depth == 1 && .previous.state.stack.0 == 8
+    where .previous.state.heads.8 == 8
+    where .selected == 0
+    where .choices.0 == 0 && .choices.1 == 0 && .choices.2 == 0 && .choices.3 == 0 && .choices.4 == 0 && .choices.5 == 0 && .choices.6 == 0 && .choices.7 == 0
+    where .lineage.previous == .previous.lexical.tape.source && .lineage.next == .next.tape.source
+    where .previous.lexical.tape.profile == .next.tape.profile
+    where .next.token_count > 0
+    where .basis.text == .next.tape.source.material.identity && .basis.source_revision == .next.tape.source.material.revision
+    where .basis.analysis_revision != .previous.basis.analysis_revision
+}
+plot language-window8-empty-grow (
+    input: LanguageParserWindow8EmptyGrowContext...| >> output: LanguageParserWindow8GrowProposal...|
+) = { state: { basis: .basis, token_count: .next.token_count, unread: .previous.state.unread, depth: .previous.state.depth, stack: .previous.state.stack, heads: .previous.state.heads, committed: .previous.state.committed, relation0: .previous.state.relation0, relation1: .previous.state.relation1, relation2: .previous.state.relation2, relation3: .previous.state.relation3, relation4: .previous.state.relation4, relation5: .previous.state.relation5, relation6: .previous.state.relation6, relation7: .previous.state.relation7 }, choices: .choices, selected: .selected }
