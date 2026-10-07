@@ -70,13 +70,9 @@ fn startup_domains_retain_separate_exact_native_admissions() {
     for (name, id) in ids {
         assert!(source.contains(&id), "exact startup {name}");
     }
-    assert!(context
-        .native
-        .iter()
-        .all(
-            |profile| maximum_prepared_transport_value_bytes(profile.value_type()).unwrap()
-                <= 16384
-        ));
+    assert!(context.native.iter().all(|profile| {
+        maximum_prepared_transport_value_bytes(profile.value_type()).unwrap() <= 16384
+    }));
     let checked = check_syntax_document(&parse_syntax_document(source), &context.startup).unwrap();
     let graph = expand_canonical_plot_for_authoring(
         &checked,
@@ -85,4 +81,102 @@ fn startup_domains_retain_separate_exact_native_admissions() {
     )
     .unwrap();
     assert_eq!(graph.expanded.gears.len(), 9);
+}
+
+#[test]
+fn native_pcm_alignment_is_checked_source_with_exact_variable_block_bounds() {
+    let source = declarations::exact_epoch_declarations()
+        + "\n"
+        + &include_str!("../../../speech/fargan_native_pcm_alignment.conduit")
+            .replace("native_epochs: U64\n", "native_epochs: U64 = 63\n");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let aligned = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "FarganAlignedPcmBlock")
+        .unwrap();
+    assert!(maximum_prepared_transport_value_bytes(&aligned.value_type).unwrap() < 4096);
+    let graph = expand_canonical_plot_for_authoring(
+        &checked,
+        "speech/fargan-native-pcm-alignment",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
+    let ConfigurationValue::Text(hex) = &graph.expanded.gears[0].configuration[0].value else {
+        panic!("alignment Source")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let fixture = declarations::fixture_value(&program.input_type);
+    let StructuredInfoValueShape::Record(fields) = fixture.shape() else {
+        panic!("PCM epoch")
+    };
+    fn ramp(ty: &StructuredInfoType) -> StructuredInfoValue {
+        match ty.shape() {
+            StructuredInfoTypeShape::Nominal { representation, .. } => {
+                StructuredInfoValue::nominal(ty.clone(), ramp(representation)).unwrap()
+            }
+            StructuredInfoTypeShape::Collection { element, length } => {
+                StructuredInfoValue::collection(
+                    ty.clone(),
+                    (0..length)
+                        .map(|index| {
+                            StructuredInfoValue::leaf(
+                                element.clone(),
+                                i16::try_from(index).unwrap().to_le_bytes().to_vec(),
+                            )
+                            .unwrap()
+                        })
+                        .collect(),
+                )
+                .unwrap()
+            }
+            _ => panic!("exact PCM ramp"),
+        }
+    }
+    for (epoch, count) in [(1u64, 80usize), (2, 160), (63, 160), (64, 80)] {
+        let input = StructuredInfoValue::record(
+            program.input_type.clone(),
+            fields
+                .iter()
+                .map(|field| {
+                    let value = if field.name() == "epoch" {
+                        StructuredInfoValue::leaf(
+                            field.value().value_type().clone(),
+                            epoch.to_le_bytes().to_vec(),
+                        )
+                        .unwrap()
+                    } else if field.name() == "pcm_i16" {
+                        ramp(field.value().value_type())
+                    } else {
+                        field.value().clone()
+                    };
+                    StructuredFieldValue::new(field.name(), value).unwrap()
+                })
+                .collect(),
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        let reference = program.evaluate(&input).unwrap();
+        assert_eq!(prepared.evaluate(&input).unwrap(), reference);
+        let output = StructuredInfoValue::from_canonical_bytes(&reference).unwrap();
+        let StructuredInfoValueShape::Collection(values) =
+            super::case_state::field(&output, "samples").shape()
+        else {
+            panic!("aligned PCM")
+        };
+        assert_eq!(values.len(), count);
+        let expected_start = if epoch == 1 { 80 } else { 0 };
+        for (value, expected) in values.iter().zip(expected_start..expected_start + count) {
+            let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                panic!("I16")
+            };
+            assert_eq!(
+                i16::from_le_bytes(bytes.try_into().unwrap()),
+                i16::try_from(expected).unwrap()
+            );
+        }
+    }
 }
