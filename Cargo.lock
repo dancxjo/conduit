@@ -1665,6 +1665,7 @@ dependencies = [
 name = "conduitos"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-audio",
  "conduit-birth-plot",
  "conduit-body",

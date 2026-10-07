@@ -305,3 +305,8 @@ pub mod tour_workspace;
 mod protocol_kernel_fixture;
 
 pub mod protocol_boot;
+
+/// Exact generic numerical owners shared with hosted execution. Optional images
+/// select these explicitly; this does not include or adopt any model weights.
+#[cfg(all(feature = "fixed-numeric-owners", target_has_atomic = "ptr"))]
+pub use conduit_ai::operation_owners as fixed_numeric_owners;

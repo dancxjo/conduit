@@ -1,5 +1,5 @@
 use super::*;
-use conduit_ai::fixed_numeric_operations_back::*;
+use crate::fixed_numeric_operations_back::*;
 pub(super) fn select(
     kind: &str,
     planned: Option<(&PlannedGear, u16)>,

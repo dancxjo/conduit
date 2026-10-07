@@ -1,6 +1,6 @@
 use super::*;
-use conduit_ai::fixed_numeric_preparation::fixed_affine_offer;
-use conduit_ai::{
+use crate::fixed_numeric_preparation::fixed_affine_offer;
+use crate::{
     fixed_numeric_back::*, fixed_numeric_linear_back::*, fixed_numeric_operations_back::*,
 };
 pub(super) fn select(
