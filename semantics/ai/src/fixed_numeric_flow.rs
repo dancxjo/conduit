@@ -213,3 +213,34 @@ impl<const INPUT: usize, const OUTPUT: usize, const PORTS: usize> StepBack<PORTS
         self.cancelled = true;
     }
 }
+
+/// Install explicit closing-Flow affine identities, retaining immutable tensor Value ports.
+pub fn install_affine_flow_catalogs(
+    startup: &mut conduit_plot::StartupCatalog,
+    profiles: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    for mut kind in fixed_numeric_contracts()?
+        .into_iter()
+        .filter(|kind| kind.kind_id.as_str().starts_with("numeric/dense"))
+    {
+        kind.kind_id = kind_id(&kind.kind_id.as_str().replacen(
+            "numeric/dense",
+            "numeric/flow-dense",
+            1,
+        ));
+        kind.kind_contract_revision = KindIdentity::from("conduit.numeric/closing-flow-affine@1");
+        kind.inputs
+            .iter_mut()
+            .find(|p| p.port_id.as_str() == "value")
+            .ok_or("affine value port")?
+            .temporal = PortTemporal::Flow { closes: true };
+        kind.outputs[0].temporal = PortTemporal::Flow { closes: true };
+        startup.insert(conduit_plot::KindSignature {
+            kind: kind.kind_id.as_str().into(),
+            startup_parameters: alloc::vec![],
+        })?;
+        startup.insert_fore(kind.kind_id.as_str(), kind.checked_front())?;
+        profiles.insert_kind(kind).map_err(|e| format!("{e:?}"))?;
+    }
+    Ok(())
+}

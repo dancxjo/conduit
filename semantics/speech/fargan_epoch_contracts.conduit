@@ -1,0 +1,57 @@
+# Four40-sample phases consume four80-value conditioning slices per10ms epoch.
+# Consumed conditioning is discarded at each phase; provisional PCM is retained.
+# The complete admitted model/session/intent receipts stay session-owned; exact
+# bounded frame anchors and epoch are carried through every authored phase.
+# Conditioning128 and feature641 next-state proposals remain outside these
+# records and cannot replace externally committed truth before finalPCM16 ACK.
+type FarganPcmPrefix120 = collection NumericFiniteF32 = 120
+
+type FarganFloatEpochInput = {
+    condition: NumericF32Vector320
+    conditioned_period: FarganPeriod
+    next_period: FarganPeriod
+    state: FarganSubframeState
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
+type FarganFloatPhase1 = {
+    condition: NumericF32Vector240
+    pcm_prefix: NumericF32Vector40
+    conditioned_period: FarganPeriod
+    next_period: FarganPeriod
+    state: FarganSubframeState
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
+type FarganFloatPhase2 = {
+    condition: NumericF32Vector160
+    pcm_prefix: NumericF32Vector80
+    conditioned_period: FarganPeriod
+    next_period: FarganPeriod
+    state: FarganSubframeState
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
+type FarganFloatPhase3 = {
+    condition: NumericF32Vector80
+    pcm_prefix: FarganPcmPrefix120
+    conditioned_period: FarganPeriod
+    next_period: FarganPeriod
+    state: FarganSubframeState
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
+type FarganFloatEpochProposal = {
+    pcm_f32: NumericF32Vector160
+    next_state: FarganSubframeState
+    next_period: FarganPeriod
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
+type FarganPcm16EpochResult = {
+    pcm_i16: NumericI16Vector160
+    next_state: FarganSubframeState
+    next_period: FarganPeriod
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
