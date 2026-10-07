@@ -768,7 +768,6 @@ try {
         [changedTerminal, selectedWardrobe], [
           await media('terminal', report.terminal_show, changedTerminal,
             'Installed owner terminal Show and typed clock action', report.terminal_show),
-          await chromium('browser-after-terminal.png', changedTerminal, 'Browser Face after terminal action', browserTerminal),
           await chromium('browser-wardrobe.png', selectedWardrobe, 'Browser wardrobe after preference change', browserWardrobe),
         ]),
       chapter('hear', 'Hear it', 'Listen to the current Face and its explanation.',
