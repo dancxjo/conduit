@@ -8,12 +8,18 @@ pub struct ProtectionDomainId(pub u32);
 pub struct KernelCapabilityHandle(pub(super) u64);
 
 impl KernelCapabilityHandle {
-    #[cfg(feature = "conduitos-isolation-proof")]
+    #[cfg(any(
+        feature = "conduitos-isolation-proof",
+        all(target_os = "none", target_arch = "x86_64")
+    ))]
     pub(crate) const fn raw_for_domain(self) -> u64 {
         self.0
     }
 
-    #[cfg(feature = "conduitos-isolation-proof")]
+    #[cfg(any(
+        feature = "conduitos-isolation-proof",
+        all(target_os = "none", target_arch = "x86_64")
+    ))]
     pub(crate) const fn from_untrusted(raw: u64) -> Self {
         Self(raw)
     }
@@ -74,10 +80,30 @@ pub enum KernelCapabilityRefusal {
     StaleLease,
 }
 
+impl KernelCapabilityRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidTable => "domain-capability-table-invalid",
+            Self::InvalidScope => "domain-capability-scope-invalid",
+            Self::TableFull => "domain-capability-table-full",
+            Self::UnknownHandle => "domain-capability-unknown-handle",
+            Self::WrongDomain => "domain-capability-wrong-domain",
+            Self::WrongScope => "domain-capability-wrong-current-scope",
+            Self::ParameterEnvelope => "domain-capability-parameter-envelope",
+            Self::WorkEnvelope => "domain-capability-work-envelope",
+            Self::InFlightFull => "domain-capability-in-flight-full",
+            Self::Exhausted => "domain-capability-operation-exhausted",
+            Self::Revoked => "domain-capability-revoked",
+            Self::StaleLease => "domain-capability-stale-lease",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KernelRevocationCause {
     PlayCancelled,
     PlayCompleted,
+    PlayFailed,
     PlanReplaced,
     AuthorityRevoked,
     ResourceReplaced,

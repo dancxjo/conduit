@@ -100,7 +100,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         || sign["privilege"] != "ring3"
         || sign["ordinary_source"] != true
         || sign["protected_computation"] != true
-        || sign["effect_capability_gates"] != false
+        || sign["effect_capability_gates"] != true
         || sign["dma_isolation"] != false
         || sign["driver_isolation"] != false
         || sign["bounded"] != true
@@ -116,12 +116,21 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "the ordinary text result was not independently observed",
         ));
     }
-    if !transcript.lines().any(|line| line == "CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop fp code-write data-execute") {
+    if !transcript.lines().any(|line| line == "CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute") {
         return Err(ConduitosError::refusal("ordinary-domain-negatives-absent", "all hostile entries must fault or return within the timer bound"));
+    }
+    if !transcript.lines().any(|line| line == "CONDUIT_DOMAIN_GATE_NEGATIVES unknown-handle sibling-handle wrong-operation oversized-window excessive-work invalid-capacity invalid-utf8 forged-fault replay exhausted-operations revoked-lifecycle provider-loss provider-replacement") {
+        return Err(ConduitosError::refusal("ordinary-domain-gate-negatives-absent",
+            "hostile capability requests and lifecycle events must be independently refused"));
     }
     let costs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_DOMAIN_COST "))
+        .filter(|line| {
+            serde_json::from_str::<serde_json::Value>(line)
+                .map(|value| value["fixture"] != true)
+                .unwrap_or(true)
+        })
         .collect::<Vec<_>>();
     if costs.len() != 1 {
         return Err(ConduitosError::refusal(
@@ -132,10 +141,20 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let cost: serde_json::Value = serde_json::from_str(costs[0]).map_err(|error| {
         ConduitosError::refusal("ordinary-domain-cost-invalid", error.to_string())
     })?;
-    if cost["entries"] != 1
-        || cost["gate_transitions"] != 1
-        || cost["address_space_switches"] != 2
-        || cost["scheduler_returns"] != 1
+    if cost["entries"] != 3
+        || cost["gate_transitions"] != 3
+        || cost["address_space_switches"] != 6
+        || cost["scheduler_returns"] != 3
+        || cost["base_gate_transitions"] != 1
+        || cost["copied_bytes"]
+            != (conduitos::ordinary_plan::TEXT_LITERAL.len()
+                + 3 * conduitos::ordinary_plan::TEXT_RESULT.len()) as u64
+        || cost["tlb_flushes"] != 6
+        || cost["teardown_zeroed_bytes"] != 118784
+        || cost["shared_peak_bytes"]
+            != (conduitos::ordinary_plan::TEXT_LITERAL.len()
+                + conduitos::ordinary_plan::TEXT_RESULT.len()) as u64
+        || cost["ring_slots"] != 0
         || cost["state"] != "Revoked(PlayCompleted)"
         || cost["reserved_bytes"] != 118784
         || cost["dma_isolation"] != false

@@ -59,6 +59,7 @@ pub(super) struct AddressSpace {
     pub slot: usize,
     pub cr3: u64,
     pub entry: u64,
+    cleared: bool,
 }
 
 impl AddressSpace {
@@ -92,16 +93,29 @@ impl AddressSpace {
     pub fn trap_stack_top(&self) -> u64 {
         unsafe { core::ptr::addr_of!((*POOL.0.get())[self.slot].trap.0) as u64 + 16384 }
     }
-}
-
-impl Drop for AddressSpace {
-    fn drop(&mut self) {
+    pub fn quarantine(&mut self) -> u32 {
+        if self.cleared {
+            return 0;
+        }
         unsafe {
             let slot = &mut (*POOL.0.get())[self.slot];
             slot.frame.0.fill(0);
             slot.stack.0.fill(0);
             slot.trap.0.fill(0);
+            slot.code.0.fill(0);
+            slot.pml4.0.fill(0);
+            slot.pdpt.0.fill(0);
+            slot.pd.0.fill(0);
+            slot.pt.0.fill(0);
         }
+        self.cleared = true;
+        core::mem::size_of::<Slot>() as u32
+    }
+}
+
+impl Drop for AddressSpace {
+    fn drop(&mut self) {
+        self.quarantine();
         OWNED.fetch_and(!(1 << self.slot), Ordering::Release);
     }
 }
@@ -157,6 +171,7 @@ unsafe fn install(
         slot,
         cr3: physical(&slot_memory.pml4)?,
         entry: image.entry,
+        cleared: false,
     })
 }
 
@@ -175,7 +190,10 @@ pub(super) fn enable_no_execute() -> Result<(), DomainRefusal> {
     unsafe {
         asm!("rdmsr", in("ecx") 0xc000_0080u32, out("eax") low, out("edx") high,
             options(nostack, nomem));
-        asm!("wrmsr", in("ecx") 0xc000_0080u32, in("eax") low | (1 << 11), in("edx") high,
+        asm!("wrmsr", in("ecx") 0xc000_0080u32, in("eax") (low | (1 << 11)) & !1, in("edx") high,
+            options(nostack, nomem));
+        // Root exposes only the checked interrupt gate; disable alternate entries.
+        asm!("wrmsr", in("ecx") 0x174u32, in("eax") 0u32, in("edx") 0u32,
             options(nostack, nomem));
     }
     Ok(())

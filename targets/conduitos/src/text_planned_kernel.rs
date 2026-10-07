@@ -13,6 +13,8 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
+mod protection;
+
 const MAX_NODES: usize = 3;
 const MAX_CORDS: usize = 2;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -142,7 +144,14 @@ impl TextPlannedKernel {
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
-        let status = self.scheduler.step()?;
+        let result = self.scheduler.step();
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err()
+            && let Some(domain) = &mut self.protected
+        {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayFailed);
+        }
+        let status = result?;
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if status == SchedulerStatus::Drained
             && let Some(domain) = &mut self.protected
@@ -150,46 +159,6 @@ impl TextPlannedKernel {
             domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCompleted);
         }
         Ok(status)
-    }
-
-    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-    pub(crate) fn protect(
-        &mut self,
-        plan: &conduit_core::Plan,
-        active: &conduit_core::ActivePlayIdentity,
-    ) -> Result<(), crate::composition::MachineRunError> {
-        self.protected = Some(crate::text_protection::ProtectedText::prepare(
-            plan, active,
-        )?);
-        Ok(())
-    }
-
-    pub(crate) fn compute_upper(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<crate::text_upper::UppercaseText, crate::composition::MachineRunError> {
-        use crate::composition::MachineRunError as Error;
-        if !self.is_upper_request(&request) {
-            return Err(Error::UnexpectedHostCall);
-        }
-        let input = self
-            .scheduler
-            .host_value(request.input.value)
-            .map_err(|_| Error::KernelFailure)?;
-        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-        {
-            self.protected
-                .as_mut()
-                .ok_or(Error::KernelConstruction)?
-                .uppercase(input)
-        }
-        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-        {
-            crate::text_upper::uppercase(input).map_err(|error| match error {
-                crate::text_upper::UppercaseError::MalformedUtf8 => Error::TextMalformedUtf8,
-                crate::text_upper::UppercaseError::OutputOverflow => Error::TextOutputOverflow,
-            })
-        }
     }
 
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
@@ -239,7 +208,6 @@ impl TextPlannedKernel {
             },
         )
     }
-    #[cfg(test)]
     fn fail_presentation(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if !self.is_presentation_request(&request) {
             return Err(SchedulerError::InvalidHostCallAccess);

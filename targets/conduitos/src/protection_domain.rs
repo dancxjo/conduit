@@ -4,6 +4,7 @@
 //! semantic capability authority in `conduit-core`; it seals the already
 //! selected scope into a small domain-local handle suitable for a trap gate.
 
+mod handle;
 mod types;
 pub use types::*;
 
@@ -85,7 +86,7 @@ impl KernelCapabilityTable {
         let issuance = self.next_issuance;
         self.next_issuance = self.next_issuance.wrapping_add(1).max(1);
         let handle =
-            KernelCapabilityHandle(mix_handle(self.secret, domain, slot, issuance, &scope));
+            KernelCapabilityHandle(handle::seal(self.secret, domain, slot, issuance, &scope));
         self.entries[slot] = Entry {
             occupied: true,
             domain,
@@ -261,30 +262,6 @@ fn validate_scope(
         return Err(KernelCapabilityRefusal::InvalidScope);
     }
     Ok(())
-}
-
-fn mix_handle(
-    secret: u64,
-    domain: ProtectionDomainId,
-    slot: usize,
-    issuance: u32,
-    scope: &KernelCapabilityScope,
-) -> u64 {
-    let mut value =
-        secret ^ (u64::from(domain.0) << 32) ^ issuance as u64 ^ (slot as u64).rotate_left(19);
-    for byte in scope
-        .boot
-        .iter()
-        .chain(scope.plan.iter())
-        .chain(scope.play.iter())
-        .chain(scope.base.iter())
-        .chain(scope.resource.iter())
-        .chain(scope.authority.iter())
-    {
-        value ^= u64::from(*byte);
-        value = value.wrapping_mul(0x100_0000_01b3).rotate_left(11);
-    }
-    value | 1
 }
 
 fn constant_time_equal(left: u64, right: u64) -> bool {

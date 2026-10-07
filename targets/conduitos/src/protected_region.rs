@@ -119,6 +119,14 @@ pub struct DomainCost {
     pub entries: u64,
     pub gate_transitions: u64,
     pub copied_bytes: u64,
+    pub setup_copied_bytes: u64,
+    pub base_gate_transitions: u64,
+    pub tlb_flushes: u64,
+    pub setup_ticks: u64,
+    pub teardown_ticks: u64,
+    pub teardown_zeroed_bytes: u32,
+    pub shared_peak_bytes: u32,
+    pub root_metadata_bytes: u32,
     pub address_space_switches: u64,
     pub scheduler_returns: u64,
     pub preemptions: u64,
@@ -242,6 +250,12 @@ impl<B: DomainBackend> ProtectedRegion<B> {
         capabilities.revoke_domain(self.binding.domain, cause);
         self.backend.quarantine();
         self.state = DomainState::Revoked(cause);
+    }
+    pub fn fault(&mut self, fault: DomainFault, capabilities: &mut KernelCapabilityTable) {
+        if matches!(self.state, DomainState::Ready | DomainState::Suspended) {
+            self.revoke(KernelRevocationCause::ProtectionFault, capabilities);
+            self.state = DomainState::Faulted(fault);
+        }
     }
 }
 

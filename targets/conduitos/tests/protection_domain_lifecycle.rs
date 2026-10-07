@@ -86,6 +86,7 @@ fn every_owned_lifecycle_event_fences_the_old_handle() {
     for cause in [
         KernelRevocationCause::PlayCancelled,
         KernelRevocationCause::PlayCompleted,
+        KernelRevocationCause::PlayFailed,
         KernelRevocationCause::PlanReplaced,
         KernelRevocationCause::AuthorityRevoked,
         KernelRevocationCause::ResourceReplaced,
