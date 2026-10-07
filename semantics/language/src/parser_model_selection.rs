@@ -8,7 +8,7 @@ use alloc::{collections::BTreeMap, format, string::String, sync::Arc, vec};
 use conduit_ai::{integer_categorical_step::PreparedCategoricalStep, *};
 use conduit_core::semantic_digest;
 use conduit_data::{TensorAxisRole, TensorElement};
-use conduit_plot::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 const PROFILE: &[u8] = include_bytes!("../training/ewt_joint_v2/lexical_profile.json");
 const MANIFEST: &[u8] = include_bytes!("../training/ewt_joint_v2/manifest.json");
@@ -25,6 +25,9 @@ pub enum ParserModelSelectionRefusal {
     ModelContent,
     ModelStateSchema,
     ScoreBound,
+    ProfileIdentity,
+    ModelArtifact,
+    ModelDimensions,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParserModelCompatibility {
@@ -39,10 +42,115 @@ pub struct ParserModelCompatibility {
     pub lookups: u64,
     pub scores: u64,
 }
+/// Exact metadata declared by the checked Source profile's preparation driver.
+/// These identities do not by themselves prove execution or linguistic accuracy.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParserSourceModelContract {
+    pub feature_contract: [u8; 32],
+    pub availability_contract: [u8; 32],
+    pub action_contract: [u8; 32],
+    pub joint_choice_contract: [u8; 32],
+    pub numeric_indices_contract: [u8; 32],
+    pub numeric_scores_contract: [u8; 32],
+}
+/// Separately versioned reviewed metadata; model swaps require a new declaration.
+/// The artifact includes exact content/reference, precision and state schema.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParserModelProfileDefinition {
+    identity: String,
+    version: u32,
+    lexical: LanguageLexicalProfile,
+    provenance: LinguisticDerivationProvenance,
+    source: ParserSourceModelContract,
+    artifact: ModelArtifact,
+    signature: ModelSignature,
+    dimensions: (usize, usize, usize),
+    maximum_score_magnitude: u64,
+}
+impl ParserModelProfileDefinition {
+    /// Dimensions are (feature categories, score outputs, lookups per frame).
+    /// Identity/version name the declaration; admission compares its full material.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        identity: String,
+        version: u32,
+        lexical: LanguageLexicalProfile,
+        provenance: LinguisticDerivationProvenance,
+        source: ParserSourceModelContract,
+        artifact: ModelArtifact,
+        signature: ModelSignature,
+        dimensions: (usize, usize, usize),
+        maximum_score_magnitude: u64,
+    ) -> Result<Self, ParserModelSelectionRefusal> {
+        use ParserModelSelectionRefusal::*;
+        if identity.is_empty() || identity.len() > 256 || version == 0 {
+            return Err(ProfileIdentity);
+        }
+        if dimensions.0 == 0 || dimensions.1 == 0 || dimensions.2 == 0 {
+            return Err(ModelDimensions);
+        }
+        if artifact.state_schema_version == 0 {
+            return Err(ModelStateSchema);
+        }
+        if artifact.signature_identity != signature.semantic_digest().map_err(|_| Signature)? {
+            return Err(Signature);
+        }
+        if maximum_score_magnitude > i64::MAX as u64 {
+            return Err(ScoreBound);
+        }
+        provenance
+            .clone()
+            .into_structured()
+            .map_err(|_| ProfileData)?;
+        lexical
+            .clone()
+            .into_structured()
+            .map_err(|_| LexicalProfile)?;
+        Ok(Self {
+            identity,
+            version,
+            lexical,
+            provenance,
+            source,
+            artifact,
+            signature,
+            dimensions,
+            maximum_score_magnitude,
+        })
+    }
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
+    pub fn version(&self) -> u32 {
+        self.version
+    }
+    pub fn source_contract(&self) -> &ParserSourceModelContract {
+        &self.source
+    }
+    pub fn artifact(&self) -> &ModelArtifact {
+        &self.artifact
+    }
+    pub fn provenance(&self) -> &LinguisticDerivationProvenance {
+        &self.provenance
+    }
+    pub fn lexical_profile(&self) -> &LanguageLexicalProfile {
+        &self.lexical
+    }
+    pub fn signature(&self) -> &ModelSignature {
+        &self.signature
+    }
+    pub fn dimensions(&self) -> (usize, usize, usize) {
+        self.dimensions
+    }
+    pub fn maximum_score_magnitude(&self) -> u64 {
+        self.maximum_score_magnitude
+    }
+}
 pub struct PreparedParserModelSelection {
     categorical: Arc<PreparedCategoricalStep>,
     lexical: LanguageLexicalProfile,
     compatibility: ParserModelCompatibility,
+    declaration: Option<Arc<ParserModelProfileDefinition>>,
 }
 fn hex(digest: [u8; 32]) -> String {
     use core::fmt::Write;
@@ -257,7 +365,81 @@ impl PreparedParserModelSelection {
             categorical,
             lexical: expected,
             compatibility,
+            declaration: None,
         })
+    }
+    /// Admit an explicitly declared alternative profile without weakening pinned v2.
+    /// The caller must retain and execute the checked Source whose contract is supplied.
+    /// This preparation owns metadata/custody, never grammar or parse choice policy.
+    pub fn prepare_declared(
+        categorical: Arc<PreparedCategoricalStep>,
+        declaration: Arc<ParserModelProfileDefinition>,
+        lexical: &LanguageLexicalProfile,
+        actual_source: &ParserSourceModelContract,
+    ) -> Result<Self, ParserModelSelectionRefusal> {
+        use ParserModelSelectionRefusal::*;
+        if lexical != &declaration.lexical {
+            return Err(LexicalProfile);
+        }
+        if actual_source != &declaration.source {
+            return Err(SourceContract);
+        }
+        if categorical.resource().signature() != &declaration.signature {
+            return Err(Signature);
+        }
+        if categorical.resource().artifact() != &declaration.artifact {
+            return Err(ModelArtifact);
+        }
+        if categorical.dimensions() != declaration.dimensions {
+            return Err(ModelDimensions);
+        }
+        if categorical
+            .indices_type()
+            .semantic_digest()
+            .map_err(|_| SourceContract)?
+            != actual_source.numeric_indices_contract
+            || categorical
+                .scores_type()
+                .semantic_digest()
+                .map_err(|_| SourceContract)?
+                != actual_source.numeric_scores_contract
+        {
+            return Err(SourceContract);
+        }
+        let maximum = categorical.maximum_score_magnitude();
+        if maximum > declaration.maximum_score_magnitude {
+            return Err(ScoreBound);
+        }
+        let lexical_bytes = lexical
+            .clone()
+            .into_structured()
+            .map_err(|_| LexicalProfile)?
+            .canonical_bytes()
+            .map_err(|_| LexicalProfile)?;
+        let compatibility = ParserModelCompatibility {
+            lexical_profile: semantic_digest("language/parser-declared-lexical@1", &lexical_bytes),
+            feature_contract: actual_source.feature_contract,
+            availability_contract: actual_source.availability_contract,
+            action_contract: actual_source.action_contract,
+            joint_choice_contract: actual_source.joint_choice_contract,
+            model_content: categorical.resource().artifact().content_identity(),
+            signature: declaration
+                .signature
+                .semantic_digest()
+                .map_err(|_| Signature)?,
+            maximum_score_magnitude: maximum,
+            lookups: declaration.dimensions.2 as u64,
+            scores: declaration.dimensions.1 as u64,
+        };
+        Ok(Self {
+            categorical,
+            lexical: lexical.clone(),
+            compatibility,
+            declaration: Some(declaration),
+        })
+    }
+    pub fn declaration(&self) -> Option<&ParserModelProfileDefinition> {
+        self.declaration.as_deref()
     }
     pub fn expected_lexical_profile(&self) -> &LanguageLexicalProfile {
         &self.lexical
