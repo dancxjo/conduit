@@ -1,12 +1,22 @@
 #![cfg(all(feature = "kernel-operation-owners", target_has_atomic = "ptr"))]
 use conduit_ai::{integer_categorical::*, integer_categorical_step::*, *};
+use conduit_composite::KernelOperationFactory;
 use conduit_core::*;
 use conduit_data::{TensorAxisRole, TensorElement};
+use conduit_kernel::{
+    scheduler::FixedScheduler, FixedRoutes, HostedSignLog, HostedValueStore, KernelEvent,
+    ValueStorage,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId as KPort, ValueRef,
 };
-use std::sync::Arc;
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+    sync::Arc,
+};
+const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 #[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
 #[allow(dead_code)]
 mod allocation_probe;
@@ -266,11 +276,12 @@ fn gear(plan: &Plan) -> &PlannedGear {
 #[test]
 fn exact_resource_planning_and_model_adoption_refuse_missing_foreign_or_unsealed_selection() {
     let profile = profile();
+    assert_eq!(profile.maximum_score_magnitude(), 10);
     assert!(plan(&profile, true, false).is_err());
     let plan = plan(&profile, true, true).unwrap();
     assert!(verify_plan(&plan));
     assert_eq!(gear(&plan).resources.len(), 1);
-    owner::CategoricalOperationFactory::for_plan(&plan, &[profile.clone()]).unwrap();
+    owner::CategoricalOperationFactory::for_plan(&plan, std::slice::from_ref(&profile)).unwrap();
     assert!(owner::CategoricalOperationFactory::for_plan(&plan, &[]).is_err());
     assert!(owner::CategoricalOperationFactory::for_plan(
         &plan,
@@ -279,7 +290,10 @@ fn exact_resource_planning_and_model_adoption_refuse_missing_foreign_or_unsealed
     .is_err());
     let mut foreign = plan.clone();
     foreign.fragments[0].placements[0].artifact_id = "foreign".into();
-    assert!(owner::CategoricalOperationFactory::for_plan(&foreign, &[profile.clone()]).is_err());
+    assert!(
+        owner::CategoricalOperationFactory::for_plan(&foreign, std::slice::from_ref(&profile))
+            .is_err()
+    );
     let mut wrong = gear(&plan).clone();
     wrong.resources[0].pool_id = "foreign".into();
     assert!(CategoricalStepBack::prepare_planned::<4>(&wrong, 2, profile.clone(), true).is_err());
@@ -442,4 +456,200 @@ fn value_operation_finishes_once_while_closing_flow_reports_exact_end_of_input()
     let inputs = StepInputBytes::test_frame([None; 4], None);
     assert_eq!(flow.step(&mut io, &inputs), StepOutcome::Complete);
     assert_eq!(flow.committed_invocations(), 0);
+}
+
+enum Driver {
+    Source(Vec<ValueRef>, usize, bool),
+    Operation(Box<dyn StepBack<PORTS>>, Rc<Cell<u64>>, bool),
+    Sink(Rc<Cell<bool>>, Rc<RefCell<Vec<Vec<u8>>>>, Option<Vec<u8>>),
+}
+impl StepBack<PORTS> for Driver {
+    fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        match self {
+            Self::Source(values, cursor, staged) => {
+                if *cursor == values.len() {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(KPort(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(KPort(0), values[*cursor]).unwrap();
+                *staged = true;
+                StepOutcome::Progress
+            }
+            Self::Operation(back, _, staged) => {
+                let out = back.step(io, bytes);
+                *staged = matches!(out, StepOutcome::Progress);
+                out
+            }
+            Self::Sink(blocked, _, staged) => {
+                if blocked.get() {
+                    return StepOutcome::Await;
+                }
+                if io.input_closed(KPort(0)) {
+                    return StepOutcome::Complete;
+                }
+                let Some(input) = bytes.input(KPort(0)) else {
+                    return StepOutcome::Await;
+                };
+                *staged = Some(input.to_vec());
+                io.consume(KPort(0)).unwrap();
+                StepOutcome::Progress
+            }
+        }
+    }
+    fn prepared_output(&self, port: KPort) -> Option<&[u8]> {
+        if let Self::Operation(back, _, _) = self {
+            back.prepared_output(port)
+        } else {
+            None
+        }
+    }
+    fn step_committed(&mut self) {
+        match self {
+            Self::Source(_, cursor, staged) if *staged => {
+                *cursor += 1;
+                *staged = false;
+            }
+            Self::Operation(back, count, staged) if *staged => {
+                back.step_committed();
+                count.set(count.get() + 1);
+                *staged = false;
+            }
+            Self::Sink(_, seen, staged) => {
+                if let Some(value) = staged.take() {
+                    seen.borrow_mut().push(value);
+                }
+            }
+            _ => {}
+        }
+    }
+    fn cancel(&mut self) {
+        if let Self::Operation(back, _, staged) = self {
+            *staged = false;
+            back.cancel();
+        }
+    }
+}
+type Scheduler = FixedScheduler<Driver, HostedValueStore, HostedSignLog, 3, 2, PORTS, 2, 3, 2>;
+fn scheduler(
+    input: &[Vec<u8>],
+    capacity: usize,
+    blocked: Rc<Cell<bool>>,
+    seen: Rc<RefCell<Vec<Vec<u8>>>>,
+    count: Rc<Cell<u64>>,
+) -> Scheduler {
+    let profile = profile();
+    let plan = plan(&profile, true, true).unwrap();
+    let fragment = &plan.fragments[0];
+    let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+        &plan,
+        &fragment.fragment_id,
+    )
+    .unwrap();
+    let mut values = HostedValueStore::new(capacity as u16, 4096, capacity as u32 * 4096).unwrap();
+    let inputs: Vec<_> = input.iter().map(|x| values.store(x).unwrap()).collect();
+    let owner = owner::CategoricalOperationFactory::for_plan(&plan, &[profile]).unwrap();
+    let drivers: Vec<_> = fragment
+        .placements
+        .iter()
+        .map(|gear| match gear.kind_id.as_str() {
+            "categorical-test/source" => Driver::Source(inputs.clone(), 0, false),
+            "categorical-test/sink" => Driver::Sink(blocked.clone(), seen.clone(), None),
+            _ => {
+                assert_eq!(owner.budget(gear).unwrap().host_requests, 0);
+                let mut wrong = gear.clone();
+                wrong.kind_contract_revision = "foreign".into();
+                assert!(owner.prepare(&wrong, &mut values).is_err());
+                Driver::Operation(
+                    owner.prepare(gear, &mut values).unwrap(),
+                    count.clone(),
+                    false,
+                )
+            }
+        })
+        .collect();
+    drop(owner);
+    let mut routes = FixedRoutes::<3, 2>::new(1);
+    for route in &lowered.routes {
+        routes
+            .install(
+                route.source_node,
+                route.source_port,
+                route.range,
+                &route.targets,
+            )
+            .unwrap();
+    }
+    routes.seal().unwrap();
+    FixedScheduler::new(
+        lowered.node_specs.try_into().unwrap(),
+        lowered
+            .cords
+            .into_iter()
+            .map(|cord| cord.spec)
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap(),
+        routes,
+        drivers.try_into().unwrap_or_else(|_| panic!("capacity")),
+        values,
+        HostedSignLog::new(256, 256 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn ordinary_scheduler_reuses_adopted_model_for_three_frames_after_provider_drop() {
+    let profile = profile();
+    let inputs = [[0, 2], [1, 1], [2, 0]].map(|v| indices(&profile, &v));
+    drop(profile);
+    let seen = Rc::new(RefCell::new(vec![]));
+    let count = Rc::new(Cell::new(0));
+    let mut run = scheduler(
+        &inputs,
+        16,
+        Rc::new(Cell::new(false)),
+        seen.clone(),
+        count.clone(),
+    );
+    for _ in 0..80 {
+        run.step().unwrap();
+    }
+    assert_eq!(count.get(), 3);
+    assert_eq!(
+        seen.borrow().iter().map(|b| scores(b)).collect::<Vec<_>>(),
+        vec![vec![3, 8], vec![4, -4], vec![3, 8]]
+    );
+}
+#[test]
+fn scheduler_pressure_cancel_and_storage_failure_do_not_publish_uncommitted_frames() {
+    let profile = profile();
+    let inputs = [[0, 2], [1, 1], [2, 0]].map(|v| indices(&profile, &v));
+    let seen = Rc::new(RefCell::new(vec![]));
+    let count = Rc::new(Cell::new(0));
+    let mut run = scheduler(
+        &inputs,
+        16,
+        Rc::new(Cell::new(true)),
+        seen.clone(),
+        count.clone(),
+    );
+    for _ in 0..24 {
+        run.step().unwrap();
+    }
+    assert_eq!(count.get(), 1);
+    assert!(seen.borrow().is_empty());
+    run.cancel().unwrap();
+    run.step().unwrap();
+    assert_eq!(count.get(), 1);
+    let mut run = scheduler(
+        &inputs,
+        3,
+        Rc::new(Cell::new(false)),
+        seen.clone(),
+        Rc::new(Cell::new(0)),
+    );
+    assert!((0..24).any(|_| run.step().is_err()));
+    assert!(seen.borrow().is_empty());
 }

@@ -142,6 +142,16 @@ impl IntegerCategoricalModel {
     pub fn dimensions(&self) -> (usize, usize, usize) {
         (self.categories, self.outputs, self.lookups)
     }
+    /// Conservative absolute output bound for admission into narrower consumers.
+    /// Includes i16::MIN without signed absolute-value overflow.
+    pub fn maximum_score_magnitude(&self) -> u64 {
+        self.weights
+            .iter()
+            .map(|v| i64::from(*v).unsigned_abs())
+            .max()
+            .unwrap_or(0)
+            * self.lookups as u64
+    }
     /// Pure bounded inference into caller-prepared storage. Refusals leave the
     /// output unchanged; the checked limits keep every exact sum within I64.
     pub fn infer_indices_into(

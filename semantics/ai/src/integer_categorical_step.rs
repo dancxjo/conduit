@@ -115,6 +115,10 @@ fn text(bytes: &mut Vec<u8>, value: &str) {
     bytes.extend_from_slice(value.as_bytes());
 }
 impl PreparedCategoricalStep {
+    /// Preparation-time conservative range for typed downstream admission.
+    pub fn maximum_score_magnitude(&self) -> u64 {
+        self.model.maximum_score_magnitude()
+    }
     pub fn prepare(
         resource: Arc<AdmittedModelResource>,
         pool: ResourcePoolId,
