@@ -235,3 +235,47 @@ mod tests {
         .is_err());
     }
 }
+
+/// Exact schema and full Fore identity let independently typed feedback cells coexist.
+pub fn seeded_state_flow_specialized_semantic_contract(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+) -> Result<Kind, &'static str> {
+    let mut kind = seeded_state_flow_semantic_contract(value, schema)?;
+    kind.validate()
+        .map_err(|_| "invalid specialized state contract")?;
+    let mut bytes = schema
+        .canonical_bytes()
+        .map_err(|_| "invalid state schema")?;
+    bytes.extend_from_slice(
+        conduit_core::compute_checked_front_fingerprint(&kind.checked_front()).as_bytes(),
+    );
+    let digest = conduit_core::semantic_digest("conduit.state/seeded-flow-specialized@1", &bytes);
+    let mut hex = alloc::string::String::with_capacity(64);
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    for byte in digest {
+        hex.push(char::from(HEX[usize::from(byte >> 4)]));
+        hex.push(char::from(HEX[usize::from(byte & 15)]));
+    }
+    kind.kind_id = kind_id(&alloc::format!("state/seeded/flow/finite/typed-{hex}"));
+    kind.kind_contract_revision = KindIdentity::from("conduit.state/seeded-flow-specialized@1");
+    Ok(kind)
+}
+#[cfg(feature = "plot-catalog")]
+pub fn install_seeded_state_flow_specialized_kind(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<conduit_core::KindId, alloc::string::String> {
+    let kind =
+        seeded_state_flow_specialized_semantic_contract(value, schema).map_err(str::to_string)?;
+    let identity = kind.kind_id.clone();
+    startup.insert(conduit_plot::KindSignature {
+        kind: identity.as_str().into(),
+        startup_parameters: Vec::new(),
+    })?;
+    startup.insert_fore(identity.as_str(), kind.checked_front())?;
+    profile.insert_kind(kind).map_err(|e| e.to_string())?;
+    Ok(identity)
+}

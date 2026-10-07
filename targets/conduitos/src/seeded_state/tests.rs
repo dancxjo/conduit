@@ -250,3 +250,58 @@ fn exhausted_remote_transcript_is_a_typed_sign_failure_without_hidden_growth() {
         }
     }
 }
+
+#[test]
+fn explicit_frame16k_specializations_preserve_default_bound_and_distinct_exact_schemas() {
+    let mut factory = SeededStateOperationFactory::default();
+    let mut kinds = Vec::new();
+    for length in [128u16, 640, 837] {
+        let schema = StructuredInfoType::collection(
+            StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
+            Some(length),
+        )
+        .unwrap();
+        let bound = conduit_plot::maximum_prepared_canonical_value_bytes(&schema).unwrap();
+        let value = CheckedValueContract::new(
+            schema.profile().unwrap().value_kind().clone(),
+            bound,
+            vec![],
+        )
+        .unwrap();
+        if bound > MAXIMUM_BYTES {
+            assert!(factory.install_flow(&value, &schema).is_err());
+        }
+        let offer = factory
+            .install_flow_specialized_frame16k(&value, &schema)
+            .unwrap();
+        assert_eq!(
+            offer.implementation.execution_profile_id.as_str(),
+            "conduitos/seeded-state-flow-frame16k-prepared@1"
+        );
+        assert!(!kinds.contains(&offer.kind_id));
+        kinds.push(offer.kind_id);
+        assert!(
+            factory
+                .install_flow_specialized_frame16k(&value, &schema)
+                .is_err()
+        );
+    }
+    assert_eq!(factory.offers().count(), 3);
+    let schema = StructuredInfoType::collection(
+        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
+        Some(1024),
+    )
+    .unwrap();
+    let value = CheckedValueContract::new(
+        schema.profile().unwrap().value_kind().clone(),
+        32768,
+        vec![],
+    )
+    .unwrap();
+    assert!(
+        factory
+            .install_flow_specialized_frame16k(&value, &schema)
+            .is_err()
+    );
+    assert_eq!(factory.offers().count(), 3);
+}
