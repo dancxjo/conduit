@@ -1,0 +1,39 @@
+# Each admitted receipt protects exactly one lexical choice, independently of
+# dependency/root closure and playback. Private bounded ledgers retain all facts;
+# every proposed branch is checked against every retained receipt (maximum eight).
+type LanguageParserWindow8ProtectedLexicalChoice = {
+    fact: LanguageParserWindow8StableLexicalFact
+    next: LanguageParserWindow8Lexical
+    lineage: LanguageTextRevisionLineage
+    origin_basis: LanguageParserBasis
+    current_basis: LanguageParserBasis
+    where .origin_basis.text == .fact.query.snapshot.basis.text && .origin_basis.source_revision == .fact.query.snapshot.basis.source_revision && .origin_basis.analysis_revision == .fact.query.snapshot.basis.analysis_revision
+    where .lineage.previous == .fact.query.snapshot.lexical.tape.source && .lineage.next == .next.tape.source
+    where .fact.query.snapshot.lexical.tape.profile == .next.tape.profile
+    where .current_basis.text == .next.tape.source.material.identity && .current_basis.source_revision == .next.tape.source.material.revision
+    where .current_basis.analysis_revision != .fact.query.snapshot.basis.analysis_revision
+    where .fact.query.dependent < .next.token_count
+    where sequence/at(.next.tape.tokens,.fact.query.dependent).identity.ordinal == .fact.query.dependent
+    where sequence/at(.next.tape.tokens,.fact.query.dependent).identity.text_identity == .current_basis.text && sequence/at(.next.tape.tokens,.fact.query.dependent).identity.text_revision == .current_basis.source_revision
+    where variant/is(sequence/at(.next.tape.tokens,.fact.query.dependent).prior_occurrence,"some") ? sequence/at(.next.tape.tokens,.fact.query.dependent).prior_occurrence.some == sequence/at(.fact.query.snapshot.lexical.tape.tokens,.fact.query.dependent).identity : false
+    where sequence/at(.next.tape.tokens,.fact.query.dependent).span.start == sequence/at(.fact.query.snapshot.lexical.tape.tokens,.fact.query.dependent).span.start && sequence/at(.next.tape.tokens,.fact.query.dependent).span.end == sequence/at(.fact.query.snapshot.lexical.tape.tokens,.fact.query.dependent).span.end
+    where variant/tag(sequence/at(.next.tape.tokens,.fact.query.dependent).span.basis) == variant/tag(sequence/at(.fact.query.snapshot.lexical.tape.tokens,.fact.query.dependent).span.basis)
+    where sequence/at(.next.tape.tokens,.fact.query.dependent).span.text_identity == .current_basis.text && sequence/at(.next.tape.tokens,.fact.query.dependent).span.text_revision == .current_basis.source_revision
+    where sequence/at(.next.tape.tokens,.fact.query.dependent).surface == sequence/at(.fact.query.snapshot.lexical.tape.tokens,.fact.query.dependent).surface
+    where sequence/at(.next.tape.tokens,.fact.query.dependent).candidates == sequence/at(.fact.query.snapshot.lexical.tape.tokens,.fact.query.dependent).candidates
+}
+type LanguageParserWindow8ProtectedChoiceBranch = {
+    receipt: LanguageParserWindow8ProtectedLexicalChoice
+    dependent: U64 in 0..=7
+    choice: U64 in 0..=3
+    basis: LanguageParserBasis
+    where .basis.text == .receipt.current_basis.text && .basis.source_revision == .receipt.current_basis.source_revision && .basis.analysis_revision == .receipt.current_basis.analysis_revision
+    where .dependent < .receipt.next.token_count
+    where .choice < sequence/length(sequence/at(.receipt.next.tape.tokens,.dependent).candidates)
+}
+type LanguageParserWindow8ProtectedChoiceDecision = {
+    allowed: Boolean
+}
+plot language-window8-protected-choice (
+    input: LanguageParserWindow8ProtectedChoiceBranch...| >> output: LanguageParserWindow8ProtectedChoiceDecision...|
+) = { allowed: .dependent != .receipt.fact.query.dependent || .choice == sequence/at(.receipt.fact.query.snapshot.candidate0.hypothesis.choices,.receipt.fact.query.dependent) }
