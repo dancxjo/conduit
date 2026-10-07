@@ -9,6 +9,7 @@ import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
+import { screenFreeWardrobeCommands, verifyScreenFreeWardrobe } from './screen-free-wardrobe-proof.mjs';
 import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
 import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 import { verifyGuestRouteCertificate } from './three-host-route-certificate.mjs';
@@ -142,7 +143,7 @@ assert.equal(existsSync(output), false, 'output must be a new private directory'
 await mkdir(output, { mode: 0o700 });
 const ownerLog = path.join(output, 'owner-service.log');
 const inviteFile = path.join(output, 'invitation.private.json');
-let service, invitation;
+let service, invitation, terminal;
 try {
   const serviceLog = openSync(ownerLog, 'wx', 0o600);
   service = spawn(owner, ['host', 'service', 'run', '--state-dir', state], {
@@ -348,16 +349,78 @@ try {
   assert.equal(afterLull.biography.body.state, 'Lulled');
   assert.equal(afterLull.biography.membership.parts[0].current.host_id, ownerPart.host_id);
   assert.equal(afterLull.biography.membership.parts[0].current.boot_id, ownerPart.boot_id);
-  assert.ok(available(lull.after, 'conduit.intent/start-clock@1'));
+  // The terminal route is offered only while a real installed terminal Mask
+  // provider is attached. Keep that provider open through the nonvisual
+  // inspect/refusal/recovery/doff/wear/prefer sequence.
+  let terminalOutput = '';
+  let terminalError = '';
+  terminal = spawn(owner, ['body', 'terminal', '--state-dir', state, '--owner-show'],
+    { stdio: ['pipe', 'pipe', 'pipe'] });
+  terminal.stdout.on('data', chunk => { terminalOutput += chunk.toString('utf8'); });
+  terminal.stderr.on('data', chunk => { terminalError += chunk.toString('utf8'); });
+  await waitFor(() => terminalOutput.includes('browser selection awaits a complete carrier-Line Mask Plan.'),
+    terminal, 'attached owner terminal Mask');
+  assert.match(terminalOutput, /Owner terminal Show/);
+  const wardrobeArgs = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
+  const wardrobeSession = await runPacedScreenFree(owner, wardrobeArgs,
+    screenFreeWardrobeCommands, 'body> ', screenFreeSessionTimeout);
+  const wardrobe = verifyScreenFreeWardrobe(wardrobeSession, ownerPart, Boolean(speakerCard));
+  const wardrobeInput = `${wardrobeSession.commands.join('\n')}\n`;
+  await writeFile(path.join(output, 'wardrobe-input.txt'), wardrobeInput, { mode: 0o600 });
+  await writeFile(path.join(output, 'wardrobe-transcript.txt'), wardrobeSession.transcript,
+    { mode: 0o600 });
+  const terminalExit = new Promise(resolve => terminal.once('close', resolve));
+  terminal.stdin.end('quit\n');
+  const terminalCode = await Promise.race([
+    terminalExit,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('owner terminal detachment timed out')), 10_000)),
+  ]);
+  assert.equal(terminalCode, 0, `owner terminal detachment: ${terminalError}`);
+  await writeFile(path.join(output, 'wardrobe-provider-transcript.txt'), terminalOutput,
+    { mode: 0o600 });
+  const afterWardrobe = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterWardrobe.biography.body_id, bodyId);
+  assert.equal(afterWardrobe.biography.body.state, 'Lulled');
+  const beforeWake = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  const wake = await exercise('wake', beforeWake,
+    available(beforeWake, 'conduit.intent/start-clock@1'));
+  const afterWake = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterWake.biography.body_id, bodyId);
+  assert.ok(afterWake.biography.body.state.Awake);
+  const finish = await exercise('finish', wake.after,
+    available(wake.after, 'conduit.intent/lull-clock@1'));
+  const afterFinish = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterFinish.biography.body_id, bodyId);
+  assert.equal(afterFinish.biography.body.state, 'Lulled');
+  assert.equal(afterFinish.biography.membership.parts[0].current.host_id, ownerPart.host_id);
+  assert.equal(afterFinish.biography.membership.parts[0].current.boot_id, ownerPart.boot_id);
   delete start.after;
   delete lull.after;
+  delete wake.after;
+  delete finish.after;
   report.screen_free_clock = {
     proof_class: speakerCard ? 'installed-screen-free-clock-selected-alsa' :
       'installed-screen-free-clock-text-readout',
     run_id: report.run_id, body_id: bodyId,
     owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
     source_commit: installation.release_source_identity,
-    start, lull,
+    start, lull, wake, finish,
+    speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
+  };
+  report.screen_free_wardrobe = {
+    proof_class: speakerCard ? 'installed-screen-free-wardrobe-selected-alsa' :
+      'installed-screen-free-wardrobe-text-readout',
+    run_id: report.run_id, body_id: bodyId,
+    owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
+    source_commit: installation.release_source_identity,
+    ...wardrobe,
+    provider_transcript: { path: '../wardrobe-provider-transcript.txt',
+      bytes: Buffer.byteLength(terminalOutput), sha256: digest(Buffer.from(terminalOutput)) },
+    input: { path: '../wardrobe-input.txt', bytes: Buffer.byteLength(wardrobeInput),
+      sha256: digest(Buffer.from(wardrobeInput)) },
+    transcript: { path: '../wardrobe-transcript.txt',
+      bytes: Buffer.byteLength(wardrobeSession.transcript),
+      sha256: digest(Buffer.from(wardrobeSession.transcript)) },
     speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
   };
   await retainScreenFreeSessions(output, live, report);
@@ -373,6 +436,7 @@ try {
   await verifyWalkthroughAssets(live, await readFile(path.join(live, walkthrough.path), 'utf8'));
   console.log(`Screen-free Birth and three-host proof: ${reportFile}`);
 } finally {
+  if (terminal?.exitCode === null) terminal.kill();
   if (invitation?.exitCode === null) invitation.kill();
   if (service?.exitCode === null) service.kill();
 }

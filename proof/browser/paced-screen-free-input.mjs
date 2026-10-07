@@ -25,6 +25,7 @@ export async function runPacedScreenFree(executable, args, commands, prompts, ti
   let previousCommand;
   let staleRetries = 0;
   const sentCommands = [];
+  const responses = [];
   let failed;
   const stop = reason => {
     failed ??= reason;
@@ -50,6 +51,7 @@ export async function runPacedScreenFree(executable, args, commands, prompts, ti
       scanned = end;
       const response = stdout.slice(previousPromptEnd, found.at);
       previousPromptEnd = end;
+      if (previousCommand) responses.push({ command: previousCommand, output: response });
       const staleRead = retryStaleReadAll > 0 && previousCommand === 'read all' &&
         commands[sent] === 'quit' &&
         response.includes('Stopped the stale reading; read all again for the current Face.');
@@ -80,7 +82,7 @@ export async function runPacedScreenFree(executable, args, commands, prompts, ti
     if (failed || code !== 0 || sent !== commands.length) {
       throw new Error(`${failed ?? `screen-free exited ${code} after ${sent}/${commands.length} commands`}: ${stderr || stdout.slice(-2000)}`);
     }
-    return { transcript: stdout, commands: sentCommands };
+    return { transcript: stdout, commands: sentCommands, responses };
   } finally {
     clearTimeout(deadline);
   }
