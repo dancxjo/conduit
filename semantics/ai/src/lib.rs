@@ -272,3 +272,6 @@ pub mod operation_owners;
 
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_guard;
+
+#[cfg(feature = "kernel-step")]
+pub mod native_profile;

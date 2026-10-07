@@ -8,3 +8,4 @@ pub mod fixed_numeric_guard;
 pub mod fixed_numeric_linear_flow;
 pub mod fixed_numeric_pair_flow;
 pub mod fixed_numeric_u16_profile;
+pub mod native_profile;
