@@ -1,0 +1,95 @@
+# Draft only: Source-authored prospective forest over actual plus held heads.
+type LanguageParserProtectionForest = {
+ token_count: U64 in 1..=4
+ heads: collection U64 = 5
+ where .heads.4 == 4
+ where 0 >= .token_count ? .heads.0 == 5 : true
+ where 1 >= .token_count ? .heads.1 == 5 : true
+ where 2 >= .token_count ? .heads.2 == 5 : true
+ where 3 >= .token_count ? .heads.3 == 5 : true
+ where .heads.0 <= 5 && .heads.0 != 0 && (.heads.0 < .token_count || .heads.0 >= 4)
+ where .heads.1 <= 5 && .heads.1 != 1 && (.heads.1 < .token_count || .heads.1 >= 4)
+ where .heads.2 <= 5 && .heads.2 != 2 && (.heads.2 < .token_count || .heads.2 >= 4)
+ where .heads.3 <= 5 && .heads.3 != 3 && (.heads.3 < .token_count || .heads.3 >= 4)
+ where !(.heads.0 == 4 && .heads.1 == 4)
+ where !(.heads.0 == 4 && .heads.2 == 4)
+ where !(.heads.0 == 4 && .heads.3 == 4)
+ where !(.heads.1 == 4 && .heads.2 == 4)
+ where !(.heads.1 == 4 && .heads.3 == 4)
+ where !(.heads.2 == 4 && .heads.3 == 4)
+ where !(.heads.0 == 1 && .heads.1 == 0)
+ where !(.heads.0 == 2 && .heads.2 == 0)
+ where !(.heads.0 == 3 && .heads.3 == 0)
+ where !(.heads.1 == 2 && .heads.2 == 1)
+ where !(.heads.1 == 3 && .heads.3 == 1)
+ where !(.heads.2 == 3 && .heads.3 == 2)
+ where !(.heads.0 == 1 && .heads.1 == 2 && .heads.2 == 0)
+ where !(.heads.0 == 1 && .heads.1 == 3 && .heads.3 == 0)
+ where !(.heads.0 == 2 && .heads.2 == 1 && .heads.1 == 0)
+ where !(.heads.0 == 2 && .heads.2 == 3 && .heads.3 == 0)
+ where !(.heads.0 == 3 && .heads.3 == 1 && .heads.1 == 0)
+ where !(.heads.0 == 3 && .heads.3 == 2 && .heads.2 == 0)
+ where !(.heads.1 == 2 && .heads.2 == 3 && .heads.3 == 1)
+ where !(.heads.1 == 3 && .heads.3 == 2 && .heads.2 == 1)
+ where !(.heads.0 == 1 && .heads.1 == 2 && .heads.2 == 3 && .heads.3 == 0)
+ where !(.heads.0 == 1 && .heads.1 == 3 && .heads.3 == 2 && .heads.2 == 0)
+ where !(.heads.0 == 2 && .heads.2 == 1 && .heads.1 == 3 && .heads.3 == 0)
+ where !(.heads.0 == 2 && .heads.2 == 3 && .heads.3 == 1 && .heads.1 == 0)
+ where !(.heads.0 == 3 && .heads.3 == 1 && .heads.1 == 2 && .heads.2 == 0)
+ where !(.heads.0 == 3 && .heads.3 == 2 && .heads.2 == 1 && .heads.1 == 0)
+}
+type LanguageParserProtectionForestQuery = {
+ hypothesis: LanguageParserJointRuntimeHypothesis
+ retained: LanguageParserProtectedSetProposal
+ where .hypothesis.hypothesis.parser.state.basis == .retained.basis
+ where .retained.active.0 ? (.retained.edge0.dependent == 0 && .retained.edge0.dependent < .hypothesis.hypothesis.parser.state.token_count && .retained.edge0.current_basis == .retained.basis) : true
+ where .retained.active.1 ? (.retained.edge1.dependent == 1 && .retained.edge1.dependent < .hypothesis.hypothesis.parser.state.token_count && .retained.edge1.current_basis == .retained.basis) : true
+ where .retained.active.2 ? (.retained.edge2.dependent == 2 && .retained.edge2.dependent < .hypothesis.hypothesis.parser.state.token_count && .retained.edge2.current_basis == .retained.basis) : true
+ where .retained.active.3 ? (.retained.edge3.dependent == 3 && .retained.edge3.dependent < .hypothesis.hypothesis.parser.state.token_count && .retained.edge3.current_basis == .retained.basis) : true
+ where .retained.active.0 ? (.retained.edge0.head == 4 || .retained.edge0.head < .hypothesis.hypothesis.parser.state.token_count) : true
+ where .retained.active.0 ? (.retained.edge0.head == 4 ? .retained.edge0.relation.base is root : !(.retained.edge0.relation.base is root)) : true
+ where .retained.active.1 ? (.retained.edge1.head == 4 || .retained.edge1.head < .hypothesis.hypothesis.parser.state.token_count) : true
+ where .retained.active.1 ? (.retained.edge1.head == 4 ? .retained.edge1.relation.base is root : !(.retained.edge1.relation.base is root)) : true
+ where .retained.active.2 ? (.retained.edge2.head == 4 || .retained.edge2.head < .hypothesis.hypothesis.parser.state.token_count) : true
+ where .retained.active.2 ? (.retained.edge2.head == 4 ? .retained.edge2.relation.base is root : !(.retained.edge2.relation.base is root)) : true
+ where .retained.active.3 ? (.retained.edge3.head == 4 || .retained.edge3.head < .hypothesis.hypothesis.parser.state.token_count) : true
+ where .retained.active.3 ? (.retained.edge3.head == 4 ? .retained.edge3.relation.base is root : !(.retained.edge3.relation.base is root)) : true
+}
+type LanguageParserProtectionForestProposal = {
+ token_count: U64
+ heads: collection U64 = 5
+}
+plot language-parser-protection-forest-projection (
+ input: LanguageParserProtectionForestQuery...| >> output: LanguageParserProtectionForestProposal...|
+) = { token_count: .hypothesis.hypothesis.parser.state.token_count, heads: [(.retained.active.0 ? .retained.edge0.head : .hypothesis.hypothesis.parser.state.heads.0), (.retained.active.1 ? .retained.edge1.head : .hypothesis.hypothesis.parser.state.heads.1), (.retained.active.2 ? .retained.edge2.head : .hypothesis.hypothesis.parser.state.heads.2), (.retained.active.3 ? .retained.edge3.head : .hypothesis.hypothesis.parser.state.heads.3), 4] }
+# Consistency only: retained compact edges remain private Source projections
+# of full admitted facts/model/policy custody; this type creates no stable fact.
+type LanguageParserProtectedHypothesisCompatibility = {
+ query: LanguageParserProtectionForestQuery
+ forest: LanguageParserProtectionForest
+ where .forest.token_count == .query.hypothesis.hypothesis.parser.state.token_count
+ where .forest.heads.0 == (.query.retained.active.0 ? .query.retained.edge0.head : .query.hypothesis.hypothesis.parser.state.heads.0)
+ where .query.retained.active.0 ? (.query.hypothesis.hypothesis.parser.state.heads.0 < 5 ? .query.hypothesis.hypothesis.parser.state.heads.0 == .query.retained.edge0.head : true) : true
+ where .query.retained.active.0 ? (.query.hypothesis.hypothesis.parser.state.heads.0 < 5 ? variant/tag(.query.hypothesis.hypothesis.parser.state.relation0.base) == variant/tag(.query.retained.edge0.relation.base) : true) : true
+ where .query.retained.active.0 ? (.query.hypothesis.hypothesis.parser.state.heads.0 < 5 ? .query.hypothesis.hypothesis.parser.state.relation0.subtype == .query.retained.edge0.relation.subtype : true) : true
+ where .query.retained.active.0 ? (.query.hypothesis.selected > 0 ? .query.hypothesis.hypothesis.choices.0 == .query.retained.edge0.dependent_choice : true) : true
+ where .query.retained.active.0 ? (.query.retained.edge0.head < 4 && .query.hypothesis.selected > .query.retained.edge0.head ? sequence/at(.query.hypothesis.hypothesis.choices,.query.retained.edge0.head) == .query.retained.edge0.head_choice : true) : true
+ where .forest.heads.1 == (.query.retained.active.1 ? .query.retained.edge1.head : .query.hypothesis.hypothesis.parser.state.heads.1)
+ where .query.retained.active.1 ? (.query.hypothesis.hypothesis.parser.state.heads.1 < 5 ? .query.hypothesis.hypothesis.parser.state.heads.1 == .query.retained.edge1.head : true) : true
+ where .query.retained.active.1 ? (.query.hypothesis.hypothesis.parser.state.heads.1 < 5 ? variant/tag(.query.hypothesis.hypothesis.parser.state.relation1.base) == variant/tag(.query.retained.edge1.relation.base) : true) : true
+ where .query.retained.active.1 ? (.query.hypothesis.hypothesis.parser.state.heads.1 < 5 ? .query.hypothesis.hypothesis.parser.state.relation1.subtype == .query.retained.edge1.relation.subtype : true) : true
+ where .query.retained.active.1 ? (.query.hypothesis.selected > 1 ? .query.hypothesis.hypothesis.choices.1 == .query.retained.edge1.dependent_choice : true) : true
+ where .query.retained.active.1 ? (.query.retained.edge1.head < 4 && .query.hypothesis.selected > .query.retained.edge1.head ? sequence/at(.query.hypothesis.hypothesis.choices,.query.retained.edge1.head) == .query.retained.edge1.head_choice : true) : true
+ where .forest.heads.2 == (.query.retained.active.2 ? .query.retained.edge2.head : .query.hypothesis.hypothesis.parser.state.heads.2)
+ where .query.retained.active.2 ? (.query.hypothesis.hypothesis.parser.state.heads.2 < 5 ? .query.hypothesis.hypothesis.parser.state.heads.2 == .query.retained.edge2.head : true) : true
+ where .query.retained.active.2 ? (.query.hypothesis.hypothesis.parser.state.heads.2 < 5 ? variant/tag(.query.hypothesis.hypothesis.parser.state.relation2.base) == variant/tag(.query.retained.edge2.relation.base) : true) : true
+ where .query.retained.active.2 ? (.query.hypothesis.hypothesis.parser.state.heads.2 < 5 ? .query.hypothesis.hypothesis.parser.state.relation2.subtype == .query.retained.edge2.relation.subtype : true) : true
+ where .query.retained.active.2 ? (.query.hypothesis.selected > 2 ? .query.hypothesis.hypothesis.choices.2 == .query.retained.edge2.dependent_choice : true) : true
+ where .query.retained.active.2 ? (.query.retained.edge2.head < 4 && .query.hypothesis.selected > .query.retained.edge2.head ? sequence/at(.query.hypothesis.hypothesis.choices,.query.retained.edge2.head) == .query.retained.edge2.head_choice : true) : true
+ where .forest.heads.3 == (.query.retained.active.3 ? .query.retained.edge3.head : .query.hypothesis.hypothesis.parser.state.heads.3)
+ where .query.retained.active.3 ? (.query.hypothesis.hypothesis.parser.state.heads.3 < 5 ? .query.hypothesis.hypothesis.parser.state.heads.3 == .query.retained.edge3.head : true) : true
+ where .query.retained.active.3 ? (.query.hypothesis.hypothesis.parser.state.heads.3 < 5 ? variant/tag(.query.hypothesis.hypothesis.parser.state.relation3.base) == variant/tag(.query.retained.edge3.relation.base) : true) : true
+ where .query.retained.active.3 ? (.query.hypothesis.hypothesis.parser.state.heads.3 < 5 ? .query.hypothesis.hypothesis.parser.state.relation3.subtype == .query.retained.edge3.relation.subtype : true) : true
+ where .query.retained.active.3 ? (.query.hypothesis.selected > 3 ? .query.hypothesis.hypothesis.choices.3 == .query.retained.edge3.dependent_choice : true) : true
+ where .query.retained.active.3 ? (.query.retained.edge3.head < 4 && .query.hypothesis.selected > .query.retained.edge3.head ? sequence/at(.query.hypothesis.hypothesis.choices,.query.retained.edge3.head) == .query.retained.edge3.head_choice : true) : true
+}

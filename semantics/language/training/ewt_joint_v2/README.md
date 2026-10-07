@@ -102,3 +102,18 @@ the unchanged actual retained fact; it does not replay model inference.
 Raw protected sets/masks do not authorize published truth: recursive protected
 hypothesis/forest admission and independent `Hello, Travis.` VOC2 append/played
 proofs are still required. No fresh inference or played commitment is claimed.
+
+
+`native_independent_contract_proof.json` records three unregistered Source
+protection contracts. The prospective forest permits held VOC2->0 while unread
+state remains unchanged and refuses realized cycles, duplicate roots and bad
+heads. Source rebase checks exact prior occurrences, scalar span bounds, surface
+and whole candidates; span revision advances with the admitted next tape. Its
+45 programs round-trip and top-level graph expands. The first-basis independent
+admission retains the whole stable dependency, insertion context and exact
+Source output set, checking every active flag and preserved slot plus both
+choices, full relation and endpoint occurrences. All30 programs round-trip;
+actual VOC0 and fresh Partial `Hello, Travis ` VOC2 facts pass direct generic
+Source-expression/native admission, with altered head/choice outputs refused.
+These contracts are not included in the main generated Source/catalog yet.
+No ordinary protected-session, future rebase or played acceptance is claimed.
