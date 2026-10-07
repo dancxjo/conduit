@@ -85,4 +85,3 @@ plot speech/flow-fargan-condition-subframe (
     index >> ((. + 0) * 80) >> slice.start
     slice.result >> result
 }
-

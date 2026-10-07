@@ -239,7 +239,24 @@ fn authored_full_feature_frame_executes_from_one_preemphasized_history() {
 
 #[test]
 fn exact_authored_period_admission_identity_is_reviewable() {
-    let profile = conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition("type FarganPeriod = U16 in 32..=255\n").unwrap();
-    eprintln!("exact authored period admission: {}", profile.kind_identity(false));
-    assert_eq!(profile.value_type(), &plan::SourceSchema::for_entry(&format!("type FarganPeriod = U16 in 32..=255\n{}",include_str!("../../../speech/fargan_feature_policy.conduit")),"speech/fargan-feature-log-pitch").ty("period").clone());
+    let profile = conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition(
+        "type FarganPeriod = U16 in 32..=255\n",
+    )
+    .unwrap();
+    eprintln!(
+        "exact authored period admission: {}",
+        profile.kind_identity(false)
+    );
+    assert_eq!(
+        profile.value_type(),
+        &plan::SourceSchema::for_entry(
+            &format!(
+                "type FarganPeriod = U16 in 32..=255\n{}",
+                include_str!("../../../speech/fargan_feature_policy.conduit")
+            ),
+            "speech/fargan-feature-log-pitch"
+        )
+        .ty("period")
+        .clone()
+    );
 }

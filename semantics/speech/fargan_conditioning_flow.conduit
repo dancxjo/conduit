@@ -90,4 +90,3 @@ plot speech/flow-fargan-conditioning (
     period >> retained_pitch.value
     retained_pitch.result >> next_period
 }
-
