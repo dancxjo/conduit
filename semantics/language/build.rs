@@ -18,8 +18,7 @@ fn main() {
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
     println!("cargo:rerun-if-changed=pronunciation_selection.conduit");
-    let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+    let source = [
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
@@ -35,7 +34,7 @@ fn main() {
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
         include_str!("pronunciation_selection.conduit")
-    );
+    ].join("\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
     for (plot, file) in [
