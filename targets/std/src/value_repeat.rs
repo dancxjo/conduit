@@ -148,8 +148,9 @@ impl KernelOperationFactory for ValueRepeatOperationFactory {
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
         let selected = self.selected(gear)?;
         Ok(Box::new(
-            conduit_data::ValueRepeatBack::prepare(
+            conduit_data::ValueRepeatBack::prepare_with_schema(
                 &selected.profile.value,
+                &selected.profile.schema,
                 selected.count,
                 conduit_semantic_catalog::VALUE_REPEAT_MAXIMUM_COUNT,
             )

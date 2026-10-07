@@ -1,6 +1,9 @@
 //! Retain one exact Value and publish a finite number of identical Flow items.
 use alloc::{vec, vec::Vec};
-use conduit_core::CheckedValueContract;
+use conduit_core::{
+    CheckedValueContract, PreparedStructuredValueValidator, StructuredInfoType,
+    StructuredInfoTypeShape,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
@@ -10,9 +13,15 @@ use conduit_kernel::{
 pub enum ValueRepeatPreparationError {
     InvalidCount,
     UnboundedValue,
+    InvalidSchema,
 }
 
+enum Validator {
+    Primitive(CheckedValueContract),
+    Structured(PreparedStructuredValueValidator),
+}
 pub struct ValueRepeatBack {
+    validator: Option<Validator>,
     bytes: Vec<u8>,
     length: Option<usize>,
     candidate_length: Option<usize>,
@@ -34,6 +43,7 @@ impl ValueRepeatBack {
             return Err(ValueRepeatPreparationError::UnboundedValue);
         }
         Ok(Self {
+            validator: None,
             bytes: vec![0; value.maximum_bytes as usize],
             length: None,
             candidate_length: None,
@@ -42,6 +52,36 @@ impl ValueRepeatBack {
             staged: false,
             terminal: false,
         })
+    }
+    /// Retain exact transport validation during preparation, before Play.
+    pub fn prepare_with_schema(
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+        count: u16,
+        maximum_count: u16,
+    ) -> Result<Self, ValueRepeatPreparationError> {
+        use ValueRepeatPreparationError::InvalidSchema;
+        value.validate_definition().map_err(|_| InvalidSchema)?;
+        let validator = match schema.shape() {
+            StructuredInfoTypeShape::Leaf(kind) if kind == &value.value_kind => {
+                Validator::Primitive(value.clone())
+            }
+            StructuredInfoTypeShape::Leaf(_) => return Err(InvalidSchema),
+            _ => {
+                if schema.profile().map_err(|_| InvalidSchema)?.value_kind() != &value.value_kind
+                    || !value.constraints.is_empty()
+                {
+                    return Err(InvalidSchema);
+                }
+                Validator::Structured(
+                    PreparedStructuredValueValidator::new(schema, value.maximum_bytes as usize)
+                        .map_err(|_| InvalidSchema)?,
+                )
+            }
+        };
+        let mut back = Self::prepare(value, count, maximum_count)?;
+        back.validator = Some(validator);
+        Ok(back)
     }
     pub fn allocation_capacity(&self) -> usize {
         self.bytes.capacity()
@@ -69,6 +109,14 @@ impl<const PORTS: usize> StepBack<PORTS> for ValueRepeatBack {
                 return failure();
             };
             if bytes.len() != reference.byte_len as usize || bytes.len() > self.bytes.len() {
+                return failure();
+            }
+            let valid = match &self.validator {
+                None => true,
+                Some(Validator::Primitive(contract)) => contract.validate(bytes).is_ok(),
+                Some(Validator::Structured(validator)) => validator.validate(bytes).is_ok(),
+            };
+            if !valid {
                 return failure();
             }
             self.bytes[..bytes.len()].copy_from_slice(bytes);
@@ -196,6 +244,34 @@ mod tests {
         assert!(matches!(
             ValueRepeatBack::prepare(&unbounded, 1, 2),
             Err(ValueRepeatPreparationError::UnboundedValue)
+        ));
+    }
+    #[test]
+    fn selected_schema_refuses_malformed_input_without_consumption() {
+        let value =
+            CheckedValueContract::new(conduit_core::kind_id(conduit_core::BOOL_INFO_ID), 1, vec![])
+                .unwrap();
+        let schema =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
+        let mut back = ValueRepeatBack::prepare_with_schema(&value, &schema, 2, 2).unwrap();
+        let (mut io, input) = frame(Some(&[2]), true);
+        assert!(matches!(back.step(&mut io, &input), StepOutcome::Fail(_)));
+        assert!(!io.test_consumed(PortId(0)));
+        assert_eq!(back.published(), 0);
+        let (mut io, input) = frame(Some(&[1]), true);
+        assert_eq!(back.step(&mut io, &input), StepOutcome::Progress);
+        commit(&mut back);
+        let (mut io, input) = frame(None, true);
+        assert_eq!(back.step(&mut io, &input), StepOutcome::Progress);
+        assert_eq!(
+            <ValueRepeatBack as StepBack<1>>::prepared_output(&back, PortId(0)),
+            Some([1].as_slice())
+        );
+        let foreign =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::SCALAR_INFO_ID)).unwrap();
+        assert!(matches!(
+            ValueRepeatBack::prepare_with_schema(&value, &foreign, 2, 2),
+            Err(ValueRepeatPreparationError::InvalidSchema)
         ));
     }
 }
