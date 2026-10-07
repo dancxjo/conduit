@@ -3,7 +3,9 @@ use super::{
     PreparedNativeInvariantRefusal,
 };
 use crate::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use alloc::vec::Vec;
 use conduit_core::{StructuredFieldValue, StructuredInfoTypeShape, StructuredInfoValue};
+use std::eprintln;
 
 #[test]
 fn prepared_native_bank_preserves_order_and_law_refusals() {
@@ -131,4 +133,75 @@ fn prepared_native_bank_checks_nested_members_and_foreign_exact_types() {
             crate::PortableExpressionEvaluationRefusal::InvalidInput
         ))
     ));
+}
+
+/// Diagnostic readiness audit of the exact authored Language build closure.
+/// It does not run a model or claim generated constructors use this bank.
+#[test]
+#[ignore = "checks the complete Language authored Source closure"]
+fn actual_language_complete_native_bank_readiness() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../semantics/language");
+    let build = std::fs::read_to_string(root.join("build.rs")).unwrap();
+    let paths: Vec<_> = build
+        .lines()
+        .filter_map(|line| {
+            line.trim()
+                .strip_prefix("include_str!(\"")
+                .and_then(|s| s.strip_suffix("\"),"))
+        })
+        .collect();
+    assert!(!paths.is_empty());
+    let source = paths
+        .iter()
+        .map(|path| std::fs::read_to_string(root.join(path)).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let start = std::time::Instant::now();
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    eprintln!(
+        "exact_language_closure_files={} check_seconds={:.3}",
+        paths.len(),
+        start.elapsed().as_secs_f64()
+    );
+    let mut inspected = 0;
+    for ty in &checked.native_types {
+        if !matches!(
+            ty.name.as_str(),
+            "LanguageParserIndependentProtectedAdmission"
+                | "LanguageParserStableDependencyAdmission"
+                | "LanguageParserStableLexicalFact"
+                | "LanguageParserSessionStableLexicalFact"
+                | "LanguageParserSessionSnapshot"
+                | "LanguageParserCheckedHypothesis"
+                | "LanguageParserSessionCheckedHypothesis"
+                | "LanguageParserJointStableFact"
+                | "LanguageParserJointRuntimeHypothesis"
+                | "LanguageParserJointSnapshot"
+                | "LanguageParserJointStableLexicalFact"
+        ) {
+            continue;
+        }
+        inspected += 1;
+        eprintln!("native_bank={} invariants={}", ty.name, ty.invariants.len());
+        for (index, law) in ty.invariants.iter().enumerate() {
+            let began = std::time::Instant::now();
+            let result = crate::PreparedPortableExpressionEvaluator::new(law);
+            eprintln!(
+                "law={} prepared={} elapsed_us={} refusal={:?}",
+                index,
+                result.is_ok(),
+                began.elapsed().as_micros(),
+                result.err()
+            );
+        }
+        let bank = PreparedNativeInvariantAdmission::new(
+            &ty.value_type,
+            &ty.invariants,
+            ty.invariants.len(),
+            usize::MAX,
+        );
+        eprintln!("complete_bank={} refusal={:?}", bank.is_ok(), bank.err());
+    }
+    assert!(inspected >= 2);
 }
