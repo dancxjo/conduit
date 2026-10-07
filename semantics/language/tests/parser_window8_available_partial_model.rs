@@ -28,6 +28,20 @@ use conduit_language::{
 use conduit_plot::rust_binding::NativeRustBinding;
 use serde_json::{json, Value};
 use std::path::PathBuf;
+fn candidate_summary(candidate: &LanguageParserWindow8RawHypothesis) -> Value {
+    let state = candidate.state();
+    let relations = [
+        state.relation0(),
+        state.relation1(),
+        state.relation2(),
+        state.relation3(),
+        state.relation4(),
+        state.relation5(),
+        state.relation6(),
+        state.relation7(),
+    ];
+    json!({"active":candidate.active(),"identity":candidate.identity(),"score":candidate.score(),"choices":candidate.choices(),"selected":candidate.selected(),"heads":state.heads(),"relations":relations.map(|relation|json!({"base":format!("{:?}",relation.base()).to_lowercase(),"subtype":relation.subtype().get()})),"unread":state.unread(),"depth":state.depth(),"stack":state.stack(),"committed_dependency_prefix":state.committed()})
+}
 fn bytes_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
@@ -36,6 +50,20 @@ fn bytes_hex(bytes: &[u8]) -> String {
 fn actual_partial_available_context_emits_native_boundaries() {
     let directory =
         PathBuf::from(std::env::var("WINDOW8_MODEL_DIR").expect("explicit exact model directory"));
+    let observer_path =
+        PathBuf::from(std::env::var("WINDOW8_OBSERVER_PATH").expect("explicit fresh event path"));
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(observer_path)
+        .unwrap();
+    let mut observer = observer::Observer::new(file);
+    observer
+        .emit(
+            "producer-start",
+            json!({"model_invocations":0,"acquisition_kind":"independent-partial-prefixes"}),
+        )
+        .unwrap();
     let weights = std::fs::read(directory.join("ewt_window8.i16")).unwrap();
     let manifest: Value =
         serde_json::from_slice(&std::fs::read(directory.join("manifest.json")).unwrap()).unwrap();
@@ -72,14 +100,6 @@ fn actual_partial_available_context_emits_native_boundaries() {
     let fact_schema = facts::FactSchema::prepare();
     eprintln!("window8 cached partial: fact Source preparation complete");
     let wait_schema = wait::WaitSchema::prepare();
-    let observer_path =
-        PathBuf::from(std::env::var("WINDOW8_OBSERVER_PATH").expect("explicit fresh event path"));
-    let file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(observer_path)
-        .unwrap();
-    let mut observer = observer::Observer::new(file);
     let rows = json!([
         {"id":"record-later-available","text":"I record the ","pos":[],"heads":[],"relations":[]},
         {"id":"record-noun-available","text":"I record the record ","pos":[],"heads":[],"relations":[]},
@@ -269,7 +289,14 @@ fn actual_partial_available_context_emits_native_boundaries() {
                 let proof = bank.admit_state(candidate.state()).unwrap();
                 proofs.push(bytes_hex(&proof.proof().clone().encode().unwrap()));
             }
-            observer.emit("snapshot", json!({"id":id,"epoch":epoch,"text":row["text"],"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"beam_bytes":bytes_hex(&beam.clone().encode().unwrap()),"state_proof_bytes":proofs,"model_invocations":invocations})).unwrap();
+            let candidates = [
+                beam.candidate0(),
+                beam.candidate1(),
+                beam.candidate2(),
+                beam.candidate3(),
+            ]
+            .map(candidate_summary);
+            observer.emit("snapshot", json!({"id":id,"epoch":epoch,"text":row["text"],"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"beam_bytes":bytes_hex(&beam.clone().encode().unwrap()),"state_proof_bytes":proofs,"candidates":candidates,"stable_source_prefix":source.stable_prefix(),"model_invocations":invocations})).unwrap();
             epochs.push(json!({"epoch":epoch,"beam_bytes":bytes_hex(&beam.clone().encode().unwrap()),"state_proof_bytes":proofs}));
             if [
                 beam.candidate0(),
