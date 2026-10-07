@@ -1935,4 +1935,5 @@ pub mod fixed_numeric_flow;
 
 pub mod fixed_numeric_pair_flow;
 
+pub mod fixed_numeric_embedding_flow;
 pub mod fixed_numeric_linear_flow;
