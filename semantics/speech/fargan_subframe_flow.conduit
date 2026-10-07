@@ -1,0 +1,104 @@
+# One source-expanded 40-sample invocation; caller commits one combined result.
+# Period/cadence/conditioning progression remain explicit outer ownership.
+# pcm_f32 is de-emphasized finite float, before the native PCM16 owner.
+plot speech/flow-fargan-subframe-result (
+    >> value: NumericPair40_164_160_128_128_256x1...|
+    result: FarganSubframeResult...| >>
+) = ({pcm_f32: .0.0.0.0.0.0, next_state: {signal: {conv_history: .0.0.0.0.0.1, gru1: .0.0.0.0.1, gru2: .0.0.0.1, gru3: .0.0.1}, pitch_history: .0.1, deemphasis_state: .1}})
+plot speech/flow-fargan-subframe (
+    >> condition: NumericF32Vector80...|
+    >> period: FarganPeriod...|
+    >> state: FarganSubframeState...|
+    >> gain_weights: NumericF32MatrixRef80x1
+    >> gain_bias: NumericF32BiasRef1
+    >> conv_weights: NumericF32MatrixRef328x192
+    >> conv_bias: NumericF32BiasRef192
+    >> conv_glu_weights: NumericF32MatrixRef192x192
+    >> conv_glu_bias: NumericF32BiasRef192
+    >> pitch_gate_weights: NumericF32MatrixRef192x4
+    >> pitch_gate_bias: NumericF32BiasRef4
+    >> gru1_input_weights: NumericF32MatrixRef272x480
+    >> gru1_recurrent_weights: NumericF32MatrixRef160x480
+    >> gru2_input_weights: NumericF32MatrixRef240x384
+    >> gru2_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru3_input_weights: NumericF32MatrixRef208x384
+    >> gru3_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru1_glu_weights: NumericF32MatrixRef160x160
+    >> gru1_glu_bias: NumericF32BiasRef160
+    >> gru2_glu_weights: NumericF32MatrixRef128x128
+    >> gru2_glu_bias: NumericF32BiasRef128
+    >> gru3_glu_weights: NumericF32MatrixRef128x128
+    >> gru3_glu_bias: NumericF32BiasRef128
+    >> skip_weights: NumericF32MatrixRef688x128
+    >> skip_bias: NumericF32BiasRef128
+    >> skip_glu_weights: NumericF32MatrixRef128x128
+    >> skip_glu_bias: NumericF32BiasRef128
+    >> output_weights: NumericF32MatrixRef128x40
+    >> output_bias: NumericF32BiasRef40
+    result: FarganSubframeResult...| >>
+) {
+    pitch: speech/flow-fargan-pitch-conditioning
+    signal: speech/flow-fargan-signal-subframe
+    history: speech/flow-fargan-history-deemphasis
+    join1: numeric/flow-pair40x164
+    join2: numeric/flow-pair40-164x160
+    join3: numeric/flow-pair40-164-160x128
+    join4: numeric/flow-pair40-164-160-128x128
+    join5: numeric/flow-pair40-164-160-128-128x256
+    join6: numeric/flow-pair40-164-160-128-128-256x1
+    aggregate: speech/flow-fargan-subframe-result
+    condition >> pitch.condition
+    period >> pitch.period
+    state >> (.pitch_history) >> pitch.pitch_history
+    gain_weights >> pitch.gain_weights
+    gain_bias >> pitch.gain_bias
+    condition >> signal.condition
+    pitch.prediction >> signal.prediction
+    pitch.previous >> signal.previous
+    pitch.gain >> signal.gain
+    state >> (.signal.conv_history) >> signal.conv_history
+    state >> (.signal.gru1) >> signal.gru1_state
+    state >> (.signal.gru2) >> signal.gru2_state
+    state >> (.signal.gru3) >> signal.gru3_state
+    conv_weights >> signal.conv_weights
+    conv_bias >> signal.conv_bias
+    conv_glu_weights >> signal.conv_glu_weights
+    conv_glu_bias >> signal.conv_glu_bias
+    pitch_gate_weights >> signal.pitch_gate_weights
+    pitch_gate_bias >> signal.pitch_gate_bias
+    gru1_input_weights >> signal.gru1_input_weights
+    gru1_recurrent_weights >> signal.gru1_recurrent_weights
+    gru2_input_weights >> signal.gru2_input_weights
+    gru2_recurrent_weights >> signal.gru2_recurrent_weights
+    gru3_input_weights >> signal.gru3_input_weights
+    gru3_recurrent_weights >> signal.gru3_recurrent_weights
+    gru1_glu_weights >> signal.gru1_glu_weights
+    gru1_glu_bias >> signal.gru1_glu_bias
+    gru2_glu_weights >> signal.gru2_glu_weights
+    gru2_glu_bias >> signal.gru2_glu_bias
+    gru3_glu_weights >> signal.gru3_glu_weights
+    gru3_glu_bias >> signal.gru3_glu_bias
+    skip_weights >> signal.skip_weights
+    skip_bias >> signal.skip_bias
+    skip_glu_weights >> signal.skip_glu_weights
+    skip_glu_bias >> signal.skip_glu_bias
+    output_weights >> signal.output_weights
+    output_bias >> signal.output_bias
+    signal.result >> (.raw_pcm) >> history.raw_pcm
+    state >> (.pitch_history) >> history.pitch_history
+    state >> (.deemphasis_state) >> history.deemphasis_state
+    history.result >> (.value) >> join1.left
+    signal.result >> (.next_state.conv_history) >> join1.right
+    join1.result >> join2.left
+    signal.result >> (.next_state.gru1) >> join2.right
+    join2.result >> join3.left
+    signal.result >> (.next_state.gru2) >> join3.right
+    join3.result >> join4.left
+    signal.result >> (.next_state.gru3) >> join4.right
+    join4.result >> join5.left
+    history.next_pitch_history >> join5.right
+    join5.result >> join6.left
+    history.result >> (.next_state) >> join6.right
+    join6.result >> aggregate.value
+    aggregate.result >> result
+}
