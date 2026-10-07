@@ -14,6 +14,8 @@ use conduit_kernel::{HostCallId, NodeId, RequestId};
 
 #[path = "usb_endpoint_read_transfer.rs"]
 mod transfer;
+#[path = "usb_endpoint_read_window.rs"]
+pub(super) mod window;
 use transfer::EndpointReadTransfer;
 pub(crate) use transfer::{EndpointNativeRefusal, EndpointReceiveDma};
 

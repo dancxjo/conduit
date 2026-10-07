@@ -42,7 +42,10 @@ test("Workspace package dependencies name real source owners", () => {
     const descriptor = JSON.parse(readFileSync(`${root}/workspace.application.template.json`, "utf8"));
     const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
     assert.equal(descriptor.application_id, "conduit.application/workspace");
+    assert.equal(resources.size, descriptor.resources.length, "Workspace resource roles must be unique");
     for (const resource of descriptor.resources) {
+      assert.equal(new Set(resource.dependencies.map((entry) => entry.role)).size, resource.dependencies.length,
+        `${resource.role}: dependency roles must be unique`);
       const source = resource.source ? resolve(resource.source) : resolve(root, resource.path);
       if (!existsSync(source) || resource.kind !== "module") continue;
       for (const dependency of resource.dependencies) {
@@ -90,4 +93,23 @@ test("target source moves preserve declared browser resource URLs and relative d
     "raspberry-pi",
     "conduitos",
   ]);
+});
+
+test("staged Workspace modules declare every static import", () => {
+  const root = resolve("targets/browser/workspace");
+  const descriptor = JSON.parse(readFileSync(`${root}/workspace.application.template.json`, "utf8"));
+  const stage = readFileSync("targets/browser/tools/stage-browser-workspace.sh", "utf8");
+  for (const resource of descriptor.resources.filter((entry) => entry.kind === "module")) {
+    const candidates = [resolve(root, resource.path), resolve("targets/browser/host/assets", resource.path)];
+    const source = resource.source ? resolve(resource.source) : candidates.find(existsSync);
+    if (!source) continue; // Target adapters have their own relocation checks above.
+    if (source.startsWith(resolve("targets/browser/host/assets") + "/")) {
+      assert.ok(stage.includes(resource.path), `staging omits ${resource.path}`);
+    }
+    const bytes = readFileSync(source, "utf8");
+    for (const imported of bytes.matchAll(/\bfrom\s*["']([^"']+)["']/g)) {
+      assert.ok(resource.dependencies.some((dependency) => dependency.specifier === imported[1]),
+        `${resource.role}: undeclared module ${imported[1]}`);
+    }
+  }
 });

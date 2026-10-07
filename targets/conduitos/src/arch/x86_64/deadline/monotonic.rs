@@ -5,6 +5,7 @@ use crate::monotonic_clock::{codec::ClockDisposition, owner::MonotonicDeadlinePr
 pub struct NativeMonotonicDeadlineClock {
     counter: CandidateDeadline,
     lifetime_millis: u32,
+    last_observed: Option<u64>,
     revoked: bool,
 }
 
@@ -27,6 +28,7 @@ pub unsafe fn admitted_monotonic_deadline_clock(
     Ok(NativeMonotonicDeadlineClock {
         counter,
         lifetime_millis,
+        last_observed: None,
         revoked: false,
     })
 }
@@ -43,24 +45,33 @@ impl NativeMonotonicDeadlineClock {
         }
         Ok(())
     }
-    fn observed(
-        &mut self,
-        deadline: u64,
-        elapsed: Option<i64>,
-    ) -> Result<Option<u64>, ClockDisposition> {
+    fn observed(&mut self, elapsed: Option<i64>) -> Result<u64, ClockDisposition> {
         let Some(now) = elapsed.and_then(|now| u64::try_from(now).ok()) else {
             self.revoked = true;
             return Err(ClockDisposition::ProviderLost);
         };
-        Ok((now >= deadline).then_some(now))
+        if now >= u64::from(self.lifetime_millis)
+            || self.last_observed.is_some_and(|last| now < last)
+        {
+            self.revoked = true;
+            return Err(ClockDisposition::ProviderLost);
+        }
+        self.last_observed = Some(now);
+        Ok(now)
     }
 }
 impl MonotonicDeadlineProvider for NativeMonotonicDeadlineClock {
     fn poll_until(&mut self, deadline_millis: u64) -> Result<Option<u64>, ClockDisposition> {
         self.check_request(deadline_millis)?;
         // Exactly one actual counter observation in each poll quantum.
-        let elapsed = self.counter.elapsed_millis();
-        self.observed(deadline_millis, elapsed)
+        self.sample_now()
+            .map(|now| (now >= deadline_millis).then_some(now))
+    }
+    fn sample_now(&mut self) -> Result<u64, ClockDisposition> {
+        if self.revoked {
+            return Err(ClockDisposition::ProviderLost);
+        }
+        self.observed(self.counter.elapsed_millis())
     }
     fn revoke(&mut self) {
         self.revoked = true;
@@ -78,14 +89,15 @@ mod tests {
                 ticks_per_millisecond: 1,
             },
             lifetime_millis: 100,
+            last_observed: None,
             revoked: false,
         }
     }
     #[test]
     fn calibrated_observation_preserves_actual_time_and_finite_lifetime() {
         let mut clock = clock();
-        assert_eq!(clock.observed(10, Some(9)), Ok(None));
-        assert_eq!(clock.observed(10, Some(12)), Ok(Some(12)));
+        assert_eq!(clock.observed(Some(9)), Ok(9));
+        assert_eq!(clock.observed(Some(12)), Ok(12));
         assert_eq!(clock.check_request(99), Ok(()));
         assert_eq!(
             clock.poll_until(100),
@@ -99,19 +111,35 @@ mod tests {
     #[test]
     fn expiry_and_revocation_quarantine_the_provider_before_another_read() {
         let mut expired = clock();
-        assert_eq!(
-            expired.observed(10, None),
-            Err(ClockDisposition::ProviderLost)
-        );
+        assert_eq!(expired.observed(None), Err(ClockDisposition::ProviderLost));
         assert_eq!(expired.poll_until(0), Err(ClockDisposition::ProviderLost));
         let mut revoked = clock();
         revoked.revoke();
         assert_eq!(revoked.poll_until(0), Err(ClockDisposition::ProviderLost));
         let mut invalid = clock();
         assert_eq!(
-            invalid.observed(0, Some(-1)),
+            invalid.observed(Some(-1)),
             Err(ClockDisposition::ProviderLost)
         );
         assert_eq!(invalid.poll_until(0), Err(ClockDisposition::ProviderLost));
+    }
+    #[test]
+    fn samples_share_deadline_basis_and_refuse_regression_or_expiry() {
+        let mut active_clock = clock();
+        assert_eq!(active_clock.observed(Some(20)), Ok(20));
+        assert_eq!(
+            active_clock.observed(Some(19)),
+            Err(ClockDisposition::ProviderLost)
+        );
+        assert_eq!(
+            active_clock.sample_now(),
+            Err(ClockDisposition::ProviderLost)
+        );
+        let mut expired = clock();
+        assert_eq!(
+            expired.observed(Some(100)),
+            Err(ClockDisposition::ProviderLost)
+        );
+        assert_eq!(expired.sample_now(), Err(ClockDisposition::ProviderLost));
     }
 }

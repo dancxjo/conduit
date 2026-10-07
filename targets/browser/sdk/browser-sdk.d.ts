@@ -121,6 +121,10 @@ export class BrowserBodyParticipation {
   requestOfferEvidence(options: { capabilityIds?: readonly string[]; resourcePoolIds?: readonly string[] }): void;
   /** Read the authoritative owner Face while this Host and Boot have current presence. */
   ownerFaceSnapshot(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Uint8Array>;
+  /** Inspect owner-produced eligible, worn, preference, route, and selected Show facts. */
+  inspectOwnerWardrobe(): Promise<Readonly<Record<string, unknown>>>;
+  /** Request one revision-bound Wear, Doff, or Prefer while the Body is lulled. */
+  changeOwnerWardrobe(report: Readonly<Record<string, unknown>>, routeId: string, verb: "wear" | "doff" | "prefer"): Promise<Readonly<Record<string, unknown>>>;
   prepareOwnerFaceMask(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Readonly<Record<string, unknown>>>;
   acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
   /** Direct readout of the current acknowledged graphical Show by installed owner equipment. */

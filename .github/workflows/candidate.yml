@@ -2,6 +2,7 @@ name: Candidate
 on:
   pull_request:
     branches: [dev]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 permissions:
   contents: read
 concurrency:
@@ -11,6 +12,7 @@ jobs:
   proof:
     uses: ./.github/workflows/ci.yml
     with:
+      exhaustive: ${{ !github.event.pull_request.draft }}
       sha: ${{ github.event.pull_request.head.sha }}
       base: ${{ github.event.pull_request.base.sha }}
   candidate:
@@ -20,5 +22,14 @@ jobs:
     steps:
       - name: Require successful candidate proof
         env:
+          DRAFT: ${{ github.event.pull_request.draft }}
           RESULT: ${{ needs.proof.result }}
-        run: test "$RESULT" = success
+        # Skipped required checks count as successful in branch protection.
+        # Keep admission blocked until a ready event proves this exact SHA.
+        run: |
+          if test "$DRAFT" = true; then
+            echo "Draft: quick feedback only. Mark ready to require exhaustive proof."
+            exit 1
+          fi
+          test "$DRAFT" = false
+          test "$RESULT" = success

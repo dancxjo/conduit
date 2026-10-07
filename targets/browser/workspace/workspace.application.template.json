@@ -441,6 +441,10 @@
           "specifier": "./browser-plot-effects.mjs"
         },
         {
+          "role": "browser-monotonic-timer",
+          "specifier": "./browser-monotonic-timer.mjs"
+        },
+        {
           "role": "browser-body-input",
           "specifier": "./browser-body-input.mjs"
         },
@@ -459,6 +463,18 @@
         {
           "role": "browser-runtime-bridge",
           "specifier": "./browser-runtime-bridge.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-monotonic-timer",
+      "kind": "module",
+      "path": "browser-monotonic-timer.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
         }
       ]
     },

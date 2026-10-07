@@ -1,0 +1,13 @@
+{
+  "accepted": true,
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "face_revision": "13",
+  "model_id": "conduit-journey:3366-celsius/daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+  "original_output_sha256": "d7bd1584f7b34ab6706a469444bddf8da727ec10776ba90b068df78a8640d295",
+  "provider_id": "ollama/ollama version is 0.34.1",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "schema": "conduit.journey/model-validation@1",
+  "show_id": "show/b7d0ade40f57db9f5856efa32a7ce2a1e84e83ea7a6d638b6052c8f29fb677f6",
+  "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "validated_text_sha256": "f10a1fedd4ddf400a864f4a4676617edfd7860c2fd54073178a3cb9a0077dfaa"
+}

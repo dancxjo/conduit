@@ -10,8 +10,14 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { captureLlmChapter } from './three-host-llm-chapter.mjs';
+import { captureOwnerLlmSpeaker } from './three-host-owner-llm.mjs';
 import { captureRunId } from './three-host-run-identity.mjs';
+import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-owner-speech.mjs';
+import { retainOwnerSpeechArtifacts } from './three-host-owner-speech-artifacts.mjs';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
+import { capturePresentationRecovery } from './three-host-presentation-recovery.mjs';
+import { recordBrowserCapture } from './three-host-capture-observation.mjs';
+import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
   candidateId, ownerForward, outputArgument, playwrightArgument,
@@ -61,19 +67,26 @@ const run = (args) => {
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 };
-let server, browser, nativeProof;
+let server, browser, nativeProof, speechObserver;
 const nativeOutput = [];
 try {
   server = await startStaticProduct(handbook);
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
+  speechObserver = observeOwnerSpeech(page);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const ownerBefore = run(['body', 'status', '--state-dir', state, '--json']);
   const bodyId = ownerBefore.biography.body_id;
   const ownerPartAtCapture = ownerBefore.biography.membership.parts[0].current;
   const runId = captureRunId(bodyId, ownerPartAtCapture.host_id, ownerPartAtCapture.boot_id);
+  const observations = [];
+  const observeBrowserCapture = async (name, face, cause, screenshot) => {
+    observations.push(await recordBrowserCapture({ output, name,
+      sourceCommit: installed.release_source_identity, runId, bodyId,
+      hostId: identity.hostId, bootId: identity.bootId, face, cause, screenshot }));
+  };
 
   await page.goto(`${server.url}?participate=owner#your-handbook`);
   await page.locator('[data-owner-key]').waitFor();
@@ -97,6 +110,19 @@ try {
   assert.equal(joined.face.body_id, bodyId);
   assert.equal(joined.face.show_state, 'available');
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
+  await observeBrowserCapture('browser-joined', joined.face,
+    { kind: 'browser-membership', part_id: joined.credential.part_id }, 'browser-before.png');
+  const wardrobeEvidence = page.locator('[data-owner-wardrobe-evidence]');
+  const readWardrobe = async () => JSON.parse(await wardrobeEvidence.textContent());
+  const awaitWardrobeRevision = async prior => {
+    await page.waitForFunction(revision => {
+      try {
+        const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+        return report.wardrobe_revision_decimal !== revision;
+      } catch { return false; }
+    }, prior, { timeout: 12_000 });
+    return readWardrobe();
+  };
   // Join the browser first: its membership changes the owner Face. The QMP
   // guest must then receive that fresh revision before it submits an action.
   nativeProof = spawn(xtask, [
@@ -106,6 +132,39 @@ try {
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
   nativeProof.stdout.on('data', chunk => nativeOutput.push(chunk.toString()));
   nativeProof.stderr.on('data', chunk => nativeOutput.push(chunk.toString()));
+  const standby = await waitForFile(path.join(native, 'native-standby.json'));
+  assert.equal(standby.stage, 'standby');
+  assert.equal(standby.guest_part.membership_installed, true);
+  assert.equal(standby.guest_part.body_id, bodyId);
+  assert.equal(standby.face.interactions_admitted, false);
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(() => {
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .route_descriptions.some(route => route.mask_name === 'native-graphical'); } catch { return false; }
+  }, null, { timeout: 12_000 });
+  const nativeWardrobeBefore = await readWardrobe();
+  const nativeDescription = nativeWardrobeBefore.route_descriptions.find(route =>
+    route.mask_name === 'native-graphical');
+  const nativeRoute = nativeWardrobeBefore.admitted_routes.find(route =>
+    route.route_id === nativeDescription.route_id && route.currently_available);
+  assert.ok(nativeRoute, 'native Mask must have a current sealed route before user selection');
+  assert.notEqual(nativeWardrobeBefore.selected?.route_id, nativeRoute.route_id);
+  const initialBrowserDescription = nativeWardrobeBefore.route_descriptions.find(route =>
+    route.route_id === nativeWardrobeBefore.selected?.route_id);
+  assert.ok(initialBrowserDescription, 'initial browser Show needs its owner route name');
+  await page.getByRole('button', { name: 'Wear native-graphical', exact: true }).click();
+  const nativeWorn = await awaitWardrobeRevision(nativeWardrobeBefore.wardrobe_revision_decimal);
+  assert.equal(nativeWorn.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
+  assert.equal(nativeWorn.selected?.route_id, nativeWardrobeBefore.selected.route_id);
+  await page.getByRole('button', { name: `Doff ${initialBrowserDescription.mask_name}`, exact: true }).click();
+  const browserDoffed = await awaitWardrobeRevision(nativeWorn.wardrobe_revision_decimal);
+  assert.equal(browserDoffed.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
+  assert.equal(browserDoffed.selected?.route_id, nativeRoute.route_id);
+  await page.getByRole('button', { name: 'Prefer only native-graphical', exact: true }).click();
+  const nativePreferred = await awaitWardrobeRevision(browserDoffed.wardrobe_revision_decimal);
+  assert.equal(nativePreferred.owner_plan_id, nativeWardrobeBefore.owner_plan_id);
+  assert.equal(nativePreferred.selected?.route_id, nativeRoute.route_id);
+  await writeFile(path.join(native, 'resume-native-activation'), 'continue\n');
   const arrived = await waitForFile(path.join(native, 'native-arrived.json'));
   assert.equal(arrived.stage, 'arrived');
   assert.equal(arrived.guest_part.membership_installed, true);
@@ -129,6 +188,31 @@ try {
   assert.equal(nativeAction.action.status, 'accepted');
   assert.equal(nativeAction.action.requested_interval_ms, 500);
   assert.equal(nativeAction.show_ack.show_id, nativeAction.face.show_id);
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(prior => {
+    try {
+      const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+      return report.face_id !== prior && report.route_descriptions.length > 0;
+    } catch { return false; }
+  }, nativePreferred.face_id, { timeout: 12_000 });
+  const beforeBrowserRestore = await readWardrobe();
+  const browserDescription = beforeBrowserRestore.route_descriptions.find(route =>
+    route.host_id === identity.hostId);
+  const currentBrowserRoute = beforeBrowserRestore.admitted_routes.find(route =>
+    route.route_id === browserDescription?.route_id && route.currently_available);
+  assert.ok(currentBrowserRoute, 'current browser route needs a sealed available witness');
+  const currentNativeDescription = beforeBrowserRestore.route_descriptions.find(route =>
+    route.mask_name === 'native-graphical');
+  assert.ok(currentNativeDescription, 'current native route needs its owner name');
+  await page.getByRole('button', { name: `Wear ${browserDescription.mask_name}`, exact: true }).click();
+  const browserWorn = await awaitWardrobeRevision(beforeBrowserRestore.wardrobe_revision_decimal);
+  assert.equal(browserWorn.selected?.route_id, beforeBrowserRestore.selected?.route_id);
+  await page.getByRole('button', { name: `Doff ${currentNativeDescription.mask_name}`, exact: true }).click();
+  const nativeDoffed = await awaitWardrobeRevision(browserWorn.wardrobe_revision_decimal);
+  assert.equal(nativeDoffed.selected?.route_id, currentBrowserRoute.route_id);
+  await page.getByRole('button', { name: `Prefer only ${browserDescription.mask_name}`, exact: true }).click();
+  const browserRestored = await awaitWardrobeRevision(nativeDoffed.wardrobe_revision_decimal);
+  assert.equal(browserRestored.selected?.route_id, currentBrowserRoute.route_id);
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(prior => {
     const face = globalThis.__conduitOwnerParticipation.face();
@@ -142,6 +226,16 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterNative.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-native.png') });
+  await observeBrowserCapture('after-native-action', afterNative, {
+    kind: 'conduitos-semantic-action', action_id: nativeAction.action.action_id,
+    source_face_id: nativeAction.action.face_id,
+    source_face_revision: nativeAction.action.face_revision,
+    source_show_id: nativeAction.action.prior_show_id,
+    native_result_face_id: nativeAction.face.face_id,
+    native_result_face_revision: nativeAction.face.face_revision,
+    native_result_show_id: nativeAction.face.show_id,
+    outcome: nativeAction.action.status,
+  }, 'browser-after-native.png');
   const control = page.locator('[data-owner-action]').filter({
     has: page.getByRole('button', { name: 'Change clock interval' }),
   });
@@ -160,6 +254,11 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterBrowser.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-browser.png') });
+  await observeBrowserCapture('after-browser-action', afterBrowser, {
+    kind: 'browser-semantic-action', action_id: browserAction.identity,
+    source_face_id: afterNative.face_id, source_face_revision: afterNative.face_revision,
+    source_show_id: afterNative.show_id, outcome: 'accepted',
+  }, 'browser-after-browser.png');
   const stillJoined = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(stillJoined.biography.membership.parts.length, 3);
   for (const partId of [ownerPart.part_id, arrived.guest_part.part_id, joined.credential.part_id]) {
@@ -169,7 +268,8 @@ try {
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(1000ms\)/);
   assert.deepEqual(errors, []);
   const terminal = spawnSync(owner, ['body', 'terminal', '--state-dir', state], {
-    input: 'inspect\ncontrol next\ntype 500\napply\nquit\n', encoding: 'utf8', timeout: 10_000,
+    // The lulled Face exposes Wake first, then the checked clock argument.
+    input: 'inspect\ncontrol next\ncontrol next\ntype 500\napply\nquit\n', encoding: 'utf8', timeout: 10_000,
   });
   assert.equal(terminal.status, 0, terminal.stderr);
   const terminalShows = [...terminal.stdout.matchAll(/Owner Face revision (\d+) · Show (\S+) · Host (\S+) · Boot (\S+)/g)];
@@ -200,11 +300,95 @@ try {
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterTerminal.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-terminal.png') });
+  await observeBrowserCapture('after-terminal-action', afterTerminal, {
+    kind: 'terminal-semantic-action', interaction_id: terminalAction.interaction_id,
+    source_face_id: terminalAction.prior_face_id,
+    source_face_revision: terminalAction.prior_face_revision,
+    source_show_id: terminalAction.prior_show_id, outcome: 'accepted',
+  }, 'browser-after-terminal.png');
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(() => {
+    if (!document.querySelector('[data-owner-wardrobe-status]').textContent
+      .startsWith('Owner wardrobe revision ')) return false;
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .schema === 'conduit.body/owner-mask-wardrobe@1'; } catch { return false; }
+  }, null, { timeout: 12_000 });
+  const wardrobeBefore = await readWardrobe();
+  assert.equal(wardrobeBefore.body_id, bodyId);
+  const browserRoute = wardrobeBefore.admitted_routes.find(route =>
+    route.currently_available && route.route_id === wardrobeBefore.selected?.route_id);
+  assert.ok(browserRoute, 'the browser must be the selected available Mask before doff');
+  const browserMask = wardrobeBefore.route_descriptions.find(route =>
+    route.route_id === browserRoute.route_id)?.mask_name;
+  assert.ok(browserMask, 'the selected browser route needs its owner name');
+  await page.getByRole('button', { name: `Doff ${browserMask}`, exact: true }).click();
+  const wardrobeDoffed = await awaitWardrobeRevision(wardrobeBefore.wardrobe_revision_decimal);
+  assert.equal(wardrobeDoffed.owner_plan_id, wardrobeBefore.owner_plan_id);
+  assert.equal(wardrobeDoffed.selected, null);
+  assert.equal(wardrobeDoffed.wardrobe.worn.some(mask =>
+    mask.checked_plot_id === browserRoute.mask_plot.checked_plot_id), false);
+  await page.getByRole('button', { name: `Wear ${browserMask}`, exact: true }).click();
+  const wardrobeWorn = await awaitWardrobeRevision(wardrobeDoffed.wardrobe_revision_decimal);
+  assert.equal(wardrobeWorn.owner_plan_id, wardrobeBefore.owner_plan_id);
+  await page.getByRole('button', { name: `Prefer only ${browserMask}`, exact: true }).click();
+  const wardrobePreferred = await awaitWardrobeRevision(wardrobeWorn.wardrobe_revision_decimal);
+  assert.equal(wardrobePreferred.owner_plan_id, wardrobeBefore.owner_plan_id);
+  assert.equal(wardrobePreferred.selected?.route_id, browserRoute.route_id);
+  // The owner may retain a current Show when this route is selected again.
+  // Refresh below must still produce a new acknowledged Show for the action.
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(() => Boolean(document.querySelector('[data-handbook-application]')
+    ?.dataset.ownerShowAcknowledged), null, { timeout: 12_000 });
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(prior => {
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .show_id !== prior; } catch { return false; }
+  }, wardrobePreferred.show_id, { timeout: 12_000 });
+  const wardrobeRecovered = await readWardrobe();
+  assert.equal(wardrobeRecovered.owner_plan_id, wardrobeBefore.owner_plan_id);
+  assert.equal(wardrobeRecovered.selected?.route_id, browserRoute.route_id);
+  assert.ok(wardrobeRecovered.show_id && !wardrobeRecovered.fresh_show_required);
+  const currentBrowserFace = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  assert.equal(currentBrowserFace.show_id, wardrobeRecovered.show_id);
+  assert.equal(currentBrowserFace.face_id, afterTerminal.face_id);
+  await page.locator('.owner-wardrobe').screenshot({ path: path.join(output, 'browser-wardrobe.png') });
+  await observeBrowserCapture('wardrobe-restored', currentBrowserFace, {
+    kind: 'owner-wardrobe-transition', owner_plan_id: wardrobeBefore.owner_plan_id,
+    revision_before: wardrobeBefore.wardrobe_revision_decimal,
+    revision_after: wardrobeRecovered.wardrobe_revision_decimal,
+    selected_route_id: wardrobeRecovered.selected.route_id,
+    selected_show_id: wardrobeRecovered.show_id,
+  }, 'browser-wardrobe.png');
+  const wardrobeRecord = { schema: 'conduit.proof/owner-browser-wardrobe@1',
+    source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
+    browser_route_id: browserRoute.route_id,
+    native_selection: { standby, before: nativeWardrobeBefore, native_worn: nativeWorn,
+      browser_doffed: browserDoffed, native_preferred: nativePreferred,
+      before_browser_restore: beforeBrowserRestore, browser_worn: browserWorn,
+      native_doffed: nativeDoffed, browser_restored: browserRestored },
+    before: wardrobeBefore, doffed: wardrobeDoffed, worn: wardrobeWorn,
+    preferred: wardrobePreferred, recovered: wardrobeRecovered };
+  const wardrobeBytes = Buffer.from(`${JSON.stringify(wardrobeRecord, null, 2)}\n`);
+  await writeFile(path.join(output, 'browser-wardrobe.json'), wardrobeBytes);
   const afterTerminalStatus = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(afterTerminalStatus.biography.membership.parts.length, 3);
   for (const partId of [ownerPart.part_id, arrived.guest_part.part_id, joined.credential.part_id]) {
     assert.equal(afterTerminalStatus.biography.membership.parts.some(part =>
       part.part_id === partId && part.current !== null), true);
+  }
+  let ownerSelectedSpeech;
+  if (installed.selected_speech) {
+    const receipt = await captureOwnerSelectedSpeech(page, speechObserver, {
+      face: currentBrowserFace, bodyId, ownerHostId: ownerPart.current.host_id,
+      ownerBootId: ownerPart.current.boot_id,
+      providerSha256: installed.selected_speech.provider_sha256,
+    });
+    const batches = await retainOwnerSpeechArtifacts(state, output, receipt.batches);
+    const retained = { ...receipt, batches };
+    const bytes = Buffer.from(`${JSON.stringify(retained, null, 2)}\n`);
+    await writeFile(path.join(output, 'owner-selected-speech.json'), bytes);
+    ownerSelectedSpeech = { ...retained, path: 'owner-selected-speech.json', sha256: digest(bytes) };
+    assert.equal(run(['body', 'status', '--state-dir', state, '--json']).biography.body_id, bodyId);
   }
   let directSpeech;
   if (directSpeechEnabled) {
@@ -230,6 +414,7 @@ try {
     assert.equal(receipt.owner_host_id, ownerPart.current.host_id);
     assert.equal(receipt.owner_boot_id, ownerPart.current.boot_id);
     assert.equal(receipt.face_id, afterTerminal.face_id);
+    assert.equal(receipt.face_revision_decimal, afterTerminal.face_revision);
     assert.equal(receipt.owner_snapshot_before_after_equal, true);
     assert.equal(receipt.direct_spoken_mask_show_observed, false);
     assert.equal(receipt.owner_sealed_spoken_mask_route_observed, false);
@@ -251,6 +436,10 @@ try {
       produced_pcm_bytes: receipt.produced_pcm_bytes,
       speech_receipt_sha256: digest(receiptBytes),
       speech_manifest_sha256: digest(manifestBytes),
+      source_show_id: receipt.source_show_id,
+      source_mask_kind: receipt.source_mask_kind,
+      face_id: receipt.face_id,
+      face_revision: afterTerminal.face_revision,
       playback_observed: receipt.playback_observed,
       human_hearing_observed: receipt.human_hearing_observed,
       wavs,
@@ -271,6 +460,66 @@ try {
     modelRouteLoss = captured.routeLoss;
     modelRouteRestoration = captured.restoration;
   }
+  const ownerLlmSpeech = modelArgument && installed.selected_model?.model_name === modelArgument
+    ? await captureOwnerLlmSpeaker({ owner: run, state, output, installation: installed,
+      bodyId, runId, sourceCommit: installed.release_source_identity, model: modelArgument })
+    : undefined;
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(expectedShow => {
+    try {
+      const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+      return report.schema === 'conduit.body/owner-mask-wardrobe@1'
+        && (!expectedShow || report.show_id === expectedShow);
+    } catch { return false; }
+  }, ownerLlmSpeech?.show_id, { timeout: 12_000 });
+  if (ownerLlmSpeech) {
+    let report = await readWardrobe();
+    const browserDescription = report.route_descriptions.find(route =>
+      route.host_id === identity.hostId);
+    assert.ok(browserDescription, 'owner model handoff needs the browser Mask route');
+    const browserRoute = report.admitted_routes.find(route =>
+      route.route_id === browserDescription.route_id && route.currently_available);
+    assert.ok(browserRoute, 'owner model handoff needs an available browser Mask');
+    const browserWorn = report.wardrobe.worn.some(plot =>
+      plot.checked_plot_id === browserRoute.mask_plot.checked_plot_id);
+    if (!browserWorn) {
+      await page.getByRole('button', { name: `Wear ${browserDescription.mask_name}`, exact: true }).click();
+      report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
+    }
+    if (report.selected?.route_id !== browserRoute.route_id) {
+      const selectedDescription = report.route_descriptions.find(route =>
+        route.route_id === report.selected?.route_id);
+      assert.ok(selectedDescription, 'owner model handoff needs the selected Mask name');
+      await page.getByRole('button', { name: `Doff ${selectedDescription.mask_name}`, exact: true }).click();
+      report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
+    }
+    if (report.selected?.route_id !== browserRoute.route_id) {
+      await page.getByRole('button', { name: `Prefer only ${browserDescription.mask_name}`, exact: true }).click();
+      report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
+    }
+    assert.equal(report.selected?.route_id, browserRoute.route_id);
+  }
+  await page.getByRole('button', { name: 'Refresh this Face' }).click();
+  await page.waitForFunction(() => Boolean(document.querySelector('[data-handbook-application]')
+    ?.dataset.ownerShowAcknowledged), null, { timeout: 12_000 });
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(() => {
+    try {
+      const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent);
+      return report.schema === 'conduit.body/owner-mask-wardrobe@1'
+        && report.show_id === globalThis.__conduitOwnerParticipation.face()?.show_id;
+    } catch { return false; }
+  }, null, { timeout: 12_000 });
+  const presentationRecovery = await capturePresentationRecovery({
+    page, context, serverUrl: server.url, owner: run, state, bodyId,
+    ownerPartId: ownerPart.part_id, guestPartId: arrived.guest_part.part_id,
+    browserCredential: joined.credential, browserBootId: identity.bootId,
+    initialOwnerWindowUrl: window.url,
+    oldFace: await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()),
+    oldWardrobe: await readWardrobe(), output,
+    sourceCommit: installed.release_source_identity, runId,
+  });
+  observations.push(presentationRecovery.observation);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
   assert.equal(nativeReceipt.coordinated, true);
@@ -283,16 +532,27 @@ try {
   const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/conduit-browser-image.json')));
   assert.equal(browserBundle.reviewed_distribution.source_commit, nativeReceipt.source_commit);
   const screenshotPaths = ['browser-before.png', 'browser-after-native.png', 'browser-after-browser.png',
-    'browser-after-terminal.png',
-    'native/owner-before.png', 'native/owner-after.png'];
+    'browser-after-terminal.png', 'browser-wardrobe.png', 'browser-after-recovery.png',
+    'native/owner-standby.png', 'native/owner-before.png', 'native/owner-after.png'];
   const screenshots = await Promise.all(screenshotPaths.map(async file => {
     const bytes = await readFile(path.join(output, file));
     return { path: file, bytes: bytes.length, sha256: digest(bytes) };
   }));
+  assert.equal(observations.length, 6, 'every browser capture needs its action-time observation');
+  for (const retained of observations) {
+    const bytes = await readFile(path.join(output, retained.path));
+    assert.equal(bytes.length, retained.bytes);
+    assert.equal(digest(bytes), retained.sha256);
+    const capture = JSON.parse(bytes).capture;
+    assert.equal(capture.sha256, screenshots.find(item => item.path === capture.path)?.sha256,
+      `browser capture changed after ${retained.path}`);
+  }
   const nativeReceiptBytes = await readFile(path.join(native, 'owner-action-proof.json'));
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
-    proof_class: llmSpeech
+    proof_class: ownerLlmSpeech
+      ? 'live-local-installed-owner-qmp-pinned-chromium-selected-model-speaker'
+      : llmSpeech
       ? 'live-local-installed-owner-qmp-pinned-chromium-direct-and-llm-speech-route-loss-restoration'
       : directSpeech
         ? 'live-local-installed-owner-qmp-pinned-chromium-direct-speech'
@@ -337,10 +597,30 @@ try {
       bytes: Buffer.byteLength(terminal.stdout),
       sha256: digest(Buffer.from(terminal.stdout)),
     },
+    browser_wardrobe: {
+      route_id: browserRoute.route_id, owner_plan_id: wardrobeBefore.owner_plan_id,
+      revision_before: wardrobeBefore.wardrobe_revision_decimal,
+      revision_after: wardrobeRecovered.wardrobe_revision_decimal,
+      selected_show_id: wardrobeRecovered.show_id,
+      path: 'browser-wardrobe.json', bytes: wardrobeBytes.length,
+      sha256: digest(wardrobeBytes),
+    },
+    presentation_host_recovery: {
+      path: 'browser-presentation-recovery.json',
+      bytes: presentationRecovery.bytes.length,
+      sha256: digest(presentationRecovery.bytes),
+      lost_boot_id: presentationRecovery.receipt.lost_browser_boot_id,
+      recovered_boot_id: presentationRecovery.receipt.recovered_browser_boot_id,
+      old_show_id: presentationRecovery.receipt.old_show_id,
+      recovered_show_id: presentationRecovery.receipt.recovered_show_id,
+    },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
+    ...(ownerSelectedSpeech ? { owner_selected_speech: ownerSelectedSpeech } : {}),
+    ...(ownerLlmSpeech ? { owner_llm_speech: ownerLlmSpeech } : {}),
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
       model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
+    observations,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,
   };
@@ -354,8 +634,10 @@ try {
     }))),
   };
   await writeFile(path.join(output, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+  await verifyWalkthroughAssets(output, await readFile(path.join(output, walkthrough.path), 'utf8'));
   console.log(`Three-host journey proof: ${path.join(output, 'report.json')}`);
 } finally {
+  speechObserver?.close();
   if (nativeProof?.exitCode === null) nativeProof.kill();
   await browser?.close();
   if (server) server.child.kill();

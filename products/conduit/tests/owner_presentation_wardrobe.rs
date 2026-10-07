@@ -170,6 +170,35 @@ impl Fixture {
 }
 
 #[test]
+fn explicit_selection_uses_an_admitted_route_without_replacing_the_owner_plan() {
+    let fixture = Fixture::new();
+    let mut wardrobe = fixture.wardrobe();
+    let original_plan = wardrobe.plan().plan_id.clone();
+    wardrobe
+        .select_plot(
+            &fixture.session,
+            &fixture.face,
+            &[fixture.first_witness(), fixture.second_witness()],
+            &fixture.second.mask.plot_identity,
+            &fixture.second_seal.route_plan_id,
+        )
+        .unwrap();
+    assert_eq!(wardrobe.plan().plan_id, original_plan);
+    assert_eq!(
+        wardrobe.control().selected.as_ref().unwrap().mask_plot,
+        fixture.second.mask.plot_identity
+    );
+    assert_eq!(
+        wardrobe.selected_show(
+            &fixture.session,
+            &fixture.face,
+            &[fixture.first_witness(), fixture.second_witness()],
+        ),
+        Err(OwnerPresentationWardrobeError::ShowNotAcknowledged)
+    );
+}
+
+#[test]
 fn fallback_doff_rewear_and_replacement_require_fresh_show() {
     let mut fixture = Fixture::new();
     let mut wardrobe = fixture.wardrobe();

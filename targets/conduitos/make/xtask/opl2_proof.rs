@@ -4,13 +4,26 @@ use serde_json::Value;
 
 use crate::cli::GlobalOpts;
 
-use super::{profile::Paths, run, ConduitosArch, ConduitosError};
+use super::{image, profile::Paths, run, ConduitosArch, ConduitosError};
 
 const PREFIX: &str = "CONDUIT_OPL2_SIGN ";
 
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    let _run = run::execute(ConduitosArch::X86_64, opts)?;
+    image::execute_proof(ConduitosArch::X86_64, opts)?;
+    if opts.dry_run {
+        return Err(ConduitosError::refusal(
+            "dry-run-has-no-proof",
+            "OPL2 proof dry-run cannot manufacture audio",
+        ));
+    }
+    let audio_path = paths.target.join("opl2-proof-audio.wav");
+    if audio_path.exists() {
+        fs::remove_file(&audio_path)
+            .map_err(|error| ConduitosError::refusal("opl2-audio-stale", error.to_string()))?;
+    }
+    let run = run::boot_once_with_audio(&paths, opts, &audio_path)?;
+    let qemu_audio = run::inspect_wav(&audio_path)?;
     let serial = fs::read_to_string(paths.target.join("boot-serial.log")).map_err(|error| {
         ConduitosError::refusal(
             "opl2-proof-unavailable",
@@ -30,9 +43,20 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let sign: Value = serde_json::from_str(signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-opl2-sign", error.to_string()))?;
     validate(&sign)?;
+    if sign["boot_id"].as_str() != Some(run.boot.boot_id.as_str())
+        || sign["host_id"].as_str() != Some(run.boot.host_id.as_str())
+    {
+        return Err(ConduitosError::refusal(
+            "opl2-audio-run-mismatch",
+            "captured QEMU audio and OPL2 Sign must belong to the same boot",
+        ));
+    }
+    let mut record = sign.clone();
+    record["qemu_audio"] = serde_json::to_value(qemu_audio)
+        .map_err(|error| ConduitosError::refusal("opl2-audio-record", error.to_string()))?;
     fs::write(
         &paths.opl2_proof,
-        serde_json::to_vec_pretty(&sign)
+        serde_json::to_vec_pretty(&record)
             .map_err(|error| ConduitosError::refusal("malformed-opl2-sign", error.to_string()))?,
     )
     .map_err(|error| {

@@ -8,6 +8,7 @@ import { setupCi, setupUnit } from './setup.mjs';
 import { assertSourceCheckout } from './source.mjs';
 import { emitAcquisitionKey, measureAcquisition } from './acquisition/metrics.mjs';
 import { retainedOneBodyEvidence } from './one-body-evidence.mjs';
+import { retainedThreeHostDevelopmentEvidence } from './three-host-development-evidence.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -52,6 +53,8 @@ try {
       const paths = base === 'all' ? [] : run('git', ['diff', '--name-only', '--no-renames', '-z', `${exactSha(base)}...${head}`], true).split('\0').filter(Boolean);
       const plan = planChanges(paths, { full: base === 'all' });
       output('docs-only', String(plan.docsOnly));
+      output('unit-matrix', { shard: plan.unitShards });
+      output('conduitos-proof', String(plan.conduitosProof));
       output('matrix', { include: TARGETS.filter(item => plan.families.includes(item.family)) });
       output('sha', head);
       break;
@@ -63,6 +66,10 @@ try {
         // The browser target has a shallow checkout. Verify ancestry here,
         // where CI retains the full history, before any expensive target work.
         run('git', ['merge-base', '--is-ancestor', oneBodyEvidence.sourceCommit, 'HEAD']);
+      }
+      const threeHostDevelopment = retainedThreeHostDevelopmentEvidence();
+      if (threeHostDevelopment) {
+        run('git', ['merge-base', '--is-ancestor', threeHostDevelopment.sourceCommit, 'HEAD']);
       }
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
       run('cargo', ['fmt', '--all', '--check']);

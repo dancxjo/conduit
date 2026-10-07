@@ -3,6 +3,7 @@ use super::{
     SOURCE_CLOCK_ID,
 };
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
+use sha2::{Digest, Sha256};
 
 use std::io::{Read, Write};
 use std::process::{Child, ChildStderr, ChildStdin, Command, Stdio};
@@ -62,6 +63,8 @@ pub struct PlaybackReport {
     pub alsa_target: String,
     pub lifecycle: PlaybackLifecycle,
     pub metrics: PlaybackMetrics,
+    /// Exact PCM bytes accepted by this selected sink's successful writes.
+    pub committed_pcm_sha256: String,
     pub timing_class: &'static str,
     pub clock_correlation: &'static str,
     pub controlled_staging_bytes: u32,
@@ -94,6 +97,7 @@ pub struct AlsaAplaySession {
     stderr: Option<ChildStderr>,
     lifecycle: PlaybackLifecycle,
     metrics: PlaybackMetrics,
+    committed_pcm: Sha256,
     expected_start_frame: Option<u64>,
     play_started: Option<Instant>,
 }
@@ -107,6 +111,7 @@ impl AlsaAplaySession {
             stderr: None,
             lifecycle: PlaybackLifecycle::ResolvedAvailable,
             metrics: PlaybackMetrics::new(),
+            committed_pcm: Sha256::new(),
             expected_start_frame: None,
             play_started: None,
         }
@@ -127,6 +132,7 @@ impl AlsaAplaySession {
             alsa_target: self.selection.alsa_target(),
             lifecycle: self.lifecycle,
             metrics: self.metrics,
+            committed_pcm_sha256: format!("{:x}", self.committed_pcm.clone().finalize()),
             timing_class: "measured-hosted-best-effort",
             clock_correlation: "first-commit-monotonic-observed-no-hardware-timestamp-guarantee",
             controlled_staging_bytes: 0,
@@ -155,6 +161,7 @@ impl AlsaAplaySession {
             .ok_or(PlaybackFailure::InvalidLifecycle)?
             .flush()
             .map_err(|_| PlaybackFailure::WriteFailed)?;
+        self.committed_pcm.update(payload);
         let elapsed = micros(started.elapsed());
         self.metrics.minimum_write_micros = Some(
             self.metrics

@@ -4,10 +4,13 @@
 
 use super::Owner;
 use conduit_body::{
-    MembershipCredential, PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA,
+    BodyLifecycleSession, MembershipCredential, PortableAdmissionReceipt,
+    SPAWN_ADMISSION_RECEIPT_SCHEMA,
 };
-use conduit_core::LineOffer;
-use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
+use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
+use conduit_presentation::{
+    MaskShow, OwnerFaceSnapshotRequest, Presentation, RemoteOwnerMaskRouteSeal,
+};
 
 pub(super) struct NativeMaskRoute {
     credential: MembershipCredential,
@@ -17,6 +20,50 @@ pub(super) struct NativeMaskRoute {
     seal: RemoteOwnerMaskRouteSeal,
     acknowledged_show: Option<MaskShow>,
     expires_at_millis: u64,
+}
+
+impl NativeMaskRoute {
+    /// The return grant is finite. A missing Part, changed Face, expired grant,
+    /// or observed unavailable Line withdraws this witness from the owner Plan.
+    /// A purportedly Ready but malformed Line remains a witness so admission
+    /// can refuse it instead of laundering that claim into ordinary loss.
+    pub(super) fn current_witness(
+        &self,
+        session: &BodyLifecycleSession,
+        face: &Presentation,
+        now_millis: u64,
+    ) -> Option<(
+        &RemoteOwnerMaskRouteSeal,
+        &HostAdvertisement,
+        &LineOffer,
+        &LineOffer,
+    )> {
+        if now_millis >= self.expires_at_millis
+            || self.seal.body_id != session.evidence().body_id
+            || self.seal.workload_revision != session.evidence().body.workload_revision
+            || self.seal.face_id != face.identity
+            || self.seal.face_revision != face.revision
+            || self.seal.face_basis != face.basis
+            || self.face_line.availability.availability != LineAvailability::Ready
+            || self.return_line.availability.availability != LineAvailability::Ready
+        {
+            return None;
+        }
+        let current_part = session.evidence().membership.parts.iter().any(|part| {
+            part.part_id == self.credential.part_id
+                && part.current.as_ref().is_some_and(|host| {
+                    host.host_id == self.credential.host_id
+                        && host.boot_id == self.credential.boot_id
+                        && host.offer_generation == self.host_offer.offer_generation
+                })
+        });
+        current_part.then_some((
+            &self.seal,
+            &self.host_offer,
+            &self.face_line,
+            &self.return_line,
+        ))
+    }
 }
 
 impl Owner {
@@ -57,6 +104,10 @@ impl Owner {
         {
             return Err("native-mask-part-unavailable".into());
         }
+        // This Part's admission changed the owner Face. Keep the already
+        // attached browser route in the same new-Face Plan only after its
+        // actual carrier and Lines have been revalidated and resealed.
+        self.refresh_browser_mask_route_for_current_face()?;
         let planned = conduit_conduitos_mask_offer::prepare_stage_from_offer(
             conduit_conduitos_mask_offer::Adapter::Native,
             native_offer,
@@ -74,7 +125,7 @@ impl Owner {
             return_line,
         )
         .map_err(|error| format!("native-mask-route-refused:{error:?}"))?;
-        self.pending_native_mask = Some(NativeMaskRoute {
+        let previous = self.pending_native_mask.replace(NativeMaskRoute {
             credential: credential.clone(),
             host_offer: native_offer.clone(),
             face_line: face_line.clone(),
@@ -83,6 +134,10 @@ impl Owner {
             acknowledged_show: None,
             expires_at_millis,
         });
+        if let Err(error) = self.admit_native_presentation_route(&seal) {
+            self.pending_native_mask = previous;
+            return Err(error);
+        }
         Ok(seal)
     }
 
@@ -92,6 +147,13 @@ impl Owner {
         show: &MaskShow,
     ) -> Result<(), String> {
         self.validate_native_mask_route_show(request, show)?;
+        let seal = self
+            .pending_native_mask
+            .as_ref()
+            .ok_or("native-mask-route-not-selected")?
+            .seal
+            .clone();
+        self.acknowledge_selected_native_show(&seal, show)?;
         let route = self
             .pending_native_mask
             .as_mut()
@@ -101,7 +163,7 @@ impl Owner {
     }
 
     pub(crate) fn validate_native_mask_show(
-        &self,
+        &mut self,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
     ) -> Result<(), String> {
@@ -113,7 +175,7 @@ impl Owner {
         if route.acknowledged_show.as_ref() != Some(show) {
             return Err("native-mask-show-not-acknowledged".into());
         }
-        Ok(())
+        self.validate_selected_native_show(show)
     }
 
     fn validate_native_mask_route_show(

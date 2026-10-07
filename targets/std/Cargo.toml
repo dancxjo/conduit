@@ -60,6 +60,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rustls-pemfile = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+getrandom = "0.3"
 sha2 = "0.10"
 instant-distance = "=0.6.1"
 ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }

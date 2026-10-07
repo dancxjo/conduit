@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
+
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+
+async function fixture() {
+  const root = await mkdtemp(path.join(tmpdir(), 'conduit-screen-free-retain-'));
+  const walkthrough = path.join(root, 'three-host');
+  await mkdir(walkthrough);
+  const artifact = async name => {
+    const bytes = Buffer.from(`observed ${name}\n`);
+    await writeFile(path.join(root, name), bytes);
+    return { path: `../${name}`, bytes: bytes.length, sha256: digest(bytes) };
+  };
+  const report = {
+    birth: {
+      zero_body_receipt: await artifact('zero-body-before.json'),
+      input: await artifact('birth-input.txt'),
+      transcript: await artifact('birth-transcript.txt'),
+    },
+    screen_free_clock: {
+      start: {
+        input: await artifact('clock-start-input.txt'),
+        transcript: await artifact('clock-start-transcript.txt'),
+      },
+      lull: {
+        input: await artifact('clock-lull-input.txt'),
+        transcript: await artifact('clock-lull-transcript.txt'),
+      },
+    },
+  };
+  return { root, walkthrough, report };
+}
+
+test('retains only verified nonvisual sessions beside the walkthrough', async () => {
+  const { root, walkthrough, report } = await fixture();
+  try {
+    await writeFile(path.join(root, 'invitation.private.json'), 'secret');
+    await retainScreenFreeSessions(root, walkthrough, report);
+    const names = await readdir(walkthrough);
+    assert.equal(names.length, 7);
+    assert.ok(!names.includes('invitation.private.json'));
+    assert.equal(report.birth.input.path, 'birth-input.txt');
+    assert.equal(report.screen_free_clock.lull.transcript.path, 'clock-lull-transcript.txt');
+    assert.equal(digest(await readFile(path.join(walkthrough, 'birth-input.txt'))),
+      report.birth.input.sha256);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('refuses a changed transcript before retaining it', async () => {
+  const { root, walkthrough, report } = await fixture();
+  try {
+    await writeFile(path.join(root, 'zero-body-before.json'), 'changed');
+    await assert.rejects(retainScreenFreeSessions(root, walkthrough, report),
+      /changed after its receipt/);
+    assert.deepEqual(await readdir(walkthrough), []);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

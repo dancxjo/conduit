@@ -5,6 +5,10 @@ on:
       sha:
         type: string
         required: true
+      exhaustive:
+        type: boolean
+        default: true
+        description: Run unit and target proof after quick checks
       base:
         type: string
         required: true
@@ -19,10 +23,13 @@ env:
   CONDUIT_CHECKOUT_SHA: ${{ inputs.sha }}
 jobs:
   preflight:
+    name: candidate/quick
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
       matrix: ${{ steps.scan.outputs.matrix }}
+      unit-matrix: ${{ steps.scan.outputs.unit-matrix }}
+      conduitos-proof: ${{ steps.scan.outputs.conduitos-proof }}
       docs-only: ${{ steps.scan.outputs.docs-only }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -59,15 +66,13 @@ jobs:
           retention-days: 14
   unit:
     needs: preflight
-    if: needs.preflight.outputs.docs-only != 'true'
+    if: inputs.exhaustive && needs.preflight.outputs.docs-only != 'true'
     runs-on: ubuntu-24.04
-    # Hosts includes checked protocol preparation and sustained kernel proofs.
-    # Retain the complete shard when cold preparation exceeds forty minutes.
-    timeout-minutes: ${{ matrix.shard == 'hosts' && 70 || 40 }}
+    # Preserve cold-preparation headroom for the independently scheduled host groups.
+    timeout-minutes: ${{ startsWith(matrix.shard, 'hosts-') && 70 || 40 }}
     strategy:
       fail-fast: false
-      matrix:
-        shard: [foundation, hosts, products, lint]
+      matrix: ${{ fromJSON(needs.preflight.outputs.unit-matrix) }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -88,6 +93,7 @@ jobs:
       - name: Prove portable meaning
         env:
           SHARD: ${{ matrix.shard }}
+          CONDUIT_CI_CONDUITOS_PROOF: ${{ needs.preflight.outputs.conduitos-proof }}
         run: cargo xtask ci pipeline unit "$SHARD"
       - name: Retain acquisition measurements
         if: always()
@@ -98,8 +104,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   target:
-    needs: [preflight, unit]
-    if: needs.preflight.outputs.docs-only != 'true'
+    needs: preflight
+    if: inputs.exhaustive && needs.preflight.outputs.docs-only != 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
@@ -192,12 +198,13 @@ jobs:
       - name: Require every selected lane
         env:
           PREFLIGHT: ${{ needs.preflight.result }}
+          EXHAUSTIVE: ${{ inputs.exhaustive }}
           DOCS_ONLY: ${{ needs.preflight.outputs.docs-only }}
           UNIT: ${{ needs.unit.result }}
           TARGET: ${{ needs.target.result }}
         run: |
           test "$PREFLIGHT" = success
-          if test "$DOCS_ONLY" != true; then
+          if test "$EXHAUSTIVE" = true && test "$DOCS_ONLY" != true; then
             test "$UNIT" = success
             test "$TARGET" = success
           fi

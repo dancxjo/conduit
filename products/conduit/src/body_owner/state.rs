@@ -294,6 +294,7 @@ mod tests {
             body_state: None,
             joined_body_state: None,
             selected_speech: None,
+            selected_model: None,
         };
         write_json_atomic(&root.join("installation.json"), &installation).unwrap();
         let checked = crate::plot_source::parse(SOURCE)
@@ -382,6 +383,7 @@ mod tests {
             body_state: None,
             joined_body_state: None,
             selected_speech: None,
+            selected_model: None,
         };
         write_json_atomic(&root.join("installation.json"), &installation).unwrap();
         let body = Body::born(

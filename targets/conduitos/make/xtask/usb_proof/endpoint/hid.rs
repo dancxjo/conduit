@@ -1,4 +1,5 @@
 //! Exact Source identity and independent HID transcript acceptance.
+mod capture;
 mod mouse;
 use super::*;
 use conduit_core::*;
@@ -24,6 +25,8 @@ struct HidSign {
     acknowledged_stop: bool,
     fixture_protocol: bool,
     allocation_sealed: bool,
+    capture_buffers: u8,
+    maximum_pending_transfers: u8,
 }
 
 pub(super) fn retain(
@@ -77,116 +80,106 @@ fn validate_sign(
 ) -> Result<(), ConduitosError> {
     let fragment = &plan.fragments[0];
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-    if sign.schema != "conduit.conduitos.usb-hid-endpoint/v1"
-        || sign.proof_class != "freestanding-emulator"
-        || sign.source_document_id != plan.source_document_id.as_str()
-        || sign.checked_plot_id != plan.checked_plot_id.as_str()
-        || sign.plan_id != plan.plan_id.as_str()
-        || sign.active_play_id != active.active_play_id.as_str()
-        || sign.device_instance_id != device
-        || sign.transfers != 128
-        || sign.cycle_transitions != 2
-        || sign.transcript_digest != expected
-        || !sign.normal_close
-        || !sign.acknowledged_stop
-        || !sign.fixture_protocol
-        || !sign.allocation_sealed
-    {
-        return Err(refusal("hid-proof-sign", format!("{sign:?}")));
+    let captures = fragment
+        .placements
+        .iter()
+        .filter(|gear| {
+            gear.implementation_id.as_str()
+                == conduitos::usb_base::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION
+        })
+        .count() as u8;
+    for (field, wanted, actual) in [
+        (
+            "schema",
+            "conduit.conduitos.usb-hid-endpoint/v1",
+            sign.schema.as_str(),
+        ),
+        (
+            "proof_class",
+            "freestanding-emulator",
+            sign.proof_class.as_str(),
+        ),
+        (
+            "source_document_id",
+            plan.source_document_id.as_str(),
+            sign.source_document_id.as_str(),
+        ),
+        (
+            "checked_plot_id",
+            plan.checked_plot_id.as_str(),
+            sign.checked_plot_id.as_str(),
+        ),
+        ("plan_id", plan.plan_id.as_str(), sign.plan_id.as_str()),
+        (
+            "active_play_id",
+            active.active_play_id.as_str(),
+            sign.active_play_id.as_str(),
+        ),
+        (
+            "device_instance_id",
+            device,
+            sign.device_instance_id.as_str(),
+        ),
+        (
+            "transcript_digest",
+            expected,
+            sign.transcript_digest.as_str(),
+        ),
+    ] {
+        if wanted != actual {
+            return Err(refusal(
+                "hid-proof-sign",
+                format!("{field}: expected {wanted}, actual {actual}"),
+            ));
+        }
+    }
+    for (field, wanted, actual) in [
+        (
+            "capture_buffers",
+            u64::from(captures),
+            u64::from(sign.capture_buffers),
+        ),
+        (
+            "maximum_pending_transfers",
+            u64::from(captures),
+            u64::from(sign.maximum_pending_transfers),
+        ),
+        ("transfers", 128, u64::from(sign.transfers)),
+        ("cycle_transitions", 2, u64::from(sign.cycle_transitions)),
+    ] {
+        if wanted != actual {
+            return Err(refusal(
+                "hid-proof-sign",
+                format!("{field}: expected {wanted}, actual {actual}"),
+            ));
+        }
+    }
+    for (field, actual) in [
+        ("normal_close", sign.normal_close),
+        ("acknowledged_stop", sign.acknowledged_stop),
+        ("fixture_protocol", sign.fixture_protocol),
+        ("allocation_sealed", sign.allocation_sealed),
+    ] {
+        if !actual {
+            return Err(refusal(
+                "hid-proof-sign",
+                format!("{field}: expected true, actual false"),
+            ));
+        }
     }
     Ok(())
 }
 
 fn expected_digest(outputs: &[PortDescriptor], mode: ProofMode) -> Result<String, ConduitosError> {
+    if mode == ProofMode::Keyboard {
+        return capture::expected_digest(outputs);
+    }
     let source = PreparedProtocolSource::prepare(
         usb_hid_endpoint_package()
             .map_err(|error| refusal("hid-proof-source", format!("{error:?}")))?,
     )
     .map_err(|error| refusal("hid-proof-source", format!("{error:?}")))?;
-    if mode == ProofMode::Mouse {
-        return mouse::expected_digest(&source, outputs);
-    }
-    let schema = |name: &str| {
-        source
-            .checked
-            .native_types
-            .iter()
-            .find(|ty| ty.name == name)
-            .map(|ty| ty.value_type.clone())
-            .ok_or_else(|| refusal("hid-proof-type", name))
-    };
-    let frame = schema("UsbHidReportFrame")?;
-    let transfer = schema("UsbHidTransferFrame")?;
-    let report = schema("UsbBootKeyboardReport")?;
-    let observed = schema("UsbBootKeyboardResult")?;
-    let transition = schema("UsbKeyboardTransition")?;
-    let mut digest = Sha256::new();
-    for sequence in 0..128_u64 {
-        let pressed = sequence % 2 == 0;
-        let wire = vec![0, 0, if pressed { 4 } else { 0 }, 0, 0, 0, 0, 0];
-        let received = StructuredInfoValue::variant(
-            transfer.clone(),
-            "frame",
-            record(
-                &frame,
-                vec![
-                    leaf(&frame, "wire", wire)?,
-                    leaf(&frame, "actual", 8_u64.to_le_bytes().to_vec())?,
-                ],
-            )?,
-        )
-        .map_err(value_error)?;
-        let key_type = field_type(&report, "keys")?;
-        let StructuredInfoTypeShape::Collection { element, .. } = key_type.shape() else {
-            return Err(refusal("hid-proof-type", "keys collection"));
-        };
-        let keys = (0..6)
-            .map(|index| {
-                StructuredInfoValue::leaf(
-                    element.clone(),
-                    vec![if pressed && index == 0 { 4 } else { 0 }],
-                )
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(value_error)?;
-        let keys = StructuredInfoValue::collection(key_type.clone(), keys).map_err(value_error)?;
-        let keyboard = StructuredInfoValue::variant(
-            observed.clone(),
-            "keyboard",
-            record(
-                &report,
-                vec![
-                    leaf(&report, "modifiers", vec![0])?,
-                    StructuredFieldValue::new("keys", keys).map_err(value_error)?,
-                ],
-            )?,
-        )
-        .map_err(value_error)?;
-        let change = record(
-            &transition,
-            vec![
-                leaf(&transition, "usage", vec![4])?,
-                leaf(&transition, "pressed", vec![u8::from(pressed)])?,
-                leaf(&transition, "modifiers", vec![0])?,
-            ],
-        )?;
-        for port in outputs {
-            let value = match port.port_id.as_str() {
-                "received" => &received,
-                "observed" => &keyboard,
-                "transition" => &change,
-                _ => return Err(refusal("hid-proof-port", port.port_id.as_str())),
-            };
-            digest.update(sequence.to_le_bytes());
-            digest.update(port.port_id.as_str().as_bytes());
-            digest.update(value.canonical_bytes().map_err(value_error)?);
-        }
-    }
-    Ok(digest
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect())
+    mouse::expected_digest(&source, outputs)
 }
 fn field_type(ty: &StructuredInfoType, name: &str) -> Result<StructuredInfoType, ConduitosError> {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
@@ -260,6 +253,8 @@ mod tests {
                 acknowledged_stop: true,
                 fixture_protocol: true,
                 allocation_sealed: true,
+                capture_buffers: if mode == ProofMode::Keyboard { 8 } else { 1 },
+                maximum_pending_transfers: if mode == ProofMode::Keyboard { 8 } else { 1 },
             };
             validate_sign(plan, "proof/device", &expected, &specimen).unwrap();
             for (field, replacement) in [
@@ -277,6 +272,8 @@ mod tests {
                 ("acknowledged_stop", serde_json::json!(false)),
                 ("fixture_protocol", serde_json::json!(false)),
                 ("allocation_sealed", serde_json::json!(false)),
+                ("capture_buffers", serde_json::json!(0)),
+                ("maximum_pending_transfers", serde_json::json!(0)),
             ] {
                 let mut forged = serde_json::to_value(&specimen).unwrap();
                 forged[field] = replacement;

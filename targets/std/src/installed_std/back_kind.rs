@@ -181,6 +181,7 @@ pub(super) enum InstalledBack {
     GeneratedSemanticValidator(super::generated_validation_backs::GeneratedValidatorBack),
     RetainGeneratedValidation(super::generated_validation_backs::GeneratedValidationBack),
     SpokenGeneratedSpeech(crate::spoken_mask_runtime::GeneratedManifestationToSpeechBack),
+    DirectFaceWording(crate::direct_spoken_mask_runtime::DirectFaceWordingBack),
     SpokenArtifact(SpokenArtifactBack),
     SpokenArtifactShow(crate::spoken_mask_runtime::ArtifactAcknowledgedShowBack),
     SpokenNoInteraction(crate::spoken_mask_runtime::ClosingNoInteractionBack),

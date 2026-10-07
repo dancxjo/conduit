@@ -17,11 +17,13 @@ if (!Array.isArray(template.host_implementations) || template.host_implementatio
 const hostImplementations = [...template.host_implementations].sort();
 const root = resolve(destination) + sep;
 const resources = [];
+const moduleSources = new Map();
 for (const resource of template.resources ?? []) {
   const path = resolve(destination, resource.path);
   if (!path.startsWith(root)) throw new Error(`application resource escapes destination: ${resource.path}`);
   const bytes = await readFile(path);
   if (bytes.length === 0 || bytes.length > resource.maximum_bytes) throw new Error(`application resource exceeds bound: ${resource.role}`);
+  if (resource.kind === "module") moduleSources.set(resource.role, bytes.toString("utf8"));
   resources.push({
     role: resource.role,
     kind: resource.kind,
@@ -30,6 +32,22 @@ for (const resource of template.resources ?? []) {
     sha256: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
     dependencies: resource.dependencies ?? [],
   });
+}
+const byRole = new Map(resources.map(resource => [resource.role, resource]));
+for (const [role, source] of moduleSources) {
+  const declared = byRole.get(role).dependencies;
+  const imported = new Set([...source.matchAll(/(?:\bfrom\s*|\bimport\s*)["']([^"']+)["']/g)]
+    .map(match => match[1]));
+  for (const specifier of imported) {
+    if (!declared.some(dependency => dependency.specifier === specifier)) {
+      throw new Error(`application module ${role} imports undeclared module ${specifier}`);
+    }
+  }
+  for (const dependency of declared) {
+    if (byRole.get(dependency.role)?.kind !== "module" || !imported.has(dependency.specifier)) {
+      throw new Error(`application module ${role} has an invalid dependency ${dependency.specifier}`);
+    }
+  }
 }
 
 const canonical = packageCanonical(template.application_id, template.state_compatibility, hostImplementations, resources);

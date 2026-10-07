@@ -70,10 +70,12 @@ try {
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));
   assert(listing.includes("browser-sdk-face-actions.mjs"));
+  assert(listing.includes("browser-sdk-wardrobe.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
   assert(listing.includes("host/assets/browser-host-identity.mjs"));
   assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));
   assert(listing.includes("host/assets/browser-body-host.mjs"));
+  assert(listing.includes("host/assets/browser-monotonic-timer.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
   const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });
   assert.equal(imported.status, 0, imported.stderr);

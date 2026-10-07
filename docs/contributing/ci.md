@@ -8,10 +8,34 @@ through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The pipeline scans the diff, checks patch hygiene, Rust formatting, locked
 workspace metadata and firmware lockfiles, artifact/publication invariants, and
-Actions syntax. Three
-broad unit shards cover foundation, hosts, and products; workspace Clippy runs
-alongside them. These use the repository's existing package ownership list.
-Expensive targets start only after every unit and lint shard passes.
+Actions syntax. This `candidate/quick` check runs on every PR update, including
+drafts. Draft PRs stop after quick checks; mark a PR ready for review to launch
+exhaustive proof for its current SHA. Returning it to draft cancels superseded
+proof and runs quick checks again. Keep actively changing work in draft.
+
+After preflight, unit and target proof start independently. Foundation and
+products retain their broad unit shards; hosts split into std providers,
+browser runtime, ConduitOS, and workbench fixtures. Workspace Clippy runs
+alongside them. Ordinary packages belong to exactly one group. The sustained
+ConduitOS proof is partitioned across the same runners: automatic Body cases
+with std, automatic Clock cases and HID reports with browser, USB protocol plots
+with workbench,
+and remaining library, default integration, and doc tests with ConduitOS.
+The native lane validates the compiled library inventory; Cargo metadata assigns
+every default integration target. Each group retains `--test-threads=1`.
+Isolated browser assets skip these native slices; Integration always proves them.
+A unit failure does not prevent independent targets from reporting defects.
+Reproduce a host group with `cargo xtask ci pipeline unit hosts-std` (or
+`hosts-browser`, `hosts-conduitos`, `hosts-workbench`). The full xtask check
+entrance also exposes `workspace-test-hosts-std` and the other named groups;
+`workspace-test-hosts` retains the aggregate local suite.
+
+The `candidate` job is an AND gate over all selected proof for the exact PR SHA.
+It explicitly blocks admission on drafts while quick checks can pass; a skipped
+required check would count as successful in GitHub branch protection. Ready docs-only
+PRs require successful preflight. Integration always runs exhaustive proof for
+all targets and unit shards, with running work finishing and pending commits
+coalescing. Publication continues to consume those exact verified artifacts.
 
 Selection is deliberately small and conservative:
 
@@ -25,16 +49,23 @@ Selection is deliberately small and conservative:
 | ConduitOS | ConduitOS and Orange Pi |
 | Shared code, manifests, tools, workflows, unknown paths | All |
 
+Unit selection is conservative too: isolated browser proof scripts and site
+assets select browser and workbench host fixtures, products/tooling tests, and
+workspace Clippy. Other source changes, dependency files, unknown paths, and
+mixed changes retain every unit shard. Integration always selects all shards.
+
 Both names of a rename are included. An empty diff selects all. There are no
 receipt-reuse fingerprints or path dependency controllers. The selection rules
 live in `tools/ci/pipeline/plan.mjs`.
 
 Every selected target owns setup, build, proof, packaging, and one final
 artifact upload on its runner. Targets never depend on an unrelated target.
-Compiler caches retain Cargo compiler directories and dependencies. Browser,
-AVR, ESP32, and RP2040 lanes use a separate acquisition cache for verified tool
-downloads and pinned installations; other lanes acquire their small tool sets
-directly. Staged products and product proof always start fresh.
+Compiler caches retain Cargo compiler directories and dependencies. Lanes with
+measured acquisition savings, including browser, Linux, ConduitOS, AVR, ESP32,
+and RP2040 targets, use a separate cache for verified tool downloads and
+pinned installations. Preflight, Windows, and macOS acquire their tool sets
+directly because their measured warm restores did not save time. Staged
+products and product proof always start fresh.
 Once the target matrix starts, a failure does not cancel siblings. Code tests
 have no retries. Acquisition may have one bounded infrastructure retry.
 Browser acceptance keeps pinned Chromium, one worker, and zero retries.
@@ -104,6 +135,42 @@ than reported as a speedup. The report separately compares warm preparation
 against uncached setup alone, so the cost of populating a cache cannot hide
 a regression. Existing runner-image tools are part of the
 recorded baseline; “cold” does not mean an empty machine.
+
+The [6 October 2026 acquisition run](https://github.com/dancxjo/conduit/actions/runs/37441249185)
+completed exact cold/warm pairs for every target below at source
+`b4b2157910727c94bca6e7a02cf8358edcffe0de`. These are preparation
+times in seconds, including project-cache restore and save but excluding
+checkout, baseline runner provisioning, product build, and product proof.
+They measure that source and runner image, not a promise for later images.
+
+| Target | Cold | Warm | Saved |
+| --- | ---: | ---: | ---: |
+| Unit | 31.2 | 25.5 | 5.7 |
+| Preflight | 1.7 | 0.6 | 1.1 |
+| Browser | 54.4 | 41.3 | 13.1 |
+| Hosted Linux | 37.5 | 25.0 | 12.4 |
+| Hosted Windows | 2.7 | 1.7 | 1.1 |
+| Hosted macOS | 2.2 | 0.7 | 1.5 |
+| ConduitOS x86_64 | 63.9 | 56.2 | 7.8 |
+| ConduitOS AArch64 | 43.2 | 38.8 | 4.4 |
+| ConduitOS IA-32 | 61.3 | 43.6 | 17.7 |
+| ConduitOS RISC-V64 | 51.7 | 45.0 | 6.7 |
+| ConduitOS LoongArch64 | 73.0 | 60.3 | 12.7 |
+| ESP32-C3 | 55.2 | 30.2 | 25.0 |
+| ESP32-S3 | 220.0 | 34.6 | 185.4 |
+| ESP32-WROOM | 290.8 | 35.6 | 255.2 |
+| AVR | 87.1 | 39.6 | 47.5 |
+| Raspberry Pi | 39.7 | 29.4 | 10.3 |
+| Orange Pi | 44.4 | 39.7 | 4.8 |
+| RP2040 | 42.3 | 27.0 | 15.4 |
+
+IA-32's cold setup spent 51.7 seconds in the one APT transaction; the warm
+setup still spent 35.9 seconds updating private signed indices and installing
+authenticated cached packages. Rust target/component acquisition took about
+seven and six seconds respectively. The earlier 40-minute job therefore
+cannot be explained by IA-32 tool setup alone. Windows, macOS, and preflight
+warm restores cost more than uncached setup when cache restore overhead is
+included, so the pipeline does not retain acquisition caches for those lanes.
 
 ## Combined development
 
@@ -185,10 +252,20 @@ the browser, QEMU guest, local model, and speech device can actually operate.
 The captured source commit must be an ancestor of the later publication
 commit. Preflight checks that relationship, the browser lane renders and
 checks the exact media and common navigation, and the normal protected release
-train deploys the verified site. A diagnostic or partial run does not create
-the page. `site-publication.json` records the capture source and publication
-source separately; neither source identity implies human listening or physical
-hardware proof.
+train deploys the verified site. A diagnostic or partial run cannot create the
+complete eight-chapter page. `site-publication.json` records the capture source
+and publication source separately; neither source identity implies human
+listening or physical hardware proof.
+
+A separately labeled development recording may be retained at
+`site/evidence/three-host-development/` while the eight-chapter acceptance
+journey is still incomplete. Its `diagnostic-incomplete` manifest declares the
+actual page, report, screenshots, and listener WAV files from one local run.
+Preflight checks capture-source ancestry; the site lane verifies every retained
+byte and copies the recording without running QEMU, a speaker, or a model.
+The gallery and publication receipt identify it as partial evidence. The
+complete journey and development recording cannot claim the same route in one
+publication. This carrier does not turn a partial run into #4807 acceptance.
 
 ## Operation and validation
 

@@ -21,9 +21,11 @@ mod administration;
 #[cfg(feature = "authenticated-admission")]
 mod admission;
 mod biography;
+mod body_time_plan;
 mod candidate;
 mod character_purpose;
 mod character_purpose_continuity;
+mod clock_admission;
 mod continuity;
 mod conversation;
 mod current_host_offers;
@@ -63,9 +65,11 @@ pub use administration::*;
 #[cfg(feature = "authenticated-admission")]
 pub use admission::*;
 pub use biography::*;
+pub use body_time_plan::*;
 pub use candidate::*;
 pub use character_purpose::*;
 pub use character_purpose_continuity::*;
+pub use clock_admission::*;
 pub use continuity::*;
 pub use conversation::*;
 pub use current_host_offers::*;

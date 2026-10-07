@@ -9,6 +9,9 @@ import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
+import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
+import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
+import { verifyGuestRouteCertificate } from './three-host-route-certificate.mjs';
 
 const [xtaskArg, ownerArg, stateArg, handbookArg, buildArg, profileArg,
   certArg, keyArg, forward, routeUrl, outputArg, playwrightArg, bodyName,
@@ -41,7 +44,9 @@ const selectedSpeechArgs = speakerCard ? ['--speak', '--speaker-card', speakerCa
 // Birth and clock sessions each include multiple complete readings, not a
 // single generated artifact; retain a finite wall-clock deadline for them.
 const screenFreeSessionTimeout = speakerCard ? 30 * 60_000 : 30_000;
-const attestReading = (transcript, face, part, label, allowStaleCancellation = false) => {
+const attestReading = (transcript, snapshot, part, label, allowStaleCancellation = false) => {
+  const face = snapshot.presentation;
+  const revision = snapshot.presentation_revision_decimal;
   const receipts = transcript.split('\n').flatMap(line => {
     const start = line.indexOf('{"');
     if (start < 0) return [];
@@ -57,6 +62,7 @@ const attestReading = (transcript, face, part, label, allowStaleCancellation = f
       assert.equal(played.speaker_lifecycle, 'StoppedClosed');
       assert.equal(played.host_id, part.host_id);
       assert.equal(played.boot_id, part.boot_id);
+      assert.match(played.face_revision_decimal, /^(0|[1-9][0-9]*)$/);
       assert.ok(played.speaker_frames_committed > 0);
       assert.equal(played.speaker_underruns, 0);
     }
@@ -67,17 +73,19 @@ const attestReading = (transcript, face, part, label, allowStaleCancellation = f
       `${label} has an unexplained spoken turn outcome ${turn.outcome}`);
       assert.ok(turn.completed_segments > 0);
       assert.ok(plays.some(played => played.face_id === turn.face_id &&
+        played.face_revision_decimal === turn.face_revision_decimal &&
         played.source_show_id === turn.source_show_id),
       `${label} spoken turn is not correlated with its current Face and Show`);
     }
     const last = turns.at(-1);
     assert.equal(last.outcome, 'Completed');
     assert.equal(last.face_id, face.identity);
-    assert.equal(last.face_revision, face.revision);
-    return { first: { face_id: turns[0].face_id, face_revision: turns[0].face_revision,
+    assert.equal(last.face_revision_decimal, revision);
+    return { first: { face_id: turns[0].face_id,
+      face_revision: turns[0].face_revision_decimal,
       source_show_id: turns[0].source_show_id },
     final: { outcome: last.outcome, face_id: last.face_id,
-      face_revision: last.face_revision, source_show_id: last.source_show_id,
+      face_revision: last.face_revision_decimal, source_show_id: last.source_show_id,
       completed_segments: last.completed_segments, selected_playback_receipts: plays.length } };
   }
   assert.equal(turns.length, 0);
@@ -85,10 +93,10 @@ const attestReading = (transcript, face, part, label, allowStaleCancellation = f
   const readouts = [...transcript.matchAll(/Text Face revision=(\d+) Show=(\S+)/g)];
   assert.ok(readouts.length > 0, `${label} produced no text readout`);
   const first = readouts[0], last = readouts.at(-1);
-  assert.equal(Number(last[1]), face.revision);
-  return { first: { face_revision: Number(first[1]), source_show_id: first[2] },
+  assert.equal(last[1], revision);
+  return { first: { face_revision: first[1], source_show_id: first[2] },
     final: { outcome: 'text-readout', face_id: face.identity,
-      face_revision: Number(last[1]), source_show_id: last[2] } };
+      face_revision: last[1], source_show_id: last[2] } };
 };
 const waitFor = async (predicate, child, label, timeoutMillis = 15_000) => {
   const deadline = Date.now() + timeoutMillis;
@@ -108,8 +116,23 @@ const invoke = (executable, args, options = {}) => {
   return result.stdout;
 };
 const ownerJson = args => JSON.parse(invoke(owner, args));
+verifyGuestRouteCertificate(await readFile(cert), await readFile(key), routeUrl);
 const installation = await load(path.join(state, 'installation.json'));
 assert.equal(installation.product_executable, owner, 'installed owner executable differs');
+const guestBuild = await load(path.join(build, 'build-manifest.json'));
+const browserBundle = await load(path.join(handbook, 'sdk/bundle/conduit-browser-image.json'));
+assert.equal(guestBuild.source_identity, installation.release_source_identity,
+  'ConduitOS image must share the installed owner source before screen-free Birth');
+assert.equal(browserBundle.reviewed_distribution.source_commit, installation.release_source_identity,
+  'Handbook browser bundle must share the installed owner source before screen-free Birth');
+if (speakerCard && model) {
+  assert.equal(installation.selected_model?.model_name, model,
+    'installed owner must select the listener model before screen-free Birth');
+  assert.equal(installation.selected_speech?.card_id, speakerCard,
+    'installed owner must select the listener speaker before screen-free Birth');
+  assert.equal(installation.selected_speech?.device, Number(speakerDevice),
+    'installed owner must select the listener device before screen-free Birth');
+}
 assert.equal(existsSync(path.join(state, 'body', 'biography.json')), false,
   'this producer requires an installed zero-Body Host');
 assert.equal(existsSync(path.join(state, 'body', 'owner-transaction.json')), false,
@@ -183,7 +206,7 @@ try {
   assert.ok(beforeText.includes(ownerPart.host_id) && beforeText.includes(ownerPart.boot_id));
   assert.match(await readFile(path.join(state, 'body', 'source.conduit'), 'utf8'),
     /time\/every\(1s\)/);
-  const finalReading = attestReading(transcript, bornFace.presentation, ownerPart,
+  const finalReading = attestReading(transcript, bornFace, ownerPart,
     'screen-free Birth').final;
   const birth = {
     proof_class: speakerCard ? 'installed-screen-free-birth-selected-alsa' :
@@ -235,7 +258,9 @@ try {
     '--speech-language-coverage', speechLanguageCoverage);
   if (model) liveArgs.push('--model', model, '--ollama-endpoint', modelEndpoint,
     '--admitted-memory-mib', modelMemory);
-  invoke(xtask, liveArgs, { timeout: 180_000 });
+  // A selected speaker completes the entire current Face before the producer
+  // can retain its terminal Play and same-stream WAV artifacts.
+  invoke(xtask, liveArgs, { timeout: speakerCard ? 45 * 60_000 : 180_000 });
   const reportFile = path.join(live, 'report.json');
   const report = await load(reportFile);
   assert.equal(report.body_id, bodyId);
@@ -271,20 +296,21 @@ try {
     const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
     assert.equal(enacted.length, 1, `screen-free ${name} must submit one semantic action`);
     assert.equal(enacted[0][1], action.identity);
-    assert.equal(Number(enacted[0][2]), before.presentation.revision);
+    assert.equal(enacted[0][2], before.presentation_revision_decimal);
     assert.match(transcript, /Owner action result:/);
     const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
     assert.equal(after.presentation.basis.body_id, bodyId);
-    assert.ok(after.presentation.revision > before.presentation.revision);
-    const reading = attestReading(transcript, after.presentation, ownerPart,
+    assert.ok(BigInt(after.presentation_revision_decimal) >
+      BigInt(before.presentation_revision_decimal));
+    const reading = attestReading(transcript, after, ownerPart,
       `screen-free clock ${name}`, true);
-    assert.equal(reading.first.face_revision, before.presentation.revision);
+    assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
     assert.equal(enacted[0][3], reading.first.source_show_id);
     return {
       action_id: action.identity, source_face_id: before.presentation.identity,
-      source_face_revision: before.presentation.revision, source_show_id: enacted[0][3],
+      source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
       result_face_id: after.presentation.identity,
-      result_face_revision: after.presentation.revision,
+      result_face_revision: after.presentation_revision_decimal,
       final_reading: reading.final,
       input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),
         sha256: digest(Buffer.from(actualInput)) },
@@ -318,6 +344,7 @@ try {
     start, lull,
     speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
   };
+  await retainScreenFreeSessions(output, live, report);
   const walkthrough = await writeThreeHostWalkthrough(live, handbook, report);
   report.walkthrough = {
     ...walkthrough,
@@ -327,6 +354,7 @@ try {
     }))),
   };
   await writeFile(reportFile, `${JSON.stringify(report, null, 2)}\n`);
+  await verifyWalkthroughAssets(live, await readFile(path.join(live, walkthrough.path), 'utf8'));
   console.log(`Screen-free Birth and three-host proof: ${reportFile}`);
 } finally {
   if (invitation?.exitCode === null) invitation.kill();

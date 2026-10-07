@@ -4,6 +4,10 @@ use conduit_core::{PlanId, PlotIdentity};
 use conduit_presentation::{MaskWardrobeAction, OwnerPresentationChildRoute};
 use serde_json::{json, Value};
 
+pub(super) fn spoken_artifact_can_start_new_play(host: &super::OwnerHost) -> bool {
+    !host.is_playing() && host.current().spoken_mask_artifact_route_is_current()
+}
+
 impl Owner {
     /// The caller authenticates its carrier before reaching this method.
     /// Discovery never changes worn Masks or preference; Apply requires an
@@ -21,11 +25,32 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes(
+        let speech = Self::current_direct_spoken_route(
+            &self.host,
+            self.direct_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let llm_speech = Self::current_llm_spoken_route(
+            &self.host,
+            self.llm_spoken_route.as_ref(),
+            &self.session,
+            &face,
+        )?;
+        let current = Self::current_presentation_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
+            self.pending_native_mask.as_ref(),
+            speech,
+            llm_speech,
+            &self.session,
+            &face,
+            super::super::super::current_time_millis()?,
         );
+        // A completed Show may remain current even when the finite retained
+        // artifact pool cannot admit another Play.
+        let spoken_artifact_can_start_new_play = spoken_artifact_can_start_new_play(&self.host);
         let wardrobe = self
             .presentation_wardrobe
             .as_mut()
@@ -105,6 +130,7 @@ impl Owner {
             "selected": selected,
             "show_id": show_id,
             "fresh_show_required": selected.is_some() && show_id.is_none(),
+            "spoken_artifact_can_start_new_play": spoken_artifact_can_start_new_play,
             "reconciliation": reconciliation,
             "transition": transition,
         });

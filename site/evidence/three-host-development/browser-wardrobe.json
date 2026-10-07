@@ -1,0 +1,1628 @@
+{
+  "schema": "conduit.proof/owner-browser-wardrobe@1",
+  "source_commit": "72be394341e79f1d2340df785c65de983abd8080",
+  "run_id": "three-host-20d405d340483425e46e96f6",
+  "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+  "browser_route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+  "native_selection": {
+    "standby": {
+      "face": {
+        "continuing_owner_route": false,
+        "face_id": "4f8bb9403e0dcd8d11741fc259c97e0e6e2112294a32cb527518035136b9d23a",
+        "face_revision": 7,
+        "interactions_admitted": false,
+        "local_show_available": true,
+        "owner_show_acknowledged": false,
+        "schema": "conduit.conduitos/native-owner-face@1",
+        "show_id": "show/0895f12d14ef048384a096b8b2ba09249a6a1de22c8f0f0713b4cfefdcc12130",
+        "status": "shown"
+      },
+      "guest_part": {
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "boot_id": "0dca10324fbd6064d6cb0841c272fa4b142f4f445e994396c835777478875290",
+        "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+        "membership_installed": true,
+        "part_id": "5e4ff04943b76f00e0927c4f1209d681c55aaa704215b203c47e23efa3bd6cff",
+        "plan_created": false,
+        "play_created": false,
+        "schema": "conduit.conduitos/native-guest-part@1",
+        "workset_known_here": false
+      },
+      "schema": "conduit.conduitos/native-owner-coordination@1",
+      "stage": "standby"
+    },
+    "before": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "4f8bb9403e0dcd8d11741fc259c97e0e6e2112294a32cb527518035136b9d23a",
+      "face_revision": 7,
+      "fresh_show_required": true,
+      "owner_plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "Retain": {
+            "mask_plot": {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            },
+            "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+            "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+        "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+      },
+      "show_id": null,
+      "spoken_artifact_can_start_new_play": true,
+      "transition": null,
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ],
+        "revision": 0,
+        "worn": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "0"
+    },
+    "native_worn": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "4f8bb9403e0dcd8d11741fc259c97e0e6e2112294a32cb527518035136b9d23a",
+      "face_revision": 7,
+      "fresh_show_required": true,
+      "owner_plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "Retain": {
+            "mask_plot": {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            },
+            "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+            "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+        "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+      },
+      "show_id": null,
+      "spoken_artifact_can_start_new_play": true,
+      "transition": {
+        "action": {
+          "Wear": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        },
+        "active_plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+        "basis_revision": 0,
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "reconciliation": {
+          "planning": "NotRequired",
+          "show": {
+            "Retain": {
+              "mask_plot": {
+                "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+              },
+              "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+              "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+            }
+          }
+        },
+        "resulting_wardrobe": {
+          "lifetime": "Body",
+          "preference": [
+            {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            }
+          ],
+          "revision": 1,
+          "worn": [
+            {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            },
+            {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            }
+          ]
+        },
+        "wake_id": null
+      },
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ],
+        "revision": 1,
+        "worn": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "1"
+    },
+    "browser_doffed": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "4f8bb9403e0dcd8d11741fc259c97e0e6e2112294a32cb527518035136b9d23a",
+      "face_revision": 7,
+      "fresh_show_required": true,
+      "owner_plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "SelectSealed": {
+            "prior": {
+              "mask_plot": {
+                "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+              },
+              "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+              "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+            },
+            "selected": {
+              "mask_plot": {
+                "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+                "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+                "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+              },
+              "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+              "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+            }
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+          "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+          "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+        },
+        "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+        "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+      },
+      "show_id": null,
+      "spoken_artifact_can_start_new_play": true,
+      "transition": {
+        "action": {
+          "Doff": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        },
+        "active_plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+        "basis_revision": 1,
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "reconciliation": {
+          "planning": "NotRequired",
+          "show": {
+            "SelectSealed": {
+              "prior": {
+                "mask_plot": {
+                  "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                  "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                  "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+                },
+                "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+                "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+              },
+              "selected": {
+                "mask_plot": {
+                  "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+                  "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+                  "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+                },
+                "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+                "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+              }
+            }
+          }
+        },
+        "resulting_wardrobe": {
+          "lifetime": "Body",
+          "preference": [],
+          "revision": 2,
+          "worn": [
+            {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            }
+          ]
+        },
+        "wake_id": null
+      },
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [],
+        "revision": 2,
+        "worn": [
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "2"
+    },
+    "native_preferred": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "4f8bb9403e0dcd8d11741fc259c97e0e6e2112294a32cb527518035136b9d23a",
+      "face_revision": 7,
+      "fresh_show_required": true,
+      "owner_plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "Retain": {
+            "mask_plot": {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            },
+            "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+            "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/81ac0e36400d38cceba3c49c83a63e9819e3b0c7f3114a8c08b4524936954be6"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+          "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+          "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+        },
+        "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+        "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+      },
+      "show_id": null,
+      "spoken_artifact_can_start_new_play": true,
+      "transition": {
+        "action": {
+          "Prefer": [
+            {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            }
+          ]
+        },
+        "active_plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+        "basis_revision": 2,
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "reconciliation": {
+          "planning": "NotRequired",
+          "show": {
+            "Retain": {
+              "mask_plot": {
+                "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+                "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+                "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+              },
+              "plan_id": "plan/owner-presentation/0f3c1a0f9f71d91a2e8f4058c50d478b43ad1b919e35ee5774a7594249665453",
+              "route_id": "route/plan/remote-owner-mask/8df6c912e7a930b938579f9d767f00f3ef3b60253c979b302a30c0df4a2bfcb1"
+            }
+          }
+        },
+        "resulting_wardrobe": {
+          "lifetime": "Body",
+          "preference": [
+            {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            }
+          ],
+          "revision": 3,
+          "worn": [
+            {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            }
+          ]
+        },
+        "wake_id": null
+      },
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        ],
+        "revision": 3,
+        "worn": [
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "3"
+    },
+    "before_browser_restore": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "6651327df2966b4519b6268e89e3582ccd8b91c626dc42257e9a5acf43f10baf",
+      "face_revision": 9,
+      "fresh_show_required": false,
+      "owner_plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "Retain": {
+            "mask_plot": {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            },
+            "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+            "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+          "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+          "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+        },
+        "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+        "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+      },
+      "show_id": "show/3645c4c0e32b3e2fd453ec27ec4395ab2d6ef276f4cc77290eaa44fad9115d60",
+      "spoken_artifact_can_start_new_play": true,
+      "transition": null,
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        ],
+        "revision": 3,
+        "worn": [
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "3"
+    },
+    "browser_worn": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "6651327df2966b4519b6268e89e3582ccd8b91c626dc42257e9a5acf43f10baf",
+      "face_revision": 9,
+      "fresh_show_required": false,
+      "owner_plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "Retain": {
+            "mask_plot": {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            },
+            "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+            "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+          "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+          "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+        },
+        "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+        "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+      },
+      "show_id": "show/3645c4c0e32b3e2fd453ec27ec4395ab2d6ef276f4cc77290eaa44fad9115d60",
+      "spoken_artifact_can_start_new_play": true,
+      "transition": {
+        "action": {
+          "Wear": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        },
+        "active_plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+        "basis_revision": 3,
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "reconciliation": {
+          "planning": "NotRequired",
+          "show": {
+            "Retain": {
+              "mask_plot": {
+                "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+                "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+                "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+              },
+              "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+              "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+            }
+          }
+        },
+        "resulting_wardrobe": {
+          "lifetime": "Body",
+          "preference": [
+            {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            }
+          ],
+          "revision": 4,
+          "worn": [
+            {
+              "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+              "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+              "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+            },
+            {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            }
+          ]
+        },
+        "wake_id": null
+      },
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        ],
+        "revision": 4,
+        "worn": [
+          {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "4"
+    },
+    "native_doffed": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "6651327df2966b4519b6268e89e3582ccd8b91c626dc42257e9a5acf43f10baf",
+      "face_revision": 9,
+      "fresh_show_required": true,
+      "owner_plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "SelectSealed": {
+            "prior": {
+              "mask_plot": {
+                "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+                "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+                "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+              },
+              "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+              "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+            },
+            "selected": {
+              "mask_plot": {
+                "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+              },
+              "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+              "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+            }
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+        "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+      },
+      "show_id": null,
+      "spoken_artifact_can_start_new_play": true,
+      "transition": {
+        "action": {
+          "Doff": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          }
+        },
+        "active_plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+        "basis_revision": 4,
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "reconciliation": {
+          "planning": "NotRequired",
+          "show": {
+            "SelectSealed": {
+              "prior": {
+                "mask_plot": {
+                  "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+                  "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+                  "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+                },
+                "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+                "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+              },
+              "selected": {
+                "mask_plot": {
+                  "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                  "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                  "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+                },
+                "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+                "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+              }
+            }
+          }
+        },
+        "resulting_wardrobe": {
+          "lifetime": "Body",
+          "preference": [],
+          "revision": 5,
+          "worn": [
+            {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            }
+          ]
+        },
+        "wake_id": null
+      },
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [],
+        "revision": 5,
+        "worn": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "5"
+    },
+    "browser_restored": {
+      "admitted_routes": [
+        {
+          "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d",
+          "placement_ids": [
+            "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "child_mask_plan_id": "3498612a167ed3119fab084765d29a40ce5241436d5b13769af280d3fed4715f",
+          "currently_available": true,
+          "mask_plot": {
+            "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+            "expanded_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+            "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d"
+          },
+          "owner_route_seal_id": "plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48",
+          "placement_ids": [
+            "f66ce2fcb29ed5c3a872425191361165a638ea741d28849449c1ffe7a3f2b26b",
+            "85c00fe8cc628b7812f32efee43bca81de6591f99bb4519e8e291b1583179ec6",
+            "6b01ee3e2e7cb12a5c7703ceda44d95ad600921f7ea3571aa1e0eefb8720488c",
+            "44e88dc4a5723b18682e8199e604e1885b7b8be3d81d65e5928dfc7221352af0"
+          ],
+          "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "face_id": "6651327df2966b4519b6268e89e3582ccd8b91c626dc42257e9a5acf43f10baf",
+      "face_revision": 9,
+      "fresh_show_required": true,
+      "owner_plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "Retain": {
+            "mask_plot": {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            },
+            "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+            "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+          }
+        }
+      },
+      "route_descriptions": [
+        {
+          "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+          "mask_name": "browser-graphical",
+          "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+        },
+        {
+          "host_id": "b685e4cd67b0edec6cbbb29b786e0b5145cca98ae65a55f2d7854d0d1d4ecdbb",
+          "mask_name": "native-graphical",
+          "route_id": "route/plan/remote-owner-mask/9f2d6205779dccd34aedb8cf342be93873e8328a74fa72b7262b759653df3f48"
+        }
+      ],
+      "schema": "conduit.body/owner-mask-wardrobe@1",
+      "selected": {
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+        "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+      },
+      "show_id": null,
+      "spoken_artifact_can_start_new_play": true,
+      "transition": {
+        "action": {
+          "Prefer": [
+            {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            }
+          ]
+        },
+        "active_plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+        "basis_revision": 5,
+        "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+        "reconciliation": {
+          "planning": "NotRequired",
+          "show": {
+            "Retain": {
+              "mask_plot": {
+                "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+              },
+              "plan_id": "plan/owner-presentation/1998be00a030913093eac48d4ece482af9bd047c401b12bc213df3350b52266f",
+              "route_id": "route/plan/remote-owner-mask/59469fdd86a41adf033def8ea8ea767631c053045b68a4de389acc3e3bfc064d"
+            }
+          }
+        },
+        "resulting_wardrobe": {
+          "lifetime": "Body",
+          "preference": [
+            {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            }
+          ],
+          "revision": 6,
+          "worn": [
+            {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            }
+          ]
+        },
+        "wake_id": null
+      },
+      "wardrobe": {
+        "lifetime": "Body",
+        "preference": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ],
+        "revision": 6,
+        "worn": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ]
+      },
+      "wardrobe_revision_decimal": "6"
+    }
+  },
+  "before": {
+    "admitted_routes": [
+      {
+        "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+        "currently_available": true,
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "owner_route_seal_id": "plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+        "placement_ids": [
+          "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+        ],
+        "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": 13,
+    "fresh_show_required": false,
+    "owner_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+    "reconciliation": {
+      "planning": "NotRequired",
+      "show": {
+        "Retain": {
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+          "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+        }
+      }
+    },
+    "route_descriptions": [
+      {
+        "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+        "mask_name": "browser-graphical",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "schema": "conduit.body/owner-mask-wardrobe@1",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+        "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+        "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+      },
+      "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+      "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+    },
+    "show_id": "show/687ce3b1c81850656a65231dae01bd8dcc5ed10cc219fea0e1fdea1c1784a2b3",
+    "spoken_artifact_can_start_new_play": true,
+    "transition": null,
+    "wardrobe": {
+      "lifetime": "Body",
+      "preference": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ],
+      "revision": 6,
+      "worn": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ]
+    },
+    "wardrobe_revision_decimal": "6"
+  },
+  "doffed": {
+    "admitted_routes": [
+      {
+        "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+        "currently_available": true,
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "owner_route_seal_id": "plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+        "placement_ids": [
+          "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+        ],
+        "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": 13,
+    "fresh_show_required": false,
+    "owner_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+    "reconciliation": {
+      "planning": "NotRequired",
+      "show": {
+        "NoCurrentShow": {
+          "prior": {
+            "mask_plot": {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            },
+            "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+            "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+          }
+        }
+      }
+    },
+    "route_descriptions": [
+      {
+        "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+        "mask_name": "browser-graphical",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "schema": "conduit.body/owner-mask-wardrobe@1",
+    "selected": null,
+    "show_id": null,
+    "spoken_artifact_can_start_new_play": true,
+    "transition": {
+      "action": {
+        "Doff": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      },
+      "active_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+      "basis_revision": 6,
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "NoCurrentShow": {
+            "prior": {
+              "mask_plot": {
+                "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+              },
+              "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+              "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+            }
+          }
+        }
+      },
+      "resulting_wardrobe": {
+        "lifetime": "Body",
+        "preference": [],
+        "revision": 7,
+        "worn": []
+      },
+      "wake_id": null
+    },
+    "wardrobe": {
+      "lifetime": "Body",
+      "preference": [],
+      "revision": 7,
+      "worn": []
+    },
+    "wardrobe_revision_decimal": "7"
+  },
+  "worn": {
+    "admitted_routes": [
+      {
+        "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+        "currently_available": true,
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "owner_route_seal_id": "plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+        "placement_ids": [
+          "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+        ],
+        "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": 13,
+    "fresh_show_required": true,
+    "owner_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+    "reconciliation": {
+      "planning": "NotRequired",
+      "show": {
+        "SelectSealed": {
+          "prior": null,
+          "selected": {
+            "mask_plot": {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            },
+            "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+            "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+          }
+        }
+      }
+    },
+    "route_descriptions": [
+      {
+        "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+        "mask_name": "browser-graphical",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "schema": "conduit.body/owner-mask-wardrobe@1",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+        "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+        "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+      },
+      "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+      "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+    },
+    "show_id": null,
+    "spoken_artifact_can_start_new_play": true,
+    "transition": {
+      "action": {
+        "Wear": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      },
+      "active_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+      "basis_revision": 7,
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "SelectSealed": {
+            "prior": null,
+            "selected": {
+              "mask_plot": {
+                "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+                "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+                "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+              },
+              "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+              "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+            }
+          }
+        }
+      },
+      "resulting_wardrobe": {
+        "lifetime": "Body",
+        "preference": [],
+        "revision": 8,
+        "worn": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ]
+      },
+      "wake_id": null
+    },
+    "wardrobe": {
+      "lifetime": "Body",
+      "preference": [],
+      "revision": 8,
+      "worn": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ]
+    },
+    "wardrobe_revision_decimal": "8"
+  },
+  "preferred": {
+    "admitted_routes": [
+      {
+        "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+        "currently_available": true,
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "owner_route_seal_id": "plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+        "placement_ids": [
+          "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+        ],
+        "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": 13,
+    "fresh_show_required": true,
+    "owner_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+    "reconciliation": {
+      "planning": "NotRequired",
+      "show": {
+        "Retain": {
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+          "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+        }
+      }
+    },
+    "route_descriptions": [
+      {
+        "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+        "mask_name": "browser-graphical",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "schema": "conduit.body/owner-mask-wardrobe@1",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+        "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+        "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+      },
+      "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+      "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+    },
+    "show_id": null,
+    "spoken_artifact_can_start_new_play": true,
+    "transition": {
+      "action": {
+        "Prefer": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ]
+      },
+      "active_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+      "basis_revision": 8,
+      "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+      "reconciliation": {
+        "planning": "NotRequired",
+        "show": {
+          "Retain": {
+            "mask_plot": {
+              "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+              "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+              "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+            },
+            "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+            "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+          }
+        }
+      },
+      "resulting_wardrobe": {
+        "lifetime": "Body",
+        "preference": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ],
+        "revision": 9,
+        "worn": [
+          {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          }
+        ]
+      },
+      "wake_id": null
+    },
+    "wardrobe": {
+      "lifetime": "Body",
+      "preference": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ],
+      "revision": 9,
+      "worn": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ]
+    },
+    "wardrobe_revision_decimal": "9"
+  },
+  "recovered": {
+    "admitted_routes": [
+      {
+        "child_mask_plan_id": "df73fce6da458daa33941c1074dfa9a871237e289513bd5907ff10afba4ef649",
+        "currently_available": true,
+        "mask_plot": {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        },
+        "owner_route_seal_id": "plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40",
+        "placement_ids": [
+          "4151855d457acb4f4a0e2b786992e53c73effffaf56d7cb8aebe4e8109223592"
+        ],
+        "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "body_id": "6e58aa1b3db1b51e2cda77d7a15647fc91898b56f6b127bea5660dfaf6a7a141",
+    "face_id": "2b675654b5251f4a0b083e1491193cd292dbe057c747fbd6af603602bfd6293d",
+    "face_revision": 13,
+    "fresh_show_required": false,
+    "owner_plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+    "reconciliation": {
+      "planning": "NotRequired",
+      "show": {
+        "Retain": {
+          "mask_plot": {
+            "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+            "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+            "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+          },
+          "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+          "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+        }
+      }
+    },
+    "route_descriptions": [
+      {
+        "host_id": "browser/93b45309-e2da-4904-af53-1a83e7a32fce",
+        "mask_name": "browser-graphical",
+        "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+      }
+    ],
+    "schema": "conduit.body/owner-mask-wardrobe@1",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+        "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+        "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+      },
+      "plan_id": "plan/owner-presentation/f7ef6ba80155c2b4ccdddd192e25a1b1e09dc6d79cf0c8e5a0f9523f2ba742a6",
+      "route_id": "route/plan/remote-owner-mask/578a9b8421ea80002fee1a4ed668440d4029c1368d07e476df1ee823aadfaa40"
+    },
+    "show_id": "show/0fd8ddd14e207c934c189f3821a3daeebc99eb65cc899b69b770d81834d7f267",
+    "spoken_artifact_can_start_new_play": true,
+    "transition": null,
+    "wardrobe": {
+      "lifetime": "Body",
+      "preference": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ],
+      "revision": 9,
+      "worn": [
+        {
+          "checked_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+          "expanded_plot_id": "b41bcf697fb7a41b24fbb4bdf59d1e5103710d5c8d364501183b599a34e125d3",
+          "source_document_id": "8399e83504eb01b41d581a5fddedb4b775abab582176dba3bd00eebe285d0e83"
+        }
+      ]
+    },
+    "wardrobe_revision_decimal": "9"
+  }
+}

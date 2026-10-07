@@ -69,6 +69,7 @@ export default defineConfig({
     "browser-body-camera-realization.spec.mjs",
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",
+    "browser-body-time.spec.mjs",
     "firefly-choir.spec.mjs",
     "webrtc-datachannel-line.spec.mjs",
     "native-webrtc-line.spec.mjs",
