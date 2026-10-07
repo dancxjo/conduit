@@ -1,0 +1,84 @@
+# Both feedback cells return only from the same final canonical PCM16 epoch.
+# Startup seeds and immutable selected model/session anchor are separately admitted.
+plot speech/flow-fargan-compound-cycle (
+    selected: FarganModelFrameAnchor
+    >> signal_seed: FarganSignalEpochFeedback...|
+    >> conditioning_seed: FarganConditioningEpochFeedback...|
+    >> events: FarganFeatureConditionEpoch...|
+    >> conditioning_embedding_weights: NumericEmbedding224x12
+    >> conditioning_dense1_weights: NumericF32MatrixRef32x64
+    >> conditioning_dense1_bias: NumericF32BiasRef64
+    >> conditioning_conv_weights: NumericF32MatrixRef192x128
+    >> conditioning_conv_bias: NumericF32BiasRef128
+    >> conditioning_dense2_weights: NumericF32MatrixRef128x320
+    >> conditioning_dense2_bias: NumericF32BiasRef320
+    >> gain_weights: NumericF32MatrixRef80x1
+    >> gain_bias: NumericF32BiasRef1
+    >> conv_weights: NumericF32MatrixRef328x192
+    >> conv_bias: NumericF32BiasRef192
+    >> conv_glu_weights: NumericF32MatrixRef192x192
+    >> conv_glu_bias: NumericF32BiasRef192
+    >> pitch_gate_weights: NumericF32MatrixRef192x4
+    >> pitch_gate_bias: NumericF32BiasRef4
+    >> gru1_input_weights: NumericF32MatrixRef272x480
+    >> gru1_recurrent_weights: NumericF32MatrixRef160x480
+    >> gru2_input_weights: NumericF32MatrixRef240x384
+    >> gru2_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru3_input_weights: NumericF32MatrixRef208x384
+    >> gru3_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru1_glu_weights: NumericF32MatrixRef160x160
+    >> gru1_glu_bias: NumericF32BiasRef160
+    >> gru2_glu_weights: NumericF32MatrixRef128x128
+    >> gru2_glu_bias: NumericF32BiasRef128
+    >> gru3_glu_weights: NumericF32MatrixRef128x128
+    >> gru3_glu_bias: NumericF32BiasRef128
+    >> skip_weights: NumericF32MatrixRef688x128
+    >> skip_bias: NumericF32BiasRef128
+    >> skip_glu_weights: NumericF32MatrixRef128x128
+    >> skip_glu_bias: NumericF32BiasRef128
+    >> output_weights: NumericF32MatrixRef128x40
+    >> output_bias: NumericF32BiasRef40
+    result: FarganPcm16EpochResult...| >>
+) {
+    conditioning: speech/flow-fargan-conditioning-cycle (selected = selected)
+    signal: speech/flow-fargan-signal-cycle (selected = selected)
+    signal_seed >> signal.seed
+    conditioning_seed >> conditioning.seed
+    events >> conditioning.events
+    conditioning.result >> signal.events
+    signal.result >> conditioning.accepted
+    signal.result >> result
+    conditioning_embedding_weights >> conditioning.embedding_weights
+    conditioning_dense1_weights >> conditioning.dense1_weights
+    conditioning_dense1_bias >> conditioning.dense1_bias
+    conditioning_conv_weights >> conditioning.conv_weights
+    conditioning_conv_bias >> conditioning.conv_bias
+    conditioning_dense2_weights >> conditioning.dense2_weights
+    conditioning_dense2_bias >> conditioning.dense2_bias
+    gain_weights >> signal.gain_weights
+    gain_bias >> signal.gain_bias
+    conv_weights >> signal.conv_weights
+    conv_bias >> signal.conv_bias
+    conv_glu_weights >> signal.conv_glu_weights
+    conv_glu_bias >> signal.conv_glu_bias
+    pitch_gate_weights >> signal.pitch_gate_weights
+    pitch_gate_bias >> signal.pitch_gate_bias
+    gru1_input_weights >> signal.gru1_input_weights
+    gru1_recurrent_weights >> signal.gru1_recurrent_weights
+    gru2_input_weights >> signal.gru2_input_weights
+    gru2_recurrent_weights >> signal.gru2_recurrent_weights
+    gru3_input_weights >> signal.gru3_input_weights
+    gru3_recurrent_weights >> signal.gru3_recurrent_weights
+    gru1_glu_weights >> signal.gru1_glu_weights
+    gru1_glu_bias >> signal.gru1_glu_bias
+    gru2_glu_weights >> signal.gru2_glu_weights
+    gru2_glu_bias >> signal.gru2_glu_bias
+    gru3_glu_weights >> signal.gru3_glu_weights
+    gru3_glu_bias >> signal.gru3_glu_bias
+    skip_weights >> signal.skip_weights
+    skip_bias >> signal.skip_bias
+    skip_glu_weights >> signal.skip_glu_weights
+    skip_glu_bias >> signal.skip_glu_bias
+    output_weights >> signal.output_weights
+    output_bias >> signal.output_bias
+}

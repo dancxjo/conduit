@@ -36,6 +36,7 @@ plot speech/flow-fargan-conditioning-state-candidate (
 # History remains provisional until the exact final canonical PCM16 epoch ACK.
 # The separate seeded feedback domain admits one outstanding feature epoch.
 plot speech/flow-fargan-conditioning-cycle (
+    selected: FarganModelFrameAnchor
     >> seed: FarganConditioningEpochFeedback...|
     >> events: FarganFeatureConditionEpoch...|
     >> accepted: FarganPcm16EpochResult...|
@@ -67,6 +68,8 @@ plot speech/flow-fargan-conditioning-cycle (
     event: structure/flow-native-profile/d86dd875acd4740aa69528d401ff1938b957ae074cb8ec61bcbd6b37b3accf3f
     pendingcandidate: speech/flow-fargan-conditioning-pending-candidate
     pending: structure/flow-native-profile/375b7fbff2d9de05ca0333440fb3102ac990fa294ec0886ed23af48bd04d9f8b
+    ackmodel: speech/flow-fargan-model-anchor-matches (selected = selected)
+    ackinput: value/flow-assert-true/typed-fa9d870b02a24fcdc0dc452fe6046bce65e380294d06bfb24f45e15d0730bcd7
     ack: speech/flow-fargan-conditioning-ack
     ackpair: structure/flow-atomic-pair/typed-7524b98fed657a0ecbeef39e2bead5c1af9d2e3d691d4ed59f0ee20360edd9e597da511cabd798b4600e78b25a60d9acf44c4e40b028774a275a92779d8e68d7
     ackweak: structure/flow-nominal-weakening/typed-b129200c7de535ad56dde22a66c7d84112838de38f8c6372af6308c585f4989f22c0e2b3bfffe550300c7e40e4fa9be616f2209130ee01e3562f586121d6eb85
@@ -108,7 +111,10 @@ plot speech/flow-fargan-conditioning-cycle (
     raw.result >> pendingcandidate.value
     pendingcandidate.result >> pending.candidate
     pending.result >> ackpair.left
-    accepted >> ack.value
+    accepted >> (.model) >> ackmodel.value
+    accepted >> ackinput.value
+    ackmodel.result >> ackinput.condition
+    ackinput.result >> ack.value
     ack.result >> ackpair.right
     ackpair.paired >> ackweak.value
     ackweak.result >> ackmatcher.value
