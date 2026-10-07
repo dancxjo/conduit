@@ -1,0 +1,60 @@
+# Exact independently admitted discourse, without punctuation or spelling policy.
+# The full source/target facts are retained by preparation; this finite anchor
+# projects their material, analysis and addressed occurrence for correspondence.
+type TranslationDiscourseAnchor = {
+    material: LanguageText
+    analysis: LanguageAnalysisRevisionId
+    token: LinguisticTokenIdentity
+    role: LanguageDiscourseRole
+}
+plot speech/translation-discourse-anchor (
+    >> value: LanguageVocativeDiscourseFact
+    result: TranslationDiscourseAnchor >>
+) = { material: .source.material, analysis: .analysis, token: .basis.dependent.token, role: .role }
+
+# Selected members come from the existing complete aligned group, retained by
+# preparation. This does not collapse that group or authorize target playback.
+type TranslationVocativeAdmission = {
+    candidate_id: TranslationCandidateId
+    accepted: TranslationAccepted
+    source_material: LanguageText
+    target_material: LanguageText
+    source: TranslationDiscourseAnchor
+    target: TranslationDiscourseAnchor
+    source_span: TextSpan
+    target_span: TextSpan
+    source_reference: LanguageTextSegmentRef
+    target_reference: LanguageTextSegmentRef
+    aligned_source: LanguageTextSegmentRef
+    aligned_target: LanguageTextSegmentRef
+    where .candidate_id == .accepted.candidate_id
+    where .source.material == .source_material
+    where .target.material == .target_material
+    where .source.material.identity == .accepted.source_text_id
+    where .source.material.revision == .accepted.source_revision
+    where .target.material.identity == .accepted.target_text_id
+    where .target.material.revision == .accepted.target_revision
+    where .source.role is addressee && .target.role is addressee
+    where .source.token.text_identity == .accepted.source_text_id
+    where .source.token.text_revision == .accepted.source_revision
+    where .target.token.text_identity == .accepted.target_text_id
+    where .target.token.text_revision == .accepted.target_revision
+    where .source_span.text_identity == .accepted.source_text_id
+    where .source_span.text_revision == .accepted.source_revision
+    where .target_span.text_identity == .accepted.target_text_id
+    where .target_span.text_revision == .accepted.target_revision
+    where value/u64(.source_reference.range.start) == .source_span.start
+    where value/u64(.source_reference.range.end) == .source_span.end
+    where value/u64(.target_reference.range.start) == .target_span.start
+    where value/u64(.target_reference.range.end) == .target_span.end
+    where .source_reference.text_id == .accepted.source_text_id
+    where .source_reference.revision_id == .accepted.source_revision
+    where .target_reference.text_id == .accepted.target_text_id
+    where .target_reference.revision_id == .accepted.target_revision
+    where .source_reference.language == .source.material.language
+    where .target_reference.language == .target.material.language
+}
+plot speech/translation-vocative (
+    >> value: TranslationVocativeAdmission
+    result: Boolean >>
+) = (.aligned_source == .source_reference && .aligned_target == .target_reference)

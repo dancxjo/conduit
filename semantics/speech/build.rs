@@ -15,6 +15,7 @@ fn main() {
     println!("cargo:rerun-if-changed=selection.conduit");
     println!("cargo:rerun-if-changed=listening.conduit");
     println!("cargo:rerun-if-changed=translation.conduit");
+    println!("cargo:rerun-if-changed=translation_structure.conduit");
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
     println!("cargo:rerun-if-changed=inventory.conduit");
@@ -29,12 +30,13 @@ fn main() {
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
         include_str!("listening.conduit"),
         include_str!("translation.conduit"),
+        include_str!("translation_structure.conduit"),
         include_str!("timing.conduit"),
         include_str!("intent.conduit"),
         include_str!("inventory.conduit"),
@@ -58,6 +60,30 @@ fn main() {
                 )
             }),
     );
+    language_types.extend([
+        (
+            "LanguageVocativeDiscourseFact",
+            conduit_language::LanguageVocativeDiscourseFact::semantic_type().unwrap(),
+        ),
+        (
+            "LinguisticTokenIdentity",
+            conduit_language::LinguisticTokenIdentity::semantic_type().unwrap(),
+        ),
+        (
+            "TextSpan",
+            conduit_language::TextSpan::semantic_type().unwrap(),
+        ),
+    ]);
+    language_types.extend([
+        (
+            "LanguageAnalysisRevisionId",
+            conduit_language::LanguageAnalysisRevisionId::semantic_type().unwrap(),
+        ),
+        (
+            "LanguageDiscourseRole",
+            conduit_language::LanguageDiscourseRole::semantic_type().unwrap(),
+        ),
+    ]);
     let mut semantic_catalog = StartupCatalog::new();
     for (name, ty) in &language_types {
         semantic_catalog
@@ -86,6 +112,35 @@ fn main() {
         program,
     )
     .expect("retain speech projection");
+    for (name, file) in [
+        (
+            "speech/translation-discourse-anchor",
+            "translation_anchor_program.hex",
+        ),
+        (
+            "speech/translation-vocative",
+            "translation_vocative_program.hex",
+        ),
+    ] {
+        let expanded_translation =
+            expand_canonical_plot_for_authoring(&semantic, name, &ProfileCatalog::new())
+                .expect("checked translation projection");
+        assert_eq!(expanded_translation.expanded.gears.len(), 1);
+        let [entry] = expanded_translation.expanded.gears[0]
+            .configuration
+            .as_slice()
+        else {
+            panic!("one translation program")
+        };
+        let conduit_core::ConfigurationValue::Text(program) = &entry.value else {
+            panic!("translation program")
+        };
+        fs::write(
+            PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(file),
+            program,
+        )
+        .expect("retain translation program");
+    }
     let identities = language_types
         .iter()
         .map(|(_, ty)| match ty.shape() {
@@ -107,7 +162,8 @@ fn main() {
         .filter(|(_, (name, _))| {
             !matches!(
                 *name,
-                "LanguageVariety"
+                "LanguageVocativeDiscourseFact"
+                    | "LanguageVariety"
                     | "LanguageTextReferenceMatch"
                     | "LanguageExternalIdentity"
                     | "LanguageProsodyBoundary"

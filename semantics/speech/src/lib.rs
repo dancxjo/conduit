@@ -230,3 +230,6 @@ mod inflection_parity;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod revision;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod translation_structure;
