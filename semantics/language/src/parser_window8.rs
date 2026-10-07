@@ -79,6 +79,10 @@ pub fn initialize_window8(
 pub fn window8_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserWindow8RawClassContext",
+            LanguageParserWindow8RawClassContext::semantic_type().unwrap()
+        ),
+        (
             "LanguageParserWindow8RawClassRelations",
             LanguageParserWindow8RawClassRelations::semantic_type().unwrap()
         ),
@@ -249,6 +253,15 @@ pub fn prepare_window8_proposal(
         request,
         include_str!(concat!(env!("OUT_DIR"), "/window8_move_context.hex")),
     )?;
+    let proposal = evaluate_context(context)?;
+    Ok(PreparedWindow8Proposal {
+        prior: prior.proof().clone(),
+        proposal,
+    })
+}
+fn evaluate_context(
+    context: LanguageParserWindow8RawContext,
+) -> Result<LanguageParserWindow8RawResult, Window8Refusal> {
     let mut checked = context;
     for program in [
         include_str!(concat!(env!("OUT_DIR"), "/window8_move_legal_shift.hex")),
@@ -269,10 +282,7 @@ pub fn prepare_window8_proposal(
         checked,
         include_str!(concat!(env!("OUT_DIR"), "/window8_move_apply.hex")),
     )?;
-    Ok(PreparedWindow8Proposal {
-        prior: prior.proof().clone(),
-        proposal,
-    })
+    Ok(proposal)
 }
 /// This receipt retains the exact checked prior, but its output remains raw.
 /// Search may rank it; publication still requires next full forest admission.
@@ -386,4 +396,54 @@ pub fn window8_score_advance(
         query,
         include_str!(concat!(env!("OUT_DIR"), "/window8_score_advance.hex")),
     )
+}
+
+/// Exact immutable Source-produced context, retained with its full prior proof.
+/// Its outputs remain raw; every selected forest requires independent admission.
+pub struct PreparedWindow8Context {
+    prior: PreparedWindow8State,
+    seed: LanguageParserWindow8RawContext,
+}
+pub fn prepare_window8_context(
+    prior: &PreparedWindow8State,
+    basis: &LanguageParserBasis,
+) -> Result<PreparedWindow8Context, Window8Refusal> {
+    let top = prior.state().stack()[(*prior.state().depth() - 1) as usize];
+    let witness = prior.proof().ancestry()[if top < 8 { top as usize } else { 0 }].clone();
+    let request = LanguageParserWindow8RawRequest::new(
+        LanguageParserAction::RightArc,
+        basis.clone(),
+        prior.state().relation0().clone(),
+        prior.proof().clone(),
+        witness,
+    )
+    .map_err(Window8Refusal::Native)?;
+    let seed = evaluate(
+        request,
+        include_str!(concat!(env!("OUT_DIR"), "/window8_move_context.hex")),
+    )?;
+    Ok(PreparedWindow8Context {
+        prior: prior.clone(),
+        seed,
+    })
+}
+impl PreparedWindow8Context {
+    pub fn prior(&self) -> &PreparedWindow8State {
+        &self.prior
+    }
+    pub fn propose(
+        &self,
+        class: &LanguageParserWindow8RawClass,
+    ) -> Result<PreparedWindow8Proposal, Window8Refusal> {
+        let query = LanguageParserWindow8RawClassContext::new(class.clone(), self.seed.clone())
+            .map_err(Window8Refusal::Native)?;
+        let context = evaluate(
+            query,
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_context.hex")),
+        )?;
+        Ok(PreparedWindow8Proposal {
+            prior: self.prior.proof().clone(),
+            proposal: evaluate_context(context)?,
+        })
+    }
 }

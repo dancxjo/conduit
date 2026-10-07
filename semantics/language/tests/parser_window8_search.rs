@@ -127,3 +127,60 @@ fn all_model_classes_match_ordinary_and_prepared_nominal_projection() {
     .unwrap();
     assert!(LanguageParserWindow8ClassQuery::new(0, subtype).is_err());
 }
+#[test]
+fn private_source_context_preserves_all_classes_and_stale_refusals() {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    let prior = initial();
+    let stale = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("window8/foreign-analysis".into()).unwrap(),
+        prior.state().basis().source_revision().clone(),
+        prior.state().basis().text().clone(),
+    )
+    .unwrap();
+    for basis in [prior.state().basis(), &stale] {
+        let cached = prepare_window8_context(&prior, basis).unwrap();
+        let request = LanguageParserWindow8RawRequest::new(
+            LanguageParserAction::RightArc,
+            basis.clone(),
+            prior.state().relation0().clone(),
+            prior.proof().clone(),
+            prior.proof().ancestry()[0].clone(),
+        )
+        .unwrap();
+        let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(include_str!(
+            concat!(env!("OUT_DIR"), "/window8_move_context.hex")
+        ))
+        .unwrap();
+        let seed = LanguageParserWindow8RawContext::decode(
+            &program.evaluate(&request.encode().unwrap()).unwrap(),
+        )
+        .unwrap();
+        let class_program = conduit_plot::PortableExpressionProgram::from_canonical_hex(
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_context.hex")),
+        )
+        .unwrap();
+        let mut evaluator =
+            conduit_plot::PreparedPortableExpressionEvaluator::new(&class_program).unwrap();
+        assert_eq!(cached.prior().proof(), prior.proof());
+        for code in 0..76 {
+            let class = window8_class(code, prior.state().relation0()).unwrap();
+            let encoded = LanguageParserWindow8RawClassContext::new(class.clone(), seed.clone())
+                .unwrap()
+                .encode()
+                .unwrap();
+            assert_eq!(
+                evaluator.evaluate(&encoded).unwrap(),
+                class_program.evaluate(&encoded).unwrap(),
+                "context class {code}"
+            );
+            let ordinary =
+                prepare_window8_proposal(&prior, basis, *class.action(), class.relation()).unwrap();
+            let actual = cached.propose(&class).unwrap();
+            assert_eq!(actual.prior(), ordinary.prior());
+            assert_eq!(actual.proposal(), ordinary.proposal(), "class {code}");
+            if basis == &stale {
+                assert!(!actual.proposal().accepted());
+            }
+        }
+    }
+}
