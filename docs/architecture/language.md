@@ -77,6 +77,18 @@ refuse without publishing material. The borrowed original envelope retains
 confidence, clocks and provenance. This bridge does not establish recognition
 accuracy or a kernel-wired parser/playback route.
 
+The development lexical profile retains up to four supplied alternatives per
+whole reconstruction unit, with scalar spans and explicit correspondence to a
+previous stable occurrence. Unknown units keep an empty candidate set; a CJK
+alphanumeric run is not a claim of language-specific word segmentation.
+
+The development symbolic parser profile has four token slots, one artificial
+root and a finite stack. Checked source predicates own Shift, Reduce, LeftArc
+and RightArc admission and mutation; native admission validates exact source
+and analysis identities, graph laws and canonical UD arc material. Numeric
+carriers remain proposals until admitted. This profile establishes neither a
+beam or learned scorer nor ordinary kernel parsing, discourse or prosody.
+
 ## Ownership migration
 
 The previous speech-owned `SpeechLanguageId`, `SpeechVarietyId` and
