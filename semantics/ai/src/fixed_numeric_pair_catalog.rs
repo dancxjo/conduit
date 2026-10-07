@@ -23,6 +23,16 @@ pub fn fixed_numeric_pair_contracts() -> Result<Vec<(String, StructuredInfoType,
             "NumericPair40_164_160_128x128",
             128,
         ),
+        (
+            "numeric/pair40-164-160-128-128x256",
+            "NumericPair40_164_160_128_128x256",
+            256,
+        ),
+        (
+            "numeric/pair40-164-160-128-128-256x1",
+            "NumericPair40_164_160_128_128_256x1",
+            1,
+        ),
     ] {
         let right = fixed_numeric_type(&format!("NumericF32Vector{right_width}"))?;
         let lmax = maximum_prepared_canonical_value_bytes(&left).map_err(|e| format!("{e:?}"))?;
