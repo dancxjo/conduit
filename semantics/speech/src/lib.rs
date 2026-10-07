@@ -250,3 +250,6 @@ pub mod pronunciation_intent;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod text_token_role;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod committed_token_role;

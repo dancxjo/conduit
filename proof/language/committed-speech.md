@@ -27,7 +27,8 @@ committed admission with its prepared Source token role. It derives the original
 dependent and lexical choice mechanically and requires the complete lexical
 tape to match. Its separate receipt replay compares the exact Source role
 request/result bytes and checks refusal of a different lexical revision.
-Module wiring and this replay are pending validation.
+The public entry point and receipt replay passed in 29.85 seconds, including
+generated Native refusal of an uncommitted runtime substitution.
 
 The ignored `stable_vocative_continuation` test reconstructs the exact lexical
 tape from revision history and requires the committed admission before preparing
