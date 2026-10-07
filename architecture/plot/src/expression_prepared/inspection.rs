@@ -1,7 +1,7 @@
 //! Prepared, allocation-free observations of exact structured expression values.
 use super::{
-    primitive::PrimitiveValue, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView,
-    Refusal,
+    primitive::PrimitiveValue, EvaluationInput, PreparedInput, PreparedPortableExpressionEvaluator,
+    ProgramView, Refusal,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, string::String};
@@ -83,8 +83,11 @@ impl PreparedInspection {
             operation,
         })
     }
-    pub(super) fn evaluate(&mut self, input: &[u8]) -> Result<PrimitiveValue<'_>, Refusal> {
-        let source = self.source.evaluate(input)?;
+    pub(super) fn evaluate(
+        &mut self,
+        input: EvaluationInput<'_>,
+    ) -> Result<PrimitiveValue<'_>, Refusal> {
+        let source = self.source.evaluate_input(input)?;
         let value = conduit_core::validate_canonical_structured_value(source)
             .map_err(|_| Refusal::InvalidInput)?;
         match &self.operation {

@@ -11,6 +11,12 @@ use conduit_core::{
 };
 
 mod byte_observation;
+mod equality;
+mod evaluation;
+use evaluation::evaluate_node;
+mod input;
+use input::EvaluationInput;
+pub(crate) use input::PreparedCanonicalInput;
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
@@ -81,6 +87,7 @@ enum PreparedOperation {
         when_false: Box<PreparedNode>,
     },
     Projection(PreparedMemberSelection),
+    Equality(equality::PreparedEquality),
     SequenceSelection(sequence_selection::PreparedSequenceSelection),
     Widen(Box<PreparedNode>),
     TextMaterial(Box<PreparedNode>),
@@ -178,19 +185,30 @@ impl PreparedPortableExpressionEvaluator {
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
-        let mut primitive_bytes = input;
+        self.evaluate_input(EvaluationInput::new(input))
+    }
+
+    pub(crate) fn evaluate_canonical(
+        &mut self,
+        input: &PreparedCanonicalInput<'_>,
+    ) -> Result<&[u8], Refusal> {
+        self.evaluate_input(input.input())
+    }
+
+    fn evaluate_input(&mut self, mut input: EvaluationInput<'_>) -> Result<&[u8], Refusal> {
+        let mut primitive_bytes = input.bytes();
         let primitive_input = match &self.input {
             PreparedInput::Primitive { kind, nominal_type } => {
                 if let Some(expected) = nominal_type {
-                    primitive_bytes = nominal::input_payload(input, expected)?;
+                    primitive_bytes = nominal::input_payload(input.bytes(), expected)?;
                 }
                 conduit_core::validate_primitive_info(kind_name(*kind), primitive_bytes)
                     .map_err(|_| Refusal::InvalidInput)?;
                 Some(*kind)
             }
             PreparedInput::Structured(expected) => {
-                let validated = conduit_core::validate_canonical_structured_value(input)
-                    .map_err(|_| Refusal::InvalidInput)?;
+                input = input.validate_structured()?;
+                let validated = input.structured()?;
                 if validated.type_bytes() != expected.as_ref() {
                     return Err(Refusal::InvalidInput);
                 }
@@ -200,7 +218,7 @@ impl PreparedPortableExpressionEvaluator {
         self.output.clear();
         match &mut self.root {
             PreparedRoot::Primitive { node, nominal_type } => {
-                let value = evaluate_node(node, primitive_bytes, primitive_input)?;
+                let value = evaluate_node(node, primitive_bytes, primitive_input, input)?;
                 if let Some(value_type) = nominal_type {
                     nominal::append_output(&mut self.output, value_type, &value)?;
                 } else {
@@ -235,6 +253,25 @@ fn prepare_node(
             operator: *operator,
             operand: Box::new(prepare_node(operand, input_type, prepared_input)?),
         },
+        PortableExpressionOperation::Binary {
+            operator,
+            left,
+            right,
+            ..
+        } if matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+            && leaf_kind(&left.value_type).is_err() =>
+        {
+            if kind != PrimitiveInfoKind::Bool {
+                return Err(Refusal::InvalidProgram);
+            }
+            PreparedOperation::Equality(equality::PreparedEquality::new(
+                *operator,
+                left,
+                right,
+                input_type,
+                prepared_input,
+            )?)
+        }
         PortableExpressionOperation::Binary {
             operator,
             proven,
@@ -355,68 +392,6 @@ fn prepare_node(
         }
     };
     Ok(PreparedNode { kind, operation })
-}
-
-fn evaluate_node<'a>(
-    node: &'a mut PreparedNode,
-    input: &'a [u8],
-    input_kind: Option<PrimitiveInfoKind>,
-) -> Result<PrimitiveValue<'a>, Refusal> {
-    let expected = node.kind;
-    let value = match &mut node.operation {
-        PreparedOperation::Input => {
-            if Some(expected) != input_kind {
-                return Err(Refusal::InvalidProgram);
-            }
-            PrimitiveValue::borrowed(expected, input)?
-        }
-        PreparedOperation::Literal(encoded) => PrimitiveValue::borrowed(expected, encoded)?,
-        PreparedOperation::Unary { operator, operand } => {
-            let operand = evaluate_node(operand, input, input_kind)?;
-            evaluate_unary(*operator, expected, &operand)?
-        }
-        PreparedOperation::Binary {
-            operator,
-            proven,
-            left,
-            right,
-        } => {
-            let left = evaluate_node(left, input, input_kind)?;
-            let right = evaluate_node(right, input, input_kind)?;
-            evaluate_binary(*operator, *proven, expected, &left, &right)?
-        }
-        PreparedOperation::Conditional {
-            condition,
-            when_true,
-            when_false,
-        } => {
-            let condition = evaluate_node(condition, input, input_kind)?;
-            let selected = if decode_bool(&condition)? {
-                when_true
-            } else {
-                when_false
-            };
-            evaluate_node(selected, input, input_kind)?
-        }
-        PreparedOperation::TextMaterial(operand) => evaluate_node(operand, input, input_kind)?,
-        PreparedOperation::Widen(operand) => {
-            let operand = evaluate_node(operand, input, input_kind)?;
-            primitive::evaluate_widen(expected, &operand)?
-        }
-        PreparedOperation::Inspection(inspection) => inspection.evaluate(input)?,
-        PreparedOperation::Bytes(observation) => observation.evaluate(input, input_kind)?,
-        PreparedOperation::SequenceSelection(selection) => {
-            PrimitiveValue::borrowed(expected, selection.evaluate(input)?)?
-        }
-        PreparedOperation::Projection(projection) => {
-            PrimitiveValue::borrowed(expected, projection.evaluate(input)?)?
-        }
-    };
-    if value.kind == expected {
-        Ok(value)
-    } else {
-        Err(Refusal::InvalidProgram)
-    }
 }
 
 fn leaf_kind(value_type: &conduit_core::StructuredInfoType) -> Result<PrimitiveInfoKind, Refusal> {
