@@ -37,6 +37,13 @@ fn proves_at(
     let Some((value, remaining)) = selected else {
         return true;
     };
+    if let Some(rest) = remaining.strip_prefix("[]") {
+        if let Op::Collection(values) = &value.operation {
+            return values
+                .iter()
+                .all(|value| proves_at(value, rest, required, input, types));
+        }
+    }
     if let Op::Conditional {
         when_true,
         when_false,
@@ -55,9 +62,19 @@ fn proves_at(
             output_type: value.value_type.clone(),
             root: value.clone(),
         };
-        return constant
-            .evaluate(&[])
-            .is_ok_and(|bytes| required.validate(&bytes).is_ok());
+        return constant.evaluate(&[]).is_ok_and(|bytes| {
+            if required.validate(&bytes).is_ok() {
+                return true;
+            }
+            conduit_core::StructuredInfoValue::from_canonical_bytes(&bytes).is_ok_and(|value| {
+                match value.shape() {
+                    conduit_core::StructuredInfoValueShape::Leaf(bytes) => {
+                        required.validate(bytes).is_ok()
+                    }
+                    _ => false,
+                }
+            })
+        });
     }
     let Some(mut path) = input_path(value) else {
         return false;
@@ -82,6 +99,17 @@ fn retained_contract(
     }) {
         return true;
     }
+    match input.shape() {
+        StructuredInfoTypeShape::Nominal { representation, .. } => {
+            return retained_contract(representation, path, required, types)
+        }
+        StructuredInfoTypeShape::Collection { element, .. } => {
+            return path
+                .strip_prefix("[]")
+                .is_some_and(|rest| retained_contract(element, rest, required, types));
+        }
+        _ => {}
+    }
     let Some(rest) = path.strip_prefix('.') else {
         return false;
     };
@@ -100,7 +128,8 @@ fn constructed_member<'a>(
     node: &'a PortableExpressionNode,
     path: &'a str,
 ) -> Result<Option<(&'a PortableExpressionNode, &'a str)>, ()> {
-    if path.is_empty()
+    if path.starts_with("[]")
+        || path.is_empty()
         || matches!(
             node.operation,
             Op::Input | Op::Projection { .. } | Op::Conditional { .. }
@@ -154,6 +183,19 @@ fn input_path(node: &PortableExpressionNode) -> Option<String> {
             value,
             member: PortableExpressionProjection::TupleIndex(index),
         } => {
+            let mut represented = &value.value_type;
+            while let StructuredInfoTypeShape::Nominal { representation, .. } = represented.shape()
+            {
+                represented = representation;
+            }
+            if let StructuredInfoTypeShape::Collection { element, length } = represented.shape() {
+                if *index >= length || &node.value_type != element {
+                    return None;
+                }
+                let mut path = input_path(value)?;
+                path.push_str("[]");
+                return Some(path);
+            }
             let StructuredInfoTypeShape::Record { fields, .. } = value.value_type.shape() else {
                 return None;
             };
