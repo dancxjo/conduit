@@ -8,6 +8,7 @@ fn main() {
     println!("cargo:rerun-if-changed=coverage.conduit");
     println!("cargo:rerun-if-changed=syntax.conduit");
     println!("cargo:rerun-if-changed=text_revision.conduit");
+    println!("cargo:rerun-if-changed=revision_lineage.conduit");
     println!("cargo:rerun-if-changed=lexical.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
@@ -20,6 +21,7 @@ fn main() {
         include_str!("coverage.conduit"),
         include_str!("syntax.conduit"),
         include_str!("text_revision.conduit"),
+        include_str!("revision_lineage.conduit"),
         include_str!("lexical.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_beam.conduit"),
