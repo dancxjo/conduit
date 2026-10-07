@@ -43,6 +43,31 @@ fn bytes(value: &serde_json::Value) -> Vec<u8> {
     serde_json::from_value(value.clone()).unwrap()
 }
 
+#[test]
+#[ignore = "complete private committed native basis, model custody and full trained three-cell Source utterance"]
+fn committed_native_utterance_executes_all_three_feedback_cells_and_source_eof() {
+    std::thread::Builder::new().stack_size(32 * 1024 * 1024).spawn(|| {
+        let basis = super::committed_lineage::admit_shared_basis();
+        let tape = prepare_native_tape(&basis);
+        let observations = tape.epochs.iter().map(|epoch| (epoch.cycle.is_none(), epoch.q8)).collect::<Vec<_>>();
+        let periods = super::runtime::run_native_period_controls(&observations);
+        let proposal = super::runtime::run_native_first_feature(&tape.epochs[0].samples, &periods[0]);
+        let root = std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
+        let mut model = super::custody::RetainedSignalModel::load(&root);
+        let (_, conditioning) = model.conditioning_resources();
+        for (name, resource) in conditioning { assert!(model.resources.insert(format!("conditioning_{name}"), resource).is_none()); }
+        let warm = super::runtime::run_native_warm_startup(&model, &proposal);
+        let epochs = super::runtime::run_native_trained_utterance(&model, &tape, &periods, &proposal, &warm);
+        for (value, epoch) in epochs.iter().zip(1u64..=64) {
+            let StructuredInfoValueShape::Leaf(bytes) = super::case_state::field(value, "epoch").shape() else { panic!("epoch") };
+            assert_eq!(u64::from_le_bytes(bytes.try_into().unwrap()), epoch);
+            let StructuredInfoValueShape::Collection(pcm) = super::case_state::field(value, "pcm_i16").shape() else { panic!("PCM160") };
+            assert_eq!(pcm.len(), 160);
+        }
+        eprintln!("complete committed native utterance→actual canonical PCM16 and three causal feedback cells; raw model output includes explicit startup/continuation alignment, no aligned WAV or listening claim");
+    }).unwrap().join().unwrap();
+}
+
 pub(super) fn prepare_native_tape(
     basis: &super::committed_lineage::RetainedCommittedBasis,
 ) -> NativeTape {
