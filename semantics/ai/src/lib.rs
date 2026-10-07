@@ -259,3 +259,6 @@ pub mod fixed_numeric_compact_catalog;
 
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_u16_profile;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_float_integer;
