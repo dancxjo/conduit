@@ -1,17 +1,11 @@
-// The production module is deliberately exercised before its optional lib wiring.
-extern crate alloc;
-pub use conduit_language::{
-    LanguageId, LanguageLexicalCandidate, LanguageLexicalEntry, LanguageLexicalPos,
-    LanguageLexicalProfile, LinguisticDerivationProvenance,
-};
-#[path = "../src/parser_model_selection.rs"]
-mod selection;
+#![cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
 use conduit_ai::*;
 #[path = "common/parser_model_resource.rs"]
 mod model_resource;
+use conduit_language::parser_model_selection::*;
+use conduit_language::*;
 use conduit_plot::rust_binding::BoundedSequence;
 use model_resource::categorical;
-use selection::*;
 use std::sync::Arc;
 const BYTES: &[u8] = include_bytes!("../training/ewt_joint_v2/ewt_joint.i16");
 

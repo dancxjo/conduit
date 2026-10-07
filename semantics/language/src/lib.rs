@@ -127,3 +127,6 @@ pub use revision_lineage::*;
 pub use generated::{
     LanguageParserRevisionContext, LanguageParserRevisionRefusal, LanguageParserRevisionResult,
 };
+
+#[cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
+pub mod parser_model_selection;

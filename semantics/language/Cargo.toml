@@ -3,7 +3,13 @@ name = "conduit-language"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+parser-model-selection = ["dep:conduit-ai", "dep:conduit-data", "dep:serde_json", "conduit-ai/kernel-operation-owners"]
+
 [dependencies]
+conduit-ai = { path = "../ai", optional = true, default-features = false }
+conduit-data = { path = "../data", optional = true, default-features = false }
+serde_json = { version = "1", optional = true, default-features = false, features = ["alloc"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 

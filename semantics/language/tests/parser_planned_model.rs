@@ -1,3 +1,4 @@
+#![cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
 //! Actual Source projection and resource-admitted numerical Gear in one Plan/Play.
 extern crate alloc;
 pub use conduit_language::{
