@@ -79,6 +79,14 @@ fn check_actual(
     pos: LanguageLexicalPos,
     pronunciation_row: usize,
 ) {
+    let mut phase_start = std::time::Instant::now();
+    let mut phases = Vec::new();
+    macro_rules! phase {
+        ($name:literal) => {{
+            phases.push(serde_json::json!({"phase":$name,"elapsed_us":phase_start.elapsed().as_micros()}));
+            phase_start = std::time::Instant::now();
+        }};
+    }
     let row: serde_json::Value =
         serde_json::from_slice(&std::fs::read(std::env::var(receipt_variable).unwrap()).unwrap())
             .unwrap();
@@ -92,6 +100,7 @@ fn check_actual(
     // generated Source closure. No nominal identity is rewritten.
     assert!(LanguageParserWindow8StableLexicalFact::from_structured(admitted.clone()).is_err());
     assert_eq!(admitted.canonical_bytes().unwrap(), bytes);
+    phase!("read_original_checked_receipt");
     let original_query = field(&admitted, "query");
     let original_snapshot = field(original_query, "snapshot");
     let lexical_native =
@@ -99,6 +108,7 @@ fn check_actual(
             .unwrap();
     let basis =
         LanguageParserBasis::from_structured(field(original_snapshot, "basis").clone()).unwrap();
+    phase!("decode_exact_raw_lexical_and_basis");
     let fresh_snapshot = LanguageParserWindow8Snapshot::new(
         basis,
         readmit_checked(field(original_snapshot, "candidate0")),
@@ -122,14 +132,17 @@ fn check_actual(
         panic!("ordinal required")
     };
     let dependent = u64::from_le_bytes(dependent_bytes.try_into().unwrap());
+    phase!("admit_four_checked_hypotheses_and_snapshot");
     let fresh_query = LanguageParserWindow8FactQuery::new(dependent, fresh_snapshot).unwrap();
     let fact = LanguageParserWindow8StableLexicalFact::new(fresh_query).unwrap();
+    phase!("admit_query_and_stable_lexical_fact");
     assert_eq!(*fact.query().dependent(), expected_dependent);
     let fresh_bytes = fact.clone().encode().unwrap();
     assert_eq!(
         LanguageParserWindow8StableLexicalFact::decode(&fresh_bytes).unwrap(),
         fact
     );
+    phase!("generated_native_encode_decode_roundtrip");
     let snapshot = fact.query().snapshot();
     let native_tape = snapshot.lexical().tape();
     assert_eq!(
@@ -159,10 +172,12 @@ fn check_actual(
         None,
     )
     .unwrap();
+    phase!("reprepare_exact_lexical_tape");
     let selection = prepare_stable_lexical_selection(&lexical, &fact).unwrap();
     assert!(std::ptr::eq(selection.fact(), &fact));
     assert_eq!(*selection.candidate().pos(), pos);
     assert_eq!(selection.candidate().lemma(), "record");
+    phase!("public_language_candidate_selection");
     let profile = speech_fixture::profile();
     let pronunciation = prepare_stable_lexical_pronunciation(&selection, &profile).unwrap();
     assert!(std::ptr::eq(pronunciation.selection().fact(), &fact));
@@ -179,4 +194,34 @@ fn check_actual(
         profile.rows()[1 - pronunciation_row].phones()
     );
     assert_eq!(pronunciation.request().candidate(), selection.candidate());
+    phase!("public_speech_pronunciation_lookup");
+    let _ = phase_start;
+    let receipt = serde_json::json!({
+        "schema":"language/generated-early-pronunciation-readmission@1",
+        "text":text,"dependent":dependent,"choice":choice,"pronunciation_row":pronunciation_row,
+        "bridge":"fresh generated Source constructors; original imported-schema receipt unchanged",
+        "additional_model_invocations":0,"played_authority":false,"phases":phases,
+        "original_checked_fact_bytes":bytes.len(),"generated_fact_bytes":fresh_bytes.len(),
+    });
+    eprintln!("{receipt}");
+    if let Ok(directory) = std::env::var("CONDUIT_EARLY_PRONUNCIATION_OUTPUT") {
+        let directory = std::path::Path::new(&directory);
+        std::fs::create_dir_all(directory).unwrap();
+        std::fs::write(directory.join("generated-lexical-fact.bin"), &fresh_bytes).unwrap();
+        std::fs::write(
+            directory.join("pronunciation-request.bin"),
+            pronunciation.request().clone().encode().unwrap(),
+        )
+        .unwrap();
+        std::fs::write(
+            directory.join("pronunciation-result.bin"),
+            pronunciation.result().clone().encode().unwrap(),
+        )
+        .unwrap();
+        std::fs::write(
+            directory.join("readmission.json"),
+            serde_json::to_vec_pretty(&receipt).unwrap(),
+        )
+        .unwrap();
+    }
 }
