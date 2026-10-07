@@ -62,7 +62,6 @@ pub(crate) mod direct_spoken {
 #[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
-#[cfg(unix)]
 pub(crate) use body::local_wardrobe;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]

@@ -916,6 +916,21 @@ pub(crate) fn local_face_snapshot(
 }
 
 #[cfg(not(unix))]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn local_wardrobe(
+    _state_dir: &Path,
+    _body_id: conduit_body::BodyId,
+    _face_id: String,
+    _face_revision: u64,
+    _advertisement: conduit_core::HostAdvertisement,
+    _owner_plan_id: Option<conduit_core::PlanId>,
+    _basis_revision: u64,
+    _action: Option<MaskWardrobeAction>,
+) -> Result<(serde_json::Value, Result<Presentation, String>), String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
 pub(crate) fn submit_local_face_interaction(
     _state_dir: &Path,
     _show: MaskShow,
