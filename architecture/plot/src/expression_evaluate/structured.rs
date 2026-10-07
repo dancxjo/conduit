@@ -71,7 +71,11 @@ pub(super) fn encoded_structured(
     value: StructuredInfoValue,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     let encoded = match value.shape() {
-        StructuredInfoValueShape::Leaf(bytes) => bytes.to_vec(),
+        StructuredInfoValueShape::Leaf(bytes)
+            if matches!(value.value_type().shape(), StructuredInfoTypeShape::Leaf(_)) =>
+        {
+            bytes.to_vec()
+        }
         _ => value
             .canonical_bytes()
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
