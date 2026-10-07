@@ -2,6 +2,52 @@
 use super::*;
 use std::{collections::BTreeMap, sync::Arc};
 
+pub(super) fn align_native_pcm(epochs: &[StructuredInfoValue]) -> (Vec<i16>, String) {
+    let source = declarations::exact_epoch_declarations()
+        + "\n"
+        + &include_str!("../../../speech/fargan_native_pcm_alignment.conduit")
+            .replace("native_epochs: U64\n", "native_epochs: U64 = 63\n");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &checked,
+        "speech/fargan-native-pcm-alignment",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
+    let ConfigurationValue::Text(hex) = &graph.expanded.gears[0].configuration[0].value else {
+        panic!("alignment Source")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let mut pcm = vec![];
+    assert_eq!(epochs.len(), 64);
+    for (index, epoch) in epochs.iter().enumerate() {
+        assert_eq!(epoch.value_type(), &program.input_type);
+        let input = epoch.canonical_bytes().unwrap();
+        let output = prepared.evaluate(&input).unwrap();
+        assert_eq!(output, program.evaluate(&input).unwrap());
+        let output = StructuredInfoValue::from_canonical_bytes(output).unwrap();
+        let StructuredInfoValueShape::Collection(samples) =
+            super::case_state::field(&output, "samples").shape()
+        else {
+            panic!("Source aligned PCM")
+        };
+        assert_eq!(
+            samples.len(),
+            if index == 0 || index == 63 { 80 } else { 160 }
+        );
+        for sample in samples {
+            let StructuredInfoValueShape::Leaf(bytes) = sample.shape() else {
+                panic!("PCM16")
+            };
+            pcm.push(i16::from_le_bytes(bytes.try_into().unwrap()));
+        }
+    }
+    assert_eq!(pcm.len(), 10080);
+    (pcm, source)
+}
+
 pub(super) fn prepare_startup_profiles() -> (
     EpochProfiles,
     BTreeMap<String, String>,

@@ -64,8 +64,59 @@ fn committed_native_utterance_executes_all_three_feedback_cells_and_source_eof()
             let StructuredInfoValueShape::Collection(pcm) = super::case_state::field(value, "pcm_i16").shape() else { panic!("PCM160") };
             assert_eq!(pcm.len(), 160);
         }
+        if let Ok(directory) = std::env::var("CONDUIT_FARGAN_NATIVE_OUTPUT") {
+            let (pcm, alignment_source) = super::native_startup::align_native_pcm(&epochs);
+            assert_eq!(pcm.len(), tape.pcm.len() * 2);
+            let directory = std::path::PathBuf::from(directory);
+            let raw = epochs.iter().map(|epoch| epoch.canonical_bytes().unwrap()).collect::<Vec<_>>();
+            std::fs::write(directory.join("raw-epochs.json"), serde_json::to_vec(&raw).unwrap()).unwrap();
+            std::fs::write(directory.join("alignment-source.conduit"), &alignment_source).unwrap();
+            write_pcm_wav(&directory.join("neural.wav"), 16000, &pcm);
+            write_pcm_wav(&directory.join("formant.wav"), 8000, &tape.pcm);
+            use sha2::{Digest, Sha256};
+            let hash = |path: &str| format!("{:x}", Sha256::digest(std::fs::read(directory.join(path)).unwrap()));
+            let receipt = serde_json::json!({
+                "committed_handoff_sha256":"d4be97a0c8350c72df496cae35f817dd617e449157dbe6a25e5dbda79eee2c89",
+                "complete_committed_dependency_admission_bytes":basis.receipt["graph_receipt"]["committed_dependency_admission_bytes"],
+                "full_native_basis_material":tape.immutable_material,
+                "raw_epochs":64,"native_epochs":63,"source_continuation_epochs":2,
+                "neural_samples":pcm.len(),"neural_sample_rate":16000,"neural_wav_sha256":hash("neural.wav"),
+                "formant_samples":tape.pcm.len(),"formant_sample_rate":8000,"formant_wav_sha256":hash("formant.wav"),
+                "raw_epochs_sha256":hash("raw-epochs.json"),"session_basis_sha256":hash("session-basis.bin"),
+                "bound_source_sha256":hash("bound-epoch-source.conduit"),"alignment_source_sha256":hash("alignment-source.conduit"),
+                "model_raw_blob_sha256":model.raw_blob_sha256,"signal_only_model_artifact_identity":model.model.artifact().content_identity(),
+                "signal_only_model_descriptor_identity":model.model.descriptor_identity(),
+                "same_native_intent_and_pitch_readmitted":true,"ordinary_source_epoch_scheduler_drained":true,
+                "alignment_execution":"checked Source portable reference/prepared evaluator parity on actual committed canonical PCM blocks",
+                "plan_retention":"complete debug diagnostic; bound Source and exact session basis retained separately",
+                "model_compute_lifecycle_admitted":false,"booted_target":false,"human_listening":false,"physical_playback":false,"realtime":false
+            });
+            std::fs::write(directory.join("manifest.json"), serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
+            eprintln!("actual Source aligned native pair retained:10080mono16k/5040mono8k samples; no listening or boot claim");
+        }
         eprintln!("complete committed native utterance→actual canonical PCM16 and three causal feedback cells; raw model output includes explicit startup/continuation alignment, no aligned WAV or listening claim");
     }).unwrap().join().unwrap();
+}
+
+fn write_pcm_wav(path: &std::path::Path, rate: u32, pcm: &[i16]) {
+    let size = u32::try_from(pcm.len() * 2).unwrap();
+    let mut bytes = Vec::with_capacity(44 + size as usize);
+    bytes.extend_from_slice(b"RIFF");
+    bytes.extend_from_slice(&(36 + size).to_le_bytes());
+    bytes.extend_from_slice(b"WAVEfmt ");
+    bytes.extend_from_slice(&16u32.to_le_bytes());
+    bytes.extend_from_slice(&1u16.to_le_bytes());
+    bytes.extend_from_slice(&1u16.to_le_bytes());
+    bytes.extend_from_slice(&rate.to_le_bytes());
+    bytes.extend_from_slice(&(rate * 2).to_le_bytes());
+    bytes.extend_from_slice(&2u16.to_le_bytes());
+    bytes.extend_from_slice(&16u16.to_le_bytes());
+    bytes.extend_from_slice(b"data");
+    bytes.extend_from_slice(&size.to_le_bytes());
+    for sample in pcm {
+        bytes.extend_from_slice(&sample.to_le_bytes());
+    }
+    std::fs::write(path, bytes).unwrap();
 }
 
 pub(super) fn prepare_native_tape(
