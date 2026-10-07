@@ -34,6 +34,7 @@ mod input;
 mod installed;
 mod installed_presentation;
 mod opening_readout;
+mod retained_body;
 #[cfg(test)]
 use input::MAX_SCREEN_FREE_COMMAND_BYTES;
 #[cfg(test)]

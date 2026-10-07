@@ -16,6 +16,13 @@ enum Command<'a> {
     Prefer(Vec<&'a str>),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Handled {
+    No,
+    ReadOnly,
+    Changed,
+}
+
 fn parse(line: &str) -> Option<Result<Command<'_>, &'static str>> {
     if line == "wardrobe" {
         return Some(Ok(Command::Inspect));
@@ -41,16 +48,16 @@ pub(super) fn handle<I: CommandInput>(
     last_report: &mut Option<Value>,
     mut speaker: Option<&mut Announcement<'_, I>>,
     output: &mut impl Write,
-) -> Result<bool, String> {
+) -> Result<Handled, String> {
     let Some(command) = parse(line) else {
-        return Ok(false);
+        return Ok(Handled::No);
     };
     let command = match command {
         Ok(command) => command,
         Err(reason) => {
             writeln!(output, "Wardrobe refused: {reason}").map_err(|error| error.to_string())?;
             speak_refusal(speaker.as_deref_mut(), reason, output)?;
-            return Ok(true);
+            return Ok(Handled::ReadOnly);
         }
     };
     if matches!(command, Command::Inspect) {
@@ -70,7 +77,7 @@ pub(super) fn handle<I: CommandInput>(
                 speak_refusal(speaker.as_deref_mut(), &reason, output)?;
             }
         }
-        return Ok(true);
+        return Ok(Handled::ReadOnly);
     }
     let Some(before) = last_report.as_ref() else {
         writeln!(
@@ -83,7 +90,7 @@ pub(super) fn handle<I: CommandInput>(
             "inspect wardrobe before choosing a route",
             output,
         )?;
-        return Ok(true);
+        return Ok(Handled::ReadOnly);
     };
     let action = match command {
         Command::Inspect => unreachable!("inspection returned above"),
@@ -104,7 +111,7 @@ pub(super) fn handle<I: CommandInput>(
         Err(reason) => {
             writeln!(output, "Wardrobe refused: {reason}").map_err(|error| error.to_string())?;
             speak_refusal(speaker.as_deref_mut(), &reason, output)?;
-            return Ok(true);
+            return Ok(Handled::ReadOnly);
         }
     };
     let report = if let Some(action) = action {
@@ -128,7 +135,7 @@ pub(super) fn handle<I: CommandInput>(
                 )
                 .map_err(|error| error.to_string())?;
                 speak_refusal(speaker.as_deref_mut(), &reason, output)?;
-                return Ok(true);
+                return Ok(Handled::ReadOnly);
             }
         }
     } else {
@@ -140,7 +147,7 @@ pub(super) fn handle<I: CommandInput>(
     } else {
         None
     };
-    Ok(true)
+    Ok(Handled::Changed)
 }
 
 fn speak_refusal<I: CommandInput>(
@@ -208,7 +215,12 @@ fn spoken_report_lines(report: &Value) -> Result<Vec<String>, String> {
     } else {
         "The current owner Plan needs no replacement"
     };
-    lines.push(format!("{show}. {planning}. Use wardrobe wear, doff, or prefer followed by a choice number. Preference alone does not displace a current available Show."));
+    let focus = if report["transition"].is_null() {
+        ""
+    } else {
+        " Your previous Face focus is cleared; choose a current action again."
+    };
+    lines.push(format!("{show}. {planning}. Use wardrobe wear, doff, or prefer followed by a choice number. Preference alone does not displace a current available Show.{focus}"));
     Ok(lines)
 }
 
@@ -388,14 +400,17 @@ mod tests {
     fn change_requires_a_report_the_person_inspected() {
         let mut report = None;
         let mut output = Vec::new();
-        assert!(handle::<NoInput>(
-            Path::new("/no-live-owner-needed"),
-            "wardrobe prefer route/old",
-            &mut report,
-            None,
-            &mut output,
-        )
-        .unwrap());
+        assert_eq!(
+            handle::<NoInput>(
+                Path::new("/no-live-owner-needed"),
+                "wardrobe prefer route/old",
+                &mut report,
+                None,
+                &mut output,
+            )
+            .unwrap(),
+            Handled::ReadOnly
+        );
         assert!(String::from_utf8(output)
             .unwrap()
             .contains("inspect wardrobe before choosing"));
