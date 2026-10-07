@@ -86,7 +86,7 @@ fn nonempty_subtype_material_is_retained_and_cannot_be_erased_or_relabelled() {
         let arc = LanguageDependencyArc::new(
             dependent.clone(),
             governor.clone(),
-            LanguageDependencyRelation::new(state.relation0().base().clone(), portable).unwrap(),
+            LanguageDependencyRelation::new(*state.relation0().base(), portable).unwrap(),
         )
         .unwrap();
         fixture::record(

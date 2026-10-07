@@ -59,7 +59,7 @@ fn retained_source_fact_correlates_portable_endpoints_base_and_subtype() {
         let t = token(head as usize);
         LanguageDependencyHead::token(t.revision().clone(), t.token().clone()).unwrap()
     };
-    let relation = LanguageDependencyRelation::new(state.relation0().base().clone(), None).unwrap();
+    let relation = LanguageDependencyRelation::new(*state.relation0().base(), None).unwrap();
     assert_eq!(state.relation0().subtype().get(), "");
     let arc =
         LanguageDependencyArc::new(dependent.clone(), governor.clone(), relation.clone()).unwrap();
@@ -136,7 +136,7 @@ fn retained_source_fact_correlates_portable_endpoints_base_and_subtype() {
         dependent,
         governor,
         LanguageDependencyRelation::new(
-            relation.base().clone(),
+            *relation.base(),
             Some(LanguageDependencySubtype::new("vocative".into()).unwrap()),
         )
         .unwrap(),
