@@ -185,3 +185,9 @@ mod provider;
 pub use provider::*;
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
+
+/// Generic fixed-shape reference numeric helpers; graph admission is separate.
+pub mod fixed_neural;
+
+/// Reference computation over exact fixed resource-backed Data tensors.
+pub mod fixed_tensor;
