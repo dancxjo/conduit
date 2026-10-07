@@ -42,6 +42,19 @@ fn program(document: &CheckedSyntaxDocument, name: &str) -> PortableExpressionPr
 #[test]
 #[ignore = "exact private committed handoff and full Language/Speech Source closures"]
 fn full_committed_native_acoustic_lineage_replays_source_roles_and_retains_pitch_basis() {
+    let _ = admit_shared_basis();
+}
+
+pub(super) struct RetainedCommittedBasis {
+    pub document: CheckedSyntaxDocument,
+    pub receipt: serde_json::Value,
+    pub encoded: Vec<u8>,
+    pub committed: StructuredInfoValue,
+    pub language_source: Vec<u8>,
+    pub speech_source: Vec<u8>,
+}
+
+pub(super) fn admit_shared_basis() -> RetainedCommittedBasis {
     let language =
         std::fs::read(std::env::var("CONDUIT_COMMITTED_DEPENDENCY_SOURCE").unwrap()).unwrap();
     assert_eq!(
@@ -57,7 +70,7 @@ fn full_committed_native_acoustic_lineage_replays_source_roles_and_retains_pitch
     );
     let started = std::time::Instant::now();
     let mut document = check_syntax_document(
-        &parse_syntax_document(&String::from_utf8(language).unwrap()),
+        &parse_syntax_document(&String::from_utf8(language.clone()).unwrap()),
         &StartupCatalog::new(),
     )
     .unwrap();
@@ -68,7 +81,7 @@ fn full_committed_native_acoustic_lineage_replays_source_roles_and_retains_pitch
             .unwrap();
     }
     let speech_document = check_syntax_document(
-        &parse_syntax_document(&String::from_utf8(speech).unwrap()),
+        &parse_syntax_document(&String::from_utf8(speech.clone()).unwrap()),
         &imports,
     )
     .unwrap();
@@ -202,4 +215,12 @@ fn full_committed_native_acoustic_lineage_replays_source_roles_and_retains_pitch
         );
     }
     eprintln!("complete committed acoustic lineage readmitted and Source token role replayed; Sourcecheck={checked_in:?}, {} nativeTypes, {}phone pitch receipts; whole Nativeintent/profile retained; no neural waveform claim",document.native_types.len(),sequence(field(links,"occurrences")).len());
+    RetainedCommittedBasis {
+        document,
+        receipt,
+        encoded,
+        committed,
+        language_source: language,
+        speech_source: speech,
+    }
 }

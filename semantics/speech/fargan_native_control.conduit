@@ -1,0 +1,39 @@
+# Named control approximation for the shared native 10 ms epoch grid.
+# A boundary has no offered phone-pitch admission. Its explicit neutral period
+# is 64 samples at 16 kHz; this control does not invent a native pitch receipt.
+type FarganNativeCycleObservation = {
+    boundary: Boolean
+    cycle_q8: U64
+}
+plot speech/fargan-native-control-q8 (
+    >> value: FarganNativeCycleObservation
+    result: U64 >>
+) = (.boundary ? 16384 : .cycle_q8)
+
+# The admitted cycle is expressed at 16 kHz; the existing Source policy owns
+# saturation and nearest integer period selection before exact U16 admission.
+plot speech/fargan-native-control-period (
+    >> value: FarganNativeCycleObservation
+    result: U64 >>
+) {
+    control: speech/fargan-native-control-q8
+    round: speech/fargan-period-q8-round
+    value >> control.value
+    control.result >> round.value
+    round.result >> result
+}
+
+plot speech/flow-fargan-native-control-q8 (
+    >> value: FarganNativeCycleObservation...|
+    result: U64...| >>
+) = (.boundary ? 16384 : .cycle_q8)
+plot speech/flow-fargan-native-control-period (
+    >> value: FarganNativeCycleObservation...|
+    result: FarganPeriod...| >>
+) {
+    control: speech/flow-fargan-native-control-q8
+    period: speech/flow-fargan-period-from-q8
+    value >> control.value
+    control.result >> period.value
+    period.result >> result
+}
