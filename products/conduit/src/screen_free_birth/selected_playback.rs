@@ -18,8 +18,13 @@ use conduit_std_host::{
     RunControl, StdHost, StdHostComposition, StdHostConfig,
 };
 use std::{
+    fs::OpenOptions,
+    io::Write,
     path::Path,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicU16, Ordering},
+        Arc, Mutex,
+    },
     time::Duration,
 };
 
@@ -33,6 +38,73 @@ pub(super) struct SelectedPlayback {
     authorization: ExplicitPlaybackAuthorization,
     voice: String,
     host: Arc<Mutex<StdHost>>,
+    remaining_plays: Arc<AtomicU16>,
+}
+
+// A screen-free invocation may make at most this many selected Plays. Reserve
+// the entire range before the first one, so a later invocation of the same
+// real Boot cannot reuse an ActivePlayId even after interruption or restart.
+const PLAYS_PER_ENCOUNTER: u64 = 1024;
+const SCREEN_FREE_SEQUENCE_START: u64 = 1 << 63;
+
+fn reserve_play_sequence_range(state_dir: &Path, boot_id: &str) -> Result<u64, String> {
+    let path = state_dir.join("screen-free-play-sequence");
+    let pending = state_dir.join("screen-free-play-sequence.pending");
+    let lock_path = state_dir.join("screen-free-play-sequence.lock");
+    let lock = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(&lock_path)
+        .map_err(|error| format!("open screen-free Play sequence lock: {error}"))?;
+    lock.lock()
+        .map_err(|error| format!("lock screen-free Play sequence: {error}"))?;
+    // A crash before rename leaves this marker. Refuse instead of replaying
+    // the old range; a human can inspect the retained state before recovery.
+    if pending.exists() {
+        return Err("screen-free Play sequence has an interrupted update".into());
+    }
+    let retained = match std::fs::read_to_string(&path) {
+        Ok(retained) => Some(retained),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(format!("read screen-free Play sequence: {error}")),
+    };
+    let first = if retained.is_none() {
+        SCREEN_FREE_SEQUENCE_START
+    } else {
+        let retained = retained.as_deref().expect("checked retained state");
+        let mut lines = retained.lines();
+        let recorded_boot = lines
+            .next()
+            .ok_or("screen-free Play sequence has no Boot")?;
+        let recorded_next = lines
+            .next()
+            .ok_or("screen-free Play sequence has no next value")?
+            .parse::<u64>()
+            .map_err(|_| "screen-free Play sequence is invalid")?;
+        if lines.next().is_some() || recorded_next < SCREEN_FREE_SEQUENCE_START {
+            return Err("screen-free Play sequence is invalid".into());
+        }
+        if recorded_boot == boot_id {
+            recorded_next
+        } else {
+            SCREEN_FREE_SEQUENCE_START
+        }
+    };
+    let next = first
+        .checked_add(PLAYS_PER_ENCOUNTER)
+        .ok_or("screen-free Play sequence exhausted")?;
+    let mut update = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&pending)
+        .map_err(|error| format!("stage screen-free Play sequence: {error}"))?;
+    write!(update, "{boot_id}\n{next}\n")
+        .and_then(|_| update.sync_all())
+        .and_then(|_| std::fs::rename(&pending, &path))
+        .and_then(|_| std::fs::File::open(state_dir)?.sync_all())
+        .map_err(|error| format!("retain screen-free Play sequence: {error}"))?;
+    Ok(first)
 }
 
 impl SelectedPlayback {
@@ -126,6 +198,10 @@ impl SelectedPlayback {
             StdHostComposition::minimal().with_text(),
             selection.clone().with_bounded_speech_queue(),
         )?;
+        host.set_initial_kernel_play_sequence(reserve_play_sequence_range(
+            state_dir,
+            config.boot_id.as_str(),
+        )?)?;
         host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
         Ok(Self {
             discovery,
@@ -134,6 +210,7 @@ impl SelectedPlayback {
             authorization,
             voice: voice.into(),
             host: Arc::new(Mutex::new(host)),
+            remaining_plays: Arc::new(AtomicU16::new(PLAYS_PER_ENCOUNTER as u16)),
         })
     }
 
@@ -154,6 +231,15 @@ impl SelectedPlayback {
         batch: &SpokenBatch,
         control: &RunControl,
     ) -> Result<SpokenPlaybackExecution, SpokenStreamExecutionRefusal> {
+        self.remaining_plays
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |remaining| {
+                remaining.checked_sub(1)
+            })
+            .map_err(|_| {
+                SpokenStreamExecutionRefusal::Plan(
+                    "screen-free selected Play sequence range is exhausted".into(),
+                )
+            })?;
         let mut host = self.host.lock().map_err(|_| {
             SpokenStreamExecutionRefusal::Plan("selected speech Host lock failed".into())
         })?;
@@ -296,4 +382,51 @@ pub(super) fn verified_spoken_segments(
             })
         })
         .collect())
+}
+
+#[cfg(test)]
+mod play_sequence_tests {
+    use super::*;
+
+    #[test]
+    fn repeated_encounters_on_one_boot_reserve_distinct_play_identities() {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-screen-free-play-sequence-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let first = reserve_play_sequence_range(&root, "boot/current").unwrap();
+        let second = reserve_play_sequence_range(&root, "boot/current").unwrap();
+        assert_eq!(first, SCREEN_FREE_SEQUENCE_START);
+        assert_eq!(second, first + PLAYS_PER_ENCOUNTER);
+        let plan = conduit_core::PlanId::from("plan/repeated-reading");
+        let host = conduit_core::HostId::from("host/owner");
+        let boot = conduit_core::BootId::from("boot/current");
+        let original = conduit_core::bind_active_play(&plan, &host, &boot, first);
+        let replay = conduit_core::bind_active_play(&plan, &host, &boot, second);
+        assert_ne!(original.active_play_id, replay.active_play_id);
+        assert_eq!(original.boot_id, replay.boot_id);
+        std::fs::write(
+            root.join("screen-free-play-sequence.pending"),
+            "interrupted",
+        )
+        .unwrap();
+        assert!(reserve_play_sequence_range(&root, "boot/current")
+            .unwrap_err()
+            .contains("interrupted update"));
+        std::fs::remove_file(root.join("screen-free-play-sequence.pending")).unwrap();
+        assert_eq!(
+            reserve_play_sequence_range(&root, "boot/new").unwrap(),
+            first
+        );
+        std::fs::write(root.join("screen-free-play-sequence"), "").unwrap();
+        assert!(reserve_play_sequence_range(&root, "boot/new")
+            .unwrap_err()
+            .contains("has no Boot"));
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }
