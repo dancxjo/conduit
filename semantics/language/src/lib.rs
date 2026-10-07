@@ -128,5 +128,7 @@ pub use generated::{
     LanguageParserRevisionContext, LanguageParserRevisionRefusal, LanguageParserRevisionResult,
 };
 
+pub use generated::{LanguageParserJointConsensusObservation, LanguageParserJointConsensusQuery};
+
 #[cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
 pub mod parser_model_selection;

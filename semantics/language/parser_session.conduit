@@ -1,0 +1,55 @@
+# Session agreement is separate from the pinned v2 feature ABI.
+type LanguageParserJointConsensusQuery = {
+ beam: LanguageParserJointBeam
+ dependent: U64 in 0..=3
+ where .dependent < .beam.lexical.token_count
+}
+# Private numerical votes are derived only from the admitted query by the seed.
+# The public full graph owns agreement; intermediate votes are not admission.
+type LanguageParserJointVote = {
+ active: Boolean
+ assigned: Boolean
+ choice: U64
+ head: U64
+ head_choice: U64
+ relation: LanguageParserRelation
+}
+type LanguageParserJointConsensusWork = {
+ vote0: LanguageParserJointVote
+ vote1: LanguageParserJointVote
+ vote2: LanguageParserJointVote
+ vote3: LanguageParserJointVote
+ agreed: Boolean
+}
+plot language-parser-joint-consensus-seed (
+ input: LanguageParserJointConsensusQuery...| >> output: LanguageParserJointConsensusWork...|
+) = { vote0: { active: .beam.candidate0.parser.active, assigned: (.dependent < .beam.candidate0.parser.state.unread && sequence/at(.beam.candidate0.parser.state.heads,.dependent) < 5), choice: sequence/at(.beam.candidate0.choices,.dependent), head: sequence/at(.beam.candidate0.parser.state.heads,.dependent), head_choice: (sequence/at(.beam.candidate0.parser.state.heads,.dependent) < 4 ? sequence/at(.beam.candidate0.choices,sequence/at(.beam.candidate0.parser.state.heads,.dependent)) : 0), relation: (.dependent == 0 ? .beam.candidate0.parser.state.relation0 : (.dependent == 1 ? .beam.candidate0.parser.state.relation1 : (.dependent == 2 ? .beam.candidate0.parser.state.relation2 : .beam.candidate0.parser.state.relation3))) }, vote1: { active: .beam.candidate1.parser.active, assigned: (.dependent < .beam.candidate1.parser.state.unread && sequence/at(.beam.candidate1.parser.state.heads,.dependent) < 5), choice: sequence/at(.beam.candidate1.choices,.dependent), head: sequence/at(.beam.candidate1.parser.state.heads,.dependent), head_choice: (sequence/at(.beam.candidate1.parser.state.heads,.dependent) < 4 ? sequence/at(.beam.candidate1.choices,sequence/at(.beam.candidate1.parser.state.heads,.dependent)) : 0), relation: (.dependent == 0 ? .beam.candidate1.parser.state.relation0 : (.dependent == 1 ? .beam.candidate1.parser.state.relation1 : (.dependent == 2 ? .beam.candidate1.parser.state.relation2 : .beam.candidate1.parser.state.relation3))) }, vote2: { active: .beam.candidate2.parser.active, assigned: (.dependent < .beam.candidate2.parser.state.unread && sequence/at(.beam.candidate2.parser.state.heads,.dependent) < 5), choice: sequence/at(.beam.candidate2.choices,.dependent), head: sequence/at(.beam.candidate2.parser.state.heads,.dependent), head_choice: (sequence/at(.beam.candidate2.parser.state.heads,.dependent) < 4 ? sequence/at(.beam.candidate2.choices,sequence/at(.beam.candidate2.parser.state.heads,.dependent)) : 0), relation: (.dependent == 0 ? .beam.candidate2.parser.state.relation0 : (.dependent == 1 ? .beam.candidate2.parser.state.relation1 : (.dependent == 2 ? .beam.candidate2.parser.state.relation2 : .beam.candidate2.parser.state.relation3))) }, vote3: { active: .beam.candidate3.parser.active, assigned: (.dependent < .beam.candidate3.parser.state.unread && sequence/at(.beam.candidate3.parser.state.heads,.dependent) < 5), choice: sequence/at(.beam.candidate3.choices,.dependent), head: sequence/at(.beam.candidate3.parser.state.heads,.dependent), head_choice: (sequence/at(.beam.candidate3.parser.state.heads,.dependent) < 4 ? sequence/at(.beam.candidate3.choices,sequence/at(.beam.candidate3.parser.state.heads,.dependent)) : 0), relation: (.dependent == 0 ? .beam.candidate3.parser.state.relation0 : (.dependent == 1 ? .beam.candidate3.parser.state.relation1 : (.dependent == 2 ? .beam.candidate3.parser.state.relation2 : .beam.candidate3.parser.state.relation3))) }, agreed: (.beam.candidate0.parser.active || .beam.candidate1.parser.active || .beam.candidate2.parser.active || .beam.candidate3.parser.active) }
+plot language-parser-joint-consensus-pair0 (
+ input: LanguageParserJointConsensusWork...| >> output: LanguageParserJointConsensusWork...|
+) = { vote0: .vote0, vote1: .vote1, vote2: .vote2, vote3: .vote3, agreed: (.agreed && (!.vote0.active || .vote0.assigned) && (!.vote1.active || .vote1.assigned) && (!.vote2.active || .vote2.assigned) && (!.vote3.active || .vote3.assigned) && (!(.vote0.active && .vote1.active) || (.vote0.choice == .vote1.choice && .vote0.head == .vote1.head && .vote0.head_choice == .vote1.head_choice && variant/tag(.vote0.relation.base) == variant/tag(.vote1.relation.base) && .vote0.relation.subtype == .vote1.relation.subtype))) }
+plot language-parser-joint-consensus-pair1 (
+ input: LanguageParserJointConsensusWork...| >> output: LanguageParserJointConsensusWork...|
+) = { vote0: .vote0, vote1: .vote1, vote2: .vote2, vote3: .vote3, agreed: (.agreed && true && (!(.vote0.active && .vote2.active) || (.vote0.choice == .vote2.choice && .vote0.head == .vote2.head && .vote0.head_choice == .vote2.head_choice && variant/tag(.vote0.relation.base) == variant/tag(.vote2.relation.base) && .vote0.relation.subtype == .vote2.relation.subtype))) }
+plot language-parser-joint-consensus-pair2 (
+ input: LanguageParserJointConsensusWork...| >> output: LanguageParserJointConsensusWork...|
+) = { vote0: .vote0, vote1: .vote1, vote2: .vote2, vote3: .vote3, agreed: (.agreed && true && (!(.vote0.active && .vote3.active) || (.vote0.choice == .vote3.choice && .vote0.head == .vote3.head && .vote0.head_choice == .vote3.head_choice && variant/tag(.vote0.relation.base) == variant/tag(.vote3.relation.base) && .vote0.relation.subtype == .vote3.relation.subtype))) }
+plot language-parser-joint-consensus-pair3 (
+ input: LanguageParserJointConsensusWork...| >> output: LanguageParserJointConsensusWork...|
+) = { vote0: .vote0, vote1: .vote1, vote2: .vote2, vote3: .vote3, agreed: (.agreed && true && (!(.vote1.active && .vote2.active) || (.vote1.choice == .vote2.choice && .vote1.head == .vote2.head && .vote1.head_choice == .vote2.head_choice && variant/tag(.vote1.relation.base) == variant/tag(.vote2.relation.base) && .vote1.relation.subtype == .vote2.relation.subtype))) }
+plot language-parser-joint-consensus-pair4 (
+ input: LanguageParserJointConsensusWork...| >> output: LanguageParserJointConsensusWork...|
+) = { vote0: .vote0, vote1: .vote1, vote2: .vote2, vote3: .vote3, agreed: (.agreed && true && (!(.vote1.active && .vote3.active) || (.vote1.choice == .vote3.choice && .vote1.head == .vote3.head && .vote1.head_choice == .vote3.head_choice && variant/tag(.vote1.relation.base) == variant/tag(.vote3.relation.base) && .vote1.relation.subtype == .vote3.relation.subtype))) }
+plot language-parser-joint-consensus-pair5 (
+ input: LanguageParserJointConsensusWork...| >> output: LanguageParserJointConsensusWork...|
+) = { vote0: .vote0, vote1: .vote1, vote2: .vote2, vote3: .vote3, agreed: (.agreed && true && (!(.vote2.active && .vote3.active) || (.vote2.choice == .vote3.choice && .vote2.head == .vote3.head && .vote2.head_choice == .vote3.head_choice && variant/tag(.vote2.relation.base) == variant/tag(.vote3.relation.base) && .vote2.relation.subtype == .vote3.relation.subtype))) }
+type LanguageParserJointConsensusObservation = {
+ agreed: Boolean
+}
+plot language-parser-joint-consensus-result (
+ input: LanguageParserJointConsensusWork...| >> output: LanguageParserJointConsensusObservation...|
+) = { agreed: .agreed }
+plot language-parser-joint-consensus (
+ input: LanguageParserJointConsensusQuery...| >> output: LanguageParserJointConsensusObservation...|
+) {
+ input >> language-parser-joint-consensus-seed() >> language-parser-joint-consensus-pair0() >> language-parser-joint-consensus-pair1() >> language-parser-joint-consensus-pair2() >> language-parser-joint-consensus-pair3() >> language-parser-joint-consensus-pair4() >> language-parser-joint-consensus-pair5() >> language-parser-joint-consensus-result() >> output
+}

@@ -1,0 +1,78 @@
+{
+  "ambiguous_pos_correct": 5,
+  "ambiguous_tokens": 5,
+  "canonical_exclusions": {},
+  "complete_sentences": 1,
+  "compute_ms_per_token": 17166.8,
+  "conditional_gold_pos": false,
+  "decode_max_ms": 42439,
+  "decode_ms": 85834,
+  "elapsed_ms": 303481,
+  "eligible_heldout_sentences": 3,
+  "host_memory": "VmHWM:\t 1737924 kB; VmRSS:\t 1690924 kB",
+  "last_scope_flow_timing": [
+    {
+      "calls": 76,
+      "entry": "language-parser-joint-branch",
+      "maximum_nanos": 21177704,
+      "nanos": 1494301416
+    },
+    {
+      "calls": 3,
+      "entry": "language-parser-v2-pos",
+      "maximum_nanos": 66318786,
+      "nanos": 175137789
+    },
+    {
+      "calls": 34,
+      "entry": "language-parser-v2-model-features",
+      "maximum_nanos": 151391525,
+      "nanos": 4681605495
+    },
+    {
+      "calls": 34,
+      "entry": "language-parser-legal-mask",
+      "maximum_nanos": 59646316,
+      "nanos": 1953397633
+    },
+    {
+      "calls": 96,
+      "entry": "language-parser-score-proposal",
+      "maximum_nanos": 5352022,
+      "nanos": 476464971
+    },
+    {
+      "calls": 96,
+      "entry": "language-parser-transition",
+      "maximum_nanos": 46716543,
+      "nanos": 4339153410
+    },
+    {
+      "calls": 96,
+      "entry": "language-parser-joint-expansion",
+      "maximum_nanos": 2497045,
+      "nanos": 229757925
+    },
+    {
+      "calls": 111,
+      "entry": "language-parser-joint-runtime-merge",
+      "maximum_nanos": 116081354,
+      "nanos": 12433817176
+    }
+  ],
+  "limitations": "hosted numerical inference and bounded orchestration; no complete production aggregate Plan, Source stabilization advance, or committed-prefix rebase; provisional outputs are not committed truth",
+  "model_bytes": 62796,
+  "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+  "ordinary_plan_preparation_ms": 130850,
+  "pos_correct": 5,
+  "profile": "pinned v2 four-token profile; one reviewed Travis/Hello stream; immutable selected hosted model; no per-revision new kernel",
+  "proof": "actual retained Source Flow partial-prefix learned decode with Source wait/reset and joint lexical/arc agreement observations",
+  "selected_occurrence": "retained-stream",
+  "sentences": 3,
+  "source_preparation_ms": 77828,
+  "tokens": 5,
+  "uas_correct": 5,
+  "universal_base_las_correct": 5,
+  "vocative_correct": 2,
+  "vocative_gold": 2
+}

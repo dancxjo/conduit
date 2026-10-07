@@ -18,11 +18,12 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_joint_decode.conduit");
     println!("cargo:rerun-if-changed=parser_available.conduit");
     println!("cargo:rerun-if-changed=parser_revision.conduit");
+    println!("cargo:rerun-if-changed=parser_session.conduit");
     println!("cargo:rerun-if-changed=parser_scorer_v2.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
@@ -39,6 +40,7 @@ fn main() {
         include_str!("parser_available.conduit"),
         include_str!("parser_revision.conduit"),
         include_str!("parser_scorer_v2.conduit"),
+        include_str!("parser_session.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit")
     );
