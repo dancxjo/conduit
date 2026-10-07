@@ -15,7 +15,11 @@ mod generate_package;
 #[cfg(test)]
 mod generate_tests;
 mod generate_value;
+mod prepared_invariants;
+#[cfg(test)]
+mod prepared_invariants_tests;
 mod primitive;
+pub use prepared_invariants::{PreparedNativeInvariantAdmission, PreparedNativeInvariantRefusal};
 mod value;
 
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedSequenceCapacityRefusal, BoundedText};
