@@ -1,7 +1,7 @@
 //! Runtime finite collection indexing over admitted canonical values.
 use super::{
-    member_selection, storage_bound, PreparedInput, PreparedPortableExpressionEvaluator,
-    ProgramView, Refusal,
+    member_selection, storage_bound, EvaluationInput, PreparedInput,
+    PreparedPortableExpressionEvaluator, ProgramView, Refusal,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation};
 use alloc::{boxed::Box, vec::Vec};
@@ -64,11 +64,14 @@ impl PreparedSequenceSelection {
             primitive,
         })
     }
-    pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
-        let index = self.index.evaluate(input)?;
+    pub(super) fn evaluate<'a>(
+        &'a mut self,
+        input: EvaluationInput<'a>,
+    ) -> Result<&'a [u8], Refusal> {
+        let index = self.index.evaluate_input(input)?;
         let index = u64::from_le_bytes(index.try_into().map_err(|_| Refusal::InvalidInput)?);
         let index = u16::try_from(index).map_err(|_| Refusal::InvalidInput)?;
-        let source = self.source.evaluate(input)?;
+        let source = self.source.evaluate_input(input)?;
         let source = conduit_core::validate_canonical_structured_value(source)
             .map_err(|_| Refusal::InvalidInput)?;
         let value = source

@@ -1,4 +1,5 @@
 //! Allocation-stable construction of anonymous structured expression results.
+use super::EvaluationInput;
 
 use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
@@ -155,9 +156,13 @@ impl PreparedStructuredExpression {
         })
     }
 
-    pub(super) fn evaluate(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
+    pub(super) fn evaluate(
+        &mut self,
+        input: EvaluationInput<'_>,
+        output: &mut Vec<u8>,
+    ) -> Result<(), Refusal> {
         match &mut self.shape {
-            PreparedShape::Input => return append(output, input),
+            PreparedShape::Input => return append(output, input.bytes()),
             PreparedShape::Constant(bytes) => return append(output, bytes),
             PreparedShape::SequenceSelected(selection) => {
                 return append(output, selection.evaluate(input)?)
@@ -173,12 +178,12 @@ impl PreparedStructuredExpression {
             when_false,
         } = &mut self.shape
         {
-            let selected = match condition.evaluator.evaluate(input)? {
+            let selected = match condition.evaluator.evaluate_input(input)? {
                 [1] => when_true,
                 [0] => when_false,
                 _ => return Err(Refusal::InvalidProgram),
             };
-            append(output, selected.evaluator.evaluate(input)?)?;
+            append(output, selected.evaluator.evaluate_input(input)?)?;
             return Ok(());
         }
         append(output, &self.type_prefix)?;
@@ -218,8 +223,12 @@ impl PreparedStructuredExpression {
 }
 
 impl PreparedChild {
-    fn append_node(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
-        let encoded = self.evaluator.evaluate(input)?;
+    fn append_node(
+        &mut self,
+        input: EvaluationInput<'_>,
+        output: &mut Vec<u8>,
+    ) -> Result<(), Refusal> {
+        let encoded = self.evaluator.evaluate_input(input)?;
         match self.value_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => {
                 push(output, 0)?;

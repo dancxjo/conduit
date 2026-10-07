@@ -20,7 +20,8 @@ pub enum PreparedNativeInvariantRefusal {
 /// this explicit preparation entrance.
 ///
 /// Evaluation borrows already canonical bytes and retains capacity-stable
-/// evaluator storage. Each evaluator still validates the complete input.
+/// evaluator storage. The complete canonical input is validated once; every
+/// law still verifies its exact immutable input Type.
 pub struct PreparedNativeInvariantAdmission {
     laws: Vec<PreparedPortableExpressionEvaluator>,
     maximum_input_bytes: usize,
@@ -64,9 +65,14 @@ impl PreparedNativeInvariantAdmission {
                 crate::PortableExpressionEvaluationRefusal::InvalidInput,
             ));
         }
+        if self.laws.is_empty() {
+            return Ok(());
+        }
+        let input = crate::expression_prepared::PreparedCanonicalInput::new(canonical)
+            .map_err(NativeBindingRefusal::InvalidInvariant)?;
         for (index, law) in self.laws.iter_mut().enumerate() {
             let result = law
-                .evaluate(canonical)
+                .evaluate_canonical(&input)
                 .map_err(NativeBindingRefusal::InvalidInvariant)?;
             let accepted = InfoBool::decode(result).map(InfoBool::get).map_err(|_| {
                 NativeBindingRefusal::InvalidInvariant(

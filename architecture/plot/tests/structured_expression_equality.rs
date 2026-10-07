@@ -1,3 +1,5 @@
+#[path = "prepared_structured_payload/allocation.rs"]
+mod allocation;
 use conduit_core::{
     ConfigurationValue, InfoBool, StructuredFieldValue, StructuredInfoType,
     StructuredInfoTypeShape, StructuredInfoValue,
@@ -61,9 +63,10 @@ fn evaluate(
     .unwrap()
     .canonical_bytes()
     .unwrap();
-    InfoBool::decode(&p.evaluate(&input).unwrap())
-        .unwrap()
-        .get()
+    let expected = p.evaluate(&input).unwrap();
+    let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(p).unwrap();
+    assert_eq!(prepared.evaluate(&input).unwrap(), expected);
+    InfoBool::decode(&expected).unwrap().get()
 }
 #[test]
 fn variants_compare_tags_and_ieee_bits_instead_of_float_arithmetic() {
@@ -170,6 +173,87 @@ fn nested_records_compare_each_exact_member() {
 }
 
 #[test]
-fn structured_equality_is_refused_before_prepared_play() {
-    assert!(conduit_plot::PreparedPortableExpressionEvaluator::new(&program("==")).is_err());
+fn structured_equality_reuses_complete_input_and_refuses_foreign_or_malformed_bytes() {
+    let p = program("==");
+    let ty = field(&p.input_type, "left");
+    let make = |left, right| {
+        StructuredInfoValue::record(
+            p.input_type.clone(),
+            vec![
+                StructuredFieldValue::new("left", value(ty, "boolean", &[left])).unwrap(),
+                StructuredFieldValue::new("right", value(ty, "boolean", &[right])).unwrap(),
+            ],
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+    };
+    let foreign = StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap(),
+        77u64.to_le_bytes().to_vec(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let inputs = [make(1, 1), make(1, 0), foreign, vec![0]];
+    let expected = inputs
+        .iter()
+        .map(|input| p.evaluate(input))
+        .collect::<Vec<_>>();
+    let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(&p).unwrap();
+    let capacity = prepared.output_capacity();
+    assert_eq!(
+        allocation::allocations(|| {
+            for _ in 0..1000 {
+                for (input, expected) in inputs.iter().zip(&expected) {
+                    assert_eq!(
+                        prepared.evaluate(input),
+                        expected.as_ref().map(Vec::as_slice).map_err(Clone::clone)
+                    );
+                }
+            }
+        }),
+        0
+    );
+    assert_eq!(prepared.output_capacity(), capacity);
+}
+
+#[test]
+fn structured_quantity_equality_compares_meaning_across_units() {
+    let source = "type Measurement = {\n amount: Distance\n}\ntype Pair = {\n left: Measurement\n right: Measurement\n}\nplot equal (\n value: Pair >> result: Boolean\n) = (.left == .right)\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, "equal", &ProfileCatalog::new())
+        .unwrap()
+        .expanded;
+    let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
+        panic!()
+    };
+    let p = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let ty = field(&p.input_type, "left");
+    let make = |quantity: conduit_core::Quantity| {
+        StructuredInfoValue::record(
+            ty.clone(),
+            vec![StructuredFieldValue::new(
+                "amount",
+                StructuredInfoValue::leaf(field(ty, "amount").clone(), quantity.encode().to_vec())
+                    .unwrap(),
+            )
+            .unwrap()],
+        )
+        .unwrap()
+    };
+    let meter = make(conduit_core::Quantity::new(
+        1,
+        conduit_core::QuantityUnit::Meter,
+    ));
+    let millimeters = make(conduit_core::Quantity::new(
+        1000,
+        conduit_core::QuantityUnit::Millimeter,
+    ));
+    assert_ne!(
+        meter.canonical_bytes().unwrap(),
+        millimeters.canonical_bytes().unwrap()
+    );
+    assert!(evaluate(&p, meter, millimeters));
 }
