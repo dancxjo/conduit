@@ -17,6 +17,13 @@ use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn bounded_remote_lifecycle_journal_cost_is_measured_without_reset_or_eviction() {
+    replay(None, 70);
+}
+#[test]
+fn declared_batch_retains_evidence_and_refuses_excess_before_ingress() {
+    replay(Some(80), 80);
+}
+fn replay(budget: Option<u16>, first_refusal: u64) {
     let bytes = include_bytes!("../training/ewt_joint_v2/ewt_joint.i16");
     let prepared = model_resource::categorical(
         bytes.to_vec(),
@@ -33,7 +40,12 @@ fn bounded_remote_lifecycle_journal_cost_is_measured_without_reset_or_eviction()
         &selection::pinned_v2_lexical_profile().unwrap()
     );
     assert_eq!(selected.compatibility().lookups, 25);
-    let mut execution = planned::prepare(selected.prepared_categorical().clone());
+    let mut execution = match budget {
+        Some(maximum) => {
+            planned::prepare_with_inference_budget(selected.prepared_categorical().clone(), maximum)
+        }
+        None => planned::prepare(selected.prepared_categorical().clone()),
+    };
     drop(selected);
     drop(prepared);
     let mut exhausted = None;
@@ -63,7 +75,11 @@ fn bounded_remote_lifecycle_journal_cost_is_measured_without_reset_or_eviction()
                     .or_else(|| error.downcast_ref::<&str>().copied())
                     .unwrap_or("");
                 assert!(
-                    message.contains("RemoteItemCapacityExceeded"),
+                    message.contains(if budget.is_some() {
+                        "declared inference batch exhausted before ingress"
+                    } else {
+                        "RemoteItemCapacityExceeded"
+                    }),
                     "unexpected failure: {message}"
                 );
                 exhausted = Some(frame);
@@ -113,7 +129,7 @@ fn bounded_remote_lifecycle_journal_cost_is_measured_without_reset_or_eviction()
     }
     assert_eq!(
         exhausted,
-        Some(70),
+        Some(first_refusal),
         "the current finite journal capacity is enforced"
     );
     eprintln!("first journal admission failure={exhausted:?}; no model reset or evidence eviction");
