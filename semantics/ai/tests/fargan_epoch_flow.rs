@@ -374,7 +374,18 @@ fn prepare_authored_epoch_entry(
     for port in &entry.runtime_ports {
         let name = format!("epoch-proof/{}", port.name.text);
         let input = port.direction == conduit_plot::syntax::RuntimePortDirection::Input;
-        let ty = &types[&port.value_type.text];
+        let ty = types.get(&port.value_type.text).unwrap_or_else(|| {
+            let descriptor = entry
+                .runtime_front
+                .inputs()
+                .iter()
+                .chain(entry.runtime_front.outputs())
+                .find(|descriptor| descriptor.port_id == port_id(&port.name.text))
+                .expect("exact checked entry port");
+            checked
+                .structured_type(&descriptor.value_kind)
+                .expect("exact checked alias Type")
+        });
         let descriptor = PortDescriptor {
             port_id: port_id("value"),
             value_kind: ty.profile().unwrap().value_kind().clone(),

@@ -1,0 +1,167 @@
+# Native PCM→spectral/pitch features with explicit reusable closing Flow owners.
+# Raw and normalized scalar memories are distinct. Full native proposal admission
+# follows raw candidate construction; publication remains provisional until PCM ACK.
+with structure/flow-nominal-weakening/typed-53b2b29b81030d508c6d684211048c23c6db2bc60f32c8ae9b03ae99ad3397658964b2caab12b8c2b5c1127cc0667bccfbeeedc9bc2ed8d9b44364a20d44cb19/result as FeatureRawProposalPair
+with structure/flow-native-profile/e342f670324d090f23a3565fe598de7069cdef64337d467f67cce469dc769f9f/candidate as FeatureProposalCandidate
+with structure/flow-native-profile/e342f670324d090f23a3565fe598de7069cdef64337d467f67cce469dc769f9f/result as FeatureAdmittedProposal
+with structure/flow-atomic-pair/typed-762f9fd1cf66e1d584ad7cb98f6ce3e4ecf71668240be5ebb02b692306dd583202719d8935e03f114cc69d442e986fd123cadc41443eafda2c12410e7404bd55/paired as FeatureHistoryPair
+with structure/flow-atomic-pair/typed-ab94c86d2efe90f65a527a52ef38dbe19d4146ac595574e00fb27cd3d641909e03d8944196b9041533e3868daf75a601f127996175c44845b758c5e340fd6fd5/paired as FeaturePreemphasisPair
+with structure/flow-native-profile/ef369dad524433926fcc044d946c6b34d29523c4d832635703722cce46141794/result as FeatureAdmittedInput
+with structure/flow-atomic-pair/typed-d7c667e010f0fda71ca1bc6aed6048e5f49808967d0cc1d82ecdfb567320e72203d8944196b9041533e3868daf75a601f127996175c44845b758c5e340fd6fd5/paired as FeatureResamplePair
+
+plot speech/flow-fargan-feature-native-samples (
+ value: FeatureAdmittedInput...| >> result: NumericI16Vector80...|
+) = (.samples)
+plot speech/flow-fargan-feature-prior-raw (
+ value: FeatureAdmittedInput...| >> result: F32...|
+) = (.previous_raw * 0x3f800000)
+plot speech/flow-fargan-feature-resample-input (
+ value: FeatureResamplePair...| >> result: FarganFormantResampleInput...|
+) = {samples_raw: .0, previous_raw: .1}
+plot speech/flow-fargan-feature-native-resample (
+ >> value: FeatureAdmittedInput...|
+ result: FarganFormantResampleResult...| >>
+) {
+ samples: speech/flow-fargan-feature-native-samples
+ prior: speech/flow-fargan-feature-prior-raw
+ convert: numeric/flow-i16-to-f32-80
+ join: structure/flow-atomic-pair/typed-d7c667e010f0fda71ca1bc6aed6048e5f49808967d0cc1d82ecdfb567320e72203d8944196b9041533e3868daf75a601f127996175c44845b758c5e340fd6fd5
+ input: speech/flow-fargan-feature-resample-input
+ resample: speech/flow-fargan-formant-linear2x
+ value >> samples.value
+ value >> prior.value
+ samples.result >> convert.value
+ convert.result >> join.left
+ prior.result >> join.right
+ join.paired >> input.value
+ input.result >> resample.value
+ resample.result >> result
+}
+
+plot speech/flow-fargan-feature-next-raw (
+ value: FarganFormantResampleResult...| >> result: F32...|
+) = (.next_previous_raw)
+plot speech/flow-fargan-feature-prior-normalized (
+ value: FeatureAdmittedInput...| >> result: F32...|
+) = (.previous_normalized * 0x3f800000)
+plot speech/flow-fargan-feature-resampled-samples (
+ value: FarganFormantResampleResult...| >> result: NumericRawF32Vector160...|
+) = (.samples)
+plot speech/flow-fargan-feature-preemphasis-input (
+ value: FeaturePreemphasisPair...| >> result: FarganFeaturePreemphasisInput...|
+) = {samples: .0, previous_normalized: .1}
+plot speech/flow-fargan-feature-native-preemphasis (
+ >> value: FeatureAdmittedInput...|
+ result: FarganFeaturePreemphasisResult...| >>
+ next_previous_raw: F32...| >>
+) {
+ next_raw: speech/flow-fargan-feature-next-raw
+ resample: speech/flow-fargan-feature-native-resample
+ prior: speech/flow-fargan-feature-prior-normalized
+ samples: speech/flow-fargan-feature-resampled-samples
+ join: structure/flow-atomic-pair/typed-ab94c86d2efe90f65a527a52ef38dbe19d4146ac595574e00fb27cd3d641909e03d8944196b9041533e3868daf75a601f127996175c44845b758c5e340fd6fd5
+ input: speech/flow-fargan-feature-preemphasis-input
+ preemphasis: speech/flow-fargan-feature-preemphasis
+ value >> resample.value
+ value >> prior.value
+ resample.result >> samples.value
+ resample.result >> next_raw.value
+ next_raw.result >> next_previous_raw
+ samples.result >> join.left
+ prior.result >> join.right
+ join.paired >> input.value
+ input.result >> preemphasis.value
+ preemphasis.result >> result
+}
+
+plot speech/flow-fargan-feature-next-normalized (
+ value: FarganFeaturePreemphasisResult...| >> result: F32...|
+) = (.next_previous_normalized)
+plot speech/flow-fargan-feature-prior-history (
+ value: FeatureAdmittedInput...| >> result: NumericF32Vector640...|
+) = (.history)
+plot speech/flow-fargan-feature-preemphasized-samples (
+ value: FarganFeaturePreemphasisResult...| >> result: NumericRawF32Vector160...|
+) = (.samples)
+plot speech/flow-fargan-feature-history-input (
+ value: FeatureHistoryPair...| >> result: FarganFeatureWaveAppend...|
+) = {history: .0, samples: .1}
+plot speech/flow-fargan-feature-native-waveform (
+ >> value: FeatureAdmittedInput...|
+ result: NumericF32Vector640...| >>
+ next_previous_raw: F32...| >>
+ next_previous_normalized: F32...| >>
+) {
+ next_normalized: speech/flow-fargan-feature-next-normalized
+ preprocess: speech/flow-fargan-feature-native-preemphasis
+ prior: speech/flow-fargan-feature-prior-history
+ samples: speech/flow-fargan-feature-preemphasized-samples
+ finite: numeric/flow-finite-vector160
+ join: structure/flow-atomic-pair/typed-762f9fd1cf66e1d584ad7cb98f6ce3e4ecf71668240be5ebb02b692306dd583202719d8935e03f114cc69d442e986fd123cadc41443eafda2c12410e7404bd55
+ input: speech/flow-fargan-feature-history-input
+ append: speech/flow-fargan-feature-wave-append
+ value >> preprocess.value
+ value >> prior.value
+ preprocess.result >> samples.value
+ preprocess.result >> next_normalized.value
+ preprocess.next_previous_raw >> next_previous_raw
+ next_normalized.result >> next_previous_normalized
+ samples.result >> finite.value
+ prior.result >> join.left
+ finite.result >> join.right
+ join.paired >> input.value
+ input.result >> append.value
+ append.result >> result
+}
+
+plot speech/flow-fargan-feature-native-period (
+ value: FeatureAdmittedInput...| >> result: FarganPeriod...|
+) = (.period)
+plot speech/flow-fargan-feature-native-epoch (
+ value: FeatureAdmittedInput...| >> result: U64...|
+) = (.epoch + 0)
+plot speech/flow-fargan-feature-proposal-candidate (
+ value: FeatureRawProposalPair...| >> result: FeatureProposalCandidate...|
+) = {history: .item-00000.item-00000, features: .item-00000.item-00001, previous_raw: .item-00001.item-00000.item-00000, previous_normalized: .item-00001.item-00000.item-00001, period: .item-00001.item-00001.item-00000, epoch: .item-00001.item-00001.item-00001}
+plot speech/flow-fargan-feature-native-analysis (
+ >> value: FeatureAdmittedInput...|
+ >> band_weights: NumericF32MatrixRef161x18
+ >> band_bias: NumericF32BiasRef18
+ >> dct_weights: NumericF32MatrixRef18x18
+ result: FeatureAdmittedProposal...| >>
+) {
+ waveform: speech/flow-fargan-feature-native-waveform
+ period: speech/flow-fargan-feature-native-period
+ epoch: speech/flow-fargan-feature-native-epoch
+ features: speech/flow-fargan-feature-frame
+ wave_features: structure/flow-atomic-pair/typed-762f9fd1cf66e1d584ad7cb98f6ce3e4ecf71668240be5ebb02b692306dd58327e8fb4787b0017a1de08bb3bc46871c566d80001e17bca77c2ecc92c1d7eceed
+ memories: structure/flow-atomic-pair/typed-03d8944196b9041533e3868daf75a601f127996175c44845b758c5e340fd6fd503d8944196b9041533e3868daf75a601f127996175c44845b758c5e340fd6fd5
+ period_epoch: structure/flow-atomic-pair/typed-b953c67a2c7bc931bee28d1ce842af62a3a9ae7c8bcf2c96f10c43c483d7d20a97da511cabd798b4600e78b25a60d9acf44c4e40b028774a275a92779d8e68d7
+ carry: structure/flow-atomic-pair/typed-cd2be155b77ef522e30bb756a29209e276b12c522e5f1bd553e12d72f5bcadca066258cc91225eaf47bcc66d59f1b78fac078f499539e4ac94a40818920c158d
+ proposal: structure/flow-atomic-pair/typed-7bf636114d333aacfcc901db203591b35f5e5ca37276ccd797f1d912cb7c279b12d1dfd393beb1f0bcf10dded94d37981ecafc59abafa3c307b2963e2c8a32c4
+ weak: structure/flow-nominal-weakening/typed-53b2b29b81030d508c6d684211048c23c6db2bc60f32c8ae9b03ae99ad3397658964b2caab12b8c2b5c1127cc0667bccfbeeedc9bc2ed8d9b44364a20d44cb19
+ candidate: speech/flow-fargan-feature-proposal-candidate
+ admission: structure/flow-native-profile/e342f670324d090f23a3565fe598de7069cdef64337d467f67cce469dc769f9f
+ value >> waveform.value
+ value >> period.value
+ value >> epoch.value
+ waveform.result >> features.waveform
+ period.result >> features.period
+ band_weights >> features.band_weights
+ band_bias >> features.band_bias
+ dct_weights >> features.dct_weights
+ waveform.result >> wave_features.left
+ features.result >> wave_features.right
+ waveform.next_previous_raw >> memories.left
+ waveform.next_previous_normalized >> memories.right
+ period.result >> period_epoch.left
+ epoch.result >> period_epoch.right
+ memories.paired >> carry.left
+ period_epoch.paired >> carry.right
+ wave_features.paired >> proposal.left
+ carry.paired >> proposal.right
+ proposal.paired >> weak.value
+ weak.result >> candidate.value
+ candidate.result >> admission.candidate
+ admission.result >> result
+}

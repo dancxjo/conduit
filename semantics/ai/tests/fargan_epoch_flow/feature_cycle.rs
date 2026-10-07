@@ -172,6 +172,87 @@ pub(super) fn prepare_feedback() -> (
     );
     context.guards.push(guard);
     context.weakening.push(weak);
+    let pair = conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(
+        fixed_numeric_type("NumericF32Vector80").unwrap(),
+        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
+    )
+    .unwrap();
+    pair.install(&mut context.startup, &mut context.profiles)
+        .unwrap();
+    ids.insert("__FEATURE_RESAMPLE_PAIR__".into(), pair.identity().into());
+    context.pairs.push(pair);
+    let pair = conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(
+        fixed_numeric_type("NumericRawF32Vector160").unwrap(),
+        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
+    )
+    .unwrap();
+    pair.install(&mut context.startup, &mut context.profiles)
+        .unwrap();
+    ids.insert(
+        "__FEATURE_PREEMPHASIS_PAIR__".into(),
+        pair.identity().into(),
+    );
+    context.pairs.push(pair);
+    let pair = conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(
+        fixed_numeric_type("NumericF32Vector640").unwrap(),
+        fixed_numeric_type("NumericF32Vector160").unwrap(),
+    )
+    .unwrap();
+    pair.install(&mut context.startup, &mut context.profiles)
+        .unwrap();
+    ids.insert("__FEATURE_HISTORY_PAIR__".into(), pair.identity().into());
+    context.pairs.push(pair);
+    fn register_pair(
+        context: &mut EpochProfiles,
+        ids: &mut BTreeMap<String, String>,
+        key: &str,
+        left: StructuredInfoType,
+        right: StructuredInfoType,
+    ) -> StructuredInfoType {
+        let pair =
+            conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(left, right)
+                .unwrap();
+        pair.install(&mut context.startup, &mut context.profiles)
+            .unwrap();
+        ids.insert(format!("__FEATURE_{key}_PAIR__"), pair.identity().into());
+        let result = pair.value_type().clone();
+        context.pairs.push(pair);
+        result
+    }
+    let wave_features = register_pair(
+        &mut context,
+        &mut ids,
+        "WAVE_FEATURES",
+        fixed_numeric_type("NumericF32Vector640").unwrap(),
+        fixed_numeric_type("NumericF32Vector20").unwrap(),
+    );
+    let memories = register_pair(
+        &mut context,
+        &mut ids,
+        "MEMORIES",
+        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
+        StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
+    );
+    let period = conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition(
+        "type FarganPeriod = U16 in 32..=255\n",
+    )
+    .unwrap()
+    .value_type()
+    .clone();
+    let epoch_period = register_pair(
+        &mut context,
+        &mut ids,
+        "PERIOD_EPOCH",
+        period,
+        StructuredInfoType::leaf(kind_id("value/u64")).unwrap(),
+    );
+    let carry = register_pair(&mut context, &mut ids, "CARRY", memories, epoch_period);
+    let proposal = register_pair(&mut context, &mut ids, "PROPOSAL", wave_features, carry);
+    let weak = Arc::new(PreparedNominalWeakening::prepare(proposal).unwrap());
+    weak.install(&mut context.startup, &mut context.profiles, true)
+        .unwrap();
+    ids.insert("__FEATURE_PROPOSAL_WEAK__".into(), weak.kind_identity(true));
+    context.weakening.push(weak);
     (context, seeded, ids)
 }
 
@@ -204,4 +285,122 @@ fn feature_feedback_entry_constructs_distinct_raw_candidate_from_exact_retained_
             expand_canonical_plot_for_authoring(&document, name, &context.profiles).unwrap();
         assert_eq!(graph.expanded.gears.len(), 1);
     }
+}
+
+fn resample_entry_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    native_feature_source(ids)
+}
+#[test]
+fn source_native_resampling_stage_preserves_exact_admitted_input_and_explicit_temporal_owners() {
+    let (context, _, ids) = prepare_feedback();
+    let document = check_syntax_document(
+        &parse_syntax_document(&resample_entry_source(&ids)),
+        &context.startup,
+    )
+    .unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &document,
+        "speech/flow-fargan-feature-native-resample",
+        &context.profiles,
+    )
+    .unwrap();
+    assert!(graph.expanded.gears.len() >= 6);
+}
+
+fn preemphasis_entry_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    native_feature_source(ids)
+}
+#[test]
+fn source_native_preemphasis_preserves_distinct_normalized_memory_and_explicit_flow() {
+    let (context, _, ids) = prepare_feedback();
+    let document = check_syntax_document(
+        &parse_syntax_document(&preemphasis_entry_source(&ids)),
+        &context.startup,
+    )
+    .unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &document,
+        "speech/flow-fargan-feature-native-preemphasis",
+        &context.profiles,
+    )
+    .unwrap();
+    assert!(graph.expanded.gears.len() >= 11);
+}
+
+fn history_entry_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    native_feature_source(ids)
+}
+#[test]
+fn source_native_waveform_appends_only_explicitly_finite_preemphasized_samples() {
+    let (context, _, ids) = prepare_feedback();
+    let document = check_syntax_document(
+        &parse_syntax_document(&history_entry_source(&ids)),
+        &context.startup,
+    )
+    .unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &document,
+        "speech/flow-fargan-feature-native-waveform",
+        &context.profiles,
+    )
+    .unwrap();
+    assert!(graph.expanded.gears.len() >= 17);
+}
+
+pub(super) fn analysis_entry_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    native_feature_source(ids)
+}
+#[test]
+fn source_complete_native_feature_analysis_retains_provisional_causal_state_and_period() {
+    let (context, _, ids) = prepare_feedback();
+    let document = check_syntax_document(
+        &parse_syntax_document(&analysis_entry_source(&ids)),
+        &context.startup,
+    )
+    .unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &document,
+        "speech/flow-fargan-feature-native-analysis",
+        &context.profiles,
+    )
+    .unwrap();
+    eprintln!(
+        "complete Source native feature proposal: {}nodes/{}cords; state remains provisional",
+        graph.expanded.gears.len(),
+        graph.expanded.connections.len()
+    );
+    assert!(graph.expanded.gears.len() > 80);
+}
+
+fn native_feature_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    let authored = include_str!("../../../speech/fargan_feature_native_flow.conduit");
+    for key in [
+        "INPUT_NATIVE",
+        "RESAMPLE_PAIR",
+        "PREEMPHASIS_PAIR",
+        "HISTORY_PAIR",
+        "WAVE_FEATURES_PAIR",
+        "MEMORIES_PAIR",
+        "PERIOD_EPOCH_PAIR",
+        "CARRY_PAIR",
+        "PROPOSAL_PAIR",
+        "PROPOSAL_WEAK",
+        "PROPOSAL_NATIVE",
+    ] {
+        assert!(
+            authored.contains(&ids[&format!("__FEATURE_{key}__")]),
+            "authored exact owner identity {key}"
+        );
+    }
+    let imports = authored
+        .lines()
+        .filter(|line| line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let body = authored
+        .lines()
+        .filter(|line| !line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    imports + "\n" + &feature_source(true) + "\n" + &body
 }

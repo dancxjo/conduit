@@ -147,6 +147,7 @@ pub(crate) fn fixture_value(
             match kind.as_str() {
                 "value/f32" | "value/ieee754-binary32" => 0f32.to_le_bytes().to_vec(),
                 "value/u16" => 64u16.to_le_bytes().to_vec(),
+                "value/i16" => 0i16.to_le_bytes().to_vec(),
                 "value/u64" => 7u64.to_le_bytes().to_vec(),
                 "value/u8" => vec![1],
                 "value/unit" => vec![],
