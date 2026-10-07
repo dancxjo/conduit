@@ -48,7 +48,33 @@ type FarganMatrix128x320 = {
     columns: U16 in 128..=128
     rows: U16 in 320..=320
 }
+type FarganBias64 = {
+    resource: ResourceRef
+    content_digest: FarganTensorDigest
+    element: FarganTensorElement
+    length: U16 in 64..=64
+}
+type FarganBias128 = {
+    resource: ResourceRef
+    content_digest: FarganTensorDigest
+    element: FarganTensorElement
+    length: U16 in 128..=128
+}
+type FarganBias320 = {
+    resource: ResourceRef
+    content_digest: FarganTensorDigest
+    element: FarganTensorElement
+    length: U16 in 320..=320
+}
+
 type FarganConditionHistory = collection FarganVector64 = 2
+
+# The admitted period range yields 0..223. Generic lookup checks its own
+# index bound; offset policy is this authored subtraction, not primitive code.
+plot speech/fargan-period-index (
+    >> value: FarganPeriod
+    result: U16 >>
+) = (. - 32)
 
 plot speech/fargan-period-identity (
     >> value: FarganPeriod
@@ -62,14 +88,18 @@ plot speech/fargan-conditioning (
     >> history: FarganConditionHistory
     >> embedding_weights: FarganEmbedding224x12
     >> dense1_weights: FarganMatrix32x64
+    >> dense1_bias: FarganBias64
     >> conv_weights: FarganMatrix192x128
+    >> conv_bias: FarganBias128
     >> dense2_weights: FarganMatrix128x320
+    >> dense2_bias: FarganBias320
     condition: FarganVector320 >>
     next_history: FarganConditionHistory >>
     conditioned_period: FarganPeriod >>
     next_period: FarganPeriod >>
 ) {
-    embedding: neural/embedding224x12-period32
+    pitch_index: speech/fargan-period-index
+    embedding: numeric/embedding224x12
     concatenate: numeric/concatenate20x12
     dense1: numeric/dense32x64
     activate1: numeric/tanh64
@@ -80,21 +110,25 @@ plot speech/fargan-conditioning (
     activate3: numeric/tanh320
     delayed_pitch: speech/fargan-period-identity
     retained_pitch: speech/fargan-period-identity
-    period >> embedding.period
+    period >> pitch_index.value
+    pitch_index.result >> embedding.index
     embedding_weights >> embedding.weights
     features >> concatenate.left
     embedding.result >> concatenate.right
     concatenate.result >> dense1.value
     dense1_weights >> dense1.weights
+    dense1_bias >> dense1.bias
     dense1.result >> activate1.value
     activate1.result >> window.value
     history >> window.history
     window.next_history >> next_history
     window.window >> convolution.value
     conv_weights >> convolution.weights
+    conv_bias >> convolution.bias
     convolution.result >> activate2.value
     activate2.result >> dense2.value
     dense2_weights >> dense2.weights
+    dense2_bias >> dense2.bias
     dense2.result >> activate3.value
     activate3.result >> condition
     previous_period >> delayed_pitch.value
