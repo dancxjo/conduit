@@ -870,15 +870,20 @@ try {
       await page.getByRole('button', { name: `Wear ${browserDescription.mask_name}`, exact: true }).click();
       report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
     }
-    if (report.selected?.route_id !== browserRoute.route_id) {
+    const browserPreferredAlone = report.wardrobe.preference.length === 1 &&
+      report.wardrobe.preference[0].checked_plot_id === browserRoute.mask_plot.checked_plot_id;
+    if (report.selected?.route_id !== browserRoute.route_id && !browserPreferredAlone) {
+      await page.getByRole('button', { name: `Prefer only ${browserDescription.mask_name}`, exact: true }).click();
+      report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
+    }
+    // Preference alone retains a current Show. Doff each selected local
+    // Mask through real owner actions until the preferred browser takes over.
+    for (let remaining = report.admitted_routes.length;
+      report.selected?.route_id !== browserRoute.route_id && remaining > 0; remaining--) {
       const selectedDescription = report.route_descriptions.find(route =>
         route.route_id === report.selected?.route_id);
       assert.ok(selectedDescription, 'owner model handoff needs the selected Mask name');
       await page.getByRole('button', { name: `Doff ${selectedDescription.mask_name}`, exact: true }).click();
-      report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
-    }
-    if (report.selected?.route_id !== browserRoute.route_id) {
-      await page.getByRole('button', { name: `Prefer only ${browserDescription.mask_name}`, exact: true }).click();
       report = await awaitWardrobeRevision(report.wardrobe_revision_decimal);
     }
     assert.equal(report.selected?.route_id, browserRoute.route_id);
