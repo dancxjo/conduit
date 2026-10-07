@@ -225,3 +225,6 @@ pub mod fixed_tensor_resource;
 
 #[cfg(all(feature = "kernel-step", target_has_atomic = "ptr"))]
 pub mod fixed_numeric_flow;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_pair_flow;

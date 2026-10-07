@@ -1932,3 +1932,5 @@ mod tests {
 }
 
 pub mod fixed_numeric_flow;
+
+pub mod fixed_numeric_pair_flow;
