@@ -102,3 +102,10 @@ pub use generated::{
 };
 
 pub use generated::{LanguageParserJointMerge, LanguageParserJointRawBeam};
+
+pub use generated::{
+    LanguageParserJointBranchQuery, LanguageParserJointBranchResult, LanguageParserJointExpansion,
+    LanguageParserJointRuntimeBeam, LanguageParserJointRuntimeHypothesis,
+    LanguageParserJointRuntimeMerge, LanguageParserJointRuntimeRawBeam,
+    LanguageParserJointRuntimeRawHypothesis, LanguageParserRawJointHypothesis,
+};

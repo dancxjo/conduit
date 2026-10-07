@@ -3,6 +3,46 @@
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserJointRuntimeHypothesis",
+            crate::LanguageParserJointRuntimeHypothesis::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointRuntimeRawHypothesis",
+            crate::LanguageParserJointRuntimeRawHypothesis::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserRawJointHypothesis",
+            crate::LanguageParserRawJointHypothesis::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointBranchQuery",
+            crate::LanguageParserJointBranchQuery::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointBranchResult",
+            crate::LanguageParserJointBranchResult::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointExpansion",
+            crate::LanguageParserJointExpansion::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointRuntimeRawBeam",
+            crate::LanguageParserJointRuntimeRawBeam::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointRuntimeMerge",
+            crate::LanguageParserJointRuntimeMerge::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointRuntimeBeam",
+            crate::LanguageParserJointRuntimeBeam::semantic_type().expect("checked Language Type")
+        ),
+        (
             "LanguageParserJointRawBeam",
             crate::LanguageParserJointRawBeam::semantic_type().expect("checked Language Type")
         ),

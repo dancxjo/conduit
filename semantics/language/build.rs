@@ -1,5 +1,5 @@
-use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
-use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
+use conduit_plot::rust_binding::{RustBindingOptions, generate_rust_bindings};
+use conduit_plot::{StartupCatalog, check_syntax_document, parse_syntax_document};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -14,10 +14,11 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_scorer.conduit");
     println!("cargo:rerun-if-changed=parser_mask.conduit");
     println!("cargo:rerun-if-changed=parser_joint.conduit");
+    println!("cargo:rerun-if-changed=parser_joint_decode.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
@@ -29,6 +30,7 @@ fn main() {
         include_str!("parser_scorer.conduit"),
         include_str!("parser_mask.conduit"),
         include_str!("parser_joint.conduit"),
+        include_str!("parser_joint_decode.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit")
     );
