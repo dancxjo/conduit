@@ -1,5 +1,8 @@
 //! Finite deterministic scalar token reconstruction with reviewed lexical data.
 //! This prepares inspectable material; it does not parse syntax or claim accuracy.
+//! Unicode alphanumeric runs are lexical units under this reconstruction profile,
+//! including contiguous CJK runs. This is not language-specific word segmentation.
+//! Unlisted whole surfaces retain empty alternatives; their morphology is unknown.
 use crate::*;
 use alloc::{string::String, vec::Vec};
 use conduit_plot::rust_binding::{BoundedSequence, NativeBindingRefusal};
@@ -150,4 +153,38 @@ pub fn prepare_lexical_tape(
     )
     .map_err(Native)?;
     Ok(PreparedLexicalTape { tape })
+}
+
+/// Lexical schemas are independent of shared identity imports.
+pub fn lexical_types() -> Vec<(&'static str, conduit_core::StructuredInfoType)> {
+    alloc::vec![
+        (
+            "LanguageLexicalPos",
+            LanguageLexicalPos::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageLexicalCandidate",
+            LanguageLexicalCandidate::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageLexicalEntry",
+            LanguageLexicalEntry::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageLexicalProfile",
+            LanguageLexicalProfile::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageLexicalCompleteness",
+            LanguageLexicalCompleteness::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageLexicalToken",
+            LanguageLexicalToken::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageLexicalTape",
+            LanguageLexicalTape::semantic_type().expect("checked Language Type")
+        ),
+    ]
 }

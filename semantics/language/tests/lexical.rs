@@ -204,3 +204,29 @@ fn foreign_source_profiles_and_duplicate_data_refuse() {
     let unknown = prepare_lexical_tape(&source, &different, None).unwrap();
     assert!(unknown.tape().tokens()[0].candidates().is_empty());
 }
+
+#[test]
+fn lexical_schemas_are_available_through_installed_catalog() {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
+    install_linguistics_catalogs(&mut startup, &mut profile).unwrap();
+    for (name, _) in lexical_types() {
+        let source = format!(
+            "plot language/lexical-fixture (\n >> value: {name}\n result: {name} >>\n) = (.)"
+        );
+        conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(&source),
+            &startup,
+        )
+        .unwrap();
+    }
+}
+#[test]
+fn unicode_runs_are_honest_unknown_units_not_segmented_language_claims() {
+    let source = revision("猫は寝る", 0, None, None, LanguageTextFinality::Final);
+    let tape = prepare_lexical_tape(&source, &profile(), None).unwrap();
+    assert_eq!(tape.tape().tokens().len(), 1);
+    assert_eq!(tape.tape().tokens()[0].surface(), "猫は寝る");
+    assert!(tape.tape().tokens()[0].candidates().is_empty());
+    assert_eq!(*tape.tape().tokens()[0].span().end(), 4);
+}
