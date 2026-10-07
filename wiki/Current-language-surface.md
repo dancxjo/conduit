@@ -206,6 +206,12 @@ remain well-typed while making a law false. See the
 [semantic call checker](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/expression_semantic_call.rs)
 and the record-law syntax tests.
 
+`text/material(value)` explicitly observes the exact UTF-8 material of primitive
+or nominal `Text` as ordinary `Text`. This permits material equality between
+distinct checked text contracts without implicitly converting either value into
+the other contract. It rejects non-text representations and does not admit a
+refined nominal output; that output still requires its own construction laws.
+
 Construction-time enforcement is implemented by
 [#4638](https://github.com/dancxjo/conduit/pull/4638). Completed
 [#4639](https://github.com/dancxjo/conduit/issues/4639) carries applicable record
