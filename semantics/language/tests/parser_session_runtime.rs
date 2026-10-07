@@ -49,6 +49,13 @@ fn executor() -> Executor {
     }
 }
 type Flow = PreparedParserSourceFlow<LanguageTextRevisionId, LanguageTextRevisionId, Executor>;
+fn limits() -> ParserSourceFlowLimits {
+    ParserSourceFlowLimits {
+        max_invocations: 16,
+        max_input_bytes: 4096,
+        max_output_bytes: 4096,
+    }
+}
 fn input() -> LanguageTextRevisionId {
     LanguageTextRevisionId::new("same-bytes".into()).unwrap()
 }
@@ -56,7 +63,7 @@ fn input() -> LanguageTextRevisionId {
 fn retained_executor_gets_each_ordinal_once_and_returns_admitted_native_identity() {
     let executor = executor();
     let calls = executor.calls.clone();
-    let mut flow = Flow::new(executor).unwrap();
+    let mut flow = Flow::new(executor, limits()).unwrap();
     assert_eq!(flow.transact(input()).unwrap(), input());
     assert_eq!(flow.transact(input()).unwrap(), input());
     assert_eq!(*calls.borrow(), [0, 1]);
@@ -69,14 +76,14 @@ fn shape_compatible_foreign_nominal_ports_refuse_before_execution() {
     let calls = executor.calls.clone();
     executor.input = LanguageTextId::semantic_type().unwrap();
     assert!(matches!(
-        Flow::new(executor),
+        Flow::new(executor, limits()),
         Err(ParserSourceFlowRefusal::InputType)
     ));
     assert!(calls.borrow().is_empty());
     let mut executor = self::executor();
     executor.output = LanguageTextId::semantic_type().unwrap();
     assert!(matches!(
-        Flow::new(executor),
+        Flow::new(executor, limits()),
         Err(ParserSourceFlowRefusal::OutputType)
     ));
 }
@@ -87,7 +94,7 @@ fn failed_or_foreign_response_cannot_silently_replay_a_consumed_ordinal() {
         let calls = executor.calls.clone();
         executor.foreign = foreign;
         executor.fail = !foreign;
-        let mut flow = Flow::new(executor).unwrap();
+        let mut flow = Flow::new(executor, limits()).unwrap();
         assert!(flow.transact(input()).is_err());
         assert!(flow.is_poisoned());
         assert_eq!(flow.next_ordinal(), 0);
