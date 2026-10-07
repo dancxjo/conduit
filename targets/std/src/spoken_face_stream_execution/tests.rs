@@ -336,8 +336,8 @@ fn selected_speaker_and_wav_share_one_play_and_one_converted_pcm_stream() {
         &batch,
         &crate::hosted_language::tests::request("language/english"),
         &"00".repeat(32),
-        config,
-        selection,
+        config.clone(),
+        selection.clone(),
         &authorization,
         &crate::RunControl::default(),
         &mut host,
@@ -368,6 +368,96 @@ fn selected_speaker_and_wav_share_one_play_and_one_converted_pcm_stream() {
         .unwrap()
         .to_string_lossy()
         .starts_with("play-"));
+    let second = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &crate::hosted_language::tests::request("language/english"),
+        &"00".repeat(32),
+        config,
+        selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+        true,
+    )
+    .unwrap();
+    assert_eq!(second.outcome, SpokenPlaybackOutcome::Completed);
+    assert_ne!(result.playback_play_id, second.playback_play_id);
+    let second_capture = second.same_play_capture.unwrap();
+    assert_ne!(capture.wav_path, second_capture.wav_path);
+    let second_wav = std::fs::read(&second_capture.wav_path).unwrap();
+    assert_eq!(second_capture.wav_bytes, second_wav.len() as u64);
+    assert_eq!(
+        second_capture.wav_sha256,
+        format!("{:x}", Sha256::digest(&second_wav))
+    );
+    assert_eq!(
+        second_capture.pcm_sha256,
+        format!("{:x}", Sha256::digest(&second_wav[44..]))
+    );
+    assert_eq!(
+        second_capture.pcm_sha256,
+        second.playback.committed_pcm_sha256
+    );
+    assert_eq!(
+        u32::from(second_capture.pcm_blocks),
+        second.playback.metrics.blocks_committed
+    );
+    assert_eq!(
+        u64::from(second_capture.pcm_bytes) / 4,
+        second.playback.metrics.frames_committed
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn selected_speaker_refuses_full_wav_pool_before_a_completed_play() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let (face, show) = source(1);
+    let (_, batch) = batch(&face, &show);
+    let (config, selection, authorization) = selected_fake_playback(FakePlaybackBehavior::Success);
+    let root = std::env::temp_dir().join(format!(
+        "conduit-same-play-full-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let mut host = StdHost::new_with_playback(
+        config.clone(),
+        StdHostComposition::minimal().with_text(),
+        selection.clone(),
+    )
+    .unwrap();
+    host.attach_deterministic_speech_and_wav_artifact(
+        crate::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+            &root,
+            config.boot_id.clone(),
+            config.offer_generation,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    for index in 0..64 {
+        std::fs::write(root.join(format!("play-{index:064x}.wav")), b"retained").unwrap();
+    }
+    let refusal = super::playback::run_selected_spoken_playback(
+        &face,
+        &show,
+        &batch,
+        &crate::hosted_language::tests::request("language/english"),
+        &"00".repeat(32),
+        config,
+        selection,
+        &authorization,
+        &crate::RunControl::default(),
+        &mut host,
+        true,
+    )
+    .unwrap_err();
+    assert!(matches!(refusal, SpokenStreamExecutionRefusal::Plan(_)));
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 64);
     std::fs::remove_dir_all(root).unwrap();
 }
 

@@ -85,6 +85,8 @@ fn advertise(owner: &mut Owner, window_id: &str) -> conduit_body::AdmissionChall
 
 #[path = "route_tests.rs"]
 mod route_tests;
+#[path = "terminal_transition_tests.rs"]
+mod terminal_transition_tests;
 
 #[path = "native_face_reseal_tests.rs"]
 mod native_face_reseal_tests;
@@ -121,6 +123,10 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
     assert_eq!(
         authorized.presence_maximum_millis,
         MAX_BROWSER_PRESENCE_MILLIS
+    );
+    assert!(
+        authorized.presence_maximum_millis >= 30 * 60_000,
+        "the finite browser carrier must admit a complete selected-speaker nonvisual reading"
     );
     owner.pending_browser.as_mut().unwrap().deadline = Instant::now() - Duration::from_millis(1);
     assert!(owner

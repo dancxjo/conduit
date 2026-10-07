@@ -16,11 +16,50 @@ pub trait BirthPresentation {
 impl BirthPresentation for BirthDraft {
     fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
         let mut birth = action("creche.birth", "Birth Body", ApplicationEventKind::Activate);
-        if let Err(error) = self.selection(self.revision()) {
+        let readiness = self.selection(self.revision());
+        if let Err(error) = &readiness {
             birth.availability = ActionAvailability::Unavailable {
                 detail: format!("{error:?}"),
             };
         }
+        let selected_count = self
+            .choices()
+            .iter()
+            .filter(|choice| choice.selected)
+            .count();
+        let review = format!(
+            "Name: {}. Starting Plots selected: {} of {}. Birth: {}. Selected Plot names follow; clear search to review all options and availability.",
+            if self.friendly_name().is_empty() {
+                "(empty)"
+            } else {
+                self.friendly_name()
+            },
+            selected_count,
+            self.choices().len(),
+            match readiness {
+                Ok(_) => "available".into(),
+                Err(error) => format!("unavailable ({error:?})"),
+            }
+        );
+        // Search narrows the editable inventory, but it must never hide a
+        // selected Plot from the review that precedes Birth.
+        let review_plots = self
+            .choices()
+            .iter()
+            .enumerate()
+            .filter(|(_, choice)| choice.selected)
+            .map(|(index, choice)| {
+                node(
+                    &format!("birth-review-plot-{index}"),
+                    PresentationMechanism::Status {
+                        kind: StatusKind::Ordinary,
+                        title: format!("Starting Plot {}", index + 1),
+                        detail: choice.title.clone(),
+                    },
+                    vec![],
+                )
+            })
+            .collect();
         let query = self.search().to_lowercase();
         let choices: Vec<_> = self
             .choices()
@@ -127,6 +166,15 @@ impl BirthPresentation for BirthDraft {
                         vec![],
                     ),
                     node("initial-plots", plot_selection, vec![]),
+                    node(
+                        "birth-review",
+                        PresentationMechanism::Status {
+                            kind: StatusKind::Ordinary,
+                            title: "Review Birth choices".into(),
+                            detail: review,
+                        },
+                        review_plots,
+                    ),
                     node("birth-body", PresentationMechanism::Action(birth), vec![]),
                 ],
             ),

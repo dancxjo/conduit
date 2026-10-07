@@ -58,14 +58,17 @@ impl CarrierSpeech {
                             self.operation_id = Some(id.clone());
                             (request_id, "started", Some(id), None, None, false)
                         }
-                        Err(_) => (
-                            request_id,
-                            "refused",
-                            None,
-                            None,
-                            Some("selected-speech-unavailable".into()),
-                            false,
-                        ),
+                        Err(error) => {
+                            eprintln!("selected speech start refused: {error}");
+                            (
+                                request_id,
+                                "refused",
+                                None,
+                                None,
+                                Some("selected-speech-unavailable".into()),
+                                false,
+                            )
+                        }
                     }
                 }
             }

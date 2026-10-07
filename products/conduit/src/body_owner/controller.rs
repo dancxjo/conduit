@@ -51,6 +51,8 @@ mod presentation_wardrobe_report;
 mod presentation_wardrobe_runtime;
 #[path = "presentation_wardrobe_witness.rs"]
 mod presentation_wardrobe_witness;
+#[path = "wardrobe_face.rs"]
+mod wardrobe_face;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]

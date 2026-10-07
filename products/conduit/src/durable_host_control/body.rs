@@ -93,6 +93,34 @@ impl DerefMut for HostSource {
 }
 
 impl DurableHostRuntime {
+    /// Local nonvisual wardrobe input is authenticated by the installed
+    /// control token and bound to the Face, Body, and Host Boot the person read.
+    /// The owner still checks the exact presentation Plan and wardrobe revision.
+    pub(super) fn owned_body_local_wardrobe(
+        &mut self,
+        body_id: &conduit_body::BodyId,
+        face: (&str, u64),
+        advertisement: &conduit_core::HostAdvertisement,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<(serde_json::Value, Result<Presentation, String>), String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let current = owner.local_face_snapshot()?;
+        if current.basis.body_id.as_ref() != Some(body_id)
+            || current.identity.as_str() != face.0
+            || current.revision != face.1
+            || owner.host.advertisement() != advertisement
+        {
+            return Err("owner-wardrobe-face-or-host-stale".into());
+        }
+        let report = owner.owner_wardrobe_report(owner_plan_id, basis_revision, action)?;
+        let reading = owner.wardrobe_reading_face(&report);
+        Ok((report, reading))
+    }
+
     pub(super) fn start_browser_window(
         &mut self,
         expected_host_id: &str,
@@ -684,6 +712,47 @@ pub(crate) fn local_face_snapshot(
 }
 
 #[cfg(unix)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn local_wardrobe(
+    state_dir: &Path,
+    body_id: conduit_body::BodyId,
+    face_id: String,
+    face_revision: u64,
+    advertisement: conduit_core::HostAdvertisement,
+    owner_plan_id: Option<conduit_core::PlanId>,
+    basis_revision: u64,
+    action: Option<MaskWardrobeAction>,
+) -> Result<(serde_json::Value, Result<Presentation, String>), String> {
+    match call(
+        state_dir,
+        Request::BodyLocalWardrobe {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            body_id,
+            face_id,
+            face_revision,
+            advertisement,
+            owner_plan_id,
+            basis_revision,
+            action,
+        },
+    )? {
+        Response::BodyLocalWardrobe {
+            protocol: PROTOCOL,
+            report,
+            presentation,
+            reading_refusal,
+        } => match (presentation, reading_refusal) {
+            (Some(presentation), None) => Ok((*report, Ok(*presentation))),
+            (None, Some(reason)) => Ok((*report, Err(reason))),
+            _ => Err(super::CONTROL_OUTCOME_UNKNOWN.into()),
+        },
+        Response::Refused { code, .. } => Err(code),
+        _ => Err(super::CONTROL_OUTCOME_UNKNOWN.into()),
+    }
+}
+
+#[cfg(unix)]
 pub(crate) fn submit_local_face_interaction(
     state_dir: &Path,
     show: MaskShow,
@@ -843,6 +912,21 @@ pub(crate) fn submit_native_guest_face_interaction_until(
 pub(crate) fn local_face_snapshot(
     _state_dir: &Path,
 ) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn local_wardrobe(
+    _state_dir: &Path,
+    _body_id: conduit_body::BodyId,
+    _face_id: String,
+    _face_revision: u64,
+    _advertisement: conduit_core::HostAdvertisement,
+    _owner_plan_id: Option<conduit_core::PlanId>,
+    _basis_revision: u64,
+    _action: Option<MaskWardrobeAction>,
+) -> Result<(serde_json::Value, Result<Presentation, String>), String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 

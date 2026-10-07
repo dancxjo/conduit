@@ -1,0 +1,13 @@
+{
+  "schema": "conduit.proof/three-host-publication-media@1",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "event_kind": "selected-speaker-play",
+  "event_id": "23586469dd940e02d145e954cd789970f776fa57cf9a05dcfa9230eefde15257",
+  "face_revision": "13",
+  "media_path": "owner-direct-spoken/play-1712d24d8f01be5ba4d1e8dc3dd2ae6290b41aef3fa0f13959caeb260b1ac10f.wav",
+  "media_sha256": "0465e3fe40f307183ee413a4d3727fab8514661cfc5bbca026aa12f7009918b1",
+  "capture_source": "selected-speaker-same-play",
+  "observed_basis_sha256": "1868feebb1e04ee04606447277c6f7a8b1e5449dfa9cd865d15d4683d60fe534"
+}

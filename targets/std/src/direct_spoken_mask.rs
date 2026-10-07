@@ -1,7 +1,9 @@
-//! Ordinary direct speech Mask: one Face, one exact artifact Show.
+//! Ordinary direct speech Mask: one Face, one bounded opening artifact Show.
 //!
 //! The source has no device or provider facts. The selected Host must offer
 //! its wording, voice, conversion, and create-new artifact Backs before Plan.
+//! A selected speaker reads the complete Face in separate bounded Plays
+//! sourced from the available Show; this artifact alone proves the opening.
 
 use std::collections::BTreeMap;
 
@@ -110,8 +112,8 @@ impl crate::StdHost {
     }
 }
 
-/// A finite direct route. The wording Back streams only exact Face clauses;
-/// the Show Back accepts the artifact receipt after synthesis completes.
+/// A finite direct route. The wording Back streams one exact Face-derived
+/// opening; the Show Back accepts the artifact receipt after synthesis ends.
 pub fn source(plot_name: &str) -> String {
     let language = conduit_language::LanguageRequest::new(
         conduit_language::LanguageId::new("language/english".into())
@@ -177,5 +179,133 @@ mod tests {
         assert_eq!(authoring.output_bindings.len(), 2);
         let mask = MaskPlot::admit(&authoring).unwrap();
         assert_eq!(mask.plot_name, "direct_spoken_test");
+    }
+
+    #[test]
+    fn attached_spoken_output_advertises_the_installed_face_tee() {
+        let mut host = crate::StdHost::new_with_composition(
+            crate::StdHostConfig {
+                host_id: "host/direct-spoken-tee".into(),
+                boot_id: "boot/direct-spoken-tee".into(),
+                offer_generation: conduit_core::OfferGeneration(1),
+            },
+            crate::StdHostComposition::minimal(),
+        );
+        assert!(!host.advertisement().capabilities.iter().any(|offer| {
+            offer.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND
+        }));
+        let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
+            std::env::temp_dir().join("conduit-direct-spoken-tee-offer.wav"),
+            host.advertisement().boot_id.clone(),
+            host.advertisement().offer_generation,
+        )
+        .unwrap();
+        host.attach_deterministic_speech_and_wav_artifact(artifact)
+            .unwrap();
+        let offered = host
+            .advertisement()
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND)
+            .expect("attached spoken Host offers its installed Face tee");
+        assert_eq!(
+            offered.implementation.implementation_id.as_str(),
+            conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION
+        );
+        assert!(offered.host_calls.is_empty());
+        assert!(offered.resource_requirements.is_empty());
+    }
+
+    #[test]
+    #[ignore = "requires installed eSpeak NG and data; proves live-provider planning, not audio playback"]
+    fn installed_espeak_admits_the_direct_face_mask_without_terminal_attachment() {
+        use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
+        use conduit_presentation::{
+            PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
+        };
+        use std::{path::Path, time::Duration};
+
+        let config = crate::StdHostConfig {
+            host_id: "host/direct-spoken-plan".into(),
+            boot_id: "boot/direct-spoken-plan".into(),
+            offer_generation: conduit_core::OfferGeneration(1),
+        };
+        let engine = std::fs::canonicalize("/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1").unwrap();
+        let discovery = crate::hosted_speech_synthesis::EspeakDiscovery::inspect(
+            Path::new("/usr/bin/espeak-ng"),
+            Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
+            "en-us",
+            &[engine],
+        )
+        .unwrap();
+        let coverage = crate::hosted_language::tests::fixture_coverage(
+            &discovery.provider_identity(),
+            "en-us",
+            "language/english",
+        );
+        let adapter = discovery
+            .declare_language_coverage(coverage)
+            .unwrap()
+            .initialize(
+                config.host_id.clone(),
+                config.boot_id.clone(),
+                config.offer_generation,
+                "grant/direct-spoken-plan".into(),
+                Duration::from_secs(30),
+            )
+            .unwrap();
+        let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
+            std::env::temp_dir().join("conduit-direct-spoken-plan.wav"),
+            config.boot_id.clone(),
+            config.offer_generation,
+        )
+        .unwrap();
+        let mut host =
+            crate::StdHost::new_with_composition(config, crate::StdHostComposition::minimal());
+        host.attach_espeak_speech_and_wav_artifact(adapter, artifact)
+            .unwrap();
+        let body = conduit_body::Body::born(
+            SourceDocumentId::from("source/direct-spoken-plan"),
+            CheckedPlotId::from("checked/direct-spoken-plan"),
+            1,
+            SignId::from("sign/direct-spoken-plan/born"),
+        )
+        .unwrap();
+        let face = Presentation::new(
+            1,
+            PresentationBasis {
+                body_id: Some(body.body_id),
+                wake_id: None,
+                source_document_id: None,
+                checked_plot_id: None,
+                expanded_plot_id: None,
+                plan_id: None,
+                active_play_id: None,
+                sign_ids: vec![],
+            },
+            vec![PresentationSubject {
+                identity: "body/current".into(),
+                role: PresentationRole::Body,
+                name: "Current Body".into(),
+            }],
+            vec![],
+            vec![],
+            vec![PresentationText {
+                subject: "body/current".into(),
+                text: "Ready to speak.".into(),
+            }],
+        )
+        .unwrap();
+        let prepared = host.prepare_direct_spoken_mask(&face).unwrap();
+        assert!(prepared
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|placement| {
+                placement.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND
+                    && placement.implementation_id.as_str()
+                        == conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION
+            }));
     }
 }

@@ -1,6 +1,7 @@
 // Capture the installed owner's selected speaker Play through the same browser
 // carrier and acknowledged graphical Show used for the three-host journey.
 import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
 
 const RESPONSE = 'selected-speech-response';
 
@@ -108,13 +109,17 @@ export function observeOwnerSpeech(page) {
   };
 }
 
-export async function captureOwnerSelectedSpeech(page, observer, expected) {
+export async function captureOwnerSelectedSpeech(page, observer, expected, diagnosticPath) {
   const start = page.getByRole('button', { name: 'Read this view aloud' });
   assert.equal(await start.isEnabled(), true, 'current Show must admit speech');
   let previous = observer.replies.length;
   await start.click();
   const begun = await observer.nextReply(previous);
-  assert.equal(begun.outcome, 'started', 'owner must start selected speech');
+  if (diagnosticPath) {
+    await writeFile(diagnosticPath, `${JSON.stringify(begun, null, 2)}\n`, { mode: 0o600 });
+  }
+  assert.equal(begun.outcome, 'started',
+    `owner must start selected speech; carrier code: ${begun.code ?? 'none'}`);
   assert.ok(begun.operation_id, 'selected speech start needs its operation receipt');
   const operationId = begun.operation_id;
   await page.getByText('The owner started reading this Show.', { exact: false }).waitFor();

@@ -135,6 +135,9 @@ than reported as a speedup. The report separately compares warm preparation
 against uncached setup alone, so the cost of populating a cache cannot hide
 a regression. Existing runner-image tools are part of the
 recorded baseline; “cold” does not mean an empty machine.
+The warm job restores the cold job's exact cache key. If GitHub assigns a
+different runner-image revision to the two jobs, the identity check refuses a
+performance comparison; that pair must be measured again on matching images.
 
 The [6 October 2026 acquisition run](https://github.com/dancxjo/conduit/actions/runs/37441249185)
 completed exact cold/warm pairs for every target below at source

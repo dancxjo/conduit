@@ -33,8 +33,10 @@ const LEASE_MS: u64 = 2000;
 const RENEW_MS: u64 = 500;
 const MAX_CONNECTIONS: usize = 8;
 /// A signed admission opens a finite carrier presence independent of the
-/// short window in which the proof was authorized.
-const MAX_BROWSER_PRESENCE_MILLIS: u64 = 600_000;
+/// short window in which the proof was authorized. A continuing browser must
+/// still renew its separate short lease; the longer session bound admits
+/// complete nonvisual readings without expiring an otherwise live carrier.
+const MAX_BROWSER_PRESENCE_MILLIS: u64 = 3_600_000;
 // Permit a renewal every RENEW_MS plus three bounded interactions per renewal.
 const MAX_PRESENCE_FRAMES: usize = (MAX_BROWSER_PRESENCE_MILLIS / RENEW_MS) as usize * 4;
 

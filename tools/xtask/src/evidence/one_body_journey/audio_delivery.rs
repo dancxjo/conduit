@@ -43,11 +43,12 @@ struct OwnerSpokenTerminal {
     outcome: String,
     mode: String,
     show_id: String,
-    active_play_id: String,
-    accepted_wording: String,
-    generation_evidence: OwnerGenerationEvidence,
+    active_play_id: Option<String>,
+    accepted_wording: Option<String>,
+    generation_evidence: Option<OwnerGenerationEvidence>,
+    direct_reading_complete: Option<bool>,
     speaker_played: bool,
-    speaker_playback: Option<OwnerSpeakerPlay>,
+    speaker_playback: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
@@ -69,6 +70,19 @@ struct OwnerSpeakerPlay {
     provider_sha256: String,
     #[serde(flatten)]
     batch: SpeakerBatch,
+}
+
+#[derive(Deserialize)]
+struct OwnerDirectSpeakerPlay {
+    schema: String,
+    outcome: String,
+    source_show_id: String,
+    face_revision: u64,
+    face_revision_decimal: String,
+    host_id: String,
+    boot_id: String,
+    provider_sha256: String,
+    batches: Vec<SpeakerBatch>,
 }
 
 #[derive(Deserialize)]
@@ -149,42 +163,83 @@ pub(super) fn validate(
             let schema: serde_json::Value = read_json(root, provenance)?;
             let batch = if schema["schema"] == "conduit.body/owner-spoken-terminal@1" {
                 let terminal: OwnerSpokenTerminal = read_json(root, provenance)?;
-                let played = terminal
+                let playback = terminal
                     .speaker_playback
-                    .ok_or("model spoken Show has no selected speaker Play")?;
+                    .ok_or("spoken Show has no selected speaker Play")?;
                 if terminal.schema != "conduit.body/owner-spoken-terminal@1"
                     || terminal.outcome != "available"
-                    || terminal.mode != "llm-assisted"
-                    || capture.speech_mode.as_deref() != Some("llm-assisted")
                     || !terminal.speaker_played
-                    || terminal.show_id != played.source_show_id
                     || Some(terminal.show_id.as_str()) != capture.show_id.as_deref()
-                    || terminal.active_play_id == played.batch.play_id
-                    || terminal.accepted_wording != words.text
-                    || terminal.generation_evidence.provider_identity
-                        != capture.provider_id.as_deref().unwrap_or_default()
-                    || terminal.generation_evidence.model_identity
-                        != capture.model_id.as_deref().unwrap_or_default()
-                    || terminal.generation_evidence.candidate_digest.is_empty()
-                    || terminal
-                        .generation_evidence
-                        .validation_receipt_identity
-                        .is_empty()
-                    || terminal
-                        .generation_evidence
-                        .original_model_output
-                        .as_deref()
-                        != words.original_model_output.as_deref()
-                    || played.schema != "conduit.body/owner-spoken-speaker-play@1"
-                    || played.source_face_revision_decimal != capture.face_revision
-                    || played.host_id.is_empty()
-                    || played.boot_id.is_empty()
-                    || played.provider_sha256.len() != 64
-                    || played.batch.spoken_segments.concat() != words.text
                 {
-                    return Err("model wording lacks its completed selected speaker Play".into());
+                    return Err(if capture.speech_mode.as_deref() == Some("llm-assisted") {
+                        "model wording lacks its completed selected speaker Play"
+                    } else {
+                        "direct reading lacks its completed same-Play speaker batch"
+                    }
+                    .into());
                 }
-                played.batch
+                if terminal.mode == "direct" && capture.speech_mode.as_deref() == Some("direct") {
+                    let played: OwnerDirectSpeakerPlay = serde_json::from_value(playback)
+                        .map_err(|error| format!("invalid direct speaker playback: {error}"))?;
+                    let matching: Vec<_> = played
+                        .batches
+                        .iter()
+                        .filter(|batch| Some(batch.play_id.as_str()) == capture.play_id.as_deref())
+                        .collect();
+                    if terminal.direct_reading_complete != Some(true)
+                        || terminal.accepted_wording.is_some()
+                        || terminal.generation_evidence.is_some()
+                        || played.schema != "conduit.body/selected-speech-terminal@1"
+                        || played.outcome != "completed"
+                        || played.source_show_id != terminal.show_id
+                        || played.face_revision.to_string() != played.face_revision_decimal
+                        || played.face_revision_decimal != capture.face_revision
+                        || played.host_id.is_empty()
+                        || played.boot_id.is_empty()
+                        || played.provider_sha256.len() != 64
+                        || played.batches.is_empty()
+                        || played.batches.len() > 64
+                        || matching.len() != 1
+                    {
+                        return Err(
+                            "direct reading lacks its completed same-Play speaker batch".into()
+                        );
+                    }
+                    matching[0].clone()
+                } else if terminal.mode == "llm-assisted"
+                    && capture.speech_mode.as_deref() == Some("llm-assisted")
+                {
+                    let played: OwnerSpeakerPlay = serde_json::from_value(playback)
+                        .map_err(|error| format!("invalid model speaker playback: {error}"))?;
+                    let generation = terminal
+                        .generation_evidence
+                        .ok_or("model wording lacks generation evidence")?;
+                    if terminal.show_id != played.source_show_id
+                        || terminal.active_play_id.as_deref() == Some(played.batch.play_id.as_str())
+                        || terminal.accepted_wording.as_deref() != Some(words.text.as_str())
+                        || generation.provider_identity
+                            != capture.provider_id.as_deref().unwrap_or_default()
+                        || generation.model_identity
+                            != capture.model_id.as_deref().unwrap_or_default()
+                        || generation.candidate_digest.is_empty()
+                        || generation.validation_receipt_identity.is_empty()
+                        || generation.original_model_output.as_deref()
+                            != words.original_model_output.as_deref()
+                        || played.schema != "conduit.body/owner-spoken-speaker-play@1"
+                        || played.source_face_revision_decimal != capture.face_revision
+                        || played.host_id.is_empty()
+                        || played.boot_id.is_empty()
+                        || played.provider_sha256.len() != 64
+                        || played.batch.spoken_segments.concat() != words.text
+                    {
+                        return Err(
+                            "model wording lacks its completed selected speaker Play".into()
+                        );
+                    }
+                    played.batch
+                } else {
+                    return Err("spoken mode differs from selected speaker Play".into());
+                }
             } else {
                 let terminal: SpeakerTerminal = read_json(root, provenance)?;
                 let matching: Vec<_> = terminal

@@ -52,6 +52,51 @@ pub(super) static NO_INTERACTION_FACTORY: BackFactory = BackFactory {
     budget: no_interaction_budget,
     prepare: prepare_no_interaction,
 };
+pub(super) static PRESENTATION_TEE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION,
+    budget: tee_budget,
+    prepare: prepare_tee,
+};
+
+pub(super) struct PresentationTeeBack;
+
+impl<const PORTS: usize> StepBack<PORTS> for PresentationTeeBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present Face tee input");
+            io.send(PortId(0), value).expect("ready Face tee output");
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed Face tee closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+}
+
+fn tee_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(
+        placement,
+        conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION,
+    )?;
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: 0,
+        sign_items: 16,
+        maximum_value_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+    })
+}
+
+fn prepare_tee(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<InstalledBack, String> {
+    tee_budget(placement)?;
+    Ok(InstalledBack::PresentationTee(PresentationTeeBack))
+}
 
 pub(super) struct SpokenArtifactBack {
     work: super::audio_stream_budget::AudioStreamBudget,
@@ -203,6 +248,11 @@ fn prepare_show(
         ArtifactAcknowledgedShowBack::new(
             conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
             4_096,
+            planned_call(
+                placement,
+                conduit_std_offers::REGISTER_MANIFESTATION_OPERATION,
+            )?,
+            planned_call(placement, conduit_std_offers::ARTIFACT_SHOW_OPERATION)?,
         )
         .map_err(str::to_string)?,
     ))
@@ -233,6 +283,14 @@ fn prepare_direct_show(
         ArtifactAcknowledgedShowBack::new(
             conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
             4_096,
+            planned_call(
+                placement,
+                conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION,
+            )?,
+            planned_call(
+                placement,
+                conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION,
+            )?,
         )
         .map_err(str::to_string)?,
     ))
@@ -265,6 +323,16 @@ fn validate(placement: &PlannedGear, implementation: &str) -> Result<(), String>
         return Err("planned spoken Mask stage differs from installed realization".into());
     }
     Ok(())
+}
+
+fn planned_call(placement: &PlannedGear, contract: &str) -> Result<HostCallId, String> {
+    placement
+        .host_calls
+        .iter()
+        .position(|call| call.contract_id.as_str() == contract)
+        .and_then(|index| u16::try_from(index).ok())
+        .map(HostCallId)
+        .ok_or_else(|| format!("planned spoken Show omitted Host Call {contract}"))
 }
 
 fn adapter_budget(placement: &PlannedGear) -> Result<BackBudget, String> {

@@ -70,11 +70,19 @@ struct ChapterReceipt {
     run_id: String,
     body_id: String,
     chapter_id: String,
-    action_ids: Vec<String>,
-    #[serde(default)]
-    action_face_revisions: BTreeMap<String, String>,
+    events: Vec<ChapterEvent>,
     resulting_face_revision: String,
     outcome: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChapterEvent {
+    kind: String,
+    id: String,
+    face_revision: String,
+    observed_at_unix_ms: u64,
+    source_receipt_id: String,
 }
 
 #[derive(Deserialize)]
@@ -85,7 +93,9 @@ struct CaptureReceipt {
     run_id: String,
     body_id: String,
     chapter_id: String,
-    action_id: String,
+    event_id: String,
+    event_kind: String,
+    source_receipt_id: String,
     face_revision: String,
     media_output_id: String,
     media_sha256: String,
@@ -199,7 +209,8 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
         return Err("journey evidence includes an optional or foreign-run output".into());
     }
     let mut used = BTreeSet::new();
-    let mut used_actions = BTreeSet::new();
+    let mut used_events = BTreeSet::new();
+    let mut last_event_time = 0;
     let mut all_sources = BTreeSet::new();
     let mut audio_modes = BTreeSet::new();
     let mut chapters = Vec::with_capacity(CHAPTERS.len());
@@ -230,45 +241,64 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
         let chapter_output = output(&outputs, &chapter.receipt_id)?;
         json_kind(chapter_output)?;
         let receipt: ChapterReceipt = read_json(&root, chapter_output)?;
-        if receipt.schema != "conduit.journey/chapter-receipt@1"
+        if receipt.schema != "conduit.journey/chapter-receipt@2"
             || receipt.source_commit != journey.source_commit
             || receipt.run_id != journey.run_id
             || receipt.body_id != journey.body_id
             || receipt.chapter_id != chapter.id
             || receipt.outcome != "completed"
             || !identity(&receipt.resulting_face_revision)
-            || receipt.action_ids.is_empty()
-            || receipt.action_ids.len() > 24
-            || receipt.action_ids.iter().any(|id| !identity(id))
-            || receipt.action_ids.iter().collect::<BTreeSet<_>>().len() != receipt.action_ids.len()
-            || (!receipt.action_face_revisions.is_empty()
-                && (receipt.action_face_revisions.len() != receipt.action_ids.len()
-                    || receipt.action_ids.iter().any(|id| {
-                        receipt
-                            .action_face_revisions
-                            .get(id)
-                            .is_none_or(|revision| !identity(revision))
-                    })
-                    || receipt
-                        .action_ids
-                        .last()
-                        .and_then(|id| receipt.action_face_revisions.get(id))
-                        != Some(&receipt.resulting_face_revision)))
+            || receipt.events.is_empty()
+            || receipt.events.len() > 24
+            || receipt
+                .events
+                .last()
+                .map(|event| event.face_revision.as_str())
+                != Some(receipt.resulting_face_revision.as_str())
+            || receipt.events.iter().any(|event| {
+                !identity(&event.id)
+                    || !identity(&event.face_revision)
+                    || !event_kind(&event.kind)
+                    || event.observed_at_unix_ms == 0
+                    || !identity(&event.source_receipt_id)
+            })
         {
             return Err(format!(
-                "chapter '{}' has no correlated completed action receipt",
+                "chapter '{}' has no correlated completed event receipt",
                 chapter.id
             ));
         }
-        if receipt
-            .action_ids
-            .iter()
-            .any(|id| !used_actions.insert(id.clone()))
-        {
-            return Err(format!(
-                "chapter '{}' repeats an action from an earlier chapter",
-                chapter.id
-            ));
+        for event in &receipt.events {
+            if event.observed_at_unix_ms < last_event_time {
+                return Err(format!(
+                    "chapter '{}' event chronology is reversed",
+                    chapter.id
+                ));
+            }
+            last_event_time = event.observed_at_unix_ms;
+            if !used_events.insert(event.id.clone()) {
+                return Err(format!(
+                    "chapter '{}' repeats an event identity",
+                    chapter.id
+                ));
+            }
+            let source_output = output(&outputs, &event.source_receipt_id)?;
+            json_kind(source_output)?;
+            let source: serde_json::Value = read_json(&root, source_output)?;
+            if !source_commit_matches(&source, &journey.source_commit)
+                || source["run_id"] != journey.run_id
+                || source["body_id"] != journey.body_id
+                || source["event_kind"] != event.kind
+                || source["event_id"] != event.id
+                || source["observed_at_unix_ms"] != event.observed_at_unix_ms
+                || !json_revision_matches(&source["resulting_face_revision"], &event.face_revision)
+                || source["outcome"] != "completed"
+            {
+                return Err(format!(
+                    "chapter '{}' event source receipt is not correlated",
+                    chapter.id
+                ));
+            }
         }
         let mut media = Vec::with_capacity(chapter.media.len());
         for item in &chapter.media {
@@ -282,22 +312,50 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
             let capture_output = output(&outputs, &item.receipt_id)?;
             json_kind(capture_output)?;
             let capture: CaptureReceipt = read_json(&root, capture_output)?;
-            if capture.schema != "conduit.journey/capture-receipt@1"
+            let event = receipt
+                .events
+                .iter()
+                .find(|event| event.id == capture.event_id);
+            if capture.schema != "conduit.journey/capture-receipt@2"
                 || capture.source_commit != journey.source_commit
                 || capture.run_id != journey.run_id
                 || capture.body_id != journey.body_id
                 || capture.chapter_id != chapter.id
-                || !receipt.action_ids.contains(&capture.action_id)
-                || &capture.face_revision
-                    != receipt
-                        .action_face_revisions
-                        .get(&capture.action_id)
-                        .unwrap_or(&receipt.resulting_face_revision)
+                || event.is_none_or(|event| {
+                    capture.event_kind != event.kind || capture.face_revision != event.face_revision
+                })
                 || capture.media_output_id != artifact.id
                 || capture.media_sha256 != artifact.sha256
             {
                 return Err(format!(
-                    "media '{}' does not match its run, action, Face, or digest",
+                    "media '{}' does not match its run, event, Face, or digest",
+                    artifact.id
+                ));
+            }
+            let source_output = output(&outputs, &capture.source_receipt_id)?;
+            json_kind(source_output)?;
+            let source: serde_json::Value = read_json(&root, source_output)?;
+            if source["source_commit"] != journey.source_commit
+                || source["run_id"] != journey.run_id
+                || source["body_id"] != journey.body_id
+                || source["event_kind"] != capture.event_kind
+                || source["event_id"] != capture.event_id
+                || !json_revision_matches(&source["face_revision"], &capture.face_revision)
+                || source["media_path"] != artifact.path.to_string_lossy().as_ref()
+                || source["media_sha256"] != artifact.sha256
+                || source["capture_source"] != capture.capture_source
+                    && !matches!(
+                        (
+                            source["capture_source"].as_str(),
+                            capture.capture_source.as_str()
+                        ),
+                        (Some("pinned-chromium"), "chromium")
+                            | (Some("screen-free-transcript"), "terminal")
+                            | (Some("selected-speaker-same-play"), "speaker-play")
+                    )
+            {
+                return Err(format!(
+                    "media '{}' source receipt is not correlated",
                     artifact.id
                 ));
             }
@@ -454,8 +512,8 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
         let required_sources: &[&str] = match chapter.id.as_str() {
             "birth" | "lull" => &["terminal"],
             "join" => &["chromium", "qmp"],
-            "start" => &["chromium"],
-            "see" => &["qmp", "terminal"],
+            "start" => &["chromium", "qmp"],
+            "see" => &["chromium", "terminal"],
             "hear" => &[],
             "loss" | "return" => &[],
             _ => unreachable!("chapter order was validated"),
@@ -520,6 +578,32 @@ fn read_json<T: for<'de> Deserialize<'de>>(
 
 fn identity(value: &str) -> bool {
     !value.trim().is_empty() && value.len() <= 256 && !value.chars().any(char::is_control)
+}
+fn json_revision_matches(value: &serde_json::Value, expected: &str) -> bool {
+    value.as_str() == Some(expected)
+        || value
+            .as_u64()
+            .is_some_and(|number| number.to_string() == expected)
+}
+fn source_commit_matches(value: &serde_json::Value, expected: &str) -> bool {
+    let source = value["source_commit"].as_str();
+    let native = value["native_source_commit"].as_str();
+    (source.is_some() || native.is_some())
+        && source.is_none_or(|commit| commit == expected)
+        && native.is_none_or(|commit| commit == expected)
+}
+fn event_kind(value: &str) -> bool {
+    matches!(
+        value,
+        "typed-interaction"
+            | "typed-interaction-source-show"
+            | "membership"
+            | "acknowledged-show"
+            | "selected-speaker-play"
+            | "provider-withdrawal"
+            | "presentation-leave"
+            | "membership-return"
+    )
 }
 fn token(value: &str) -> bool {
     !value.is_empty()

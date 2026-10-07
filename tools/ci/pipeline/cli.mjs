@@ -9,6 +9,7 @@ import { assertSourceCheckout } from './source.mjs';
 import { emitAcquisitionKey, measureAcquisition } from './acquisition/metrics.mjs';
 import { retainedOneBodyEvidence } from './one-body-evidence.mjs';
 import { retainedThreeHostDevelopmentEvidence } from './three-host-development-evidence.mjs';
+import { retainedDirectSpokenDevelopmentEvidence } from './direct-spoken-development-evidence.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -67,9 +68,13 @@ try {
         // where CI retains the full history, before any expensive target work.
         run('git', ['merge-base', '--is-ancestor', oneBodyEvidence.sourceCommit, 'HEAD']);
       }
-      const threeHostDevelopment = retainedThreeHostDevelopmentEvidence();
+      const threeHostDevelopment = oneBodyEvidence ? null : retainedThreeHostDevelopmentEvidence();
       if (threeHostDevelopment) {
         run('git', ['merge-base', '--is-ancestor', threeHostDevelopment.sourceCommit, 'HEAD']);
+      }
+      const directSpokenDevelopment = retainedDirectSpokenDevelopmentEvidence();
+      if (directSpokenDevelopment) {
+        run('git', ['merge-base', '--is-ancestor', directSpokenDevelopment.sourceCommit, 'HEAD']);
       }
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
       run('cargo', ['fmt', '--all', '--check']);

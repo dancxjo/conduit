@@ -10,6 +10,31 @@ import { ownerModelRouteControl } from './owner-model-route-control.mjs';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
+export function assertModelLossFaceBoundary({ beforeRefusal, afterRefusal,
+  afterCheckpoint, checkpoint, bodyId, routeId }) {
+  assert.equal(beforeRefusal.presentation.basis.body_id, bodyId);
+  assert.equal(afterRefusal.presentation.identity, beforeRefusal.presentation.identity,
+    'refused Start cannot change the owner Face');
+  assert.equal(afterRefusal.presentation_revision_decimal,
+    beforeRefusal.presentation_revision_decimal);
+  assert.equal(afterCheckpoint.presentation.basis.body_id, bodyId);
+  assert.ok(BigInt(afterCheckpoint.presentation_revision_decimal) >=
+    BigInt(afterRefusal.presentation_revision_decimal),
+  'the checkpoint cannot move the owner Face revision backward');
+  if (checkpoint) {
+    assert.equal(checkpoint.body_id, bodyId);
+    assert.equal(checkpoint.route_id, routeId);
+    assert.equal(checkpoint.route_available, false);
+    assert.ok(BigInt(afterCheckpoint.presentation_revision_decimal) >=
+      BigInt(checkpoint.face_revision),
+    'owner Face cannot precede the completed screen-free checkpoint');
+    if (afterCheckpoint.presentation_revision_decimal === checkpoint.face_revision) {
+      assert.equal(afterCheckpoint.presentation.identity, checkpoint.face_id,
+        'owner Face must match the completed checkpoint at the same revision');
+    }
+  }
+}
+
 export async function captureOwnerLlmSpeaker({ owner, state, output, installation,
   bodyId, runId, sourceCommit, model, directoryName = 'owner-llm-selected' }) {
   assert.equal(installation.selected_model?.model_name, model,
@@ -122,7 +147,7 @@ export async function captureOwnerModelRouteLoss({ owner, state, output, install
   const route = action => ownerModelRouteControl(controlSocket, action, endpoint);
   assert.equal((await route('status')).state, 'available');
   const routeId = `route/${successful.route_plan_id}`;
-  const availableWardrobe = await observeWardrobe(routeId, true);
+  const { wardrobe: availableWardrobe } = await observeWardrobe(routeId, true);
   const before = owner(['body', 'face', '--state-dir', state, '--json']);
   assert.equal(before.presentation.basis.body_id, bodyId);
   const artifactDir = path.join(state, 'spoken-artifacts');
@@ -130,9 +155,12 @@ export async function captureOwnerModelRouteLoss({ owner, state, output, install
   let refused, unavailableWardrobe;
   await route('withdraw');
   try {
+    const beforeRefusal = owner(['body', 'face', '--state-dir', state, '--json']);
+    assert.equal(beforeRefusal.presentation.basis.body_id, bodyId);
     const attempted = spawnSync(installation.product_executable,
       ['body', 'spoken-mask', '--state-dir', state, 'start', '--llm'],
       { encoding: 'utf8', timeout: 10_000 });
+    const afterRefusal = owner(['body', 'face', '--state-dir', state, '--json']);
     assert.notEqual(attempted.status, 0,
       'owner unexpectedly started a model Mask through the withdrawn provider');
     assert.match(attempted.stderr,
@@ -142,14 +170,23 @@ export async function captureOwnerModelRouteLoss({ owner, state, output, install
     refused = { exit_status: attempted.status,
       stderr: attempted.stderr, stdout: attempted.stdout,
       selected_route_plan_id: successful.route_plan_id,
-      operation_started: false };
+      operation_started: false,
+      face_id_before: beforeRefusal.presentation.identity,
+      face_id_after: afterRefusal.presentation.identity,
+      face_revision_before: beforeRefusal.presentation_revision_decimal,
+      face_revision_after: afterRefusal.presentation_revision_decimal };
     assert.equal((await route('status')).state, 'withdrawn');
-    unavailableWardrobe = await observeWardrobe(routeId, false);
+    const unavailableObservation = await observeWardrobe(routeId, false);
+    unavailableWardrobe = unavailableObservation.wardrobe;
     assert.equal(unavailableWardrobe.body_id, bodyId);
-    assert.equal(unavailableWardrobe.face_id, availableWardrobe.face_id);
     const after = owner(['body', 'face', '--state-dir', state, '--json']);
-    assert.equal(after.presentation.identity, before.presentation.identity);
-    assert.equal(after.presentation_revision_decimal, before.presentation_revision_decimal);
+    const checkpoint = unavailableObservation.checkpoint?.resume;
+    assertModelLossFaceBoundary({ beforeRefusal, afterRefusal,
+      afterCheckpoint: after, checkpoint, bodyId, routeId });
+    refused.face_id_after_checkpoint = after.presentation.identity;
+    refused.face_revision_after_checkpoint = after.presentation_revision_decimal;
+    refused.face_advanced_during_checkpoint =
+      after.presentation.identity !== afterRefusal.presentation.identity;
     assert.deepEqual((await readdir(artifactDir)).sort(), artifactsBefore,
       'failed model Play must not produce a listener WAV');
   } finally {
@@ -157,11 +194,11 @@ export async function captureOwnerModelRouteLoss({ owner, state, output, install
   }
   const restored = await captureOwnerLlmSpeaker({ owner, state, output, installation,
     bodyId, runId, sourceCommit, model, directoryName: 'owner-llm-restored' });
-  const restoredWardrobe = await observeWardrobe(`route/${restored.route_plan_id}`, true);
+  const { wardrobe: restoredWardrobe } =
+    await observeWardrobe(`route/${restored.route_plan_id}`, true);
   assert.equal(restoredWardrobe.body_id, bodyId);
-  assert.equal(restoredWardrobe.face_id, availableWardrobe.face_id);
-  assert.equal(restored.face_id, successful.face_id);
-  assert.equal(restored.face_revision_decimal, successful.face_revision_decimal);
+  assert.ok(BigInt(restored.face_revision_decimal) >= BigInt(successful.face_revision_decimal),
+    'restored model speech cannot use an older owner Face');
   assert.notEqual(restored.model_artifact_play_id, successful.model_artifact_play_id);
   assert.notEqual(restored.listener_play_id, successful.listener_play_id);
   const refusalBytes = Buffer.from(`${JSON.stringify(refused, null, 2)}\n`);
@@ -176,6 +213,9 @@ export async function captureOwnerModelRouteLoss({ owner, state, output, install
     refusal_exit_status: refused.exit_status,
     refusal_detail: refused.stderr, operation_started_on_loss: false,
     owner_face_unchanged: true,
+    face_advanced_during_checkpoint: refused.face_advanced_during_checkpoint,
+    face_id_after_checkpoint: refused.face_id_after_checkpoint,
+    face_revision_after_checkpoint: refused.face_revision_after_checkpoint,
     new_listener_wav_on_failure: false,
     upstream_service_termination_requested: false,
     refusal: { path: 'owner-llm-route-loss.json', sha256: digest(refusalBytes) },

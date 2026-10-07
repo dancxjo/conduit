@@ -20,8 +20,6 @@ mod validation;
 
 pub const PRESENTATION_TO_REQUEST_CALL: HostCallId = HostCallId(0);
 pub const GENERATED_MANIFESTATION_TO_SPEECH_CALL: HostCallId = HostCallId(0);
-pub const REGISTER_GENERATED_MANIFESTATION_CALL: HostCallId = HostCallId(0);
-pub const ACKNOWLEDGE_ARTIFACT_AND_BUILD_SHOW_CALL: HostCallId = HostCallId(1);
 
 /// Prepared host-side semantic adapter for one exact spoken Mask Play.
 ///
@@ -340,16 +338,23 @@ pub struct ArtifactAcknowledgedShowBack {
     pending_request: Option<RequestId>,
     maximum_manifestation_bytes: u32,
     maximum_receipt_bytes: u32,
+    register_call: HostCallId,
+    show_call: HostCallId,
 }
 
 impl ArtifactAcknowledgedShowBack {
     pub fn new(
         maximum_manifestation_bytes: u32,
         maximum_receipt_bytes: u32,
+        register_call: HostCallId,
+        show_call: HostCallId,
     ) -> Result<Self, &'static str> {
+        // This shared Back carries validated model output for one Mask and the
+        // source Face for the direct Mask. Exact callers pass their own planned
+        // limits; the larger Face limit must be admitted here.
         if maximum_manifestation_bytes == 0
             || maximum_manifestation_bytes
-                > conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+                > conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
             || maximum_receipt_bytes == 0
             || maximum_receipt_bytes > 4_096
         {
@@ -360,6 +365,8 @@ impl ArtifactAcknowledgedShowBack {
             pending_request: None,
             maximum_manifestation_bytes,
             maximum_receipt_bytes,
+            register_call,
+            show_call,
         })
     }
 
@@ -425,14 +432,14 @@ impl<const PORTS: usize> StepBack<PORTS> for ArtifactAcknowledgedShowBack {
                     io,
                     PortId(0),
                     RequestId(0),
-                    REGISTER_GENERATED_MANIFESTATION_CALL,
+                    self.register_call,
                     self.maximum_manifestation_bytes,
                 ),
                 ShowPhase::Artifact => self.begin(
                     io,
                     PortId(1),
                     RequestId(1),
-                    ACKNOWLEDGE_ARTIFACT_AND_BUILD_SHOW_CALL,
+                    self.show_call,
                     self.maximum_receipt_bytes,
                 ),
                 ShowPhase::Complete => StepOutcome::Complete,
