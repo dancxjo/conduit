@@ -68,3 +68,11 @@ type FarganEpochPhaseCarry = {
     next_period: FarganPeriod
     epoch: U64
 }
+
+# Retained context during the final explicit PCM conversion excludes provisional
+# float PCM and the immutable startup anchor. Neither is duplicated in the pair.
+type FarganEpochFinalCarry = {
+    next_state: FarganSubframeState
+    next_period: FarganPeriod
+    epoch: U64
+}
