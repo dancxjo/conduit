@@ -15,11 +15,31 @@ pub enum SpeechPlanCoverageRefusal {
     MissingRole,
     ForeignRole { token: usize },
     NativeOrder(NativeBindingRefusal),
+    NativeSegment(NativeBindingRefusal),
     MissingWord,
     ForeignWord { word: usize },
     PhoneCount,
     Phone { event: usize },
     Occurrence { event: usize },
+}
+
+/// Preserve every checked field when the event variant and named segment use
+/// distinct Native root schemas. The named Source constructor admits the full
+/// candidate; this performs no canonical retyping or refinement erasure.
+pub fn admit_planned_segment_material(
+    segment: &SpeechUtteranceIntentEventSegment,
+) -> Result<SpeechPlannedSegmentIntent, SpeechPlanCoverageRefusal> {
+    SpeechPlannedSegmentIntent::new(
+        segment.occurrence().clone(),
+        segment.phone().clone(),
+        segment.phoneme().clone(),
+        segment.prosody().clone(),
+        segment.provenance().clone(),
+        segment.sources().clone(),
+        segment.stress().clone(),
+        segment.word_position().clone(),
+    )
+    .map_err(SpeechPlanCoverageRefusal::NativeSegment)
 }
 
 pub struct PreparedSpeechSpokenOrder<'a> {
@@ -123,15 +143,15 @@ pub fn prepare_complete_phone_layout<'a, 'word, 'basis>(
     validated_words(order, words).map(|(layout, _)| layout)
 }
 
-type ValidatedWordSegments<'a> = (
+type ValidatedWordSegments = (
     SpeechCompletePhoneLayout4,
-    Vec<(usize, &'a SpeechPlannedSegmentIntent)>,
+    Vec<(usize, SpeechPlannedSegmentIntent)>,
 );
 
 fn validated_words<'a, 'word, 'basis>(
     order: &PreparedSpeechSpokenOrder<'a>,
     words: &[&'a PreparedPronunciationIntent<'word, 'basis>],
-) -> Result<ValidatedWordSegments<'a>, SpeechPlanCoverageRefusal> {
+) -> Result<ValidatedWordSegments, SpeechPlanCoverageRefusal> {
     use SpeechPlanCoverageRefusal::*;
     if words.len() != order.ordinals.len() {
         return Err(MissingWord);
@@ -161,7 +181,7 @@ fn validated_words<'a, 'word, 'basis>(
             if original.len() == 32 {
                 return Err(Capacity);
             }
-            original.push((word, segment));
+            original.push((word, admit_planned_segment_material(segment)?));
         }
     }
     let layout =
@@ -194,7 +214,7 @@ pub fn prepare_speech_plan_coverage<'a, 'word, 'basis>(
             if segments.len() == 32 {
                 return Err(Capacity);
             }
-            segments.push((event, segment));
+            segments.push((event, admit_planned_segment_material(segment)?));
         }
     }
     if segments.len() != original.len() || witnesses.len() != original.len() {
@@ -207,8 +227,8 @@ pub fn prepare_speech_plan_coverage<'a, 'word, 'basis>(
         segments.iter().zip(original).zip(witnesses).enumerate()
     {
         let occurrence = current.occurrence();
-        if witness.original() != old
-            || witness.composite() != *current
+        if witness.original() != &old
+            || witness.composite() != current
             || witness.layout() != &layout
             || *witness.word_position() as usize != word
             || *witness.global_ordinal() as usize != index
