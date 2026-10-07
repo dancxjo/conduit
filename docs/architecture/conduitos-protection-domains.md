@@ -172,7 +172,7 @@ a complete normal graphical Body run.
 | IA-32 | The normal legacy BIOS product's checked text region runs in CPL3 through the shared production adapter; independent emulator checks cover memory/privilege denials, capability/lifecycle refusals, loop preemption, floating-state restoration and Source timer coexistence | Broader ordinary implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | AArch64 | Supported emulator proof runs the normal text region at EL0, with a gated serial effect, completion revocation, nineteen independent boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | RISC-V64 | Supported emulator proof runs the normal text region in U-mode, with a gated serial effect, completion revocation, twenty-two boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
-| LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |
+| LoongArch64 | Separately compiled pure image; normal product boots with normalized memory, executable bounds and the requested Limine entry contract | No earned ordinary least-privileged execution proof |
 | ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
 
 IA-32 owns a flat GDT and a bounded TSS with an out-of-range I/O bitmap.
@@ -270,6 +270,16 @@ image permits subsequent diagnostic Play preparation. The product receipt
 requires the exact completed domain, and its Patchbay projection retains the
 actual UEFI handoff provenance. These are local emulator results; the full
 cost-accounting, physical-hardware and release limitations above still apply.
+
+LoongArch64's preparatory product path now uses normalized boot memory and
+executable bounds, with the normalizer's admitted 8 MiB arena. Its requested
+Limine base revision 6 defines the privileged entry, page-table roots and
+4 KiB paging regime; Root enables the scalar floating bank required by its
+Rust target ABI. The retained provenance reports the same requested revision.
+The normal product completed two independent emulator boots, retaining its
+text-and-timer result and native Patchbay projection. This establishes the
+boot facts needed to construct domains; LoongArch64 protected execution is
+still unfinished.
 
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.

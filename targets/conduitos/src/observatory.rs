@@ -185,7 +185,7 @@ pub fn prepare_export(
             firmware_environment: record.firmware.as_str().into(),
             adapter_name: "Limine".into(),
             adapter_version: "12.5.2".into(),
-            adapter_revision: "3".into(),
+            adapter_revision: alloc::format!("{}", crate::boot::LIMINE_BASE_REVISION),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
             image_build_trace: None,

@@ -98,6 +98,9 @@ fn change_csr<const CSR: u32>(value: usize, mask: usize) {
 
 pub fn initialize_machine() -> bool {
     disable_interrupts();
+    // The product requests a boot state with EUEN=0. Rust's target ABI uses
+    // scalar F/D; enable that bank before any preparation or IRQ Rust runs.
+    change_csr::<0x02>(1, 1);
     FACT_PRESENT.store(false, Ordering::Release);
     FACT_OVERFLOW.store(false, Ordering::Release);
     write_csr::<0x0c>(unsafe { &conduitos_loongarch64_trap_vector as *const u8 as usize });

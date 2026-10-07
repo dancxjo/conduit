@@ -31,12 +31,7 @@ const SPORE_MODULE_BYTES: u64 = crate::spore_provision::REGION_BYTES as u64;
 
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
-#[cfg(target_arch = "aarch64")]
-static BASE_REVISION: BaseRevision = BaseRevision::with_revision(6);
-#[used]
-#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
-#[cfg(not(target_arch = "aarch64"))]
-static BASE_REVISION: BaseRevision = BaseRevision::new();
+static BASE_REVISION: BaseRevision = BaseRevision::with_revision(super::LIMINE_BASE_REVISION);
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static BOOTLOADER_INFO: BootloaderInfoRequest = BootloaderInfoRequest::new();

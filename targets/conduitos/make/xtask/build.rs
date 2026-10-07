@@ -342,10 +342,8 @@ fn execute_with_features(
         command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=--nostdlib", linker.display()));
     } else if arch == ConduitosArch::Loongarch64 {
         let linker = loongarch64_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/loongarch64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        // build.rs owns this script and its executable extent symbols too.
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=--nostdlib", linker.display()));
     } else {
         command.env(
             "RUSTFLAGS",
