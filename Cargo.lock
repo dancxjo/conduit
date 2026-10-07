@@ -1056,8 +1056,14 @@ dependencies = [
 name = "conduit-language"
 version = "0.1.0"
 dependencies = [
+ "conduit-composite",
  "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-planner",
  "conduit-plot",
+ "conduitos",
+ "serde_json",
 ]
 
 [[package]]
