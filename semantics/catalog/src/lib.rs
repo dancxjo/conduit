@@ -496,3 +496,6 @@ pub use pure_expression::{pure_expression_contract, pure_filter_contract};
 mod pure_expression_back;
 #[cfg(feature = "kernel-step")]
 pub use pure_expression_back::PureExpressionBack;
+
+mod value_repeat;
+pub use value_repeat::*;
