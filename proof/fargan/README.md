@@ -6,6 +6,8 @@ The ordinary test uses independent synthetic tensors and f64 reference arithmeti
 
 The optional fixture uses xiph/opus commit `503d81b138d76621aae4b12786e90de48aa8db3a`, generated C digest `68ba6e8731007f7184be862d7d1afe4cef096a7c9bcbfa115962340f725e004c`, and the exact F32 resource blob/digests checked by the test. Its manifest indexes generated arrays by logical dimensions and explicit packing. Feature fixture: 24 frames of 20 IEEE F32 little-endian values; features are zero except feature0 (-8 for frames0..7 and16..23; -2 otherwise), feature18 (`log2(256 / period) - 1.5`, period80 for frames0..11 and160 thereafter), feature19 (0 or0.8 on the same energy intervals). This tests network behavior, not pronunciation or normalization compatibility.
 
+Create the local resource blobs and the synthetic feature fixture with `python3 export_development_fixture.py PINNED_GENERATED_FARGAN_DATA_C DEVELOPMENT_FIXTURE_DIRECTORY`. This stdlib-only exporter verifies the pinned generated file before reading any arrays. It performs no network access and grants no redistribution permission.
+
 Build the scalar full-float oracle with `build_conditioning_oracle.sh PINNED_OPUS_SOURCE DEVELOPMENT_FIXTURE_DIRECTORY`. The source directory must contain the pinned generated data and upstream dependencies. Then explicitly run:
 
 ```sh
