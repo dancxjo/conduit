@@ -37,7 +37,12 @@ fn fixture(name: &str, ty: &StructuredInfoType, source: bool) -> CapabilityOffer
             } else {
                 FrontValueLocation::Input(port.port_id)
             },
-            contract: CheckedValueContract::new(port.value_kind, 16384, vec![]).unwrap(),
+            contract: CheckedValueContract::new(
+                port.value_kind,
+                conduit_plot::maximum_prepared_transport_value_bytes(ty).unwrap(),
+                vec![],
+            )
+            .unwrap(),
         }])],
         limits: CapabilityLimits {
             max_active_instances: 1,

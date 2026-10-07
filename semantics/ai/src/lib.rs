@@ -1,6 +1,10 @@
 #![no_std]
 
 extern crate alloc;
+#[cfg(feature = "hosted-catalog-cache")]
+extern crate std;
+#[cfg(all(feature = "hosted-catalog-cache", not(target_has_atomic = "ptr")))]
+compile_error!("hosted checked-catalog cache requires pointer atomics and a std target");
 
 // Native bounded-sequence payloads intentionally retain their admitted inline
 // capacity rather than hiding a play-time allocation behind enum indirection.

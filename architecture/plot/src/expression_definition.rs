@@ -26,6 +26,54 @@ pub fn pure_expression_semantic_laws() -> alloc::vec::Vec<KindSemanticLaw> {
     ]
 }
 
+/// Exact canonical envelopes are part of the authored expression contract.
+/// Queue planning must retain them even when two pure stages are adjacent.
+pub fn pure_expression_semantic_laws_for_program(
+    program: &PortableExpressionProgram,
+) -> Result<alloc::vec::Vec<KindSemanticLaw>, StructuredInfoRefusal> {
+    use conduit_core::{CheckedValueContract, FrontValueContract, FrontValueLocation};
+    let mut laws = pure_expression_semantic_laws();
+    let bounds = [
+        (
+            FrontValueLocation::Input(port_id("input")),
+            &program.input_type,
+            program.maximum_prepared_input_bytes(),
+        ),
+        (
+            FrontValueLocation::Output(port_id("output")),
+            &program.output_type,
+            program.maximum_prepared_output_bytes(),
+        ),
+    ];
+    let mut contracts = alloc::vec::Vec::new();
+    for (location, ty, maximum) in bounds {
+        let maximum = maximum.map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+        contracts.push(FrontValueContract {
+            location,
+            contract: CheckedValueContract::new(expression_port_kind(ty)?, maximum, vec![])
+                .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+        });
+    }
+    laws.push(KindSemanticLaw::ValueContracts(contracts));
+    Ok(laws)
+}
+
+pub(crate) fn pure_expression_semantic_laws_for_definition(
+    definition: &KindProjection,
+) -> Result<alloc::vec::Vec<KindSemanticLaw>, StructuredInfoRefusal> {
+    let field = definition
+        .configuration
+        .iter()
+        .find(|field| field.key == "program")
+        .ok_or(StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    let ConfigurationValue::Text(encoded) = &field.default_value else {
+        return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded)
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    pure_expression_semantic_laws_for_program(&program)
+}
+
 /// Projects a checked expression into the ordinary Kind/Fore vocabulary used
 /// by expansion and planning. The source spelling and spans are absent from the
 /// identity; exact checked input, result, temporal law and canonical operation

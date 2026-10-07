@@ -373,6 +373,13 @@ fn expand_expression(
             format!("expanded gear path '{}' is not unique", gear_id.as_str()),
         ));
     }
+    let exact_laws =
+        crate::pure_expression_semantic_laws_for_definition(&definition).map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "pure expression has no exact finite canonical envelopes".into(),
+            )
+        })?;
     let input = definition.inputs[0].clone();
     let output = definition.outputs[0].clone();
     let configuration = definition
@@ -397,7 +404,7 @@ fn expand_expression(
         outputs: vec![output.clone()],
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: crate::pure_expression_semantic_laws(),
+            laws: exact_laws,
         },
         terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),

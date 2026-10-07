@@ -1,5 +1,5 @@
 //! Owned generic fixed numeric port contracts. No network ordering or speech policy.
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{collections::BTreeMap, format, string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, CheckedFront, CheckedValueContract, FrontValueContract,
     FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection,
@@ -14,7 +14,18 @@ pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
 pub const FIXED_NUMERIC_SIGNAL_SOURCE: &str = include_str!("../fixed_numeric_signal.conduit");
 pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@1";
 
+/// Checked immutable source metadata; hosted caching never retains resources.
+#[cfg(feature = "hosted-catalog-cache")]
 pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
+    static CHECKED: std::sync::OnceLock<Result<Vec<CheckedNativeType>, String>> =
+        std::sync::OnceLock::new();
+    CHECKED.get_or_init(fixed_numeric_types_uncached).clone()
+}
+#[cfg(not(feature = "hosted-catalog-cache"))]
+pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
+    fixed_numeric_types_uncached()
+}
+fn fixed_numeric_types_uncached() -> Result<Vec<CheckedNativeType>, String> {
     let mut catalog = StartupCatalog::new();
     catalog.insert_value_kind_alias(
         "ResourceRef",
@@ -39,8 +50,35 @@ pub fn fixed_numeric_type(name: &str) -> Result<StructuredInfoType, String> {
         .ok_or_else(|| format!("unknown fixed numeric Type {name}"))
 }
 
+/// Checked immutable source metadata; hosted caching never retains resources.
+#[cfg(feature = "hosted-catalog-cache")]
 pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
+    static CHECKED: std::sync::OnceLock<Result<Vec<Kind>, String>> = std::sync::OnceLock::new();
+    CHECKED
+        .get_or_init(fixed_numeric_contracts_uncached)
+        .clone()
+}
+#[cfg(not(feature = "hosted-catalog-cache"))]
+pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
+    fixed_numeric_contracts_uncached()
+}
+fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
     let types = fixed_numeric_types()?;
+    let mut bounds: BTreeMap<_, _> = types
+        .iter()
+        .map(|ty| {
+            Ok((
+                ty.value_type
+                    .profile()
+                    .map_err(|e| format!("{e:?}"))?
+                    .value_kind()
+                    .clone(),
+                conduit_plot::maximum_prepared_transport_value_bytes(&ty.value_type)
+                    .map_err(|e| format!("{e:?}"))?,
+            ))
+        })
+        .collect::<Result<_, String>>()?;
+    bounds.insert(kind_id("value/u16"), 2);
     let port = |name: &str, ty: &str, direction| -> Result<PortDescriptor, String> {
         let value_kind = if ty == "U16" {
             kind_id("value/u16")
@@ -172,8 +210,12 @@ pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
                         PortDirection::Input => FrontValueLocation::Input(p.port_id.clone()),
                         PortDirection::Output => FrontValueLocation::Output(p.port_id.clone()),
                     },
-                    contract: CheckedValueContract::new(p.value_kind.clone(), 16_384, vec![])
-                        .expect("finite numeric port envelope"),
+                    contract: CheckedValueContract::new(
+                        p.value_kind.clone(),
+                        bounds[&p.value_kind],
+                        vec![],
+                    )
+                    .expect("finite numeric port envelope"),
                 })
                 .collect();
             Ok(Kind {

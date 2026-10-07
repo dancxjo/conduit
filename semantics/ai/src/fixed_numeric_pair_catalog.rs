@@ -7,7 +7,19 @@ use conduit_plot::{
     maximum_prepared_canonical_value_bytes, KindSignature, ProfileCatalog, StartupCatalog,
 };
 
-pub fn fixed_numeric_pair_contracts() -> Result<Vec<(String, StructuredInfoType, Kind)>, String> {
+type PairContracts = Vec<(String, StructuredInfoType, Kind)>;
+#[cfg(feature = "hosted-catalog-cache")]
+pub fn fixed_numeric_pair_contracts() -> Result<PairContracts, String> {
+    static CHECKED: std::sync::OnceLock<Result<PairContracts, String>> = std::sync::OnceLock::new();
+    CHECKED
+        .get_or_init(fixed_numeric_pair_contracts_uncached)
+        .clone()
+}
+#[cfg(not(feature = "hosted-catalog-cache"))]
+pub fn fixed_numeric_pair_contracts() -> Result<PairContracts, String> {
+    fixed_numeric_pair_contracts_uncached()
+}
+fn fixed_numeric_pair_contracts_uncached() -> Result<PairContracts, String> {
     let mut left = fixed_numeric_type("NumericF32Vector40")?;
     let mut result = Vec::new();
     for (identity, alias, right_width) in [
@@ -55,7 +67,11 @@ pub fn fixed_numeric_pair_contracts() -> Result<Vec<(String, StructuredInfoType,
         let contracts = inputs
             .iter()
             .chain(&outputs)
-            .zip([16_384; 3])
+            .zip([
+                lmax,
+                rmax,
+                maximum_prepared_canonical_value_bytes(&paired).map_err(|e| format!("{e:?}"))?,
+            ])
             .map(|(p, max)| FrontValueContract {
                 location: if p.direction == PortDirection::Input {
                     FrontValueLocation::Input(p.port_id.clone())
