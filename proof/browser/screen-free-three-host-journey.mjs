@@ -425,7 +425,7 @@ try {
     assert.ok(action, `the current owner Face offers no available ${name} action`);
     const commands = [...(speakerCard ? [] : ['read all']),
       `focus ${action.identity}`, 'activate',
-      ...(speakerCard && name === 'start' ? [] : ['read all']), 'quit'];
+      ...(speakerCard && (name === 'start' || name === 'wake') ? [] : ['read all']), 'quit'];
     const input = `${commands.join('\n')}\n`;
     const inputFile = `clock-${name}-input.txt`;
     const transcriptFile = `clock-${name}-transcript.txt`;
@@ -433,7 +433,7 @@ try {
     const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
     const selected = speakerCard
       ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
-        { retryStaleReadAll: name === 'start' ? 0 : 4 }) : null;
+        { retryStaleReadAll: name === 'start' || name === 'wake' ? 0 : 4 }) : null;
     const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
     if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
     const transcript = selected?.transcript ??
