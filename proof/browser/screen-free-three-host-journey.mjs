@@ -10,6 +10,7 @@ import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
 import { screenFreeWardrobeCommands, verifyScreenFreeWardrobe } from './screen-free-wardrobe-proof.mjs';
+import { retainSelectedScreenFreePlays } from './screen-free-same-play.mjs';
 import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
 import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 import { verifyGuestRouteCertificate } from './three-host-route-certificate.mjs';
@@ -240,6 +241,25 @@ try {
     input: { path: '../birth-input.txt', sha256: digest(Buffer.from(input)) },
     transcript: { path: '../birth-transcript.txt', sha256: digest(Buffer.from(transcript)) },
   };
+  const audioChapters = [];
+  const audioSessions = [];
+  if (birthSession) {
+    const response = index => {
+      assert.equal(birthSession.responses[index]?.command, birthCommands[index]);
+      return birthSession.responses[index].output;
+    };
+    const reviewIndex = birthCommands.indexOf('review');
+    const birthIndex = birthCommands.indexOf('focus creche.birth') + 1;
+    assert.equal(birthCommands[birthIndex], 'activate');
+    audioChapters.push(
+      { name: 'zero-body-orientation', output: response(0) },
+      { name: 'birth-review', output: response(reviewIndex), includeLast: true },
+      { name: 'explicit-birth-result', output: response(birthIndex),
+        face_id: bornFace.presentation.identity,
+        face_revision: bornFace.presentation_revision_decimal, includeLast: true },
+    );
+    audioSessions.push({ name: 'birth', transcript });
+  }
   const inviteFd = openSync(inviteFile, 'wx', 0o600);
   const inviteLog = openSync(path.join(output, 'invitation-service.log'), 'wx', 0o600);
   invitation = spawn(owner, ['body', 'invite', '--state-dir', state, '--ttl-seconds', '600',
@@ -291,6 +311,7 @@ try {
   assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
   const available = (face, intent) => face.presentation.actions.find(action =>
     action.intent === intent && action.availability === 'Available');
+  const clockAudioSessions = [];
   const exercise = async (name, before, action) => {
     assert.ok(action, `the current owner Face offers no available ${name} action`);
     const commands = [...(speakerCard ? [] : ['read all']),
@@ -323,6 +344,15 @@ try {
       `screen-free clock ${name}`, true);
     assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
     assert.equal(enacted[0][3], reading.first.source_show_id);
+    if (selected) {
+      const lastReading = selected.responses.findLast(response => response.command === 'read all');
+      const actionResponse = selected.responses.find(response => response.command === 'activate');
+      audioChapters.push({ name: `clock-${name}`,
+        output: (lastReading ?? actionResponse).output,
+        face_id: after.presentation.identity,
+        face_revision: after.presentation_revision_decimal });
+      clockAudioSessions.push({ name: `clock-${name}`, transcript });
+    }
     return {
       action_id: action.identity, source_face_id: before.presentation.identity,
       source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
@@ -365,6 +395,14 @@ try {
   const wardrobeSession = await runPacedScreenFree(owner, wardrobeArgs,
     screenFreeWardrobeCommands, 'body> ', screenFreeSessionTimeout);
   const wardrobe = verifyScreenFreeWardrobe(wardrobeSession, ownerPart, Boolean(speakerCard));
+  if (speakerCard) {
+    audioChapters.push(
+      { name: 'wardrobe-inspection', output: wardrobeSession.responses[0].output },
+      { name: 'wardrobe-recovery', output: wardrobeSession.responses[2].output },
+      { name: 'wardrobe-preference', output: wardrobeSession.responses[5].output },
+    );
+    audioSessions.push({ name: 'wardrobe', transcript: wardrobeSession.transcript });
+  }
   const wardrobeInput = `${wardrobeSession.commands.join('\n')}\n`;
   await writeFile(path.join(output, 'wardrobe-input.txt'), wardrobeInput, { mode: 0o600 });
   await writeFile(path.join(output, 'wardrobe-transcript.txt'), wardrobeSession.transcript,
@@ -423,6 +461,13 @@ try {
       sha256: digest(Buffer.from(wardrobeSession.transcript)) },
     speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
   };
+  if (speakerCard) {
+    report.screen_free_audio = await retainSelectedScreenFreePlays({
+      state, privateRoot: output, walkthroughRoot: live, ownerPart, installation,
+      chapters: audioChapters,
+      sessions: [...audioSessions, ...clockAudioSessions],
+    });
+  }
   await retainScreenFreeSessions(output, live, report);
   const walkthrough = await writeThreeHostWalkthrough(live, handbook, report);
   report.walkthrough = {
