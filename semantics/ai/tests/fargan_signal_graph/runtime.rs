@@ -108,8 +108,51 @@ pub fn try_run_graph(
     state: &State,
     mode: ExecutionMode,
 ) -> Option<ResultAndTiming> {
-    let start = Instant::now();
+    let planning = Instant::now();
     let plan = prepare_plan(schema);
+    let planning = planning.elapsed();
+    let mut fixtures = BTreeMap::new();
+    fixtures.insert(
+        "condition".to_owned(),
+        vector(schema.ty("condition"), &condition)
+            .canonical_bytes()
+            .unwrap(),
+    );
+    fixtures.insert("state".to_owned(), state.encode(schema.ty("state")));
+    let primitive = StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(kind_id("value/u16")).unwrap(),
+        period.to_le_bytes().to_vec(),
+    )
+    .unwrap();
+    let encoded = StructuredInfoValue::nominal(schema.ty("period").clone(), primitive)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    fixtures.insert("period".to_owned(), encoded);
+    let result = run_entry_plan(plan, resources, fixtures, mode)?;
+    Some(ResultAndTiming {
+        pcm: floats(field(&result.value, "pcm_f32")).try_into().unwrap(),
+        state: State::from_result(&result.value),
+        preparation: planning + result.preparation,
+        execution: result.execution,
+        nodes: result.nodes,
+        cords: result.cords,
+    })
+}
+pub struct EncodedResultAndTiming {
+    pub value: StructuredInfoValue,
+    pub preparation: Duration,
+    pub execution: Duration,
+    pub nodes: usize,
+    pub cords: usize,
+}
+pub fn run_entry_plan(
+    plan: Plan,
+    resources: &Resources,
+    input_values: BTreeMap<String, Vec<u8>>,
+    mode: ExecutionMode,
+) -> Option<EncodedResultAndTiming> {
+    let start = Instant::now();
     assert!(verify_plan(&plan));
     let fragment = &plan.fragments[0];
     let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
@@ -129,31 +172,10 @@ pub fn try_run_graph(
         (slots * 16384).try_into().unwrap(),
     )
     .unwrap();
-    let mut fixtures = BTreeMap::new();
-    fixtures.insert(
-        "condition".to_owned(),
-        store
-            .store(
-                &vector(schema.ty("condition"), &condition)
-                    .canonical_bytes()
-                    .unwrap(),
-            )
-            .unwrap(),
-    );
-    fixtures.insert(
-        "state".to_owned(),
-        store.store(&state.encode(schema.ty("state"))).unwrap(),
-    );
-    let primitive = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/u16")).unwrap(),
-        period.to_le_bytes().to_vec(),
-    )
-    .unwrap();
-    let encoded = StructuredInfoValue::nominal(schema.ty("period").clone(), primitive)
-        .unwrap()
-        .canonical_bytes()
-        .unwrap();
-    fixtures.insert("period".to_owned(), store.store(&encoded).unwrap());
+    let mut fixtures: BTreeMap<_, _> = input_values
+        .iter()
+        .map(|(name, encoded)| (name.clone(), store.store(encoded).unwrap()))
+        .collect();
     for (name, resource) in resources {
         let binding =
             FixedTensorPortBinding::prepare(&resource.value_type, &resource.tensor).unwrap();
@@ -314,9 +336,8 @@ pub fn try_run_graph(
     let encoded = received.borrow();
     let encoded = encoded.as_ref()?;
     let actual = StructuredInfoValue::from_canonical_bytes(encoded).unwrap();
-    Some(ResultAndTiming {
-        pcm: floats(field(&actual, "pcm_f32")).try_into().unwrap(),
-        state: State::from_result(&actual),
+    Some(EncodedResultAndTiming {
+        value: actual,
         preparation,
         execution,
         nodes,

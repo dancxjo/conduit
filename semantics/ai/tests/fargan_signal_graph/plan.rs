@@ -17,12 +17,15 @@ pub struct SourceSchema {
 }
 impl SourceSchema {
     pub fn prepare() -> Self {
+        Self::for_entry(&source(), "speech/fargan-subframe")
+    }
+    pub fn for_entry(source: &str, entry: &str) -> Self {
         let mut startup = conduit_plot::StartupCatalog::new();
         let mut profiles = conduit_plot::ProfileCatalog::new();
         install_fixed_numeric_catalogs(&mut startup, &mut profiles).unwrap();
         install_fixed_numeric_pair_catalogs(&mut startup, &mut profiles).unwrap();
         let checked = conduit_plot::check_syntax_document(
-            &conduit_plot::parse_syntax_document(&source()),
+            &conduit_plot::parse_syntax_document(source),
             &startup,
         )
         .unwrap();
@@ -37,11 +40,7 @@ impl SourceSchema {
                 .iter()
                 .map(|t| (t.name.clone(), t.value_type.clone())),
         );
-        let entry = checked
-            .plots
-            .iter()
-            .find(|p| p.name == "speech/fargan-subframe")
-            .unwrap();
+        let entry = checked.plots.iter().find(|p| p.name == entry).unwrap();
         let resource_shapes = entry
             .runtime_ports
             .iter()
@@ -92,12 +91,15 @@ impl SourceSchema {
     }
 }
 pub fn prepare_plan(schema: &SourceSchema) -> Plan {
+    prepare_entry_plan(schema, &source(), "speech/fargan-subframe")
+}
+pub fn prepare_entry_plan(schema: &SourceSchema, source: &str, entry: &str) -> Plan {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     install_fixed_numeric_catalogs(&mut startup, &mut profiles).unwrap();
     install_fixed_numeric_pair_catalogs(&mut startup, &mut profiles).unwrap();
     let mut offers = vec![];
-    let mut wrapper = String::from("\nplot subframe-proof {\n inner: speech/fargan-subframe\n");
+    let mut wrapper = format!("\nplot subframe-proof {{\n inner: {entry}\n");
     for (name, ty, input) in &schema.ports {
         let kind = fixture_kind(&format!("subframe-fixture/{name}"), ty, *input);
         startup
@@ -117,7 +119,7 @@ pub fn prepare_plan(schema: &SourceSchema) -> Plan {
     }
     wrapper.push_str("}\n");
     let checked = conduit_plot::check_syntax_document(
-        &conduit_plot::parse_syntax_document(&format!("{}{wrapper}", source())),
+        &conduit_plot::parse_syntax_document(&format!("{source}{wrapper}")),
         &startup,
     )
     .unwrap();
