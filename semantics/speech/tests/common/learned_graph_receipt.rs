@@ -47,8 +47,9 @@ pub fn admit(row: &Value) -> Result<Receipt, String> {
     {
         return Err("foreign source/basis metadata".into());
     }
-    let lexical = if row.get("asr_envelope_bytes").is_some() {
-        super::asr_sources::admit_history(row, &native)?
+    let acquisition = row.get("acquisition_history").unwrap_or(row);
+    let lexical = if acquisition.get("asr_envelope_bytes").is_some() {
+        super::asr_sources::admit_history(acquisition, &native)?
     } else if let Some(history) = row["source_revision_history_bytes"].as_array() {
         if history.is_empty() || history.len() > 8 {
             return Err("revision history bound".into());
