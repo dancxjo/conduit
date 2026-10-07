@@ -240,3 +240,32 @@ fn actual_private_session_protects_partial_vocative_through_final_revision() {
             LanguageTextFinality::Partial
         )));
 }
+
+#[test]
+fn private_source_packages_fit_existing_admission_bound() {
+    for material in [retained::source(), retained::protected_source()] {
+        assert!(!material.is_empty());
+        assert!(material.len() <= conduitos::protocol_source::MAXIMUM_SOURCE_BYTES);
+    }
+}
+
+#[test]
+#[ignore = "explicit cold checked Source and expansion preflight"]
+fn private_protection_dependency_closure_checks_and_expands() {
+    use conduitos::protocol_source::{PreparedProtocolSource, ProtocolSourcePackage};
+    let source = retained::protected_source();
+    eprintln!("protection dependency Source bytes={}", source.len());
+    let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
+    let prepared = PreparedProtocolSource::prepare(package).unwrap();
+    for entry in [
+        "language-parser-protected-edge-projection",
+        "language-parser-protected-set-initialize",
+        "language-parser-protected-set-insert",
+        "language-parser-protected-set-rebase",
+        "language-parser-protection-forest-projection",
+        "language-parser-independent-mask",
+    ] {
+        eprintln!("protection dependency expand {entry}");
+        prepared.expand(entry).unwrap();
+    }
+}
