@@ -125,6 +125,7 @@ export async function retainOneBodyComplete(runPath, outputPath) {
   const allEvents = new Set();
   const allSources = new Set();
   const hearModes = new Set();
+  let lastObservedAt = 0;
   for (const chapter of chapters) {
     assert.ok(CHAPTERS.includes(chapter.id), 'unknown chapter');
     for (const key of ['title', 'intention', 'action', 'result', 'why', 'next']) {
@@ -138,9 +139,14 @@ export async function retainOneBodyComplete(runPath, outputPath) {
     const eventMap = new Map();
     for (const event of chapter.events) {
       assert.ok(identity(event.kind) && identity(event.id) &&
-        identity(event.face_revision) && relative(event.source_receipt?.path) &&
+        identity(event.face_revision) &&
+        Number.isSafeInteger(event.observed_at_unix_ms) &&
+        event.observed_at_unix_ms > 0 &&
+        event.observed_at_unix_ms >= lastObservedAt &&
+        relative(event.source_receipt?.path) &&
         /^[a-f0-9]{64}$/.test(event.source_receipt.sha256),
-      `${chapter.id} event lacks source receipt or Face revision`);
+      `${chapter.id} event lacks action-time receipt or breaks journey chronology`);
+      lastObservedAt = event.observed_at_unix_ms;
       assert.ok(!allEvents.has(event.id), `event reused across chapters: ${event.id}`);
       allEvents.add(event.id);
       const sourceBytes = await file(source, event.source_receipt.path);
@@ -156,6 +162,8 @@ export async function retainOneBodyComplete(runPath, outputPath) {
         `${chapter.id} source has no exact event identity`);
       assert.equal(String(observed.resulting_face_revision), String(event.face_revision),
         `${chapter.id} source has no exact resulting Face revision`);
+      assert.equal(observed.observed_at_unix_ms, event.observed_at_unix_ms,
+        `${chapter.id} source has no exact action-time observation`);
       assert.equal(observed.outcome, 'completed',
         `${chapter.id} source event did not complete`);
       assert.ok(!plannedPaths.has(event.source_receipt.path),
@@ -171,8 +179,8 @@ export async function retainOneBodyComplete(runPath, outputPath) {
     generated.set(chapterReceiptId, { schema: 'conduit.journey/chapter-receipt@2',
       source_commit: report.native_source_commit, run_id: report.run_id,
       body_id: report.body_id, chapter_id: chapter.id,
-      events: chapter.events.map(({ kind, id, face_revision }) => ({
-        kind, id, face_revision,
+      events: chapter.events.map(({ kind, id, face_revision, observed_at_unix_ms }) => ({
+        kind, id, face_revision, observed_at_unix_ms,
         source_receipt_id: eventMap.get(id).source_receipt_id,
       })),
       resulting_face_revision: last.face_revision, outcome: 'completed' });
@@ -209,14 +217,14 @@ export async function retainOneBodyComplete(runPath, outputPath) {
       assert.equal(observed.capture_source, item.capture_source);
       assert.ok(!plannedPaths.has(item.source_receipt.path) &&
         !plannedPaths.has(item.path), `${chapter.id} reuses a capture or its source receipt`);
-      const source = rendererSource(item.capture_source);
+      const captureSource = rendererSource(item.capture_source);
       const [mediaKind] = outputKind(item.path);
-      assert.ok((mediaKind === 'screenshot' && ['chromium', 'qmp'].includes(source)) ||
-        (mediaKind === 'console-transcript' && source === 'terminal') ||
-        (mediaKind === 'audio' && ['speaker-play', 'qemu-audio'].includes(source)),
+      assert.ok((mediaKind === 'screenshot' && ['chromium', 'qmp'].includes(captureSource)) ||
+        (mediaKind === 'console-transcript' && captureSource === 'terminal') ||
+        (mediaKind === 'audio' && ['speaker-play', 'qemu-audio'].includes(captureSource)),
       `${chapter.id} capture source does not match its media`);
-      sources.add(source);
-      allSources.add(source);
+      sources.add(captureSource);
+      allSources.add(captureSource);
       await add(`${id}-source`, item.source_receipt.path,
         item.source_receipt.sha256);
       await add(id, item.path, item.sha256);
@@ -227,8 +235,8 @@ export async function retainOneBodyComplete(runPath, outputPath) {
         face_revision: item.face_revision,
         source_receipt_id: `${id}-source`,
         media_output_id: id, media_sha256: item.sha256,
-        capture_source: source };
-      if (source === 'speaker-play' || source === 'qemu-audio') {
+        capture_source: captureSource };
+      if (captureSource === 'speaker-play' || captureSource === 'qemu-audio') {
         const speech = item.speech;
         assert.ok(speech && ['direct', 'llm-assisted'].includes(speech.mode) &&
           identity(speech.show_id) && identity(speech.plan_id) &&
@@ -297,7 +305,7 @@ export async function retainOneBodyComplete(runPath, outputPath) {
         capture.transcript_sha256 = sha(Buffer.from(`${JSON.stringify(transcript, null, 2)}\n`));
         capture.speech_mode = speech.mode;
         capture.audio_provenance_id = provenanceId;
-        if (source === 'qemu-audio') {
+        if (captureSource === 'qemu-audio') {
           assert.ok(identity(speech.qemu_boot_id));
           capture.qemu_boot_id = speech.qemu_boot_id;
         }
