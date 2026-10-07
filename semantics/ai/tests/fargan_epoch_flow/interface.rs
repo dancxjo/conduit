@@ -61,6 +61,25 @@ impl ConditioningInterface {
             FixedF32VectorCodec::<128>::prepare_history().map_err(|e| format!("{e:?}"))?;
         let _ = history;
         model.signature().validate().map_err(|e| format!("{e:?}"))?;
+        let exact = conduit_ai::ModelSignature::from_parts(
+            "speech/fargan-source-conditioning-f32@1".into(),
+            1,
+            vec![conduit_ai::ModelOperation::Infer],
+            vec![
+                super::custody::port("features", 20, TensorElement::F32, 4),
+                super::custody::port("period", 1, TensorElement::U16, 2),
+                super::custody::port("history", 128, TensorElement::F32, 4),
+            ],
+            vec![
+                super::custody::port("condition", 320, TensorElement::F32, 4),
+                super::custody::port("next_history", 128, TensorElement::F32, 4),
+            ],
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        if model.signature() != &exact {
+            return Err("exact conditioning operation/version/axis signature required".into());
+        }
+
         for (ports, source_ports, expected) in [
             (
                 model.signature().inputs().get().as_slice(),
@@ -206,6 +225,38 @@ fn pinned_conditioner_interface_matches_exact_source_front_native_codecs_and_sig
         .unwrap(),
     );
     assert!(ConditioningInterface::prepare(wrong, layout.clone()).is_err());
+    let wrong_version = conduit_ai::ModelSignature::from_parts(
+        "speech/fargan-source-conditioning-f32@1".into(),
+        2,
+        vec![conduit_ai::ModelOperation::Infer],
+        admitted
+            .model
+            .signature()
+            .inputs()
+            .get()
+            .as_slice()
+            .to_vec(),
+        admitted
+            .model
+            .signature()
+            .outputs()
+            .get()
+            .as_slice()
+            .to_vec(),
+    )
+    .unwrap();
+    let mut artifact = admitted.model.artifact().clone();
+    artifact.signature_identity = wrong_version.semantic_digest().unwrap();
+    let wrong_version = Arc::new(
+        AdmittedModelResource::adopt(
+            artifact,
+            wrong_version,
+            retained.model.shared_storage(),
+            &retained.model_binding,
+        )
+        .unwrap(),
+    );
+    assert!(ConditioningInterface::prepare(wrong_version, layout.clone()).is_err());
     let mut foreign = layout;
     foreign.push(b' ');
     assert!(ConditioningInterface::prepare(retained.conditioning_descriptor(), foreign).is_err());
