@@ -71,3 +71,13 @@ type LanguageParserWindow8RawAdvance = {
 plot language-window8-score-advance (
     query: LanguageParserWindow8RawAdvance...| >> proposal: LanguageParserWindow8RawHypothesis...|
 ) = { identity: .identity, active: .outcome.accepted, score: .prior_score + .step_score, state: .outcome.state, choices: .choices, selected: .selected }
+
+# A private prepared producer retains the full admitted prior behind this raw
+# seed. Source copies its exact body and computes class-specific cycle gating.
+type LanguageParserWindow8RawClassContext = {
+    seed: LanguageParserWindow8RawContext
+    class: LanguageParserWindow8RawClass
+}
+plot language-window8-class-context (
+    query: LanguageParserWindow8RawClassContext...| >> context: LanguageParserWindow8RawContext...|
+) = { basis: .seed.basis, state: .seed.state, action: .class.action, relation: .class.relation, top: .seed.top, eligible: false, cycle: (variant/is(.class.action,"right_arc") && .seed.cycle), roots: .seed.roots }
