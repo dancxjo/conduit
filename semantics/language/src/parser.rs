@@ -3,6 +3,46 @@
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserJointRawBeam",
+            crate::LanguageParserJointRawBeam::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointMerge",
+            crate::LanguageParserJointMerge::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserLegalFacts",
+            crate::LanguageParserLegalFacts::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserMaskQuery",
+            crate::LanguageParserMaskQuery::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserLegalMask",
+            crate::LanguageParserLegalMask::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointLexical",
+            crate::LanguageParserJointLexical::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointHypothesis",
+            crate::LanguageParserJointHypothesis::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointBeam",
+            crate::LanguageParserJointBeam::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointChoiceQuery",
+            crate::LanguageParserJointChoiceQuery::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointPosContext",
+            crate::LanguageParserJointPosContext::semantic_type().expect("checked Language Type")
+        ),
+        (
             "LanguageParserPosEvidence",
             crate::LanguageParserPosEvidence::semantic_type().expect("checked Language Type")
         ),

@@ -94,3 +94,11 @@ pub use generated::{
     LanguageParserScoreContext, LanguageParserScoredClass, LanguageParserScoredProposal,
     LanguageParserScorerContext, LanguageParserScorerQuery,
 };
+
+pub use generated::{
+    LanguageParserJointBeam, LanguageParserJointChoiceQuery, LanguageParserJointHypothesis,
+    LanguageParserJointLexical, LanguageParserJointPosContext, LanguageParserLegalFacts,
+    LanguageParserLegalMask, LanguageParserMaskQuery,
+};
+
+pub use generated::{LanguageParserJointMerge, LanguageParserJointRawBeam};
