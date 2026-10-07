@@ -50,7 +50,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     await page.getByRole("link", { name: /^Find your bearings/ }).click();
     await page.getByRole("heading", { name: "Start here", exact: true }).waitFor();
     expect((await ready(page)).bodyId).toBe(first.bodyId);
-    await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A clock you can stop" });
+    await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A ticker you can stop" });
     await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true })).toBeEnabled();
     const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
     const originalSource = await editor.inputValue();
@@ -85,7 +85,7 @@ test("static Handbook applications retain independent local Bodies through use, 
       action: "Restore the clock source and press Try in my Handbook.",
       observation: "The checked clock joins the same Body and runs through a newly admitted Plan and Play." });
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).first().click();
-    await page.locator(".handbook-show").getByRole("button", { name: /clock-demo|A clock you can stop/i }).click();
+    await page.locator(".handbook-show").getByRole("button", { name: /clock-demo|A ticker you can stop/i }).click();
     const graph = page.locator(".handbook-show [data-checked-plot-id]:visible");
     await expect(graph).toHaveAttribute("data-checked-plot-id", example.selectedPlot);
     await expect(graph.getByRole("group", { name: "Resident plot gears, ports, and cords" })).toBeVisible();
@@ -130,10 +130,10 @@ test("static Handbook applications retain independent local Bodies through use, 
     await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "Turn keystrokes into text" });
     await expect(editor).not.toHaveValue(editedSource);
     await expect(page.getByLabel("Choose an example", { exact: true })).toBeEnabled();
-    await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A clock you can stop" });
+    await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A ticker you can stop" });
     await expect(editor).toHaveValue(editedSource);
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).click();
-    await page.locator(".handbook-show").getByRole("button", { name: /clock-demo|A clock you can stop/i }).click();
+    await page.locator(".handbook-show").getByRole("button", { name: /clock-demo|A ticker you can stop/i }).click();
     await expect(graph).toHaveAttribute("data-checked-plot-id", example.selectedPlot);
     await expect(graph).toHaveAttribute("data-body-plan-id", example.planId);
     await expect(graph).toHaveAttribute("data-active-play-id", example.playId);

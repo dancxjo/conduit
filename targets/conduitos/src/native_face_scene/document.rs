@@ -1,13 +1,11 @@
-//! Reuse the generic Face reader's order and exact provenance. Primary graphics
-//! group human wording by subject; full contract/identity clauses remain in Details.
+//! Keep the ordinary view focused on current human wording and usable controls.
+//! The exact Face reader remains available in Details, including relationships,
+//! properties, unavailable actions, input contracts, and provenance.
 use super::*;
-use alloc::{
-    format,
-    string::{String, ToString},
-};
+use alloc::{format, string::String};
 use conduit_presentation::{
     FaceUtteranceProvenance as Provenance, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole, plan_face_utterances,
+    PresentationDisclosureLevel, PresentationRole, plan_face_utterances,
     readable_finite_text_choices,
 };
 
@@ -81,11 +79,13 @@ pub(super) fn prepare(
             .ok_or(FaceSceneError::InvalidFace)?;
         if face.disclosures.iter().any(|disclosure| {
             disclosure.subject == subject.identity
-                && matches!(
+                && (matches!(
                     disclosure.level,
-                    PresentationDisclosureLevel::SelectedDetail
+                    PresentationDisclosureLevel::CurrentAction
+                        | PresentationDisclosureLevel::SelectedDetail
                         | PresentationDisclosureLevel::ExactProvenance
-                )
+                ) || (disclosure.level == PresentationDisclosureLevel::Context
+                    && !matches!(subject.role, PresentationRole::Collection | PresentationRole::Document)))
         }) {
             continue;
         }
@@ -127,79 +127,23 @@ pub(super) fn prepare(
             _ => GraphicsPaintRole::Foreground,
         };
         append(heading);
-        for text in face
-            .text
-            .iter()
-            .filter(|text| text.subject == subject.identity)
-        {
-            append(item(text.text.clone(), GraphicsTextRole::Body));
-        }
-        // The common reader owns the wording and semantic order. A graphical
-        // Mask may place these connections beside their source subject, but
-        // must not invent a diagram edge or interpret an open domain kind.
-        for clause in &plan.clauses {
-            let belongs_here = match &clause.provenance {
-                Provenance::Relationship(provenance) => {
-                    face.relationships[*provenance.index() as usize].source == subject.identity
-                }
-                Provenance::Composition(provenance) => face.composition.iter().any(|relation| {
-                    relation.identity.as_str() == provenance.identity()
-                        && relation.source == subject.identity
-                }),
-                _ => false,
-            };
-            if belongs_here {
-                let text = if let Provenance::Relationship(provenance) = &clause.provenance {
-                    let relationship = &face.relationships[*provenance.index() as usize];
-                    if matches!(
-                        relationship.kind,
-                        conduit_presentation::PresentationRelationshipKind::Contains
-                    ) {
-                        let child = face
-                            .subjects
-                            .iter()
-                            .find(|child| child.identity == relationship.target)
-                            .ok_or(FaceSceneError::InvalidFace)?;
-                        format!("Contains · {}", child.name)
-                    } else {
-                        clause.text.clone()
-                    }
-                } else {
-                    clause.text.clone()
-                };
-                let mut connection = item(text, GraphicsTextRole::Body);
-                connection.paint = GraphicsPaintRole::Muted;
-                append(connection);
+        // The Body name anchors the encounter. Its generic lifecycle and
+        // resident-count sentence is inspection context; application subjects
+        // supply the ordinary view's useful content.
+        if subject.role != PresentationRole::Body {
+            for text in face
+                .text
+                .iter()
+                .filter(|text| text.subject == subject.identity)
+            {
+                append(item(text.text.clone(), GraphicsTextRole::Body));
             }
         }
-        for clause in &plan.clauses {
-            if let Provenance::Property(provenance) = &clause.provenance {
-                let property = &face.properties[*provenance.index() as usize];
-                if property.subject == subject.identity
-                    && matches!(
-                        property.value,
-                        PresentationPropertyValue::Text(_)
-                            | PresentationPropertyValue::Count(_)
-                            | PresentationPropertyValue::Signed(_)
-                            | PresentationPropertyValue::Flag(_)
-                    )
-                {
-                    let value = match &property.value {
-                        PresentationPropertyValue::Text(value) => format!("\"{value}\""),
-                        PresentationPropertyValue::Count(value) => value.to_string(),
-                        PresentationPropertyValue::Signed(value) => value.to_string(),
-                        PresentationPropertyValue::Flag(value) => value.to_string(),
-                        _ => unreachable!("primary property kind was checked"),
-                    };
-                    append(item(
-                        format!("{} · {value}", property.name.replace('-', " ")),
-                        GraphicsTextRole::Label,
-                    ));
-                }
-            }
-        }
-        // Action order comes from the same semantic subject ordering as the
-        // common reader, never an application's action-name convention.
+        // Contains already determines indentation. Readable primary wording
+        // comes from this subject's Face text; technical relationships and
+        // properties remain inspectable in Details without becoming a second
+        // copy of the main view.
+        // Action order comes from the Face, never an application-name convention.
         for clause in &plan.clauses {
             let Provenance::Action(provenance) = &clause.provenance else {
                 continue;
@@ -213,30 +157,22 @@ pub(super) fn prepare(
             if action.target != subject.identity {
                 continue;
             }
-            let (text, paint) = match &action.availability {
-                PresentationActionAvailability::Available => (
-                    if action.name == subject.name {
-                        action.name.clone()
-                    } else {
-                        format!("{} · {}", action.name, subject.name)
-                    },
-                    if interaction_admitted {
-                        GraphicsPaintRole::Accent
-                    } else {
-                        GraphicsPaintRole::Muted
-                    },
-                ),
-                PresentationActionAvailability::Unavailable { explanation, .. }
-                | PresentationActionAvailability::Refused { explanation, .. } => (
-                    format!("{} — {}", action.name, explanation),
-                    GraphicsPaintRole::Warning,
-                ),
+            if !matches!(
+                action.availability,
+                PresentationActionAvailability::Available
+            ) {
+                continue;
+            }
+            let paint = if interaction_admitted {
+                GraphicsPaintRole::Accent
+            } else {
+                GraphicsPaintRole::Muted
             };
             append(Item {
                 text: if interaction_admitted {
-                    text
+                    action.name.clone()
                 } else {
-                    format!("{text} · View only on this host")
+                    format!("{} · View only on this host", action.name)
                 },
                 role: GraphicsTextRole::Action,
                 paint,
@@ -247,15 +183,13 @@ pub(super) fn prepare(
                 indent: 0,
             });
             for (argument_index, argument) in action.arguments.iter().enumerate() {
-                let hint = if !interaction_admitted {
-                    "view only on this host".into()
-                } else if argument.contract.value_kind.as_str() == "value/bool" {
-                    "0 false · 1 true · Enter applies".into()
+                let hint = if argument.contract.value_kind.as_str() == "value/bool" {
+                    "false or true".into()
                 } else {
                     argument_hint(argument)
                 };
                 append(Item {
-                    text: format!("{} · {} · {}", subject.name, argument.value_name, hint),
+                    text: format!("{} · {}", argument.value_name, hint),
                     role: GraphicsTextRole::Label,
                     paint,
                     control: interaction_admitted.then_some(FaceControl {
@@ -272,7 +206,7 @@ pub(super) fn prepare(
 
 fn argument_hint(argument: &conduit_presentation::FaceActionArgument) -> String {
     readable_finite_text_choices(&argument.contract).map_or_else(
-        || "enter a replacement value".into(),
-        |choices| format!("enter one of: {} · Enter applies", choices.join(", ")),
+        || "Enter a value".into(),
+        |choices| format!("Choose {}", choices.join(", ")),
     )
 }
