@@ -99,6 +99,8 @@ impl Arrival {
         line(0, "Conduit / Crèche", false, GraphicsTextRole::Muted)?;
         let view = self.draft.presentation().map_err(|_| Error::Presentation)?;
         let mut choice_count = 0;
+        let mut selected_title = None;
+        let mut review_title = None;
         for node in &view.root.children {
             match (&*node.key, &node.mechanism) {
                 ("creche-heading", PresentationMechanism::Heading { text }) => {
@@ -177,7 +179,10 @@ impl Arrival {
                     choice_count = 0;
                 }
                 ("selected-plots", PresentationMechanism::Status { title, .. }) => {
-                    line(368, title, false, GraphicsTextRole::Status)?;
+                    selected_title = Some(title.as_str());
+                }
+                ("birth-review", PresentationMechanism::Status { title, .. }) => {
+                    review_title = Some(title.as_str());
                 }
                 ("birth-body", PresentationMechanism::Action(action)) => {
                     line(
@@ -189,6 +194,17 @@ impl Arrival {
                 }
                 _ => return Err(Error::Scene),
             }
+        }
+        match (selected_title, review_title) {
+            (Some(selected), Some(review)) => line(
+                368,
+                &format!("{selected} · {review}"),
+                false,
+                GraphicsTextRole::Status,
+            )?,
+            (Some(selected), None) => line(368, selected, false, GraphicsTextRole::Status)?,
+            (None, Some(review)) => line(368, review, false, GraphicsTextRole::Status)?,
+            (None, None) => {}
         }
         if let Some(refusal) = &self.refusal {
             line(368, refusal, true, GraphicsTextRole::Warning)?;

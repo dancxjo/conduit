@@ -189,7 +189,8 @@ fn shared_search_filters_visible_controls_without_losing_included_plots() {
     let actions = door.arrival.as_ref().unwrap().controls();
     assert!(actions.iter().any(|action| action == "creche.plot.1"));
     assert!(!actions.iter().any(|action| action == "creche.plot.0"));
-    assert!(door.scene(&super::super::tests::Sink).is_ok());
+    let scene = door.scene(&super::super::tests::Sink);
+    assert!(scene.is_ok(), "{scene:?}");
     press(&mut door, 29); // mz: no match
     assert!(door.scene(&super::super::tests::Sink).is_ok());
     assert!(
@@ -232,6 +233,7 @@ fn four_plot_scene_keeps_choices_status_and_birth_visually_separate() {
         .iter()
         .find(|command| command.payload().starts_with("Selected:"))
         .unwrap();
+    assert!(selected.payload().contains("Review Birth choices"));
     let birth = scene
         .commands()
         .iter()
