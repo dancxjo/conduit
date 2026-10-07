@@ -86,11 +86,15 @@ pub mod language_projection;
 #[cfg(feature = "semantic-bindings")]
 pub mod language_revision;
 #[cfg(feature = "semantic-bindings")]
+pub mod linguistic_prosody;
+#[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod occurrence_context;
 #[cfg(feature = "semantic-bindings")]
 pub mod output_features;
+#[cfg(feature = "semantic-bindings")]
+pub mod pitch_trajectory;
 #[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]

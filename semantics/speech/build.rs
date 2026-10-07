@@ -25,8 +25,11 @@ fn main() {
     println!("cargo:rerun-if-changed=duration_render.conduit");
     println!("cargo:rerun-if-changed=control_projection.conduit");
     println!("cargo:rerun-if-changed=context_match.conduit");
+    println!("cargo:rerun-if-changed=linguistic_prosody.conduit");
+    println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
+    println!("cargo:rerun-if-changed=pitch_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
@@ -37,9 +40,24 @@ fn main() {
         include_str!("inventory.conduit"),
         include_str!("profile_phones.conduit"),
         include_str!("voice_profile.conduit"),
-        include_str!("context_match.conduit")
+        include_str!("context_match.conduit"),
+        include_str!("linguistic_prosody.conduit"),
+        include_str!("pitch_trajectory.conduit")
     );
-    let language_types = conduit_language::identity_types();
+    let mut language_types = conduit_language::identity_types();
+    language_types.extend(
+        conduit_language::prosody::prosody_types()
+            .into_iter()
+            .filter(|(name, _)| {
+                matches!(
+                    *name,
+                    "LanguageProsodyChoice"
+                        | "LanguageProsodyBoundary"
+                        | "LanguageProsodyProminence"
+                        | "LanguageProsodyPitch"
+                )
+            }),
+    );
     let mut semantic_catalog = StartupCatalog::new();
     for (name, ty) in &language_types {
         semantic_catalog
@@ -49,6 +67,25 @@ fn main() {
     let semantic =
         check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
             .expect("Speaking segment and listening contracts check");
+    let expanded = expand_canonical_plot_for_authoring(
+        &semantic,
+        "speech/linguistic-prosody",
+        &ProfileCatalog::new(),
+    )
+    .expect("checked linguistic speech projection expands");
+    assert_eq!(expanded.expanded.gears.len(), 1);
+    let [entry] = expanded.expanded.gears[0].configuration.as_slice() else {
+        panic!("one exact projection")
+    };
+    assert_eq!(entry.key, "program");
+    let conduit_core::ConfigurationValue::Text(program) = &entry.value else {
+        panic!("portable projection program")
+    };
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("linguistic_prosody_program.hex"),
+        program,
+    )
+    .expect("retain speech projection");
     let identities = language_types
         .iter()
         .map(|(_, ty)| match ty.shape() {
@@ -70,7 +107,11 @@ fn main() {
         .filter(|(_, (name, _))| {
             !matches!(
                 *name,
-                "LanguageVariety" | "LanguageTextReferenceMatch" | "LanguageExternalIdentity"
+                "LanguageVariety"
+                    | "LanguageTextReferenceMatch"
+                    | "LanguageExternalIdentity"
+                    | "LanguageProsodyBoundary"
+                    | "LanguageProsodyProminence"
             )
         })
         .map(
@@ -128,6 +169,7 @@ fn main() {
         include_str!("control_projection.conduit"),
         include_str!("context_match.conduit")
     );
+    let source = format!("{}\n{}", source, include_str!("pitch_projection.conduit"));
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked =
