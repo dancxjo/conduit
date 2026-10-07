@@ -46,6 +46,11 @@ async function fixture() {
       input: await artifact('wardrobe-input.txt'),
       transcript: await artifact('wardrobe-transcript.txt'),
     },
+    screen_free_checkpoints: { checkpoints: [{
+      phase: 'browser-presentation-unavailable',
+      input: await artifact('screen-free-checkpoint-browser-presentation-unavailable-input.txt'),
+      transcript: await artifact('screen-free-checkpoint-browser-presentation-unavailable-transcript.txt'),
+    }] },
   };
   return { root, walkthrough, report };
 }
@@ -56,12 +61,14 @@ test('retains only verified nonvisual sessions beside the walkthrough', async ()
     await writeFile(path.join(root, 'invitation.private.json'), 'secret');
     await retainScreenFreeSessions(root, walkthrough, report);
     const names = await readdir(walkthrough);
-    assert.equal(names.length, 14);
+    assert.equal(names.length, 16);
     assert.ok(!names.includes('invitation.private.json'));
     assert.equal(report.birth.input.path, 'birth-input.txt');
     assert.equal(report.screen_free_clock.lull.transcript.path, 'clock-lull-transcript.txt');
     assert.equal(report.screen_free_clock.finish.transcript.path, 'clock-finish-transcript.txt');
     assert.equal(report.screen_free_wardrobe.transcript.path, 'wardrobe-transcript.txt');
+    assert.equal(report.screen_free_checkpoints.checkpoints[0].transcript.path,
+      'screen-free-checkpoint-browser-presentation-unavailable-transcript.txt');
     assert.equal(digest(await readFile(path.join(walkthrough, 'birth-input.txt'))),
       report.birth.input.sha256);
   } finally { await rm(root, { recursive: true, force: true }); }
