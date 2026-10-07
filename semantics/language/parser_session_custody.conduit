@@ -1,0 +1,44 @@
+# Exact full rebase execution receipt. Context owns prior/next lexical lineage;
+# these laws own every output mutation. This is custody, not played ACK.
+type LanguageParserProtectedRebaseReceipt = {
+ context: LanguageParserProtectedSetRebaseContext
+ output: LanguageParserProtectedSetProposal
+ where .output.basis == .context.rebase.basis
+ where .output.active == .context.previous.active
+ where .context.previous.active.0 ? .output.edge0.current_basis == .context.rebase.basis : .output.edge0 == .context.previous.edge0
+ where .context.previous.active.0 ? .output.edge0.origin_basis == .context.previous.edge0.origin_basis : true
+ where .context.previous.active.0 ? .output.edge0.dependent == .context.previous.edge0.dependent : true
+ where .context.previous.active.0 ? .output.edge0.head == .context.previous.edge0.head : true
+ where .context.previous.active.0 ? .output.edge0.dependent_choice == .context.previous.edge0.dependent_choice : true
+ where .context.previous.active.0 ? .output.edge0.head_choice == .context.previous.edge0.head_choice : true
+ where .context.previous.active.0 ? ((variant/tag(.output.edge0.relation.base) == variant/tag(.context.previous.edge0.relation.base)) && (.output.edge0.relation.subtype == .context.previous.edge0.relation.subtype)) : true
+ where .context.previous.active.0 ? .output.edge0.dependent_occurrence == .context.token0.identity : true
+ where .context.previous.active.0 ? .output.edge0.head_occurrence == (.context.previous.edge0.head == 0 ? .context.token0.identity : (.context.previous.edge0.head == 1 ? .context.token1.identity : (.context.previous.edge0.head == 2 ? .context.token2.identity : (.context.previous.edge0.head == 3 ? .context.token3.identity : .context.token0.identity)))) : true
+ where .context.previous.active.1 ? .output.edge1.current_basis == .context.rebase.basis : .output.edge1 == .context.previous.edge1
+ where .context.previous.active.1 ? .output.edge1.origin_basis == .context.previous.edge1.origin_basis : true
+ where .context.previous.active.1 ? .output.edge1.dependent == .context.previous.edge1.dependent : true
+ where .context.previous.active.1 ? .output.edge1.head == .context.previous.edge1.head : true
+ where .context.previous.active.1 ? .output.edge1.dependent_choice == .context.previous.edge1.dependent_choice : true
+ where .context.previous.active.1 ? .output.edge1.head_choice == .context.previous.edge1.head_choice : true
+ where .context.previous.active.1 ? ((variant/tag(.output.edge1.relation.base) == variant/tag(.context.previous.edge1.relation.base)) && (.output.edge1.relation.subtype == .context.previous.edge1.relation.subtype)) : true
+ where .context.previous.active.1 ? .output.edge1.dependent_occurrence == .context.token1.identity : true
+ where .context.previous.active.1 ? .output.edge1.head_occurrence == (.context.previous.edge1.head == 0 ? .context.token0.identity : (.context.previous.edge1.head == 1 ? .context.token1.identity : (.context.previous.edge1.head == 2 ? .context.token2.identity : (.context.previous.edge1.head == 3 ? .context.token3.identity : .context.token1.identity)))) : true
+ where .context.previous.active.2 ? .output.edge2.current_basis == .context.rebase.basis : .output.edge2 == .context.previous.edge2
+ where .context.previous.active.2 ? .output.edge2.origin_basis == .context.previous.edge2.origin_basis : true
+ where .context.previous.active.2 ? .output.edge2.dependent == .context.previous.edge2.dependent : true
+ where .context.previous.active.2 ? .output.edge2.head == .context.previous.edge2.head : true
+ where .context.previous.active.2 ? .output.edge2.dependent_choice == .context.previous.edge2.dependent_choice : true
+ where .context.previous.active.2 ? .output.edge2.head_choice == .context.previous.edge2.head_choice : true
+ where .context.previous.active.2 ? ((variant/tag(.output.edge2.relation.base) == variant/tag(.context.previous.edge2.relation.base)) && (.output.edge2.relation.subtype == .context.previous.edge2.relation.subtype)) : true
+ where .context.previous.active.2 ? .output.edge2.dependent_occurrence == .context.token2.identity : true
+ where .context.previous.active.2 ? .output.edge2.head_occurrence == (.context.previous.edge2.head == 0 ? .context.token0.identity : (.context.previous.edge2.head == 1 ? .context.token1.identity : (.context.previous.edge2.head == 2 ? .context.token2.identity : (.context.previous.edge2.head == 3 ? .context.token3.identity : .context.token2.identity)))) : true
+ where .context.previous.active.3 ? .output.edge3.current_basis == .context.rebase.basis : .output.edge3 == .context.previous.edge3
+ where .context.previous.active.3 ? .output.edge3.origin_basis == .context.previous.edge3.origin_basis : true
+ where .context.previous.active.3 ? .output.edge3.dependent == .context.previous.edge3.dependent : true
+ where .context.previous.active.3 ? .output.edge3.head == .context.previous.edge3.head : true
+ where .context.previous.active.3 ? .output.edge3.dependent_choice == .context.previous.edge3.dependent_choice : true
+ where .context.previous.active.3 ? .output.edge3.head_choice == .context.previous.edge3.head_choice : true
+ where .context.previous.active.3 ? ((variant/tag(.output.edge3.relation.base) == variant/tag(.context.previous.edge3.relation.base)) && (.output.edge3.relation.subtype == .context.previous.edge3.relation.subtype)) : true
+ where .context.previous.active.3 ? .output.edge3.dependent_occurrence == .context.token3.identity : true
+ where .context.previous.active.3 ? .output.edge3.head_occurrence == (.context.previous.edge3.head == 0 ? .context.token0.identity : (.context.previous.edge3.head == 1 ? .context.token1.identity : (.context.previous.edge3.head == 2 ? .context.token2.identity : (.context.previous.edge3.head == 3 ? .context.token3.identity : .context.token3.identity)))) : true
+}
