@@ -6,6 +6,9 @@ use super::{
 };
 use alloc::vec::Vec;
 
+mod contracts;
+pub use contracts::{PreparedStructuredContractValidator, StructuredContractValidationRefusal};
+
 /// Retains one checked finite schema and its exact canonical prefix.
 /// Leaf payload meaning remains owned by its kind; this validates the canonical
 /// structured envelope, shape and bounds, not a second leaf-language checker.
@@ -48,6 +51,67 @@ impl PreparedStructuredValueValidator {
         }
         Ok(())
     }
+
+    /// Visits borrowed canonical node bodies after validating the whole shape.
+    /// Nominal nodes retain their exact Type even though framing is shared with
+    /// the representation. Callers may check independently prepared native laws.
+    pub fn visit_nodes<E>(
+        &self,
+        input: &[u8],
+        mut visit: impl FnMut(&StructuredInfoType, &[u8]) -> Result<(), E>,
+    ) -> Result<(), StructuredNodeVisitRefusal<E>> {
+        self.validate(input)
+            .map_err(StructuredNodeVisitRefusal::Structure)?;
+        let mut cursor = Cursor::new(&input[self.prefix.len()..]);
+        visit_node(&self.value_type, &mut cursor, &mut visit)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StructuredNodeVisitRefusal<E> {
+    Structure(Refusal),
+    Visitor(E),
+}
+
+fn visit_node<E>(
+    ty: &StructuredInfoType,
+    cursor: &mut Cursor<'_>,
+    visit: &mut impl FnMut(&StructuredInfoType, &[u8]) -> Result<(), E>,
+) -> Result<(), StructuredNodeVisitRefusal<E>> {
+    use StructuredNodeVisitRefusal::{Structure, Visitor};
+    let start = cursor.remaining;
+    match ty.shape() {
+        Shape::Nominal { representation, .. } => visit_node(representation, cursor, visit)?,
+        Shape::Leaf(_) => {
+            let _ = cursor.byte().map_err(Structure)?;
+            let _ = cursor.bytes().map_err(Structure)?;
+        }
+        Shape::Collection { element, .. } | Shape::Sequence { element, .. } => {
+            let _ = cursor.byte().map_err(Structure)?;
+            let length = cursor.length().map_err(Structure)?;
+            for _ in 0..length {
+                visit_node(element, cursor, visit)?;
+            }
+        }
+        Shape::Record { fields, .. } => {
+            let _ = cursor.byte().map_err(Structure)?;
+            let _ = cursor.length().map_err(Structure)?;
+            for field in fields {
+                let _ = cursor.bytes().map_err(Structure)?;
+                visit_node(field.value_type(), cursor, visit)?;
+            }
+        }
+        Shape::Variant { cases, .. } => {
+            let _ = cursor.byte().map_err(Structure)?;
+            let tag = cursor.bytes().map_err(Structure)?;
+            let case = cases
+                .iter()
+                .find(|case| case.tag().as_bytes() == tag)
+                .ok_or(Structure(Refusal::UnknownVariantTag))?;
+            visit_node(case.payload_type(), cursor, visit)?;
+        }
+    }
+    visit(ty, &start[..start.len() - cursor.remaining.len()]).map_err(Visitor)
 }
 
 fn expect(actual: bool) -> Result<(), Refusal> {

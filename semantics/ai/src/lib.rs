@@ -269,3 +269,6 @@ pub mod fixed_numeric_float_integer;
 
 #[cfg(all(feature = "kernel-operation-owners", target_has_atomic = "ptr"))]
 pub mod operation_owners;
+
+#[cfg(feature = "kernel-step")]
+pub mod native_profile;

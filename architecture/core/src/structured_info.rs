@@ -33,7 +33,10 @@ pub use sequence::*;
 pub use transport::*;
 pub use tuple::*;
 pub use typed_pair::*;
-pub use validation::PreparedStructuredValueValidator;
+pub use validation::{
+    PreparedStructuredContractValidator, PreparedStructuredValueValidator,
+    StructuredContractValidationRefusal, StructuredNodeVisitRefusal,
+};
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 16;
 /// Aggregate-node ceiling for one structured type or value.
