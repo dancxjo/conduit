@@ -454,6 +454,7 @@ const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
         PrimitiveInfoKind::Bool => BOOL_INFO_ID,
         PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
+        PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
         PrimitiveInfoKind::Count => COUNT_INFO_ID,
         PrimitiveInfoKind::Scalar => SCALAR_INFO_ID,
         PrimitiveInfoKind::U8 => "value/u8",
