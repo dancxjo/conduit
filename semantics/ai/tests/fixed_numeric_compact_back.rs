@@ -17,6 +17,10 @@ use conduit_kernel::{
 use conduit_plot::rust_binding::BoundedSequence;
 use conduit_std_host::fixed_numeric_compact::FixedCompactOperationFactory;
 use std::{cell::Cell, collections::BTreeMap, rc::Rc, sync::Arc};
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 fn tensor(element: TensorElement, shape: &[u64], bytes: &[u8]) -> TensorValue {
     let digest = tensor_content_digest(bytes);
@@ -696,5 +700,86 @@ fn nonpositive_or_nonfinite_scale_refuses_during_selected_owner_preparation() {
                 )
             )
         ));
+    }
+}
+
+#[test]
+fn compact_step_binds_once_and_repeats_without_heap_allocation() {
+    let selected = plan(true, true);
+    let gear = selected.fragments[0]
+        .placements
+        .iter()
+        .find(|gear| gear.implementation_id.as_str() == COMPACT_IMPLEMENTATION)
+        .unwrap();
+    let weights = adopted(TensorElement::I8, &[4, 40], vec![1; 160]);
+    let scales = adopted(TensorElement::F32, &[40], packed(&[0.001; 40]));
+    let bias = adopted(TensorElement::F32, &[40], packed(&[0.1; 40]));
+    let weight_info =
+        FixedTensorPortBinding::prepare(&ty("NumericI8TiledMatrixRef4x40"), weights.tensor())
+            .unwrap();
+    let scale_info =
+        FixedTensorPortBinding::prepare(&ty("NumericF32ScaleRef40"), scales.tensor()).unwrap();
+    let bias_info =
+        FixedTensorPortBinding::prepare(&ty("NumericF32BiasRef40"), bias.tensor()).unwrap();
+    let mut back = FixedCompactBack::<4, 40>::prepare_planned_owned::<PORTS>(
+        gear,
+        5,
+        true,
+        weights,
+        scales,
+        Some(bias),
+    )
+    .unwrap();
+    let mut codec = FixedF32VectorCodec::<4>::prepare(&ty("NumericF32Vector4")).unwrap();
+    let value_port = gear
+        .inputs
+        .iter()
+        .position(|port| port.port_id.as_str() == "value")
+        .unwrap();
+    for (value, valid) in [(1.1, false), (0.5, true), (-1.1, false), (-0.5, true)] {
+        let input = codec.encode(&[value; 4]).unwrap().to_vec();
+        let bytes: [Option<&[u8]>; PORTS] = core::array::from_fn(|index| {
+            gear.inputs
+                .get(index)
+                .map(|port| match port.port_id.as_str() {
+                    "value" => input.as_slice(),
+                    "weights" => weight_info.encoded(),
+                    "scales" => scale_info.encoded(),
+                    "bias" => bias_info.encoded(),
+                    _ => unreachable!(),
+                })
+        });
+        let references = core::array::from_fn(|index| {
+            bytes[index].map(|data| ValueRef {
+                slot: index as u16,
+                generation: 1,
+                byte_len: data.len() as u32,
+            })
+        });
+        let mut ready = [None; PORTS];
+        ready[0] = Some(16_384);
+        let mut io = StepIo::test_frame(references, [false; PORTS], ready, None, 5);
+        let inputs = StepInputBytes::test_frame(bytes, None);
+        let before = back.committed_frames();
+        let was_bound = back.resources_bound();
+        let (outcome, observed) = allocation_probe::observe(|| back.step(&mut io, &inputs));
+        assert_eq!(observed.allocations, 0);
+        assert_eq!(observed.reallocations, 0);
+        assert_eq!(back.committed_frames(), before);
+        assert_eq!(back.resources_bound(), was_bound);
+        if valid {
+            assert_eq!(outcome, StepOutcome::Progress);
+            assert!(io.test_consumed(KPort(value_port as u16)));
+            <FixedCompactBack<4, 40> as StepBack<PORTS>>::step_committed(&mut back);
+            assert_eq!(back.committed_frames(), before + 1);
+            assert!(back.resources_bound());
+        } else {
+            assert!(matches!(outcome, StepOutcome::Fail(_)));
+            assert!(!io.test_consumed(KPort(value_port as u16)));
+            assert!(
+                <FixedCompactBack<4, 40> as StepBack<PORTS>>::prepared_output(&back, KPort(0))
+                    .is_none()
+            );
+        }
     }
 }
