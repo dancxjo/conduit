@@ -9,6 +9,8 @@ use crate::{
 use conduit_core::{ActivePlayIdentity, Plan};
 use core::sync::atomic::{AtomicU32, Ordering};
 
+mod chain;
+pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};
 mod body;
 pub(crate) use body::BodyTextAdmission;
 
@@ -169,39 +171,6 @@ impl<I: TextOwner> ProtectedText<I> {
             .initialize_keymap()
             .map_err(MachineRunError::ProtectionDomain)?;
         self.return_from_pure()
-    }
-
-    pub fn keymap(&mut self, input: &[u8]) -> Result<Option<UppercaseText>, MachineRunError> {
-        self.region
-            .backend_mut()
-            .map_err(MachineRunError::ProtectionDomain)?
-            .keymap_input(input)
-            .map_err(MachineRunError::ProtectionDomain)?;
-        self.return_from_pure()?;
-        let backend = self
-            .region
-            .backend_mut()
-            .map_err(MachineRunError::ProtectionDomain)?;
-        if backend.status() != 0 {
-            return Err(MachineRunError::KernelFailure);
-        }
-        let mut output = UppercaseText {
-            bytes: [0; MAXIMUM_BYTES],
-            len: 0,
-        };
-        output.len = backend
-            .output(&mut output.bytes)
-            .map_err(MachineRunError::ProtectionDomain)?;
-        if output.len > 4 || core::str::from_utf8(output.as_bytes()).is_err() {
-            self.region.fault(
-                crate::protected_region::DomainFault::InvalidGate,
-                &mut self.capabilities,
-            );
-            return Err(MachineRunError::ProtectionFault(
-                crate::protected_region::DomainFault::InvalidGate,
-            ));
-        }
-        Ok((output.len != 0).then_some(output))
     }
 
     fn return_from_pure(&mut self) -> Result<(), MachineRunError> {

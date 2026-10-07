@@ -233,6 +233,8 @@ pub(super) fn prepare(
     }
     Ok(NativeWorksetPlay {
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        pure_results: core::array::from_fn(|_| None),
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         protected: core::array::from_fn(|_| None),
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         protection_admissions: core::array::from_fn(|index| {

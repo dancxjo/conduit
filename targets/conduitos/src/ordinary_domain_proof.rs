@@ -161,6 +161,26 @@ fn keymap_entries() {
     arch::early_write(
         b"CONDUIT_DOMAIN_KEYMAP retained-compose canonical-sdk protected-uppercase\n",
     );
+    let event = KeyEvent::new(0x16, KeyTransition::Pressed, KeyModifiers::RIGHT_ALT)
+        .unwrap_or_else(|_| refuse("chain-event"));
+    domain
+        .keymap_chain_input(&event.encode())
+        .unwrap_or_else(|_| refuse("chain-input"));
+    let entries = domain.cost().entries;
+    if domain.enter(1) != Ok(DomainReturn::Yielded) || domain.cost().entries != entries + 1 {
+        refuse("chain-extra-entry");
+    }
+    let mut intermediate = [0; 4];
+    let intermediate_length = domain
+        .intermediate(&mut intermediate)
+        .unwrap_or_else(|_| refuse("chain-intermediate"));
+    let length = domain
+        .output(&mut output)
+        .unwrap_or_else(|_| refuse("chain-output"));
+    if &intermediate[..intermediate_length] != "ß".as_bytes() || &output[..length] != b"SS" {
+        refuse("chain-unicode-expansion");
+    }
+    arch::early_write(b"CONDUIT_DOMAIN_CHAIN one-entry unicode-expansion\n");
 }
 
 fn pending_timer() {

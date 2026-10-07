@@ -125,13 +125,20 @@ Plot implementations remain cooperative. The supported graphical `journey-proof`
 ordinary USB keyboard input selected Keyboard canvas and produced `A` from `a`
 without replacing the Body Plan or Play. The captured display showed `A`.
 Stop revoked the domain and zeroed its allocation. Its exact Body cost record
-reported six entries and gates, one Base gate, 11 runtime copy bytes, twelve
-CR3/TLB switches and privilege transitions, a four-byte shared-window peak,
-118,784 backend bytes and 5,204 per-domain Root metadata bytes. This includes
+reported five entries and gates, one Base gate, 10 runtime copy bytes, ten
+CR3/TLB switches and privilege transitions, a five-byte shared-window peak,
+118,784 backend bytes and 6,356 per-domain Root metadata bytes. This includes
 keymap initialization, press/release handling, uppercase and presentation;
 it is not the total memory cost of the complete Body or its trusted kernel.
-Pure keymap and uppercase currently have separate entries; reducing those
-crossings remains work toward the issue's bulk-computation requirement.
+Keymap and uppercase now execute together in one entry. Root forwards the
+precomputed result only after the existing kernel presents the matching
+intermediate value on the original Cord; it performs no second uppercase
+entry or transformation. The bounded result staging is charged to admission
+and cleared on revocation. The focused chain fixture also expands `ß` to `SS`
+in one entry. The first graphical checkpoint used six entries, twelve
+privilege transitions, 11 copy bytes and a four-byte shared-window peak;
+batching removes one entry and copy while retaining the same Source flow.
+Broader ordinary implementation coverage remains unfinished.
 This is development emulator evidence, not accepted-release evidence.
 
 The x86 budget now uses a separate Root-owned RTC periodic interrupt route.
@@ -155,7 +162,7 @@ a complete normal graphical Body run.
 
 | Target | Ordinary protection evidence | Remaining boundary |
 |---|---|---|
-| x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Pure-chain batching, broader product coverage and release acceptance remain unfinished |
+| x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Broader ordinary implementation coverage, complete conformance and release acceptance remain unfinished |
 | IA-32 | ELF32 artifact admission and malformed-mapping tests | No earned ordinary CPL3 execution proof |
 | AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |

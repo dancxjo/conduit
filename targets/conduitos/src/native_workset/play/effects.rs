@@ -18,11 +18,21 @@ impl NativeWorksetPlay {
             Effect::Keymap => {
                 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
                 if let Some(domain) = &mut self.protected[plot] {
-                    let result = domain.keymap(input);
-                    return match result {
-                        Ok(text) => self.output(request, text.as_ref().map(|text| text.as_bytes())),
-                        Err(error) => self.protected_failure(request, error),
+                    if self.pure_results[plot].is_some() {
+                        return Err(PlayRefusal::InputPressure);
+                    }
+                    let result = match domain.keymap_chain(input) {
+                        Ok(result) => result,
+                        Err(crate::text_protection::KeyboardChainError::InputRefused) => {
+                            return self.failed(request, FailureCode::InvalidInput, 72);
+                        }
+                        Err(crate::text_protection::KeyboardChainError::Execution(error)) => {
+                            return self.protected_failure(request, error);
+                        }
                     };
+                    self.output(request, result.as_ref().map(|result| result.source()))?;
+                    self.pure_results[plot] = result;
+                    return Ok(());
                 }
                 let event = KeyEvent::decode(input).map_err(|_| PlayRefusal::Kernel)?;
                 match self.keymaps[plot].apply(event) {
@@ -40,17 +50,29 @@ impl NativeWorksetPlay {
             }
             Effect::Upper => {
                 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-                let text = match self.protected[plot]
-                    .as_mut()
-                    .ok_or(PlayRefusal::Preparation)?
-                    .uppercase(input)
                 {
-                    Ok(text) => text,
-                    Err(error) => return self.protected_failure(request, error),
-                };
+                    let Some(result) = self.pure_results[plot].take() else {
+                        return self.protected_failure(
+                            request,
+                            crate::composition::MachineRunError::KernelFailure,
+                        );
+                    };
+                    if result.source() != input {
+                        return self.protected_failure(
+                            request,
+                            crate::composition::MachineRunError::KernelFailure,
+                        );
+                    }
+                    // This is the result already computed in the domain. The
+                    // existing kernel retains the original typed Cord flow.
+                    self.output(request, Some(result.upper()))
+                }
                 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-                let text = crate::text_upper::uppercase(input).map_err(|_| PlayRefusal::Kernel)?;
-                self.output(request, Some(text.as_bytes()))
+                {
+                    let text =
+                        crate::text_upper::uppercase(input).map_err(|_| PlayRefusal::Kernel)?;
+                    self.output(request, Some(text.as_bytes()))
+                }
             }
             Effect::Edit => {
                 let output = match self.editors[plot]
