@@ -217,3 +217,5 @@ pub mod fixed_numeric_scan_back;
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_signal_back;
 pub mod fixed_tensor_linear;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_operations_back;
