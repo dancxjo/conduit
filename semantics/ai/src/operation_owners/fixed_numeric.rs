@@ -92,6 +92,22 @@ fn owns_implementation(id: &ImplementationId) -> bool {
 pub fn fixed_numeric_offer(kind: &str) -> Result<CapabilityOffer, String> {
     Ok(select(kind, None, &BTreeMap::new())?.offer)
 }
+/// Explicit larger concurrency profile for stateless index/elementwise flows.
+pub fn fixed_numeric_offer_capacity64(kind: &str) -> Result<CapabilityOffer, String> {
+    let original = fixed_numeric_offer(kind)?;
+    let implementation = original.implementation.implementation_id.as_str();
+    if crate::fixed_numeric_temporal::capacity64_profile(implementation).is_ok() {
+        let suffix = kind
+            .strip_prefix("numeric/flow-")
+            .ok_or("closing numeric Kind required")?;
+        crate::fixed_numeric_temporal::closing_numeric_offer_capacity64(
+            &format!("numeric/{suffix}"),
+            implementation,
+        )
+    } else {
+        Ok(original)
+    }
+}
 /// One owner per exact implementation identity, suitable for the ordinary
 /// KernelOperationRegistry. Immutable resources retain their adoption receipts.
 pub struct FixedNumericOperationFactory {
@@ -106,11 +122,25 @@ impl FixedNumericOperationFactory {
         plan: &Plan,
         sources: &BTreeMap<PlacementId, Arc<AdmittedFixedTensorResource>>,
     ) -> Result<Vec<Self>, String> {
+        Self::for_plan_mode(plan, sources, false)
+    }
+    pub fn for_plan_capacity64(
+        plan: &Plan,
+        sources: &BTreeMap<PlacementId, Arc<AdmittedFixedTensorResource>>,
+    ) -> Result<Vec<Self>, String> {
+        Self::for_plan_mode(plan, sources, true)
+    }
+    fn for_plan_mode(
+        plan: &Plan,
+        sources: &BTreeMap<PlacementId, Arc<AdmittedFixedTensorResource>>,
+        capacity64: bool,
+    ) -> Result<Vec<Self>, String> {
         if !verify_plan(plan) || plan.fragments.len() != 1 {
             return Err("numeric owners require one sealed fragment".into());
         }
         let fragment = &plan.fragments[0];
         let mut owners: BTreeMap<ImplementationId, Self> = BTreeMap::new();
+        let mut counts: BTreeMap<CapabilityId, u16> = BTreeMap::new();
         for gear in &fragment.placements {
             if !gear.kind_id.as_str().starts_with("numeric/") {
                 continue;
@@ -118,8 +148,19 @@ impl FixedNumericOperationFactory {
             if !owns_implementation(&gear.implementation_id) {
                 continue; // A separate exact implementation owner must admit it.
             }
-            let offer = fixed_numeric_offer(gear.kind_id.as_str())?;
+            let offer = if capacity64 {
+                fixed_numeric_offer_capacity64(gear.kind_id.as_str())?
+            } else {
+                fixed_numeric_offer(gear.kind_id.as_str())?
+            };
             verify_fixed_placement(gear, &offer).map_err(|error| format!("{error:?}"))?;
+            let count = counts.entry(offer.capability_id.clone()).or_default();
+            *count = count
+                .checked_add(1)
+                .ok_or("numeric instance count overflow")?;
+            if *count > offer.limits.max_active_instances {
+                return Err("numeric selected instance capacity exceeded".into());
+            }
             let owner = owners
                 .entry(gear.implementation_id.clone())
                 .or_insert_with(|| Self {

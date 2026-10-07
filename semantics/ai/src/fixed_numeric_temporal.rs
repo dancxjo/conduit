@@ -45,6 +45,13 @@ pub fn install_closing_numeric_catalogs(
     startup: &mut conduit_plot::StartupCatalog,
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
+    install_closing_numeric_catalogs_mode(startup, profile, false)
+}
+fn install_closing_numeric_catalogs_mode(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+    capacity64: bool,
+) -> Result<(), String> {
     for value in fixed_numeric_contracts()? {
         let identity = value.kind_id.as_str();
         let suffix = identity
@@ -78,7 +85,11 @@ pub fn install_closing_numeric_catalogs(
         } else {
             continue;
         };
-        let kind = closing_numeric_contract(identity, implementation)?;
+        let kind = if capacity64 && capacity64_profile(implementation).is_ok() {
+            closing_numeric_contract_capacity64(identity, implementation)?
+        } else {
+            closing_numeric_contract(identity, implementation)?
+        };
         startup.insert(conduit_plot::KindSignature {
             kind: String::from(kind.kind_id.as_str()),
             startup_parameters: vec![],
@@ -89,4 +100,75 @@ pub fn install_closing_numeric_catalogs(
             .map_err(|error| format!("{error:?}"))?;
     }
     Ok(())
+}
+
+/// Distinct finite concurrency admission for stateless indexing/elementwise flows.
+/// Default contracts remain at16 instances and all byte/queue bounds are unchanged.
+pub fn capacity64_profile(implementation: &str) -> Result<String, String> {
+    if ![
+        crate::fixed_numeric_index_back::FLOW_INDEX_IMPLEMENTATION,
+        crate::fixed_numeric_signal_back::FLOW_ELEMENTWISE_IMPLEMENTATION,
+    ]
+    .contains(&implementation)
+    {
+        return Err("capacity64 is supported only for stateless index/elementwise owners".into());
+    }
+    Ok(format!(
+        "{}-capacity64@1",
+        implementation
+            .strip_suffix("@1")
+            .ok_or("versioned numeric implementation required")?
+    ))
+}
+pub fn closing_numeric_contract_capacity64(
+    value_identity: &str,
+    implementation: &str,
+) -> Result<Kind, String> {
+    let profile = capacity64_profile(implementation)?;
+    let mut kind = closing_numeric_contract(value_identity, implementation)?;
+    kind.kind_contract_revision = profile.into();
+    kind.limits.max_active_instances = 64;
+    Ok(kind)
+}
+pub fn closing_numeric_offer_capacity64(
+    value_identity: &str,
+    implementation: &str,
+) -> Result<CapabilityOffer, String> {
+    let profile = capacity64_profile(implementation)?;
+    let kind = closing_numeric_contract_capacity64(value_identity, implementation)?;
+    let identity = String::from(kind.kind_id.as_str());
+    Ok(BackOfferBuilder::new(
+        kind,
+        Back {
+            capability_id: format!("{profile}/{identity}").into(),
+            execution_profile_id: profile.into(),
+            implementation_id: implementation.into(),
+            artifact_id: implementation.into(),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build())
+}
+/// Back preparation derives the expected offer from an explicit selected profile.
+/// Full placement verification remains mandatory after this lookup.
+pub fn closing_numeric_offer_for_placement(
+    value_identity: &str,
+    implementation: &str,
+    placement: &PlannedGear,
+) -> Result<CapabilityOffer, String> {
+    if capacity64_profile(implementation)
+        .is_ok_and(|p| p == placement.execution_profile_id.as_str())
+    {
+        closing_numeric_offer_capacity64(value_identity, implementation)
+    } else {
+        closing_numeric_offer(value_identity, implementation)
+    }
+}
+pub fn install_closing_numeric_catalogs_capacity64(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    install_closing_numeric_catalogs_mode(startup, profile, true)
 }

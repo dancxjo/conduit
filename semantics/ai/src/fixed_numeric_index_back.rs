@@ -94,9 +94,10 @@ impl<const INPUT: usize, const OUTPUT: usize> FixedIndexBack<INPUT, OUTPUT> {
             return Err(FixedIndexPreparationRefusal::StepBudget);
         }
         let offer = if flow {
-            crate::fixed_numeric_temporal::closing_numeric_offer(
+            crate::fixed_numeric_temporal::closing_numeric_offer_for_placement(
                 &format!("numeric/{}{INPUT}x{OUTPUT}", operation.name()),
                 FLOW_INDEX_IMPLEMENTATION,
+                placement,
             )
         } else {
             fixed_index_offer::<INPUT, OUTPUT>(operation)
