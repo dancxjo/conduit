@@ -23,23 +23,37 @@ impl FixedTensorPortBinding {
     ) -> Result<Self, FixedBindingRefusal> {
         // Admit only exact owned profiles and their fixed dimensions. Structural
         // encoding alone cannot enforce nominal singleton refinements.
-        let name = match tensor.dimensions.as_slice() {
-            [columns, rows] => alloc::format!("NumericF32MatrixRef{columns}x{rows}"),
-            [length] => alloc::format!("NumericF32BiasRef{length}"),
-            _ => return Err(FixedBindingRefusal::Shape),
+        let (name, element_tag) = match (tensor.element, tensor.dimensions.as_slice()) {
+            (TensorElement::F32, [columns, rows]) => {
+                (alloc::format!("NumericF32MatrixRef{columns}x{rows}"), "f32")
+            }
+            (TensorElement::F32, [length]) => (alloc::format!("NumericF32BiasRef{length}"), "f32"),
+            (TensorElement::I8, [columns, rows]) => (
+                alloc::format!("NumericI8TiledMatrixRef{columns}x{rows}"),
+                "i8",
+            ),
+            _ => return Err(FixedBindingRefusal::Element),
         };
         let admitted = crate::fixed_numeric_catalog::fixed_numeric_type(&name)
             .is_ok_and(|owned| owned == *profile)
-            || (tensor.dimensions.as_slice() == [224, 12]
+            || (tensor.element == TensorElement::I8
+                && crate::fixed_numeric_compact_catalog::fixed_compact_type(&name)
+                    .is_ok_and(|owned| owned == *profile))
+            || (tensor.element == TensorElement::F32
+                && tensor.dimensions.len() == 1
+                && crate::fixed_numeric_compact_catalog::fixed_compact_type(&alloc::format!(
+                    "NumericF32ScaleRef{}",
+                    tensor.dimensions[0]
+                ))
+                .is_ok_and(|owned| owned == *profile))
+            || (tensor.element == TensorElement::F32
+                && tensor.dimensions.as_slice() == [224, 12]
                 && crate::fixed_numeric_catalog::fixed_numeric_type("NumericEmbedding224x12")
                     .is_ok_and(|owned| owned == *profile));
         if !admitted {
             return Err(FixedBindingRefusal::Shape);
         }
         tensor.validate().map_err(|_| FixedBindingRefusal::Shape)?;
-        if tensor.element != TensorElement::F32 {
-            return Err(FixedBindingRefusal::Element);
-        }
         let TensorBacking::Resource(resource) = &tensor.backing else {
             return Err(FixedBindingRefusal::ResourceRequired);
         };
@@ -63,10 +77,14 @@ impl FixedTensorPortBinding {
                     };
                     let case = cases
                         .iter()
-                        .find(|case| case.tag() == "f32")
+                        .find(|case| case.tag() == element_tag)
                         .ok_or(FixedBindingRefusal::Element)?;
-                    StructuredInfoValue::variant(ty.clone(), "f32", leaf(case.payload_type(), &[])?)
-                        .map_err(|_| FixedBindingRefusal::Encoding)?
+                    StructuredInfoValue::variant(
+                        ty.clone(),
+                        element_tag,
+                        leaf(case.payload_type(), &[])?,
+                    )
+                    .map_err(|_| FixedBindingRefusal::Encoding)?
                 }
                 "columns" if tensor.dimensions.len() == 2 => leaf(
                     ty,
