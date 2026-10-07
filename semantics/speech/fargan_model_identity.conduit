@@ -1,0 +1,14 @@
+# Bounded frame links to privately retained, completely admitted model/session receipts.
+# These links are never sufficient to admit a model, voice intent, or session.
+type FarganModelPrecision =
+    reference_float32
+    | compact_signed_q7
+
+type FarganModelReceiptIdentity = collection U8 = 32
+
+type FarganModelFrameAnchor = {
+    artifact_identity: FarganModelReceiptIdentity
+    model_descriptor_identity: FarganModelReceiptIdentity
+    session_basis_identity: FarganModelReceiptIdentity
+    precision: FarganModelPrecision
+}
