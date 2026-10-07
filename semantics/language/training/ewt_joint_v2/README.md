@@ -94,7 +94,11 @@ This direct diagnostic packs fields into the exact checked Source schema.
 Generated Native admission subsequently passed in33.31s, preserving the whole
 actual context and refusing the same three changed head/choice cases. Its
 direct set fixture mirrors the prior observed Source initializer output;
-the ordinary protection replay remains pending.
+the corrected ordinary six-scope protection replay subsequently passed in
+1157.28s. It executes Source initialization/upsert, matching-choice branching
+and legal-mask refinement; conflicting choices refuse and incompatible right
+arcs are filtered. This policy replay uses synthetic identity0/score0 beside
+the unchanged actual retained fact; it does not replay model inference.
 Raw protected sets/masks do not authorize published truth: recursive protected
 hypothesis/forest admission and independent `Hello, Travis.` VOC2 append/played
 proofs are still required. No fresh inference or played commitment is claimed.
