@@ -1,0 +1,30 @@
+# Metadata lineage is admitted by Language's shared contract. Lexical preparation
+# must also validate the actual finite/stable prefix before constructing this
+# context. This operation resets uncommitted analysis, never played semantics.
+type LanguageParserRevisionContext = {
+    lineage: LanguageTextRevisionLineage
+    previous: LanguageParserAvailableState
+    next: LanguageParserAvailableLexical
+    basis: LanguageParserBasis
+    default_relation: LanguageParserRelation
+    where .default_relation.base is dep
+    where .lineage.previous == .previous.lexical.tape.source
+    where .lineage.next == .next.tape.source
+    where .basis.text == .next.tape.source.material.identity
+    where .basis.source_revision == .next.tape.source.material.revision
+    where .basis.analysis_revision != .previous.state.basis.analysis_revision
+}
+type LanguageParserRevisionRefusal =
+    none
+    | committed_prefix
+    | unavailable_prefix
+type LanguageParserRevisionResult = {
+    accepted: Boolean
+    refusal: LanguageParserRevisionRefusal
+    state: LanguageParserNumericState
+}
+plot language-parser-revision-reset (
+    input: LanguageParserRevisionContext...| >> output: LanguageParserRevisionResult...|
+) = { accepted: (.previous.state.committed == 0 && .next.token_count > 0), refusal: (.previous.state.committed > 0 ? committed_prefix(unit) : (.next.token_count == 0 ? unavailable_prefix(unit) : none(unit))), state: ((.previous.state.committed == 0 && .next.token_count > 0) ? { basis: .basis, token_count: .next.token_count, unread: 0, depth: 1, stack: [4,4,4,4,4], heads: [5,5,5,5,4], relation0: .default_relation, relation1: .default_relation, relation2: .default_relation, relation3: .default_relation, committed: 0 } : { basis: .previous.state.basis, token_count: .previous.state.token_count, unread: .previous.state.unread, depth: .previous.state.depth, stack: .previous.state.stack, heads: .previous.state.heads, relation0: .previous.state.relation0, relation1: .previous.state.relation1, relation2: .previous.state.relation2, relation3: .previous.state.relation3, committed: .previous.state.committed }) }
+# The admitted dep relation fills unassigned slots only; no arc truth is published.
+# Raw result state requires generic recursive LanguageParserState admission.

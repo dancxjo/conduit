@@ -130,3 +130,7 @@ pub use generated::{
     LanguageParserV2ChoiceQuery, LanguageParserV2FeaturesContext, LanguageParserV2ModelFeatures,
     LanguageParserV2PosContext,
 };
+
+pub use generated::{
+    LanguageParserRevisionContext, LanguageParserRevisionRefusal, LanguageParserRevisionResult,
+};

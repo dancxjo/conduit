@@ -11,62 +11,9 @@ mod parser_kernel;
 #[path = "common/scorer_model.rs"]
 mod scorer_model;
 use fixture::{count, field, field_type, number, record};
-struct Flow {
-    execution: parser_kernel::Execution,
-    sequence: u64,
-    calls: u64,
-    nanos: u128,
-    maximum_nanos: u128,
-}
-impl Flow {
-    fn call(&mut self, input: &StructuredInfoValue) -> StructuredInfoValue {
-        let started = std::time::Instant::now();
-        let result = self.execution.transact(self.sequence, input);
-        let nanos = started.elapsed().as_nanos();
-        self.calls += 1;
-        self.nanos += nanos;
-        self.maximum_nanos = self.maximum_nanos.max(nanos);
-        self.sequence += 1;
-        result
-    }
-}
-struct Pipelines {
-    flows: Vec<Flow>,
-}
-impl Pipelines {
-    fn new(blueprints: &[parser_kernel::Blueprint], epoch: usize) -> Self {
-        Self {
-            flows: blueprints
-                .iter()
-                .map(|blueprint| {
-                    let mut execution = blueprint.realize(epoch);
-                    execution.kernel.start().unwrap();
-                    Flow {
-                        execution,
-                        sequence: 0,
-                        calls: 0,
-                        nanos: 0,
-                        maximum_nanos: 0,
-                    }
-                })
-                .collect(),
-        }
-    }
-    fn call(&mut self, stage: usize, input: &StructuredInfoValue) -> StructuredInfoValue {
-        self.flows[stage].call(input)
-    }
-    fn merge(
-        &mut self,
-        beam: LanguageParserJointRuntimeRawBeam,
-        proposal: LanguageParserJointRuntimeHypothesis,
-    ) -> LanguageParserJointRuntimeRawBeam {
-        let input = LanguageParserJointRuntimeMerge::new(beam, proposal).unwrap();
-        LanguageParserJointRuntimeRawBeam::from_structured(
-            self.call(7, &input.into_structured().unwrap()),
-        )
-        .unwrap()
-    }
-}
+#[path = "common/parser_joint_flows.rs"]
+mod parser_joint_flows;
+use parser_joint_flows::Pipelines;
 #[test]
 fn learned_reviewed_vocative_teaching_graphs_run_native_width_four_pipeline() {
     evaluate(Some("reviewed-teaching"));
@@ -81,8 +28,12 @@ fn learned_heldout_joint_pos_and_attachment_evidence() {
 fn learned_reviewed_name_generalization() {
     evaluate(Some("reviewed-generalization"));
 }
+#[test]
+#[ignore = "explicit exact motivating punctuation evaluation; first predictions retained"]
+fn learned_exact_hello_travis_punctuation() {
+    evaluate(Some("reviewed-punctuation"));
+}
 fn evaluate(selected: Option<&str>) {
-    let started = std::time::Instant::now();
     let rows = if selected == Some("reviewed-teaching") {
         serde_json::from_str::<Vec<joint::Sentence>>(include_str!(
             "../training/ewt_joint_v2/reviewed_teaching.json"
@@ -93,6 +44,11 @@ fn evaluate(selected: Option<&str>) {
             "../training/ewt_joint_v2/reviewed_generalization.json"
         ))
         .unwrap()
+    } else if selected == Some("reviewed-punctuation") {
+        serde_json::from_str::<Vec<joint::Sentence>>(include_str!(
+            "../training/ewt_joint_v2/reviewed_punctuation.json"
+        ))
+        .unwrap()
     } else {
         include_str!("../training/ewt_joint_v2/test_annotations.jsonl")
             .lines()
@@ -100,6 +56,14 @@ fn evaluate(selected: Option<&str>) {
             .collect()
     };
     let native_inputs = rows.iter().map(joint::lexical).collect::<Vec<_>>();
+    evaluate_rows(selected, rows, native_inputs);
+}
+fn evaluate_rows(
+    selected: Option<&str>,
+    rows: Vec<joint::Sentence>,
+    native_inputs: Vec<Result<LanguageParserJointLexical, &'static str>>,
+) {
+    let started = std::time::Instant::now();
     let mut exclusions = std::collections::BTreeMap::<&str, u64>::new();
     let mut f = fixture::Fixture::new();
     let mut complete = f.prepare("language-parser-decode-complete");
@@ -418,7 +382,7 @@ fn evaluate(selected: Option<&str>) {
                 }
             }
             if selected.is_some() {
-                let receipt = serde_json::json!({"id":row.id,"text":row.forms.join(" "),"model_content_identity":joint::hex(scorer.artifact.content_identity()),"model_signature_identity":joint::hex(scorer.signature.semantic_digest().unwrap()),"feature_class_contract_identity":joint::hex(semantic_digest("language/parser-v2-scorer-encoding@1", include_bytes!("../parser_scorer_v2.conduit"))),"text_identity":state.basis().text().get(),"source_revision":state.basis().source_revision().get(),"analysis_revision":state.basis().analysis_revision().get(),"source_material_bytes":lexical.tape().source().clone().into_structured().unwrap().canonical_bytes().unwrap(),"lexical_tape_bytes":lexical.tape().clone().into_structured().unwrap().canonical_bytes().unwrap(),"lexical_pos_codes":pos.pos(),"basis":state.basis().clone().into_structured().unwrap().canonical_bytes().unwrap(),"choices":best.hypothesis().choices(),"predicted":predicted,"complete":is_complete(state,&mut complete)});
+                let receipt = serde_json::json!({"id":row.id,"text":joint::sentence_text(row),"acquisition_history":joint::acquisition_history(&row.id),"model_content_identity":joint::hex(scorer.artifact.content_identity()),"model_signature_identity":joint::hex(scorer.signature.semantic_digest().unwrap()),"feature_class_contract_identity":joint::hex(semantic_digest("language/parser-v2-scorer-encoding@1", include_bytes!("../parser_scorer_v2.conduit"))),"text_identity":state.basis().text().get(),"source_revision":state.basis().source_revision().get(),"analysis_revision":state.basis().analysis_revision().get(),"source_material_bytes":lexical.tape().source().clone().into_structured().unwrap().canonical_bytes().unwrap(),"lexical_tape_bytes":lexical.tape().clone().into_structured().unwrap().canonical_bytes().unwrap(),"lexical_pos_codes":pos.pos(),"basis":state.basis().clone().into_structured().unwrap().canonical_bytes().unwrap(),"choices":best.hypothesis().choices(),"predicted":predicted,"complete":is_complete(state,&mut complete)});
                 eprintln!("JOINT_NATIVE_GRAPH {receipt}");
                 graphs.push(receipt);
             }
@@ -447,7 +411,7 @@ fn evaluate(selected: Option<&str>) {
     if let Ok(path) = std::env::var("CONDUIT_PARSER_JOINT_V2_GRAPHS_OUTPUT") {
         std::fs::write(path, serde_json::to_string_pretty(&graphs).unwrap()).unwrap();
     }
-    if selected.is_some() {
+    if selected.is_some() && selected != Some("reviewed-punctuation") {
         assert_eq!(counts[0], rows.len() as u64);
         assert_eq!(
             counts[1],
