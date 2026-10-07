@@ -188,3 +188,9 @@ pub use generated::{
     LanguageParserProtectedInsertStage, LanguageParserProtectedMaskResolved,
     LanguageParserProtectedSetProposal,
 };
+
+pub use generated::{
+    LanguageParserIndependentProtectedAdmission, LanguageParserProtectedHypothesisCompatibility,
+    LanguageParserProtectedSetRebaseContext, LanguageParserProtectionForest,
+    LanguageParserProtectionForestProposal, LanguageParserProtectionForestQuery,
+};
