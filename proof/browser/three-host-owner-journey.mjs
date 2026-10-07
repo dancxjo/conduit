@@ -241,7 +241,7 @@ try {
     'make', 'conduitos', 'live-owner-action-proof', '--spore', spore,
     '--candidate-id', candidateId, '--owner-forward', ownerForward,
     '--output-dir', native, '--coordinate',
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  ], { stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
   nativeProof.stdout.on('data', chunk => nativeOutput.push(chunk.toString()));
   nativeProof.stderr.on('data', chunk => nativeOutput.push(chunk.toString()));
   const standby = await waitForFile(path.join(native, 'native-standby.json'));
@@ -300,11 +300,30 @@ try {
   };
   await writeFile(path.join(native, 'held-clock-start.json'),
     `${JSON.stringify(nativeStartBasis, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
-  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
-  await page.waitForFunction(() => {
-    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
-      .route_descriptions.some(route => route.mask_name === 'native-graphical'); } catch { return false; }
-  }, null, { timeout: 12_000 });
+  const nativeWardrobeDeadline = Date.now() + 60_000;
+  let nativeWardrobeObserved = false;
+  while (Date.now() < nativeWardrobeDeadline && !nativeWardrobeObserved) {
+    await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+    try {
+      await page.waitForFunction(() => {
+        try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+          .route_descriptions.some(route => route.mask_name === 'native-graphical'); } catch { return false; }
+      }, null, { timeout: Math.min(8_000, nativeWardrobeDeadline - Date.now()) });
+      nativeWardrobeObserved = true;
+    } catch (error) {
+      if (error.name !== 'TimeoutError') throw error;
+    }
+  }
+  if (!nativeWardrobeObserved) {
+    const diagnostic = await page.evaluate(() => ({
+      status: document.querySelector('[data-owner-wardrobe-status]')?.textContent,
+      evidence: document.querySelector('[data-owner-wardrobe-evidence]')?.textContent,
+      presence: globalThis.__conduitOwnerParticipation?.presence(),
+    }));
+    await writeFile(path.join(output, 'native-wardrobe-refusal.json'),
+      `${JSON.stringify(diagnostic, null, 2)}\n`, { mode: 0o600 });
+    throw new Error(`native Mask route absent after fresh wardrobe inspection: ${diagnostic.status}`);
+  }
   const nativeWardrobeBefore = await readWardrobe();
   const nativeDescription = nativeWardrobeBefore.route_descriptions.find(route =>
     route.mask_name === 'native-graphical');
@@ -1093,7 +1112,12 @@ try {
   console.log(`Three-host journey proof: ${path.join(output, 'report.json')}`);
 } finally {
   speechObserver?.close();
-  if (nativeProof?.exitCode === null) nativeProof.kill();
+  if (nativeProof?.pid) {
+    try {
+      if (process.platform === 'win32') nativeProof.kill();
+      else process.kill(-nativeProof.pid, 'SIGTERM');
+    } catch (error) { if (error.code !== 'ESRCH') throw error; }
+  }
   await browser?.close();
   if (server) server.child.kill();
   await writeFile(path.join(output, 'native-process.log'), nativeOutput.join(''));
