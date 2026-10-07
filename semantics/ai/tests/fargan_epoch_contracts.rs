@@ -516,6 +516,8 @@ fn causal_feature_feedback_retains_both_scalar_memories_in_bounded_native_profil
         "FarganFeatureEpochFeedback",
         "FarganFeaturePcmEpoch",
         "FarganFeaturePendingState",
+        "FarganFeatureInputEpoch",
+        "FarganFeatureProposalEpoch",
     ] {
         let profile =
             conduit_ai::native_profile::PreparedNativeProfile::check_definition(&source, name)

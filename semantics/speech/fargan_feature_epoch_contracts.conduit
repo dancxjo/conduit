@@ -13,3 +13,24 @@ type FarganFeaturePendingState = {
     previous_normalized: NumericFiniteF32
     epoch: U64
 }
+
+# The entry aggregates one admitted native PCM epoch with the previous causal
+# state. Epoch equality is asserted by the authored feedback composition.
+type FarganFeatureInputEpoch = {
+    samples: NumericI16Vector80
+    history: NumericF32Vector640
+    previous_raw: NumericFiniteF32
+    previous_normalized: NumericFiniteF32
+    period: FarganPeriod
+    epoch: U64
+}
+# Neither spectral publication nor these provisional scalar memories ACKs the
+# native epoch. The final canonical PCM16 result selects the replacement.
+type FarganFeatureProposalEpoch = {
+    features: NumericF32Vector20
+    history: NumericF32Vector640
+    previous_raw: NumericFiniteF32
+    previous_normalized: NumericFiniteF32
+    period: FarganPeriod
+    epoch: U64
+}
