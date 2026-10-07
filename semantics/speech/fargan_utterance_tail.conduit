@@ -31,14 +31,33 @@ plot speech/fargan-utterance-tail (
     ordered.concatenated >> result
 }
 plot speech/flow-fargan-last-native-feature (
-    last_native_epoch: U64
+    native_epochs: U64
     value: FeatureModelEvent...| >> result: FeatureModelEvent...|
 ) {
-    value >> when(.epoch == last_native_epoch) >> result
+    value >> when((.epoch + 1) == native_epochs) >> result
 }
 plot speech/flow-fargan-native-pcm-ack (
     native_epochs: U64
     value: FarganPcm16EpochResult...| >> result: FarganPcm16EpochResult...|
 ) {
     value >> when(.epoch < native_epochs) >> result
+}
+
+plot speech/flow-fargan-feature-utterance (
+    native_epochs: U64
+    >> value: FeatureModelEvent...|
+    result: FeatureModelEvent...| >>
+) {
+    last: speech/flow-fargan-last-native-feature (native_epochs = native_epochs)
+    singleton: flow/exactly-one
+    weak: structure/nominal-weakening/typed-69d1eb0a53914346a12a7e6aeded6bdc97917bf663fe978d502501f47c39e088a24e7bdc0fa4579bb4409de42346806f6b78d4fa4160d20118a0c05c88328164
+    tail: speech/fargan-utterance-tail (native_epochs = native_epochs)
+    ordered: flow/concat/finite
+    value >> last.value
+    last.result >> singleton.item
+    singleton.value >> weak.value
+    weak.result >> tail.value
+    value >> ordered.left
+    tail.result >> ordered.right
+    ordered.concatenated >> result
 }

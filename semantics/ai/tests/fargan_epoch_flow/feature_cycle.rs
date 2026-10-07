@@ -706,7 +706,7 @@ pub(super) fn prepare_tail(
         policy.replace("native_epochs: U64\n", "native_epochs: U64 = 63\n").replace("last_native_epoch: U64\n", "last_native_epoch: U64 = 62\n")
     );
     let mut concat = conduitos::flow_concat_finite::FlowConcatFiniteOperationFactory::default();
-    let offers = vec![
+    let mut offers = vec![
         profile.offer(false).unwrap(),
         weak.offer(false).unwrap(),
         conduit_std_host::value_repeat::PreparedValueRepeat::capacity2(
@@ -720,9 +720,80 @@ pub(super) fn prepare_tail(
             .install(&event_contract, profile.value_type())
             .unwrap(),
     ];
+    conduit_semantic_catalog::install_flow_exactly_one_kind(
+        &event_contract,
+        profile.value_type(),
+        &mut context.startup,
+        &mut context.profiles,
+    )
+    .unwrap();
+    offers.push(
+        conduit_std_host::flow_exactly_one::PreparedFlowExactlyOne::new(
+            event_contract,
+            profile.value_type().clone(),
+        )
+        .unwrap()
+        .offer()
+        .clone(),
+    );
     let raw = weak.output_type().clone();
     context.weakening.push(std::sync::Arc::new(weak));
     (context, source, raw, offers)
+}
+
+pub(super) fn native_utterance_source(
+    ids: &std::collections::BTreeMap<String, String>,
+    tail_source: &str,
+) -> String {
+    let source = native_cycle_source(ids)
+        + "\n"
+        + &tail_source
+            .lines()
+            .filter(|line| !line.ends_with(" as FarganPcm16EpochResult"))
+            .collect::<Vec<_>>()
+            .join("\n")
+        + "\n"
+        + include_str!("../../../speech/fargan_native_utterance.conduit");
+    let imports: std::collections::BTreeSet<_> = source
+        .lines()
+        .filter(|line| line.starts_with("with "))
+        .collect();
+    imports.into_iter().collect::<Vec<_>>().join("\n")
+        + "\n"
+        + &source
+            .lines()
+            .filter(|line| !line.starts_with("with "))
+            .collect::<Vec<_>>()
+            .join("\n")
+}
+
+#[test]
+fn native_utterance_authors_late_singleton_and_two_tails_inside_three_feedback_domains() {
+    let (context, seeded, _) = prepared_signal_cycle_profiles_with_capacity(true);
+    let (context, seeded, _) = super::conditioning_cycle::prepare_with(context, seeded);
+    let (context, seeded, ids) = prepare_feedback_with(context, seeded);
+    let (context, tail, _, _) = prepare_tail(context, &ids);
+    assert_eq!(seeded.offers().count(), 3);
+    let receipt = format!("[{}]", vec!["1"; 32].join(","));
+    let anchor = format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
+    let source = native_utterance_source(&ids, &tail)
+        .replace(
+            "selected: FarganModelFrameAnchor\n",
+            &format!("selected: FarganModelFrameAnchor = {anchor}\n"),
+        )
+        .replace("native_epochs: U64\n", "native_epochs: U64 = 63\n");
+    let checked = check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &checked,
+        "speech/flow-fargan-native-utterance",
+        &context.profiles,
+    )
+    .unwrap();
+    eprintln!(
+        "Source finite native utterance: {}nodes/{}cords",
+        graph.expanded.gears.len(),
+        graph.expanded.connections.len()
+    );
 }
 
 #[test]
@@ -743,4 +814,8 @@ fn utterance_tail_candidates_keep_feature_shape_and_assign_source_epochs() {
     assert!(source.contains("epoch: native_epochs}"));
     assert!(source.contains("epoch: (native_epochs + 1)"));
     eprintln!("Source tail event fits ordered concat limit4096B");
+    eprintln!(
+        "retained tail input alias: {}",
+        source.lines().next().unwrap()
+    );
 }
