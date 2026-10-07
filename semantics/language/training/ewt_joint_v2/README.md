@@ -39,3 +39,24 @@ The blind official TEST execution is retained in `native_official_test_metrics.j
 `native_stream_policy_replay.json` replays the retained actual planned-model beams through the separately authored, uncalibrated integer score-band-1000 retention policy. Ordinary Source graphs propose the unchanged full candidate query; generic native admission executes the complete Source-authored stable-fact laws, including dependent/head lexical agreement, relation agreement, processed endpoints, exact source spans and scalar stability. Root facts additionally require finality. The initial ambiguous partial snapshot refuses; the second Partial snapshot admits the actual Travis→Hello vocative while refusing root closure; the Final snapshot admits both. Each accepted fact retains exact native canonical bytes and every refused fact retains its typed refusal. The Source commitment graph advances the first dependency frontier to one while preserving the candidate heads, basis and lexical choices; attempting a noncontiguous root commitment refuses.
 
 The exact policy replay test passed in 120.20 seconds. This is post-decode replay and native Source-law admission, not live frontier advancement, protected append or speech playback. The band is not calibrated lexical confidence and has not been selected/evaluated on TRAIN/DEV; raw width-four historical receipts remain unchanged. Source policy files are separate from the immutable pinned-v2 model feature/class ABI. The long duplicate Boolean admission expression was removed in favor of one native Source-law owner; Core/checker depth limits were preserved.
+
+
+### Retained Source commit and append proof
+
+`native_stream_protected_*` records one synthetic typed Language sequence:
+partial `Tr`, `Travis `, `Travis Hello `, `Travis Hello friend `, then Final
+with the same text. Actual Source graphs and one admitted categorical model
+Plan/Play remain retained. The vocative commits at prefix1 before finality;
+append preserves its dependent, relation and chosen head POS. Source refuses
+incompatible head alternatives. Frontiers are `[0,1,1,3]`; stable counts are
+`[0,1,2,3]`. Exact native rebase inputs/states and original stable facts are in
+the JSONL snapshots, beside complete revision and lexical graph receipts.
+
+The explicit ignored proof passed in683.26s; its observer clock includes cold
+preparation. Nine token-instance comparisons across four snapshots match POS,
+UAS and universal-base LAS; there are only three distinct complete words.
+These are manually reviewed cases with TRAIN teaching-prefix overlap, not
+held-out corpus accuracy. The inherited `eligible_heldout_sentences` metric
+field counts synthetic snapshots here. This does not prove independent VOC2
+protection for `Hello, Travis.`, played audio, or a production stream entrance.
+The band1000 remains uncalibrated and has not been selected on TRAIN/DEV.

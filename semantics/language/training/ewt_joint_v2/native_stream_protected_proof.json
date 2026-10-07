@@ -1,0 +1,43 @@
+{
+  "scope": "synthetic typed Language arrival sequence; actual retained Source and admitted categorical model Plan/Play; manually reviewed reference",
+  "corpus_accuracy_claim": false,
+  "asr_provider_accuracy_claim": false,
+  "teaching_prefix_overlap": true,
+  "unique_complete_words": 3,
+  "arrival_snapshots": 4,
+  "source_revisions": 5,
+  "committed_snapshots": [
+    0,
+    1,
+    1,
+    3
+  ],
+  "stable_snapshots": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "protected_branch_refusals": 6,
+  "test_wall_seconds": 683.26,
+  "observer_cold_preparation_and_initial_wait_ms": 342041,
+  "model_bytes": 62796,
+  "source_preparation_ms": 74259,
+  "ordinary_parser_plan_preparation_ms": 132459,
+  "decode_ms": 88197,
+  "host_memory": "VmHWM:\t 3796488 kB; VmRSS:\t 3746524 kB",
+  "token_snapshot_matches": {
+    "instances": 9,
+    "pos": 9,
+    "uas": 9,
+    "universal_base_las": 9
+  },
+  "limitations": [
+    "four-token root-spine rebase profile",
+    "uncalibrated band1000 is not TRAIN/DEV-selected confidence",
+    "generic eligible_heldout_sentences tally is four synthetic arrival snapshots, not corpus accuracy",
+    "Travis Hello source is separate from exact Hello, Travis. independent VOC2 protection",
+    "no production stream entrance or played epoch claim"
+  ],
+  "event_sha256": "c8b6aed3289d31e921e356ecd7ef5ee850ac4110a9db13972e75ea1575928bb9"
+}

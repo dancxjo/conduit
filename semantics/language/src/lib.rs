@@ -138,3 +138,8 @@ pub use generated::{LanguageParserJointScoreBandProposal, LanguageParserJointSco
 pub use generated::{LanguageParserJointStableFact, LanguageParserJointStableFactProposal};
 
 pub use generated::{LanguageParserJointCommitProposal, LanguageParserJointCommitQuery};
+
+pub use generated::{
+    LanguageParserJointProtectedBranchQuery, LanguageParserJointRebaseContext,
+    LanguageParserJointRebaseProposal,
+};

@@ -273,7 +273,7 @@ pub fn inactive(state: &LanguageParserState) -> LanguageParserJointRuntimeHypoth
             LanguageParserHypothesis::new(false, 0, 0, state.clone()).unwrap(),
         )
         .unwrap(),
-        0,
+        *state.unread(),
     )
     .unwrap()
 }
