@@ -1,4 +1,6 @@
 #![cfg(feature = "kernel-operation-owners")]
+#[path = "fargan_epoch_flow/conditioning_cycle.rs"]
+mod conditioning_cycle;
 #[path = "fargan_epoch_contracts.rs"]
 mod declarations;
 use conduit_ai::{
@@ -967,6 +969,7 @@ fn conditioning_feedback_domains_preserve_exact_native_bounds() {
         "FarganFeatureConditionEpoch",
         "FarganConditioningInputEpoch",
         "FarganConditioningPendingHistory",
+        "FarganConditioningProposalEpoch",
     ] {
         let selected = checked
             .native_types
