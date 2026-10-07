@@ -1,0 +1,78 @@
+{
+  "ambiguous_pos_correct": 5,
+  "ambiguous_tokens": 5,
+  "canonical_exclusions": {},
+  "complete_sentences": 1,
+  "compute_ms_per_token": 15394.2,
+  "conditional_gold_pos": false,
+  "decode_max_ms": 38023,
+  "decode_ms": 76971,
+  "elapsed_ms": 281289,
+  "eligible_heldout_sentences": 3,
+  "host_memory": "VmHWM:\t 1737524 kB; VmRSS:\t 1689876 kB",
+  "last_scope_flow_timing": [
+    {
+      "calls": 76,
+      "entry": "language-parser-joint-branch",
+      "maximum_nanos": 17972193,
+      "nanos": 1299756477
+    },
+    {
+      "calls": 3,
+      "entry": "language-parser-v2-pos",
+      "maximum_nanos": 56961267,
+      "nanos": 158273703
+    },
+    {
+      "calls": 34,
+      "entry": "language-parser-v2-model-features",
+      "maximum_nanos": 128880147,
+      "nanos": 4092455565
+    },
+    {
+      "calls": 34,
+      "entry": "language-parser-legal-mask",
+      "maximum_nanos": 54435531,
+      "nanos": 1747944524
+    },
+    {
+      "calls": 96,
+      "entry": "language-parser-score-proposal",
+      "maximum_nanos": 4699234,
+      "nanos": 421614671
+    },
+    {
+      "calls": 96,
+      "entry": "language-parser-transition",
+      "maximum_nanos": 42140494,
+      "nanos": 3841263914
+    },
+    {
+      "calls": 96,
+      "entry": "language-parser-joint-expansion",
+      "maximum_nanos": 2194023,
+      "nanos": 204197641
+    },
+    {
+      "calls": 111,
+      "entry": "language-parser-joint-runtime-merge",
+      "maximum_nanos": 104845163,
+      "nanos": 10927065827
+    }
+  ],
+  "limitations": "bounded orchestration; model execution mode is recorded in each session snapshot; no complete production aggregate Plan, Source stabilization advance, or committed-prefix rebase; provisional outputs are not committed truth",
+  "model_bytes": 62796,
+  "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+  "ordinary_plan_preparation_ms": 121698,
+  "pos_correct": 5,
+  "profile": "pinned v2 four-token profile; one reviewed Travis/Hello stream; immutable selected model; ordinary admitted resource Plan/Play; no per-revision new kernel",
+  "proof": "actual retained Source Flow partial-prefix learned decode with Source wait/reset and joint lexical/arc agreement observations",
+  "selected_occurrence": "retained-stream",
+  "sentences": 3,
+  "source_preparation_ms": 74084,
+  "tokens": 5,
+  "uas_correct": 5,
+  "universal_base_las_correct": 5,
+  "vocative_correct": 2,
+  "vocative_gold": 2
+}
