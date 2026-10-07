@@ -7,8 +7,8 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::{
     ffi::OsString,
     io::{BufRead, BufReader},
-    path::PathBuf,
-    process::{Command, Stdio},
+    path::{Path, PathBuf},
+    process::{Child, Command, Stdio},
     sync::mpsc,
     thread,
     time::Duration,
@@ -26,6 +26,12 @@ static INTERRUPTED: AtomicI32 = AtomicI32::new(0);
 #[cfg(unix)]
 extern "C" fn record_signal(signal: libc::c_int) {
     INTERRUPTED.store(signal, Ordering::SeqCst);
+}
+
+fn abort_route(route: &mut Child, socket: &Path) {
+    let _ = route.kill();
+    let _ = route.wait();
+    let _ = std::fs::remove_file(socket);
 }
 
 #[derive(ClapArgs, Debug)]
@@ -151,16 +157,14 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
     let ready = match ready_receiver.recv_timeout(Duration::from_secs(10)) {
         Ok(Ok(ready)) => ready,
         Ok(Err(error)) => {
-            let _ = route.kill();
-            let _ = route.wait();
+            abort_route(&mut route, &control_socket);
             return Err(ConduitosError::refusal(
                 "owner-model-route-readiness",
                 error.to_string(),
             ));
         }
         Err(error) => {
-            let _ = route.kill();
-            let _ = route.wait();
+            abort_route(&mut route, &control_socket);
             return Err(ConduitosError::refusal(
                 "owner-model-route-readiness",
                 format!("route did not report its selected endpoint within ten seconds: {error}"),
@@ -172,15 +176,13 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
         args.listen_port.expect("checked above")
     );
     let reported: serde_json::Value = serde_json::from_str(&ready).map_err(|error| {
-        let _ = route.kill();
-        let _ = route.wait();
+        abort_route(&mut route, &control_socket);
         ConduitosError::refusal("owner-model-route-readiness", error.to_string())
     })?;
     if reported["endpoint"] != expected
         || reported["control_socket"] != control_socket.to_string_lossy().as_ref()
     {
-        let _ = route.kill();
-        let _ = route.wait();
+        abort_route(&mut route, &control_socket);
         return Err(ConduitosError::refusal(
             "owner-model-route-readiness",
             "route did not bind the selected endpoint and private control socket",
@@ -202,8 +204,7 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
         );
     }
     let mut child = command.args(&args.command[1..]).spawn().map_err(|error| {
-        let _ = route.kill();
-        let _ = route.wait();
+        abort_route(&mut route, &control_socket);
         ConduitosError::refusal("owner-model-route-command", error.to_string())
     })?;
     loop {
@@ -235,11 +236,18 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
             // The proof command launches Node/QEMU descendants. Retire its
             // process group when the selected route disappears.
             #[cfg(unix)]
-            unsafe {
-                libc::kill(-(child.id() as i32), libc::SIGTERM);
+            {
+                unsafe {
+                    libc::kill(-(child.id() as i32), libc::SIGTERM);
+                }
+                thread::sleep(Duration::from_secs(2));
+                unsafe {
+                    libc::kill(-(child.id() as i32), libc::SIGKILL);
+                }
             }
             let _ = child.kill();
             let _ = child.wait();
+            let _ = std::fs::remove_file(&control_socket);
             return Err(ConduitosError::refusal(
                 "owner-model-route-lost",
                 format!("selected model route exited during the supervised proof: {status}"),
