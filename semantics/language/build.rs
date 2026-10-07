@@ -12,6 +12,7 @@ fn main() {
     println!("cargo:rerun-if-changed=lexical.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
     println!("cargo:rerun-if-changed=parser_window8.conduit");
+    println!("cargo:rerun-if-changed=parser_window8_search.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=parser_scorer.conduit");
     println!("cargo:rerun-if-changed=parser_mask.conduit");
@@ -38,6 +39,7 @@ fn main() {
         include_str!("lexical.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_window8.conduit"),
+        include_str!("parser_window8_search.conduit"),
         include_str!("parser_beam.conduit"),
         include_str!("parser_scorer.conduit"),
         include_str!("parser_mask.conduit"),
@@ -89,6 +91,29 @@ fn main() {
         ),
         ("language-window8-move-apply", "window8_move_apply.hex"),
         ("language-window8-complete", "window8_complete.hex"),
+        ("language-window8-rank-insert", "window8_rank_insert.hex"),
+        (
+            "language-window8-choice-frontier",
+            "window8_choice_frontier.hex",
+        ),
+        (
+            "language-window8-score-advance",
+            "window8_score_advance.hex",
+        ),
+        ("language-window8-rank-0-1", "window8_rank_0_1.hex"),
+        ("language-window8-rank-2-3", "window8_rank_2_3.hex"),
+        ("language-window8-rank-0-2", "window8_rank_0_2.hex"),
+        ("language-window8-rank-1-3", "window8_rank_1_3.hex"),
+        ("language-window8-rank-1-2", "window8_rank_1_2.hex"),
+        ("language-window8-class-index", "window8_class_index.hex"),
+        (
+            "language-window8-class-relations",
+            "window8_class_relations.hex",
+        ),
+        (
+            "language-window8-class-relation",
+            "window8_class_relation.hex",
+        ),
         ("language-window8-available", "window8_available.hex"),
         ("language-window8-empty-codes", "window8_empty_codes.hex"),
         ("language-window8-token-codes", "window8_token_codes.hex"),
