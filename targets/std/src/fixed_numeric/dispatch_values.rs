@@ -11,6 +11,19 @@ pub(super) fn select(
     planned: Option<(&PlannedGear, u16)>,
 ) -> Option<Result<Selection, String>> {
     match kind {
+        "numeric/u64-to-u16" | "numeric/flow-u64-to-u16" => {
+            let flow = kind == "numeric/flow-u64-to-u16";
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                conduit_ai::fixed_numeric_integer_narrowing::checked_integer_narrowing_offer(flow),
+                conduit_ai::fixed_numeric_integer_narrowing::CheckedU64ToU16Back::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, flow)
+            ))
+        }
+
         "numeric/flow-finite-vector1" => {
             Some(run!(
                 planned,

@@ -250,3 +250,5 @@ pub mod fixed_numeric_temporal;
 pub mod fixed_numeric_embedding_flow;
 #[cfg(all(feature = "kernel-step", target_has_atomic = "ptr"))]
 pub mod fixed_numeric_linear_flow;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_integer_narrowing;
