@@ -1,6 +1,6 @@
 //! Preparation-derived exact integer envelopes for generic index operands.
 use crate::fixed_numeric_codec::FixedCodecRefusal;
-use alloc::{vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     kind_id, StructuredInfoType, StructuredInfoTypeShape as Shape, StructuredInfoValue,
 };
@@ -13,11 +13,9 @@ impl<const WIDTH: usize> FixedU16IndexCodec<WIDTH> {
     pub fn prepare(ty: &StructuredInfoType) -> Result<Self, FixedCodecRefusal> {
         let expected = if WIDTH == 1 {
             StructuredInfoType::leaf(kind_id("value/u16")).map_err(|_| FixedCodecRefusal::Shape)?
-        } else if WIDTH == 44 {
-            crate::fixed_numeric_catalog::fixed_numeric_type("NumericU16Indices44")
-                .map_err(|_| FixedCodecRefusal::Shape)?
         } else {
-            return Err(FixedCodecRefusal::Shape);
+            crate::fixed_numeric_catalog::fixed_numeric_type(&format!("NumericU16Indices{WIDTH}"))
+                .map_err(|_| FixedCodecRefusal::Shape)?
         };
         if *ty != expected {
             return Err(FixedCodecRefusal::Shape);
