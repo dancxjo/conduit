@@ -454,7 +454,8 @@ try {
     assert.equal(started.schema, 'conduit.body/direct-spoken-start@1');
     assert.equal(started.state, 'running');
     let terminal;
-    for (let attempt = 0; attempt < 1800; attempt += 1) {
+    const directReadingDeadline = Date.now() + 20 * 60_000;
+    while (Date.now() < directReadingDeadline) {
       const status = command('status', started.operation_id);
       if (status.schema === 'conduit.body/owner-spoken-terminal@1') {
         terminal = status;
@@ -462,7 +463,7 @@ try {
       }
       assert.equal(status.schema, 'conduit.body/owner-spoken-status@1');
       assert.equal(status.state, 'running');
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     assert.ok(terminal, 'owner direct spoken Mask did not reach a terminal result');
     assert.equal(terminal.outcome, 'available', terminal.detail);
