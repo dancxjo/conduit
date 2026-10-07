@@ -173,9 +173,6 @@ pub use generated::{LanguageParserJointStableFact, LanguageParserJointStableFact
 pub use generated::{LanguageParserJointCommitProposal, LanguageParserJointCommitQuery};
 
 pub use generated::LanguageParserCommittedDependencyAdmission;
-/// Full Source-admitted correlation of an independent parser fact and portable arc.
-/// This retains stable fact custody; it does not imply playback commitment.
-pub use generated::LanguageParserStableDependencyAdmission;
 pub use generated::{
     LanguageParserJointProtectedBranchQuery, LanguageParserJointRebaseContext,
     LanguageParserJointRebaseProposal, LanguageParserProtectedEdgeProposal,
