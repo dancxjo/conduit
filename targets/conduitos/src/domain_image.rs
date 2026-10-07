@@ -2,6 +2,9 @@
 //! No inherited Root mappings or writable/executable segments are admitted.
 
 pub const USER_TEXT_START: u64 = 0x0040_0000;
+// IA-32 Root boots at low physical/virtual addresses. Its linked image spans
+// the 4 MiB range, so the domain uses a disjoint virtual range instead.
+pub const IA32_USER_TEXT_START: u64 = 0x4000_0000;
 pub const MAXIMUM_IMAGE_BYTES: u64 = 64 * 1024;
 const PAGE_BYTES: u64 = 4096;
 
@@ -63,8 +66,13 @@ impl<'a> DomainImage<'a> {
             .checked_add(2 * header_size)
             .ok_or(Refusal::Malformed)?;
         let headers = bytes.get(offset..end).ok_or(Refusal::Malformed)?;
-        let first = segment(bytes, &headers[..header_size], class)?;
-        let second = segment(bytes, &headers[header_size..], class)?;
+        let text_start = if machine == 3 {
+            IA32_USER_TEXT_START
+        } else {
+            USER_TEXT_START
+        };
+        let first = segment(bytes, &headers[..header_size], class, text_start)?;
+        let second = segment(bytes, &headers[header_size..], class, text_start)?;
         if !first.executable
             || second.executable
             || entry < first.address
@@ -84,6 +92,7 @@ fn segment<'a>(
     bytes: &'a [u8],
     header: &[u8],
     class: u8,
+    text_start: u64,
 ) -> Result<ImageSegment<'a>, ImageRefusal> {
     use ImageRefusal as Refusal;
     let (flags, offset, address, length, memory_length, alignment) = if class == 1 {
@@ -112,10 +121,10 @@ fn segment<'a>(
         || memory_length != length
         || alignment != PAGE_BYTES
         || address % PAGE_BYTES != 0
-        || address < USER_TEXT_START
+        || address < text_start
         || address
             .checked_add(length.div_ceil(PAGE_BYTES) * PAGE_BYTES)
-            .is_none_or(|end| end > USER_TEXT_START + MAXIMUM_IMAGE_BYTES)
+            .is_none_or(|end| end > text_start + MAXIMUM_IMAGE_BYTES)
     {
         return Err(Refusal::InvalidMapping);
     }

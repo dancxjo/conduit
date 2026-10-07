@@ -83,13 +83,13 @@ fn ia32_loader_enforces_the_same_immutable_memory_contract() {
     let mut bytes = artifact();
     bytes[4] = 1;
     put16(&mut bytes, 18, 3);
-    put32(&mut bytes, 24, USER_TEXT_START as u32);
+    put32(&mut bytes, 24, IA32_USER_TEXT_START as u32);
     put32(&mut bytes, 28, 52);
     put16(&mut bytes, 42, 32);
     put16(&mut bytes, 44, 2);
     for (header, offset, address, flags) in [
-        (52, 0x1000, USER_TEXT_START as u32, 5),
-        (84, 0x2000, USER_TEXT_START as u32 + 4096, 4),
+        (52, 0x1000, IA32_USER_TEXT_START as u32, 5),
+        (84, 0x2000, IA32_USER_TEXT_START as u32 + 4096, 4),
     ] {
         put32(&mut bytes, header, 1);
         put32(&mut bytes, header + 4, offset);
@@ -100,13 +100,14 @@ fn ia32_loader_enforces_the_same_immutable_memory_contract() {
         put32(&mut bytes, header + 28, 4096);
     }
     let image = DomainImage::parse(&bytes, 3).unwrap();
-    assert_eq!(image.entry, USER_TEXT_START);
+    assert_eq!(image.entry, IA32_USER_TEXT_START);
     for (offset, value) in [
         (52 + 24, 7),
-        (84 + 8, USER_TEXT_START as u32),
+        (52 + 8, USER_TEXT_START as u32),
+        (84 + 8, IA32_USER_TEXT_START as u32),
         (52 + 4, u32::MAX),
         (52 + 20, 4096),
-        (24, USER_TEXT_START as u32 + 4096),
+        (24, IA32_USER_TEXT_START as u32 + 4096),
     ] {
         let mut malformed = bytes.clone();
         put32(&mut malformed, offset, value);

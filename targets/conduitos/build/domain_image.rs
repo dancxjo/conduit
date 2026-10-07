@@ -69,6 +69,11 @@ pub fn generate() {
         .join("bin/rust-lld");
         flags.extend([
             "-C".into(),
+            format!(
+                "link-arg=--defsym=__domain_text_start={:#x}",
+                image::IA32_USER_TEXT_START
+            ),
+            "-C".into(),
             format!("linker={}", linker.display()),
             "-C".into(),
             "linker-flavor=ld.lld".into(),
