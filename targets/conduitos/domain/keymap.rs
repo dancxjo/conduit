@@ -4,7 +4,10 @@ use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition};
 
 // The bottom page of this region's private stack allocation holds retained
 // pure state. It never contains a Root pointer and is not a shared window.
+#[cfg(not(target_arch = "x86"))]
 const STATE: *mut ConduitIntlKeymap = 0x420000 as *mut ConduitIntlKeymap;
+#[cfg(target_arch = "x86")]
+const STATE: *mut ConduitIntlKeymap = 0x40020000 as *mut ConduitIntlKeymap;
 const _: () = assert!(core::mem::size_of::<ConduitIntlKeymap>() <= 4096);
 
 pub unsafe fn initialize(frame: &mut TextFrame) -> ! {
