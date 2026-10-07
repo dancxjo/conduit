@@ -1,0 +1,98 @@
+# Window8 fact custody draft: Source checks complete exact forests and lexical
+# alternatives. No score or raw Boolean establishes a stable fact. Independent
+# lexical choice is distinct from dependency/root closure and playback.
+type LanguageParserWindow8CheckedHypothesis = {
+    hypothesis: LanguageParserWindow8RawHypothesis
+    proof: LanguageParserWindow8StateProof
+    where .hypothesis.state.token_count == .proof.state.token_count
+    where .hypothesis.state.unread == .proof.state.unread
+    where .hypothesis.state.depth == .proof.state.depth
+    where .hypothesis.state.committed == .proof.state.committed
+    where .hypothesis.state.heads == .proof.state.heads
+    where .hypothesis.state.stack == .proof.state.stack
+    where .hypothesis.state.basis.text == .proof.state.basis.text
+    where .hypothesis.state.basis.source_revision == .proof.state.basis.source_revision
+    where .hypothesis.state.basis.analysis_revision == .proof.state.basis.analysis_revision
+    where variant/tag(.hypothesis.state.relation0.base) == variant/tag(.proof.state.relation0.base) && .hypothesis.state.relation0.subtype == .proof.state.relation0.subtype
+    where variant/tag(.hypothesis.state.relation1.base) == variant/tag(.proof.state.relation1.base) && .hypothesis.state.relation1.subtype == .proof.state.relation1.subtype
+    where variant/tag(.hypothesis.state.relation2.base) == variant/tag(.proof.state.relation2.base) && .hypothesis.state.relation2.subtype == .proof.state.relation2.subtype
+    where variant/tag(.hypothesis.state.relation3.base) == variant/tag(.proof.state.relation3.base) && .hypothesis.state.relation3.subtype == .proof.state.relation3.subtype
+    where variant/tag(.hypothesis.state.relation4.base) == variant/tag(.proof.state.relation4.base) && .hypothesis.state.relation4.subtype == .proof.state.relation4.subtype
+    where variant/tag(.hypothesis.state.relation5.base) == variant/tag(.proof.state.relation5.base) && .hypothesis.state.relation5.subtype == .proof.state.relation5.subtype
+    where variant/tag(.hypothesis.state.relation6.base) == variant/tag(.proof.state.relation6.base) && .hypothesis.state.relation6.subtype == .proof.state.relation6.subtype
+    where variant/tag(.hypothesis.state.relation7.base) == variant/tag(.proof.state.relation7.base) && .hypothesis.state.relation7.subtype == .proof.state.relation7.subtype
+}
+type LanguageParserWindow8Snapshot = {
+    lexical: LanguageParserWindow8Lexical
+    basis: LanguageParserBasis
+    candidate0: LanguageParserWindow8CheckedHypothesis
+    candidate1: LanguageParserWindow8CheckedHypothesis
+    candidate2: LanguageParserWindow8CheckedHypothesis
+    candidate3: LanguageParserWindow8CheckedHypothesis
+    where .candidate0.hypothesis.active
+    where .basis.text == .lexical.tape.source.material.identity && .basis.source_revision == .lexical.tape.source.material.revision
+    where !.candidate0.hypothesis.active || (.candidate0.hypothesis.state.basis.text == .basis.text && .candidate0.hypothesis.state.basis.source_revision == .basis.source_revision && .candidate0.hypothesis.state.basis.analysis_revision == .basis.analysis_revision && .candidate0.hypothesis.state.token_count == .lexical.token_count)
+    where !.candidate0.hypothesis.active || (.candidate0.hypothesis.selected >= .candidate0.hypothesis.state.unread && .candidate0.hypothesis.selected <= .candidate0.hypothesis.state.unread + 1 && .candidate0.hypothesis.selected <= .lexical.token_count)
+    where !.candidate0.hypothesis.active || (0 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.0 < sequence/length(sequence/at(.lexical.tape.tokens,0).candidates) : .candidate0.hypothesis.choices.0 == 0)
+    where !.candidate0.hypothesis.active || (1 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.1 < sequence/length(sequence/at(.lexical.tape.tokens,1).candidates) : .candidate0.hypothesis.choices.1 == 0)
+    where !.candidate0.hypothesis.active || (2 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.2 < sequence/length(sequence/at(.lexical.tape.tokens,2).candidates) : .candidate0.hypothesis.choices.2 == 0)
+    where !.candidate0.hypothesis.active || (3 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.3 < sequence/length(sequence/at(.lexical.tape.tokens,3).candidates) : .candidate0.hypothesis.choices.3 == 0)
+    where !.candidate0.hypothesis.active || (4 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.4 < sequence/length(sequence/at(.lexical.tape.tokens,4).candidates) : .candidate0.hypothesis.choices.4 == 0)
+    where !.candidate0.hypothesis.active || (5 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.5 < sequence/length(sequence/at(.lexical.tape.tokens,5).candidates) : .candidate0.hypothesis.choices.5 == 0)
+    where !.candidate0.hypothesis.active || (6 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.6 < sequence/length(sequence/at(.lexical.tape.tokens,6).candidates) : .candidate0.hypothesis.choices.6 == 0)
+    where !.candidate0.hypothesis.active || (7 < .candidate0.hypothesis.selected ? .candidate0.hypothesis.choices.7 < sequence/length(sequence/at(.lexical.tape.tokens,7).candidates) : .candidate0.hypothesis.choices.7 == 0)
+    where !.candidate1.hypothesis.active || (.candidate1.hypothesis.state.basis.text == .basis.text && .candidate1.hypothesis.state.basis.source_revision == .basis.source_revision && .candidate1.hypothesis.state.basis.analysis_revision == .basis.analysis_revision && .candidate1.hypothesis.state.token_count == .lexical.token_count)
+    where !.candidate1.hypothesis.active || (.candidate1.hypothesis.selected >= .candidate1.hypothesis.state.unread && .candidate1.hypothesis.selected <= .candidate1.hypothesis.state.unread + 1 && .candidate1.hypothesis.selected <= .lexical.token_count)
+    where !.candidate1.hypothesis.active || (0 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.0 < sequence/length(sequence/at(.lexical.tape.tokens,0).candidates) : .candidate1.hypothesis.choices.0 == 0)
+    where !.candidate1.hypothesis.active || (1 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.1 < sequence/length(sequence/at(.lexical.tape.tokens,1).candidates) : .candidate1.hypothesis.choices.1 == 0)
+    where !.candidate1.hypothesis.active || (2 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.2 < sequence/length(sequence/at(.lexical.tape.tokens,2).candidates) : .candidate1.hypothesis.choices.2 == 0)
+    where !.candidate1.hypothesis.active || (3 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.3 < sequence/length(sequence/at(.lexical.tape.tokens,3).candidates) : .candidate1.hypothesis.choices.3 == 0)
+    where !.candidate1.hypothesis.active || (4 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.4 < sequence/length(sequence/at(.lexical.tape.tokens,4).candidates) : .candidate1.hypothesis.choices.4 == 0)
+    where !.candidate1.hypothesis.active || (5 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.5 < sequence/length(sequence/at(.lexical.tape.tokens,5).candidates) : .candidate1.hypothesis.choices.5 == 0)
+    where !.candidate1.hypothesis.active || (6 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.6 < sequence/length(sequence/at(.lexical.tape.tokens,6).candidates) : .candidate1.hypothesis.choices.6 == 0)
+    where !.candidate1.hypothesis.active || (7 < .candidate1.hypothesis.selected ? .candidate1.hypothesis.choices.7 < sequence/length(sequence/at(.lexical.tape.tokens,7).candidates) : .candidate1.hypothesis.choices.7 == 0)
+    where !.candidate2.hypothesis.active || (.candidate2.hypothesis.state.basis.text == .basis.text && .candidate2.hypothesis.state.basis.source_revision == .basis.source_revision && .candidate2.hypothesis.state.basis.analysis_revision == .basis.analysis_revision && .candidate2.hypothesis.state.token_count == .lexical.token_count)
+    where !.candidate2.hypothesis.active || (.candidate2.hypothesis.selected >= .candidate2.hypothesis.state.unread && .candidate2.hypothesis.selected <= .candidate2.hypothesis.state.unread + 1 && .candidate2.hypothesis.selected <= .lexical.token_count)
+    where !.candidate2.hypothesis.active || (0 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.0 < sequence/length(sequence/at(.lexical.tape.tokens,0).candidates) : .candidate2.hypothesis.choices.0 == 0)
+    where !.candidate2.hypothesis.active || (1 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.1 < sequence/length(sequence/at(.lexical.tape.tokens,1).candidates) : .candidate2.hypothesis.choices.1 == 0)
+    where !.candidate2.hypothesis.active || (2 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.2 < sequence/length(sequence/at(.lexical.tape.tokens,2).candidates) : .candidate2.hypothesis.choices.2 == 0)
+    where !.candidate2.hypothesis.active || (3 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.3 < sequence/length(sequence/at(.lexical.tape.tokens,3).candidates) : .candidate2.hypothesis.choices.3 == 0)
+    where !.candidate2.hypothesis.active || (4 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.4 < sequence/length(sequence/at(.lexical.tape.tokens,4).candidates) : .candidate2.hypothesis.choices.4 == 0)
+    where !.candidate2.hypothesis.active || (5 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.5 < sequence/length(sequence/at(.lexical.tape.tokens,5).candidates) : .candidate2.hypothesis.choices.5 == 0)
+    where !.candidate2.hypothesis.active || (6 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.6 < sequence/length(sequence/at(.lexical.tape.tokens,6).candidates) : .candidate2.hypothesis.choices.6 == 0)
+    where !.candidate2.hypothesis.active || (7 < .candidate2.hypothesis.selected ? .candidate2.hypothesis.choices.7 < sequence/length(sequence/at(.lexical.tape.tokens,7).candidates) : .candidate2.hypothesis.choices.7 == 0)
+    where !.candidate3.hypothesis.active || (.candidate3.hypothesis.state.basis.text == .basis.text && .candidate3.hypothesis.state.basis.source_revision == .basis.source_revision && .candidate3.hypothesis.state.basis.analysis_revision == .basis.analysis_revision && .candidate3.hypothesis.state.token_count == .lexical.token_count)
+    where !.candidate3.hypothesis.active || (.candidate3.hypothesis.selected >= .candidate3.hypothesis.state.unread && .candidate3.hypothesis.selected <= .candidate3.hypothesis.state.unread + 1 && .candidate3.hypothesis.selected <= .lexical.token_count)
+    where !.candidate3.hypothesis.active || (0 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.0 < sequence/length(sequence/at(.lexical.tape.tokens,0).candidates) : .candidate3.hypothesis.choices.0 == 0)
+    where !.candidate3.hypothesis.active || (1 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.1 < sequence/length(sequence/at(.lexical.tape.tokens,1).candidates) : .candidate3.hypothesis.choices.1 == 0)
+    where !.candidate3.hypothesis.active || (2 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.2 < sequence/length(sequence/at(.lexical.tape.tokens,2).candidates) : .candidate3.hypothesis.choices.2 == 0)
+    where !.candidate3.hypothesis.active || (3 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.3 < sequence/length(sequence/at(.lexical.tape.tokens,3).candidates) : .candidate3.hypothesis.choices.3 == 0)
+    where !.candidate3.hypothesis.active || (4 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.4 < sequence/length(sequence/at(.lexical.tape.tokens,4).candidates) : .candidate3.hypothesis.choices.4 == 0)
+    where !.candidate3.hypothesis.active || (5 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.5 < sequence/length(sequence/at(.lexical.tape.tokens,5).candidates) : .candidate3.hypothesis.choices.5 == 0)
+    where !.candidate3.hypothesis.active || (6 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.6 < sequence/length(sequence/at(.lexical.tape.tokens,6).candidates) : .candidate3.hypothesis.choices.6 == 0)
+    where !.candidate3.hypothesis.active || (7 < .candidate3.hypothesis.selected ? .candidate3.hypothesis.choices.7 < sequence/length(sequence/at(.lexical.tape.tokens,7).candidates) : .candidate3.hypothesis.choices.7 == 0)
+}
+type LanguageParserWindow8FactQuery = {
+    snapshot: LanguageParserWindow8Snapshot
+    dependent: U64 in 0..=7
+    where .dependent < .snapshot.lexical.token_count
+}
+# Exact lexical agreement may admit pronunciation before root closure.
+# Custody must protect this accepted choice through later append/correction.
+type LanguageParserWindow8StableLexicalFact = {
+    query: LanguageParserWindow8FactQuery
+    where (variant/is(.query.snapshot.lexical.tape.source.stable_prefix,"some") ? (sequence/at(.query.snapshot.lexical.tape.tokens,.query.dependent).span.end <= value/u64(.query.snapshot.lexical.tape.source.stable_prefix.some)) : false)
+    where !.query.snapshot.candidate0.hypothesis.active || .query.dependent < .query.snapshot.candidate0.hypothesis.selected
+    where !.query.snapshot.candidate1.hypothesis.active || .query.dependent < .query.snapshot.candidate1.hypothesis.selected
+    where !.query.snapshot.candidate1.hypothesis.active || sequence/at(.query.snapshot.candidate1.hypothesis.choices,.query.dependent) == sequence/at(.query.snapshot.candidate0.hypothesis.choices,.query.dependent)
+    where !.query.snapshot.candidate2.hypothesis.active || .query.dependent < .query.snapshot.candidate2.hypothesis.selected
+    where !.query.snapshot.candidate2.hypothesis.active || sequence/at(.query.snapshot.candidate2.hypothesis.choices,.query.dependent) == sequence/at(.query.snapshot.candidate0.hypothesis.choices,.query.dependent)
+    where !.query.snapshot.candidate3.hypothesis.active || .query.dependent < .query.snapshot.candidate3.hypothesis.selected
+    where !.query.snapshot.candidate3.hypothesis.active || sequence/at(.query.snapshot.candidate3.hypothesis.choices,.query.dependent) == sequence/at(.query.snapshot.candidate0.hypothesis.choices,.query.dependent)
+}
+type LanguageParserWindow8StableLexicalFactProposal = {
+    query: LanguageParserWindow8FactQuery
+}
+plot language-window8-stable-lexical-fact (
+    input: LanguageParserWindow8FactQuery...| >> output: LanguageParserWindow8StableLexicalFactProposal...|
+) = { query: . }
