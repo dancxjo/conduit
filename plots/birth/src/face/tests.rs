@@ -477,6 +477,15 @@ fn birth_review_is_current_face_meaning_for_every_mask() {
     assert!(detail.text.contains("Name: Ada"));
     assert!(detail.text.contains("Starting Plots selected: 1 of 2"));
     assert!(detail.text.contains("Birth: available"));
+    draft.search_plots(draft.revision(), "no match").unwrap();
+    let filtered = draft.host_owned_face(&host_owned_basis()).unwrap();
+    assert!(
+        filtered
+            .subjects
+            .iter()
+            .any(|subject| subject.name == "Starting Plot 1")
+    );
+    assert!(filtered.text.iter().any(|text| text.text == "Clock"));
     draft.select(draft.revision(), 0, false).unwrap();
     let changed = draft.host_owned_face(&host_owned_basis()).unwrap();
     assert_ne!(face.identity, changed.identity);

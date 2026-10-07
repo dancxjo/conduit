@@ -28,7 +28,7 @@ impl BirthPresentation for BirthDraft {
             .filter(|choice| choice.selected)
             .count();
         let review = format!(
-            "Name: {}. Starting Plots selected: {} of {}. Birth: {}. Read the Plot choices for their names and availability.",
+            "Name: {}. Starting Plots selected: {} of {}. Birth: {}. Selected Plot names follow; clear search to review all options and availability.",
             if self.friendly_name().is_empty() {
                 "(empty)"
             } else {
@@ -41,6 +41,25 @@ impl BirthPresentation for BirthDraft {
                 Err(error) => format!("unavailable ({error:?})"),
             }
         );
+        // Search narrows the editable inventory, but it must never hide a
+        // selected Plot from the review that precedes Birth.
+        let review_plots = self
+            .choices()
+            .iter()
+            .enumerate()
+            .filter(|(_, choice)| choice.selected)
+            .map(|(index, choice)| {
+                node(
+                    &format!("birth-review-plot-{index}"),
+                    PresentationMechanism::Status {
+                        kind: StatusKind::Ordinary,
+                        title: format!("Starting Plot {}", index + 1),
+                        detail: choice.title.clone(),
+                    },
+                    vec![],
+                )
+            })
+            .collect();
         let query = self.search().to_lowercase();
         let choices: Vec<_> = self
             .choices()
@@ -154,7 +173,7 @@ impl BirthPresentation for BirthDraft {
                             title: "Review Birth choices".into(),
                             detail: review,
                         },
-                        vec![],
+                        review_plots,
                     ),
                     node("birth-body", PresentationMechanism::Action(birth), vec![]),
                 ],
