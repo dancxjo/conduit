@@ -235,9 +235,10 @@ impl<const PORTS: usize> StepBack<PORTS> for DirectFaceWordingBack {
                 (HostCallDisposition::Completed, None) => {
                     io.consume_host_completion()
                         .expect("direct wording closure");
-                    if let Some(face) = self.face.take() {
-                        io.discard(face).expect("release direct Face value");
-                    }
+                    // Clearing the retained Face makes the scheduler release
+                    // the pending Host Call's sole owned reference at commit.
+                    // Discarding it here would release that same value twice.
+                    self.face = None;
                     self.pending = None;
                     self.complete = true;
                     return StepOutcome::Complete;
