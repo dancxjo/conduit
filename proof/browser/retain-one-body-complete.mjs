@@ -95,18 +95,24 @@ export async function retainOneBodyComplete(runPath, outputPath) {
     'producer publication chapters are not in the required action order');
 
   const planned = new Map();
-  const plannedPaths = new Set();
+  const plannedPaths = new Map();
   async function add(id, name, expectedSha) {
     assert.ok(identity(id) && relative(name) && /^[a-f0-9]{64}$/.test(expectedSha),
       `invalid declaration ${id}`);
+    const existing = plannedPaths.get(name);
+    if (existing) {
+      assert.equal(sha(planned.get(existing).bytes), expectedSha,
+        `reused source digest differs: ${name}`);
+      return existing;
+    }
     assert.ok(!planned.has(id), `duplicate output identity ${id}`);
-    assert.ok(!plannedPaths.has(name), `source file is used for more than one output: ${name}`);
     const bytes = await file(source, name);
     assert.equal(sha(bytes), expectedSha, `producer digest changed: ${name}`);
     publicSafe(name, bytes);
     const [kind, media_type] = outputKind(name);
     planned.set(id, { id, name, bytes, kind, media_type });
-    plannedPaths.add(name);
+    plannedPaths.set(name, id);
+    return id;
   }
   await add('producer-report', 'report.json', sha(reportBytes));
   // Publication metadata is created by the live producer while actions happen.
@@ -152,6 +158,8 @@ export async function retainOneBodyComplete(runPath, outputPath) {
         `${chapter.id} source has no exact resulting Face revision`);
       assert.equal(observed.outcome, 'completed',
         `${chapter.id} source event did not complete`);
+      assert.ok(!plannedPaths.has(event.source_receipt.path),
+        `${chapter.id} reuses an event source receipt`);
       const sourceReceiptId = `${chapter.id}-event-${eventMap.size + 1}-source`;
       await add(sourceReceiptId, event.source_receipt.path,
         event.source_receipt.sha256);
@@ -199,6 +207,8 @@ export async function retainOneBodyComplete(runPath, outputPath) {
       assert.equal(observed.media_path, item.path);
       assert.equal(observed.media_sha256, item.sha256);
       assert.equal(observed.capture_source, item.capture_source);
+      assert.ok(!plannedPaths.has(item.source_receipt.path) &&
+        !plannedPaths.has(item.path), `${chapter.id} reuses a capture or its source receipt`);
       const source = rendererSource(item.capture_source);
       const [mediaKind] = outputKind(item.path);
       assert.ok((mediaKind === 'screenshot' && ['chromium', 'qmp'].includes(source)) ||
@@ -226,8 +236,8 @@ export async function retainOneBodyComplete(runPath, outputPath) {
           prose(speech.text) && relative(speech.provenance?.path) &&
           /^[a-f0-9]{64}$/.test(speech.provenance.sha256),
         `${chapter.id} audio lacks same-Play provenance`);
-        const provenanceId = `${id}-audio-provenance`;
-        await add(provenanceId, speech.provenance.path, speech.provenance.sha256);
+        const provenanceId = await add(`${id}-audio-provenance`,
+          speech.provenance.path, speech.provenance.sha256);
         const listener = json(planned.get(provenanceId).bytes);
         assert.equal(listener.schema, 'conduit.body/owner-spoken-terminal@1',
           'featured audio must name its actual owner spoken Mask terminal');
@@ -318,7 +328,7 @@ export async function retainOneBodyComplete(runPath, outputPath) {
     assert.ok(bytes.length <= MAX_FILE);
     planned.set(id, { id, name, bytes, kind: 'machine-readable-manifest',
       media_type: 'application/json' });
-    plannedPaths.add(name);
+    plannedPaths.set(name, id);
   }
   assert.ok(planned.size <= 128, 'journey exceeds 128 retained outputs');
   const total = [...planned.values()].reduce((sum, value) => sum + value.bytes.length, 0);
