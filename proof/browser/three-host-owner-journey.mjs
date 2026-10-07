@@ -779,6 +779,19 @@ try {
       model: modelArgument, controlSocket: ownerModelRouteControlArgument,
       successful: ownerLlmSpeech,
       observeWardrobe: async (routeId, available) => {
+        const carrier = await page.evaluate(() => ({
+          state: globalThis.__conduitOwnerParticipation.state(),
+          presence: globalThis.__conduitOwnerParticipation.presence(),
+          wardrobe_enabled: !document.querySelector('[data-owner-wardrobe-refresh]').disabled,
+          status: document.querySelector('[data-owner-wardrobe-status]').textContent,
+        }));
+        await writeFile(path.join(output, 'model-wardrobe-browser-carrier.json'),
+          `${JSON.stringify({ route_id: routeId, route_available: available, ...carrier }, null, 2)}\n`,
+          { mode: 0o600 });
+        assert.equal(carrier.presence, 'available',
+          `model wardrobe needs current browser presence: ${JSON.stringify(carrier)}`);
+        assert.equal(carrier.wardrobe_enabled, true,
+          `model wardrobe control is not ready: ${JSON.stringify(carrier)}`);
         await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
         await page.waitForFunction(({ routeId, available }) => {
           try {
