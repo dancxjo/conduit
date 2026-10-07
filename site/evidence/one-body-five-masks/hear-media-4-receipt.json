@@ -1,0 +1,22 @@
+{
+  "schema": "conduit.journey/capture-receipt@2",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "chapter_id": "hear",
+  "event_id": "0ad055ce958a1398f22cc28d072c0bffb8b2b7b400eeecc0966657c5c18bc43c",
+  "event_kind": "selected-speaker-play",
+  "face_revision": "13",
+  "source_receipt_id": "hear-media-4-source",
+  "media_output_id": "hear-media-4",
+  "media_sha256": "94e868557f2ff32a879d1e217ffc0c92f6f7969edcb2532930f5374465b1109a",
+  "capture_source": "speaker-play",
+  "show_id": "show/df484d31b39fcb4f2a1105b882b2ea3043e7760b38264745c5fcd28b1511260c",
+  "plan_id": "7ff7fb97306193c4ea27eddedab925a3665504be6677010038d41a6fc7cb7aff",
+  "play_id": "0ad055ce958a1398f22cc28d072c0bffb8b2b7b400eeecc0966657c5c18bc43c",
+  "voice_id": "en-us",
+  "transcript_id": "hear-media-4-transcript",
+  "transcript_sha256": "cdc9d8ec8f254e0fd1199c9845fa4c53599e1e83ee08f497045b8bb28ab50365",
+  "speech_mode": "direct",
+  "audio_provenance_id": "hear-media-1-audio-provenance"
+}

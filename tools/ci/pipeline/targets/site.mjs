@@ -39,16 +39,13 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   // after preflight checks source ancestry and the strict renderer checks media.
   const oneBodyEvidence = retainedOneBodyEvidence();
   const threeHostDevelopment = retainedThreeHostDevelopmentEvidence();
-  if (oneBodyEvidence && threeHostDevelopment) {
-    throw new Error('Complete and development One Body evidence cannot claim the same site route');
-  }
   if (oneBodyEvidence) {
     xtask('prove', 'render-one-body-journey',
       '--evidence-root', oneBodyEvidence.root,
       '--output', path.join(directory, 'journeys/current/one-body-five-masks'),
       '--commit', oneBodyEvidence.sourceCommit);
   }
-  if (threeHostDevelopment) {
+  if (threeHostDevelopment && !oneBodyEvidence) {
     xtask('prove', 'verify', '--root', threeHostDevelopment.root,
       '--commit', threeHostDevelopment.sourceCommit, '--result', 'diagnostic-incomplete',
       '--proof', THREE_HOST_DEVELOPMENT_PROOF, '--suite', THREE_HOST_DEVELOPMENT_SUITE);
@@ -117,7 +114,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     threeBodies: { sourceCommit: RECORDED_THREE_BODIES, path: 'journeys/current/three-bodies/', refreshedExecution: false },
     ...(oneBodyEvidence && { oneBody: { captureSourceCommit: oneBodyEvidence.sourceCommit, publicationSourceCommit: sourceCommit,
       path: 'journeys/current/one-body-five-masks/', proof: 'producer-owned-complete-evidence' } }),
-    ...(threeHostDevelopment && { oneBodyDevelopment: { captureSourceCommit: threeHostDevelopment.sourceCommit,
+    ...(threeHostDevelopment && !oneBodyEvidence && { oneBodyDevelopment: { captureSourceCommit: threeHostDevelopment.sourceCommit,
       publicationSourceCommit: sourceCommit, path: 'journeys/current/one-body-five-masks/',
       proof: 'retained-local-development-evidence' } }),
     ...(directSpokenDevelopment && { directSpokenDevelopment: {

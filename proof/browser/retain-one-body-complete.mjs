@@ -14,7 +14,8 @@ const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const token = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 const identity = value => typeof value === 'string' && value.trim() && value.length <= 256 &&
   !/[\x00-\x1f\x7f]/.test(value);
-const prose = value => identity(value) && value.length <= 2048;
+const prose = value => typeof value === 'string' && value.trim() &&
+  value.length <= 2048 && !/[\x00-\x1f\x7f]/.test(value);
 const relative = value => typeof value === 'string' &&
   /^[A-Za-z0-9._/-]+$/.test(value) && !value.startsWith('.') &&
   value.split('/').every(part => part && part !== '.' && part !== '..');

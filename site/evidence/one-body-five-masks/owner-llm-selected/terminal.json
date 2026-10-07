@@ -1,0 +1,63 @@
+{
+  "accepted_wording": "One Body Clock is lulled with one resident plot.",
+  "active_play_id": "47d2fd344af779ee8614888f2818480901ce33a4242af2f37a1d1cf747cb0327",
+  "artifact": {
+    "active_play_id": "47d2fd344af779ee8614888f2818480901ce33a4242af2f37a1d1cf747cb0327",
+    "artifact_identity": "artifact/wav/87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+    "artifact_locator": "/home/dancxjo/conduit-5190-live-9b7948614/owner-state/spoken-artifacts/play-925dceed50394344271e0091a811bae93e185d8a9b32dc6cb088ba1d2b431bb1.wav",
+    "blocks": 2640,
+    "completion_sign_id": "96e1a4aeec7078864ef8e967ebf146baf35f67ca3c20eacf2b41ea21132a224f",
+    "content_sha256": "87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+    "frames": 143654,
+    "pcm_bytes": 574616,
+    "placement_id": "8a62e2a30f74118695fd6c708b5ab3539e46b57913c335db3b804179471eca81",
+    "plan_id": "3c428865f99c7e9c306306eb895b62f81f7d9858418bcdc1b8c2eeae7e596ce6"
+  },
+  "direct_opening_wording": null,
+  "direct_reading_complete": false,
+  "generated_manifestation_identity": "sha256:1a2e72163143695c45ad5282bea89d337c9356bce3ed8a6b42644f35f7e8bbc3",
+  "generation_evidence": {
+    "candidate_digest": "sha256:1a2e72163143695c45ad5282bea89d337c9356bce3ed8a6b42644f35f7e8bbc3",
+    "model_identity": "conduit-journey:3366-celsius/daaf6a13454ca9b5226d78950ff4ac3d60187f538567b83a0b43476234b680e0",
+    "original_model_output": "{\"proposal\":{\"clauses\":[{\"index\":0,\"kind\":\"text\",\"style\":\"direct\",\"subject\":\"body/ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30\",\"value\":\"One Body Clock is lulled with one resident plot.\"}],\"source_presentation_identity\":\"3bd3190e37233e1cbf3d4e1b56aef0c86f43e247338b9121a476f96bab1824f0\",\"source_presentation_revision\":13},\"suggested_action_identities\":[]}",
+    "provider_identity": "ollama/ollama version is 0.34.1",
+    "validation_receipt_identity": "sha256:4236ede831c16b74370dec626d735794355088c1bc0d04957f2ce4722818250f"
+  },
+  "mask_artifact_scope": "accepted-wording",
+  "mode": "llm-assisted",
+  "operation_id": "owner-spoken-mask/d54e925adea9ad2b149acaf86c5b73524e615c3d52b469331c5be29ab6b4b40f",
+  "outcome": "available",
+  "route_plan_id": "plan/local-owner-mask/786c83f4d287e2868b603e606fbd17acc6134889678396191879477c8c3aece3",
+  "schema": "conduit.body/owner-spoken-terminal@1",
+  "show_id": "show/398adf508ad3693713d014ac85d5d9b5ddba7b9cde9af46f5dcd3e4132f7e6ab",
+  "source_face_id": "3bd3190e37233e1cbf3d4e1b56aef0c86f43e247338b9121a476f96bab1824f0",
+  "speaker_completed_batches": 0,
+  "speaker_playback": {
+    "boot_id": "boot/installed/a78032f254cc65467f66dea281fc7acf91701278fb9eab2b0fccfa5b8a2a2e93",
+    "host_id": "host/installed/853323a690185d73ba8b5323aeb2c0431c345e72a806da1b6e6e3da03cba2f98",
+    "outcome": "completed",
+    "pcm_blocks": 2640,
+    "pcm_bytes": 574616,
+    "pcm_sha256": "87cda7728f7309134ffd1863eec50bc2d8c47424a3ff669a3f5ff30776edf750",
+    "plan_id": "7ff7fb97306193c4ea27eddedab925a3665504be6677010038d41a6fc7cb7aff",
+    "play_id": "05ff97b7766a278e6d2b86fbb0b1942474181538b5076f3326ae0b49fbeffd21",
+    "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+    "schema": "conduit.body/owner-spoken-speaker-play@1",
+    "source_face_id": "3bd3190e37233e1cbf3d4e1b56aef0c86f43e247338b9121a476f96bab1824f0",
+    "source_face_revision_decimal": "13",
+    "source_segments_sha256": "0279547ceda310d0d03155293d25ac15ac679f76624b49e23efae3bb0e364ab7",
+    "source_show_id": "show/398adf508ad3693713d014ac85d5d9b5ddba7b9cde9af46f5dcd3e4132f7e6ab",
+    "speaker_blocks_committed": 2640,
+    "speaker_frames_committed": 143654,
+    "spoken_segments": [
+      "One Body Clock is lulled with one resident plot."
+    ],
+    "stream_identity": "show/398adf508ad3693713d014ac85d5d9b5ddba7b9cde9af46f5dcd3e4132f7e6ab/accepted-wording",
+    "wav_artifact_locator": "/home/dancxjo/conduit-5190-live-9b7948614/owner-state/spoken-artifacts/play-1a7497545077a73393f2fb4a76d45dbe58978a49f2a48a03571defa37fa933f4.wav",
+    "wav_bytes": 574660,
+    "wav_sha256": "875d70f0c13213f267455a55ef15bce8aab8151cae70634c00cd7c3b14d870b5"
+  },
+  "speaker_playback_outcome": "completed",
+  "speaker_played": true,
+  "stop_requested": false
+}
