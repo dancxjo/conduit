@@ -1,15 +1,17 @@
 // Capture the installed owner's selected model Mask and its listener audio.
 // The Mask's first artifact Play is distinct from the selected speaker Play.
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { ownerModelRouteControl } from './owner-model-route-control.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
 export async function captureOwnerLlmSpeaker({ owner, state, output, installation,
-  bodyId, runId, sourceCommit, model }) {
+  bodyId, runId, sourceCommit, model, directoryName = 'owner-llm-selected' }) {
   assert.equal(installation.selected_model?.model_name, model,
     'installed owner must select the reviewed local model before this Boot');
   assert.equal(installation.release_source_identity, sourceCommit);
@@ -79,7 +81,7 @@ export async function captureOwnerLlmSpeaker({ owner, state, output, installatio
   assert.equal(after.presentation.basis.body_id, bodyId);
   assert.equal(after.presentation.identity, before.presentation.identity,
     'spoken Mask may not invent a new Face');
-  const directory = path.join(output, 'owner-llm-selected');
+  const directory = path.join(output, directoryName);
   await mkdir(directory, { mode: 0o700 });
   const destination = path.join(directory, path.basename(source));
   await copyFile(source, destination);
@@ -103,10 +105,82 @@ export async function captureOwnerLlmSpeaker({ owner, state, output, installatio
     candidate_digest: generation.candidate_digest,
     validation_receipt_identity: generation.validation_receipt_identity,
     original_model_output_sha256: digest(Buffer.from(generation.original_model_output)),
-    terminal: { path: 'owner-llm-selected/terminal.json', sha256: digest(terminalBytes) },
-    wav: { path: `owner-llm-selected/${path.basename(source)}`,
+    terminal: { path: `${directoryName}/terminal.json`, sha256: digest(terminalBytes) },
+    wav: { path: `${directoryName}/${path.basename(source)}`,
       bytes: wav.length, sha256: digest(wav) },
     physical_hearing_observed: false,
   };
   return record;
+}
+
+export async function captureOwnerModelRouteLoss({ owner, state, output, installation,
+  bodyId, runId, sourceCommit, model, controlSocket, successful,
+  observeWardrobe }) {
+  const endpoint = installation.selected_model?.endpoint;
+  assert.ok(endpoint && successful?.route_plan_id,
+    'owner route loss requires a completed owner-selected model Show');
+  const route = action => ownerModelRouteControl(controlSocket, action, endpoint);
+  assert.equal((await route('status')).state, 'available');
+  const routeId = `route/${successful.route_plan_id}`;
+  const availableWardrobe = await observeWardrobe(routeId, true);
+  const before = owner(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(before.presentation.basis.body_id, bodyId);
+  const artifactDir = path.join(state, 'spoken-artifacts');
+  const artifactsBefore = (await readdir(artifactDir)).sort();
+  let refused, unavailableWardrobe;
+  await route('withdraw');
+  try {
+    const attempted = spawnSync(installation.product_executable,
+      ['body', 'spoken-mask', '--state-dir', state, 'start', '--llm'],
+      { encoding: 'utf8', timeout: 10_000 });
+    assert.notEqual(attempted.status, 0,
+      'owner unexpectedly started a model Mask through the withdrawn provider');
+    assert.match(attempted.stderr,
+      /LLM spoken route has no current model\/voice witness/,
+      'owner refusal must come from its current model route witness');
+    assert.equal(attempted.stdout.trim(), '', 'a refused Start has no operation receipt');
+    refused = { exit_status: attempted.status,
+      stderr: attempted.stderr, stdout: attempted.stdout,
+      selected_route_plan_id: successful.route_plan_id,
+      operation_started: false };
+    assert.equal((await route('status')).state, 'withdrawn');
+    unavailableWardrobe = await observeWardrobe(routeId, false);
+    assert.equal(unavailableWardrobe.body_id, bodyId);
+    assert.equal(unavailableWardrobe.face_id, availableWardrobe.face_id);
+    const after = owner(['body', 'face', '--state-dir', state, '--json']);
+    assert.equal(after.presentation.identity, before.presentation.identity);
+    assert.equal(after.presentation_revision_decimal, before.presentation_revision_decimal);
+    assert.deepEqual((await readdir(artifactDir)).sort(), artifactsBefore,
+      'failed model Play must not produce a listener WAV');
+  } finally {
+    assert.equal((await route('restore')).state, 'available');
+  }
+  const restored = await captureOwnerLlmSpeaker({ owner, state, output, installation,
+    bodyId, runId, sourceCommit, model, directoryName: 'owner-llm-restored' });
+  const restoredWardrobe = await observeWardrobe(`route/${restored.route_plan_id}`, true);
+  assert.equal(restoredWardrobe.body_id, bodyId);
+  assert.equal(restoredWardrobe.face_id, availableWardrobe.face_id);
+  assert.equal(restored.face_id, successful.face_id);
+  assert.equal(restored.face_revision_decimal, successful.face_revision_decimal);
+  assert.notEqual(restored.model_artifact_play_id, successful.model_artifact_play_id);
+  assert.notEqual(restored.listener_play_id, successful.listener_play_id);
+  const refusalBytes = Buffer.from(`${JSON.stringify(refused, null, 2)}\n`);
+  await writeFile(path.join(output, 'owner-llm-route-loss.json'), refusalBytes);
+  const wardrobeBytes = Buffer.from(`${JSON.stringify({ available: availableWardrobe,
+    unavailable: unavailableWardrobe, restored: restoredWardrobe }, null, 2)}\n`);
+  await writeFile(path.join(output, 'owner-llm-route-wardrobe.json'), wardrobeBytes);
+  return {
+    proof_class: 'installed-owner-selected-model-route-withdrawal-and-restoration',
+    source_commit: sourceCommit, run_id: runId, body_id: bodyId,
+    selected_endpoint: endpoint, route_plan_id: successful.route_plan_id,
+    refusal_exit_status: refused.exit_status,
+    refusal_detail: refused.stderr, operation_started_on_loss: false,
+    owner_face_unchanged: true,
+    new_listener_wav_on_failure: false,
+    upstream_service_termination_requested: false,
+    refusal: { path: 'owner-llm-route-loss.json', sha256: digest(refusalBytes) },
+    wardrobe: { path: 'owner-llm-route-wardrobe.json',
+      sha256: digest(wardrobeBytes) },
+    restored,
+  };
 }

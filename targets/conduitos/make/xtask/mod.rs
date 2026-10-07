@@ -61,6 +61,7 @@ mod orange_pi_5_image;
 mod orange_pi_5_media;
 mod owner_action_proof;
 mod owner_boot;
+mod owner_model_route;
 mod pc_speaker_proof;
 mod prepared_proof_image;
 mod product_journey_gate;
@@ -429,6 +430,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::ScreenFreeThreeHostProof(args) => {
             screen_free_three_host_proof::execute(&args, opts)
         }
+        ConduitosCommand::OwnerModelRoute(args) => owner_model_route::execute(&args, opts),
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
