@@ -18,8 +18,13 @@ pub struct Composite {
 }
 pub fn compose(case: &language::Case, pronunciations: &[PreparedPronunciation<'_>]) -> Composite {
     let material = case.lexical.tape().source().material();
-    let revision =
-        SpeechSegmentRevisionId::new(format!("phones/{}", material.revision().get())).unwrap();
+    let revision_identity = format!("phones/{}", material.revision().get());
+    let revision_identity = if revision_identity.len() <= 64 {
+        revision_identity
+    } else {
+        material.revision().get().to_owned()
+    };
+    let revision = SpeechSegmentRevisionId::new(revision_identity).unwrap();
     let utterance = SpeechUtteranceId::new("utterance".into()).unwrap();
     let sequence = SpeechSegmentSequenceId::new("proof/composite/phones".into()).unwrap();
     let mut source_events = Vec::new();

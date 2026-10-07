@@ -221,8 +221,14 @@ pub fn admitted_graph(
 ) -> Case {
     let source = lexical.tape().source().clone();
     let revision = source.material().revision().get();
+    let fact_identity = format!("proof/fact/{revision}");
+    let fact_identity = if fact_identity.len() <= 64 {
+        fact_identity
+    } else {
+        revision.to_owned()
+    };
     let discourse = prepare_vocative_fact(
-        format!("proof/fact/{revision}"),
+        fact_identity,
         &source,
         &analysis,
         &arcs[vocative],
