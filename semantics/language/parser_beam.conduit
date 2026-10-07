@@ -9,6 +9,29 @@ type LanguageParserHypothesis = {
     score: I64 in -1000000..=1000000
     active: Boolean
 }
+# Generic NativeRustBinding conversion is the publication admission boundary.
+# Nested Hypothesis/State native bindings must be admitted before these laws.
+type LanguageParserAdmittedBeam = {
+    basis: LanguageParserBasis
+    candidate0: LanguageParserHypothesis
+    candidate1: LanguageParserHypothesis
+    candidate2: LanguageParserHypothesis
+    candidate3: LanguageParserHypothesis
+    where (!.candidate0.active || .candidate0.state.basis.text == .basis.text)
+    where (!.candidate0.active || .candidate0.state.basis.source_revision == .basis.source_revision)
+    where (!.candidate0.active || .candidate0.state.basis.analysis_revision == .basis.analysis_revision)
+    where (!.candidate1.active || .candidate1.state.basis.text == .basis.text)
+    where (!.candidate1.active || .candidate1.state.basis.source_revision == .basis.source_revision)
+    where (!.candidate1.active || .candidate1.state.basis.analysis_revision == .basis.analysis_revision)
+    where (!.candidate2.active || .candidate2.state.basis.text == .basis.text)
+    where (!.candidate2.active || .candidate2.state.basis.source_revision == .basis.source_revision)
+    where (!.candidate2.active || .candidate2.state.basis.analysis_revision == .basis.analysis_revision)
+    where (!.candidate3.active || .candidate3.state.basis.text == .basis.text)
+    where (!.candidate3.active || .candidate3.state.basis.source_revision == .basis.source_revision)
+    where (!.candidate3.active || .candidate3.state.basis.analysis_revision == .basis.analysis_revision)
+
+}
+
 type LanguageParserRawHypothesis = {
     state: LanguageParserNumericState
     identity: U64
@@ -199,3 +222,24 @@ plot language-parser-advance-stable (
 plot language-parser-commit-frontier (
  input: LanguageParserCommitRequest...| >> result: LanguageParserFrontierResult...|
 ) = ({ accepted: ((!.cancelled && !.pressure) && ((.frontier.stable <= 4 && .frontier.committed <= .frontier.stable) && (.through >= .frontier.committed && .through <= .frontier.stable))), refusal: (.cancelled ? cancelled(unit) : (.pressure ? pressure(unit) : (!(.frontier.stable <= 4 && .frontier.committed <= .frontier.stable) ? invalid_frontier(unit) : (!(.through >= .frontier.committed && .through <= .frontier.stable) ? beyond_stable(unit) : none(unit))))), frontier: (((!.cancelled && !.pressure) && ((.frontier.stable <= 4 && .frontier.committed <= .frontier.stable) && (.through >= .frontier.committed && .through <= .frontier.stable))) ? { basis: .frontier.basis, stable: .frontier.stable, committed: .through } : .frontier) })
+
+# A containing owner must use recursive generic native conversion before ingress.
+# The representation adapter adds no grammar or admission policy of its own.
+type LanguageParserAdmittedAgreementQuery = {
+    beam: LanguageParserAdmittedBeam
+    dependent: U64 in 0..=3
+}
+plot language-parser-admitted-agreement-query (
+    query: LanguageParserAdmittedAgreementQuery...| >> result: LanguageParserAgreementQuery...|
+) = { beam: { candidate0: { state: { basis: .beam.candidate0.state.basis, token_count: .beam.candidate0.state.token_count, unread: .beam.candidate0.state.unread, depth: .beam.candidate0.state.depth, stack: .beam.candidate0.state.stack, heads: .beam.candidate0.state.heads, relation0: .beam.candidate0.state.relation0, relation1: .beam.candidate0.state.relation1, relation2: .beam.candidate0.state.relation2, relation3: .beam.candidate0.state.relation3, committed: .beam.candidate0.state.committed }, identity: .beam.candidate0.identity, score: .beam.candidate0.score, active: .beam.candidate0.active }, candidate1: { state: { basis: .beam.candidate1.state.basis, token_count: .beam.candidate1.state.token_count, unread: .beam.candidate1.state.unread, depth: .beam.candidate1.state.depth, stack: .beam.candidate1.state.stack, heads: .beam.candidate1.state.heads, relation0: .beam.candidate1.state.relation0, relation1: .beam.candidate1.state.relation1, relation2: .beam.candidate1.state.relation2, relation3: .beam.candidate1.state.relation3, committed: .beam.candidate1.state.committed }, identity: .beam.candidate1.identity, score: .beam.candidate1.score, active: .beam.candidate1.active }, candidate2: { state: { basis: .beam.candidate2.state.basis, token_count: .beam.candidate2.state.token_count, unread: .beam.candidate2.state.unread, depth: .beam.candidate2.state.depth, stack: .beam.candidate2.state.stack, heads: .beam.candidate2.state.heads, relation0: .beam.candidate2.state.relation0, relation1: .beam.candidate2.state.relation1, relation2: .beam.candidate2.state.relation2, relation3: .beam.candidate2.state.relation3, committed: .beam.candidate2.state.committed }, identity: .beam.candidate2.identity, score: .beam.candidate2.score, active: .beam.candidate2.active }, candidate3: { state: { basis: .beam.candidate3.state.basis, token_count: .beam.candidate3.state.token_count, unread: .beam.candidate3.state.unread, depth: .beam.candidate3.state.depth, stack: .beam.candidate3.state.stack, heads: .beam.candidate3.state.heads, relation0: .beam.candidate3.state.relation0, relation1: .beam.candidate3.state.relation1, relation2: .beam.candidate3.state.relation2, relation3: .beam.candidate3.state.relation3, committed: .beam.candidate3.state.committed }, identity: .beam.candidate3.identity, score: .beam.candidate3.score, active: .beam.candidate3.active } }, dependent: .dependent }
+
+
+plot language-parser-edge-votes (
+ query: LanguageParserAgreementQuery...| >> votes: LanguageParserVotes...|
+) = { vote0: { basis: .beam.candidate0.state.basis, dependent: .dependent, head: sequence/at(.beam.candidate0.state.heads,.dependent), relation: (.dependent == 0 ? .beam.candidate0.state.relation0 : (.dependent == 1 ? .beam.candidate0.state.relation1 : (.dependent == 2 ? .beam.candidate0.state.relation2 : .beam.candidate0.state.relation3))), active: .beam.candidate0.active }, vote1: { basis: .beam.candidate1.state.basis, dependent: .dependent, head: sequence/at(.beam.candidate1.state.heads,.dependent), relation: (.dependent == 0 ? .beam.candidate1.state.relation0 : (.dependent == 1 ? .beam.candidate1.state.relation1 : (.dependent == 2 ? .beam.candidate1.state.relation2 : .beam.candidate1.state.relation3))), active: .beam.candidate1.active }, vote2: { basis: .beam.candidate2.state.basis, dependent: .dependent, head: sequence/at(.beam.candidate2.state.heads,.dependent), relation: (.dependent == 0 ? .beam.candidate2.state.relation0 : (.dependent == 1 ? .beam.candidate2.state.relation1 : (.dependent == 2 ? .beam.candidate2.state.relation2 : .beam.candidate2.state.relation3))), active: .beam.candidate2.active }, vote3: { basis: .beam.candidate3.state.basis, dependent: .dependent, head: sequence/at(.beam.candidate3.state.heads,.dependent), relation: (.dependent == 0 ? .beam.candidate3.state.relation0 : (.dependent == 1 ? .beam.candidate3.state.relation1 : (.dependent == 2 ? .beam.candidate3.state.relation2 : .beam.candidate3.state.relation3))), active: .beam.candidate3.active } }
+
+plot language-parser-admitted-agreement (
+    query: LanguageParserAdmittedAgreementQuery...| >> result: LanguageParserAgreement...|
+) {
+    query >> language-parser-admitted-agreement-query() >> language-parser-edge-votes() >> language-parser-agreement() >> result
+}

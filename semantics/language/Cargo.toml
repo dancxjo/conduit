@@ -10,3 +10,11 @@ conduit-plot = { path = "../../architecture/plot" }
 [build-dependencies]
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
+
+[dev-dependencies]
+conduitos = { path = "../../targets/conduitos" }
+conduit-composite = { path = "../../architecture/composite" }
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
+conduit-planner = { path = "../../architecture/planner" }
+serde_json = "1"
