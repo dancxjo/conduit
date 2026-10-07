@@ -42,6 +42,8 @@ fn select(
     resources: &Resources,
 ) -> Result<(CapabilityOffer, Option<OwnedBack>), String> {
     match kind {
+        "numeric/flow-dense161x18" => choose!(161, 18, placement, resources),
+        "numeric/flow-dense18x18" => choose!(18, 18, placement, resources),
         "numeric/flow-dense3x2" => choose!(3, 2, placement, resources),
         "numeric/flow-dense32x64" => choose!(32, 64, placement, resources),
         "numeric/flow-dense192x128" => choose!(192, 128, placement, resources),

@@ -13,6 +13,8 @@ fn op(specs: &mut Vec<Spec>, name: String, inputs: Vec<(&str, String)>, output: 
 pub(crate) fn fixed_signal_specs() -> Vec<Spec> {
     let mut specs = Vec::new();
     for (i, o) in [
+        (161, 18),
+        (18, 18),
         (80, 1),
         (328, 192),
         (192, 192),
@@ -65,6 +67,12 @@ pub(crate) fn fixed_signal_specs() -> Vec<Spec> {
             );
         }
     }
+    op(
+        &mut specs,
+        "numeric/multiply320".into(),
+        vec![("left", vector(320)), ("right", vector(320))],
+        vector(320),
+    );
     for n in [4, 40, 160, 192] {
         op(
             &mut specs,
@@ -96,6 +104,8 @@ pub(crate) fn fixed_signal_specs() -> Vec<Spec> {
         );
     }
     for (i, j) in [
+        (18, 1),
+        (19, 1),
         (80, 44),
         (124, 40),
         (164, 164),

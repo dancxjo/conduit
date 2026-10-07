@@ -150,3 +150,30 @@ type NumericOnePole40Result = {
     value: NumericF32Vector40
     next_state: NumericF32Vector1
 }
+
+type NumericF32Vector18 = collection NumericFiniteF32 = 18
+type NumericF32Vector161 = collection NumericFiniteF32 = 161
+type NumericF32Vector322 = collection NumericFiniteF32 = 322
+type NumericF32MatrixRef161x18 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    columns: U16 in 161..=161
+    rows: U16 in 18..=18
+}
+type NumericF32MatrixRef18x18 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    columns: U16 in 18..=18
+    rows: U16 in 18..=18
+}
+type NumericF32BiasRef18 = {
+    resource: ResourceRef
+    content_digest: NumericTensorDigest
+    element: NumericTensorElement
+    length: U16 in 18..=18
+}
+
+type NumericF32Vector19 = collection NumericFiniteF32 = 19
+type NumericI16Vector160 = collection I16 = 160

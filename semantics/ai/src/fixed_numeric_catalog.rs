@@ -191,6 +191,7 @@ fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
             )
         })
         .chain(crate::fixed_numeric_signal_catalog::fixed_signal_specs())
+        .chain(crate::fixed_numeric_dsp_catalog::dsp_specs())
         .map(|(name, inputs, outputs)| {
             let inputs: Vec<_> = inputs
                 .into_iter()
