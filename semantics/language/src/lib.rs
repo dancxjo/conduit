@@ -10,17 +10,19 @@ mod generated {
 pub use generated::{
     AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef, LanguageCoverage,
     LanguageDependencyArc, LanguageDependencyHead, LanguageDependencyRelation,
-    LanguageDependencySubtype, LanguageExternalIdentity, LanguageId, LanguageLexicalCandidate,
-    LanguageLexicalCompleteness, LanguageLexicalEntry, LanguageLexicalPos, LanguageLexicalProfile,
-    LanguageLexicalTape, LanguageLexicalToken, LanguageMappingDeclaration, LanguageRequest,
-    LanguageText, LanguageTextFinality, LanguageTextId, LanguageTextPriorRevision,
-    LanguageTextRange, LanguageTextReferenceMatch, LanguageTextRevision, LanguageTextRevisionId,
-    LanguageTextSegmentKind, LanguageTextSegmentRef, LanguageUniversalDependencyRelation,
-    LanguageVariety, LanguageVarietyPolicy, LinguisticAnnotation, LinguisticDependencyEdge,
-    LinguisticDependencyRelation, LinguisticDerivationProvenance, LinguisticEvidence,
-    LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind,
-    LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature,
-    LinguisticTokenFeatureSlot, LinguisticTokenIdentity, LinguisticTokensFour, TextSpan, VarietyId,
+    LanguageDependencySubtype, LanguageDiscourseRole, LanguageExternalIdentity, LanguageId,
+    LanguageLexicalCandidate, LanguageLexicalCompleteness, LanguageLexicalEntry,
+    LanguageLexicalPos, LanguageLexicalProfile, LanguageLexicalTape, LanguageLexicalToken,
+    LanguageMappingDeclaration, LanguageRequest, LanguageText, LanguageTextFinality,
+    LanguageTextId, LanguageTextPriorRevision, LanguageTextRange, LanguageTextReferenceMatch,
+    LanguageTextRevision, LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef,
+    LanguageUniversalDependencyRelation, LanguageVariety, LanguageVarietyPolicy,
+    LanguageVocativeDiscourseAdmission, LanguageVocativeDiscourseFact, LinguisticAnnotation,
+    LinguisticDependencyEdge, LinguisticDependencyRelation, LinguisticDerivationProvenance,
+    LinguisticEvidence, LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment,
+    LinguisticSegmentKind, LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory,
+    LinguisticTokenFeature, LinguisticTokenFeatureSlot, LinguisticTokenIdentity,
+    LinguisticTokensFour, TextSpan, VarietyId,
 };
 
 mod catalog;
@@ -58,3 +60,5 @@ mod text_revision;
 pub use text_revision::*;
 
 pub mod lexical;
+
+pub mod discourse;
