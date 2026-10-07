@@ -9,7 +9,12 @@ python3 proof/evidence/language/revision_inspector.py \
 ```
 
 Open the HTML in a browser. Previous, Next, and the slider select an event;
-Load another recorded JSONL replaces the trace locally. The viewer makes no
+Load another recorded JSONL replaces the trace locally. On browsers that support
+the local File System Access API, Follow local event file observes newly flushed
+complete JSONL lines once per second; Stop following retains the last observed
+snapshot. The producer status remains unknown. Trailing incomplete lines are
+ignored until flushed, and malformed complete records report an error without
+replacing the last valid snapshot. The viewer makes no
 network requests and never runs the parser. It displays the original elapsed
 milliseconds, candidate ordinals, explicit agreement, independent frontiers,
 identities, and full native bytes. The source-file digest identifies the evidence.
