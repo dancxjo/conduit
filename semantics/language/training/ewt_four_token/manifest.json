@@ -1,0 +1,125 @@
+{
+  "artifact_sha256": "c952b0e19df1022ba9fd12a0aaa804ff1f7c2ce62eea1bf16e77e905ed842f7e",
+  "commit": "b7711cce01cdd4f5fcc0a8199b8a50d951b16c0c",
+  "corpus_sha256": {
+    "dev": "39239e0a60db3ae68f4b7036189f11b6692741d10ff8240dd91f74f2760d90f8",
+    "test": "fa024f43dc5da3c5ac02563bc9bd0e974f46cbb1560823976a8f342a37dc494a",
+    "train": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
+  },
+  "dataset": "UD_English-EWT",
+  "diagnostic_oracle_action_metrics": {
+    "dev": {
+      "accuracy": 0.9097845601436265,
+      "oracle_action_correct": 2027,
+      "oracle_action_total": 2228
+    },
+    "test": {
+      "accuracy": 0.9131305044035228,
+      "oracle_action_correct": 2281,
+      "oracle_action_total": 2498
+    },
+    "train": {
+      "accuracy": 0.9323713116519492,
+      "oracle_action_correct": 8658,
+      "oracle_action_total": 9286
+    }
+  },
+  "eligible_sentences": {
+    "dev": 454,
+    "test": 533,
+    "train": 1986
+  },
+  "epochs": 12,
+  "exclusions": {
+    "dev": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1538
+    },
+    "test": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1535
+    },
+    "train": {
+      "multiword_or_empty_node": 19,
+      "over_four_tokens": 10539
+    }
+  },
+  "feature_class_contract_identity": "0aae9add33a46122a5f8f513d055b657a4c6f424bfc59bcb85ff8cc56091b986",
+  "features": 374,
+  "lexical_condition": "gold UD UPOS and gold syntactic tokenization; no POS/lexical prediction metric",
+  "license": "CC BY-SA 4.0",
+  "lookups": 7,
+  "model_bytes": 56868,
+  "model_content_identity": "6f49fd7b10ff09b699b33b05cb485f0b261e1702e261935d1be67edc6a7ddee9",
+  "native_decode_metrics": "not yet evaluated; oracle diagnostic is not attachment accuracy",
+  "official_splits": true,
+  "outputs": 76,
+  "pos": [
+    "ADJ",
+    "ADP",
+    "ADV",
+    "AUX",
+    "CCONJ",
+    "DET",
+    "INTJ",
+    "NOUN",
+    "NUM",
+    "PART",
+    "PRON",
+    "PROPN",
+    "PUNCT",
+    "SCONJ",
+    "SYM",
+    "VERB",
+    "X"
+  ],
+  "precision": "i16-weights-i64-sums",
+  "profile": "arc-eager-four-token-ud-base37-gold-upos-categorical-v1",
+  "quantization_scale": 256,
+  "quantization_test_disagreements": 0,
+  "quantization_test_observations": 2498,
+  "relations": [
+    "acl",
+    "advcl",
+    "advmod",
+    "amod",
+    "appos",
+    "aux",
+    "case",
+    "cc",
+    "ccomp",
+    "clf",
+    "compound",
+    "conj",
+    "cop",
+    "csubj",
+    "dep",
+    "det",
+    "discourse",
+    "dislocated",
+    "expl",
+    "fixed",
+    "flat",
+    "goeswith",
+    "iobj",
+    "list",
+    "mark",
+    "nmod",
+    "nsubj",
+    "nummod",
+    "obj",
+    "obl",
+    "orphan",
+    "parataxis",
+    "punct",
+    "reparandum",
+    "root",
+    "vocative",
+    "xcomp"
+  ],
+  "seed": 4907,
+  "training_examples": 9286,
+  "training_steps": 111432,
+  "ud_release": "2.18",
+  "weights_tensor_content_identity": "fa233c0183c56588f3eb9983f045a1008f070211e40a8e9c5aa05b1a2f6322df"
+}

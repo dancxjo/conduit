@@ -19,11 +19,12 @@ pub struct Fixture {
 impl Fixture {
     pub fn new() -> Self {
         let source = format!(
-            "{}\n{}\n{}\n{}",
+            "{}\n{}\n{}\n{}\n{}",
             include_str!("../../identity.conduit"),
             include_str!("../../types.conduit"),
             include_str!("../../parser.conduit"),
-            include_str!("../../parser_beam.conduit")
+            include_str!("../../parser_beam.conduit"),
+            include_str!("../../parser_scorer.conduit")
         );
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -110,7 +111,7 @@ impl Fixture {
         })
         .is_ok()
     }
-    pub fn run(&self, name: &str, input: &StructuredInfoValue) -> StructuredInfoValue {
+    pub fn prepare(&self, name: &str) -> PreparedPortableExpressionEvaluator {
         let expanded =
             expand_canonical_plot_for_authoring(&self.checked, name, &ProfileCatalog::new())
                 .unwrap_or_else(|e| panic!("{name}: {e:?}"))
@@ -118,11 +119,13 @@ impl Fixture {
         let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
             panic!("program")
         };
-        let mut evaluator = PreparedPortableExpressionEvaluator::new(
+        PreparedPortableExpressionEvaluator::new(
             &PortableExpressionProgram::from_canonical_hex(encoded).unwrap(),
         )
-        .unwrap_or_else(|e| panic!("{name} preparation: {e:?}"));
-        evaluate(&mut evaluator, input)
+        .unwrap_or_else(|e| panic!("{name} preparation: {e:?}"))
+    }
+    pub fn run(&self, name: &str, input: &StructuredInfoValue) -> StructuredInfoValue {
+        evaluate(&mut self.prepare(name), input)
     }
     pub fn ty(&self, name: &str) -> &StructuredInfoType {
         &self.types.iter().find(|(n, _)| n == name).unwrap().1

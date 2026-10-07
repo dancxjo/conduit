@@ -1,0 +1,42 @@
+{
+  "build": {
+    "CARGO_INCREMENTAL": 0,
+    "debug_information": 0,
+    "opt_level_1": [
+      "conduit-language"
+    ],
+    "opt_level_2": [
+      "conduit-core",
+      "conduit-plot",
+      "conduit-kernel",
+      "conduit-planner",
+      "conduit-composite",
+      "conduitos",
+      "conduit-plan-lowering"
+    ],
+    "toolchain": "stable"
+  },
+  "corpus_test_ignored": 1,
+  "evidence_class": "local native representative regression, not complete heldout/product acceptance",
+  "feature_class_contract_identity": "0aae9add33a46122a5f8f513d055b657a4c6f424bfc59bcb85ff8cc56091b986",
+  "focused_parser_tests_passed": 12,
+  "host": "forebrain",
+  "limitations": [
+    "one heldout sentence only; no native full533 attachment metrics",
+    "gold UPOS and gold tokenization",
+    "beam width1; greedy dead end observed",
+    "no later text correction or beam4 stability/commitment proof",
+    "numeric inference uses hosted ModelArtifact boundary between ordinary source graphs"
+  ],
+  "model_content_identity": "6f49fd7b10ff09b699b33b05cb485f0b261e1702e261935d1be67edc6a7ddee9",
+  "native_metric_file": "native_representative_metrics.json",
+  "scoped_clippy": "passed with -D warnings",
+  "source_sha256": {
+    "semantics/ai/src/integer_categorical.rs": "04e7d40acd5bd133a9b146126234a92cdae30117355928489302c0c2d556663d",
+    "semantics/language/parser_scorer.conduit": "351d3dc7d42291832a03832e91da1c8845c9b3618566b44a1901d3f7a0a29964",
+    "semantics/language/tests/common/parser_kernel.rs": "8e1a824d68b48e15473e2474d7226f575da2d0cdc56a75897cfd343c3264107c",
+    "semantics/language/tests/common/scorer_model.rs": "246bacd63a176a14587d1fb7e2489d376e14070a367e6727ccb694a574ace116",
+    "semantics/language/tests/parser_learned.rs": "d63f7c375896fd87e2ec58bc8897726289eb28c85284376004f90ccc5786a370",
+    "targets/std/src/hosted_integer_categorical.rs": "71f66c7fc5600f4d6a07579f662310870b6a805deea0f83a2491596f63420e6f"
+  }
+}

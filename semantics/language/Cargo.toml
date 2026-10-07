@@ -18,3 +18,7 @@ conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-planner = { path = "../../architecture/planner" }
 serde_json = "1"
+conduit-ai = { path = "../ai" }
+conduit-data = { path = "../data" }
+conduit-std-host = { path = "../../targets/std", default-features = false }
+serde = { version = "1", features = ["derive"] }
