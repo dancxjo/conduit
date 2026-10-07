@@ -13,6 +13,28 @@ use serde_json::Value;
 
 use crate::durable_host_control;
 
+pub(super) fn report_refusal(refusal: &str, output: &mut impl Write) -> Result<(), String> {
+    if refusal == "owner wardrobe routes: StaleBodyOrFace" {
+        writeln!(output, "The Body or Face changed. Its previous Mask Plan is stale, so no route from that Plan can be used now. Read the current Face; inspect the wardrobe after a Host offers a fresh Mask.")
+            .map_err(|error| error.to_string())?;
+        writeln!(
+            output,
+            "{}",
+            serde_json::json!({
+                "schema": "conduit.body/screen-free-wardrobe-refusal@1",
+                "code": "stale-body-or-face",
+            })
+        )
+        .map_err(|error| error.to_string())
+    } else {
+        writeln!(
+            output,
+            "Wardrobe refused: {refusal}. Enter wardrobe to inspect current owner state."
+        )
+        .map_err(|error| error.to_string())
+    }
+}
+
 #[derive(Clone)]
 pub(super) struct WardrobeReadout {
     raw: Value,

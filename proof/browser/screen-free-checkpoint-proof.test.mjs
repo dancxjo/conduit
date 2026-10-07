@@ -26,3 +26,16 @@ test('checkpoint binds the held phase to the current owner Face and route', () =
     { ...ready, face_revision: '8' }, ready.phase, 'body/test', part, face),
   /Expected values to be strictly equal/);
 });
+
+test('browser leave reports a stale Plan without inventing a current route', () => {
+  const lost = { ...ready, phase: 'browser-presentation-unavailable',
+    route_id: 'route/browser' };
+  const output = `The Body or Face changed. Its previous Mask Plan is stale, so no route from that Plan can be used now. Read the current Face; inspect the wardrobe after a Host offers a fresh Mask.\n` +
+    `{"schema":"conduit.body/screen-free-wardrobe-refusal@1","code":"stale-body-or-face"}\n`;
+  const result = verifyCheckpointWardrobe(output, lost, part, true);
+  assert.equal(result.wardrobe_revision, null);
+  assert.equal(result.refusal_code, 'stale-body-or-face');
+  assert.throws(() => verifyCheckpointWardrobe(output,
+    { ...lost, phase: 'model-provider-unavailable' }, part, true),
+  /lacks current owner wardrobe revision/);
+});

@@ -24,6 +24,21 @@ export function verifyCheckpointReady(ready, phase, bodyId, ownerPart, face) {
 }
 
 export function verifyCheckpointWardrobe(output, ready, ownerPart, selectedSpeaker) {
+  const refusal = output.split('\n').flatMap(line => {
+    const start = line.indexOf('{"');
+    if (start < 0) return [];
+    try { return [JSON.parse(line.slice(start))]; } catch { return []; }
+  }).find(item => item.schema === 'conduit.body/screen-free-wardrobe-refusal@1');
+  if (ready.phase === 'browser-presentation-unavailable' && refusal) {
+    assert.equal(ready.route_available, false);
+    assert.equal(refusal.code, 'stale-body-or-face');
+    assert.match(output, /previous Mask Plan is stale, so no route from that Plan can be used now/);
+    assert.doesNotMatch(output, /Owner wardrobe revision \d+\./,
+      'a stale Plan cannot be reported as the current wardrobe');
+    return { wardrobe_revision: null, route_id: ready.route_id,
+      route_available: false, route_announcement: 'previous Mask Plan is stale',
+      wardrobe_selected_playback_receipts: 0, refusal_code: refusal.code };
+  }
   const revision = /Owner wardrobe revision (\d+)\./.exec(output)?.[1];
   assert.ok(revision, `${ready.phase} lacks current owner wardrobe revision`);
   if (ready.wardrobe_revision !== undefined && ready.wardrobe_revision !== null) {

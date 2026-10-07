@@ -453,11 +453,7 @@ fn run_body(
                     }
                 }
                 Err(refusal) => {
-                    writeln!(
-                        output,
-                        "Wardrobe refused: {refusal}. Enter wardrobe to inspect current owner state."
-                    )
-                    .map_err(|error| error.to_string())?;
+                    wardrobe::report_refusal(&refusal, output)?;
                 }
             }
             continue;
