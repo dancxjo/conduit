@@ -31,6 +31,7 @@ pub fn fixed_one_pole_offer() -> Result<CapabilityOffer, String> {
     )
     .build())
 }
+pub const FLOW_SCAN_IMPLEMENTATION: &str = "conduit.numeric/closing-flow-one-pole40@1";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FixedScanPreparationRefusal {
     Planned(FixedPlannedRefusal),
@@ -44,18 +45,39 @@ pub struct FixedOnePoleBack {
     staged: bool,
     finished: bool,
     cancelled: bool,
+    flow: bool,
+    committed_frames: u64,
 }
 impl FixedOnePoleBack {
     pub fn prepare_planned<const PORTS: usize>(
         placement: &PlannedGear,
         fuel: u16,
     ) -> Result<Self, FixedScanPreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, false)
+    }
+    pub fn prepare_flow_planned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+    ) -> Result<Self, FixedScanPreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, true)
+    }
+    fn prepare_internal<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        flow: bool,
+    ) -> Result<Self, FixedScanPreparationRefusal> {
         if PORTS < 3 || fuel < 4 {
             return Err(FixedScanPreparationRefusal::StepBudget);
         }
-        let offer = fixed_one_pole_offer().map_err(|_| {
-            FixedScanPreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)
-        })?;
+        let offer = (if flow {
+            crate::fixed_numeric_temporal::closing_numeric_offer(
+                "numeric/one-pole40",
+                FLOW_SCAN_IMPLEMENTATION,
+            )
+        } else {
+            fixed_one_pole_offer()
+        })
+        .map_err(|_| FixedScanPreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape))?;
         verify_fixed_placement(placement, &offer).map_err(FixedScanPreparationRefusal::Planned)?;
         let ty = |name| {
             fixed_numeric_type(name)
@@ -71,7 +93,12 @@ impl FixedOnePoleBack {
             staged: false,
             finished: false,
             cancelled: false,
+            flow,
+            committed_frames: 0,
         })
+    }
+    pub fn committed_frames(&self) -> u64 {
+        self.committed_frames
     }
     pub fn output(&self) -> &[u8] {
         self.output.encoded()
@@ -88,11 +115,27 @@ impl<const PORTS: usize> StepBack<PORTS> for FixedOnePoleBack {
                 detail: 1700,
             });
         }
+        self.staged = false;
+        if self.committed_frames == u64::MAX {
+            return fail(1701);
+        }
         if self.finished {
             return StepOutcome::Complete;
         }
-        if PORTS < 3 || (0..3).any(|p| io.input_closed(PortId(p))) {
+        if PORTS < 3 {
             return fail(1701);
+        }
+        if (0..3).any(|p| io.input_closed(PortId(p))) {
+            if !self.flow {
+                return fail(1701);
+            }
+            if (0..3).all(|p| io.input_closed(PortId(p))) {
+                return StepOutcome::Complete;
+            }
+            if (0..3).any(|p| io.input(PortId(p)).is_some()) {
+                return fail(1751);
+            }
+            return StepOutcome::Await;
         }
         if (0..3).any(|p| io.input(PortId(p)).is_none()) || !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
@@ -152,11 +195,12 @@ impl<const PORTS: usize> StepBack<PORTS> for FixedOnePoleBack {
     fn step_committed(&mut self) {
         if self.staged {
             self.staged = false;
-            self.finished = true;
+            self.finished = !self.flow;
+            self.committed_frames += 1;
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0)).then(|| self.output.encoded())
+        (port == PortId(0) && (!self.flow || self.staged)).then(|| self.output.encoded())
     }
     fn cancel(&mut self) {
         self.cancelled = true;

@@ -50,7 +50,11 @@ pub fn install_closing_numeric_catalogs(
         let suffix = identity
             .strip_prefix("numeric/")
             .ok_or("numeric identity required")?;
-        let implementation = if suffix.starts_with("tanh") || suffix.starts_with("concatenate") {
+        let implementation = if suffix == "history2x64" {
+            crate::fixed_numeric_window_back::FLOW_WINDOW_IMPLEMENTATION
+        } else if suffix == "one-pole40" {
+            crate::fixed_numeric_scan_back::FLOW_SCAN_IMPLEMENTATION
+        } else if suffix.starts_with("tanh") || suffix.starts_with("concatenate") {
             crate::fixed_numeric_operations_back::FLOW_OPERATION_IMPLEMENTATION
         } else if suffix.starts_with("gather") || suffix.starts_with("slice") {
             crate::fixed_numeric_index_back::FLOW_INDEX_IMPLEMENTATION

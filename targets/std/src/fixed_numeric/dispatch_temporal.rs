@@ -3,11 +3,30 @@ use conduit_ai::{
     fixed_numeric_index_back::*, fixed_numeric_operations_back::*, fixed_numeric_signal_back::*,
     fixed_numeric_temporal::*,
 };
+use conduit_ai::{fixed_numeric_scan_back::*, fixed_numeric_window_back::*};
 pub(super) fn select(
     kind: &str,
     planned: Option<(&PlannedGear, u16)>,
 ) -> Option<Result<Selection, String>> {
     match kind {
+        "numeric/flow-history2x64" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            closing_numeric_offer("numeric/history2x64", FLOW_WINDOW_IMPLEMENTATION),
+            FixedWindowBack::prepare_flow_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear, fuel
+            )
+        )),
+        "numeric/flow-one-pole40" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            closing_numeric_offer("numeric/one-pole40", FLOW_SCAN_IMPLEMENTATION),
+            FixedOnePoleBack::prepare_flow_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear, fuel
+            )
+        )),
         "numeric/flow-concatenate1x1" => Some(run!(
             planned,
             gear,

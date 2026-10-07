@@ -11,6 +11,7 @@ use conduit_kernel::{
     Failure, FailureCode, PortId,
 };
 
+pub const FLOW_WINDOW_IMPLEMENTATION: &str = "conduit.numeric/closing-flow-history2x64@1";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FixedWindowPreparationRefusal {
     Codec(FixedCodecRefusal),
@@ -26,16 +27,39 @@ pub struct FixedWindowBack {
     staged: bool,
     finished: bool,
     cancelled: bool,
+    flow: bool,
+    committed_frames: u64,
 }
 impl FixedWindowBack {
     pub fn prepare_planned<const PORTS: usize>(
         placement: &PlannedGear,
         fuel: u16,
     ) -> Result<Self, FixedWindowPreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, false)
+    }
+    pub fn prepare_flow_planned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+    ) -> Result<Self, FixedWindowPreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, true)
+    }
+    fn prepare_internal<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        flow: bool,
+    ) -> Result<Self, FixedWindowPreparationRefusal> {
         if PORTS < 2 || fuel < 3 {
             return Err(FixedWindowPreparationRefusal::StepBudget);
         }
-        let expected = fixed_window_offer().map_err(|_| {
+        let expected = (if flow {
+            crate::fixed_numeric_temporal::closing_numeric_offer(
+                "numeric/history2x64",
+                FLOW_WINDOW_IMPLEMENTATION,
+            )
+        } else {
+            fixed_window_offer()
+        })
+        .map_err(|_| {
             FixedWindowPreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)
         })?;
         verify_fixed_placement(placement, &expected)
@@ -64,7 +88,12 @@ impl FixedWindowBack {
             staged: false,
             finished: false,
             cancelled: false,
+            flow,
+            committed_frames: 0,
         })
+    }
+    pub fn committed_frames(&self) -> u64 {
+        self.committed_frames
     }
     pub fn output(&self) -> &[u8] {
         self.result.encoded()
@@ -86,11 +115,27 @@ impl<const PORTS: usize> StepBack<PORTS> for FixedWindowBack {
                 detail: 1200,
             });
         }
+        self.staged = false;
+        if self.committed_frames == u64::MAX {
+            return fail(1201);
+        }
         if self.finished {
             return StepOutcome::Complete;
         }
-        if PORTS < 2 || (0..2).any(|p| io.input_closed(PortId(p))) {
+        if PORTS < 2 {
             return fail(1201);
+        }
+        if (0..2).any(|p| io.input_closed(PortId(p))) {
+            if !self.flow {
+                return fail(1201);
+            }
+            if (0..2).all(|p| io.input_closed(PortId(p))) {
+                return StepOutcome::Complete;
+            }
+            if (0..2).any(|p| io.input(PortId(p)).is_some()) {
+                return fail(1251);
+            }
+            return StepOutcome::Await;
         }
         if (0..2).any(|p| io.input(PortId(p)).is_none()) || !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
@@ -134,11 +179,12 @@ impl<const PORTS: usize> StepBack<PORTS> for FixedWindowBack {
     fn step_committed(&mut self) {
         if self.staged {
             self.staged = false;
-            self.finished = true;
+            self.finished = !self.flow;
+            self.committed_frames += 1;
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0)).then(|| self.result.encoded())
+        (port == PortId(0) && (!self.flow || self.staged)).then(|| self.result.encoded())
     }
     fn cancel(&mut self) {
         self.cancelled = true;

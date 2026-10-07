@@ -75,13 +75,7 @@ fn selected_plan(identity: &str, implementation: &str) -> Plan {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_fixed_numeric_catalogs(&mut startup, &mut profile).unwrap();
-    startup
-        .insert(KindSignature {
-            kind: kind.kind_id.as_str().into(),
-            startup_parameters: vec![],
-        })
-        .unwrap();
-    profile.insert_kind(kind.clone()).unwrap();
+    install_closing_numeric_catalogs(&mut startup, &mut profile).unwrap();
     let mut offers = vec![closing_numeric_offer(identity, implementation).unwrap()];
     let mut source = format!(
         "plot temporal-proof {{\n operation: {}\n",
@@ -289,6 +283,17 @@ fn hosted_factory_prepares_the_distinct_reusable_numeric_owners() {
         ("numeric/gather256x44", FLOW_INDEX_IMPLEMENTATION),
         ("numeric/tanh128", FLOW_OPERATION_IMPLEMENTATION),
         ("numeric/concatenate20x12", FLOW_OPERATION_IMPLEMENTATION),
+        (
+            "numeric/history2x64",
+            conduit_ai::fixed_numeric_window_back::FLOW_WINDOW_IMPLEMENTATION,
+        ),
+        (
+            "numeric/one-pole40",
+            conduit_ai::fixed_numeric_scan_back::FLOW_SCAN_IMPLEMENTATION,
+        ),
+        ("numeric/gather640x160", FLOW_INDEX_IMPLEMENTATION),
+        ("numeric/concatenate1x1", FLOW_OPERATION_IMPLEMENTATION),
+        ("numeric/concatenate2x1", FLOW_OPERATION_IMPLEMENTATION),
     ] {
         let plan = selected_plan(identity, implementation);
         let gear = plan.fragments[0]
@@ -308,4 +313,108 @@ fn hosted_factory_prepares_the_distinct_reusable_numeric_owners() {
         let mut values = conduit_kernel::HostedValueStore::new(4, 16384, 65536).unwrap();
         let _back = factory.prepare(gear, &mut values).unwrap();
     }
+}
+
+#[test]
+fn flow_window_keeps_next_history_and_window_in_one_committed_result() {
+    use conduit_ai::fixed_numeric_window_back::*;
+    let gear = selected("numeric/history2x64", FLOW_WINDOW_IMPLEMENTATION);
+    let mut back = FixedWindowBack::prepare_flow_planned::<4>(&gear, 3).unwrap();
+    let mut value_codec =
+        FixedF32VectorCodec::<64>::prepare(&fixed_numeric_type("NumericF32Vector64").unwrap())
+            .unwrap();
+    let mut history_codec = FixedF32VectorCodec::<128>::prepare_history().unwrap();
+    let result_codec = FixedF32VectorCodec::<320>::prepare_window_result().unwrap();
+    let mut history = [0.; 128];
+    for epoch in 1..=3 {
+        let value = [epoch as f32; 64];
+        let value_bytes = value_codec.encode(&value).unwrap();
+        let history_bytes = history_codec.encode(&history).unwrap();
+        let mut ports = [None; 4];
+        for (i, port) in gear.inputs.iter().enumerate() {
+            ports[i] = Some(if port.port_id.as_str() == "value" {
+                value_bytes
+            } else {
+                history_bytes
+            });
+        }
+        let bytes: Vec<_> = ports.iter().flatten().copied().collect();
+        let inputs = StepInputBytes::test_frame(ports, None);
+        let mut io = frame(&bytes, false);
+        assert_eq!(back.step(&mut io, &inputs), StepOutcome::Await);
+        assert_eq!(back.committed_frames(), epoch - 1);
+        assert!(<FixedWindowBack as StepBack<4>>::prepared_output(&back, PortId(0)).is_none());
+        let mut io = frame(&bytes, true);
+        assert_eq!(back.step(&mut io, &inputs), StepOutcome::Progress);
+        let mut result = [0.; 320];
+        result_codec
+            .decode(
+                <FixedWindowBack as StepBack<4>>::prepared_output(&back, PortId(0)).unwrap(),
+                &mut result,
+            )
+            .unwrap();
+        assert_eq!(&result[..64], &history[64..]);
+        assert_eq!(&result[64..128], &value);
+        assert_eq!(&result[128..256], &history);
+        assert_eq!(&result[256..], &value);
+        assert_eq!(back.committed_frames(), epoch - 1);
+        <FixedWindowBack as StepBack<4>>::step_committed(&mut back);
+        assert_eq!(back.committed_frames(), epoch);
+        history.copy_from_slice(&result[..128]);
+    }
+}
+#[test]
+fn flow_one_pole_proposes_exact_value_and_returned_state_without_private_recurrence() {
+    use conduit_ai::fixed_numeric_scan_back::*;
+    let gear = selected("numeric/one-pole40", FLOW_SCAN_IMPLEMENTATION);
+    let mut back = FixedOnePoleBack::prepare_flow_planned::<4>(&gear, 4).unwrap();
+    let mut values =
+        FixedF32VectorCodec::<40>::prepare(&fixed_numeric_type("NumericF32Vector40").unwrap())
+            .unwrap();
+    let mut scalar =
+        FixedF32VectorCodec::<1>::prepare(&fixed_numeric_type("NumericF32Vector1").unwrap())
+            .unwrap();
+    let decoder = FixedF32VectorCodec::<41>::prepare_one_pole_result().unwrap();
+    let mut prior = 0.25f32;
+    for epoch in 1..=3 {
+        let input = [epoch as f32; 40];
+        let a = values.encode(&input).unwrap();
+        let b = scalar.encode(&[0.5]).unwrap().to_vec();
+        let c = scalar.encode(&[prior]).unwrap().to_vec();
+        let inputs = StepInputBytes::test_frame(
+            [Some(a), Some(b.as_slice()), Some(c.as_slice()), None],
+            None,
+        );
+        let mut io = frame(&[a, &b, &c], false);
+        assert_eq!(back.step(&mut io, &inputs), StepOutcome::Await);
+        assert!(!io.test_consumed(PortId(2)));
+        let mut io = frame(&[a, &b, &c], true);
+        assert_eq!(back.step(&mut io, &inputs), StepOutcome::Progress);
+        let mut result = [0.; 41];
+        decoder
+            .decode(
+                <FixedOnePoleBack as StepBack<4>>::prepared_output(&back, PortId(0)).unwrap(),
+                &mut result,
+            )
+            .unwrap();
+        let mut reference = f64::from(prior);
+        for (actual, value) in result[1..].iter().zip(input) {
+            reference = f64::from(value) + 0.5 * reference;
+            assert!((f64::from(*actual) - reference).abs() < 1e-5);
+        }
+        assert_eq!(result[0], result[40]);
+        assert_eq!(back.committed_frames(), epoch - 1);
+        <FixedOnePoleBack as StepBack<4>>::step_committed(&mut back);
+        prior = result[0];
+    }
+    <FixedOnePoleBack as StepBack<4>>::cancel(&mut back);
+    let mut io = frame(&[], true);
+    assert!(matches!(
+        back.step(&mut io, &StepInputBytes::test_frame([None; 4], None)),
+        StepOutcome::Fail(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::Cancelled,
+            ..
+        })
+    ));
+    assert_eq!(back.committed_frames(), 3);
 }
