@@ -292,6 +292,10 @@ impl Execution {
     }
 }
 impl Execution {
+    #[allow(dead_code)] // Used by the finite-journal diagnostic target.
+    pub fn signs_snapshot(&self) -> BTreeMap<HostId, Vec<conduit_kernel::KernelEvent>> {
+        self.kernel.signs()
+    }
     pub fn infer(&mut self, sequence: u64, features: &StructuredInfoValue) -> StructuredInfoValue {
         let input = self.kernel.definition().boundary.input_fronts[0]
             .external_port
