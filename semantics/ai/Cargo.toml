@@ -21,6 +21,8 @@ kernel-step = ["dep:conduit-kernel"]
 plot-catalog = ["dep:conduit-web"]
 
 [dev-dependencies]
+conduit-composite = { path = "../../architecture/composite" }
+conduit-std-host = { path = "../../targets/std" }
 conduitos = { path = "../../targets/conduitos" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-semantic-catalog = { path = "../catalog", features = ["plot-catalog"] }

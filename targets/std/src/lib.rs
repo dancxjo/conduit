@@ -20,6 +20,7 @@ pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
 pub mod civil_deadline_wait;
+pub mod fixed_numeric;
 mod composition;
 #[cfg(test)]
 mod composition_test_offers;

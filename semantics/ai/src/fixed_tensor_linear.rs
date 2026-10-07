@@ -1,12 +1,16 @@
 //! Unbiased scalar reference projection over an admitted exact tensor resource.
 use crate::fixed_neural::FixedNumericRefusal;
 use crate::fixed_tensor::{FixedMatrixOrder, FixedTensorRefusal};
+#[cfg(target_has_atomic = "ptr")]
+use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
+use crate::fixed_tensor_resource::FixedTensorView;
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;
 use conduit_data::{tensor_content_digest, TensorElement, TensorValue};
 
 /// Borrows immutable packed little-endian f32 content without copying a model.
 pub struct FixedTensorLinear<'a, const INPUT: usize, const OUTPUT: usize> {
-    tensor: &'a TensorValue,
-    bytes: &'a [u8],
+    view: FixedTensorView<'a>,
     order: FixedMatrixOrder,
 }
 impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorLinear<'a, INPUT, OUTPUT> {
@@ -15,6 +19,21 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorLinear<'a, INPUT, O
         bytes: &'a [u8],
         order: FixedMatrixOrder,
     ) -> Result<Self, FixedTensorRefusal> {
+        Self::prepare_view(FixedTensorView::borrowed(tensor, bytes), order)
+    }
+    #[cfg(target_has_atomic = "ptr")]
+    pub fn prepare_owned(
+        resource: Arc<AdmittedFixedTensorResource>,
+        order: FixedMatrixOrder,
+    ) -> Result<Self, FixedTensorRefusal> {
+        Self::prepare_view(FixedTensorView::Owned(resource), order)
+    }
+    fn prepare_view(
+        view: FixedTensorView<'a>,
+        order: FixedMatrixOrder,
+    ) -> Result<Self, FixedTensorRefusal> {
+        let tensor = view.tensor();
+        let bytes = view.bytes();
         if INPUT == 0 || OUTPUT == 0 {
             return Err(FixedTensorRefusal::Numeric(FixedNumericRefusal::EmptyShape));
         }
@@ -44,14 +63,10 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorLinear<'a, INPUT, O
                 FixedNumericRefusal::NonfiniteWeight,
             ));
         }
-        Ok(Self {
-            tensor,
-            bytes,
-            order,
-        })
+        Ok(Self { view, order })
     }
-    pub fn tensor(&self) -> &'a TensorValue {
-        self.tensor
+    pub fn tensor(&self) -> &TensorValue {
+        self.view.tensor()
     }
     pub fn apply(
         &self,
@@ -61,6 +76,7 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorLinear<'a, INPUT, O
         if input.iter().any(|v| !v.is_finite()) {
             return Err(FixedNumericRefusal::NonfiniteInput);
         }
+        let bytes = self.view.bytes();
         let mut staged = [0.0; OUTPUT];
         for (row, result) in staged.iter_mut().enumerate() {
             let mut sum = 0.0_f32;
@@ -69,7 +85,7 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorLinear<'a, INPUT, O
                     FixedMatrixOrder::InputMajor => column * OUTPUT + row,
                     FixedMatrixOrder::OutputMajor => row * INPUT + column,
                 };
-                sum += read(&self.bytes[index * 4..index * 4 + 4]) * value;
+                sum += read(&bytes[index * 4..index * 4 + 4]) * value;
             }
             if !sum.is_finite() {
                 return Err(FixedNumericRefusal::NonfiniteOutput);
