@@ -81,7 +81,8 @@ pub mod prosody;
 pub mod pronunciation_selection;
 
 pub use generated::{
-    LanguagePronunciationCandidateQuery, LanguagePronunciationCandidateResult,
-    LanguagePronunciationPosResult, LanguagePronunciationSelectionProfile,
-    LanguagePronunciationSelectionRequest, LanguagePronunciationSelectionRule,
+    LanguagePronunciationArcTarget, LanguagePronunciationCandidateQuery,
+    LanguagePronunciationCandidateResult, LanguagePronunciationPosResult,
+    LanguagePronunciationSelectionProfile, LanguagePronunciationSelectionRequest,
+    LanguagePronunciationSelectionRule,
 };
