@@ -1939,3 +1939,4 @@ pub mod fixed_numeric_embedding_flow;
 pub mod fixed_numeric_linear_flow;
 
 pub mod fixed_numeric_compact;
+pub mod fixed_numeric_u16_profile;
