@@ -16,7 +16,10 @@ pub fn initialize_machine(
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-idt\n");
     idt::initialize();
     #[cfg(target_os = "none")]
-    super::domain_memory::initialize(record.hhdm_offset);
+    {
+        super::domain_memory::initialize(record.hhdm_offset);
+        super::domain_budget::initialize();
+    }
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-pic\n");
     pic::initialize();
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-acpi\n");
@@ -106,6 +109,7 @@ impl Default for Timer {
 
 impl TimerBase for Timer {
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
+        let _interrupts = cpu::InterruptMask::new();
         let token = self.slots.arm(interest).inspect_err(|error| {
             crate::arch::early_write(b"CONDUIT_TIMER_REFUSAL ");
             crate::arch::early_write(error.as_str().as_bytes());

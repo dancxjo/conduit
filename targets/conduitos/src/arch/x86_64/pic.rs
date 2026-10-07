@@ -41,3 +41,17 @@ pub(super) fn mask_timer() {
 pub(super) fn end_timer_interrupt() {
     unsafe { outb(MASTER_COMMAND, 0x20) };
 }
+
+/// Consume only an old IRQ0 edge while the PIT has no loaded counter.
+/// Caller masks CPU interrupts; other PIC lines are masked only for this poll.
+pub(super) fn discard_timer_pending() {
+    unsafe {
+        let previous = inb(MASTER_DATA);
+        outb(MASTER_DATA, 0xfe);
+        outb(MASTER_COMMAND, 0x0c);
+        if inb(MASTER_COMMAND) == 0x80 {
+            outb(MASTER_COMMAND, 0x60); // Specific EOI for IRQ0.
+        }
+        outb(MASTER_DATA, previous);
+    }
+}

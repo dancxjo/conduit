@@ -123,6 +123,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         return Err(ConduitosError::refusal("ordinary-domain-gate-negatives-absent",
             "hostile capability requests and lifecycle events must be independently refused"));
     }
+    if !transcript.lines().any(|line| {
+        line == "CONDUIT_DOMAIN_TIMER_COEXISTENCE source-wake-once user-irq budget-preemption"
+    }) {
+        return Err(ConduitosError::refusal(
+            "ordinary-domain-source-timer-lost",
+            "a Source timer must wake once while the independent domain budget preempts",
+        ));
+    }
     let costs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_DOMAIN_COST "))
@@ -146,6 +154,15 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         || cost["address_space_switches"] != 6
         || cost["scheduler_returns"] != 3
         || cost["base_gate_transitions"] != 1
+        || cost["privilege_transitions"]
+            .as_u64()
+            .zip(cost["interrupt_entries"].as_u64())
+            .is_none_or(|(value, interrupts)| {
+                interrupts
+                    .checked_add(3)
+                    .and_then(|entries| entries.checked_mul(2))
+                    != Some(value)
+            })
         || cost["copied_bytes"]
             != (conduitos::ordinary_plan::TEXT_LITERAL.len()
                 + 3 * conduitos::ordinary_plan::TEXT_RESULT.len()) as u64
