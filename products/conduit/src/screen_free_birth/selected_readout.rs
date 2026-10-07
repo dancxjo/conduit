@@ -16,6 +16,7 @@ use crate::durable_host_control;
 pub(super) enum OutputPhase {
     Birth,
     Body,
+    Wardrobe,
 }
 
 fn face_is_current(
@@ -27,6 +28,23 @@ fn face_is_current(
     let (current, host) = match phase {
         OutputPhase::Birth => durable_host_control::birth_face(state_dir)?,
         OutputPhase::Body => durable_host_control::local_face_snapshot(state_dir)?,
+        OutputPhase::Wardrobe => {
+            let (base, host) = durable_host_control::local_face_snapshot(state_dir)?;
+            let (.., reading) = durable_host_control::local_wardrobe(
+                state_dir,
+                base.basis
+                    .body_id
+                    .clone()
+                    .ok_or("owner wardrobe lost its Body")?,
+                base.identity.as_str().into(),
+                base.revision,
+                host.clone(),
+                None,
+                0,
+                None,
+            )?;
+            (reading, host)
+        }
     };
     if host != *advertisement {
         return Err("installed Host Boot changed during selected speech Play".into());
@@ -74,7 +92,7 @@ pub(super) fn emit_readout(
     selected.verify_host(advertisement)?;
     loop {
         if !face_is_current(state_dir, face, advertisement, phase)? {
-            if matches!(phase, OutputPhase::Body) {
+            if matches!(phase, OutputPhase::Body | OutputPhase::Wardrobe) {
                 return stop_stale_reading(reader, face, show, sequence, output);
             }
             return Err("installed Birth Face changed before the next speech Play".into());
@@ -190,7 +208,7 @@ pub(super) fn emit_readout(
             return Ok(turn_interrupted(&terminal.outcome));
         }
         if !face_is_current(state_dir, face, advertisement, phase)? {
-            if matches!(phase, OutputPhase::Body) {
+            if matches!(phase, OutputPhase::Body | OutputPhase::Wardrobe) {
                 return stop_stale_reading(reader, face, show, sequence, output);
             }
             return Err("installed Birth Face changed during selected speech Play".into());

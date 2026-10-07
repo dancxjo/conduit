@@ -93,6 +93,35 @@ impl DerefMut for HostSource {
 }
 
 impl DurableHostRuntime {
+    /// Local nonvisual wardrobe input is authenticated by the installed
+    /// control token and bound to the Face, Body, and Host Boot the person read.
+    /// The owner still checks the exact presentation Plan and wardrobe revision.
+    pub(super) fn owned_body_local_wardrobe(
+        &mut self,
+        body_id: &conduit_body::BodyId,
+        face_id: &str,
+        face_revision: u64,
+        advertisement: &conduit_core::HostAdvertisement,
+        owner_plan_id: Option<&conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    ) -> Result<(serde_json::Value, Presentation), String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let current = owner.local_face_snapshot()?;
+        if current.basis.body_id.as_ref() != Some(body_id)
+            || current.identity.as_str() != face_id
+            || current.revision != face_revision
+            || owner.host.advertisement() != advertisement
+        {
+            return Err("owner-wardrobe-face-or-host-stale".into());
+        }
+        let report = owner.owner_wardrobe_report(owner_plan_id, basis_revision, action)?;
+        let reading = owner.wardrobe_reading_face(&report)?;
+        Ok((report, reading))
+    }
+
     pub(super) fn start_browser_window(
         &mut self,
         expected_host_id: &str,
@@ -680,6 +709,42 @@ pub(crate) fn local_face_snapshot(
         } => Ok((*presentation, advertisement)),
         Response::Refused { code, .. } => Err(format!("Body owner refused local Face: {code}")),
         _ => Err("Body owner returned the wrong local Face response".into()),
+    }
+}
+
+#[cfg(unix)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn local_wardrobe(
+    state_dir: &Path,
+    body_id: conduit_body::BodyId,
+    face_id: String,
+    face_revision: u64,
+    advertisement: conduit_core::HostAdvertisement,
+    owner_plan_id: Option<conduit_core::PlanId>,
+    basis_revision: u64,
+    action: Option<MaskWardrobeAction>,
+) -> Result<(serde_json::Value, Presentation), String> {
+    match call(
+        state_dir,
+        Request::BodyLocalWardrobe {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            body_id,
+            face_id,
+            face_revision,
+            advertisement,
+            owner_plan_id,
+            basis_revision,
+            action,
+        },
+    )? {
+        Response::BodyLocalWardrobe {
+            protocol: PROTOCOL,
+            report,
+            presentation,
+        } => Ok((*report, *presentation)),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err(super::CONTROL_OUTCOME_UNKNOWN.into()),
     }
 }
 

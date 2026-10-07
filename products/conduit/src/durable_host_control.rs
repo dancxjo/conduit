@@ -62,6 +62,8 @@ pub(crate) mod direct_spoken {
 #[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
+#[cfg(unix)]
+pub(crate) use body::local_wardrobe;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
@@ -1047,6 +1049,17 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyLocalWardrobe {
+        protocol: u16,
+        token: Vec<u8>,
+        body_id: conduit_body::BodyId,
+        face_id: String,
+        face_revision: u64,
+        advertisement: conduit_core::HostAdvertisement,
+        owner_plan_id: Option<conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    },
     BodyNativeMaskRoute {
         protocol: u16,
         token: Vec<u8>,
@@ -1240,6 +1253,11 @@ enum Response {
         protocol: u16,
         presentation: Box<Presentation>,
         advertisement: HostAdvertisement,
+    },
+    BodyLocalWardrobe {
+        protocol: u16,
+        report: Box<serde_json::Value>,
+        presentation: Box<Presentation>,
     },
     BodyNativeMaskRoute {
         protocol: u16,
@@ -1824,6 +1842,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthFace { token, .. }
@@ -1860,6 +1879,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserShow { .. }
                 | Request::BodyBrowserWardrobe { .. }
                 | Request::BodyLocalFace { .. }
+                | Request::BodyLocalWardrobe { .. }
                 | Request::BodyNativeMaskRoute { .. }
                 | Request::BodyNativeMaskShow { .. }
                 | Request::BodyInteraction { .. }
@@ -2061,6 +2081,32 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 presentation: Box::new(presentation),
                 advertisement,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyLocalWardrobe {
+            protocol,
+            body_id,
+            face_id,
+            face_revision,
+            advertisement,
+            owner_plan_id,
+            basis_revision,
+            action,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_local_wardrobe(
+                &body_id,
+                &face_id,
+                face_revision,
+                &advertisement,
+                owner_plan_id.as_ref(),
+                basis_revision,
+                action,
+            )
+            .map(|(report, presentation)| Response::BodyLocalWardrobe {
+                protocol: PROTOCOL,
+                report: Box::new(report),
+                presentation: Box::new(presentation),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyNativeMaskRoute {

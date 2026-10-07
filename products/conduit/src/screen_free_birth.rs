@@ -42,6 +42,7 @@ pub(crate) use installed::{run_retained, run_retained_spoken};
 mod selected_playback;
 mod selected_readout;
 mod speech_options;
+mod wardrobe;
 pub(crate) use speech_options::run as speech_options;
 
 #[cfg(test)]

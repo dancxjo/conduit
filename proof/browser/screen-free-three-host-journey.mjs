@@ -168,7 +168,7 @@ try {
     'focus creche.name', `edit value ${bodyName}`, 'activate',
     'focus creche.plot.0', 'edit value false', 'activate',
     'focus creche.plot.1', 'edit value true', 'activate',
-    'read all', 'focus creche.birth', 'activate',
+    'review', 'focus creche.birth', 'activate',
     // Birth enters the retained Body with concise spoken orientation; request
     // the complete stable Face explicitly before leaving the Crèche chapter.
     'read all', 'quit',
@@ -190,10 +190,19 @@ try {
   }
   if (!speakerCard) {
     for (const required of ['Edit Body name requested', 'Include Plot. For Clock',
-      'Birth Body requested']) {
+      'Review Birth choices', 'Starting Plots selected: 1 of', 'Birth Body requested']) {
       assert.ok(transcript.includes(required), `Birth transcript lacks ${required}`);
     }
   }
+  assert.ok(transcript.includes('Review Birth choices'),
+    'Birth was not preceded by a current semantic review');
+  const birthInteractions = [...transcript.matchAll(
+    /Birth interaction: action=(\S+) face-id=(\S+) face-revision=(\d+) show=(\S+)/g)];
+  assert.ok(birthInteractions.length >= 1, 'no actual Birth Face interaction was reported');
+  const [birthAction, birthFaceId, birthFaceRevision, birthShowId] =
+    birthInteractions.at(-1).slice(1);
+  assert.equal(birthAction, 'creche.birth', 'the final Birth interaction was not explicit');
+  assert.ok(birthFaceId && birthShowId);
   const born = ownerJson(['body', 'status', '--state-dir', state, '--json']);
   const bornFace = ownerJson(['body', 'face', '--state-dir', state, '--json']);
   const bodyId = born.biography.body_id;
@@ -220,6 +229,9 @@ try {
     zero_body_receipt: { path: '../zero-body-before.json',
       bytes: preBirthBytes.length, sha256: digest(preBirthBytes) },
     confirmation_observed: true,
+    review_requested: true,
+    birth_interaction: { action_id: birthAction, face_id: birthFaceId,
+      face_revision: birthFaceRevision, show_id: birthShowId },
     speaker_playback_selected: Boolean(speakerCard),
     human_hearing_observed: false,
     owner_instance_speech_realization_observed: false,
