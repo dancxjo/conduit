@@ -1,0 +1,105 @@
+# Eight-token structural profile, distinct from four-token/v2 ABI.
+# Root=8; unassigned=9. Raw vectors/proposals are never admitted graph truth.
+# Source derives finite ancestry witnesses; native laws check every exact hop.
+type LanguageParserWindow8RawState = {
+    basis: LanguageParserBasis
+    token_count: U64
+    unread: U64
+    depth: U64
+    stack: collection U64 = 9
+    heads: collection U64 = 9
+    relation0: LanguageParserRelation
+    relation1: LanguageParserRelation
+    relation2: LanguageParserRelation
+    relation3: LanguageParserRelation
+    relation4: LanguageParserRelation
+    relation5: LanguageParserRelation
+    relation6: LanguageParserRelation
+    relation7: LanguageParserRelation
+    committed: U64
+}
+type LanguageParserWindow8Ancestry = {
+    heads: collection U64 = 9
+    start: U64 in 0..=7
+    path: collection U64 = 9
+    where .path.0 == .start
+    where .path.1 == (.path.0 < 8 ? sequence/at(.heads, .path.0) : .path.0)
+    where .path.2 == (.path.1 < 8 ? sequence/at(.heads, .path.1) : .path.1)
+    where .path.3 == (.path.2 < 8 ? sequence/at(.heads, .path.2) : .path.2)
+    where .path.4 == (.path.3 < 8 ? sequence/at(.heads, .path.3) : .path.3)
+    where .path.5 == (.path.4 < 8 ? sequence/at(.heads, .path.4) : .path.4)
+    where .path.6 == (.path.5 < 8 ? sequence/at(.heads, .path.5) : .path.5)
+    where .path.7 == (.path.6 < 8 ? sequence/at(.heads, .path.6) : .path.6)
+    where .path.8 == (.path.7 < 8 ? sequence/at(.heads, .path.7) : .path.7)
+    where .path.8 == 8 || .path.8 == 9
+}
+type LanguageParserWindow8StateProof = {
+    state: LanguageParserWindow8RawState
+    ancestry: collection LanguageParserWindow8Ancestry = 8
+    roots: U64 in 0..=1
+    where .state.token_count >= 1 && .state.token_count <= 8
+    where .state.unread <= .state.token_count && .state.committed <= .state.unread
+    where .state.depth >= 1 && .state.depth <= (.state.unread <= 8 ? .state.unread + 1 : 0)
+    where .state.stack.0 == 8 && .state.heads.8 == 8
+    where .state.heads.0 <= 9 && .state.heads.0 != 0 && (.state.heads.0 < 8 ? (.state.heads.0 < .state.token_count && .state.heads.0 <= .state.unread) : true)
+    where (0 >= .state.unread ? .state.heads.0 == 9 : true) && (0 < .state.committed ? .state.heads.0 < 9 : true) && (.state.heads.0 == 8 ? .state.relation0.base is root : !(.state.relation0.base is root))
+    where .state.stack.1 <= 8 && (.state.depth > 1 ? .state.stack.1 < .state.unread : true) && .ancestry.0.start == 0 && .ancestry.0.heads == .state.heads
+    where .state.heads.1 <= 9 && .state.heads.1 != 1 && (.state.heads.1 < 8 ? (.state.heads.1 < .state.token_count && .state.heads.1 <= .state.unread) : true)
+    where (1 >= .state.unread ? .state.heads.1 == 9 : true) && (1 < .state.committed ? .state.heads.1 < 9 : true) && (.state.heads.1 == 8 ? .state.relation1.base is root : !(.state.relation1.base is root))
+    where .state.stack.2 <= 8 && (.state.depth > 2 ? .state.stack.2 < .state.unread : true) && .ancestry.1.start == 1 && .ancestry.1.heads == .state.heads && (.state.depth > 2 ? .state.stack.1 < .state.stack.2 : true)
+    where .state.heads.2 <= 9 && .state.heads.2 != 2 && (.state.heads.2 < 8 ? (.state.heads.2 < .state.token_count && .state.heads.2 <= .state.unread) : true)
+    where (2 >= .state.unread ? .state.heads.2 == 9 : true) && (2 < .state.committed ? .state.heads.2 < 9 : true) && (.state.heads.2 == 8 ? .state.relation2.base is root : !(.state.relation2.base is root))
+    where .state.stack.3 <= 8 && (.state.depth > 3 ? .state.stack.3 < .state.unread : true) && .ancestry.2.start == 2 && .ancestry.2.heads == .state.heads && (.state.depth > 3 ? .state.stack.2 < .state.stack.3 : true)
+    where .state.heads.3 <= 9 && .state.heads.3 != 3 && (.state.heads.3 < 8 ? (.state.heads.3 < .state.token_count && .state.heads.3 <= .state.unread) : true)
+    where (3 >= .state.unread ? .state.heads.3 == 9 : true) && (3 < .state.committed ? .state.heads.3 < 9 : true) && (.state.heads.3 == 8 ? .state.relation3.base is root : !(.state.relation3.base is root))
+    where .state.stack.4 <= 8 && (.state.depth > 4 ? .state.stack.4 < .state.unread : true) && .ancestry.3.start == 3 && .ancestry.3.heads == .state.heads && (.state.depth > 4 ? .state.stack.3 < .state.stack.4 : true)
+    where .state.heads.4 <= 9 && .state.heads.4 != 4 && (.state.heads.4 < 8 ? (.state.heads.4 < .state.token_count && .state.heads.4 <= .state.unread) : true)
+    where (4 >= .state.unread ? .state.heads.4 == 9 : true) && (4 < .state.committed ? .state.heads.4 < 9 : true) && (.state.heads.4 == 8 ? .state.relation4.base is root : !(.state.relation4.base is root))
+    where .state.stack.5 <= 8 && (.state.depth > 5 ? .state.stack.5 < .state.unread : true) && .ancestry.4.start == 4 && .ancestry.4.heads == .state.heads && (.state.depth > 5 ? .state.stack.4 < .state.stack.5 : true)
+    where .state.heads.5 <= 9 && .state.heads.5 != 5 && (.state.heads.5 < 8 ? (.state.heads.5 < .state.token_count && .state.heads.5 <= .state.unread) : true)
+    where (5 >= .state.unread ? .state.heads.5 == 9 : true) && (5 < .state.committed ? .state.heads.5 < 9 : true) && (.state.heads.5 == 8 ? .state.relation5.base is root : !(.state.relation5.base is root))
+    where .state.stack.6 <= 8 && (.state.depth > 6 ? .state.stack.6 < .state.unread : true) && .ancestry.5.start == 5 && .ancestry.5.heads == .state.heads && (.state.depth > 6 ? .state.stack.5 < .state.stack.6 : true)
+    where .state.heads.6 <= 9 && .state.heads.6 != 6 && (.state.heads.6 < 8 ? (.state.heads.6 < .state.token_count && .state.heads.6 <= .state.unread) : true)
+    where (6 >= .state.unread ? .state.heads.6 == 9 : true) && (6 < .state.committed ? .state.heads.6 < 9 : true) && (.state.heads.6 == 8 ? .state.relation6.base is root : !(.state.relation6.base is root))
+    where .state.stack.7 <= 8 && (.state.depth > 7 ? .state.stack.7 < .state.unread : true) && .ancestry.6.start == 6 && .ancestry.6.heads == .state.heads && (.state.depth > 7 ? .state.stack.6 < .state.stack.7 : true)
+    where .state.heads.7 <= 9 && .state.heads.7 != 7 && (.state.heads.7 < 8 ? (.state.heads.7 < .state.token_count && .state.heads.7 <= .state.unread) : true)
+    where (7 >= .state.unread ? .state.heads.7 == 9 : true) && (7 < .state.committed ? .state.heads.7 < 9 : true) && (.state.heads.7 == 8 ? .state.relation7.base is root : !(.state.relation7.base is root))
+    where .state.stack.8 <= 8 && (.state.depth > 8 ? .state.stack.8 < .state.unread : true) && .ancestry.7.start == 7 && .ancestry.7.heads == .state.heads && (.state.depth > 8 ? .state.stack.7 < .state.stack.8 : true)
+    where .roots == ((.state.heads.0 == 8 ? 1 : 0) + (.state.heads.1 == 8 ? 1 : 0) + (.state.heads.2 == 8 ? 1 : 0) + (.state.heads.3 == 8 ? 1 : 0) + (.state.heads.4 == 8 ? 1 : 0) + (.state.heads.5 == 8 ? 1 : 0) + (.state.heads.6 == 8 ? 1 : 0) + (.state.heads.7 == 8 ? 1 : 0))
+}
+type LanguageParserWindow8Begin = {
+    basis: LanguageParserBasis
+    token_count: U64 in 1..=8
+    default_relation: LanguageParserRelation
+    where !(.default_relation.base is root)
+}
+type LanguageParserWindow8WalkQuery = {
+    heads: collection U64 = 9
+    start: U64 in 0..=7
+}
+type LanguageParserWindow8RawWalk = {
+    query: LanguageParserWindow8WalkQuery
+    cursor: U64
+    path: collection U64 = 9
+    steps: U64
+}
+plot language-window8-initialize (
+    value: LanguageParserWindow8Begin...| >> result: LanguageParserWindow8RawState...|
+) = { basis: .basis, token_count: .token_count, unread: 0, depth: 1, stack: [8,8,8,8,8,8,8,8,8], heads: [9,9,9,9,9,9,9,9,8], relation0: .default_relation, relation1: .default_relation, relation2: .default_relation, relation3: .default_relation, relation4: .default_relation, relation5: .default_relation, relation6: .default_relation, relation7: .default_relation, committed: 0 }
+plot language-window8-walk-initialize (
+    value: LanguageParserWindow8WalkQuery...| >> result: LanguageParserWindow8RawWalk...|
+) = { query: ., cursor: .start, path: [.start,9,9,9,9,9,9,9,9], steps: 0 }
+plot language-window8-walk-follow (
+    value: LanguageParserWindow8RawWalk...| >> result: LanguageParserWindow8RawWalk...|
+) = (.steps < 8 ? { query: .query, cursor: (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor), path: [.path.0, (.steps == 0 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.1), (.steps == 1 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.2), (.steps == 2 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.3), (.steps == 3 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.4), (.steps == 4 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.5), (.steps == 5 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.6), (.steps == 6 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.7), (.steps == 7 ? (.cursor < 8 ? sequence/at(.query.heads, .cursor) : .cursor) : .path.8)], steps: .steps + 1 } : .)
+plot language-window8-walk (
+    query: LanguageParserWindow8WalkQuery...| >> result: LanguageParserWindow8RawWalk...|
+) {
+    query >> language-window8-walk-initialize() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> result
+}
+type LanguageParserWindow8RootCount = {
+    count: U64
+}
+plot language-window8-root-count (
+    value: LanguageParserWindow8RawState...| >> result: LanguageParserWindow8RootCount...|
+) = { count: ((.heads.0 == 8 ? 1 : 0) + (.heads.1 == 8 ? 1 : 0) + (.heads.2 == 8 ? 1 : 0) + (.heads.3 == 8 ? 1 : 0) + (.heads.4 == 8 ? 1 : 0) + (.heads.5 == 8 ? 1 : 0) + (.heads.6 == 8 ? 1 : 0) + (.heads.7 == 8 ? 1 : 0)) }
