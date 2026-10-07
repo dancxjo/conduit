@@ -94,7 +94,7 @@ fn committed_native_utterance_executes_all_three_feedback_cells_and_source_eof()
             std::fs::write(directory.join("manifest.json"), serde_json::to_vec_pretty(&receipt).unwrap()).unwrap();
             eprintln!("actual Source aligned native pair retained:10080mono16k/5040mono8k samples; no listening or boot claim");
         }
-        eprintln!("complete committed native utterance→actual canonical PCM16 and three causal feedback cells; raw model output includes explicit startup/continuation alignment, no aligned WAV or listening claim");
+        eprintln!("complete committed native utterance→actual canonical PCM16 and three causal feedback cells; Source startup/continuation chronology verified");
     }).unwrap().join().unwrap();
 }
 
