@@ -46,8 +46,7 @@ pub struct FixedCompactTensorLinear<'a, const INPUT: usize, const OUTPUT: usize>
     weight_bytes: &'a [u8],
     scales: &'a TensorValue,
     scale_bytes: &'a [u8],
-    bias: &'a TensorValue,
-    bias_bytes: &'a [u8],
+    bias: Option<(&'a TensorValue, &'a [u8])>,
     packing: CompactMatrixPacking,
 }
 fn validate(
@@ -93,6 +92,32 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedCompactTensorLinear<'a, I
         bias_bytes: &'a [u8],
         packing: CompactMatrixPacking,
     ) -> Result<Self, CompactTensorRefusal> {
+        Self::prepare_fields(
+            weights,
+            weight_bytes,
+            scales,
+            scale_bytes,
+            Some((bias, bias_bytes)),
+            packing,
+        )
+    }
+    pub fn prepare_unbiased(
+        weights: &'a TensorValue,
+        weight_bytes: &'a [u8],
+        scales: &'a TensorValue,
+        scale_bytes: &'a [u8],
+        packing: CompactMatrixPacking,
+    ) -> Result<Self, CompactTensorRefusal> {
+        Self::prepare_fields(weights, weight_bytes, scales, scale_bytes, None, packing)
+    }
+    fn prepare_fields(
+        weights: &'a TensorValue,
+        weight_bytes: &'a [u8],
+        scales: &'a TensorValue,
+        scale_bytes: &'a [u8],
+        bias: Option<(&'a TensorValue, &'a [u8])>,
+        packing: CompactMatrixPacking,
+    ) -> Result<Self, CompactTensorRefusal> {
         if INPUT == 0 || OUTPUT == 0 || !INPUT.is_multiple_of(4) || !OUTPUT.is_multiple_of(8) {
             return Err(CompactTensorRefusal::Shape);
         }
@@ -103,13 +128,15 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedCompactTensorLinear<'a, I
             &[INPUT as u64, OUTPUT as u64],
         )?;
         validate(scales, scale_bytes, TensorElement::F32, &[OUTPUT as u64])?;
-        validate(bias, bias_bytes, TensorElement::F32, &[OUTPUT as u64])?;
+        if let Some((tensor, bytes)) = bias {
+            validate(tensor, bytes, TensorElement::F32, &[OUTPUT as u64])?;
+        }
         for o in 0..OUTPUT {
             let scale = f32_at(scale_bytes, o);
             if !scale.is_finite() || scale <= 0.0 {
                 return Err(CompactTensorRefusal::Scale);
             }
-            if !f32_at(bias_bytes, o).is_finite() {
+            if bias.is_some_and(|(_, bytes)| !f32_at(bytes, o).is_finite()) {
                 return Err(CompactTensorRefusal::Nonfinite);
             }
         }
@@ -124,12 +151,15 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedCompactTensorLinear<'a, I
             scales,
             scale_bytes,
             bias,
-            bias_bytes,
             packing,
         })
     }
-    pub fn resources(&self) -> [&'a TensorValue; 3] {
-        [self.weights, self.scales, self.bias]
+    pub fn resources(&self) -> [Option<&'a TensorValue>; 3] {
+        [
+            Some(self.weights),
+            Some(self.scales),
+            self.bias.map(|(tensor, _)| tensor),
+        ]
     }
     pub fn packing(&self) -> CompactMatrixPacking {
         self.packing
@@ -154,7 +184,10 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedCompactTensorLinear<'a, I
             }
             // Scale contains the selected input/weight quantization conversion;
             // no hidden 1/127, bias substitution, or unsigned-input correction.
-            *value = sum as f32 * f32_at(self.scale_bytes, o) + f32_at(self.bias_bytes, o);
+            *value = sum as f32 * f32_at(self.scale_bytes, o);
+            if let Some((_, bytes)) = self.bias {
+                *value += f32_at(bytes, o);
+            }
             if !value.is_finite() {
                 return Err(CompactTensorRefusal::Nonfinite);
             }
