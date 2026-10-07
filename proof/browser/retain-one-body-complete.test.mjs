@@ -39,6 +39,13 @@ test('a completed-looking development report cannot become a complete Journey wi
     await assert.rejects(readFile(path.join(output, 'manifest.json')), /ENOENT/);
   }));
 
+test('publication output cannot be placed inside the private run',
+  async () => fixture(async ({ source }) => {
+    await assert.rejects(retainOneBodyComplete(path.dirname(source),
+      path.join(path.dirname(source), 'three-host', 'public')),
+    /outside the private producer run/);
+  }));
+
 test('publication copy refuses an event identity absent from its producer receipt',
   async () => fixture(async ({ source, output }) => {
     const item = report();
