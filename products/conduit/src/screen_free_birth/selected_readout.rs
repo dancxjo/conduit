@@ -30,7 +30,7 @@ fn face_is_current(
         OutputPhase::Body => durable_host_control::local_face_snapshot(state_dir)?,
         OutputPhase::Wardrobe => {
             let (base, host) = durable_host_control::local_face_snapshot(state_dir)?;
-            let (.., reading) = durable_host_control::local_wardrobe(
+            let (_, reading) = durable_host_control::local_wardrobe(
                 state_dir,
                 base.basis
                     .body_id
@@ -43,6 +43,12 @@ fn face_is_current(
                 0,
                 None,
             )?;
+            if host != *advertisement {
+                return Err("installed Host Boot changed during selected speech Play".into());
+            }
+            let Ok(reading) = reading else {
+                return Ok(false);
+            };
             (reading, host)
         }
     };

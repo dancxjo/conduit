@@ -16,7 +16,7 @@ use crate::durable_host_control;
 #[derive(Clone)]
 pub(super) struct WardrobeReadout {
     raw: Value,
-    face: Presentation,
+    face: Result<Presentation, String>,
     plan_id: PlanId,
     wardrobe: MaskWardrobe,
     routes: Vec<SealedMaskPlotRoute>,
@@ -32,7 +32,7 @@ struct RouteDescription {
 }
 
 impl WardrobeReadout {
-    fn decode(raw: Value, face: Presentation) -> Result<Self, String> {
+    fn decode(raw: Value, face: Result<Presentation, String>) -> Result<Self, String> {
         if raw["schema"] != "conduit.body/owner-mask-wardrobe@1" {
             return Err("owner returned another wardrobe schema".into());
         }
@@ -51,7 +51,9 @@ impl WardrobeReadout {
             .map_err(|error| format!("owner wardrobe names: {error}"))?;
         let selected = serde_json::from_value(field("selected")?)
             .map_err(|error| format!("owner wardrobe selection: {error}"))?;
-        if face.revision != wardrobe.revision || face.basis.body_id.is_none() {
+        if face.as_ref().is_ok_and(|reading| {
+            reading.revision != wardrobe.revision || reading.basis.body_id.is_none()
+        }) {
             return Err("owner wardrobe Face differs from its current report".into());
         }
         Ok(Self {
@@ -179,7 +181,7 @@ impl WardrobeReadout {
         }
         writeln!(
             output,
-            "Wardrobe report is terminal text; no selected-speaker Play was made for this report."
+            "Owner wardrobe report is terminal text. Any selected-speaker Play has a separate completion receipt."
         )
         .map_err(|error| error.to_string())
     }
@@ -217,7 +219,7 @@ pub(super) fn command(
     host: &HostAdvertisement,
     prior: &mut Option<WardrobeReadout>,
     output: &mut impl Write,
-) -> Result<Presentation, String> {
+) -> Result<Option<Presentation>, String> {
     let report = if line == "wardrobe" {
         current_report(state_dir, face, host, None, None)?
     } else {
@@ -228,7 +230,14 @@ pub(super) fn command(
         current_report(state_dir, face, host, Some(basis), Some(action))?
     };
     report.write(output)?;
-    let face = report.face.clone();
+    let face = match &report.face {
+        Ok(face) => Some(face.clone()),
+        Err(reason) => {
+            writeln!(output, "Owner wardrobe changed or was inspected, but its spoken Face is unavailable: {reason}. No speaker Play was made for this report.")
+                .map_err(|error| error.to_string())?;
+            None
+        }
+    };
     *prior = Some(report);
     Ok(face)
 }

@@ -105,7 +105,7 @@ impl DurableHostRuntime {
         owner_plan_id: Option<&conduit_core::PlanId>,
         basis_revision: u64,
         action: Option<MaskWardrobeAction>,
-    ) -> Result<(serde_json::Value, Presentation), String> {
+    ) -> Result<(serde_json::Value, Result<Presentation, String>), String> {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
@@ -118,7 +118,7 @@ impl DurableHostRuntime {
             return Err("owner-wardrobe-face-or-host-stale".into());
         }
         let report = owner.owner_wardrobe_report(owner_plan_id, basis_revision, action)?;
-        let reading = owner.wardrobe_reading_face(&report)?;
+        let reading = owner.wardrobe_reading_face(&report);
         Ok((report, reading))
     }
 
@@ -723,7 +723,7 @@ pub(crate) fn local_wardrobe(
     owner_plan_id: Option<conduit_core::PlanId>,
     basis_revision: u64,
     action: Option<MaskWardrobeAction>,
-) -> Result<(serde_json::Value, Presentation), String> {
+) -> Result<(serde_json::Value, Result<Presentation, String>), String> {
     match call(
         state_dir,
         Request::BodyLocalWardrobe {
@@ -742,7 +742,12 @@ pub(crate) fn local_wardrobe(
             protocol: PROTOCOL,
             report,
             presentation,
-        } => Ok((*report, *presentation)),
+            reading_refusal,
+        } => match (presentation, reading_refusal) {
+            (Some(presentation), None) => Ok((*report, Ok(*presentation))),
+            (None, Some(reason)) => Ok((*report, Err(reason))),
+            _ => Err(super::CONTROL_OUTCOME_UNKNOWN.into()),
+        },
         Response::Refused { code, .. } => Err(code),
         _ => Err(super::CONTROL_OUTCOME_UNKNOWN.into()),
     }

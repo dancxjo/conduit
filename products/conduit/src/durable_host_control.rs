@@ -1257,7 +1257,8 @@ enum Response {
     BodyLocalWardrobe {
         protocol: u16,
         report: Box<serde_json::Value>,
-        presentation: Box<Presentation>,
+        presentation: Option<Box<Presentation>>,
+        reading_refusal: Option<String>,
     },
     BodyNativeMaskRoute {
         protocol: u16,
@@ -2103,10 +2104,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 basis_revision,
                 action,
             )
-            .map(|(report, presentation)| Response::BodyLocalWardrobe {
-                protocol: PROTOCOL,
-                report: Box::new(report),
-                presentation: Box::new(presentation),
+            .map(|(report, reading)| {
+                let (presentation, reading_refusal) = match reading {
+                    Ok(presentation) => (Some(Box::new(presentation)), None),
+                    Err(reason) => (None, Some(reason)),
+                };
+                Response::BodyLocalWardrobe {
+                    protocol: PROTOCOL,
+                    report: Box::new(report),
+                    presentation,
+                    reading_refusal,
+                }
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyNativeMaskRoute {

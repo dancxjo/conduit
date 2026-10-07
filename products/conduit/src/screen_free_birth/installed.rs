@@ -406,33 +406,36 @@ fn run_body(
                 output,
             ) {
                 Ok(reading_face) => {
-                    let mut reading_execution =
-                        HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
-                    let reading_show = present(&reading_face, &mut reading_execution, output)?;
-                    let mut speaking =
-                        SpokenFaceSession::new(reading_face.clone(), reading_show.clone())
+                    if let Some(reading_face) = reading_face {
+                        let mut reading_execution =
+                            HostedTerminalMaskExecution::new(&advertisement)
+                                .map_err(debug_error)?;
+                        let reading_show = present(&reading_face, &mut reading_execution, output)?;
+                        let mut speaking =
+                            SpokenFaceSession::new(reading_face.clone(), reading_show.clone())
+                                .map_err(debug_error)?;
+                        sequence = sequence.checked_add(1).ok_or("input sequence exhausted")?;
+                        speaking
+                            .command(
+                                &reading_face,
+                                &reading_show,
+                                ReaderCommand::ReadAll,
+                                sequence,
+                            )
                             .map_err(debug_error)?;
-                    sequence = sequence.checked_add(1).ok_or("input sequence exhausted")?;
-                    speaking
-                        .command(
+                        emit_readout(
+                            state_dir,
+                            input,
+                            playback.as_ref(),
+                            &mut speaking,
                             &reading_face,
                             &reading_show,
-                            ReaderCommand::ReadAll,
-                            sequence,
-                        )
-                        .map_err(debug_error)?;
-                    emit_readout(
-                        state_dir,
-                        input,
-                        playback.as_ref(),
-                        &mut speaking,
-                        &reading_face,
-                        &reading_show,
-                        &advertisement,
-                        &mut sequence,
-                        OutputPhase::Wardrobe,
-                        output,
-                    )?;
+                            &advertisement,
+                            &mut sequence,
+                            OutputPhase::Wardrobe,
+                            output,
+                        )?;
+                    }
                     if line != "wardrobe" {
                         // The user's old action focus was chosen before this
                         // wardrobe revision. Require a fresh explicit choice.
