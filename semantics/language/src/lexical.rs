@@ -88,7 +88,7 @@ pub fn prepare_lexical_tape(
         let partial = word
             && cursor == chars.len()
             && matches!(source.finality(), LanguageTextFinality::Partial);
-        let candidates = if partial || !word {
+        let candidates = if partial {
             BoundedSequence::new()
         } else {
             profile
