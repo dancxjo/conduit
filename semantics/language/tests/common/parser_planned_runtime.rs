@@ -24,8 +24,26 @@ enum Pure {
 pub struct Execution {
     kernel: KernelCompositeHost,
     pure: Vec<(conduit_kernel::NodeId, Pure)>,
+    remaining_inferences: Option<u16>,
 }
 pub fn prepare(profile: Arc<PreparedCategoricalStep>) -> Execution {
+    prepare_model_with_budget(profile, None)
+}
+#[allow(dead_code)]
+pub fn prepare_with_inference_budget(
+    profile: Arc<PreparedCategoricalStep>,
+    maximum: u16,
+) -> Execution {
+    assert!(maximum > 0);
+    maximum
+        .checked_mul(4)
+        .expect("journal item bound overflows");
+    prepare_model_with_budget(profile, Some(maximum))
+}
+fn prepare_model_with_budget(
+    profile: Arc<PreparedCategoricalStep>,
+    maximum: Option<u16>,
+) -> Execution {
     let model_contract = profile.contract(true).unwrap();
     let KindSemanticLaw::ValueContracts(contracts) = &model_contract.semantic_laws[0] else {
         panic!("exact numerical envelopes")
@@ -37,14 +55,39 @@ pub fn prepare(profile: Arc<PreparedCategoricalStep>) -> Execution {
         .contract
         .maximum_bytes;
     let document = source(&profile.kind_identity(true), score_bytes);
-    prepare_source(profile, document, "learned-model")
+    prepare_source_with_storage(profile, document, "learned-model", maximum)
 }
 /// Execute a caller-authored bounded feature projection/model entry with the
 /// exact selected numerical types and resource custody. No grammar is selected here.
+#[allow(dead_code)] // Shared helper also serves authored-projection test targets.
 pub fn prepare_source(
     profile: Arc<PreparedCategoricalStep>,
     document: String,
     entry: &str,
+) -> Execution {
+    prepare_source_with_storage(profile, document, entry, None)
+}
+/// Admit a finite batch before Play. Each input/output boundary round trip
+/// retains four remote lifecycle Signs per child, measured by the journal test.
+/// The caller supplies its finite loop bound; the harness enforces it before ingress.
+#[allow(dead_code)]
+pub fn prepare_source_with_inference_budget(
+    profile: Arc<PreparedCategoricalStep>,
+    document: String,
+    entry: &str,
+    maximum_inferences: u16,
+) -> Execution {
+    assert!(maximum_inferences > 0, "a finite batch must admit work");
+    maximum_inferences
+        .checked_mul(4)
+        .expect("journal item bound overflows");
+    prepare_source_with_storage(profile, document, entry, Some(maximum_inferences))
+}
+fn prepare_source_with_storage(
+    profile: Arc<PreparedCategoricalStep>,
+    document: String,
+    entry: &str,
+    maximum_inferences: Option<u16>,
 ) -> Execution {
     let mut startup = StartupCatalog::new();
     let mut catalogs = ProfileCatalog::new();
@@ -239,12 +282,17 @@ pub fn prepare_source(
         &registry,
         KernelCompositeSignStorage {
             additional_local_items: 1024,
-            additional_remote_items: 256,
+            additional_remote_items: maximum_inferences
+                .map_or(256, |count| count.checked_mul(4).unwrap()),
         },
     )
     .unwrap();
     drop(registry);
-    let mut execution = Execution { kernel, pure };
+    let mut execution = Execution {
+        kernel,
+        pure,
+        remaining_inferences: maximum_inferences,
+    };
     execution.kernel.start().unwrap();
     execution
 }
@@ -293,6 +341,13 @@ impl Execution {
 }
 impl Execution {
     pub fn infer(&mut self, sequence: u64, features: &StructuredInfoValue) -> StructuredInfoValue {
+        if let Some(remaining) = &mut self.remaining_inferences {
+            assert!(
+                *remaining > 0,
+                "declared inference batch exhausted before ingress"
+            );
+            *remaining -= 1;
+        }
         let input = self.kernel.definition().boundary.input_fronts[0]
             .external_port
             .clone();
