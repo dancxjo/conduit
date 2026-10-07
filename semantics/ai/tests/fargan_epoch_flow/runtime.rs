@@ -803,3 +803,35 @@ fn retained_model_executes_compound_conditioning_signal_cycles_with_final_pcm_ac
         eprintln!("trained-resource Source compound two epochs: {}nodes/{}cords, planning{planning:?}, prep{:?}, execute{:?}; shared33tensor custody, zero/synthetic seed/features; no compound signature/native linguistic/session/waveform quality admission",result.nodes,result.cords,result.preparation,result.execution);
     }).unwrap().join().unwrap();
 }
+
+#[test]
+fn closing_feature_graph_reuses_public_analysis_resources_for_three_frames() {
+    std::thread::Builder::new().stack_size(32 * 1024 * 1024).spawn(|| {
+        use super::case_state::vector;
+        let source = super::feature_cycle::feature_source(true);
+        let context = super::prepared_epoch_profiles_with_capacity(true);
+        let planning = Instant::now();
+        let (plan, context) = super::prepare_authored_epoch_entry(context, source,
+            "speech/flow-fargan-feature-frame", true, vec![]).unwrap();
+        let planning = planning.elapsed();
+        let load = |bytes: &[u8]| bytes.as_chunks::<4>().0.iter().map(|v| f32::from_le_bytes(*v)).collect();
+        let resources: Resources = [
+            ("band_weights", "NumericF32MatrixRef161x18", vec![161,18], load(include_bytes!("../../../../proof/fargan/feature-profile/bands161x18.bin"))),
+            ("band_bias", "NumericF32BiasRef18", vec![18], load(include_bytes!("../../../../proof/fargan/feature-profile/band_bias18.bin"))),
+            ("dct_weights", "NumericF32MatrixRef18x18", vec![18,18], load(include_bytes!("../../../../proof/fargan/feature-profile/dct18x18.bin"))),
+        ].into_iter().map(|(name, ty, dimensions, values)| (name.into(), Resource::new(
+            conduit_ai::fixed_numeric_catalog::fixed_numeric_type(ty).unwrap(), &dimensions, values))).collect();
+        let waveform: Vec<f32> = (0..640).map(|n| 0.02 * (std::f32::consts::TAU * n as f32 / 80.).sin()).collect();
+        let waveform = vector(&conduit_ai::fixed_numeric_catalog::fixed_numeric_type("NumericF32Vector640").unwrap(), &waveform).canonical_bytes().unwrap();
+        let period = conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition("type FarganPeriod = U16 in 32..=255\n").unwrap();
+        let StructuredInfoTypeShape::Nominal { representation, .. } = period.value_type().shape() else { panic!("exact period profile"); };
+        let period = StructuredInfoValue::nominal(period.value_type().clone(), StructuredInfoValue::leaf(representation.clone(), 80u16.to_le_bytes().to_vec()).unwrap()).unwrap().canonical_bytes().unwrap();
+        let inputs = BTreeMap::from([("waveform".into(), vec![waveform;3]), ("period".into(), vec![period;3])]);
+        let result = run_epoch_stream_plan(plan.clone(), &context, &resources, inputs.clone(), None, 3, ExecutionMode::Normal).expect("explicit closing feature owners must publish every frame");
+        assert!(run_epoch_stream_plan(plan.clone(), &context, &resources, inputs.clone(), None, 3, ExecutionMode::StoragePressure).is_none());
+        assert!(run_epoch_stream_plan(plan, &context, &resources, inputs, None, 3, ExecutionMode::CancelFirstExpression).is_none());
+        assert_eq!(result.values.len(),3);
+        for value in &result.values[1..] { assert_eq!(value.canonical_bytes().unwrap(), result.values[0].canonical_bytes().unwrap()); }
+        eprintln!("three-frame Source feature stream: {}nodes/{}cords, planning{planning:?}, preparation{:?}, execution{:?}; no causal feedback/native utterance waveform claim", result.nodes,result.cords,result.preparation,result.execution);
+    }).unwrap().join().unwrap();
+}
