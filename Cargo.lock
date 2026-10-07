@@ -1413,6 +1413,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
+ "serde_json",
 ]
 
 [[package]]

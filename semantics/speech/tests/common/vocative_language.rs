@@ -209,6 +209,18 @@ pub fn case(position: usize, revision: &str, previous: Option<&Case>) -> Case {
             .unwrap()
         })
         .collect::<Vec<_>>();
+    admitted_graph(lexical, analysis, arcs, vocative)
+}
+/// Shared checked policy route. Graph acquisition is owned by the caller;
+/// supplying a graph here is not evidence of learned parser accuracy.
+pub fn admitted_graph(
+    lexical: PreparedLexicalTape,
+    analysis: LanguageAnalysisRevisionId,
+    arcs: Vec<LanguageDependencyArc>,
+    vocative: usize,
+) -> Case {
+    let source = lexical.tape().source().clone();
+    let revision = source.material().revision().get();
     let discourse = prepare_vocative_fact(
         format!("proof/fact/{revision}"),
         &source,
@@ -319,4 +331,27 @@ pub fn case(position: usize, revision: &str, previous: Option<&Case>) -> Case {
         )
         .unwrap(),
     }
+}
+
+/// Explicit reviewed phone data for the v2 profile's surface-preserving lemma.
+/// This is supplied pronunciation data, not a renderer spelling heuristic.
+pub fn parser_phone_profile() -> SpeechPronunciationProfile {
+    let original = phones();
+    let rows = original.rows().iter().cloned().collect::<Vec<_>>();
+    SpeechPronunciationProfile::new(
+        "proof/parser-v2-phones".into(),
+        original.language().clone(),
+        speech_provenance(),
+        BoundedSequence::try_from_iter([
+            SpeechPronunciationRow::new(
+                candidate("Hello", LanguageLexicalPos::Interjection),
+                rows[0].phones().clone(),
+            )
+            .unwrap(),
+            rows[1].clone(),
+            rows[2].clone(),
+        ])
+        .unwrap(),
+    )
+    .unwrap()
 }
