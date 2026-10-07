@@ -26,6 +26,7 @@ kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-
 plot-catalog = ["dep:conduit-web"]
 
 [dev-dependencies]
+conduit-speech = { path = "../speech", features = ["semantic-bindings"] }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-std-host = { path = "../../targets/std" }
 conduitos = { path = "../../targets/conduitos" }
