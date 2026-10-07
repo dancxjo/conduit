@@ -115,3 +115,37 @@ fn corrupted_truncated_or_nonfinite_resources_refuse_before_execution() {
         ))
     ));
 }
+
+#[test]
+fn exact_resource_embedding_has_generic_indices_and_atomic_refusal() {
+    let payload = bytes(&[1.0, -2.0, 0.5, 7.0, -3.0, 4.0]);
+    let tensor = resource_tensor(&[3, 2], &payload);
+    let table = FixedTensorEmbedding::<3, 2>::prepare(&tensor, &payload).unwrap();
+    let mut output = [99.0; 2];
+    table.lookup(2, &mut output).unwrap();
+    assert_eq!(output, [-3.0, 4.0]);
+    assert!(matches!(
+        table.lookup(3, &mut output),
+        Err(FixedNumericRefusal::Index)
+    ));
+    assert_eq!(output, [-3.0, 4.0]);
+    assert_eq!(table.tensor(), &tensor);
+    assert!(matches!(
+        FixedTensorEmbedding::<2, 3>::prepare(&tensor, &payload),
+        Err(FixedTensorRefusal::Shape)
+    ));
+    let mut corrupted = payload.clone();
+    corrupted[0] ^= 1;
+    assert!(matches!(
+        FixedTensorEmbedding::<3, 2>::prepare(&tensor, &corrupted),
+        Err(FixedTensorRefusal::ContentIdentity)
+    ));
+    let invalid = bytes(&[0.0, f32::INFINITY]);
+    let invalid_tensor = resource_tensor(&[1, 2], &invalid);
+    assert!(matches!(
+        FixedTensorEmbedding::<1, 2>::prepare(&invalid_tensor, &invalid),
+        Err(FixedTensorRefusal::Numeric(
+            FixedNumericRefusal::NonfiniteWeight
+        ))
+    ));
+}
