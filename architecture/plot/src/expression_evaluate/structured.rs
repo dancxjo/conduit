@@ -129,14 +129,24 @@ pub(super) fn collection(
         .iter()
         .map(|value| structured_value(evaluate_node(value, input, input_type)?))
         .collect::<Result<Vec<_>, _>>()?;
-    let value = match node.value_type.shape() {
-        StructuredInfoTypeShape::Sequence { .. } => {
-            StructuredInfoValue::sequence(node.value_type.clone(), values)
-        }
-        _ => StructuredInfoValue::collection(node.value_type.clone(), values),
-    }
-    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+    let value = collection_value(&node.value_type, values)?;
     encoded_structured(value)
+}
+fn collection_value(
+    ty: &StructuredInfoType,
+    values: Vec<StructuredInfoValue>,
+) -> Result<StructuredInfoValue, PortableExpressionEvaluationRefusal> {
+    match ty.shape() {
+        StructuredInfoTypeShape::Nominal { representation, .. } => {
+            let inner = collection_value(representation, values)?;
+            StructuredInfoValue::nominal(ty.clone(), inner)
+        }
+        StructuredInfoTypeShape::Sequence { .. } => {
+            StructuredInfoValue::sequence(ty.clone(), values)
+        }
+        _ => StructuredInfoValue::collection(ty.clone(), values),
+    }
+    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)
 }
 pub(super) fn variant(
     tag: &str,
