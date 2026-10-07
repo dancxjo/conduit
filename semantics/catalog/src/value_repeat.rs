@@ -2,6 +2,7 @@
 use alloc::vec;
 use conduit_core::*;
 pub const VALUE_REPEAT_KIND: &str = "value/repeat/finite";
+pub const VALUE_REPEAT_CAPACITY2_KIND: &str = "value/repeat/finite-capacity2";
 pub const VALUE_REPEAT_REVISION: &str = "conduit.value/repeat-finite@1";
 pub const VALUE_REPEAT_MAXIMUM_COUNT: u16 = 256;
 pub fn value_repeat_semantic_contract(
@@ -66,6 +67,15 @@ pub fn value_repeat_semantic_contract(
         },
     })
 }
+pub fn value_repeat_capacity2_semantic_contract(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+) -> Result<Kind, &'static str> {
+    let mut kind = value_repeat_semantic_contract(value, schema)?;
+    kind.kind_id = kind_id(VALUE_REPEAT_CAPACITY2_KIND);
+    kind.limits.max_active_instances = 2;
+    Ok(kind)
+}
 #[cfg(feature = "plot-catalog")]
 pub fn install_value_repeat_kind(
     value: &CheckedValueContract,
@@ -73,9 +83,34 @@ pub fn install_value_repeat_kind(
     startup: &mut conduit_plot::StartupCatalog,
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use alloc::string::ToString;
+    install_repeat(
+        value_repeat_semantic_contract(value, schema).map_err(alloc::string::String::from)?,
+        startup,
+        profile,
+    )
+}
+#[cfg(feature = "plot-catalog")]
+pub fn install_value_repeat_capacity2_kind(
+    value: &CheckedValueContract,
+    schema: &StructuredInfoType,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    install_repeat(
+        value_repeat_capacity2_semantic_contract(value, schema)
+            .map_err(alloc::string::String::from)?,
+        startup,
+        profile,
+    )
+}
+#[cfg(feature = "plot-catalog")]
+fn install_repeat(
+    kind: Kind,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
     startup.insert(conduit_plot::KindSignature {
-        kind: VALUE_REPEAT_KIND.into(),
+        kind: kind.kind_id.as_str().into(),
         startup_parameters: vec![conduit_plot::StartupParameterSignature {
             name: "count".into(),
             value_type: "Count".into(),
@@ -83,7 +118,7 @@ pub fn install_value_repeat_kind(
         }],
     })?;
     profile
-        .insert_kind(value_repeat_semantic_contract(value, schema).map_err(str::to_string)?)
+        .insert_kind(kind)
         .map_err(|error| alloc::format!("{error:?}"))
 }
 

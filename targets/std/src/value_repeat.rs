@@ -20,6 +20,18 @@ impl PreparedValueRepeat {
             offer,
         })
     }
+    pub fn capacity2(
+        value: CheckedValueContract,
+        schema: StructuredInfoType,
+    ) -> Result<Self, String> {
+        let offer = conduit_std_offers::value_repeat_capacity2_offer(&value, &schema)
+            .map_err(str::to_owned)?;
+        Ok(Self {
+            value,
+            schema,
+            offer,
+        })
+    }
     pub fn offer(&self) -> &CapabilityOffer {
         &self.offer
     }
@@ -78,6 +90,7 @@ impl ValueRepeatOperationFactory {
             return Err("invalid sealed Plan".into());
         }
         let mut selected = BTreeMap::new();
+        let mut counts = BTreeMap::new();
         for gear in plan
             .fragments
             .iter()
@@ -97,6 +110,13 @@ impl ValueRepeatOperationFactory {
             if matches.next().is_some() {
                 return Err("ambiguous finite repeat profile".into());
             }
+            let instances = counts
+                .entry(profile.offer().capability_id.clone())
+                .or_insert(0u16);
+            if *instances >= profile.offer().limits.max_active_instances {
+                return Err("finite repeat selected instance capacity exceeded".into());
+            }
+            *instances += 1;
             if selected
                 .insert(
                     gear.placement_id.clone(),

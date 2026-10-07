@@ -11,6 +11,8 @@ mod declarations;
 mod feature_cycle;
 #[path = "fargan_epoch_flow/interface.rs"]
 mod interface;
+#[path = "fargan_epoch_flow/repeat_capacity.rs"]
+mod repeat_capacity;
 use conduit_ai::{
     fixed_numeric_catalog::*, fixed_numeric_pair_catalog::*, native_profile::PreparedNativeProfile,
     nominal_weakening::PreparedNominalWeakening,
@@ -478,7 +480,13 @@ fn prepare_authored_epoch_entry(
     for gear in &expanded.expanded.gears {
         let selected = if gear.kind_id.as_str().starts_with("numeric/") {
             Some(numeric_epoch_offer(gear.kind_id.as_str(), capacity64))
-        } else if let [entry] = gear.configuration.as_slice() {
+        } else if matches!(
+            gear.kind_contract_revision.as_str(),
+            PURE_EXPRESSION_REVISION | PURE_FILTER_REVISION
+        ) {
+            let [entry] = gear.configuration.as_slice() else {
+                panic!("exact pure Source configuration")
+            };
             let ConfigurationValue::Text(encoded) = &entry.value else {
                 panic!("pure source program")
             };
