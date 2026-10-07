@@ -130,12 +130,79 @@ fn normalize_spans(
     Ok(())
 }
 
+fn captured_value<'a>(
+    expression: &ExpressionSyntax,
+    source_plot: &'a CheckedCanonicalPlot,
+    environment: &'a BTreeMap<String, CanonicalStartupValue>,
+) -> Option<&'a crate::CanonicalStructuredStartupValue> {
+    let mut root = expression;
+    let mut members = Vec::new();
+    while let ExpressionSyntax::Projection { value, member, .. } = root {
+        members.push(member);
+        root = value;
+    }
+    let ExpressionSyntax::Atomic(name) = root else {
+        return None;
+    };
+    let mut selected = source_plot
+        .local_values
+        .iter()
+        .find(|(local, _)| local == &name.text)
+        .map(|(_, value)| value)
+        .or_else(|| environment.get(&name.text))?;
+    if let CanonicalStartupValue::PlotParameter(name) = selected {
+        selected = environment.get(name)?;
+    }
+    let CanonicalStartupValue::Structured(selected_value) = selected else {
+        return None;
+    };
+    let mut value = selected_value;
+    for member in members.iter().rev() {
+        value = value.projected(member)?;
+    }
+    Some(value)
+}
+
 fn substitute_values_inner(
     expression: &ExpressionSyntax,
     source_plot: &CheckedCanonicalPlot,
     environment: &BTreeMap<String, CanonicalStartupValue>,
     reify_structured: bool,
 ) -> Result<ExpressionSyntax, CanonicalExpansionDiagnostic> {
+    if reify_structured {
+        if let ExpressionSyntax::SemanticCall {
+            kind,
+            arguments,
+            span,
+        } = expression
+        {
+            if kind.text == "variant/is" && arguments.len() == 2 {
+                if let Some(value) = captured_value(&arguments[0], source_plot, environment) {
+                    if let ExpressionSyntax::Atomic(case) = &arguments[1] {
+                        if let (Some(tag), Some(case)) = (
+                            value.variant_tag(),
+                            crate::text_value::parse_quoted_text(&case.text),
+                        ) {
+                            return Ok(ExpressionSyntax::Atomic(crate::SpannedText {
+                                text: (tag == case).to_string(),
+                                span: *span,
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if reify_structured {
+        if let Some(value) = captured_value(expression, source_plot, environment) {
+            return value.expression_syntax(expression.span()).ok_or_else(|| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    "captured startup has no supported concrete projection".into(),
+                )
+            });
+        }
+    }
     let substitute = |value: &crate::SpannedText| {
         let local = source_plot
             .local_values
