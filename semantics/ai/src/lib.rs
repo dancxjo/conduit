@@ -266,3 +266,6 @@ pub mod fixed_numeric_u16_profile;
 
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_float_integer;
+
+#[cfg(all(feature = "kernel-operation-owners", target_has_atomic = "ptr"))]
+pub mod operation_owners;

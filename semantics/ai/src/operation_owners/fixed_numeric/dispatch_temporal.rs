@@ -1,9 +1,9 @@
 use super::*;
-use conduit_ai::{
+use crate::{
     fixed_numeric_index_back::*, fixed_numeric_operations_back::*, fixed_numeric_signal_back::*,
     fixed_numeric_temporal::*,
 };
-use conduit_ai::{fixed_numeric_scan_back::*, fixed_numeric_window_back::*};
+use crate::{fixed_numeric_scan_back::*, fixed_numeric_window_back::*};
 pub(super) fn select(
     kind: &str,
     planned: Option<(&PlannedGear, u16)>,

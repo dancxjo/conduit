@@ -1,7 +1,7 @@
 use super::*;
-use conduit_ai::fixed_numeric_integer_conversion::FixedIntegerConversionBack;
-use conduit_ai::{fixed_numeric_dsp_back::FixedDspBack, fixed_numeric_dsp_catalog::*};
-use conduit_ai::{
+use crate::fixed_numeric_integer_conversion::FixedIntegerConversionBack;
+use crate::{fixed_numeric_dsp_back::FixedDspBack, fixed_numeric_dsp_catalog::*};
+use crate::{
     fixed_numeric_index_back::*, fixed_numeric_pair_back::*,
     fixed_numeric_preparation::fixed_window_offer, fixed_numeric_scan_back::*,
     fixed_numeric_signal_back::*, fixed_numeric_window_back::*,
@@ -17,8 +17,8 @@ pub(super) fn select(
                 planned,
                 gear,
                 fuel,
-                conduit_ai::fixed_numeric_integer_narrowing::checked_integer_narrowing_offer(flow),
-                conduit_ai::fixed_numeric_integer_narrowing::CheckedU64ToU16Back::prepare_planned::<
+                crate::fixed_numeric_integer_narrowing::checked_integer_narrowing_offer(flow),
+                crate::fixed_numeric_integer_narrowing::CheckedU64ToU16Back::prepare_planned::<
                     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
                 >(gear, fuel, flow)
             ))
