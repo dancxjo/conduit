@@ -52,6 +52,51 @@ pub(super) static NO_INTERACTION_FACTORY: BackFactory = BackFactory {
     budget: no_interaction_budget,
     prepare: prepare_no_interaction,
 };
+pub(super) static PRESENTATION_TEE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION,
+    budget: tee_budget,
+    prepare: prepare_tee,
+};
+
+pub(super) struct PresentationTeeBack;
+
+impl<const PORTS: usize> StepBack<PORTS> for PresentationTeeBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present Face tee input");
+            io.send(PortId(0), value).expect("ready Face tee output");
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed Face tee closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+}
+
+fn tee_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(
+        placement,
+        conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION,
+    )?;
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: 0,
+        sign_items: 16,
+        maximum_value_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+    })
+}
+
+fn prepare_tee(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<InstalledBack, String> {
+    tee_budget(placement)?;
+    Ok(InstalledBack::PresentationTee(PresentationTeeBack))
+}
 
 pub(super) struct SpokenArtifactBack {
     work: super::audio_stream_budget::AudioStreamBudget,

@@ -178,4 +178,39 @@ mod tests {
         let mask = MaskPlot::admit(&authoring).unwrap();
         assert_eq!(mask.plot_name, "direct_spoken_test");
     }
+
+    #[test]
+    fn attached_spoken_output_advertises_the_installed_face_tee() {
+        let mut host = crate::StdHost::new_with_composition(
+            crate::StdHostConfig {
+                host_id: "host/direct-spoken-tee".into(),
+                boot_id: "boot/direct-spoken-tee".into(),
+                offer_generation: conduit_core::OfferGeneration(1),
+            },
+            crate::StdHostComposition::minimal(),
+        );
+        assert!(!host.advertisement().capabilities.iter().any(|offer| {
+            offer.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND
+        }));
+        let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
+            std::env::temp_dir().join("conduit-direct-spoken-tee-offer.wav"),
+            host.advertisement().boot_id.clone(),
+            host.advertisement().offer_generation,
+        )
+        .unwrap();
+        host.attach_deterministic_speech_and_wav_artifact(artifact)
+            .unwrap();
+        let offered = host
+            .advertisement()
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND)
+            .expect("attached spoken Host offers its installed Face tee");
+        assert_eq!(
+            offered.implementation.implementation_id.as_str(),
+            conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION
+        );
+        assert!(offered.host_calls.is_empty());
+        assert!(offered.resource_requirements.is_empty());
+    }
 }

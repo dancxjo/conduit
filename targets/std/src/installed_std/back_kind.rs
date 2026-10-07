@@ -59,7 +59,7 @@ use super::speech_recognition_adapter_back::{
     SpeechResultToEventStreamBack, SpeechWindowToClipBack,
 };
 use super::speech_synthesis_back::SpeechSynthesisBack;
-use super::spoken_mask_backs::SpokenArtifactBack;
+use super::spoken_mask_backs::{PresentationTeeBack, SpokenArtifactBack};
 use super::state_select_back::StateSelectScalarBack;
 use super::structured_selector_back::StructuredSelectorBack;
 use super::structured_values_back::{StructuredLiteralBack, StructuredPresentationBack};
@@ -185,6 +185,7 @@ pub(super) enum InstalledBack {
     SpokenArtifact(SpokenArtifactBack),
     SpokenArtifactShow(crate::spoken_mask_runtime::ArtifactAcknowledgedShowBack),
     SpokenNoInteraction(crate::spoken_mask_runtime::ClosingNoInteractionBack),
+    PresentationTee(PresentationTeeBack),
     AudioRenderDemand(AudioRenderDemandBack),
     AudioPlay(AudioPlayBack),
     AudioTone(AudioToneBack),
