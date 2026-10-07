@@ -285,6 +285,8 @@ fn expand_expression(
     }
 
     let input_type = crate::CheckedExpressionType::Semantic(input_kind);
+    let (retained_expression, retained_types) =
+        substitution::retained_capture_expression(expression, source_plot, environment)?;
     let expression = substitute_immutable_values(expression, source_plot, environment)?;
     let immutable_values = BTreeMap::new();
     let literal_types = BTreeMap::new();
@@ -303,6 +305,29 @@ fn expand_expression(
             StageSink::FaceOutput(_, kind, _, _) => kind.clone(),
         })
         .map(crate::CheckedExpressionType::Semantic);
+    if !retained_types.is_empty() {
+        crate::expression_check::check_expression_as(
+            &retained_expression,
+            expected_output.as_ref(),
+            &crate::ExpressionTypeContext {
+                input: &input_type,
+                immutable_values: &retained_types,
+                structured_types,
+                literal_types: &literal_types,
+                numeric_types: &numeric_types,
+                semantic_kinds: &semantic_kinds,
+            },
+        )
+        .map_err(|diagnostic| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                format!(
+                    "captured expression at {}:{} differs from its exact retained type: {}",
+                    diagnostic.span.line, diagnostic.span.column, diagnostic.message
+                ),
+            )
+        })?;
+    }
     let mut checked = crate::expression_check::check_expression_as(
         &expression,
         expected_output.as_ref(),
