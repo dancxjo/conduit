@@ -46,6 +46,8 @@ pub use generated::{
 
 pub use generated::{LanguageParserAdmittedAgreementQuery, LanguageParserAdmittedBeam};
 
+pub mod parser_session_runtime;
+
 mod parser;
 pub use parser::parser_types;
 
