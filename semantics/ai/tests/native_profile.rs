@@ -468,6 +468,17 @@ fn exact_source_and_temporal_profile_selection_refuse_foreign_receipts() {
     assert!(NativeProfileBack::prepare_planned::<4>(gear, 2, &profile, true).is_err());
     assert!(PreparedNativeProfile::check_definition("type Bad = U16\n", "Bad").is_err());
     assert!(PreparedNativeProfile::check_definition(DEFINITION, "Absent").is_err());
+    let profile = std::sync::Arc::new(profile);
+    let mut changed = plan.clone();
+    changed.fragments[0].placements[0].kind_contract_revision = "foreign".into();
+    assert!(!verify_plan(&changed));
+    assert!(
+        conduit_ai::operation_owners::native_profile::NativeProfileOperationFactory::for_plan(
+            &changed,
+            &[profile]
+        )
+        .is_err()
+    );
 }
 #[test]
 fn pressure_storage_rollback_and_cancellation_preserve_native_progress() {
