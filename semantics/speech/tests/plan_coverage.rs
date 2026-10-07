@@ -1,7 +1,9 @@
 #![cfg(feature = "semantic-bindings")]
 #[path = "common/vocative_intent.rs"]
+#[allow(dead_code)]
 mod intent;
 #[path = "common/vocative_language.rs"]
+#[allow(dead_code)]
 mod language;
 use conduit_speech::{
     lexical_pronunciation::*, plan_coverage::*, pronunciation_intent::*, semantic::*,
