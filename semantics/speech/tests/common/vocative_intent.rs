@@ -17,6 +17,19 @@ pub struct Composite {
     pub word_indices: Vec<usize>,
 }
 pub fn compose(case: &language::Case, pronunciations: &[PreparedPronunciation<'_>]) -> Composite {
+    compose_with_duration(
+        case,
+        pronunciations,
+        SpeechDurationSpecification::known(10, 1).unwrap(),
+    )
+}
+/// The caller selects duration; existing Source prosody and realization contracts
+/// admit it and preserve the resulting exact common intent for both backends.
+pub fn compose_with_duration(
+    case: &language::Case,
+    pronunciations: &[PreparedPronunciation<'_>],
+    duration: SpeechDurationSpecification,
+) -> Composite {
     let material = case.lexical.tape().source().material();
     let revision_identity = format!("phones/{}", material.revision().get());
     let revision_identity = if revision_identity.len() <= 64 {
@@ -43,7 +56,7 @@ pub fn compose(case: &language::Case, pronunciations: &[PreparedPronunciation<'_
             LinguisticProsodyBasis::Fallback(&case.fallback[word])
         };
         let prosody = SpeechSegmentProsodyIntent::new(
-            SpeechDurationSpecification::known(10, 1).unwrap(),
+            duration.clone(),
             SpeechCycleSpecification::known(100, 1).unwrap(),
             SpeechIntensitySpecification::known(if rich { 4 } else { 2 }, if rich { 3 } else { 1 })
                 .unwrap(),
@@ -108,8 +121,17 @@ pub fn compose(case: &language::Case, pronunciations: &[PreparedPronunciation<'_
                 .unwrap(),
             )
             .unwrap();
+            let SpeechDurationSpecification::Known(selected_duration) =
+                segment.prosody().duration()
+            else {
+                panic!("explicit admitted duration")
+            };
             let trajectory = SpeechLinearPitchTrajectory::new(
-                SpeechExactDuration::new(10, 1).unwrap(),
+                SpeechExactDuration::new(
+                    *selected_duration.denominator(),
+                    *selected_duration.numerator_seconds(),
+                )
+                .unwrap(),
                 SpeechFundamentalCycle::new(if rich { 150 } else { 100 }, 1).unwrap(),
                 SpeechFundamentalCycle::new(100, 1).unwrap(),
             )

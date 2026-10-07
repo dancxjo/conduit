@@ -9,6 +9,7 @@ mod evidence;
 #[path = "common/playback_graph.rs"]
 mod graph;
 #[path = "common/vocative_intent.rs"]
+#[allow(dead_code)]
 mod intent;
 #[path = "common/vocative_language.rs"]
 #[allow(dead_code)]
@@ -20,6 +21,7 @@ mod lifecycle;
 mod receipt;
 use conduit_speech::{
     intent_realization::*, lexical_pronunciation::*, pitch_trajectory::*, playback_basis::*,
+    semantic::SpeechDurationSpecification,
 };
 #[test]
 #[ignore = "requires actual learned native receipts via CONDUIT_LEARNED_GRAPH_RECEIPTS"]
@@ -42,6 +44,12 @@ fn actual_learned_native_graphs_feed_three_position_playback() {
 }
 
 fn playback_row(row: &serde_json::Value) -> usize {
+    playback_row_with_duration(row, SpeechDurationSpecification::known(10, 1).unwrap()).0
+}
+fn playback_row_with_duration(
+    row: &serde_json::Value,
+    duration: SpeechDurationSpecification,
+) -> (usize, u64) {
     let admitted = receipt::admit(row).unwrap();
     let position = admitted.vocative;
     let mut case = language::admitted_graph_with_choices(
@@ -65,7 +73,7 @@ fn playback_row(row: &serde_json::Value) -> usize {
         .iter()
         .map(|selection| prepare_pronunciation(selection, &case.phones).unwrap())
         .collect::<Vec<_>>();
-    let composite = intent::compose(&case, &pronunciations);
+    let composite = intent::compose_with_duration(&case, &pronunciations, duration);
     assert_eq!(composite.words.len(), case.selections.len());
     assert_eq!(composite.correspondence.len(), composite.segments.len());
     let linguistic = composite.linguistic(&case);
@@ -109,7 +117,7 @@ fn playback_row(row: &serde_json::Value) -> usize {
         &realized,
         &pitch,
     );
-    position
+    (position, pcm.len() as u64 / 2)
 }
 #[test]
 #[ignore = "requires separate actual exact punctuated parser receipts"]
@@ -121,6 +129,24 @@ fn actual_learned_exact_punctuated_hello_travis_playback() {
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0]["text"], "Hello, Travis.");
     assert_eq!(playback_row(&rows[0]), 2);
+}
+
+#[test]
+#[ignore = "requires actual exact punctuated parser receipt and an explicit slower voice request"]
+fn actual_learned_exact_punctuated_slow_voice_handoff() {
+    let path = std::env::var("CONDUIT_LEARNED_GRAPH_RECEIPTS").unwrap();
+    assert!(std::fs::metadata(&path).unwrap().len() <= 8 * 1024 * 1024);
+    let rows: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["text"], "Hello, Travis.");
+    let (position, samples) =
+        playback_row_with_duration(&rows[0], SpeechDurationSpecification::known(5, 1).unwrap());
+    assert_eq!(position, 2);
+    assert!(
+        samples >= 2 * 8000,
+        "two seconds of actual Source-admitted intent, without PCM padding"
+    );
 }
 
 #[test]

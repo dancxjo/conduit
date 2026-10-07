@@ -2,6 +2,12 @@
 use conduit_language::{discourse::*, lexical::*, *};
 use conduit_plot::rust_binding::BoundedSequence;
 use conduit_speech::{semantic::*, translation_structure::*};
+#[path = "common/asr_graph_sources.rs"]
+#[allow(dead_code)]
+mod asr_sources;
+#[path = "common/learned_graph_receipt.rs"]
+#[allow(dead_code)]
+mod receipt;
 fn provenance() -> LinguisticDerivationProvenance {
     LinguisticDerivationProvenance::deterministic_rule(
         "supplied-translation-ud-fixture".into(),
@@ -92,10 +98,14 @@ fn segment(reference: &LanguageTextSegmentRef) -> LanguageSegmentRef {
 #[test]
 fn accepted_reordered_alignment_preserves_addressee_without_target_comma() {
     let source = revision("english", "language/en", "Hello, Travis.");
-    let target = revision("portuguese", "language/pt", "Olá Travis");
     let source_tape = lexical(&source);
-    let target_tape = lexical(&target);
     let source_fact = fact(&source_tape, 2);
+    check_alignment(source_tape, source_fact);
+}
+fn check_alignment(source_tape: PreparedLexicalTape, source_fact: PreparedVocativeFact) {
+    let source = source_tape.tape().source().clone();
+    let target = revision("portuguese", "language/pt", "Olá Travis");
+    let target_tape = lexical(&target);
     let target_fact = fact(&target_tape, 1);
     let group = TranslationAlignedGroup::new(
         BoundedSequence::try_from_iter([
@@ -193,4 +203,28 @@ fn accepted_reordered_alignment_preserves_addressee_without_target_comma() {
         prepare_translation_vocative(foreign),
         Err(TranslationStructureRefusal::LexicalBasis)
     ));
+}
+
+#[test]
+#[ignore = "requires actual exact punctuated learned source graph; target and alignment remain explicit supplied fixtures"]
+fn learned_source_graph_retains_addressee_through_explicit_translation_alignment() {
+    let path = std::env::var("CONDUIT_LEARNED_GRAPH_RECEIPTS").unwrap();
+    assert!(std::fs::metadata(&path).unwrap().len() <= 8 * 1024 * 1024);
+    let rows: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["text"], "Hello, Travis.");
+    let admitted = receipt::admit(&rows[0]).unwrap();
+    assert_eq!(admitted.vocative, 2);
+    let source = admitted.lexical.tape().source();
+    let fact = prepare_vocative_fact(
+        "learned/source/addressee".into(),
+        source,
+        admitted.basis.analysis_revision(),
+        &admitted.arcs[admitted.vocative],
+        source.provenance().clone(),
+        admitted.lexical.tape().tokens().len() as u64,
+    )
+    .unwrap();
+    check_alignment(admitted.lexical, fact);
 }
