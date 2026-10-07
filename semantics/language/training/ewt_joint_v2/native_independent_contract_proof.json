@@ -1,0 +1,70 @@
+{
+  "schema": "language/parser-independent-protection-contract-proof@1",
+  "scope": "checked Source/native contract diagnostics; generated and ordinary retained protected/played session acceptance pending",
+  "source_sha256": {
+    "parser_session_protected_rebase.conduit": "b1a5a7f1c29fb86b3e1fce2eac9386975b01d252bf43c55a16c2e31ccd0efa28",
+    "parser_session_protected_forest.conduit": "7776367f02e7096e1e98a526d0abe0dbae876a4ab4c3bd0527ab753cb80e0cdc",
+    "parser_session_independent_admission.conduit": "37325a0fd75380ebf45d072cec7a77558f3c02a86664d6ac338a9e04ccc811b0"
+  },
+  "root_stable_dependency_source_sha256": "fc6d7dc457b9f3f61faf0fbc31b24cdd2a3bd6553f125d55e039615eb9dcc6be",
+  "rebase": {
+    "where_programs": 45,
+    "codec_handle": 66252,
+    "codec_pass_seconds": 119.11,
+    "graph_expansion_handle": 2356,
+    "graph_expansion_pass_seconds": 144.66,
+    "whole_span_revision_advances": true,
+    "actual_rebase_admission_pending": true
+  },
+  "prospective_forest": {
+    "native_law_handle": 72729,
+    "pass_seconds": 97.76,
+    "positive_cases": [
+      "prospective VOC2->0 without unread advance",
+      "single root singleton"
+    ],
+    "negative_cases": [
+      "2-cycle",
+      "3-cycle",
+      "4-cycle",
+      "multiple roots",
+      "self-loop",
+      "out-of-count head",
+      "U64MAX"
+    ],
+    "ordinary_pipeline_pending": true
+  },
+  "independent_receipt": {
+    "where_programs": 30,
+    "codec_handle": 9064,
+    "actual_positive_negative_handles": [
+      75346,
+      62405
+    ],
+    "actual_fact_cases": [
+      "published VOC0 foundation",
+      "fresh Partial Hello comma Travis VOC2->Hello0 stable13/root withheld/contiguous0"
+    ],
+    "source_execution": "checked generic expression owners for authored projection,initialize,insert-projection,upsert; no ordinary Plan claim",
+    "negative_cases": [
+      "changed head",
+      "changed dependent choice",
+      "changed head choice"
+    ],
+    "first_basis_only": true,
+    "native_generated_binding_pending": true
+  },
+  "fresh_vocative_acquisition_test_handle": 58834,
+  "fresh_vocative_acquisition_terminal_pending": false,
+  "played_commitment": false,
+  "main_source_and_catalog_registration": false,
+  "fresh_vocative_acquisition_result": {
+    "test_pass": false,
+    "seconds": 2764.44,
+    "failure": "shared gold diagnostic UAS6 !=7 after both actual decode rows; predictions preserved",
+    "actual_complete_final_inputs": 1,
+    "decode_ms": 714618,
+    "decode_max_ms": 460845,
+    "evaluate_elapsed_ms": 1296979
+  }
+}
