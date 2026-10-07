@@ -100,3 +100,8 @@ pub use tensor::*;
 pub use tensor_catalog::*;
 #[cfg(feature = "kernel-step")]
 pub use value_repeat_back::{ValueRepeatBack, ValueRepeatPreparationError};
+
+#[cfg(feature = "kernel-step")]
+mod flow_exactly_one_back;
+#[cfg(feature = "kernel-step")]
+pub use flow_exactly_one_back::{FlowExactlyOneBack, FlowExactlyOnePreparationError};
