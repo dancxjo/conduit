@@ -61,6 +61,13 @@ pub fn verify_affine_placement<const INPUT: usize, const OUTPUT: usize>(
 ) -> Result<(), FixedPlannedRefusal> {
     let expected =
         fixed_affine_offer::<INPUT, OUTPUT>().map_err(|_| FixedPlannedRefusal::UnsupportedShape)?;
+    verify_fixed_placement(placement, &expected)
+}
+
+pub fn verify_fixed_placement(
+    placement: &PlannedGear,
+    expected: &CapabilityOffer,
+) -> Result<(), FixedPlannedRefusal> {
     if placement.kind_id != expected.kind_id
         || placement.kind_contract_revision != expected.kind_contract_revision
         || placement.execution_profile_id != expected.implementation.execution_profile_id
@@ -84,4 +91,25 @@ pub fn verify_affine_placement<const INPUT: usize, const OUTPUT: usize>(
         return Err(FixedPlannedRefusal::Identity);
     }
     Ok(())
+}
+
+pub const WINDOW_IMPLEMENTATION: &str = "conduit.numeric/scalar-window2x64@1";
+pub fn fixed_window_offer() -> Result<CapabilityOffer, String> {
+    let kind = fixed_numeric_contracts()?
+        .into_iter()
+        .find(|kind| kind.kind_id.as_str() == "numeric/history2x64")
+        .ok_or_else(|| String::from("absent fixed window contract"))?;
+    Ok(BackOfferBuilder::new(
+        kind,
+        Back {
+            capability_id: CapabilityId::from(WINDOW_IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(AFFINE_PROFILE),
+            implementation_id: ImplementationId::from(WINDOW_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(WINDOW_IMPLEMENTATION),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build())
 }

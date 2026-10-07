@@ -1,7 +1,9 @@
 //! Allocation-prepared exact fixed-vector canonical codec.
 //! Runtime checks the complete envelope and never allocates or guesses shapes.
 use alloc::{vec, vec::Vec};
-use conduit_core::{StructuredInfoType, StructuredInfoTypeShape as Shape, StructuredInfoValue};
+use conduit_core::{
+    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape as Shape, StructuredInfoValue,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FixedCodecRefusal {
@@ -29,12 +31,15 @@ impl<const WIDTH: usize> FixedF32VectorCodec<WIDTH> {
         {
             return Err(FixedCodecRefusal::Shape);
         }
-        let template = vector(value_type, WIDTH, 0.0)?
+        Self::prepare_tree(value_type)
+    }
+    fn prepare_tree(value_type: &StructuredInfoType) -> Result<Self, FixedCodecRefusal> {
+        let template = tree(value_type, 0.0)?
             .canonical_bytes()
             .map_err(|_| FixedCodecRefusal::Encoding)?;
         // The nonzero byte pattern identifies canonical payload positions using
         // the core encoder during preparation. No wire-format offsets are guessed.
-        let marked = vector(value_type, WIDTH, f32::from_bits(0x3f01_0203))?
+        let marked = tree(value_type, f32::from_bits(0x3f01_0203))?
             .canonical_bytes()
             .map_err(|_| FixedCodecRefusal::Encoding)?;
         if template.len() != marked.len() {
@@ -114,21 +119,44 @@ impl<const WIDTH: usize> FixedF32VectorCodec<WIDTH> {
         self.template.capacity() + self.output.capacity()
     }
 }
-fn vector(
-    ty: &StructuredInfoType,
-    width: usize,
-    value: f32,
-) -> Result<StructuredInfoValue, FixedCodecRefusal> {
+impl FixedF32VectorCodec<128> {
+    /// Two exact 64-element prior frames, flattened oldest first.
+    pub fn prepare_history() -> Result<Self, FixedCodecRefusal> {
+        let ty = crate::fixed_numeric_catalog::fixed_numeric_type("NumericHistory2x64")
+            .map_err(|_| FixedCodecRefusal::Shape)?;
+        Self::prepare_tree(&ty)
+    }
+}
+impl FixedF32VectorCodec<320> {
+    /// Single atomic record, canonical field order: next_history128 then window192.
+    pub fn prepare_window_result() -> Result<Self, FixedCodecRefusal> {
+        let ty = crate::fixed_numeric_catalog::fixed_numeric_type("NumericWindow2x64")
+            .map_err(|_| FixedCodecRefusal::Shape)?;
+        Self::prepare_tree(&ty)
+    }
+}
+fn tree(ty: &StructuredInfoType, value: f32) -> Result<StructuredInfoValue, FixedCodecRefusal> {
     match ty.shape() {
         Shape::Nominal { representation, .. } => {
-            StructuredInfoValue::nominal(ty.clone(), vector(representation, width, value)?)
+            StructuredInfoValue::nominal(ty.clone(), tree(representation, value)?)
         }
-        Shape::Collection { element, length } if length as usize == width => {
-            let values = (0..width)
-                .map(|_| scalar(element, value))
+        Shape::Collection { element, length } => {
+            let values = (0..length)
+                .map(|_| tree(element, value))
                 .collect::<Result<Vec<_>, _>>()?;
             StructuredInfoValue::collection(ty.clone(), values)
         }
+        Shape::Record { fields, .. } => {
+            let values = fields
+                .iter()
+                .map(|field| {
+                    StructuredFieldValue::new(field.name(), tree(field.value_type(), value)?)
+                        .map_err(|_| FixedCodecRefusal::Encoding)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            StructuredInfoValue::record(ty.clone(), values)
+        }
+        Shape::Leaf(_) => return scalar(ty, value),
         _ => return Err(FixedCodecRefusal::Shape),
     }
     .map_err(|_| FixedCodecRefusal::Encoding)

@@ -198,3 +198,5 @@ pub mod fixed_numeric_binding;
 pub mod fixed_numeric_catalog;
 pub mod fixed_numeric_codec;
 pub mod fixed_numeric_preparation;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_window_back;
