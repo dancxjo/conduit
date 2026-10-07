@@ -237,3 +237,39 @@ fn exact_canonical_byte_boundary_and_cancel_before_first_ingress() {
     assert_eq!(flow.next_ordinal(), 0);
     assert!(!flow.is_poisoned());
 }
+
+struct FalseInputBinding;
+impl NativeRustBinding for FalseInputBinding {
+    fn semantic_type(
+    ) -> Result<StructuredInfoType, conduit_plot::rust_binding::NativeBindingRefusal> {
+        LanguageTextRevisionId::semantic_type()
+    }
+    fn into_structured(
+        self,
+    ) -> Result<StructuredInfoValue, conduit_plot::rust_binding::NativeBindingRefusal> {
+        LanguageTextId::new("same-bytes".into())?.into_structured()
+    }
+    fn from_structured(
+        _value: StructuredInfoValue,
+    ) -> Result<Self, conduit_plot::rust_binding::NativeBindingRefusal> {
+        Ok(Self)
+    }
+}
+#[test]
+fn dishonest_binding_cannot_cross_declared_input_port() {
+    let executor = executor();
+    let calls = executor.calls.clone();
+    let mut flow =
+        PreparedParserSourceFlow::<FalseInputBinding, LanguageTextRevisionId, Executor>::new(
+            executor,
+            limits(),
+        )
+        .unwrap();
+    assert!(matches!(
+        flow.transact(FalseInputBinding),
+        Err(ParserSourceFlowRefusal::InputType)
+    ));
+    assert!(calls.borrow().is_empty());
+    assert_eq!(flow.next_ordinal(), 0);
+    assert!(!flow.is_poisoned());
+}

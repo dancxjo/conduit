@@ -60,6 +60,8 @@ pub struct PreparedParserSourceFlow<I, O, E> {
     poisoned: bool,
     cancelled: bool,
     limits: ParserSourceFlowLimits,
+    input_type: StructuredInfoType,
+    output_type: StructuredInfoType,
     binding: PhantomData<fn(I) -> O>,
 }
 impl<I: NativeRustBinding, O: NativeRustBinding, E: ParserSourceExecutor>
@@ -79,10 +81,12 @@ impl<I: NativeRustBinding, O: NativeRustBinding, E: ParserSourceExecutor>
         if executor.entry().is_empty() {
             return Err(EmptyEntry);
         }
-        if executor.input_type() != &I::semantic_type().map_err(Native)? {
+        let input_type = I::semantic_type().map_err(Native)?;
+        let output_type = O::semantic_type().map_err(Native)?;
+        if executor.input_type() != &input_type {
             return Err(InputType);
         }
-        if executor.output_type() != &O::semantic_type().map_err(Native)? {
+        if executor.output_type() != &output_type {
             return Err(OutputType);
         }
         Ok(Self {
@@ -91,6 +95,8 @@ impl<I: NativeRustBinding, O: NativeRustBinding, E: ParserSourceExecutor>
             poisoned: false,
             cancelled: false,
             limits,
+            input_type,
+            output_type,
             binding: PhantomData,
         })
     }
@@ -127,6 +133,9 @@ impl<I: NativeRustBinding, O: NativeRustBinding, E: ParserSourceExecutor>
         }
         let following = self.next_ordinal.checked_add(1).ok_or(Exhausted)?;
         let input = input.into_structured().map_err(Native)?;
+        if input.value_type() != &self.input_type {
+            return Err(InputType);
+        }
         if input
             .canonical_bytes()
             .map_err(|error| Native(NativeBindingRefusal::InvalidValue(error)))?
@@ -149,7 +158,7 @@ impl<I: NativeRustBinding, O: NativeRustBinding, E: ParserSourceExecutor>
         {
             return Err(OutputPressure);
         }
-        if output.value_type() != &O::semantic_type().map_err(Native)? {
+        if output.value_type() != &self.output_type {
             return Err(OutputType);
         }
         let output = O::from_structured(output).map_err(Native)?;
