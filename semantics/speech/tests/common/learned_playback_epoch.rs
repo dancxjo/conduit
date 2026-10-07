@@ -5,10 +5,11 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     ValueRef,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_speech::{
     native_playback_contract as contract, playback_basis::*, playback_revision::*, semantic::*,
 };
-pub fn commitment<'a>(tape: &'a PreparedSpeechPlaybackTape<'a>) {
+pub fn commitment<'a>(tape: &'a PreparedSpeechPlaybackTape<'a>) -> serde_json::Value {
     let domain = PlaybackRevisionDomain {
         subject: tape.source().utterance_id(),
     };
@@ -74,6 +75,8 @@ pub fn commitment<'a>(tape: &'a PreparedSpeechPlaybackTape<'a>) {
     let queued = lifecycle::ack(tape, SpeechPlaybackDisposition::Queued, 0, 128);
     assert!(journal.acknowledge(&queued).unwrap().is_none());
     assert_eq!(journal.producer().unwrap().played_frames(), 0);
+    let played_receipt = played.clone().encode().unwrap();
+    let queued_receipt = queued.clone().encode().unwrap();
     let played = journal.acknowledge(&played).unwrap().unwrap();
     let committed = lifecycle::event(
         &domain,
@@ -92,4 +95,5 @@ pub fn commitment<'a>(tape: &'a PreparedSpeechPlaybackTape<'a>) {
         .acknowledgement()
         .is_some());
     assert_eq!(journal.producer().unwrap().played_frames(), 128);
+    serde_json::json!({"queued_acknowledgement_bytes":queued_receipt,"played_acknowledgement_bytes":played_receipt,"stable_does_not_commit":true,"premature_commit_refused":true,"queued_frames":128,"played_frames":128,"played_provenance":"manual-effect-owner-fixture"})
 }

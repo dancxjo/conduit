@@ -4,6 +4,8 @@
 mod asr_sources;
 #[path = "common/learned_playback_epoch.rs"]
 mod epoch;
+#[path = "common/learned_playback_evidence.rs"]
+mod evidence;
 #[path = "common/playback_graph.rs"]
 mod graph;
 #[path = "common/vocative_intent.rs"]
@@ -85,9 +87,19 @@ fn actual_learned_native_graphs_feed_three_position_playback() {
             })
             .collect::<Vec<_>>();
         let tape = prepare_speech_playback_tape(&realized, &pitch, &bindings, 7).unwrap();
-        epoch::commitment(&tape);
+        let epoch = epoch::commitment(&tape);
         let pcm = lifecycle::scheduler_pressure(&tape);
         assert!(!pcm.is_empty());
+        evidence::retain(
+            position,
+            row,
+            &case,
+            &pronunciations,
+            &composite,
+            &tape,
+            &pcm,
+            epoch,
+        );
     }
     assert!(seen.into_iter().all(|v| v));
 }
@@ -173,5 +185,8 @@ fn export_asr_origin_tapes_for_actual_parser() {
             asr_sources::prepare(row["id"].as_str().unwrap(), graph.lexical.tape())
         })
         .collect::<Vec<_>>();
+    if let Some(parent) = std::path::Path::new(&output).parent() {
+        std::fs::create_dir_all(parent).unwrap();
+    }
     std::fs::write(output, serde_json::to_vec_pretty(&exports).unwrap()).unwrap();
 }

@@ -48,3 +48,9 @@ also supports canonical lexical reconstruction with exact previous occurrence
 correspondence. Bounds are four words, three ASR events, at most eight generic
 history revisions and 262144 bytes per native receipt leaf; the reviewed playback
 profile remains at most 32 phonetic occurrences.
+
+Optional `CONDUIT_LEARNED_PLAYBACK_PROOF_DIR` retains full graph, pronunciation,
+phonetic correspondence, playback basis and explicit queued/played acknowledgement
+receipts plus the actual scheduler PCM as mono 8kHz S16 WAVs. ASR acquisition
+arrays may be preserved under `acquisition_history`; they are replayed before
+accepting the final lexical tape. Retain decoder artifact evidence beside outputs.
