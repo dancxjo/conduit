@@ -10,7 +10,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 import { captureLlmChapter } from './three-host-llm-chapter.mjs';
-import { captureOwnerLlmSpeaker } from './three-host-owner-llm.mjs';
+import { captureOwnerLlmSpeaker, captureOwnerModelRouteLoss } from './three-host-owner-llm.mjs';
 import { captureRunId } from './three-host-run-identity.mjs';
 import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-owner-speech.mjs';
 import { retainOwnerSpeechArtifacts } from './three-host-owner-speech-artifacts.mjs';
@@ -22,7 +22,8 @@ import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 const [xtaskArgument, ownerArgument, stateArgument, handbookArgument, sporeArgument,
   candidateId, ownerForward, outputArgument, playwrightArgument,
   speechExecutableArgument, speechDataArgument, speechEngineArgument, speechLanguageCoverageArgument,
-  modelArgument, modelEndpointArgument, modelMemoryArgument] = process.argv.slice(2);
+  modelArgument, modelEndpointArgument, modelMemoryArgument,
+  ownerModelRouteControlArgument] = process.argv.slice(2);
 if (!playwrightArgument) {
   throw new Error('usage: three-host-owner-journey.mjs XTASK INSTALLED-OWNER OWNER-STATE HANDBOOK SPORE CANDIDATE-ID OWNER-FORWARD NEW-EVIDENCE-DIR PINNED-PLAYWRIGHT');
 }
@@ -464,6 +465,24 @@ try {
     ? await captureOwnerLlmSpeaker({ owner: run, state, output, installation: installed,
       bodyId, runId, sourceCommit: installed.release_source_identity, model: modelArgument })
     : undefined;
+  const ownerModelRouteLoss = ownerLlmSpeech && ownerModelRouteControlArgument &&
+    ownerModelRouteControlArgument !== '-'
+    ? await captureOwnerModelRouteLoss({ owner: run, state, output, installation: installed,
+      bodyId, runId, sourceCommit: installed.release_source_identity,
+      model: modelArgument, controlSocket: ownerModelRouteControlArgument,
+      successful: ownerLlmSpeech,
+      observeWardrobe: async (routeId, available) => {
+        await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+        await page.waitForFunction(({ routeId, available }) => {
+          try {
+            const report = JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]')
+              .textContent);
+            return report.admitted_routes.some(route =>
+              route.route_id === routeId && route.currently_available === available);
+          } catch { return false; }
+        }, { routeId, available }, { timeout: 12_000 });
+        return readWardrobe();
+      } }) : undefined;
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(expectedShow => {
     try {
@@ -617,6 +636,7 @@ try {
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
     ...(ownerSelectedSpeech ? { owner_selected_speech: ownerSelectedSpeech } : {}),
     ...(ownerLlmSpeech ? { owner_llm_speech: ownerLlmSpeech } : {}),
+    ...(ownerModelRouteLoss ? { owner_model_route_loss: ownerModelRouteLoss } : {}),
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
       model_route_restoration: modelRouteRestoration } : {}),
     screenshots,

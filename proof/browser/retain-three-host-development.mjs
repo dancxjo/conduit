@@ -37,7 +37,8 @@ for (const ref of refs) {
   assert.ok(relative.split('/').every(segment => segment && segment !== '.' && segment !== '..'));
   if (relative.endsWith('.wav')) {
     assert.ok(relative.startsWith('owner-selected-speech/') ||
-      relative.startsWith('owner-llm-selected/'),
+      relative.startsWith('owner-llm-selected/') ||
+      relative.startsWith('owner-llm-restored/'),
     'only the selected listener Play may be offered as playable audio');
   }
   files.set(relative, path.join(run, parent ? relative : `three-host/${relative}`));

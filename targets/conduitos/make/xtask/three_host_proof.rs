@@ -55,6 +55,9 @@ pub(super) struct Args {
     /// Finite model memory admitted by the existing spoken chapter producer.
     #[arg(long, default_value_t = 2048)]
     admitted_memory_mib: u32,
+    /// Private control socket for the installed owner's selected model endpoint.
+    #[arg(long, requires = "model")]
+    owner_model_route_control: Option<PathBuf>,
 }
 
 pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -163,7 +166,12 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
         command
             .arg(model)
             .arg(&args.ollama_endpoint)
-            .arg(args.admitted_memory_mib.to_string());
+            .arg(args.admitted_memory_mib.to_string())
+            .arg(
+                args.owner_model_route_control
+                    .as_ref()
+                    .map_or_else(|| "-".into(), |path| path.display().to_string()),
+            );
     }
     let status = command
         .current_dir(&root)
