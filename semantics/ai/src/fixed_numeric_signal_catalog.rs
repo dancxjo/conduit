@@ -170,6 +170,15 @@ pub(crate) fn fixed_signal_specs() -> Vec<Spec> {
     );
     op(
         &mut specs,
+        "numeric/gather640x160".into(),
+        vec![
+            ("value", vector(640)),
+            ("indices", "NumericU16Indices160".into()),
+        ],
+        vector(160),
+    );
+    op(
+        &mut specs,
         "numeric/one-pole40".into(),
         vec![
             ("value", vector(40)),

@@ -374,3 +374,44 @@ fn exact_index_codec_preserves_output_on_malformed_envelope() {
     assert_eq!(out, [7; 44]);
     assert!(FixedU16IndexCodec::<1>::prepare(&ty).is_err());
 }
+#[test]
+fn ordinary_gather640x160_retains_explicit_indices_and_refuses_overflow_or_pressure() {
+    let input = std::array::from_fn(|i| i as f32 / 640.);
+    let indices = std::array::from_fn::<_, 160, _>(|i| (639 - i * 3) as u16);
+    let expected = std::array::from_fn(|i| input[usize::from(indices[i])]);
+    exercise::<640, 160, 4, 3>(
+        FixedIndexOperation::Gather,
+        input,
+        &indices,
+        expected,
+        false,
+        false,
+    );
+    let mut wrong = indices;
+    wrong[159] = 640;
+    exercise::<640, 160, 4, 3>(
+        FixedIndexOperation::Gather,
+        input,
+        &wrong,
+        [0.; 160],
+        true,
+        false,
+    );
+    exercise::<640, 160, 4, 3>(
+        FixedIndexOperation::Gather,
+        input,
+        &indices,
+        expected,
+        false,
+        true,
+    );
+    let ty = fixed_numeric_type("NumericU16Indices160").unwrap();
+    let mut codec = FixedU16IndexCodec::<160>::prepare(&ty).unwrap();
+    let encoded = codec.encode(&indices).to_vec();
+    let mut actual = [0; 160];
+    codec.decode(&encoded, &mut actual).unwrap();
+    assert_eq!(actual, indices);
+    assert!(FixedU16IndexCodec::<44>::prepare(&ty).is_err());
+    assert!(FixedU16IndexCodec::<159>::prepare(&ty).is_err());
+    assert!(conduit_std_host::fixed_numeric::fixed_numeric_offer("numeric/gather640x160").is_ok());
+}

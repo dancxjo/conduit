@@ -10,6 +10,7 @@ type NumericF32Vector208 = collection NumericFiniteF32 = 208
 type NumericF32Vector216 = collection NumericFiniteF32 = 216
 type NumericF32Vector240 = collection NumericFiniteF32 = 240
 type NumericF32Vector256 = collection NumericFiniteF32 = 256
+type NumericF32Vector640 = collection NumericFiniteF32 = 640
 type NumericF32Vector272 = collection NumericFiniteF32 = 272
 type NumericF32Vector328 = collection NumericFiniteF32 = 328
 type NumericF32Vector384 = collection NumericFiniteF32 = 384
@@ -146,6 +147,7 @@ type NumericF32Vector416 = collection NumericFiniteF32 = 416
 type NumericF32Vector648 = collection NumericFiniteF32 = 648
 
 type NumericU16Indices44 = collection U16 = 44
+type NumericU16Indices160 = collection U16 = 160
 type NumericOnePole40Result = {
     value: NumericF32Vector40
     next_state: NumericF32Vector1

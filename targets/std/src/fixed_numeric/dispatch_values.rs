@@ -683,6 +683,17 @@ pub(super) fn select(
                 FixedIndexOperation::Gather
             )
         )),
+        "numeric/gather640x160" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_index_offer::<640, 160>(FixedIndexOperation::Gather),
+            FixedIndexBack::<640, 160>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedIndexOperation::Gather
+            )
+        )),
         "numeric/one-pole40" => Some(run!(
             planned,
             gear,
