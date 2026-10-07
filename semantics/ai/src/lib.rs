@@ -134,6 +134,10 @@ mod model_signature;
 pub use model_signature::*;
 mod model_artifact;
 pub use model_artifact::*;
+#[cfg(target_has_atomic = "ptr")]
+mod model_resource;
+#[cfg(target_has_atomic = "ptr")]
+pub use model_resource::*;
 mod learned_lifecycle;
 pub use learned_lifecycle::*;
 mod model_compute;
