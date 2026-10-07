@@ -21,9 +21,6 @@ use super::{
 #[path = "owner_action_coordination.rs"]
 mod coordination;
 use coordination::{wait_for_resume, write_checkpoint};
-#[path = "owner_action_held_start.rs"]
-mod held_start;
-use held_start::validate_held_start;
 #[path = "owner_action_validation.rs"]
 mod validation;
 use validation::{refreshed_show_after_action, validate_success};
@@ -161,32 +158,9 @@ fn prove(
     journey_input::key_pair(&mut qmp, &mut reader, "f5", "native-owner-activate")?;
     let (part, before, before_ack) =
         wait_for_arrival(serial_path, child, Duration::from_secs(120))?;
-    if part != standby_part {
+    if part != standby_part || before.get("face_id") != standby_face.get("face_id") {
         return Err(refusal("native-owner-standby-basis-changed"));
     }
-    let held_start = if coordinate {
-        let bytes = fs::read(directory.join("held-clock-start.json")).map_err(|error| {
-            ConduitosError::refusal("native-owner-held-start", error.to_string())
-        })?;
-        if bytes.len() > 4096 {
-            return Err(refusal("native-owner-held-start-invalid"));
-        }
-        let basis: Value = serde_json::from_slice(&bytes)
-            .map_err(|_| refusal("native-owner-held-start-invalid"))?;
-        validate_held_start(
-            &basis,
-            &standby_part,
-            &standby_face,
-            &before,
-            &route.source_identity,
-        )?;
-        Some(basis)
-    } else {
-        if before.get("face_id") != standby_face.get("face_id") {
-            return Err(refusal("native-owner-standby-basis-changed"));
-        }
-        None
-    };
     let (before_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
@@ -262,7 +236,6 @@ fn prove(
         "qemu_argv":qemu_args,
         "guest_part":part,
         "face_before":before,
-        "held_start":held_start,
         "show_ack_before":before_ack,
         "action":action,
         "face_after":after,

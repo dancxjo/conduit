@@ -250,56 +250,6 @@ try {
   assert.equal(standby.guest_part.body_id, bodyId);
   assert.equal(standby.face.interactions_admitted, false);
   eventObservedAt.guest_join = Date.now();
-  const joinedBeforeStart = run(['body', 'status', '--state-dir', state, '--json']);
-  assert.equal(joinedBeforeStart.biography.membership.parts.length, 3);
-  for (const partId of [joined.credential.part_id, standby.guest_part.part_id]) {
-    assert.ok(joinedBeforeStart.biography.membership.parts.some(part =>
-      part.part_id === partId && part.current !== null));
-  }
-  const faceBeforeStart = run(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(faceBeforeStart.presentation.basis.body_id, bodyId);
-  assert.equal(faceBeforeStart.presentation.identity, standby.face.face_id,
-    'QMP standby must show the current owner Face before Start');
-  assert.equal(Number(faceBeforeStart.presentation_revision_decimal), standby.face.face_revision);
-  const startReady = {
-    schema: 'conduit.proof/held-clock-start@1',
-    source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
-    owner_host_id: ownerPartAtCapture.host_id, owner_boot_id: ownerPartAtCapture.boot_id,
-    browser_part_id: joined.credential.part_id,
-    guest_part_id: standby.guest_part.part_id,
-    source_face_id: faceBeforeStart.presentation.identity,
-    source_face_revision: faceBeforeStart.presentation_revision_decimal,
-    guest_boot_id: standby.guest_part.boot_id,
-  };
-  const startReadyPath = path.join(output, 'clock-start.ready.json');
-  await writeFile(`${startReadyPath}.tmp`, `${JSON.stringify(startReady, null, 2)}\n`,
-    { mode: 0o600 });
-  await rename(`${startReadyPath}.tmp`, startReadyPath);
-  const startResume = await waitForFile(path.join(output, 'clock-start.resume.json'), 35 * 60_000);
-  for (const key of ['schema', 'source_commit', 'run_id', 'body_id',
-    'owner_host_id', 'owner_boot_id', 'browser_part_id', 'guest_part_id',
-    'source_face_id', 'source_face_revision']) {
-    assert.equal(startResume[key], startReady[key], `held Start ${key} changed`);
-  }
-  assert.match(startResume.action_id, /^body\/action\/start-clock\//);
-  assert.ok(BigInt(startResume.result_face_revision) >
-    BigInt(startResume.source_face_revision));
-  assert.ok(Number.isSafeInteger(startResume.observed_at_unix_ms) &&
-    startResume.observed_at_unix_ms > 0);
-  const faceAfterStart = run(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(faceAfterStart.presentation.identity, startResume.result_face_id);
-  assert.equal(faceAfterStart.presentation_revision_decimal, startResume.result_face_revision);
-  assert.equal(faceAfterStart.presentation.basis.body_id, bodyId);
-  // The QMP producer will fetch this newer Face when the person presses F5.
-  // Preserve the exact authorized transition so its later proof can refuse
-  // an unrelated or stale revision instead of demanding standby equality.
-  const nativeStartBasis = {
-    ...startResume, guest_boot_id: standby.guest_part.boot_id,
-    standby_face_id: standby.face.face_id,
-    standby_face_revision: standby.face.face_revision,
-  };
-  await writeFile(path.join(native, 'held-clock-start.json'),
-    `${JSON.stringify(nativeStartBasis, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
   const nativeWardrobeDeadline = Date.now() + 60_000;
   let nativeWardrobeObserved = false;
   while (Date.now() < nativeWardrobeDeadline && !nativeWardrobeObserved) {
@@ -353,9 +303,8 @@ try {
   assert.equal(arrived.guest_part.body_id, bodyId);
   assert.equal(arrived.face.interactions_admitted, true);
   assert.equal(arrived.show_ack.show_id, arrived.face.show_id);
-  assert.equal(arrived.face.face_id, startResume.result_face_id,
-    'native F5 must show the Face reached by the held nonvisual Start');
-  assert.equal(String(arrived.face.face_revision), startResume.result_face_revision);
+  assert.equal(arrived.face.face_id, standby.face.face_id);
+  assert.equal(arrived.face.face_revision, standby.face.face_revision);
   const threeHosts = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(threeHosts.biography.membership.parts.length, 3);
   const ownerPart = threeHosts.biography.membership.parts.find(part =>

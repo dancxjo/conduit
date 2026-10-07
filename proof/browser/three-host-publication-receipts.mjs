@@ -78,13 +78,13 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
   const browserWardrobe = await observation('wardrobe-restored');
   const browserRecovery = await observation('browser-recovered');
   const nativeReceipt = await load(path.join(output, 'native/owner-action-proof.json'));
+  const nativeStandby = await load(path.join(output, 'native/native-standby.json'));
   assert.equal(nativeReceipt.source_commit, report.native_source_commit);
   assert.equal(nativeReceipt.guest_part.part_id, report.guest_part_id);
   assert.equal(nativeReceipt.action.action_id, report.native_action.action_id);
-  assert.equal(nativeReceipt.held_start?.action_id, start.action_id);
-  assert.equal(nativeReceipt.held_start?.source_face_id, start.source_face_id);
-  assert.equal(nativeReceipt.held_start?.result_face_id, start.result_face_id);
-  assert.equal(nativeReceipt.held_start?.result_face_revision, start.result_face_revision);
+  assert.equal(nativeStandby.guest_part.part_id, report.guest_part_id);
+  assert.equal(nativeStandby.face.face_id, nativeReceipt.face_before.face_id);
+  assert.equal(nativeStandby.face.face_revision, nativeReceipt.face_before.face_revision);
   const recovery = await load(path.join(output, report.presentation_host_recovery.path));
   assert.equal(recovery.body_id, report.body_id);
   const loss = exact(report.owner_model_route_loss, 'selected model route loss');
@@ -104,7 +104,7 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
   const joinedBrowser = await event('membership', report.browser_part_id,
     browserJoin.resulting_face.face_revision, observed.browser_join, browserJoin);
   const joinedGuest = await event('membership', report.guest_part_id,
-    nativeReceipt.held_start.standby_face_revision,
+    nativeStandby.face.face_revision,
     observed.guest_join, nativeReceipt.guest_part);
   const started = await event('typed-interaction', start.action_id,
     start.result_face_revision, start.observed_at_unix_ms, start);
@@ -193,21 +193,19 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
       [await transcriptMedia(birth.transcript, born, 'Actual nonvisual Birth session')]),
     chapter('join', 'Give it more places to meet you', 'Meet the same Body on three Hosts.',
       'Join through the browser and QEMU guest.', 'Three current Parts have distinct Host and Boot identities.',
-      'Membership does not silently birth another Body.', 'Start the clock.',
+      'Membership does not silently birth another Body.', 'Set the interval.',
       ['QMP is emulator evidence, not physical hardware evidence.'],
       [joinedBrowser, joinedGuest], [
         await chromium('browser-before.png', joinedBrowser, 'Joined browser Face', browserJoin),
         await qmp('native/owner-standby.png', joinedGuest, 'Joined QEMU guest before Mask activation',
-          { face_id: nativeReceipt.held_start.standby_face_id,
-            face_revision: nativeReceipt.held_start.standby_face_revision }),
+          nativeStandby.face),
       ]),
-    chapter('start', 'Start something useful', 'Run a clock and change its interval.',
-      'Start nonvisually, then set the interval on ConduitOS and in the browser.',
-      'Typed interactions change the shared owner Face.',
-      'The workload remains on its admitted owner.', 'Inspect another Mask.',
+    chapter('start', 'Set the clock', 'Choose a useful interval before running the clock.',
+      'Change the interval on ConduitOS, then change it in the browser.',
+      'Both typed interactions change the same owner Face.',
+      'The Body remains lulled while its interval changes.', 'Inspect another Mask.',
       ['This does not prove distributed workload migration.'],
-      [started, changedNative, changedBrowser], [
-        await transcriptMedia(start.transcript, started, 'Nonvisual clock Start session'),
+      [changedNative, changedBrowser], [
         await qmp('native/owner-after.png', changedNative, 'QEMU clock after the 500 millisecond action', nativeReceipt.face_after),
         await chromium('browser-after-browser.png', changedBrowser, 'Browser clock after the 1000 millisecond action', browserAction),
       ]),
@@ -248,19 +246,21 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
     chapter('return', 'Come back', 'Return to the retained Body from a fresh browser Boot.',
       'Leave the browser presentation, inspect its loss, then rejoin.',
       'Old browser actions become unavailable; the fresh Boot receives a new acknowledged Show.',
-      'The owner preserves Body continuity while browser route identities change.', 'Lull the clock.',
+      'The owner preserves Body continuity while browser route identities change.', 'Start the clock.',
       ['No QEMU reboot or workload failover is claimed.'], [browserLost, browserReturned], [
         await transcriptMedia(checkpoint('browser-presentation-unavailable').transcript,
           browserLost, 'Screen-free inspection during browser presentation loss'),
         await chromium('browser-after-recovery.png', browserReturned,
           'Fresh browser Boot showing the same Body', browserRecovery),
       ]),
-    chapter('lull', 'Leave it well', 'Leave the clock in a known retained state.',
-      'After the returning Hosts, pause, wake, and finally Lull through nonvisual controls.',
-      'The clock Play retires while the Body remains retained.',
+    chapter('lull', 'Run it, then leave it well', 'Run the configured clock and leave it in a known retained state.',
+      'Start the clock nonvisually, then Lull it through the same controls.',
+      'The clock Play runs and retires while the Body remains retained.',
       'Retained identity is distinct from continuing execution.', 'Inspect the report.',
-      ['A retained Body is not proof of an active Play.'], [lulled],
-      [await transcriptMedia(finish.transcript, lulled, 'Nonvisual Lull session')]),
+      ['A retained Body is not proof of an active Play.'], [started, lulled], [
+        await transcriptMedia(start.transcript, started, 'Nonvisual Start session'),
+        await transcriptMedia(finish.transcript, lulled, 'Nonvisual Lull session'),
+      ]),
   ];
   let previousObservation = 0;
   for (const chapterReceipt of publicationChapters) {

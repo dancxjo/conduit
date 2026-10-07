@@ -265,65 +265,6 @@ try {
     );
     audioSessions.push({ name: 'birth', transcript });
   }
-  const available = (face, intent) => face.presentation.actions.find(action =>
-    action.intent === intent && action.availability === 'Available');
-  const clockAudioSessions = [];
-  const exercise = async (name, before, action) => {
-    assert.ok(action, `the current owner Face offers no available ${name} action`);
-    const commands = [...(speakerCard ? [] : ['read all']),
-      `focus ${action.identity}`, 'activate',
-      ...(speakerCard && name === 'start' ? [] : ['read all']), 'quit'];
-    const input = `${commands.join('\n')}\n`;
-    const inputFile = `clock-${name}-input.txt`;
-    const transcriptFile = `clock-${name}-transcript.txt`;
-    await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
-    const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
-    const selected = speakerCard
-      ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
-        { retryStaleReadAll: name === 'start' ? 0 : 4 }) : null;
-    const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
-    if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
-    const transcript = selected?.transcript ??
-      invoke(owner, args, { input, timeout: screenFreeSessionTimeout });
-    await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
-    assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
-    const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
-    assert.equal(enacted.length, 1, `screen-free ${name} must submit one semantic action`);
-    assert.equal(enacted[0][1], action.identity);
-    assert.equal(enacted[0][2], before.presentation_revision_decimal);
-    assert.match(transcript, /Owner action result:/);
-    const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
-    const observedAtUnixMs = Date.now();
-    assert.equal(after.presentation.basis.body_id, bodyId);
-    assert.ok(BigInt(after.presentation_revision_decimal) >
-      BigInt(before.presentation_revision_decimal));
-    const reading = attestReading(transcript, after, ownerPart,
-      `screen-free clock ${name}`, true);
-    assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
-    assert.equal(enacted[0][3], reading.first.source_show_id);
-    if (selected) {
-      const lastReading = selected.responses.findLast(response => response.command === 'read all');
-      const actionResponse = selected.responses.find(response => response.command === 'activate');
-      audioChapters.push({ name: `clock-${name}`,
-        output: (lastReading ?? actionResponse).output,
-        face_id: after.presentation.identity,
-        face_revision: after.presentation_revision_decimal });
-      clockAudioSessions.push({ name: `clock-${name}`, transcript });
-    }
-    return {
-      action_id: action.identity, source_face_id: before.presentation.identity,
-      source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
-      result_face_id: after.presentation.identity,
-      result_face_revision: after.presentation_revision_decimal,
-      observed_at_unix_ms: observedAtUnixMs,
-      final_reading: reading.final,
-      input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),
-        sha256: digest(Buffer.from(actualInput)) },
-      transcript: { path: `../${transcriptFile}`, bytes: Buffer.byteLength(transcript),
-        sha256: digest(Buffer.from(transcript)) },
-      after,
-    };
-  };
   const inviteFd = openSync(inviteFile, 'wx', 0o600);
   const inviteLog = openSync(path.join(output, 'invitation-service.log'), 'wx', 0o600);
   invitation = spawn(owner, ['body', 'invite', '--state-dir', state, '--ttl-seconds', '600',
@@ -375,56 +316,6 @@ try {
   closeSync(proofLog);
   let liveError;
   liveProof.once('error', error => { liveError = error; });
-  // The browser and QMP guest first join the retained Body. The graphical
-  // producer then holds before either clock action, so a real nonvisual Start
-  // can occur in the published order without invalidating a native Show.
-  const startReadyFile = path.join(live, 'clock-start.ready.json');
-  const startReady = await waitFor(async () => {
-    if (!existsSync(startReadyFile)) return null;
-    try { return await load(startReadyFile); } catch { return null; }
-  }, liveProof, 'three-host clock Start checkpoint', 10 * 60_000);
-  assert.equal(startReady.schema, 'conduit.proof/held-clock-start@1');
-  assert.equal(startReady.source_commit, installation.release_source_identity);
-  assert.equal(startReady.body_id, bodyId);
-  assert.equal(startReady.owner_host_id, ownerPart.host_id);
-  assert.equal(startReady.owner_boot_id, ownerPart.boot_id);
-  const joinedStatus = ownerJson(['body', 'status', '--state-dir', state, '--json']);
-  assert.equal(joinedStatus.biography.body_id, bodyId);
-  assert.equal(joinedStatus.biography.membership.parts.length, 3);
-  for (const partId of [startReady.browser_part_id, startReady.guest_part_id]) {
-    assert.ok(joinedStatus.biography.membership.parts.some(part =>
-      part.part_id === partId && part.current !== null),
-    `held Start lost joined Part ${partId}`);
-  }
-  const beforeStart = ownerJson(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(beforeStart.presentation.identity, startReady.source_face_id);
-  assert.equal(beforeStart.presentation_revision_decimal, startReady.source_face_revision);
-  assert.equal(beforeStart.presentation.basis.body_id, bodyId);
-  assert.equal(beforeStart.advertisement.host_id, ownerPart.host_id);
-  assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
-  const start = await exercise('start', beforeStart,
-    available(beforeStart, 'conduit.intent/start-clock@1'));
-  const afterStart = ownerJson(['body', 'status', '--state-dir', state, '--json']);
-  assert.equal(afterStart.biography.body_id, bodyId);
-  assert.ok(afterStart.biography.body.state.Awake);
-  assert.ok(available(start.after, 'conduit.intent/lull-clock@1'));
-  const startResumeFile = path.join(live, 'clock-start.resume.json');
-  const startResume = { schema: 'conduit.proof/held-clock-start@1',
-    source_commit: installation.release_source_identity,
-    run_id: startReady.run_id, body_id: bodyId,
-    owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
-    browser_part_id: startReady.browser_part_id,
-    guest_part_id: startReady.guest_part_id,
-    source_face_id: start.source_face_id,
-    source_face_revision: start.source_face_revision,
-    result_face_id: start.result_face_id,
-    result_face_revision: start.result_face_revision,
-    source_show_id: start.source_show_id, action_id: start.action_id,
-    observed_at_unix_ms: start.observed_at_unix_ms,
-    transcript_sha256: start.transcript.sha256 };
-  await writeFile(`${startResumeFile}.tmp`, `${JSON.stringify(startResume, null, 2)}\n`,
-    { mode: 0o600 });
-  await rename(`${startResumeFile}.tmp`, startResumeFile);
   const liveDeadline = Date.now() + (speakerCard ? 55 * 60_000 : 10 * 60_000);
   for (const phase of phases) {
     const readyFile = path.join(checkpointDir, `${phase}.ready.json`);
@@ -519,6 +410,75 @@ try {
     human_hearing_observed: false, checkpoints,
   };
   audioSessions.push(...checkpointSessions);
+  const beforeStart = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(beforeStart.presentation.basis.body_id, bodyId);
+  assert.equal(beforeStart.advertisement.host_id, ownerPart.host_id);
+  assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
+  const available = (face, intent) => face.presentation.actions.find(action =>
+    action.intent === intent && action.availability === 'Available');
+  const clockAudioSessions = [];
+  const exercise = async (name, before, action) => {
+    assert.ok(action, `the current owner Face offers no available ${name} action`);
+    const commands = [...(speakerCard ? [] : ['read all']),
+      `focus ${action.identity}`, 'activate',
+      ...(speakerCard && name === 'start' ? [] : ['read all']), 'quit'];
+    const input = `${commands.join('\n')}\n`;
+    const inputFile = `clock-${name}-input.txt`;
+    const transcriptFile = `clock-${name}-transcript.txt`;
+    await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
+    const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
+    const selected = speakerCard
+      ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
+        { retryStaleReadAll: name === 'start' ? 0 : 4 }) : null;
+    const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
+    if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
+    const transcript = selected?.transcript ??
+      invoke(owner, args, { input, timeout: screenFreeSessionTimeout });
+    await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
+    assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
+    const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
+    assert.equal(enacted.length, 1, `screen-free ${name} must submit one semantic action`);
+    assert.equal(enacted[0][1], action.identity);
+    assert.equal(enacted[0][2], before.presentation_revision_decimal);
+    assert.match(transcript, /Owner action result:/);
+    const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+    const observedAtUnixMs = Date.now();
+    assert.equal(after.presentation.basis.body_id, bodyId);
+    assert.ok(BigInt(after.presentation_revision_decimal) >
+      BigInt(before.presentation_revision_decimal));
+    const reading = attestReading(transcript, after, ownerPart,
+      `screen-free clock ${name}`, true);
+    assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
+    assert.equal(enacted[0][3], reading.first.source_show_id);
+    if (selected) {
+      const lastReading = selected.responses.findLast(response => response.command === 'read all');
+      const actionResponse = selected.responses.find(response => response.command === 'activate');
+      audioChapters.push({ name: `clock-${name}`,
+        output: (lastReading ?? actionResponse).output,
+        face_id: after.presentation.identity,
+        face_revision: after.presentation_revision_decimal });
+      clockAudioSessions.push({ name: `clock-${name}`, transcript });
+    }
+    return {
+      action_id: action.identity, source_face_id: before.presentation.identity,
+      source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
+      result_face_id: after.presentation.identity,
+      result_face_revision: after.presentation_revision_decimal,
+      observed_at_unix_ms: observedAtUnixMs,
+      final_reading: reading.final,
+      input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),
+        sha256: digest(Buffer.from(actualInput)) },
+      transcript: { path: `../${transcriptFile}`, bytes: Buffer.byteLength(transcript),
+        sha256: digest(Buffer.from(transcript)) },
+      after,
+    };
+  };
+  const start = await exercise('start', beforeStart,
+    available(beforeStart, 'conduit.intent/start-clock@1'));
+  const afterStart = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterStart.biography.body_id, bodyId);
+  assert.ok(afterStart.biography.body.state.Awake);
+  assert.ok(available(start.after, 'conduit.intent/lull-clock@1'));
   const lull = await exercise('lull', start.after,
     available(start.after, 'conduit.intent/lull-clock@1'));
   const afterLull = ownerJson(['body', 'status', '--state-dir', state, '--json']);
@@ -616,10 +576,8 @@ try {
     });
   }
   await retainScreenFreeSessions(output, live, report);
-  // Publication is a different boundary from the diagnostic walkthrough. Build
-  // this index only after every producer has finished, from the identities and
-  // captures observed in this run. A missing transition is a refusal, never an
-  // invitation to fill a chapter from prose or a previous run.
+  // Publication is a separate boundary from the diagnostic walkthrough and
+  // uses only the completed producer's exact captures and listener Plays.
   if (speakerCard && model && ownerModelRouteControlArg && ownerModelRouteControlArg !== '-') {
     report.publication_chapters = await writeThreeHostPublicationReceipts({
       output: live, report, birth, start, finish, checkpoints, installation,
