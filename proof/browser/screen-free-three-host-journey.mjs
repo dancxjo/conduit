@@ -330,6 +330,10 @@ try {
     const session = await runPacedScreenFree(owner, args, commands, 'body> ',
       Math.min(screenFreeSessionTimeout, liveDeadline - Date.now()),
       { retryStaleReadAll: 4 });
+    // Retain the actual command session before interpreting it. A refusal at
+    // this boundary must leave the owner's words available for diagnosis.
+    await writeFile(path.join(output, `screen-free-checkpoint-${phase}-raw.txt`),
+      session.transcript, { flag: 'wx', mode: 0o600 });
     assert.equal(session.responses[0]?.command, 'wardrobe');
     const wardrobeReading = verifyCheckpointWardrobe(session.responses[0].output,
       ready, ownerPart, Boolean(speakerCard));
