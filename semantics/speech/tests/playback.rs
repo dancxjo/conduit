@@ -296,7 +296,7 @@ fn event<'a>(
 fn preplay_revision_withdrawal_and_stability_do_not_commit_playback() {
     let first = fixture::fixture("Hello Travis", "r1");
     tape!(first, linguistic, pitch, realized, tape);
-    let second = fixture::fixture("Hello Trent", "r2");
+    let second = fixture::fixture_with_prior("Hello Trent", "r2", Some(&first));
     tape!(second, other, other_pitch, other_realized, replacement);
     let producer = back(&tape);
     let domain = PlaybackRevisionDomain {
@@ -381,7 +381,7 @@ fn preplay_revision_withdrawal_and_stability_do_not_commit_playback() {
 fn queued_tape_cannot_be_rewritten_and_played_correction_keeps_exact_old_receipt() {
     let first = fixture::fixture("Hello Travis", "r1");
     tape!(first, linguistic, pitch, realized, tape);
-    let second = fixture::fixture("Hello Trent", "r2");
+    let second = fixture::fixture_with_prior("Hello Trent", "r2", Some(&first));
     tape!(second, other, other_pitch, other_realized, replacement);
     let domain = PlaybackRevisionDomain {
         subject: first.source.utterance_id(),
@@ -389,7 +389,8 @@ fn queued_tape_cannot_be_rewritten_and_played_correction_keeps_exact_old_receipt
     let proposed = PreparedPlaybackChange::interpretation(None, &tape).unwrap();
     let revised = PreparedPlaybackChange::interpretation(Some(&tape), &replacement).unwrap();
     let correction = PreparedPlaybackChange::correction(&tape, &replacement).unwrap();
-    let wrong_correction = PreparedPlaybackChange::correction(&replacement, &tape).unwrap();
+    assert!(PreparedPlaybackChange::correction(&replacement, &tape).is_err());
+    let wrong_correction = PreparedPlaybackChange::correction(&replacement, &replacement).unwrap();
     let p = event(
         &domain,
         1,

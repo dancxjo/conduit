@@ -93,23 +93,32 @@ type SpeechPlaybackAnchorMaterialMatch = {
     where .material == .anchor.material
 }
 # Each full basis is admitted independently; an aggregate is not a snapshot.
+# Unchanged exact material allows analysis/prosody reinterpretation. Changed
+# material requires a distinct revision and exact canonical Language lineage.
 type SpeechPlaybackInterpretationChange = {
+    lineage: LanguageTextRevisionLineage?
     prior: SpeechPlaybackRevisionAnchor?
     next: SpeechPlaybackRevisionAnchor
     where .prior is some ? .prior.some.utterance_id == .next.utterance_id : true
     where .prior is some ? .prior.some.language == .next.language : true
     where .prior is some ? .prior.some.clock_id == .next.clock_id : true
     where .prior is some ? .prior.some.material.material.identity == .next.material.material.identity : true
+    where .prior is some ? .lineage is some : .lineage is none
+    where .prior is some ? (.lineage is some ? .lineage.some.previous == .prior.some.material : false) : true
+    where .prior is some ? (.lineage is some ? .lineage.some.next == .next.material : false) : true
 }
 type SpeechPlaybackWithdrawal = {
     basis: SpeechPlaybackRevisionAnchor
 }
 # Corrections retain both complete receipts privately; old frames are unchanged.
 type SpeechPlaybackCorrection = {
+    lineage: LanguageTextRevisionLineage
     previous: SpeechPlaybackRevisionAnchor
     replacement: SpeechPlaybackRevisionAnchor
     where .previous.utterance_id == .replacement.utterance_id
     where .previous.language == .replacement.language
     where .previous.clock_id == .replacement.clock_id
     where .previous.material.material.identity == .replacement.material.material.identity
+    where .lineage.previous == .previous.material
+    where .lineage.next == .replacement.material
 }

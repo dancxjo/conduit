@@ -9,6 +9,7 @@ use conduit_speech::{
 };
 pub struct Fixture {
     pub rich: PreparedRichProsody,
+    pub lexical: conduit_language::lexical::PreparedLexicalTape,
     pub binding: SpeechLinguisticProsodyBinding,
     pub segment: SpeechPlannedSegmentIntent,
     pub trajectory: SpeechLinearPitchTrajectory,
@@ -26,6 +27,17 @@ fn provenance() -> SpeechEvidenceProvenance {
     .unwrap()
 }
 pub fn fixture(text: &str, revision: &str) -> Fixture {
+    fixture_with_prior(text, revision, None)
+}
+pub fn fixture_with_prior(text: &str, revision: &str, previous: Option<&Fixture>) -> Fixture {
+    fixture_with_stability(text, revision, previous, None)
+}
+pub fn fixture_with_stability(
+    text: &str,
+    revision: &str,
+    previous: Option<&Fixture>,
+    stable: Option<u32>,
+) -> Fixture {
     let language = LanguageId::new("language/en".into()).unwrap();
     let old = language_fixture::fixture(text, 1, 0);
     let material = LanguageText::new(
@@ -38,16 +50,29 @@ pub fn fixture(text: &str, revision: &str) -> Fixture {
     let source_revision = LanguageTextRevision::new(
         LanguageTextFinality::Final,
         material,
-        None,
+        previous.map(|old| {
+            LanguageTextPriorRevision::new(
+                old.lexical.tape().source().material().revision().clone(),
+                *old.lexical.tape().source().sequence(),
+            )
+            .unwrap()
+        }),
         language_fixture::provenance(),
-        0,
-        None,
+        previous.map_or(0, |old| {
+            old.lexical
+                .tape()
+                .source()
+                .sequence()
+                .checked_add(1)
+                .unwrap()
+        }),
+        stable,
     )
     .unwrap();
     let lexical = conduit_language::lexical::prepare_lexical_tape(
         &source_revision,
         old.lexical.tape().profile(),
-        None,
+        previous.map(|old| &old.lexical),
     )
     .unwrap();
     let analysis = LanguageAnalysisRevisionId::new(format!("analysis/{revision}")).unwrap();
@@ -184,6 +209,7 @@ pub fn fixture(text: &str, revision: &str) -> Fixture {
     let boundaries = SpeechFormantBoundaryProfile::new(BoundedSequence::new()).unwrap();
     Fixture {
         rich,
+        lexical,
         binding,
         segment,
         trajectory,

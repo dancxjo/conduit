@@ -76,10 +76,13 @@ impl<'a> PreparedPlaybackChange<'a> {
         old: Option<&'a PreparedSpeechPlaybackTape<'a>>,
         next: &'a PreparedSpeechPlaybackTape<'a>,
     ) -> Result<Self, NativeBindingRefusal> {
-        let data = SpeechPlaybackInterpretationChange::new(
-            prepare_playback_anchor(next)?,
-            old.map(prepare_playback_anchor).transpose()?,
-        )?;
+        let next_anchor = prepare_playback_anchor(next)?;
+        let prior = old.map(prepare_playback_anchor).transpose()?;
+        let lineage = prior
+            .as_ref()
+            .map(|previous| anchor::prepare_playback_lineage(previous, &next_anchor))
+            .transpose()?;
+        let data = SpeechPlaybackInterpretationChange::new(lineage, next_anchor, prior)?;
         Ok(Self {
             data: PlaybackChangeData::Interpretation(Box::new(data)),
             old,
@@ -101,10 +104,14 @@ impl<'a> PreparedPlaybackChange<'a> {
         old: &'a PreparedSpeechPlaybackTape<'a>,
         next: &'a PreparedSpeechPlaybackTape<'a>,
     ) -> Result<Self, NativeBindingRefusal> {
+        let previous = prepare_playback_anchor(old)?;
+        let replacement = prepare_playback_anchor(next)?;
+        let lineage = anchor::prepare_playback_lineage(&previous, &replacement)?;
         Ok(Self {
             data: PlaybackChangeData::Correction(Box::new(SpeechPlaybackCorrection::new(
-                prepare_playback_anchor(old)?,
-                prepare_playback_anchor(next)?,
+                lineage,
+                previous,
+                replacement,
             )?)),
             old: Some(old),
             next: Some(next),

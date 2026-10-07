@@ -48,7 +48,11 @@ pub fn retain(
         wav,
     )
     .unwrap();
-    let mut json = format!("{{\"proof\":\"supplied-canonical-graph@1\",\"parser_accuracy\":false,\"physical_playback\":false,\"playback_occurrence_limit\":32,\"position\":{position},\"text\":{:?},\"epoch_played_frames\":128,\"epoch_queued_frames\":128,\"played_ack_provenance\":\"manual-effect-owner-fixture\",\"scheduler_delivery_played_frames\":0,\"receipt_encoding\":\"canonical-hex@1\",\"basis\":{:?},\"replacement_basis\":{:?},\"lexical_profile\":{:?},\"pronunciation\":[", case.lexical.tape().source().material().text(), hex(tape.basis()), hex(replacement.basis()), hex(case.lexical.tape().profile()));
+    let correction =
+        conduit_speech::playback_revision::PreparedPlaybackChange::correction(tape, replacement)
+            .unwrap();
+    let correction = correction.correction_data().unwrap();
+    let mut json = format!("{{\"proof\":\"supplied-canonical-graph@1\",\"parser_accuracy\":false,\"physical_playback\":false,\"playback_occurrence_limit\":32,\"position\":{position},\"text\":{:?},\"epoch_played_frames\":128,\"epoch_queued_frames\":128,\"played_ack_provenance\":\"manual-effect-owner-fixture\",\"scheduler_delivery_played_frames\":0,\"receipt_encoding\":\"canonical-hex@1\",\"basis\":{:?},\"replacement_basis\":{:?},\"lexical_profile\":{:?},\"correction\":{:?},\"lineage\":{:?},\"pronunciation\":[", case.lexical.tape().source().material().text(), hex(tape.basis()), hex(replacement.basis()), hex(case.lexical.tape().profile()), hex(correction), hex(correction.lineage()));
     for (index, receipt) in pronunciation.iter().enumerate() {
         if index > 0 {
             json.push(',');

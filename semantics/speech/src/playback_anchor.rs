@@ -29,3 +29,25 @@ fn admit_anchor(
     }
     Ok(anchor)
 }
+
+pub(crate) fn prepare_playback_lineage(
+    previous: &SpeechPlaybackRevisionAnchor,
+    next: &SpeechPlaybackRevisionAnchor,
+) -> Result<conduit_language::LanguageTextRevisionLineage, NativeBindingRefusal> {
+    let lineage =
+        conduit_language::prepare_text_revision_lineage(previous.material(), next.material())?;
+    if previous.material() != next.material() {
+        // Check the actual retained old text, including its known stable prefix.
+        // Played frame commitment is independent of this scalar text frontier.
+        conduit_language::validate_text_revision(
+            Some(previous.material()),
+            next.material(),
+            0,
+            4096,
+        )
+        .map_err(|_| {
+            NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)
+        })?;
+    }
+    Ok(lineage)
+}
