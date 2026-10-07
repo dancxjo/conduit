@@ -48,7 +48,7 @@ plot speech/flow-fargan-float-epoch (
     state1: speech/flow-fargan-epoch-state1
     period1: speech/flow-fargan-epoch-period1
     subframe1: speech/flow-fargan-subframe
-    pair1: flow/zip/finite/typed-ed79133f7f7d919f4b814ed0bf6e0bd28b2ac1459d4a8d6db87bcf168653275e
+    pair1: structure/flow-atomic-pair/typed-d22074625410c63645757a092d95aa1d4b8849c73d234c6d78e8f5417a0506da8f4b9856f821983425d6670836b8640a5ecc33e772cdde40a622b775466b92f4
     weak1: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
     merge1: speech/flow-fargan-phase1-candidate (selected = selected)
     admit1: structure/flow-native-profile/43df6f22820f27a8227d1f33ce6549433e526567098a7f19b7ac685ff781bc75
@@ -57,7 +57,7 @@ plot speech/flow-fargan-float-epoch (
     state2: speech/flow-fargan-epoch-state2
     period2: speech/flow-fargan-epoch-period2
     subframe2: speech/flow-fargan-subframe
-    pair2: flow/zip/finite/typed-ed79133f7f7d919f4b814ed0bf6e0bd28b2ac1459d4a8d6db87bcf168653275e
+    pair2: structure/flow-atomic-pair/typed-d22074625410c63645757a092d95aa1d4b8849c73d234c6d78e8f5417a0506da8f4b9856f821983425d6670836b8640a5ecc33e772cdde40a622b775466b92f4
     weak2: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
     merge2: speech/flow-fargan-phase2-candidate (selected = selected)
     admit2: structure/flow-native-profile/4030791b88fea80a81aae74c0d1e051685c560825abaa04286976b3ec81e6e27
@@ -66,7 +66,7 @@ plot speech/flow-fargan-float-epoch (
     state3: speech/flow-fargan-epoch-state3
     period3: speech/flow-fargan-epoch-period3
     subframe3: speech/flow-fargan-subframe
-    pair3: flow/zip/finite/typed-ed79133f7f7d919f4b814ed0bf6e0bd28b2ac1459d4a8d6db87bcf168653275e
+    pair3: structure/flow-atomic-pair/typed-d22074625410c63645757a092d95aa1d4b8849c73d234c6d78e8f5417a0506da8f4b9856f821983425d6670836b8640a5ecc33e772cdde40a622b775466b92f4
     weak3: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
     merge3: speech/flow-fargan-phase3-candidate (selected = selected)
     admit3: structure/flow-native-profile/c6d0f5f43fc948607e83daecfea85f1df559c00117e9e6a5cbc67d5fce54b273
@@ -75,13 +75,13 @@ plot speech/flow-fargan-float-epoch (
     state4: speech/flow-fargan-epoch-state4
     period4: speech/flow-fargan-epoch-period4
     subframe4: speech/flow-fargan-subframe
-    pair4: flow/zip/finite/typed-ed79133f7f7d919f4b814ed0bf6e0bd28b2ac1459d4a8d6db87bcf168653275e
+    pair4: structure/flow-atomic-pair/typed-d22074625410c63645757a092d95aa1d4b8849c73d234c6d78e8f5417a0506da8f4b9856f821983425d6670836b8640a5ecc33e772cdde40a622b775466b92f4
     weak4: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
     merge4: speech/flow-fargan-phase4-candidate (selected = selected)
     admit4: structure/flow-native-profile/dd1de25e6e8de4719277cb2988ea3bef3c5c010239f9ef9de6f9ee054925194d
     pcm: speech/flow-fargan-pcm16
     finalcarry: speech/flow-fargan-epoch-final-carry
-    finalpair: flow/zip/finite/typed-135f48308649489f21878f03dc25727c59b7c10e20c6b23436d2daedb0b9608e
+    finalpair: structure/flow-atomic-pair/typed-2bc956dd4fc7caeffb9919a69f9b426e8258b291ce851d50b2e9b265c5d29fb879b5c24c48d3e36d834d513c206b8ea27cf6f890d84128c590ff634face57b0d
     finalweak: structure/flow-nominal-weakening/typed-4e6bdc913e146a929ca0466be56e26cfcd6fb8016a157655db44f2f012780a49107552b171e5e158d9bcba64eb8deaa493215ba9b0cf0954b77b88b53434e652
     finalmerge: speech/flow-fargan-epoch-pcm16-candidate (selected = selected)
     finaladmit: structure/flow-native-profile/93b983e558e40ddcee49024aecb3def69461ce11eb32806eda19efa7d99254c5

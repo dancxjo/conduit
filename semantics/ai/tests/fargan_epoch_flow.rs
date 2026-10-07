@@ -58,6 +58,7 @@ struct EpochProfiles {
     weakening: Vec<std::sync::Arc<PreparedNominalWeakening>>,
     guards: Vec<conduit_ai::fixed_numeric_guard::FixedGuardProfile>,
     zip: conduitos::flow_zip::FlowZipOperationFactory,
+    pairs: Vec<conduit_ai::closing_structured_pair::ClosingStructuredPairProfile>,
 }
 fn prepared_epoch_profiles() -> EpochProfiles {
     prepared_epoch_profiles_with_capacity(false)
@@ -78,7 +79,8 @@ fn prepared_epoch_profiles_with_capacity(capacity64: bool) -> EpochProfiles {
     };
     let mut native = vec![];
     let mut weakening = vec![];
-    let mut zip = conduitos::flow_zip::FlowZipOperationFactory::frame16k();
+    let zip = conduitos::flow_zip::FlowZipOperationFactory::frame16k();
+    let mut pairs = vec![];
     let mut imports = String::new();
     let mut kinds = std::collections::BTreeMap::new();
     for (key, name) in [
@@ -134,25 +136,14 @@ fn prepared_epoch_profiles_with_capacity(capacity64: bool) -> EpochProfiles {
             "FarganPcm16Pair",
         ),
     ] {
-        let id = conduit_semantic_catalog::install_flow_zip_finite_specialized_kind(
-            &shape_contract(&left),
-            &left,
-            &shape_contract(&right),
-            &right,
-            &mut startup,
-            &mut profiles,
+        let selected = conduit_ai::closing_structured_pair::ClosingStructuredPairProfile::prepare(
+            left.clone(),
+            right.clone(),
         )
         .unwrap();
-        let selected = zip
-            .install_specialized(
-                &shape_contract(&left),
-                &left,
-                &shape_contract(&right),
-                &right,
-            )
-            .unwrap();
-        assert_eq!(selected.kind_id, id);
-        kinds.insert(format!("__{key}_ZIP__"), id.as_str().to_owned());
+        selected.install(&mut startup, &mut profiles).unwrap();
+        kinds.insert(format!("__{key}_PAIR__"), selected.identity().to_owned());
+        pairs.push(selected);
         let pair = PreparedTypedTuplePairEncoder::new(
             left.clone(),
             maximum_prepared_transport_value_bytes(&left).unwrap(),
@@ -178,6 +169,7 @@ fn prepared_epoch_profiles_with_capacity(capacity64: bool) -> EpochProfiles {
         weakening,
         guards: vec![guard],
         zip,
+        pairs,
     }
 }
 #[test]
@@ -201,7 +193,8 @@ fn complete_four_phase_epoch_checks_and_expands_exact_closing_flow_owners() {
     assert_eq!(context.native.len(), 6);
     assert_eq!(context.weakening.len(), 3);
     assert_eq!(context.guards.len(), 1);
-    assert_eq!(context.zip.offers().count(), 2);
+    assert_eq!(context.zip.offers().count(), 0);
+    assert_eq!(context.pairs.len(), 2);
     let startup = context.startup;
     let profiles = context.profiles;
     let source = epoch_source();
@@ -346,6 +339,7 @@ fn prepared_epoch_plan(
     offers.extend(context.weakening.iter().map(|p| p.offer(true).unwrap()));
     offers.extend(context.guards.iter().map(|p| p.offer().unwrap()));
     offers.extend(context.zip.offers().cloned());
+    offers.extend(context.pairs.iter().map(|profile| profile.offer().unwrap()));
     let period = conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition(
         "type FarganPeriod = U16 in 32..=255\n",
     )
@@ -365,10 +359,12 @@ fn prepared_epoch_plan(
             } else {
                 PortDirection::Input
             },
-            temporal: if ["value", "result"].contains(&port.name.text.as_str()) {
-                PortTemporal::Flow { closes: true }
-            } else {
-                PortTemporal::Value
+            temporal: match port.temporal {
+                conduit_plot::syntax::RuntimePortTemporal::Value => PortTemporal::Value,
+                conduit_plot::syntax::RuntimePortTemporal::Flow { closes } => {
+                    PortTemporal::Flow { closes }
+                }
+                _ => panic!("epoch proof supports exact Value and Flow runtime ports"),
             },
             abnormal_kind: None,
         };
@@ -565,6 +561,10 @@ fn signal_feedback_and_condition_event_fit_exact_selected_pair_profile() {
         pair.maximum_bytes()
     );
     assert!(pair.maximum_bytes() as usize <= MAXIMUM_STRUCTURED_CANONICAL_BYTES);
+    assert_eq!(
+        pair.maximum_bytes(),
+        maximum_prepared_transport_value_bytes(pair.value_type()).unwrap()
+    );
     let profile =
         PreparedNativeProfile::check_definition(&definition, "FarganSignalEpochFeedback").unwrap();
     assert_eq!(profile.value_type(), &state);
@@ -689,7 +689,8 @@ fn prepared_signal_cycle_profiles() -> (
 fn signal_cycle_exact_specializations_retain_seed_feedback_and_full_admission() {
     let (context, seeded, ids) = prepared_signal_cycle_profiles();
     assert_eq!(seeded.offers().count(), 1);
-    assert_eq!(context.zip.offers().count(), 3);
+    assert_eq!(context.zip.offers().count(), 1);
+    assert_eq!(context.pairs.len(), 2);
     assert_eq!(context.native.len(), 7);
     assert_eq!(context.weakening.len(), 5);
     assert_eq!(context.guards.len(), 2);
@@ -830,6 +831,36 @@ fn explicit_capacity64_epoch_plan_selects_exact_generic_owners() {
     let (plan, context) = prepared_epoch_plan(true).unwrap();
     assert_eq!(context.native.len(), 6);
     assert_eq!(context.weakening.len(), 3);
-    assert_eq!(context.zip.offers().count(), 2);
+    assert_eq!(context.zip.offers().count(), 0);
+    assert_eq!(context.pairs.len(), 2);
     assert!(plan.fragments[0].placements.len() > 742);
+}
+
+#[allow(dead_code)]
+#[path = "fargan_signal_graph/shared.rs"]
+mod fixtures;
+#[path = "fargan_epoch_flow/runtime.rs"]
+mod runtime;
+
+#[test]
+fn synthetic_epoch_anchor_matches_explicit_floating_startup() {
+    let context = prepared_epoch_profiles();
+    let checked =
+        check_syntax_document(&parse_syntax_document(&epoch_source()), &context.startup).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(
+        &checked,
+        "speech/flow-fargan-model-anchor-matches",
+        &context.profiles,
+    )
+    .unwrap();
+    let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("Source matcher program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let mut evaluator = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let input = declarations::fixture_value(&program.input_type)
+        .canonical_bytes()
+        .unwrap();
+    assert_eq!(evaluator.evaluate(&input).unwrap(), [1]);
 }
