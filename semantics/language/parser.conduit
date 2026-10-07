@@ -1,0 +1,203 @@
+# Four-token symbolic profile. Proposed actions and raw plotting state are not
+# admitted linguistic truth. Checked plots validate states and own graph mutation.
+# Root=4, unassigned=5. No beam, learned scorer, lexical analysis or speech claim.
+# Empty subtype encodes absence; nonempty suffixes are admitted canonically later.
+type LanguageParserSubtype = Text <= 32B
+type LanguageParserRelation = {
+    base: LanguageUniversalDependencyRelation
+    subtype: LanguageParserSubtype
+}
+type LanguageParserBasis = {
+    text: LanguageTextId
+    source_revision: LanguageTextRevisionId
+    analysis_revision: LanguageAnalysisRevisionId
+}
+type LanguageParserBegin = {
+    basis: LanguageParserBasis
+    token_count: U64 in 1..=4
+    default_relation: LanguageParserRelation
+}
+type LanguageParserState = {
+    basis: LanguageParserBasis
+    token_count: U64 in 1..=4
+    unread: U64 in 0..=4
+    depth: U64 in 1..=5
+    stack: collection U64 = 5
+    heads: collection U64 = 5
+    relation0: LanguageParserRelation
+    relation1: LanguageParserRelation
+    relation2: LanguageParserRelation
+    relation3: LanguageParserRelation
+    committed: U64 in 0..=4
+    where (.unread <= .token_count) && (.committed <= .unread) && (.stack.0 <= 4) && (.heads.0 <= 5)
+    where (.stack.1 <= 4) && (.heads.1 <= 5) && (.stack.2 <= 4) && (.heads.2 <= 5)
+    where (.stack.3 <= 4) && (.heads.3 <= 5) && (.stack.4 <= 4) && (.heads.4 <= 5)
+    where (.stack.0 == 4) && (.heads.4 == 4) && (.depth <= .unread + 1) && (0 >= .unread ? .heads.0 == 5 : true)
+    where (.heads.0 == 4 ? .relation0.base is root : !(.relation0.base is root)) && (0 < .committed ? .heads.0 < 5 : true) && (1 >= .unread ? .heads.1 == 5 : true) && (.heads.1 == 4 ? .relation1.base is root : !(.relation1.base is root))
+    where (1 < .committed ? .heads.1 < 5 : true) && (2 >= .unread ? .heads.2 == 5 : true) && (.heads.2 == 4 ? .relation2.base is root : !(.relation2.base is root)) && (2 < .committed ? .heads.2 < 5 : true)
+    where (3 >= .unread ? .heads.3 == 5 : true) && (.heads.3 == 4 ? .relation3.base is root : !(.relation3.base is root)) && (3 < .committed ? .heads.3 < 5 : true) && (!(.heads.0 == 4 && .heads.1 == 4))
+    where (!(.heads.0 == 4 && .heads.2 == 4)) && (!(.heads.0 == 4 && .heads.3 == 4)) && (!(.heads.1 == 4 && .heads.2 == 4)) && (!(.heads.1 == 4 && .heads.3 == 4))
+    where (!(.heads.2 == 4 && .heads.3 == 4)) && (!(.heads.0 == 1 && .heads.1 == 0)) && (!(.heads.0 == 2 && .heads.2 == 0)) && (!(.heads.0 == 3 && .heads.3 == 0))
+    where (!(.heads.1 == 2 && .heads.2 == 1)) && (!(.heads.1 == 3 && .heads.3 == 1)) && (!(.heads.2 == 3 && .heads.3 == 2)) && (!(.heads.0 == 1 && .heads.1 == 2 && .heads.2 == 0))
+    where (!(.heads.0 == 1 && .heads.1 == 3 && .heads.3 == 0)) && (!(.heads.0 == 2 && .heads.2 == 1 && .heads.1 == 0)) && (!(.heads.0 == 2 && .heads.2 == 3 && .heads.3 == 0)) && (!(.heads.0 == 3 && .heads.3 == 1 && .heads.1 == 0))
+    where (!(.heads.0 == 3 && .heads.3 == 2 && .heads.2 == 0)) && (!(.heads.1 == 2 && .heads.2 == 3 && .heads.3 == 1)) && (!(.heads.1 == 3 && .heads.3 == 2 && .heads.2 == 1)) && (!(.heads.0 == 1 && .heads.1 == 2 && .heads.2 == 3 && .heads.3 == 0))
+    where (!(.heads.0 == 1 && .heads.1 == 3 && .heads.3 == 2 && .heads.2 == 0)) && (!(.heads.0 == 2 && .heads.2 == 1 && .heads.1 == 3 && .heads.3 == 0)) && (!(.heads.0 == 2 && .heads.2 == 3 && .heads.3 == 1 && .heads.1 == 0)) && (!(.heads.0 == 3 && .heads.3 == 1 && .heads.1 == 2 && .heads.2 == 0))
+    where (!(.heads.0 == 3 && .heads.3 == 2 && .heads.2 == 1 && .heads.1 == 0)) && (.heads.0 != 0) && (.heads.0 < .token_count || .heads.0 >= 4) && (.heads.1 != 1)
+    where (.heads.1 < .token_count || .heads.1 >= 4) && (.heads.2 != 2) && (.heads.2 < .token_count || .heads.2 >= 4) && (.heads.3 != 3)
+    where (.heads.3 < .token_count || .heads.3 >= 4) && (.depth > 1 ? .stack.1 < .unread : true) && (.depth > 2 ? .stack.2 < .unread : true) && (.depth > 3 ? .stack.3 < .unread : true)
+    where (.depth > 4 ? .stack.4 < .unread : true) && (.depth > 2 ? .stack.1 < .stack.2 : true) && (.depth > 3 ? .stack.2 < .stack.3 : true) && (.depth > 4 ? .stack.3 < .stack.4 : true)
+}
+
+# Raw plotting carrier: source admission checks graph laws before mutation.
+# Generic native contract validation additionally admits identity/subtype bounds.
+# Consumers must validate LanguageParserState before accepting this as truth.
+type LanguageParserNumericState = {
+    basis: LanguageParserBasis
+    token_count: U64
+    unread: U64
+    depth: U64
+    stack: collection U64 = 5
+    heads: collection U64 = 5
+    relation0: LanguageParserRelation
+    relation1: LanguageParserRelation
+    relation2: LanguageParserRelation
+    relation3: LanguageParserRelation
+    committed: U64
+}
+type LanguageParserAction =
+    shift
+    | reduce
+    | left_arc
+    | right_arc
+
+type LanguageParserRequest = {
+    basis: LanguageParserBasis
+    state: LanguageParserNumericState
+    action: LanguageParserAction
+    relation: LanguageParserRelation
+}
+
+type LanguageParserContext = {
+    request: LanguageParserRequest
+    top: U64
+    admitted: Boolean
+    legal: Boolean
+    dependent: U64
+    ancestor: U64
+    cycle: Boolean
+}
+
+type LanguageParserRefusal =
+    none
+    | stale_basis
+    | illegal_action
+    | cycle
+    | invalid_state
+
+type LanguageParserResult = {
+    state: LanguageParserNumericState
+    accepted: Boolean
+    refusal: LanguageParserRefusal
+}
+
+plot language-parser-initialize (
+    input: LanguageParserBegin...| >> output: LanguageParserNumericState...|
+) = ({ basis: .basis, token_count: .token_count, unread: 0, depth: 1, stack: [4,4,4,4,4], heads: [5,5,5,5,4], relation0: .default_relation, relation1: .default_relation, relation2: .default_relation, relation3: .default_relation, committed: 0 })
+
+plot language-parser-context (
+    input: LanguageParserRequest...| >> output: LanguageParserContext...|
+) = ({ request: ., top: (.state.depth >= 1 && .state.depth <= 5 ? sequence/at(.state.stack, .state.depth - 1) : 4), admitted: true, legal: false, dependent: (variant/is(.action,"left_arc") ? (.state.depth >= 1 && .state.depth <= 5 ? sequence/at(.state.stack, .state.depth - 1) : 4) : (variant/is(.action,"right_arc") ? .state.unread : 5)), ancestor: (variant/is(.action,"left_arc") ? .state.unread : (variant/is(.action,"right_arc") ? (.state.depth >= 1 && .state.depth <= 5 ? sequence/at(.state.stack, .state.depth - 1) : 4) : 4)), cycle: false })
+
+plot language-parser-admit-0 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && ((.request.state.token_count >= 1 && .request.state.token_count <= 4) && (.request.state.unread <= 4 && .request.state.depth >= 1))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-1 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && ((.request.state.depth <= 5 && .request.state.committed <= 4) && ((.request.state.unread <= .request.state.token_count) && (.request.state.committed <= .request.state.unread) && (.request.state.stack.0 <= 4) && (.request.state.heads.0 <= 5)))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-2 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((.request.state.stack.1 <= 4) && (.request.state.heads.1 <= 5) && (.request.state.stack.2 <= 4) && (.request.state.heads.2 <= 5)) && ((.request.state.stack.3 <= 4) && (.request.state.heads.3 <= 5) && (.request.state.stack.4 <= 4) && (.request.state.heads.4 <= 5)))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-3 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((.request.state.stack.0 == 4) && (.request.state.heads.4 == 4) && (.request.state.depth <= .request.state.unread + 1) && (0 >= .request.state.unread ? .request.state.heads.0 == 5 : true)) && ((.request.state.heads.0 == 4 ? .request.state.relation0.base is root : !(.request.state.relation0.base is root)) && (0 < .request.state.committed ? .request.state.heads.0 < 5 : true) && (1 >= .request.state.unread ? .request.state.heads.1 == 5 : true) && (.request.state.heads.1 == 4 ? .request.state.relation1.base is root : !(.request.state.relation1.base is root))))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-4 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((1 < .request.state.committed ? .request.state.heads.1 < 5 : true) && (2 >= .request.state.unread ? .request.state.heads.2 == 5 : true) && (.request.state.heads.2 == 4 ? .request.state.relation2.base is root : !(.request.state.relation2.base is root)) && (2 < .request.state.committed ? .request.state.heads.2 < 5 : true)) && ((3 >= .request.state.unread ? .request.state.heads.3 == 5 : true) && (.request.state.heads.3 == 4 ? .request.state.relation3.base is root : !(.request.state.relation3.base is root)) && (3 < .request.state.committed ? .request.state.heads.3 < 5 : true) && (!(.request.state.heads.0 == 4 && .request.state.heads.1 == 4))))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-5 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((!(.request.state.heads.0 == 4 && .request.state.heads.2 == 4)) && (!(.request.state.heads.0 == 4 && .request.state.heads.3 == 4)) && (!(.request.state.heads.1 == 4 && .request.state.heads.2 == 4)) && (!(.request.state.heads.1 == 4 && .request.state.heads.3 == 4))) && ((!(.request.state.heads.2 == 4 && .request.state.heads.3 == 4)) && (!(.request.state.heads.0 == 1 && .request.state.heads.1 == 0)) && (!(.request.state.heads.0 == 2 && .request.state.heads.2 == 0)) && (!(.request.state.heads.0 == 3 && .request.state.heads.3 == 0))))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-6 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((!(.request.state.heads.1 == 2 && .request.state.heads.2 == 1)) && (!(.request.state.heads.1 == 3 && .request.state.heads.3 == 1)) && (!(.request.state.heads.2 == 3 && .request.state.heads.3 == 2)) && (!(.request.state.heads.0 == 1 && .request.state.heads.1 == 2 && .request.state.heads.2 == 0))) && ((!(.request.state.heads.0 == 1 && .request.state.heads.1 == 3 && .request.state.heads.3 == 0)) && (!(.request.state.heads.0 == 2 && .request.state.heads.2 == 1 && .request.state.heads.1 == 0)) && (!(.request.state.heads.0 == 2 && .request.state.heads.2 == 3 && .request.state.heads.3 == 0)) && (!(.request.state.heads.0 == 3 && .request.state.heads.3 == 1 && .request.state.heads.1 == 0))))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-7 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((!(.request.state.heads.0 == 3 && .request.state.heads.3 == 2 && .request.state.heads.2 == 0)) && (!(.request.state.heads.1 == 2 && .request.state.heads.2 == 3 && .request.state.heads.3 == 1)) && (!(.request.state.heads.1 == 3 && .request.state.heads.3 == 2 && .request.state.heads.2 == 1)) && (!(.request.state.heads.0 == 1 && .request.state.heads.1 == 2 && .request.state.heads.2 == 3 && .request.state.heads.3 == 0))) && ((!(.request.state.heads.0 == 1 && .request.state.heads.1 == 3 && .request.state.heads.3 == 2 && .request.state.heads.2 == 0)) && (!(.request.state.heads.0 == 2 && .request.state.heads.2 == 1 && .request.state.heads.1 == 3 && .request.state.heads.3 == 0)) && (!(.request.state.heads.0 == 2 && .request.state.heads.2 == 3 && .request.state.heads.3 == 1 && .request.state.heads.1 == 0)) && (!(.request.state.heads.0 == 3 && .request.state.heads.3 == 1 && .request.state.heads.1 == 2 && .request.state.heads.2 == 0))))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-8 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((!(.request.state.heads.0 == 3 && .request.state.heads.3 == 2 && .request.state.heads.2 == 1 && .request.state.heads.1 == 0)) && (.request.state.heads.0 != 0) && (.request.state.heads.0 < .request.state.token_count || .request.state.heads.0 >= 4) && (.request.state.heads.1 != 1)) && ((.request.state.heads.1 < .request.state.token_count || .request.state.heads.1 >= 4) && (.request.state.heads.2 != 2) && (.request.state.heads.2 < .request.state.token_count || .request.state.heads.2 >= 4) && (.request.state.heads.3 != 3)))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-admit-9 (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: (.admitted && (((.request.state.heads.3 < .request.state.token_count || .request.state.heads.3 >= 4) && (.request.state.depth > 1 ? .request.state.stack.1 < .request.state.unread : true) && (.request.state.depth > 2 ? .request.state.stack.2 < .request.state.unread : true) && (.request.state.depth > 3 ? .request.state.stack.3 < .request.state.unread : true)) && ((.request.state.depth > 4 ? .request.state.stack.4 < .request.state.unread : true) && (.request.state.depth > 2 ? .request.state.stack.1 < .request.state.stack.2 : true) && (.request.state.depth > 3 ? .request.state.stack.2 < .request.state.stack.3 : true) && (.request.state.depth > 4 ? .request.state.stack.3 < .request.state.stack.4 : true)))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-legal-shift (
+ input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"shift") && (.request.state.unread < .request.state.token_count && .request.state.depth < 5)))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-legal-reduce (
+ input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"reduce") && (.request.state.depth > 1 && (.top < 4 && sequence/at(.request.state.heads,.top) < 5))))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-legal-left (
+ input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"left_arc") && ((.request.state.unread < .request.state.token_count && (.request.state.depth > 1 && .top < 4)) && (.top >= .request.state.committed && (sequence/at(.request.state.heads,.top) == 5 && !variant/is(.request.relation.base,"root"))))))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-legal-right (
+ input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"right_arc") && ((.request.state.unread < .request.state.token_count && .request.state.depth < 5) && (.request.state.unread >= .request.state.committed && (sequence/at(.request.state.heads,.request.state.unread) == 5 && (((.top == 4 && (variant/is(.request.relation.base,"root") && .request.state.heads.0 != 4)) && (.request.state.heads.1 != 4 && (.request.state.heads.2 != 4 && .request.state.heads.3 != 4))) || (.top < 4 && !variant/is(.request.relation.base,"root"))))))))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-legal (
+ input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: .admitted, legal: (.admitted && (.legal && (.request.basis.text == .request.state.basis.text && (.request.basis.source_revision == .request.state.basis.source_revision && .request.basis.analysis_revision == .request.state.basis.analysis_revision)))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+
+plot language-parser-follow (
+    input: LanguageParserContext...| >> output: LanguageParserContext...|
+) = ({ request: .request, top: .top, admitted: .admitted, legal: .legal, dependent: .dependent, ancestor: (.ancestor < 5 ? sequence/at(.request.state.heads,.ancestor) : 5), cycle: (.cycle || .ancestor == .dependent) })
+
+plot language-parser-apply (
+    input: LanguageParserContext...| >> output: LanguageParserResult...|
+) = ({ accepted: (.legal && !.cycle), refusal: ((.request.basis.text != .request.state.basis.text || (.request.basis.source_revision != .request.state.basis.source_revision || .request.basis.analysis_revision != .request.state.basis.analysis_revision)) ? stale_basis(unit) : (!.admitted ? invalid_state(unit) : (!.legal ? illegal_action(unit) : (.cycle ? cycle(unit) : none(unit))))), state: (.legal && !.cycle ? { basis: .request.state.basis, token_count: .request.state.token_count, unread: ((variant/is(.request.action,"shift") || variant/is(.request.action,"right_arc")) ? .request.state.unread + 1 : .request.state.unread), depth: ((variant/is(.request.action,"shift") || variant/is(.request.action,"right_arc")) ? .request.state.depth + 1 : .request.state.depth - 1), stack: [((variant/is(.request.action,"shift") || variant/is(.request.action,"right_arc")) && .request.state.depth == 0 ? .request.state.unread : .request.state.stack.0), ((variant/is(.request.action,"shift") || variant/is(.request.action,"right_arc")) && .request.state.depth == 1 ? .request.state.unread : .request.state.stack.1), ((variant/is(.request.action,"shift") || variant/is(.request.action,"right_arc")) && .request.state.depth == 2 ? .request.state.unread : .request.state.stack.2), ((variant/is(.request.action,"shift") || variant/is(.request.action,"right_arc")) && .request.state.depth == 3 ? .request.state.unread : .request.state.stack.3), ((variant/is(.request.action,"shift") || variant/is(.request.action,"right_arc")) && .request.state.depth == 4 ? .request.state.unread : .request.state.stack.4)], heads: [(variant/is(.request.action,"left_arc") && .top == 0 ? .request.state.unread : (variant/is(.request.action,"right_arc") && .request.state.unread == 0 ? .top : .request.state.heads.0)), (variant/is(.request.action,"left_arc") && .top == 1 ? .request.state.unread : (variant/is(.request.action,"right_arc") && .request.state.unread == 1 ? .top : .request.state.heads.1)), (variant/is(.request.action,"left_arc") && .top == 2 ? .request.state.unread : (variant/is(.request.action,"right_arc") && .request.state.unread == 2 ? .top : .request.state.heads.2)), (variant/is(.request.action,"left_arc") && .top == 3 ? .request.state.unread : (variant/is(.request.action,"right_arc") && .request.state.unread == 3 ? .top : .request.state.heads.3)),4], relation0: ((variant/is(.request.action,"left_arc") && .top == 0) || (variant/is(.request.action,"right_arc") && .request.state.unread == 0) ? .request.relation : .request.state.relation0), relation1: ((variant/is(.request.action,"left_arc") && .top == 1) || (variant/is(.request.action,"right_arc") && .request.state.unread == 1) ? .request.relation : .request.state.relation1), relation2: ((variant/is(.request.action,"left_arc") && .top == 2) || (variant/is(.request.action,"right_arc") && .request.state.unread == 2) ? .request.relation : .request.state.relation2), relation3: ((variant/is(.request.action,"left_arc") && .top == 3) || (variant/is(.request.action,"right_arc") && .request.state.unread == 3) ? .request.relation : .request.state.relation3), committed: .request.state.committed } : .request.state) })
+
+plot language-parser-transition (
+    request: LanguageParserRequest...| >> result: LanguageParserResult...|
+) {
+    request >> language-parser-context() >> language-parser-admit-0() >> language-parser-admit-1() >> language-parser-admit-2() >> language-parser-admit-3() >> language-parser-admit-4() >> language-parser-admit-5() >> language-parser-admit-6() >> language-parser-admit-7() >> language-parser-admit-8() >> language-parser-admit-9() >> language-parser-legal-shift() >> language-parser-legal-reduce() >> language-parser-legal-left() >> language-parser-legal-right() >> language-parser-legal() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-apply() >> result
+}
+
+# Export an exact assigned arc proposal. Generic native admission constructs
+# LanguageDependencyArc; unassigned slots remain explicitly absent.
+type LanguageParserArcQuery = {
+    state: LanguageParserNumericState
+    dependent: U64 in 0..=3
+}
+type LanguageParserArcProposal = {
+    basis: LanguageParserBasis
+    dependent: U64
+    head: U64
+    relation: LanguageParserRelation
+}
+type LanguageParserArcResult =
+    unassigned
+    | assigned LanguageParserArcProposal
+
+plot language-parser-arc (
+    query: LanguageParserArcQuery...| >> result: LanguageParserArcResult...|
+) = (sequence/at(.state.heads, .dependent) == 5 ? unassigned(unit) : assigned({ basis: .state.basis, dependent: .dependent, head: sequence/at(.state.heads, .dependent), relation: (.dependent == 0 ? .state.relation0 : (.dependent == 1 ? .state.relation1 : (.dependent == 2 ? .state.relation2 : .state.relation3))) }))

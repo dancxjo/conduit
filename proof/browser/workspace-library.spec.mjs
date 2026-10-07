@@ -52,6 +52,10 @@ test("repeated Wake and Lull compacts retained evidence instead of exhausting li
 });
 
 test("Use installs into the same body; repeated Use preserves Play and removal survives reload", async ({ page }, testInfo) => {
+  // This journey includes three workset changes, interactive execution and reload.
+  // Two retained Candidate traces passed preceding assertions but exhausted the
+  // default 20-second aggregate budget during the final lifecycle/reload step.
+  test.setTimeout(45_000);
   await page.setViewportSize({ width: 1280, height: 1000 });
   await birth(page);
   const initial = await current(page);
