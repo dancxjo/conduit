@@ -32,11 +32,11 @@ pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
 pub mod fixed_numeric;
-pub mod value_repeat;
 pub mod relay_client;
 pub mod remote_emergency;
 pub mod text_lab_live;
 pub mod text_lab_split;
+pub mod value_repeat;
 #[cfg(feature = "local-model-proof")]
 pub mod whisper_clip_proof;
 pub use composition::{reference_advertisement, supported_nucleus_offers, StdHostComposition};
