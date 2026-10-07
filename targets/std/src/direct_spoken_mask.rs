@@ -1,7 +1,9 @@
-//! Ordinary direct speech Mask: one Face, one exact artifact Show.
+//! Ordinary direct speech Mask: one Face, one bounded opening artifact Show.
 //!
 //! The source has no device or provider facts. The selected Host must offer
 //! its wording, voice, conversion, and create-new artifact Backs before Plan.
+//! A selected speaker reads the complete Face in separate bounded Plays
+//! sourced from the available Show; this artifact alone proves the opening.
 
 use std::collections::BTreeMap;
 
@@ -110,8 +112,8 @@ impl crate::StdHost {
     }
 }
 
-/// A finite direct route. The wording Back streams only exact Face clauses;
-/// the Show Back accepts the artifact receipt after synthesis completes.
+/// A finite direct route. The wording Back streams one exact Face-derived
+/// opening; the Show Back accepts the artifact receipt after synthesis ends.
 pub fn source(plot_name: &str) -> String {
     let language = conduit_language::LanguageRequest::new(
         conduit_language::LanguageId::new("language/english".into())

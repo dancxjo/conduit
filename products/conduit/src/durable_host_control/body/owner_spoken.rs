@@ -20,6 +20,7 @@ struct ResultShow {
     artifact: SpokenMaskArtifactReceipt,
     generated_manifestation_identity: Option<String>,
     accepted_wording: Option<String>,
+    direct_opening_wording: Option<String>,
     generation_evidence: Option<conduit_presentation::SpokenGenerationEvidence>,
     active_play_id: conduit_core::ActivePlayId,
     speaker_playback: Option<Value>,
@@ -92,7 +93,7 @@ fn run_one(
     control: &RunControl,
 ) -> Result<ResultShow, String> {
     match start {
-        Start::Direct(start) => run_direct(host, *start, control),
+        Start::Direct(start) => run_direct(host, *start, equipment, control),
         Start::Llm(start) => run_llm(host, *start, equipment, control),
     }
 }
@@ -100,11 +101,13 @@ fn run_one(
 fn run_direct(
     host: &mut StdHost,
     start: DirectSpokenStart,
+    equipment: Option<&AttachedEquipment>,
     control: &RunControl,
 ) -> Result<ResultShow, String> {
     if !host.spoken_mask_artifact_route_is_current() {
         return Err("direct spoken provider or artifact was lost before Play".into());
     }
+    let opening_wording = start.preparation.opening_wording()?.to_owned();
     let mut collector = OneShow::default();
     let report = host.run_direct_spoken_mask_controlled_to(
         start.fragment,
@@ -130,14 +133,42 @@ fn run_direct(
     {
         return Err("direct spoken Show differs from its completed Play or route".into());
     }
+    // The artifact Show acknowledges only the brief opening. The complete
+    // Face reading is a separate, bounded sequence of speaker Plays sourced
+    // from that exact Show. A failed or absent speaker never turns the opening
+    // into a false claim that every Face clause was heard.
+    let speaker_playback = equipment.map(|equipment| {
+        match super::speech::play_selected(
+            host,
+            &start.face,
+            &shown.show,
+            equipment,
+            control,
+            4,
+            super::speech::DIRECT_MAXIMUM_BATCHES,
+        ) {
+            Ok(reading) => reading,
+            Err(failure) => {
+                let outcome = failure.outcome();
+                let completed_batches = failure.completed_batches().to_vec();
+                json!({"schema":"conduit.body/selected-speech-terminal@1",
+                    "outcome":outcome,
+                    "source_show_id":shown.show.show_id.as_str(),
+                    "completed_batch_count":completed_batches.len(),
+                    "batches":completed_batches,
+                    "detail":failure.detail()})
+            }
+        }
+    });
     Ok(ResultShow {
         show: shown.show,
         artifact: shown.artifact,
         generated_manifestation_identity: None,
         accepted_wording: None,
+        direct_opening_wording: Some(opening_wording),
         generation_evidence: None,
         active_play_id: kernel.active_play_id,
-        speaker_playback: None,
+        speaker_playback,
     })
 }
 
@@ -199,6 +230,7 @@ fn run_llm(
         artifact: shown.artifact,
         generated_manifestation_identity: Some(shown.generated_manifestation_identity),
         accepted_wording: Some(shown.accepted_wording),
+        direct_opening_wording: None,
         generation_evidence: Some(shown.generation_evidence),
         active_play_id: kernel.active_play_id,
         speaker_playback,
@@ -396,9 +428,20 @@ impl DurableHostRuntime {
                         "stop_requested":worker.control.stop_requested(),
                         "generated_manifestation_identity":result.generated_manifestation_identity,
                         "accepted_wording":result.accepted_wording,
+                        "direct_opening_wording":result.direct_opening_wording,
                         "generation_evidence":result.generation_evidence,
                         "artifact":result.artifact,
-                        "speaker_played":result.speaker_playback.is_some(),
+                        "speaker_played":result.speaker_playback.as_ref().map(|playback| {
+                            if playback["outcome"] == "completed" || playback["batches"].as_array().is_some_and(|batches| !batches.is_empty()) {
+                                json!(true)
+                            } else {
+                                Value::Null
+                            }
+                        }).unwrap_or(json!(false)),
+                        "speaker_completed_batches":result.speaker_playback.as_ref().and_then(|playback| playback["batches"].as_array()).map_or(0, Vec::len),
+                        "speaker_playback_outcome":result.speaker_playback.as_ref().map(|playback| &playback["outcome"]),
+                        "direct_reading_complete":worker.mode == Mode::Direct && result.speaker_playback.as_ref().is_some_and(|playback| playback["outcome"] == "completed"),
+                        "mask_artifact_scope":if worker.mode == Mode::Direct {"opening"} else {"accepted-wording"},
                         "speaker_playback":result.speaker_playback}),
                     Err(detail) => json!({"schema":"conduit.body/owner-spoken-terminal@1",
                         "operation_id":worker.operation_id, "mode":worker.mode.name(),
