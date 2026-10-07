@@ -71,7 +71,7 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
         .contains("installed-birth-multiple-plots-unsupported"));
     assert!(!state.join("body/biography.json").exists());
 
-    let one_plot = b"focus creche.plot.0\nedit value false\nactivate\nfocus creche.birth\nactivate\nread all\nquit\n";
+    let one_plot = b"focus creche.plot.0\nedit value false\nactivate\nreview\nfocus creche.birth\nactivate\nread all\nquit\n";
     let session = product_with_stdin(
         &[
             "body",
@@ -89,6 +89,8 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
         String::from_utf8_lossy(&session.stdout)
     );
     let spoken = String::from_utf8(session.stdout).unwrap();
+    assert!(spoken.contains("Review Birth choices"));
+    assert!(spoken.contains("Starting Plots selected:"));
     assert!(spoken.contains("Body retained by this installed Host:"));
     assert!(spoken.contains("Continuing retained Body"));
     assert!(spoken.contains("Text Face revision="));

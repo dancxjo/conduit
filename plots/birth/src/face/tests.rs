@@ -458,3 +458,33 @@ fn producer_and_mask_substitution_refuse_while_zero_body_basis_remains_exact() {
         Err(FaceInteractionRefusal::StaleShow)
     );
 }
+
+#[test]
+fn birth_review_is_current_face_meaning_for_every_mask() {
+    let mut draft = draft();
+    draft.edit_name(draft.revision(), "Ada".into()).unwrap();
+    let face = draft.host_owned_face(&host_owned_basis()).unwrap();
+    let review = face
+        .subjects
+        .iter()
+        .find(|subject| subject.name == "Review Birth choices")
+        .unwrap();
+    let detail = face
+        .text
+        .iter()
+        .find(|text| text.subject == review.identity)
+        .unwrap();
+    assert!(detail.text.contains("Name: Ada"));
+    assert!(detail.text.contains("Starting Plots selected: 1 of 2"));
+    assert!(detail.text.contains("Birth: available"));
+    draft.select(draft.revision(), 0, false).unwrap();
+    let changed = draft.host_owned_face(&host_owned_basis()).unwrap();
+    assert_ne!(face.identity, changed.identity);
+    let detail = changed
+        .text
+        .iter()
+        .find(|text| text.subject == review.identity)
+        .unwrap();
+    assert!(detail.text.contains("Starting Plots selected: 0 of 2"));
+    assert!(detail.text.contains("Birth: unavailable (EmptySelection)"));
+}
