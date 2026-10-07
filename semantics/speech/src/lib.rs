@@ -259,3 +259,8 @@ pub mod text_token_role;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod committed_token_role;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod independent_pronunciation;
+#[cfg(feature = "semantic-bindings")]
+pub mod independent_token_role;
