@@ -255,8 +255,8 @@ fn complete_four_phase_epoch_checks_and_expands_exact_closing_flow_owners() {
     }
 }
 
-fn epoch_source() -> String {
-    let mut source = format!(
+fn unbound_epoch_source() -> String {
+    format!(
         "{}\n{}\n{}",
         include_str!("../../speech/fargan_epoch_flow.conduit"),
         (declarations::exact_epoch_declarations()
@@ -278,7 +278,10 @@ fn epoch_source() -> String {
             include_str!("../../speech/fargan_epoch_merges.conduit"),
         ]
         .join("\n")
-    );
+    )
+}
+fn epoch_source() -> String {
+    let mut source = unbound_epoch_source();
     let receipt = format!("[{}]", vec!["1"; 32].join(","));
     let selected=format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
     source = source.replace(
@@ -924,4 +927,29 @@ fn prepared_signal_cycle_plan() -> (
     )
     .unwrap();
     (plan, context, seeded)
+}
+
+#[path = "fargan_epoch_flow/custody.rs"]
+mod custody;
+
+#[allow(dead_code)]
+#[path = "fargan_signal_graph/state.rs"]
+mod case_state;
+fn signal_cycle_template() -> String {
+    let cycle = include_str!("../../speech/fargan_signal_cycle.conduit");
+    let imports = cycle
+        .lines()
+        .filter(|l| l.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let body = cycle
+        .lines()
+        .filter(|l| !l.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "{imports}\n{}\n{}\n{body}",
+        unbound_epoch_source(),
+        include_str!("../../speech/fargan_epoch_feedback.conduit")
+    )
 }
