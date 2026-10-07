@@ -206,6 +206,9 @@ mod fixed_numeric_signal_catalog;
 pub mod fixed_numeric_window_back;
 
 #[cfg(feature = "kernel-step")]
-pub mod fixed_numeric_operations_back;
-#[cfg(feature = "kernel-step")]
 mod fixed_numeric_finite_envelope;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_operations_back;
+
+/// Explicit signed Q7 and packed integer resource linear helpers.
+pub mod fixed_compact;
