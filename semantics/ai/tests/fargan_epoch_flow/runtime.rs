@@ -835,3 +835,37 @@ fn closing_feature_graph_reuses_public_analysis_resources_for_three_frames() {
         eprintln!("three-frame Source feature stream: {}nodes/{}cords, planning{planning:?}, preparation{:?}, execution{:?}; no causal feedback/native utterance waveform claim", result.nodes,result.cords,result.preparation,result.execution);
     }).unwrap().join().unwrap();
 }
+
+#[test]
+fn native_feature_analysis_stream_commits_exact_provisional_memories_for_two_pcm_epochs() {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+        let (context,_,ids)=super::feature_cycle::prepare_feedback();
+        let input_type=context.native.iter().find(|p|p.kind_identity(true)==ids["__FEATURE_INPUT_NATIVE__"]).unwrap().value_type().clone();
+        let source=super::feature_cycle::analysis_entry_source(&ids);
+        let (plan,context)=super::prepare_authored_epoch_entry(context,source,"speech/flow-fargan-feature-native-analysis",true,vec![]).unwrap();
+        let load=|bytes:&[u8]|bytes.as_chunks::<4>().0.iter().map(|v|f32::from_le_bytes(*v)).collect();
+        let resources:Resources=[("band_weights","NumericF32MatrixRef161x18",vec![161,18],load(include_bytes!("../../../../proof/fargan/feature-profile/bands161x18.bin"))),("band_bias","NumericF32BiasRef18",vec![18],load(include_bytes!("../../../../proof/fargan/feature-profile/band_bias18.bin"))),("dct_weights","NumericF32MatrixRef18x18",vec![18,18],load(include_bytes!("../../../../proof/fargan/feature-profile/dct18x18.bin")))].into_iter().map(|(name,ty,dims,values)|(name.into(),Resource::new(conduit_ai::fixed_numeric_catalog::fixed_numeric_type(ty).unwrap(),&dims,values))).collect();
+        fn field<'a>(value:&'a StructuredInfoValue,name:&str)->&'a StructuredInfoValue {let StructuredInfoValueShape::Record(fields)=value.shape() else {panic!("record")};fields.iter().find(|f|f.name()==name).unwrap().value()}
+        fn constant_i16(ty:&StructuredInfoType,x:i16)->StructuredInfoValue {match ty.shape(){StructuredInfoTypeShape::Nominal{representation,..}=>StructuredInfoValue::nominal(ty.clone(),constant_i16(representation,x)).unwrap(),StructuredInfoTypeShape::Collection{element,length}=>StructuredInfoValue::collection(ty.clone(),(0..length).map(|_|constant_i16(element,x)).collect()).unwrap(),_=>StructuredInfoValue::leaf(ty.clone(),x.to_le_bytes().to_vec()).unwrap()}}
+        let fixture=super::declarations::fixture_value(&input_type);
+        let StructuredInfoValueShape::Record(fields)=fixture.shape() else {panic!("input")};
+        let zero=StructuredInfoValue::record(input_type.clone(),fields.iter().map(|f|StructuredFieldValue::new(f.name(),if f.name()=="epoch" {StructuredInfoValue::leaf(f.value().value_type().clone(),0u64.to_le_bytes().to_vec()).unwrap()} else {f.value().clone()}).unwrap()).collect()).unwrap();
+        let StructuredInfoValueShape::Record(fields)=zero.shape() else {panic!("input")};
+        let pulse=StructuredInfoValue::record(input_type.clone(),fields.iter().map(|f|StructuredFieldValue::new(f.name(),match f.name(){"samples"=>constant_i16(f.value().value_type(),1000),"epoch"=>StructuredInfoValue::leaf(f.value().value_type().clone(),1u64.to_le_bytes().to_vec()).unwrap(),_=>f.value().clone()}).unwrap()).collect()).unwrap();
+        let inputs=BTreeMap::from([("value".into(),vec![zero.canonical_bytes().unwrap(),pulse.canonical_bytes().unwrap()])]);
+        let result=run_epoch_stream_plan(plan,&context,&resources,inputs,None,2,ExecutionMode::Normal).expect("native proposal must carry all provisional memories");
+        assert_eq!(result.values.len(),2);
+        let leaf=|value:&StructuredInfoValue|{let StructuredInfoValueShape::Leaf(bytes)=value.shape() else {panic!("F32")};f32::from_le_bytes(bytes.try_into().unwrap())};
+        assert_eq!(leaf(field(&result.values[0],"previous_raw")),0.);
+        assert_eq!(leaf(field(&result.values[0],"previous_normalized")),0.);
+        assert_eq!(leaf(field(&result.values[1],"previous_raw")),1000.);
+        assert_eq!(leaf(field(&result.values[1],"previous_normalized")),1000./32768.);
+        let StructuredInfoValueShape::Collection(history)=field(&result.values[1],"history").shape() else {panic!("history640")};
+        assert_eq!(history.len(),640);
+        assert!(history[..480].iter().all(|v|leaf(v)==0.));
+        assert!((leaf(&history[480])-500./32768.).abs()<1e-8);
+        assert!((leaf(&history[481])-(1000.-0.85*500.)/32768.).abs()<1e-8);
+        assert!(history[482..].iter().all(|v|(leaf(v)-(1000.-0.85*1000.)/32768.).abs()<1e-8));
+        eprintln!("Source native PCM→feature/provisional642: {}nodes/{}cords, prep{:?}/exec{:?}; no feedback ACK or trained waveform claim",result.nodes,result.cords,result.preparation,result.execution);
+    }).unwrap().join().unwrap();
+}
