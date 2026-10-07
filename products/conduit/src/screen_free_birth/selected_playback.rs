@@ -9,12 +9,18 @@ use conduit_std_host::{
         discover_alsa_playback, ExplicitPlaybackAuthorization, HostedPlaybackSelection,
     },
     hosted_speech_synthesis::EspeakDiscovery,
+    hosted_wav_artifact::{WavArtifactRetentionLimits, WavArtifactSelection},
     spoken_face_mask::SpokenBatch,
     spoken_face_stream_execution::{
-        execute_real_spoken_batch_to_selected_playback, SpokenPlaybackExecution,
-        SpokenStreamExecutionRefusal,
+        execute_spoken_batch_on_attached_host_with_capture, SpokenPlaybackExecution,
+        SpokenPlaybackOutcome, SpokenStreamExecutionRefusal,
     },
-    RunControl, StdHostConfig,
+    RunControl, StdHost, StdHostComposition, StdHostConfig,
+};
+use std::{
+    path::Path,
+    sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use crate::cli::BirthSpeechOptions;
@@ -26,12 +32,14 @@ pub(super) struct SelectedPlayback {
     selection: HostedPlaybackSelection,
     authorization: ExplicitPlaybackAuthorization,
     voice: String,
+    host: Arc<Mutex<StdHost>>,
 }
 
 impl SelectedPlayback {
     pub(super) fn prepare(
         options: &BirthSpeechOptions,
         advertisement: &HostAdvertisement,
+        state_dir: &Path,
     ) -> Result<Self, String> {
         if !options.speak {
             return Err("speaker playback was not selected".into());
@@ -89,12 +97,43 @@ impl SelectedPlayback {
         let authorization = ExplicitPlaybackAuthorization::new(
             "grant/conduit/installed-screen-free-selected-speaker",
         )?;
+        // The installed owner's own selected speech has a separate finite
+        // artifact pool. Birth's independently selected Plays must not consume
+        // its capacity or alter its evidence directory.
+        let artifact_root = state_dir.join("screen-free-spoken-artifacts");
+        if !artifact_root.exists() {
+            std::fs::create_dir(&artifact_root)
+                .map_err(|error| format!("create selected speech artifact root: {error}"))?;
+        }
+        let artifact = WavArtifactSelection::per_play_root_with_limits(
+            &artifact_root,
+            config.boot_id.clone(),
+            config.offer_generation,
+            WavArtifactRetentionLimits::new(1024, 1024 * 1024 * 1024)?,
+        )?;
+        let adapter = discovery
+            .clone()
+            .initialize(
+                config.host_id.clone(),
+                config.boot_id.clone(),
+                config.offer_generation,
+                "grant/installed-screen-free-selected-speech".into(),
+                Duration::from_secs(30),
+            )
+            .map_err(|error| format!("initialize selected speech provider: {error:?}"))?;
+        let mut host = StdHost::new_with_playback(
+            config.clone(),
+            StdHostComposition::minimal().with_text(),
+            selection.clone().with_bounded_speech_queue(),
+        )?;
+        host.attach_espeak_speech_and_wav_artifact(adapter, artifact)?;
         Ok(Self {
             discovery,
             config,
             selection,
             authorization,
             voice: voice.into(),
+            host: Arc::new(Mutex::new(host)),
         })
     }
 
@@ -115,11 +154,21 @@ impl SelectedPlayback {
         batch: &SpokenBatch,
         control: &RunControl,
     ) -> Result<SpokenPlaybackExecution, SpokenStreamExecutionRefusal> {
-        execute_real_spoken_batch_to_selected_playback(
+        let mut host = self.host.lock().map_err(|_| {
+            SpokenStreamExecutionRefusal::Plan("selected speech Host lock failed".into())
+        })?;
+        if host.advertisement().host_id != self.config.host_id
+            || host.advertisement().boot_id != self.config.boot_id
+            || host.advertisement().offer_generation != self.config.offer_generation
+        {
+            return Err(SpokenStreamExecutionRefusal::Plan(
+                "selected speech Host changed before Play".into(),
+            ));
+        }
+        execute_spoken_batch_on_attached_host_with_capture(
             face,
             show,
             batch,
-            self.discovery.clone(),
             &conduit_language::LanguageRequest::new(
                 conduit_language::LanguageId::new("language/english".into())
                     .expect("English mechanical Mask Language"),
@@ -127,10 +176,10 @@ impl SelectedPlayback {
                 conduit_language::LanguageVarietyPolicy::LanguageSufficient,
             )
             .expect("explicit mechanical Mask request"),
-            self.config.clone(),
-            self.selection.clone(),
+            &self.selection.clone().with_bounded_speech_queue(),
             &self.authorization,
             control,
+            &mut host,
         )
     }
 
@@ -156,6 +205,19 @@ impl SelectedPlayback {
             return Err(
                 "selected playback receipt differs from current Face, Show, or Host".into(),
             );
+        }
+        if result.outcome == SpokenPlaybackOutcome::Completed {
+            let capture = result
+                .same_play_capture
+                .as_ref()
+                .ok_or("completed selected speaker Play omitted same-Play WAV")?;
+            if u32::from(capture.pcm_blocks) != result.playback.metrics.blocks_committed
+                || u64::from(capture.pcm_bytes) / 4 != result.playback.metrics.frames_committed
+            {
+                return Err("selected speaker WAV differs from committed PCM".into());
+            }
+        } else if result.same_play_capture.is_some() {
+            return Err("incomplete selected speaker Play claimed a completed WAV".into());
         }
         Ok(())
     }
@@ -185,6 +247,14 @@ impl SelectedPlayback {
             "speaker_blocks_committed": result.playback.metrics.blocks_committed,
             "speaker_frames_committed": result.playback.metrics.frames_committed,
             "speaker_underruns": result.playback.metrics.underruns,
+            "same_play_capture": result.same_play_capture.as_ref().map(|capture| serde_json::json!({
+                "wav_artifact_locator": capture.wav_path,
+                "wav_sha256": capture.wav_sha256,
+                "wav_bytes": capture.wav_bytes,
+                "pcm_sha256": capture.pcm_sha256,
+                "pcm_bytes": capture.pcm_bytes,
+                "pcm_blocks": capture.pcm_blocks,
+            })),
         })
     }
 }

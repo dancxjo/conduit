@@ -59,6 +59,82 @@ fn exact_plays_publish_separately_and_refuse_stale_or_full_pool() {
 }
 
 #[test]
+fn explicitly_admitted_birth_pool_passes_64_and_refuses_its_finite_limit() {
+    let root = std::env::temp_dir().join(format!("conduit-birth-wav-pool-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir(&root).unwrap();
+    let limits = WavArtifactRetentionLimits::new(1024, 1024 * 1024 * 1024).unwrap();
+    let pool = WavArtifactSelection::per_play_root_with_limits(
+        &root,
+        BootId::from("boot/birth-wav-test"),
+        OfferGeneration(1),
+        limits,
+    )
+    .unwrap();
+    let plan = PlanId::from("plan/birth-wav-test");
+    let placement = PlacementId::from("placement/birth-wav-test");
+    for index in 0..65 {
+        let play = ActivePlayId::from(format!("play/birth-wav-{index}").as_str());
+        let exact = pool.for_play(&plan, &play, &placement).unwrap();
+        let mut session = WavArtifactSession::prepare(exact);
+        session.write_frame(&one_frame()).unwrap();
+        session.finish().unwrap();
+    }
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 65);
+    assert!(pool.is_unpublished());
+    for index in 65..1024 {
+        std::fs::write(root.join(format!("play-{index:064x}.wav")), b"retained").unwrap();
+    }
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 1024);
+    assert!(!pool.is_unpublished());
+    assert!(pool
+        .for_play(
+            &plan,
+            &ActivePlayId::from("play/birth-wav-overflow"),
+            &placement
+        )
+        .is_err());
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 1024);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn explicitly_admitted_birth_pool_refuses_byte_pressure() {
+    let root = std::env::temp_dir().join(format!("conduit-birth-wav-bytes-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir(&root).unwrap();
+    let pool = WavArtifactSelection::per_play_root_with_limits(
+        &root,
+        BootId::from("boot/birth-wav-bytes"),
+        OfferGeneration(1),
+        WavArtifactRetentionLimits::new(1024, MAX_WAV_BYTES + 44).unwrap(),
+    )
+    .unwrap();
+    let plan = PlanId::from("plan/birth-wav-bytes");
+    let placement = PlacementId::from("placement/birth-wav-bytes");
+    let exact = pool
+        .for_play(
+            &plan,
+            &ActivePlayId::from("play/birth-wav-first"),
+            &placement,
+        )
+        .unwrap();
+    let mut session = WavArtifactSession::prepare(exact);
+    session.write_frame(&one_frame()).unwrap();
+    session.finish().unwrap();
+    drop(session);
+    assert!(!pool.is_unpublished());
+    assert!(pool
+        .for_play(
+            &plan,
+            &ActivePlayId::from("play/birth-wav-second"),
+            &placement
+        )
+        .is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn cancelled_play_releases_reservation_without_publishing_partial() {
     let root = std::env::temp_dir().join(format!("conduit-cancelled-wav-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

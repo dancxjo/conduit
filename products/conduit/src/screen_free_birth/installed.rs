@@ -71,7 +71,7 @@ fn run_retained_with_input(
         .clone()
         .ok_or("installed owner has no retained Body to read")?;
     let playback = speech_options
-        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .map(|options| SelectedPlayback::prepare(options, &advertisement, state_dir))
         .transpose()?;
     run_body(
         state_dir,
@@ -92,7 +92,7 @@ fn run_with_input(
 ) -> Result<(), String> {
     let (mut face, advertisement) = durable_host_control::birth_face(state_dir)?;
     let playback = speech_options
-        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .map(|options| SelectedPlayback::prepare(options, &advertisement, state_dir))
         .transpose()?;
     let mut execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
     let mut show = present(&face, &mut execution, output)?;
