@@ -3,6 +3,41 @@
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserProtectedSetProposal",
+            crate::LanguageParserProtectedSetProposal::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserProtectedInsertStage",
+            crate::LanguageParserProtectedInsertStage::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserProtectedInsertContext",
+            crate::LanguageParserProtectedInsertContext::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserIndependentBranchContext",
+            crate::LanguageParserIndependentBranchContext::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserIndependentMaskQuery",
+            crate::LanguageParserIndependentMaskQuery::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserIndependentMaskContext",
+            crate::LanguageParserIndependentMaskContext::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserProtectedMaskResolved",
+            crate::LanguageParserProtectedMaskResolved::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
             "LanguageParserProtectedEdgeProposal",
             crate::LanguageParserProtectedEdgeProposal::semantic_type()
                 .expect("checked Language Type")

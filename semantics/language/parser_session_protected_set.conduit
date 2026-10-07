@@ -1,0 +1,38 @@
+# Active slots are Source-owned private Session proposals, seeded from an actual fact.
+# Inactive slots retain valid opaque edges; no refined dummy payload is constructed.
+# Presence never authorizes dropping an already protected/played fact in the caller.
+type LanguageParserProtectedSetProposal = {
+ basis: LanguageParserBasis
+ active: collection Boolean = 4
+ edge0: LanguageParserProtectedEdgeProposal
+ edge1: LanguageParserProtectedEdgeProposal
+ edge2: LanguageParserProtectedEdgeProposal
+ edge3: LanguageParserProtectedEdgeProposal
+}
+type LanguageParserProtectedInsertStage = {
+ previous: LanguageParserProtectedSetProposal
+ edge: LanguageParserProtectedEdgeProposal
+}
+type LanguageParserProtectedInsertContext = {
+ previous: LanguageParserProtectedSetProposal
+ context: LanguageParserProtectedProjectionContext
+ where .previous.basis == .context.fact.query.beam.basis
+ where .previous.active.0 ? (.context.fact.query.dependent == 0 ? (((.previous.edge0.relation.subtype == .context.fact.query.beam.candidate0.parser.state.relation0.subtype && variant/tag(.previous.edge0.relation.base) == variant/tag(.context.fact.query.beam.candidate0.parser.state.relation0.base)) && ((((.previous.edge0.current_basis == .context.fact.query.beam.basis && (.previous.edge0.head_occurrence == .context.head_token.identity && (.previous.edge0.dependent == 0 && .previous.edge0.dependent_occurrence == .context.dependent_token.identity))) && .previous.edge0.dependent_choice == .context.fact.query.beam.candidate0.choices.0) && .previous.edge0.head == .context.fact.query.beam.candidate0.parser.state.heads.0) && .previous.edge0.head_choice == (.context.fact.query.beam.candidate0.parser.state.heads.0 < 4 ? sequence/at(.context.fact.query.beam.candidate0.choices,.context.fact.query.beam.candidate0.parser.state.heads.0) : 0)))) : true) : true
+ where .previous.active.1 ? (.context.fact.query.dependent == 1 ? (((.previous.edge1.relation.subtype == .context.fact.query.beam.candidate0.parser.state.relation1.subtype && variant/tag(.previous.edge1.relation.base) == variant/tag(.context.fact.query.beam.candidate0.parser.state.relation1.base)) && ((((.previous.edge1.current_basis == .context.fact.query.beam.basis && (.previous.edge1.head_occurrence == .context.head_token.identity && (.previous.edge1.dependent == 1 && .previous.edge1.dependent_occurrence == .context.dependent_token.identity))) && .previous.edge1.dependent_choice == .context.fact.query.beam.candidate0.choices.1) && .previous.edge1.head == .context.fact.query.beam.candidate0.parser.state.heads.1) && .previous.edge1.head_choice == (.context.fact.query.beam.candidate0.parser.state.heads.1 < 4 ? sequence/at(.context.fact.query.beam.candidate0.choices,.context.fact.query.beam.candidate0.parser.state.heads.1) : 0)))) : true) : true
+ where .previous.active.2 ? (.context.fact.query.dependent == 2 ? (((.previous.edge2.relation.subtype == .context.fact.query.beam.candidate0.parser.state.relation2.subtype && variant/tag(.previous.edge2.relation.base) == variant/tag(.context.fact.query.beam.candidate0.parser.state.relation2.base)) && ((((.previous.edge2.current_basis == .context.fact.query.beam.basis && (.previous.edge2.head_occurrence == .context.head_token.identity && (.previous.edge2.dependent == 2 && .previous.edge2.dependent_occurrence == .context.dependent_token.identity))) && .previous.edge2.dependent_choice == .context.fact.query.beam.candidate0.choices.2) && .previous.edge2.head == .context.fact.query.beam.candidate0.parser.state.heads.2) && .previous.edge2.head_choice == (.context.fact.query.beam.candidate0.parser.state.heads.2 < 4 ? sequence/at(.context.fact.query.beam.candidate0.choices,.context.fact.query.beam.candidate0.parser.state.heads.2) : 0)))) : true) : true
+ where .previous.active.3 ? (.context.fact.query.dependent == 3 ? (((.previous.edge3.relation.subtype == .context.fact.query.beam.candidate0.parser.state.relation3.subtype && variant/tag(.previous.edge3.relation.base) == variant/tag(.context.fact.query.beam.candidate0.parser.state.relation3.base)) && ((((.previous.edge3.current_basis == .context.fact.query.beam.basis && (.previous.edge3.head_occurrence == .context.head_token.identity && (.previous.edge3.dependent == 3 && .previous.edge3.dependent_occurrence == .context.dependent_token.identity))) && .previous.edge3.dependent_choice == .context.fact.query.beam.candidate0.choices.3) && .previous.edge3.head == .context.fact.query.beam.candidate0.parser.state.heads.3) && .previous.edge3.head_choice == (.context.fact.query.beam.candidate0.parser.state.heads.3 < 4 ? sequence/at(.context.fact.query.beam.candidate0.choices,.context.fact.query.beam.candidate0.parser.state.heads.3) : 0)))) : true) : true
+}
+plot language-parser-protected-set-initialize (
+ edge: LanguageParserProtectedEdgeProposal...| >> output: LanguageParserProtectedSetProposal...|
+) = { basis: .current_basis, active: [.dependent == 0,.dependent == 1,.dependent == 2,.dependent == 3], edge0: ., edge1: ., edge2: ., edge3: . }
+plot language-parser-protected-set-upsert (
+ input: LanguageParserProtectedInsertStage...| >> output: LanguageParserProtectedSetProposal...|
+) = { basis: .previous.basis, active: [(.previous.active.0 || .edge.dependent == 0),(.previous.active.1 || .edge.dependent == 1),(.previous.active.2 || .edge.dependent == 2),(.previous.active.3 || .edge.dependent == 3)], edge0: (.previous.active.0 ? .previous.edge0 : (.edge.dependent == 0 ? .edge : .previous.edge0)), edge1: (.previous.active.1 ? .previous.edge1 : (.edge.dependent == 1 ? .edge : .previous.edge1)), edge2: (.previous.active.2 ? .previous.edge2 : (.edge.dependent == 2 ? .edge : .previous.edge2)), edge3: (.previous.active.3 ? .previous.edge3 : (.edge.dependent == 3 ? .edge : .previous.edge3)) }
+plot language-parser-protected-insert-projection (
+ input: LanguageParserProtectedInsertContext...| >> output: LanguageParserProtectedInsertStage...|
+) = { previous: .previous, edge: { origin_basis: .context.fact.query.beam.basis, current_basis: .context.fact.query.beam.basis, dependent: .context.fact.query.dependent, head: sequence/at(.context.fact.query.beam.candidate0.parser.state.heads,.context.fact.query.dependent), dependent_choice: sequence/at(.context.fact.query.beam.candidate0.choices,.context.fact.query.dependent), head_choice: (sequence/at(.context.fact.query.beam.candidate0.parser.state.heads,.context.fact.query.dependent) < 4 ? sequence/at(.context.fact.query.beam.candidate0.choices,sequence/at(.context.fact.query.beam.candidate0.parser.state.heads,.context.fact.query.dependent)) : 0), relation: (.context.fact.query.dependent == 0 ? .context.fact.query.beam.candidate0.parser.state.relation0 : (.context.fact.query.dependent == 1 ? .context.fact.query.beam.candidate0.parser.state.relation1 : (.context.fact.query.dependent == 2 ? .context.fact.query.beam.candidate0.parser.state.relation2 : .context.fact.query.beam.candidate0.parser.state.relation3))), dependent_occurrence: .context.dependent_token.identity, head_occurrence: .context.head_token.identity } }
+plot language-parser-protected-set-insert (
+ input: LanguageParserProtectedInsertContext...| >> output: LanguageParserProtectedSetProposal...|
+) {
+ input >> language-parser-protected-insert-projection() >> language-parser-protected-set-upsert() >> output
+}

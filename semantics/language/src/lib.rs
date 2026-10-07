@@ -144,3 +144,10 @@ pub use generated::{
     LanguageParserJointRebaseProposal, LanguageParserProtectedEdgeProposal,
     LanguageParserProtectedProjectionContext,
 };
+
+pub use generated::{
+    LanguageParserIndependentBranchContext, LanguageParserIndependentMaskContext,
+    LanguageParserIndependentMaskQuery, LanguageParserProtectedInsertContext,
+    LanguageParserProtectedInsertStage, LanguageParserProtectedMaskResolved,
+    LanguageParserProtectedSetProposal,
+};
