@@ -79,9 +79,12 @@ fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
         })
         .collect::<Result<_, String>>()?;
     bounds.insert(kind_id("value/u16"), 2);
+    bounds.insert(kind_id("value/u64"), 8);
     let port = |name: &str, ty: &str, direction| -> Result<PortDescriptor, String> {
         let value_kind = if ty == "U16" {
             kind_id("value/u16")
+        } else if ty == "U64" {
+            kind_id("value/u64")
         } else {
             types
                 .iter()
@@ -102,6 +105,11 @@ fn fixed_numeric_contracts_uncached() -> Result<Vec<Kind>, String> {
         })
     };
     let specs = [
+        (
+            "numeric/u64-to-u16",
+            vec![("value", "U64")],
+            vec![("result", "U16")],
+        ),
         (
             "numeric/embedding224x12",
             vec![("index", "U16"), ("weights", "NumericEmbedding224x12")],
