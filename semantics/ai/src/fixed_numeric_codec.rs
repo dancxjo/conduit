@@ -33,6 +33,18 @@ impl<const WIDTH: usize> FixedF32VectorCodec<WIDTH> {
         }
         Self::prepare_tree(value_type)
     }
+    pub fn prepare_raw(value_type: &StructuredInfoType) -> Result<Self, FixedCodecRefusal> {
+        let name = alloc::format!("NumericRawF32Vector{WIDTH}");
+        if WIDTH == 0
+            || WIDTH > 1024
+            || crate::fixed_numeric_catalog::fixed_numeric_type(&name)
+                .map_err(|_| FixedCodecRefusal::Shape)?
+                != *value_type
+        {
+            return Err(FixedCodecRefusal::Shape);
+        }
+        Self::prepare_tree(value_type)
+    }
     fn prepare_tree(value_type: &StructuredInfoType) -> Result<Self, FixedCodecRefusal> {
         let template = tree(value_type, 0.0)?
             .canonical_bytes()

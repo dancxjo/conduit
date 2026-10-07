@@ -11,6 +11,166 @@ pub(super) fn select(
     planned: Option<(&PlannedGear, u16)>,
 ) -> Option<Result<Selection, String>> {
     match kind {
+        "numeric/flow-finite-vector1" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(1), true),
+                FixedIntegerConversionBack::<1>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(1), true)
+            ))
+        }
+        "numeric/flow-finite-vector18" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(18), true),
+                FixedIntegerConversionBack::<18>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(18), true)
+            ))
+        }
+        "numeric/flow-finite-vector20" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(20), true),
+                FixedIntegerConversionBack::<20>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(20), true)
+            ))
+        }
+        "numeric/flow-finite-vector160" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(160), true),
+                FixedIntegerConversionBack::<160>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(160), true)
+            ))
+        }
+        "numeric/flow-finite-vector320" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(320), true),
+                FixedIntegerConversionBack::<320>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(320), true)
+            ))
+        }
+        "numeric/flow-u16-to-f32" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::U16, true),
+                FixedIntegerConversionBack::<1>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::U16, true)
+            ))
+        }
+        "numeric/flow-i16-to-f32-80" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::I16Vector80, true),
+                FixedIntegerConversionBack::<80>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::I16Vector80, true)
+            ))
+        }
+        "numeric/flow-i16-to-f32-160" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::I16Vector160, true),
+                FixedIntegerConversionBack::<160>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::I16Vector160, true)
+            ))
+        }
+        "numeric/flow-real-dft320" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::RealDft320, true),
+            FixedDspBack::<320, 322>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::RealDft320,
+                true
+            )
+        )),
+        "numeric/flow-magnitude-squared161" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::MagnitudeSquared161, true),
+            FixedDspBack::<322, 161>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::MagnitudeSquared161,
+                true
+            )
+        )),
+        "numeric/flow-log10-18" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Log10_18, true),
+            FixedDspBack::<18, 18>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Log10_18,
+                true
+            )
+        )),
+        "numeric/flow-log10-1" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Log10_1, true),
+            FixedDspBack::<1, 1>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Log10_1,
+                true
+            )
+        )),
+        "numeric/flow-dot160" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Dot160, true),
+            FixedDspBack::<160, 1>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Dot160,
+                true
+            )
+        )),
+        "numeric/flow-sqrt1" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Sqrt1, true),
+            FixedDspBack::<1, 1>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Sqrt1,
+                true
+            )
+        )),
         "numeric/u16-to-f32" => {
             Some(run!(
                 planned,
@@ -31,6 +191,72 @@ pub(super) fn select(
                 FixedIntegerConversionBack::<160>::prepare_planned::<
                     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
                 >(gear, fuel, IntegerConversion::I16Vector160, false)
+            ))
+        }
+        "numeric/finite-vector1" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(1), false),
+                FixedIntegerConversionBack::<1>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(1), false)
+            ))
+        }
+        "numeric/finite-vector18" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(18), false),
+                FixedIntegerConversionBack::<18>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(18), false)
+            ))
+        }
+        "numeric/finite-vector20" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(20), false),
+                FixedIntegerConversionBack::<20>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(20), false)
+            ))
+        }
+        "numeric/finite-vector160" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(160), false),
+                FixedIntegerConversionBack::<160>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(160), false)
+            ))
+        }
+        "numeric/finite-vector320" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::FiniteVector(320), false),
+                FixedIntegerConversionBack::<320>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::FiniteVector(320), false)
+            ))
+        }
+        "numeric/i16-to-f32-80" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::I16Vector80, false),
+                FixedIntegerConversionBack::<80>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::I16Vector80, false)
             ))
         }
         "numeric/real-dft320" => Some(run!(

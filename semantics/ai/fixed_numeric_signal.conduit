@@ -177,3 +177,11 @@ type NumericF32BiasRef18 = {
 
 type NumericF32Vector19 = collection NumericFiniteF32 = 19
 type NumericI16Vector160 = collection I16 = 160
+
+# Bare arithmetic collections require explicit finite admission.
+type NumericRawF32Vector1 = collection F32 = 1
+type NumericRawF32Vector18 = collection F32 = 18
+type NumericRawF32Vector20 = collection F32 = 20
+type NumericRawF32Vector160 = collection F32 = 160
+type NumericRawF32Vector320 = collection F32 = 320
+type NumericI16Vector80 = collection I16 = 80
