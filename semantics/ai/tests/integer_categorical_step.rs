@@ -24,7 +24,21 @@ mod allocation_probe;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
 fn fixture() -> (Arc<AdmittedModelResource>, ResourceContentOffer) {
-    let port = |name: &str, element| {
+    let mut bytes = b"CI16SUM1".to_vec();
+    for d in [3u32, 2, 2] {
+        bytes.extend_from_slice(&d.to_le_bytes());
+    }
+    for w in [-1i16, 2, 4, 5, -2, 3] {
+        bytes.extend_from_slice(&w.to_le_bytes());
+    }
+    fixture_model(bytes, 2, 2)
+}
+fn fixture_model(
+    bytes: Vec<u8>,
+    lookups: u64,
+    outputs: u64,
+) -> (Arc<AdmittedModelResource>, ResourceContentOffer) {
+    let port = |name: &str, element, count| {
         ModelPortConstraint::new(
             ModelPortIdentity::new(name.into()).unwrap(),
             ModelPortPresence::Required,
@@ -33,11 +47,11 @@ fn fixture() -> (Arc<AdmittedModelResource>, ResourceContentOffer) {
                 ModelTensorConstraint::from_parts(
                     vec![element],
                     vec![ModelAxisConstraint::new(
-                        ModelDimensionConstraint::fixed(2).unwrap(),
+                        ModelDimensionConstraint::fixed(count).unwrap(),
                         TensorAxisRole::Feature,
                     )
                     .unwrap()],
-                    16,
+                    count * 8,
                 )
                 .unwrap(),
             )
@@ -49,17 +63,10 @@ fn fixture() -> (Arc<AdmittedModelResource>, ResourceContentOffer) {
         "test/numeric-categorical@1".into(),
         1,
         vec![ModelOperation::Infer],
-        vec![port("features", TensorElement::U64)],
-        vec![port("scores", TensorElement::I64)],
+        vec![port("features", TensorElement::U64, lookups)],
+        vec![port("scores", TensorElement::I64, outputs)],
     )
     .unwrap();
-    let mut bytes = b"CI16SUM1".to_vec();
-    for dimension in [3u32, 2, 2] {
-        bytes.extend_from_slice(&dimension.to_le_bytes());
-    }
-    for weight in [-1i16, 2, 4, 5, -2, 3] {
-        bytes.extend_from_slice(&weight.to_le_bytes());
-    }
     let digest = model_content_digest(&bytes);
     let reference = BoundedResourceRef {
         identity: ResourceSemanticIdentity::from_digest(digest),
@@ -189,7 +196,7 @@ fn fixture_kind(name: &str, ty: &StructuredInfoType, source: bool, flow: bool) -
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: bound,
+            max_queue_bytes: 16_384,
         },
     }
 }
@@ -652,4 +659,54 @@ fn scheduler_pressure_cancel_and_storage_failure_do_not_publish_uncommitted_fram
     );
     assert!((0..24).any(|_| run.step().is_err()));
     assert!(seen.borrow().is_empty());
+}
+
+#[test]
+fn pinned_learned_v2_parameter_blob_matches_all_76_scores_through_prepared_step() {
+    let bytes = include_bytes!("../../language/training/ewt_joint_v2/ewt_joint.i16");
+    let (model, residence) = fixture_model(bytes.to_vec(), 25, 76);
+    let profile = Arc::new(
+        PreparedCategoricalStep::prepare(model, "test/model-pool".into(), residence).unwrap(),
+    );
+    assert_eq!(profile.maximum_score_magnitude(), 128525);
+    let plan = plan(&profile, true, true).unwrap();
+    let mut back =
+        CategoricalStepBack::prepare_planned::<4>(gear(&plan), 2, profile.clone(), true).unwrap();
+    for seed in [0u64, 17, 412] {
+        let lookups: Vec<_> = (0..25).map(|i| (seed + 31 * i) % 413).collect();
+        let input = indices(&profile, &lookups);
+        let reference = ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: input.len() as u32,
+        };
+        let mut io = StepIo::test_frame(
+            [Some(reference), None, None, None],
+            [false; 4],
+            [Some(16384), None, None, None],
+            None,
+            2,
+        );
+        let inputs = StepInputBytes::test_frame([Some(input.as_slice()), None, None, None], None);
+        let (out, observed) = allocation_probe::observe(|| back.step(&mut io, &inputs));
+        assert_eq!(out, StepOutcome::Progress);
+        assert_eq!(observed.allocations, 0);
+        assert_eq!(observed.reallocations, 0);
+        let actual =
+            scores(<CategoricalStepBack as StepBack<4>>::prepared_output(&back, KPort(0)).unwrap());
+        let expected: Vec<i64> = (0..76)
+            .map(|row| {
+                lookups
+                    .iter()
+                    .map(|index| {
+                        let offset = 20 + 2 * (row * 413 + *index as usize);
+                        i16::from_le_bytes(bytes[offset..offset + 2].try_into().unwrap()) as i64
+                    })
+                    .sum()
+            })
+            .collect();
+        assert_eq!(actual, expected);
+        <CategoricalStepBack as StepBack<4>>::step_committed(&mut back);
+    }
+    assert_eq!(back.committed_invocations(), 3);
 }
