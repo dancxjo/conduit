@@ -1,0 +1,92 @@
+{
+  "upstream_revision": "503d81b138d76621aae4b12786e90de48aa8db3a",
+  "generated_c_sha256": "68ba6e8731007f7184be862d7d1afe4cef096a7c9bcbfa115962340f725e004c",
+  "raw_blob_sha256": "d35f0510da476716183a33caafe45cc095e48d496f06de2db7655e780a385e47",
+  "precision": "number/ieee754-f32-libm-source-pcm16-nearest-away@1",
+  "profile": "speech/fargan-conditioning-layout-f32@1",
+  "resources": [
+    {
+      "port": "embedding_weights",
+      "array": "cond_net_pembed_weights_float",
+      "shape": [
+        224,
+        12
+      ],
+      "offset": 0,
+      "bytes": 10752,
+      "raw_sha256": "9a9c64f4999c3aa596623ac3e0895f967b1495715d5076026cd682e008df61e7"
+    },
+    {
+      "port": "dense1_weights",
+      "array": "cond_net_fdense1_weights_float",
+      "shape": [
+        32,
+        64
+      ],
+      "offset": 10800,
+      "bytes": 8192,
+      "raw_sha256": "08c3059f6eb9c20b51ba81b674e023f9d3402f22d6760a94821b18a68f046f43"
+    },
+    {
+      "port": "dense1_bias",
+      "array": "cond_net_fdense1_bias",
+      "shape": [
+        64
+      ],
+      "offset": 18992,
+      "bytes": 256,
+      "raw_sha256": "5341e6b2646979a70e57653007a1f310169421ec9bdd9f1a5648f75ade005af1"
+    },
+    {
+      "port": "conv_weights",
+      "array": "cond_net_fconv1_weights_float",
+      "shape": [
+        192,
+        128
+      ],
+      "offset": 19248,
+      "bytes": 98304,
+      "raw_sha256": "f2b85e44710f1b2e9b8b4ecd5e5f8c68a119855b20456f962e5328d3f4e00e9f"
+    },
+    {
+      "port": "conv_bias",
+      "array": "cond_net_fconv1_bias",
+      "shape": [
+        128
+      ],
+      "offset": 117552,
+      "bytes": 512,
+      "raw_sha256": "076a27c79e5ace2a3d47f9dd2e83e4ff6ea8872b3c2218f66c92b89b55f36560"
+    },
+    {
+      "port": "dense2_weights",
+      "array": "cond_net_fdense2_weights_float",
+      "shape": [
+        128,
+        320
+      ],
+      "offset": 118064,
+      "bytes": 163840,
+      "raw_sha256": "bf3af2d89c0e4a8458100dc3550fc905b04c837de17e4081c8cf6d872de68460"
+    },
+    {
+      "port": "dense2_bias",
+      "array": "cond_net_fdense2_bias",
+      "shape": [
+        320
+      ],
+      "offset": 281904,
+      "bytes": 1280,
+      "raw_sha256": "bfe492baf731a0dbf6e1e050f5bc3fe8c1b049383194dcdf82f023bfa409f462"
+    }
+  ],
+  "required_zero_embedding_bias": {
+    "array": "cond_net_pembed_bias",
+    "shape": [
+      12
+    ],
+    "offset": 10752,
+    "bytes": 48,
+    "raw_sha256": "17b0761f87b081d5cf10757ccc89f12be355c70e2e29df288b65b30710dcbcd1"
+  }
+}
