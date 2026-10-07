@@ -127,6 +127,27 @@ fn source_projects_each_admitted_early_lexical_candidate_without_an_arc() {
         let fact = admit(snapshot(choice, lexical.lexical(), &basis).unwrap()).unwrap();
         let bytes = program.evaluate(&fact.clone().encode().unwrap()).unwrap();
         let candidate = LanguageLexicalCandidate::decode(&bytes).unwrap();
+        let prepared =
+            conduit_language::stable_lexical_selection::prepare_stable_lexical_selection(
+                &tape, &fact,
+            )
+            .unwrap();
+        assert!(std::ptr::eq(prepared.fact(), &fact));
+        assert!(std::ptr::eq(prepared.lexical(), &tape));
+        assert_eq!(prepared.candidate(), &candidate);
+        let foreign_profile = LanguageLexicalProfile::new(
+            profile.entries().clone(),
+            "foreign/lexical-profile".into(),
+            profile.language().clone(),
+            profile.provenance().clone(),
+        )
+        .unwrap();
+        let foreign_tape =
+            conduit_language::lexical::prepare_lexical_tape(&source, &foreign_profile, None)
+                .unwrap();
+        assert!(matches!(conduit_language::stable_lexical_selection::prepare_stable_lexical_selection(&foreign_tape, &fact),
+            Err(conduit_language::stable_lexical_selection::StableLexicalSelectionRefusal::LexicalTape)));
+
         assert_eq!(
             &candidate,
             tape.tape()

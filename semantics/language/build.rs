@@ -14,6 +14,7 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_window8.conduit");
     println!("cargo:rerun-if-changed=parser_window8_search.conduit");
     println!("cargo:rerun-if-changed=parser_window8_facts.conduit");
+    println!("cargo:rerun-if-changed=parser_window8_lexical_selection.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=parser_scorer.conduit");
     println!("cargo:rerun-if-changed=parser_mask.conduit");
@@ -49,6 +50,7 @@ fn main() {
         include_str!("parser_window8.conduit"),
         include_str!("parser_window8_search.conduit"),
         include_str!("parser_window8_facts.conduit"),
+        include_str!("parser_window8_lexical_selection.conduit"),
         include_str!("parser_beam.conduit"),
         include_str!("parser_scorer.conduit"),
         include_str!("parser_mask.conduit"),
@@ -78,6 +80,10 @@ fn main() {
         .expect("language semantic Types must check");
     for (plot, file) in [
         ("language-window8-initialize", "window8_initialize.hex"),
+        (
+            "language-window8-stable-lexical-candidate",
+            "window8_stable_lexical_candidate.hex",
+        ),
         (
             "language-window8-stable-lexical-fact",
             "window8_stable_lexical_fact.hex",
