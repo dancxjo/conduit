@@ -106,6 +106,8 @@ fn playback_row(row: &serde_json::Value) -> usize {
         &tape,
         &pcm,
         epoch,
+        &realized,
+        &pitch,
     );
     position
 }

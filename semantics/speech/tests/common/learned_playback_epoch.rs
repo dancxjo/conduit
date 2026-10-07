@@ -88,6 +88,21 @@ pub fn commitment<'a>(tape: &'a PreparedSpeechPlaybackTape<'a>) -> serde_json::V
         },
     );
     journal.append(&committed, None).unwrap();
+    let withdrawn = PreparedPlaybackChange::withdrawal(tape).unwrap();
+    let withdrawal = lifecycle::event(
+        &domain,
+        4,
+        "learned/withdraw-after-played",
+        RevisionChange::Withdrawn {
+            revision: proposal.reference(),
+            delta: &withdrawn,
+            reason: RevisionText::new("later withdrawal").unwrap(),
+        },
+    );
+    assert_eq!(
+        journal.append(&withdrawal, None),
+        Err(PlaybackRevisionRefusal::QueuedHistory)
+    );
     assert!(journal
         .journal()
         .frontiers()
@@ -95,5 +110,5 @@ pub fn commitment<'a>(tape: &'a PreparedSpeechPlaybackTape<'a>) -> serde_json::V
         .acknowledgement()
         .is_some());
     assert_eq!(journal.producer().unwrap().played_frames(), 128);
-    serde_json::json!({"queued_acknowledgement_bytes":queued_receipt,"played_acknowledgement_bytes":played_receipt,"stable_does_not_commit":true,"premature_commit_refused":true,"queued_frames":128,"played_frames":128,"played_provenance":"manual-effect-owner-fixture"})
+    serde_json::json!({"queued_acknowledgement_bytes":queued_receipt,"played_acknowledgement_bytes":played_receipt,"stable_does_not_commit":true,"withdraw_after_played_refused":true,"premature_commit_refused":true,"queued_frames":128,"played_frames":128,"played_provenance":"manual-effect-owner-fixture"})
 }

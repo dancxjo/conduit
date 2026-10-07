@@ -68,3 +68,18 @@ fixture: existing lexical fallback would insert a comma phrase boundary, while
 rich Source vocative prosody emits only its selected post-vocative boundary.
 A changed punctuation material under reused source IDs is refused by full
 Language revision lineage; omitted phones do not erase material authority.
+
+Shared realization handoff retains complete native utterance intent, formant
+voice/inventory/boundary profiles, event spans, and exact admitted pitch controls.
+For each segment's 10 ms epoch, native Speech laws project the same trajectory
+at 8 kHz and 16 kHz; equality of the exact cycle fraction is checked before the
+receipts escape. The 80-sample mono8k PCM epochs and paired 160-sample cadence
+receipts are intended for `speech/fargan-formant-spectral-approximation@1`.
+This is a reproducible conditioning handoff, not executed FARGAN features or
+neural waveform evidence. No pronunciation, prosody, or language choice is
+recomputed for that handoff.
+
+The supplied-graph lifecycle regression also tries an ordinary rewrite after
+played commitment. It must refuse without changing the exact played receipt;
+the separate checked correction retains both immutable old/next bases. This
+fixture remains distinct from the actual learned graph demonstration.
