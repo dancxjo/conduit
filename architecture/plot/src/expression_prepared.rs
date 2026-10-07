@@ -83,6 +83,7 @@ enum PreparedOperation {
     Projection(PreparedMemberSelection),
     SequenceSelection(sequence_selection::PreparedSequenceSelection),
     Widen(Box<PreparedNode>),
+    TextMaterial(Box<PreparedNode>),
     Inspection(inspection::PreparedInspection),
     Bytes(byte_observation::PreparedByteObservation),
 }
@@ -267,6 +268,27 @@ fn prepare_node(
         PortableExpressionOperation::SemanticCall {
             kind: call,
             arguments,
+        } if call == "text/material" => {
+            let [argument] = arguments.as_slice() else {
+                return Err(Refusal::InvalidProgram);
+            };
+            if node.value_type
+                != conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                    conduit_core::TEXT_INFO_ID,
+                ))
+                .map_err(|_| Refusal::InvalidProgram)?
+            {
+                return Err(Refusal::InvalidProgram);
+            }
+            let operand = prepare_node(argument, input_type, prepared_input)?;
+            if operand.kind != PrimitiveInfoKind::Text {
+                return Err(Refusal::InvalidProgram);
+            }
+            PreparedOperation::TextMaterial(Box::new(operand))
+        }
+        PortableExpressionOperation::SemanticCall {
+            kind: call,
+            arguments,
         } if crate::expression_semantic_call::integer_widening_target(call).is_some() => {
             let [argument] = arguments.as_slice() else {
                 return Err(Refusal::InvalidProgram);
@@ -386,6 +408,7 @@ fn evaluate_node<'a>(
             };
             evaluate_node(selected, input, input_kind)?
         }
+        PreparedOperation::TextMaterial(operand) => evaluate_node(operand, input, input_kind)?,
         PreparedOperation::Widen(operand) => {
             let operand = evaluate_node(operand, input, input_kind)?;
             primitive::evaluate_widen(expected, &operand)?
