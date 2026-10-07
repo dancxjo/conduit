@@ -1109,6 +1109,13 @@ enum Request {
         basis_revision: u64,
         command: terminal_attach::TerminalWardrobeCommand,
     },
+    #[cfg(unix)]
+    BodyAttachedTerminalRefreshShow {
+        protocol: u16,
+        token: Vec<u8>,
+        route_plan_id: conduit_core::PlanId,
+        show: Box<MaskShow>,
+    },
     BodyBrowserInteraction {
         protocol: u16,
         token: Vec<u8>,
@@ -1289,6 +1296,12 @@ enum Response {
     BodyAttachedTerminalWardrobe {
         protocol: u16,
         report: Box<serde_json::Value>,
+    },
+    #[cfg(unix)]
+    BodyAttachedTerminalRefreshedShow {
+        protocol: u16,
+        show: Box<MaskShow>,
+        advertisement: HostAdvertisement,
     },
     BodyRunRequested {
         protocol: u16,
@@ -1864,6 +1877,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::BodyAttachedTerminalInteraction { token, .. } => token,
         #[cfg(unix)]
         Request::BodyAttachedTerminalWardrobe { token, .. } => token,
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalRefreshShow { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
     offered.fill(0);
@@ -2219,6 +2234,22 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 report: Box::new(report),
             })
+            .unwrap_or_else(|code| refused(&code)),
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalRefreshShow {
+            protocol,
+            route_plan_id,
+            show,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .refresh_attached_terminal_show(&route_plan_id, &show)
+            .map(
+                |(show, advertisement)| Response::BodyAttachedTerminalRefreshedShow {
+                    protocol: PROTOCOL,
+                    show: Box::new(show),
+                    advertisement,
+                },
+            )
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserInteraction {
             protocol,

@@ -366,7 +366,24 @@ try {
   assert.equal(terminalSetupStage, 'done', 'terminal wardrobe choice did not complete');
   assert.doesNotMatch(terminalSetup.stdout, /Wardrobe refused:/);
   assert.match(terminalSetup.stdout, /selected route: route\//);
-  const terminal = await runAttachedTerminal('apply 500\nquit\n');
+  let terminalActionStage = 'inspect';
+  const terminal = await runAttachedTerminal(null, (line, child) => {
+    if (!line.startsWith('Owner Body wardrobe:')) return;
+    if (terminalActionStage === 'inspect') {
+      if (line.includes('current Show: none;')) {
+        terminalActionStage = 'refresh';
+        child.stdin.write('show\n');
+      } else {
+        terminalActionStage = 'apply';
+        child.stdin.end('apply 500\nquit\n');
+      }
+    } else if (terminalActionStage === 'refresh') {
+      assert.doesNotMatch(line, /current Show: none;/,
+        'explicit same-attachment Show did not become current');
+      terminalActionStage = 'apply';
+      child.stdin.end('apply 500\nquit\n');
+    }
+  });
   await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout ?? '');
   await writeFile(path.join(output, 'terminal-action.stderr.txt'), terminal.stderr ?? '');
   assert.equal(terminal.status, 0,
@@ -374,17 +391,27 @@ try {
   if (terminal.protocolError) throw terminal.protocolError;
   assert.doesNotMatch(terminal.stdout, /Action refused:/);
   const terminalShows = [...terminal.stdout.matchAll(/Owner terminal Show (\S+) · route Plan (\S+) · Host (\S+) · Boot (\S+) · offer generation (\d+) · (\d+) bytes written and flushed/g)];
-  assert.equal(terminalShows.length, 2, 'owner terminal Mask must acknowledge both exact Shows');
+  assert.equal(terminalActionStage, 'apply', 'terminal action must follow a current Show');
+  assert.ok(terminalShows.length === 2 || terminalShows.length === 3,
+    'owner terminal Mask must acknowledge the action Show and changed Face');
   for (const show of terminalShows) {
     assert.equal(show[3], ownerPart.current.host_id);
     assert.equal(show[4], ownerPart.current.boot_id);
     assert.ok(Number(show[6]) > 0, 'Show needs an acknowledged terminal write');
   }
-  assert.notEqual(terminalShows[0][1], terminalShows[1][1],
+  const actionShow = terminalShows.at(-2);
+  const changedShow = terminalShows.at(-1);
+  if (terminalShows.length === 3) {
+    assert.notEqual(terminalShows[0][1], actionShow[1],
+      'explicit same-attachment presentation must produce a new Show');
+    assert.equal(terminalShows[0][5], actionShow[5],
+      'same-attachment presentation must not change the Host offer generation');
+  }
+  assert.notEqual(actionShow[1], changedShow[1],
     'a new Face cannot reuse the previous terminal Show');
-  assert.notEqual(terminalShows[0][2], terminalShows[1][2],
+  assert.notEqual(actionShow[2], changedShow[2],
     'the changed Face and detached terminal offer require a replacement route Plan');
-  assert.ok(Number(terminalShows[1][5]) > Number(terminalShows[0][5]),
+  assert.ok(Number(changedShow[5]) > Number(actionShow[5]),
     'terminal reattachment must use the fresh Host offer generation');
   assert.match(terminal.stdout, /1000 milliseconds/);
   assert.match(terminal.stdout, /500 milliseconds/);
@@ -394,7 +421,7 @@ try {
   const terminalAction = JSON.parse(terminalActionLine.slice(terminalActionLine.indexOf('{')));
   assert.equal(terminalAction.body_id, bodyId);
   assert.equal(terminalAction.interval_ms, 500);
-  assert.equal(terminalAction.prior_show_id, terminalShows[0][1]);
+  assert.equal(terminalAction.prior_show_id, actionShow[1]);
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
   const ownerAfterTerminal = run(['body', 'face', '--state-dir', state, '--json']);
   assert.equal(ownerAfterTerminal.presentation.basis.body_id, bodyId);
@@ -836,12 +863,14 @@ try {
       owner_plan_id_after: afterTerminalDoff.owner_plan_id,
       setup_path: 'terminal-setup.txt',
       setup_sha256: digest(Buffer.from(terminalSetup.stdout)),
-      show_id_before: terminalShows[0][1],
-      route_plan_id_before: terminalShows[0][2],
-      offer_generation_before: Number(terminalShows[0][5]),
-      show_id_after: terminalShows[1][1],
-      route_plan_id_after: terminalShows[1][2],
-      offer_generation_after: Number(terminalShows[1][5]),
+      show_id_before: actionShow[1],
+      route_plan_id_before: actionShow[2],
+      offer_generation_before: Number(actionShow[5]),
+      show_id_after: changedShow[1],
+      route_plan_id_after: changedShow[2],
+      offer_generation_after: Number(changedShow[5]),
+      initial_show_id: terminalShows[0][1],
+      explicit_show_refresh: terminalShows.length === 3,
       host_id: terminalShows[0][3],
       boot_id: terminalShows[0][4],
       path: 'terminal-face.txt',

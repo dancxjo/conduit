@@ -3,6 +3,7 @@ use crate::durable_host::owner::Owner;
 use crate::durable_host_control::{Request, Response};
 use conduit_body::ResidentPlot;
 use conduit_std_host::{hosted_terminal_mask_host::receive_terminal_frame_and_ack, StdHost};
+use sha2::Digest;
 use std::{
     fs,
     io::Read,
@@ -180,6 +181,68 @@ fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
         marker["offer_generation"],
         runtime.host.advertisement().offer_generation.0
     );
+    fs::remove_dir_all(state).unwrap();
+}
+
+#[test]
+fn selected_terminal_can_present_a_fresh_show_without_detaching() {
+    let mut runtime = runtime();
+    let state = state(&runtime);
+    let token = [7; 32];
+    let request = request(&runtime, &token);
+    let (mut client, mut server) = UnixStream::pair().unwrap();
+    let worker = thread::spawn(move || {
+        wire::write_request(&mut client, &request).unwrap();
+        assert!(matches!(
+            wire::read_reply(&mut client).unwrap(),
+            AttachReply::Attached { .. }
+        ));
+        receive_terminal_frame_and_ack(&mut client, &mut Vec::new()).unwrap();
+        let AttachReply::Show {
+            route_plan_id,
+            show,
+            ..
+        } = wire::read_reply(&mut client).unwrap()
+        else {
+            panic!("expected attached Show");
+        };
+        let refreshed_effect =
+            receive_terminal_frame_and_ack(&mut client, &mut Vec::new()).unwrap();
+        (client, route_plan_id, *show, refreshed_effect)
+    });
+    let mut first = [0];
+    server.read_exact(&mut first).unwrap();
+    serve(&state, &mut server, &mut runtime, &token, first[0]).unwrap();
+    let route = runtime.terminal_route.as_ref().unwrap();
+    let plan = route.seal.route_plan_id.clone();
+    let old_show = route.show.clone();
+    let generation = runtime.host.advertisement().offer_generation;
+    let doffed = runtime
+        .attached_terminal_wardrobe(&plan, &old_show, 0, TerminalWardrobeCommand::Doff)
+        .unwrap();
+    let revision = doffed["wardrobe"]["revision"].as_u64().unwrap();
+    let reworn = runtime
+        .attached_terminal_wardrobe(&plan, &old_show, revision, TerminalWardrobeCommand::Wear)
+        .unwrap();
+    assert!(reworn["fresh_show_required"].as_bool().unwrap());
+    let (new_show, advertisement) = runtime
+        .refresh_attached_terminal_show(&plan, &old_show)
+        .unwrap();
+    let (client, first_plan, first_show, effect) = worker.join().unwrap();
+    assert_eq!(first_plan, plan);
+    assert_eq!(first_show, old_show);
+    assert_ne!(new_show.show_id, old_show.show_id);
+    assert_eq!(advertisement.offer_generation, generation);
+    assert_eq!(
+        effect.show_sha256,
+        <[u8; 32]>::from(sha2::Sha256::digest(new_show.show_id.as_str().as_bytes()))
+    );
+    let current = runtime
+        .attached_terminal_wardrobe(&plan, &new_show, 0, TerminalWardrobeCommand::Inspect)
+        .unwrap();
+    assert_eq!(current["show_id"], new_show.show_id.as_str());
+    drop(client);
+    retire_closed_attachment(&state, &mut runtime).unwrap();
     fs::remove_dir_all(state).unwrap();
 }
 
