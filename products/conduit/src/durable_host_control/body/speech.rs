@@ -14,35 +14,54 @@ use conduit_std_host::{
 use serde_json::{json, Value};
 use std::{sync::mpsc, thread::JoinHandle};
 
+// The retained WAV root admits 64 exact per-Play artifacts. The browser path
+// keeps its one-segment batches; the direct owner Mask reserves one artifact
+// for its opening Show and may request four segments in each later Play.
 const MAXIMUM_BATCHES: usize = 64;
+pub(super) const DIRECT_MAXIMUM_BATCHES: usize = MAXIMUM_BATCHES - 1;
 
 #[cfg(all(test, unix))]
 #[path = "speech/tests.rs"]
 mod tests;
 
-enum SpeechFailure {
+pub(super) enum SpeechFailure {
     Refused(String),
     Cancelled(String),
     PlayRefused(String),
     Failed(String),
+    Partial {
+        cause: Box<SpeechFailure>,
+        completed_batches: Vec<Value>,
+    },
 }
 
 impl SpeechFailure {
-    fn outcome(&self) -> &'static str {
+    pub(super) fn outcome(&self) -> &'static str {
         match self {
             Self::Refused(_) => "refused",
             Self::Cancelled(_) => "cancelled",
             Self::PlayRefused(_) => "play-refused-unclassified",
             Self::Failed(_) => "failed",
+            Self::Partial { cause, .. } => cause.outcome(),
         }
     }
 
-    fn detail(self) -> String {
+    pub(super) fn completed_batches(&self) -> &[Value] {
+        match self {
+            Self::Partial {
+                completed_batches, ..
+            } => completed_batches,
+            _ => &[],
+        }
+    }
+
+    pub(super) fn detail(self) -> String {
         match self {
             Self::Refused(detail)
             | Self::Cancelled(detail)
             | Self::PlayRefused(detail)
             | Self::Failed(detail) => detail,
+            Self::Partial { cause, .. } => cause.detail(),
         }
     }
 }
@@ -110,7 +129,15 @@ impl DurableHostRuntime {
                     gate.wait();
                 }
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    play_selected(&mut host, &face, &worker_show, &equipment, &worker_control)
+                    play_selected(
+                        &mut host,
+                        &face,
+                        &worker_show,
+                        &equipment,
+                        &worker_control,
+                        1,
+                        MAXIMUM_BATCHES,
+                    )
                 }))
                 .unwrap_or_else(|_| {
                     Err(SpeechFailure::Failed(
@@ -184,13 +211,17 @@ impl DurableHostRuntime {
             }
             Err(failure) => {
                 let outcome = failure.outcome();
+                let completed_batches = failure.completed_batches().to_vec();
                 json!({"schema":"conduit.body/selected-speech-terminal@1",
                     "operation_id":worker.operation_id, "outcome":outcome,
                     "source_show_id":worker.source_show.show_id.as_str(),
                     "host_id":owner.host.advertisement().host_id.as_str(),
                     "boot_id":owner.host.advertisement().boot_id.as_str(),
                     "offer_generation":owner.host.advertisement().offer_generation.0,
-                    "source_show_still_current":source_current, "detail":failure.detail()})
+                    "source_show_still_current":source_current,
+                    "completed_batch_count":completed_batches.len(),
+                    "batches":completed_batches,
+                    "detail":failure.detail()})
             }
         };
         self.speech_terminal = Some(terminal);
@@ -247,12 +278,48 @@ impl DurableHostRuntime {
     }
 }
 
-fn play_selected(
+pub(super) fn play_selected(
     host: &mut StdHost,
     face: &Presentation,
     show: &MaskShow,
     equipment: &AttachedEquipment,
     control: &RunControl,
+    segments_per_batch: usize,
+    maximum_batches: usize,
+) -> Result<Value, SpeechFailure> {
+    let mut receipts = Vec::with_capacity(maximum_batches);
+    let result = play_selected_inner(
+        host,
+        face,
+        show,
+        equipment,
+        control,
+        segments_per_batch,
+        maximum_batches,
+        &mut receipts,
+    );
+    result.map_err(|cause| {
+        if receipts.is_empty() {
+            cause
+        } else {
+            SpeechFailure::Partial {
+                cause: Box::new(cause),
+                completed_batches: receipts,
+            }
+        }
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn play_selected_inner(
+    host: &mut StdHost,
+    face: &Presentation,
+    show: &MaskShow,
+    equipment: &AttachedEquipment,
+    control: &RunControl,
+    segments_per_batch: usize,
+    maximum_batches: usize,
+    receipts: &mut Vec<Value>,
 ) -> Result<Value, SpeechFailure> {
     if !equipment.matches(host) {
         return Err(SpeechFailure::Refused(
@@ -268,19 +335,19 @@ fn play_selected(
         .map_err(|error| {
             SpeechFailure::Refused(format!("selected spoken read-all refused: {error:?}"))
         })?;
-    let mut receipts = Vec::with_capacity(MAXIMUM_BATCHES);
-    let mut completed = false;
-    for _ in 0..MAXIMUM_BATCHES {
+    let mut terminal_turn = None;
+    for _ in 0..maximum_batches {
         if control.stop_requested() {
             return Err(SpeechFailure::Cancelled(
                 "selected speech stop requested".into(),
             ));
         }
-        let Some(batch) = reader.next_batch_with_limits(1, 64).map_err(|error| {
-            SpeechFailure::Refused(format!("selected speech batch refused: {error:?}"))
-        })?
+        let Some(batch) = reader
+            .next_batch_with_limits(segments_per_batch, 64)
+            .map_err(|error| {
+                SpeechFailure::Refused(format!("selected speech batch refused: {error:?}"))
+            })?
         else {
-            completed = true;
             break;
         };
         let result = execute_spoken_batch_on_attached_host_with_capture(
@@ -339,8 +406,8 @@ fn play_selected(
                     && name[5..69].bytes().all(|byte| byte.is_ascii_hexdigit())
             })
             .ok_or_else(|| SpeechFailure::Failed("same-Play WAV locator is invalid".into()))?;
-        // The admitted reader supplied at most one 64-byte committed segment
-        // here; the playback entrance validated its ordered source digest.
+        // The admitted reader supplied bounded ordered segments; the playback
+        // entrance validated their exact source digest.
         let spoken_segments: Vec<&str> = batch
             .segments
             .iter()
@@ -362,12 +429,19 @@ fn play_selected(
             .map_err(|error| {
                 SpeechFailure::Failed(format!("selected speaker receipt refused: {error:?}"))
             })?;
-        if terminal.is_some() {
-            completed = true;
+        if let Some(terminal) = terminal {
+            terminal_turn = Some(terminal);
             break;
         }
     }
-    if !completed || receipts.is_empty() {
+    let terminal = terminal_turn.ok_or_else(|| {
+        SpeechFailure::Refused(format!(
+            "complete Face reading exceeded {maximum_batches} admitted speech batches"
+        ))
+    })?;
+    if receipts.is_empty()
+        || terminal.outcome != conduit_std_host::spoken_face_mask::SpokenTurnOutcome::Completed
+    {
         return Err(SpeechFailure::Failed(
             "selected speech ended without bounded complete readout".into(),
         ));
@@ -381,5 +455,9 @@ fn play_selected(
         "offer_generation":offered.offer_generation.0,
         "provider_sha256":equipment.provider_sha256,
         "selected_resource_pool_id":equipment.playback.pool_id().as_str(),
-        "authority_grant_id":equipment.authorization.grant_id(), "batches":receipts}))
+        "authority_grant_id":equipment.authorization.grant_id(),
+        "completed_segments":terminal.completed_segments,
+        "produced_pcm_bytes":terminal.produced_pcm_bytes,
+        "correlation_sha256":terminal.correlation_sha256,
+        "batches":std::mem::take(receipts)}))
 }

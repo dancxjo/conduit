@@ -1,4 +1,8 @@
-//! Pre-admitted mechanical Face speech and artifact Show for one direct Mask.
+//! Bounded opening speech and artifact Show for one direct Mask.
+//!
+//! The complete Face is read after this Show by `SpokenFaceSession`, one
+//! acknowledged speech batch per Play. The opening artifact never claims that
+//! all Face clauses have already been spoken.
 
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -10,8 +14,7 @@ use conduit_presentation::{
     Presentation, SpokenMaskArtifactReceipt,
 };
 
-const MAX_WORDING_ITEMS: usize = 32;
-const MAX_WORDING_ITEM_BYTES: usize = 1024;
+const MAX_OPENING_BYTES: usize = 256;
 const MAX_FACE_BYTES: u32 = conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32;
 
 pub struct DirectSpokenMaskPreparation {
@@ -35,6 +38,15 @@ pub struct DirectSpokenMaskSession {
 impl DirectSpokenMaskPreparation {
     pub fn encoded_face(&self) -> &[u8] {
         &self.encoded_face
+    }
+
+    /// Exact brief wording admitted for this Mask Play. A complete Face
+    /// reading is a separate sequence sourced from the acknowledged Show.
+    pub fn opening_wording(&self) -> Result<&str, String> {
+        let [item] = self.wording.as_slices().0 else {
+            return Err("direct Face opening is not one bounded item".into());
+        };
+        std::str::from_utf8(item).map_err(|_| "direct Face opening is not UTF-8".into())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -86,43 +98,24 @@ impl DirectSpokenMaskPreparation {
 pub fn prepare_wording_items(
     presentation: &Presentation,
 ) -> Result<std::collections::VecDeque<Vec<u8>>, String> {
-    let clauses = crate::spoken_face_mask::mechanical_face_clauses(presentation)
+    // Check that the same complete Face can enter the interactive reader. Its
+    // clauses are deliberately not flattened into this one 30-second Play.
+    crate::spoken_face_mask::mechanical_face_clauses(presentation)
         .map_err(|error| format!("project direct Face speech: {error:?}"))?;
-    let mut wording = std::collections::VecDeque::new();
-    let mut current = Vec::with_capacity(MAX_WORDING_ITEM_BYTES);
-    for clause in clauses {
-        let mut remaining = clause.as_str();
-        while !remaining.is_empty() {
-            if !current.is_empty() {
-                if current.len() == MAX_WORDING_ITEM_BYTES {
-                    wording.push_back(std::mem::take(&mut current));
-                } else {
-                    current.push(b' ');
-                }
-            }
-            let mut end = remaining.len().min(MAX_WORDING_ITEM_BYTES - current.len());
-            while !remaining.is_char_boundary(end) {
-                end -= 1;
-            }
-            if end == 0 {
-                wording.push_back(std::mem::take(&mut current));
-                continue;
-            }
-            current.extend_from_slice(&remaining.as_bytes()[..end]);
-            remaining = &remaining[end..];
-            if wording.len() >= MAX_WORDING_ITEMS && (!remaining.is_empty() || !current.is_empty())
-            {
-                return Err("direct Face speech exceeds admitted segment count".into());
-            }
-        }
+    let name = presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.role == conduit_presentation::PresentationRole::Body)
+        .map(|subject| subject.name.as_str())
+        .filter(|name| !name.is_empty() && name.len() <= 128);
+    let opening = match name {
+        Some(name) => format!("Current view of {name}. This opening is brief; the complete reading needs a selected speaker."),
+        None => "Current view. This opening is brief; the complete reading needs a selected speaker.".to_owned(),
+    };
+    if opening.len() > MAX_OPENING_BYTES {
+        return Err("direct Face opening exceeds admitted bound".into());
     }
-    if !current.is_empty() {
-        wording.push_back(current);
-    }
-    if wording.is_empty() {
-        return Err("direct Face has no speakable wording".into());
-    }
-    Ok(wording)
+    Ok(std::collections::VecDeque::from([opening.into_bytes()]))
 }
 
 impl DirectSpokenMaskSession {
@@ -295,7 +288,7 @@ mod tests {
     };
 
     #[test]
-    fn pre_show_direct_wording_is_complete_and_bounded() {
+    fn pre_show_direct_wording_is_an_explicit_bounded_opening() {
         let body = Body::born(
             SourceDocumentId::from("source/direct-voice"),
             CheckedPlotId::from("checked/direct-voice"),
@@ -334,15 +327,16 @@ mod tests {
         )
         .unwrap();
         let items = prepare_wording_items(&face).unwrap();
-        assert!(items.len() <= MAX_WORDING_ITEMS);
+        assert_eq!(items.len(), 1);
         assert!(items
             .iter()
-            .all(|item| !item.is_empty() && item.len() <= 1024));
+            .all(|item| !item.is_empty() && item.len() <= MAX_OPENING_BYTES));
         let spoken = items
             .iter()
             .map(|item| std::str::from_utf8(item).unwrap())
             .collect::<String>();
         assert!(spoken.contains("Current body"));
-        assert!(spoken.contains("Ready to create a Body."));
+        assert!(spoken.contains("opening is brief"));
+        assert!(!spoken.contains("Ready to create a Body."));
     }
 }
