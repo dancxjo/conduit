@@ -62,7 +62,8 @@ fn owns_implementation(id: &ImplementationId) -> bool {
         fixed_numeric_operations_back::FLOW_OPERATION_IMPLEMENTATION,
         fixed_numeric_pair_back::VALUE_PAIR_IMPLEMENTATION,
         fixed_numeric_preparation::{AFFINE_IMPLEMENTATION, WINDOW_IMPLEMENTATION},
-        fixed_numeric_scan_back::SCAN_IMPLEMENTATION,
+        fixed_numeric_scan_back::{FLOW_SCAN_IMPLEMENTATION, SCAN_IMPLEMENTATION},
+        fixed_numeric_window_back::FLOW_WINDOW_IMPLEMENTATION,
         fixed_numeric_signal_back::{ELEMENTWISE_IMPLEMENTATION, FLOW_ELEMENTWISE_IMPLEMENTATION},
     };
     [
@@ -70,6 +71,8 @@ fn owns_implementation(id: &ImplementationId) -> bool {
         WINDOW_IMPLEMENTATION,
         LINEAR_IMPLEMENTATION,
         SCAN_IMPLEMENTATION,
+        FLOW_SCAN_IMPLEMENTATION,
+        FLOW_WINDOW_IMPLEMENTATION,
         INDEX_IMPLEMENTATION,
         FLOW_INDEX_IMPLEMENTATION,
         ELEMENTWISE_IMPLEMENTATION,
