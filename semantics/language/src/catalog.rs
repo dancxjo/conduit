@@ -41,6 +41,7 @@ pub fn install_linguistics_catalogs(
         .into_iter()
         .chain(crate::realization_types())
         .chain(crate::text_revision_types())
+        .chain(crate::lexical::lexical_types())
         .chain(linguistic_types())
     {
         startup.ensure_structured_type(name, value_type)?;
