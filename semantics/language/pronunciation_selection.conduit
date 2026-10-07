@@ -1,0 +1,47 @@
+# Supplied reviewed relation-to-governor POS policy; no word or grammar heuristic.
+# A canonical supplied graph does not by itself prove parser accuracy.
+type LanguagePronunciationSelectionRule = {
+    relation: LanguageDependencyRelation
+    pos: LanguageLexicalPos
+}
+type LanguagePronunciationSelectionProfile = {
+    identity: Text <= 64B not in [""]
+    language: LanguageId
+    rules: sequence LanguagePronunciationSelectionRule in 1..=4
+    provenance: LinguisticDerivationProvenance
+}
+type LanguagePronunciationSelectionRequest = {
+    source: LanguageTextRevision
+    analysis: LanguageAnalysisRevisionId
+    token: LanguageLexicalToken
+    basis: LanguageDependencyArc
+    profile: LanguagePronunciationSelectionProfile
+    where .token.completeness is complete
+    where .token.category is word
+    where .profile.language == .source.material.language
+    where .token.identity.text_identity == .source.material.identity
+    where .token.identity.text_revision == .source.material.revision
+    where .basis.governor is token
+    where .basis.governor.token.token == .token.identity
+    where .basis.governor.token.revision == .analysis
+    where .basis.dependent.revision == .analysis
+}
+type LanguagePronunciationPosResult = {
+    accepted: Boolean
+    pos: LanguageLexicalPos
+}
+type LanguagePronunciationCandidateQuery = {
+    candidates: sequence LanguageLexicalCandidate <= 4
+    pos: LanguageLexicalPos
+}
+type LanguagePronunciationCandidateResult = {
+    index: U64
+}
+plot language/pronunciation-pos (
+    >> value: LanguagePronunciationSelectionRequest
+    result: LanguagePronunciationPosResult >>
+) = (((((sequence/length(.profile.rules) > 0 ? sequence/at(.profile.rules, 0).relation == .basis.relation : false)) || ((sequence/length(.profile.rules) > 1 ? sequence/at(.profile.rules, 1).relation == .basis.relation : false)) || ((sequence/length(.profile.rules) > 2 ? sequence/at(.profile.rules, 2).relation == .basis.relation : false)) || ((sequence/length(.profile.rules) > 3 ? sequence/at(.profile.rules, 3).relation == .basis.relation : false))) && !(((sequence/length(.profile.rules) > 0 ? sequence/at(.profile.rules, 0).relation == .basis.relation : false)) && ((sequence/length(.profile.rules) > 1 ? sequence/at(.profile.rules, 1).relation == .basis.relation : false))) && !(((sequence/length(.profile.rules) > 0 ? sequence/at(.profile.rules, 0).relation == .basis.relation : false)) && ((sequence/length(.profile.rules) > 2 ? sequence/at(.profile.rules, 2).relation == .basis.relation : false))) && !(((sequence/length(.profile.rules) > 0 ? sequence/at(.profile.rules, 0).relation == .basis.relation : false)) && ((sequence/length(.profile.rules) > 3 ? sequence/at(.profile.rules, 3).relation == .basis.relation : false))) && !(((sequence/length(.profile.rules) > 1 ? sequence/at(.profile.rules, 1).relation == .basis.relation : false)) && ((sequence/length(.profile.rules) > 2 ? sequence/at(.profile.rules, 2).relation == .basis.relation : false))) && !(((sequence/length(.profile.rules) > 1 ? sequence/at(.profile.rules, 1).relation == .basis.relation : false)) && ((sequence/length(.profile.rules) > 3 ? sequence/at(.profile.rules, 3).relation == .basis.relation : false))) && !(((sequence/length(.profile.rules) > 2 ? sequence/at(.profile.rules, 2).relation == .basis.relation : false)) && ((sequence/length(.profile.rules) > 3 ? sequence/at(.profile.rules, 3).relation == .basis.relation : false)))) ? { accepted: true, pos: ((sequence/length(.profile.rules) > 0 ? sequence/at(.profile.rules, 0).relation == .basis.relation : false) ? sequence/at(.profile.rules, 0).pos : ((sequence/length(.profile.rules) > 1 ? sequence/at(.profile.rules, 1).relation == .basis.relation : false) ? sequence/at(.profile.rules, 1).pos : ((sequence/length(.profile.rules) > 2 ? sequence/at(.profile.rules, 2).relation == .basis.relation : false) ? sequence/at(.profile.rules, 2).pos : ((sequence/length(.profile.rules) > 3 ? sequence/at(.profile.rules, 3).relation == .basis.relation : false) ? sequence/at(.profile.rules, 3).pos : sequence/at(.profile.rules, 0).pos)))) } : { accepted: false, pos: other(unit) })
+plot language/pronunciation-candidate (
+    >> value: LanguagePronunciationCandidateQuery
+    result: LanguagePronunciationCandidateResult >>
+) = ({ index: ((((sequence/length(.candidates) > 0 ? sequence/at(.candidates, 0).pos == .pos : false)) || ((sequence/length(.candidates) > 1 ? sequence/at(.candidates, 1).pos == .pos : false)) || ((sequence/length(.candidates) > 2 ? sequence/at(.candidates, 2).pos == .pos : false)) || ((sequence/length(.candidates) > 3 ? sequence/at(.candidates, 3).pos == .pos : false))) && !(((sequence/length(.candidates) > 0 ? sequence/at(.candidates, 0).pos == .pos : false)) && ((sequence/length(.candidates) > 1 ? sequence/at(.candidates, 1).pos == .pos : false))) && !(((sequence/length(.candidates) > 0 ? sequence/at(.candidates, 0).pos == .pos : false)) && ((sequence/length(.candidates) > 2 ? sequence/at(.candidates, 2).pos == .pos : false))) && !(((sequence/length(.candidates) > 0 ? sequence/at(.candidates, 0).pos == .pos : false)) && ((sequence/length(.candidates) > 3 ? sequence/at(.candidates, 3).pos == .pos : false))) && !(((sequence/length(.candidates) > 1 ? sequence/at(.candidates, 1).pos == .pos : false)) && ((sequence/length(.candidates) > 2 ? sequence/at(.candidates, 2).pos == .pos : false))) && !(((sequence/length(.candidates) > 1 ? sequence/at(.candidates, 1).pos == .pos : false)) && ((sequence/length(.candidates) > 3 ? sequence/at(.candidates, 3).pos == .pos : false))) && !(((sequence/length(.candidates) > 2 ? sequence/at(.candidates, 2).pos == .pos : false)) && ((sequence/length(.candidates) > 3 ? sequence/at(.candidates, 3).pos == .pos : false)))) ? ((sequence/length(.candidates) > 0 ? sequence/at(.candidates, 0).pos == .pos : false) ? 0 : ((sequence/length(.candidates) > 1 ? sequence/at(.candidates, 1).pos == .pos : false) ? 1 : ((sequence/length(.candidates) > 2 ? sequence/at(.candidates, 2).pos == .pos : false) ? 2 : ((sequence/length(.candidates) > 3 ? sequence/at(.candidates, 3).pos == .pos : false) ? 3 : 4)))) : 4 })
