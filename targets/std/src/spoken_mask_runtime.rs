@@ -349,9 +349,12 @@ impl ArtifactAcknowledgedShowBack {
         register_call: HostCallId,
         show_call: HostCallId,
     ) -> Result<Self, &'static str> {
+        // This shared Back carries validated model output for one Mask and the
+        // source Face for the direct Mask. Exact callers pass their own planned
+        // limits; the larger Face limit must be admitted here.
         if maximum_manifestation_bytes == 0
             || maximum_manifestation_bytes
-                > conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+                > conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
             || maximum_receipt_bytes == 0
             || maximum_receipt_bytes > 4_096
         {
