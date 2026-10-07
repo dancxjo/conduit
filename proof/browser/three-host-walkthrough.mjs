@@ -68,7 +68,7 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     chapter('terminal-action', 5 + offset, 'Read and change it in a terminal',
       'Doff the browser Mask, attach the terminal, and explicitly wear and prefer its Mask. Reattach it for an acknowledged Show, then enter “apply 500” to send the available typed action. The owner retires that Show and attaches the terminal against the changed Face, sealing a new route Plan and acknowledging a new Show. This is replacement planning for the terminal presentation route, unlike choosing an already sealed wardrobe route. After the terminal detaches, wear the browser Mask again to read the new clock state.',
       figure('browser-after-terminal.png', 'Browser Face after the terminal changed the clock to 500 milliseconds', 'The browser confirms the terminal action on the same Body.')
-      + `<p>Terminal route Plans: <code>${escape(report.terminal_show.route_plan_id_before)}</code> then <code>${escape(report.terminal_show.route_plan_id_after)}</code>. The Body remains on the installed Linux owner.</p>`
+      + `<p>Terminal route Plans: <code>${escape(report.terminal_show.route_plan_id_before)}</code> then <code>${escape(report.terminal_show.route_plan_id_after)}</code>. Owner presentation Plans: <code>${escape(report.terminal_show.owner_plan_id_before)}</code> then <code>${escape(report.terminal_show.owner_plan_id_after)}</code>. The Body remains on the installed Linux owner.</p>`
       + '<details><summary>Read the actual terminal wardrobe setup</summary><pre>'
       + escape(await readFile(path.join(output, 'terminal-setup.txt'), 'utf8'))
       + '</pre></details><details><summary>Read the actual terminal action session</summary><pre>'

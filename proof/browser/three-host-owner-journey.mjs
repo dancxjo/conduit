@@ -279,6 +279,8 @@ try {
   assert.equal(beforeTerminal.selected?.route_id, browserBeforeTerminal?.route_id);
   await page.getByRole('button', { name: `Doff ${browserBeforeTerminal.mask_name}`, exact: true }).click();
   const browserDoffedForTerminal = await awaitWardrobeRevision(beforeTerminal.wardrobe_revision_decimal);
+  assert.equal(browserDoffedForTerminal.owner_plan_id, beforeTerminal.owner_plan_id,
+    'doffing an already sealed browser route is a same-Plan wardrobe choice');
   assert.equal(browserDoffedForTerminal.selected, null,
     'native route was doffed earlier; the person must explicitly choose the terminal');
   const terminalSetup = spawnSync(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
@@ -323,6 +325,8 @@ try {
       .route_descriptions.length > 0; } catch { return false; }
   }, null, { timeout: 12_000 });
   const afterTerminalDoff = await readWardrobe();
+  assert.notEqual(afterTerminalDoff.owner_plan_id, beforeTerminal.owner_plan_id,
+    'changed Face and terminal Host offers require a replacement owner Plan');
   const browserAfterTerminal = afterTerminalDoff.route_descriptions.find(route =>
     route.host_id === identity.hostId);
   assert.ok(browserAfterTerminal);
@@ -648,6 +652,8 @@ try {
       next_step: terminalAction.next_step,
     },
     terminal_show: {
+      owner_plan_id_before: beforeTerminal.owner_plan_id,
+      owner_plan_id_after: afterTerminalDoff.owner_plan_id,
       setup_path: 'terminal-setup.txt',
       setup_sha256: digest(Buffer.from(terminalSetup.stdout)),
       show_id_before: terminalShows[0][1],
