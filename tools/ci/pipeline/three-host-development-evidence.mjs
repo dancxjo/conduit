@@ -31,17 +31,18 @@ export function retainedThreeHostDevelopmentEvidence(evidenceRoot = THREE_HOST_D
   }
   const paths = new Set(manifest.outputs?.map(output => output.path));
   if (!paths.has('index.html') || !paths.has('report.json')
-    || ![...paths].some(file => file.endsWith('.png'))
-    || ![...paths].some(file => file.endsWith('.wav'))) {
-    throw new Error('Three-host development evidence lacks its page, report, image, or listener audio');
+    || ![...paths].some(file => file.endsWith('.png'))) {
+    throw new Error('Three-host development evidence lacks its page, report, or image');
   }
   const report = JSON.parse(readFileSync(path.join(evidenceRoot, 'report.json'), 'utf8'));
   const page = readFileSync(path.join(evidenceRoot, 'index.html'), 'utf8');
   if (report.native_source_commit !== sourceCommit || !report.run_id || !report.body_id
-    || !report.owner_selected_speech || !report.owner_llm_speech
-    || !paths.has(report.owner_llm_speech.wav?.path)
-    || !page.includes('not the complete eight-chapter public journey')) {
-    throw new Error('Three-host development page or report does not match its partial live run');
+    || !/^conduit\.body\/three-host-owner-journey@1$/.test(report.schema)
+    || !/Development capture · \d of 8 chapters complete/.test(page)
+    || !page.includes('The public Journey and accepted release require separate gates')
+    || (page.match(/<article id="(?:birth|join|start|see|hear|loss|return|lull)"/g) ?? []).length !== 8
+    || (report.owner_llm_speech?.wav?.path && !paths.has(report.owner_llm_speech.wav.path))) {
+    throw new Error('Three-host development page or report does not match its eight-chapter diagnostic run');
   }
   for (const [, reference] of page.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
     if (!reference.startsWith('https://') && !reference.startsWith('#')
