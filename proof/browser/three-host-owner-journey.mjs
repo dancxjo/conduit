@@ -319,11 +319,13 @@ try {
   assert.equal(terminalAction.prior_show_id, terminalShows[0][1]);
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
   await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout);
+  const ownerAfterTerminal = run(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(ownerAfterTerminal.presentation.basis.body_id, bodyId);
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
-  await page.waitForFunction(() => {
+  await page.waitForFunction(faceId => {
     try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
-      .route_descriptions.length > 0; } catch { return false; }
-  }, null, { timeout: 12_000 });
+      .face_id === faceId; } catch { return false; }
+  }, ownerAfterTerminal.presentation.identity, { timeout: 12_000 });
   const afterTerminalDoff = await readWardrobe();
   assert.notEqual(afterTerminalDoff.owner_plan_id, beforeTerminal.owner_plan_id,
     'changed Face and terminal Host offers require a replacement owner Plan');
