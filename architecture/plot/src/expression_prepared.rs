@@ -147,7 +147,9 @@ impl PreparedPortableExpressionEvaluator {
 
     fn prepare(program: ProgramView<'_>, input: PreparedInput) -> Result<Self, Refusal> {
         let root = match program.output_type.shape() {
-            StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. } => {
+            StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. }
+                if leaf_kind(program.output_type).is_ok() =>
+            {
                 let root = prepare_node(program.root, program.input_type, &input)?;
                 if root.kind != leaf_kind(program.output_type)? {
                     return Err(Refusal::InvalidProgram);
