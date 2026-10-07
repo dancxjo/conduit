@@ -1,8 +1,12 @@
 #![cfg(feature = "kernel-operation-owners")]
+#[path = "fargan_epoch_flow/committed_lineage.rs"]
+mod committed_lineage;
 #[path = "fargan_epoch_flow/conditioning_cycle.rs"]
 mod conditioning_cycle;
 #[path = "fargan_epoch_contracts.rs"]
 mod declarations;
+#[path = "fargan_epoch_flow/feature_cycle.rs"]
+mod feature_cycle;
 #[path = "fargan_epoch_flow/interface.rs"]
 mod interface;
 use conduit_ai::{
