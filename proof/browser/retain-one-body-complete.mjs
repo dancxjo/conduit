@@ -63,6 +63,8 @@ export async function retainOneBodyComplete(runPath, outputPath) {
   const run = path.resolve(runPath);
   const source = path.join(run, 'three-host');
   const output = path.resolve(outputPath);
+  assert.ok(output !== run && !output.startsWith(`${run}${path.sep}`),
+    'retained output must be outside the private producer run');
   for (const root of [run, source]) {
     const metadata = await lstat(root);
     assert.ok(metadata.isDirectory() && !metadata.isSymbolicLink(), 'run root is not a real directory');
