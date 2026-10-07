@@ -144,12 +144,13 @@ fn fixture_with_source_gap(
         if omit_chapter && index == 6 {
             continue;
         }
-        let action = if repeat_action && index == 1 {
-            "action-birth".to_owned()
+        let event_id = if repeat_action && index == 1 {
+            "event-birth".to_owned()
         } else {
-            format!("action-{chapter}")
+            format!("event-{chapter}")
         };
         let chapter_receipt = format!("receipt-{chapter}");
+        let event_source = format!("event-source-{chapter}");
         let face_revision = if *chapter == "hear" {
             "5".to_owned()
         } else {
@@ -158,19 +159,32 @@ fn fixture_with_source_gap(
         json_output(
             &root,
             &mut manifest,
+            &event_source,
+            &json!({
+                "source_commit":commit,"run_id":"test-run","body_id":"test-body",
+                "event_kind":"typed-interaction","event_id":event_id,
+                "resulting_face_revision":face_revision,"outcome":"completed"
+            }),
+        );
+        json_output(
+            &root,
+            &mut manifest,
             &chapter_receipt,
             &json!({
-                "schema":"conduit.journey/chapter-receipt@1", "source_commit":commit,
+                "schema":"conduit.journey/chapter-receipt@2", "source_commit":commit,
                 "run_id":"test-run", "body_id":"test-body", "chapter_id":chapter,
-                "action_ids":[action], "resulting_face_revision":face_revision,
+                "events":[{"kind":"typed-interaction", "id":event_id,
+                    "face_revision":face_revision,"source_receipt_id":event_source}],
+                "resulting_face_revision":face_revision,
                 "outcome":"completed"
             }),
         );
         let sources: &[&str] = match *chapter {
             "birth" | "lull" => &["terminal"],
             "join" => &["qmp", "chromium"],
-            "see" if omit_terminal_show => &["qmp"],
-            "see" => &["qmp", "terminal"],
+            "see" if omit_terminal_show => &["chromium"],
+            "see" => &["chromium", "terminal"],
+            "start" => &["chromium", "qmp"],
             "return" => &["qmp"],
             "hear" => &["direct", "llm-assisted"],
             _ => &["chromium"],
@@ -206,6 +220,19 @@ fn fixture_with_source_gap(
                 ),
             };
             let sha = add(&root, &mut manifest, &artifact, kind, media_type, &bytes);
+            let media_source = format!("media-source-{chapter}-{offset}");
+            json_output(
+                &root,
+                &mut manifest,
+                &media_source,
+                &json!({
+                    "source_commit":commit,"run_id":"test-run","body_id":"test-body",
+                    "event_kind":"typed-interaction","event_id":event_id,
+                    "face_revision":face_revision,"media_path":format!("{artifact}.{}", if kind == EvidenceKind::Audio { "wav" } else if kind == EvidenceKind::Screenshot { "png" } else { "txt" }),
+                    "media_sha256":sha,
+                    "capture_source":match *source { "direct" if guest_audio => "qemu-audio", "direct" | "llm-assisted" => "speaker-play", other => other }
+                }),
+            );
             let mut transcript_id = None;
             let mut transcript_sha256 = None;
             let mut validation_id = None;
@@ -312,9 +339,10 @@ fn fixture_with_source_gap(
                 &mut manifest,
                 &capture_id,
                 &json!({
-                    "schema":"conduit.journey/capture-receipt@1", "source_commit":commit,
+                    "schema":"conduit.journey/capture-receipt@2", "source_commit":commit,
                     "run_id":if mixed_run && index == 4 && offset == 0 { "other-run" } else { "test-run" },
-                    "body_id":"test-body", "chapter_id":chapter, "action_id":action,
+                    "body_id":"test-body", "chapter_id":chapter, "event_id":event_id,
+                    "event_kind":"typed-interaction", "source_receipt_id":media_source,
                     "face_revision":face_revision, "media_output_id":artifact,
                     "media_sha256":sha, "capture_source":match *source { "direct" if guest_audio => "qemu-audio", "direct" | "llm-assisted" => "speaker-play", other => other },
                     "show_id":if kind == EvidenceKind::Audio { Some(format!("show-{offset}")) } else { None },
@@ -382,40 +410,145 @@ fn rewrite_json_output(fixture: &Fixture, output_id: &str, value: &Value) {
     fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
 }
 
+fn append_json_output(fixture: &Fixture, output_id: &str, value: &Value) {
+    let path = format!("{output_id}.json");
+    let bytes = serde_json::to_vec(value).unwrap();
+    fs::write(fixture.root.join(&path), &bytes).unwrap();
+    let manifest_path = fixture.root.join("manifest.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    let mut declared = manifest["outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|output| output["id"] == "event-source-join")
+        .unwrap()
+        .clone();
+    declared["id"] = json!(output_id);
+    declared["path"] = json!(path);
+    declared["sha256"] = json!(digest(&bytes));
+    declared["bytes"] = json!(bytes.len());
+    manifest["outputs"].as_array_mut().unwrap().push(declared);
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+}
+
+fn direct_owner_delivery(fixture: &Fixture) -> Value {
+    let selected: Value =
+        serde_json::from_slice(&fs::read(fixture.root.join("delivery-hear-0.json")).unwrap())
+            .unwrap();
+    json!({
+        "schema":"conduit.body/owner-spoken-terminal@1",
+        "mode":"direct", "outcome":"available", "show_id":"show-0",
+        "direct_reading_complete":true, "speaker_played":true,
+        "speaker_playback":{
+            "schema":"conduit.body/selected-speech-terminal@1",
+            "outcome":"completed", "source_show_id":"show-0",
+            "face_revision":5, "face_revision_decimal":"5",
+            "host_id":"synthetic-owner", "boot_id":"synthetic-boot",
+            "provider_sha256":"a".repeat(64),
+            "batches":selected["batches"]
+        }
+    })
+}
+
 #[test]
-fn captures_can_follow_successive_action_face_revisions() {
+fn accepts_only_the_completed_direct_mask_listener_batch() {
+    let accepted = fixture(false, false, false, false);
+    let direct = direct_owner_delivery(&accepted);
+    rewrite_json_output(&accepted, "delivery-hear-0", &direct);
+    run(&accepted).unwrap();
+
+    let incomplete = fixture(false, false, false, false);
+    let mut direct = direct_owner_delivery(&incomplete);
+    direct["direct_reading_complete"] = json!(false);
+    rewrite_json_output(&incomplete, "delivery-hear-0", &direct);
+    assert!(run(&incomplete)
+        .unwrap_err()
+        .contains("direct reading lacks its completed same-Play speaker batch"));
+
+    let wrong_audio = fixture(false, false, false, false);
+    let mut direct = direct_owner_delivery(&wrong_audio);
+    direct["speaker_playback"]["batches"][0]["speaker_frames_committed"] = json!(2);
+    rewrite_json_output(&wrong_audio, "delivery-hear-0", &direct);
+    assert!(run(&wrong_audio)
+        .unwrap_err()
+        .contains("audio WAV differs from the selected speaker Play"));
+}
+
+#[test]
+fn captures_can_follow_successive_typed_event_face_revisions() {
     let fixture = fixture(false, false, false, false);
+    let first_source = json!({"source_commit":fixture.commit,"run_id":"test-run",
+        "body_id":"test-body","event_kind":"membership","event_id":"event-join-first",
+        "resulting_face_revision":"face-join-first","outcome":"completed"});
+    let last_source = json!({"source_commit":fixture.commit,"run_id":"test-run",
+        "body_id":"test-body","event_kind":"acknowledged-show","event_id":"event-join",
+        "resulting_face_revision":"face-join","outcome":"completed"});
+    rewrite_json_output(&fixture, "event-source-join", &first_source);
+    append_json_output(&fixture, "event-source-join-last", &last_source);
     let receipt_path = fixture.root.join("receipt-join.json");
     let mut receipt: Value = serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
-    receipt["action_ids"] = json!(["action-join-first", "action-join"]);
-    receipt["action_face_revisions"] = json!({
-        "action-join-first": "face-join-first",
-        "action-join": "face-join"
-    });
+    receipt["events"] = json!([
+        {"kind":"membership","id":"event-join-first","face_revision":"face-join-first","source_receipt_id":"event-source-join"},
+        {"kind":"acknowledged-show","id":"event-join","face_revision":"face-join","source_receipt_id":"event-source-join-last"}
+    ]);
     rewrite_json_output(&fixture, "receipt-join", &receipt);
 
     let capture_path = fixture.root.join("capture-join-0.json");
     let mut capture: Value = serde_json::from_slice(&fs::read(capture_path).unwrap()).unwrap();
-    capture["action_id"] = json!("action-join-first");
+    capture["event_id"] = json!("event-join-first");
+    capture["event_kind"] = json!("membership");
     capture["face_revision"] = json!("face-join-first");
     rewrite_json_output(&fixture, "capture-join-0", &capture);
+    let media_source_path = fixture.root.join("media-source-join-0.json");
+    let mut media_source: Value =
+        serde_json::from_slice(&fs::read(media_source_path).unwrap()).unwrap();
+    media_source["event_id"] = json!("event-join-first");
+    media_source["event_kind"] = json!("membership");
+    media_source["face_revision"] = json!("face-join-first");
+    rewrite_json_output(&fixture, "media-source-join-0", &media_source);
+    let media_source_path = fixture.root.join("media-source-join-1.json");
+    let mut media_source: Value =
+        serde_json::from_slice(&fs::read(media_source_path).unwrap()).unwrap();
+    media_source["event_kind"] = json!("acknowledged-show");
+    rewrite_json_output(&fixture, "media-source-join-1", &media_source);
+    let capture_path = fixture.root.join("capture-join-1.json");
+    let mut capture: Value = serde_json::from_slice(&fs::read(capture_path).unwrap()).unwrap();
+    capture["event_kind"] = json!("acknowledged-show");
+    rewrite_json_output(&fixture, "capture-join-1", &capture);
     run(&fixture).unwrap();
 }
 
 #[test]
-fn rejects_capture_at_the_wrong_action_face_revision() {
+fn rejects_capture_at_the_wrong_event_face_revision() {
     let fixture = fixture(false, false, false, false);
-    let receipt_path = fixture.root.join("receipt-join.json");
-    let mut receipt: Value = serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
-    receipt["action_face_revisions"] = json!({"action-join": "face-join"});
-    rewrite_json_output(&fixture, "receipt-join", &receipt);
     let capture_path = fixture.root.join("capture-join-0.json");
     let mut capture: Value = serde_json::from_slice(&fs::read(capture_path).unwrap()).unwrap();
     capture["face_revision"] = json!("stale-face");
     rewrite_json_output(&fixture, "capture-join-0", &capture);
     assert!(run(&fixture)
         .unwrap_err()
-        .contains("does not match its run, action, Face, or digest"));
+        .contains("does not match its run, event, Face, or digest"));
+}
+
+#[test]
+fn rejects_relabelled_producer_event_and_media_sources() {
+    let event = fixture(false, false, false, false);
+    let path = event.root.join("event-source-join.json");
+    let mut source: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    source["event_kind"] = json!("acknowledged-show");
+    rewrite_json_output(&event, "event-source-join", &source);
+    assert!(run(&event)
+        .unwrap_err()
+        .contains("event source receipt is not correlated"));
+
+    let media = fixture(false, false, false, false);
+    let path = media.root.join("media-source-join-0.json");
+    let mut source: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    source["media_sha256"] = json!("b".repeat(64));
+    rewrite_json_output(&media, "media-source-join-0", &source);
+    assert!(run(&media)
+        .unwrap_err()
+        .contains("source receipt is not correlated"));
 }
 
 #[test]
@@ -444,11 +577,11 @@ fn rejects_mixed_run_before_rendering() {
 }
 
 #[test]
-fn rejects_action_reused_as_a_later_chapter() {
+fn rejects_event_reused_as_a_later_chapter() {
     let fixture = fixture(false, false, false, true);
     assert!(run(&fixture)
         .unwrap_err()
-        .contains("repeats an action from an earlier chapter"));
+        .contains("repeats an event identity"));
     assert!(!fixture.output.exists());
 }
 
