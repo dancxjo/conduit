@@ -122,9 +122,10 @@ impl<const WIDTH: usize> FixedElementwiseBack<WIDTH> {
             return Err(FixedElementwisePreparationRefusal::StepBudget);
         }
         let offer = if flow {
-            crate::fixed_numeric_temporal::closing_numeric_offer(
+            crate::fixed_numeric_temporal::closing_numeric_offer_for_placement(
                 &format!("numeric/{}{WIDTH}", operation.name()),
                 FLOW_ELEMENTWISE_IMPLEMENTATION,
+                placement,
             )
         } else {
             fixed_elementwise_offer::<WIDTH>(operation)
