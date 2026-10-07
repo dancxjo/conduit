@@ -171,7 +171,7 @@ a complete normal graphical Body run.
 | x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Broader ordinary implementation coverage, complete conformance and release acceptance remain unfinished |
 | IA-32 | The normal legacy BIOS product's checked text region runs in CPL3 through the shared production adapter; independent emulator checks cover memory/privilege denials, capability/lifecycle refusals, loop preemption, floating-state restoration and Source timer coexistence | Broader ordinary implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | AArch64 | Supported emulator proof runs the normal text region at EL0, with a gated serial effect, completion revocation, nineteen independent boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
-| RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
+| RISC-V64 | Supported emulator proof runs the normal text region in U-mode, with a gated serial effect, completion revocation, twenty-two boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |
 | ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
 
@@ -238,6 +238,38 @@ require the exact completed domain's Plan/Play, capability gate and zeroed
 storage; an ordinary ready Sign alone cannot satisfy them. These local emulator
 results do not establish physical hardware or release acceptance. The remaining full cost-accounting
 gaps above also apply to this backend.
+
+RISC-V64's development backend uses Sv39 with immutable U-mode code and
+non-executable private frame and stack pages. Root validates every inherited
+high-half page-table leaf as supervisor-only, with a finite descriptor budget.
+The user trap swaps to a Root-owned stack without dereferencing the user stack,
+denies supervisor CSR access and SBI requests, and restores Root's trap and
+translation state on return. Its SBI timer multiplexes independent Source and
+budget deadlines: one physical interrupt may satisfy both, while the Source
+wake keeps its original owner. Three budget interrupts return a looping domain.
+Admission requires the reviewed translation regime and SHA-256-conditioned
+Zkr entropy; missing mechanisms refuse rather than supply weaker capability
+material. The reviewed emulator CPU is `rv64,zkr=true,sv57=off,sv48=off`.
+
+`cargo xtask make conduitos riscv64-ordinary-domain-proof` completed two normal
+product boots and two independently instrumented boots. The original
+text-and-timer Source completed with three U-mode entries, one serial Base gate,
+six translation/TLB switches, 64 shared-window copy bytes, a 32-byte window peak,
+118,784 backend bytes and 22,374 Root metadata bytes. Completion revoked the
+domain and zeroed its backend storage. Twenty-two memory, privilege, firmware,
+alternate-gate and loop cases passed, alongside shared capability/lifecycle
+checks and exactly one Source timer wake during budget preemption. Independent
+code changes all `f0`–`f31` registers and FCSR before a gate and a loop; assembly
+compares restored Root state before Rust resumes or handles an interrupt.
+
+The normal RISC-V product now uses the bootloader-normalized memory map,
+executable extent and HHDM rather than a fabricated boot record. Its Make admits
+the normalizer's 8 MiB preparation arena and a finite 1 MiB preparation stack.
+The normal product seals allocation before Play; the separately instrumented
+image permits subsequent diagnostic Play preparation. The product receipt
+requires the exact completed domain, and its Patchbay projection retains the
+actual UEFI handoff provenance. These are local emulator results; the full
+cost-accounting, physical-hardware and release limitations above still apply.
 
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.

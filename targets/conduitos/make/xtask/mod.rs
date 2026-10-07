@@ -93,6 +93,7 @@ mod riscv64_a2;
 #[allow(dead_code)]
 mod riscv64_a3;
 mod riscv64_a4;
+mod riscv64_domain_proof;
 mod riscv64_product_boot;
 mod run;
 mod screen_free_three_host_proof;
@@ -521,6 +522,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
         ConduitosCommand::Ia32OrdinaryDomainProof => ia32_domain_proof::execute(opts),
         ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
+        ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }

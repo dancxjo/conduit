@@ -148,6 +148,15 @@ pub(super) fn boot_until_image(
     image: &std::path::Path,
     terminal_prefix: &str,
 ) -> Result<String, ConduitosError> {
+    boot_until_image_with_cpu(paths, image, terminal_prefix, "rv64,sv57=off,sv48=off")
+}
+
+pub(super) fn boot_until_image_with_cpu(
+    paths: &Paths,
+    image: &std::path::Path,
+    terminal_prefix: &str,
+    cpu: &str,
+) -> Result<String, ConduitosError> {
     if !paths.limine.join("BOOTRISCV64.EFI").is_file() {
         return Err(refusal(
             "missing-riscv64-bootloader-artifact",
@@ -169,7 +178,7 @@ pub(super) fn boot_until_image(
             "-accel",
             "tcg,thread=single",
             "-cpu",
-            "rv64,sv57=off,sv48=off",
+            cpu,
             "-m",
             "256M",
             "-smp",
@@ -215,6 +224,11 @@ pub(super) fn boot_until_image(
             ));
         }
         let text = fs::read_to_string(&log).unwrap_or_default();
+        if let Some(reason) = product_refusal(&text) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(refusal("riscv64-product-refused", reason));
+        }
         if text.contains(terminal_prefix) && text.ends_with('\n') {
             child
                 .kill()
@@ -226,6 +240,7 @@ pub(super) fn boot_until_image(
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
+            let _ = child.wait();
             let text = fs::read_to_string(&log).unwrap_or_default();
             return Err(refusal(
                 "absent-riscv64-entry-sign",
@@ -238,6 +253,16 @@ pub(super) fn boot_until_image(
         }
         thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn product_refusal(text: &str) -> Option<&str> {
+    text.split_inclusive('\n')
+        .filter_map(|line| line.strip_suffix('\n'))
+        .find_map(|line| {
+            let line = line.trim_end_matches('\r');
+            line.strip_prefix("CONDUIT_RISCV64_PRODUCT_REFUSAL ")
+                .or_else(|| line.strip_prefix("CONDUIT_RISCV64_DOMAIN_REFUSAL "))
+        })
 }
 
 fn bounded_serial_suffix(text: &str) -> &str {
@@ -351,6 +376,20 @@ mod tests {
     #[test]
     fn absent_sign_refuses() {
         assert!(parse("").is_err());
+    }
+
+    #[test]
+    fn complete_product_and_domain_refusals_stop_boot_acceptance() {
+        for prefix in [
+            "CONDUIT_RISCV64_PRODUCT_REFUSAL",
+            "CONDUIT_RISCV64_DOMAIN_REFUSAL",
+        ] {
+            assert_eq!(product_refusal(&format!("{prefix} stopped")), None);
+            assert_eq!(
+                product_refusal(&format!("firmware\n{prefix} stopped\r\n")),
+                Some("stopped")
+            );
+        }
     }
 
     #[test]

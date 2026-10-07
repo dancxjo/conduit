@@ -97,6 +97,16 @@ pub use riscv64::{
 pub const ARCHITECTURE: &str = "riscv64";
 #[cfg(target_arch = "riscv64")]
 pub use riscv64::SeedEntropy;
+#[cfg(all(
+    target_arch = "riscv64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub use riscv64::start_pending_source_timer;
+#[cfg(target_arch = "riscv64")]
+pub use riscv64::{SeedEntropy as DomainEntropy, early_write};
+#[cfg(all(target_arch = "riscv64", feature = "riscv64-product"))]
+pub use riscv64::{TextDomain, initialize_domains};
 #[cfg(target_arch = "loongarch64")]
 mod loongarch64;
 #[cfg(test)]

@@ -28,6 +28,10 @@ wake during preemption. The supported AArch64 emulator proof now executes
 the normal text region at EL0 and checks nineteen independent boundary entries,
 capability/lifecycle refusals, Source timer coexistence and restoration of all
 vector registers plus FPCR/FPSR before Root resumes or handles an interrupt.
+The supported RISC-V64 emulator proof runs the same normal text region in
+U-mode, verifies twenty-two independent boundary cases and the shared
+capability/lifecycle checks, restores all floating registers and FCSR before
+Root Rust code executes, and preserves one Source wake during budget preemption.
 Other ordinary implementations and architectures remain unfinished.
 DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).

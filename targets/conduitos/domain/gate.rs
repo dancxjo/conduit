@@ -7,7 +7,7 @@ pub fn finish(status: u32) -> ! {
         #[cfg(target_arch = "aarch64")]
         core::arch::asm!("svc #0", in("x0") u64::from(status), options(noreturn));
         #[cfg(target_arch = "riscv64")]
-        core::arch::asm!("ecall", in("a0") status as usize, options(noreturn));
+        core::arch::asm!("ecall", in("a0") status as usize, in("a7") 0_usize, options(noreturn));
         #[cfg(target_arch = "loongarch64")]
         core::arch::asm!("syscall 0", in("$a0") u64::from(status), options(noreturn));
     }

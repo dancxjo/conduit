@@ -6,6 +6,31 @@ mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 mod entropy;
 pub use entropy::SeedEntropy;
+mod domain_budget;
+#[cfg(feature = "riscv64-product")]
+mod domain_memory;
+#[cfg(feature = "riscv64-product")]
+mod domain_transition;
+#[cfg(feature = "riscv64-product")]
+#[path = "../ordinary_domain.rs"]
+mod ordinary_domain;
+#[cfg(feature = "riscv64-product")]
+pub use ordinary_domain::TextDomain;
+#[cfg(feature = "riscv64-product")]
+pub fn initialize_domains(record: &crate::boot::BootRecord) {
+    domain_memory::initialize(record);
+}
+#[cfg(feature = "riscv64-product")]
+fn domain_ticks() -> u64 {
+    read_counter()
+}
+pub fn early_write(bytes: &[u8]) {
+    present(bytes);
+}
+#[cfg(feature = "ordinary-domain-proof")]
+pub fn start_pending_source_timer() {
+    providers::start_pending_source_timer();
+}
 
 const SBI_EXT_TIME: usize = 0x5449_4d45;
 const SUPERVISOR_TIMER_INTERRUPT: usize = 5;
@@ -25,10 +50,12 @@ pub enum InterruptFact {
 
 core::arch::global_asm!(
     r#"
+    .option push
+    .option arch, +d
     .align 4
     .global conduitos_riscv64_trap_vector
 conduitos_riscv64_trap_vector:
-    addi sp, sp, -128
+    addi sp, sp, -400
     sd ra,   0(sp)
     sd t0,   8(sp)
     sd t1,  16(sp)
@@ -45,7 +72,75 @@ conduitos_riscv64_trap_vector:
     sd t4, 104(sp)
     sd t5, 112(sp)
     sd t6, 120(sp)
+    fsd f0, 128(sp)
+    fsd f1, 136(sp)
+    fsd f2, 144(sp)
+    fsd f3, 152(sp)
+    fsd f4, 160(sp)
+    fsd f5, 168(sp)
+    fsd f6, 176(sp)
+    fsd f7, 184(sp)
+    fsd f8, 192(sp)
+    fsd f9, 200(sp)
+    fsd f10, 208(sp)
+    fsd f11, 216(sp)
+    fsd f12, 224(sp)
+    fsd f13, 232(sp)
+    fsd f14, 240(sp)
+    fsd f15, 248(sp)
+    fsd f16, 256(sp)
+    fsd f17, 264(sp)
+    fsd f18, 272(sp)
+    fsd f19, 280(sp)
+    fsd f20, 288(sp)
+    fsd f21, 296(sp)
+    fsd f22, 304(sp)
+    fsd f23, 312(sp)
+    fsd f24, 320(sp)
+    fsd f25, 328(sp)
+    fsd f26, 336(sp)
+    fsd f27, 344(sp)
+    fsd f28, 352(sp)
+    fsd f29, 360(sp)
+    fsd f30, 368(sp)
+    fsd f31, 376(sp)
+    frcsr t0
+    sd t0, 384(sp)
     call conduitos_riscv64_trap_handler
+    fld f0, 128(sp)
+    fld f1, 136(sp)
+    fld f2, 144(sp)
+    fld f3, 152(sp)
+    fld f4, 160(sp)
+    fld f5, 168(sp)
+    fld f6, 176(sp)
+    fld f7, 184(sp)
+    fld f8, 192(sp)
+    fld f9, 200(sp)
+    fld f10, 208(sp)
+    fld f11, 216(sp)
+    fld f12, 224(sp)
+    fld f13, 232(sp)
+    fld f14, 240(sp)
+    fld f15, 248(sp)
+    fld f16, 256(sp)
+    fld f17, 264(sp)
+    fld f18, 272(sp)
+    fld f19, 280(sp)
+    fld f20, 288(sp)
+    fld f21, 296(sp)
+    fld f22, 304(sp)
+    fld f23, 312(sp)
+    fld f24, 320(sp)
+    fld f25, 328(sp)
+    fld f26, 336(sp)
+    fld f27, 344(sp)
+    fld f28, 352(sp)
+    fld f29, 360(sp)
+    fld f30, 368(sp)
+    fld f31, 376(sp)
+    ld t0, 384(sp)
+    fscsr t0
     ld ra,   0(sp)
     ld t0,   8(sp)
     ld t1,  16(sp)
@@ -62,8 +157,9 @@ conduitos_riscv64_trap_vector:
     ld t4, 104(sp)
     ld t5, 112(sp)
     ld t6, 120(sp)
-    addi sp, sp, 128
+    addi sp, sp, 400
     sret
+    .option pop
 "#
 );
 
@@ -76,6 +172,7 @@ pub fn initialize_machine() -> bool {
     FACT_PRESENT.store(false, Ordering::Release);
     FACT_OVERFLOW.store(false, Ordering::Release);
     unsafe {
+        core::arch::asm!("csrs sstatus, {0}", in(reg) 0x6000_usize, options(nostack));
         core::arch::asm!("csrw stvec, {0}", in(reg) &conduitos_riscv64_trap_vector, options(nostack));
         core::arch::asm!("csrs sie, {0}", in(reg) SIE_STIE, options(nostack));
     }
@@ -90,19 +187,7 @@ pub fn initialize_machine() -> bool {
 }
 
 pub fn timer_arm() -> bool {
-    let deadline = read_counter().saturating_add(100_000);
-    let error: isize;
-    unsafe {
-        core::arch::asm!(
-            "ecall",
-            inlateout("a0") deadline => error,
-            lateout("a1") _,
-            in("a6") 0_usize,
-            in("a7") SBI_EXT_TIME,
-            options(nostack)
-        );
-    }
-    error == 0
+    domain_budget::source_arm()
 }
 
 pub fn enable_interrupts() {
@@ -177,11 +262,24 @@ extern "C" fn conduitos_riscv64_trap_handler() {
     let cause: u64;
     unsafe {
         core::arch::asm!("csrr {0}, scause", out(reg) cause, options(nostack));
-        core::arch::asm!("csrc sie, {0}", in(reg) SIE_STIE, options(nostack));
+    }
+    if cause == (1_u64 << 63) | SUPERVISOR_TIMER_INTERRUPT as u64 {
+        domain_budget::interrupt(false);
+        return;
     }
     if FACT_PRESENT.swap(true, Ordering::AcqRel) {
         FACT_OVERFLOW.store(true, Ordering::Release);
     } else {
         FACT_CAUSE.store(cause, Ordering::Release);
+    }
+}
+fn record_timer_interrupt() {
+    if FACT_PRESENT.swap(true, Ordering::AcqRel) {
+        FACT_OVERFLOW.store(true, Ordering::Release);
+    } else {
+        FACT_CAUSE.store(
+            (1_u64 << 63) | SUPERVISOR_TIMER_INTERRUPT as u64,
+            Ordering::Release,
+        );
     }
 }

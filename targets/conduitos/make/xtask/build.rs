@@ -18,6 +18,7 @@ use super::{
 pub(super) mod aarch64_domain;
 mod backbone;
 pub(super) mod ia32_domain;
+pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(
     arch: ConduitosArch,
@@ -336,10 +337,9 @@ fn execute_with_features(
         );
     } else if arch == ConduitosArch::Riscv64 {
         let linker = riscv64_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/riscv64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        // build.rs owns the product linker script. Passing it twice makes
+        // the second empty section walk reset the executable extent symbols.
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=--nostdlib", linker.display()));
     } else if arch == ConduitosArch::Loongarch64 {
         let linker = loongarch64_a0::rust_lld(&paths.root)?;
         let script = paths

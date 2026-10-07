@@ -18,6 +18,8 @@ const IMAGE_MACHINE: u16 = 3;
 
 #[cfg(target_arch = "aarch64")]
 const IMAGE_MACHINE: u16 = 183;
+#[cfg(target_arch = "riscv64")]
+const IMAGE_MACHINE: u16 = 243;
 
 const IMAGE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/domain.elf"));
 
@@ -35,6 +37,8 @@ impl TextDomain {
     pub const TICK_UNIT: &'static str = "tsc";
     #[cfg(target_arch = "aarch64")]
     pub const TICK_UNIT: &'static str = "cntvct";
+    #[cfg(target_arch = "riscv64")]
+    pub const TICK_UNIT: &'static str = "time";
     pub const RESERVED_BYTES: u32 = AddressSpace::RESERVED_BYTES;
     pub fn ticks() -> u64 {
         super::domain_ticks()
@@ -213,7 +217,12 @@ impl DomainBackend for TextDomain {
         }
         self.cost.scheduler_returns += 1;
         let (budget_irqs, source_irqs) = super::domain_budget::user_interrupts();
+        #[cfg(not(target_arch = "riscv64"))]
         let interrupts = u64::from(budget_irqs) + u64::from(source_irqs);
+        #[cfg(target_arch = "riscv64")]
+        let _ = budget_irqs;
+        #[cfg(target_arch = "riscv64")]
+        let interrupts = u64::from(super::domain_budget::interrupt_entries());
         self.cost.interrupt_entries += interrupts;
         self.cost.source_timer_interrupts += u64::from(source_irqs);
         // Terminal IRQ return already contributes the ordinary Root return.

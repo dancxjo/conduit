@@ -7,9 +7,7 @@ compile_error!("conduitos-riscv64-product is only the RISC-V64 product Host");
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
     allocation::BOOT_ARENA,
-    arch,
-    boot::{BootRecord, Firmware, RuntimeArena},
-    dual_region_composition, dual_region_plan,
+    arch, boot, dual_region_composition, dual_region_plan,
     front_door::FrontDoor,
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
@@ -20,27 +18,23 @@ use conduitos::{
 };
 use core::panic::PanicInfo;
 
-unsafe extern "C" {
-    static __conduitos_image_start: u8;
-    static __conduitos_image_end: u8;
-}
-static mut MEMORY_ARENA: [u8; 1024 * 1024] = [0; 1024 * 1024];
-
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.conduitos_riscv64_product_start")]
 pub extern "C" fn conduitos_riscv64_product_start() -> ! {
-    unsafe {
-        BOOT_ARENA.initialize(
-            core::ptr::addr_of_mut!(MEMORY_ARENA) as *mut u8 as usize,
-            1024 * 1024,
-        )
-    }
-    .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     if !arch::initialize_machine() {
         refuse("unavailable-or-stale-trap-controller");
     }
+    let boot_record = boot::normalize_boot().unwrap_or_else(|error| refuse(error.as_str()));
+    arch::initialize_domains(&boot_record);
+    let arena = boot_record
+        .hhdm_offset
+        .checked_add(boot_record.runtime_arena.physical_start)
+        .and_then(|address| usize::try_from(address).ok())
+        .unwrap_or_else(|| refuse("runtime-arena-address-invalid"));
+    unsafe { BOOT_ARENA.initialize(arena, boot_record.runtime_arena.length as usize) }
+        .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     EMBEDDED_MAKE
-        .validate(1024 * 1024)
+        .validate(boot_record.runtime_arena.length)
         .unwrap_or_else(|error| refuse(error.as_str()));
     if EMBEDDED_MAKE.target != "conduitos/riscv64/virt"
         || !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER)
@@ -66,7 +60,7 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
             rdrand: false,
             invariant_tsc: false,
         },
-        1024 * 1024,
+        boot_record.runtime_arena.length,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     offer
@@ -110,24 +104,6 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
         .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
     let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
         .unwrap_or_else(|error| refuse(error.as_str()));
-    let image_start = core::ptr::addr_of!(__conduitos_image_start) as usize;
-    let image_end = core::ptr::addr_of!(__conduitos_image_end) as usize;
-    let boot_record = BootRecord {
-        firmware: Firmware::Sbi,
-        timestamp: counter,
-        hhdm_offset: 0,
-        rsdp_address: None,
-        image_physical_start: image_start as u64,
-        image_length: image_end.saturating_sub(image_start) as u64,
-        memory_region_count: 1,
-        artifact_count: 0,
-        framebuffer_count: 0,
-        command_line_bytes: 0,
-        runtime_arena: RuntimeArena {
-            physical_start: core::ptr::addr_of!(MEMORY_ARENA) as u64,
-            length: 1024 * 1024,
-        },
-    };
     let export = observatory::prepare_export(
         &boot_record,
         &identities,
@@ -138,7 +114,13 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
         None,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
-    let before = BOOT_ARENA.seal();
+    // Independent diagnostic Plays prepare after the ordinary Play. The
+    // separately booted normal product retains the sealed allocator proof.
+    let before = if cfg!(feature = "ordinary-domain-proof") {
+        BOOT_ARENA.used()
+    } else {
+        BOOT_ARENA.seal()
+    };
     let (mut clock, mut timer, mut serial, mut interrupts, mut idle) = (
         arch::Clock::new(),
         arch::Timer::new(),
@@ -158,6 +140,8 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
     if BOOT_ARENA.used() != before {
         refuse("allocation-during-play");
     }
+    #[cfg(feature = "ordinary-domain-proof")]
+    conduitos::riscv64_domain_proof::run(&prepared.plan, &offer);
     arch::present(b"CONDUIT_RISCV64_PRODUCT {\"schema\":\"conduit.conduitos/riscv64-product@1\",\"status\":\"ready\",\"profile_id\":\"");
     arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
