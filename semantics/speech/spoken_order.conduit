@@ -1,0 +1,24 @@
+# Complete participation and explicit order for the bounded four-token Source parser.
+# Every active spoken token appears exactly once; punctuation remains nonspoken.
+# Order is supplied by Source. This contract never selects syntax or pronunciation.
+type SpeechCompleteSpokenOrder4 = {
+    token_count: U64 in 1..=4
+    spoken: collection Boolean = 4
+    count: U64 in 0..=4
+    ordered: collection U64 in 0..=3 = 4
+    where .token_count <= 0 ? !.spoken.0 : true
+    where .token_count <= 1 ? !.spoken.1 : true
+    where .token_count <= 2 ? !.spoken.2 : true
+    where .token_count <= 3 ? !.spoken.3 : true
+    where .count == ((.spoken.0 ? 1 : 0) + (.spoken.1 ? 1 : 0) + (.spoken.2 ? 1 : 0) + (.spoken.3 ? 1 : 0))
+    where .count > 0 ? (.ordered.0 < .token_count && sequence/at(.spoken, .ordered.0)) : true
+    where .count > 1 ? (.ordered.1 < .token_count && sequence/at(.spoken, .ordered.1)) : true
+    where .count > 1 ? .ordered.1 != .ordered.0 : true
+    where .count > 2 ? (.ordered.2 < .token_count && sequence/at(.spoken, .ordered.2)) : true
+    where .count > 2 ? .ordered.2 != .ordered.0 : true
+    where .count > 2 ? .ordered.2 != .ordered.1 : true
+    where .count > 3 ? (.ordered.3 < .token_count && sequence/at(.spoken, .ordered.3)) : true
+    where .count > 3 ? .ordered.3 != .ordered.0 : true
+    where .count > 3 ? .ordered.3 != .ordered.1 : true
+    where .count > 3 ? .ordered.3 != .ordered.2 : true
+}

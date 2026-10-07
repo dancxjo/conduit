@@ -32,6 +32,9 @@ fn main() {
     println!("cargo:rerun-if-changed=lexical_pronunciation.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
     println!("cargo:rerun-if-changed=text_token_role.conduit");
+    println!("cargo:rerun-if-changed=spoken_order.conduit");
+    println!("cargo:rerun-if-changed=phone_layout.conduit");
+    println!("cargo:rerun-if-changed=phone_composition.conduit");
     let semantic_source = [
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
@@ -50,6 +53,9 @@ fn main() {
         include_str!("playback.conduit"),
         include_str!("lexical_pronunciation.conduit"),
         include_str!("text_token_role.conduit"),
+        include_str!("spoken_order.conduit"),
+        include_str!("phone_layout.conduit"),
+        include_str!("phone_composition.conduit"),
     ]
     .join("\n");
     let mut language_types = conduit_language::identity_types();
