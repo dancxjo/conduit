@@ -78,28 +78,30 @@ impl PreparedTypedTuplePairEncoder {
         // Valid members must not become an unsupported aggregate only after
         // they are consumed. Admit the complete maximum value traversal now.
         maximum_value_nodes(&value_type)?;
-        // Each structured member's canonical envelope already includes its
-        // value node. Raw primitives need five bytes of leaf framing. The
-        // conservative bound also includes tuple framing and both field names.
-        let leaf_framing = |ty: &StructuredInfoType| {
+        // The pair Type prefix already contains both member Types. Structured
+        // member transport includes its own prefix, which is absent from the
+        // nested node body; primitives instead need five bytes of leaf framing.
+        let node_bound = |ty: &StructuredInfoType, maximum: u32| {
+            let maximum =
+                usize::try_from(maximum).map_err(|_| Refusal::CanonicalEncodingTooLarge)?;
             if matches!(ty.shape(), StructuredInfoTypeShape::Leaf(_)) {
-                5
+                maximum
+                    .checked_add(5)
+                    .ok_or(Refusal::CanonicalEncodingTooLarge)
             } else {
-                0
+                maximum
+                    .checked_sub(ty.canonical_bytes()?.len())
+                    .ok_or(Refusal::CanonicalEncodingTooLarge)
             }
         };
-        let left_maximum_usize =
-            usize::try_from(left_maximum).map_err(|_| Refusal::CanonicalEncodingTooLarge)?;
-        let right_maximum_usize =
-            usize::try_from(right_maximum).map_err(|_| Refusal::CanonicalEncodingTooLarge)?;
+        let left_node_bound = node_bound(&left_type, left_maximum)?;
+        let right_node_bound = node_bound(&right_type, right_maximum)?;
         let maximum = value_type
             .canonical_bytes()?
             .len()
             .checked_add(5 + 2 * (4 + "item-00000".len()))
-            .and_then(|size| size.checked_add(left_maximum_usize))
-            .and_then(|size| size.checked_add(right_maximum_usize))
-            .and_then(|size| size.checked_add(leaf_framing(&left_type)))
-            .and_then(|size| size.checked_add(leaf_framing(&right_type)))
+            .and_then(|size| size.checked_add(left_node_bound))
+            .and_then(|size| size.checked_add(right_node_bound))
             .filter(|size| *size <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
             .ok_or(Refusal::CanonicalEncodingTooLarge)?;
         let composer = PreparedStructuredComposer::new(&value_type, maximum)?;
