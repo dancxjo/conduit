@@ -10,6 +10,7 @@ pub fn append_source(base: String) -> String {
         base,
         include_str!("../../parser_session_protection.conduit").into(),
         include_str!("../../parser_session_protected_set.conduit").into(),
+        include_str!("../../parser_session_branch.conduit").into(),
         include_str!("../../parser_session_protected_branch.conduit").into(),
         include_str!("../../parser_session_protected_mask.conduit").into(),
         include_str!("../../parser_session_protected_rebase.conduit").into(),
