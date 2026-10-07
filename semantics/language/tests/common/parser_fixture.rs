@@ -16,16 +16,20 @@ pub struct Fixture {
     native_state: conduit_plot::CheckedNativeType,
     checked: conduit_plot::CheckedSyntaxDocument,
 }
+pub fn parser_source() -> String {
+    format!(
+        "{}\n{}\n{}\n{}\n{}\n{}",
+        include_str!("../../identity.conduit"),
+        include_str!("../../types.conduit"),
+        include_str!("../../parser.conduit"),
+        include_str!("../../parser_beam.conduit"),
+        include_str!("../../parser_scorer.conduit"),
+        include_str!("../../parser_mask.conduit")
+    )
+}
 impl Fixture {
     pub fn new() -> Self {
-        let source = format!(
-            "{}\n{}\n{}\n{}\n{}",
-            include_str!("../../identity.conduit"),
-            include_str!("../../types.conduit"),
-            include_str!("../../parser.conduit"),
-            include_str!("../../parser_beam.conduit"),
-            include_str!("../../parser_scorer.conduit")
-        );
+        let source = parser_source();
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
         let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
@@ -66,10 +70,14 @@ impl Fixture {
                 "language-parser-admit-7",
                 "language-parser-admit-8",
                 "language-parser-admit-9",
-                "language-parser-legal-shift",
-                "language-parser-legal-reduce",
-                "language-parser-legal-left",
-                "language-parser-legal-right",
+                "language-parser-legal-facts",
+                "language-parser-fact-shift",
+                "language-parser-fact-reduce",
+                "language-parser-fact-left",
+                "language-parser-fact-right",
+                "language-parser-fact-right-root",
+                "language-parser-fact-right-nonroot",
+                "language-parser-fact-select",
                 "language-parser-legal",
                 "language-parser-follow",
                 "language-parser-follow",

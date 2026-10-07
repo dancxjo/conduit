@@ -48,12 +48,13 @@ fn retype(ty: &StructuredInfoType, value: &StructuredInfoValue) -> StructuredInf
 }
 fn source() -> String {
     format!(
-        "{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("../identity.conduit"),
         include_str!("../types.conduit"),
         include_str!("../parser.conduit"),
         include_str!("../parser_beam.conduit"),
-        include_str!("../parser_scorer.conduit")
+        include_str!("../parser_scorer.conduit"),
+        include_str!("../parser_mask.conduit")
     )
 }
 fn basis(f: &Fixture, id: &str) -> StructuredInfoValue {

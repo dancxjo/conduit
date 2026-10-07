@@ -10,10 +10,11 @@ use fixture::*;
 fn source_transition_graph_runs_under_ordinary_plan_and_play() {
     let mut f = Fixture::new();
     let source = format!(
-        "{}\n{}\n{}",
+        "{}\n{}\n{}\n{}",
         include_str!("../identity.conduit"),
         include_str!("../types.conduit"),
-        include_str!("../parser.conduit")
+        include_str!("../parser.conduit"),
+        include_str!("../parser_mask.conduit")
     );
     let mut run = parser_kernel::Execution::prepare(source, "language-parser-transition");
     let boundary = &run.kernel.definition().boundary;
