@@ -11,6 +11,28 @@ pub const ARTIFACT: &str = "conduit-composite/flow-zip@1";
 pub const MAXIMUM_INPUT_BYTES: u32 = 4096;
 pub const MAXIMUM_PAIR_BYTES: u32 = 16_384;
 pub const MAXIMUM_SPECIALIZATIONS: usize = 16;
+pub const FRAME16K_IMPLEMENTATION: &str = "conduitos/flow-zip-finite-frame16k@1";
+pub const FRAME16K_PROFILE: &str = "conduitos/flow-zip-finite-frame16k-prepared@1";
+
+#[derive(Clone, Copy)]
+struct PairProfile {
+    implementation: &'static str,
+    execution: &'static str,
+    maximum_input: u32,
+    capability_prefix: &'static str,
+}
+const DEFAULT_PAIR_PROFILE: PairProfile = PairProfile {
+    implementation: IMPLEMENTATION,
+    execution: PROFILE,
+    maximum_input: MAXIMUM_INPUT_BYTES,
+    capability_prefix: "conduitos",
+};
+const FRAME16K_PAIR_PROFILE: PairProfile = PairProfile {
+    implementation: FRAME16K_IMPLEMENTATION,
+    execution: FRAME16K_PROFILE,
+    maximum_input: MAXIMUM_PAIR_BYTES,
+    capability_prefix: "conduitos/frame16k",
+};
 
 fn offer(
     left: &CheckedValueContract,
@@ -18,8 +40,9 @@ fn offer(
     right: &CheckedValueContract,
     right_type: &StructuredInfoType,
     feedback: bool,
+    selected: PairProfile,
 ) -> Result<CapabilityOffer, String> {
-    if left.maximum_bytes > MAXIMUM_INPUT_BYTES || right.maximum_bytes > MAXIMUM_INPUT_BYTES {
+    if left.maximum_bytes > selected.maximum_input || right.maximum_bytes > selected.maximum_input {
         return Err("native finite zip input exceeds its prepared profile".into());
     }
     let semantic = if feedback {
@@ -47,15 +70,16 @@ fn offer(
         kind,
         Back {
             capability_id: CapabilityId::from(format!(
-                "conduitos/{}/{}/{}/{}/{}@1",
+                "{}/{}/{}/{}/{}/{}@1",
+                selected.capability_prefix,
                 kind_name,
                 left.value_kind.as_str(),
                 left.maximum_bytes,
                 right.value_kind.as_str(),
                 right.maximum_bytes
             )),
-            execution_profile_id: ExecutionProfileId::from(PROFILE),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(selected.execution),
+            implementation_id: ImplementationId::from(selected.implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
             host_calls: Vec::new(),
             resource_requirements: Vec::new(),
@@ -75,17 +99,30 @@ struct OfferedPair {
 /// Selected Plans must match one of these exact retained offers before Play.
 pub struct FlowZipOperationFactory {
     implementation: ImplementationId,
+    profile: PairProfile,
     pairs: BTreeMap<CapabilityId, OfferedPair>,
 }
 impl Default for FlowZipOperationFactory {
     fn default() -> Self {
         Self {
             implementation: ImplementationId::from(IMPLEMENTATION),
+            profile: DEFAULT_PAIR_PROFILE,
             pairs: BTreeMap::new(),
         }
     }
 }
 impl FlowZipOperationFactory {
+    /// Explicit larger-input realization for finite frames. The complete pair
+    /// still must fit 16 KiB; default protocol owners retain their 4 KiB bound.
+    /// Each selected placement retains its exact schemas and storage budget.
+    pub fn frame16k() -> Self {
+        Self {
+            implementation: ImplementationId::from(FRAME16K_IMPLEMENTATION),
+            profile: FRAME16K_PAIR_PROFILE,
+            pairs: BTreeMap::new(),
+        }
+    }
+
     pub fn install(
         &mut self,
         left: &CheckedValueContract,
@@ -117,7 +154,7 @@ impl FlowZipOperationFactory {
         if self.pairs.len() == MAXIMUM_SPECIALIZATIONS {
             return Err("native finite zip exceeds its admitted offer count".into());
         }
-        let offer = offer(left, left_type, right, right_type, feedback)?;
+        let offer = offer(left, left_type, right, right_type, feedback, self.profile)?;
         if self.pairs.contains_key(&offer.capability_id) {
             return Err("native finite zip specialization is already installed".into());
         }
@@ -143,7 +180,7 @@ impl FlowZipOperationFactory {
         for gear in plan.fragments[0]
             .placements
             .iter()
-            .filter(|gear| gear.implementation_id.as_str() == IMPLEMENTATION)
+            .filter(|gear| gear.implementation_id == self.implementation)
         {
             self.budget(gear)?;
         }
