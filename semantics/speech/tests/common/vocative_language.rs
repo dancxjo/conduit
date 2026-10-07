@@ -221,8 +221,14 @@ pub fn admitted_graph(
 ) -> Case {
     let source = lexical.tape().source().clone();
     let revision = source.material().revision().get();
+    let fact_identity = format!("proof/fact/{revision}");
+    let fact_identity = if fact_identity.len() <= 64 {
+        fact_identity
+    } else {
+        revision.to_owned()
+    };
     let discourse = prepare_vocative_fact(
-        format!("proof/fact/{revision}"),
+        fact_identity,
         &source,
         &analysis,
         &arcs[vocative],
@@ -335,6 +341,7 @@ pub fn admitted_graph(
 
 /// Explicit reviewed phone data for the v2 profile's surface-preserving lemma.
 /// This is supplied pronunciation data, not a renderer spelling heuristic.
+#[allow(dead_code)] // Shared fixture: used by the learned acquisition harness.
 pub fn parser_phone_profile() -> SpeechPronunciationProfile {
     let original = phones();
     let rows = original.rows().iter().cloned().collect::<Vec<_>>();
