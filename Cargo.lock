@@ -604,6 +604,7 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-presentation",
@@ -1406,6 +1407,7 @@ dependencies = [
 name = "conduit-speech"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-audio",
  "conduit-core",
  "conduit-kernel",
