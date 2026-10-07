@@ -126,7 +126,7 @@ fn lexical_fact_source_checks_against_installed_exact_native_schemas() {
         value
     };
     let snapshot_ty = native(&checked, "LanguageParserWindow8Snapshot");
-    let snapshot = |second: u64,
+    let snapshot = |choices: [u64; 4],
                     lexical: &LanguageParserWindow8Lexical,
                     offered_basis: &LanguageParserBasis| {
         record(
@@ -134,10 +134,10 @@ fn lexical_fact_source_checks_against_installed_exact_native_schemas() {
             vec![
                 ("lexical", lexical.clone().into_structured().unwrap()),
                 ("basis", offered_basis.clone().into_structured().unwrap()),
-                ("candidate0", hypothesis(0)),
-                ("candidate1", hypothesis(second)),
-                ("candidate2", hypothesis(0)),
-                ("candidate3", hypothesis(0)),
+                ("candidate0", hypothesis(choices[0])),
+                ("candidate1", hypothesis(choices[1])),
+                ("candidate2", hypothesis(choices[2])),
+                ("candidate3", hypothesis(choices[3])),
             ],
         )
     };
@@ -167,11 +167,20 @@ fn lexical_fact_source_checks_against_installed_exact_native_schemas() {
         validate_native_invariants(&value, &query_ty.invariants).unwrap();
         value
     };
-    let agreed_snapshot = snapshot(0, lexical.lexical(), &basis);
+    let agreed_snapshot = snapshot([0; 4], lexical.lexical(), &basis);
     validate_native_invariants(&agreed_snapshot, &snapshot_ty.invariants).unwrap();
     let agreed = record(fact, vec![("query", query(agreed_snapshot))]);
     validate_native_invariants(&agreed, &fact.invariants).unwrap();
-    let different_snapshot = snapshot(1, lexical.lexical(), &basis);
+    // The root/dependency remains unassigned: lexical agreement is independent.
+    assert_eq!(state.state().heads()[0], 9);
+    let verb_snapshot = snapshot([1; 4], lexical.lexical(), &basis);
+    validate_native_invariants(&verb_snapshot, &snapshot_ty.invariants).unwrap();
+    validate_native_invariants(
+        &record(fact, vec![("query", query(verb_snapshot))]),
+        &fact.invariants,
+    )
+    .unwrap();
+    let different_snapshot = snapshot([0, 1, 0, 0], lexical.lexical(), &basis);
     validate_native_invariants(&different_snapshot, &snapshot_ty.invariants).unwrap();
     let disagreement = record(fact, vec![("query", query(different_snapshot))]);
     assert!(validate_native_invariants(&disagreement, &fact.invariants).is_err());
@@ -182,7 +191,7 @@ fn lexical_fact_source_checks_against_installed_exact_native_schemas() {
     )
     .unwrap();
     assert!(validate_native_invariants(
-        &snapshot(0, lexical.lexical(), &foreign_basis),
+        &snapshot([0; 4], lexical.lexical(), &foreign_basis),
         &snapshot_ty.invariants
     )
     .is_err());
@@ -198,7 +207,7 @@ fn lexical_fact_source_checks_against_installed_exact_native_schemas() {
     let unstable_tape =
         conduit_language::lexical::prepare_lexical_tape(&unstable_source, &profile, None).unwrap();
     let unstable = prepare_window8_lexical(&unstable_tape).unwrap();
-    let unstable_snapshot = snapshot(0, unstable.lexical(), &basis);
+    let unstable_snapshot = snapshot([0; 4], unstable.lexical(), &basis);
     validate_native_invariants(&unstable_snapshot, &snapshot_ty.invariants).unwrap();
     assert!(validate_native_invariants(
         &record(fact, vec![("query", query(unstable_snapshot))]),
