@@ -29,6 +29,7 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     arch::install_low_mmio_map(l0, l1, l2);
     arch::initialize_machine();
     let record = boot::normalize_boot().unwrap_or_else(|error| refuse(error.as_str()));
+    arch::initialize_domains(&record);
     let arena = record
         .hhdm_offset
         .checked_add(record.runtime_arena.physical_start)
@@ -142,6 +143,9 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         &mut idle,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
+
+    #[cfg(feature = "ordinary-domain-proof")]
+    conduitos::aarch64_domain_proof::run(&prepared.plan, &offer);
 
     arch::present(b"CONDUIT_AARCH64_PRODUCT {\"schema\":\"conduit.conduitos/aarch64-product@1\",\"status\":\"ready\",\"profile_id\":\"");
     arch::present(EMBEDDED_MAKE.profile_id.as_bytes());

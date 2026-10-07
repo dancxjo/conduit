@@ -11,6 +11,12 @@ use super::{
 
 static TIMER_ARM_PENDING: AtomicBool = AtomicBool::new(false);
 
+pub(super) fn start_pending_source_timer() {
+    if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) {
+        timer_arm();
+    }
+}
+
 pub struct Clock(u64);
 
 impl Clock {
@@ -87,6 +93,12 @@ impl Serial {
 }
 
 impl SerialBase for Serial {
+    fn provider_generation(&self) -> Option<u64> {
+        // This boot owns one fixed PL011 provider; replacement requires a
+        // new boot and therefore a new capability scope.
+        Some(1)
+    }
+
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         present(bytes);
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;
@@ -140,9 +152,7 @@ impl Idle {
 impl IdleBase for Idle {
     fn wait_for_interrupt(&mut self) -> Result<(), BaseError> {
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;
-        if TIMER_ARM_PENDING.swap(false, Ordering::AcqRel) {
-            timer_arm();
-        }
+        start_pending_source_timer();
         enable_interrupts();
         interruptible_idle();
         disable_interrupts();

@@ -284,10 +284,7 @@ pub mod text_composition;
 mod text_kernel_backs;
 mod text_offer;
 pub mod text_planned_kernel;
-#[cfg(any(
-    all(target_arch = "x86_64", target_os = "none"),
-    all(target_arch = "x86", feature = "ia32-product")
-))]
+#[cfg(conduitos_protected_execution)]
 mod text_protection;
 mod text_transform;
 pub mod text_upper;
@@ -322,6 +319,12 @@ mod protocol_kernel_fixture;
 
 pub mod protocol_boot;
 
+#[cfg(all(
+    target_arch = "aarch64",
+    conduitos_protected_execution,
+    feature = "ordinary-domain-proof"
+))]
+pub mod aarch64_domain_proof;
 #[cfg(all(
     target_arch = "x86",
     target_os = "linux",

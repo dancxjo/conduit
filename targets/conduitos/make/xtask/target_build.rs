@@ -202,7 +202,10 @@ fn boot_aarch64_product(
             "-M",
             "virt",
             "-cpu",
-            "cortex-a72",
+            // The normal protected product requires the architectural RNDR
+            // provider for opaque capability handles. The A1 CPU fixture
+            // retains its older CPU independently of this product profile.
+            "neoverse-n2",
             "-m",
             "256M",
             "-smp",
@@ -230,7 +233,7 @@ fn boot_aarch64_product(
     loop {
         let transcript = fs::read_to_string(&serial_path).unwrap_or_default();
         if let Some(json) = complete_aarch64_product_sign(&transcript) {
-            let value: serde_json::Value = serde_json::from_str(json).map_err(|error| {
+            let mut value: serde_json::Value = serde_json::from_str(json).map_err(|error| {
                 ConduitosError::refusal("malformed-aarch64-product-sign", error.to_string())
             })?;
             if let Err(error) = validate_aarch64_product_sign(
@@ -241,6 +244,14 @@ fn boot_aarch64_product(
             ) {
                 let _ = child.kill();
                 return Err(error);
+            }
+            match super::protected_product_receipt::capture(&transcript, &value, "aarch64") {
+                Ok(cost) => value["ordinary_domain_cost"] = cost,
+                Err(error) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(error);
+                }
             }
             thread::sleep(Duration::from_millis(250));
             if child

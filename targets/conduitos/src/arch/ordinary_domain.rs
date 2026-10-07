@@ -16,6 +16,9 @@ const IMAGE_MACHINE: u16 = 62;
 #[cfg(target_arch = "x86")]
 const IMAGE_MACHINE: u16 = 3;
 
+#[cfg(target_arch = "aarch64")]
+const IMAGE_MACHINE: u16 = 183;
+
 const IMAGE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/domain.elf"));
 
 pub struct TextDomain {
@@ -28,6 +31,10 @@ pub struct TextDomain {
 }
 
 impl TextDomain {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    pub const TICK_UNIT: &'static str = "tsc";
+    #[cfg(target_arch = "aarch64")]
+    pub const TICK_UNIT: &'static str = "cntvct";
     pub const RESERVED_BYTES: u32 = AddressSpace::RESERVED_BYTES;
     pub fn ticks() -> u64 {
         super::domain_ticks()

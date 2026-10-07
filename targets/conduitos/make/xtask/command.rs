@@ -108,6 +108,8 @@ pub(super) enum ConduitosCommand {
     OrdinaryDomainProof,
     /// Prove ordinary IA-32 ring-3 execution and independent hostile entries.
     Ia32OrdinaryDomainProof,
+    /// Prove ordinary AArch64 EL0 execution and independent boundary checks.
+    Aarch64OrdinaryDomainProof,
     /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
     VirtioNetProof,
 }

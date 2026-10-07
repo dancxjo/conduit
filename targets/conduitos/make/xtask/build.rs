@@ -15,6 +15,7 @@ use super::{
     riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
 };
 
+pub(super) mod aarch64_domain;
 mod backbone;
 pub(super) mod ia32_domain;
 

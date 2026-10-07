@@ -20,6 +20,7 @@ pub fn generate() {
         "domain/frame.rs",
         "domain/probes.rs",
         "domain/probes_ia32.rs",
+        "domain/probes_aarch64.rs",
         "domain/probe_gate.rs",
         "domain/linker.ld",
         "src/text_transform.rs",
@@ -28,6 +29,20 @@ pub fn generate() {
     }
     let architecture = env::var("CARGO_CFG_TARGET_ARCH").expect("Cargo sets architecture");
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("Cargo sets target OS");
+    println!("cargo:rustc-check-cfg=cfg(conduitos_protected_execution)");
+    let protected = match architecture.as_str() {
+        "x86_64" => target_os == "none",
+        "x86" => target_os == "linux" && env::var_os("CARGO_FEATURE_IA32_PRODUCT").is_some(),
+        "aarch64" => {
+            target_os == "none"
+                && env::var_os("CARGO_FEATURE_AARCH64_PRODUCT").is_some()
+                && env::var_os("CARGO_FEATURE_AARCH64_ORANGE_PI_5").is_none()
+        }
+        _ => false,
+    };
+    if protected {
+        println!("cargo:rustc-cfg=conduitos_protected_execution");
+    }
     if (target_os != "none" && !(architecture == "x86" && target_os == "linux"))
         || !matches!(
             architecture.as_str(),
@@ -94,7 +109,7 @@ pub fn generate() {
         .arg(&target_dir)
         .env_remove("RUSTFLAGS")
         .env("CARGO_ENCODED_RUSTFLAGS", flags.join("\u{1f}"));
-    if matches!(architecture.as_str(), "x86_64" | "x86")
+    if matches!(architecture.as_str(), "x86_64" | "x86" | "aarch64")
         && env::var_os("CARGO_FEATURE_ORDINARY_DOMAIN_PROOF").is_some()
     {
         compiler.args(["--features", "proof"]);

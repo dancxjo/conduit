@@ -409,7 +409,7 @@ impl<I: TextOwner> ProtectedText<I> {
 
 fn capability_table(generation: u64) -> Result<KernelCapabilityTable, MachineRunError> {
     use crate::cryptographic_entropy::CryptographicEntropyBase;
-    let source = crate::arch::RdrandEntropy::detect(generation).map_err(|_| {
+    let source = crate::arch::DomainEntropy::detect(generation).map_err(|_| {
         MachineRunError::ProtectionDomain(crate::protected_region::DomainRefusal::Unsupported)
     })?;
     let mut entropy = CryptographicEntropyBase::<_, 1>::admit(source)
@@ -433,12 +433,12 @@ impl<I: TextOwner> Drop for ProtectedText<I> {
             return;
         }
         let mut sign = crate::sign_format::FixedText::new();
-        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"{}\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"tsc\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
+        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"{}\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"{}\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
             crate::arch::ARCHITECTURE, self.current.region_id(), self.current.plan_id(),
             self.current.play_id(), self.current.domain().0, self.diagnostic_fixture, self.region.state(),
             cost.entries, cost.interrupt_entries, cost.source_timer_interrupts, cost.privilege_transitions, cost.gate_transitions, cost.copied_bytes, cost.setup_copied_bytes,
             cost.base_gate_transitions, cost.tlb_flushes, cost.setup_ticks, cost.teardown_ticks,
-            cost.teardown_zeroed_bytes, cost.shared_peak_bytes, cost.root_metadata_bytes, cost.address_space_switches,
+            TextDomain::TICK_UNIT, cost.teardown_zeroed_bytes, cost.shared_peak_bytes, cost.root_metadata_bytes, cost.address_space_switches,
             cost.scheduler_returns, cost.preemptions, cost.reserved_bytes).is_ok() {
             crate::arch::early_write(sign.as_bytes());
         }

@@ -258,10 +258,8 @@ fn build_region(
                         | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
                 )
             });
-    let protected = cfg!(any(
-        all(target_arch = "x86_64", target_os = "none"),
-        all(target_arch = "x86", feature = "ia32-product")
-    )) && matches!(region_id, "region/0" | "region/text")
+    let protected = cfg!(conduitos_protected_execution)
+        && matches!(region_id, "region/0" | "region/text")
         && (ordinary_text || keyboard_text);
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {
