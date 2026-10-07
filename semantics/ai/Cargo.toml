@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc"] }
+conduit-composite = { path = "../../architecture/composite", optional = true }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", optional = true, default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-data = { path = "../data" }
 conduit-time = { path = "../time", default-features = false }
@@ -16,12 +19,14 @@ sha2 = { version = "0.10", default-features = false }
 
 [features]
 default = []
+kernel-step = ["dep:conduit-kernel"]
+kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-plan-lowering"]
 plot-catalog = ["dep:conduit-web"]
 
 [dev-dependencies]
 conduit-semantic-catalog = { path = "../catalog", features = ["plot-catalog"] }
 conduit-plot = { path = "../../architecture/plot" }
-conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-signal = { path = "../signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }

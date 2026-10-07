@@ -139,6 +139,30 @@ impl IntegerCategoricalModel {
             ),
         })
     }
+    pub fn dimensions(&self) -> (usize, usize, usize) {
+        (self.categories, self.outputs, self.lookups)
+    }
+    /// Pure bounded inference into caller-prepared storage. Refusals leave the
+    /// output unchanged; the checked limits keep every exact sum within I64.
+    pub fn infer_indices_into(
+        &self,
+        indices: &[u64],
+        scores: &mut [i64],
+    ) -> Result<(), CategoricalRefusal> {
+        if indices.len() != self.lookups || scores.len() != self.outputs {
+            return Err(CategoricalRefusal::Input);
+        }
+        if indices.iter().any(|i| *i >= self.categories as u64) {
+            return Err(CategoricalRefusal::Index);
+        }
+        for (output, score) in scores.iter_mut().enumerate() {
+            *score = indices
+                .iter()
+                .map(|i| i64::from(self.weights[output * self.categories + *i as usize]))
+                .sum();
+        }
+        Ok(())
+    }
     pub fn identity(&self) -> [u8; 32] {
         self.identity
     }

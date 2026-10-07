@@ -193,3 +193,6 @@ pub const TEXT_VALUE_KIND: &str = "value/text";
 pub mod integer_categorical;
 
 pub mod integer_masked_rank;
+
+#[cfg(all(feature = "kernel-step", target_has_atomic = "ptr"))]
+pub mod integer_categorical_step;
