@@ -1,5 +1,5 @@
-use conduit_plot::rust_binding::{RustBindingOptions, generate_rust_bindings};
-use conduit_plot::{StartupCatalog, check_syntax_document, parse_syntax_document};
+use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -35,8 +35,9 @@ fn main() {
         include_str!("parser_joint_decode.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
-        include_str!("pronunciation_selection.conduit")
-    ].join("\n");
+        include_str!("pronunciation_selection.conduit"),
+    ]
+    .join("\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
     for (plot, file) in [

@@ -48,13 +48,11 @@ impl Scorer {
                 ModelValueConstraint::tensor(
                     ModelTensorConstraint::from_parts(
                         vec![element],
-                        vec![
-                            ModelAxisConstraint::new(
-                                ModelDimensionConstraint::fixed(count).unwrap(),
-                                TensorAxisRole::Feature,
-                            )
-                            .unwrap(),
-                        ],
+                        vec![ModelAxisConstraint::new(
+                            ModelDimensionConstraint::fixed(count).unwrap(),
+                            TensorAxisRole::Feature,
+                        )
+                        .unwrap()],
                         count * 8,
                     )
                     .unwrap(),

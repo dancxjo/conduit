@@ -101,10 +101,14 @@ fn native_choice_prefix_and_prepared_shared_basis_refuse_forgery() {
     )
     .unwrap();
     assert!(LanguageParserJointRuntimeHypothesis::new(hypothesis.clone(), 2).is_err());
-    assert!(
-        LanguageParserJointChoiceQuery::new([3, 0, 0, 0], 0, 0, lexical.clone(), initial.clone())
-            .is_err()
-    );
+    assert!(LanguageParserJointChoiceQuery::new(
+        [3, 0, 0, 0],
+        0,
+        0,
+        lexical.clone(),
+        initial.clone()
+    )
+    .is_err());
     let foreign = LanguageParserBasis::new(
         LanguageAnalysisRevisionId::new("foreign-analysis".into()).unwrap(),
         initial.basis().source_revision().clone(),
@@ -122,19 +126,17 @@ fn native_choice_prefix_and_prepared_shared_basis_refuse_forgery() {
         LanguageParserHypothesis::new(true, 2, 0, state).unwrap(),
     )
     .unwrap();
-    assert!(
-        LanguageParserJointBeam::new(
-            initial.basis().clone(),
-            foreign.clone(),
-            foreign.clone(),
-            foreign.clone(),
-            foreign,
-            0,
-            0,
-            lexical
-        )
-        .is_err()
-    );
+    assert!(LanguageParserJointBeam::new(
+        initial.basis().clone(),
+        foreign.clone(),
+        foreign.clone(),
+        foreign.clone(),
+        foreign,
+        0,
+        0,
+        lexical
+    )
+    .is_err());
     let root = LanguageParserRelation::new(
         LanguageUniversalDependencyRelation::Root,
         LanguageParserSubtype::new("".into()).unwrap(),
