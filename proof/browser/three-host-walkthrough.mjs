@@ -82,6 +82,8 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
   const birthGood = birth?.proof_class?.startsWith('installed-screen-free-birth-') && birth.zero_body_observed && birth.confirmation_observed && birth.body_id === report.body_id && birth.source_commit === report.native_source_commit;
   let birthMedia = '';
   if (birthGood) {
+    await checked(output, birth.zero_body_receipt, 'zero-body-before.json');
+    await checked(output, birth.input, 'birth-input.txt');
     const transcript = (await checked(output, birth.transcript, 'birth-transcript.txt')).toString('utf8');
     birthMedia = textCapture(transcript, birth.transcript.path, 'Read the actual Birth session') + selectedAudio('birth-review') + selectedAudio('birth-result');
   }
@@ -89,13 +91,17 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
 
   const joined = report.concurrent_part_count === 3 && report.qemu_alive_through_browser_actions === true && report.browser_host_id && report.guest_host_id && report.owner_host_id && report.browser_part_id && report.guest_part_id;
   let joinMedia = '';
-  if (joined) joinMedia = await shot('browser-before.png', 'Browser showing the joined Body before the clock changes', 'The browser sees the owner Face.') + await shot('native/owner-standby.png', 'ConduitOS guest awaiting Mask selection', 'QMP capture from the running guest.');
+  if (joined) {
+    await checked(output, { path: 'native/owner-action-proof.json', sha256: report.native_receipt_sha256 });
+    joinMedia = await shot('browser-before.png', 'Browser showing the joined Body before the clock changes', 'The browser sees the owner Face.') + await shot('native/owner-standby.png', 'ConduitOS guest awaiting Mask selection', 'QMP capture from the running guest.');
+  }
   chapters.push(chapter({ ...CHAPTERS[1], number: 2, intention: 'Meet the same Body from two more live places.', action: 'Admit the browser and QEMU guest through their supported joining flows.', result: joined ? 'Three distinct Host and Boot identities participate in this Body.' : 'A correlated three-host result is missing.', why: 'Host membership and Body identity are separate facts.', next: 'Start or change the clock.', media: joinMedia, gap: joined ? '' : 'The report must identify admitted browser and guest Parts alongside the installed owner.', evidence: joined ? `Browser Host <code>${escape(report.browser_host_id)}</code>; guest Host <code>${escape(report.guest_host_id)}</code>; installed owner <code>${escape(report.owner_host_id)}</code>. QMP proves emulator execution, not physical hardware. ${link('native/owner-action-proof.json', 'Guest action proof')}.` : '' }));
 
   const clock = report.screen_free_clock;
   const started = clock?.proof_class?.startsWith('installed-screen-free-clock-') && clock.body_id === report.body_id && clock.run_id === report.run_id && clock.start?.result_face_id && report.native_action?.status === 'accepted' && report.browser_action?.status === 'accepted';
   let startMedia = '';
   if (started) {
+    await checked(output, clock.start.input, 'clock-start-input.txt');
     const transcript = (await checked(output, clock.start.transcript, 'clock-start-transcript.txt')).toString('utf8');
     startMedia = textCapture(transcript, clock.start.transcript.path, 'Read the nonvisual Start session') + await shot('native/owner-after.png', 'ConduitOS showing the changed clock', 'The guest accepts the typed 500 millisecond action.') + await shot('browser-after-native.png', 'Browser showing the same 500 millisecond clock', 'A second Host sees the updated Face.') + await shot('browser-after-browser.png', 'Browser after its own 1000 millisecond action', 'The browser then changes the shared clock.') + selectedAudio('clock-start');
   }
@@ -105,9 +111,11 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
   const seeing = terminal?.path && report.terminal_action?.status === 'accepted' && report.browser_wardrobe?.selected_show_id;
   let seeMedia = '';
   if (seeing) {
+    await checked(output, report.browser_wardrobe, 'browser-wardrobe.json');
     const action = (await checked(output, terminal, 'terminal-face.txt')).toString('utf8');
     const setup = terminal.setup_path
       ? textCapture((await checked(output, { path: terminal.setup_path, sha256: terminal.setup_sha256 }, 'terminal-setup.txt')).toString('utf8'), terminal.setup_path, 'Read terminal wardrobe setup') : '';
+    if (report.screen_free_wardrobe?.transcript) await checked(output, report.screen_free_wardrobe.transcript, 'wardrobe-transcript.txt');
     seeMedia = await shot('native/owner-before.png', 'Selected native Mask on ConduitOS', 'QMP shows the selected owner Face.') + await shot('browser-after-terminal.png', 'Browser after a terminal action', 'The browser confirms the terminal change.') + setup + textCapture(action, terminal.path, 'Read the terminal action') + selectedAudio('wardrobe-inspection') + selectedAudio('wardrobe-preference');
   }
   chapters.push(chapter({ ...CHAPTERS[3], number: 4, intention: 'Inspect the same work through graphical, terminal, and nonvisual views.', action: 'Wear and prefer admitted Masks, inspect the Face, and enter the terminal interval action.', result: seeing ? 'The terminal action reaches the installed owner and a fresh route Plan acknowledges the changed Face.' : 'A correlated terminal and wardrobe result is missing.', why: 'A preference chooses among admitted routes; terminal replacement planning is recorded separately.', next: 'Listen to a direct reading and grounded explanation.', media: seeMedia, gap: seeing ? '' : 'Need selected graphical and terminal Shows plus a typed terminal action.', evidence: seeing ? `${link('browser-wardrobe.json', 'Owner wardrobe transitions')} · ${link('report.json', 'Plan and Show identities')}. ${report.screen_free_wardrobe ? `${link('wardrobe-transcript.txt', 'Nonvisual wardrobe session')}.` : ''} This does not imply Host loss or automatic fallback.` : '' }));
@@ -145,6 +153,11 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
 
   const loss = report.owner_model_route_loss;
   const lossGood = loss?.proof_class === 'installed-owner-selected-model-route-withdrawal-and-restoration' && loss.run_id === report.run_id && loss.body_id === report.body_id && loss.operation_started_on_loss === false && loss.owner_face_unchanged === true && loss.new_listener_wav_on_failure === false;
+  if (lossGood) {
+    await checked(output, loss.refusal);
+    await checked(output, loss.wardrobe);
+    await checked(output, loss.restored.terminal);
+  }
   const host = report.presentation_host_recovery;
   let hostReceipt = null;
   if (host?.path) {
@@ -174,7 +187,10 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
 
   const lulled = clock?.lull?.result_face_id && clock.body_id === report.body_id && clock.run_id === report.run_id;
   let lullMedia = '';
-  if (lulled) lullMedia = textCapture((await checked(output, clock.lull.transcript, 'clock-lull-transcript.txt')).toString('utf8'), clock.lull.transcript.path, 'Read the nonvisual Lull session') + selectedAudio('clock-lull');
+  if (lulled) {
+    await checked(output, clock.lull.input, 'clock-lull-input.txt');
+    lullMedia = textCapture((await checked(output, clock.lull.transcript, 'clock-lull-transcript.txt')).toString('utf8'), clock.lull.transcript.path, 'Read the nonvisual Lull session') + selectedAudio('clock-lull');
+  }
   chapters.push(chapter({ ...CHAPTERS[7], number: 8, intention: 'Leave the clock in a known, retained state.', action: 'Use nonvisual controls to Lull and read the resulting Face.', result: lulled ? 'The installed owner retires the clock Play while retaining the Body.' : 'No correlated Lull result is available.', why: 'A retained Body is different from a running clock or a live presentation Show.', next: 'Inspect the receipts or follow another journey.', media: lullMedia, gap: lulled ? '' : 'Need the producer-owned typed Lull action, resulting Face, and user-visible capture.', evidence: lulled ? `${link(clock.lull.input.path, 'Submitted Lull command')} · ${link('report.json', 'Exact Play and Face result')}. Selected audio is a subset; attended listening is not established.` : '' }));
 
   const completed = chapters.filter(html => html.includes('· captured</p>')).length;
