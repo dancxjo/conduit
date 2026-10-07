@@ -49,6 +49,20 @@ pub(crate) struct AttachedEquipment {
 }
 
 impl AttachedEquipment {
+    pub(crate) fn advance_offer_generation(&mut self, host: &StdHost) -> Result<(), String> {
+        let advertisement = host.advertisement();
+        if self.playback.boot_id != advertisement.boot_id {
+            return Err("selected speaker Boot changed during offer transition".into());
+        }
+        let prior = self.playback.offer_generation;
+        self.playback.offer_generation = advertisement.offer_generation;
+        if !self.matches(host) {
+            self.playback.offer_generation = prior;
+            return Err("selected speech equipment differs after offer transition".into());
+        }
+        Ok(())
+    }
+
     pub(crate) fn matches(&self, host: &StdHost) -> bool {
         host.selected_spoken_equipment_matches(
             &self.playback,

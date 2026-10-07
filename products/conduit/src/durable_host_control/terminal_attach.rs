@@ -61,6 +61,7 @@ pub(super) fn serve(
         }
         attach(stream, runtime, &request)?;
         attached_here = true;
+        runtime.advance_selected_speech_equipment()?;
         refresh_marker(state_dir, runtime)?;
         let HostSource::Body { owner, .. } = &mut runtime.host else {
             unreachable!("only an installed Body can attach a terminal");
@@ -113,6 +114,16 @@ pub(super) fn serve(
 }
 
 impl DurableHostRuntime {
+    fn advance_selected_speech_equipment(&mut self) -> Result<(), String> {
+        let Some(equipment) = &mut self.selected_speech_equipment else {
+            return Ok(());
+        };
+        let HostSource::Body { owner, .. } = &self.host else {
+            return Err("selected speech has no installed Body owner".into());
+        };
+        equipment.advance_offer_generation(owner.host.current())
+    }
+
     pub(super) fn refresh_attached_terminal_show(
         &mut self,
         route_plan_id: &PlanId,
@@ -317,6 +328,7 @@ fn retire(state_dir: &Path, runtime: &mut DurableHostRuntime) -> Result<(), Stri
         unreachable!("only an installed Body can attach a terminal");
     };
     owner.host.current_mut().detach_terminal_mask()?;
+    runtime.advance_selected_speech_equipment()?;
     refresh_marker(state_dir, runtime)
 }
 

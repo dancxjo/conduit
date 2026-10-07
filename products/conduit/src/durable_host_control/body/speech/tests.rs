@@ -138,6 +138,34 @@ fn selected_host(root: &std::path::Path) -> (StdHost, AttachedEquipment) {
     (host, equipment)
 }
 
+#[test]
+fn selected_speech_equipment_survives_terminal_offer_changes_on_the_same_boot() {
+    let root = std::env::temp_dir().join(crate::durable_host::fresh_identity(
+        "speech-terminal-transition",
+        "owner",
+    ));
+    fs::create_dir_all(&root).unwrap();
+    let (mut host, mut equipment) = selected_host(&root);
+    let before = host.advertisement().clone();
+    let (terminal, peer) = std::os::unix::net::UnixStream::pair().unwrap();
+    host.attach_terminal_mask(terminal).unwrap();
+    assert!(
+        !equipment.matches(&host),
+        "old equipment generation cannot authorize a new offer"
+    );
+    equipment.advance_offer_generation(&host).unwrap();
+    assert!(equipment.matches(&host));
+    drop(peer);
+    host.detach_terminal_mask().unwrap();
+    assert!(!equipment.matches(&host));
+    equipment.advance_offer_generation(&host).unwrap();
+    assert!(equipment.matches(&host));
+    assert_eq!(host.advertisement().host_id, before.host_id);
+    assert_eq!(host.advertisement().boot_id, before.boot_id);
+    assert!(host.advertisement().offer_generation > before.offer_generation);
+    fs::remove_dir_all(root).unwrap();
+}
+
 fn acknowledged_browser_show(
     owner: &mut Owner,
     root: &std::path::Path,

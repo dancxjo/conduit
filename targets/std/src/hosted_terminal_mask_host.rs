@@ -65,6 +65,7 @@ impl StdHost {
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
         advertisement.offer_generation = next_generation(advertisement.offer_generation)?;
         let ledger = KernelResourceLedger::new(&advertisement)?;
+        self.advance_retained_spoken_offer_generation(advertisement.offer_generation)?;
         self.advertisement = advertisement;
         self.kernel_resources = ledger;
         self.terminal_attachment = Some(stream);
@@ -94,6 +95,7 @@ impl StdHost {
             .retain(|offer| !pool_ids.contains(&offer.pool_id));
         advertisement.offer_generation = next_generation(advertisement.offer_generation)?;
         let ledger = KernelResourceLedger::new(&advertisement)?;
+        self.advance_retained_spoken_offer_generation(advertisement.offer_generation)?;
         self.terminal_attachment = None;
         self.advertisement = advertisement;
         self.kernel_resources = ledger;
@@ -238,6 +240,61 @@ fn next_generation(current: OfferGeneration) -> Result<OfferGeneration, String> 
 mod tests {
     use super::*;
     use crate::terminal_mask_execution::HostedTerminalMaskExecution;
+
+    #[test]
+    fn terminal_offer_changes_keep_retained_spoken_resources_current() {
+        use crate::hosted_audio::{AlsaPlaybackObservation, HostedPlaybackSelection};
+        let mut host = StdHost::new();
+        let initial = host.advertisement().clone();
+        let speaker = HostedPlaybackSelection::from_observation(
+            AlsaPlaybackObservation {
+                card_index: 1,
+                card_id: "SELECTED".into(),
+                card_name: "Selected speaker".into(),
+                device: 0,
+                device_name: "Playback".into(),
+                base_identity: "selected-test".into(),
+            },
+            initial.boot_id.clone(),
+            initial.offer_generation,
+        );
+        host.attach_selected_playback(speaker).unwrap();
+        let artifact_root = std::env::temp_dir().join(format!(
+            "conduit-terminal-spoken-artifact-{}-{}",
+            std::process::id(),
+            initial.boot_id.as_str().replace('/', "-"),
+        ));
+        std::fs::create_dir(&artifact_root).unwrap();
+        let artifact = crate::hosted_wav_artifact::WavArtifactSelection::per_play_root(
+            &artifact_root,
+            initial.boot_id.clone(),
+            initial.offer_generation,
+        )
+        .unwrap();
+        host.attach_deterministic_speech_and_wav_artifact(artifact)
+            .unwrap();
+        let (service, foreground) = UnixStream::pair().unwrap();
+        host.attach_terminal_mask(service).unwrap();
+        let attached = host.advertisement().offer_generation;
+        assert_eq!(host.playback.as_ref().unwrap().offer_generation, attached);
+        assert_eq!(
+            host.wav_artifact.as_ref().unwrap().offer_generation,
+            attached
+        );
+        assert_eq!(host.playback.as_ref().unwrap().boot_id, initial.boot_id);
+        drop(foreground);
+        host.detach_terminal_mask().unwrap();
+        assert_eq!(
+            host.playback.as_ref().unwrap().offer_generation,
+            host.advertisement().offer_generation
+        );
+        assert_eq!(
+            host.wav_artifact.as_ref().unwrap().offer_generation,
+            host.advertisement().offer_generation
+        );
+        assert!(host.advertisement().offer_generation > attached);
+        std::fs::remove_dir(artifact_root).unwrap();
+    }
 
     #[test]
     fn only_a_live_attachment_can_plan_on_the_actual_host_offer() {

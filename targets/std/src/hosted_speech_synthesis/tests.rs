@@ -107,6 +107,39 @@ fn placement(adapter: &EspeakSpeechAdapter) -> PlannedGear {
 }
 #[test]
 #[cfg(unix)]
+fn retained_provider_accepts_new_offer_generation_but_old_placement_stays_stale() {
+    let (_files, discovery) = fixture();
+    let mut adapter = adapter(discovery);
+    let old = placement(&adapter);
+    adapter
+        .advance_offer_generation(
+            &HostId::from("host/speech"),
+            &BootId::from("boot/speech"),
+            OfferGeneration(1),
+            OfferGeneration(2),
+        )
+        .unwrap();
+    assert_eq!(
+        adapter.validate_placement(&old),
+        Err(EspeakFailure::StaleProvider)
+    );
+    let current = placement(&adapter);
+    assert_eq!(
+        adapter.validate_placement(&current),
+        Ok(conduit_tongues::MAXIMUM_PCM_BYTES)
+    );
+    assert_eq!(
+        adapter.advance_offer_generation(
+            &HostId::from("host/other"),
+            &BootId::from("boot/speech"),
+            OfferGeneration(2),
+            OfferGeneration(3)
+        ),
+        Err(EspeakFailure::StaleProvider)
+    );
+}
+#[test]
+#[cfg(unix)]
 fn exact_provider_admission_rejects_forged_placement_and_changed_content() {
     let (files, discovery) = fixture();
     let adapter = adapter(discovery);
