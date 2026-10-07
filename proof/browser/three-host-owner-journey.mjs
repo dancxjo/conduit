@@ -275,7 +275,7 @@ try {
   await writeFile(`${startReadyPath}.tmp`, `${JSON.stringify(startReady, null, 2)}\n`,
     { mode: 0o600 });
   await rename(`${startReadyPath}.tmp`, startReadyPath);
-  const startResume = await waitForFile(path.join(output, 'clock-start.resume.json'), 15 * 60_000);
+  const startResume = await waitForFile(path.join(output, 'clock-start.resume.json'), 35 * 60_000);
   for (const key of ['schema', 'source_commit', 'run_id', 'body_id',
     'owner_host_id', 'owner_boot_id', 'browser_part_id', 'guest_part_id',
     'source_face_id', 'source_face_revision']) {

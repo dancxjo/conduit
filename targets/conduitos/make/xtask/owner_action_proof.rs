@@ -153,7 +153,7 @@ fn prove(
             directory,
             "resume-native-activation",
             child,
-            Duration::from_secs(15 * 60),
+            Duration::from_secs(35 * 60),
         )?;
     }
     // An actual native user requests this Mask after the owner has selected
