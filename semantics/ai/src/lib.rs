@@ -245,3 +245,6 @@ pub mod fixed_numeric_integer_conversion;
 
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_temporal;
+
+#[cfg(all(feature = "kernel-step", target_has_atomic = "ptr"))]
+pub mod fixed_numeric_linear_flow;

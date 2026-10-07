@@ -9,6 +9,17 @@ pub(super) fn select(
     bindings: &TensorBindings,
 ) -> Option<Result<Selection, String>> {
     match kind {
+        "numeric/linear3x2" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_linear_offer::<3, 2>(),
+            FixedLinearBack::<3, 2>::prepare_planned_owned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                resource(bindings, "weights")?
+            )
+        )),
         "numeric/dense161x18" => Some(run!(
             planned,
             gear,

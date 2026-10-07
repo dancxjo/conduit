@@ -12,6 +12,15 @@ fn op(specs: &mut Vec<Spec>, name: String, inputs: Vec<(&str, String)>, output: 
 }
 pub(crate) fn fixed_signal_specs() -> Vec<Spec> {
     let mut specs = Vec::new();
+    op(
+        &mut specs,
+        String::from("numeric/linear3x2"),
+        vec![
+            ("value", vector(3)),
+            ("weights", String::from("NumericF32MatrixRef3x2")),
+        ],
+        vector(2),
+    );
     for (i, o) in [
         (161, 18),
         (18, 18),
