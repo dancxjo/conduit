@@ -1,4 +1,5 @@
 //! Existing generic expression Backs executing the checked source graph.
+#![allow(dead_code)]
 
 use conduit_composite::*;
 use conduit_core::*;
@@ -18,8 +19,13 @@ enum Owner {
 pub struct Execution {
     pub kernel: KernelCompositeHost,
     owners: Vec<(NodeId, Owner)>,
+    pub preparation_nanoseconds: [u128; 4],
 }
-impl Execution {
+pub struct Blueprint {
+    entry: PreparedProtocolEntry,
+    host: HostAdvertisement,
+}
+impl Blueprint {
     pub fn prepare(source: String, entry_name: &str) -> Self {
         let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
         let entry =
@@ -37,6 +43,14 @@ impl Execution {
             planner_capabilities: vec![],
         };
         entry.publish_pure_backs(&mut host).unwrap();
+        Self { entry, host }
+    }
+    /// Each bounded corpus fixture has a fresh exact Boot/Plan identity.
+    pub fn realize(&self, epoch: usize) -> Execution {
+        let preparation_started = std::time::Instant::now();
+        let entry = &self.entry;
+        let mut host = self.host.clone();
+        host.boot_id = BootId::from(format!("fixture/language-parser-boot/{epoch}"));
         let hosts = [host];
         let choices = entry.placements(&hosts).unwrap();
         let mut limits = entry.queue_limits(&hosts, &choices).unwrap();
@@ -89,10 +103,14 @@ impl Execution {
             plan,
         )
         .unwrap();
+        let planned_ns = preparation_started.elapsed().as_nanos();
+        let phase_started = std::time::Instant::now();
         let definition = artifact.definition().clone();
         let fragment = &definition.internal_plan.fragments[0];
         let lowered = lower_plan_fragment(fragment).unwrap();
         let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+        let lowered_ns = phase_started.elapsed().as_nanos();
+        let phase_started = std::time::Instant::now();
         let owners = fragment
             .placements
             .iter()
@@ -125,6 +143,8 @@ impl Execution {
                 )
             })
             .collect();
+        let owner_ns = phase_started.elapsed().as_nanos();
+        let phase_started = std::time::Instant::now();
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(ExpressionOperationFactory::default())
@@ -141,7 +161,21 @@ impl Execution {
             },
         )
         .unwrap();
-        Self { kernel, owners }
+        Execution {
+            kernel,
+            owners,
+            preparation_nanoseconds: [
+                planned_ns,
+                lowered_ns,
+                owner_ns,
+                phase_started.elapsed().as_nanos(),
+            ],
+        }
+    }
+}
+impl Execution {
+    pub fn prepare(source: String, entry_name: &str) -> Self {
+        Blueprint::prepare(source, entry_name).realize(0)
     }
     pub fn step(&mut self) -> KernelCompositeStatus {
         let status = self.kernel.step().unwrap();
@@ -196,5 +230,41 @@ impl Execution {
             }
         }
         status
+    }
+    pub fn transact(&mut self, sequence: u64, input: &StructuredInfoValue) -> StructuredInfoValue {
+        let boundary = &self.kernel.definition().boundary;
+        let input_port = boundary.input_fronts[0].external_port.clone();
+        let output_port = boundary.output_fronts[0].external_port.clone();
+        assert!(matches!(input_port.temporal, PortTemporal::Flow { .. }));
+        assert!(matches!(output_port.temporal, PortTemporal::Flow { .. }));
+        let payload = ValuePayload {
+            value_kind: input_port.value_kind,
+            encoded: input.canonical_bytes().unwrap(),
+        };
+        assert!(matches!(
+            self.kernel
+                .admit_input(&input_port.port_id, sequence, &payload)
+                .unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
+        ));
+        let mut output = ValuePayload {
+            value_kind: output_port.value_kind,
+            encoded: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+        };
+        for _ in 0..4000 {
+            self.step();
+            if let Some(received) = self
+                .kernel
+                .output_into(&output_port.port_id, &mut output)
+                .unwrap()
+            {
+                assert_eq!(received, sequence);
+                self.kernel
+                    .complete_output(&output_port.port_id, received)
+                    .unwrap();
+                return StructuredInfoValue::from_canonical_bytes(&output.encoded).unwrap();
+            }
+        }
+        panic!("bounded source graph output");
     }
 }

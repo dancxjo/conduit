@@ -1,0 +1,533 @@
+{"heads": [4, 0], "id": "weblog-juancole.com_juancole_20030914114200_ENG_20030914_114200-0009", "pos": [15, 11], "relations": ["root", "obj"]}
+{"heads": [4, 0], "id": "weblog-blogspot.com_marketview_20060625150800_ENG_20060625_150800-0011", "pos": [2, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "weblog-blogspot.com_floppingaces_20050313182621_ENG_20050313_182621-0009", "pos": [14], "relations": ["root"]}
+{"heads": [4, 0, 0, 0], "id": "weblog-blogspot.com_floppingaces_20050313182621_ENG_20050313_182621-0012", "pos": [10, 3, 10, 12], "relations": ["root", "cop", "nsubj", "punct"]}
+{"heads": [4], "id": "email-enronsent23_10-0001", "pos": [6], "relations": ["root"]}
+{"heads": [4, 0, 0], "id": "email-enronsent23_10-0002", "pos": [15, 0, 12], "relations": ["root", "xcomp", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent23_01-0004", "pos": [1, 10, 12], "relations": ["case", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent23_12-0002", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent23_02-0007", "pos": [2, 7, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent23_06-0001", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent23_06-0002", "pos": [10, 7, 12], "relations": ["nmod:poss", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent23_06-0004", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent23_07-0001", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent23_07-0009", "pos": [3, 10, 15, 12], "relations": ["aux", "nsubj", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent27_02-0001", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0], "id": "email-enronsent27_02-0002", "pos": [8, 8], "relations": ["root", "list"]}
+{"heads": [4, 0], "id": "email-enronsent27_02-0003", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent27_02-0013", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4], "id": "email-enronsent27_02-0014", "pos": [11], "relations": ["root"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent21_01-0004", "pos": [0, 11, 11, 12], "relations": ["amod", "nmod:desc", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent21_01-0007", "pos": [9, 15, 2], "relations": ["advmod", "root", "advmod"]}
+{"heads": [4, 0, 0], "id": "email-enronsent21_01-0008", "pos": [6, 11, 12], "relations": ["root", "vocative", "punct"]}
+{"heads": [4], "id": "email-enronsent21_01-0012", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "email-enronsent21_01-0013", "pos": [6, 15, 2], "relations": ["discourse", "root", "advmod"]}
+{"heads": [4, 0], "id": "email-enronsent21_01-0014", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent21_01-0019", "pos": [12], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_01-0022", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent04_02-0005", "pos": [2, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent04_02-0007", "pos": [6, 11, 12], "relations": ["discourse", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent04_02-0009", "pos": [0, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent04_02-0010", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent04_02-0014", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent23_04-0002", "pos": [10, 3, 0, 12], "relations": ["nsubj", "cop", "root", "punct"]}
+{"heads": [4], "id": "email-enronsent23_04-0009", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent23_04-0010", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent23_04-0011", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent23_04-0012", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent23_04-0013", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_01-0001", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_01-0011", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_01-0012", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0, 0], "id": "email-enronsent18_01-0016", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent32_02-0001", "pos": [11, 16], "relations": ["root", "goeswith"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_02-0002", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [1, 4, 1], "id": "email-enronsent32_02-0010", "pos": [6, 15, 12], "relations": ["discourse", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent32_02-0011", "pos": [11, 16], "relations": ["root", "goeswith"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_02-0012", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0, 3, 0], "id": "email-enronsent32_02-0021", "pos": [11, 11, 12, 11], "relations": ["root", "flat", "punct", "list"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_02-0022", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [1, 4], "id": "email-enronsent32_02-0028", "pos": [12, 11], "relations": ["punct", "root"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0001", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent36_01-0004", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0007", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent36_01-0008", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0009", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0012", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent36_01-0013", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0017", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent36_01-0018", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0019", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent36_01-0023", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0024", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent36_01-0026", "pos": [2, 10, 0, 12], "relations": ["advmod", "nmod:poss", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent36_01-0028", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent36_01-0029", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0, 0], "id": "email-enronsent36_01-0031", "pos": [6, 11, 12], "relations": ["root", "vocative", "punct"]}
+{"heads": [4, 2, 0, 0], "id": "email-enronsent36_01-0034", "pos": [7, 4, 7, 12], "relations": ["root", "cc", "conj", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent09_02-0001", "pos": [11, 16], "relations": ["root", "goeswith"]}
+{"heads": [4, 0, 1], "id": "email-enronsent09_02-0002", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0], "id": "email-enronsent09_02-0003", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent09_02-0009", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent09_02-0010", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent09_02-0012", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent09_02-0013", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent09_02-0015", "pos": [7], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent09_02-0016", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent09_02-0018", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent09_02-0019", "pos": [11, 8, 12, 8], "relations": ["nmod:unmarked", "root", "punct", "nmod:unmarked"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent09_02-0022", "pos": [11, 8, 12, 8], "relations": ["nmod:unmarked", "root", "punct", "nmod:unmarked"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent09_02-0025", "pos": [11, 8, 12, 8], "relations": ["nmod:unmarked", "root", "punct", "nmod:unmarked"]}
+{"heads": [4, 2, 0, 0], "id": "email-enronsent09_02-0028", "pos": [2, 1, 8, 12], "relations": ["root", "case", "obl", "punct"]}
+{"heads": [4], "id": "email-enronsent09_02-0031", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent09_02-0032", "pos": [12], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent09_02-0034", "pos": [12], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent09_02-0036", "pos": [12], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent09_02-0037", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent09_02-0039", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent09_02-0045", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent29_02-0001", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0], "id": "email-enronsent29_02-0003", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0], "id": "email-enronsent29_02-0009", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4], "id": "email-enronsent29_02-0012", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent29_02-0015", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent29_02-0018", "pos": [7, 3, 0, 12], "relations": ["nsubj", "cop", "root", "punct"]}
+{"heads": [4, 0, 0, 0], "id": "email-enronsent29_02-0022", "pos": [15, 10, 2, 12], "relations": ["root", "obj", "advmod", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent29_02-0032", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [1, 4, 1], "id": "email-enronsent29_02-0033", "pos": [6, 15, 10], "relations": ["discourse", "root", "obj"]}
+{"heads": [1, 4, 1], "id": "email-enronsent29_02-0034", "pos": [2, 8, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent29_02-0037", "pos": [7, 3, 0, 12], "relations": ["nsubj", "cop", "root", "punct"]}
+{"heads": [4, 0, 0, 0], "id": "email-enronsent29_02-0041", "pos": [15, 10, 2, 12], "relations": ["root", "obj", "advmod", "punct"]}
+{"heads": [4], "id": "email-enronsent28_01-0001", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0, 1], "id": "email-enronsent28_01-0002", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0], "id": "email-enronsent28_01-0021", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent28_01-0022", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [1, 4, 1], "id": "email-enronsent28_01-0024", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent28_01-0025", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0], "id": "email-enronsent28_01-0026", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent28_01-0027", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0], "id": "email-enronsent28_01-0028", "pos": [2, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0, 0], "id": "email-enronsent28_01-0030", "pos": [11, 11, 11], "relations": ["root", "flat", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent28_01-0031", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4], "id": "email-enronsent28_01-0042", "pos": [2], "relations": ["root"]}
+{"heads": [1, 4, 3, 1], "id": "email-enronsent04_01-0013", "pos": [7, 7, 12, 7], "relations": ["compound", "root", "punct", "appos"]}
+{"heads": [1, 4, 3, 1], "id": "email-enronsent04_01-0014", "pos": [7, 7, 12, 7], "relations": ["compound", "root", "punct", "appos"]}
+{"heads": [4, 0], "id": "email-enronsent04_01-0017", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent04_01-0020", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent04_01-0021", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent04_01-0023", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent04_01-0025", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent04_01-0033", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent32_01-0001", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent32_01-0005", "pos": [7], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0006", "pos": [11, 8], "relations": ["root", "list"]}
+{"heads": [4, 0, 0], "id": "email-enronsent32_01-0008", "pos": [11, 11, 11], "relations": ["root", "flat", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_01-0010", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent32_01-0012", "pos": [6, 3, 0, 12], "relations": ["discourse", "cop", "root", "punct"]}
+{"heads": [4, 0, 0], "id": "email-enronsent32_01-0013", "pos": [11, 11, 11], "relations": ["root", "flat", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_01-0015", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0, 0], "id": "email-enronsent32_01-0018", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0019", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_01-0020", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0022", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0027", "pos": [0, 2], "relations": ["root", "advmod"]}
+{"heads": [2, 2, 4], "id": "email-enronsent32_01-0028", "pos": [1, 10, 7], "relations": ["case", "nmod:poss", "root"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0029", "pos": [11, 16], "relations": ["root", "goeswith"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_01-0030", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0, 0], "id": "email-enronsent32_01-0037", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent32_01-0038", "pos": [12, 16, 16], "relations": ["punct", "root", "flat"]}
+{"heads": [1, 4, 1], "id": "email-enronsent32_01-0039", "pos": [12, 16, 16], "relations": ["punct", "root", "flat"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent32_01-0040", "pos": [12, 16, 16, 16], "relations": ["punct", "root", "flat", "flat"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent32_01-0041", "pos": [12, 16, 16, 16], "relations": ["punct", "root", "flat", "flat"]}
+{"heads": [4], "id": "email-enronsent32_01-0042", "pos": [12], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0043", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_01-0044", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0045", "pos": [11, 11], "relations": ["root", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent32_01-0046", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4], "id": "email-enronsent32_01-0051", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent32_01-0053", "pos": [7, 15, 7, 12], "relations": ["nsubj", "root", "obl:unmarked", "punct"]}
+{"heads": [4], "id": "email-enronsent32_01-0055", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent32_01-0057", "pos": [7], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0058", "pos": [11, 8], "relations": ["root", "list"]}
+{"heads": [4], "id": "email-enronsent32_01-0064", "pos": [7], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent32_01-0065", "pos": [11, 8], "relations": ["root", "list"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0001", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0003", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0004", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0007", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0009", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0012", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0013", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0015", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0018", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0019", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent18_02-0020", "pos": [5, 7, 12], "relations": ["det", "root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0024", "pos": [8], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent18_02-0025", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0026", "pos": [11, 16], "relations": ["root", "goeswith"]}
+{"heads": [4, 0, 1], "id": "email-enronsent18_02-0027", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0, 0], "id": "email-enronsent18_02-0029", "pos": [6, 11, 12], "relations": ["root", "vocative", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0033", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4], "id": "email-enronsent18_02-0034", "pos": [12, 7], "relations": ["punct", "root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0035", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4, 2, 0, 0], "id": "email-enronsent18_02-0036", "pos": [7, 5, 7, 12], "relations": ["root", "det", "nmod:unmarked", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0041", "pos": [11], "relations": ["root"]}
+{"heads": [2, 0, 4], "id": "email-enronsent18_02-0044", "pos": [11, 12, 11], "relations": ["compound", "punct", "root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0046", "pos": [0, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0047", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent18_02-0048", "pos": [14], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent18_02-0050", "pos": [14], "relations": ["root"]}
+{"heads": [1, 4], "id": "email-enronsent18_02-0051", "pos": [12, 11], "relations": ["punct", "root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0052", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent18_02-0056", "pos": [12, 8, 12, 8], "relations": ["punct", "root", "punct", "flat"]}
+{"heads": [1, 4, 1], "id": "email-enronsent18_02-0057", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0058", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0, 0], "id": "email-enronsent18_02-0059", "pos": [11, 11, 11], "relations": ["root", "flat", "flat"]}
+{"heads": [4, 0, 1], "id": "email-enronsent18_02-0060", "pos": [8, 8, 7], "relations": ["root", "list", "nmod:unmarked"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0061", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0063", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0065", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent18_02-0072", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0074", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "email-enronsent18_02-0075", "pos": [5, 7, 12], "relations": ["det", "root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0077", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent18_02-0080", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent18_02-0081", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0003", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0004", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent21_02-0005", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent21_02-0009", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0010", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent21_02-0011", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0018", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0, 0], "id": "email-enronsent21_02-0019", "pos": [6, 7, 12], "relations": ["root", "vocative", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0024", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0029", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0041", "pos": [7], "relations": ["root"]}
+{"heads": [1, 4, 1, 1], "id": "email-enronsent21_02-0042", "pos": [13, 15, 2, 12], "relations": ["mark", "root", "advmod", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0045", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0046", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent21_02-0053", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "email-enronsent21_02-0055", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0060", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0061", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent21_02-0062", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0066", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0067", "pos": [11], "relations": ["root"]}
+{"heads": [2, 2, 4, 2], "id": "email-enronsent21_02-0068", "pos": [2, 10, 15, 12], "relations": ["advmod", "nsubj", "root", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0069", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "email-enronsent21_02-0070", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "email-enronsent21_02-0074", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "email-enronsent21_02-0075", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HarryPotterAppreciationSociety_a3adbf6ac3dc191c_ENG_20050921_061800-0004", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HarryPotterAppreciationSociety_a3adbf6ac3dc191c_ENG_20050921_061800-0005", "pos": [11], "relations": ["root"]}
+{"heads": [2, 2, 3, 4], "id": "newsgroup-groups.google.com_alt.animals_0b4766087b0d36b7_ENG_20031231_183500-0002", "pos": [11, 11, 11, 7], "relations": ["compound", "compound", "compound", "root"]}
+{"heads": [4, 0], "id": "newsgroup-groups.google.com_JyotishRemedies_cc96334336b9368b_ENG_20050623_013400-0001", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JyotishRemedies_cc96334336b9368b_ENG_20050623_013400-0004", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JyotishRemedies_cc96334336b9368b_ENG_20050623_013400-0005", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4], "id": "newsgroup-groups.google.com_GayNews_0f9e221229ed0ee5_ENG_20050307_110600-0003", "pos": [11, 11], "relations": ["compound", "root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0001", "pos": [12], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0003", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1, 1], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0004", "pos": [0, 7, 12, 12], "relations": ["amod", "root", "punct", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0006", "pos": [12], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0007", "pos": [12], "relations": ["root"]}
+{"heads": [4, 2, 0], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0008", "pos": [7, 4, 7], "relations": ["root", "cc", "conj"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0009", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0010", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0011", "pos": [7], "relations": ["root"]}
+{"heads": [1, 2, 4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0012", "pos": [8, 8, 7], "relations": ["nummod", "compound", "root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_alt.animals.cat_0e976a5d400ddce1_ENG_20040103_090500-0005", "pos": [12], "relations": ["root"]}
+{"heads": [4, 2, 0], "id": "newsgroup-groups.google.com_RagnarokOnlineII_9a68fd122989608b_ENG_20051110_012200-0001", "pos": [7, 12, 11], "relations": ["root", "punct", "appos"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_RagnarokOnlineII_9a68fd122989608b_ENG_20051110_012200-0004", "pos": [15], "relations": ["root"]}
+{"heads": [4, 2, 0], "id": "newsgroup-groups.google.com_alt.animals.cat_0f877e44e3521d27_ENG_20040131_084700-0002", "pos": [7, 12, 7], "relations": ["root", "punct", "appos"]}
+{"heads": [4, 2, 0], "id": "newsgroup-groups.google.com_alt.animals.cat_0f877e44e3521d27_ENG_20040131_084700-0006", "pos": [7, 13, 15], "relations": ["root", "mark", "acl"]}
+{"heads": [4, 2, 0, 2], "id": "newsgroup-groups.google.com_alt.animals.cat_0f877e44e3521d27_ENG_20040131_084700-0007", "pos": [11, 12, 7, 11], "relations": ["root", "punct", "appos", "list"]}
+{"heads": [2, 2, 4], "id": "newsgroup-groups.google.com_IndiaNewsWindow_8945cbef01f41435_ENG_20051113_092500-0005", "pos": [5, 11, 11], "relations": ["det", "compound", "root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_HistoricalLinguistics_f65a1220aacc96f3_ENG_20050517_153400-0003", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "newsgroup-groups.google.com_APassionforRats_207517af35c166ef_ENG_20050526_150700-0004", "pos": [0, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_APassionforRats_207517af35c166ef_ENG_20050526_150700-0005", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4], "id": "newsgroup-groups.google.com_APassionforRats_207517af35c166ef_ENG_20050526_150700-0007", "pos": [12, 11], "relations": ["punct", "root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_CognitiveScienceNews_05a0175fc6ece48b_ENG_20050828_091900-0005", "pos": [12], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_civilization_1201f7692b7769fb_ENG_20050908_010400-0002", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_civilization_1201f7692b7769fb_ENG_20050908_010400-0008", "pos": [12, 12, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_civilization_1201f7692b7769fb_ENG_20050908_010400-0009", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_n3td3v_e874a1e5eb995654_ENG_20060120_052200-0005", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_n3td3v_e874a1e5eb995654_ENG_20060120_052200-0008", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_n3td3v_e874a1e5eb995654_ENG_20060120_052200-0009", "pos": [12, 7, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_n3td3v_e874a1e5eb995654_ENG_20060120_052200-0013", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_hiddennook_f50294175d32a8ac_ENG_20041120_152800-0001", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [4, 2, 0, 2], "id": "newsgroup-groups.google.com_hiddennook_f50294175d32a8ac_ENG_20041120_152800-0005", "pos": [11, 12, 11, 11], "relations": ["root", "punct", "parataxis", "flat"]}
+{"heads": [4, 0], "id": "newsgroup-groups.google.com_hiddennook_f50294175d32a8ac_ENG_20041120_152800-0009", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_hiddennook_f50294175d32a8ac_ENG_20041120_152800-0010", "pos": [12], "relations": ["root"]}
+{"heads": [4, 2, 0], "id": "newsgroup-groups.google.com_alt.animals.cat_003362349f033873_ENG_20040712_077100-0002", "pos": [7, 12, 7], "relations": ["root", "punct", "appos"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_alt.animals.bears_07e0e03c803ffdbd_ENG_20040217_113500-0002", "pos": [8], "relations": ["root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_alt.animals.bears_07e0e03c803ffdbd_ENG_20040217_113500-0010", "pos": [8], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_hiddennook_1fd8f731ae7ffaa0_ENG_20050214_192900-0001", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [4, 3, 3, 0], "id": "newsgroup-groups.google.com_hiddennook_1fd8f731ae7ffaa0_ENG_20050214_192900-0002", "pos": [7, 1, 11, 11], "relations": ["root", "case", "compound", "nmod"]}
+{"heads": [2, 2, 4, 2], "id": "newsgroup-groups.google.com_hiddennook_1fd8f731ae7ffaa0_ENG_20050214_192900-0004", "pos": [12, 11, 11, 12], "relations": ["punct", "compound", "root", "punct"]}
+{"heads": [4, 0, 0], "id": "newsgroup-groups.google.com_hiddennook_1fd8f731ae7ffaa0_ENG_20050214_192900-0008", "pos": [0, 2, 12], "relations": ["root", "advmod", "punct"]}
+{"heads": [4, 0], "id": "newsgroup-groups.google.com_hiddennook_1fd8f731ae7ffaa0_ENG_20050214_192900-0013", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_hiddennook_1fd8f731ae7ffaa0_ENG_20050214_192900-0014", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4], "id": "newsgroup-groups.google.com_chantonline_3e01677617c74720_ENG_20060112_102000-0002", "pos": [6, 2], "relations": ["discourse", "root"]}
+{"heads": [1, 4], "id": "newsgroup-groups.google.com_chantonline_3e01677617c74720_ENG_20060112_102000-0012", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [4, 0, 0], "id": "newsgroup-groups.google.com_chantonline_3e01677617c74720_ENG_20060112_102000-0013", "pos": [11, 11, 11], "relations": ["root", "flat", "list"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_jokecity_0566f0ba3b5f748f_ENG_20051125_240500-0013", "pos": [12, 0, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_hiddennook_88969236563fa748_ENG_20050215_173600-0001", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [4, 2, 0], "id": "newsgroup-groups.google.com_hiddennook_88969236563fa748_ENG_20050215_173600-0002", "pos": [7, 1, 11], "relations": ["root", "case", "nmod"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_hiddennook_88969236563fa748_ENG_20050215_173600-0003", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [4, 0], "id": "newsgroup-groups.google.com_hiddennook_88969236563fa748_ENG_20050215_173600-0014", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_hiddennook_88969236563fa748_ENG_20050215_173600-0015", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_hiddennook_e21e429b3ad58235_ENG_20050830_214700-0001", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_hiddennook_e21e429b3ad58235_ENG_20050830_214700-0002", "pos": [12, 11, 12], "relations": ["punct", "root", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_hiddennook_e21e429b3ad58235_ENG_20050830_214700-0012", "pos": [12], "relations": ["root"]}
+{"heads": [4, 2, 0], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0001", "pos": [11, 4, 11], "relations": ["root", "cc", "conj"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0002", "pos": [7], "relations": ["root"]}
+{"heads": [1, 2, 4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0003", "pos": [8, 8, 7], "relations": ["compound", "nummod", "root"]}
+{"heads": [1, 4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0004", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [4, 3, 3, 0], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0005", "pos": [15, 1, 5, 7], "relations": ["root", "case", "det", "obl"]}
+{"heads": [4, 0], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0006", "pos": [11, 14], "relations": ["root", "discourse"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0007", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0009", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0012", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0013", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0016", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0017", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0020", "pos": [12, 11], "relations": ["punct", "root"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0021", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0024", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0025", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0028", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0029", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0031", "pos": [12, 11, 11, 11], "relations": ["punct", "root", "flat", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0032", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0034", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0035", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0037", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0038", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0040", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0041", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0043", "pos": [12, 11, 11, 11], "relations": ["punct", "root", "flat", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0044", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0048", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0049", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0051", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0052", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0054", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0055", "pos": [12], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0057", "pos": [12, 11, 11], "relations": ["punct", "root", "flat"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0058", "pos": [14], "relations": ["root"]}
+{"heads": [2, 2, 4, 2], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0059", "pos": [3, 10, 15, 12], "relations": ["aux", "nsubj", "root", "punct"]}
+{"heads": [4, 2, 0, 0], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0060", "pos": [0, 1, 7, 12], "relations": ["root", "case", "obl", "punct"]}
+{"heads": [4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0062", "pos": [7], "relations": ["root"]}
+{"heads": [1, 2, 4], "id": "newsgroup-groups.google.com_JokeEruption_df151b356f94881c_ENG_20050819_155700-0063", "pos": [8, 8, 7], "relations": ["compound", "nummod", "root"]}
+{"heads": [4], "id": "answers-20090605110621AA3jC62_ans-0002", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "answers-20090605110621AA3jC62_ans-0003", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "answers-20090203211448AAoG2yX_ans-0002", "pos": [0], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "answers-20090203211448AAoG2yX_ans-0003", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4], "id": "answers-20090203211448AAoG2yX_ans-0004", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 4, 1, 1], "id": "answers-20090716131314AA4W9uJ_ans-0002", "pos": [9, 10, 6, 12], "relations": ["advmod", "root", "discourse", "punct"]}
+{"heads": [1, 4, 1, 1], "id": "answers-20090716131753AAhQKkW_ans-0002", "pos": [9, 10, 6, 12], "relations": ["advmod", "root", "discourse", "punct"]}
+{"heads": [4], "id": "answers-20111107173321AASNJjc_ans-0002", "pos": [14], "relations": ["root"]}
+{"heads": [2, 2, 4, 2], "id": "answers-20111108044633AAdN4ph_ans-0002", "pos": [5, 7, 7, 12], "relations": ["det", "compound", "root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111108044633AAdN4ph_ans-0003", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "answers-20111108063043AAOhkv9_ans-0004", "pos": [6], "relations": ["root"]}
+{"heads": [4], "id": "answers-20090801154222AA09uXV_ans-0003", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "answers-20090801154222AA09uXV_ans-0004", "pos": [7], "relations": ["root"]}
+{"heads": [4, 2, 0], "id": "answers-20111108044917AALAHtc_ans-0004", "pos": [7, 12, 11], "relations": ["root", "punct", "appos"]}
+{"heads": [4], "id": "answers-20111108044917AALAHtc_ans-0005", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "answers-20111108075238AAOhbL0_ans-0002", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4], "id": "answers-20111108075238AAOhbL0_ans-0003", "pos": [10, 7], "relations": ["nmod:poss", "root"]}
+{"heads": [4], "id": "answers-20111108075238AAOhbL0_ans-0004", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0, 0], "id": "answers-20111108090345AAQiffR_ans-0004", "pos": [15, 10, 14], "relations": ["root", "obj", "discourse"]}
+{"heads": [4], "id": "answers-20111108090345AAQiffR_ans-0005", "pos": [11], "relations": ["root"]}
+{"heads": [4, 2, 0, 0], "id": "answers-20111107201117AANg07J_ans-0003", "pos": [15, 5, 7, 12], "relations": ["root", "det", "obj", "punct"]}
+{"heads": [4, 0], "id": "answers-20111107201117AANg07J_ans-0004", "pos": [15, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111108084149AAbQBhq_ans-0005", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "answers-20111024202518AA18Sg7_ans-0004", "pos": [6], "relations": ["root"]}
+{"heads": [1, 4], "id": "answers-20111105235047AAgQW4l_ans-0005", "pos": [11, 11], "relations": ["compound", "root"]}
+{"heads": [1, 4], "id": "answers-20111107163942AA08rP5_ans-0002", "pos": [7, 7], "relations": ["compound", "root"]}
+{"heads": [1, 4], "id": "answers-20111107163942AA08rP5_ans-0003", "pos": [7, 7], "relations": ["compound", "root"]}
+{"heads": [1, 4], "id": "answers-20111107163942AA08rP5_ans-0004", "pos": [7, 7], "relations": ["compound", "root"]}
+{"heads": [1, 4], "id": "answers-20111107163942AA08rP5_ans-0005", "pos": [7, 7], "relations": ["compound", "root"]}
+{"heads": [4, 2, 0, 0], "id": "answers-20111107163942AA08rP5_ans-0007", "pos": [5, 1, 10, 14], "relations": ["root", "case", "nmod", "discourse"]}
+{"heads": [1, 4, 1], "id": "answers-20111107163942AA08rP5_ans-0008", "pos": [7, 7, 12], "relations": ["compound", "root", "punct"]}
+{"heads": [4], "id": "answers-20111108064636AAvIKDE_ans-0007", "pos": [0], "relations": ["root"]}
+{"heads": [4], "id": "answers-20111108102612AASRNao_ans-0005", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "answers-20111024111513AAAQhAO_ans-0007", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "answers-20111108081519AAdHz5c_ans-0005", "pos": [7], "relations": ["root"]}
+{"heads": [4, 2, 0, 0], "id": "answers-20111108081519AAdHz5c_ans-0006", "pos": [0, 4, 0, 12], "relations": ["root", "cc", "conj", "punct"]}
+{"heads": [3, 3, 3, 4], "id": "answers-20111108081519AAdHz5c_ans-0007", "pos": [11, 3, 9, 0], "relations": ["nsubj", "cop", "advmod", "root"]}
+{"heads": [4, 0], "id": "answers-20111108071652AA8GAZw_ans-0008", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "answers-20111107035344AAdi9dS_ans-0005", "pos": [1, 10, 12], "relations": ["case", "root", "punct"]}
+{"heads": [4], "id": "answers-20111106022931AAwpqXm_ans-0005", "pos": [6], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "answers-20111106022931AAwpqXm_ans-0006", "pos": [9, 0, 2], "relations": ["advmod", "root", "advmod"]}
+{"heads": [1, 4, 1], "id": "answers-20111106022931AAwpqXm_ans-0008", "pos": [2, 11, 12], "relations": ["discourse", "root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111107143529AAW8bjR_ans-0004", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111108100703AAo53QA_ans-0006", "pos": [15, 10], "relations": ["root", "obj"]}
+{"heads": [2, 2, 4, 2], "id": "answers-20111108074555AAFT8Aj_ans-0003", "pos": [7, 7, 7, 12], "relations": ["compound", "compound", "root", "punct"]}
+{"heads": [2, 2, 4], "id": "answers-20111108074555AAFT8Aj_ans-0004", "pos": [4, 7, 7], "relations": ["cc", "compound", "root"]}
+{"heads": [4], "id": "answers-20111108074555AAFT8Aj_ans-0006", "pos": [7], "relations": ["root"]}
+{"heads": [4, 0, 0], "id": "answers-20111108074555AAFT8Aj_ans-0007", "pos": [7, 2, 12], "relations": ["root", "advmod", "punct"]}
+{"heads": [4], "id": "answers-20111108074555AAFT8Aj_ans-0009", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "answers-20111108074555AAFT8Aj_ans-0010", "pos": [7, 7, 12], "relations": ["compound", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "answers-20111108084036AAh8Ws9_ans-0002", "pos": [10, 3, 12], "relations": ["nsubj", "root", "punct"]}
+{"heads": [4, 3, 3, 0], "id": "answers-20111108084036AAh8Ws9_ans-0004", "pos": [15, 1, 5, 7], "relations": ["root", "case", "det", "obl"]}
+{"heads": [1, 4, 1], "id": "answers-20081218053636AA9vV0u_ans-0010", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 0, 0], "id": "answers-20111108082432AAph0C0_ans-0005", "pos": [15, 11, 12], "relations": ["root", "obj", "punct"]}
+{"heads": [1, 4, 1], "id": "answers-20111108082432AAph0C0_ans-0006", "pos": [5, 11, 12], "relations": ["det", "root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111104115933AA30CRJ_ans-0009", "pos": [15, 11], "relations": ["root", "obj"]}
+{"heads": [4], "id": "answers-20111107221352AAlIioO_ans-0006", "pos": [11], "relations": ["root"]}
+{"heads": [4, 0], "id": "answers-20111107221352AAlIioO_ans-0010", "pos": [15, 11], "relations": ["root", "obj"]}
+{"heads": [4, 2, 0, 0], "id": "answers-20111107211645AA391wC_ans-0002", "pos": [15, 1, 10, 12], "relations": ["root", "case", "obl", "punct"]}
+{"heads": [1, 4], "id": "answers-20111107155845AAE3kCA_ans-0008", "pos": [12, 11], "relations": ["punct", "root"]}
+{"heads": [3, 3, 3, 4], "id": "answers-20111108105137AA9BNtk_ans-0008", "pos": [1, 5, 11, 7], "relations": ["case", "det", "compound", "root"]}
+{"heads": [4], "id": "answers-20111108105137AA9BNtk_ans-0011", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "answers-20110320195750AAkPbFG_ans-0007", "pos": [5, 0, 12], "relations": ["det", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "answers-20111106103415AAqdokn_ans-0003", "pos": [0, 11, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111106103415AAqdokn_ans-0005", "pos": [11, 12], "relations": ["root", "punct"]}
+{"heads": [2, 2, 4], "id": "answers-20111106103415AAqdokn_ans-0006", "pos": [15, 10, 7], "relations": ["discourse", "nmod:poss", "root"]}
+{"heads": [4, 0], "id": "answers-20111106103415AAqdokn_ans-0007", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4], "id": "answers-20111106103415AAqdokn_ans-0011", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "answers-20111106103415AAqdokn_ans-0013", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "answers-20111106103415AAqdokn_ans-0015", "pos": [11], "relations": ["root"]}
+{"heads": [4], "id": "answers-20111106103415AAqdokn_ans-0018", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "answers-20111108111112AAAjhoy_ans-0007", "pos": [2, 0, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "answers-20111107082312AAPNaxb_ans-0008", "pos": [5, 7, 12], "relations": ["det", "root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111108074455AAiMwmn_ans-0006", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "answers-20111108074455AAiMwmn_ans-0009", "pos": [10, 3, 15, 12], "relations": ["nsubj", "aux", "root", "punct"]}
+{"heads": [4, 0], "id": "answers-20111108074455AAiMwmn_ans-0013", "pos": [15, 11], "relations": ["root", "obj"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-056408-0001", "pos": [7, 3, 0, 12], "relations": ["nsubj", "cop", "root", "punct"]}
+{"heads": [4, 0, 0, 0], "id": "reviews-184290-0001", "pos": [6, 6, 6, 12], "relations": ["root", "discourse", "discourse", "punct"]}
+{"heads": [1, 4], "id": "reviews-395218-0001", "pos": [11, 11], "relations": ["compound", "root"]}
+{"heads": [4], "id": "reviews-005265-0001", "pos": [0], "relations": ["root"]}
+{"heads": [1, 4], "id": "reviews-255757-0002", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 4, 1], "id": "reviews-351950-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-152281-0002", "pos": [0, 7, 7, 12], "relations": ["amod", "compound", "root", "punct"]}
+{"heads": [4, 0], "id": "reviews-174824-0002", "pos": [0, 12], "relations": ["root", "punct"]}
+{"heads": [1, 2, 4, 2], "id": "reviews-283903-0001", "pos": [2, 0, 7, 12], "relations": ["advmod", "amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-283903-0003", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4, 3, 1], "id": "reviews-250878-0002", "pos": [2, 15, 0, 11], "relations": ["advmod", "root", "amod", "iobj"]}
+{"heads": [4, 0], "id": "reviews-034858-0002", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-038523-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 0, 0], "id": "reviews-038523-0003", "pos": [7, 2, 12], "relations": ["root", "advmod", "punct"]}
+{"heads": [1, 3, 3, 4], "id": "reviews-286172-0001", "pos": [5, 7, 3, 0], "relations": ["det", "nsubj", "cop", "root"]}
+{"heads": [1, 4, 1], "id": "reviews-286172-0003", "pos": [2, 15, 2], "relations": ["advmod", "root", "advmod"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-086914-0001", "pos": [0, 0, 7, 12], "relations": ["amod", "amod", "root", "punct"]}
+{"heads": [4, 0, 0], "id": "reviews-346074-0002", "pos": [7, 11, 12], "relations": ["root", "vocative", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-058878-0002", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-058878-0003", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-212369-0001", "pos": [7, 3, 0, 12], "relations": ["nsubj", "cop", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-212369-0003", "pos": [7, 3, 0, 12], "relations": ["nsubj", "cop", "root", "punct"]}
+{"heads": [4], "id": "reviews-187163-0001", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4, 1, 1], "id": "reviews-224117-0002", "pos": [10, 15, 10, 12], "relations": ["nsubj", "root", "obj", "punct"]}
+{"heads": [4, 2, 0], "id": "reviews-192399-0001", "pos": [11, 1, 11], "relations": ["root", "case", "nmod"]}
+{"heads": [1, 4, 1], "id": "reviews-192399-0002", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 0], "id": "reviews-192399-0004", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-089136-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4], "id": "reviews-089136-0003", "pos": [6], "relations": ["root"]}
+{"heads": [4, 0], "id": "reviews-139152-0001", "pos": [7, 12], "relations": ["root", "punct"]}
+{"heads": [4, 0, 0, 0], "id": "reviews-139152-0003", "pos": [15, 10, 1, 12], "relations": ["root", "obj", "compound:prt", "punct"]}
+{"heads": [4], "id": "reviews-104703-0001", "pos": [0], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "reviews-146820-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 0], "id": "reviews-241108-0001", "pos": [15, 2], "relations": ["root", "advmod"]}
+{"heads": [1, 4, 1], "id": "reviews-241108-0002", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-241108-0003", "pos": [2, 0, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [1, 4], "id": "reviews-001325-0001", "pos": [2, 15], "relations": ["advmod", "root"]}
+{"heads": [4, 2, 0, 0], "id": "reviews-001325-0004", "pos": [6, 1, 11, 12], "relations": ["root", "case", "obl", "punct"]}
+{"heads": [1, 4], "id": "reviews-002317-0001", "pos": [7, 7], "relations": ["compound", "root"]}
+{"heads": [4, 0], "id": "reviews-002317-0003", "pos": [15, 10], "relations": ["root", "obj"]}
+{"heads": [1, 4], "id": "reviews-210153-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [4], "id": "reviews-210153-0004", "pos": [11], "relations": ["root"]}
+{"heads": [4, 2, 0], "id": "reviews-245928-0001", "pos": [0, 4, 0], "relations": ["root", "cc", "conj"]}
+{"heads": [1, 4], "id": "reviews-226715-0001", "pos": [11, 11], "relations": ["compound", "root"]}
+{"heads": [4], "id": "reviews-128808-0001", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4], "id": "reviews-171877-0001", "pos": [11, 7], "relations": ["compound", "root"]}
+{"heads": [4, 2, 0], "id": "reviews-363428-0001", "pos": [11, 5, 11], "relations": ["root", "det", "appos"]}
+{"heads": [1, 4, 3, 1], "id": "reviews-329807-0001", "pos": [0, 7, 1, 11], "relations": ["amod", "root", "case", "nmod"]}
+{"heads": [1, 4, 1], "id": "reviews-329807-0004", "pos": [2, 15, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-325330-0001", "pos": [9, 0, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-392826-0001", "pos": [2, 0, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-181696-0001", "pos": [15, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-030395-0001", "pos": [11, 3, 0, 12], "relations": ["nsubj", "cop", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-030395-0004", "pos": [4, 10, 15, 12], "relations": ["cc", "nsubj", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-336285-0001", "pos": [5, 5, 7, 12], "relations": ["det:predet", "det", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-061721-0001", "pos": [5, 5, 7, 12], "relations": ["det:predet", "det", "root", "punct"]}
+{"heads": [1, 4], "id": "reviews-169610-0001", "pos": [7, 7], "relations": ["compound", "root"]}
+{"heads": [1, 4], "id": "reviews-101864-0001", "pos": [5, 7], "relations": ["det", "root"]}
+{"heads": [1, 2, 4], "id": "reviews-270889-0001", "pos": [11, 11, 11], "relations": ["compound", "compound", "root"]}
+{"heads": [1, 4, 1], "id": "reviews-294978-0001", "pos": [9, 0, 2], "relations": ["advmod", "root", "advmod"]}
+{"heads": [1, 4], "id": "reviews-217747-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 2, 4, 2], "id": "reviews-264993-0004", "pos": [2, 0, 7, 12], "relations": ["advmod", "amod", "root", "punct"]}
+{"heads": [4, 2, 0], "id": "reviews-256677-0001", "pos": [15, 11, 11], "relations": ["root", "compound", "obj"]}
+{"heads": [2, 2, 4], "id": "reviews-054269-0001", "pos": [0, 7, 7], "relations": ["amod", "compound", "root"]}
+{"heads": [1, 4, 1, 1], "id": "reviews-083563-0003", "pos": [0, 7, 11, 12], "relations": ["amod", "root", "vocative", "punct"]}
+{"heads": [4, 2, 0, 0], "id": "reviews-034320-0001", "pos": [0, 4, 0, 12], "relations": ["root", "cc", "conj", "punct"]}
+{"heads": [4, 0], "id": "reviews-034320-0004", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-080814-0001", "pos": [0, 0, 7, 12], "relations": ["amod", "amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-287360-0001", "pos": [2, 0, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-287360-0002", "pos": [10, 5, 7, 12], "relations": ["det:predet", "det", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-287360-0004", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-287360-0005", "pos": [2, 0, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [4, 2, 0, 0], "id": "reviews-287360-0007", "pos": [7, 9, 15, 12], "relations": ["root", "mark", "acl", "punct"]}
+{"heads": [2, 2, 4], "id": "reviews-299169-0001", "pos": [0, 7, 7], "relations": ["amod", "compound", "root"]}
+{"heads": [1, 4], "id": "reviews-343813-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 4, 1], "id": "reviews-343813-0006", "pos": [9, 0, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-290238-0001", "pos": [1, 1, 7, 12], "relations": ["case", "case", "root", "punct"]}
+{"heads": [2, 2, 4], "id": "reviews-085009-0001", "pos": [0, 7, 7], "relations": ["amod", "compound", "root"]}
+{"heads": [1, 2, 4, 2], "id": "reviews-085009-0004", "pos": [2, 15, 7, 12], "relations": ["advmod", "amod", "root", "punct"]}
+{"heads": [1, 4], "id": "reviews-037179-0001", "pos": [0, 0], "relations": ["amod", "root"]}
+{"heads": [4, 0], "id": "reviews-045972-0001", "pos": [15, 0], "relations": ["root", "xcomp"]}
+{"heads": [1, 2, 4], "id": "reviews-024306-0001", "pos": [2, 15, 7], "relations": ["advmod", "amod", "root"]}
+{"heads": [2, 2, 4], "id": "reviews-341750-0001", "pos": [9, 2, 0], "relations": ["advmod", "advmod", "root"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-341750-0006", "pos": [4, 9, 2, 12], "relations": ["cc", "advmod", "root", "punct"]}
+{"heads": [1, 4, 3, 1], "id": "reviews-263909-0001", "pos": [0, 7, 0, 7], "relations": ["amod", "root", "amod", "parataxis"]}
+{"heads": [4, 0, 0, 0], "id": "reviews-263909-0003", "pos": [15, 10, 7, 12], "relations": ["root", "obj", "obl:unmarked", "punct"]}
+{"heads": [1, 4], "id": "reviews-353891-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [4, 2, 0, 0], "id": "reviews-193257-0001", "pos": [15, 5, 7, 0], "relations": ["root", "det", "obj", "xcomp"]}
+{"heads": [1, 2, 4, 2], "id": "reviews-257735-0003", "pos": [9, 0, 7, 12], "relations": ["advmod", "amod", "root", "punct"]}
+{"heads": [1, 2, 4], "id": "reviews-145645-0001", "pos": [15, 0, 11], "relations": ["amod", "amod", "root"]}
+{"heads": [4], "id": "reviews-042085-0001", "pos": [7], "relations": ["root"]}
+{"heads": [1, 4], "id": "reviews-302465-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [2, 2, 4], "id": "reviews-030430-0001", "pos": [0, 7, 7], "relations": ["amod", "compound", "root"]}
+{"heads": [2, 2, 4], "id": "reviews-384229-0001", "pos": [0, 11, 7], "relations": ["amod", "compound", "root"]}
+{"heads": [4, 2, 0], "id": "reviews-087368-0001", "pos": [11, 1, 11], "relations": ["root", "case", "nmod"]}
+{"heads": [1, 4, 1], "id": "reviews-087368-0004", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-229100-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4, 2, 0, 0], "id": "reviews-229100-0002", "pos": [15, 5, 7, 12], "relations": ["root", "det", "obj", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-229100-0006", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [1, 4, 1, 1], "id": "reviews-229100-0008", "pos": [10, 15, 10, 12], "relations": ["nsubj", "root", "obj", "punct"]}
+{"heads": [1, 4, 1, 1], "id": "reviews-227515-0001", "pos": [0, 7, 2, 12], "relations": ["amod", "root", "advmod", "punct"]}
+{"heads": [4], "id": "reviews-374344-0001", "pos": [0], "relations": ["root"]}
+{"heads": [1, 4, 1], "id": "reviews-374344-0003", "pos": [2, 15, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [1, 4, 1, 1], "id": "reviews-374344-0007", "pos": [8, 7, 2, 12], "relations": ["nummod", "root", "advmod", "punct"]}
+{"heads": [4, 0, 0], "id": "reviews-374344-0008", "pos": [6, 6, 12], "relations": ["root", "flat", "punct"]}
+{"heads": [4, 0], "id": "reviews-103519-0001", "pos": [6, 12], "relations": ["root", "punct"]}
+{"heads": [4, 3, 3, 0], "id": "reviews-153921-0001", "pos": [0, 4, 0, 7], "relations": ["root", "cc", "amod", "conj"]}
+{"heads": [1, 4, 1], "id": "reviews-325741-0001", "pos": [7, 7, 12], "relations": ["compound", "root", "punct"]}
+{"heads": [1, 4], "id": "reviews-131965-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 4, 1], "id": "reviews-354474-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [4], "id": "reviews-354474-0005", "pos": [7], "relations": ["root"]}
+{"heads": [4], "id": "reviews-206303-0001", "pos": [11], "relations": ["root"]}
+{"heads": [1, 4], "id": "reviews-309258-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 4], "id": "reviews-163250-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 2, 4, 2], "id": "reviews-251755-0001", "pos": [2, 0, 7, 12], "relations": ["advmod", "amod", "root", "punct"]}
+{"heads": [4], "id": "reviews-275595-0001", "pos": [7], "relations": ["root"]}
+{"heads": [4, 0, 0], "id": "reviews-210875-0004", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-346563-0001", "pos": [5, 0, 7, 12], "relations": ["det", "amod", "root", "punct"]}
+{"heads": [1, 4, 1, 2], "id": "reviews-346563-0002", "pos": [10, 15, 0, 12], "relations": ["nsubj", "root", "xcomp", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-118668-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-178726-0001", "pos": [0, 0, 7, 12], "relations": ["amod", "amod", "root", "punct"]}
+{"heads": [1, 4], "id": "reviews-178726-0002", "pos": [2, 15], "relations": ["advmod", "root"]}
+{"heads": [4, 2, 0, 0], "id": "reviews-178726-0006", "pos": [0, 4, 0, 12], "relations": ["root", "cc", "conj", "punct"]}
+{"heads": [4, 2, 0], "id": "reviews-107608-0001", "pos": [7, 1, 11], "relations": ["root", "case", "nmod"]}
+{"heads": [1, 4, 1], "id": "reviews-107608-0004", "pos": [2, 15, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [2, 2, 4, 2], "id": "reviews-225861-0001", "pos": [10, 0, 7, 12], "relations": ["nmod:poss", "amod", "root", "punct"]}
+{"heads": [2, 2, 4], "id": "reviews-357217-0001", "pos": [5, 0, 7], "relations": ["det", "amod", "root"]}
+{"heads": [1, 4], "id": "reviews-268952-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"heads": [1, 4], "id": "reviews-235190-0001", "pos": [7, 7], "relations": ["compound", "root"]}
+{"heads": [4, 0], "id": "reviews-025894-0004", "pos": [0, 12], "relations": ["root", "punct"]}
+{"heads": [1, 2, 4, 2], "id": "reviews-048201-0001", "pos": [2, 0, 7, 12], "relations": ["advmod", "amod", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-042530-0001", "pos": [5, 7, 12], "relations": ["det", "root", "punct"]}
+{"heads": [1, 4, 1], "id": "reviews-216281-0006", "pos": [2, 15, 12], "relations": ["advmod", "root", "punct"]}
+{"heads": [4, 0], "id": "reviews-216281-0007", "pos": [7, 11], "relations": ["root", "vocative"]}
+{"heads": [4, 0, 0], "id": "reviews-216281-0008", "pos": [11, 11, 12], "relations": ["root", "flat", "punct"]}

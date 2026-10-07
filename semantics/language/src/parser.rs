@@ -2,6 +2,14 @@
 //! Raw numeric states and arc proposals require native admission before use.
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
+        ("LanguageParserPosEvidence", crate::LanguageParserPosEvidence::semantic_type().expect("checked Language Type")),
+        ("LanguageParserScorerQuery", crate::LanguageParserScorerQuery::semantic_type().expect("checked Language Type")),
+        ("LanguageParserScorerContext", crate::LanguageParserScorerContext::semantic_type().expect("checked Language Type")),
+        ("LanguageParserModelFeatures", crate::LanguageParserModelFeatures::semantic_type().expect("checked Language Type")),
+        ("LanguageParserScoredClass", crate::LanguageParserScoredClass::semantic_type().expect("checked Language Type")),
+        ("LanguageParserScoredProposal", crate::LanguageParserScoredProposal::semantic_type().expect("checked Language Type")),
+        ("LanguageParserScoreContext", crate::LanguageParserScoreContext::semantic_type().expect("checked Language Type")),
+        ("LanguageParserBufferGrowth", crate::LanguageParserBufferGrowth::semantic_type().expect("checked Language Type")),
         (
             "LanguageParserSubtype",
             crate::LanguageParserSubtype::semantic_type().expect("checked Language Type")

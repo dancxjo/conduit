@@ -185,3 +185,5 @@ mod provider;
 pub use provider::*;
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
+
+pub mod integer_categorical;
