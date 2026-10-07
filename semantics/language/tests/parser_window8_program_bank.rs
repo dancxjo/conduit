@@ -1,6 +1,10 @@
 //! Decode immutable Source programs once; every value still uses native laws.
+extern crate alloc;
+use conduit_language::parser_window8::lexical;
 use conduit_language::{parser_window8::*, *};
 use conduit_plot::{rust_binding::NativeRustBinding, PortableExpressionProgram};
+#[path = "../src/parser_window8_program_bank.rs"]
+mod owned_bank;
 
 fn program(encoded: &str) -> PortableExpressionProgram {
     PortableExpressionProgram::from_canonical_hex(encoded).unwrap()
@@ -147,7 +151,21 @@ fn initial() -> PreparedWindow8State {
 #[test]
 fn retained_allocating_program_bank_matches_public_rank_merge_and_full_forest() {
     let bank = Bank::new();
+    let owned = owned_bank::Window8ProgramBank::prepare().unwrap();
     let prior = initial();
+    let owned_prior = owned.admit_state(prior.state()).unwrap();
+    assert_eq!(owned_prior.proof(), prior.proof());
+    let begin = LanguageParserWindow8Begin::new(
+        prior.state().basis().clone(),
+        prior.state().relation0().clone(),
+        1,
+    )
+    .unwrap();
+    assert_eq!(owned.initialize(&begin).unwrap().proof(), prior.proof());
+    assert_eq!(
+        owned.complete(&owned_prior).unwrap(),
+        window8_complete(&prior).unwrap()
+    );
     assert_eq!(&bank.proof(prior.state()).unwrap(), prior.proof());
     let hyp = |identity, score, active| {
         LanguageParserWindow8RawHypothesis::new(
@@ -174,6 +192,11 @@ fn retained_allocating_program_bank_matches_public_rank_merge_and_full_forest() 
     let retained = bank.merge(beam.clone(), hyp(11, 30, true));
     let retained_ns = started.elapsed().as_nanos();
     assert_eq!(reference, retained);
+    assert_eq!(
+        reference,
+        owned.merge(beam.clone(), hyp(11, 30, true)).unwrap()
+    );
+    assert_eq!(owned.rank(beam.clone()).unwrap(), bank.rank(beam.clone()));
     assert_eq!(window8_rank(beam.clone()).unwrap(), bank.rank(beam));
     let root = window8_class(73, prior.state().relation0()).unwrap();
     let next = prepare_window8_step(
@@ -210,12 +233,17 @@ fn retained_allocating_program_bank_matches_public_rank_merge_and_full_forest() 
     .unwrap();
     assert!(prepare_window8_state(&cyclic).is_err());
     assert!(bank.proof(&cyclic).is_err());
+    assert!(owned.admit_state(&cyclic).is_err());
     eprintln!("exact allocating merge reference_ns={reference_ns} retained_program_ns={retained_ns}; one fixture, excludes bank preparation");
 }
 #[test]
 fn retained_allocating_class_context_and_guards_match_all76_reference_proposals() {
     let bank = Bank::new();
     let prior = initial();
+    let owned = owned_bank::Window8ProgramBank::prepare().unwrap();
+    let owned_prior = owned.admit_state(prior.state()).unwrap();
+    let owned_context = owned.context(&owned_prior, prior.state().basis()).unwrap();
+    assert_eq!(owned_context.prior().proof(), prior.proof());
     let current = prepare_window8_context(&prior, prior.state().basis()).unwrap();
     let seed = bank.context(&prior, prior.state().basis());
     let foreign = LanguageParserBasis::new(
@@ -226,8 +254,16 @@ fn retained_allocating_class_context_and_guards_match_all76_reference_proposals(
     .unwrap();
     let stale = prepare_window8_context(&prior, &foreign).unwrap();
     let stale_seed = bank.context(&prior, &foreign);
+    let owned_stale = owned.context(&owned_prior, &foreign).unwrap();
     for code in 0..76 {
         let class = window8_class(code, prior.state().relation0()).unwrap();
+        assert_eq!(class, owned.class(code, prior.state().relation0()).unwrap());
+        let owned_proposal = owned_context.propose(&class).unwrap();
+        assert_eq!(owned_proposal.prior().proof(), prior.proof());
+        assert_eq!(
+            current.propose(&class).unwrap().proposal(),
+            owned_proposal.proposal()
+        );
         assert_eq!(
             current.propose(&class).unwrap().proposal(),
             &bank.propose(&seed, &class)
@@ -236,5 +272,80 @@ fn retained_allocating_class_context_and_guards_match_all76_reference_proposals(
         let cached = bank.propose(&stale_seed, &class);
         assert_eq!(reference.proposal(), &cached);
         assert!(!cached.accepted());
+        assert_eq!(&cached, owned_stale.propose(&class).unwrap().proposal());
     }
+    assert!(owned.class(76, prior.state().relation0()).is_err());
+}
+
+#[test]
+fn owned_bank_features_choices_and_scores_retain_exact_native_custody() {
+    use conduit_plot::rust_binding::BoundedSequence;
+    let owned = owned_bank::Window8ProgramBank::prepare().unwrap();
+    let prior = initial();
+    let state = owned.admit_state(prior.state()).unwrap();
+    let provenance = LinguisticDerivationProvenance::deterministic_rule(
+        "window8/bank-fixture".into(),
+        "profile/3".into(),
+    )
+    .unwrap();
+    let revision = LanguageTextRevision::new(
+        LanguageTextFinality::Partial,
+        LanguageText::new(
+            prior.state().basis().text().clone(),
+            LanguageId::new("language/en".into()).unwrap(),
+            prior.state().basis().source_revision().clone(),
+            "record ".into(),
+        )
+        .unwrap(),
+        None,
+        provenance.clone(),
+        0,
+        Some(6),
+    )
+    .unwrap();
+    let candidate = LanguageLexicalCandidate::new(
+        "record".into(),
+        BoundedSequence::new(),
+        LanguageLexicalPos::Verb,
+    )
+    .unwrap();
+    let entry = LanguageLexicalEntry::new(
+        BoundedSequence::try_from_iter([candidate]).unwrap(),
+        "record".into(),
+    )
+    .unwrap();
+    let profile = LanguageLexicalProfile::new(
+        BoundedSequence::try_from_iter([entry]).unwrap(),
+        "window8/bank-profile".into(),
+        LanguageId::new("language/en".into()).unwrap(),
+        provenance,
+    )
+    .unwrap();
+    let tape = conduit_language::lexical::prepare_lexical_tape(&revision, &profile, None).unwrap();
+    let lexical = lexical::prepare_window8_lexical(&tape).unwrap();
+    let features = owned
+        .features(&state, &lexical, prior.state().basis(), [0; 8])
+        .unwrap();
+    let reference =
+        lexical::prepare_window8_features(&prior, &lexical, prior.state().basis(), [0; 8]).unwrap();
+    assert_eq!(features.state().proof(), prior.proof());
+    assert_eq!(features.lexical(), lexical.lexical());
+    assert_eq!(features.query(), reference.query());
+    assert_eq!(features.features(), reference.features());
+    let choice =
+        LanguageParserWindow8ChoiceQuery::new(features.query().clone(), [0; 8], 0).unwrap();
+    assert_eq!(
+        owned.choice_frontier(choice.clone()).unwrap(),
+        window8_choice_frontier(choice).unwrap()
+    );
+    let context = owned.context(&state, prior.state().basis()).unwrap();
+    let root = owned.class(73, prior.state().relation0()).unwrap();
+    let proposal = context.propose(&root).unwrap();
+    let advance =
+        LanguageParserWindow8RawAdvance::new([0; 8], 1, proposal.proposal().clone(), -12, 1, 30)
+            .unwrap();
+    assert_eq!(
+        owned.score_advance(advance.clone()).unwrap(),
+        window8_score_advance(advance).unwrap()
+    );
 }
