@@ -1,4 +1,6 @@
 #![cfg(all(feature = "kernel", feature = "semantic-bindings"))]
+#[path = "common/vocative_anchor.rs"]
+mod anchor;
 #[path = "common/vocative_evidence.rs"]
 mod evidence;
 #[path = "common/playback_graph.rs"]
@@ -69,7 +71,7 @@ fn supplied_graph_full_word_pipeline_at_three_vocative_positions() {
             case.selections.len()
         );
         lifecycle::native_table_refusals(&tape);
-        lifecycle::native_anchor_refusals(&tape);
+        anchor::native_anchor_refusals(&tape);
         let pcm = lifecycle::scheduler_pressure(&tape);
         assert_eq!(composite.words.len(), case.selections.len());
         assert_eq!(composite.correspondence.len(), composite.segments.len());
@@ -130,6 +132,7 @@ fn supplied_graph_full_word_pipeline_at_three_vocative_positions() {
             .collect::<Vec<_>>();
         let next_tape =
             prepare_speech_playback_tape(&next_realized, &next_pitch, &next_bindings, 7).unwrap();
+        anchor::lineage_refusals(&tape, &next_tape);
         lifecycle::preplay_replan(&tape, &next_tape);
         lifecycle::exercise(&tape, &next_tape);
         evidence::retain(

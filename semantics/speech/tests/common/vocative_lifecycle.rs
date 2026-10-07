@@ -89,7 +89,8 @@ pub fn exercise<'a>(
     let proposed = PreparedPlaybackChange::interpretation(None, tape).unwrap();
     let revised = PreparedPlaybackChange::interpretation(Some(tape), replacement).unwrap();
     let correction = PreparedPlaybackChange::correction(tape, replacement).unwrap();
-    let foreign_correction = PreparedPlaybackChange::correction(replacement, tape).unwrap();
+    assert!(PreparedPlaybackChange::correction(replacement, tape).is_err());
+    let foreign_correction = PreparedPlaybackChange::correction(replacement, replacement).unwrap();
     let proposal = event(
         &domain,
         1,
@@ -414,52 +415,4 @@ pub fn preplay_replan<'a>(
         epoch.journal().frontiers().committed.acknowledgement(),
         None
     );
-}
-
-pub fn native_anchor_refusals(tape: &PreparedSpeechPlaybackTape<'_>) {
-    use conduit_plot::rust_binding::BoundedSequence;
-    let anchor = prepare_playback_anchor(tape).unwrap();
-    let old = anchor.material();
-    let material = old.material();
-    let altered = conduit_language::LanguageText::new(
-        material.identity().clone(),
-        material.language().clone(),
-        material.revision().clone(),
-        "same IDs, different full material".into(),
-    )
-    .unwrap();
-    let changed = conduit_language::LanguageTextRevision::new(
-        *old.finality(),
-        altered,
-        old.prior().clone(),
-        old.provenance().clone(),
-        *old.sequence(),
-        *old.stable_prefix(),
-    )
-    .unwrap();
-    let foreign = SpeechPlaybackRevisionAnchor::new(
-        *anchor.clock_id(),
-        anchor.inventory_id().clone(),
-        anchor.language().clone(),
-        changed.clone(),
-        anchor.revision_id().clone(),
-        anchor.utterance_id().clone(),
-        anchor.voice_profile().clone(),
-    )
-    .unwrap();
-    assert!(SpeechPlaybackAnchorMatch::new(foreign.clone(), tape.basis().clone()).is_err());
-    assert!(SpeechPlaybackAnchorMaterialMatch::new(anchor.clone(), changed).is_err());
-    let empty = SpeechPlaybackLinks::new(
-        BoundedSequence::try_from_iter([]).unwrap(),
-        BoundedSequence::try_from_iter([]).unwrap(),
-    )
-    .unwrap();
-    let empty_basis = SpeechPlaybackBasis::new(
-        *tape.basis().clock_id(),
-        tape.basis().intent().clone(),
-        empty,
-        tape.basis().voice_profile().clone(),
-    )
-    .unwrap();
-    assert!(SpeechPlaybackAnchorMatch::new(anchor, empty_basis).is_err());
 }
