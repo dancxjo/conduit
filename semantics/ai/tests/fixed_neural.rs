@@ -101,3 +101,55 @@ fn embedding_refuses_outside_fixed_table_without_touching_output() {
     );
     assert_eq!(output, [3.0, 4.0]);
 }
+
+#[test]
+fn gathering_and_slicing_require_explicit_indices_and_keep_output_on_refusal() {
+    let input = [1.0, -2.0, 3.0, 4.0];
+    let mut output = [99.0; 3];
+    fixed_gather(&input, &[3, 0, 3], &mut output).unwrap();
+    assert_eq!(output, [4.0, 1.0, 4.0]);
+    assert_eq!(
+        fixed_gather(&input, &[0, 4, 1], &mut output),
+        Err(FixedNumericRefusal::Index)
+    );
+    assert_eq!(output, [4.0, 1.0, 4.0]);
+    fixed_slice(&input, 1, &mut output).unwrap();
+    assert_eq!(output, [-2.0, 3.0, 4.0]);
+    for start in [2, usize::MAX] {
+        assert_eq!(
+            fixed_slice(&input, start, &mut output),
+            Err(FixedNumericRefusal::Index)
+        );
+        assert_eq!(output, [-2.0, 3.0, 4.0]);
+    }
+}
+
+#[test]
+fn explicit_scan_state_is_chunk_invariant_and_atomic_on_overflow() {
+    let mut whole = [0.0; 4];
+    let mut next = -99.0;
+    fixed_one_pole(&[1.0, 0.0, -1.0, 2.0], 0.5, 2.0, &mut whole, &mut next).unwrap();
+    assert_eq!(whole, [2.0, 1.0, -0.5, 1.75]);
+    assert_eq!(next, 1.75);
+    let mut first = [0.0; 2];
+    let mut second = [0.0; 2];
+    let mut state = 2.0;
+    fixed_one_pole(&[1.0, 0.0], 0.5, state, &mut first, &mut state).unwrap();
+    fixed_one_pole(&[-1.0, 2.0], 0.5, state, &mut second, &mut state).unwrap();
+    assert_eq!([first[0], first[1], second[0], second[1]], whole);
+    assert_eq!(state, next);
+    let mut output = [77.0; 2];
+    let mut next = 88.0;
+    assert_eq!(
+        fixed_one_pole(&[1.0, f32::MAX], 2.0, f32::MAX, &mut output, &mut next),
+        Err(FixedNumericRefusal::NonfiniteOutput)
+    );
+    assert_eq!(output, [77.0; 2]);
+    assert_eq!(next, 88.0);
+    assert_eq!(
+        fixed_one_pole(&[1.0, 2.0], f32::NAN, 0.0, &mut output, &mut next),
+        Err(FixedNumericRefusal::NonfiniteWeight)
+    );
+    assert_eq!(output, [77.0; 2]);
+    assert_eq!(next, 88.0);
+}
