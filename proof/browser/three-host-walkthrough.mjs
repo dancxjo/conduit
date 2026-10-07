@@ -32,6 +32,10 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
     .replaceAll('href="/conduit/', 'href="https://dancxjo.github.io/conduit/');
   await Promise.all(['conduit.css', 'chrome.css'].map(name =>
     copyFile(path.join(handbook, name), path.join(output, name))));
+  const terminalSetup = await readFile(path.join(output, report.terminal_show.setup_path));
+  const terminalAction = await readFile(path.join(output, report.terminal_show.path));
+  assert.equal(digest(terminalSetup), report.terminal_show.setup_sha256);
+  assert.equal(digest(terminalAction), report.terminal_show.sha256);
 
   const sections = [];
   if (report.birth) {
@@ -70,10 +74,10 @@ export async function writeThreeHostWalkthrough(output, handbook, report) {
       figure('browser-after-terminal.png', 'Browser Face after the terminal changed the clock to 500 milliseconds', 'The browser confirms the terminal action on the same Body.')
       + `<p>Terminal route Plans: <code>${escape(report.terminal_show.route_plan_id_before)}</code> then <code>${escape(report.terminal_show.route_plan_id_after)}</code>. Owner presentation Plans: <code>${escape(report.terminal_show.owner_plan_id_before)}</code> then <code>${escape(report.terminal_show.owner_plan_id_after)}</code>. The Body remains on the installed Linux owner.</p>`
       + '<details><summary>Read the actual terminal wardrobe setup</summary><pre>'
-      + escape(await readFile(path.join(output, 'terminal-setup.txt'), 'utf8'))
-      + '</pre></details><details><summary>Read the actual terminal action session</summary><pre>'
-      + escape(await readFile(path.join(output, 'terminal-face.txt'), 'utf8'))
-      + '</pre></details>'),
+      + escape(terminalSetup.toString('utf8'))
+      + '</pre><p><a href="terminal-setup.txt">Open the complete setup capture</a></p></details><details><summary>Read the actual terminal action session</summary><pre>'
+      + escape(terminalAction.toString('utf8'))
+      + '</pre><p><a href="terminal-face.txt">Open the complete action capture</a></p></details>'),
   ]);
   if (report.browser_wardrobe) {
     const record = JSON.parse(await readFile(path.join(output, report.browser_wardrobe.path), 'utf8'));
