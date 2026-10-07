@@ -10,8 +10,10 @@ mod generated {
 pub use generated::{
     AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef, LanguageCoverage,
     LanguageDependencyArc, LanguageDependencyHead, LanguageDependencyRelation,
-    LanguageDependencySubtype, LanguageExternalIdentity, LanguageId, LanguageMappingDeclaration,
-    LanguageRequest, LanguageText, LanguageTextFinality, LanguageTextId, LanguageTextPriorRevision,
+    LanguageDependencySubtype, LanguageExternalIdentity, LanguageId, LanguageLexicalCandidate,
+    LanguageLexicalCompleteness, LanguageLexicalEntry, LanguageLexicalPos, LanguageLexicalProfile,
+    LanguageLexicalTape, LanguageLexicalToken, LanguageMappingDeclaration, LanguageRequest,
+    LanguageText, LanguageTextFinality, LanguageTextId, LanguageTextPriorRevision,
     LanguageTextRange, LanguageTextReferenceMatch, LanguageTextRevision, LanguageTextRevisionId,
     LanguageTextSegmentKind, LanguageTextSegmentRef, LanguageUniversalDependencyRelation,
     LanguageVariety, LanguageVarietyPolicy, LinguisticAnnotation, LinguisticDependencyEdge,
@@ -54,3 +56,5 @@ pub use source_material::*;
 
 mod text_revision;
 pub use text_revision::*;
+
+pub mod lexical;
