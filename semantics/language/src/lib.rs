@@ -123,3 +123,7 @@ pub use generated::{
 mod revision_lineage;
 pub use generated::LanguageTextRevisionLineage;
 pub use revision_lineage::*;
+
+pub use generated::{
+    LanguageParserRevisionContext, LanguageParserRevisionRefusal, LanguageParserRevisionResult,
+};

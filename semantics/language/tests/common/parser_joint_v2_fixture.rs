@@ -10,9 +10,17 @@ pub const PROFILE: &[u8] = include_bytes!("../../training/ewt_joint_v2/lexical_p
 pub struct Sentence {
     pub id: String,
     pub forms: Vec<String>,
+    #[serde(default)]
+    pub text: Option<String>,
     pub pos: Vec<u64>,
     pub heads: Vec<u64>,
     pub relations: Vec<String>,
+}
+pub fn sentence_text(sentence: &Sentence) -> String {
+    sentence
+        .text
+        .clone()
+        .unwrap_or_else(|| sentence.forms.join(" "))
 }
 pub fn hex(digest: [u8; 32]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
@@ -111,7 +119,7 @@ fn pos_codes() -> [LanguageLexicalPos; 17] {
         LanguageLexicalPos::Other,
     ]
 }
-pub fn lexical(sentence: &Sentence) -> Result<LanguageParserJointLexical, &'static str> {
+fn curated_lexical(sentence: &Sentence) -> Result<LanguageParserJointLexical, &'static str> {
     let provenance = LinguisticDerivationProvenance::deterministic_rule(
         "language/parser-joint-v2-reviewed-and-ewt".into(),
         "ud/ewt-2.18+reviewed-vocative@1".into(),
@@ -142,7 +150,7 @@ pub fn lexical(sentence: &Sentence) -> Result<LanguageParserJointLexical, &'stat
         provenance.clone(),
     )
     .unwrap();
-    let material = sentence.forms.join(" ");
+    let material = sentence_text(sentence);
     let identity = hex(semantic_digest(
         "language/parser-evaluation-occurrence@1",
         format!("{}/{}", sentence.id, material).as_bytes(),
@@ -182,6 +190,57 @@ pub fn lexical(sentence: &Sentence) -> Result<LanguageParserJointLexical, &'stat
         return Err("canonical_profile_lookup_missing");
     }
     LanguageParserJointLexical::new(tape.clone(), sentence.forms.len() as u64)
+        .map_err(|_| "native_joint_lexical_refusal")
+}
+pub fn acquisition_history(id: &str) -> Option<serde_json::Value> {
+    let path = std::env::var("CONDUIT_PARSER_JOINT_V2_ASR_SOURCES").ok()?;
+    let rows: Vec<serde_json::Value> =
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    Some(
+        rows.into_iter()
+            .find(|row| row["id"] == id)
+            .expect("exact occurrence"),
+    )
+}
+pub fn lexical(sentence: &Sentence) -> Result<LanguageParserJointLexical, &'static str> {
+    let curated = curated_lexical(sentence)?;
+    let Some(history) = acquisition_history(&sentence.id) else {
+        return Ok(curated);
+    };
+    let bytes: Vec<u8> = serde_json::from_value(history["lexical_tape_bytes"].clone()).unwrap();
+    let tape = LanguageLexicalTape::from_structured(
+        StructuredInfoValue::from_canonical_bytes(&bytes).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        tape.profile(),
+        curated.tape().profile(),
+        "exact reviewed profile"
+    );
+    assert_eq!(
+        tape.source().material().text().as_str(),
+        sentence_text(sentence)
+    );
+    assert_eq!(history["forms"], serde_json::json!(sentence.forms));
+    let revisions = history["language_revision_bytes"].as_array().unwrap();
+    assert_eq!(revisions.len(), 3);
+    assert_eq!(history["asr_envelope_bytes"].as_array().unwrap().len(), 3);
+    let mut previous = None;
+    for encoded in revisions {
+        let bytes: Vec<u8> = serde_json::from_value(encoded.clone()).unwrap();
+        let revision = LanguageTextRevision::from_structured(
+            StructuredInfoValue::from_canonical_bytes(&bytes).unwrap(),
+        )
+        .unwrap();
+        previous =
+            Some(prepare_lexical_tape(&revision, tape.profile(), previous.as_ref()).unwrap());
+    }
+    assert_eq!(
+        previous.unwrap().tape(),
+        &tape,
+        "canonical full revision-chain replay"
+    );
+    LanguageParserJointLexical::new(tape, sentence.forms.len() as u64)
         .map_err(|_| "native_joint_lexical_refusal")
 }
 pub fn initial(

@@ -1,0 +1,17 @@
+{
+  "proof": "rescore unchanged actual native replay receipts against separately corrected reviewed manual annotation",
+  "official_corpus_gold": false,
+  "annotation_review": "UD v2 punctuation principle2 applied to comma preceding dependent vocative; sentence-final period attaches utterance root. This is reviewed rule application, not an official corpus row.",
+  "primary_source": "https://universaldependencies.org/u/dep/punct.html",
+  "original_annotation_preserved": "reviewed_punctuation_original_annotation.json",
+  "original_metrics_preserved": "native_punctuation_first_metrics.json",
+  "actual_receipts": "native_punctuation_replay_graph_receipts.json",
+  "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+  "model_unchanged": true,
+  "sentences": 1,
+  "tokens": 4,
+  "pos_correct": 4,
+  "uas_correct": 4,
+  "universal_base_las_correct": 4,
+  "vocative_correct": 1
+}

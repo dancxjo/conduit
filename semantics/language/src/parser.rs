@@ -3,6 +3,18 @@
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserRevisionContext",
+            crate::LanguageParserRevisionContext::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserRevisionRefusal",
+            crate::LanguageParserRevisionRefusal::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserRevisionResult",
+            crate::LanguageParserRevisionResult::semantic_type().expect("checked Language Type")
+        ),
+        (
             "LanguageParserAvailableLexical",
             crate::LanguageParserAvailableLexical::semantic_type().expect("checked Language Type")
         ),
