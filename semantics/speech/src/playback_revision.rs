@@ -6,7 +6,10 @@ use crate::{
     playback_basis::PreparedSpeechPlaybackTape,
     semantic::*,
 };
+#[path = "playback_anchor.rs"]
+mod anchor;
 use alloc::boxed::Box;
+pub use anchor::prepare_playback_anchor;
 use conduit_core::revision::*;
 use conduit_plot::rust_binding::NativeBindingRefusal;
 use core::cmp::Ordering;
@@ -74,8 +77,8 @@ impl<'a> PreparedPlaybackChange<'a> {
         next: &'a PreparedSpeechPlaybackTape<'a>,
     ) -> Result<Self, NativeBindingRefusal> {
         let data = SpeechPlaybackInterpretationChange::new(
-            next.basis().clone(),
-            old.map(|tape| tape.basis().clone()),
+            prepare_playback_anchor(next)?,
+            old.map(prepare_playback_anchor).transpose()?,
         )?;
         Ok(Self {
             data: PlaybackChangeData::Interpretation(Box::new(data)),
@@ -88,7 +91,7 @@ impl<'a> PreparedPlaybackChange<'a> {
     ) -> Result<Self, NativeBindingRefusal> {
         Ok(Self {
             data: PlaybackChangeData::Withdrawal(Box::new(SpeechPlaybackWithdrawal::new(
-                old.basis().clone(),
+                prepare_playback_anchor(old)?,
             )?)),
             old: Some(old),
             next: None,
@@ -100,8 +103,8 @@ impl<'a> PreparedPlaybackChange<'a> {
     ) -> Result<Self, NativeBindingRefusal> {
         Ok(Self {
             data: PlaybackChangeData::Correction(Box::new(SpeechPlaybackCorrection::new(
-                old.basis().clone(),
-                next.basis().clone(),
+                prepare_playback_anchor(old)?,
+                prepare_playback_anchor(next)?,
             )?)),
             old: Some(old),
             next: Some(next),
@@ -148,8 +151,7 @@ impl<'a> RevisionDomain for PlaybackRevisionDomain<'a> {
                 delta.old.is_some_and(belongs) && delta.next.is_some_and(belongs)
             }
             (RevisionDeltaRole::Withdrawal, PlaybackChangeData::Withdrawal(value)) => {
-                delta.old.is_some_and(belongs)
-                    && value.basis().intent().utterance_id() == self.subject
+                delta.old.is_some_and(belongs) && value.basis().utterance_id() == self.subject
             }
             (RevisionDeltaRole::Correction, PlaybackChangeData::Correction(_)) => {
                 delta.old.is_some_and(belongs) && delta.next.is_some()

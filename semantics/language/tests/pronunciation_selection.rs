@@ -74,6 +74,7 @@ fn foreign_stale_unknown_and_duplicate_policy_refuse() {
         original.provenance().clone(),
         BoundedSequence::try_from_iter([original.rules()[0].clone(), original.rules()[0].clone()])
             .unwrap(),
+        *original.target(),
     )
     .unwrap();
     assert!(matches!(
@@ -139,4 +140,46 @@ fn selection_schemas_are_admitted_by_installed_language_catalog() {
         )
         .unwrap();
     }
+}
+
+#[test]
+fn profile_owned_dependent_target_admits_root_and_refuses_governor_substitution() {
+    let lexical = fixture::lexical("a record");
+    let source = lexical.tape().source();
+    let analysis = fixture::analysis();
+    let root = LanguageDependencyArc::new(
+        LanguageAnalysisTokenRef::new(
+            analysis.clone(),
+            lexical.tape().tokens()[1].identity().clone(),
+        )
+        .unwrap(),
+        LanguageDependencyHead::Root,
+        fixture::relation(LanguageUniversalDependencyRelation::Root),
+    )
+    .unwrap();
+    let dependent = LanguagePronunciationSelectionProfile::new(
+        "dependent/record".into(),
+        source.material().language().clone(),
+        fixture::provenance(),
+        BoundedSequence::try_from_iter([LanguagePronunciationSelectionRule::new(
+            LanguageLexicalPos::Noun,
+            fixture::relation(LanguageUniversalDependencyRelation::Root),
+        )
+        .unwrap()])
+        .unwrap(),
+        LanguagePronunciationArcTarget::Dependent,
+    )
+    .unwrap();
+    let selected =
+        prepare_pronunciation_selection(&lexical, 1, &analysis, &root, &dependent).unwrap();
+    assert_eq!(selected.candidate().pos(), &LanguageLexicalPos::Noun);
+    assert!(prepare_pronunciation_selection(&lexical, 0, &analysis, &root, &dependent).is_err());
+    assert!(
+        prepare_pronunciation_selection(&lexical, 1, &analysis, &root, &fixture::profile())
+            .is_err()
+    );
+    let governed = fixture::arc(&lexical, LanguageUniversalDependencyRelation::Det);
+    assert!(
+        prepare_pronunciation_selection(&lexical, 1, &analysis, &governed, &dependent).is_err()
+    );
 }

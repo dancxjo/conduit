@@ -81,6 +81,7 @@ pub fn profile() -> LanguagePronunciationSelectionProfile {
             .unwrap(),
         ])
         .unwrap(),
+        LanguagePronunciationArcTarget::Governor,
     )
     .unwrap()
 }

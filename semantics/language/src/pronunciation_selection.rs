@@ -64,8 +64,9 @@ pub fn prepare_pronunciation_selection(
                 .any(|token| token.identity() == reference.token())
     };
     if !valid(arc.dependent())
-        || !matches!(arc.governor(), LanguageDependencyHead::Token(head)
-        if head.revision() == analysis && tape.tokens().iter().any(|token| token.identity() == head.token()))
+        || !(matches!(arc.governor(), LanguageDependencyHead::Root)
+            || matches!(arc.governor(), LanguageDependencyHead::Token(head)
+        if head.revision() == analysis && tape.tokens().iter().any(|token| token.identity() == head.token())))
     {
         return Err(Arc);
     }
@@ -109,6 +110,10 @@ pub fn prepare_pronunciation_selection(
 pub fn pronunciation_selection_types(
 ) -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
+        (
+            "LanguagePronunciationArcTarget",
+            LanguagePronunciationArcTarget::semantic_type().expect("checked Type")
+        ),
         (
             "LanguagePronunciationSelectionRule",
             LanguagePronunciationSelectionRule::semantic_type().expect("checked Type")
