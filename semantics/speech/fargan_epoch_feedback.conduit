@@ -1,0 +1,18 @@
+# Three separate bounded feedback domains. Source composition must release every replacement
+# from the same final canonical PCM16 aggregate; provisional float results do
+# not acknowledge another feature epoch. The signal period tracks the previous
+# conditioning frame because the three-frame conditioning window is centered.
+type FarganSignalEpochFeedback = {
+    state: FarganSubframeState
+    conditioned_period: FarganPeriod
+    next_epoch: U64
+}
+type FarganConditioningEpochFeedback = {
+    history: NumericHistory2x64
+    next_epoch: U64
+}
+type FarganFeatureEpochFeedback = {
+    history: NumericF32Vector640
+    previous_normalized: NumericFiniteF32
+    next_epoch: U64
+}
