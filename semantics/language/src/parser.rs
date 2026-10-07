@@ -3,6 +3,34 @@
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserJointCommitQuery",
+            crate::LanguageParserJointCommitQuery::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointCommitProposal",
+            crate::LanguageParserJointCommitProposal::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointStableFact",
+            crate::LanguageParserJointStableFact::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointStableFactProposal",
+            crate::LanguageParserJointStableFactProposal::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointScoreBandQuery",
+            crate::LanguageParserJointScoreBandQuery::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
+            "LanguageParserJointScoreBandProposal",
+            crate::LanguageParserJointScoreBandProposal::semantic_type()
+                .expect("checked Language Type")
+        ),
+        (
             "LanguageParserJointConsensusObservation",
             crate::LanguageParserJointConsensusObservation::semantic_type()
                 .expect("checked Language Type")

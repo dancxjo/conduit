@@ -148,3 +148,9 @@ pub use generated::{LanguageParserJointConsensusObservation, LanguageParserJoint
 
 #[cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
 pub mod parser_model_selection;
+
+pub use generated::{LanguageParserJointScoreBandProposal, LanguageParserJointScoreBandQuery};
+
+pub use generated::{LanguageParserJointStableFact, LanguageParserJointStableFactProposal};
+
+pub use generated::{LanguageParserJointCommitProposal, LanguageParserJointCommitQuery};
