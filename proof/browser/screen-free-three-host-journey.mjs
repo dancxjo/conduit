@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { closeSync, existsSync, openSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
@@ -343,8 +343,8 @@ try {
     const input = `${session.commands.join('\n')}\n`;
     const inputName = `screen-free-checkpoint-${phase}-input.txt`;
     const transcriptName = `screen-free-checkpoint-${phase}-transcript.txt`;
-    await writeFile(path.join(output, inputName), input, { flag: 'wx', mode: 0o600 });
-    await writeFile(path.join(output, transcriptName), session.transcript,
+    await writeFile(path.join(live, inputName), input, { flag: 'wx', mode: 0o600 });
+    await writeFile(path.join(live, transcriptName), session.transcript,
       { flag: 'wx', mode: 0o600 });
     const transcriptBytes = Buffer.from(session.transcript);
     const resume = {
@@ -360,16 +360,20 @@ try {
       transcript: { path: `../${transcriptName}`, sha256: digest(transcriptBytes),
         bytes: transcriptBytes.length },
     };
-    await writeFile(path.join(checkpointDir, `${phase}.resume.json`),
-      `${JSON.stringify(resume, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+    const resumeFile = path.join(checkpointDir, `${phase}.resume.json`);
+    const temporaryResume = `${resumeFile}.tmp`;
+    await writeFile(temporaryResume, `${JSON.stringify(resume, null, 2)}\n`,
+      { flag: 'wx', mode: 0o600 });
+    await rename(temporaryResume, resumeFile);
     checkpoints.push({ phase, ready: { path: `screen-free-checkpoints/${phase}.ready.json`,
       sha256: digest(await readFile(readyFile)) },
     resume: { path: `screen-free-checkpoints/${phase}.resume.json`,
-      sha256: digest(await readFile(path.join(checkpointDir, `${phase}.resume.json`))) },
+      sha256: digest(await readFile(resumeFile)) },
     ...wardrobeReading, final_reading: finalReading,
-    input: { path: `../${inputName}`, bytes: Buffer.byteLength(input),
+    input: { path: inputName, bytes: Buffer.byteLength(input),
       sha256: digest(Buffer.from(input)) },
-    transcript: resume.transcript });
+    transcript: { path: transcriptName, sha256: resume.transcript.sha256,
+      bytes: resume.transcript.bytes } });
     if (speakerCard) {
       audioChapters.push({ name: `checkpoint-${phase}`, output: readAll.output,
         face_id: after.presentation.identity,
