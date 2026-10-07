@@ -63,6 +63,9 @@ impl<const N: usize> FixedI16VectorCodec<N> {
         }
         &self.output
     }
+    pub fn encoded(&self) -> &[u8] {
+        &self.output
+    }
     pub fn decode(
         &self,
         bytes: &[u8],
