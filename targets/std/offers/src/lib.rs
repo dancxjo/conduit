@@ -600,3 +600,6 @@ mod tests {
         );
     }
 }
+
+mod value_repeat;
+pub use value_repeat::*;
