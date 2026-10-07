@@ -16,8 +16,9 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_joint.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
+    println!("cargo:rerun-if-changed=pronunciation_selection.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
@@ -30,7 +31,8 @@ fn main() {
         include_str!("parser_mask.conduit"),
         include_str!("parser_joint.conduit"),
         include_str!("discourse.conduit"),
-        include_str!("prosody.conduit")
+        include_str!("prosody.conduit"),
+        include_str!("pronunciation_selection.conduit")
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");
@@ -38,13 +40,21 @@ fn main() {
         ("language/vocative-discourse", "discourse_program.hex"),
         ("language/vocative-prosody", "rich_prosody_program.hex"),
         ("language/fallback-prosody", "fallback_prosody_program.hex"),
+        (
+            "language/pronunciation-pos",
+            "pronunciation_pos_program.hex",
+        ),
+        (
+            "language/pronunciation-candidate",
+            "pronunciation_candidate_program.hex",
+        ),
     ] {
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(
             &checked,
             plot,
             &conduit_plot::ProfileCatalog::new(),
         )
-        .expect("checked language Plot expands");
+        .unwrap_or_else(|failure| panic!("checked {plot} expands: {failure:?}"));
         assert_eq!(
             expanded.expanded.gears.len(),
             1,

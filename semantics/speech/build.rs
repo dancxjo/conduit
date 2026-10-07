@@ -29,9 +29,10 @@ fn main() {
     println!("cargo:rerun-if-changed=linguistic_prosody.conduit");
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
     println!("cargo:rerun-if-changed=playback.conduit");
+    println!("cargo:rerun-if-changed=lexical_pronunciation.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
@@ -46,7 +47,8 @@ fn main() {
         include_str!("context_match.conduit"),
         include_str!("linguistic_prosody.conduit"),
         include_str!("pitch_trajectory.conduit"),
-        include_str!("playback.conduit")
+        include_str!("playback.conduit"),
+        include_str!("lexical_pronunciation.conduit")
     );
     let mut language_types = conduit_language::identity_types();
     language_types.extend(
@@ -67,6 +69,11 @@ fn main() {
             "LanguageVocativeDiscourseFact",
             conduit_language::LanguageVocativeDiscourseFact::semantic_type()
                 .expect("checked Language Type"),
+        ),
+        (
+            "LanguageLexicalCandidate",
+            conduit_language::LanguageLexicalCandidate::semantic_type()
+                .expect("Language candidate"),
         ),
         (
             "LinguisticTokenIdentity",
@@ -149,6 +156,24 @@ fn main() {
         )
         .expect("retain translation program");
     }
+    let pronunciation = expand_canonical_plot_for_authoring(
+        &semantic,
+        "speech/pronunciation",
+        &ProfileCatalog::new(),
+    )
+    .expect("checked pronunciation lookup expands");
+    assert_eq!(pronunciation.expanded.gears.len(), 1);
+    let [entry] = pronunciation.expanded.gears[0].configuration.as_slice() else {
+        panic!("one pronunciation program")
+    };
+    let conduit_core::ConfigurationValue::Text(program) = &entry.value else {
+        panic!("pronunciation program")
+    };
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("pronunciation_program.hex"),
+        program,
+    )
+    .expect("retain pronunciation lookup");
     let identities = language_types
         .iter()
         .map(|(_, ty)| match ty.shape() {
@@ -205,7 +230,7 @@ fn main() {
     println!("cargo:rerun-if-changed={path}");
     println!("cargo:rerun-if-changed=build_support/lower.rs");
     println!("cargo:rerun-if-changed=build_support/graph.rs");
-    println!("cargo:rerun-if-changed=pronunciation.conduit");
+    println!("cargo:rerun-if-changed=lexical_pronunciation.conduit");
     println!("cargo:rerun-if-changed=inflection.conduit");
     println!("cargo:rerun-if-changed=trajectory.conduit");
     println!("cargo:rerun-if-changed=connection.conduit");

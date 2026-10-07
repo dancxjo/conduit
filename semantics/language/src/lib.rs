@@ -102,3 +102,10 @@ pub use generated::{
 };
 
 pub use generated::{LanguageParserJointMerge, LanguageParserJointRawBeam};
+pub mod pronunciation_selection;
+
+pub use generated::{
+    LanguagePronunciationCandidateQuery, LanguagePronunciationCandidateResult,
+    LanguagePronunciationPosResult, LanguagePronunciationSelectionProfile,
+    LanguagePronunciationSelectionRequest, LanguagePronunciationSelectionRule,
+};
