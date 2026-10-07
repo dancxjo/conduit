@@ -118,7 +118,6 @@ impl StdHost {
         ),
         String,
     > {
-        use crate::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
         let mut execution = match self.prepare_terminal_mask_execution() {
             Ok(execution) => execution,
             Err(error) => {
@@ -128,6 +127,22 @@ impl StdHost {
                 return Err(error);
             }
         };
+        let show = self.represent_attached_terminal_face_with_execution(face, &mut execution)?;
+        Ok((show, execution))
+    }
+
+    /// A selected attached terminal can request a new Show on its same Mask
+    /// execution after the prior interaction Fore closes. Keeping that
+    /// execution advances the Play sequence without changing Host offers.
+    pub fn represent_attached_terminal_face_with_execution(
+        &mut self,
+        face: &conduit_presentation::Presentation,
+        execution: &mut terminal_mask_execution::HostedTerminalMaskExecution,
+    ) -> Result<conduit_presentation::MaskShow, String> {
+        use crate::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
+        execution
+            .validate_current_host(&self.advertisement)
+            .map_err(|error| format!("current attached terminal Host: {error:?}"))?;
         let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24)
             .map_err(|error| format!("prepare attached terminal Face: {error:?}"))?;
         let result = (|| {
@@ -153,7 +168,7 @@ impl StdHost {
             Ok(available)
         })();
         match result {
-            Ok(show) => Ok((show, execution)),
+            Ok(show) => Ok(show),
             Err(error) => {
                 let _ = execution.cancel();
                 self.detach_terminal_mask()?;

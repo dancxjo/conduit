@@ -102,6 +102,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyInteraction { token, .. }
         | Request::BodyAttachedTerminalInteraction { token, .. }
         | Request::BodyAttachedTerminalWardrobe { token, .. }
+        | Request::BodyAttachedTerminalRefreshShow { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }

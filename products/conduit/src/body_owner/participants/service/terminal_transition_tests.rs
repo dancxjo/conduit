@@ -164,6 +164,60 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
             .len(),
         1
     );
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Some(&seal),
+    );
+    owner
+        .presentation_wardrobe
+        .as_mut()
+        .unwrap()
+        .select_plot(
+            &owner.session,
+            &face,
+            &current,
+            &seal.planned_mask.mask.plot_identity,
+            &seal.route_plan_id,
+        )
+        .unwrap();
+    owner
+        .acknowledge_attached_terminal_show(&seal, &show)
+        .unwrap();
+    let terminal_owner_plan = owner
+        .presentation_wardrobe
+        .as_ref()
+        .unwrap()
+        .plan()
+        .plan_id
+        .clone();
+    let mut refreshed_browser_snapshot = snapshot.clone();
+    refreshed_browser_snapshot.owner_advertisement =
+        Some(Box::new(owner.host.advertisement().clone()));
+    let refreshed_lines = super::route_tests::fixture_carrier_evidence(&refreshed_browser_snapshot);
+    owner
+        .browser_mask_route(
+            &authorized.window_id,
+            &snapshot.credential,
+            &binding,
+            Some(&refreshed_lines),
+        )
+        .unwrap();
+    let replaced = owner.presentation_wardrobe.as_ref().unwrap();
+    assert_ne!(replaced.plan().plan_id, terminal_owner_plan);
+    assert_eq!(replaced.plan().routes.len(), 2);
+    assert_eq!(
+        replaced.control().selected.as_ref().unwrap().route_id,
+        format!("route/{}", seal.route_plan_id.as_str())
+    );
+    let current = Owner::current_presentation_routes(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        Some(&seal),
+    );
+    assert!(matches!(owner.presentation_wardrobe.as_mut().unwrap()
+        .selected_show(&owner.session, &face, &current),
+        Err(crate::durable_host::owner::controller::presentation_wardrobe::OwnerPresentationWardrobeError::ShowNotAcknowledged)));
     assert_eq!(
         owner
             .session

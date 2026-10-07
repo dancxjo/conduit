@@ -16,7 +16,9 @@ use std::{os::unix::net::UnixStream, path::Path};
 mod client;
 #[path = "terminal_attach/wire.rs"]
 mod wire;
-pub(crate) use client::{attach_and_show, attached_wardrobe, AttachedTerminalSession};
+pub(crate) use client::{
+    attach_and_show, attached_wardrobe, refresh_show, AttachedTerminalSession,
+};
 pub(super) use wire::MAGIC;
 use wire::{AttachReply, AttachRequest};
 
@@ -111,6 +113,49 @@ pub(super) fn serve(
 }
 
 impl DurableHostRuntime {
+    pub(super) fn refresh_attached_terminal_show(
+        &mut self,
+        route_plan_id: &PlanId,
+        old_show: &MaskShow,
+    ) -> Result<(MaskShow, conduit_core::HostAdvertisement), String> {
+        use conduit_std_host::terminal_face_mask::TerminalMaskExecution;
+        let mut route = self
+            .terminal_route
+            .take()
+            .ok_or("no current attached terminal route")?;
+        let HostSource::Body {
+            owner,
+            running: None,
+            ..
+        } = &mut self.host
+        else {
+            return Err("terminal Show requires a lulled Body".into());
+        };
+        if &route.seal.route_plan_id != route_plan_id || &route.show != old_show {
+            self.terminal_route = Some(route);
+            return Err("attached terminal route or Show differs".into());
+        }
+        owner.validate_attached_terminal_route(&route.seal, old_show)?;
+        route
+            .execution
+            .validate_current_host(owner.host.advertisement())
+            .map_err(|error| format!("attached terminal Host changed: {error:?}"))?;
+        route
+            .execution
+            .close_without_input()
+            .map_err(|error| format!("close prior terminal Mask Play: {error:?}"))?;
+        let face = owner.local_face_snapshot()?;
+        let show = owner
+            .host
+            .current_mut()
+            .represent_attached_terminal_face_with_execution(&face, &mut route.execution)?;
+        owner.acknowledge_attached_terminal_show(&route.seal, &show)?;
+        let advertisement = owner.host.advertisement().clone();
+        route.show = show.clone();
+        self.terminal_route = Some(route);
+        Ok((show, advertisement))
+    }
+
     pub(super) fn attached_terminal_wardrobe(
         &mut self,
         route_plan_id: &PlanId,

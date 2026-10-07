@@ -75,9 +75,25 @@ pub(crate) fn run(
             }
             continue;
         }
+        if command == "show" {
+            crate::durable_host_control::terminal_attach::refresh_show(
+                state_dir,
+                &mut attached,
+                output,
+            )?;
+            report_show(output, &attached)?;
+            wardrobe = crate::durable_host_control::attached_wardrobe(
+                state_dir,
+                &attached,
+                0,
+                TerminalWardrobeCommand::Inspect,
+            )?;
+            report_wardrobe(output, &wardrobe)?;
+            continue;
+        }
         if let Some(value) = command.strip_prefix("apply ") {
             if wardrobe["show_id"].is_null() {
-                writeln!(output, "Action refused: no current selected Mask Show. Detach and attach for a fresh Show.")
+                writeln!(output, "Action refused: no current selected Mask Show. Enter show to present a fresh Show on this terminal.")
                     .map_err(|error| format!("write stale Show refusal: {error}"))?;
                 continue;
             }
@@ -145,7 +161,7 @@ pub(crate) fn run(
         }
         writeln!(
             output,
-            "Enter wardrobe (inspect), wardrobe wear/doff/prefer (this terminal Mask only), apply <value>, or quit to detach."
+            "Enter wardrobe (inspect), wardrobe wear/doff/prefer (this terminal Mask only), show to present again, apply <value>, or quit to detach."
         )
         .map_err(|error| format!("write owner terminal help: {error}"))?;
     }
@@ -167,7 +183,7 @@ fn report_wardrobe(output: &mut impl Write, report: &serde_json::Value) -> Resul
     )
     .map_err(|error| format!("write owner wardrobe: {error}"))?;
     if report["fresh_show_required"] == true {
-        writeln!(output, "The sealed terminal route is selected, but its prior Show was doffed. Detach and reattach for a fresh acknowledged Show.")
+        writeln!(output, "The sealed terminal route is selected, but its prior Show is no longer current. Enter show for a fresh acknowledged Show.")
             .map_err(|error| format!("write wardrobe Show status: {error}"))?;
     }
     output
@@ -181,7 +197,7 @@ fn report_show(
 ) -> Result<(), String> {
     writeln!(
         output,
-        "\r\nOwner terminal Show {} · route Plan {} · Host {} · Boot {} · offer generation {} · {} bytes written and flushed. Enter apply <value> for the available action, or quit to detach.",
+        "\r\nOwner terminal Show {} · route Plan {} · Host {} · Boot {} · offer generation {} · {} bytes written and flushed. Enter apply <value> for the available action, show to present again, or quit to detach.",
         attached.show.show_id.as_str(),
         attached.route_plan_id.as_str(),
         attached.advertisement.host_id.as_str(),
