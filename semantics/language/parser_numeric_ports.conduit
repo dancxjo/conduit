@@ -1,0 +1,6 @@
+# Planning registers these numerical Port aliases with the exact bare types
+# derived from the selected categorical profile. This file is checked with that
+# StartupCatalog, rather than introducing nominal collection wrappers.
+plot language-parser-v2-feature-indices (
+ features: LanguageParserV2ModelFeatures...| >> indices: LanguageParserCategoricalIndices...|
+) = .indices
