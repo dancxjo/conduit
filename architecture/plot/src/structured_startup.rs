@@ -64,6 +64,30 @@ impl CanonicalStructuredStartupValue {
         concrete(self).ok()
     }
 
+    pub(crate) fn variant_tag(&self) -> Option<&str> {
+        match &self.node {
+            CanonicalStructuredStartupNode::Variant { tag, .. } => Some(tag),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn projected(&self, member: &crate::ExpressionProjection) -> Option<&Self> {
+        match (&self.node, member) {
+            (
+                CanonicalStructuredStartupNode::Record(fields),
+                crate::ExpressionProjection::Field(name),
+            ) => fields
+                .iter()
+                .find(|field| field.name == name.text)
+                .map(|field| &field.value),
+            (
+                CanonicalStructuredStartupNode::Collection(values),
+                crate::ExpressionProjection::TupleIndex(index),
+            ) => values.get(index.text.parse::<usize>().ok()?),
+            _ => None,
+        }
+    }
+
     /// Reifies an admitted concrete startup value for contextual expression checking.
     /// Unsupported leaf laws and unresolved parameters refuse rather than erase types.
     pub(crate) fn expression_syntax(&self, span: Span) -> Option<ExpressionSyntax> {

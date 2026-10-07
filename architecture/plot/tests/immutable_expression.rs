@@ -116,3 +116,32 @@ fn structured_capture_refuses_foreign_profile_unresolved_and_unsupported_leaf() 
         assert!(refused, "{source}");
     }
 }
+
+#[test]
+fn repeated_structured_startup_projections_capture_only_exact_selected_leaves() {
+    let source = "type ReceiptBytes = collection U8 = 3\ntype ReceiptMode =\n cold\n | warm\ntype Receipt = {\n bytes: ReceiptBytes\n mode: ReceiptMode\n}\nplot capture (\n selected: Receipt = {bytes: [1, 2, 255], mode: warm(\"\")}\n >> input: U8\n output: Boolean >>\n) = (. >= selected.bytes.0 && . <= selected.bytes.2 && selected.mode is warm)\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "capture",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
+    let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    for (input, expected) in [(0, false), (1, true), (255, true)] {
+        assert_eq!(
+            program.evaluate(&[input]).unwrap(),
+            InfoBool::new(expected).encode()
+        );
+        assert_eq!(
+            prepared.evaluate(&[input]).unwrap(),
+            InfoBool::new(expected).encode()
+        );
+    }
+}
