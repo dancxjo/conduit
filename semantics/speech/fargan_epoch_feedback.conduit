@@ -13,6 +13,7 @@ type FarganConditioningEpochFeedback = {
 }
 type FarganFeatureEpochFeedback = {
     history: NumericF32Vector640
+    previous_raw: NumericFiniteF32
     previous_normalized: NumericFiniteF32
     next_epoch: U64
 }

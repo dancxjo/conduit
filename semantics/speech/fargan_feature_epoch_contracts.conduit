@@ -1,0 +1,15 @@
+# Causal feature state has two independent scalar memories: raw interpolation
+# and normalized preemphasis. The 640-sample waveform is preemphasized history.
+# Provisional replacements remain attached to the utterance's exact 10 ms epoch.
+# The final admitted PCM16 epoch, rather than feature publication, releases ACK.
+type FarganFeaturePcmEpoch = {
+    samples: NumericI16Vector80
+    period: FarganPeriod
+    epoch: U64
+}
+type FarganFeaturePendingState = {
+    history: NumericF32Vector640
+    previous_raw: NumericFiniteF32
+    previous_normalized: NumericFiniteF32
+    epoch: U64
+}
