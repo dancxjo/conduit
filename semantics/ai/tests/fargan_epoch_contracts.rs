@@ -108,7 +108,9 @@ fn all_explicit_phase_and_final_pcm16_anchor_records_fit_exact_transport_envelop
     assert!(pair.maximum_bytes() as usize <= SELECTED_FRAME_BYTES);
 }
 
-fn fixture_value(ty: &conduit_core::StructuredInfoType) -> conduit_core::StructuredInfoValue {
+pub(crate) fn fixture_value(
+    ty: &conduit_core::StructuredInfoType,
+) -> conduit_core::StructuredInfoValue {
     use conduit_core::*;
     match ty.shape() {
         StructuredInfoTypeShape::Nominal { representation, .. } => {
