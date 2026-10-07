@@ -335,6 +335,7 @@ pub fn admitted_graph(
 
 /// Explicit reviewed phone data for the v2 profile's surface-preserving lemma.
 /// This is supplied pronunciation data, not a renderer spelling heuristic.
+#[allow(dead_code)] // Shared fixture: used by the learned acquisition harness.
 pub fn parser_phone_profile() -> SpeechPronunciationProfile {
     let original = phones();
     let rows = original.rows().iter().cloned().collect::<Vec<_>>();
