@@ -70,6 +70,7 @@ fn full_tape_coverage_refuses_omitted_hello_and_retains_source_phone_mapping() {
             let SpeechUtteranceIntentEvent::Segment(original) = original else {
                 panic!("word segment")
             };
+            let original = admit_planned_segment_material(original).unwrap();
             let current = &composed.segments[global];
             let target = SpeechOccurrenceMembership::new(
                 composed.source.inventory_id().clone(),
