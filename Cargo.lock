@@ -613,6 +613,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-time",
  "conduit-web",
+ "conduitos",
  "libm",
  "postcard",
  "serde",
