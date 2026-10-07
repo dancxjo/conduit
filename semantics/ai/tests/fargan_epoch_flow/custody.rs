@@ -428,3 +428,101 @@ pub fn anchor_literal(model: &RetainedSignalModel, basis: [u8; 32]) -> String {
     };
     format!("{{artifact_identity:{},model_descriptor_identity:{},session_basis_identity:{},precision:reference_float32(\"\")}}",array(model.model.artifact().content_identity()),array(model.model.descriptor_identity()),array(basis))
 }
+
+impl RetainedSignalModel {
+    /// Descriptor custody for reviewed logical interfaces. This alone does not
+    /// admit the Source carrier mapping, lifecycle, linguistic basis or session.
+    pub fn conditioning_descriptor(&self) -> Arc<AdmittedModelResource> {
+        self.descriptor_for(
+            ModelSignature::from_parts(
+                "speech/fargan-source-conditioning-f32@1".into(),
+                1,
+                vec![ModelOperation::Infer],
+                vec![
+                    port("features", 20, TensorElement::F32, 4),
+                    port("period", 1, TensorElement::U16, 2),
+                    port("history", 128, TensorElement::F32, 4),
+                ],
+                vec![
+                    port("condition", 320, TensorElement::F32, 4),
+                    port("next_history", 128, TensorElement::F32, 4),
+                ],
+            )
+            .unwrap(),
+        )
+    }
+    pub fn compound_descriptor(&self) -> Arc<AdmittedModelResource> {
+        self.descriptor_for(
+            ModelSignature::from_parts(
+                "speech/fargan-source-condition-signal-epoch-i16@1".into(),
+                1,
+                vec![ModelOperation::Infer],
+                vec![
+                    port("features", 20, TensorElement::F32, 4),
+                    port("period", 1, TensorElement::U16, 2),
+                    port("history", 128, TensorElement::F32, 4),
+                    port("state", 837, TensorElement::F32, 4),
+                    port("conditioned_period", 1, TensorElement::U16, 2),
+                ],
+                vec![
+                    port("pcm_i16", 160, TensorElement::I16, 2),
+                    port("next_history", 128, TensorElement::F32, 4),
+                    port("next_state", 837, TensorElement::F32, 4),
+                    port("next_period", 1, TensorElement::U16, 2),
+                ],
+            )
+            .unwrap(),
+        )
+    }
+    fn descriptor_for(&self, signature: ModelSignature) -> Arc<AdmittedModelResource> {
+        let mut artifact = self.model.artifact().clone();
+        artifact.signature_identity = signature.semantic_digest().unwrap();
+        Arc::new(
+            AdmittedModelResource::adopt(
+                artifact,
+                signature,
+                self.model.shared_storage(),
+                &self.model_binding,
+            )
+            .unwrap(),
+        )
+    }
+}
+
+#[test]
+#[ignore = "private pinned model fixture; logical descriptor custody only"]
+fn pinned_conditioning_and_compound_signatures_retain_the_exact_whole_blob_and_grant() {
+    let root = std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
+    let retained = RetainedSignalModel::load(&root);
+    let conditioning = retained.conditioning_descriptor();
+    let compound = retained.compound_descriptor();
+    for admitted in [&conditioning, &compound] {
+        assert_eq!(
+            admitted.artifact().content,
+            retained.model.artifact().content
+        );
+        assert_eq!(
+            admitted.artifact().content_identity(),
+            retained.model.artifact().content_identity()
+        );
+        assert_ne!(
+            admitted.descriptor_identity(),
+            retained.model.descriptor_identity()
+        );
+        assert!(Arc::ptr_eq(
+            &admitted.shared_storage(),
+            &retained.model.shared_storage()
+        ));
+        assert_eq!(
+            admitted
+                .artifact()
+                .descriptor_digest(admitted.signature())
+                .unwrap(),
+            admitted.descriptor_identity()
+        );
+    }
+    assert_ne!(
+        conditioning.descriptor_identity(),
+        compound.descriptor_identity()
+    );
+}

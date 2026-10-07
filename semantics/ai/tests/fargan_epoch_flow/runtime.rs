@@ -758,3 +758,44 @@ fn source_warm_startup_executes_five_condition_updates_and_four_zero_continuatio
         eprintln!("Source warm startup fiveconditioning/fourcontinuation: {}nodes/{}cords, planning{planning:?}, prep{:?}, execution{:?}, maxstateabs={maximum}; actual retained feature point; no compound signature/jointcommit/native waveform claim",result.nodes,result.cords,result.preparation,result.execution);
     }).unwrap().join().unwrap();
 }
+
+#[test]
+#[ignore = "private pinned model fixture; two complete trained-resource Source feedback epochs"]
+fn retained_model_executes_compound_conditioning_signal_cycles_with_final_pcm_ack() {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+        let root=std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
+        let mut model=super::custody::RetainedSignalModel::load(&root);
+        let (_,conditioning)=model.conditioning_resources();
+        for (name,resource) in conditioning {assert!(model.resources.insert(format!("conditioning_{name}"),resource).is_none());}
+        assert_eq!(model.resources.len(),33);
+        let (context,seeded,_)=super::prepared_signal_cycle_profiles_with_capacity(true);
+        let (context,seeded,_)=super::conditioning_cycle::prepare_with(context,seeded);
+        let source=super::conditioning_cycle::compound_source();
+        let basis=model.basis_material(&source,b"synthetic bounded zero-history seed; not linguistic admission",b"two synthetic feature events");
+        use sha2::{Digest,Sha256};
+        let selected=super::custody::anchor_literal(&model,Sha256::digest(&basis).into());
+        let source=source.replace("selected: FarganModelFrameAnchor\n",&format!("selected: FarganModelFrameAnchor = {selected}\n"));
+        let planning=Instant::now();
+        let (plan,context)=super::prepare_authored_epoch_entry(context,source,"speech/flow-fargan-compound-cycle",true,seeded.offers().cloned().collect()).unwrap();
+        let planning=planning.elapsed();
+        let definition=super::declarations::exact_epoch_declarations()+"\n"+include_str!("../../../speech/fargan_epoch_feedback.conduit")+"\n"+include_str!("../../../speech/fargan_conditioning_epoch_contracts.conduit");
+        let checked=conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(&definition),&conduit_plot::StartupCatalog::new()).unwrap();
+        let ty=|name:&str|&checked.native_types.iter().find(|t|t.name==name).unwrap().value_type;
+        let inputs=BTreeMap::from([
+            ("signal_seed".into(),vec![super::epoch_pair_fixture(ty("FarganSignalEpochFeedback"),"",7,7).canonical_bytes().unwrap()]),
+            ("conditioning_seed".into(),vec![super::epoch_pair_fixture(ty("FarganConditioningEpochFeedback"),"",7,7).canonical_bytes().unwrap()]),
+            ("events".into(),[7,8].iter().map(|epoch|super::epoch_pair_fixture(ty("FarganFeatureConditionEpoch"),"",*epoch,*epoch).canonical_bytes().unwrap()).collect()),
+        ]);
+        let result=run_epoch_stream_plan(plan,&context,&model.resources,inputs,Some(seeded),2,ExecutionMode::Normal).expect("both Source feedback cells must receive exact final PCM epoch acknowledgments and drain");
+        assert!(result.drained);assert_eq!(result.values.len(),2);
+        for (epoch,value) in [7u64,8].iter().zip(&result.values) {
+            let raw=super::case_state::field(value,"epoch");
+            let StructuredInfoValueShape::Leaf(raw)=raw.shape() else {panic!("epoch")};
+            assert_eq!(u64::from_le_bytes(raw.try_into().unwrap()),*epoch);
+            let StructuredInfoValueShape::Collection(pcm)=super::case_state::field(value,"pcm_i16").shape() else {panic!("PCM")};
+            assert_eq!(pcm.len(),160);
+            assert!(super::case_state::State::from_result(value).flattened().iter().all(|v|v.is_finite()));
+        }
+        eprintln!("trained-resource Source compound two epochs: {}nodes/{}cords, planning{planning:?}, prep{:?}, execute{:?}; shared33tensor custody, zero/synthetic seed/features; no compound signature/native linguistic/session/waveform quality admission",result.nodes,result.cords,result.preparation,result.execution);
+    }).unwrap().join().unwrap();
+}
