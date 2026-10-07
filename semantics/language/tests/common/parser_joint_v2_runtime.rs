@@ -444,7 +444,12 @@ pub fn evaluate_observed(
     if let Ok(path) = std::env::var("CONDUIT_PARSER_JOINT_V2_GRAPHS_OUTPUT") {
         std::fs::write(path, serde_json::to_string_pretty(&graphs).unwrap()).unwrap();
     }
-    if selected.is_some() && !matches!(selected, Some("reviewed-punctuation" | "retained-stream")) {
+    if selected.is_some()
+        && !matches!(
+            selected,
+            Some("reviewed-punctuation" | "retained-stream" | "independent-vocative")
+        )
+    {
         assert_eq!(counts[0], rows.len() as u64);
         assert_eq!(
             counts[1],

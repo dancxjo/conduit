@@ -40,6 +40,10 @@ impl Session {
     pub fn stable(profile: &LanguageLexicalProfile) -> Self {
         Self::prepare(profile, true)
     }
+    #[allow(dead_code)]
+    pub fn retained_facts(&self) -> &[LanguageParserJointStableFact] {
+        &self.retained_facts
+    }
     pub fn committed(&self) -> u64 {
         self.previous
             .as_ref()

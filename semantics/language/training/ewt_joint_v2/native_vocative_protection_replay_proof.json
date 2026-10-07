@@ -1,0 +1,46 @@
+{
+  "schema": "language/parser-v2-independent-vocative-protection-replay-proof@1",
+  "pass_seconds": 1045.49,
+  "test_handle": 39339,
+  "source": "exact current authored Source checked/expanded into three ordinary Plan/Play scopes",
+  "actual_acquisition": "original pinned-model Partial Hello comma Travis stable13, Final Hello comma Travis period14; original diagnostic UAS6/7 retained",
+  "preservation": [
+    "full original independent admission",
+    "origin basis",
+    "relation including subtype",
+    "dependent choice",
+    "head choice"
+  ],
+  "rebased": [
+    "current basis",
+    "dependent occurrence",
+    "head occurrence"
+  ],
+  "refusals": [
+    "changed dependent lexical choice",
+    "changed head lexical choice"
+  ],
+  "ordinary_model_reexecution": false,
+  "private_production_session_custody": false,
+  "played_ack": false,
+  "failed_runs": [
+    {
+      "handle": 20711,
+      "seconds": 467.94,
+      "reason": "missing initial kernel.start lifecycle"
+    },
+    {
+      "handle": 80157,
+      "seconds": 748.87,
+      "reason": "rebase lifecycle start missed by textual edit"
+    }
+  ],
+  "corrected_helper": "one realize/start boundary shared by all three scopes",
+  "native_receipt_sha256": "ed766cddc2279b5734d2812e7644d0123a463786fab447e89e6d1079377742d5",
+  "validation": {
+    "fmt_all_check": "pass",
+    "diff_check": "pass",
+    "corrected_acquisition_target_compile_seconds": 1.32,
+    "scoped_clippy": "deferred for coordinated active Root Speech compiler; not claimed"
+  }
+}
