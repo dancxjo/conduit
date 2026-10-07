@@ -209,7 +209,7 @@ fn complete_feature_policy_expands_with_exact_generic_contracts() {
     let source = format!(
         "type FarganPeriod = U16 in 32..=255\n{}",
         include_str!("../../speech/fargan_feature_policy.conduit")
-    );
+    ) + include_str!("../../speech/fargan_feature_correlation.conduit");
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     for name in [
         "speech/fargan-feature-spectrum",
@@ -218,6 +218,10 @@ fn complete_feature_policy_expands_with_exact_generic_contracts() {
         "speech/fargan-feature20",
         "speech/fargan-feature-wave-append",
         "speech/fargan-feature-lag-indices",
+        "speech/fargan-feature-preemphasis",
+        "speech/fargan-feature-normalized-correlation",
+        "speech/fargan-feature-window-basis",
+        "speech/fargan-feature-frame",
     ] {
         let graph = expand_canonical_plot_for_authoring(&checked, name, &profiles).unwrap();
         assert!(!graph.expanded.gears.is_empty());
@@ -281,7 +285,7 @@ fn authored_lag_indices_cover_all_admitted_periods_and_refuse_foreign_scalar() {
     let source = format!(
         "type FarganPeriod = U16 in 32..=255\n{}",
         include_str!("../../speech/fargan_feature_policy.conduit")
-    );
+    ) + include_str!("../../speech/fargan_feature_correlation.conduit");
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_plot_for_authoring(
         &checked,
@@ -328,3 +332,6 @@ fn authored_lag_indices_cover_all_admitted_periods_and_refuse_foreign_scalar() {
     assert!(prepared.evaluate(&foreign).is_err());
     assert!(program.evaluate(&foreign).is_err());
 }
+
+#[path = "fargan_feature_policy/temporal.rs"]
+mod temporal;
