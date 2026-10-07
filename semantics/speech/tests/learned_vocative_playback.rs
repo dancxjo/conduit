@@ -2,6 +2,8 @@
 //! Opt-in actual native parser receipt continuation. Teaching cases are not heldout.
 #[path = "common/asr_graph_sources.rs"]
 mod asr_sources;
+#[path = "common/learned_playback_coverage.rs"]
+mod coverage;
 #[path = "common/learned_playback_epoch.rs"]
 mod epoch;
 #[path = "common/learned_playback_evidence.rs"]
@@ -20,8 +22,8 @@ mod lifecycle;
 #[path = "common/learned_graph_receipt.rs"]
 mod receipt;
 use conduit_speech::{
-    intent_realization::*, lexical_pronunciation::*, pitch_trajectory::*, playback_basis::*,
-    semantic::SpeechDurationSpecification,
+    intent_realization::*, lexical_pronunciation::*, pitch_trajectory::*, plan_coverage::*,
+    playback_basis::*, semantic::SpeechDurationSpecification,
 };
 #[test]
 #[ignore = "requires actual learned native receipts via CONDUIT_LEARNED_GRAPH_RECEIPTS"]
@@ -76,6 +78,20 @@ fn playback_row_with_duration(
     let composite = intent::compose_with_duration(&case, &pronunciations, duration);
     assert_eq!(composite.words.len(), case.selections.len());
     assert_eq!(composite.correspondence.len(), composite.segments.len());
+    let complete_order =
+        prepare_complete_spoken_order(&case.lexical, &case.participation, &case.spoken_ordinals)
+            .unwrap();
+    let complete_words = coverage::words(&pronunciations, &composite);
+    let complete_word_refs = complete_words.iter().collect::<Vec<_>>();
+    let witnesses = coverage::witnesses(&complete_order, &complete_word_refs, &composite);
+    let complete_coverage = prepare_speech_plan_coverage(
+        &complete_order,
+        &complete_word_refs,
+        &composite.source,
+        &witnesses,
+    )
+    .unwrap();
+    let coverage_material = coverage::material(&complete_coverage, &case);
     let linguistic = composite.linguistic(&case);
     let offers = linguistic
         .iter()
@@ -116,6 +132,7 @@ fn playback_row_with_duration(
         epoch,
         &realized,
         &pitch,
+        &coverage_material,
     );
     (position, pcm.len() as u64 / 2)
 }

@@ -21,6 +21,7 @@ pub fn retain(
     epoch: Value,
     realized: &PreparedIntentRealization<'_>,
     pitch: &PreparedUtterancePitch<'_>,
+    complete_coverage: &Value,
 ) {
     let Ok(directory) = std::env::var("CONDUIT_LEARNED_PLAYBACK_PROOF_DIR") else {
         return;
@@ -78,10 +79,15 @@ pub fn retain(
                 "formant_cycle_bytes":native(&formant),"fargan_cycle_bytes":native(&neural)}));
         }
     }
+    assert_eq!(complete_coverage["complete_spoken_coverage_admitted"], true);
+    assert_eq!(
+        complete_coverage["complete_utterance_intent_bytes"],
+        serde_json::json!(native(realized.source()))
+    );
     let shared = serde_json::json!({"profile":"speech-shared-formant-fargan-handoff@1","compiled_formant_source_id":realized.compiled_source_id(),
         "utterance_intent_bytes":native(realized.source()),"voice_profile_bytes":native(realized.profile()),
         "inventory_bytes":native(&case.inventory),"boundary_profile_bytes":native(&case.boundaries),
-        "event_span_bytes":realized.timing().spans().iter().map(native).collect::<Vec<_>>(),
+        "complete_spoken_coverage":complete_coverage,"event_span_bytes":realized.timing().spans().iter().map(native).collect::<Vec<_>>(),
         "epoch_samples_8k":80,"target_epoch_samples_16k":160,"pitch_cadence":cadence,"pitch_admissions":admissions,
         "feature_route":"speech/fargan-formant-spectral-approximation@1",
         "fargan_feature_execution":false,"fargan_neural_waveform":false});
