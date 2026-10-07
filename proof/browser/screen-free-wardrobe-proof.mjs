@@ -74,7 +74,8 @@ export function verifyScreenFreeWardrobe(session, ownerPart, selectedSpeaker) {
     'a refused Mask name must not mutate the owner wardrobe');
   const doff = readout(session.responses[3].output, 'doff', ownerPart, selectedSpeaker);
   assert.equal(doff.revision, first.revision + 1n);
-  assert.equal(doff.worn, 'none');
+  assert.doesNotMatch(doff.worn, /(?:^|, )terminal(?:, |$)/,
+    'doffing terminal must remove that Mask, even when another local Mask remains worn');
   const wear = readout(session.responses[4].output, 'wear', ownerPart, selectedSpeaker);
   assert.equal(wear.revision, doff.revision + 1n);
   assert.match(wear.worn, /terminal/);

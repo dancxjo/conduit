@@ -10,9 +10,10 @@ const report = (revision, worn, preference) =>
 test('wardrobe proof requires actual refusal, unchanged revision, and ordered owner changes', () => {
   const outputs = [report(7, 'terminal', 'none'),
     'Wardrobe refused: Mask absent-mask is not in the current owner Plan. Enter wardrobe to inspect current owner state.\n',
-    report(7, 'terminal', 'none'), report(8, 'none', 'none'),
-    report(9, 'terminal', 'none'), report(10, 'terminal', 'terminal'),
-    report(10, 'terminal', 'terminal')];
+    report(7, 'terminal', 'none'), report(8, 'unlisted Mask', 'none'),
+    report(9, 'unlisted Mask, terminal', 'none'),
+    report(10, 'unlisted Mask, terminal', 'terminal'),
+    report(10, 'unlisted Mask, terminal', 'terminal')];
   const session = { commands: screenFreeWardrobeCommands,
     responses: outputs.map((output, index) => ({
       command: screenFreeWardrobeCommands[index], output,
