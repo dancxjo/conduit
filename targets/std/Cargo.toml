@@ -16,7 +16,7 @@ physical-effect-proof = []
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc"]
 
 [dependencies]
-conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog", "kernel-step"] }
+conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog", "kernel-step", "hosted-catalog-cache"] }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }

@@ -25,7 +25,7 @@ pub fn pure_expression_contract(
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: conduit_plot::pure_expression_semantic_laws(),
+        semantic_laws: conduit_plot::pure_expression_semantic_laws_for_program(program)?,
         limits: CapabilityLimits {
             // Bounded unrolled protocol walks may repeat one checked expression
             // sixteen times. Each instance still has separately admitted storage.

@@ -94,15 +94,23 @@ pub fn maximum_prepared_canonical_value_bytes(
     Ok(storage_bound::canonical(ty)? as u32)
 }
 
+/// Exact prepared transport envelope: primitive leaves use their ordinary raw
+/// encoding, while nominal and structured Types retain canonical framing.
+pub fn maximum_prepared_transport_value_bytes(
+    ty: &conduit_core::StructuredInfoType,
+) -> Result<u32, Refusal> {
+    Ok(storage_bound::output(ty)? as u32)
+}
+
 impl PortableExpressionProgram {
     /// Conservative canonical transport ceiling, computed before Play from the exact input Type.
     pub fn maximum_prepared_input_bytes(&self) -> Result<u32, Refusal> {
-        Ok(storage_bound::output(&self.input_type)? as u32)
+        maximum_prepared_transport_value_bytes(&self.input_type)
     }
 
     /// Conservative canonical transport ceiling, computed before Play from the exact output Type.
     pub fn maximum_prepared_output_bytes(&self) -> Result<u32, Refusal> {
-        Ok(storage_bound::output(&self.output_type)? as u32)
+        maximum_prepared_transport_value_bytes(&self.output_type)
     }
 }
 

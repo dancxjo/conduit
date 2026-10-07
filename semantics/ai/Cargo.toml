@@ -17,6 +17,7 @@ sha2 = { version = "0.10", default-features = false }
 
 [features]
 default = []
+hosted-catalog-cache = []
 kernel-step = ["dep:conduit-kernel"]
 plot-catalog = ["dep:conduit-web"]
 
