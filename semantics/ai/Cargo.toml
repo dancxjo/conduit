@@ -29,6 +29,7 @@ plot-catalog = ["dep:conduit-web"]
 conduit-speech = { path = "../speech", features = ["semantic-bindings"] }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-std-host = { path = "../../targets/std" }
+conduit-std-offers = { path = "../../targets/std/offers" }
 conduitos = { path = "../../targets/conduitos" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-semantic-catalog = { path = "../catalog", features = ["plot-catalog"] }

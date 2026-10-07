@@ -614,6 +614,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-speech",
  "conduit-std-host",
+ "conduit-std-offers",
  "conduit-time",
  "conduit-web",
  "conduitos",
