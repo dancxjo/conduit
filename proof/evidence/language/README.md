@@ -40,3 +40,10 @@ event equality, file loading, malformed-file preservation, mobile horizontal
 layout and uncaught browser errors. It emits screenshots and a compact proof
 JSON. It explicitly does not verify an OS-selected live file-follow handle or
 execute the parser. The local retained seven-event trace passes these checks.
+
+The separate `revision_inspector_follow_browser.mjs` accepts the same three
+arguments and checks following through an actual native browser
+`FileSystemFileHandle` in origin-private storage. It replays existing recorded
+native events through flushed writes, partial lines, malformed records and Stop.
+Only the OS picker is bypassed. This verifies native handle following, not the
+OS selection dialog or a live parser producer, and reports those limits in JSON.
