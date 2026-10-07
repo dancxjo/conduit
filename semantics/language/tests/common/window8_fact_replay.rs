@@ -62,10 +62,9 @@ impl FactSchema {
         .into_iter()
         .zip(proofs)
         {
-            hypotheses.push(
-                self.record(
-                    "LanguageParserWindow8CheckedHypothesis",
-                    vec![
+            hypotheses.push(self.record(
+                "LanguageParserWindow8CheckedHypothesis",
+                vec![
                         (
                             "hypothesis",
                             hypothesis
@@ -81,8 +80,7 @@ impl FactSchema {
                                 .map_err(|e| format!("{e:?}"))?,
                         ),
                     ],
-                )?,
-            );
+            )?);
         }
         let snapshot = self.record(
             "LanguageParserWindow8Snapshot",
