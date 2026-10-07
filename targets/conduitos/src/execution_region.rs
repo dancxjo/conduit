@@ -231,9 +231,7 @@ fn build_region(
     lane_base_identity: alloc::string::String,
     fragment: &PlanFragment,
 ) -> Result<ExecutionRegion, PreparationError> {
-    let protected = cfg!(all(target_arch = "x86_64", target_os = "none"))
-        && region_id == "region/0"
-        && fragment.placements.len() == 3
+    let ordinary_text = fragment.placements.len() == 3
         && fragment.placements.iter().all(|placement| {
             matches!(
                 placement.kind_id.as_str(),
@@ -242,6 +240,19 @@ fn build_region(
                     | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
             )
         });
+    let keyboard_text = fragment.placements.len() == 4
+        && fragment.placements.iter().all(|placement| {
+            matches!(
+                placement.kind_id.as_str(),
+                conduit_semantic_catalog::KEYBOARD_KIND
+                    | conduit_semantic_catalog::KEYMAP_KIND
+                    | conduit_text::TEXT_UPPER_KIND
+                    | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            )
+        });
+    let protected = cfg!(all(target_arch = "x86_64", target_os = "none"))
+        && region_id == "region/0"
+        && (ordinary_text || keyboard_text);
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {
             total.checked_add(u32::from(connection.item_capacity))

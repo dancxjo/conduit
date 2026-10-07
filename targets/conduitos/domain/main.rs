@@ -2,10 +2,12 @@
 #![no_std]
 #![no_main]
 
+mod allocation;
 mod frame;
 mod gate;
+mod keymap;
 mod memory;
-#[cfg(domain_proof)]
+#[cfg(feature = "proof")]
 mod probes;
 use frame::{TEXT_CAPACITY, TextFrame};
 #[path = "../src/text_transform.rs"]
@@ -17,26 +19,30 @@ mod text_transform;
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn domain_entry(frame: *mut TextFrame) -> ! {
     let frame = unsafe { &mut *frame };
-    #[cfg(domain_proof)]
+    #[cfg(feature = "proof")]
     if frame.probe != 0 && frame.command == 0 {
         unsafe { probes::run(frame) }
     }
     let length = frame.input_length as usize;
     match frame.command {
         0 => {}
+        3 => unsafe { keymap::initialize(frame) },
+        4 => unsafe { keymap::apply(frame) },
         1 => {
             if length > TEXT_CAPACITY || frame.capacity != TEXT_CAPACITY as u32 {
                 gate::finish(3);
             }
-            #[cfg(domain_proof)]
+            #[cfg(feature = "proof")]
             probes::mutate_gate(frame);
             // Whole-buffer effect request. The opaque handle grants nothing here;
             // only Root can admit it and operate its selected serial Base.
             gate::finish(0x200);
         }
         2 => {
-            #[cfg(domain_proof)]
-            if frame.probe == 14 { gate::finish(0x200); }
+            #[cfg(feature = "proof")]
+            if frame.probe == 14 {
+                gate::finish(0x200);
+            }
             gate::finish(frame.status)
         }
         _ => gate::finish(3),

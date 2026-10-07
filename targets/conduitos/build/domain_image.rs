@@ -7,6 +7,14 @@ mod image;
 pub fn generate() {
     for source in [
         "domain/main.rs",
+        "domain/Cargo.toml",
+        "domain/Cargo.lock",
+        "domain/allocation.rs",
+        "domain/keymap.rs",
+        "../../semantics/human",
+        "../../architecture/core",
+        "../../architecture/assigned-plan",
+        "../../architecture/plot",
         "domain/gate.rs",
         "domain/memory.rs",
         "domain/frame.rs",
@@ -28,42 +36,23 @@ pub fn generate() {
     }
     let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("Cargo sets manifest"));
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets output"));
-    let mut compiler = Command::new(env::var_os("RUSTC").expect("Cargo sets rustc"));
-    compiler
-        .args(["--edition=2024", "--target"])
-        .arg(env::var_os("TARGET").expect("Cargo sets target"))
-        .args([
-            "-D",
-            "warnings",
-            "-C",
-            "opt-level=2",
-            "-C",
-            "panic=abort",
-            "-C",
-            "relocation-model=static",
-            "-C",
-            "code-model=small",
-            "-C",
-        ])
-        .arg(format!(
-            "link-arg=-T{}",
-            manifest.join("domain/linker.ld").display()
-        ))
-        .args([
-            "-C",
-            "link-arg=--build-id=none",
-            "-C",
-            "link-arg=-z",
-            "-C",
-            "link-arg=max-page-size=4096",
-        ])
-        .arg(manifest.join("domain/main.rs"))
-        .arg("-o")
-        .arg(output.join("domain.elf"));
-    compiler.args(["--check-cfg", "cfg(domain_proof)"]);
-    if architecture == "x86_64" && env::var_os("CARGO_FEATURE_ORDINARY_DOMAIN_PROOF").is_some() {
-        compiler.args(["--cfg", "domain_proof"]);
-    }
+    let target = env::var("TARGET").expect("Cargo sets target");
+    let mut flags = vec![
+        "-C".to_string(),
+        "panic=abort".into(),
+        "-C".into(),
+        "relocation-model=static".into(),
+        "-C".into(),
+        "code-model=small".into(),
+        "-C".into(),
+        format!("link-arg=-T{}", manifest.join("domain/linker.ld").display()),
+        "-C".into(),
+        "link-arg=--build-id=none".into(),
+        "-C".into(),
+        "link-arg=-z".into(),
+        "-C".into(),
+        "link-arg=max-page-size=4096".into(),
+    ];
     if architecture == "x86" {
         let sysroot = Command::new(env::var_os("RUSTC").expect("Cargo sets rustc"))
             .args(["--print", "sysroot"])
@@ -78,25 +67,41 @@ pub fn generate() {
         .join("lib/rustlib")
         .join(env::var("HOST").expect("Cargo sets host"))
         .join("bin/rust-lld");
-        compiler
-            .arg("-C")
-            .arg(format!("linker={}", linker.display()))
-            .args([
-                "-C",
-                "linker-flavor=ld.lld",
-                "-C",
-                "link-arg=--nostdlib",
-                "-C",
-                "link-arg=-no-pie",
-            ]);
+        flags.extend([
+            "-C".into(),
+            format!("linker={}", linker.display()),
+            "-C".into(),
+            "linker-flavor=ld.lld".into(),
+            "-C".into(),
+            "link-arg=--nostdlib".into(),
+            "-C".into(),
+            "link-arg=-no-pie".into(),
+        ]);
     }
-    let result = compiler.output().expect("start domain image compiler");
+    let target_dir = output.join("domain-target");
+    let mut compiler = Command::new(env::var_os("CARGO").expect("Cargo sets Cargo"));
+    compiler
+        .args(["build", "--locked", "--release", "--manifest-path"])
+        .arg(manifest.join("domain/Cargo.toml"))
+        .args(["--target", &target, "--target-dir"])
+        .arg(&target_dir)
+        .env_remove("RUSTFLAGS")
+        .env("CARGO_ENCODED_RUSTFLAGS", flags.join("\u{1f}"));
+    if architecture == "x86_64" && env::var_os("CARGO_FEATURE_ORDINARY_DOMAIN_PROOF").is_some() {
+        compiler.args(["--features", "proof"]);
+    }
+    let result = compiler.output().expect("start independent domain build");
     if !result.status.success() {
         panic!(
             "pure domain image failed: {}",
             String::from_utf8_lossy(&result.stderr)
         );
     }
+    std::fs::copy(
+        target_dir.join(&target).join("release/conduitos-domain"),
+        output.join("domain.elf"),
+    )
+    .expect("stage independently linked domain");
     let machine = match architecture.as_str() {
         "x86" => 3,
         "x86_64" => 62,

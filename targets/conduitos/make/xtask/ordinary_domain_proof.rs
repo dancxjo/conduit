@@ -7,7 +7,7 @@ use std::{
 
 use crate::cli::GlobalOpts;
 
-use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
+use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report::ArtifactRole};
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
 
@@ -129,6 +129,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         return Err(ConduitosError::refusal(
             "ordinary-domain-source-timer-lost",
             "a Source timer must wake once while the independent domain budget preempts",
+        ));
+    }
+    if !transcript.lines().any(|line| {
+        line == "CONDUIT_DOMAIN_KEYMAP retained-compose canonical-sdk protected-uppercase"
+    }) {
+        return Err(ConduitosError::refusal(
+            "ordinary-domain-keymap-absent",
+            "the portable keymap must preserve Compose state across protected entries",
         ));
     }
     let costs = transcript

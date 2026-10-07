@@ -69,7 +69,11 @@ Root scope before accepting a gate claim, including Host, implementation,
 Base/resource, subject, authority and their admitted envelopes.
 
 The x86_64 ordinary three-placement text runner now loads an independently
-compiled Unicode-uppercase implementation into a CPL3 address space. It uses
+compiled image containing Unicode uppercase and the same portable Human
+keymap implementation used by the Host into a CPL3 address space. The image
+has its own Cargo manifest and lockfile and two immutable ELF load segments.
+Its allocator refuses allocation; these implementations use bounded buffers
+and retained keymap state in the first page of the private stack allocation. It uses
 one entry and one terminal gate for the entire bounded input rather than a
 privileged transition per character. Code is read-only/executable; constants,
 input/output and stack have separate permissions; inherited Root mappings are
@@ -83,7 +87,9 @@ hostile entries: Root memory, capability memory, sibling memory, Root entry,
 MMIO, ports, interrupt disabling, an infinite loop, floating-point access,
 alternate syscall entries, division by zero, breakpoint, single-step, timestamp
 access, code writes, and data execution. This lane does not establish that every
-current product path uses protection domains.
+current product path uses protection domains. It also checks that Compose
+state survives separate entries and that its Unicode output reaches the
+protected uppercase implementation.
 
 The text region requests one serial presentation through an opaque authenticated
 handle. Root checks the current Host, Boot, Plan, Play, selected implementation,
@@ -106,7 +112,27 @@ flushes, three scheduler returns, 64 runtime copy bytes, a 32-byte shared-window
 peak, six privilege transitions, and 118,784 backend bytes. Setup image copies and setup/teardown TSC ticks
 are reported separately. Root metadata is charged to region admission; teardown
 zeros the backend allocation. These are emulator measurements, with a shared
-page and no ring slots; the native graphical scheduler is still unprotected.
+page and no ring slots. These counts describe the three-placement text run;
+they do not describe the graphical Body run.
+
+The native keyboard partition now prepares an exact provider scope and binds
+its domain to the aggregate Body Plan and actual Body Play at activation. It
+keeps the connected four-placement keyboard chain intact. Keymap and uppercase
+execute in the domain; Root delivers canonical keyboard events and authorizes
+serial presentation before retaining the operator-facing result. Cancellation,
+input-provider loss, and execution failure revoke the domain. Other native
+Plot implementations remain cooperative. The supported graphical `journey-proof` passed in the local x86_64 guest:
+ordinary USB keyboard input selected Keyboard canvas and produced `A` from `a`
+without replacing the Body Plan or Play. The captured display showed `A`.
+Stop revoked the domain and zeroed its allocation. Its exact Body cost record
+reported six entries and gates, one Base gate, 11 runtime copy bytes, twelve
+CR3/TLB switches and privilege transitions, a four-byte shared-window peak,
+118,784 backend bytes and 5,204 per-domain Root metadata bytes. This includes
+keymap initialization, press/release handling, uppercase and presentation;
+it is not the total memory cost of the complete Body or its trusted kernel.
+Pure keymap and uppercase currently have separate entries; reducing those
+crossings remains work toward the issue's bulk-computation requirement.
+This is development emulator evidence, not accepted-release evidence.
 
 The x86 budget now uses a separate Root-owned RTC periodic interrupt route.
 Admission requires an unused RTC interrupt channel and verifies interrupt
@@ -129,7 +155,7 @@ a complete normal graphical Body run.
 
 | Target | Ordinary protection evidence | Remaining boundary |
 |---|---|---|
-| x86_64 | Supplemental emulator run of checked text Source and hostile entries; bounded CPL3 implementation in the ordinary text runner | Current product paths and Body scheduler integration remain unfinished |
+| x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Pure-chain batching, broader product coverage and release acceptance remain unfinished |
 | IA-32 | ELF32 artifact admission and malformed-mapping tests | No earned ordinary CPL3 execution proof |
 | AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
