@@ -483,3 +483,47 @@ fn three_feedback_domains_fit_separately_and_cannot_be_silently_combined() {
         maximum_prepared_transport_value_bytes(&tuple_info_type(members).unwrap()).unwrap() > 16384
     );
 }
+
+#[test]
+fn causal_feature_feedback_retains_both_scalar_memories_in_bounded_native_profiles() {
+    let source = format!(
+        "{}\n{}\n{}",
+        exact_epoch_declarations(),
+        include_str!("../../speech/fargan_epoch_feedback.conduit"),
+        include_str!("../../speech/fargan_feature_epoch_contracts.conduit")
+    );
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let feedback = &checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "FarganFeatureEpochFeedback")
+        .unwrap()
+        .value_type;
+    let conduit_core::StructuredInfoTypeShape::Record { fields, .. } = feedback.shape() else {
+        panic!("named causal memories required")
+    };
+    assert_eq!(
+        fields.iter().map(|f| f.name()).collect::<Vec<_>>(),
+        [
+            "history",
+            "next_epoch",
+            "previous_normalized",
+            "previous_raw"
+        ]
+    );
+    for name in [
+        "FarganFeatureEpochFeedback",
+        "FarganFeaturePcmEpoch",
+        "FarganFeaturePendingState",
+    ] {
+        let profile =
+            conduit_ai::native_profile::PreparedNativeProfile::check_definition(&source, name)
+                .unwrap();
+        for ty in [profile.value_type(), profile.candidate_type()] {
+            let maximum = maximum_prepared_transport_value_bytes(ty).unwrap();
+            eprintln!("{name}: native/candidate maximum {maximum}");
+            assert!(maximum as usize <= SELECTED_FRAME_BYTES);
+        }
+    }
+}
