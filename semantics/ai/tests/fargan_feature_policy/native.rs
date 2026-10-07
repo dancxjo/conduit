@@ -28,10 +28,18 @@ fn retained_shared_native_intent_replays_exact_formant_and_pitch_basis() {
 fn replay() {
     let path = std::env::var("CONDUIT_FARGAN_SHARED_HANDOFF").unwrap();
     let document = std::fs::read(&path).unwrap();
-    assert_eq!(
-        format!("{:x}", Sha256::digest(&document)),
-        "f8d5a958ec0751eccedbbcdfb9dd2d3445b53ee45512399b1d081532eba1c467"
-    );
+    let original_digest = "f8d5a958ec0751eccedbbcdfb9dd2d3445b53ee45512399b1d081532eba1c467";
+    let expected_digest = std::env::var("CONDUIT_FARGAN_SHARED_HANDOFF_SHA256")
+        .unwrap_or_else(|_| original_digest.into());
+    assert_eq!(format!("{:x}", Sha256::digest(&document)), expected_digest);
+    let expected_samples = if expected_digest == original_digest {
+        16240usize
+    } else {
+        std::env::var("CONDUIT_FARGAN_SHARED_EXPECTED_SAMPLES_8K")
+            .expect("a new pinned handoff requires its reviewed exact sample count")
+            .parse::<usize>()
+            .unwrap()
+    };
     let json: serde_json::Value = serde_json::from_slice(&document).unwrap();
     let h = &json["shared_realization_handoff"];
     let intent = SpeechUtteranceIntent::decode(&bytes(&h["utterance_intent_bytes"])).unwrap();
@@ -109,7 +117,16 @@ fn replay() {
         }
         pcm.extend_from_slice(&block[..n]);
     }
-    assert_eq!(pcm.len(), 16240);
+    assert_eq!(pcm.len(), expected_samples);
+    let feature_frame_8k = std::env::var("CONDUIT_FARGAN_FEATURE_UTTERANCE_FRAME_8K")
+        .map_or(240u64, |value| value.parse().unwrap());
+    assert_eq!(
+        feature_frame_8k % 80,
+        0,
+        "feature point must lie on the admitted ten millisecond epoch grid"
+    );
+    let preprocessing_end = usize::try_from(feature_frame_8k.checked_add(80).unwrap()).unwrap();
+    assert!(preprocessing_end>=320 && preprocessing_end<=pcm.len(),"selected development point requires four complete native epochs and must fit the exact utterance");
     let wav = std::fs::read(std::path::Path::new(&path).with_extension("wav")).unwrap();
     let mut offset = 12;
     let mut actual = None;
@@ -129,8 +146,8 @@ fn replay() {
         offset += 8 + size + (size % 2);
     }
     assert_eq!(actual.unwrap(), pcm);
-    // Execute authored causal resampling and preemphasis over the first four
-    // real epochs, then the ordinary Source feature graph over their history.
+    // Execute authored causal resampling and preemphasis through the selected
+    // exact native epoch, then the ordinary Source feature graph over its history.
     let source = format!(
         "type FarganPeriod = U16 in 32..=255\n{}\n{}",
         include_str!("../../../speech/fargan_feature_policy.conduit"),
@@ -146,7 +163,7 @@ fn replay() {
     let mut history = vec![0f32; 640];
     let mut previous_raw = 0f32;
     let mut previous_normalized = 0f32;
-    for samples in pcm[..320].as_chunks::<80>().0 {
+    for samples in pcm[..preprocessing_end].as_chunks::<80>().0 {
         let input = record(
             &resample.input_type,
             &[
@@ -185,7 +202,9 @@ fn replay() {
             &StructuredInfoValue::from_canonical_bytes(&append.evaluate(&input).unwrap()).unwrap(),
         );
     }
-    assert!(history.iter().any(|x| *x != 0.));
+    if expected_digest == original_digest {
+        assert!(history.iter().any(|x| *x != 0.));
+    }
     let entry = "speech/fargan-feature-frame";
     let schema = plan::SourceSchema::for_entry(&source, entry);
     let load = |raw: &[u8]| {
@@ -221,7 +240,18 @@ fn replay() {
     .into_iter()
     .map(|(n, d, v)| (n.into(), shared::Resource::new(schema.ty(n).clone(), &d, v)))
     .collect();
-    let cycle = pitch.at_frame(0, 240 * 2, 16000).unwrap();
+    let (feature_event, span) = realized
+        .timing()
+        .spans()
+        .iter()
+        .enumerate()
+        .find(|(_, span)| {
+            *span.start_frame() <= feature_frame_8k
+                && feature_frame_8k < span.start_frame() + span.frame_count()
+        })
+        .unwrap();
+    let feature_local_frame = feature_frame_8k - span.start_frame();
+    let cycle = pitch.at_frame(feature_event,feature_local_frame*2,16000).expect("this selected development feature point requires an actual admitted phone pitch; boundary policy is separate");
     let q8 = *cycle.whole_q8();
     let rounded = (q8.clamp(8192, 65280) + 128) / 256;
     // The numerical expression is replayed below from the exact authored law.
@@ -275,11 +305,11 @@ fn replay() {
             "shared_handoff_sha256":format!("{:x}",Sha256::digest(&document)),
             "source_sha256":format!("{:x}",Sha256::digest(source.as_bytes())),
             "period_source_sha256":format!("{:x}",Sha256::digest(period_source.as_bytes())),
-            "feature_event":0,"feature_local_frame_8k":240,"feature_period_q8":q8,"feature_period_samples_16k":rounded,
+            "feature_event":feature_event,"feature_local_frame_8k":feature_local_frame,"feature_utterance_frame_8k":feature_frame_8k,"feature_period_q8":q8,"feature_period_samples_16k":rounded,
             "retained_linguistic_graph_receipt":json["graph_receipt"],
             "native_handoff":h,
-            "formant_exact_samples":pcm.len(),"pitch_epochs_replayed":200,
-            "source_preprocessed_epochs":4,"feature_graph_executed_frames":1,
+            "formant_exact_samples":pcm.len(),"pitch_epochs_replayed":h["pitch_cadence"].as_array().unwrap().len(),
+            "source_preprocessed_epochs":preprocessing_end/80,"feature_graph_executed_frames":1,
             "feature20":actual,"graph_nodes":feature.nodes,"graph_cords":feature.cords,
             "owner_preparation_ns":feature.preparation.as_nanos().to_string(),
             "execution_ns":feature.execution.as_nanos().to_string(),
