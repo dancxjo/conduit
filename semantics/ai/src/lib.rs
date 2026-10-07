@@ -252,3 +252,6 @@ pub mod fixed_numeric_embedding_flow;
 pub mod fixed_numeric_linear_flow;
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_integer_narrowing;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_u16_profile;
