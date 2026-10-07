@@ -27,5 +27,7 @@ test('paced input rereads a changed Face and retains every actual command', asyn
     ['--input-type=module', '-e', cli], ['read all', 'quit'], 'body> ', 3000,
     { retryStaleReadAll: 2 });
   assert.deepEqual(result.commands, ['read all', 'read all', 'quit']);
+  assert.deepEqual(result.responses.map(response => response.command), ['read all', 'read all']);
+  assert.match(result.responses[0].output, /Stopped the stale reading/);
   assert.match(result.transcript, /Current Face reading completed/);
 });

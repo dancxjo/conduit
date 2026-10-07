@@ -8,16 +8,19 @@ import path from 'node:path';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 export async function retainScreenFreeSessions(privateRoot, walkthroughRoot, report) {
-  assert.ok(report.birth && report.screen_free_clock,
-    'screen-free walkthrough needs completed Birth and clock sessions');
+  assert.ok(report.birth && report.screen_free_clock && report.screen_free_wardrobe,
+    'screen-free walkthrough needs completed Birth, clock, and wardrobe sessions');
   const files = [
     [report.birth.zero_body_receipt, 'zero-body-before.json'],
     [report.birth.input, 'birth-input.txt'],
     [report.birth.transcript, 'birth-transcript.txt'],
-    ...['start', 'lull'].flatMap(name => [
+    ...['start', 'lull', 'wake', 'finish'].flatMap(name => [
       [report.screen_free_clock[name].input, `clock-${name}-input.txt`],
       [report.screen_free_clock[name].transcript, `clock-${name}-transcript.txt`],
     ]),
+    [report.screen_free_wardrobe.provider_transcript, 'wardrobe-provider-transcript.txt'],
+    [report.screen_free_wardrobe.input, 'wardrobe-input.txt'],
+    [report.screen_free_wardrobe.transcript, 'wardrobe-transcript.txt'],
   ];
   for (const [artifact, name] of files) {
     assert.equal(artifact.path, `../${name}`, `unexpected screen-free artifact ${name}`);
