@@ -2,6 +2,8 @@
 //! Recorded Source fact continuation; no provider, physical playback or joint neural claim.
 #[path = "common/learned_playback_epoch.rs"]
 mod epoch;
+#[path = "common/learned_playback_evidence.rs"]
+mod evidence;
 #[path = "common/playback_graph.rs"]
 mod graph;
 #[path = "common/vocative_intent.rs"]
@@ -138,6 +140,23 @@ fn early_admitted_vocative_fact_prepares_only_its_word_before_final() {
     let played = epoch::commitment(&tape);
     let pcm = lifecycle::scheduler_pressure(&tape);
     assert!(!pcm.is_empty());
+    let graph_receipt = serde_json::json!({
+        "parser_snapshot": snapshot,
+        "dependency_admission_bytes": stable.admission.clone().encode().unwrap(),
+        "contiguous_commit_custody_admitted": false
+    });
+    evidence::retain(
+        dependent,
+        &graph_receipt,
+        &stable.case,
+        &pronunciations,
+        &composite,
+        &tape,
+        &pcm,
+        played.clone(),
+        &realized,
+        &pitch,
+    );
     if let Ok(path) = std::env::var("CONDUIT_STABLE_SPEECH_EVIDENCE") {
         let evidence = serde_json::json!({
             "proof": "retained-partial-source-fact-speech@1",
