@@ -135,15 +135,16 @@ fn conversion_plan(operation: IntegerConversion, flow: bool) -> Plan {
     if flow {
         install_fixed_dsp_flow_catalogs(&mut startup, &mut profile).unwrap();
     }
-    let input_name = if operation == IntegerConversion::U16 {
-        "U16"
-    } else {
-        "NumericI16Vector160"
+    let input_name = match operation {
+        IntegerConversion::U16 => String::from("U16"),
+        IntegerConversion::I16Vector160 => String::from("NumericI16Vector160"),
+        IntegerConversion::I16Vector80 => String::from("NumericI16Vector80"),
+        IntegerConversion::FiniteVector(n) => format!("NumericRawF32Vector{n}"),
     };
     let output_name = format!("NumericF32Vector{}", operation.width());
     let mut offers = vec![];
     for (name, width, source) in [
-        ("dsp-fixture/left", input_name, true),
+        ("dsp-fixture/left", input_name.as_str(), true),
         ("dsp-fixture/sink", output_name.as_str(), false),
     ] {
         let ty = fixed_numeric_type(if width == "U16" {
@@ -475,4 +476,68 @@ fn selected_integer_converters_preserve_signed_scale_and_stage_only_on_commit() 
     assert_eq!(out, signed.map(f32::from));
     <FixedIntegerConversionBack<160> as StepBack<4>>::step_committed(&mut back);
     assert_eq!(back.step(&mut io, &inputs), StepOutcome::Complete);
+}
+
+#[test]
+fn finite_admission_checks_exact_raw_envelope_and_nonfinite_before_consumption() {
+    use conduit_ai::fixed_numeric_integer_conversion::FixedIntegerConversionBack;
+    let plan = conversion_plan(IntegerConversion::FiniteVector(1), false);
+    let mut back = FixedIntegerConversionBack::<1>::prepare_planned::<4>(
+        gear(&plan),
+        3,
+        IntegerConversion::FiniteVector(1),
+        false,
+    )
+    .unwrap();
+    let raw_type = fixed_numeric_type("NumericRawF32Vector1").unwrap();
+    assert!(FixedF32VectorCodec::<1>::prepare(&raw_type).is_err());
+    let mut raw = FixedF32VectorCodec::<1>::prepare_raw(&raw_type).unwrap();
+    let bytes = raw.encode(&[f32::from_bits(0x3f010203)]).unwrap().to_vec();
+    let mut invalid = bytes.clone();
+    let offset = invalid.windows(4).position(|w| w == [3, 2, 1, 63]).unwrap();
+    invalid[offset..offset + 4].copy_from_slice(&f32::NAN.to_le_bytes());
+    let mut io = frame(&invalid, true);
+    let inputs = StepInputBytes::test_frame([Some(&invalid), None, None, None], None);
+    assert!(matches!(back.step(&mut io, &inputs), StepOutcome::Fail(_)));
+    assert!(!io.test_consumed(PortId(0)));
+    assert_eq!(back.committed_frames(), 0);
+    assert!(
+        <FixedIntegerConversionBack<1> as StepBack<4>>::prepared_output(&back, PortId(0)).is_none()
+    );
+    let mut io = frame(&bytes, true);
+    let inputs = StepInputBytes::test_frame([Some(&bytes), None, None, None], None);
+    assert_eq!(back.step(&mut io, &inputs), StepOutcome::Progress);
+    let finite =
+        FixedF32VectorCodec::<1>::prepare(&fixed_numeric_type("NumericF32Vector1").unwrap())
+            .unwrap();
+    let mut out = [0.];
+    finite
+        .decode(
+            <FixedIntegerConversionBack<1> as StepBack<4>>::prepared_output(&back, PortId(0))
+                .unwrap(),
+            &mut out,
+        )
+        .unwrap();
+    assert_eq!(out, [f32::from_bits(0x3f010203)]);
+}
+
+#[test]
+fn hosted_factory_selects_explicit_flow_dsp_and_finite_admission_offers() {
+    use conduit_composite::KernelOperationFactory;
+    for plan in [
+        plan(FixedDspOperation::Sqrt1, true),
+        conversion_plan(IntegerConversion::FiniteVector(20), true),
+        conversion_plan(IntegerConversion::I16Vector80, true),
+    ] {
+        let factory = conduit_std_host::fixed_numeric::FixedNumericOperationFactory::for_plan(
+            &plan,
+            &std::collections::BTreeMap::new(),
+        )
+        .unwrap()
+        .into_iter()
+        .find(|factory| factory.implementation_id().as_str() == DSP_IMPLEMENTATION)
+        .unwrap();
+        let mut store = conduit_kernel::HostedValueStore::new(4, 16384, 65536).unwrap();
+        let _back = factory.prepare(gear(&plan), &mut store).unwrap();
+    }
 }

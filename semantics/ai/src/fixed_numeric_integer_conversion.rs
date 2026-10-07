@@ -12,6 +12,7 @@ use conduit_kernel::{
 };
 pub struct FixedIntegerConversionBack<const N: usize> {
     input: Option<FixedI16VectorCodec<N>>,
+    raw: Option<FixedF32VectorCodec<N>>,
     output: FixedF32VectorCodec<N>,
     flow: bool,
     staged: bool,
@@ -32,10 +33,25 @@ impl<const N: usize> FixedIntegerConversionBack<N> {
         verify_fixed_placement(gear, &fixed_integer_conversion_offer(operation, flow)?)
             .map_err(|error| format!("{error:?}"))?;
         Ok(Self {
-            input: if operation == IntegerConversion::I16Vector160 {
+            input: if matches!(
+                operation,
+                IntegerConversion::I16Vector160 | IntegerConversion::I16Vector80
+            ) {
                 Some(
-                    FixedI16VectorCodec::prepare(&fixed_numeric_type("NumericI16Vector160")?)
-                        .map_err(|error| format!("{error:?}"))?,
+                    FixedI16VectorCodec::prepare(&fixed_numeric_type(&format!(
+                        "NumericI16Vector{N}"
+                    ))?)
+                    .map_err(|error| format!("{error:?}"))?,
+                )
+            } else {
+                None
+            },
+            raw: if matches!(operation, IntegerConversion::FiniteVector(_)) {
+                Some(
+                    FixedF32VectorCodec::prepare_raw(&fixed_numeric_type(&format!(
+                        "NumericRawF32Vector{N}"
+                    ))?)
+                    .map_err(|error| format!("{error:?}"))?,
                 )
             } else {
                 None
@@ -97,6 +113,10 @@ impl<const N: usize, const PORTS: usize> StepBack<PORTS> for FixedIntegerConvers
             }
             for (output, input) in values.iter_mut().zip(signed) {
                 *output = f32::from(input);
+            }
+        } else if let Some(codec) = &self.raw {
+            if codec.decode(bytes, &mut values).is_err() {
+                return fail(2824);
             }
         } else {
             let Ok(raw) = <[u8; 2]>::try_from(bytes) else {

@@ -9,9 +9,11 @@ pub struct FixedI16VectorCodec<const N: usize> {
 }
 impl<const N: usize> FixedI16VectorCodec<N> {
     pub fn prepare(value_type: &StructuredInfoType) -> Result<Self, FixedCodecRefusal> {
-        if N != 160
-            || crate::fixed_numeric_catalog::fixed_numeric_type("NumericI16Vector160")
-                .map_err(|_| FixedCodecRefusal::Shape)?
+        if !matches!(N, 80 | 160)
+            || crate::fixed_numeric_catalog::fixed_numeric_type(&alloc::format!(
+                "NumericI16Vector{N}"
+            ))
+            .map_err(|_| FixedCodecRefusal::Shape)?
                 != *value_type
         {
             return Err(FixedCodecRefusal::Shape);

@@ -70,6 +70,18 @@ pub(crate) fn dsp_specs() -> Vec<crate::fixed_numeric_signal_catalog::Spec> {
             vec![(String::from("result"), String::from("NumericF32Vector160"))],
         ),
     ])
+    .chain(core::iter::once((
+        String::from("numeric/i16-to-f32-80"),
+        vec![(String::from("value"), String::from("NumericI16Vector80"))],
+        vec![(String::from("result"), String::from("NumericF32Vector80"))],
+    )))
+    .chain([1, 18, 20, 160, 320].into_iter().map(|n| {
+        (
+            format!("numeric/finite-vector{n}"),
+            vec![(String::from("value"), format!("NumericRawF32Vector{n}"))],
+            vec![(String::from("result"), format!("NumericF32Vector{n}"))],
+        )
+    }))
     .collect()
 }
 pub fn fixed_dsp_contract(operation: FixedDspOperation, flow: bool) -> Result<Kind, String> {
@@ -131,7 +143,16 @@ pub fn install_fixed_dsp_flow_catalogs(
             .insert_kind(kind)
             .map_err(|error| format!("{error:?}"))?;
     }
-    for operation in [IntegerConversion::U16, IntegerConversion::I16Vector160] {
+    for operation in [
+        IntegerConversion::U16,
+        IntegerConversion::I16Vector160,
+        IntegerConversion::I16Vector80,
+        IntegerConversion::FiniteVector(1),
+        IntegerConversion::FiniteVector(18),
+        IntegerConversion::FiniteVector(20),
+        IntegerConversion::FiniteVector(160),
+        IntegerConversion::FiniteVector(320),
+    ] {
         let kind = fixed_integer_conversion_contract(operation, true)?;
         startup.insert(conduit_plot::KindSignature {
             kind: String::from(kind.kind_id.as_str()),
@@ -149,18 +170,24 @@ pub fn install_fixed_dsp_flow_catalogs(
 pub enum IntegerConversion {
     U16,
     I16Vector160,
+    I16Vector80,
+    FiniteVector(usize),
 }
 impl IntegerConversion {
-    pub fn name(self) -> &'static str {
+    pub fn name(self) -> String {
         match self {
-            Self::U16 => "u16-to-f32",
-            Self::I16Vector160 => "i16-to-f32-160",
+            Self::U16 => "u16-to-f32".into(),
+            Self::I16Vector160 => "i16-to-f32-160".into(),
+            Self::I16Vector80 => "i16-to-f32-80".into(),
+            Self::FiniteVector(n) => format!("finite-vector{n}"),
         }
     }
     pub fn width(self) -> usize {
         match self {
             Self::U16 => 1,
             Self::I16Vector160 => 160,
+            Self::I16Vector80 => 80,
+            Self::FiniteVector(n) => n,
         }
     }
 }
