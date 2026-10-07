@@ -1,0 +1,17 @@
+# Conditioning input and deferred history are separate bounded domains.
+# Deferred history is released only by the final canonical PCM16 epoch ACK.
+type FarganFeatureConditionEpoch = {
+    features: NumericF32Vector20
+    period: FarganPeriod
+    epoch: U64
+}
+type FarganConditioningInputEpoch = {
+    features: NumericF32Vector20
+    period: FarganPeriod
+    history: NumericHistory2x64
+    epoch: U64
+}
+type FarganConditioningPendingHistory = {
+    history: NumericHistory2x64
+    epoch: U64
+}
