@@ -18,7 +18,12 @@ pub struct RetainedSignalModel {
     pub layout: Vec<u8>,
     pub raw_blob_sha256: String,
 }
-fn port(name: &str, width: u64, element: TensorElement, bytes: u64) -> ModelPortConstraint {
+pub(super) fn port(
+    name: &str,
+    width: u64,
+    element: TensorElement,
+    bytes: u64,
+) -> ModelPortConstraint {
     ModelPortConstraint::from_parts(
         name.into(),
         "data/tensor@1".into(),

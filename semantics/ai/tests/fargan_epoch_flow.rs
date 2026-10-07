@@ -3,6 +3,8 @@
 mod conditioning_cycle;
 #[path = "fargan_epoch_contracts.rs"]
 mod declarations;
+#[path = "fargan_epoch_flow/interface.rs"]
+mod interface;
 use conduit_ai::{
     fixed_numeric_catalog::*, fixed_numeric_pair_catalog::*, native_profile::PreparedNativeProfile,
     nominal_weakening::PreparedNominalWeakening,

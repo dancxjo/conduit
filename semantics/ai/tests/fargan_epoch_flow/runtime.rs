@@ -679,9 +679,13 @@ fn run_retained_native_conditioning(warm: bool) {
         let root=std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
         let model=super::custody::RetainedSignalModel::load(&root);
         let (layout,resources)=model.conditioning_resources();
+        let interface=if warm {None} else {Some(super::interface::ConditioningInterface::prepare(model.conditioning_descriptor(),layout.clone()).unwrap())};
         let evidence=std::fs::read(std::env::var("CONDUIT_FARGAN_FEATURE_RECEIPT").unwrap()).unwrap();
         use sha2::{Digest,Sha256};
-        assert_eq!(format!("{:x}",Sha256::digest(&evidence)),"b8a72c0c8eedb09fbd56255180e37f1b96c65ff9b3b438672599ff5c9a2650d8");
+        let original_feature_digest="b8a72c0c8eedb09fbd56255180e37f1b96c65ff9b3b438672599ff5c9a2650d8";
+        let expected_feature_digest=std::env::var("CONDUIT_FARGAN_FEATURE_RECEIPT_SHA256").unwrap_or_else(|_|original_feature_digest.into());
+        assert_eq!(format!("{:x}",Sha256::digest(&evidence)),expected_feature_digest);
+        if warm {assert_eq!(expected_feature_digest,original_feature_digest,"the pinned warm oracle belongs to the original feature receipt");}
         let receipt:serde_json::Value=serde_json::from_slice(&evidence).unwrap();
         assert_eq!(receipt["joint_committed_session"],false);
         let features:Vec<f32>=receipt["feature20"].as_array().unwrap().iter().map(|v|v.as_f64().unwrap() as f32).collect();
@@ -689,7 +693,7 @@ fn run_retained_native_conditioning(warm: bool) {
         let period=u16::try_from(receipt["feature_period_samples_16k"].as_u64().unwrap()).unwrap();
         assert!((32..=255).contains(&period));
         let context=super::prepared_epoch_profiles_with_capacity(true);
-        let source=if warm {String::from(include_str!("../../../speech/fargan_conditioning.conduit"))+"\n"+include_str!("../../../speech/fargan_warm_conditioning.conduit")} else {String::from("type FarganPeriod = U16 in 32..=255\n")+include_str!("../../../speech/fargan_conditioning_flow.conduit")};
+        let source=if warm {String::from(include_str!("../../../speech/fargan_conditioning.conduit"))+"\n"+include_str!("../../../speech/fargan_warm_conditioning.conduit")} else {interface.as_ref().unwrap().source.clone()};
         let entry=if warm {"speech/fargan-warm-first-conditioning"} else {"speech/flow-fargan-conditioning-core"};
         let history_name=if warm {"initial_history"} else {"history"};
         let (plan,context)=super::prepare_authored_epoch_entry(context,source.clone(),entry,true,vec![]).unwrap();
@@ -715,7 +719,7 @@ fn run_retained_native_conditioning(warm: bool) {
             assert!(max_history.is_finite() && max_history <= 0.0001);
         }
         if let Ok(path)=std::env::var("CONDUIT_FARGAN_CONDITIONING_EVIDENCE") {
-            let output=serde_json::json!({"feature_execution_receipt":receipt,"conditioning_source":source,"conditioning_source_sha256":format!("{:x}",Sha256::digest(source.as_bytes())),"conditioning_layout":serde_json::from_slice::<serde_json::Value>(&layout).unwrap(),"model_raw_blob_sha256":model.raw_blob_sha256,"signal_only_model_artifact_identity":model.model.artifact().content_identity(),"signal_only_model_descriptor_identity":model.model.descriptor_identity(),"condition320":outputs.iter().find(|v|v.len()==320).unwrap(),"next_history128":outputs.iter().find(|v|v.len()==128).unwrap(),"initial_history128":vec![0f32;128],"graph_nodes":result.nodes,"graph_cords":result.cords,"owner_preparation_ns":result.preparation.as_nanos().to_string(),"execution_ns":result.execution.as_nanos().to_string(),"joint_committed_session":false,"conditioner_model_signature_admitted":false,"source_warm_initialization":false,"source_repeat_first_five_conditioning":warm,"neural_waveform":false});
+            let output=serde_json::json!({"feature_execution_receipt":receipt,"conditioning_source":source,"conditioning_source_sha256":format!("{:x}",Sha256::digest(source.as_bytes())),"conditioning_layout":serde_json::from_slice::<serde_json::Value>(&layout).unwrap(),"model_raw_blob_sha256":model.raw_blob_sha256,"signal_only_model_artifact_identity":model.model.artifact().content_identity(),"signal_only_model_descriptor_identity":model.model.descriptor_identity(),"condition320":outputs.iter().find(|v|v.len()==320).unwrap(),"next_history128":outputs.iter().find(|v|v.len()==128).unwrap(),"initial_history128":vec![0f32;128],"graph_nodes":result.nodes,"graph_cords":result.cords,"owner_preparation_ns":result.preparation.as_nanos().to_string(),"execution_ns":result.execution.as_nanos().to_string(),"joint_committed_session":false,"conditioner_model_signature_admitted":interface.is_some(),"source_native_carrier_correspondence_checked":interface.is_some(),"model_compute_lifecycle_admitted":false,"conditioner_interface":interface.as_ref().map(|i|serde_json::json!({"model_resource_reference_canonical":i.model.artifact().content.encode().unwrap(),"model_artifact_descriptor":format!("{:?}",i.model.artifact()),"logical_model_signature_canonical":conduit_plot::rust_binding::NativeRustBinding::encode(i.model.signature().clone()).unwrap(),"descriptor_identity":i.model.descriptor_identity(),"source_front":format!("{:?}",i.front),"native_ports_canonical":i.native_ports.iter().map(|(name,ty)|(name.clone(),ty.canonical_bytes().unwrap())).collect::<BTreeMap<_,_>>(),"period_definition":"type FarganPeriod = U16 in 32..=255\n","reviewed_layout":serde_json::from_slice::<serde_json::Value>(&i.layout).unwrap()})),"source_warm_initialization":false,"source_repeat_first_five_conditioning":warm,"neural_waveform":false});
             std::fs::write(path,serde_json::to_vec_pretty(&output).unwrap()).unwrap();
         }
         eprintln!("native feature20→authored conditioning320/history128: {}nodes/{}cords, prep{:?}, execution{:?}, retained7slices/{}layoutbytes; explicit zero-history development seed; no joint committed session/startup/native waveform claim",result.nodes,result.cords,result.preparation,result.execution,layout.len());
