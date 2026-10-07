@@ -305,3 +305,68 @@ fn explicit_frame16k_specializations_preserve_default_bound_and_distinct_exact_s
     );
     assert_eq!(factory.offers().count(), 3);
 }
+
+#[test]
+fn three_exact_specialized_state_cells_coexist_in_one_authored_source_plan() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    let mut factory = SeededStateOperationFactory::default();
+    let mut source = alloc::string::String::from("plot three-states {\n");
+    for (i, length) in [128u16, 640, 837].into_iter().enumerate() {
+        let schema = StructuredInfoType::collection(
+            StructuredInfoType::leaf(kind_id(F32_INFO_ID)).unwrap(),
+            Some(length),
+        )
+        .unwrap();
+        let value = CheckedValueContract::new(
+            schema.profile().unwrap().value_kind().clone(),
+            conduit_plot::maximum_prepared_canonical_value_bytes(&schema).unwrap(),
+            vec![],
+        )
+        .unwrap();
+        let kind = conduit_semantic_catalog::install_seeded_state_flow_specialized_kind(
+            &value,
+            &schema,
+            &mut startup,
+            &mut profile,
+        )
+        .unwrap();
+        let offer = factory
+            .install_flow_specialized_frame16k(&value, &schema)
+            .unwrap();
+        assert_eq!(kind, offer.kind_id);
+        source.push_str(&format!(" cell{i}: {}\n", kind.as_str()));
+    }
+    source.push_str("}\n");
+    let plot = conduit_plot::parse_with_startup(&source, &startup, &profile).unwrap();
+    let hosts = [HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: "fixture/native".into(),
+        boot_id: "fixture/boot".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/native@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: factory.offers().cloned().collect(),
+        planner_capabilities: vec![],
+    }];
+    let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
+    let plan = conduit_planner::plan_with_connection_limits(
+        &plot,
+        &hosts,
+        &placements,
+        &["conduit.base/local@1".into()],
+        1,
+        16384,
+    )
+    .unwrap();
+    factory.validate_plan(&plan).unwrap();
+    assert_eq!(plan.fragments[0].placements.len(), 3);
+    assert!(
+        plan.fragments[0].placements.iter().all(|gear| factory
+            .budget(gear)
+            .unwrap()
+            .maximum_value_bytes
+            <= 16384)
+    );
+}
