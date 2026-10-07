@@ -11,6 +11,8 @@ mod declarations;
 mod feature_cycle;
 #[path = "fargan_epoch_flow/interface.rs"]
 mod interface;
+#[path = "fargan_epoch_flow/native_session.rs"]
+mod native_session;
 #[path = "fargan_epoch_flow/repeat_capacity.rs"]
 mod repeat_capacity;
 use conduit_ai::{
@@ -319,6 +321,13 @@ fn numeric_epoch_offer(kind: &str, capacity64: bool) -> CapabilityOffer {
     .or_else(|_| fixed_numeric_embedding_flow::fixed_embedding_flow_offer(kind))
     .or_else(|_| conduit_ai::fixed_numeric_pair_flow::fixed_flow_pair_offer(kind))
     .or_else(|_| {
+        if kind == "numeric/flow-u64-to-u16" {
+            conduit_ai::fixed_numeric_integer_narrowing::checked_integer_narrowing_offer(true)
+        } else {
+            Err("different integer operation".into())
+        }
+    })
+    .or_else(|_| {
         if kind == "numeric/flow-f32-to-i16-nearest-away160" {
             conduit_ai::fixed_numeric_float_integer::float_integer_offer(true)
         } else {
@@ -478,7 +487,9 @@ fn prepare_authored_epoch_entry(
             .unwrap();
     assert!(expanded.input_bindings.is_empty() && expanded.output_bindings.is_empty());
     for gear in &expanded.expanded.gears {
-        let selected = if gear.kind_id.as_str().starts_with("numeric/") {
+        let selected = if gear.kind_id == kind_id(&period.kind_identity(true)) {
+            None // Exact Source-retained profile offer was installed above.
+        } else if gear.kind_id.as_str().starts_with("numeric/") {
             Some(numeric_epoch_offer(gear.kind_id.as_str(), capacity64))
         } else if matches!(
             gear.kind_contract_revision.as_str(),

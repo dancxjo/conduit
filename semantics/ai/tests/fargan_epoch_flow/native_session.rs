@@ -1,0 +1,273 @@
+//! Preparation-only retained native tape; control and acoustic equations remain Source.
+use super::*;
+use conduit_plot::rust_binding::NativeRustBinding;
+use conduit_speech::{
+    intent_realization::prepare_intent_realization,
+    pitch_trajectory::{prepare_utterance_pitch, OfferedSegmentPitch},
+    semantic::*,
+};
+
+pub(super) struct NativeEpoch {
+    pub samples: [i16; 80],
+    pub event: usize,
+    pub cycle: Option<Vec<u8>>,
+    pub q8: u64,
+}
+pub(super) struct NativeTape {
+    pub epochs: Vec<NativeEpoch>,
+    pub pcm: Vec<i16>,
+    pub immutable_material: Vec<u8>,
+}
+fn bytes(value: &serde_json::Value) -> Vec<u8> {
+    serde_json::from_value(value.clone()).unwrap()
+}
+
+pub(super) fn prepare_native_tape(
+    basis: &super::committed_lineage::RetainedCommittedBasis,
+) -> NativeTape {
+    let shared = &basis.receipt["shared_realization_handoff"];
+    let intent = SpeechUtteranceIntent::decode(&bytes(&shared["utterance_intent_bytes"])).unwrap();
+    let voice = SpeechFormantVoiceProfile::decode(&bytes(&shared["voice_profile_bytes"])).unwrap();
+    let inventory = SpeechInventory::decode(&bytes(&shared["inventory_bytes"])).unwrap();
+    let boundary =
+        SpeechFormantBoundaryProfile::decode(&bytes(&shared["boundary_profile_bytes"])).unwrap();
+    let admissions: Vec<_> = shared["pitch_admissions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            SpeechSegmentPitchAdmission::decode(&bytes(&row["pitch_admission_bytes"])).unwrap()
+        })
+        .collect();
+    let offers: Vec<_> = admissions
+        .iter()
+        .enumerate()
+        .map(|(event, admission)| OfferedSegmentPitch { event, admission })
+        .collect();
+    let realized = prepare_intent_realization(&intent, &inventory, &voice, &boundary).unwrap();
+    let pitch = prepare_utterance_pitch(&intent, &offers).unwrap();
+    assert_eq!(pitch.source(), realized.source());
+    assert_eq!(
+        realized.compiled_source_id(),
+        shared["compiled_formant_source_id"].as_str().unwrap()
+    );
+    for (span, offered) in realized
+        .timing()
+        .spans()
+        .iter()
+        .zip(shared["event_span_bytes"].as_array().unwrap())
+    {
+        assert_eq!(span.clone().encode().unwrap(), bytes(offered));
+    }
+    let mut renderer = pitch.renderer(&realized).unwrap();
+    let mut pcm = Vec::new();
+    loop {
+        let mut block = [0; 80];
+        let count = renderer.render(&mut block).unwrap();
+        if count == 0 {
+            break;
+        }
+        pcm.extend_from_slice(&block[..count]);
+    }
+    assert_eq!(
+        pcm.len(),
+        5040,
+        "original committed handoff pin keeps its exact duration"
+    );
+    let epochs = pcm
+        .as_chunks::<80>()
+        .0
+        .iter()
+        .enumerate()
+        .map(|(epoch, samples)| {
+            let frame = u64::try_from(epoch * 80).unwrap();
+            let (event, span) = realized
+                .timing()
+                .spans()
+                .iter()
+                .enumerate()
+                .find(|(_, span)| {
+                    *span.start_frame() <= frame && frame < span.start_frame() + span.frame_count()
+                })
+                .unwrap();
+            let cycle = if let Some(row) = shared["pitch_cadence"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["utterance_frame_8k"].as_u64() == Some(frame))
+            {
+                let cycle = pitch
+                    .at_frame(event, (frame - span.start_frame()) * 2, 16000)
+                    .unwrap();
+                let encoded = cycle.clone().encode().unwrap();
+                assert_eq!(encoded, bytes(&row["fargan_cycle_bytes"]));
+                Some((encoded, *cycle.whole_q8()))
+            } else {
+                let native = super::interface::admit_retained_session_native(
+                    &basis.document,
+                    "SpeechUtteranceIntent",
+                    &bytes(&shared["utterance_intent_bytes"]),
+                )
+                .unwrap();
+                let StructuredInfoValueShape::Record(fields) = native.shape() else {
+                    panic!("intent")
+                };
+                let StructuredInfoValueShape::Collection(events) = fields
+                    .iter()
+                    .find(|field| field.name() == "events")
+                    .unwrap()
+                    .value()
+                    .shape()
+                else {
+                    panic!("events")
+                };
+                let StructuredInfoValueShape::Variant { tag, .. } = events[event].shape() else {
+                    panic!("event")
+                };
+                assert_eq!(
+                    tag, "boundary",
+                    "missing phone pitch cannot become a boundary"
+                );
+                assert!(pitch
+                    .at_frame(event, (frame - span.start_frame()) * 2, 16000)
+                    .is_err());
+                None
+            };
+            NativeEpoch {
+                samples: *samples,
+                event,
+                q8: cycle.as_ref().map_or(0, |(_, q8)| *q8),
+                cycle: cycle.map(|(encoded, _)| encoded),
+            }
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(epochs.len(), 63);
+    let mut immutable_material = basis.encoded.clone();
+    immutable_material.extend_from_slice(&basis.language_source);
+    immutable_material.extend_from_slice(&basis.speech_source);
+    immutable_material.extend_from_slice(&basis.committed.canonical_bytes().unwrap());
+    NativeTape {
+        epochs,
+        pcm,
+        immutable_material,
+    }
+}
+
+#[test]
+#[ignore = "exact private committed handoff and complete retained Source closures"]
+fn committed_native_tape_retains_all_epochs_and_matches_formant_waveform() {
+    let basis = super::committed_lineage::admit_shared_basis();
+    let tape = prepare_native_tape(&basis);
+    assert_eq!(tape.epochs.len(), 63);
+    assert_eq!(
+        tape.epochs
+            .iter()
+            .filter(|epoch| epoch.cycle.is_some())
+            .count(),
+        60
+    );
+    for (index, epoch) in tape.epochs.iter().enumerate() {
+        assert_eq!(&epoch.samples, &tape.pcm[index * 80..(index + 1) * 80]);
+        if epoch.cycle.is_some() {
+            assert!(epoch.event < 6);
+            assert!(epoch.q8 > 0);
+        } else {
+            assert_eq!(epoch.event, 6);
+            assert_eq!(epoch.q8, 0);
+        }
+    }
+    assert!(tape.immutable_material.starts_with(&basis.encoded));
+    assert!(tape.immutable_material.len() > basis.encoded.len());
+    let handoff =
+        std::path::PathBuf::from(std::env::var("CONDUIT_COMMITTED_SPEECH_HANDOFF").unwrap());
+    let wav = std::fs::read(handoff.with_extension("wav")).unwrap();
+    assert_eq!(&wav[..4], b"RIFF");
+    assert_eq!(&wav[8..12], b"WAVE");
+    assert_eq!(&wav[36..40], b"data");
+    assert_eq!(wav.len(), 10124);
+    let samples = wav[44..]
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|bytes| i16::from_le_bytes(*bytes))
+        .collect::<Vec<_>>();
+    assert_eq!(tape.pcm, samples);
+}
+
+#[test]
+fn native_boundary_control_is_source_owned_and_never_requires_fake_phone_pitch() {
+    let source = control_source();
+    let (startup, profiles) = catalogs(true);
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+    check_control_programs(&checked, &profiles);
+}
+
+pub(super) fn control_source() -> String {
+    "type FarganPeriod = U16 in 32..=255\n".to_owned()
+        + include_str!("../../../speech/fargan_epoch_policy.conduit")
+            .split("# Source chooses normalized PCM saturation")
+            .next()
+            .unwrap()
+        + include_str!("../../../speech/fargan_native_control.conduit")
+}
+
+fn check_control_programs(checked: &CheckedSyntaxDocument, profiles: &ProfileCatalog) {
+    let expanded =
+        expand_canonical_plot_for_authoring(checked, "speech/fargan-native-control-q8", profiles)
+            .unwrap();
+    let ConfigurationValue::Text(hex) = &expanded.expanded.gears[0].configuration[0].value else {
+        panic!("Source control")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    for (boundary, q8, expected) in [
+        (true, 0, 16384u64),
+        (true, u64::MAX, 16384),
+        (false, 20480, 20480),
+    ] {
+        let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
+            panic!("observation")
+        };
+        let value = StructuredInfoValue::record(
+            program.input_type.clone(),
+            fields
+                .iter()
+                .map(|field| {
+                    StructuredFieldValue::new(
+                        field.name(),
+                        StructuredInfoValue::leaf(
+                            field.value_type().clone(),
+                            if field.name() == "boundary" {
+                                vec![u8::from(boundary)]
+                            } else {
+                                q8.to_le_bytes().to_vec()
+                            },
+                        )
+                        .unwrap(),
+                    )
+                    .unwrap()
+                })
+                .collect(),
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        let reference = program.evaluate(&value).unwrap();
+        assert_eq!(prepared.evaluate(&value).unwrap(), reference);
+        assert_eq!(reference, expected.to_le_bytes());
+    }
+    let round =
+        expand_canonical_plot_for_authoring(checked, "speech/fargan-period-q8-round", profiles)
+            .unwrap();
+    let ConfigurationValue::Text(hex) = &round.expanded.gears[0].configuration[0].value else {
+        panic!("Source rounding")
+    };
+    let round = PortableExpressionProgram::from_canonical_hex(hex).unwrap();
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&round).unwrap();
+    for (q8, expected) in [(0u64, 32u64), (16384, 64), (20480, 80), (u64::MAX, 255)] {
+        let input = q8.to_le_bytes();
+        let reference = round.evaluate(&input).unwrap();
+        assert_eq!(prepared.evaluate(&input).unwrap(), reference);
+        assert_eq!(reference, expected.to_le_bytes());
+    }
+}
