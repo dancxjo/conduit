@@ -1,0 +1,107 @@
+with structure/flow-nominal-weakening/typed-7970f22d7e24c9998145730950807fcca1cf07be534126017d33066c7d669aa14b242fa2780af1f3bc8724ff84f962584af7c7080968c549c1c0f1b8ed4322a5/result as FarganSignalCyclePair
+with structure/flow-nominal-weakening/typed-fa9d870b02a24fcdc0dc452fe6046bce65e380294d06bfb24f45e15d0730bcd77b796e30d0fd1b04c57950d9b72cea3c4365ba30df825588cc7d94b124298423/result as FarganAcceptedPcm16Raw
+with structure/flow-native-profile/18cb689a57191959cb464e0a83150fd1a937a36d235237f275636676f48ce55b/candidate as FarganSignalFeedbackCandidate
+with structure/flow-native-profile/1ddbd444d72e89b5248cba0bd21dae1940e8ce3f7950e3729b7c63c0a6c3471d/candidate as FarganEpochInputCandidate
+
+# Exact epoch continuity and checked U64 increment policy are Source-owned.
+plot speech/flow-fargan-signal-cycle-matches (
+    value: FarganSignalCyclePair...| >> accepted: Boolean...|
+) = ((.item-00000.next_epoch == .item-00001.epoch) && (.item-00001.epoch < 18446744073709551615))
+
+plot speech/flow-fargan-signal-cycle-input-candidate (
+    selected: FarganModelFrameAnchor
+    >> value: FarganSignalCyclePair...|
+    result: FarganEpochInputCandidate...| >>
+) = { condition: .item-00001.condition, conditioned_period: .item-00000.conditioned_period, next_period: .item-00001.next_period, state: .item-00000.state, epoch: .item-00001.epoch, model: { artifact_identity: [(selected.artifact_identity.0 + 0), (selected.artifact_identity.1 + 0), (selected.artifact_identity.2 + 0), (selected.artifact_identity.3 + 0), (selected.artifact_identity.4 + 0), (selected.artifact_identity.5 + 0), (selected.artifact_identity.6 + 0), (selected.artifact_identity.7 + 0), (selected.artifact_identity.8 + 0), (selected.artifact_identity.9 + 0), (selected.artifact_identity.10 + 0), (selected.artifact_identity.11 + 0), (selected.artifact_identity.12 + 0), (selected.artifact_identity.13 + 0), (selected.artifact_identity.14 + 0), (selected.artifact_identity.15 + 0), (selected.artifact_identity.16 + 0), (selected.artifact_identity.17 + 0), (selected.artifact_identity.18 + 0), (selected.artifact_identity.19 + 0), (selected.artifact_identity.20 + 0), (selected.artifact_identity.21 + 0), (selected.artifact_identity.22 + 0), (selected.artifact_identity.23 + 0), (selected.artifact_identity.24 + 0), (selected.artifact_identity.25 + 0), (selected.artifact_identity.26 + 0), (selected.artifact_identity.27 + 0), (selected.artifact_identity.28 + 0), (selected.artifact_identity.29 + 0), (selected.artifact_identity.30 + 0), (selected.artifact_identity.31 + 0)], model_descriptor_identity: [(selected.model_descriptor_identity.0 + 0), (selected.model_descriptor_identity.1 + 0), (selected.model_descriptor_identity.2 + 0), (selected.model_descriptor_identity.3 + 0), (selected.model_descriptor_identity.4 + 0), (selected.model_descriptor_identity.5 + 0), (selected.model_descriptor_identity.6 + 0), (selected.model_descriptor_identity.7 + 0), (selected.model_descriptor_identity.8 + 0), (selected.model_descriptor_identity.9 + 0), (selected.model_descriptor_identity.10 + 0), (selected.model_descriptor_identity.11 + 0), (selected.model_descriptor_identity.12 + 0), (selected.model_descriptor_identity.13 + 0), (selected.model_descriptor_identity.14 + 0), (selected.model_descriptor_identity.15 + 0), (selected.model_descriptor_identity.16 + 0), (selected.model_descriptor_identity.17 + 0), (selected.model_descriptor_identity.18 + 0), (selected.model_descriptor_identity.19 + 0), (selected.model_descriptor_identity.20 + 0), (selected.model_descriptor_identity.21 + 0), (selected.model_descriptor_identity.22 + 0), (selected.model_descriptor_identity.23 + 0), (selected.model_descriptor_identity.24 + 0), (selected.model_descriptor_identity.25 + 0), (selected.model_descriptor_identity.26 + 0), (selected.model_descriptor_identity.27 + 0), (selected.model_descriptor_identity.28 + 0), (selected.model_descriptor_identity.29 + 0), (selected.model_descriptor_identity.30 + 0), (selected.model_descriptor_identity.31 + 0)], session_basis_identity: [(selected.session_basis_identity.0 + 0), (selected.session_basis_identity.1 + 0), (selected.session_basis_identity.2 + 0), (selected.session_basis_identity.3 + 0), (selected.session_basis_identity.4 + 0), (selected.session_basis_identity.5 + 0), (selected.session_basis_identity.6 + 0), (selected.session_basis_identity.7 + 0), (selected.session_basis_identity.8 + 0), (selected.session_basis_identity.9 + 0), (selected.session_basis_identity.10 + 0), (selected.session_basis_identity.11 + 0), (selected.session_basis_identity.12 + 0), (selected.session_basis_identity.13 + 0), (selected.session_basis_identity.14 + 0), (selected.session_basis_identity.15 + 0), (selected.session_basis_identity.16 + 0), (selected.session_basis_identity.17 + 0), (selected.session_basis_identity.18 + 0), (selected.session_basis_identity.19 + 0), (selected.session_basis_identity.20 + 0), (selected.session_basis_identity.21 + 0), (selected.session_basis_identity.22 + 0), (selected.session_basis_identity.23 + 0), (selected.session_basis_identity.24 + 0), (selected.session_basis_identity.25 + 0), (selected.session_basis_identity.26 + 0), (selected.session_basis_identity.27 + 0), (selected.session_basis_identity.28 + 0), (selected.session_basis_identity.29 + 0), (selected.session_basis_identity.30 + 0), (selected.session_basis_identity.31 + 0)], precision: selected.precision } }
+
+plot speech/flow-fargan-signal-cycle-next-candidate (
+    value: FarganAcceptedPcm16Raw...| >> result: FarganSignalFeedbackCandidate...|
+) = { state: .next_state, conditioned_period: .next_period, next_epoch: (.epoch + 1) }
+
+# The initial seed is a separately admitted warmed state. Every replacement is
+# derived only from the final canonical PCM16 result, never provisional floats.
+plot speech/flow-fargan-signal-cycle (
+    selected: FarganModelFrameAnchor
+    >> seed: FarganSignalEpochFeedback...|
+    >> events: FarganSignalConditionEpoch...|
+    >> gain_weights: NumericF32MatrixRef80x1
+    >> gain_bias: NumericF32BiasRef1
+    >> conv_weights: NumericF32MatrixRef328x192
+    >> conv_bias: NumericF32BiasRef192
+    >> conv_glu_weights: NumericF32MatrixRef192x192
+    >> conv_glu_bias: NumericF32BiasRef192
+    >> pitch_gate_weights: NumericF32MatrixRef192x4
+    >> pitch_gate_bias: NumericF32BiasRef4
+    >> gru1_input_weights: NumericF32MatrixRef272x480
+    >> gru1_recurrent_weights: NumericF32MatrixRef160x480
+    >> gru2_input_weights: NumericF32MatrixRef240x384
+    >> gru2_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru3_input_weights: NumericF32MatrixRef208x384
+    >> gru3_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru1_glu_weights: NumericF32MatrixRef160x160
+    >> gru1_glu_bias: NumericF32BiasRef160
+    >> gru2_glu_weights: NumericF32MatrixRef128x128
+    >> gru2_glu_bias: NumericF32BiasRef128
+    >> gru3_glu_weights: NumericF32MatrixRef128x128
+    >> gru3_glu_bias: NumericF32BiasRef128
+    >> skip_weights: NumericF32MatrixRef688x128
+    >> skip_bias: NumericF32BiasRef128
+    >> skip_glu_weights: NumericF32MatrixRef128x128
+    >> skip_glu_bias: NumericF32BiasRef128
+    >> output_weights: NumericF32MatrixRef128x40
+    >> output_bias: NumericF32BiasRef40
+    result: FarganPcm16EpochResult...| >>
+) {
+    cell: state/seeded/flow/finite/typed-a3cb06058619443acfa1b6efbaa438b7f7fefab0f6a7f8bad53a277fee7b5143
+    paired: flow/zip/feedback/typed-6971d26946c7df265dcdac62152a6ebd2c7f997419da177fe8f8c098dbf19947
+    weak: structure/flow-nominal-weakening/typed-7970f22d7e24c9998145730950807fcca1cf07be534126017d33066c7d669aa14b242fa2780af1f3bc8724ff84f962584af7c7080968c549c1c0f1b8ed4322a5
+    matcher: speech/flow-fargan-signal-cycle-matches
+    guard: value/flow-assert-true/typed-4b242fa2780af1f3bc8724ff84f962584af7c7080968c549c1c0f1b8ed4322a5
+    candidate: speech/flow-fargan-signal-cycle-input-candidate (selected = selected)
+    input: structure/flow-native-profile/1ddbd444d72e89b5248cba0bd21dae1940e8ce3f7950e3729b7c63c0a6c3471d
+    epoch: speech/flow-fargan-float-epoch (selected = selected)
+    nextweak: structure/flow-nominal-weakening/typed-fa9d870b02a24fcdc0dc452fe6046bce65e380294d06bfb24f45e15d0730bcd77b796e30d0fd1b04c57950d9b72cea3c4365ba30df825588cc7d94b124298423
+    nextcandidate: speech/flow-fargan-signal-cycle-next-candidate
+    next: structure/flow-native-profile/18cb689a57191959cb464e0a83150fd1a937a36d235237f275636676f48ce55b
+    seed >> cell.seed
+    cell.current >> paired.left
+    events >> paired.right
+    paired.paired >> weak.value
+    weak.result >> matcher.value
+    weak.result >> guard.value
+    matcher.accepted >> guard.condition
+    guard.result >> candidate.value
+    candidate.result >> input.candidate
+    input.result >> epoch.value
+    gain_weights >> epoch.gain_weights
+    gain_bias >> epoch.gain_bias
+    conv_weights >> epoch.conv_weights
+    conv_bias >> epoch.conv_bias
+    conv_glu_weights >> epoch.conv_glu_weights
+    conv_glu_bias >> epoch.conv_glu_bias
+    pitch_gate_weights >> epoch.pitch_gate_weights
+    pitch_gate_bias >> epoch.pitch_gate_bias
+    gru1_input_weights >> epoch.gru1_input_weights
+    gru1_recurrent_weights >> epoch.gru1_recurrent_weights
+    gru2_input_weights >> epoch.gru2_input_weights
+    gru2_recurrent_weights >> epoch.gru2_recurrent_weights
+    gru3_input_weights >> epoch.gru3_input_weights
+    gru3_recurrent_weights >> epoch.gru3_recurrent_weights
+    gru1_glu_weights >> epoch.gru1_glu_weights
+    gru1_glu_bias >> epoch.gru1_glu_bias
+    gru2_glu_weights >> epoch.gru2_glu_weights
+    gru2_glu_bias >> epoch.gru2_glu_bias
+    gru3_glu_weights >> epoch.gru3_glu_weights
+    gru3_glu_bias >> epoch.gru3_glu_bias
+    skip_weights >> epoch.skip_weights
+    skip_bias >> epoch.skip_bias
+    skip_glu_weights >> epoch.skip_glu_weights
+    skip_glu_bias >> epoch.skip_glu_bias
+    output_weights >> epoch.output_weights
+    output_bias >> epoch.output_bias
+    epoch.result >> result
+    epoch.result >> nextweak.value
+    nextweak.result >> nextcandidate.value
+    nextcandidate.result >> next.candidate
+    next.result >> cell.next
+}

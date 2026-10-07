@@ -16,3 +16,12 @@ type FarganFeatureEpochFeedback = {
     previous_normalized: NumericFiniteF32
     next_epoch: U64
 }
+
+# A session-selected conditioning event carries no repeated immutable anchor.
+# The authored feedback composition compares epoch to retained next_epoch before
+# releasing a signal invocation; the selected anchor is supplied separately.
+type FarganSignalConditionEpoch = {
+    condition: NumericF32Vector320
+    next_period: FarganPeriod
+    epoch: U64
+}
