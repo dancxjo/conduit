@@ -139,8 +139,11 @@ pub use generated::{
 
 // Independent finite eight-token structural profile.
 pub use generated::{
-    LanguageParserWindow8Ancestry, LanguageParserWindow8Begin, LanguageParserWindow8RawState,
-    LanguageParserWindow8RawWalk, LanguageParserWindow8RootCount, LanguageParserWindow8StateProof,
+    LanguageParserWindow8Ancestry, LanguageParserWindow8Begin,
+    LanguageParserWindow8CheckedHypothesis, LanguageParserWindow8FactQuery,
+    LanguageParserWindow8RawState, LanguageParserWindow8RawWalk, LanguageParserWindow8RootCount,
+    LanguageParserWindow8Snapshot, LanguageParserWindow8StableLexicalFact,
+    LanguageParserWindow8StableLexicalFactProposal, LanguageParserWindow8StateProof,
     LanguageParserWindow8WalkQuery,
 };
 pub use generated::{

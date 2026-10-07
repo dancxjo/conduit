@@ -1,0 +1,5 @@
+# A lexical fact has already checked all surviving choices and stable spans.
+# This projection introduces no dependency arc or additional pronunciation policy.
+plot language-window8-stable-lexical-candidate (
+    input: LanguageParserWindow8StableLexicalFact...| >> output: LanguageLexicalCandidate...|
+) = sequence/at(sequence/at(.query.snapshot.lexical.tape.tokens,.query.dependent).candidates,sequence/at(.query.snapshot.candidate0.hypothesis.choices,.query.dependent))

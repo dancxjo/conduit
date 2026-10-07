@@ -79,6 +79,26 @@ pub fn initialize_window8(
 pub fn window8_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserWindow8CheckedHypothesis",
+            LanguageParserWindow8CheckedHypothesis::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8Snapshot",
+            LanguageParserWindow8Snapshot::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8FactQuery",
+            LanguageParserWindow8FactQuery::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8StableLexicalFact",
+            LanguageParserWindow8StableLexicalFact::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8StableLexicalFactProposal",
+            LanguageParserWindow8StableLexicalFactProposal::semantic_type().unwrap()
+        ),
+        (
             "LanguageParserWindow8RawClassContext",
             LanguageParserWindow8RawClassContext::semantic_type().unwrap()
         ),
