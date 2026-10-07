@@ -439,6 +439,71 @@ fn source_native_waveform_appends_only_explicitly_finite_preemphasized_samples()
 pub(super) fn analysis_entry_source(ids: &std::collections::BTreeMap<String, String>) -> String {
     native_feature_source(ids)
 }
+
+pub(super) fn prepare_first_feature() -> (EpochProfiles, std::collections::BTreeMap<String, String>)
+{
+    let (mut context, _, mut ids) = prepare_feedback();
+    let event = context
+        .native
+        .iter()
+        .find(|profile| profile.kind_identity(true) == ids["__FEATURE_EVENT_NATIVE__"])
+        .unwrap()
+        .value_type()
+        .clone();
+    let weak = std::sync::Arc::new(PreparedNominalWeakening::prepare(event).unwrap());
+    weak.install(&mut context.startup, &mut context.profiles, true)
+        .unwrap();
+    ids.insert(
+        "__FEATURE_FIRST_EVENT_WEAK__".into(),
+        weak.kind_identity(true),
+    );
+    context.weakening.push(weak);
+    (context, ids)
+}
+
+#[test]
+fn first_feature_exact_profiles_preserve_pcm_period_before_source_zero_seed() {
+    let (context, ids) = prepare_first_feature();
+    let source = first_feature_source(&ids);
+    let checked = check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &checked,
+        "speech/flow-fargan-feature-first-analysis",
+        &context.profiles,
+    )
+    .unwrap();
+    assert!(graph.expanded.gears.len() > 80);
+    eprintln!(
+        "Source first native analysis zero seed: {}nodes/{}cords",
+        graph.expanded.gears.len(),
+        graph.expanded.connections.len()
+    );
+}
+
+pub(super) fn first_feature_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    let authored = include_str!("../../../speech/fargan_feature_first_flow.conduit");
+    for name in [
+        "__FEATURE_FIRST_EVENT_WEAK__",
+        "__FEATURE_INPUT_NATIVE__",
+        "__FEATURE_EVENT_NATIVE__",
+    ] {
+        assert!(
+            authored.contains(&ids[name]),
+            "exact first-feature owner {name}"
+        );
+    }
+    let imports = authored
+        .lines()
+        .filter(|line| line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let body = authored
+        .lines()
+        .filter(|line| !line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    imports + "\n" + &analysis_entry_source(ids) + "\n" + &body
+}
 #[test]
 fn source_complete_native_feature_analysis_retains_provisional_causal_state_and_period() {
     let (context, _, ids) = prepare_feedback();

@@ -13,6 +13,8 @@ mod feature_cycle;
 mod interface;
 #[path = "fargan_epoch_flow/native_session.rs"]
 mod native_session;
+#[path = "fargan_epoch_flow/native_startup.rs"]
+mod native_startup;
 #[path = "fargan_epoch_flow/repeat_capacity.rs"]
 mod repeat_capacity;
 use conduit_ai::{

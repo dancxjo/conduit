@@ -1,0 +1,53 @@
+# Source advances all three startup feedback domains from the same first
+# analyzed native epoch. Model warm outputs and acoustic memory stay separate.
+with structure/nominal-weakening/typed-a88a5263cd1a4bdc91622e2088fe2f5a6a8af86d096d7aca0602e08d5f0f4011c74f34e2340ec6b336f005000e0a8a2baa76560e44fa0636cd07c978c56966f5/value as NativeSignalStartup
+with structure/nominal-weakening/typed-a88a5263cd1a4bdc91622e2088fe2f5a6a8af86d096d7aca0602e08d5f0f4011c74f34e2340ec6b336f005000e0a8a2baa76560e44fa0636cd07c978c56966f5/result as RawSignalStartup
+with structure/nominal-weakening/typed-5b7251616d92e50780f6f7095a17051f7c56c25f8bb77b4c234f01b27724dc6552e31ce571e795b1c29c6f6079018d4ea0d6ea67b73330edb67ad49571a18e0b/value as NativeConditioningStartup
+with structure/nominal-weakening/typed-5b7251616d92e50780f6f7095a17051f7c56c25f8bb77b4c234f01b27724dc6552e31ce571e795b1c29c6f6079018d4ea0d6ea67b73330edb67ad49571a18e0b/result as RawConditioningStartup
+with structure/nominal-weakening/typed-df76bf5278e813dde69ae588afc4a65d06acf7d2e279412772358c8e4ebd37343da837ec53547511829c09fe3274f6573eaa597277244491f91221399f47b719/value as NativeFirstFeature
+with structure/nominal-weakening/typed-df76bf5278e813dde69ae588afc4a65d06acf7d2e279412772358c8e4ebd37343da837ec53547511829c09fe3274f6573eaa597277244491f91221399f47b719/result as RawFirstFeature
+with structure/native-profile/ddfca406d839c3326d0987503fa76b61c6c924fad3c096b0650f13b535e1e57f/candidate as SignalSeedCandidate
+with structure/native-profile/ddfca406d839c3326d0987503fa76b61c6c924fad3c096b0650f13b535e1e57f/result as NativeSignalSeed
+with structure/native-profile/4d2124c211c741d8ecb9d5febb672c6365fff7d48f32325873d7ee6b406b0d95/candidate as ConditioningSeedCandidate
+with structure/native-profile/4d2124c211c741d8ecb9d5febb672c6365fff7d48f32325873d7ee6b406b0d95/result as NativeConditioningSeed
+with structure/native-profile/5cbb3e49ff3f8201cbf3755ccc0d934419219f95387db61a0c330b55e60552db/candidate as FeatureSeedCandidate
+with structure/native-profile/5cbb3e49ff3f8201cbf3755ccc0d934419219f95387db61a0c330b55e60552db/result as NativeFeatureSeed
+plot speech/fargan-native-signal-seed (
+ value: RawSignalStartup >> result: SignalSeedCandidate
+) = {state: .state, conditioned_period: .conditioned_period, next_epoch: (.first_epoch + 1)}
+plot speech/fargan-native-conditioning-seed (
+ value: RawConditioningStartup >> result: ConditioningSeedCandidate
+) = {history: .history, next_epoch: (.first_epoch + 1)}
+plot speech/fargan-native-feature-seed (
+ value: RawFirstFeature >> result: FeatureSeedCandidate
+) = {history: .history, previous_raw: .previous_raw, previous_normalized: .previous_normalized, next_epoch: (.epoch + 1)}
+plot speech/fargan-native-startup-feedback (
+ >> signal: NativeSignalStartup
+ >> conditioning: NativeConditioningStartup
+ >> feature: NativeFirstFeature
+ signal_seed: NativeSignalSeed >>
+ conditioning_seed: NativeConditioningSeed >>
+ feature_seed: NativeFeatureSeed >>
+) {
+ signal_raw: structure/nominal-weakening/typed-a88a5263cd1a4bdc91622e2088fe2f5a6a8af86d096d7aca0602e08d5f0f4011c74f34e2340ec6b336f005000e0a8a2baa76560e44fa0636cd07c978c56966f5
+ signal_candidate: speech/fargan-native-signal-seed
+ signal_admit: structure/native-profile/ddfca406d839c3326d0987503fa76b61c6c924fad3c096b0650f13b535e1e57f
+ conditioning_raw: structure/nominal-weakening/typed-5b7251616d92e50780f6f7095a17051f7c56c25f8bb77b4c234f01b27724dc6552e31ce571e795b1c29c6f6079018d4ea0d6ea67b73330edb67ad49571a18e0b
+ conditioning_candidate: speech/fargan-native-conditioning-seed
+ conditioning_admit: structure/native-profile/4d2124c211c741d8ecb9d5febb672c6365fff7d48f32325873d7ee6b406b0d95
+ feature_raw: structure/nominal-weakening/typed-df76bf5278e813dde69ae588afc4a65d06acf7d2e279412772358c8e4ebd37343da837ec53547511829c09fe3274f6573eaa597277244491f91221399f47b719
+ feature_candidate: speech/fargan-native-feature-seed
+ feature_admit: structure/native-profile/5cbb3e49ff3f8201cbf3755ccc0d934419219f95387db61a0c330b55e60552db
+ signal >> signal_raw.value
+ signal_raw.result >> signal_candidate.value
+ signal_candidate.result >> signal_admit.candidate
+ signal_admit.result >> signal_seed
+ conditioning >> conditioning_raw.value
+ conditioning_raw.result >> conditioning_candidate.value
+ conditioning_candidate.result >> conditioning_admit.candidate
+ conditioning_admit.result >> conditioning_seed
+ feature >> feature_raw.value
+ feature_raw.result >> feature_candidate.value
+ feature_candidate.result >> feature_admit.candidate
+ feature_admit.result >> feature_seed
+}

@@ -1,0 +1,11 @@
+# Preparation retains three independently bounded startup domains. The initial
+# acknowledged feature epoch comes from the admitted first native proposal.
+type FarganNativeSignalStartup = {
+    state: FarganSubframeState
+    conditioned_period: FarganPeriod
+    first_epoch: U64
+}
+type FarganNativeConditioningStartup = {
+    history: NumericHistory2x64
+    first_epoch: U64
+}
