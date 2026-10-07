@@ -38,6 +38,58 @@ fn refusal<T: NativeRustBinding>(value: StructuredInfoValue) {
 }
 
 #[test]
+fn generated_insert_context_preserves_actual_fact_and_refuses_changed_heads() {
+    let receipt: serde_json::Value = serde_json::from_str(include_str!(
+        "../training/ewt_joint_v2/native_stream_protected_projection_receipt.json"
+    ))
+    .unwrap();
+    let decode = |name: &str| {
+        StructuredInfoValue::from_canonical_bytes(
+            &serde_json::from_value::<Vec<u8>>(receipt[name].clone()).unwrap(),
+        )
+        .unwrap()
+    };
+    let context =
+        LanguageParserProtectedProjectionContext::from_structured(decode("native_context_bytes"))
+            .unwrap();
+    let edge =
+        LanguageParserProtectedEdgeProposal::from_structured(decode("compact_proposal_bytes"))
+            .unwrap();
+    // This direct codec fixture mirrors the already observed Source initializer
+    // output. It authorizes no published set or independent speech commitment.
+    let retained = LanguageParserProtectedSetProposal::new(
+        [true, false, false, false],
+        edge.current_basis().clone(),
+        edge.clone(),
+        edge.clone(),
+        edge.clone(),
+        edge,
+    )
+    .unwrap();
+    let query: LanguageParserProtectedInsertContext = bind(vec![
+        ("context", context.clone().into_structured().unwrap()),
+        ("previous", retained.clone().into_structured().unwrap()),
+    ]);
+    assert_eq!(query.context(), &context);
+    assert_eq!(query.previous(), &retained);
+    let raw = query.into_structured().unwrap();
+    let prior = fixture::field(&raw, "previous");
+    let edge = fixture::field(prior, "edge0");
+    for field in ["head", "dependent_choice", "head_choice"] {
+        let edge = fixture::replace(
+            edge,
+            field,
+            fixture::number(fixture::field_type(edge.value_type(), field), 4),
+        );
+        refusal::<LanguageParserProtectedInsertContext>(fixture::replace(
+            &raw,
+            "previous",
+            fixture::replace(prior, "edge0", edge),
+        ));
+    }
+}
+
+#[test]
 #[ignore = "actual fact custody and ordinary Source replay; no fresh learned or played claim"]
 fn source_owned_slots_refuse_foreign_choices_and_filter_legal_proposals() {
     let receipt: serde_json::Value = serde_json::from_str(include_str!(

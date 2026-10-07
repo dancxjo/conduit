@@ -91,7 +91,10 @@ Balancing the same conjunctions reduces their depth to16 without dropping any
 predicate. Five exact programs round-trip, admit the unchanged full actual
 VOC0 fact and refuse changed head/dependent-choice/head-choice cases in72.91s.
 This direct diagnostic packs fields into the exact checked Source schema.
-Updated generated Native admission and ordinary replay remain pending.
+Generated Native admission subsequently passed in33.31s, preserving the whole
+actual context and refusing the same three changed head/choice cases. Its
+direct set fixture mirrors the prior observed Source initializer output;
+the ordinary protection replay remains pending.
 Raw protected sets/masks do not authorize published truth: recursive protected
 hypothesis/forest admission and independent `Hello, Travis.` VOC2 append/played
 proofs are still required. No fresh inference or played commitment is claimed.
