@@ -1,9 +1,8 @@
-// Curate a completed local producer run into source-carried, public-safe
-// development evidence. CI verifies and copies this bundle; it never reruns
-// QEMU, the installed speaker, or the local model.
+// Carry only public, producer-declared bytes from one local development run.
+// This is a diagnostic carrier; the complete public Journey has a separate gate.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { THREE_HOST_DEVELOPMENT_PROOF, THREE_HOST_DEVELOPMENT_SUITE } from
   '../../tools/ci/pipeline/three-host-development-evidence.mjs';
@@ -14,61 +13,167 @@ if (!runArg || !outputArg || process.argv.length !== 4) {
 }
 const run = path.resolve(runArg);
 const output = path.resolve(outputArg);
-const report = JSON.parse(await readFile(path.join(run, 'three-host/report.json'), 'utf8'));
+const source = path.join(run, 'three-host');
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const escape = value => String(value).replace(/[&<>"']/g, character => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+})[character]);
+const safePath = value => typeof value === 'string' && value.length > 0 &&
+  /^[a-zA-Z0-9._/-]+$/.test(value) && !value.startsWith('/') &&
+  value.split('/').every(segment => segment && segment !== '.' && segment !== '..');
+
+async function readRegularFile(file) {
+  const resolved = await realpath(file);
+  const relative = path.relative(source, resolved);
+  assert.ok(relative && !relative.startsWith('..') && !path.isAbsolute(relative),
+    `asset escapes the producer bundle: ${file}`);
+  const metadata = await lstat(file);
+  assert.ok(metadata.isFile() && !metadata.isSymbolicLink(), `asset is not a regular file: ${file}`);
+  return readFile(file);
+}
+for (const directory of [run, source]) {
+  const metadata = await lstat(directory);
+  assert.ok(metadata.isDirectory() && !metadata.isSymbolicLink(), 'run roots must be real directories');
+}
+const reportBytes = await readRegularFile(path.join(source, 'report.json'));
+const report = JSON.parse(reportBytes);
+assert.equal(report.schema, 'conduit.body/three-host-owner-journey@1');
+assert.match(report.proof_class, /^live-local-installed-owner-qmp-pinned-chromium/);
 assert.match(report.native_source_commit, /^[a-f0-9]{40}$/);
 assert.match(report.run_id, /^[A-Za-z0-9._-]+$/);
-assert.ok(report.body_id && report.owner_selected_speech && report.owner_direct_speech
-  && report.owner_llm_speech,
-  'the development page requires one Body and all selected listener speech modes');
-assert.ok(report.birth && report.screen_free_clock,
-  'the development page requires real nonvisual Birth and clock actions');
+assert.ok(report.body_id && report.owner_host_id && report.guest_host_id && report.browser_host_id);
 assert.equal(report.walkthrough?.path, 'walkthrough.html');
+const rawHtml = await readRegularFile(path.join(source, 'walkthrough.html'));
+assert.equal(rawHtml.length, report.walkthrough.bytes);
+assert.equal(digest(rawHtml), report.walkthrough.sha256);
+const html = rawHtml.toString('utf8');
+assert.match(html, /Development capture · \d of 8 chapters complete/);
+assert.equal((html.match(/<article id="(?:birth|join|start|see|hear|loss|return|lull)"/g) ?? []).length, 8);
+assert.match(html, /The public Journey and accepted release require separate gates/);
 
-const html = await readFile(path.join(run, 'three-host/walkthrough.html'), 'utf8');
-assert.match(html, /This is a live local proof, not the complete eight-chapter public journey/);
-const refs = [...html.matchAll(/\b(?:href|src)="([^"]+)"/g)].map(match => match[1]);
-const files = new Map();
-for (const ref of refs) {
-  if (ref.startsWith('https://') || ref.startsWith('#')) continue;
-  assert.ok(!ref.startsWith('/') && !ref.includes('?') && !ref.includes('#'),
-    `unsupported local page asset ${ref}`);
-  const parent = ref.startsWith('../');
-  const relative = parent ? ref.slice(3) : ref;
-  assert.match(relative, /^[a-zA-Z0-9._/-]+$/);
-  assert.ok(relative.split('/').every(segment => segment && segment !== '.' && segment !== '..'));
-  if (relative.endsWith('.wav')) {
-    assert.ok(relative.startsWith('owner-selected-speech/') ||
-      relative.startsWith('owner-direct-spoken/') ||
-      relative.startsWith('owner-llm-selected/') ||
-      relative.startsWith('owner-llm-restored/'),
-    'only the selected listener Play may be offered as playable audio');
+// Every linked local asset must be named by the producer report, and every
+// selected screen-free WAV must carry the exact words bound by that producer.
+const declared = new Map();
+function collect(value) {
+  if (!value || typeof value !== 'object') return;
+  if (Array.isArray(value)) { value.forEach(collect); return; }
+  if (safePath(value.path) && /^[a-f0-9]{64}$/.test(value.sha256 ?? value.wav_sha256 ?? '')) {
+    const checksum = value.sha256 ?? value.wav_sha256;
+    const previous = declared.get(value.path);
+    assert.ok(!previous || previous.sha256 === checksum, `conflicting receipt for ${value.path}`);
+    declared.set(value.path, { sha256: checksum, bytes: value.bytes });
   }
-  files.set(relative, path.join(run, parent ? relative : `three-host/${relative}`));
+  Object.values(value).forEach(collect);
 }
-for (const relative of [
-  'report.json', 'native/guest.serial.log', 'native/qmp.jsonl',
-  'native/owner-action-proof.json',
-]) files.set(relative, path.join(run, `three-host/${relative}`));
-for (const relative of [
-  'birth-input.txt', 'birth-transcript.txt', 'zero-body-before.json',
-  'clock-start-input.txt', 'clock-start-transcript.txt',
-  'clock-lull-input.txt', 'clock-lull-transcript.txt',
-]) files.set(relative, path.join(run, relative));
+collect(report);
+declared.set('native/owner-action-proof.json', { sha256: report.native_receipt_sha256 });
+const wordedClips = [];
+for (const clip of report.screen_free_audio?.selected ?? []) {
+  assert.equal(report.screen_free_audio.proof_class,
+    'selected-screen-free-same-play-listener-audio-subset');
+  assert.equal(report.screen_free_audio.source_commit, report.native_source_commit);
+  assert.equal(report.screen_free_audio.human_hearing_observed, false);
+  assert.ok(safePath(clip.path) && clip.path.startsWith('screen-free-audio/') &&
+    clip.path.endsWith('.wav'));
+  if (clip.spoken_words === undefined && clip.spoken_words_html === undefined &&
+      clip.spoken_segment_sha256 === undefined) {
+    assert.match(html, /Not yet captured in this run/,
+      'unlabeled selected audio needs an explicit incomplete chapter');
+    continue;
+  }
+  assert.ok(typeof clip.spoken_words === 'string' && clip.spoken_words.trim());
+  assert.equal(clip.spoken_words_html, escape(clip.spoken_words));
+  assert.deepEqual(clip.spoken_segment_sha256, [digest(Buffer.from(clip.spoken_words))]);
+  assert.ok(clip.plan_id && clip.play_id && clip.source_show_id &&
+    clip.speaker_frames_committed > 0);
+  wordedClips.push(clip);
+}
+const approvedAudio = new Set([
+  ...wordedClips.map(item => item.path),
+  ...(report.owner_selected_speech?.batches ?? []).map(item => item.wav?.path),
+  ...(report.owner_direct_speech?.batches ?? []).map(item => item.wav?.path),
+  report.owner_llm_speech?.wav?.path, report.owner_model_route_loss?.restored?.wav?.path,
+].filter(Boolean));
+if (report.owner_direct_speech) {
+  const direct = report.owner_direct_speech;
+  assert.equal(direct.proof_class, 'installed-owner-direct-mask-and-same-play-speaker');
+  assert.equal(direct.source_commit, report.native_source_commit);
+  assert.equal(direct.run_id, report.run_id);
+  assert.equal(direct.body_id, report.body_id);
+  assert.equal(direct.human_hearing_observed, false);
+  assert.ok(direct.show_id && direct.route_plan_id && direct.batches?.length > 1);
+  const terminalBytes = await readRegularFile(path.join(source, direct.terminal.path));
+  assert.equal(digest(terminalBytes), direct.terminal.sha256);
+  const terminal = JSON.parse(terminalBytes);
+  assert.equal(terminal.schema, 'conduit.body/owner-spoken-terminal@1');
+  assert.equal(terminal.mode, 'direct');
+  assert.equal(terminal.outcome, 'available');
+  assert.equal(terminal.direct_reading_complete, true);
+  assert.equal(terminal.speaker_played, true);
+  assert.equal(terminal.show_id, direct.show_id);
+  assert.equal(terminal.route_plan_id, direct.route_plan_id);
+  assert.equal(terminal.speaker_playback?.source_show_id, direct.show_id);
+  assert.equal(terminal.speaker_playback?.batches?.length, direct.batches.length);
+  for (const [index, batch] of direct.batches.entries()) {
+    const observed = terminal.speaker_playback.batches[index];
+    assert.equal(batch.play_id, observed.play_id);
+    assert.equal(batch.plan_id, observed.plan_id);
+    assert.equal(batch.wav_sha256, observed.wav_sha256);
+    assert.equal(batch.pcm_sha256, observed.pcm_sha256);
+    const wav = await readRegularFile(path.join(source, batch.wav.path));
+    assert.equal(wav.length, batch.wav.bytes);
+    assert.equal(digest(wav), batch.wav.sha256);
+    assert.equal(digest(wav.subarray(44)), batch.pcm_sha256);
+  }
+}
+if (report.owner_llm_speech) {
+  const model = report.owner_llm_speech;
+  assert.equal(model.proof_class, 'installed-owner-selected-model-and-same-play-speaker');
+  assert.equal(model.source_commit, report.native_source_commit);
+  assert.equal(model.run_id, report.run_id);
+  assert.equal(model.body_id, report.body_id);
+  const terminalBytes = await readRegularFile(path.join(source, model.terminal.path));
+  assert.equal(digest(terminalBytes), model.terminal.sha256);
+  const terminal = JSON.parse(terminalBytes);
+  assert.equal(terminal.schema, 'conduit.body/owner-spoken-terminal@1');
+  assert.equal(terminal.speaker_played, true);
+  assert.equal(terminal.speaker_playback?.play_id, model.listener_play_id);
+  assert.equal(terminal.speaker_playback?.source_show_id, model.show_id);
+  assert.equal(digest(Buffer.from(terminal.generation_evidence.original_model_output)),
+    model.original_model_output_sha256);
+  const wav = await readRegularFile(path.join(source, model.wav.path));
+  assert.equal(wav.length, model.wav.bytes);
+  assert.equal(digest(wav), model.wav.sha256);
+}
+const refs = [...html.matchAll(/\b(?:href|src)="([^"]+)"/g)].map(match => match[1]);
+const files = new Map([['report.json', path.join(source, 'report.json')]]);
+for (const ref of refs) {
+  if (ref.startsWith('#') || ref.startsWith('https://')) continue;
+  assert.ok(!ref.startsWith('/') && !ref.includes('?') && !ref.includes('#') && safePath(ref),
+    `unsupported local page asset ${ref}`);
+  if (ref === 'report.json') continue;
+  assert.ok(declared.has(ref), `page links an undeclared producer asset: ${ref}`);
+  if (ref.endsWith('.wav')) assert.ok(approvedAudio.has(ref),
+    `page links audio outside a selected listener Play: ${ref}`);
+  files.set(ref, path.join(source, ref));
+}
+for (const clip of wordedClips) {
+  files.set(clip.path, path.join(source, clip.path));
+}
+for (const extra of ['native/guest.serial.log', 'native/qmp.jsonl']) {
+  files.set(extra, path.join(source, extra));
+}
 for (const observation of report.observations ?? []) {
-  const relative = observation.path;
-  assert.match(relative, /^observations\/[a-z-]+\.json$/);
-  files.set(relative, path.join(run, `three-host/${relative}`));
+  assert.match(observation.path, /^observations\/[a-z-]+\.json$/);
+  files.set(observation.path, path.join(source, observation.path));
 }
-// The original terminal transcript is retained byte-for-byte. The published
-// copy uses local site links and wraps long evidence IDs on narrow screens.
-assert.ok(html.includes('</style>'), 'retained walkthrough needs its authored style block');
-const index = html.replaceAll('href="../', 'href="').replaceAll('src="../', 'src="')
-  .replaceAll('href="https://dancxjo.github.io/conduit/', 'href="/conduit/')
+
+// A complete eight-chapter *development* capture is still not the accepted
+// public Journey. Retain the page's exact chapter status and proof boundary.
+const index = html.replaceAll('href="https://dancxjo.github.io/conduit/', 'href="/conduit/')
   .replace('</style>', '.proof{overflow-wrap:anywhere}</style>')
   .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '').replaceAll('\r', '');
-assert.ok(!index.includes('href="https://dancxjo.github.io/conduit/'),
-  'retained site navigation must stay within the staged site');
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+assert.ok(index.includes('.proof{overflow-wrap:anywhere}</style>'));
 const kindAndType = relative => {
   if (relative.endsWith('.png')) return ['screenshot', 'image/png'];
   if (relative.endsWith('.wav')) return ['audio', 'audio/wav'];
@@ -77,54 +182,14 @@ const kindAndType = relative => {
   if (relative.endsWith('.html')) return ['document', 'text/html; charset=utf-8'];
   return ['console-transcript', 'text/plain; charset=utf-8'];
 };
-const selectedWav = report.owner_llm_speech.wav;
-assert.ok(files.has(selectedWav.path), 'page must link the model listener WAV');
-assert.equal(digest(await readFile(path.join(run, 'three-host', selectedWav.path))),
-  selectedWav.sha256, 'model listener WAV differs from its completed Play receipt');
-const direct = report.owner_direct_speech;
-assert.equal(direct.source_commit, report.native_source_commit);
-assert.equal(direct.run_id, report.run_id);
-assert.equal(direct.body_id, report.body_id);
-assert.equal(direct.human_hearing_observed, false);
-assert.ok(direct.show_id && direct.route_plan_id && direct.face_id);
-assert.ok(direct.batches.length > 1, 'the installed direct Mask must complete multiple speaker Plays');
-assert.ok(files.has(direct.terminal.path), 'page must link the direct owner terminal receipt');
-const directTerminalBytes = await readFile(path.join(run, 'three-host', direct.terminal.path));
-assert.equal(digest(directTerminalBytes), direct.terminal.sha256);
-const directTerminal = JSON.parse(directTerminalBytes);
-assert.equal(directTerminal.schema, 'conduit.body/owner-spoken-terminal@1');
-assert.equal(directTerminal.mode, 'direct');
-assert.equal(directTerminal.outcome, 'available');
-assert.equal(directTerminal.direct_reading_complete, true);
-assert.equal(directTerminal.speaker_played, true);
-assert.equal(directTerminal.show_id, direct.show_id);
-assert.equal(directTerminal.route_plan_id, direct.route_plan_id);
-assert.equal(directTerminal.source_face_id, direct.face_id);
-assert.equal(directTerminal.speaker_playback?.source_show_id, direct.show_id);
-assert.equal(directTerminal.speaker_playback?.outcome, 'completed');
-assert.equal(directTerminal.speaker_playback?.provider_sha256, direct.provider_sha256);
-assert.equal(directTerminal.speaker_playback?.correlation_sha256, direct.correlation_sha256);
-assert.equal(directTerminal.speaker_playback?.completed_segments, direct.completed_segments);
-assert.equal(directTerminal.speaker_playback?.batches?.length, direct.batches.length);
-const directPlays = new Set([direct.mask_artifact_play_id]);
-for (const [index, batch] of direct.batches.entries()) {
-  assert.ok(batch.plan_id && batch.play_id && !directPlays.has(batch.play_id));
-  directPlays.add(batch.play_id);
-  assert.equal(batch.provider_sha256, direct.provider_sha256);
-  assert.equal(batch.wav.sha256, batch.wav_sha256);
-  const terminalBatch = directTerminal.speaker_playback.batches[index];
-  assert.equal(batch.plan_id, terminalBatch.plan_id);
-  assert.equal(batch.play_id, terminalBatch.play_id);
-  assert.equal(batch.wav_sha256, terminalBatch.wav_sha256);
-  assert.equal(batch.pcm_sha256, terminalBatch.pcm_sha256);
-  assert.ok(files.has(batch.wav.path), 'page must link each direct listener WAV');
-  const wav = await readFile(path.join(run, 'three-host', batch.wav.path));
-  assert.equal(wav.length, batch.wav.bytes);
-  assert.equal(digest(wav), batch.wav.sha256);
-  assert.equal(digest(wav.subarray(44)), batch.pcm_sha256);
-  assert.equal(wav.length - 44, batch.pcm_bytes);
+function publicSafe(relative, bytes) {
+  if (!/\.(json|jsonl|txt|log|html|css)$/.test(relative)) return;
+  const text = bytes.toString('utf8');
+  assert.ok(!/-----BEGIN (?:OPENSSH |RSA |EC )?PRIVATE KEY-----/.test(text) &&
+    !/"(?:secret|client[_-]?secret|password|token|api[_-]?key|private[_-]?key|authorization|cookie)"\s*:/i.test(text) &&
+    !/\bBearer\s+[A-Za-z0-9._~+/-]{12,}/i.test(text),
+  `private material appears in ${relative}`);
 }
-
 try {
   await mkdir(path.dirname(output), { recursive: true });
   await mkdir(output, { recursive: false });
@@ -136,20 +201,21 @@ try {
   files.set('index.html', null);
   const declarations = [];
   let total = 0;
-  for (const [relative, source] of [...files].sort(([a], [b]) => a.localeCompare(b))) {
-    const bytes = source === null ? Buffer.from(index) : await readRegularFile(source);
+  for (const [relative, file] of [...files].sort(([a], [b]) => a.localeCompare(b))) {
+    assert.ok(safePath(relative));
+    const bytes = file === null ? Buffer.from(index) : await readRegularFile(file);
     assert.ok(bytes.length > 0 && bytes.length <= 16 * 1024 * 1024,
       `asset is empty or over the evidence limit: ${relative}`);
+    const receipt = declared.get(relative);
+    if (receipt) {
+      assert.equal(digest(bytes), receipt.sha256, `producer digest changed: ${relative}`);
+      if (receipt.bytes !== undefined) assert.equal(bytes.length, receipt.bytes);
+    }
     if (relative.endsWith('.wav')) {
       assert.ok(bytes.length > 44 && bytes.toString('ascii', 0, 4) === 'RIFF' &&
         bytes.toString('ascii', 8, 12) === 'WAVE', `invalid listener WAV: ${relative}`);
     }
-    if (relative.endsWith('.json') || relative.endsWith('.txt') || relative.endsWith('.log') ||
-        relative.endsWith('.jsonl') || relative.endsWith('.html')) {
-      assert.ok(!bytes.toString('utf8').includes('-----BEGIN PRIVATE KEY-----') &&
-        !/"secret"\s*:/.test(bytes.toString('utf8')),
-      `private material appears in ${relative}`);
-    }
+    publicSafe(relative, bytes);
     const destination = path.join(output, relative);
     await mkdir(path.dirname(destination), { recursive: true });
     await writeFile(destination, bytes, { flag: 'wx' });
@@ -172,10 +238,4 @@ try {
 } catch (error) {
   await rm(output, { recursive: true, force: true });
   throw error;
-}
-
-async function readRegularFile(file) {
-  const metadata = await lstat(file);
-  assert.ok(metadata.isFile() && !metadata.isSymbolicLink(), `asset is not a regular file: ${file}`);
-  return readFile(file);
 }
