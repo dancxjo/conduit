@@ -97,7 +97,12 @@ fn fixture_kind(name: &str, value: &StructuredInfoType, source: bool) -> Kind {
             } else {
                 FrontValueLocation::Input(port.port_id)
             },
-            contract: CheckedValueContract::new(port.value_kind, 16_384, vec![]).unwrap(),
+            contract: CheckedValueContract::new(
+                port.value_kind,
+                conduit_plot::maximum_prepared_transport_value_bytes(value).unwrap(),
+                vec![],
+            )
+            .unwrap(),
         }])],
         limits: CapabilityLimits {
             max_active_instances: 1,
