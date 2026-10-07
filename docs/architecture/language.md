@@ -67,6 +67,16 @@ consumer commitment must occur atomically at their owning execution boundary.
 The helper alone proves neither kernel pressure/cancellation behavior nor ASR
 ingestion, streaming parsing, speech playback or linguistic accuracy.
 
+The prepared ASR bridge consumes the original finite recognition envelope and
+an explicitly supplied Language/text/segment basis. Partial snapshots and
+Unicode-scalar replacements produce the same native text revision family;
+byte-based stability snapshots require exact segment/text correlation before
+scalar conversion. Recognition finality, cancellation and consumer commitment
+remain distinct. Stream, segment, source, Language and snapshot mismatches
+refuse without publishing material. The borrowed original envelope retains
+confidence, clocks and provenance. This bridge does not establish recognition
+accuracy or a kernel-wired parser/playback route.
+
 ## Ownership migration
 
 The previous speech-owned `SpeechLanguageId`, `SpeechVarietyId` and

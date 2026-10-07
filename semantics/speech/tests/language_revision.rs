@@ -1,15 +1,7 @@
 #![cfg(feature = "semantic-bindings")]
-extern crate alloc;
-mod semantic {
-    pub use conduit_speech::semantic::*;
-}
-#[allow(dead_code)]
-#[path = "../src/language_revision.rs"]
-mod language_revision;
 use conduit_language::*;
 use conduit_plot::rust_binding::BoundedSequence;
-use language_revision::*;
-use semantic::*;
+use conduit_speech::{language_revision::*, semantic::*};
 fn envelope(sequence: u64, event: AsrRecognitionEvent) -> AsrRecognitionEnvelope {
     let time = ListeningEventTime::new(0, ListeningClockOrigin::StreamStart).unwrap();
     AsrRecognitionEnvelope::new(
