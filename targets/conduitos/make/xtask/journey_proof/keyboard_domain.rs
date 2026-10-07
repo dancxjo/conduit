@@ -86,7 +86,7 @@ pub(super) fn validate_cost(serial: &str, identity: &Value) -> Result<Value, Con
                 && cost["fixture"] == false
         })
         .ok_or_else(|| refusal("missing exact Body domain cost"))?;
-    if cost["entries"].as_u64().is_none_or(|entries| entries < 6)
+    if cost["entries"].as_u64().is_none_or(|entries| entries != 5)
         || cost["base_gate_transitions"] != 1
         || cost["teardown_zeroed_bytes"] != 118784
         || cost["dma_isolation"] != false

@@ -139,6 +139,15 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "the portable keymap must preserve Compose state across protected entries",
         ));
     }
+    if !transcript
+        .lines()
+        .any(|line| line == "CONDUIT_DOMAIN_CHAIN one-entry unicode-expansion")
+    {
+        return Err(ConduitosError::refusal(
+            "ordinary-domain-chain-absent",
+            "the selected pure chain must perform Unicode expansion in one entry",
+        ));
+    }
     let costs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_DOMAIN_COST "))

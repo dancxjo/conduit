@@ -107,6 +107,8 @@ impl NativePresentation {
 
 pub struct NativeWorksetPlay {
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pure_results: [Option<crate::text_protection::PureKeyboardOutput>; PLOTS],
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     protected: [Option<
         crate::text_protection::ProtectedText<crate::protected_region::BodyRegionBinding>,
     >; PLOTS],

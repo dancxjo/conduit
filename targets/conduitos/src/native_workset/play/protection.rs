@@ -25,6 +25,7 @@ impl NativeWorksetPlay {
             domain.revoke(cause);
         }
         self.protection_admissions.fill_with(|| None);
+        self.pure_results.fill_with(|| None);
     }
 
     pub(super) fn protected_failure(

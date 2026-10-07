@@ -61,6 +61,8 @@ impl TextDomain {
         let frame = self.space.frame();
         frame.input.fill(0);
         frame.output.fill(0);
+        frame.intermediate.fill(0);
+        frame.intermediate_length = 0;
         frame.input[..input.len()].copy_from_slice(input);
         frame.input_length = input.len() as u32;
         frame.output_length = 0;
@@ -107,6 +109,26 @@ impl TextDomain {
         self.input(input)?;
         self.space.frame().command = 4;
         Ok(())
+    }
+    pub fn keymap_chain_input(&mut self, input: &[u8]) -> Result<(), DomainRefusal> {
+        self.keymap_input(input)?;
+        self.space.frame().command = 5;
+        Ok(())
+    }
+    pub fn intermediate(&mut self, output: &mut [u8; 4]) -> Result<usize, DomainRefusal> {
+        let frame = self.space.frame();
+        let length = frame.intermediate_length as usize;
+        if self.quarantined || frame.command != 5 || frame.status != 0 || length > 4 {
+            return Err(DomainRefusal::InvalidMemory);
+        }
+        output[..length].copy_from_slice(&frame.intermediate[..length]);
+        self.cost.copied_bytes += length as u64;
+        self.cost.shared_peak_bytes = self.cost.shared_peak_bytes.max(
+            frame.input_length.min(TEXT_CAPACITY as u32)
+                + frame.output_length.min(TEXT_CAPACITY as u32)
+                + length as u32,
+        );
+        Ok(length)
     }
     pub fn presentation(&mut self, input: &[u8], handle: u64) -> Result<(), DomainRefusal> {
         self.input(input)?;

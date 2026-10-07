@@ -28,6 +28,7 @@ pub unsafe extern "C" fn domain_entry(frame: *mut TextFrame) -> ! {
         0 => {}
         3 => unsafe { keymap::initialize(frame) },
         4 => unsafe { keymap::apply(frame) },
+        5 => unsafe { keymap::chain(frame) },
         1 => {
             if length > TEXT_CAPACITY || frame.capacity != TEXT_CAPACITY as u32 {
                 gate::finish(3);

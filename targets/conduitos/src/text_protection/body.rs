@@ -100,9 +100,14 @@ impl BodyTextAdmission {
         let heap_bytes = body_binding_heap(&binding)
             .checked_mul(2)
             .ok_or(MachineRunError::KernelConstruction)?;
-        let root_bytes =
-            u32::try_from(core::mem::size_of::<ProtectedText<BodyRegionBinding>>() + heap_bytes)
-                .map_err(|_| MachineRunError::KernelConstruction)?;
+        let root_bytes = u32::try_from(
+            core::mem::size_of::<ProtectedText<BodyRegionBinding>>()
+                + heap_bytes
+                + core::mem::size_of::<
+                    [Option<PureKeyboardOutput>; crate::native_workset::NATIVE_PLOT_CAPACITY],
+                >(),
+        )
+        .map_err(|_| MachineRunError::KernelConstruction)?;
         if TextDomain::RESERVED_BYTES
             .checked_add(root_bytes)
             .is_none_or(|bytes| bytes > region.requirements.runtime_memory_bytes)

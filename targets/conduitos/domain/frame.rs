@@ -16,4 +16,6 @@ pub struct TextFrame {
     pub capability: u64,
     pub input: [u8; TEXT_CAPACITY],
     pub output: [u8; TEXT_CAPACITY],
+    pub intermediate_length: u32,
+    pub intermediate: [u8; 4],
 }
