@@ -166,9 +166,8 @@ try {
   const preBirthBytes = Buffer.from(`${JSON.stringify(preBirth, null, 2)}\n`);
   await writeFile(path.join(output, 'zero-body-before.json'), preBirthBytes, { mode: 0o600 });
   const birthCommands = [
-    // Speech opens with Help and focused orientation. Explicitly request the
-    // full zero-Body Face so this proof still exercises below-viewport reading.
-    'read all',
+    // Speech opens with Help and focused orientation. The current semantic
+    // review below reads the complete zero-Body Face after the person's edits.
     'next main',
     'focus creche.name', `edit value ${bodyName}`, 'activate',
     'focus creche.plot.0', 'edit value false', 'activate',
