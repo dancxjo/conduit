@@ -16,7 +16,7 @@ Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/511
 is in progress: local x86_64 emulator proofs exercise checked text Source and
 the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
 presentation. The keyboard domain binds the actual Body Plan and Play; Stop
-revokes it. Seventeen hostile entries, malformed capability requests and
+revokes it. Eighteen hostile entries, malformed capability requests and
 retained Compose state are checked. Keymap and Unicode uppercase share one
 protected entry; the graphical specimen uses five entries and one Base gate.
 The normal IA-32 BIOS product's text region also completes in CPL3, with its
