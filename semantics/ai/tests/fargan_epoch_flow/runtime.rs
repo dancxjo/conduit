@@ -17,14 +17,15 @@ const N: usize = 1024;
 const C: usize = 2048;
 enum Driver {
     Source {
-        reference: ValueRef,
+        references: Vec<ValueRef>,
         staged: bool,
-        sent: bool,
+        next: usize,
     },
     Operation(Box<dyn StepBack<PORTS>>),
     Sink {
-        received: Rc<std::cell::RefCell<Option<Vec<u8>>>>,
+        received: Rc<std::cell::RefCell<Vec<Vec<u8>>>>,
         staged: Option<Vec<u8>>,
+        expected: usize,
     },
     Inactive,
 }
@@ -32,28 +33,40 @@ impl StepBack<PORTS> for Driver {
     fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source {
-                reference,
+                references,
                 staged,
-                sent,
+                next,
             } => {
-                if *sent {
+                if *next == references.len() {
                     return StepOutcome::Complete;
                 }
                 if !io.output_ready(KPort(0)) {
                     return StepOutcome::Await;
                 }
-                io.send(KPort(0), *reference).unwrap();
+                io.send(KPort(0), references[*next]).unwrap();
                 *staged = true;
                 StepOutcome::Progress
             }
             Self::Operation(back) => back.step(io, bytes),
-            Self::Sink { staged, .. } => {
+            Self::Sink {
+                received,
+                staged,
+                expected,
+            } => {
                 let Some(input) = bytes.input(KPort(0)) else {
-                    return StepOutcome::Await;
+                    return if io.input_closed(KPort(0)) {
+                        StepOutcome::Complete
+                    } else {
+                        StepOutcome::Await
+                    };
                 };
                 *staged = Some(input.to_vec());
                 io.consume(KPort(0)).unwrap();
-                StepOutcome::Complete
+                if received.borrow().len() + 1 == *expected {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                }
             }
             Self::Inactive => StepOutcome::Complete,
         }
@@ -70,10 +83,10 @@ impl StepBack<PORTS> for Driver {
             Self::Sink {
                 received, staged, ..
             } => {
-                *received.borrow_mut() = staged.take();
+                received.borrow_mut().push(staged.take().unwrap());
             }
-            Self::Source { staged, sent, .. } if *staged => {
-                *sent = true;
+            Self::Source { staged, next, .. } if *staged => {
+                *next += 1;
                 *staged = false;
             }
             _ => {}
@@ -106,6 +119,44 @@ fn run_epoch_plan(
     input_values: BTreeMap<String, Vec<u8>>,
     mode: ExecutionMode,
 ) -> Option<EncodedResultAndTiming> {
+    let result = run_epoch_stream_plan(
+        plan,
+        context,
+        resources,
+        input_values
+            .into_iter()
+            .map(|(n, v)| (n, vec![v]))
+            .collect(),
+        None,
+        1,
+        mode,
+    )?;
+    Some(EncodedResultAndTiming {
+        value: result.values.into_iter().next().unwrap(),
+        preparation: result.preparation,
+        execution: result.execution,
+        nodes: result.nodes,
+        cords: result.cords,
+    })
+}
+struct StreamResultAndTiming {
+    values: Vec<StructuredInfoValue>,
+    preparation: Duration,
+    execution: Duration,
+    nodes: usize,
+    cords: usize,
+    drained: bool,
+}
+fn run_epoch_stream_plan(
+    plan: Plan,
+    context: &super::EpochProfiles,
+    resources: &Resources,
+    input_values: BTreeMap<String, Vec<Vec<u8>>>,
+    seeded: Option<conduitos::seeded_state::SeededStateOperationFactory>,
+    expected: usize,
+    mode: ExecutionMode,
+) -> Option<StreamResultAndTiming> {
+    let run_to_drain = seeded.is_some();
     let start = Instant::now();
     assert!(verify_plan(&plan));
     let fragment = &plan.fragments[0];
@@ -139,7 +190,9 @@ fn run_epoch_plan(
     assert!(lowered.node_specs.len() <= N && lowered.cords.len() <= C);
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     let slots = match mode {
-        ExecutionMode::StoragePressure => resources.len() + 3,
+        ExecutionMode::StoragePressure => {
+            resources.len() + input_values.values().map(Vec::len).sum::<usize>() + 2
+        }
         _ => 1024,
     };
     let mut store = HostedValueStore::new(
@@ -150,12 +203,20 @@ fn run_epoch_plan(
     .unwrap();
     let mut fixtures: BTreeMap<_, _> = input_values
         .iter()
-        .map(|(name, encoded)| (name.clone(), store.store(encoded).unwrap()))
+        .map(|(name, encoded)| {
+            (
+                name.clone(),
+                encoded
+                    .iter()
+                    .map(|value| store.store(value).unwrap())
+                    .collect::<Vec<_>>(),
+            )
+        })
         .collect();
     for (name, resource) in resources {
         let binding =
             FixedTensorPortBinding::prepare(&resource.value_type, &resource.tensor).unwrap();
-        fixtures.insert(name.clone(), store.store(binding.encoded()).unwrap());
+        fixtures.insert(name.clone(), vec![store.store(binding.encoded()).unwrap()]);
     }
     let mut adopted = BTreeMap::new();
     for gear in &fragment.placements {
@@ -198,8 +259,11 @@ fn run_epoch_plan(
             .unwrap(),
     ));
     factories.push(Box::new(conduit_ai::operation_owners::closing_structured_pair::ClosingStructuredPairOperationFactory::for_plan(&plan, context.pairs.clone()).unwrap()));
+    if let Some(seeded) = seeded {
+        factories.push(Box::new(seeded));
+    }
     context.zip.validate_plan(&plan).unwrap();
-    let received = Rc::new(std::cell::RefCell::new(None));
+    let received = Rc::new(std::cell::RefCell::new(Vec::with_capacity(expected)));
     let mut owners = BTreeMap::new();
     let mut drivers = Vec::new();
     for (index, gear) in fragment.placements.iter().enumerate() {
@@ -235,15 +299,16 @@ fn run_epoch_plan(
             let name = gear.kind_id.as_str().strip_prefix("epoch-proof/").unwrap();
             if let Some(reference) = fixtures.get(name) {
                 drivers.push(Driver::Source {
-                    reference: *reference,
+                    references: reference.clone(),
                     staged: false,
-                    sent: false,
+                    next: 0,
                 });
             } else {
                 assert_eq!(name, "result");
                 drivers.push(Driver::Sink {
                     received: received.clone(),
                     staged: None,
+                    expected,
                 });
             }
         }
@@ -285,6 +350,7 @@ fn run_epoch_plan(
     let mut scheduler=FixedScheduler::<_,_,_,N,C,PORTS,C,C,C,1024,1024>::new_with_active_counts_and_host_calls(nodes,cords,specs.try_into().unwrap(),cord_specs.try_into().unwrap(),routes,bindings,drivers.try_into().unwrap_or_else(|_|panic!("capacity")),store,HostedSignLog::new(32768,32768*core::mem::size_of::<KernelEvent>()as u32).unwrap()).unwrap();
     let preparation = start.elapsed();
     let execute = Instant::now();
+    let mut drained = false;
     for _ in 0..262144 {
         let status = match scheduler.step() {
             Ok(status) => status,
@@ -300,6 +366,7 @@ fn run_epoch_plan(
                 | conduit_kernel::scheduler::SchedulerStatus::Cancelled
         ) && scheduler.pending_host_call_count() == 0
         {
+            drained = matches!(status, conduit_kernel::scheduler::SchedulerStatus::Drained);
             eprintln!("epoch scheduler settled: {status:?}");
             break;
         }
@@ -348,13 +415,13 @@ fn run_epoch_plan(
                 )
                 .unwrap();
         }
-        if received.borrow().is_some() {
+        if received.borrow().len() == expected && !run_to_drain {
             break;
         }
     }
     let execution = execute.elapsed();
     let encoded = received.borrow();
-    if encoded.is_none() && matches!(mode, ExecutionMode::Normal) {
+    if encoded.len() != expected && matches!(mode, ExecutionMode::Normal) {
         let events: Vec<_> = scheduler.signs().events().collect();
         eprintln!(
             "no epoch output after {:?}; preparation {:?}; {} signs",
@@ -388,16 +455,22 @@ fn run_epoch_plan(
             }
         }
     }
-    let encoded = encoded.as_ref()?;
-    let actual = StructuredInfoValue::from_canonical_bytes(encoded).unwrap();
-    Some(EncodedResultAndTiming {
-        value: actual,
+    if encoded.len() != expected || (run_to_drain && !drained) {
+        return None;
+    }
+    Some(StreamResultAndTiming {
+        values: encoded
+            .iter()
+            .map(|v| StructuredInfoValue::from_canonical_bytes(v).unwrap())
+            .collect(),
         preparation,
         execution,
         nodes,
         cords,
+        drained,
     })
 }
+
 fn synthetic_resources(plan: &Plan) -> Resources {
     let types = conduit_ai::fixed_numeric_catalog::fixed_numeric_types().unwrap();
     plan.fragments[0]
@@ -408,12 +481,9 @@ fn synthetic_resources(plan: &Plan) -> Resources {
             if name == "value" || name == "result" {
                 return None;
             }
-            let native = types
-                .iter()
-                .find(|ty| {
-                    ty.value_type.profile().unwrap().value_kind() == &gear.outputs[0].value_kind
-                })
-                .unwrap();
+            let native = types.iter().find(|ty| {
+                ty.value_type.profile().unwrap().value_kind() == &gear.outputs[0].value_kind
+            })?;
             let dimensions: Vec<u64> =
                 if let Some(shape) = native.name.strip_prefix("NumericF32MatrixRef") {
                     shape
@@ -461,5 +531,31 @@ fn ordinary_epoch_scheduler_commits_canonical_pcm16_and_refuses_pressure_or_canc
         assert!(run_epoch_plan(plan.clone(),&context,&resources,fixtures.clone(),ExecutionMode::StoragePressure).is_none());
         assert!(run_epoch_plan(plan,&context,&resources,fixtures,ExecutionMode::CancelFirstExpression).is_none());
         eprintln!("synthetic epoch: planning{planning:?}, owner preparation{:?}, execution{:?},{}nodes/{}cords; no pretrained or streaming feedback claim",result.preparation,result.execution,result.nodes,result.cords);
+    }).unwrap().join().unwrap();
+}
+
+#[test]
+fn ordinary_signal_cycle_reuses_four_subframes_and_drains_final_feedback() {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+        let planning=Instant::now();
+        let (plan,context,seeded)=super::prepared_signal_cycle_plan();
+        let planning=planning.elapsed();
+        let resources=synthetic_resources(&plan);assert_eq!(resources.len(),26);
+        let source_definition=super::declarations::exact_epoch_declarations()+"\n"+include_str!("../../../speech/fargan_epoch_feedback.conduit");
+        let checked=conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(&source_definition),&conduit_plot::StartupCatalog::new()).unwrap();
+        let ty=|name:&str|&checked.native_types.iter().find(|t|t.name==name).unwrap().value_type;
+        let seed=super::epoch_pair_fixture(ty("FarganSignalEpochFeedback"),"",7,7).canonical_bytes().unwrap();
+        let events=(7..10).map(|epoch|super::epoch_pair_fixture(ty("FarganSignalConditionEpoch"),"",epoch,epoch).canonical_bytes().unwrap()).collect();
+        let inputs=BTreeMap::from([("seed".into(),vec![seed]),("events".into(),events)]);
+        let result=run_epoch_stream_plan(plan,&context,&resources,inputs,Some(seeded),3,ExecutionMode::Normal).expect("exact three-frame Source cycle must commit and drain final returned state");
+        assert!(result.drained);assert_eq!(result.values.len(),3);
+        for (index,result) in result.values.iter().enumerate() {
+            let encoded=result.canonical_bytes().unwrap();
+            let v=validate_canonical_structured_value(&encoded).unwrap();
+            let epoch=v.record_field("epoch").unwrap().unwrap().primitive_bytes("value/u64").unwrap();
+            assert_eq!(u64::from_le_bytes(epoch.try_into().unwrap()),7+index as u64);
+            let pcm=v.record_field("pcm_i16").unwrap().unwrap();assert_eq!(pcm.collection_length().unwrap(),160);
+        }
+        eprintln!("synthetic closing signal cycle: planning{planning:?} ownerprep{:?} execute{:?} {} nodes {} cords; three160sample aggregates; no warmup/pretrained/nativeutterance claim",result.preparation,result.execution,result.nodes,result.cords);
     }).unwrap().join().unwrap();
 }

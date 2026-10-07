@@ -312,8 +312,21 @@ fn numeric_epoch_offer(kind: &str, capacity64: bool) -> CapabilityOffer {
 fn prepared_epoch_plan(
     capacity64: bool,
 ) -> Result<(Plan, EpochProfiles), conduit_planner::PlannerError> {
-    let mut context = prepared_epoch_profiles_with_capacity(capacity64);
-    let source = epoch_source();
+    prepare_authored_epoch_entry(
+        prepared_epoch_profiles_with_capacity(capacity64),
+        epoch_source(),
+        "speech/flow-fargan-float-epoch",
+        capacity64,
+        vec![],
+    )
+}
+fn prepare_authored_epoch_entry(
+    mut context: EpochProfiles,
+    source: String,
+    entry_name: &str,
+    capacity64: bool,
+    extra_offers: Vec<CapabilityOffer>,
+) -> Result<(Plan, EpochProfiles), conduit_planner::PlannerError> {
     let checked = check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
     let mut types: std::collections::BTreeMap<_, _> = fixed_numeric_types()
         .unwrap()
@@ -326,11 +339,7 @@ fn prepared_epoch_plan(
             .iter()
             .map(|ty| (ty.name.clone(), ty.value_type.clone())),
     );
-    let entry = checked
-        .plots
-        .iter()
-        .find(|p| p.name == "speech/flow-fargan-float-epoch")
-        .unwrap();
+    let entry = checked.plots.iter().find(|p| p.name == entry_name).unwrap();
     let mut offers: Vec<_> = context
         .native
         .iter()
@@ -338,6 +347,7 @@ fn prepared_epoch_plan(
         .collect();
     offers.extend(context.weakening.iter().map(|p| p.offer(true).unwrap()));
     offers.extend(context.guards.iter().map(|p| p.offer().unwrap()));
+    offers.extend(extra_offers);
     offers.extend(context.zip.offers().cloned());
     offers.extend(context.pairs.iter().map(|profile| profile.offer().unwrap()));
     let period = conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition(
@@ -345,8 +355,7 @@ fn prepared_epoch_plan(
     )
     .unwrap();
     offers.push(period.offer(true).unwrap());
-    let mut wrapper =
-        String::from("\nplot epoch-runtime-proof {\n inner: speech/flow-fargan-float-epoch\n");
+    let mut wrapper = format!("\nplot epoch-runtime-proof {{\n inner: {entry_name}\n");
     for port in &entry.runtime_ports {
         let name = format!("epoch-proof/{}", port.name.text);
         let input = port.direction == conduit_plot::syntax::RuntimePortDirection::Input;
@@ -575,7 +584,16 @@ fn prepared_signal_cycle_profiles() -> (
     conduitos::seeded_state::SeededStateOperationFactory,
     std::collections::BTreeMap<String, String>,
 ) {
-    let mut context = prepared_epoch_profiles();
+    prepared_signal_cycle_profiles_with_capacity(false)
+}
+fn prepared_signal_cycle_profiles_with_capacity(
+    capacity64: bool,
+) -> (
+    EpochProfiles,
+    conduitos::seeded_state::SeededStateOperationFactory,
+    std::collections::BTreeMap<String, String>,
+) {
+    let mut context = prepared_epoch_profiles_with_capacity(capacity64);
     let definition = declarations::exact_epoch_declarations()
         + "\n"
         + include_str!("../../speech/fargan_epoch_feedback.conduit");
@@ -863,4 +881,47 @@ fn synthetic_epoch_anchor_matches_explicit_floating_startup() {
         .canonical_bytes()
         .unwrap();
     assert_eq!(evaluator.evaluate(&input).unwrap(), [1]);
+}
+
+fn prepared_signal_cycle_plan() -> (
+    Plan,
+    EpochProfiles,
+    conduitos::seeded_state::SeededStateOperationFactory,
+) {
+    let (context, seeded, ids) = prepared_signal_cycle_profiles_with_capacity(true);
+    let cycle = include_str!("../../speech/fargan_signal_cycle.conduit");
+    for id in ids.values() {
+        assert!(cycle.contains(id), "{id}");
+    }
+    let imports = cycle
+        .lines()
+        .filter(|line| line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let body = cycle
+        .lines()
+        .filter(|line| !line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let receipt = format!("[{}]", vec!["1"; 32].join(","));
+    let selected=format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
+    let body = body.replace(
+        "selected: FarganModelFrameAnchor\n",
+        &format!("selected: FarganModelFrameAnchor = {selected}\n"),
+    );
+    let source = format!(
+        "{imports}\n{}\n{}\n{body}",
+        epoch_source(),
+        include_str!("../../speech/fargan_epoch_feedback.conduit")
+    );
+    let offers = seeded.offers().cloned().collect();
+    let (plan, context) = prepare_authored_epoch_entry(
+        context,
+        source,
+        "speech/flow-fargan-signal-cycle",
+        true,
+        offers,
+    )
+    .unwrap();
+    (plan, context, seeded)
 }
