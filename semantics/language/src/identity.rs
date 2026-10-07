@@ -6,18 +6,6 @@ use conduit_core::StructuredInfoType;
 pub fn identity_types() -> Vec<(&'static str, StructuredInfoType)> {
     alloc::vec![
         (
-            "LanguageTextFinality",
-            LanguageTextFinality::semantic_type().expect("checked Language Type")
-        ),
-        (
-            "LanguageTextPriorRevision",
-            LanguageTextPriorRevision::semantic_type().expect("checked Language Type")
-        ),
-        (
-            "LanguageTextRevision",
-            LanguageTextRevision::semantic_type().expect("checked Language Type")
-        ),
-        (
             "LanguageExternalIdentity",
             LanguageExternalIdentity::semantic_type().expect("checked Language Type")
         ),
