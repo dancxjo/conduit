@@ -93,3 +93,87 @@ fn resource_adoption_refuses_changed_content_and_lost_authority() {
             .is_err()
     );
 }
+
+#[test]
+fn exact_disjoint_slices_share_one_retained_blob_and_outlive_loader() {
+    let blob: Arc<[u8]> = Arc::from(packed(&[1., 4., 2., 5., 3., 6., 0.5, -0.5]));
+    let weights = Arc::new(tensor(&[3, 2], &blob[..24]));
+    let bias = Arc::new(tensor(&[2], &blob[24..]));
+    let weights = Arc::new(
+        AdmittedFixedTensorResource::adopt_shared_slice(
+            weights.clone(),
+            blob.clone(),
+            0..24,
+            &access(&weights),
+        )
+        .unwrap(),
+    );
+    let bias = Arc::new(
+        AdmittedFixedTensorResource::adopt_shared_slice(
+            bias.clone(),
+            blob.clone(),
+            24..32,
+            &access(&bias),
+        )
+        .unwrap(),
+    );
+    assert!(weights.shares_storage_with(&bias));
+    assert_eq!(weights.retained_storage_bytes(), 32);
+    assert_eq!(bias.retained_storage_bytes(), 32);
+    assert_eq!(weights.bytes().as_ptr(), blob.as_ptr());
+    assert_eq!(bias.bytes().as_ptr(), blob[24..].as_ptr());
+    let linear =
+        FixedTensorLinear::<3, 2>::prepare_owned(weights.clone(), FixedMatrixOrder::InputMajor)
+            .unwrap();
+    drop(blob);
+    drop(weights);
+    let mut result = [0.; 2];
+    linear.apply(&[2., -1., 0.5], &mut result).unwrap();
+    assert_eq!(result, [1.5, 6.]);
+    assert_eq!(bias.bytes(), packed(&[0.5, -0.5]));
+}
+#[test]
+fn shared_slices_refuse_bad_ranges_changed_bytes_extent_and_authority() {
+    let blob: Arc<[u8]> = Arc::from(packed(&[1., 2., 3., 4.]));
+    let descriptor = Arc::new(tensor(&[2], &blob[..8]));
+    let grant = access(&descriptor);
+    for range in [
+        core::ops::Range { start: 8, end: 4 },
+        0..17,
+        usize::MAX..usize::MAX,
+    ] {
+        assert!(matches!(
+            AdmittedFixedTensorResource::adopt_shared_slice(
+                descriptor.clone(),
+                blob.clone(),
+                range,
+                &grant
+            ),
+            Err(FixedResourceAdoptionRefusal::ContentRange)
+        ));
+    }
+    for range in [8..16, 0..4] {
+        assert!(matches!(
+            AdmittedFixedTensorResource::adopt_shared_slice(
+                descriptor.clone(),
+                blob.clone(),
+                range,
+                &grant
+            ),
+            Err(FixedResourceAdoptionRefusal::Tensor(
+                FixedTensorRefusal::ContentIdentity
+            ))
+        ));
+    }
+    let mut lost = grant;
+    lost.availability = ResourceReferenceAvailability::Lost;
+    assert!(matches!(
+        AdmittedFixedTensorResource::adopt_shared_slice(
+            descriptor.clone(),
+            blob.clone(),
+            0..8,
+            &lost
+        ),
+        Err(FixedResourceAdoptionRefusal::Authority(_))
+    ));
+}
