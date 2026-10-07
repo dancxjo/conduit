@@ -2,8 +2,8 @@
 
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
-    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
-    HostCallRequirement, ImplementationId, Kind,
+    BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, ImplementationOffer, Kind,
 };
 
 pub const PRESENTATION_REQUEST_IMPLEMENTATION: &str = "std/spoken-mask-presentation-request@1";
@@ -15,6 +15,7 @@ pub const ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-artifact-show@1"
 pub const DIRECT_FACE_WORDING_IMPLEMENTATION: &str = "std/spoken-mask-direct-face-wording@1";
 pub const DIRECT_ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-direct-artifact-show@1";
 pub const NO_INTERACTION_IMPLEMENTATION: &str = "std/spoken-mask-no-interaction@1";
+pub const PRESENTATION_TEE_IMPLEMENTATION: &str = "std/spoken-mask-presentation-tee@1";
 pub const VALIDATION_ENVELOPE_IMPLEMENTATION: &str = "std/generated-validation-envelope@2";
 pub const GENERATED_VALIDATOR_IMPLEMENTATION: &str = "std/generated-semantic-validator@2";
 pub const RETAIN_GENERATED_VALIDATION_IMPLEMENTATION: &str = "std/retain-generated-validation@1";
@@ -39,6 +40,20 @@ pub const ASSESS_GENERATED_ENVELOPE_OPERATION: &str =
 
 pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
     vec![
+        conduit_presentation::presentation_tee_offer(
+            CapabilityId::from("spoken-mask-presentation-tee"),
+            ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from("std/spoken-mask-kernel@1"),
+                implementation_id: ImplementationId::from(PRESENTATION_TEE_IMPLEMENTATION),
+                artifact_id: ArtifactId::from("conduit-std-host/spoken-mask@1"),
+            },
+            CapabilityLimits {
+                max_active_instances: conduit_presentation::MAX_PRESENTATION_ACTIVE_INSTANCES,
+                max_queue_items: conduit_presentation::MAX_PRESENTATION_QUEUE_ITEMS,
+                max_queue_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES
+                    * u32::from(conduit_presentation::MAX_PRESENTATION_QUEUE_ITEMS),
+            },
+        ),
         semantic_offer(
             conduit_presentation::GENERATED_VALIDATION_ENVELOPE_KIND,
             "generated-validation-envelope",
