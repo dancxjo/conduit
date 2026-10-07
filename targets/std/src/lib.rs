@@ -1943,3 +1943,6 @@ pub mod fixed_numeric_compact;
 pub mod fixed_numeric_u16_profile;
 
 pub mod fixed_numeric_float_integer;
+
+/// Exact checked Source pure-filter owner for ordinary kernel execution.
+pub mod pure_filter;

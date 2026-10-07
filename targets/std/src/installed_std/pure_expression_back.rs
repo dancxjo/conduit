@@ -16,7 +16,7 @@ pub(super) static FILTER_FACTORY: BackFactory = BackFactory {
 
 pub(super) use conduit_semantic_catalog::PureExpressionBack;
 
-pub(super) struct PureExpressionHost {
+pub(crate) struct PureExpressionHost {
     evaluator: conduit_plot::PreparedPortableExpressionEvaluator,
     filter_output: Option<PreparedFilterOutput>,
 }
@@ -47,7 +47,7 @@ pub(super) fn prepare_hosts(
 }
 
 impl PureExpressionHost {
-    fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
+    pub(crate) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
         let program = program_from_placement(placement)?;
         validate_placement(placement, &program)?;
         let filter_output = if placement.kind_contract_revision.as_str()
@@ -82,7 +82,7 @@ impl PureExpressionHost {
         self.evaluator.evaluate(input)
     }
 
-    pub(super) fn execute_filter(
+    pub(crate) fn execute_filter(
         &mut self,
         input: &[u8],
     ) -> Result<Option<&[u8]>, conduit_plot::PortableExpressionEvaluationRefusal> {
@@ -111,7 +111,7 @@ impl PureExpressionHost {
     }
 }
 
-fn program_from_placement(
+pub(crate) fn program_from_placement(
     placement: &PlannedGear,
 ) -> Result<conduit_plot::PortableExpressionProgram, String> {
     let [entry] = placement.configuration.as_slice() else {

@@ -91,7 +91,7 @@ mod presentation_construction_host;
 mod pulse_observation_back;
 #[cfg(test)]
 mod pulse_observation_sink;
-mod pure_expression_back;
+pub(crate) mod pure_expression_back;
 mod quantity_mapping;
 mod recognition_text_back;
 mod recognized_turn_commit_back;

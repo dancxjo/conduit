@@ -1,4 +1,6 @@
 #![cfg(feature = "kernel-operation-owners")]
+#[path = "fargan_epoch_flow/allocation_probe.rs"]
+mod allocation_probe;
 #[path = "fargan_epoch_flow/committed_lineage.rs"]
 mod committed_lineage;
 #[path = "fargan_epoch_flow/conditioning_cycle.rs"]
@@ -482,7 +484,12 @@ fn prepare_authored_epoch_entry(
             };
             let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
             Some(
-                conduitos::expression_host_call::offer(&program, gear.outputs[0].temporal).unwrap(),
+                if gear.kind_contract_revision.as_str() == PURE_FILTER_REVISION {
+                    conduit_std_host::pure_filter::offer(&program, gear.inputs[0].temporal).unwrap()
+                } else {
+                    conduitos::expression_host_call::offer(&program, gear.outputs[0].temporal)
+                        .unwrap()
+                },
             )
         } else {
             None
