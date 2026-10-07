@@ -132,12 +132,16 @@ pub(crate) fn fixture_value(
             (0..length).map(|_| fixture_value(element)).collect(),
         )
         .unwrap(),
-        StructuredInfoTypeShape::Variant { cases, .. } => StructuredInfoValue::variant(
-            ty.clone(),
-            cases[0].tag(),
-            fixture_value(cases[0].payload_type()),
-        )
-        .unwrap(),
+        StructuredInfoTypeShape::Variant { cases, .. } => {
+            // The epoch fixture explicitly selects the floating model profile.
+            // Canonical case ordering is independent of declaration ordering.
+            let case = cases
+                .iter()
+                .find(|case| case.tag() == "reference_float32")
+                .unwrap_or(&cases[0]);
+            StructuredInfoValue::variant(ty.clone(), case.tag(), fixture_value(case.payload_type()))
+                .unwrap()
+        }
         StructuredInfoTypeShape::Leaf(kind) => StructuredInfoValue::leaf(
             ty.clone(),
             match kind.as_str() {
