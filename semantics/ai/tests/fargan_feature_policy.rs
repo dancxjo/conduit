@@ -335,3 +335,6 @@ fn authored_lag_indices_cover_all_admitted_periods_and_refuse_foreign_scalar() {
 
 #[path = "fargan_feature_policy/temporal.rs"]
 mod temporal;
+
+#[path = "fargan_feature_policy/native.rs"]
+mod native;
