@@ -11,7 +11,13 @@ mod entropy;
 mod ftdi_line;
 mod gdt;
 #[cfg(target_os = "none")]
+#[path = "../ordinary_domain.rs"]
 mod ordinary_domain;
+
+#[cfg(target_os = "none")]
+fn domain_ticks() -> u64 {
+    cpu::read_tsc()
+}
 #[cfg(target_os = "none")]
 pub use ordinary_domain::TextDomain;
 mod hid;

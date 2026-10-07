@@ -7,9 +7,14 @@ use crate::{
     domain_image::DomainImage,
     protected_region::{DomainBackend, DomainCost, DomainFault, DomainRefusal, DomainReturn},
 };
-#[path = "../../../domain/frame.rs"]
+#[path = "../../domain/frame.rs"]
 mod frame;
 pub(super) use frame::{TEXT_CAPACITY, TextFrame};
+
+#[cfg(target_arch = "x86_64")]
+const IMAGE_MACHINE: u16 = 62;
+#[cfg(target_arch = "x86")]
+const IMAGE_MACHINE: u16 = 3;
 
 const IMAGE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/domain.elf"));
 
@@ -23,18 +28,19 @@ pub struct TextDomain {
 }
 
 impl TextDomain {
-    pub const RESERVED_BYTES: u32 = 4 * 4096 + 65536 + 4096 + 2 * 16384;
+    pub const RESERVED_BYTES: u32 = AddressSpace::RESERVED_BYTES;
     pub fn ticks() -> u64 {
-        super::cpu::read_tsc()
+        super::domain_ticks()
     }
     pub fn preparation_cost(&mut self, started: u64, root_metadata_bytes: u32) {
         self.cost.setup_ticks = Self::ticks().saturating_sub(started);
         self.cost.root_metadata_bytes = root_metadata_bytes;
     }
     pub fn install() -> Result<Self, DomainRefusal> {
-        let started = super::cpu::read_tsc();
+        let started = super::domain_ticks();
         enable_no_execute()?;
-        let image = DomainImage::parse(IMAGE, 62).map_err(|_| DomainRefusal::InvalidMemory)?;
+        let image =
+            DomainImage::parse(IMAGE, IMAGE_MACHINE).map_err(|_| DomainRefusal::InvalidMemory)?;
         let space = AddressSpace::install(&image)?;
         Ok(Self {
             space,
@@ -45,7 +51,7 @@ impl TextDomain {
                     .iter()
                     .map(|segment| segment.bytes.len() as u64)
                     .sum(),
-                setup_ticks: super::cpu::read_tsc().saturating_sub(started),
+                setup_ticks: super::domain_ticks().saturating_sub(started),
                 ..DomainCost::default()
             },
             quarantined: false,
@@ -187,10 +193,10 @@ impl DomainBackend for TextDomain {
         if self.quarantined || maximum_work == 0 {
             return Err(DomainRefusal::InvalidLifecycle);
         }
+        let result = domain_transition::enter(&self.space)?;
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;
         self.cost.tlb_flushes += 2;
-        let result = domain_transition::enter(&self.space)?;
         if self.space.frame().command == 3
             && self.space.frame().status == 0
             && result.origin == 0
@@ -239,9 +245,9 @@ impl DomainBackend for TextDomain {
     }
     fn quarantine(&mut self) {
         if !self.quarantined {
-            let started = super::cpu::read_tsc();
+            let started = super::domain_ticks();
             self.cost.teardown_zeroed_bytes = self.space.quarantine();
-            self.cost.teardown_ticks = super::cpu::read_tsc().saturating_sub(started);
+            self.cost.teardown_ticks = super::domain_ticks().saturating_sub(started);
         }
         self.quarantined = true;
     }

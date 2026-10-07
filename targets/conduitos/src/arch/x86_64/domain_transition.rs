@@ -130,11 +130,15 @@ pub(super) fn enter(
     };
     drop(budget);
     ACTIVE.store(false, Ordering::Release);
+    #[cfg(feature = "ordinary-domain-proof")]
+    super::super::domain_context_probe::finish()?;
     Ok(result)
 }
 
 #[unsafe(no_mangle)]
 extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64) -> u64 {
+    #[cfg(feature = "ordinary-domain-proof")]
+    super::super::domain_context_probe::observe_irq();
     if budget != 0 {
         u64::from(domain_budget::interrupt(
             user & 3 == 3 && ACTIVE.load(Ordering::Acquire),
@@ -333,6 +337,7 @@ conduitos_ordinary_fault:
     mov edx, 1
     jmp conduitos_ordinary_return
 conduitos_ordinary_root_fault:
+    cld
     mov rdi, rax
     and rsp, -16
     call conduitos_exception_handler
@@ -361,6 +366,8 @@ conduitos_ordinary_irq:
     push r13
     push r14
     push r15
+    // The interrupted User DF must not affect Root Rust/string operations.
+    cld
     mov r15, rsp
     mov rdi, [rsp + 136]
     mov rsi, [rsp + 120]

@@ -190,6 +190,12 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     arch::present(receipt.manifestation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_implementation_id\":\"");
     arch::present(receipt.presenter_implementation_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_source_document_id\":\"");
+    arch::present(prepared.source_document_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_checked_plot_id\":\"");
+    arch::present(prepared.checked_plot_id.as_str().as_bytes());
+    arch::present(b"\",\"ordinary_expanded_plot_id\":\"");
+    arch::present(prepared.expanded_plot_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_plan_id\":\"");
     arch::present(prepared.plan.plan_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_play_id\":\"");

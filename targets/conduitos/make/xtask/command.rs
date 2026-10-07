@@ -106,6 +106,8 @@ pub(super) enum ConduitosCommand {
     IsolationProof,
     /// Run checked ordinary text Source with its production kernel and CPL3 implementation.
     OrdinaryDomainProof,
+    /// Prove ordinary IA-32 ring-3 execution and independent hostile entries.
+    Ia32OrdinaryDomainProof,
     /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
     VirtioNetProof,
 }

@@ -4,6 +4,11 @@ Status: one bounded freestanding-emulator enforcement profile, owned by
 [#3078](https://github.com/dancxjo/conduit/issues/3078). This is not a claim
 about every ConduitOS architecture, hostile kernel providers, or DMA isolation.
 
+The hostile-entry proofs are authorized defensive development of ConduitOS.
+They execute repository-owned test implementations in local QEMU guests to
+find and repair the new system's isolation holes. Probe addresses refer to
+that guest's own Root, private domains, and emulated devices.
+
 ## Enforced boundary
 
 The first profile executes its adversarial implementation at x86 privilege
@@ -163,11 +168,48 @@ a complete normal graphical Body run.
 | Target | Ordinary protection evidence | Remaining boundary |
 |---|---|---|
 | x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Broader ordinary implementation coverage, complete conformance and release acceptance remain unfinished |
-| IA-32 | ELF32 artifact admission and malformed-mapping tests; Root-owned flat GDT and bounded TSS retain the normal legacy BIOS product boot | User mappings, domain transitions and independent preemption remain unfinished; no earned ordinary CPL3 execution proof |
+| IA-32 | The normal legacy BIOS product's checked text region runs in CPL3 through the shared production adapter; independent emulator checks cover memory/privilege denials, capability/lifecycle refusals, loop preemption, floating-state restoration and Source timer coexistence | Broader ordinary implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
 | LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |
 | ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
+
+IA-32 owns a flat GDT and a bounded TSS with an out-of-range I/O bitmap.
+Its fixed PAE tables preserve supervisor-only Root identity mappings and place
+the immutable domain image at a separate 1 GiB virtual range. The low Root
+image overlaps the 4 MiB range used on x86_64, so reusing that virtual range
+would not preserve the running Root image. The domain's writable frame and
+private stack are non-executable, with unmapped gaps between them. This backend
+requires PAE, NX, SSE2 and genuine hardware entropy; it refuses unavailable
+mechanisms. The supported IA-32 product emulator uses the `max` CPU profile.
+
+The IA-32 image uses SSE instructions. Its transition saves Root floating
+state, installs separate domain state and restores Root state on return;
+interrupt handlers also protect the interrupted floating state. The normal
+BIOS specimen completed its original two-region Source: text/upper ran in
+CPL3, serial presentation crossed the admitted capability gate, and the timer
+region retained its separate wake. The text domain was revoked and zeroed on
+Play completion. The receipt measured three entries/gates, one Base gate, six
+privilege transitions and CR3 reloads, 64 shared-window copy bytes, a 32-byte
+window peak, 131,072 backend bytes and 21,878 Root metadata bytes. Root metadata
+includes this composition's trusted production-kernel storage and bindings.
+The copy and TLB counters currently describe shared-window transfers and CR3
+reloads; complete accounting for floating-state transfers, paging-mode changes
+and other scheduler copies remains unfinished.
+
+`cargo xtask make conduitos ia32-ordinary-domain-proof` builds the normal live
+product and then instruments that product for independent IA-32 checks. It
+retains the actual product Plan/Play receipt and image hash, checks seventeen
+memory/privilege/loop cases, and runs the shared capability/lifecycle checks.
+The two loop cases require three budget interrupts before returning, including
+one case with the user direction flag set. Root interrupt entry clears that
+flag before calling Rust. The IRQ frame accounts for the assembler's two-byte
+segment saves when locating the interrupted privilege level. Floating state is
+compared immediately after restoration, before Rust can alter caller-saved
+registers. A separate pending Source timer delivers exactly one wake while
+the independent RTC budget preempts user execution; retiring Source IRQ0
+preserves the RTC cascade's PIC mask. These are local emulator results, not
+physical-machine or accepted-release evidence.
 
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.

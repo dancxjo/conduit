@@ -52,11 +52,14 @@ mod ia32_timer_lifecycle;
 #[cfg_attr(all(test, target_arch = "x86_64"), allow(dead_code))]
 #[path = "ia32/vga_text.rs"]
 mod ia32_vga_text;
+#[cfg(all(target_arch = "x86", target_os = "linux"))]
+pub use ia32::TextDomain;
 #[cfg(target_arch = "x86")]
 pub use ia32::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
-    emergency_machine_profile, enable_interrupts, initialize_machine, interruptible_idle,
-    pop_interrupt, present, present_legacy_bios_receipt, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, RdrandEntropy, Serial, Timer, disable_interrupts,
+    early_write, emergency_halt, emergency_machine_profile, enable_interrupts, initialize_machine,
+    interruptible_idle, pop_interrupt, present, present_legacy_bios_receipt, read_counter,
+    timer_arm,
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";
@@ -118,3 +121,12 @@ pub const ARCHITECTURE: &str = "armv6";
 
 #[cfg(all(target_arch = "x86_64", feature = "usb-endpoint-read-proof"))]
 pub use x86_64::run_usb_endpoint_read_proof;
+
+#[cfg(all(
+    feature = "ordinary-domain-proof",
+    any(
+        all(target_arch = "x86_64", target_os = "none"),
+        all(target_arch = "x86", target_os = "linux", feature = "ia32-product")
+    )
+))]
+mod domain_context_probe;

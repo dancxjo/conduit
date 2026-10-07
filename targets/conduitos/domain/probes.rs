@@ -1,19 +1,7 @@
 //! Emulator-only hostile implementation probes; omitted from product artifacts.
 use crate::{frame::TextFrame, gate};
 
-pub fn mutate_gate(frame: &mut TextFrame) {
-    match frame.probe {
-        8 => frame.capability = 0,
-        9 => frame.capability = frame.target,
-        10 => frame.operation += 1,
-        11 => frame.input_length = 257,
-        12 => frame.work_units = 2,
-        13 => frame.capacity = 255,
-        15 => frame.input[0] = 0xff,
-        16 => gate::finish(0x10e), // A gate cannot forge a hardware fault origin.
-        _ => {}
-    }
-}
+pub use crate::probe_gate::mutate_gate;
 
 pub unsafe fn run(frame: &TextFrame) -> ! {
     unsafe {
@@ -39,6 +27,12 @@ pub unsafe fn run(frame: &TextFrame) -> ! {
             11 => core::arch::asm!("int3", options(nostack)),
             12 => core::arch::asm!("pushfq", "or qword ptr [rsp], 0x100", "popfq", "nop"),
             14 => core::arch::asm!("rdtsc", out("eax") _, out("edx") _, options(nostack)),
+            17 => {
+                core::arch::asm!("std", options(nostack));
+                loop {
+                    core::arch::asm!("pause", options(nomem, nostack));
+                }
+            }
             _ => {}
         }
     }

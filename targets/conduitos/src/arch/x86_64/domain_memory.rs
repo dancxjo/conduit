@@ -63,6 +63,7 @@ pub(super) struct AddressSpace {
 }
 
 impl AddressSpace {
+    pub const RESERVED_BYTES: u32 = 4 * 4096 + 65536 + 4096 + 2 * 16384;
     pub fn install(image: &DomainImage<'_>) -> Result<Self, DomainRefusal> {
         let hhdm = HHDM.load(Ordering::Acquire);
         if hhdm == 0 {

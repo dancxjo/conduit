@@ -19,6 +19,8 @@ pub fn generate() {
         "domain/memory.rs",
         "domain/frame.rs",
         "domain/probes.rs",
+        "domain/probes_ia32.rs",
+        "domain/probe_gate.rs",
         "domain/linker.ld",
         "src/text_transform.rs",
     ] {
@@ -92,7 +94,9 @@ pub fn generate() {
         .arg(&target_dir)
         .env_remove("RUSTFLAGS")
         .env("CARGO_ENCODED_RUSTFLAGS", flags.join("\u{1f}"));
-    if architecture == "x86_64" && env::var_os("CARGO_FEATURE_ORDINARY_DOMAIN_PROOF").is_some() {
+    if matches!(architecture.as_str(), "x86_64" | "x86")
+        && env::var_os("CARGO_FEATURE_ORDINARY_DOMAIN_PROOF").is_some()
+    {
         compiler.args(["--features", "proof"]);
     }
     let result = compiler.output().expect("start independent domain build");

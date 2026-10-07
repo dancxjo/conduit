@@ -19,8 +19,13 @@ presentation. The keyboard domain binds the actual Body Plan and Play; Stop
 revokes it. Seventeen hostile entries, malformed capability requests and
 retained Compose state are checked. Keymap and Unicode uppercase share one
 protected entry; the graphical specimen uses five entries and one Base gate.
-Other ordinary implementations and architectures remain unfinished. DMA/driver isolation remain false; this
-is not accepted-release evidence.
+The normal IA-32 BIOS product's text region also completes in CPL3, with its
+actual Plan/Play, one serial Base gate and completion revocation checked by
+the supported product receipt. Its independent emulator proof also checks
+memory and privilege denials, bounded loop preemption, exact capability and
+lifecycle refusals, floating-state restoration and one retained Source timer
+wake during preemption. Other ordinary implementations and architectures remain unfinished.
+DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
 
 ## What exists

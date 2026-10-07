@@ -46,7 +46,10 @@ pub struct TextPlannedKernel {
     scheduler: Scheduler,
     upper_node: NodeId,
     presentation_node: NodeId,
-    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    #[cfg(any(
+        all(target_arch = "x86_64", target_os = "none"),
+        all(target_arch = "x86", feature = "ia32-product")
+    ))]
     protected: Option<crate::text_protection::ProtectedText>,
 }
 
@@ -138,21 +141,30 @@ impl TextPlannedKernel {
             )?,
             upper_node: NodeId(upper_index as u16),
             presentation_node: NodeId(presentation_index as u16),
-            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            #[cfg(any(
+                all(target_arch = "x86_64", target_os = "none"),
+                all(target_arch = "x86", feature = "ia32-product")
+            ))]
             protected: None,
         })
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
         let result = self.scheduler.step();
-        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        #[cfg(any(
+            all(target_arch = "x86_64", target_os = "none"),
+            all(target_arch = "x86", feature = "ia32-product")
+        ))]
         if result.is_err()
             && let Some(domain) = &mut self.protected
         {
             domain.revoke(crate::protection_domain::KernelRevocationCause::PlayFailed);
         }
         let status = result?;
-        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        #[cfg(any(
+            all(target_arch = "x86_64", target_os = "none"),
+            all(target_arch = "x86", feature = "ia32-product")
+        ))]
         if status == SchedulerStatus::Drained
             && let Some(domain) = &mut self.protected
         {
@@ -233,7 +245,10 @@ impl TextPlannedKernel {
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
-        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        #[cfg(any(
+            all(target_arch = "x86_64", target_os = "none"),
+            all(target_arch = "x86", feature = "ia32-product")
+        ))]
         if let Some(domain) = &mut self.protected {
             domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCancelled);
         }

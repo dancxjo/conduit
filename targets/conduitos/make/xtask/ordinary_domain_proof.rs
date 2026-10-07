@@ -116,7 +116,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "the ordinary text result was not independently observed",
         ));
     }
-    if !transcript.lines().any(|line| line == "CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute") {
+    if !transcript.lines().any(|line| line == "CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop direction-flag fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute") {
         return Err(ConduitosError::refusal("ordinary-domain-negatives-absent", "all hostile entries must fault or return within the timer bound"));
     }
     if !transcript.lines().any(|line| line == "CONDUIT_DOMAIN_GATE_NEGATIVES unknown-handle sibling-handle wrong-operation oversized-window excessive-work invalid-capacity invalid-utf8 forged-fault replay exhausted-operations revoked-lifecycle provider-loss provider-replacement") {

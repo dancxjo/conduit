@@ -16,6 +16,7 @@ use super::{
 };
 
 mod backbone;
+pub(super) mod ia32_domain;
 
 pub fn execute_architecture_proof(
     arch: ConduitosArch,
@@ -325,15 +326,11 @@ fn execute_with_features(
         .env("CONDUITOS_IMAGE_ID", image_binding);
     if arch == ConduitosArch::Ia32 {
         let linker = ia32_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/ia32_product.ld");
         command.env(
             "RUSTFLAGS",
             format!(
-                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg chacha20_force_soft --cfg poly1305_force_soft -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
-                linker.display(),
-                script.display()
+                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg chacha20_force_soft --cfg poly1305_force_soft -C linker={} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
+                linker.display()
             ),
         );
     } else if arch == ConduitosArch::Riscv64 {
