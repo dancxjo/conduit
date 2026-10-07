@@ -26,4 +26,4 @@ type SpeechTextTokenRoleResult = {
 plot speech/text-token-role (
     >> value: SpeechTextTokenRoleRequest
     result: SpeechTextTokenRoleResult >>
-) = (.basis.relation.base is punct     ? { role: (.token.category is punctuation && sequence/at(.token.candidates, .choice).pos is punctuation ? nonspoken(unit) : refused(unit)) }     : { role: (.token.category is word && !(sequence/at(.token.candidates, .choice).pos is punctuation) ? spoken(unit) : refused(unit)) }) 
+) = (.basis.relation.base is punct     ? { role: (.token.category is punctuation && sequence/at(.token.candidates, .choice).pos is punctuation ? nonspoken(unit) : refused(unit)) }     : { role: (.token.category is word && !(sequence/at(.token.candidates, .choice).pos is punctuation) ? spoken(unit) : refused(unit)) })
