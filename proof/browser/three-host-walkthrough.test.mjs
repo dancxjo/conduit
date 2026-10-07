@@ -98,3 +98,32 @@ test('selected Birth audio displays exact escaped words and withholds unlabeled 
   assert.doesNotMatch(html, /<audio controls/);
   assert.match(html, /0 of 8 chapters complete/);
 }));
+
+test('model refusal wording scopes unchanged Face to the refused Start checkpoint', () => fixture(async (output, handbook) => {
+  const artifact = async (name, contents) => {
+    const bytes = Buffer.from(contents);
+    const file = path.join(output, name);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, bytes);
+    return { path: name, sha256: digest(bytes), bytes: bytes.length };
+  };
+  const refusal = await artifact('owner-llm-route-loss.json', '{}');
+  const wardrobe = await artifact('owner-llm-route-wardrobe.json', '{}');
+  const terminal = await artifact('owner-llm-restored/terminal.json', '{}');
+  const wav = await artifact('owner-llm-restored/listener.wav', 'RIFFtestWAVE');
+  await writeThreeHostWalkthrough(output, handbook, {
+    ...partial,
+    owner_model_route_loss: {
+      proof_class: 'installed-owner-selected-model-route-withdrawal-and-restoration',
+      run_id: partial.run_id, body_id: partial.body_id,
+      operation_started_on_loss: false, owner_face_unchanged: true,
+      new_listener_wav_on_failure: false, refusal, wardrobe,
+      restored: { terminal, wav, accepted_wording: 'The clock is ready.' },
+    },
+  });
+  const html = await readFile(path.join(output, 'walkthrough.html'), 'utf8');
+  const loss = html.split('<article id="loss"')[1].split('<article id="return"')[0];
+  assert.match(loss, /The refused model Start itself leaves the Body and Face unchanged/);
+  assert.match(loss, /later authorized screen-free “read all” may advance the Face revision/);
+  assert.match(loss, /that revision belongs to the reading action, not the refusal/);
+}));
