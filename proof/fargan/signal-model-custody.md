@@ -50,3 +50,11 @@ bit parity or a general acoustic-quality bound. Owner preparation took
 not establish real-time performance. The graph has 781 placements and 1,230
 cords. Source conditioning, Source warm initialization, native-utterance PCM and
 booted target execution remain separate proof requirements.
+
+`conditioning-layout-f32.json` additionally reviews the seven conditioning tensor
+slots. `conditioning_resources()` admits them as slices of the same blob and
+checks their exact Source port Types. It also requires the upstream embedding
+bias to be all zero before selecting a pure lookup operation. These tensor views
+do not broaden the logical signal-only model signature or claim an executed
+conditioning session. The private custody replay checks all 33 slices share one
+storage allocation.

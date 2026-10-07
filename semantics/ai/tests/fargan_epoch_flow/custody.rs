@@ -226,6 +226,109 @@ impl RetainedSignalModel {
     }
 }
 
+impl RetainedSignalModel {
+    // Low-level tensor custody only; this does not extend the signal signature
+    // into a claimed conditioning or native-utterance inference contract.
+    pub fn conditioning_resources(&self) -> (Vec<u8>, BTreeMap<String, RetainedTensor>) {
+        let layout =
+            include_bytes!("../../../../proof/fargan/conditioning-layout-f32.json").to_vec();
+        let data: serde_json::Value = serde_json::from_slice(&layout).unwrap();
+        assert_eq!(data["raw_blob_sha256"], self.raw_blob_sha256);
+        let zero = &data["required_zero_embedding_bias"];
+        let start = zero["offset"].as_u64().unwrap() as usize;
+        let end = start + zero["bytes"].as_u64().unwrap() as usize;
+        assert_eq!(
+            format!("{:x}", Sha256::digest(&self.model.bytes()[start..end])),
+            zero["raw_sha256"].as_str().unwrap()
+        );
+        assert!(self.model.bytes()[start..end]
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .all(|v| f32::from_le_bytes(*v) == 0.));
+        let source = conduit_plot::parse_syntax_document(include_str!(
+            "../../../speech/fargan_conditioning_flow.conduit"
+        ));
+        let entry = source
+            .plots
+            .iter()
+            .find(|p| p.name.text == "speech/flow-fargan-conditioning")
+            .unwrap();
+        let expected: BTreeMap<_, _> = entry
+            .front
+            .runtime_ports
+            .iter()
+            .filter(|p| {
+                p.value_type.text.starts_with("NumericF32MatrixRef")
+                    || p.value_type.text.starts_with("NumericF32BiasRef")
+                    || p.value_type.text.starts_with("NumericEmbedding")
+            })
+            .map(|p| (p.name.text.clone(), p.value_type.text.clone()))
+            .collect();
+        assert_eq!(expected.len(), 7);
+        let types = fixed_numeric_types().unwrap();
+        let mut resources = BTreeMap::new();
+        for row in data["resources"].as_array().unwrap() {
+            let name = row["port"].as_str().unwrap();
+            let shape: Vec<_> = row["shape"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|n| n.as_u64().unwrap())
+                .collect();
+            let start = row["offset"].as_u64().unwrap() as usize;
+            let length = row["bytes"].as_u64().unwrap() as usize;
+            let end = start.checked_add(length).unwrap();
+            assert_eq!(length, shape.iter().product::<u64>() as usize * 4);
+            assert_eq!(
+                format!("{:x}", Sha256::digest(&self.model.bytes()[start..end])),
+                row["raw_sha256"].as_str().unwrap()
+            );
+            let mut descriptor = super::fixtures::tensor(&shape, &self.model.bytes()[start..end]);
+            let TensorBacking::Resource(reference) = &mut descriptor.backing else {
+                panic!("resource")
+            };
+            reference.lifetime.version = self.model.artifact().content.lifetime.version;
+            reference.access_class = ResourceClassId::from("private-development-tensor/read@1");
+            let access = binding(
+                reference,
+                conduit_ai::fixed_numeric_preparation::TENSOR_READ_AUTHORITY,
+                name,
+            );
+            let resource = Arc::new(
+                AdmittedFixedTensorResource::adopt_shared_slice(
+                    Arc::new(descriptor),
+                    self.model.shared_storage(),
+                    start..end,
+                    &access,
+                )
+                .unwrap(),
+            );
+            let value_type = types
+                .iter()
+                .find(|t| t.name == expected[name])
+                .unwrap()
+                .value_type
+                .clone();
+            conduit_ai::fixed_numeric_binding::FixedTensorPortBinding::prepare(
+                &value_type,
+                resource.tensor(),
+            )
+            .unwrap();
+            resources.insert(
+                name.into(),
+                RetainedTensor {
+                    value_type,
+                    resource,
+                    binding: access,
+                },
+            );
+        }
+        assert_eq!(resources.len(), 7);
+        (layout, resources)
+    }
+}
+
 #[test]
 #[ignore = "private pinned model bytes; set CONDUIT_FARGAN_MODEL_FIXTURE"]
 fn pinned_model_retains_full_artifact_signature_and_one_shared_blob() {
@@ -233,6 +336,10 @@ fn pinned_model_retains_full_artifact_signature_and_one_shared_blob() {
         let root=std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap();
         let retained=RetainedSignalModel::load(Path::new(&root));
         let first=retained.resources.values().next().unwrap();
+        let (conditioning_layout, conditioning) = retained.conditioning_resources();
+        assert!(!conditioning_layout.is_empty());
+        assert_eq!(conditioning.len(), 7);
+        for resource in conditioning.values() { assert!(first.resource.shares_storage_with(&resource.resource)); }
         for resource in retained.resources.values() {conduit_ai::fixed_numeric_binding::FixedTensorPortBinding::prepare(&resource.value_type,resource.resource.tensor()).unwrap();assert!(first.resource.shares_storage_with(&resource.resource));assert_eq!(resource.resource.retained_storage_bytes(),3_272_868);}
         assert_eq!(retained.model.artifact().content_identity(),model_content_digest(retained.model.bytes()));
         assert_eq!(retained.model.artifact().descriptor_digest(retained.model.signature()).unwrap(),retained.model.descriptor_identity());
