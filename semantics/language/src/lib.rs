@@ -146,14 +146,14 @@ pub use generated::{
     LanguageParserWindow8ClassQuery, LanguageParserWindow8CodeQuery,
     LanguageParserWindow8Completion, LanguageParserWindow8Features, LanguageParserWindow8Lexical,
     LanguageParserWindow8Ordinal, LanguageParserWindow8RawAdvance, LanguageParserWindow8RawBeam,
-    LanguageParserWindow8RawClass, LanguageParserWindow8RawClassIndex,
-    LanguageParserWindow8RawClassRelations, LanguageParserWindow8RawCodes,
-    LanguageParserWindow8RawContext, LanguageParserWindow8RawFeatureContext,
-    LanguageParserWindow8RawFeatureQuery, LanguageParserWindow8RawHypothesis,
-    LanguageParserWindow8RawMerge, LanguageParserWindow8RawModelFeatures,
-    LanguageParserWindow8RawProjection, LanguageParserWindow8RawRequest,
-    LanguageParserWindow8RawResult, LanguageParserWindow8Selected,
+    LanguageParserWindow8RawClass, LanguageParserWindow8RawClassContext,
+    LanguageParserWindow8RawClassIndex, LanguageParserWindow8RawClassRelations,
+    LanguageParserWindow8RawCodes, LanguageParserWindow8RawContext,
+    LanguageParserWindow8RawFeatureContext, LanguageParserWindow8RawFeatureQuery,
+    LanguageParserWindow8RawHypothesis, LanguageParserWindow8RawMerge,
+    LanguageParserWindow8RawModelFeatures, LanguageParserWindow8RawProjection,
+    LanguageParserWindow8RawRequest, LanguageParserWindow8RawResult, LanguageParserWindow8Selected,
 };
-pub mod parser_window8;
 #[cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
 pub mod parser_model_selection;
+pub mod parser_window8;
