@@ -170,7 +170,7 @@ a complete normal graphical Body run.
 |---|---|---|
 | x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Broader ordinary implementation coverage, complete conformance and release acceptance remain unfinished |
 | IA-32 | The normal legacy BIOS product's checked text region runs in CPL3 through the shared production adapter; independent emulator checks cover memory/privilege denials, capability/lifecycle refusals, loop preemption, floating-state restoration and Source timer coexistence | Broader ordinary implementation coverage, complete cost accounting and release acceptance remain unfinished |
-| AArch64 | Supported emulator proof runs the normal text region at EL0, with a gated serial effect, completion revocation, eighteen independent boundary checks and Source timer coexistence | Explicit floating-state restoration proof, broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
+| AArch64 | Supported emulator proof runs the normal text region at EL0, with a gated serial effect, completion revocation, nineteen independent boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
 | LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |
 | ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
@@ -225,15 +225,18 @@ AArch64 product's original text-and-timer Source
 with three EL0 entries, one serial Base gate, six translation/TLB switches,
 64 shared-window copy bytes, a 32-byte window peak, 126,976 backend bytes and
 22,390 Root metadata bytes. Completion revoked the domain and zeroed its
-backend storage. An independently instrumented image exercised eighteen
+backend storage. An independently instrumented image exercised nineteen
 memory, privilege, alternate-gate and loop cases, the shared capability and
 lifecycle checks, and exactly one Source wake during budget preemption.
+The image also changes all `q0`–`q31` registers and FPCR/FPSR before both a
+normal gate and an infinite loop. Assembly compares the restored Root state
+with its entry snapshot before any Rust executes, including the timer IRQ
+handler; an incorrect restoration makes the proof refuse.
 The supported entrance boots the normal image twice, then independently
 instruments and boots the boundary-check image twice. Both product receipts
 require the exact completed domain's Plan/Play, capability gate and zeroed
 storage; an ordinary ready Sign alone cannot satisfy them. These local emulator
-results do not establish explicit floating-register preservation evidence,
-physical hardware or release acceptance. The remaining full cost-accounting
+results do not establish physical hardware or release acceptance. The remaining full cost-accounting
 gaps above also apply to this backend.
 
 The ordinary text serial presentation now passes through its domain capability

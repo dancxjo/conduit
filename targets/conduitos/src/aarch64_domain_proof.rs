@@ -41,6 +41,7 @@ fn boundary_entries() {
         (4, 0, DomainFault::InvalidInstruction),
         (5, 0, DomainFault::PrivilegedOperation),
         (6, 0, DomainFault::WorkExhausted),
+        (17, 0, DomainFault::WorkExhausted),
         (8, 0, DomainFault::InvalidInstruction),
         (9, 0, DomainFault::InvalidInstruction),
         (10, 0, DomainFault::InvalidInstruction),
@@ -71,16 +72,26 @@ fn boundary_entries() {
         if domain.cost().scheduler_returns != 1 {
             refuse("boundary-entry-did-not-return");
         }
-        if command == 6 && (domain.cost().preemptions != 1 || domain.cost().interrupt_entries < 3) {
+        if matches!(command, 6 | 17)
+            && (domain.cost().preemptions != 1 || domain.cost().interrupt_entries < 3)
+        {
             refuse("loop-did-not-preempt");
         }
     }
+    let mut floating = arch::TextDomain::install().unwrap_or_else(|_| refuse("floating-install"));
+    floating.probe(7, 0);
+    if floating.enter(1) != Ok(DomainReturn::Yielded) {
+        refuse("floating-state-not-restored");
+    }
+    arch::early_write(
+        b"CONDUIT_AARCH64_DOMAIN_FLOATING restored-q0-q31-fpcr-fpsr-before-rust-and-irq-handler\n",
+    );
     if private != 0x5a5a_5a5a
         || unsafe { (sibling_address as *const u64).read_volatile() } != sibling_before
     {
         refuse("private-state-changed");
     }
-    arch::early_write(b"CONDUIT_AARCH64_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry gic uart translation-register irq-mask loop eret hvc smc breakpoint counter alternate-gate timer-control code-write data-execute\n");
+    arch::early_write(b"CONDUIT_AARCH64_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry gic uart translation-register irq-mask loop floating-loop eret hvc smc breakpoint counter alternate-gate timer-control code-write data-execute\n");
 }
 
 fn refuse(reason: &str) -> ! {

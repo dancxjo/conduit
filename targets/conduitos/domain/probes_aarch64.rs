@@ -13,6 +13,7 @@ pub unsafe fn run(frame: &TextFrame) -> ! {
             6 => loop {
                 core::arch::asm!("yield", options(nomem, nostack));
             },
+            7 | 17 => poison_floating_and_finish(frame.probe == 17),
             8 => core::arch::asm!("eret", options(noreturn)),
             9 => core::arch::asm!("hvc #0", options(nostack)),
             10 => core::arch::asm!("smc #0", options(nostack)),
@@ -24,4 +25,26 @@ pub unsafe fn run(frame: &TextFrame) -> ! {
         }
     }
     gate::finish(3)
+}
+
+unsafe fn poison_floating_and_finish(looping: bool) -> ! {
+    unsafe {
+        core::arch::asm!(
+            r#"
+            .irp n,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+                movi v\n\().16b, #0x5a
+            .endr
+            mov x9, #0x03c00000
+            msr fpcr, x9
+            mov x9, #0x08000000
+            orr x9, x9, #0x1f
+            msr fpsr, x9
+            cbnz x0, 2f
+            svc #0
+            2: yield
+            b 2b
+            "#,
+            in("x0") u64::from(looping), options(noreturn),
+        );
+    }
 }

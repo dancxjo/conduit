@@ -8,8 +8,10 @@ use super::{
 use crate::cli::GlobalOpts;
 use std::fs;
 
-const NEGATIVES: &str = "CONDUIT_AARCH64_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry gic uart translation-register irq-mask loop eret hvc smc breakpoint counter alternate-gate timer-control code-write data-execute";
+const NEGATIVES: &str = "CONDUIT_AARCH64_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry gic uart translation-register irq-mask loop floating-loop eret hvc smc breakpoint counter alternate-gate timer-control code-write data-execute";
 const GATES: &str = "CONDUIT_DOMAIN_GATE_NEGATIVES unknown-handle sibling-handle wrong-operation oversized-window excessive-work invalid-capacity invalid-utf8 forged-fault replay exhausted-operations revoked-lifecycle provider-loss provider-replacement";
+const FLOATING: &str =
+    "CONDUIT_AARCH64_DOMAIN_FLOATING restored-q0-q31-fpcr-fpsr-before-rust-and-irq-handler";
 const TIMER: &str = "CONDUIT_DOMAIN_TIMER_COEXISTENCE source-wake-once user-irq budget-preemption";
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -64,6 +66,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "proof_class": "freestanding-emulator", "image_sha256": sha256_file(&paths.iso)?,
         "ordinary_product_play": normal, "negative_entries": NEGATIVES,
         "capability_and_lifecycle_negatives": true,
+        "floating_state_restored_before_rust_and_irq_handler": true,
         "source_timer_wake_retained_during_budget_preemption": true,
         "dma_isolation": false, "driver_isolation": false
     });
@@ -83,7 +86,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 }
 
 fn validate(transcript: &str) -> Result<(), ConduitosError> {
-    if [NEGATIVES, GATES, TIMER]
+    if [NEGATIVES, GATES, TIMER, FLOATING]
         .iter()
         .any(|expected| !transcript.lines().any(|line| line == *expected))
         || transcript.contains("CONDUIT_AARCH64_DOMAIN_REFUSAL")
@@ -101,9 +104,9 @@ mod tests {
     use super::*;
     #[test]
     fn every_independent_boundary_and_no_refusal_are_required() {
-        let complete = format!("{NEGATIVES}\n{GATES}\n{TIMER}\n");
+        let complete = format!("{NEGATIVES}\n{GATES}\n{TIMER}\n{FLOATING}\n");
         assert!(validate(&complete).is_ok());
-        for missing in [NEGATIVES, GATES, TIMER] {
+        for missing in [NEGATIVES, GATES, TIMER, FLOATING] {
             assert!(validate(&complete.replace(missing, "")).is_err());
         }
         assert!(validate(&(complete + "CONDUIT_AARCH64_DOMAIN_REFUSAL failed\n")).is_err());

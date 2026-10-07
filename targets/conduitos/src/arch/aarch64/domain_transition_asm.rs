@@ -58,6 +58,27 @@ conduitos_aarch64_domain_context:
     msr \low, xzr
     msr \high, xzr
 .endm
+.macro VERIFY_FP base, failure
+    // Observe the restored registers before any Rust code can alter them.
+    sub sp, sp, #528
+    mov x21, sp
+    SAVE_FP x21
+    mov x11, xzr
+1:
+    ldr x9, [\base, x11]
+    ldr x10, [x21, x11]
+    cmp x9, x10
+    b.ne 2f
+    add x11, x11, #8
+    cmp x11, #528
+    b.lo 1b
+    add sp, sp, #528
+    b 3f
+2:
+    add sp, sp, #528
+    b \failure
+3:
+.endm
 .macro LOAD_KEY low, high, offset
     ldp x9, x10, [x16, #\offset]
     msr \low, x9
@@ -272,6 +293,9 @@ conduitos_aarch64_domain_irq_entry:
     add x16, x16, :lo12:conduitos_aarch64_domain_context
     ldr x20, [x16, #72]
     LOAD_FP x20
+    .if {proof}
+    VERIFY_FP x20, conduitos_aarch64_domain_irq_fp_failed
+    .endif
 7:
     bl conduitos_aarch64_domain_irq
     cbnz x0, 8f
@@ -302,6 +326,10 @@ conduitos_aarch64_domain_irq_entry:
 8:
     mov x0, #4
     mov x1, #2
+    b conduitos_aarch64_domain_return
+conduitos_aarch64_domain_irq_fp_failed:
+    mov x0, #3
+    mov x1, #3
 conduitos_aarch64_domain_return:
     msr daifset, #15
     mov x14, x0
@@ -310,6 +338,10 @@ conduitos_aarch64_domain_return:
     add x16, x16, :lo12:conduitos_aarch64_domain_context
     ldr x20, [x16, #72]
     LOAD_FP x20
+    .if {proof}
+    VERIFY_FP x20, conduitos_aarch64_domain_fp_failed
+    .endif
+conduitos_aarch64_domain_restore_machine:
     ldr x11, [x16, #88]
     tbz x11, #0, 9f
     LOAD_KEY APIAKeyLo_EL1, APIAKeyHi_EL1, 96
@@ -355,9 +387,14 @@ conduitos_aarch64_domain_return:
     mov x0, x14
     mov x1, x15
     ret
+conduitos_aarch64_domain_fp_failed:
+    mov x14, #3
+    mov x15, #3
+    b conduitos_aarch64_domain_restore_machine
 conduitos_aarch64_domain_root_fault:
     msr daifset, #15
 11: wfi
     b 11b
-"#
+"#,
+    proof = const cfg!(feature = "ordinary-domain-proof") as u8,
 );

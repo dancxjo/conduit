@@ -25,9 +25,9 @@ the supported product receipt. Its independent emulator proof also checks
 memory and privilege denials, bounded loop preemption, exact capability and
 lifecycle refusals, floating-state restoration and one retained Source timer
 wake during preemption. The supported AArch64 emulator proof now executes
-the normal text region at EL0 and check eighteen independent boundary entries,
-capability/lifecycle refusals and Source timer coexistence. Explicit AArch64
-floating-state preservation proof remains unfinished.
+the normal text region at EL0 and checks nineteen independent boundary entries,
+capability/lifecycle refusals, Source timer coexistence and restoration of all
+vector registers plus FPCR/FPSR before Root resumes or handles an interrupt.
 Other ordinary implementations and architectures remain unfinished.
 DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
