@@ -259,3 +259,221 @@ fn authored_phase_carries_drop_consumed_condition_and_preserve_provisional_pcm()
         assert_eq!(decoded, expected, "phase{phase}");
     }
 }
+
+// Fixture-only raw schema projection: production comes from the native-profile
+// owner and validates/reframes every candidate before native admission.
+fn declarations_only(source: &str) -> String {
+    let mut active = false;
+    let mut result = String::new();
+    for line in source.lines() {
+        if line.starts_with("type ") {
+            active = true;
+        }
+        if line.starts_with("plot ") {
+            active = false;
+        }
+        if active {
+            result.push_str(line);
+            result.push('\n');
+        }
+    }
+    result
+}
+fn exact_epoch_declarations() -> String {
+    [
+        include_str!("../fixed_numeric.conduit"),
+        include_str!("../fixed_numeric_signal.conduit"),
+        include_str!("../../speech/fargan_conditioning.conduit"),
+        include_str!("../../speech/fargan_signal.conduit"),
+        include_str!("../../speech/fargan_subframe.conduit"),
+        include_str!("../../speech/fargan_model_identity.conduit"),
+        include_str!("../../speech/fargan_epoch_contracts.conduit"),
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(index, source)| {
+        if index < 2 {
+            source
+                .lines()
+                .filter(|line| {
+                    line.starts_with("type NumericFiniteF32 ")
+                        || line.starts_with("type NumericF32Vector")
+                        || line.starts_with("type NumericI16Vector")
+                        || line.starts_with("type NumericHistory")
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        } else {
+            declarations_only(source)
+        }
+    })
+    .collect::<Vec<_>>()
+    .join("\n")
+}
+#[test]
+fn authored_merge_candidates_use_exact_pair_shapes_before_native_readmission() {
+    use conduit_core::*;
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    install_fixed_numeric_catalogs(&mut startup, &mut profiles).unwrap();
+    conduit_ai::fixed_numeric_pair_catalog::install_fixed_numeric_pair_catalogs(
+        &mut startup,
+        &mut profiles,
+    )
+    .unwrap();
+    let source = [
+        include_str!("../../speech/fargan_conditioning.conduit"),
+        include_str!("../../speech/fargan_signal.conduit"),
+        include_str!("../../speech/fargan_pitch_history.conduit"),
+        include_str!("../../speech/fargan_subframe.conduit"),
+        include_str!("../../speech/fargan_model_identity.conduit"),
+        include_str!("../../speech/fargan_epoch_contracts.conduit"),
+    ]
+    .join("\n");
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+    let ty = |name: &str| {
+        checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .unwrap()
+            .value_type
+            .clone()
+    };
+    let pair = |left: StructuredInfoType, right: StructuredInfoType| {
+        let left_max = maximum_prepared_canonical_value_bytes(&left).unwrap();
+        let right_max = maximum_prepared_canonical_value_bytes(&right).unwrap();
+        PreparedTypedTuplePairEncoder::new(left, left_max, right, right_max)
+            .unwrap()
+            .value_type()
+            .clone()
+    };
+    // Shape-only fixture aliases deliberately admit no native laws. Production
+    // aliases come from the retained native-profile validator owner.
+    let mut shapes = StartupCatalog::new();
+    for ty in fixed_numeric_types()
+        .unwrap()
+        .iter()
+        .chain(&checked.native_types)
+    {
+        shapes.insert_checked_native_type(&ty.name, ty).unwrap();
+    }
+    let phase_pair = conduit_ai::nominal_weakening::PreparedNominalWeakening::prepare(pair(
+        ty("FarganEpochPhaseCarry"),
+        ty("FarganSubframeResult"),
+    ))
+    .unwrap();
+    let pcm_pair = conduit_ai::nominal_weakening::PreparedNominalWeakening::prepare(pair(
+        ty("FarganEpochFinalCarry"),
+        fixed_numeric_type("NumericI16Vector160").unwrap(),
+    ))
+    .unwrap();
+    for (name, profile) in [
+        ("FarganEpochPhasePair", &phase_pair),
+        ("FarganPcm16Pair", &pcm_pair),
+    ] {
+        let raw = profile.output_type();
+        let StructuredInfoTypeShape::Record { schema, .. } = raw.shape() else {
+            panic!("pair record")
+        };
+        let receipt = CheckedNativeType {
+            name: name.into(),
+            identity: schema.clone(),
+            value_type: raw.clone(),
+            value_contracts: vec![],
+            invariants: vec![],
+        };
+        shapes.insert_checked_native_type(name, &receipt).unwrap();
+    }
+    let mut install_candidate = |name: String, raw: StructuredInfoType| {
+        let StructuredInfoTypeShape::Record { schema, .. } = raw.shape() else {
+            panic!("record")
+        };
+        let candidate = CheckedNativeType {
+            name: name.clone(),
+            identity: schema.clone(),
+            value_type: raw,
+            value_contracts: vec![],
+            invariants: vec![],
+        };
+        shapes.insert_checked_native_type(name, &candidate).unwrap();
+    };
+    for (phase, name) in [
+        (1, "FarganFloatPhase1"),
+        (2, "FarganFloatPhase2"),
+        (3, "FarganFloatPhase3"),
+        (4, "FarganFloatEpochProposal"),
+    ] {
+        install_candidate(
+            format!("FarganPhase{phase}Candidate"),
+            conduit_ai::native_profile::PreparedNativeProfile::check_definition(
+                &exact_epoch_declarations(),
+                name,
+            )
+            .unwrap()
+            .candidate_type()
+            .clone(),
+        );
+    }
+    install_candidate(
+        "FarganPcm16Candidate".into(),
+        conduit_ai::native_profile::PreparedNativeProfile::check_definition(
+            &exact_epoch_declarations(),
+            "FarganPcm16EpochResult",
+        )
+        .unwrap()
+        .candidate_type()
+        .clone(),
+    );
+    let receipt = format!("[{}]", vec!["1"; 32].join(","));
+    let selected = format!("{{artifact_identity: {receipt}, model_descriptor_identity: {receipt}, session_basis_identity: {receipt}, precision: reference_float32(\"\")}}");
+    let merge_source = include_str!("../../speech/fargan_epoch_merges.conduit").replace(
+        "selected: FarganModelFrameAnchor",
+        &format!("selected: FarganModelFrameAnchor = {selected}"),
+    );
+    let merged = check_syntax_document(&parse_syntax_document(&merge_source), &shapes).unwrap();
+    assert_eq!(merged.plots.len(), 5);
+    for name in [
+        "speech/flow-fargan-phase1-candidate",
+        "speech/flow-fargan-phase2-candidate",
+        "speech/flow-fargan-phase3-candidate",
+        "speech/flow-fargan-phase4-candidate",
+        "speech/flow-fargan-epoch-pcm16-candidate",
+    ] {
+        let expanded =
+            expand_canonical_plot_for_authoring(&merged, name, &ProfileCatalog::new()).unwrap();
+        assert_eq!(expanded.expanded.gears.len(), 1);
+    }
+}
+
+#[test]
+fn three_feedback_domains_fit_separately_and_cannot_be_silently_combined() {
+    use conduit_core::*;
+    let source = format!(
+        "{}\n{}",
+        exact_epoch_declarations(),
+        include_str!("../../speech/fargan_epoch_feedback.conduit")
+    );
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let mut members = vec![];
+    for name in [
+        "FarganSignalEpochFeedback",
+        "FarganConditioningEpochFeedback",
+        "FarganFeatureEpochFeedback",
+    ] {
+        let ty = &checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .unwrap()
+            .value_type;
+        let maximum = maximum_prepared_transport_value_bytes(ty).unwrap();
+        eprintln!("{name}: canonical transport {maximum}");
+        assert!(maximum <= 16384);
+        members.push(ty.clone());
+    }
+    assert!(
+        maximum_prepared_transport_value_bytes(&tuple_info_type(members).unwrap()).unwrap() > 16384
+    );
+}
