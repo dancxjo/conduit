@@ -11,3 +11,5 @@ pub mod fixed_numeric_u16_profile;
 pub mod native_profile;
 
 pub mod nominal_weakening;
+
+pub mod closing_structured_pair;

@@ -278,3 +278,6 @@ pub mod native_profile;
 
 #[cfg(feature = "kernel-step")]
 pub mod nominal_weakening;
+
+#[cfg(feature = "kernel-step")]
+pub mod closing_structured_pair;
