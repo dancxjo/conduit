@@ -2,7 +2,10 @@
 use super::*;
 
 impl TextPlannedKernel {
-    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    #[cfg(any(
+        all(target_arch = "x86_64", target_os = "none"),
+        all(target_arch = "x86", feature = "ia32-product")
+    ))]
     pub(crate) fn protect(
         &mut self,
         plan: &conduit_core::Plan,
@@ -30,14 +33,20 @@ impl TextPlannedKernel {
             .host_value(request.input.value)
             .map_err(|_| Error::KernelFailure)?;
         let result = {
-            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            #[cfg(any(
+                all(target_arch = "x86_64", target_os = "none"),
+                all(target_arch = "x86", feature = "ia32-product")
+            ))]
             {
                 self.protected
                     .as_mut()
                     .ok_or(Error::KernelConstruction)?
                     .uppercase(input)
             }
-            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+            #[cfg(not(any(
+                all(target_arch = "x86_64", target_os = "none"),
+                all(target_arch = "x86", feature = "ia32-product")
+            )))]
             {
                 crate::text_upper::uppercase(input).map_err(|error| match error {
                     crate::text_upper::UppercaseError::MalformedUtf8 => Error::TextMalformedUtf8,
@@ -46,7 +55,10 @@ impl TextPlannedKernel {
             }
         };
         if let Err(error) = result {
-            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            #[cfg(any(
+                all(target_arch = "x86_64", target_os = "none"),
+                all(target_arch = "x86", feature = "ia32-product")
+            ))]
             if let Some(domain) = &mut self.protected {
                 domain.revoke(crate::protection_domain::KernelRevocationCause::PlayFailed);
             }
@@ -88,20 +100,29 @@ impl TextPlannedKernel {
             .map_err(|_| Error::KernelFailure)?;
         core::str::from_utf8(input).map_err(|_| Error::SerialBaseFailure)?;
         let result = {
-            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            #[cfg(any(
+                all(target_arch = "x86_64", target_os = "none"),
+                all(target_arch = "x86", feature = "ia32-product")
+            ))]
             {
                 self.protected
                     .as_mut()
                     .ok_or(Error::KernelConstruction)?
                     .present(input, serial)
             }
-            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+            #[cfg(not(any(
+                all(target_arch = "x86_64", target_os = "none"),
+                all(target_arch = "x86", feature = "ia32-product")
+            )))]
             {
                 serial.present(input).map_err(|_| Error::SerialBaseFailure)
             }
         };
         if result.is_err() {
-            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            #[cfg(any(
+                all(target_arch = "x86_64", target_os = "none"),
+                all(target_arch = "x86", feature = "ia32-product")
+            ))]
             if let Some(domain) = &mut self.protected {
                 domain.revoke(crate::protection_domain::KernelRevocationCause::PlayFailed);
             }

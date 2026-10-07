@@ -362,7 +362,7 @@ fn parse_identity(identity: &str) -> Result<[u8; 32], DomainRefusal> {
         return Err(DomainRefusal::WrongBinding);
     }
     let mut bytes = [0; 32];
-    for (index, pair) in identity.as_bytes().chunks_exact(2).enumerate() {
+    for (index, pair) in identity.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         let digit = |byte| match byte {
             b'0'..=b'9' => Ok(byte - b'0'),
             b'a'..=b'f' => Ok(byte - b'a' + 10),

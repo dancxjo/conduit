@@ -6,11 +6,43 @@ use crate::machine::{
     SerialBase, TimerBase, TimerToken,
 };
 
+#[cfg(target_os = "linux")]
+mod domain_budget;
+#[cfg(target_os = "linux")]
+mod domain_memory;
+#[cfg(target_os = "linux")]
+mod domain_transition;
+#[cfg(target_os = "linux")]
+#[path = "../ordinary_domain.rs"]
+mod ordinary_domain;
+#[cfg(target_os = "linux")]
+pub use ordinary_domain::TextDomain;
+mod entropy;
+pub use entropy::RdrandEntropy;
+
+#[cfg(target_os = "linux")]
+fn domain_ticks() -> u64 {
+    read_counter()
+}
+pub fn early_write(bytes: &[u8]) {
+    present(bytes);
+}
 mod timer_hardware;
 
 pub const PIT_IRQ: u8 = 32;
 static TIMER_IRQ: IrqMailbox = IrqMailbox::new();
 static mut IDT: [u64; 256] = [0; 256];
+
+#[cfg(target_os = "linux")]
+unsafe fn install_domain_gate(vector: u8, handler: u32, attributes: u8) {
+    let gate = u64::from(handler & 0xffff)
+        | (0x08_u64 << 16)
+        | (u64::from(attributes) << 40)
+        | (u64::from(handler >> 16) << 48);
+    unsafe {
+        IDT[vector as usize] = gate;
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InterruptFact {
@@ -35,6 +67,8 @@ conduitos_ia32_irq_entry:
 pub fn initialize_machine() {
     disable_interrupts();
     super::ia32_domain_gdt::initialize();
+    #[cfg(target_os = "linux")]
+    domain_budget::initialize();
     timer_hardware::report_inherited_state();
     timer_hardware::stop();
     TIMER_IRQ.retire();
@@ -307,6 +341,9 @@ impl Serial {
     }
 }
 impl SerialBase for Serial {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         present(bytes);
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;

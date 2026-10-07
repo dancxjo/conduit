@@ -8,6 +8,11 @@ mod gate;
 mod keymap;
 mod memory;
 #[cfg(feature = "proof")]
+mod probe_gate;
+#[cfg(all(feature = "proof", target_arch = "x86_64"))]
+mod probes;
+#[cfg(all(feature = "proof", target_arch = "x86"))]
+#[path = "probes_ia32.rs"]
 mod probes;
 use frame::{TEXT_CAPACITY, TextFrame};
 #[path = "../src/text_transform.rs"]

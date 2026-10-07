@@ -124,6 +124,7 @@ fn write_msr(register: u32, value: u64) {
 }
 
 // Separate legacy RTC route; never changes the Source timer's LVT/count.
+#[cfg(target_os = "none")]
 pub(super) fn route_budget() -> Option<u32> {
     if LEGACY.load(Ordering::Acquire) {
         return None;
@@ -132,6 +133,7 @@ pub(super) fn route_budget() -> Option<u32> {
     local_write(LOCAL_LINT_ZERO, 7 << 8);
     Some(previous)
 }
+#[cfg(target_os = "none")]
 pub(super) fn restore_budget_route(previous: Option<u32>) {
     if let Some(previous) = previous {
         local_write(LOCAL_LINT_ZERO, previous);

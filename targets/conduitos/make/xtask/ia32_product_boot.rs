@@ -64,6 +64,7 @@ pub(super) fn boot_legacy_bios(
         "base_commit": git_head(&paths.root)?,
         "image_sha256": sha256_file(image)?,
         "firmware_environment": "x86-bios",
+        "emulator_cpu": "max",
         "carrier": "limine-hybrid-iso-legacy-bios-entry",
         "product": product,
         "observatory": observatory,
@@ -145,6 +146,7 @@ pub(super) fn boot_twice(
     let proof = serde_json::json!({
         "schema": "conduit.conduitos/ia32-product-proof@2",
         "proof_class": "freestanding-ia32-emulator-dual-firmware-carrier",
+        "emulator_cpu": "max",
         "base_commit": git_head(&paths.root)?,
         "image_sha256": image_sha256,
         "first": first,
@@ -226,7 +228,7 @@ fn boot_once(
             "-machine",
             firmware_mode.machine(),
             "-cpu",
-            "qemu32",
+            "max",
             "-m",
             "512M",
             "-smp",
@@ -283,7 +285,7 @@ fn boot_once(
             matches!(firmware_mode, FirmwareMode::Uefi32)
                 || super::ia32_vga_receipt::completed_boot(&transcript).is_some(),
         ) {
-            let value: serde_json::Value = serde_json::from_str(json)
+            let mut value: serde_json::Value = serde_json::from_str(json)
                 .map_err(|error| refusal("malformed-ia32-product-sign", error.to_string()))?;
             validate_sign(
                 &value,
@@ -294,6 +296,14 @@ fn boot_once(
             let observatory: serde_json::Value = serde_json::from_str(observatory_json)
                 .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
             validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+            match super::ia32_domain_receipt::capture(&transcript, &value) {
+                Ok(cost) => value["ordinary_domain_cost"] = cost,
+                Err(error) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(error);
+                }
+            }
             if matches!(firmware_mode, FirmwareMode::LegacyBios) {
                 if let Err(error) = super::ia32_vga_receipt::validate_completion(
                     &transcript,

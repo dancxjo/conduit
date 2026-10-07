@@ -15,9 +15,12 @@ mod body;
 pub(crate) use body::BodyTextAdmission;
 
 static NEXT_DOMAIN: AtomicU32 = AtomicU32::new(1);
-pub(crate) const ROOT_METADATA_CEILING: u32 =
-    core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>() as u32
-        + 2 * (4 * 64 + 64);
+pub(crate) const ROOT_METADATA_CEILING: u32 = {
+    let text = core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>();
+    let dual = core::mem::size_of::<crate::dual_region_kernel::DualRegionKernel>();
+    if text > dual { text } else { dual }
+} as u32
+    + 2 * (4 * 64 + 64);
 
 pub(crate) trait TextOwner: DomainBinding {
     fn scope(
@@ -91,6 +94,20 @@ impl ProtectedText {
         active: &ActivePlayIdentity,
         fixed: &crate::offer::HostOffer<'_>,
     ) -> Result<Self, MachineRunError> {
+        Self::prepare_with_kernel_bytes(
+            plan,
+            active,
+            fixed,
+            core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>(),
+        )
+    }
+
+    pub(crate) fn prepare_with_kernel_bytes(
+        plan: &Plan,
+        active: &ActivePlayIdentity,
+        fixed: &crate::offer::HostOffer<'_>,
+        kernel_bytes: usize,
+    ) -> Result<Self, MachineRunError> {
         let started = TextDomain::ticks();
         let domain = NEXT_DOMAIN
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
@@ -104,9 +121,13 @@ impl ProtectedText {
                 fragment.host_id == active.host_id && fragment.boot_id == active.boot_id
             })
             .ok_or(MachineRunError::KernelConstruction)?;
-        let [region] = fragment.execution_regions.as_slice() else {
+        let mut regions = fragment.execution_regions.iter().filter(|region| {
+            region.execution_profile_id.as_str() == crate::ordinary_plan::PROTECTED_REGION_PROFILE
+        });
+        let region = regions.next().ok_or(MachineRunError::KernelConstruction)?;
+        if regions.next().is_some() {
             return Err(MachineRunError::KernelConstruction);
-        };
+        }
         if region.execution_profile_id.as_str() != crate::ordinary_plan::PROTECTED_REGION_PROFILE
             || !region.preemption_required
             || !region.isolation_required
@@ -142,10 +163,8 @@ impl ProtectedText {
                     + binding.region.0.capacity()
             })
             .sum::<usize>();
-        let root_metadata_bytes = u32::try_from(
-            core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>() + heap_bytes,
-        )
-        .map_err(|_| MachineRunError::KernelConstruction)?;
+        let root_metadata_bytes = u32::try_from(kernel_bytes + heap_bytes)
+            .map_err(|_| MachineRunError::KernelConstruction)?;
         if TextDomain::RESERVED_BYTES
             .checked_add(root_metadata_bytes)
             .is_none_or(|bytes| bytes > region.requirements.runtime_memory_bytes)
@@ -414,8 +433,8 @@ impl<I: TextOwner> Drop for ProtectedText<I> {
             return;
         }
         let mut sign = crate::sign_format::FixedText::new();
-        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"x86_64\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"tsc\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
-            self.current.region_id(), self.current.plan_id(),
+        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"{}\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"interrupt_entries\":{},\"source_timer_interrupts\":{},\"privilege_transitions\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"tsc\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
+            crate::arch::ARCHITECTURE, self.current.region_id(), self.current.plan_id(),
             self.current.play_id(), self.current.domain().0, self.diagnostic_fixture, self.region.state(),
             cost.entries, cost.interrupt_entries, cost.source_timer_interrupts, cost.privilege_transitions, cost.gate_transitions, cost.copied_bytes, cost.setup_copied_bytes,
             cost.base_gate_transitions, cost.tlb_flushes, cost.setup_ticks, cost.teardown_ticks,

@@ -231,27 +231,37 @@ fn build_region(
     lane_base_identity: alloc::string::String,
     fragment: &PlanFragment,
 ) -> Result<ExecutionRegion, PreparationError> {
-    let ordinary_text = fragment.placements.len() == 3
-        && fragment.placements.iter().all(|placement| {
-            matches!(
-                placement.kind_id.as_str(),
-                conduit_text::TEXT_LITERAL_KIND
-                    | conduit_text::TEXT_UPPER_KIND
-                    | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
-            )
-        });
-    let keyboard_text = fragment.placements.len() == 4
-        && fragment.placements.iter().all(|placement| {
-            matches!(
-                placement.kind_id.as_str(),
-                conduit_semantic_catalog::KEYBOARD_KIND
-                    | conduit_semantic_catalog::KEYMAP_KIND
-                    | conduit_text::TEXT_UPPER_KIND
-                    | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
-            )
-        });
-    let protected = cfg!(all(target_arch = "x86_64", target_os = "none"))
-        && region_id == "region/0"
+    let ordinary_text = admitted_placements.len() == 3
+        && fragment
+            .placements
+            .iter()
+            .filter(|placement| admitted_placements.contains(&placement.placement_id))
+            .all(|placement| {
+                matches!(
+                    placement.kind_id.as_str(),
+                    conduit_text::TEXT_LITERAL_KIND
+                        | conduit_text::TEXT_UPPER_KIND
+                        | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                )
+            });
+    let keyboard_text = admitted_placements.len() == 4
+        && fragment
+            .placements
+            .iter()
+            .filter(|placement| admitted_placements.contains(&placement.placement_id))
+            .all(|placement| {
+                matches!(
+                    placement.kind_id.as_str(),
+                    conduit_semantic_catalog::KEYBOARD_KIND
+                        | conduit_semantic_catalog::KEYMAP_KIND
+                        | conduit_text::TEXT_UPPER_KIND
+                        | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                )
+            });
+    let protected = cfg!(any(
+        all(target_arch = "x86_64", target_os = "none"),
+        all(target_arch = "x86", feature = "ia32-product")
+    )) && matches!(region_id, "region/0" | "region/text")
         && (ordinary_text || keyboard_text);
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {

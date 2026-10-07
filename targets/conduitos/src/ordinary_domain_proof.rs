@@ -2,6 +2,7 @@
 use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 
 mod gates;
+mod timer;
 
 pub fn run(record: &boot::BootRecord) -> ! {
     arch::initialize_machine(record, boot::executable_physical_address);
@@ -42,7 +43,7 @@ pub fn run(record: &boot::BootRecord) -> ! {
     gates::run(&plan, &offer);
     keymap_entries();
     hostile_entries();
-    pending_timer();
+    timer::run();
     arch::early_write(b"CONDUIT_ORDINARY_DOMAIN_SIGN {\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"ordinary_source\":true,\"protected_computation\":true,\"effect_capability_gates\":true,\"dma_isolation\":false,\"driver_isolation\":false,\"bounded\":true}\n");
     arch::deterministic_exit(true)
 }
@@ -71,6 +72,7 @@ fn hostile_entries() {
         (4, 0, DomainFault::PrivilegedOperation),
         (5, 0, DomainFault::PrivilegedOperation),
         (6, 0, DomainFault::WorkExhausted),
+        (17, 0, DomainFault::WorkExhausted),
         (7, 0, DomainFault::InvalidInstruction),
         (8, 0, DomainFault::InvalidInstruction),
         (9, 0, DomainFault::PrivilegedOperation),
@@ -99,7 +101,7 @@ fn hostile_entries() {
     {
         refuse("private-state-changed");
     }
-    arch::early_write(b"CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute\n");
+    arch::early_write(b"CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop direction-flag fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute\n");
 }
 
 fn refuse(reason: &str) -> ! {
@@ -181,53 +183,4 @@ fn keymap_entries() {
         refuse("chain-unicode-expansion");
     }
     arch::early_write(b"CONDUIT_DOMAIN_CHAIN one-entry unicode-expansion\n");
-}
-
-fn pending_timer() {
-    use crate::{
-        machine::{KernelInterest, TimerBase},
-        protected_region::{DomainBackend, DomainFault, DomainReturn},
-    };
-    use conduit_kernel::{BoundedValueRef, NodeId, RequestId, ValueRef};
-    let interest = KernelInterest {
-        node: NodeId(0),
-        request: RequestId(71),
-        input: BoundedValueRef::new(
-            ValueRef {
-                slot: 0,
-                generation: 1,
-                byte_len: 4,
-            },
-            4,
-        )
-        .unwrap_or_else(|_| refuse("timer-fixture-interest")),
-    };
-    let mut domain = arch::TextDomain::install().unwrap_or_else(|_| refuse("timer-fixture-domain"));
-    domain.probe(6, 0);
-    let mut timer = arch::Timer::new();
-    timer
-        .arm(interest)
-        .unwrap_or_else(|_| refuse("timer-fixture-arm"));
-    let returned = domain.enter(1);
-    let mut sign = crate::sign_format::FixedText::new();
-    use core::fmt::Write;
-    let _ = writeln!(
-        sign,
-        "CONDUIT_DOMAIN_TIMER_COUNTS source={} interrupts={}",
-        domain.cost().source_timer_interrupts,
-        domain.cost().interrupt_entries
-    );
-    arch::early_write(sign.as_bytes());
-    if returned != Ok(DomainReturn::Fault(DomainFault::WorkExhausted))
-        || domain.cost().source_timer_interrupts != 1
-        || timer.take_wake() != Ok(Some(interest))
-        || timer.take_wake() != Ok(None)
-        || timer.wakes() != 1
-    {
-        refuse("pending-source-timer-lost");
-    }
-    arch::early_write(
-        b"CONDUIT_DOMAIN_TIMER_COEXISTENCE source-wake-once user-irq budget-preemption
-",
-    );
 }

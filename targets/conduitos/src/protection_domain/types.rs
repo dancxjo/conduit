@@ -10,6 +10,7 @@ pub struct KernelCapabilityHandle(pub(super) u64);
 impl KernelCapabilityHandle {
     #[cfg(any(
         feature = "conduitos-isolation-proof",
+        all(target_arch = "x86", feature = "ia32-product"),
         all(target_os = "none", target_arch = "x86_64")
     ))]
     pub(crate) const fn raw_for_domain(self) -> u64 {
@@ -18,6 +19,7 @@ impl KernelCapabilityHandle {
 
     #[cfg(any(
         feature = "conduitos-isolation-proof",
+        all(target_arch = "x86", feature = "ia32-product"),
         all(target_os = "none", target_arch = "x86_64")
     ))]
     pub(crate) const fn from_untrusted(raw: u64) -> Self {

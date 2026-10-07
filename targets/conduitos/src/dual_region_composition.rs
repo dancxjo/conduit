@@ -25,6 +25,30 @@ where
     I: InterruptBase,
     D: IdleBase,
 {
+    let result = run_inner(kernel, clock, timer, serial, interrupts, idle);
+    kernel.finish_protection(if result.is_ok() {
+        crate::protection_domain::KernelRevocationCause::PlayCompleted
+    } else {
+        crate::protection_domain::KernelRevocationCause::PlayFailed
+    });
+    result
+}
+
+fn run_inner<C, T, S, I, D>(
+    kernel: &mut DualRegionKernel,
+    clock: &mut C,
+    timer: &mut T,
+    serial: &mut S,
+    interrupts: &mut I,
+    idle: &mut D,
+) -> Result<MachineRunReceipt, MachineRunError>
+where
+    C: MonotonicClockBase,
+    T: TimerBase,
+    S: SerialBase,
+    I: InterruptBase,
+    D: IdleBase,
+{
     let started = clock.now();
     let disabled_state = interrupts.disable();
     if interrupts.is_enabled() {
@@ -64,32 +88,14 @@ where
                 continue;
             }
             if kernel.is_upper_request(&request) {
-                let output = {
-                    let value = kernel
-                        .host_value(request.input.value)
-                        .map_err(|_| MachineRunError::KernelFailure)?;
-                    crate::text_upper::uppercase(value).map_err(|error| match error {
-                        crate::text_upper::UppercaseError::MalformedUtf8 => {
-                            MachineRunError::TextMalformedUtf8
-                        }
-                        crate::text_upper::UppercaseError::OutputOverflow => {
-                            MachineRunError::TextOutputOverflow
-                        }
-                    })?
-                };
+                let output = kernel.compute_upper(request)?;
                 kernel
                     .complete_upper(request, output.as_bytes())
                     .map_err(|_| MachineRunError::KernelFailure)?;
                 continue;
             }
             if kernel.is_text_presentation_request(&request) {
-                let value = kernel
-                    .host_value(request.input.value)
-                    .map_err(|_| MachineRunError::KernelFailure)?;
-                core::str::from_utf8(value).map_err(|_| MachineRunError::SerialBaseFailure)?;
-                serial
-                    .present(value)
-                    .map_err(|_| MachineRunError::SerialBaseFailure)?;
+                kernel.present_text(request, serial)?;
                 kernel
                     .complete_presentation(request)
                     .map_err(|_| MachineRunError::KernelFailure)?;

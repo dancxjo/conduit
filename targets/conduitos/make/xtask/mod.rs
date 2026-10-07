@@ -31,6 +31,8 @@ mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
+mod ia32_domain_proof;
+mod ia32_domain_receipt;
 mod ia32_physical_proof;
 mod ia32_product_boot;
 mod ia32_vga_receipt;
@@ -516,6 +518,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
         ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
+        ConduitosCommand::Ia32OrdinaryDomainProof => ia32_domain_proof::execute(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }
