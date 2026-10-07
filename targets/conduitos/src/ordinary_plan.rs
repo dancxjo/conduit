@@ -1,6 +1,8 @@
 //! Current plot check, exact boot-scoped planning, and numeric lowering.
 
 use alloc::{format, vec, vec::Vec};
+use core::sync::atomic::{AtomicU32, Ordering};
+static NEXT_PLAY: AtomicU32 = AtomicU32::new(1);
 
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, BootId, CapabilityId, ExecutionProfileId,
@@ -35,6 +37,19 @@ pub(crate) const fn region_profile(protected: bool) -> &'static str {
     }
 }
 
+pub(crate) fn new_play(
+    plan: &PlanId,
+    host: &HostId,
+    boot: &BootId,
+) -> Result<ActivePlayIdentity, PreparationError> {
+    let sequence = NEXT_PLAY
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+            value.checked_add(1)
+        })
+        .map_err(|_| PreparationError::PlayIdentityExhausted)?;
+    Ok(bind_active_play(plan, host, boot, u64::from(sequence)))
+}
+
 pub struct PreparedOrdinaryPlay {
     pub kernel: TextPlannedKernel,
     pub advertisement: HostAdvertisement,
@@ -58,6 +73,7 @@ pub enum PreparationError {
     LoweringRejected,
     KernelRejected,
     Protection(crate::protected_region::DomainRefusal),
+    PlayIdentityExhausted,
 }
 
 impl PreparationError {
@@ -70,6 +86,7 @@ impl PreparationError {
             Self::LoweringRejected => "ordinary-lowering-rejected",
             Self::KernelRejected => "ordinary-kernel-rejected",
             Self::Protection(refusal) => refusal.as_str(),
+            Self::PlayIdentityExhausted => "ordinary-play-identity-capacity-exhausted",
         }
     }
 }
@@ -145,10 +162,10 @@ pub fn prepare_source(
     #[allow(unused_mut)]
     let mut kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
         .map_err(|_| PreparationError::KernelRejected)?;
-    let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let active_play = new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     kernel
-        .protect(&plan, &active_play)
+        .protect(&plan, &active_play, fixed_offer)
         .map_err(|error| match error {
             crate::composition::MachineRunError::ProtectionDomain(refusal) => {
                 PreparationError::Protection(refusal)
@@ -380,6 +397,7 @@ pub(crate) fn advertisement(
     advertisement
         .capabilities
         .extend([every, count, count_presentation]);
+    crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
@@ -436,7 +454,8 @@ fn bind_native_capability(
     let mut memory_bytes = 4096;
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     if fixed.kind == conduit_text::TEXT_UPPER_KIND {
-        memory_bytes += crate::arch::TextDomain::RESERVED_BYTES;
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
     }
     portable
         .resource_requirements

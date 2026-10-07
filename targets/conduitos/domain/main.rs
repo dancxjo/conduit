@@ -18,10 +18,29 @@ mod text_transform;
 pub unsafe extern "C" fn domain_entry(frame: *mut TextFrame) -> ! {
     let frame = unsafe { &mut *frame };
     #[cfg(domain_proof)]
-    if frame.probe != 0 {
+    if frame.probe != 0 && frame.command == 0 {
         unsafe { probes::run(frame) }
     }
     let length = frame.input_length as usize;
+    match frame.command {
+        0 => {}
+        1 => {
+            if length > TEXT_CAPACITY || frame.capacity != TEXT_CAPACITY as u32 {
+                gate::finish(3);
+            }
+            #[cfg(domain_proof)]
+            probes::mutate_gate(frame);
+            // Whole-buffer effect request. The opaque handle grants nothing here;
+            // only Root can admit it and operate its selected serial Base.
+            gate::finish(0x200);
+        }
+        2 => {
+            #[cfg(domain_proof)]
+            if frame.probe == 14 { gate::finish(0x200); }
+            gate::finish(frame.status)
+        }
+        _ => gate::finish(3),
+    }
     frame.output_length = 0;
     frame.status = if length > frame.input.len() || frame.capacity != TEXT_CAPACITY as u32 {
         1

@@ -14,8 +14,10 @@ for the ordered actions, captured screens, and exact emulator evidence.
 
 Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
 is in progress: a local x86_64 emulator run exercised checked ordinary text
-Source with its computation in CPL3 and 11 hostile-entry checks. Effects still
-use the trusted Root path, other product paths and architectures are unfinished,
+Source with its computation in CPL3 and serial presentation admitted through
+a scoped domain capability gate. Seventeen hostile entries and malformed
+capability/lifecycle requests returned to Root; other product paths and
+architectures are unfinished,
 and DMA/driver isolation remain false. This is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
 

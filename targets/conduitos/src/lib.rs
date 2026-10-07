@@ -22,6 +22,7 @@ pub mod cryptographic_entropy;
 pub mod current_sample;
 pub mod display;
 pub mod domain_image;
+pub mod domain_serial_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
@@ -115,6 +116,7 @@ pub mod opl2_offer;
 pub mod opl2_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_play;
+mod ordinary_base;
 #[cfg(all(
     target_os = "none",
     target_arch = "x86_64",

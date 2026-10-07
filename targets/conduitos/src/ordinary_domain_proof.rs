@@ -1,6 +1,8 @@
 //! Supplemental emulator evidence through real checked Source and the product kernel.
 use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 
+mod gates;
+
 pub fn run(record: &boot::BootRecord) -> ! {
     arch::initialize_machine(record, boot::executable_physical_address);
     let identities = identity::derive(
@@ -35,9 +37,11 @@ pub fn run(record: &boot::BootRecord) -> ! {
     if let Err(error) = result {
         refuse(error.as_str());
     }
+    let plan = prepared.plan.clone();
     drop(prepared);
+    gates::run(&plan, &offer);
     hostile_entries();
-    arch::early_write(b"CONDUIT_ORDINARY_DOMAIN_SIGN {\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"ordinary_source\":true,\"protected_computation\":true,\"effect_capability_gates\":false,\"dma_isolation\":false,\"driver_isolation\":false,\"bounded\":true}\n");
+    arch::early_write(b"CONDUIT_ORDINARY_DOMAIN_SIGN {\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"ordinary_source\":true,\"protected_computation\":true,\"effect_capability_gates\":true,\"dma_isolation\":false,\"driver_isolation\":false,\"bounded\":true}\n");
     arch::deterministic_exit(true)
 }
 
@@ -66,12 +70,22 @@ fn hostile_entries() {
         (5, 0, DomainFault::PrivilegedOperation),
         (6, 0, DomainFault::WorkExhausted),
         (7, 0, DomainFault::InvalidInstruction),
+        (8, 0, DomainFault::InvalidInstruction),
+        (9, 0, DomainFault::PrivilegedOperation),
+        (10, 0, DomainFault::InvalidInstruction),
+        (11, 0, DomainFault::PrivilegedOperation),
+        (12, 0, DomainFault::InvalidInstruction),
+        (14, 0, DomainFault::PrivilegedOperation),
         (2, crate::domain_image::USER_TEXT_START, DomainFault::Memory),
         (3, 0x410000, DomainFault::Memory),
     ] {
         let mut domain = arch::TextDomain::install().unwrap_or_else(|_| refuse("proof-domain"));
         domain.probe(command, target);
-        if domain.enter(1) != Ok(DomainReturn::Fault(expected)) {
+        let returned = domain.enter(1);
+        // SYSENTER in long mode can raise #UD or #GP depending on the CPU.
+        let sysenter_denied =
+            command == 9 && returned == Ok(DomainReturn::Fault(DomainFault::InvalidInstruction));
+        if returned != Ok(DomainReturn::Fault(expected)) && !sysenter_denied {
             refuse("hostile-entry-did-not-fault");
         }
         if domain.cost().scheduler_returns != 1 {
@@ -83,7 +97,7 @@ fn hostile_entries() {
     {
         refuse("private-state-changed");
     }
-    arch::early_write(b"CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop fp code-write data-execute\n");
+    arch::early_write(b"CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute\n");
 }
 
 fn refuse(reason: &str) -> ! {

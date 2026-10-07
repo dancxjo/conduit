@@ -286,7 +286,25 @@ mod tests {
         .unwrap();
         let snapshot: ObservatorySnapshot = serde_json::from_str(&encoded).unwrap();
         validate_snapshot(&snapshot).unwrap();
-        let advertised = &prepared.advertisement.bases[0];
+        let advertised = prepared
+            .advertisement
+            .bases
+            .iter()
+            .find(|base| base.mechanism_family.as_str() == "conduitos.base/keyboard-input@1")
+            .unwrap();
+        let serial = offer
+            .bases
+            .iter()
+            .find(|base| base.kind == crate::machine::BaseKind::Serial)
+            .unwrap();
+        let serial_reports = snapshot
+            .bases
+            .iter()
+            .filter(|base| base.base_id.as_str() == crate::identity::hex(&serial.id))
+            .collect::<Vec<_>>();
+        assert_eq!(serial_reports.len(), 1);
+        assert!(serial_reports[0].implementation_id.is_some());
+        assert_eq!(serial_reports[0].capacity_units, u64::from(serial.capacity));
         let reported = snapshot
             .bases
             .iter()

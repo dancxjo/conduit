@@ -78,33 +78,49 @@ state. A hard timer returns a hostile loop as a work-exhaustion fault. A fault
 terminates the region; it does not resume the hostile instruction.
 
 The supplemental `cargo xtask make conduitos ordinary-domain-proof` lane runs
-checked ordinary text Source through the production kernel and then checks 11
-hostile entries: Root memory, capability memory, a sibling domain's private
-frame, Root entry, MMIO, ports, interrupt disabling, an infinite loop,
-floating-point access, code writes, and data execution. This lane does not
-establish that every current product path uses protection domains.
+checked ordinary text Source through the production kernel and then checks 17
+hostile entries: Root memory, capability memory, sibling memory, Root entry,
+MMIO, ports, interrupt disabling, an infinite loop, floating-point access,
+alternate syscall entries, division by zero, breakpoint, single-step, timestamp
+access, code writes, and data execution. This lane does not establish that every
+current product path uses protection domains.
 
-A local x86_64 QEMU run produced `HELLO, CONDUITOS`, returned all 11 hostile
-entries to Root, and preserved sibling state. Its ordinary region recorded one
-entry, one gate, two CR3 switches, one scheduler return and 118,784 reserved
-bytes. `copied_bytes` currently includes both implementation setup and input/
-output copies; it is not a steady-state copy-cost measurement. Preparation,
-teardown and timer/TLB cost measurements remain incomplete.
+The text region requests one serial presentation through an opaque authenticated
+handle. Root checks the current Host, Boot, Plan, Play, selected implementation,
+provider and resource generations, operation, subject, authority and bounded
+request before operating its serial Base. Successful completion consumes the
+one-operation grant. Provider loss and generation changes fail the operation.
+
+Supplemental hostile-image fixtures use fresh Play identities and the same
+production gate. The local emulator refused unknown and stolen sibling handles,
+wrong operations, oversized windows, excessive work, invalid capacities and
+UTF-8, and forged hardware-fault results before operating the Base. Replay and
+operation exhaustion preserved a one-effect count. Revoked lifecycle states
+performed no effect; provider loss revoked the grant. Fixture cost records are
+marked separately from the ordinary Source record. These fixtures supplement
+the actual Source run; they do not establish normal graphical-path integration.
+
+The local positive x86_64 QEMU run produced `HELLO, CONDUITOS` through that gate.
+It recorded three entries, three gates, one Base gate, six CR3 switches/TLB
+flushes, three scheduler returns, 64 runtime copy bytes, a 32-byte shared-window
+peak, and 118,784 backend bytes. Setup image copies and setup/teardown TSC ticks
+are reported separately. Root metadata is charged to region admission; teardown
+zeros the backend allocation. These are emulator measurements, with a shared
+page and no ring slots; scheduler/timer coexistence remains unfinished.
 
 | Target | Ordinary protection evidence | Remaining boundary |
 |---|---|---|
-| x86_64 | Supplemental emulator run of checked text Source and hostile entries; bounded CPL3 implementation in the ordinary text runner | Exact effect capability gate, current product paths, shared timer reservation and full cost evidence remain unfinished |
+| x86_64 | Supplemental emulator run of checked text Source and hostile entries; bounded CPL3 implementation in the ordinary text runner | Current product paths and shared timer reservation remain unfinished |
 | IA-32 | ELF32 artifact admission and malformed-mapping tests | No earned ordinary CPL3 execution proof |
 | AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
 | LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |
 | ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
 
-The ordinary text serial presentation still crosses its existing trusted Root
-Host Call path; this work does not yet enforce that effect through the domain
-capability gate. The supplemental Sign therefore reports
-`effect_capability_gates:false`. The current native workset, timer/Morse and
-other paths have not been migrated. DMA and driver isolation remain false.
+The ordinary text serial presentation now passes through its domain capability
+gate, and the supplemental Sign reports `effect_capability_gates:true`.
+The current native workset, timer/Morse and other paths have not been migrated.
+DMA and driver isolation remain false.
 Issue #5113 stays open until its complete cross-architecture product and proof
 criteria are earned; the local emulator run is not accepted-release evidence.
 

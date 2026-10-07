@@ -7,17 +7,37 @@ use core::{
 };
 
 static ACTIVE: AtomicBool = AtomicBool::new(false);
+#[repr(C)]
+pub(super) struct TransitionReturn {
+    pub value: u64,
+    pub origin: u64,
+}
 unsafe extern "C" {
-    fn conduitos_ordinary_enter(entry: u64, stack: u64, frame: u64, cr3: u64) -> u64;
+    fn conduitos_ordinary_enter(entry: u64, stack: u64, frame: u64, cr3: u64) -> TransitionReturn;
     fn conduitos_ordinary_gate();
     fn conduitos_ordinary_gp();
     fn conduitos_ordinary_pf();
     fn conduitos_ordinary_ud();
     fn conduitos_ordinary_nm();
+    fn conduitos_ordinary_exception_0();
+    fn conduitos_ordinary_exception_1();
+    fn conduitos_ordinary_exception_3();
+    fn conduitos_ordinary_exception_4();
+    fn conduitos_ordinary_exception_5();
+    fn conduitos_ordinary_exception_10();
+    fn conduitos_ordinary_exception_11();
+    fn conduitos_ordinary_exception_12();
+    fn conduitos_ordinary_exception_16();
+    fn conduitos_ordinary_exception_17();
+    fn conduitos_ordinary_exception_19();
+    fn conduitos_ordinary_exception_21();
+    fn conduitos_ordinary_exception_30();
     fn conduitos_ordinary_timer();
 }
 
-pub(super) fn enter(space: &domain_memory::AddressSpace) -> Result<u64, DomainRefusal> {
+pub(super) fn enter(
+    space: &domain_memory::AddressSpace,
+) -> Result<TransitionReturn, DomainRefusal> {
     if ACTIVE.swap(true, Ordering::AcqRel) {
         return Err(DomainRefusal::InvalidLifecycle);
     }
@@ -32,6 +52,52 @@ pub(super) fn enter(space: &domain_memory::AddressSpace) -> Result<u64, DomainRe
         idt::install_handler(14, conduitos_ordinary_pf as *const () as u64, 0x8e);
         idt::install_handler(6, conduitos_ordinary_ud as *const () as u64, 0x8e);
         idt::install_handler(7, conduitos_ordinary_nm as *const () as u64, 0x8e);
+        idt::install_handler(0, conduitos_ordinary_exception_0 as *const () as u64, 0x8e);
+        idt::install_handler(1, conduitos_ordinary_exception_1 as *const () as u64, 0x8e);
+        idt::install_handler(3, conduitos_ordinary_exception_3 as *const () as u64, 0x8e);
+        idt::install_handler(4, conduitos_ordinary_exception_4 as *const () as u64, 0x8e);
+        idt::install_handler(5, conduitos_ordinary_exception_5 as *const () as u64, 0x8e);
+        idt::install_handler(
+            10,
+            conduitos_ordinary_exception_10 as *const () as u64,
+            0x8e,
+        );
+        idt::install_handler(
+            11,
+            conduitos_ordinary_exception_11 as *const () as u64,
+            0x8e,
+        );
+        idt::install_handler(
+            12,
+            conduitos_ordinary_exception_12 as *const () as u64,
+            0x8e,
+        );
+        idt::install_handler(
+            16,
+            conduitos_ordinary_exception_16 as *const () as u64,
+            0x8e,
+        );
+        idt::install_handler(
+            17,
+            conduitos_ordinary_exception_17 as *const () as u64,
+            0x8e,
+        );
+        idt::install_handler(
+            19,
+            conduitos_ordinary_exception_19 as *const () as u64,
+            0x8e,
+        );
+        idt::install_handler(
+            21,
+            conduitos_ordinary_exception_21 as *const () as u64,
+            0x8e,
+        );
+        idt::install_handler(
+            30,
+            conduitos_ordinary_exception_30 as *const () as u64,
+            0x8e,
+        );
+
         idt::install_handler(
             super::TIMER_IRQ_VECTOR,
             conduitos_ordinary_timer as *const () as u64,
@@ -72,6 +138,10 @@ global_asm!(
 conduitos_ordinary_root_rsp: .quad 0
 conduitos_ordinary_root_cr3: .quad 0
 conduitos_ordinary_root_cr0: .quad 0
+conduitos_ordinary_root_cr4: .quad 0
+conduitos_ordinary_root_segments: .quad 0
+conduitos_ordinary_root_fs: .quad 0
+conduitos_ordinary_root_gs: .quad 0
     .text
     .global conduitos_ordinary_enter
 conduitos_ordinary_enter:
@@ -87,16 +157,51 @@ conduitos_ordinary_enter:
     mov rax, cr3
     mov [rip + conduitos_ordinary_root_cr3], rax
     mov cr3, rcx
+    mov r12, rdi
+    mov r13, rsi
+    mov r14, rdx
+    mov rax, cr4
+    mov [rip + conduitos_ordinary_root_cr4], rax
+    or rax, 4
+    and rax, -65793
+    mov cr4, rax
+    mov ax, ds
+    mov [rip + conduitos_ordinary_root_segments], ax
+    mov ax, es
+    mov [rip + conduitos_ordinary_root_segments + 2], ax
+    mov ax, fs
+    mov [rip + conduitos_ordinary_root_segments + 4], ax
+    mov ax, gs
+    mov [rip + conduitos_ordinary_root_segments + 6], ax
+    mov ecx, 0xc0000100
+    rdmsr
+    mov [rip + conduitos_ordinary_root_fs], eax
+    mov [rip + conduitos_ordinary_root_fs + 4], edx
+    mov ecx, 0xc0000101
+    rdmsr
+    mov [rip + conduitos_ordinary_root_gs], eax
+    mov [rip + conduitos_ordinary_root_gs + 4], edx
+    mov ax, {user_data}
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    xor eax, eax
+    xor edx, edx
+    mov ecx, 0xc0000100
+    wrmsr
+    mov ecx, 0xc0000101
+    wrmsr
     // The admitted soft-float implementation has no floating-point authority.
     // Trap FPU/SIMD use rather than exposing inherited Root register contents.
     mov rax, cr0
     mov [rip + conduitos_ordinary_root_cr0], rax
     or rax, 8
     mov cr0, rax
-    mov rax, rdi
-    mov rdi, rdx
+    mov rax, r12
+    mov rdi, r14
     push {user_data}
-    push rsi
+    push r13
     push 0x202
     push {user_code}
     push rax
@@ -121,6 +226,7 @@ conduitos_ordinary_gate:
     // A gate is only callable from the current user domain.
     test byte ptr [rsp + 8], 3
     jz conduitos_ordinary_root_fault
+    xor edx, edx
     jmp conduitos_ordinary_return
 
     .global conduitos_ordinary_gp
@@ -140,10 +246,70 @@ conduitos_ordinary_ud:
 conduitos_ordinary_nm:
     push 0
     mov eax, 7
+    .global conduitos_ordinary_exception_0
+conduitos_ordinary_exception_0:
+    push 0
+    mov eax, 0
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_1
+conduitos_ordinary_exception_1:
+    push 0
+    mov eax, 1
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_3
+conduitos_ordinary_exception_3:
+    push 0
+    mov eax, 3
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_4
+conduitos_ordinary_exception_4:
+    push 0
+    mov eax, 4
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_5
+conduitos_ordinary_exception_5:
+    push 0
+    mov eax, 5
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_10
+conduitos_ordinary_exception_10:
+    mov eax, 10
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_11
+conduitos_ordinary_exception_11:
+    mov eax, 11
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_12
+conduitos_ordinary_exception_12:
+    mov eax, 12
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_16
+conduitos_ordinary_exception_16:
+    push 0
+    mov eax, 16
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_17
+conduitos_ordinary_exception_17:
+    mov eax, 17
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_19
+conduitos_ordinary_exception_19:
+    push 0
+    mov eax, 19
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_21
+conduitos_ordinary_exception_21:
+    mov eax, 21
+    jmp conduitos_ordinary_fault
+    .global conduitos_ordinary_exception_30
+conduitos_ordinary_exception_30:
+    mov eax, 30
+    jmp conduitos_ordinary_fault
 conduitos_ordinary_fault:
     test byte ptr [rsp + 16], 3
     jz conduitos_ordinary_root_fault
     add rax, 0x100
+    mov edx, 1
     jmp conduitos_ordinary_return
 conduitos_ordinary_root_fault:
     mov rdi, rax
@@ -176,6 +342,7 @@ conduitos_ordinary_timer:
     test rax, rax
     jz conduitos_ordinary_timer_resume
     mov eax, 4
+    mov edx, 2
     jmp conduitos_ordinary_return
 conduitos_ordinary_timer_resume:
     pop r15
@@ -197,6 +364,28 @@ conduitos_ordinary_timer_resume:
 
 conduitos_ordinary_return:
     cli
+    mov r8, rax
+    mov r9, rdx
+    mov rcx, [rip + conduitos_ordinary_root_cr4]
+    mov cr4, rcx
+    mov ax, [rip + conduitos_ordinary_root_segments]
+    mov ds, ax
+    mov ax, [rip + conduitos_ordinary_root_segments + 2]
+    mov es, ax
+    mov ax, [rip + conduitos_ordinary_root_segments + 4]
+    mov fs, ax
+    mov ax, [rip + conduitos_ordinary_root_segments + 6]
+    mov gs, ax
+    mov eax, [rip + conduitos_ordinary_root_fs]
+    mov edx, [rip + conduitos_ordinary_root_fs + 4]
+    mov ecx, 0xc0000100
+    wrmsr
+    mov eax, [rip + conduitos_ordinary_root_gs]
+    mov edx, [rip + conduitos_ordinary_root_gs + 4]
+    mov ecx, 0xc0000101
+    wrmsr
+    mov rax, r8
+    mov rdx, r9
     mov rcx, [rip + conduitos_ordinary_root_cr0]
     mov cr0, rcx
     mov rcx, [rip + conduitos_ordinary_root_cr3]

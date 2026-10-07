@@ -10,15 +10,26 @@ use conduit_core::{ActivePlayIdentity, Plan};
 use core::sync::atomic::{AtomicU32, Ordering};
 
 static NEXT_DOMAIN: AtomicU32 = AtomicU32::new(1);
+pub(crate) const ROOT_METADATA_CEILING: u32 =
+    core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>() as u32
+        + 2 * (4 * 64 + 64);
 
 pub(crate) struct ProtectedText {
     region: ProtectedRegion<TextDomain>,
     capabilities: KernelCapabilityTable,
     current: RegionBinding,
+    serial: crate::domain_serial_scope::SerialScope,
+    serial_handle: crate::protection_domain::KernelCapabilityHandle,
+    diagnostic_fixture: bool,
 }
 
 impl ProtectedText {
-    pub fn prepare(plan: &Plan, active: &ActivePlayIdentity) -> Result<Self, MachineRunError> {
+    pub fn prepare(
+        plan: &Plan,
+        active: &ActivePlayIdentity,
+        fixed: &crate::offer::HostOffer<'_>,
+    ) -> Result<Self, MachineRunError> {
+        let started = TextDomain::ticks();
         let domain = NEXT_DOMAIN
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
                 value.checked_add(1)
@@ -45,12 +56,48 @@ impl ProtectedText {
             RegionBinding::admit(plan, active, &region.region_id, ProtectionDomainId(domain))
                 .map_err(MachineRunError::ProtectionDomain)?;
         let backend = TextDomain::install().map_err(MachineRunError::ProtectionDomain)?;
-        Ok(Self {
+        let serial = crate::domain_serial_scope::SerialScope::admit(plan, &binding, fixed)
+            .map_err(MachineRunError::ProtectionDomain)?;
+        let mut capabilities = capability_table(fixed.generation)?;
+        let serial_handle = capabilities
+            .issue(binding.domain, serial.scope)
+            .map_err(MachineRunError::ProtectionCapability)?;
+        let mut protected = Self {
             current: binding.clone(),
             region: ProtectedRegion::installed(binding, backend),
-            capabilities: KernelCapabilityTable::new(1)
-                .map_err(|_| MachineRunError::KernelConstruction)?,
-        })
+            capabilities,
+            serial,
+            serial_handle,
+            diagnostic_fixture: false,
+        };
+        let heap_bytes = [&protected.current, protected.region.binding()]
+            .into_iter()
+            .map(|binding| {
+                binding.active.host_id.0.capacity()
+                    + binding.active.boot_id.0.capacity()
+                    + binding.active.plan_id.0.capacity()
+                    + binding.active.active_play_id.0.capacity()
+                    + binding.region.0.capacity()
+            })
+            .sum::<usize>();
+        let root_metadata_bytes = u32::try_from(
+            core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>() + heap_bytes,
+        )
+        .map_err(|_| MachineRunError::KernelConstruction)?;
+        if TextDomain::RESERVED_BYTES
+            .checked_add(root_metadata_bytes)
+            .is_none_or(|bytes| bytes > region.requirements.runtime_memory_bytes)
+        {
+            return Err(MachineRunError::ProtectionDomain(
+                crate::protected_region::DomainRefusal::InvalidMemory,
+            ));
+        }
+        protected
+            .region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?
+            .preparation_cost(started, root_metadata_bytes);
+        Ok(protected)
     }
 
     pub fn uppercase(&mut self, input: &[u8]) -> Result<UppercaseText, MachineRunError> {
@@ -66,7 +113,15 @@ impl ProtectedText {
         {
             DomainReturn::Yielded => {}
             DomainReturn::Fault(fault) => return Err(MachineRunError::ProtectionFault(fault)),
-            _ => return Err(MachineRunError::KernelFailure),
+            _ => {
+                self.region.fault(
+                    crate::protected_region::DomainFault::InvalidGate,
+                    &mut self.capabilities,
+                );
+                return Err(MachineRunError::ProtectionFault(
+                    crate::protected_region::DomainFault::InvalidGate,
+                ));
+            }
         }
         let backend = self
             .region
@@ -85,12 +140,176 @@ impl ProtectedText {
         output.len = backend
             .output(&mut output.bytes)
             .map_err(MachineRunError::ProtectionDomain)?;
+        if core::str::from_utf8(output.as_bytes()).is_err() {
+            self.region.fault(
+                crate::protected_region::DomainFault::InvalidGate,
+                &mut self.capabilities,
+            );
+            return Err(MachineRunError::ProtectionFault(
+                crate::protected_region::DomainFault::InvalidGate,
+            ));
+        }
         Ok(output)
     }
 
     pub fn revoke(&mut self, cause: KernelRevocationCause) {
         self.region.revoke(cause, &mut self.capabilities);
     }
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub(crate) fn mark_fixture(&mut self) {
+        self.diagnostic_fixture = true;
+    }
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub(crate) fn gate_probe(&mut self, probe: u32, target: u64) {
+        self.region
+            .backend_mut()
+            .expect("live diagnostic domain")
+            .configure_gate_probe(probe, target);
+    }
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub(crate) fn handle_for_probe(&self) -> u64 {
+        self.serial_handle.raw_for_domain()
+    }
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub(crate) fn state_for_probe(&self) -> crate::protected_region::DomainState {
+        self.region.state()
+    }
+
+    pub fn present(
+        &mut self,
+        input: &[u8],
+        serial: &mut impl crate::machine::SerialBase,
+    ) -> Result<(), MachineRunError> {
+        use crate::protected_region::DomainFault;
+        let current = self
+            .serial
+            .current(&self.current, serial.provider_generation())
+            .map_err(|refusal| {
+                self.revoke(KernelRevocationCause::BaseReplaced);
+                MachineRunError::ProtectionDomain(refusal)
+            })?;
+        self.region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?
+            .presentation(input, self.serial_handle.raw_for_domain())
+            .map_err(MachineRunError::ProtectionDomain)?;
+        match self
+            .region
+            .resume(&self.current, 1, &mut self.capabilities)
+            .map_err(MachineRunError::ProtectionDomain)?
+        {
+            DomainReturn::Gate => {}
+            DomainReturn::Fault(fault) => return Err(MachineRunError::ProtectionFault(fault)),
+            _ => {
+                self.region
+                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
+                return Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate));
+            }
+        }
+        let mut copied = [0; MAXIMUM_BYTES];
+        let (raw, operation, work_units, length) = self
+            .region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?
+            .effect_request(&mut copied)
+            .map_err(|error| {
+                self.region
+                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
+                MachineRunError::ProtectionDomain(error)
+            })?;
+        if work_units == 0 || core::str::from_utf8(&copied[..length]).is_err() {
+            self.region
+                .fault(DomainFault::InvalidGate, &mut self.capabilities);
+            return Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate));
+        }
+        let claim = crate::protection_domain::KernelOperationClaim {
+            boot: current.boot,
+            plan: current.plan,
+            play: current.play,
+            base_generation: current.base_generation,
+            resource_generation: current.resource_generation,
+            operation,
+            parameter_bytes: length as u32,
+            work_units,
+        };
+        let lease = self
+            .capabilities
+            .authorize_current(
+                self.current.domain,
+                crate::protection_domain::KernelCapabilityHandle::from_untrusted(raw),
+                &current,
+                claim,
+            )
+            .map_err(|error| {
+                self.region
+                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
+                MachineRunError::ProtectionCapability(error)
+            })?;
+        if serial.present(&copied[..length]).is_err() {
+            self.revoke(KernelRevocationCause::ProviderLost);
+            return Err(MachineRunError::SerialBaseFailure);
+        }
+        if self
+            .serial
+            .current(&self.current, serial.provider_generation())
+            .is_err()
+        {
+            self.revoke(KernelRevocationCause::BaseReplaced);
+            return Err(MachineRunError::ProtectionDomain(
+                crate::protected_region::DomainRefusal::WrongBinding,
+            ));
+        }
+        self.capabilities
+            .complete(lease)
+            .map_err(MachineRunError::ProtectionCapability)?;
+        self.region
+            .backend_mut()
+            .map_err(MachineRunError::ProtectionDomain)?
+            .effect_completed();
+        match self
+            .region
+            .resume(&self.current, 1, &mut self.capabilities)
+            .map_err(MachineRunError::ProtectionDomain)?
+        {
+            DomainReturn::Yielded => {
+                if self
+                    .region
+                    .backend_mut()
+                    .map_err(MachineRunError::ProtectionDomain)?
+                    .status()
+                    != 0
+                {
+                    self.region
+                        .fault(DomainFault::InvalidGate, &mut self.capabilities);
+                    return Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate));
+                }
+                Ok(())
+            }
+            DomainReturn::Fault(fault) => Err(MachineRunError::ProtectionFault(fault)),
+            _ => {
+                self.region
+                    .fault(DomainFault::InvalidGate, &mut self.capabilities);
+                Err(MachineRunError::ProtectionFault(DomainFault::InvalidGate))
+            }
+        }
+    }
+}
+
+fn capability_table(generation: u64) -> Result<KernelCapabilityTable, MachineRunError> {
+    use crate::cryptographic_entropy::CryptographicEntropyBase;
+    let source = crate::arch::RdrandEntropy::detect(generation).map_err(|_| {
+        MachineRunError::ProtectionDomain(crate::protected_region::DomainRefusal::Unsupported)
+    })?;
+    let mut entropy = CryptographicEntropyBase::<_, 1>::admit(source)
+        .map_err(|_| MachineRunError::KernelConstruction)?;
+    let mut key = [0; 8];
+    entropy
+        .fill(&mut key)
+        .map_err(|_| MachineRunError::KernelConstruction)?;
+    let table = KernelCapabilityTable::new(u64::from_le_bytes(key))
+        .map_err(MachineRunError::ProtectionCapability);
+    key.fill(0);
+    table
 }
 
 impl Drop for ProtectedText {
@@ -102,10 +321,12 @@ impl Drop for ProtectedText {
             return;
         }
         let mut sign = crate::sign_format::FixedText::new();
-        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"x86_64\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"state\":\"{:?}\",\"entries\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
+        if writeln!(sign, "CONDUIT_DOMAIN_COST {{\"schema\":\"conduit.conduitos/domain-cost@1\",\"architecture\":\"x86_64\",\"region_id\":\"{}\",\"plan_id\":\"{}\",\"play_id\":\"{}\",\"domain_id\":{},\"fixture\":{},\"state\":\"{:?}\",\"entries\":{},\"gate_transitions\":{},\"copied_bytes\":{},\"setup_copied_bytes\":{},\"base_gate_transitions\":{},\"tlb_flushes\":{},\"setup_ticks\":{},\"teardown_ticks\":{},\"tick_unit\":\"tsc\",\"teardown_zeroed_bytes\":{},\"shared_peak_bytes\":{},\"root_metadata_bytes\":{},\"shared_page_bytes\":4096,\"ring_slots\":0,\"address_space_switches\":{},\"scheduler_returns\":{},\"preemptions\":{},\"reserved_bytes\":{},\"dma_isolation\":false,\"driver_isolation\":false}}",
             self.current.region.as_str(), self.current.active.plan_id.as_str(),
-            self.current.active.active_play_id.as_str(), self.current.domain.0, self.region.state(),
-            cost.entries, cost.gate_transitions, cost.copied_bytes, cost.address_space_switches,
+            self.current.active.active_play_id.as_str(), self.current.domain.0, self.diagnostic_fixture, self.region.state(),
+            cost.entries, cost.gate_transitions, cost.copied_bytes, cost.setup_copied_bytes,
+            cost.base_gate_transitions, cost.tlb_flushes, cost.setup_ticks, cost.teardown_ticks,
+            cost.teardown_zeroed_bytes, cost.shared_peak_bytes, cost.root_metadata_bytes, cost.address_space_switches,
             cost.scheduler_returns, cost.preemptions, cost.reserved_bytes).is_ok() {
             crate::arch::early_write(sign.as_bytes());
         }

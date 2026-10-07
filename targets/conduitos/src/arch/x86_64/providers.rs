@@ -175,6 +175,9 @@ impl Default for Serial {
 }
 
 impl SerialBase for Serial {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         serial::present(bytes)?;
         self.presentations = self

@@ -17,11 +17,21 @@ pub struct TextDomain {
     space: AddressSpace,
     cost: DomainCost,
     quarantined: bool,
+    #[cfg(feature = "ordinary-domain-proof")]
+    gate_probe: (u32, u64),
 }
 
 impl TextDomain {
     pub const RESERVED_BYTES: u32 = 4 * 4096 + 65536 + 4096 + 2 * 16384;
+    pub fn ticks() -> u64 {
+        super::cpu::read_tsc()
+    }
+    pub fn preparation_cost(&mut self, started: u64, root_metadata_bytes: u32) {
+        self.cost.setup_ticks = Self::ticks().saturating_sub(started);
+        self.cost.root_metadata_bytes = root_metadata_bytes;
+    }
     pub fn install() -> Result<Self, DomainRefusal> {
+        let started = super::cpu::read_tsc();
         enable_no_execute()?;
         let image = DomainImage::parse(IMAGE, 62).map_err(|_| DomainRefusal::InvalidMemory)?;
         let space = AddressSpace::install(&image)?;
@@ -29,14 +39,17 @@ impl TextDomain {
             space,
             cost: DomainCost {
                 reserved_bytes: Self::RESERVED_BYTES,
-                copied_bytes: image
+                setup_copied_bytes: image
                     .segments
                     .iter()
                     .map(|segment| segment.bytes.len() as u64)
                     .sum(),
+                setup_ticks: super::cpu::read_tsc().saturating_sub(started),
                 ..DomainCost::default()
             },
             quarantined: false,
+            #[cfg(feature = "ordinary-domain-proof")]
+            gate_probe: (0, 0),
         })
     }
     pub fn input(&mut self, input: &[u8]) -> Result<(), DomainRefusal> {
@@ -53,7 +66,12 @@ impl TextDomain {
         frame.status = 3;
         frame.probe = 0;
         frame.target = 0;
+        frame.command = 0;
+        frame.operation = 0;
+        frame.work_units = 0;
+        frame.capability = 0;
         self.cost.copied_bytes += input.len() as u64;
+        self.cost.shared_peak_bytes = self.cost.shared_peak_bytes.max(input.len() as u32);
         Ok(())
     }
     pub fn output(&mut self, output: &mut [u8]) -> Result<usize, DomainRefusal> {
@@ -65,10 +83,50 @@ impl TextDomain {
         }
         output[..length].copy_from_slice(&frame.output[..length]);
         self.cost.copied_bytes += length as u64;
+        self.cost.shared_peak_bytes = self
+            .cost
+            .shared_peak_bytes
+            .max(frame.input_length.min(TEXT_CAPACITY as u32) + length as u32);
         Ok(length)
     }
     pub fn status(&mut self) -> u32 {
         self.space.frame().status
+    }
+    pub fn presentation(&mut self, input: &[u8], handle: u64) -> Result<(), DomainRefusal> {
+        self.input(input)?;
+        let frame = self.space.frame();
+        frame.command = 1;
+        frame.capability = handle;
+        frame.operation = crate::domain_serial_scope::SERIAL_PRESENT_OPERATION;
+        frame.work_units = 1;
+        #[cfg(feature = "ordinary-domain-proof")]
+        {
+            frame.probe = self.gate_probe.0;
+            frame.target = self.gate_probe.1;
+        }
+        Ok(())
+    }
+    pub fn effect_request(
+        &mut self,
+        output: &mut [u8; TEXT_CAPACITY],
+    ) -> Result<(u64, u32, u32, usize), DomainRefusal> {
+        let frame = self.space.frame();
+        let length = frame.input_length as usize;
+        if self.quarantined
+            || frame.command != 1
+            || frame.capacity != TEXT_CAPACITY as u32
+            || length > TEXT_CAPACITY
+        {
+            return Err(DomainRefusal::InvalidMemory);
+        }
+        output[..length].copy_from_slice(&frame.input[..length]);
+        self.cost.copied_bytes += length as u64;
+        Ok((frame.capability, frame.operation, frame.work_units, length))
+    }
+    pub fn effect_completed(&mut self) {
+        let frame = self.space.frame();
+        frame.command = 2;
+        frame.status = 0;
     }
     #[cfg(feature = "ordinary-domain-proof")]
     pub fn probe(&mut self, command: u32, target: u64) {
@@ -80,6 +138,10 @@ impl TextDomain {
     pub fn private_frame_address(&mut self) -> u64 {
         self.space.frame() as *mut TextFrame as u64
     }
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub fn configure_gate_probe(&mut self, probe: u32, target: u64) {
+        self.gate_probe = (probe, target);
+    }
 }
 
 impl DomainBackend for TextDomain {
@@ -89,23 +151,46 @@ impl DomainBackend for TextDomain {
         }
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;
+        self.cost.tlb_flushes += 2;
         let result = domain_transition::enter(&self.space)?;
         self.cost.scheduler_returns += 1;
-        Ok(match result {
-            0..=2 => {
+        #[cfg(feature = "ordinary-domain-proof")]
+        {
+            let mut sign = crate::sign_format::FixedText::new();
+            use core::fmt::Write;
+            let _ = writeln!(
+                sign,
+                "CONDUIT_DOMAIN_RETURN {} {}",
+                result.origin, result.value
+            );
+            super::early_write(sign.as_bytes());
+        }
+        Ok(match (result.origin, result.value) {
+            (0, 0..=2) => {
                 self.cost.gate_transitions += 1;
                 DomainReturn::Yielded
             }
-            4 => {
+            (0, 0x200) => {
+                self.cost.gate_transitions += 1;
+                self.cost.base_gate_transitions += 1;
+                DomainReturn::Gate
+            }
+            (2, 4) => {
                 self.cost.preemptions += 1;
                 DomainReturn::Fault(DomainFault::WorkExhausted)
             }
-            0x10d => DomainReturn::Fault(DomainFault::PrivilegedOperation),
-            0x10e => DomainReturn::Fault(DomainFault::Memory),
-            _ => DomainReturn::Fault(DomainFault::InvalidInstruction),
+            (1, 0x10d) => DomainReturn::Fault(DomainFault::PrivilegedOperation),
+            (1, 0x10e) => DomainReturn::Fault(DomainFault::Memory),
+            (1, _) => DomainReturn::Fault(DomainFault::InvalidInstruction),
+            _ => DomainReturn::Fault(DomainFault::InvalidGate),
         })
     }
     fn quarantine(&mut self) {
+        if !self.quarantined {
+            let started = super::cpu::read_tsc();
+            self.cost.teardown_zeroed_bytes = self.space.quarantine();
+            self.cost.teardown_ticks = super::cpu::read_tsc().saturating_sub(started);
+        }
         self.quarantined = true;
     }
     fn cost(&self) -> DomainCost {
