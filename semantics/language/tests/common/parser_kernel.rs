@@ -27,7 +27,10 @@ pub struct Blueprint {
 }
 impl Blueprint {
     pub fn prepare(source: String, entry_name: &str) -> Self {
-        let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
+        let source_bytes = source.len();
+        let package = ProtocolSourcePackage::compile(source, &[]).unwrap_or_else(|error| {
+            panic!("{entry_name} ({source_bytes} Source bytes): {error:?}")
+        });
         let entry =
             PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), entry_name)
                 .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));

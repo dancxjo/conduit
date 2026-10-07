@@ -5,18 +5,9 @@ use parser_joint_flows::Pipelines;
 use std::io::Write;
 #[path = "parser_session_protection.rs"]
 mod protection;
-pub fn source() -> String {
-    [
-        joint::source(),
-        include_str!("../../parser_revision.conduit").into(),
-        include_str!("../../parser_session.conduit").into(),
-        include_str!("../../parser_session_policy.conduit").into(),
-        include_str!("../../parser_session_facts.conduit").into(),
-        include_str!("../../parser_session_commit.conduit").into(),
-        include_str!("../../parser_session_rebase.conduit").into(),
-    ]
-    .join("\n")
-}
+#[path = "parser_session_sources.rs"]
+mod sources;
+pub use sources::{protected_source, source};
 pub struct Session {
     pub flows: Pipelines,
     previous: Option<LanguageParserAvailableState>,
@@ -63,6 +54,15 @@ impl Session {
     }
     fn prepare(profile: &LanguageLexicalProfile, policy: bool, independent: bool) -> Self {
         let started = std::time::Instant::now();
+        let ordinary_source = source();
+        let independent_source = independent.then(protected_source);
+        for material in core::iter::once(&ordinary_source).chain(independent_source.iter()) {
+            assert!(
+                material.len() <= conduitos::protocol_source::MAXIMUM_SOURCE_BYTES,
+                "parser Source package exceeds admitted source bytes: {}",
+                material.len()
+            );
+        }
         let categorical = model_resource::categorical(
             joint::BYTES.into(),
             pinned_v2_model_signature().unwrap(),
@@ -82,10 +82,10 @@ impl Session {
         ];
         let blueprints = blueprints[..if policy { 8 } else { 4 }]
             .iter()
-            .map(|entry| parser_kernel::Blueprint::prepare(source(), entry))
+            .map(|entry| parser_kernel::Blueprint::prepare(ordinary_source.clone(), entry))
             .collect::<Vec<_>>();
-        let protection = independent
-            .then(|| protection::Protection::prepare(protection::append_source(source()), &model));
+        let protection =
+            independent_source.map(|source| protection::Protection::prepare(source, &model));
         Self {
             flows: Pipelines::new(&blueprints, 0),
             previous: None,
