@@ -61,7 +61,7 @@ fn admitted(token_count: u64, spoken: [bool; 4], count: u64, order: [u64; 4]) ->
 #[test]
 fn complete_spoken_order_is_source_owned_and_cannot_omit_a_word() {
     assert!(admitted(4, [true, false, true, false], 2, [0, 2, 0, 0]));
-    assert!(admitted(4, [true, false, true, false], 2, [2, 0, 0, 0]));
+    assert!(!admitted(4, [true, false, true, false], 2, [2, 0, 0, 0]));
     assert!(!admitted(4, [true, false, true, false], 1, [0, 0, 0, 0]));
     assert!(!admitted(4, [true, false, true, false], 2, [0, 0, 0, 0]));
     assert!(!admitted(4, [true, false, true, false], 2, [0, 1, 0, 0]));
