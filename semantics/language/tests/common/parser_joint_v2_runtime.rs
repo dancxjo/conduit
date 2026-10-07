@@ -32,6 +32,15 @@ pub trait Observer {
     ) -> Result<StructuredInfoValue, conduit_plot::rust_binding::NativeBindingRefusal> {
         query.into_structured()
     }
+    fn refine_mask(&mut self, mask: LanguageParserLegalMask) -> LanguageParserLegalMask {
+        mask
+    }
+    fn admit_hypothesis(
+        &mut self,
+        _hypothesis: &LanguageParserJointRuntimeHypothesis,
+    ) -> Result<(), conduit_plot::rust_binding::NativeBindingRefusal> {
+        Ok(())
+    }
     fn planned_scores(&mut self, _features: &LanguageParserV2ModelFeatures) -> Option<Vec<i64>> {
         None
     }
@@ -272,6 +281,7 @@ pub fn evaluate_observed(
                     let mask =
                         LanguageParserLegalMask::from_structured(pipeline.call(3, &mask_query))
                             .unwrap();
+                    let mask = observer.refine_mask(mask);
                     let ranked = integer_masked_top_k(&scores, mask.allowed(), 4).unwrap();
                     for class in ranked {
                         let ty = LanguageParserScoredClass::semantic_type().unwrap();
@@ -330,6 +340,11 @@ pub fn evaluate_observed(
                                 &raw,
                             ))
                             .unwrap();
+                        match observer.admit_hypothesis(&admitted) {
+                            Ok(()) => {}
+                            Err(conduit_plot::rust_binding::NativeBindingRefusal::ViolatedInvariant { .. }) => continue,
+                            Err(error) => panic!("unexpected protected hypothesis admission: {error:?}"),
+                        }
                         next = pipeline.merge(next, admitted);
                     }
                 }

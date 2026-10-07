@@ -3,6 +3,8 @@ use conduit_language::{parser_model_selection::*, *};
 use conduit_plot::rust_binding::NativeRustBinding;
 use parser_joint_flows::Pipelines;
 use std::io::Write;
+#[path = "parser_session_protection.rs"]
+mod protection;
 pub fn source() -> String {
     [
         joint::source(),
@@ -32,13 +34,23 @@ pub struct Session {
     seed_selected: u64,
     retained_facts: Vec<LanguageParserJointStableFact>,
     branch_refusals: u64,
+    protection: Option<protection::Protection>,
+    default_relation: Option<LanguageParserRelation>,
 }
 impl Session {
     pub fn new(profile: &LanguageLexicalProfile) -> Self {
-        Self::prepare(profile, false)
+        Self::prepare(profile, false, false)
     }
     pub fn stable(profile: &LanguageLexicalProfile) -> Self {
-        Self::prepare(profile, true)
+        Self::prepare(profile, true, false)
+    }
+    pub fn independently_protected(profile: &LanguageLexicalProfile) -> Self {
+        Self::prepare(profile, true, true)
+    }
+    pub fn protected_origins(&self) -> &[LanguageParserIndependentProtectedAdmission] {
+        self.protection
+            .as_ref()
+            .map_or(&[], |protection| protection.origins())
     }
     #[allow(dead_code)]
     pub fn retained_facts(&self) -> &[LanguageParserJointStableFact] {
@@ -49,7 +61,7 @@ impl Session {
             .as_ref()
             .map_or(0, |state| *state.state().committed())
     }
-    fn prepare(profile: &LanguageLexicalProfile, policy: bool) -> Self {
+    fn prepare(profile: &LanguageLexicalProfile, policy: bool, independent: bool) -> Self {
         let started = std::time::Instant::now();
         let categorical = model_resource::categorical(
             joint::BYTES.into(),
@@ -72,6 +84,8 @@ impl Session {
             .iter()
             .map(|entry| parser_kernel::Blueprint::prepare(source(), entry))
             .collect::<Vec<_>>();
+        let protection = independent
+            .then(|| protection::Protection::prepare(protection::append_source(source()), &model));
         Self {
             flows: Pipelines::new(&blueprints, 0),
             previous: None,
@@ -91,6 +105,8 @@ impl Session {
             seed_selected: 0,
             retained_facts: Vec::new(),
             branch_refusals: 0,
+            protection,
+            default_relation: None,
         }
     }
     fn emit(&mut self, event: serde_json::Value) {
@@ -139,6 +155,11 @@ impl Session {
                 }
                 Err(error) => panic!("invalid Source stable admission: {error:?}"),
             };
+            if let Some(protection) = &mut self.protection {
+                if let Err(error) = protection.acquire(&fact) {
+                    match error { conduit_plot::rust_binding::NativeBindingRefusal::ViolatedInvariant { index } => self.emit(serde_json::json!({"event":"independent-protection-refused","dependent":dependent,"Source_law_index":index})), error => panic!("invalid protection admission: {error:?}") }
+                }
+            }
             self.retained_facts.push(fact.clone());
             facts.push(fact.clone());
             let query = match LanguageParserJointCommitQuery::new(fact) {
@@ -193,7 +214,16 @@ impl Session {
             &raw,
         ))
         .unwrap();
-        let event = serde_json::json!({"event":"availability","text":input.tape().source().material().text(),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":input.tape().source().material().revision().get(),"source_sequence":input.tape().source().sequence(),"lexical_profile_identity":input.tape().profile().identity(),"waiting":status.waiting(),"final_input":status.final_input(),"available":input.token_count(),"revision_bytes":input.tape().source().clone().into_structured().unwrap().canonical_bytes().unwrap(),"invocation":self.flows.flows[0].sequence-1});
+        let mut event = serde_json::json!({"event":"availability","text":input.tape().source().material().text(),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":input.tape().source().material().revision().get(),"source_sequence":input.tape().source().sequence(),"lexical_profile_identity":input.tape().profile().identity(),"waiting":status.waiting(),"final_input":status.final_input(),"available":input.token_count(),"revision_bytes":input.tape().source().clone().into_structured().unwrap().canonical_bytes().unwrap(),"invocation":self.flows.flows[0].sequence-1});
+        if let Some(protection) = self.protection.as_ref() {
+            event["independent_protection"] = serde_json::json!({
+                "source_identity": joint::hex(protection.source_identity()),
+                "origin_admission_bytes": protection.origins().iter().map(|fact| fact.clone().into_structured().unwrap().canonical_bytes().unwrap()).collect::<Vec<_>>(),
+                "current_set_bytes": protection.current().map(|set| set.clone().into_structured().unwrap().canonical_bytes().unwrap()),
+                "rebase_receipts": protection.rebase_receipts().iter().map(|(input, output)| serde_json::json!({"input_bytes":input.clone().into_structured().unwrap().canonical_bytes().unwrap(),"output_bytes":output.clone().into_structured().unwrap().canonical_bytes().unwrap()})).collect::<Vec<_>>(),
+                "played_authority": false,
+            });
+        }
         self.emit(event.clone());
         event
     }
@@ -207,6 +237,10 @@ impl runtime::Observer for Session {
         let available =
             LanguageParserAvailableLexical::new(lexical.tape().clone(), *lexical.token_count())
                 .unwrap();
+        self.default_relation = Some(initial.relation0().clone());
+        if let Some(protection) = &mut self.protection {
+            protection.initialize(&initial);
+        }
         let availability = self.available(&available);
         let Some(previous) = &self.previous else {
             self.outcome = serde_json::json!({"availability":availability,"reset":"initial"});
@@ -246,6 +280,9 @@ impl runtime::Observer for Session {
                     .is_err(),
                     "Source refuses forged protected choices"
                 );
+            }
+            if let Some(protection) = &mut self.protection {
+                protection.rebase(&input).unwrap();
             }
             let raw = self.flows.call(7, &input.into_structured().unwrap());
             let proposal = LanguageParserJointRebaseProposal::from_structured(raw).unwrap();
@@ -310,6 +347,18 @@ impl runtime::Observer for Session {
         (self.seed_choices, self.seed_selected)
     }
     fn branch_entry(&self) -> Option<(&'static str, String)> {
+        if self.protection.is_some() {
+            return Some((
+                "language-parser-independent-branch",
+                [
+                    include_str!("../../parser_session_branch.conduit"),
+                    include_str!("../../parser_session_protection.conduit"),
+                    include_str!("../../parser_session_protected_set.conduit"),
+                    include_str!("../../parser_session_protected_branch.conduit"),
+                ]
+                .join("\n"),
+            ));
+        }
         self.policy.then(|| {
             (
                 "language-parser-joint-protected-branch",
@@ -322,6 +371,22 @@ impl runtime::Observer for Session {
         query: LanguageParserJointBranchQuery,
     ) -> Result<conduit_core::StructuredInfoValue, conduit_plot::rust_binding::NativeBindingRefusal>
     {
+        if let Some(protection) = &mut self.protection {
+            let query_bytes = query.clone().into_structured()?.canonical_bytes().unwrap();
+            let result = protection.branch(query);
+            if let Err(error) = &result {
+                assert!(
+                    matches!(
+                        error,
+                        conduit_plot::rust_binding::NativeBindingRefusal::ViolatedInvariant { .. }
+                    ),
+                    "unexpected independent branch refusal: {error:?}"
+                );
+                self.branch_refusals += 1;
+                self.emit(serde_json::json!({"event":"Source-policy-refusal","entry":"language-parser-independent-branch","query_bytes":query_bytes,"refusal":format!("{error:?}")}));
+            }
+            return result;
+        }
         if !self.policy {
             return query.into_structured();
         }
@@ -339,6 +404,22 @@ impl runtime::Observer for Session {
             self.emit(serde_json::json!({"event":"Source-policy-refusal","entry":"language-parser-joint-protected-branch","refusal":format!("{error:?}"),"ordinal":self.branch_refusals}));
         }
         result
+    }
+    fn refine_mask(&mut self, mask: LanguageParserLegalMask) -> LanguageParserLegalMask {
+        match self.protection.as_mut() {
+            Some(protection) => protection
+                .mask(mask, self.default_relation.as_ref().unwrap())
+                .unwrap(),
+            None => mask,
+        }
+    }
+    fn admit_hypothesis(
+        &mut self,
+        hypothesis: &LanguageParserJointRuntimeHypothesis,
+    ) -> Result<(), conduit_plot::rust_binding::NativeBindingRefusal> {
+        self.protection
+            .as_mut()
+            .map_or(Ok(()), |protection| protection.admit_hypothesis(hypothesis))
     }
     fn planned_scores(&mut self, features: &LanguageParserV2ModelFeatures) -> Option<Vec<i64>> {
         let scores = self.numeric.infer(
@@ -388,7 +469,16 @@ impl runtime::Observer for Session {
             )
             .unwrap(),
         );
-        let event = serde_json::json!({"event":"snapshot","text":beam.lexical().tape().source().material().text(),"preferred_candidate":beam.candidate0().parser().active().then_some(beam.candidate0().parser().identity()),"preferred_selection":"Source cumulative score and identity rank","model_execution":"ordinary-admitted-resource-Plan-Play","model_invocations":self.numeric_sequence,"model_content_identity":joint::hex(self.model.compatibility().model_content),"model_signature_identity":joint::hex(self.model.compatibility().signature),"session_source_identity":joint::hex(conduit_core::semantic_digest("language/parser-v2-retained-session-source@1",source().as_bytes())),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":beam.basis().source_revision().get(),"analysis_revision":beam.basis().analysis_revision().get(),"source_sequence":beam.epoch(),"lexical_profile_identity":beam.lexical().tape().profile().identity(),"candidates":candidates,"outcome":self.outcome,"joint_lexical_arc_agreement":agreed,"beam_bytes":owned.clone().into_structured().unwrap().canonical_bytes().unwrap(),"wait_calls":self.waits,"stable":stable_facts.len(),"stable_fact_bytes":stable_facts.iter().map(|fact|fact.clone().into_structured().unwrap().canonical_bytes().unwrap()).collect::<Vec<_>>(),"retained_stable_fact_count":self.retained_facts.len(),"branch_policy_refusals":self.branch_refusals,"committed":preferred.committed(),"frontier_policy":if self.policy {"Source uncalibrated score-band1000; Native stable laws and contiguous commit"}else{"provisional snapshots only; stabilization not advanced"},"retained_executions":true,"flow_invocations":self.flows.flows.iter().map(|f|f.sequence).collect::<Vec<_>>()});
+        let mut event = serde_json::json!({"event":"snapshot","text":beam.lexical().tape().source().material().text(),"preferred_candidate":beam.candidate0().parser().active().then_some(beam.candidate0().parser().identity()),"preferred_selection":"Source cumulative score and identity rank","model_execution":"ordinary-admitted-resource-Plan-Play","model_invocations":self.numeric_sequence,"model_content_identity":joint::hex(self.model.compatibility().model_content),"model_signature_identity":joint::hex(self.model.compatibility().signature),"session_source_identity":joint::hex(conduit_core::semantic_digest("language/parser-v2-retained-session-source@1",source().as_bytes())),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":beam.basis().source_revision().get(),"analysis_revision":beam.basis().analysis_revision().get(),"source_sequence":beam.epoch(),"lexical_profile_identity":beam.lexical().tape().profile().identity(),"candidates":candidates,"outcome":self.outcome,"joint_lexical_arc_agreement":agreed,"beam_bytes":owned.clone().into_structured().unwrap().canonical_bytes().unwrap(),"wait_calls":self.waits,"stable":stable_facts.len(),"stable_fact_bytes":stable_facts.iter().map(|fact|fact.clone().into_structured().unwrap().canonical_bytes().unwrap()).collect::<Vec<_>>(),"retained_stable_fact_count":self.retained_facts.len(),"branch_policy_refusals":self.branch_refusals,"committed":preferred.committed(),"frontier_policy":if self.policy {"Source uncalibrated score-band1000; Native stable laws and contiguous commit"}else{"provisional snapshots only; stabilization not advanced"},"retained_executions":true,"flow_invocations":self.flows.flows.iter().map(|f|f.sequence).collect::<Vec<_>>()});
+        if let Some(protection) = self.protection.as_ref() {
+            event["independent_protection"] = serde_json::json!({
+                "source_identity": joint::hex(protection.source_identity()),
+                "origin_admission_bytes": protection.origins().iter().map(|fact| fact.clone().into_structured().unwrap().canonical_bytes().unwrap()).collect::<Vec<_>>(),
+                "current_set_bytes": protection.current().map(|set| set.clone().into_structured().unwrap().canonical_bytes().unwrap()),
+                "rebase_receipts": protection.rebase_receipts().iter().map(|(input, output)| serde_json::json!({"input_bytes":input.clone().into_structured().unwrap().canonical_bytes().unwrap(),"output_bytes":output.clone().into_structured().unwrap().canonical_bytes().unwrap()})).collect::<Vec<_>>(),
+                "played_authority": false,
+            });
+        }
         self.emit(event.clone());
         event
     }
