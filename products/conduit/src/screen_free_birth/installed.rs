@@ -17,6 +17,7 @@ use super::{
     input::{parse_command, SCREEN_FREE_COMMANDS},
     selected_playback::SelectedPlayback,
     selected_readout::{emit_readout, OutputPhase},
+    wardrobe::{self, WardrobeReadout},
 };
 use crate::{
     cli::BirthSpeechOptions,
@@ -70,7 +71,7 @@ fn run_retained_with_input(
         .clone()
         .ok_or("installed owner has no retained Body to read")?;
     let playback = speech_options
-        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .map(|options| SelectedPlayback::prepare(options, &advertisement, state_dir))
         .transpose()?;
     run_body(
         state_dir,
@@ -91,7 +92,7 @@ fn run_with_input(
 ) -> Result<(), String> {
     let (mut face, advertisement) = durable_host_control::birth_face(state_dir)?;
     let playback = speech_options
-        .map(|options| SelectedPlayback::prepare(options, &advertisement))
+        .map(|options| SelectedPlayback::prepare(options, &advertisement, state_dir))
         .transpose()?;
     let mut execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
     let mut show = present(&face, &mut execution, output)?;
@@ -179,6 +180,15 @@ fn run_with_input(
             continue;
         };
         let correlated = execution.interact(interaction).map_err(debug_error)?;
+        writeln!(
+            output,
+            "Birth interaction: action={} face-id={} face-revision={} show={}",
+            correlated.interaction.action_id,
+            correlated.interaction.face_id,
+            correlated.interaction.face_revision,
+            correlated.interaction.show_id,
+        )
+        .map_err(|error| error.to_string())?;
         let transition = match durable_host_control::submit_birth_interaction(
             state_dir,
             show.clone(),
@@ -292,11 +302,12 @@ fn run_body(
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
     writeln!(
         output,
-        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh.",
+        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh, wardrobe (inspect), wardrobe wear/doff/prefer MASK.",
         body_id.as_str()
     )
     .map_err(|error| error.to_string())?;
     let mut sequence = 0_u64;
+    let mut wardrobe: Option<WardrobeReadout> = None;
     for command in opening_body_commands(playback.is_some()) {
         sequence += 1;
         reader
@@ -352,6 +363,7 @@ fn run_body(
             reader
                 .refresh(face.clone(), show.clone())
                 .map_err(debug_error)?;
+            wardrobe = None;
             writeln!(
                 output,
                 "Owner Face or Host Boot changed. Face revision {} is current. Read-only help and read all use the new Face; actions must be chosen again.",
@@ -382,6 +394,68 @@ fn run_body(
         if line == "refresh" {
             writeln!(output, "Owner Face revision {} is current.", face.revision)
                 .map_err(|error| error.to_string())?;
+            continue;
+        }
+        if line == "wardrobe" || line.starts_with("wardrobe ") {
+            match wardrobe::command(
+                &line,
+                state_dir,
+                &face,
+                &advertisement,
+                &mut wardrobe,
+                output,
+            ) {
+                Ok(reading_face) => {
+                    if let Some(reading_face) = reading_face {
+                        let mut reading_execution =
+                            HostedTerminalMaskExecution::new(&advertisement)
+                                .map_err(debug_error)?;
+                        let reading_show = present(&reading_face, &mut reading_execution, output)?;
+                        let mut speaking =
+                            SpokenFaceSession::new(reading_face.clone(), reading_show.clone())
+                                .map_err(debug_error)?;
+                        sequence = sequence.checked_add(1).ok_or("input sequence exhausted")?;
+                        speaking
+                            .command(
+                                &reading_face,
+                                &reading_show,
+                                ReaderCommand::ReadAll,
+                                sequence,
+                            )
+                            .map_err(debug_error)?;
+                        emit_readout(
+                            state_dir,
+                            input,
+                            playback.as_ref(),
+                            &mut speaking,
+                            &reading_face,
+                            &reading_show,
+                            &advertisement,
+                            &mut sequence,
+                            OutputPhase::Wardrobe,
+                            output,
+                        )?;
+                    }
+                    if line != "wardrobe" {
+                        // The user's old action focus was chosen before this
+                        // wardrobe revision. Require a fresh explicit choice.
+                        execution.close_without_input().map_err(debug_error)?;
+                        execution = HostedTerminalMaskExecution::new(&advertisement)
+                            .map_err(debug_error)?;
+                        show = present(&face, &mut execution, output)?;
+                        reader = SpokenFaceSession::new(face.clone(), show.clone())
+                            .map_err(debug_error)?;
+                        writeln!(
+                            output,
+                            "Wardrobe changed. Choose a current Face action again."
+                        )
+                        .map_err(|error| error.to_string())?;
+                    }
+                }
+                Err(refusal) => {
+                    wardrobe::report_refusal(&refusal, output)?;
+                }
+            }
             continue;
         }
         let command = match parse_command(&line, &reader, &face) {
@@ -443,6 +517,7 @@ fn run_body(
             reader
                 .refresh(face.clone(), show.clone())
                 .map_err(debug_error)?;
+            wardrobe = None;
             emit_readout(
                 state_dir,
                 input,

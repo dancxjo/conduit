@@ -1,0 +1,51 @@
+[2J[H[1mOne Body Clock[0m
+────────────────────────────────────────────────────────────────────────────────
+· Body: One Body Clock.
+  Region: Current overview context.
+  Plot: clock-demo.
+  One Body Clock contains Current overview context.
+  One Body Clock contains clock-demo.
+  One Body Clock has property body-id: identity ee3733747a44b61879ad714ce8ab17
+  8cdc54b227eba48752b43c966a428cce30.
+  One Body Clock has property lifecycle-state: text "lulled".
+  One Body Clock has property workload-revision: count 4.
+  Current overview context has property operator-context: text "overview".
+  Current overview context has property operator-focus: text "body".
+  clock-demo has property checked-plot-id: identity c8000afc91ae4795519f952ed5
+  a3e7ec8f8114a4042448208a3488c27c7f2032.
+  clock-demo has property interval-ms: count 1000.
+  clock-demo has property source-document-id: identity f52f529d80a56ace156d00e
+  93613608c1006230cf9329889594dbac209a1b5c2.
+  clock-demo has property workload-membership: text "resident".
+  One Body Clock is lulled with one resident plot.
+  The current clock interval is 1000 milliseconds.
+Face · lines 1–19 / 41
+Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel
+Owner terminal Show show/eb4b01b1d69202ac5cb8b4bfa051ca7f3dbc879cba379927375623ddd38187ac · route Plan plan/local-owner-mask/1cc95cdc6c5cd22cc1689160965fb16134b7f903027712ef057f825790d828a4 · Host host/installed/853323a690185d73ba8b5323aeb2c0431c345e72a806da1b6e6e3da03cba2f98 · Boot boot/installed/a78032f254cc65467f66dea281fc7acf91701278fb9eab2b0fccfa5b8a2a2e93 · offer generation 4 · 1413 bytes written and flushed. Enter apply <value> for the available action, show to present again, or quit to detach.
+Owner Body wardrobe: 1 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/1cc95cdc6c5cd22cc1689160965fb16134b7f903027712ef057f825790d828a4; current Show: show/eb4b01b1d69202ac5cb8b4bfa051ca7f3dbc879cba379927375623ddd38187ac; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.
+{"body_id":"ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30","interaction_id":"7167ff7e658c3bedb9da085c33e1b4d2020bdfc72231ad0ba28b64461f458139","interval_ms":500,"next_step":"start-replacement-plan","play_state":"lulled","prior_face_id":"e0799bfd7c791b4133983cc5afc9251d75550819db0b6a5e69ee68e1aa00baf7","prior_face_revision":11,"prior_show_id":"show/eb4b01b1d69202ac5cb8b4bfa051ca7f3dbc879cba379927375623ddd38187ac","schema":"conduit.body/clock-interval-changed@1","workload_revision":6}
+[2J[H[1mOne Body Clock[0m
+────────────────────────────────────────────────────────────────────────────────
+· Body: One Body Clock.
+  Region: Current overview context.
+  Plot: clock-demo.
+  One Body Clock contains Current overview context.
+  One Body Clock contains clock-demo.
+  One Body Clock has property body-id: identity ee3733747a44b61879ad714ce8ab17
+  8cdc54b227eba48752b43c966a428cce30.
+  One Body Clock has property lifecycle-state: text "lulled".
+  One Body Clock has property workload-revision: count 6.
+  Current overview context has property operator-context: text "overview".
+  Current overview context has property operator-focus: text "body".
+  clock-demo has property checked-plot-id: identity d08311b188ebaa9d4703bf9074
+  5cb2efc6ee137c11f5527b13bcfce93a4f0f70.
+  clock-demo has property interval-ms: count 500.
+  clock-demo has property source-document-id: identity b43b98194e77682bb0d79ce
+  26275511d11d2fb1bf19f3bf66b3655c99d21c13b.
+  clock-demo has property workload-membership: text "resident".
+  One Body Clock is lulled with one resident plot.
+  The current clock interval is 500 milliseconds.
+Face · lines 1–19 / 41
+Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel
+Owner terminal Show show/e5bb5189b714ef60eab2e0788850d9b5563984ea98255e4a116b187464e0c23d · route Plan plan/local-owner-mask/fae643ef1d479e54c563356aadcca4cd3842c9052915e75bc69c6a3052df9d9f · Host host/installed/853323a690185d73ba8b5323aeb2c0431c345e72a806da1b6e6e3da03cba2f98 · Boot boot/installed/a78032f254cc65467f66dea281fc7acf91701278fb9eab2b0fccfa5b8a2a2e93 · offer generation 6 · 1411 bytes written and flushed. Enter apply <value> for the available action, show to present again, or quit to detach.
+Owner Body wardrobe: 1 worn terminal Mask, 1 admitted route; selected route: route/plan/local-owner-mask/fae643ef1d479e54c563356aadcca4cd3842c9052915e75bc69c6a3052df9d9f; current Show: show/e5bb5189b714ef60eab2e0788850d9b5563984ea98255e4a116b187464e0c23d; planning: "NotRequired". Preference: [{"checked_plot_id":"42c3bd21a5f74e4fe7138aca6b3ecabb63e5727648ae64352d28cf1e5d681232","expanded_plot_id":"458bdeb22a8b2456290357add1704d20967956b686c8439cd162d1de3cac0a78","source_document_id":"f650e6aa588ab71ec87a51e9c479b6b1d3f80911b424e2f4845b777a86677913"}]. Wear/doff/prefer address the currently admitted terminal Mask; browser selection awaits a complete carrier-Line Mask Plan.

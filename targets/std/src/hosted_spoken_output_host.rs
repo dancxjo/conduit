@@ -1,5 +1,35 @@
 //! Host-owned speech and artifact attachment, before ordinary planning.
 impl crate::StdHost {
+    pub(crate) fn advance_retained_spoken_offer_generation(
+        &mut self,
+        next: conduit_core::OfferGeneration,
+    ) -> Result<(), String> {
+        let prior = self.advertisement.offer_generation;
+        let boot = &self.advertisement.boot_id;
+        if self
+            .playback
+            .as_ref()
+            .is_some_and(|selected| selected.boot_id != *boot || selected.offer_generation != prior)
+            || self.wav_artifact.as_ref().is_some_and(|artifact| {
+                artifact.boot_id != *boot || artifact.offer_generation != prior
+            })
+        {
+            return Err("retained spoken resource differs from current Host offer".into());
+        }
+        if let Some(adapter) = &mut self.speech_synthesis {
+            adapter
+                .advance_offer_generation(&self.advertisement.host_id, boot, prior, next)
+                .map_err(|error| format!("retained speech provider: {error:?}"))?;
+        }
+        if let Some(selected) = &mut self.playback {
+            selected.offer_generation = next;
+        }
+        if let Some(artifact) = &mut self.wav_artifact {
+            artifact.offer_generation = next;
+        }
+        Ok(())
+    }
+
     /// Current selected provider possession, independent of retained
     /// artifact capacity for a later Play.
     pub fn spoken_mask_provider_is_current(&self) -> bool {

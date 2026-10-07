@@ -62,6 +62,7 @@ pub(crate) mod direct_spoken {
 #[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
+pub(crate) use body::local_wardrobe;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
@@ -1047,6 +1048,17 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyLocalWardrobe {
+        protocol: u16,
+        token: Vec<u8>,
+        body_id: conduit_body::BodyId,
+        face_id: String,
+        face_revision: u64,
+        advertisement: conduit_core::HostAdvertisement,
+        owner_plan_id: Option<conduit_core::PlanId>,
+        basis_revision: u64,
+        action: Option<MaskWardrobeAction>,
+    },
     BodyNativeMaskRoute {
         protocol: u16,
         token: Vec<u8>,
@@ -1095,6 +1107,13 @@ enum Request {
         show: Box<MaskShow>,
         basis_revision: u64,
         command: terminal_attach::TerminalWardrobeCommand,
+    },
+    #[cfg(unix)]
+    BodyAttachedTerminalRefreshShow {
+        protocol: u16,
+        token: Vec<u8>,
+        route_plan_id: conduit_core::PlanId,
+        show: Box<MaskShow>,
     },
     BodyBrowserInteraction {
         protocol: u16,
@@ -1241,6 +1260,12 @@ enum Response {
         presentation: Box<Presentation>,
         advertisement: HostAdvertisement,
     },
+    BodyLocalWardrobe {
+        protocol: u16,
+        report: Box<serde_json::Value>,
+        presentation: Option<Box<Presentation>>,
+        reading_refusal: Option<String>,
+    },
     BodyNativeMaskRoute {
         protocol: u16,
         route: Box<RemoteOwnerMaskRouteSeal>,
@@ -1270,6 +1295,12 @@ enum Response {
     BodyAttachedTerminalWardrobe {
         protocol: u16,
         report: Box<serde_json::Value>,
+    },
+    #[cfg(unix)]
+    BodyAttachedTerminalRefreshedShow {
+        protocol: u16,
+        show: Box<MaskShow>,
+        advertisement: HostAdvertisement,
     },
     BodyRunRequested {
         protocol: u16,
@@ -1824,6 +1855,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyFace { token, .. }
         | Request::BodyLocalFace { token, .. }
+        | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
         | Request::BirthFace { token, .. }
@@ -1844,6 +1876,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::BodyAttachedTerminalInteraction { token, .. } => token,
         #[cfg(unix)]
         Request::BodyAttachedTerminalWardrobe { token, .. } => token,
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalRefreshShow { token, .. } => token,
     };
     let authenticated = constant_time_equal(offered, token);
     offered.fill(0);
@@ -1860,6 +1894,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserShow { .. }
                 | Request::BodyBrowserWardrobe { .. }
                 | Request::BodyLocalFace { .. }
+                | Request::BodyLocalWardrobe { .. }
                 | Request::BodyNativeMaskRoute { .. }
                 | Request::BodyNativeMaskShow { .. }
                 | Request::BodyInteraction { .. }
@@ -2063,6 +2098,38 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 advertisement,
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::BodyLocalWardrobe {
+            protocol,
+            body_id,
+            face_id,
+            face_revision,
+            advertisement,
+            owner_plan_id,
+            basis_revision,
+            action,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_local_wardrobe(
+                &body_id,
+                (&face_id, face_revision),
+                &advertisement,
+                owner_plan_id.as_ref(),
+                basis_revision,
+                action,
+            )
+            .map(|(report, reading)| {
+                let (presentation, reading_refusal) = match reading {
+                    Ok(presentation) => (Some(Box::new(presentation)), None),
+                    Err(reason) => (None, Some(reason)),
+                };
+                Response::BodyLocalWardrobe {
+                    protocol: PROTOCOL,
+                    report: Box::new(report),
+                    presentation,
+                    reading_refusal,
+                }
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyNativeMaskRoute {
             protocol,
             receipt,
@@ -2165,6 +2232,22 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 report: Box::new(report),
             })
+            .unwrap_or_else(|code| refused(&code)),
+        #[cfg(unix)]
+        Request::BodyAttachedTerminalRefreshShow {
+            protocol,
+            route_plan_id,
+            show,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .refresh_attached_terminal_show(&route_plan_id, &show)
+            .map(
+                |(show, advertisement)| Response::BodyAttachedTerminalRefreshedShow {
+                    protocol: PROTOCOL,
+                    show: Box::new(show),
+                    advertisement,
+                },
+            )
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserInteraction {
             protocol,

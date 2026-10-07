@@ -650,6 +650,17 @@ impl StdHost {
             ),
         })
     }
+
+    /// Continue a boot's Play sequence when a fresh hosted adapter is
+    /// reconstructed for the same real Host Boot. The caller owns durable,
+    /// exclusive allocation of the supplied sequence range.
+    pub fn set_initial_kernel_play_sequence(&mut self, first: u64) -> Result<(), String> {
+        if self.next_kernel_play_sequence != 0 || first == 0 {
+            return Err("kernel Play sequence is already in use or invalid".into());
+        }
+        self.next_kernel_play_sequence = first;
+        Ok(())
+    }
     pub fn new() -> Self {
         Self::new_with_config(StdHostConfig {
             host_id: HostId::from("std-host-1"),

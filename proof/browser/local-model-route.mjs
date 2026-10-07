@@ -14,6 +14,11 @@ if (upstream.protocol !== 'http:' ||
 }
 const port = Number(upstream.port || 80);
 const controlPath = process.argv[3];
+const listenPort = process.argv[4] === undefined ? 0 : Number(process.argv[4]);
+if (!Number.isInteger(listenPort) || listenPort < 0 || listenPort > 65535 ||
+    (process.argv[4] !== undefined && listenPort === 0)) {
+  throw new Error('model route listen port must be an explicit nonzero TCP port');
+}
 const connections = new Set();
 const server = createServer(client => {
   const model = createConnection({ host: upstream.hostname === '[::1]' ? '::1' : upstream.hostname, port });
@@ -29,7 +34,7 @@ const server = createServer(client => {
 let endpoint;
 let withdrawn = false;
 let controlStarted = false;
-server.listen(0, '127.0.0.1', async () => {
+server.listen(listenPort, '127.0.0.1', async () => {
   const address = server.address();
   endpoint ??= `http://127.0.0.1:${address.port}`;
   if (controlPath && !controlStarted) {
@@ -67,11 +72,16 @@ server.listen(0, '127.0.0.1', async () => {
       process.stdout.write(`${JSON.stringify({ endpoint, control_socket: controlPath })}\n`);
     });
     process.on('exit', () => { try { unlinkSync(controlPath); } catch {} });
-    process.on('SIGTERM', () => {
+    const stop = () => {
       control.close();
       for (const connection of connections) connection.destroy();
       server.close(() => process.exit(0));
-    });
+    };
+    process.on('SIGTERM', stop);
+    if (process.argv[5] === '--supervised') {
+      process.stdin.on('end', stop);
+      process.stdin.resume();
+    }
   } else if (!controlPath) {
     process.stdout.write(`${JSON.stringify({ endpoint })}\n`);
   }

@@ -42,6 +42,7 @@ pub(crate) use installed::{run_retained, run_retained_spoken};
 mod selected_playback;
 mod selected_readout;
 mod speech_options;
+mod wardrobe;
 pub(crate) use speech_options::run as speech_options;
 
 #[cfg(test)]
@@ -357,6 +358,25 @@ mod tests {
         let first = first_batch.next_batch_with_limits(1, 64).unwrap().unwrap();
         assert_eq!(first.face_id, face.identity.as_str());
         assert_eq!(first.source_show_id, show.show_id.as_str());
+        let words = selected_playback::verified_spoken_segments(&face, &show, &first).unwrap();
+        assert_eq!(words.len(), 1);
+        assert_eq!(
+            words[0]["text"].as_str(),
+            Some(first.segments[0].segment.text.as_str())
+        );
+        assert_eq!(
+            words[0]["text_sha256"].as_str(),
+            Some(first.segments[0].text_sha256.as_str())
+        );
+        assert_eq!(words[0]["reason_code"], 1);
+        assert_eq!(words[0]["face_id"], face.identity.as_str());
+        assert_eq!(words[0]["show_id"], show.show_id.as_str());
+        let mut altered = first.clone();
+        altered.segments[0].segment.text.push('!');
+        assert!(selected_playback::verified_spoken_segments(&face, &show, &altered).is_err());
+        let mut wrong_digest = first.clone();
+        wrong_digest.source_segments_sha256 = "00".repeat(32);
+        assert!(selected_playback::verified_spoken_segments(&face, &show, &wrong_digest).is_err());
         assert!(
             first.segments[0]
                 .segment

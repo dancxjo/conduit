@@ -1,0 +1,14 @@
+{
+  "schema": "conduit.journey/capture-receipt@2",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "chapter_id": "join",
+  "event_id": "af9878a6982c5e7b1c397008258cfa93a40dd86fe4679aa2f58348bcf1161d88",
+  "event_kind": "membership",
+  "face_revision": "5",
+  "source_receipt_id": "join-media-1-source",
+  "media_output_id": "join-media-1",
+  "media_sha256": "50a6c5e4ff6bca6de6f77d385016ce3ff136edf8203c05e325f04b5604b8b22b",
+  "capture_source": "chromium"
+}

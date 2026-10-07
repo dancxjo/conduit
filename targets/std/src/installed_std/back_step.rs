@@ -264,6 +264,7 @@ installed_step_dispatch!(
     SpokenArtifact,
     SpokenArtifactShow,
     SpokenNoInteraction,
+    PresentationTee,
     AudioRenderDemand,
     AudioPlay,
     AudioTone,

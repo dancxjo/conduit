@@ -115,3 +115,46 @@ fn exact_id_commands_preserve_boolean_and_literal_text_values() {
         2
     );
 }
+
+#[test]
+fn review_command_reads_current_birth_choices_from_the_face() {
+    let advertisement = StdHost::new().advertisement().clone();
+    let door = ZeroBodyFrontDoor::from_model(
+        Arc::new(HostedPatchbayAdapter),
+        PatchbayModel::from_advertisement(advertisement.clone()),
+    )
+    .unwrap();
+    let draft = door
+        .creche_draft("00112233-4455-6677-8899-aabbccddeeff".into())
+        .unwrap();
+    let basis = HostOwnedBirthFaceBasis {
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        encounter_id: "00112233-4455-6677-8899-aabbccddeeff".into(),
+    };
+    let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+    let (face, show) =
+        super::super::present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(
+            &face,
+            &show,
+            parse_command("review", &reader, &face).unwrap(),
+            1,
+        )
+        .unwrap();
+    let readout = reader.take_text_readout().unwrap().unwrap();
+    assert!(readout
+        .clauses
+        .iter()
+        .any(|clause| clause.contains("Review Birth choices")));
+    assert!(readout
+        .clauses
+        .iter()
+        .any(|clause| clause.contains("Starting Plots selected:")));
+    assert!(readout
+        .clauses
+        .iter()
+        .any(|clause| clause.contains("Birth:")));
+}

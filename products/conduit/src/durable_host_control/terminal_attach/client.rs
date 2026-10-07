@@ -28,6 +28,58 @@ pub(crate) struct AttachedTerminalSession {
     pub effect: TerminalFrameReceipt,
 }
 
+pub(crate) fn refresh_show(
+    state_dir: &Path,
+    attached: &mut AttachedTerminalSession,
+    output: &mut impl Write,
+) -> Result<(), String> {
+    let route_plan_id = attached.route_plan_id.clone();
+    let old_show = attached.show.clone();
+    let state = state_dir.to_path_buf();
+    std::thread::scope(|scope| {
+        let control = scope.spawn(move || {
+            body::call(
+                &state,
+                crate::durable_host_control::Request::BodyAttachedTerminalRefreshShow {
+                    protocol: PROTOCOL,
+                    token: body::token(&state)?,
+                    route_plan_id,
+                    show: Box::new(old_show),
+                },
+            )
+        });
+        let effect = receive_terminal_frame_and_ack(&mut attached._connection, output)
+            .map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())?;
+        let response = control
+            .join()
+            .map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())??;
+        let (show, advertisement) = match response {
+            crate::durable_host_control::Response::BodyAttachedTerminalRefreshedShow {
+                protocol: PROTOCOL,
+                show,
+                advertisement,
+            } => (*show, advertisement),
+            crate::durable_host_control::Response::Refused { code, .. } => return Err(code),
+            _ => return Err(CONTROL_OUTCOME_UNKNOWN.into()),
+        };
+        let (face, current) = body::local_face_snapshot(state_dir)?;
+        if show.validate(&face).is_err()
+            || show.show.lifecycle != ManifestationLifecycle::Available
+            || show.show.failure.is_some()
+            || advertisement != current
+            || advertisement != attached.advertisement
+            || effect.show_sha256
+                != <[u8; 32]>::from(Sha256::digest(show.show_id.as_str().as_bytes()))
+        {
+            return Err(CONTROL_OUTCOME_UNKNOWN.into());
+        }
+        attached.show = show;
+        attached.face = face;
+        attached.effect = effect;
+        Ok(())
+    })
+}
+
 pub(crate) fn attached_wardrobe(
     state_dir: &Path,
     attached: &AttachedTerminalSession,
@@ -95,15 +147,20 @@ pub(crate) fn attach_and_show(
     }
     let effect = receive_terminal_frame_and_ack(&mut stream, output)
         .map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())?;
-    let AttachReply::Show {
-        protocol: PROTOCOL,
-        route_plan_id,
-        show,
-        advertisement,
-    } = wire::read_reply(&mut stream).map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())?
-    else {
-        return Err(CONTROL_OUTCOME_UNKNOWN.into());
-    };
+    let (route_plan_id, show, advertisement) =
+        match wire::read_reply(&mut stream).map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())? {
+            AttachReply::Show {
+                protocol: PROTOCOL,
+                route_plan_id,
+                show,
+                advertisement,
+            } => (route_plan_id, show, advertisement),
+            AttachReply::Refused {
+                protocol: PROTOCOL,
+                code,
+            } => return Err(format!("owner terminal Show refused: {code}")),
+            _ => return Err(CONTROL_OUTCOME_UNKNOWN.into()),
+        };
     // Attachment changes the owner's offer generation. The Show was sealed
     // against the Face after that change, not the Face used to request the
     // attachment. Read the current owner snapshot before validating it.

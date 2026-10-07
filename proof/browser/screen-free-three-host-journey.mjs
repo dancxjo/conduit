@@ -4,11 +4,16 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { closeSync, existsSync, openSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
+import { writeThreeHostPublicationReceipts } from './three-host-publication-receipts.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
+import { screenFreeWardrobeCommands, verifyScreenFreeWardrobe } from './screen-free-wardrobe-proof.mjs';
+import { retainSelectedScreenFreePlays } from './screen-free-same-play.mjs';
+import { checkpointPhases, verifyCheckpointReady,
+  verifyCheckpointWardrobe } from './screen-free-checkpoint-proof.mjs';
 import { retainScreenFreeSessions } from './three-host-retain-screen-free.mjs';
 import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 import { verifyGuestRouteCertificate } from './three-host-route-certificate.mjs';
@@ -142,7 +147,7 @@ assert.equal(existsSync(output), false, 'output must be a new private directory'
 await mkdir(output, { mode: 0o700 });
 const ownerLog = path.join(output, 'owner-service.log');
 const inviteFile = path.join(output, 'invitation.private.json');
-let service, invitation;
+let service, invitation, terminal, liveProof;
 try {
   const serviceLog = openSync(ownerLog, 'wx', 0o600);
   service = spawn(owner, ['host', 'service', 'run', '--state-dir', state], {
@@ -161,14 +166,13 @@ try {
   const preBirthBytes = Buffer.from(`${JSON.stringify(preBirth, null, 2)}\n`);
   await writeFile(path.join(output, 'zero-body-before.json'), preBirthBytes, { mode: 0o600 });
   const birthCommands = [
-    // Speech opens with Help and focused orientation. Explicitly request the
-    // full zero-Body Face so this proof still exercises below-viewport reading.
-    'read all',
+    // Speech opens with Help and focused orientation. The current semantic
+    // review below reads the complete zero-Body Face after the person's edits.
     'next main',
     'focus creche.name', `edit value ${bodyName}`, 'activate',
     'focus creche.plot.0', 'edit value false', 'activate',
     'focus creche.plot.1', 'edit value true', 'activate',
-    'read all', 'focus creche.birth', 'activate',
+    'review', 'focus creche.birth', 'activate',
     // Birth enters the retained Body with concise spoken orientation; request
     // the complete stable Face explicitly before leaving the Crèche chapter.
     'read all', 'quit',
@@ -190,12 +194,22 @@ try {
   }
   if (!speakerCard) {
     for (const required of ['Edit Body name requested', 'Include Plot. For Clock',
-      'Birth Body requested']) {
+      'Review Birth choices', 'Starting Plots selected: 1 of', 'Birth Body requested']) {
       assert.ok(transcript.includes(required), `Birth transcript lacks ${required}`);
     }
   }
+  assert.ok(transcript.includes('Review Birth choices'),
+    'Birth was not preceded by a current semantic review');
+  const birthInteractions = [...transcript.matchAll(
+    /Birth interaction: action=(\S+) face-id=(\S+) face-revision=(\d+) show=(\S+)/g)];
+  assert.ok(birthInteractions.length >= 1, 'no actual Birth Face interaction was reported');
+  const [birthAction, birthFaceId, birthFaceRevision, birthShowId] =
+    birthInteractions.at(-1).slice(1);
+  assert.equal(birthAction, 'creche.birth', 'the final Birth interaction was not explicit');
+  assert.ok(birthFaceId && birthShowId);
   const born = ownerJson(['body', 'status', '--state-dir', state, '--json']);
   const bornFace = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  const birthObservedAtUnixMs = Date.now();
   const bodyId = born.biography.body_id;
   assert.ok(bodyId && transcript.includes(bodyId));
   assert.equal(bornFace.presentation.basis.body_id, bodyId);
@@ -220,6 +234,10 @@ try {
     zero_body_receipt: { path: '../zero-body-before.json',
       bytes: preBirthBytes.length, sha256: digest(preBirthBytes) },
     confirmation_observed: true,
+    review_requested: true,
+    birth_interaction: { action_id: birthAction, face_id: birthFaceId,
+      face_revision: birthFaceRevision, show_id: birthShowId },
+    observed_at_unix_ms: birthObservedAtUnixMs,
     speaker_playback_selected: Boolean(speakerCard),
     human_hearing_observed: false,
     owner_instance_speech_realization_observed: false,
@@ -227,6 +245,25 @@ try {
     input: { path: '../birth-input.txt', sha256: digest(Buffer.from(input)) },
     transcript: { path: '../birth-transcript.txt', sha256: digest(Buffer.from(transcript)) },
   };
+  const audioChapters = [];
+  const audioSessions = [];
+  if (birthSession) {
+    const response = index => {
+      assert.equal(birthSession.responses[index]?.command, birthCommands[index]);
+      return birthSession.responses[index].output;
+    };
+    const reviewIndex = birthCommands.indexOf('review');
+    const birthIndex = birthCommands.indexOf('focus creche.birth') + 1;
+    assert.equal(birthCommands[birthIndex], 'activate');
+    audioChapters.push(
+      { name: 'zero-body-orientation', output: response(0) },
+      { name: 'birth-review', output: response(reviewIndex), includeLast: true },
+      { name: 'explicit-birth-result', output: response(birthIndex),
+        face_id: bornFace.presentation.identity,
+        face_revision: bornFace.presentation_revision_decimal, includeLast: true },
+    );
+    audioSessions.push({ name: 'birth', transcript });
+  }
   const inviteFd = openSync(inviteFile, 'wx', 0o600);
   const inviteLog = openSync(path.join(output, 'invitation-service.log'), 'wx', 0o600);
   invitation = spawn(owner, ['body', 'invite', '--state-dir', state, '--ttl-seconds', '600',
@@ -262,9 +299,102 @@ try {
   if (ownerModelRouteControlArg && ownerModelRouteControlArg !== '-') {
     liveArgs.push('--owner-model-route-control', path.resolve(ownerModelRouteControlArg));
   }
-  // A selected speaker completes the entire current Face before the producer
-  // can retain its terminal Play and same-stream WAV artifacts.
-  invoke(xtask, liveArgs, { timeout: speakerCard ? 45 * 60_000 : 180_000 });
+  // The owner Journey pauses at each environmental loss/return. The person
+  // enters the public nonvisual Mask while the underlying route state is held,
+  // and the owner resumes only after a current Face, wardrobe, and Play receipt.
+  const checkpointDir = path.join(live, 'screen-free-checkpoints');
+  const phases = checkpointPhases.filter(phase =>
+    !phase.startsWith('model-') ||
+    (model && ownerModelRouteControlArg && ownerModelRouteControlArg !== '-'));
+  const checkpoints = [];
+  const checkpointSessions = [];
+  const checkpointLog = path.join(output, 'three-host-proof.log');
+  const proofLog = openSync(checkpointLog, 'wx', 0o600);
+  liveProof = spawn(xtask, liveArgs, { stdio: ['ignore', proofLog, proofLog],
+    env: { ...process.env, CONDUIT_SCREEN_FREE_CHECKPOINTS: '1' } });
+  closeSync(proofLog);
+  let liveError;
+  liveProof.once('error', error => { liveError = error; });
+  const liveDeadline = Date.now() + (speakerCard ? 55 * 60_000 : 10 * 60_000);
+  for (const phase of phases) {
+    const readyFile = path.join(checkpointDir, `${phase}.ready.json`);
+    const ready = await waitFor(async () => {
+      if (!existsSync(readyFile)) return null;
+      try { return await load(readyFile); } catch { return null; }
+    }, liveProof, `${phase} checkpoint`, Math.max(1, liveDeadline - Date.now()));
+    const current = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+    verifyCheckpointReady(ready, phase, bodyId, ownerPart, current);
+    const commands = ['wardrobe', 'read all', 'quit'];
+    const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
+    const session = await runPacedScreenFree(owner, args, commands, 'body> ',
+      Math.min(screenFreeSessionTimeout, liveDeadline - Date.now()),
+      { retryStaleReadAll: 4 });
+    // Retain the actual command session before interpreting it. A refusal at
+    // this boundary must leave the owner's words available for diagnosis.
+    await writeFile(path.join(output, `screen-free-checkpoint-${phase}-raw.txt`),
+      session.transcript, { flag: 'wx', mode: 0o600 });
+    assert.equal(session.responses[0]?.command, 'wardrobe');
+    const wardrobeReading = verifyCheckpointWardrobe(session.responses[0].output,
+      ready, ownerPart, Boolean(speakerCard));
+    const readAll = session.responses.findLast(item => item.command === 'read all');
+    assert.ok(readAll, `${phase} lacks the operator's whole-Face request`);
+    const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+    assert.equal(after.presentation.basis.body_id, bodyId);
+    assert.equal(after.advertisement.host_id, ownerPart.host_id);
+    assert.equal(after.advertisement.boot_id, ownerPart.boot_id);
+    assert.ok(BigInt(after.presentation_revision_decimal) >=
+      BigInt(current.presentation_revision_decimal));
+    const finalReading = attestReading(readAll.output, after, ownerPart,
+      `screen-free checkpoint ${phase}`, true).final;
+    const input = `${session.commands.join('\n')}\n`;
+    const inputName = `screen-free-checkpoint-${phase}-input.txt`;
+    const transcriptName = `screen-free-checkpoint-${phase}-transcript.txt`;
+    await writeFile(path.join(live, inputName), input, { flag: 'wx', mode: 0o600 });
+    await writeFile(path.join(live, transcriptName), session.transcript,
+      { flag: 'wx', mode: 0o600 });
+    const transcriptBytes = Buffer.from(session.transcript);
+    const resume = {
+      schema: 'conduit.proof/screen-free-checkpoint@1', phase,
+      body_id: bodyId, owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
+      route_id: ready.route_id, route_available: ready.route_available,
+      wardrobe_revision: wardrobeReading.wardrobe_revision,
+      face_id: after.presentation.identity,
+      face_revision: after.presentation_revision_decimal,
+      source_show_id: finalReading.source_show_id,
+      speaker_playback_selected: Boolean(speakerCard),
+      selected_playback_receipts: finalReading.selected_playback_receipts ?? 0,
+      transcript: { path: `../${transcriptName}`, sha256: digest(transcriptBytes),
+        bytes: transcriptBytes.length },
+    };
+    const resumeFile = path.join(checkpointDir, `${phase}.resume.json`);
+    const temporaryResume = `${resumeFile}.tmp`;
+    await writeFile(temporaryResume, `${JSON.stringify(resume, null, 2)}\n`,
+      { flag: 'wx', mode: 0o600 });
+    await rename(temporaryResume, resumeFile);
+    checkpoints.push({ phase, ready: { path: `screen-free-checkpoints/${phase}.ready.json`,
+      sha256: digest(await readFile(readyFile)) },
+    resume: { path: `screen-free-checkpoints/${phase}.resume.json`,
+      sha256: digest(await readFile(resumeFile)) },
+    ...wardrobeReading, final_reading: finalReading,
+    input: { path: inputName, bytes: Buffer.byteLength(input),
+      sha256: digest(Buffer.from(input)) },
+    transcript: { path: transcriptName, sha256: resume.transcript.sha256,
+      bytes: resume.transcript.bytes } });
+    if (speakerCard) {
+      audioChapters.push({ name: `checkpoint-${phase}`, output: readAll.output,
+        face_id: after.presentation.identity,
+        face_revision: after.presentation_revision_decimal });
+      checkpointSessions.push({ name: `checkpoint-${phase}`,
+        transcript: session.transcript });
+    }
+  }
+  const done = await waitFor(() => liveProof.exitCode !== null || liveProof.signalCode !== null,
+    { exitCode: null }, 'three-host proof completion',
+    Math.max(1, liveDeadline - Date.now()));
+  assert.ok(done);
+  assert.equal(liveError, undefined, String(liveError));
+  assert.equal(liveProof.exitCode, 0,
+    `three-host proof failed: ${(await readFile(checkpointLog, 'utf8')).slice(-3000)}`);
   const reportFile = path.join(live, 'report.json');
   const report = await load(reportFile);
   assert.equal(report.body_id, bodyId);
@@ -272,17 +402,29 @@ try {
   assert.equal(report.owner_boot_id, ownerPart.boot_id);
   assert.equal(report.native_source_commit, installation.release_source_identity);
   report.birth = birth;
+  report.screen_free_checkpoints = {
+    proof_class: speakerCard ? 'installed-screen-free-loss-recovery-selected-alsa' :
+      'installed-screen-free-loss-recovery-text-readout',
+    run_id: report.run_id, body_id: bodyId,
+    owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
+    source_commit: installation.release_source_identity,
+    environmental_changes_performed_by: 'three-host owner Journey, not screen-free commands',
+    speaker_playback_selected: Boolean(speakerCard),
+    human_hearing_observed: false, checkpoints,
+  };
+  audioSessions.push(...checkpointSessions);
   const beforeStart = ownerJson(['body', 'face', '--state-dir', state, '--json']);
   assert.equal(beforeStart.presentation.basis.body_id, bodyId);
   assert.equal(beforeStart.advertisement.host_id, ownerPart.host_id);
   assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
   const available = (face, intent) => face.presentation.actions.find(action =>
     action.intent === intent && action.availability === 'Available');
+  const clockAudioSessions = [];
   const exercise = async (name, before, action) => {
     assert.ok(action, `the current owner Face offers no available ${name} action`);
     const commands = [...(speakerCard ? [] : ['read all']),
       `focus ${action.identity}`, 'activate',
-      ...(speakerCard && name === 'start' ? [] : ['read all']), 'quit'];
+      ...(speakerCard && (name === 'start' || name === 'wake') ? [] : ['read all']), 'quit'];
     const input = `${commands.join('\n')}\n`;
     const inputFile = `clock-${name}-input.txt`;
     const transcriptFile = `clock-${name}-transcript.txt`;
@@ -290,7 +432,7 @@ try {
     const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
     const selected = speakerCard
       ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
-        { retryStaleReadAll: name === 'start' ? 0 : 4 }) : null;
+        { retryStaleReadAll: name === 'start' || name === 'wake' ? 0 : 4 }) : null;
     const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
     if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
     const transcript = selected?.transcript ??
@@ -303,6 +445,7 @@ try {
     assert.equal(enacted[0][2], before.presentation_revision_decimal);
     assert.match(transcript, /Owner action result:/);
     const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+    const observedAtUnixMs = Date.now();
     assert.equal(after.presentation.basis.body_id, bodyId);
     assert.ok(BigInt(after.presentation_revision_decimal) >
       BigInt(before.presentation_revision_decimal));
@@ -310,11 +453,21 @@ try {
       `screen-free clock ${name}`, true);
     assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
     assert.equal(enacted[0][3], reading.first.source_show_id);
+    if (selected) {
+      const lastReading = selected.responses.findLast(response => response.command === 'read all');
+      const actionResponse = selected.responses.find(response => response.command === 'activate');
+      audioChapters.push({ name: `clock-${name}`,
+        output: (lastReading ?? actionResponse).output,
+        face_id: after.presentation.identity,
+        face_revision: after.presentation_revision_decimal });
+      clockAudioSessions.push({ name: `clock-${name}`, transcript });
+    }
     return {
       action_id: action.identity, source_face_id: before.presentation.identity,
       source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
       result_face_id: after.presentation.identity,
       result_face_revision: after.presentation_revision_decimal,
+      observed_at_unix_ms: observedAtUnixMs,
       final_reading: reading.final,
       input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),
         sha256: digest(Buffer.from(actualInput)) },
@@ -336,19 +489,103 @@ try {
   assert.equal(afterLull.biography.body.state, 'Lulled');
   assert.equal(afterLull.biography.membership.parts[0].current.host_id, ownerPart.host_id);
   assert.equal(afterLull.biography.membership.parts[0].current.boot_id, ownerPart.boot_id);
-  assert.ok(available(lull.after, 'conduit.intent/start-clock@1'));
+  // The terminal route is offered only while a real installed terminal Mask
+  // provider is attached. Keep that provider open through the nonvisual
+  // inspect/refusal/recovery/doff/wear/prefer sequence.
+  let terminalOutput = '';
+  let terminalError = '';
+  terminal = spawn(owner, ['body', 'terminal', '--state-dir', state, '--owner-show'],
+    { stdio: ['pipe', 'pipe', 'pipe'] });
+  terminal.stdout.on('data', chunk => { terminalOutput += chunk.toString('utf8'); });
+  terminal.stderr.on('data', chunk => { terminalError += chunk.toString('utf8'); });
+  await waitFor(() => terminalOutput.includes('browser selection awaits a complete carrier-Line Mask Plan.'),
+    terminal, 'attached owner terminal Mask');
+  assert.match(terminalOutput, /Owner terminal Show/);
+  const wardrobeArgs = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
+  const wardrobeSession = await runPacedScreenFree(owner, wardrobeArgs,
+    screenFreeWardrobeCommands, 'body> ', screenFreeSessionTimeout);
+  const wardrobe = verifyScreenFreeWardrobe(wardrobeSession, ownerPart, Boolean(speakerCard));
+  if (speakerCard) {
+    audioChapters.push(
+      { name: 'wardrobe-inspection', output: wardrobeSession.responses[0].output },
+      { name: 'wardrobe-recovery', output: wardrobeSession.responses[2].output },
+      { name: 'wardrobe-preference', output: wardrobeSession.responses[5].output },
+    );
+    audioSessions.push({ name: 'wardrobe', transcript: wardrobeSession.transcript });
+  }
+  const wardrobeInput = `${wardrobeSession.commands.join('\n')}\n`;
+  await writeFile(path.join(output, 'wardrobe-input.txt'), wardrobeInput, { mode: 0o600 });
+  await writeFile(path.join(output, 'wardrobe-transcript.txt'), wardrobeSession.transcript,
+    { mode: 0o600 });
+  const terminalExit = new Promise(resolve => terminal.once('close', resolve));
+  terminal.stdin.end('quit\n');
+  const terminalCode = await Promise.race([
+    terminalExit,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('owner terminal detachment timed out')), 10_000)),
+  ]);
+  assert.equal(terminalCode, 0, `owner terminal detachment: ${terminalError}`);
+  await writeFile(path.join(output, 'wardrobe-provider-transcript.txt'), terminalOutput,
+    { mode: 0o600 });
+  const afterWardrobe = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterWardrobe.biography.body_id, bodyId);
+  assert.equal(afterWardrobe.biography.body.state, 'Lulled');
+  const beforeWake = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  const wake = await exercise('wake', beforeWake,
+    available(beforeWake, 'conduit.intent/start-clock@1'));
+  const afterWake = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterWake.biography.body_id, bodyId);
+  assert.ok(afterWake.biography.body.state.Awake);
+  const finish = await exercise('finish', wake.after,
+    available(wake.after, 'conduit.intent/lull-clock@1'));
+  const afterFinish = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterFinish.biography.body_id, bodyId);
+  assert.equal(afterFinish.biography.body.state, 'Lulled');
+  assert.equal(afterFinish.biography.membership.parts[0].current.host_id, ownerPart.host_id);
+  assert.equal(afterFinish.biography.membership.parts[0].current.boot_id, ownerPart.boot_id);
   delete start.after;
   delete lull.after;
+  delete wake.after;
+  delete finish.after;
   report.screen_free_clock = {
     proof_class: speakerCard ? 'installed-screen-free-clock-selected-alsa' :
       'installed-screen-free-clock-text-readout',
     run_id: report.run_id, body_id: bodyId,
     owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
     source_commit: installation.release_source_identity,
-    start, lull,
+    start, lull, wake, finish,
     speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
   };
+  report.screen_free_wardrobe = {
+    proof_class: speakerCard ? 'installed-screen-free-wardrobe-selected-alsa' :
+      'installed-screen-free-wardrobe-text-readout',
+    run_id: report.run_id, body_id: bodyId,
+    owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
+    source_commit: installation.release_source_identity,
+    ...wardrobe,
+    provider_transcript: { path: '../wardrobe-provider-transcript.txt',
+      bytes: Buffer.byteLength(terminalOutput), sha256: digest(Buffer.from(terminalOutput)) },
+    input: { path: '../wardrobe-input.txt', bytes: Buffer.byteLength(wardrobeInput),
+      sha256: digest(Buffer.from(wardrobeInput)) },
+    transcript: { path: '../wardrobe-transcript.txt',
+      bytes: Buffer.byteLength(wardrobeSession.transcript),
+      sha256: digest(Buffer.from(wardrobeSession.transcript)) },
+    speaker_playback_selected: Boolean(speakerCard), human_hearing_observed: false,
+  };
+  if (speakerCard) {
+    report.screen_free_audio = await retainSelectedScreenFreePlays({
+      state, privateRoot: output, walkthroughRoot: live, ownerPart, installation,
+      chapters: audioChapters,
+      sessions: [...audioSessions, ...clockAudioSessions],
+    });
+  }
   await retainScreenFreeSessions(output, live, report);
+  // Publication is a separate boundary from the diagnostic walkthrough and
+  // uses only the completed producer's exact captures and listener Plays.
+  if (speakerCard && model && ownerModelRouteControlArg && ownerModelRouteControlArg !== '-') {
+    report.publication_chapters = await writeThreeHostPublicationReceipts({
+      output: live, report, birth, start, finish, checkpoints, installation,
+    });
+  }
   const walkthrough = await writeThreeHostWalkthrough(live, handbook, report);
   report.walkthrough = {
     ...walkthrough,
@@ -361,6 +598,8 @@ try {
   await verifyWalkthroughAssets(live, await readFile(path.join(live, walkthrough.path), 'utf8'));
   console.log(`Screen-free Birth and three-host proof: ${reportFile}`);
 } finally {
+  if (liveProof?.exitCode === null) liveProof.kill();
+  if (terminal?.exitCode === null) terminal.kill();
   if (invitation?.exitCode === null) invitation.kill();
   if (service?.exitCode === null) service.kill();
 }

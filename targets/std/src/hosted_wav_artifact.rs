@@ -8,12 +8,41 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 const SAMPLE_RATE_HZ: u32 = 48_000;
-// Sixty-four retained 30-second stereo PCM Shows admit at most 368,642,816
-// bytes including WAV headers. Reserve and partial names can coexist until
-// a Play finishes or cancels, hence the larger finite directory scan bound.
+// The ordinary pool admits sixty-four retained 30-second stereo PCM Shows.
+// Reserve and partial names can coexist until a Play finishes or cancels, so
+// the directory scan bound is three entries per admitted artifact plus a lock.
 const MAX_RETAINED_ARTIFACTS: usize = 64;
 const MAX_WAV_BYTES: u64 = 44 + 30 * 48_000_u64 * 4;
-const MAX_DIRECTORY_ENTRIES: usize = 3 * MAX_RETAINED_ARTIFACTS + 1;
+const MAXIMUM_RETENTION_ARTIFACTS: usize = 1024;
+const MAXIMUM_RETENTION_BYTES: u64 = 1024 * 1024 * 1024;
+
+/// A finite retained pool selected before playback. The ordinary owner pool
+/// remains 64 Plays; a screen-free session may explicitly admit a larger pool
+/// without weakening the per-Play 30-second PCM limit.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WavArtifactRetentionLimits {
+    max_artifacts: usize,
+    max_bytes: u64,
+}
+
+impl WavArtifactRetentionLimits {
+    pub const DEFAULT: Self = Self {
+        max_artifacts: MAX_RETAINED_ARTIFACTS,
+        max_bytes: MAX_RETAINED_ARTIFACTS as u64 * MAX_WAV_BYTES,
+    };
+
+    pub fn new(max_artifacts: usize, max_bytes: u64) -> Result<Self, String> {
+        if !(1..=MAXIMUM_RETENTION_ARTIFACTS).contains(&max_artifacts)
+            || !(MAX_WAV_BYTES..=MAXIMUM_RETENTION_BYTES).contains(&max_bytes)
+        {
+            return Err("retained WAV pool exceeds its finite admission bounds".into());
+        }
+        Ok(Self {
+            max_artifacts,
+            max_bytes,
+        })
+    }
+}
 
 #[derive(Debug)]
 struct QuotaReservation(PathBuf);
@@ -45,6 +74,7 @@ pub struct WavArtifactSelection {
     destination: PathBuf,
     per_play: bool,
     reservation: Option<Arc<QuotaReservation>>,
+    retention: WavArtifactRetentionLimits,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
 }
@@ -74,6 +104,7 @@ impl WavArtifactSelection {
             destination: destination.to_path_buf(),
             per_play: false,
             reservation: None,
+            retention: WavArtifactRetentionLimits::DEFAULT,
             boot_id,
             offer_generation,
         })
@@ -86,6 +117,21 @@ impl WavArtifactSelection {
         boot_id: BootId,
         offer_generation: OfferGeneration,
     ) -> Result<Self, String> {
+        Self::per_play_root_with_limits(
+            root,
+            boot_id,
+            offer_generation,
+            WavArtifactRetentionLimits::DEFAULT,
+        )
+    }
+
+    pub fn per_play_root_with_limits(
+        root: impl AsRef<Path>,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        retention: WavArtifactRetentionLimits,
+    ) -> Result<Self, String> {
+        WavArtifactRetentionLimits::new(retention.max_artifacts, retention.max_bytes)?;
         let root = root.as_ref();
         if !root.is_dir()
             || root
@@ -106,6 +152,7 @@ impl WavArtifactSelection {
             destination: root,
             per_play: true,
             reservation: None,
+            retention,
             boot_id,
             offer_generation,
         };
@@ -121,7 +168,7 @@ impl WavArtifactSelection {
         let mut entries = 0usize;
         for entry in std::fs::read_dir(&self.destination).map_err(|e| e.to_string())? {
             entries += 1;
-            if entries > MAX_DIRECTORY_ENTRIES {
+            if entries > 3 * self.retention.max_artifacts + 1 {
                 return Err("WAV artifact directory exceeds its finite scan bound".into());
             }
             let entry = entry.map_err(|e| e.to_string())?;
@@ -153,10 +200,10 @@ impl WavArtifactSelection {
                 return Err("WAV artifact directory contains an unknown file".into());
             }
         }
-        Ok(count < MAX_RETAINED_ARTIFACTS
+        Ok(count < self.retention.max_artifacts
             && bytes
                 .checked_add(MAX_WAV_BYTES)
-                .is_some_and(|required| required <= MAX_RETAINED_ARTIFACTS as u64 * MAX_WAV_BYTES))
+                .is_some_and(|required| required <= self.retention.max_bytes))
     }
 
     pub fn for_play(

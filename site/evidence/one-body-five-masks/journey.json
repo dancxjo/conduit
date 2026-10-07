@@ -1,0 +1,253 @@
+{
+  "schema": "conduit.journey/one-body-five-masks@1",
+  "source_commit": "9b79486146bfb0af3369f8133a81b3d14792bd1c",
+  "run_id": "three-host-5a9b4d4cd9a752c0c7205216",
+  "body_id": "ee3733747a44b61879ad714ce8ab178cdc54b227eba48752b43c966a428cce30",
+  "chapters": [
+    {
+      "id": "birth",
+      "title": "Make a Body",
+      "intention": "Create one Body without a screen.",
+      "action": "Review the clock Plot and activate Birth.",
+      "result": "The installed owner retains the new Body.",
+      "why": "The other Hosts must join this same Body.",
+      "next": "Open the browser and QEMU guest.",
+      "receipt_id": "birth-chapter-receipt",
+      "media": [
+        {
+          "output_id": "birth-media-1",
+          "receipt_id": "birth-media-1-receipt",
+          "alt": "Actual nonvisual Birth session"
+        }
+      ],
+      "limitations": [
+        "No attended human listening is claimed."
+      ]
+    },
+    {
+      "id": "join",
+      "title": "Give it more places to meet you",
+      "intention": "Meet the same Body on three Hosts.",
+      "action": "Join through the browser and QEMU guest.",
+      "result": "Three current Parts have distinct Host and Boot identities.",
+      "why": "Membership does not silently birth another Body.",
+      "next": "Set the interval.",
+      "receipt_id": "join-chapter-receipt",
+      "media": [
+        {
+          "output_id": "join-media-1",
+          "receipt_id": "join-media-1-receipt",
+          "alt": "Joined browser Face"
+        },
+        {
+          "output_id": "join-media-2",
+          "receipt_id": "join-media-2-receipt",
+          "alt": "Joined QEMU guest before Mask activation"
+        }
+      ],
+      "limitations": [
+        "QMP is emulator evidence, not physical hardware evidence."
+      ]
+    },
+    {
+      "id": "start",
+      "title": "Set the clock",
+      "intention": "Choose a useful interval before running the clock.",
+      "action": "Change the interval on ConduitOS, then change it in the browser.",
+      "result": "Both typed interactions change the same owner Face.",
+      "why": "The Body remains lulled while its interval changes.",
+      "next": "Inspect another Mask.",
+      "receipt_id": "start-chapter-receipt",
+      "media": [
+        {
+          "output_id": "start-media-1",
+          "receipt_id": "start-media-1-receipt",
+          "alt": "QEMU clock after the 500 millisecond action"
+        },
+        {
+          "output_id": "start-media-2",
+          "receipt_id": "start-media-2-receipt",
+          "alt": "Browser clock after the 1000 millisecond action"
+        }
+      ],
+      "limitations": [
+        "This does not prove distributed workload migration."
+      ]
+    },
+    {
+      "id": "see",
+      "title": "Change how you see it",
+      "intention": "Meet the current work through different Masks.",
+      "action": "Use the terminal action and change browser wardrobe preference.",
+      "result": "The current Face and selected Show remain correlated.",
+      "why": "Presentation changes do not make a second Body.",
+      "next": "Hear the Face.",
+      "receipt_id": "see-chapter-receipt",
+      "media": [
+        {
+          "output_id": "see-media-1",
+          "receipt_id": "see-media-1-receipt",
+          "alt": "Installed owner terminal Show and typed clock action"
+        },
+        {
+          "output_id": "see-media-2",
+          "receipt_id": "see-media-2-receipt",
+          "alt": "Browser wardrobe after preference change"
+        }
+      ],
+      "limitations": [
+        "A wardrobe choice is not a new clock action."
+      ]
+    },
+    {
+      "id": "hear",
+      "title": "Hear it",
+      "intention": "Listen to the current Face and its explanation.",
+      "action": "Select direct and model-assisted speech.",
+      "result": "The complete direct reading and selected model explanation have retained listener WAVs.",
+      "why": "The recording is from the same Play as the speaker output.",
+      "next": "Withdraw a route.",
+      "receipt_id": "hear-chapter-receipt",
+      "media": [
+        {
+          "output_id": "hear-media-1",
+          "receipt_id": "hear-media-1-receipt",
+          "alt": "Direct spoken Face, batch 1 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-2",
+          "receipt_id": "hear-media-2-receipt",
+          "alt": "Direct spoken Face, batch 2 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-3",
+          "receipt_id": "hear-media-3-receipt",
+          "alt": "Direct spoken Face, batch 3 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-4",
+          "receipt_id": "hear-media-4-receipt",
+          "alt": "Direct spoken Face, batch 4 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-5",
+          "receipt_id": "hear-media-5-receipt",
+          "alt": "Direct spoken Face, batch 5 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-6",
+          "receipt_id": "hear-media-6-receipt",
+          "alt": "Direct spoken Face, batch 6 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-7",
+          "receipt_id": "hear-media-7-receipt",
+          "alt": "Direct spoken Face, batch 7 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-8",
+          "receipt_id": "hear-media-8-receipt",
+          "alt": "Direct spoken Face, batch 8 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-9",
+          "receipt_id": "hear-media-9-receipt",
+          "alt": "Direct spoken Face, batch 9 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-10",
+          "receipt_id": "hear-media-10-receipt",
+          "alt": "Direct spoken Face, batch 10 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-11",
+          "receipt_id": "hear-media-11-receipt",
+          "alt": "Direct spoken Face, batch 11 of 11, from its selected speaker Play"
+        },
+        {
+          "output_id": "hear-media-12",
+          "receipt_id": "hear-media-12-receipt",
+          "alt": "Model-assisted explanation from the selected speaker Play"
+        }
+      ],
+      "limitations": [
+        "Automated playback does not establish attended human hearing."
+      ]
+    },
+    {
+      "id": "loss",
+      "title": "Change the circumstances",
+      "intention": "Understand a provider outage and its recovery.",
+      "action": "Withdraw the selected model route, inspect the refusal, then restore it.",
+      "result": "Model Start refuses before a new Play; a fresh selected Play completes after restoration.",
+      "why": "The unavailable provider does not erase the Body or silently invoke a fallback.",
+      "next": "Now leave and rejoin the browser.",
+      "receipt_id": "loss-chapter-receipt",
+      "media": [
+        {
+          "output_id": "loss-media-1",
+          "receipt_id": "loss-media-1-receipt",
+          "alt": "Screen-free inspection during model route loss"
+        },
+        {
+          "output_id": "loss-media-2",
+          "receipt_id": "loss-media-2-receipt",
+          "alt": "Restored model explanation from the selected speaker Play"
+        }
+      ],
+      "limitations": [
+        "No automatic fallback or workload failover is claimed."
+      ]
+    },
+    {
+      "id": "return",
+      "title": "Come back",
+      "intention": "Return to the retained Body from a fresh browser Boot.",
+      "action": "Leave the browser presentation, inspect its loss, then rejoin.",
+      "result": "Old browser actions become unavailable; the fresh Boot receives a new acknowledged Show.",
+      "why": "The owner preserves Body continuity while browser route identities change.",
+      "next": "Start the clock.",
+      "receipt_id": "return-chapter-receipt",
+      "media": [
+        {
+          "output_id": "return-media-1",
+          "receipt_id": "return-media-1-receipt",
+          "alt": "Screen-free inspection during browser presentation loss"
+        },
+        {
+          "output_id": "return-media-2",
+          "receipt_id": "return-media-2-receipt",
+          "alt": "Fresh browser Boot showing the same Body"
+        }
+      ],
+      "limitations": [
+        "No QEMU reboot or workload failover is claimed."
+      ]
+    },
+    {
+      "id": "lull",
+      "title": "Run it, then leave it well",
+      "intention": "Run the configured clock and leave it in a known retained state.",
+      "action": "Start the clock nonvisually, then Lull it through the same controls.",
+      "result": "The clock Play runs and retires while the Body remains retained.",
+      "why": "Retained identity is distinct from continuing execution.",
+      "next": "Inspect the report.",
+      "receipt_id": "lull-chapter-receipt",
+      "media": [
+        {
+          "output_id": "lull-media-1",
+          "receipt_id": "lull-media-1-receipt",
+          "alt": "Nonvisual Start session"
+        },
+        {
+          "output_id": "lull-media-2",
+          "receipt_id": "lull-media-2-receipt",
+          "alt": "Nonvisual Lull session"
+        }
+      ],
+      "limitations": [
+        "A retained Body is not proof of an active Play."
+      ]
+    }
+  ]
+}

@@ -112,14 +112,20 @@ impl Owner {
         if let Some((seal, mask_host_offer, face_line, return_line, interaction_line)) =
             browser.and_then(super::participants::BrowserWindow::current_mask_route)
         {
-            current.push(CurrentOwnerPresentationRoute::Remote {
-                seal,
-                owner_offer,
-                mask_host_offer,
-                face_line,
-                return_line,
-                interaction_line: Some(interaction_line),
-            });
+            // Attaching or detaching the local terminal advances this owner's
+            // offer generation. The browser's prior route remains a real
+            // historical seal, but cannot witness the new owner offer. Keep
+            // other invalid witnesses visible to ordinary validation.
+            if !Self::remote_route_has_prior_owner_generation(seal, owner_offer) {
+                current.push(CurrentOwnerPresentationRoute::Remote {
+                    seal,
+                    owner_offer,
+                    mask_host_offer,
+                    face_line,
+                    return_line,
+                    interaction_line: Some(interaction_line),
+                });
+            }
         }
         current
     }
@@ -171,15 +177,26 @@ impl Owner {
         if let Some((seal, mask_host_offer, face_line, return_line)) =
             native.and_then(|route| route.current_witness(session, face, now_millis))
         {
-            current.push(CurrentOwnerPresentationRoute::Remote {
-                seal,
-                owner_offer,
-                mask_host_offer,
-                face_line,
-                return_line,
-                interaction_line: None,
-            });
+            if !Self::remote_route_has_prior_owner_generation(seal, owner_offer) {
+                current.push(CurrentOwnerPresentationRoute::Remote {
+                    seal,
+                    owner_offer,
+                    mask_host_offer,
+                    face_line,
+                    return_line,
+                    interaction_line: None,
+                });
+            }
         }
         current
+    }
+
+    fn remote_route_has_prior_owner_generation(
+        seal: &conduit_presentation::RemoteOwnerMaskRouteSeal,
+        owner_offer: &conduit_core::HostAdvertisement,
+    ) -> bool {
+        seal.owner_host.host_id == owner_offer.host_id
+            && seal.owner_host.boot_id == owner_offer.boot_id
+            && seal.owner_host.offer_generation != owner_offer.offer_generation
     }
 }
