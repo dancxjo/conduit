@@ -261,3 +261,243 @@ fn pinned_conditioner_interface_matches_exact_source_front_native_codecs_and_sig
     foreign.push(b' ');
     assert!(ConditioningInterface::prepare(retained.conditioning_descriptor(), foreign).is_err());
 }
+
+#[test]
+#[ignore = "private complete committed dependency Source definition; preparation-only extent audit"]
+fn committed_dependency_session_carrier_retains_full_checked_source_laws() {
+    use sha2::{Digest, Sha256};
+    let bytes =
+        std::fs::read(std::env::var("CONDUIT_COMMITTED_DEPENDENCY_SOURCE").unwrap()).unwrap();
+    assert_eq!(
+        format!("{:x}", Sha256::digest(&bytes)),
+        "e5bb22f0dfe06d4d958e05939bb3b787e77593cc4f9807d581cb014c5c5fbea1"
+    );
+    let source = String::from_utf8(bytes).unwrap();
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let carrier = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "LanguageParserCommittedDependencyAdmission")
+        .unwrap();
+    assert!(!carrier.invariants.is_empty());
+    let maximum = maximum_prepared_transport_value_bytes(&carrier.value_type).unwrap();
+    eprintln!("full committed dependency session carrier: native canonical maximum={maximum}, root invariant programs={}, checked context types={}; no bounded Flow transport/admission claim",carrier.invariants.len(),checked.native_types.len());
+}
+
+// Session preparation may retain large carriers; this deliberately does not
+// install a numeric runtime Kind or relax its selected frame/storage limits.
+pub(super) fn admit_retained_session_native(
+    document: &CheckedSyntaxDocument,
+    name: &str,
+    encoded: &[u8],
+) -> Result<StructuredInfoValue, String> {
+    let selected = document
+        .native_types
+        .iter()
+        .find(|ty| ty.name == name)
+        .ok_or("selected Source native carrier absent")?;
+    let value = StructuredInfoValue::from_canonical_bytes(encoded).map_err(|e| format!("{e:?}"))?;
+    if value.value_type() != &selected.value_type {
+        return Err(format!(
+            "foreign session carrier Type for {name}: expected {:?}, received {:?}",
+            selected
+                .value_type
+                .profile()
+                .map(|p| p.value_kind().clone()),
+            value.value_type().profile().map(|p| p.value_kind().clone())
+        ));
+    }
+    fn walk(value: &StructuredInfoValue, document: &CheckedSyntaxDocument) -> Result<(), String> {
+        for ty in document
+            .native_types
+            .iter()
+            .filter(|ty| value.value_type() == &ty.value_type)
+        {
+            conduit_plot::rust_binding::validate_native_contracts(value, &ty.value_contracts)
+                .map_err(|e| format!("{e:?}"))?;
+            if !ty.invariants.is_empty() {
+                let input = value.canonical_bytes().map_err(|e| format!("{e:?}"))?;
+                for program in &ty.invariants {
+                    if program.input_type != *value.value_type()
+                        || program.output_type
+                            != StructuredInfoType::leaf(kind_id(BOOL_INFO_ID))
+                                .map_err(|e| format!("{e:?}"))?
+                    {
+                        return Err("exact native invariant signature".into());
+                    }
+                    // Host session preparation uses the complete allocating native
+                    // evaluator, rather than the bounded Play evaluator subset.
+                    let result = program.evaluate(&input).map_err(|e| format!("{e:?}"))?;
+                    if !InfoBool::decode(&result)
+                        .map_err(|e| format!("{e:?}"))?
+                        .get()
+                    {
+                        return Err("session native invariant refused".into());
+                    }
+                }
+            }
+        }
+        match value.shape() {
+            StructuredInfoValueShape::Leaf(_) => {}
+            StructuredInfoValueShape::Collection(values) => {
+                for value in values {
+                    walk(value, document)?
+                }
+            }
+            StructuredInfoValueShape::Record(fields) => {
+                for field in fields {
+                    walk(field.value(), document)?
+                }
+            }
+            StructuredInfoValueShape::Variant { payload, .. } => walk(payload, document)?,
+        }
+        Ok(())
+    }
+    walk(&value, document)?;
+    Ok(value)
+}
+
+#[test]
+fn session_native_admission_refuses_nested_laws_foreign_type_and_malformed_bytes() {
+    let source="type SessionInner = {\n period: U16\n where .period >= 32\n}\ntype SessionCarrier = {\n inner: SessionInner\n}\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let inner = &checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "SessionInner")
+        .unwrap()
+        .value_type;
+    let root = &checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "SessionCarrier")
+        .unwrap()
+        .value_type;
+    let StructuredInfoTypeShape::Record { fields, .. } = inner.shape() else {
+        panic!("inner")
+    };
+    let period_type = fields[0].value_type();
+    let make = |period: u16| {
+        let scalar =
+            StructuredInfoValue::leaf(period_type.clone(), period.to_le_bytes().to_vec()).unwrap();
+        let inner_value = StructuredInfoValue::record(
+            inner.clone(),
+            vec![StructuredFieldValue::new("period", scalar).unwrap()],
+        )
+        .unwrap();
+        StructuredInfoValue::record(
+            root.clone(),
+            vec![StructuredFieldValue::new("inner", inner_value).unwrap()],
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+    };
+    let good = make(32);
+    assert!(admit_retained_session_native(&checked, "SessionCarrier", &good).is_ok());
+    assert!(admit_retained_session_native(&checked, "SessionCarrier", &make(31)).is_err());
+    assert!(admit_retained_session_native(&checked, "SessionInner", &good).is_err());
+    assert!(
+        admit_retained_session_native(&checked, "SessionCarrier", &good[..good.len() - 1]).is_err()
+    );
+}
+
+#[test]
+#[ignore = "private exact committed speech handoff and complete Source definitions"]
+fn committed_speech_session_readmission_retains_full_custody_and_refuses_uncommitted_runtime() {
+    use sha2::{Digest, Sha256};
+    let definition =
+        std::fs::read(std::env::var("CONDUIT_COMMITTED_DEPENDENCY_SOURCE").unwrap()).unwrap();
+    assert_eq!(
+        format!("{:x}", Sha256::digest(&definition)),
+        "e5bb22f0dfe06d4d958e05939bb3b787e77593cc4f9807d581cb014c5c5fbea1"
+    );
+    let source = String::from_utf8(definition).unwrap();
+    let check_start = std::time::Instant::now();
+    let document =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let checked_in = check_start.elapsed();
+    let bytes = std::fs::read(std::env::var("CONDUIT_COMMITTED_SPEECH_HANDOFF").unwrap()).unwrap();
+    assert_eq!(
+        format!("{:x}", Sha256::digest(&bytes)),
+        "d4be97a0c8350c72df496cae35f817dd617e449157dbe6a25e5dbda79eee2c89"
+    );
+    let handoff: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let encoded: Vec<u8> = serde_json::from_value(
+        handoff["graph_receipt"]["committed_dependency_admission_bytes"].clone(),
+    )
+    .unwrap();
+    assert_eq!(encoded.len(), 142093);
+    let admission_start = std::time::Instant::now();
+    let admitted = admit_retained_session_native(
+        &document,
+        "LanguageParserCommittedDependencyAdmission",
+        &encoded,
+    )
+    .unwrap();
+    let admitted_in = admission_start.elapsed();
+    fn field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a StructuredInfoValue {
+        let StructuredInfoValueShape::Record(fields) = value.shape() else {
+            panic!("exact record")
+        };
+        fields.iter().find(|f| f.name() == name).unwrap().value()
+    }
+    let stable: Vec<u8> =
+        serde_json::from_value(handoff["graph_receipt"]["dependency_admission_bytes"].clone())
+            .unwrap();
+    assert_eq!(
+        field(&admitted, "admission").canonical_bytes().unwrap(),
+        stable
+    );
+    fn replace(
+        value: &StructuredInfoValue,
+        name: &str,
+        replacement: &StructuredInfoValue,
+    ) -> StructuredInfoValue {
+        let StructuredInfoValueShape::Record(fields) = value.shape() else {
+            panic!("exact record")
+        };
+        StructuredInfoValue::record(
+            value.value_type().clone(),
+            fields
+                .iter()
+                .map(|field| {
+                    StructuredFieldValue::new(
+                        field.name(),
+                        if field.name() == name {
+                            replacement.clone()
+                        } else {
+                            field.value().clone()
+                        },
+                    )
+                    .unwrap()
+                })
+                .collect(),
+        )
+        .unwrap()
+    }
+    let input_beam = field(field(field(&admitted, "commit"), "fact"), "query");
+    let runtime = replace(
+        field(&admitted, "runtime"),
+        "beam",
+        field(input_beam, "beam"),
+    );
+    let uncommitted = replace(&admitted, "runtime", &runtime)
+        .canonical_bytes()
+        .unwrap();
+    assert!(admit_retained_session_native(
+        &document,
+        "LanguageParserCommittedDependencyAdmission",
+        &uncommitted
+    )
+    .is_err());
+    assert!(admit_retained_session_native(
+        &document,
+        "LanguageParserCommittedDependencyAdmission",
+        &encoded[..encoded.len() - 1]
+    )
+    .is_err());
+    eprintln!("full committed carrier readmitted: {}bytes, Sourcecheck={checked_in:?}, recursiveNativeadmission={admitted_in:?}; uncommittedruntime/malformedrefused; no acousticlineage/conditioning claim",encoded.len());
+}
