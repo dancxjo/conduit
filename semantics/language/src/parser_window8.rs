@@ -79,6 +79,46 @@ pub fn initialize_window8(
 pub fn window8_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserWindow8RawClassRelations",
+            LanguageParserWindow8RawClassRelations::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8ChoiceQuery",
+            LanguageParserWindow8ChoiceQuery::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8Selected",
+            LanguageParserWindow8Selected::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8RawAdvance",
+            LanguageParserWindow8RawAdvance::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8RawHypothesis",
+            LanguageParserWindow8RawHypothesis::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8RawBeam",
+            LanguageParserWindow8RawBeam::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8RawMerge",
+            LanguageParserWindow8RawMerge::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8ClassQuery",
+            LanguageParserWindow8ClassQuery::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8RawClassIndex",
+            LanguageParserWindow8RawClassIndex::semantic_type().unwrap()
+        ),
+        (
+            "LanguageParserWindow8RawClass",
+            LanguageParserWindow8RawClass::semantic_type().unwrap()
+        ),
+        (
             "LanguageParserWindow8RawRequest",
             LanguageParserWindow8RawRequest::semantic_type().unwrap()
         ),
@@ -189,12 +229,12 @@ impl PreparedWindow8Step {
 }
 /// Source owns basis/action guards and mutation; next forest admission is
 /// mandatory. On any refusal the borrowed prior immutable snapshot survives.
-pub fn prepare_window8_step(
+pub fn prepare_window8_proposal(
     prior: &PreparedWindow8State,
     basis: &LanguageParserBasis,
     action: LanguageParserAction,
     relation: &LanguageParserRelation,
-) -> Result<PreparedWindow8Step, Window8Refusal> {
+) -> Result<PreparedWindow8Proposal, Window8Refusal> {
     let top = prior.state().stack()[(*prior.state().depth() - 1) as usize];
     let witness_index = if top < 8 { top as usize } else { 0 };
     let request = LanguageParserWindow8RawRequest::new(
@@ -229,6 +269,33 @@ pub fn prepare_window8_step(
         checked,
         include_str!(concat!(env!("OUT_DIR"), "/window8_move_apply.hex")),
     )?;
+    Ok(PreparedWindow8Proposal {
+        prior: prior.proof().clone(),
+        proposal,
+    })
+}
+/// This receipt retains the exact checked prior, but its output remains raw.
+/// Search may rank it; publication still requires next full forest admission.
+pub struct PreparedWindow8Proposal {
+    prior: LanguageParserWindow8StateProof,
+    proposal: LanguageParserWindow8RawResult,
+}
+impl PreparedWindow8Proposal {
+    pub fn prior(&self) -> &LanguageParserWindow8StateProof {
+        &self.prior
+    }
+    pub fn proposal(&self) -> &LanguageParserWindow8RawResult {
+        &self.proposal
+    }
+}
+pub fn prepare_window8_step(
+    prior: &PreparedWindow8State,
+    basis: &LanguageParserBasis,
+    action: LanguageParserAction,
+    relation: &LanguageParserRelation,
+) -> Result<PreparedWindow8Step, Window8Refusal> {
+    let prepared = prepare_window8_proposal(prior, basis, action, relation)?;
+    let proposal = prepared.proposal;
     let next = if *proposal.accepted() {
         prepare_window8_state(proposal.state())?
     } else {
@@ -249,4 +316,74 @@ pub fn window8_complete(state: &PreparedWindow8State) -> Result<bool, Window8Ref
         include_str!(concat!(env!("OUT_DIR"), "/window8_complete.hex")),
     )?;
     Ok(*result.complete())
+}
+
+/// Decode only the admitted finite version3 model class ABI. This does not
+/// admit a transition or establish a linguistic analysis.
+pub fn window8_class(
+    code: u64,
+    default_relation: &LanguageParserRelation,
+) -> Result<LanguageParserWindow8RawClass, Window8Refusal> {
+    let query = LanguageParserWindow8ClassQuery::new(code, default_relation.clone())
+        .map_err(Window8Refusal::Native)?;
+    let index: LanguageParserWindow8RawClassIndex = evaluate(
+        query,
+        include_str!(concat!(env!("OUT_DIR"), "/window8_class_index.hex")),
+    )?;
+    let relations: LanguageParserWindow8RawClassRelations = evaluate(
+        index,
+        include_str!(concat!(env!("OUT_DIR"), "/window8_class_relations.hex")),
+    )?;
+    evaluate(
+        relations,
+        include_str!(concat!(env!("OUT_DIR"), "/window8_class_relation.hex")),
+    )
+}
+
+/// Raw search only. Ranking retains complete proposal bodies; selected states
+/// still require exact lexical/model custody and full Source forest admission.
+pub fn window8_rank(
+    mut beam: LanguageParserWindow8RawBeam,
+) -> Result<LanguageParserWindow8RawBeam, Window8Refusal> {
+    for program in [
+        include_str!(concat!(env!("OUT_DIR"), "/window8_rank_0_1.hex")),
+        include_str!(concat!(env!("OUT_DIR"), "/window8_rank_2_3.hex")),
+        include_str!(concat!(env!("OUT_DIR"), "/window8_rank_0_2.hex")),
+        include_str!(concat!(env!("OUT_DIR"), "/window8_rank_1_3.hex")),
+        include_str!(concat!(env!("OUT_DIR"), "/window8_rank_1_2.hex")),
+    ] {
+        beam = evaluate(beam, program)?;
+    }
+    Ok(beam)
+}
+pub fn window8_merge(
+    beam: LanguageParserWindow8RawBeam,
+    proposal: LanguageParserWindow8RawHypothesis,
+) -> Result<LanguageParserWindow8RawBeam, Window8Refusal> {
+    let input = LanguageParserWindow8RawMerge::new(window8_rank(beam)?, proposal)
+        .map_err(Window8Refusal::Native)?;
+    window8_rank(evaluate(
+        input,
+        include_str!(concat!(env!("OUT_DIR"), "/window8_rank_insert.hex")),
+    )?)
+}
+
+/// Source guards already selected choices and computes the next lexical frontier.
+pub fn window8_choice_frontier(
+    query: LanguageParserWindow8ChoiceQuery,
+) -> Result<LanguageParserWindow8Selected, Window8Refusal> {
+    evaluate(
+        query,
+        include_str!(concat!(env!("OUT_DIR"), "/window8_choice_frontier.hex")),
+    )
+}
+/// Finite raw score accumulation. The outcome must come from the retained
+/// Source proposal producer; this function alone grants no graph authority.
+pub fn window8_score_advance(
+    query: LanguageParserWindow8RawAdvance,
+) -> Result<LanguageParserWindow8RawHypothesis, Window8Refusal> {
+    evaluate(
+        query,
+        include_str!(concat!(env!("OUT_DIR"), "/window8_score_advance.hex")),
+    )
 }
