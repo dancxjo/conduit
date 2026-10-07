@@ -4,13 +4,6 @@ use conduit_plot::{check_syntax_document, parse_syntax_document, KindSignature, 
 
 const SOURCE: &str = include_str!("../fargan_conditioning.conduit");
 
-fn plots(source: &str) -> String {
-    format!(
-        "plot speech/{}",
-        source.split_once("plot speech/").unwrap().1
-    )
-}
-
 fn fixture_catalog() -> (StartupCatalog, conduit_plot::ProfileCatalog) {
     let declarations = format!("{}\ntype FarganMatrix64x32 = {{\n    resource: ResourceRef\n    content_digest: FarganTensorDigest\n    element: FarganTensorElement\n    columns: U16 in 64..=64\n    rows: U16 in 32..=32\n}}\n", SOURCE.split("plot speech/").next().unwrap());
     let mut base = StartupCatalog::new();
@@ -23,23 +16,31 @@ fn fixture_catalog() -> (StartupCatalog, conduit_plot::ProfileCatalog) {
         .expect("finite numeric declarations check");
     let mut catalog = base;
     let mut profiles = conduit_plot::ProfileCatalog::new();
-    for ty in &types.native_types {
+    for ty in types
+        .native_types
+        .iter()
+        .filter(|ty| ty.name == "FarganMatrix64x32")
+    {
         catalog
             .insert_structured_type(&ty.name, ty.value_type.clone())
             .unwrap();
     }
     let port = |name: &str, ty: &str, direction| PortDescriptor {
         port_id: port_id(name),
-        value_kind: types
-            .native_types
-            .iter()
-            .find(|t| t.name == ty)
-            .unwrap()
-            .value_type
-            .profile()
-            .unwrap()
-            .value_kind()
-            .clone(),
+        value_kind: if ty == "U16" {
+            conduit_core::kind_id("value/u16")
+        } else {
+            types
+                .native_types
+                .iter()
+                .find(|t| t.name == ty)
+                .unwrap()
+                .value_type
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone()
+        },
         direction,
         temporal: PortTemporal::Value,
         abnormal_kind: None,
@@ -47,11 +48,8 @@ fn fixture_catalog() -> (StartupCatalog, conduit_plot::ProfileCatalog) {
     // Each fixture is a generic numeric contract; ordering lives only in Source.
     for (kind, inputs, outputs) in [
         (
-            "neural/embedding224x12-period32",
-            vec![
-                ("period", "FarganPeriod"),
-                ("weights", "FarganEmbedding224x12"),
-            ],
+            "numeric/embedding224x12",
+            vec![("index", "U16"), ("weights", "FarganEmbedding224x12")],
             vec![("result", "FarganVector12")],
         ),
         (
@@ -64,6 +62,7 @@ fn fixture_catalog() -> (StartupCatalog, conduit_plot::ProfileCatalog) {
             vec![
                 ("value", "FarganVector32"),
                 ("weights", "FarganMatrix32x64"),
+                ("bias", "FarganBias64"),
             ],
             vec![("result", "FarganVector64")],
         ),
@@ -72,6 +71,7 @@ fn fixture_catalog() -> (StartupCatalog, conduit_plot::ProfileCatalog) {
             vec![
                 ("value", "FarganVector192"),
                 ("weights", "FarganMatrix192x128"),
+                ("bias", "FarganBias128"),
             ],
             vec![("result", "FarganVector128")],
         ),
@@ -80,6 +80,7 @@ fn fixture_catalog() -> (StartupCatalog, conduit_plot::ProfileCatalog) {
             vec![
                 ("value", "FarganVector128"),
                 ("weights", "FarganMatrix128x320"),
+                ("bias", "FarganBias320"),
             ],
             vec![("result", "FarganVector320")],
         ),
@@ -157,7 +158,7 @@ fn fixture_catalog() -> (StartupCatalog, conduit_plot::ProfileCatalog) {
 #[test]
 fn conditioning_topology_checks_with_explicit_state_and_weights() {
     let (catalog, profiles) = fixture_catalog();
-    let checked = check_syntax_document(&parse_syntax_document(&plots(SOURCE)), &catalog).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(SOURCE), &catalog).unwrap();
     conduit_plot::expand_canonical_plot_for_authoring(
         &checked,
         "speech/fargan-conditioning",
@@ -169,7 +170,7 @@ fn conditioning_topology_checks_with_explicit_state_and_weights() {
         .iter()
         .find(|p| p.name == "speech/fargan-conditioning")
         .unwrap();
-    assert_eq!(network.gears.len(), 11);
+    assert_eq!(network.gears.len(), 12);
     let cords: Vec<Vec<&str>> = network
         .cords
         .iter()
@@ -184,7 +185,12 @@ fn conditioning_topology_checks_with_explicit_state_and_weights() {
         })
         .collect();
     for edge in [
+        ["period", "pitch_index.value"],
+        ["pitch_index.result", "embedding.index"],
         ["embedding.result", "concatenate.right"],
+        ["dense1_bias", "dense1.bias"],
+        ["conv_bias", "convolution.bias"],
+        ["dense2_bias", "dense2.bias"],
         ["concatenate.result", "dense1.value"],
         ["dense1.result", "activate1.value"],
         ["activate1.result", "window.value"],
@@ -204,7 +210,7 @@ fn conditioning_topology_checks_with_explicit_state_and_weights() {
         );
     }
 
-    assert_eq!(network.runtime_front.inputs().len(), 8);
+    assert_eq!(network.runtime_front.inputs().len(), 11);
     assert_eq!(network.runtime_front.outputs().len(), 4);
 }
 
@@ -235,7 +241,7 @@ fn wrong_history_shape_is_rejected_before_execution() {
 
 fn assert_shape_refusal(source: &str) {
     let (catalog, profiles) = fixture_catalog();
-    let checked = check_syntax_document(&parse_syntax_document(&plots(source)), &catalog)
+    let checked = check_syntax_document(&parse_syntax_document(source), &catalog)
         .expect("well-formed shape fixture parses");
     let refusal = conduit_plot::expand_canonical_plot_for_authoring(
         &checked,
@@ -245,4 +251,12 @@ fn assert_shape_refusal(source: &str) {
     .expect_err("incompatible exact shape refuses expansion");
     assert_eq!(refusal.code, "CND-FRM-045");
     assert!(refusal.message.contains("runtime front port"));
+}
+
+#[test]
+fn wrong_bias_profile_is_rejected_before_execution() {
+    assert_shape_refusal(&SOURCE.replace(
+        ">> dense1_bias: FarganBias64",
+        ">> dense1_bias: FarganBias128",
+    ));
 }
