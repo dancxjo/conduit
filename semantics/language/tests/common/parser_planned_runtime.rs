@@ -26,6 +26,26 @@ pub struct Execution {
     pure: Vec<(conduit_kernel::NodeId, Pure)>,
 }
 pub fn prepare(profile: Arc<PreparedCategoricalStep>) -> Execution {
+    let model_contract = profile.contract(true).unwrap();
+    let KindSemanticLaw::ValueContracts(contracts) = &model_contract.semantic_laws[0] else {
+        panic!("exact numerical envelopes")
+    };
+    let score_bytes = contracts
+        .iter()
+        .find(|c| c.location == FrontValueLocation::Output(port_id("scores")))
+        .unwrap()
+        .contract
+        .maximum_bytes;
+    let document = source(&profile.kind_identity(true), score_bytes);
+    prepare_source(profile, document, "learned-model")
+}
+/// Execute a caller-authored bounded feature projection/model entry with the
+/// exact selected numerical types and resource custody. No grammar is selected here.
+pub fn prepare_source(
+    profile: Arc<PreparedCategoricalStep>,
+    document: String,
+    entry: &str,
+) -> Execution {
     let mut startup = StartupCatalog::new();
     let mut catalogs = ProfileCatalog::new();
     profile.install(&mut startup, &mut catalogs, true).unwrap();
@@ -41,23 +61,10 @@ pub fn prepare(profile: Arc<PreparedCategoricalStep>) -> Execution {
             profile.scores_type().clone(),
         )
         .unwrap();
-    let model_contract = profile.contract(true).unwrap();
-    let KindSemanticLaw::ValueContracts(contracts) = &model_contract.semantic_laws[0] else {
-        panic!("exact numerical envelopes")
-    };
-    let score_bytes = contracts
-        .iter()
-        .find(|c| c.location == FrontValueLocation::Output(port_id("scores")))
-        .unwrap()
-        .contract
-        .maximum_bytes;
-    let checked = check_syntax_document(
-        &parse_syntax_document(&source(&profile.kind_identity(true), score_bytes)),
-        &startup,
-    )
-    .unwrap();
-    let expanded =
-        expand_canonical_plot_for_authoring(&checked, "learned-model", &catalogs).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(&document), &startup).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, entry, &catalogs).unwrap();
+    assert_eq!(expanded.front.inputs().len(), 1);
+    assert_eq!(expanded.front.outputs().len(), 1);
     let mut capabilities = vec![profile.offer(true).unwrap()];
     for gear in &expanded.expanded.gears {
         if gear.configuration.is_empty() {
