@@ -30,7 +30,7 @@ impl Blueprint {
         let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
         let entry =
             PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), entry_name)
-                .unwrap();
+                .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));
         let mut host = HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: "fixture/language-parser".into(),

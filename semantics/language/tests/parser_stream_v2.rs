@@ -85,7 +85,7 @@ impl Session {
             &raw,
         ))
         .unwrap();
-        let event = serde_json::json!({"event":"availability","actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":input.tape().source().material().revision().get(),"source_sequence":input.tape().source().sequence(),"lexical_profile_identity":input.tape().profile().identity(),"waiting":status.waiting(),"final_input":status.final_input(),"available":input.token_count(),"revision_bytes":input.tape().source().clone().into_structured().unwrap().canonical_bytes().unwrap(),"invocation":self.flows.flows[0].sequence-1});
+        let event = serde_json::json!({"event":"availability","text":input.tape().source().material().text(),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":input.tape().source().material().revision().get(),"source_sequence":input.tape().source().sequence(),"lexical_profile_identity":input.tape().profile().identity(),"waiting":status.waiting(),"final_input":status.final_input(),"available":input.token_count(),"revision_bytes":input.tape().source().clone().into_structured().unwrap().canonical_bytes().unwrap(),"invocation":self.flows.flows[0].sequence-1});
         self.emit(event.clone());
         event
     }
@@ -186,7 +186,7 @@ impl runtime::Observer for Session {
             )
             .unwrap(),
         );
-        let event = serde_json::json!({"event":"snapshot","model_execution":"ordinary-admitted-resource-Plan-Play","model_invocations":self.numeric_sequence,"model_content_identity":joint::hex(self.model.compatibility().model_content),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":beam.basis().source_revision().get(),"analysis_revision":beam.basis().analysis_revision().get(),"source_sequence":beam.epoch(),"lexical_profile_identity":beam.lexical().tape().profile().identity(),"candidates":candidates,"outcome":self.outcome,"joint_lexical_arc_agreement":agreed,"beam_bytes":runtime.clone().into_structured().unwrap().canonical_bytes().unwrap(),"wait_calls":self.waits,"stable":0,"committed":preferred.committed(),"frontier_policy":"provisional snapshots only; agreement is observed, stabilization is not yet advanced","retained_executions":true,"flow_invocations":self.flows.flows.iter().map(|f|f.sequence).collect::<Vec<_>>()});
+        let event = serde_json::json!({"event":"snapshot","text":beam.lexical().tape().source().material().text(),"preferred_candidate":beam.candidate0().parser().active().then_some(beam.candidate0().parser().identity()),"preferred_selection":"Source cumulative score and identity rank","model_execution":"ordinary-admitted-resource-Plan-Play","model_invocations":self.numeric_sequence,"model_content_identity":joint::hex(self.model.compatibility().model_content),"actual_elapsed_ms":self.started.elapsed().as_millis(),"source_revision":beam.basis().source_revision().get(),"analysis_revision":beam.basis().analysis_revision().get(),"source_sequence":beam.epoch(),"lexical_profile_identity":beam.lexical().tape().profile().identity(),"candidates":candidates,"outcome":self.outcome,"joint_lexical_arc_agreement":agreed,"beam_bytes":runtime.clone().into_structured().unwrap().canonical_bytes().unwrap(),"wait_calls":self.waits,"stable":0,"committed":preferred.committed(),"frontier_policy":"provisional snapshots only; agreement is observed, stabilization is not yet advanced","retained_executions":true,"flow_invocations":self.flows.flows.iter().map(|f|f.sequence).collect::<Vec<_>>()});
         self.emit(event.clone());
         event
     }
