@@ -32,10 +32,8 @@ impl WavArtifactRetentionLimits {
     };
 
     pub fn new(max_artifacts: usize, max_bytes: u64) -> Result<Self, String> {
-        if max_artifacts == 0
-            || max_artifacts > MAXIMUM_RETENTION_ARTIFACTS
-            || max_bytes < MAX_WAV_BYTES
-            || max_bytes > MAXIMUM_RETENTION_BYTES
+        if !(1..=MAXIMUM_RETENTION_ARTIFACTS).contains(&max_artifacts)
+            || !(MAX_WAV_BYTES..=MAXIMUM_RETENTION_BYTES).contains(&max_bytes)
         {
             return Err("retained WAV pool exceeds its finite admission bounds".into());
         }
