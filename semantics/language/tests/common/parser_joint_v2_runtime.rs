@@ -20,6 +20,18 @@ pub trait Observer {
     ) -> bool {
         false
     }
+    fn seed_metadata(&self) -> ([u64; 4], u64) {
+        ([0; 4], 0)
+    }
+    fn branch_entry(&self) -> Option<(&'static str, String)> {
+        None
+    }
+    fn branch_input(
+        &mut self,
+        query: LanguageParserJointBranchQuery,
+    ) -> Result<StructuredInfoValue, conduit_plot::rust_binding::NativeBindingRefusal> {
+        query.into_structured()
+    }
     fn planned_scores(&mut self, _features: &LanguageParserV2ModelFeatures) -> Option<Vec<i64>> {
         None
     }
@@ -45,6 +57,9 @@ pub fn evaluate_observed(
     observer: &mut impl Observer,
 ) {
     let started = std::time::Instant::now();
+    let expected_complete = native_inputs.iter().filter(|input| {
+        matches!(input, Ok(lexical) if matches!(lexical.tape().source().finality(), LanguageTextFinality::Final))
+    }).count() as u64;
     let mut exclusions = std::collections::BTreeMap::<&str, u64>::new();
     let mut f = fixture::Fixture::new();
     let mut complete = f.prepare("language-parser-decode-complete");
@@ -76,6 +91,14 @@ pub fn evaluate_observed(
             } else {
                 joint::runtime_source()
             };
+            if i == 0 {
+                if let Some((protected_entry, extra_source)) = observer.branch_entry() {
+                    return parser_kernel::Blueprint::prepare(
+                        format!("{source}\n{extra_source}"),
+                        protected_entry,
+                    );
+                }
+            }
             parser_kernel::Blueprint::prepare(source, entry)
         })
         .collect::<Vec<_>>();
@@ -114,13 +137,14 @@ pub fn evaluate_observed(
             "joint native decode {} prepared_ms={preparation_ms}",
             row.id
         );
+        let (seed_choices, seed_selected) = observer.seed_metadata();
         let seed = LanguageParserJointRuntimeHypothesis::new(
             LanguageParserJointHypothesis::new(
-                [0; 4],
+                seed_choices,
                 LanguageParserHypothesis::new(true, identities, 0, initial.clone()).unwrap(),
             )
             .unwrap(),
-            0,
+            seed_selected,
         )
         .unwrap();
         identities += 1;
@@ -167,8 +191,12 @@ pub fn evaluate_observed(
                             lexical.clone(),
                         )
                         .unwrap();
+                        let input = match observer.branch_input(query) {
+                            Ok(input) => input,
+                            Err(_) => continue, // The Source-native policy refusal is retained by the observer.
+                        };
                         let output = LanguageParserJointBranchResult::from_structured(
-                            pipeline.call(0, &query.into_structured().unwrap()),
+                            pipeline.call(0, &input),
                         )
                         .unwrap();
                         if *output.accepted() {
@@ -400,7 +428,7 @@ pub fn evaluate_observed(
                 .join("; ")
         });
     let flow_timing = pipelines.as_ref().map(|p| p.flows.iter().zip(entries).map(|(f,name)| serde_json::json!({"entry":name,"calls":f.calls,"nanos":f.nanos,"maximum_nanos":f.maximum_nanos})).collect::<Vec<_>>());
-    let mut metrics = serde_json::json!({"host_memory":memory,"last_scope_flow_timing":flow_timing,"proof":"actual Source Flow POS/branch/features/mask/proposal/transition/score/width4 merge with recursive native admission and exact hosted learned artifact","profile":"TRAIN-frequency57 plus seven separately reviewed lexical forms; four-token complete immutable tape; blind learned joint decode; teaching cases are not heldout","conditional_gold_pos":false,"selected_occurrence":selected,"eligible_heldout_sentences":rows.len(),"canonical_exclusions":exclusions,"sentences":counts[0],"tokens":counts[1],"pos_correct":counts[2],"ambiguous_tokens":counts[3],"ambiguous_pos_correct":counts[4],"uas_correct":counts[5],"universal_base_las_correct":counts[6],"complete_sentences":counts[7],"vocative_gold":counts[8],"vocative_correct":counts[9],"source_preparation_ms":source_preparation_ms,"ordinary_plan_preparation_ms":preparation_ms,"decode_ms":decode_ms,"decode_max_ms":decode_max_ms,"elapsed_ms":started.elapsed().as_millis(),"model_content_identity":joint::hex(scorer.artifact.content_identity()),"limitations":"finite full-tape beam proof; no incremental revision, stabilization/commitment latency or broad English accuracy; score outputs are not calibrated lexical confidence"});
+    let mut metrics = serde_json::json!({"host_memory":memory,"last_scope_flow_timing":flow_timing,"proof":"actual Source Flow POS/branch/features/mask/proposal/transition/score/width4 merge with recursive native admission and exact hosted learned artifact","profile":"TRAIN-frequency57 plus seven separately reviewed lexical forms; four-token complete immutable tape; blind learned joint decode; teaching cases are not heldout","conditional_gold_pos":false,"selected_occurrence":selected,"eligible_heldout_sentences":rows.len(),"canonical_exclusions":exclusions,"sentences":counts[0],"tokens":counts[1],"pos_correct":counts[2],"ambiguous_tokens":counts[3],"ambiguous_pos_correct":counts[4],"uas_correct":counts[5],"universal_base_las_correct":counts[6],"complete_sentences":counts[7],"expected_complete_final_inputs":expected_complete,"vocative_gold":counts[8],"vocative_correct":counts[9],"source_preparation_ms":source_preparation_ms,"ordinary_plan_preparation_ms":preparation_ms,"decode_ms":decode_ms,"decode_max_ms":decode_max_ms,"elapsed_ms":started.elapsed().as_millis(),"model_content_identity":joint::hex(scorer.artifact.content_identity()),"limitations":"finite full-tape beam proof; no incremental revision, stabilization/commitment latency or broad English accuracy; score outputs are not calibrated lexical confidence"});
     if selected == Some("retained-stream") {
         metrics["proof"] = serde_json::json!("actual retained Source Flow partial-prefix learned decode with Source wait/reset and joint lexical/arc agreement observations");
         metrics["profile"] = serde_json::json!("pinned v2 four-token profile; one reviewed Travis/Hello stream; immutable selected model; execution mode recorded per snapshot; no per-revision new kernel");
@@ -426,7 +454,7 @@ pub fn evaluate_observed(
         assert_eq!(counts[4], counts[3]);
         assert_eq!(counts[5], counts[1]);
         assert_eq!(counts[6], counts[1]);
-        assert_eq!(counts[7], counts[0]);
+        assert_eq!(counts[7], expected_complete);
         assert_eq!(counts[9], counts[8]);
     }
 }

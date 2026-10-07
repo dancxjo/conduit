@@ -1,0 +1,17 @@
+# Protect lexical head choices of already committed dependents. The exact
+# native branch query is forwarded to the unchanged pinned branch graph.
+type LanguageParserJointProtectedBranchQuery = {
+ branch: LanguageParserJointBranchQuery
+ where .branch.hypothesis.hypothesis.parser.state.committed > 0 && .branch.hypothesis.hypothesis.parser.state.heads.0 == .branch.hypothesis.hypothesis.parser.state.unread ? .branch.choice == sequence/at(.branch.hypothesis.hypothesis.choices,.branch.hypothesis.hypothesis.parser.state.unread) : true
+ where .branch.hypothesis.hypothesis.parser.state.committed > 1 && .branch.hypothesis.hypothesis.parser.state.heads.1 == .branch.hypothesis.hypothesis.parser.state.unread ? .branch.choice == sequence/at(.branch.hypothesis.hypothesis.choices,.branch.hypothesis.hypothesis.parser.state.unread) : true
+ where .branch.hypothesis.hypothesis.parser.state.committed > 2 && .branch.hypothesis.hypothesis.parser.state.heads.2 == .branch.hypothesis.hypothesis.parser.state.unread ? .branch.choice == sequence/at(.branch.hypothesis.hypothesis.choices,.branch.hypothesis.hypothesis.parser.state.unread) : true
+ where .branch.hypothesis.hypothesis.parser.state.committed > 3 && .branch.hypothesis.hypothesis.parser.state.heads.3 == .branch.hypothesis.hypothesis.parser.state.unread ? .branch.choice == sequence/at(.branch.hypothesis.hypothesis.choices,.branch.hypothesis.hypothesis.parser.state.unread) : true
+}
+plot language-parser-joint-protected-branch-query (
+ input: LanguageParserJointProtectedBranchQuery...| >> query: LanguageParserJointBranchQuery...|
+) = .branch
+plot language-parser-joint-protected-branch (
+ input: LanguageParserJointProtectedBranchQuery...| >> result: LanguageParserJointBranchResult...|
+) {
+ input >> language-parser-joint-protected-branch-query() >> language-parser-joint-branch() >> result
+}
