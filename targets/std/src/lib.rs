@@ -1946,3 +1946,6 @@ pub mod fixed_numeric_compact;
 
 /// Exact checked Source pure-filter owner for ordinary kernel execution.
 pub mod pure_filter;
+
+/// Exact singleton closing Flow preparation.
+pub mod flow_exactly_one;

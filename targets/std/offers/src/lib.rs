@@ -603,3 +603,6 @@ mod tests {
 
 mod value_repeat;
 pub use value_repeat::*;
+
+mod flow_exactly_one;
+pub use flow_exactly_one::*;
