@@ -78,9 +78,22 @@ fn validate_node(
                         output_type: node.value_type.clone(),
                         root: node.clone(),
                     };
-                    let bytes = constant.evaluate(&[]).map_err(|_| refusal())?;
+                    let bytes = constant.evaluate(&[]).map_err(|e| {
+                        CanonicalExpansionDiagnostic::new(
+                            "CND-FRM-046",
+                            format!("native construction requires an admitted law validator; constant evaluation: {e:?}"),
+                        )
+                    })?;
                     let value = conduit_core::StructuredInfoValue::from_canonical_bytes(&bytes)
-                        .map_err(|_| refusal())?;
+                        .map_err(|e| {
+                            CanonicalExpansionDiagnostic::new(
+                                "CND-FRM-046",
+                                format!(
+                                    "native construction requires an admitted law validator; constant canonical value: {e:?}, length {}",
+                                    bytes.len()
+                                ),
+                            )
+                        })?;
                     crate::rust_binding::validate_native_contracts(&value, &native.value_contracts)
                         .and_then(|()| {
                             crate::rust_binding::validate_native_invariants(
@@ -88,11 +101,25 @@ fn validate_node(
                                 &native.invariants,
                             )
                         })
-                        .map_err(|_| refusal())?;
+                        .map_err(|e| {
+                            CanonicalExpansionDiagnostic::new(
+                                "CND-FRM-046",
+                                format!("native construction requires an admitted law validator; constant law: {e:?}"),
+                            )
+                        })?;
                     return Ok(());
                 }
             }
-            return Err(refusal());
+            let identity = match node.value_type.shape() {
+                StructuredInfoTypeShape::Record { schema, .. }
+                | StructuredInfoTypeShape::Variant { schema, .. }
+                | StructuredInfoTypeShape::Nominal { schema, .. } => schema.as_str(),
+                _ => "primitive",
+            };
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                format!("pure construction of refined native Type '{identity}' requires an admitted law validator"),
+            ));
         }
     }
     match &node.operation {
