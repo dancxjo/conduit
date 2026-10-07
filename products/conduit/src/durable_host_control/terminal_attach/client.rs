@@ -95,15 +95,20 @@ pub(crate) fn attach_and_show(
     }
     let effect = receive_terminal_frame_and_ack(&mut stream, output)
         .map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())?;
-    let AttachReply::Show {
-        protocol: PROTOCOL,
-        route_plan_id,
-        show,
-        advertisement,
-    } = wire::read_reply(&mut stream).map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())?
-    else {
-        return Err(CONTROL_OUTCOME_UNKNOWN.into());
-    };
+    let (route_plan_id, show, advertisement) =
+        match wire::read_reply(&mut stream).map_err(|_| CONTROL_OUTCOME_UNKNOWN.to_string())? {
+            AttachReply::Show {
+                protocol: PROTOCOL,
+                route_plan_id,
+                show,
+                advertisement,
+            } => (route_plan_id, show, advertisement),
+            AttachReply::Refused {
+                protocol: PROTOCOL,
+                code,
+            } => return Err(format!("owner terminal Show refused: {code}")),
+            _ => return Err(CONTROL_OUTCOME_UNKNOWN.into()),
+        };
     // Attachment changes the owner's offer generation. The Show was sealed
     // against the Face after that change, not the Face used to request the
     // attachment. Read the current owner snapshot before validating it.

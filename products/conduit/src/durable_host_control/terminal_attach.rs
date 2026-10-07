@@ -46,6 +46,7 @@ pub(super) fn serve(
 ) -> Result<(), String> {
     let mut attached_here = false;
     let mut attached_reply_sent = false;
+    let mut frame_acknowledged = false;
     let result = (|| {
         let mut request = wire::read_request(stream, first)?;
         let authenticated = constant_time_equal(&request.token, token);
@@ -69,6 +70,7 @@ pub(super) fn serve(
             .host
             .current_mut()
             .present_attached_terminal_face_with_interaction(&face)?;
+        frame_acknowledged = true;
         owner.acknowledge_attached_terminal_show(&seal, &show)?;
         let advertisement = owner.host.advertisement().clone();
         runtime.terminal_route = Some(AttachedTerminalRoute {
@@ -93,7 +95,9 @@ pub(super) fn serve(
             // publishing a different offer generation would be false truth.
             retire(state_dir, runtime)?;
         }
-        if !attached_reply_sent {
+        if !attached_reply_sent || frame_acknowledged {
+            // After the actual frame was acknowledged, a later owner refusal
+            // is known. Before then a failed effect remains outcome-unknown.
             let _ = wire::write_reply(
                 stream,
                 &AttachReply::Refused {
