@@ -97,3 +97,45 @@ fn default_and_frame_profiles_have_distinct_custody_for_the_same_schema() {
     );
     assert_eq!(ordinary.semantic_contract, large.semantic_contract);
 }
+
+#[test]
+fn specialized_factory_retains_multiple_exact_kinds_and_feedback_modes() {
+    let wide = StructuredInfoType::leaf(kind_id("value/u64")).unwrap();
+    let narrow = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
+    let left = CheckedValueContract::new(kind_id("value/u64"), 8, alloc::vec![]).unwrap();
+    let right = CheckedValueContract::new(kind_id("value/u8"), 1, alloc::vec![]).unwrap();
+    let mut factory = FlowZipOperationFactory::frame16k();
+    let first = factory
+        .install_specialized(&left, &wide, &right, &narrow)
+        .unwrap();
+    let second = factory
+        .install_specialized(&right, &narrow, &left, &wide)
+        .unwrap();
+    let feedback = factory
+        .install_feedback_specialized(&left, &wide, &right, &narrow)
+        .unwrap();
+    assert_ne!(first.kind_id, second.kind_id);
+    assert_ne!(first.kind_id, feedback.kind_id);
+    assert_eq!(factory.offers().count(), 3);
+    assert!(
+        factory
+            .install_specialized(&left, &wide, &right, &narrow)
+            .is_err()
+    );
+    assert!(
+        factory
+            .install_specialized(&left, &narrow, &right, &narrow)
+            .is_err()
+    );
+    assert_eq!(factory.offers().count(), 3);
+    assert!(!factory.pairs[&first.capability_id].feedback);
+    assert!(factory.pairs[&feedback.capability_id].feedback);
+    assert_eq!(
+        first.kind_contract_revision.as_str(),
+        conduit_semantic_catalog::FLOW_ZIP_FINITE_SPECIALIZED_REVISION
+    );
+    assert_eq!(
+        feedback.kind_contract_revision.as_str(),
+        conduit_semantic_catalog::FLOW_ZIP_FEEDBACK_SPECIALIZED_REVISION
+    );
+}
