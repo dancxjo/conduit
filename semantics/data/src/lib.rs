@@ -67,6 +67,8 @@ mod tabular_reference;
 mod tensor;
 mod tensor_catalog;
 mod tensor_codec;
+#[cfg(feature = "kernel-step")]
+mod value_repeat_back;
 
 pub use data_catalog::*;
 pub use data_generation::*;
@@ -96,3 +98,5 @@ pub use tabular_catalog::*;
 pub use tabular_reference::*;
 pub use tensor::*;
 pub use tensor_catalog::*;
+#[cfg(feature = "kernel-step")]
+pub use value_repeat_back::{ValueRepeatBack, ValueRepeatPreparationError};
