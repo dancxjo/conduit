@@ -33,9 +33,9 @@ fn conditioning_topology_checks_with_explicit_state_and_weights() {
     let network = checked
         .plots
         .iter()
-        .find(|p| p.name == "speech/fargan-conditioning")
+        .find(|p| p.name == "speech/fargan-conditioning-core")
         .unwrap();
-    assert_eq!(network.gears.len(), 12);
+    assert_eq!(network.gears.len(), 10);
     let cords: Vec<Vec<&str>> = network
         .cords
         .iter()
@@ -64,8 +64,6 @@ fn conditioning_topology_checks_with_explicit_state_and_weights() {
         ["activate2.result", "dense2.value"],
         ["dense2.result", "activate3.value"],
         ["activate3.result", "condition"],
-        ["previous_period", "delayed_pitch.value"],
-        ["period", "retained_pitch.value"],
     ] {
         assert!(
             cords.iter().any(|cord| cord.as_slice() == edge),
@@ -73,8 +71,29 @@ fn conditioning_topology_checks_with_explicit_state_and_weights() {
         );
     }
 
-    assert_eq!(network.runtime_front.inputs().len(), 11);
-    assert_eq!(network.runtime_front.outputs().len(), 4);
+    assert_eq!(network.runtime_front.inputs().len(), 10);
+    assert_eq!(network.runtime_front.outputs().len(), 2);
+    let wrapper = checked
+        .plots
+        .iter()
+        .find(|p| p.name == "speech/fargan-conditioning")
+        .unwrap();
+    assert_eq!(wrapper.runtime_front.inputs().len(), 11);
+    assert_eq!(wrapper.runtime_front.outputs().len(), 4);
+    for edge in [
+        ["previous_period", "delayed_pitch.value"],
+        ["period", "retained_pitch.value"],
+    ] {
+        assert!(wrapper.cords.iter().any(|cord| cord
+            .stages
+            .iter()
+            .filter_map(|stage| match stage {
+                conduit_plot::CheckedCordStage::Reference(endpoint) => Some(endpoint.as_str()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            == edge));
+    }
 }
 
 #[test]

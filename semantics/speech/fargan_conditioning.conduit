@@ -30,10 +30,9 @@ plot speech/fargan-period-identity (
     result: FarganPeriod >>
 ) = (.)
 
-plot speech/fargan-conditioning (
+plot speech/fargan-conditioning-core (
     >> features: NumericF32Vector20
     >> period: FarganPeriod
-    >> previous_period: FarganPeriod
     >> history: NumericHistory2x64
     >> embedding_weights: NumericEmbedding224x12
     >> dense1_weights: NumericF32MatrixRef32x64
@@ -44,8 +43,6 @@ plot speech/fargan-conditioning (
     >> dense2_bias: NumericF32BiasRef320
     condition: NumericF32Vector320 >>
     next_history: NumericHistory2x64 >>
-    conditioned_period: FarganPeriod >>
-    next_period: FarganPeriod >>
 ) {
     pitch_index: speech/fargan-period-index
     embedding: numeric/embedding224x12
@@ -57,8 +54,6 @@ plot speech/fargan-conditioning (
     activate2: numeric/tanh128
     dense2: numeric/dense128x320
     activate3: numeric/tanh320
-    delayed_pitch: speech/fargan-period-identity
-    retained_pitch: speech/fargan-period-identity
     period >> pitch_index.value
     pitch_index.result >> embedding.index
     embedding_weights >> embedding.weights
@@ -80,6 +75,40 @@ plot speech/fargan-conditioning (
     dense2_bias >> dense2.bias
     dense2.result >> activate3.value
     activate3.result >> condition
+}
+
+plot speech/fargan-conditioning (
+    >> features: NumericF32Vector20
+    >> period: FarganPeriod
+    >> previous_period: FarganPeriod
+    >> history: NumericHistory2x64
+    >> embedding_weights: NumericEmbedding224x12
+    >> dense1_weights: NumericF32MatrixRef32x64
+    >> dense1_bias: NumericF32BiasRef64
+    >> conv_weights: NumericF32MatrixRef192x128
+    >> conv_bias: NumericF32BiasRef128
+    >> dense2_weights: NumericF32MatrixRef128x320
+    >> dense2_bias: NumericF32BiasRef320
+    condition: NumericF32Vector320 >>
+    next_history: NumericHistory2x64 >>
+    conditioned_period: FarganPeriod >>
+    next_period: FarganPeriod >>
+) {
+    core: speech/fargan-conditioning-core
+    delayed_pitch: speech/fargan-period-identity
+    retained_pitch: speech/fargan-period-identity
+    features >> core.features
+    period >> core.period
+    history >> core.history
+    embedding_weights >> core.embedding_weights
+    dense1_weights >> core.dense1_weights
+    dense1_bias >> core.dense1_bias
+    conv_weights >> core.conv_weights
+    conv_bias >> core.conv_bias
+    dense2_weights >> core.dense2_weights
+    dense2_bias >> core.dense2_bias
+    core.condition >> condition
+    core.next_history >> next_history
     previous_period >> delayed_pitch.value
     delayed_pitch.result >> conditioned_period
     period >> retained_pitch.value

@@ -664,7 +664,17 @@ fn pinned_source_signal_cycle_retains_model_and_measures_free_running_error() {
 #[test]
 #[ignore = "private shared native feature receipt and pinned model; set CONDUIT_FARGAN_MODEL_FIXTURE and CONDUIT_FARGAN_FEATURE_RECEIPT"]
 fn retained_native_feature_executes_authored_conditioning_with_shared_tensor_custody() {
-    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+    run_retained_native_conditioning(false);
+}
+
+#[test]
+#[ignore = "private native feature, model and five-update C oracle"]
+fn retained_native_feature_warms_five_authored_conditioning_calls() {
+    run_retained_native_conditioning(true);
+}
+
+fn run_retained_native_conditioning(warm: bool) {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(move || {
         use super::case_state::vector;
         let root=std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
         let model=super::custody::RetainedSignalModel::load(&root);
@@ -679,19 +689,72 @@ fn retained_native_feature_executes_authored_conditioning_with_shared_tensor_cus
         let period=u16::try_from(receipt["feature_period_samples_16k"].as_u64().unwrap()).unwrap();
         assert!((32..=255).contains(&period));
         let context=super::prepared_epoch_profiles_with_capacity(true);
-        let source=String::from("type FarganPeriod = U16 in 32..=255\n")+include_str!("../../../speech/fargan_conditioning_flow.conduit");
-        let (plan,context)=super::prepare_authored_epoch_entry(context,source.clone(),"speech/flow-fargan-conditioning-core",true,vec![]).unwrap();
+        let source=if warm {String::from(include_str!("../../../speech/fargan_conditioning.conduit"))+"\n"+include_str!("../../../speech/fargan_warm_conditioning.conduit")} else {String::from("type FarganPeriod = U16 in 32..=255\n")+include_str!("../../../speech/fargan_conditioning_flow.conduit")};
+        let entry=if warm {"speech/fargan-warm-first-conditioning"} else {"speech/flow-fargan-conditioning-core"};
+        let history_name=if warm {"initial_history"} else {"history"};
+        let (plan,context)=super::prepare_authored_epoch_entry(context,source.clone(),entry,true,vec![]).unwrap();
         let binding=|name:&str|match name {"features"=>conduit_ai::fixed_numeric_catalog::fixed_numeric_type("NumericF32Vector20").unwrap(),"history"=>conduit_ai::fixed_numeric_catalog::fixed_numeric_type("NumericHistory2x64").unwrap(),"period"=>conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition("type FarganPeriod = U16 in 32..=255\n").unwrap().value_type().clone(),_=>panic!("input")};
         fn scalar(ty:&StructuredInfoType,x:u16)->StructuredInfoValue {match ty.shape(){StructuredInfoTypeShape::Nominal {representation,..}=>StructuredInfoValue::nominal(ty.clone(),scalar(representation,x)).unwrap(),_=>StructuredInfoValue::leaf(ty.clone(),x.to_le_bytes().to_vec()).unwrap()}}
-        let inputs=BTreeMap::from([("features".into(),vec![vector(&binding("features"),&features).canonical_bytes().unwrap()]),("period".into(),vec![scalar(&binding("period"),period).canonical_bytes().unwrap()]),("history".into(),vec![vector(&binding("history"),&[0.;128]).canonical_bytes().unwrap()])]);
+        let inputs=BTreeMap::from([("features".into(),vec![vector(&binding("features"),&features).canonical_bytes().unwrap()]),("period".into(),vec![scalar(&binding("period"),period).canonical_bytes().unwrap()]),(history_name.into(),vec![vector(&binding("history"),&[0.;128]).canonical_bytes().unwrap()])]);
         let result=run_epoch_stream_plan(plan,&context,&resources,inputs,None,2,ExecutionMode::Normal).expect("actual native feature must execute Source conditioning");
         let outputs:Vec<_>=result.values.iter().map(super::case_state::floats).collect();
         let mut widths:Vec<_>=outputs.iter().map(Vec::len).collect();widths.sort();assert_eq!(widths,[128,320]);
         assert!(outputs.iter().flatten().all(|v|v.is_finite()));
+        if warm {
+            let oracle=std::fs::read(root.join("native-first-five-oracle.bin")).unwrap();
+            assert_eq!(oracle.len(),5*1800);
+            assert_eq!(format!("{:x}",Sha256::digest(&oracle)),"8c151416cc237bbb9f911cc76065e42be0e781248440b569b2550203e95c84c2");
+            let last=&oracle[4*1800..];
+            assert_eq!(i32::from_le_bytes(last[1796..1800].try_into().unwrap()),i32::from(period));
+            let expected:Vec<_>=last[..1792].as_chunks::<4>().0.iter().map(|v|f32::from_le_bytes(*v)).collect();
+            let condition=outputs.iter().find(|v|v.len()==320).unwrap();let history=outputs.iter().find(|v|v.len()==128).unwrap();
+            let max_condition=condition.iter().zip(&expected[..320]).map(|(a,b)|(a-b).abs()).fold(0f32,f32::max);
+            let max_history=history.iter().zip(&expected[320..]).map(|(a,b)|(a-b).abs()).fold(0f32,f32::max);
+            eprintln!("Source first-feature five-update warm conditioning vs pinned fullfloat C: maxcondition={max_condition}, maxhistory={max_history}; no signal-continuation/fullstartup claim");
+            assert!(max_condition.is_finite() && max_condition <= 0.0003);
+            assert!(max_history.is_finite() && max_history <= 0.0001);
+        }
         if let Ok(path)=std::env::var("CONDUIT_FARGAN_CONDITIONING_EVIDENCE") {
-            let output=serde_json::json!({"feature_execution_receipt":receipt,"conditioning_source":source,"conditioning_source_sha256":format!("{:x}",Sha256::digest(source.as_bytes())),"conditioning_layout":serde_json::from_slice::<serde_json::Value>(&layout).unwrap(),"model_raw_blob_sha256":model.raw_blob_sha256,"signal_only_model_artifact_identity":model.model.artifact().content_identity(),"signal_only_model_descriptor_identity":model.model.descriptor_identity(),"condition320":outputs.iter().find(|v|v.len()==320).unwrap(),"next_history128":outputs.iter().find(|v|v.len()==128).unwrap(),"initial_history128":vec![0f32;128],"graph_nodes":result.nodes,"graph_cords":result.cords,"owner_preparation_ns":result.preparation.as_nanos().to_string(),"execution_ns":result.execution.as_nanos().to_string(),"joint_committed_session":false,"conditioner_model_signature_admitted":false,"source_warm_initialization":false,"neural_waveform":false});
+            let output=serde_json::json!({"feature_execution_receipt":receipt,"conditioning_source":source,"conditioning_source_sha256":format!("{:x}",Sha256::digest(source.as_bytes())),"conditioning_layout":serde_json::from_slice::<serde_json::Value>(&layout).unwrap(),"model_raw_blob_sha256":model.raw_blob_sha256,"signal_only_model_artifact_identity":model.model.artifact().content_identity(),"signal_only_model_descriptor_identity":model.model.descriptor_identity(),"condition320":outputs.iter().find(|v|v.len()==320).unwrap(),"next_history128":outputs.iter().find(|v|v.len()==128).unwrap(),"initial_history128":vec![0f32;128],"graph_nodes":result.nodes,"graph_cords":result.cords,"owner_preparation_ns":result.preparation.as_nanos().to_string(),"execution_ns":result.execution.as_nanos().to_string(),"joint_committed_session":false,"conditioner_model_signature_admitted":false,"source_warm_initialization":false,"source_repeat_first_five_conditioning":warm,"neural_waveform":false});
             std::fs::write(path,serde_json::to_vec_pretty(&output).unwrap()).unwrap();
         }
         eprintln!("native feature20→authored conditioning320/history128: {}nodes/{}cords, prep{:?}, execution{:?}, retained7slices/{}layoutbytes; explicit zero-history development seed; no joint committed session/startup/native waveform claim",result.nodes,result.cords,result.preparation,result.execution,layout.len());
+    }).unwrap().join().unwrap();
+}
+
+#[test]
+#[ignore = "private native feature, model and scalar warm-start oracle"]
+fn source_warm_startup_executes_five_condition_updates_and_four_zero_continuations() {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+        use super::case_state::{vector,State};
+        use sha2::{Digest,Sha256};
+        let root=std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
+        let mut model=super::custody::RetainedSignalModel::load(&root);
+        let (_,conditioning)=model.conditioning_resources();
+        for (name,value) in conditioning {assert!(model.resources.insert(format!("conditioning_{name}"),value).is_none());}
+        assert_eq!(model.resources.len(),33);
+        let evidence=std::fs::read(std::env::var("CONDUIT_FARGAN_FEATURE_RECEIPT").unwrap()).unwrap();
+        assert_eq!(format!("{:x}",Sha256::digest(&evidence)),"b8a72c0c8eedb09fbd56255180e37f1b96c65ff9b3b438672599ff5c9a2650d8");
+        let receipt:serde_json::Value=serde_json::from_slice(&evidence).unwrap();
+        let features:Vec<f32>=receipt["feature20"].as_array().unwrap().iter().map(|v|v.as_f64().unwrap() as f32).collect();
+        let period=u16::try_from(receipt["feature_period_samples_16k"].as_u64().unwrap()).unwrap();
+        let source=[include_str!("../../../speech/fargan_conditioning.conduit"),include_str!("../../../speech/fargan_signal.conduit"),include_str!("../../../speech/fargan_pitch_history.conduit"),include_str!("../../../speech/fargan_subframe.conduit"),include_str!("../../../speech/fargan_warm_conditioning.conduit"),include_str!("../../../speech/fargan_zero_continuation.conduit"),include_str!("../../../speech/fargan_warm_startup.conduit")].join("\n");
+        let planning=Instant::now();
+        let (plan,context)=super::prepare_authored_epoch_entry(super::prepared_epoch_profiles_with_capacity(true),source,"speech/fargan-warm-startup",true,vec![]).unwrap();
+        let planning=planning.elapsed();
+        let period_type=conduit_ai::fixed_numeric_u16_profile::PreparedU16Profile::check_definition("type FarganPeriod = U16 in 32..=255\n").unwrap().value_type().clone();
+        fn scalar(ty:&StructuredInfoType,x:u16)->StructuredInfoValue {match ty.shape(){StructuredInfoTypeShape::Nominal {representation,..}=>StructuredInfoValue::nominal(ty.clone(),scalar(representation,x)).unwrap(),_=>StructuredInfoValue::leaf(ty.clone(),x.to_le_bytes().to_vec()).unwrap()}}
+        let inputs=BTreeMap::from([("first_features".into(),vec![vector(&conduit_ai::fixed_numeric_catalog::fixed_numeric_type("NumericF32Vector20").unwrap(),&features).canonical_bytes().unwrap()]),("first_period".into(),vec![scalar(&period_type,period).canonical_bytes().unwrap()])]);
+        let result=run_epoch_stream_plan(plan,&context,&model.resources,inputs,None,3,ExecutionMode::Normal).expect("Source warm-start must commit state/history/period");
+        let state=result.values.iter().find(|v|matches!(v.shape(),StructuredInfoValueShape::Record(_))).unwrap();
+        let actual=State::from_state(state).flattened();
+        let oracle=std::fs::read(root.join("native-first-warm-subframe.bin")).unwrap();
+        assert_eq!(format!("{:x}",Sha256::digest(&oracle)),"a81f44cfe73d1a2f790199b229ae01dd55defa7f5b99ed390bf8c271812ae202");
+        let expected:Vec<_>=oracle[324..324+837*4].as_chunks::<4>().0.iter().map(|v|f32::from_le_bytes(*v)).collect();
+        let maximum=actual.iter().zip(&expected).map(|(a,b)|(a-b).abs()).fold(0f32,f32::max);
+        assert!(actual.iter().all(|v|v.is_finite()) && maximum.is_finite());
+        assert!(maximum <= 0.001, "pinned fullfloat warm-state tolerance exceeded: {maximum}");
+        assert!(actual[580..].iter().all(|v|*v==0.));
+        eprintln!("Source warm startup fiveconditioning/fourcontinuation: {}nodes/{}cords, planning{planning:?}, prep{:?}, execution{:?}, maxstateabs={maximum}; actual retained feature point; no compound signature/jointcommit/native waveform claim",result.nodes,result.cords,result.preparation,result.execution);
     }).unwrap().join().unwrap();
 }
