@@ -953,3 +953,28 @@ fn signal_cycle_template() -> String {
         include_str!("../../speech/fargan_epoch_feedback.conduit")
     )
 }
+
+#[test]
+fn conditioning_feedback_domains_preserve_exact_native_bounds() {
+    let source = declarations::exact_epoch_declarations()
+        + "\n"
+        + include_str!("../../speech/fargan_epoch_feedback.conduit")
+        + "\n"
+        + include_str!("../../speech/fargan_conditioning_epoch_contracts.conduit");
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    for name in [
+        "FarganFeatureConditionEpoch",
+        "FarganConditioningInputEpoch",
+        "FarganConditioningPendingHistory",
+    ] {
+        let selected = checked
+            .native_types
+            .iter()
+            .find(|t| t.name == name)
+            .unwrap();
+        let maximum = maximum_prepared_transport_value_bytes(&selected.value_type).unwrap();
+        assert!(maximum <= 16384);
+        eprintln!("conditioning domain {name}: exact maximum {maximum}B");
+    }
+}

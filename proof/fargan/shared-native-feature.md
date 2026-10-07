@@ -37,3 +37,20 @@ The emitted evidence explicitly records `joint_committed_session=false` and
 not substitute for the parser's stable/committed session receipt. The immutable
 handoff and manual playback ACK do not establish joint linguistic stabilization.
 No model weights are needed or redistributed by this replay.
+
+The ignored epoch-flow test
+`retained_native_feature_executes_authored_conditioning_with_shared_tensor_custody`
+consumes the exact pinned feature execution receipt and executes
+`speech/flow-fargan-conditioning-core` through an ordinary 24-node, 23-cord
+Plan. Seven conditioning tensors are admitted slices of the retained model blob.
+It produces finite conditioning320 and next-history128 values. The recorded run
+used 52.32 ms of owner preparation and 23.92 ms of execution, separately; these
+are hosted debug proof measurements. It uses an explicit zero-history seed.
+
+The local `native-conditioned.json` evidence retains the complete preceding
+feature/native receipt, authored Source, reviewed tensor layout, model identities
+and numerical outputs. It declares `joint_committed_session=false`,
+`conditioner_model_signature_admitted=false`, `source_warm_initialization=false`
+and `neural_waveform=false`. A committed linguistic basis, compound model
+interface admission, Source warm initialization and PCM-coupled history remain
+required before the complete same-basis acceptance claim.
