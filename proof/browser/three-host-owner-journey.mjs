@@ -135,7 +135,7 @@ try {
     await mkdir(checkpointDirectory, { mode: 0o700 });
   }
   const screenFreeCheckpoint = async (phase, routeId, routeAvailable, details = {}) => {
-    if (process.env.CONDUIT_SCREEN_FREE_CHECKPOINTS !== '1') return;
+    if (process.env.CONDUIT_SCREEN_FREE_CHECKPOINTS !== '1') return undefined;
     assert.ok(['model-provider-unavailable', 'model-provider-restored',
       'browser-presentation-unavailable', 'browser-presentation-restored'].includes(phase));
     assert.match(routeId, /^route\//);
@@ -189,6 +189,7 @@ try {
       resume: { path: path.relative(output, resumePath), sha256: digest(resumeBytes) },
       transcript: resume.transcript, source_show_id: resume.source_show_id,
       selected_playback_receipts: resume.selected_playback_receipts });
+    return { ready, resume };
   };
   const observations = [];
   const observeBrowserCapture = async (name, face, cause, screenshot) => {
@@ -789,14 +790,13 @@ try {
         }, { routeId, available }, { timeout: 12_000 });
         const report = await readWardrobe();
         modelWardrobeObservations += 1;
-        if (modelWardrobeObservations > 1) {
-          await screenFreeCheckpoint(available ? 'model-provider-restored' : 'model-provider-unavailable',
+        const checkpoint = modelWardrobeObservations > 1
+          ? await screenFreeCheckpoint(available ? 'model-provider-restored' : 'model-provider-unavailable',
             routeId, available, {
               wardrobe_revision: report.wardrobe_revision_decimal,
               observed_route_status: available ? 'restored' : 'provider-withdrawn',
-            });
-        }
-        return report;
+            }) : undefined;
+        return { wardrobe: report, checkpoint };
       } }) : undefined;
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(expectedShow => {
