@@ -140,7 +140,8 @@ fn sealed_plan_selects_exact_repeat_schema_count_and_offer() {
         .flat_map(|f| &f.placements)
         .find(|g| g.implementation_id.as_str() == conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION)
         .unwrap();
-    let factory = ValueRepeatOperationFactory::for_plan(&plan, &[retained.clone()]).unwrap();
+    let factory =
+        ValueRepeatOperationFactory::for_plan(&plan, std::slice::from_ref(&retained)).unwrap();
     assert_eq!(
         factory.budget(gear).unwrap().maximum_value_bytes,
         SCALAR_ENCODED_LEN as u32
