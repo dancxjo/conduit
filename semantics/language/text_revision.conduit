@@ -1,0 +1,19 @@
+# Revisioned material is Language truth. Finality does not imply stability or
+# permission to change a committed prefix. All offsets count Unicode scalars.
+type LanguageTextFinality =
+    partial
+    | final
+
+type LanguageTextPriorRevision = {
+    revision: LanguageTextRevisionId
+    sequence: U64
+}
+
+type LanguageTextRevision = {
+    material: LanguageText
+    sequence: U64
+    prior: LanguageTextPriorRevision?
+    stable_prefix: U32 in 0..=4096?
+    finality: LanguageTextFinality
+    provenance: LinguisticDerivationProvenance
+}

@@ -50,6 +50,23 @@ source-text revision remain distinct; the shared bounded revision
 lifecycle does not make ASR confidence into coverage or commitment into effect
 authority.
 
+## Incremental source revisions (#4907, development)
+
+`text_revision.conduit` carries immutable finite `LanguageText` material, an
+exact prior revision and sequence, optional Unicode-scalar stable prefix,
+explicit partial/final status and linguistic provenance. The admission helper
+checks consecutive sequences, unchanged identity/Language, prefix preservation
+and a supplied finite revisable scalar tail. Source finality closes that source
+epoch; an edit afterward needs an explicit new epoch rather than silently
+changing the finalized source.
+
+Stability, finality and consumer commitment remain distinct. A final source may
+have no known stable prefix, and finality does not advance a committed frontier.
+A candidate is prepared without mutating the prior source: publication and
+consumer commitment must occur atomically at their owning execution boundary.
+The helper alone proves neither kernel pressure/cancellation behavior nor ASR
+ingestion, streaming parsing, speech playback or linguistic accuracy.
+
 ## Ownership migration
 
 The previous speech-owned `SpeechLanguageId`, `SpeechVarietyId` and

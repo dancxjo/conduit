@@ -11,14 +11,14 @@ pub use generated::{
     AnnotationBundleFour, LanguageAnalysisRevisionId, LanguageAnalysisTokenRef, LanguageCoverage,
     LanguageDependencyArc, LanguageDependencyHead, LanguageDependencyRelation,
     LanguageDependencySubtype, LanguageExternalIdentity, LanguageId, LanguageMappingDeclaration,
-    LanguageRequest, LanguageText, LanguageTextId, LanguageTextRange, LanguageTextReferenceMatch,
-    LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef,
-    LanguageUniversalDependencyRelation, LanguageVariety, LanguageVarietyPolicy,
-    LinguisticAnnotation, LinguisticDependencyEdge, LinguisticDependencyRelation,
-    LinguisticDerivationProvenance, LinguisticEvidence, LinguisticOffsetBasis,
-    LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind, LinguisticSyntacticLinkKind,
-    LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature, LinguisticTokenFeatureSlot,
-    LinguisticTokenIdentity, LinguisticTokensFour, TextSpan, VarietyId,
+    LanguageRequest, LanguageText, LanguageTextFinality, LanguageTextId, LanguageTextPriorRevision,
+    LanguageTextRange, LanguageTextReferenceMatch, LanguageTextRevision, LanguageTextRevisionId,
+    LanguageTextSegmentKind, LanguageTextSegmentRef, LanguageUniversalDependencyRelation,
+    LanguageVariety, LanguageVarietyPolicy, LinguisticAnnotation, LinguisticDependencyEdge,
+    LinguisticDependencyRelation, LinguisticDerivationProvenance, LinguisticEvidence,
+    LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind,
+    LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature,
+    LinguisticTokenFeatureSlot, LinguisticTokenIdentity, LinguisticTokensFour, TextSpan, VarietyId,
 };
 
 mod catalog;
@@ -51,3 +51,6 @@ pub use request_contract::*;
 
 mod source_material;
 pub use source_material::*;
+
+mod text_revision;
+pub use text_revision::*;
