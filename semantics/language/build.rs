@@ -115,6 +115,10 @@ fn main() {
         ("language-window8-rank-1-2", "window8_rank_1_2.hex"),
         ("language-window8-class-index", "window8_class_index.hex"),
         (
+            "language-window8-class-context",
+            "window8_class_context.hex",
+        ),
+        (
             "language-window8-class-relations",
             "window8_class_relations.hex",
         ),
