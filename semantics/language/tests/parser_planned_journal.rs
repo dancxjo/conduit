@@ -23,6 +23,15 @@ fn bounded_remote_lifecycle_journal_cost_is_measured_without_reset_or_eviction()
 fn declared_batch_retains_evidence_and_refuses_excess_before_ingress() {
     replay(Some(80), 80);
 }
+#[test]
+fn complete_corpus_bound_prepares_both_remote_and_main_retained_journals() {
+    let prepared = model_resource::categorical(
+        include_bytes!("../training/ewt_joint_v2/ewt_joint.i16").to_vec(),
+        selection::pinned_v2_model_signature().unwrap(),
+        1,
+    );
+    let _execution = planned::prepare_with_inference_budget(prepared, 4096);
+}
 fn replay(budget: Option<u16>, first_refusal: u64) {
     let bytes = include_bytes!("../training/ewt_joint_v2/ewt_joint.i16");
     let prepared = model_resource::categorical(
