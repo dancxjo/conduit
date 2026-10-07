@@ -210,6 +210,25 @@ pub fn exercise<'a>(
         },
     );
     journal.append(&committed, None).unwrap();
+    let after_played_rewrite = event(
+        &domain,
+        4,
+        "rewrite-after-played",
+        RevisionChange::Revised {
+            replaces: proposal.reference(),
+            delta: &revised,
+        },
+    );
+    assert_eq!(
+        journal.append(&after_played_rewrite, Some(back(replacement))),
+        Err(PlaybackRevisionRefusal::QueuedHistory)
+    );
+    assert_eq!(journal.producer().unwrap().played_frames(), 128);
+    assert_eq!(
+        journal.journal().frontiers().committed.acknowledgement(),
+        Some(&played)
+    );
+
     assert_eq!(
         journal.append(&stale, None),
         Err(PlaybackRevisionRefusal::Source)
