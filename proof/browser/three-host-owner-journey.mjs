@@ -68,6 +68,53 @@ const run = (args) => {
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 };
+const runAttachedTerminal = (input, onLine = () => {}, timeoutMillis = 30_000) =>
+  new Promise((resolve, reject) => {
+    const child = spawn(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    let scanned = 0;
+    let timedOut = false;
+    let protocolError;
+    const deadline = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeoutMillis);
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString('utf8');
+      if (Buffer.byteLength(stdout) > 1024 * 1024) {
+        protocolError = new Error('terminal transcript exceeded its 1 MiB bound');
+        child.kill();
+        return;
+      }
+      let end;
+      while ((end = stdout.indexOf('\n', scanned)) !== -1) {
+        const line = stdout.slice(scanned, end).replace(/\r$/, '');
+        scanned = end + 1;
+        try { onLine(line, child); } catch (error) {
+          protocolError = error;
+          child.kill();
+          return;
+        }
+      }
+    });
+    child.stderr.on('data', chunk => {
+      stderr += chunk.toString('utf8');
+      if (Buffer.byteLength(stderr) > 1024 * 1024) {
+        protocolError = new Error('terminal stderr exceeded its 1 MiB bound');
+        child.kill();
+      }
+    });
+    child.stdin.on('error', error => { protocolError ??= error; });
+    child.once('error', error => { clearTimeout(deadline); reject(error); });
+    child.once('close', (status, signal) => {
+      clearTimeout(deadline);
+      resolve({ status, signal, stdout, stderr, timedOut, protocolError });
+    });
+    if (input) child.stdin.end(input);
+  });
 let server, browser, nativeProof, speechObserver;
 const nativeOutput = [];
 try {
@@ -283,19 +330,48 @@ try {
     'doffing an already sealed browser route is a same-Plan wardrobe choice');
   assert.equal(browserDoffedForTerminal.selected, null,
     'native route was doffed earlier; the person must explicitly choose the terminal');
-  const terminalSetup = spawnSync(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
-    input: 'wardrobe wear\nwardrobe prefer\nquit\n', encoding: 'utf8', timeout: 10_000,
+  let terminalSetupStage = 'initial';
+  const terminalSetup = await runAttachedTerminal(null, (line, child) => {
+    if (line.startsWith('Wardrobe refused:')) {
+      throw new Error(`terminal setup refused an explicit choice: ${line}`);
+    }
+    const report = /^Owner Body wardrobe: (\d+) worn terminal Mask, .*selected route: ([^;]+);/.exec(line);
+    if (!report) return;
+    if (terminalSetupStage === 'initial') {
+      // The prior native and browser Masks were explicitly doffed. The
+      // installed owner may already wear this new terminal route on attach.
+      assert.ok(Number(report[1]) <= 1, 'unexpected preexisting worn Mask');
+      if (Number(report[1]) === 0) {
+        terminalSetupStage = 'after-wear';
+        child.stdin.write('wardrobe wear\n');
+      } else {
+        terminalSetupStage = 'after-prefer';
+        child.stdin.write('wardrobe prefer\n');
+      }
+    } else if (terminalSetupStage === 'after-wear') {
+      assert.equal(Number(report[1]), 1, 'wear did not admit the terminal Mask');
+      terminalSetupStage = 'after-prefer';
+      child.stdin.write('wardrobe prefer\n');
+    } else if (terminalSetupStage === 'after-prefer') {
+      assert.match(report[2], /^route\//, 'preference did not select the terminal route');
+      terminalSetupStage = 'done';
+      child.stdin.end('quit\n');
+    }
   });
   await writeFile(path.join(output, 'terminal-setup.txt'), terminalSetup.stdout ?? '');
   await writeFile(path.join(output, 'terminal-setup.stderr.txt'), terminalSetup.stderr ?? '');
   assert.equal(terminalSetup.status, 0,
-    `terminal setup status ${terminalSetup.status}; stdout:\n${terminalSetup.stdout}\nstderr:\n${terminalSetup.stderr}`);
+    `terminal setup status ${terminalSetup.status}, signal ${terminalSetup.signal}, timed out ${terminalSetup.timedOut}; stdout:\n${terminalSetup.stdout}\nstderr:\n${terminalSetup.stderr}`);
+  if (terminalSetup.protocolError) throw terminalSetup.protocolError;
+  assert.equal(terminalSetupStage, 'done', 'terminal wardrobe choice did not complete');
   assert.doesNotMatch(terminalSetup.stdout, /Wardrobe refused:/);
   assert.match(terminalSetup.stdout, /selected route: route\//);
-  const terminal = spawnSync(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
-    input: 'apply 500\nquit\n', encoding: 'utf8', timeout: 10_000,
-  });
-  assert.equal(terminal.status, 0, terminal.stderr);
+  const terminal = await runAttachedTerminal('apply 500\nquit\n');
+  await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout ?? '');
+  await writeFile(path.join(output, 'terminal-action.stderr.txt'), terminal.stderr ?? '');
+  assert.equal(terminal.status, 0,
+    `terminal action status ${terminal.status}, signal ${terminal.signal}, timed out ${terminal.timedOut}; stdout:\n${terminal.stdout}\nstderr:\n${terminal.stderr}`);
+  if (terminal.protocolError) throw terminal.protocolError;
   assert.doesNotMatch(terminal.stdout, /Action refused:/);
   const terminalShows = [...terminal.stdout.matchAll(/Owner terminal Show (\S+) · route Plan (\S+) · Host (\S+) · Boot (\S+) · offer generation (\d+) · (\d+) bytes written and flushed/g)];
   assert.equal(terminalShows.length, 2, 'owner terminal Mask must acknowledge both exact Shows');
@@ -320,7 +396,6 @@ try {
   assert.equal(terminalAction.interval_ms, 500);
   assert.equal(terminalAction.prior_show_id, terminalShows[0][1]);
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
-  await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout);
   const ownerAfterTerminal = run(['body', 'face', '--state-dir', state, '--json']);
   assert.equal(ownerAfterTerminal.presentation.basis.body_id, bodyId);
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
