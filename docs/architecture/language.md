@@ -56,9 +56,9 @@ authority.
 exact prior revision and sequence, optional Unicode-scalar stable prefix,
 explicit partial/final status and linguistic provenance. The admission helper
 checks consecutive sequences, unchanged identity/Language, prefix preservation
-and a supplied finite revisable scalar tail. Source finality closes that source
-epoch; an edit afterward needs an explicit new epoch rather than silently
-changing the finalized source.
+and a supplied finite revisable scalar tail. Finality describes completion of the
+current snapshot, independently of revision closure: an edited authored source
+may revise a final snapshot while preserving stable and committed material.
 
 Stability, finality and consumer commitment remain distinct. A final source may
 have no known stable prefix, and finality does not advance a committed frontier.

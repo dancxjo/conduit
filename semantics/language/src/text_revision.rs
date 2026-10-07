@@ -1,6 +1,6 @@
 //! Admission of immutable text revisions. The caller publishes a validated
 //! candidate atomically; pressure/cancellation cannot mutate the previous value.
-use crate::{LanguageTextFinality, LanguageTextRevision};
+use crate::LanguageTextRevision;
 
 /// Revision-domain schemas are installed explicitly, independently of the
 /// identity family consumed by speech/listening/translation native bindings.
@@ -27,7 +27,6 @@ pub enum TextRevisionRefusal {
     Language,
     PriorRevision,
     Sequence,
-    Finalized,
     StablePrefixRange,
     StablePrefixRegressed,
     StablePrefixChanged,
@@ -72,9 +71,6 @@ pub fn validate_text_revision(
     }
     if previous.material().language() != candidate.material().language() {
         return Err(Language);
-    }
-    if matches!(previous.finality(), LanguageTextFinality::Final) {
-        return Err(Finalized);
     }
     let Some(prior) = candidate.prior() else {
         return Err(PriorRevision);
