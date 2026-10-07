@@ -246,3 +246,6 @@ pub mod fixed_numeric_temporal;
 
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_integer_narrowing;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_u16_profile;

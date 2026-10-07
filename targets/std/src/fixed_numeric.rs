@@ -50,6 +50,41 @@ fn select(
         .or_else(|| dispatch_values::select(kind, planned))
         .ok_or_else(|| format!("unsupported generic numeric operation {kind}"))?
 }
+
+fn owns_implementation(id: &ImplementationId) -> bool {
+    use conduit_ai::{
+        fixed_numeric_dsp_catalog::DSP_IMPLEMENTATION,
+        fixed_numeric_index_back::{FLOW_INDEX_IMPLEMENTATION, INDEX_IMPLEMENTATION},
+        fixed_numeric_integer_narrowing::{
+            INTEGER_NARROWING_FLOW_IMPLEMENTATION, INTEGER_NARROWING_IMPLEMENTATION,
+        },
+        fixed_numeric_linear_back::LINEAR_IMPLEMENTATION,
+        fixed_numeric_operations_back::FLOW_OPERATION_IMPLEMENTATION,
+        fixed_numeric_pair_back::VALUE_PAIR_IMPLEMENTATION,
+        fixed_numeric_preparation::{AFFINE_IMPLEMENTATION, WINDOW_IMPLEMENTATION},
+        fixed_numeric_scan_back::SCAN_IMPLEMENTATION,
+        fixed_numeric_signal_back::{ELEMENTWISE_IMPLEMENTATION, FLOW_ELEMENTWISE_IMPLEMENTATION},
+    };
+    [
+        AFFINE_IMPLEMENTATION,
+        WINDOW_IMPLEMENTATION,
+        LINEAR_IMPLEMENTATION,
+        SCAN_IMPLEMENTATION,
+        INDEX_IMPLEMENTATION,
+        FLOW_INDEX_IMPLEMENTATION,
+        ELEMENTWISE_IMPLEMENTATION,
+        FLOW_ELEMENTWISE_IMPLEMENTATION,
+        FLOW_OPERATION_IMPLEMENTATION,
+        DSP_IMPLEMENTATION,
+        INTEGER_NARROWING_IMPLEMENTATION,
+        INTEGER_NARROWING_FLOW_IMPLEMENTATION,
+        VALUE_PAIR_IMPLEMENTATION,
+        "conduit.numeric/scalar-tanh@1",
+        "conduit.numeric/concatenate@1",
+        "conduit.numeric/resource-embedding@1",
+    ]
+    .contains(&id.as_str())
+}
 pub fn fixed_numeric_offer(kind: &str) -> Result<CapabilityOffer, String> {
     Ok(select(kind, None, &BTreeMap::new())?.offer)
 }
@@ -75,6 +110,9 @@ impl FixedNumericOperationFactory {
         for gear in &fragment.placements {
             if !gear.kind_id.as_str().starts_with("numeric/") {
                 continue;
+            }
+            if !owns_implementation(&gear.implementation_id) {
+                continue; // A separate exact implementation owner must admit it.
             }
             let offer = fixed_numeric_offer(gear.kind_id.as_str())?;
             verify_fixed_placement(gear, &offer).map_err(|error| format!("{error:?}"))?;
