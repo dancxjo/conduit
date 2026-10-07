@@ -1,0 +1,24 @@
+# A complete checked segment is preserved across an explicitly named composite
+# occurrence. These laws authorize neither a new phone nor lost source/prosody.
+type SpeechPhoneCompositionWitness = {
+    layout: SpeechCompletePhoneLayout4
+    word_position: U64 in 0..=3
+    global_ordinal: U32 in 0..=31
+    original: SpeechPlannedSegmentIntent
+    composite: SpeechPlannedSegmentIntent
+    target: SpeechOccurrenceMembership
+    where .word_position < .layout.order.count
+    where .original.occurrence.ordinal < sequence/at(.layout.lengths, .word_position)
+    where .global_ordinal == (.word_position == 0 ? .original.occurrence.ordinal : (.word_position == 1 ? .layout.lengths.0 + .original.occurrence.ordinal : (.word_position == 2 ? .layout.lengths.0 + .layout.lengths.1 + .original.occurrence.ordinal : .layout.lengths.0 + .layout.lengths.1 + .layout.lengths.2 + .original.occurrence.ordinal)))
+    where .composite.occurrence.ordinal == .global_ordinal
+    where .composite.occurrence == .target.occurrence
+    where .original.occurrence.inventory_id == .composite.occurrence.inventory_id
+    where .original.occurrence.language == .composite.occurrence.language
+    where .original.phone == .composite.phone
+    where .original.phoneme == .composite.phoneme
+    where .original.stress == .composite.stress
+    where .original.word_position == .composite.word_position
+    where .original.prosody == .composite.prosody
+    where .original.provenance == .composite.provenance
+    where .original.sources == .composite.sources
+}

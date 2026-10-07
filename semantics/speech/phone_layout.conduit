@@ -1,0 +1,11 @@
+# Complete bounded phonetic concatenation layout for the admitted spoken order.
+# Each active word contributes its whole checked pronunciation; inactive slots
+# contribute zero. This is semantic preparation, not a host storage offer.
+type SpeechCompletePhoneLayout4 = {
+    order: SpeechCompleteSpokenOrder4
+    lengths: collection U32 in 0..=8 = 4
+    where .order.count > 0 ? .lengths.0 > 0 : .lengths.0 == 0
+    where .order.count > 1 ? .lengths.1 > 0 : .lengths.1 == 0
+    where .order.count > 2 ? .lengths.2 > 0 : .lengths.2 == 0
+    where .order.count > 3 ? .lengths.3 > 0 : .lengths.3 == 0
+}

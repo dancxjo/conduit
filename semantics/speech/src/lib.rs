@@ -252,6 +252,8 @@ pub mod stable_lexical_pronunciation;
 pub mod stable_lexical_intent;
 
 #[cfg(feature = "semantic-bindings")]
+pub mod plan_coverage;
+#[cfg(feature = "semantic-bindings")]
 pub mod pronunciation_intent;
 
 #[cfg(feature = "semantic-bindings")]
