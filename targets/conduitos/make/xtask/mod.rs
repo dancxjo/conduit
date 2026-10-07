@@ -54,6 +54,7 @@ mod loongarch64_a2;
 #[allow(dead_code)]
 mod loongarch64_a3;
 mod loongarch64_a4;
+mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod opl2_proof;

@@ -4,6 +4,8 @@ use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
+mod entropy;
+pub use entropy::FwCfgEntropy;
 
 const CRMD_IE: usize = 1 << 2;
 const TIMER_INTERRUPT: usize = 11;

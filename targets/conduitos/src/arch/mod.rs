@@ -109,6 +109,11 @@ pub use riscv64::{SeedEntropy as DomainEntropy, early_write};
 pub use riscv64::{TextDomain, initialize_domains};
 #[cfg(target_arch = "loongarch64")]
 mod loongarch64;
+#[cfg(target_arch = "loongarch64")]
+pub use loongarch64::FwCfgEntropy;
+#[cfg(test)]
+#[path = "loongarch64/entropy_directory.rs"]
+mod loongarch64_entropy_directory_test;
 #[cfg(test)]
 #[path = "riscv64/seed_conditioner.rs"]
 mod riscv64_seed_conditioner;

@@ -281,6 +281,18 @@ text-and-timer result and native Patchbay projection. This establishes the
 boot facts needed to construct domains; LoongArch64 protected execution is
 still unfinished.
 
+The reviewed LoongArch virtual profile now supplies a fresh, finite 4 KiB
+cryptographic input from Linux `getrandom` through a private emulator firmware
+file. Root reads the exact read-only firmware descriptor without DMA, retains
+the input only in privileged storage, clears consumed bytes and refuses further
+requests when the pool is exhausted. Acquisition has no timing/counter fallback.
+The host removes its private input file when the guest ends. Two independent
+direct-boot diagnostics of the actual provider checked exact fills, interrupt
+state restoration, finite capacity and consumed-storage erasure; a missing-input
+boot checked refusal and cleared output. The normal product also completed two
+boots with the host input integration. This is local virtual-platform provider
+evidence, not a physical LoongArch RNG or a protected-execution claim.
+
 The ordinary text serial presentation now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.
 The current native workset, timer/Morse and other paths have not been migrated.

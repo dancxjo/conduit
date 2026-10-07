@@ -175,7 +175,9 @@ pub(super) fn boot_until_image(
         .append(true)
         .open(&log)
         .map_err(|error| refusal("loongarch64-boot-failed", error.to_string()))?;
+    let entropy = super::loongarch64_entropy_input::Input::acquire(&paths.target)?;
     let mut child = Command::new(qemu)
+        .args(["-fw_cfg", &entropy.argument()?])
         .args([
             "-M",
             "virt",
