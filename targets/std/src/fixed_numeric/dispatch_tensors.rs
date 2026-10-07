@@ -9,6 +9,52 @@ pub(super) fn select(
     bindings: &TensorBindings,
 ) -> Option<Result<Selection, String>> {
     match kind {
+        "numeric/dense161x18" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_affine_offer::<161, 18>(),
+            FixedAffineBack::<161, 18>::prepare_planned_owned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                resource(bindings, "weights")?,
+                resource(bindings, "bias")?
+            )
+        )),
+        "numeric/linear161x18" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_linear_offer::<161, 18>(),
+                FixedLinearBack::<161, 18>::prepare_planned_owned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, resource(bindings, "weights")?)
+            ))
+        }
+        "numeric/dense18x18" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_affine_offer::<18, 18>(),
+            FixedAffineBack::<18, 18>::prepare_planned_owned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                resource(bindings, "weights")?,
+                resource(bindings, "bias")?
+            )
+        )),
+        "numeric/linear18x18" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_linear_offer::<18, 18>(),
+                FixedLinearBack::<18, 18>::prepare_planned_owned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, resource(bindings, "weights")?)
+            ))
+        }
         "numeric/dense3x2" => Some(run!(
             planned,
             gear,

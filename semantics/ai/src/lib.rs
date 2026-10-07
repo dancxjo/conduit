@@ -230,3 +230,13 @@ pub mod fixed_numeric_flow;
 
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_pair_flow;
+
+pub mod fixed_numeric_dsp;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_dsp_back;
+pub mod fixed_numeric_dsp_catalog;
+
+pub mod fixed_numeric_i16_codec;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_integer_conversion;

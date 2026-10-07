@@ -1,4 +1,6 @@
 use super::*;
+use conduit_ai::fixed_numeric_integer_conversion::FixedIntegerConversionBack;
+use conduit_ai::{fixed_numeric_dsp_back::FixedDspBack, fixed_numeric_dsp_catalog::*};
 use conduit_ai::{
     fixed_numeric_index_back::*, fixed_numeric_pair_back::*,
     fixed_numeric_preparation::fixed_window_offer, fixed_numeric_scan_back::*,
@@ -9,6 +11,111 @@ pub(super) fn select(
     planned: Option<(&PlannedGear, u16)>,
 ) -> Option<Result<Selection, String>> {
     match kind {
+        "numeric/u16-to-f32" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::U16, false),
+                FixedIntegerConversionBack::<1>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::U16, false)
+            ))
+        }
+        "numeric/i16-to-f32-160" => {
+            Some(run!(
+                planned,
+                gear,
+                fuel,
+                fixed_integer_conversion_offer(IntegerConversion::I16Vector160, false),
+                FixedIntegerConversionBack::<160>::prepare_planned::<
+                    FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+                >(gear, fuel, IntegerConversion::I16Vector160, false)
+            ))
+        }
+        "numeric/real-dft320" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::RealDft320, false),
+            FixedDspBack::<320, 322>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::RealDft320,
+                false
+            )
+        )),
+        "numeric/magnitude-squared161" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::MagnitudeSquared161, false),
+            FixedDspBack::<322, 161>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::MagnitudeSquared161,
+                false
+            )
+        )),
+        "numeric/log10-18" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Log10_18, false),
+            FixedDspBack::<18, 18>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Log10_18,
+                false
+            )
+        )),
+        "numeric/log10-1" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Log10_1, false),
+            FixedDspBack::<1, 1>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Log10_1,
+                false
+            )
+        )),
+        "numeric/dot160" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Dot160, false),
+            FixedDspBack::<160, 1>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Dot160,
+                false
+            )
+        )),
+        "numeric/sqrt1" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_dsp_offer(FixedDspOperation::Sqrt1, false),
+            FixedDspBack::<1, 1>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedDspOperation::Sqrt1,
+                false
+            )
+        )),
+        "numeric/multiply320" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_elementwise_offer::<320>(FixedElementwiseOperation::Multiply),
+            FixedElementwiseBack::<320>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedElementwiseOperation::Multiply
+            )
+        )),
         "numeric/add40" => Some(run!(
             planned,
             gear,

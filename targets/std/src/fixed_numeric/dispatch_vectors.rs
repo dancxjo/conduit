@@ -5,6 +5,24 @@ pub(super) fn select(
     planned: Option<(&PlannedGear, u16)>,
 ) -> Option<Result<Selection, String>> {
     match kind {
+        "numeric/concatenate18x1" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_concatenate_offer::<18, 1>(),
+            FixedConcatenateBack::<18, 1, 19>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear, fuel
+            )
+        )),
+        "numeric/concatenate19x1" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_concatenate_offer::<19, 1>(),
+            FixedConcatenateBack::<19, 1, 20>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear, fuel
+            )
+        )),
         "numeric/tanh4" => Some(run!(
             planned,
             gear,
