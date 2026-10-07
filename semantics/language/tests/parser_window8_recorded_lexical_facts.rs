@@ -36,6 +36,7 @@ fn hex(bytes: &[u8]) -> String {
 #[test]
 #[ignore = "explicit actual recorded receipt and immutable model directory"]
 fn readmit_actual_partial_verb_and_noun_choices_without_new_model_execution() {
+    let query_clock = std::time::Instant::now();
     let directory = PathBuf::from(std::env::var("WINDOW8_MODEL_DIR").unwrap());
     let receipt_path = PathBuf::from(std::env::var("WINDOW8_RECEIPTS").unwrap());
     let output = PathBuf::from(std::env::var("WINDOW8_FACT_OUTPUT").unwrap());
@@ -133,6 +134,12 @@ fn readmit_actual_partial_verb_and_noun_choices_without_new_model_execution() {
             .into_iter()
             .filter(|dependent| *dependent < *lexical.lexical().token_count())
         {
+            let query_unix_nanos = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+                .to_string();
+            let query_elapsed_nanos = query_clock.elapsed().as_nanos().to_string();
             let (fact, refusal) =
                 match schema.lexical_fact(lexical.lexical(), &basis, &beam, &proofs, dependent) {
                     Ok(value) => (Some(hex(&value.canonical_bytes().unwrap())), None),
@@ -149,7 +156,7 @@ fn readmit_actual_partial_verb_and_noun_choices_without_new_model_execution() {
                 "actual recorded {id} dependent{dependent}: Source fact accepted={}",
                 fact.is_some()
             );
-            results.push(json!({"id":id,"dependent":dependent,"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"recorded_beam_bytes":epoch["beam_bytes"],"lexical_fact_structured_bytes":fact,"refusal":refusal,"additional_model_invocations":0,"played_commitment_claim":false,"contemporaneous_producer_fact_claim":false}));
+            results.push(json!({"id":id,"dependent":dependent,"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"recorded_beam_bytes":epoch["beam_bytes"],"lexical_fact_structured_bytes":fact,"refusal":refusal,"additional_model_invocations":0,"subsequent_query_unix_nanos":query_unix_nanos,"subsequent_query_elapsed_nanos":query_elapsed_nanos,"played_commitment_claim":false,"contemporaneous_producer_fact_claim":false}));
         }
     }
     assert!(
