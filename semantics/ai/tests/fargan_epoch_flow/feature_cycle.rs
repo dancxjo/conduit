@@ -81,9 +81,21 @@ pub(super) fn prepare_feedback() -> (
     conduitos::seeded_state::SeededStateOperationFactory,
     std::collections::BTreeMap<String, String>,
 ) {
+    prepare_feedback_with(
+        prepared_epoch_profiles_with_capacity(true),
+        conduitos::seeded_state::SeededStateOperationFactory::default(),
+    )
+}
+
+pub(super) fn prepare_feedback_with(
+    mut context: EpochProfiles,
+    mut seeded: conduitos::seeded_state::SeededStateOperationFactory,
+) -> (
+    EpochProfiles,
+    conduitos::seeded_state::SeededStateOperationFactory,
+    std::collections::BTreeMap<String, String>,
+) {
     use std::{collections::BTreeMap, sync::Arc};
-    let mut context = prepared_epoch_profiles_with_capacity(true);
-    let mut seeded = conduitos::seeded_state::SeededStateOperationFactory::default();
     let definition = declarations::exact_epoch_declarations()
         + "\n"
         + include_str!("../../../speech/fargan_epoch_feedback.conduit")
@@ -310,9 +322,15 @@ pub(super) fn prepare_feedback() -> (
         .value_type()
         .clone();
     let ack_model_guard = conduit_ai::fixed_numeric_guard::FixedGuardProfile::prepare(pcm).unwrap();
-    ack_model_guard
-        .install(&mut context.startup, &mut context.profiles)
-        .unwrap();
+    let existing_ack_guard = context
+        .guards
+        .iter()
+        .any(|profile| profile.contract().unwrap() == ack_model_guard.contract().unwrap());
+    if !existing_ack_guard {
+        ack_model_guard
+            .install(&mut context.startup, &mut context.profiles)
+            .unwrap();
+    }
     ids.insert(
         "__FEATURE_ACK_MODEL_GUARD__".into(),
         ack_model_guard.contract().unwrap().kind_id.as_str().into(),
@@ -321,7 +339,9 @@ pub(super) fn prepare_feedback() -> (
         "__FEATURE_PCM_NATIVE__".into(),
         context.kinds["__PCM_VALIDATOR__"].clone(),
     );
-    context.guards.push(ack_model_guard);
+    if !existing_ack_guard {
+        context.guards.push(ack_model_guard);
+    }
     (context, seeded, ids)
 }
 
@@ -540,4 +560,88 @@ fn feature_cycle_authors_model_anchor_and_final_pcm_ack_before_causal_replacemen
         graph.expanded.gears.len(),
         graph.expanded.connections.len()
     );
+}
+
+pub(super) fn native_cycle_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    let authored = [
+        super::conditioning_cycle::compound_source(),
+        cycle_source(ids)
+            .replace("type FarganPeriod = U16 in 32..=255\n", "")
+            .replace(
+                include_str!("../../../speech/fargan_epoch_anchor.conduit"),
+                "",
+            )
+            .lines()
+            .filter(|line| {
+                !(line.starts_with("with ") && line.ends_with(" as FarganModelFrameAnchor"))
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
+        include_str!("../../../speech/fargan_native_cycle.conduit").into(),
+    ]
+    .join("\n");
+    let imports = authored
+        .lines()
+        .filter(|line| line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let body = authored
+        .lines()
+        .filter(|line| !line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    imports + "\n" + &body
+}
+
+#[test]
+fn native_compound_cycle_authors_three_separate_feedback_domains_with_one_pcm_ack() {
+    let (context, seeded, _) = prepared_signal_cycle_profiles_with_capacity(true);
+    let (context, seeded, _) = super::conditioning_cycle::prepare_with(context, seeded);
+    let (context, seeded, ids) = prepare_feedback_with(context, seeded);
+    assert_eq!(seeded.offers().count(), 3);
+    let receipt = format!("[{}]", vec!["1"; 32].join(","));
+    let selected = format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
+    let source = native_cycle_source(&ids).replace(
+        "selected: FarganModelFrameAnchor\n",
+        &format!("selected: FarganModelFrameAnchor = {selected}\n"),
+    );
+    let checked = check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &checked,
+        "speech/flow-fargan-native-cycle",
+        &context.profiles,
+    )
+    .unwrap();
+    assert!(graph.expanded.gears.len() > 900);
+    eprintln!("Source three-cell native cycle: {}nodes/{}cords; separate642/128/837 states, one finalPCM ACK", graph.expanded.gears.len(), graph.expanded.connections.len());
+}
+
+#[test]
+fn conditioning_candidate_profile_survives_three_cell_registration() {
+    let (context, seeded, signal_ids) = prepared_signal_cycle_profiles_with_capacity(true);
+    let (context, seeded, ids) = super::conditioning_cycle::prepare_with(context, seeded);
+    let identity = ids["__CONDITION_INPUT_NATIVE__"].clone();
+    let before = context
+        .native
+        .iter()
+        .find(|p| p.kind_identity(true) == identity)
+        .unwrap()
+        .candidate_type()
+        .clone();
+    let (context, _, _) = prepare_feedback_with(context, seeded);
+    let after = context
+        .native
+        .iter()
+        .find(|p| p.kind_identity(true) == identity)
+        .unwrap()
+        .candidate_type();
+    assert_eq!(&before, after);
+    let conditioning_source = include_str!("../../../speech/fargan_conditioning_cycle.conduit");
+    for key in ["INPUT", "PROPOSAL", "PENDING", "EVENT", "STATE"] {
+        assert!(conditioning_source.contains(&ids[&format!("__CONDITION_{key}_NATIVE__")]));
+    }
+    assert!(include_str!("../../../speech/fargan_signal_cycle.conduit")
+        .contains(&signal_ids["__SIGNAL_STATE_PROFILE__"]));
+    let source = format!("with {identity}/candidate as Candidate\nplot profile-probe (\n value: Candidate...| >> result: Candidate...|\n) = (.)\n");
+    check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
 }

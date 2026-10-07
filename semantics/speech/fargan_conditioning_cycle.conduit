@@ -1,12 +1,12 @@
 with structure/flow-nominal-weakening/typed-a08a2daea63b9e0d5ec42a886daa867e5e8cfde5c705a457516609d3e46f6a40eb12f09c151215087d424ec46c63ae3fe7e239ce6c749bebb8485a9feb4e459e/result as FarganConditioningCyclePair
-with structure/flow-native-profile/a5d48f1a575e59f2841fb64cb17845951ebf807ab717729e59206263d93fc785/candidate as FarganConditioningInputCandidate
+with structure/flow-native-profile/2ba0a7afa81ecaf16bc05b9027fa269feec86fb7c9bdd9a3d2d47875395db056/candidate as FarganConditioningInputCandidate
 with structure/flow-nominal-weakening/typed-6abf9828e31bd34170d561708039700cdc7e8e8bc39dc00818761d5cf9a975b793768f2982400a93bf6c7f41b4d186e20125ef4e49b39f1d57c19106087529f2/result as FarganConditioningNumericalPair
-with structure/flow-native-profile/30b0c78edb41978a4e6db16fb0b04f62d5796d2605ff5a69837bf959075de2ad/candidate as FarganConditioningProposalCandidate
+with structure/flow-native-profile/c6151431487297e58107326c5a6be74e1e4e0b2c621d3f11e1552d14aed0c34b/candidate as FarganConditioningProposalCandidate
 with structure/flow-nominal-weakening/typed-766a8da60c695457b869e8eb6fef41f7e22a89d63659a9682585d9109c08f4af684f503db7d70f5726fb426644abb78fd3ce93bce5515a6d085bde413d4795a3/result as FarganConditioningProposalRaw
-with structure/flow-native-profile/375b7fbff2d9de05ca0333440fb3102ac990fa294ec0886ed23af48bd04d9f8b/candidate as FarganConditioningPendingCandidate
-with structure/flow-native-profile/d86dd875acd4740aa69528d401ff1938b957ae074cb8ec61bcbd6b37b3accf3f/candidate as FarganConditioningEventCandidate
+with structure/flow-native-profile/ee76e3b515ede462e41a36e561f1ae9c6c50b7c00425455b3b58bf1c436ff182/candidate as FarganConditioningPendingCandidate
+with structure/flow-native-profile/e2799bb045c32a887320dd803ff30f8c0ecf93a10c077e871245ff26e8690c85/candidate as FarganConditioningEventCandidate
 with structure/flow-nominal-weakening/typed-b129200c7de535ad56dde22a66c7d84112838de38f8c6372af6308c585f4989f22c0e2b3bfffe550300c7e40e4fa9be616f2209130ee01e3562f586121d6eb85/result as FarganConditioningAckPair
-with structure/flow-native-profile/1f0f610ce96bd829545c79985c2434a039c373220633b389d27362bd2c49eb39/candidate as FarganConditioningStateCandidate
+with structure/flow-native-profile/cdaedab1e484abd20f1b5024c9b215002cb1245ed1791d021183254e9167426d/candidate as FarganConditioningStateCandidate
 
 plot speech/flow-fargan-conditioning-input-matches (
     value: FarganConditioningCyclePair...| >> result: Boolean...|
@@ -55,19 +55,19 @@ plot speech/flow-fargan-conditioning-cycle (
     matcher: speech/flow-fargan-conditioning-input-matches
     guard: value/flow-assert-true/typed-eb12f09c151215087d424ec46c63ae3fe7e239ce6c749bebb8485a9feb4e459e
     candidate: speech/flow-fargan-conditioning-input-candidate
-    input: structure/flow-native-profile/a5d48f1a575e59f2841fb64cb17845951ebf807ab717729e59206263d93fc785
+    input: structure/flow-native-profile/2ba0a7afa81ecaf16bc05b9027fa269feec86fb7c9bdd9a3d2d47875395db056
     inputweak: structure/flow-nominal-weakening/typed-5cb3bcb542714cbbfdf401f948cd53e69331c0b1ab0ce019604359c72c7e92f360ea46001e91ae9a57389917fe699de30dab1d5d6fcef91df2b85d6791d69859
     core: speech/flow-fargan-conditioning-core
     numerical: structure/flow-atomic-pair/typed-d2321cb34deaed7fcb048a0c0db4ecaf55ef79be835697a2c5fb4da96426fc80427d619f1fadaa288a96e594923e0243cb39eee294e3791a1c0380390e63fdbe
     context: structure/flow-atomic-pair/typed-0a7c2982666bf7dd32a2a91cac95bd64f69835a7c4833704e290778ad731f46360ea46001e91ae9a57389917fe699de30dab1d5d6fcef91df2b85d6791d69859
     proposalweak: structure/flow-nominal-weakening/typed-6abf9828e31bd34170d561708039700cdc7e8e8bc39dc00818761d5cf9a975b793768f2982400a93bf6c7f41b4d186e20125ef4e49b39f1d57c19106087529f2
     proposalcandidate: speech/flow-fargan-conditioning-proposal-candidate
-    proposal: structure/flow-native-profile/30b0c78edb41978a4e6db16fb0b04f62d5796d2605ff5a69837bf959075de2ad
+    proposal: structure/flow-native-profile/c6151431487297e58107326c5a6be74e1e4e0b2c621d3f11e1552d14aed0c34b
     raw: structure/flow-nominal-weakening/typed-766a8da60c695457b869e8eb6fef41f7e22a89d63659a9682585d9109c08f4af684f503db7d70f5726fb426644abb78fd3ce93bce5515a6d085bde413d4795a3
     eventcandidate: speech/flow-fargan-conditioning-event-candidate
-    event: structure/flow-native-profile/d86dd875acd4740aa69528d401ff1938b957ae074cb8ec61bcbd6b37b3accf3f
+    event: structure/flow-native-profile/e2799bb045c32a887320dd803ff30f8c0ecf93a10c077e871245ff26e8690c85
     pendingcandidate: speech/flow-fargan-conditioning-pending-candidate
-    pending: structure/flow-native-profile/375b7fbff2d9de05ca0333440fb3102ac990fa294ec0886ed23af48bd04d9f8b
+    pending: structure/flow-native-profile/ee76e3b515ede462e41a36e561f1ae9c6c50b7c00425455b3b58bf1c436ff182
     ackmodel: speech/flow-fargan-model-anchor-matches (selected = selected)
     ackinput: value/flow-assert-true/typed-fa9d870b02a24fcdc0dc452fe6046bce65e380294d06bfb24f45e15d0730bcd7
     ack: speech/flow-fargan-conditioning-ack
@@ -76,7 +76,7 @@ plot speech/flow-fargan-conditioning-cycle (
     ackmatcher: speech/flow-fargan-conditioning-ack-matches
     ackguard: value/flow-assert-true/typed-22c0e2b3bfffe550300c7e40e4fa9be616f2209130ee01e3562f586121d6eb85
     statecandidate: speech/flow-fargan-conditioning-state-candidate
-    state: structure/flow-native-profile/1f0f610ce96bd829545c79985c2434a039c373220633b389d27362bd2c49eb39
+    state: structure/flow-native-profile/cdaedab1e484abd20f1b5024c9b215002cb1245ed1791d021183254e9167426d
     seed >> cell.seed
     cell.current >> joined.left
     events >> joined.right

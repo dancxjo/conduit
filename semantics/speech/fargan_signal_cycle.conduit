@@ -1,6 +1,6 @@
 with structure/flow-nominal-weakening/typed-7970f22d7e24c9998145730950807fcca1cf07be534126017d33066c7d669aa14b242fa2780af1f3bc8724ff84f962584af7c7080968c549c1c0f1b8ed4322a5/result as FarganSignalCyclePair
 with structure/flow-nominal-weakening/typed-fa9d870b02a24fcdc0dc452fe6046bce65e380294d06bfb24f45e15d0730bcd77b796e30d0fd1b04c57950d9b72cea3c4365ba30df825588cc7d94b124298423/result as FarganAcceptedPcm16Raw
-with structure/flow-native-profile/18cb689a57191959cb464e0a83150fd1a937a36d235237f275636676f48ce55b/candidate as FarganSignalFeedbackCandidate
+with structure/flow-native-profile/147f8792a36f71aaea94d1e2be4592c0ce025c61aab901f11ecc2a90a4766468/candidate as FarganSignalFeedbackCandidate
 with structure/flow-native-profile/1ddbd444d72e89b5248cba0bd21dae1940e8ce3f7950e3729b7c63c0a6c3471d/candidate as FarganEpochInputCandidate
 
 # Exact epoch continuity and checked U64 increment policy are Source-owned.
@@ -62,7 +62,7 @@ plot speech/flow-fargan-signal-cycle (
     epoch: speech/flow-fargan-float-epoch (selected = selected)
     nextweak: structure/flow-nominal-weakening/typed-fa9d870b02a24fcdc0dc452fe6046bce65e380294d06bfb24f45e15d0730bcd77b796e30d0fd1b04c57950d9b72cea3c4365ba30df825588cc7d94b124298423
     nextcandidate: speech/flow-fargan-signal-cycle-next-candidate
-    next: structure/flow-native-profile/18cb689a57191959cb464e0a83150fd1a937a36d235237f275636676f48ce55b
+    next: structure/flow-native-profile/147f8792a36f71aaea94d1e2be4592c0ce025c61aab901f11ecc2a90a4766468
     seed >> cell.seed
     cell.current >> paired.left
     events >> paired.right
