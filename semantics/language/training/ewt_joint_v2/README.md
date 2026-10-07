@@ -117,3 +117,20 @@ actual VOC0 and fresh Partial `Hello, Travis ` VOC2 facts pass direct generic
 Source-expression/native admission, with altered head/choice outputs refused.
 These contracts are not included in the main generated Source/catalog yet.
 No ordinary protected-session, future rebase or played acceptance is claimed.
+
+
+`native_vocative_protection_replay_proof.json` records the subsequent actual
+VOC2 append proof. The acquired Partial `Hello, Travis ` stable13 fact remains
+independent while root0 is withheld and contiguous commitment is0. Ordinary
+Source insertion, rebase to Final `Hello, Travis.` stable14 and prospective
+forest projection passed in1045.49s. Full Native compatibility admits the
+actual final hypothesis and refuses changed dependent/head lexical choices.
+Original basis, both choices and full relation remain; current basis and exact
+endpoint occurrence IDs advance through the actual lexical revision history.
+This reuses immutable actual model receipts and does not rerun inference or
+establish private production Session custody or played ACK. Two lifecycle
+setup failures remain documented. The original acquisition completed both
+rows but failed a shared all-token gold assertion (UAS/LAS6/7, VOC2/2); its
+comma disagreement is retained. The corrected diagnostic selector is compiled
+without duplicating the46-minute acquisition. Scoped lint is deferred while
+the coordinated Root Speech metadata compiler is active.
