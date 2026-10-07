@@ -207,3 +207,8 @@ pub mod fixed_numeric_window_back;
 
 #[cfg(feature = "kernel-step")]
 mod fixed_numeric_finite_envelope;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_linear_back;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_signal_back;
+pub mod fixed_tensor_linear;
