@@ -23,6 +23,7 @@ impl<W: Write> Observer<W> {
             "schema": "language/window8-execution-observer@1",
             "sequence": self.next_sequence,
             "actual_elapsed_nanos": self.started.elapsed().as_nanos().to_string(),
+            "actual_elapsed_ms": self.started.elapsed().as_millis().to_string(),
             "event": event,
             "receipt": receipt,
             "contemporaneous_browser_observation_claim": false
