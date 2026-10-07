@@ -77,3 +77,11 @@ pub mod lexical;
 pub mod discourse;
 
 pub mod prosody;
+
+pub mod pronunciation_selection;
+
+pub use generated::{
+    LanguagePronunciationCandidateQuery, LanguagePronunciationCandidateResult,
+    LanguagePronunciationPosResult, LanguagePronunciationSelectionProfile,
+    LanguagePronunciationSelectionRequest, LanguagePronunciationSelectionRule,
+};

@@ -238,3 +238,9 @@ mod inflection_parity;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod revision;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod lexical_pronunciation;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod pronunciation_intent;
