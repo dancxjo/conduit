@@ -224,3 +224,6 @@ pub mod fixed_numeric_scan_back;
 pub mod fixed_numeric_signal_back;
 pub mod fixed_tensor_linear;
 pub mod fixed_tensor_resource;
+
+#[cfg(all(feature = "kernel-step", target_has_atomic = "ptr"))]
+pub mod fixed_numeric_flow;

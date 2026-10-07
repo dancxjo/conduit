@@ -20,7 +20,6 @@ pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
 pub mod civil_deadline_wait;
-pub mod fixed_numeric;
 mod composition;
 #[cfg(test)]
 mod composition_test_offers;
@@ -32,6 +31,7 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+pub mod fixed_numeric;
 pub mod relay_client;
 pub mod remote_emergency;
 pub mod text_lab_live;
@@ -1930,3 +1930,5 @@ mod tests {
         assert!(timer.waits.is_empty());
     }
 }
+
+pub mod fixed_numeric_flow;
