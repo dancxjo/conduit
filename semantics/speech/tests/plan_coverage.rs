@@ -21,6 +21,10 @@ fn full_tape_coverage_refuses_omitted_hello_and_retains_source_phone_mapping() {
         prepare_complete_spoken_order(&case.lexical, &case.participation, &[0]),
         Err(SpeechPlanCoverageRefusal::NativeOrder(_))
     ));
+    assert!(matches!(
+        prepare_complete_spoken_order(&case.lexical, &case.participation, &[1, 0]),
+        Err(SpeechPlanCoverageRefusal::NativeOrder(_))
+    ));
     let foreign = language::case(0, "coverage/foreign-revision", None);
     assert!(matches!(
         prepare_complete_spoken_order(&case.lexical, &foreign.participation, &[0, 1]),

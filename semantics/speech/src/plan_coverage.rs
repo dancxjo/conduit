@@ -44,7 +44,7 @@ impl<'a> PreparedSpeechSpokenOrder<'a> {
 }
 
 /// Source already classified every token. Its complete order contract admits a
-/// permutation of all spoken tokens, including explicit nonspoken punctuation.
+/// lexical order of all spoken tokens, including explicit nonspoken punctuation.
 /// A caller-supplied subset cannot pass the Source count/bijection laws.
 pub fn prepare_complete_spoken_order<'a>(
     lexical: &'a PreparedLexicalTape,
