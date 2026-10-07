@@ -21,6 +21,10 @@ export async function retainScreenFreeSessions(privateRoot, walkthroughRoot, rep
     [report.screen_free_wardrobe.provider_transcript, 'wardrobe-provider-transcript.txt'],
     [report.screen_free_wardrobe.input, 'wardrobe-input.txt'],
     [report.screen_free_wardrobe.transcript, 'wardrobe-transcript.txt'],
+    ...(report.screen_free_checkpoints?.checkpoints ?? []).flatMap(checkpoint => [
+      [checkpoint.input, `screen-free-checkpoint-${checkpoint.phase}-input.txt`],
+      [checkpoint.transcript, `screen-free-checkpoint-${checkpoint.phase}-transcript.txt`],
+    ]),
   ];
   for (const [artifact, name] of files) {
     assert.equal(artifact.path, `../${name}`, `unexpected screen-free artifact ${name}`);

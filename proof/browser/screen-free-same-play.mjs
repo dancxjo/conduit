@@ -6,9 +6,9 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const MAX_PUBLIC_CLIPS = 12;
+const MAX_PUBLIC_CLIPS = 16;
 const MAX_CLIP_BYTES = 4 * 1024 * 1024;
-const MAX_PUBLIC_BYTES = 48 * 1024 * 1024;
+const MAX_PUBLIC_BYTES = 64 * 1024 * 1024;
 const hex = value => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 const escapeHtml = value => value.replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -183,7 +183,7 @@ export async function retainSelectedScreenFreePlays({ state, privateRoot, walkth
       assert.equal(wav.readUInt32LE(40), capture.pcm_bytes);
       assert.equal(digest(wav.subarray(44)), capture.pcm_sha256);
       publicBytes += wav.length;
-      assert.ok(publicBytes <= MAX_PUBLIC_BYTES, 'selected public speaker clips exceed 48 MiB');
+      assert.ok(publicBytes <= MAX_PUBLIC_BYTES, 'selected public speaker clips exceed 64 MiB');
       const name = `${chapter.name}${index ? '-closing' : ''}.wav`;
       await writeFile(path.join(audioRoot, name), wav, { flag: 'wx', mode: 0o600 });
       published.push({ moment: chapter.name, excerpt: index ? 'closing' : 'opening',
@@ -207,6 +207,6 @@ export async function retainSelectedScreenFreePlays({ state, privateRoot, walkth
     full_private_playback_receipt_count: complete.length,
     public_selected_clip_count: published.length,
     public_selected_clip_bytes: publicBytes,
-    selection: 'Opening completed Play for each named human action; closing Play also for Birth review and explicit Birth result. Complete receipt manifest remains private.',
+    selection: 'Opening completed Play for each named human action and held loss/recovery observation; closing Play also for Birth review and explicit Birth result. Complete receipt manifest remains private.',
     human_hearing_observed: false, selected: published };
 }
