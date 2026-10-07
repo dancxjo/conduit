@@ -124,6 +124,10 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
         authorized.presence_maximum_millis,
         MAX_BROWSER_PRESENCE_MILLIS
     );
+    assert!(
+        authorized.presence_maximum_millis >= 30 * 60_000,
+        "the finite browser carrier must admit a complete selected-speaker nonvisual reading"
+    );
     owner.pending_browser.as_mut().unwrap().deadline = Instant::now() - Duration::from_millis(1);
     assert!(owner
         .session
