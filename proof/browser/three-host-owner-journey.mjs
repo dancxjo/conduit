@@ -268,17 +268,44 @@ try {
   }
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(1000ms\)/);
   assert.deepEqual(errors, []);
-  const terminal = spawnSync(owner, ['body', 'terminal', '--state-dir', state], {
-    // The lulled Face exposes Wake first, then the checked clock argument.
-    input: 'inspect\ncontrol next\ncontrol next\ntype 500\napply\nquit\n', encoding: 'utf8', timeout: 10_000,
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(faceId => {
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .face_id === faceId; } catch { return false; }
+  }, afterBrowser.face_id, { timeout: 12_000 });
+  const beforeTerminal = await readWardrobe();
+  const browserBeforeTerminal = beforeTerminal.route_descriptions.find(route =>
+    route.host_id === identity.hostId);
+  assert.equal(beforeTerminal.selected?.route_id, browserBeforeTerminal?.route_id);
+  await page.getByRole('button', { name: `Doff ${browserBeforeTerminal.mask_name}`, exact: true }).click();
+  const browserDoffedForTerminal = await awaitWardrobeRevision(beforeTerminal.wardrobe_revision_decimal);
+  assert.equal(browserDoffedForTerminal.selected, null,
+    'native route was doffed earlier; the person must explicitly choose the terminal');
+  const terminalSetup = spawnSync(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
+    input: 'wardrobe wear\nwardrobe prefer\nquit\n', encoding: 'utf8', timeout: 10_000,
+  });
+  assert.equal(terminalSetup.status, 0, terminalSetup.stderr);
+  assert.doesNotMatch(terminalSetup.stdout, /Wardrobe refused:/);
+  assert.match(terminalSetup.stdout, /selected route: route\//);
+  await writeFile(path.join(output, 'terminal-setup.txt'), terminalSetup.stdout);
+  const terminal = spawnSync(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
+    input: 'apply 500\nquit\n', encoding: 'utf8', timeout: 10_000,
   });
   assert.equal(terminal.status, 0, terminal.stderr);
-  const terminalShows = [...terminal.stdout.matchAll(/Owner Face revision (\d+) · Show (\S+) · Host (\S+) · Boot (\S+)/g)];
-  assert.ok(terminalShows.length >= 2, 'terminal Mask must acknowledge both Faces and Shows');
+  assert.doesNotMatch(terminal.stdout, /Action refused:/);
+  const terminalShows = [...terminal.stdout.matchAll(/Owner terminal Show (\S+) · route Plan (\S+) · Host (\S+) · Boot (\S+) · offer generation (\d+) · (\d+) bytes written and flushed/g)];
+  assert.equal(terminalShows.length, 2, 'owner terminal Mask must acknowledge both exact Shows');
   for (const show of terminalShows) {
     assert.equal(show[3], ownerPart.current.host_id);
     assert.equal(show[4], ownerPart.current.boot_id);
+    assert.ok(Number(show[6]) > 0, 'Show needs an acknowledged terminal write');
   }
+  assert.notEqual(terminalShows[0][1], terminalShows[1][1],
+    'a new Face cannot reuse the previous terminal Show');
+  assert.notEqual(terminalShows[0][2], terminalShows[1][2],
+    'the changed Face and detached terminal offer require a replacement route Plan');
+  assert.ok(Number(terminalShows[1][5]) > Number(terminalShows[0][5]),
+    'terminal reattachment must use the fresh Host offer generation');
   assert.match(terminal.stdout, /1000 milliseconds/);
   assert.match(terminal.stdout, /500 milliseconds/);
   const terminalActionLine = terminal.stdout.split('\n').find(line =>
@@ -287,9 +314,24 @@ try {
   const terminalAction = JSON.parse(terminalActionLine.slice(terminalActionLine.indexOf('{')));
   assert.equal(terminalAction.body_id, bodyId);
   assert.equal(terminalAction.interval_ms, 500);
-  assert.equal(terminalAction.prior_show_id, terminalShows.at(-2)[2]);
+  assert.equal(terminalAction.prior_show_id, terminalShows[0][1]);
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
   await writeFile(path.join(output, 'terminal-face.txt'), terminal.stdout);
+  await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
+  await page.waitForFunction(() => {
+    try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+      .route_descriptions.length > 0; } catch { return false; }
+  }, null, { timeout: 12_000 });
+  const afterTerminalDoff = await readWardrobe();
+  const browserAfterTerminal = afterTerminalDoff.route_descriptions.find(route =>
+    route.host_id === identity.hostId);
+  assert.ok(browserAfterTerminal);
+  await page.getByRole('button', { name: `Wear ${browserAfterTerminal.mask_name}`, exact: true }).click();
+  const browserReworn = await awaitWardrobeRevision(afterTerminalDoff.wardrobe_revision_decimal);
+  assert.equal(browserReworn.selected?.route_id, browserAfterTerminal.route_id);
+  await page.getByRole('button', { name: `Prefer only ${browserAfterTerminal.mask_name}`, exact: true }).click();
+  const browserPreferredAgain = await awaitWardrobeRevision(browserReworn.wardrobe_revision_decimal);
+  assert.equal(browserPreferredAgain.selected?.route_id, browserAfterTerminal.route_id);
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(prior => {
     const face = globalThis.__conduitOwnerParticipation.face();
@@ -606,10 +648,14 @@ try {
       next_step: terminalAction.next_step,
     },
     terminal_show: {
-      face_revision_before: terminalShows[0][1],
-      show_id_before: terminalShows[0][2],
-      face_revision_after: terminalShows.at(-1)[1],
-      show_id_after: terminalShows.at(-1)[2],
+      setup_path: 'terminal-setup.txt',
+      setup_sha256: digest(Buffer.from(terminalSetup.stdout)),
+      show_id_before: terminalShows[0][1],
+      route_plan_id_before: terminalShows[0][2],
+      offer_generation_before: Number(terminalShows[0][5]),
+      show_id_after: terminalShows[1][1],
+      route_plan_id_after: terminalShows[1][2],
+      offer_generation_after: Number(terminalShows[1][5]),
       host_id: terminalShows[0][3],
       boot_id: terminalShows[0][4],
       path: 'terminal-face.txt',
