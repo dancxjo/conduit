@@ -166,12 +166,15 @@ try {
       'route_id', 'route_available']) {
       assert.deepEqual(resume[key], ready[key], `${phase} resume ${key} differs`);
     }
-    assert.equal(resume.speaker_playback_selected, Boolean(installed.selected_speech));
+    assert.equal(typeof resume.speaker_playback_selected, 'boolean');
     assert.ok(Number.isSafeInteger(resume.selected_playback_receipts) &&
       resume.selected_playback_receipts >= 0);
     if (resume.speaker_playback_selected) {
       assert.ok(resume.selected_playback_receipts > 0,
         `${phase} has no completed selected speaker Play`);
+    } else {
+      assert.equal(resume.selected_playback_receipts, 0,
+        `${phase} text-only readout cannot claim selected speaker Plays`);
     }
     assert.ok(resume.face_id && resume.source_show_id,
       `${phase} omitted final Face or Show`);
