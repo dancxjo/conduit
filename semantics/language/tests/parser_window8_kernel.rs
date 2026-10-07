@@ -8,6 +8,8 @@ fn eight_hop_source_walk_runs_in_ordinary_plan_and_play() {
     let source = [
         include_str!("../identity.conduit"),
         include_str!("../types.conduit"),
+        include_str!("../text_revision.conduit"),
+        include_str!("../lexical.conduit"),
         include_str!("../parser.conduit"),
         include_str!("../parser_mask.conduit"),
         include_str!("../parser_window8.conduit"),

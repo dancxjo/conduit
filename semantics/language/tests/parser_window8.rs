@@ -170,3 +170,115 @@ fn source_initialization_keeps_root8_unassigned9_and_old_profile_disjoint() {
         LanguageParserNumericState::semantic_type().unwrap()
     );
 }
+
+#[test]
+fn source_steps_close_eight_tokens_and_preserve_refused_snapshots() {
+    let begin = LanguageParserWindow8Begin::new(basis(), relation(false), 8).unwrap();
+    let initial = initialize_window8(&begin).unwrap();
+    let refused = prepare_window8_step(
+        &initial,
+        &basis(),
+        LanguageParserAction::Reduce,
+        &relation(false),
+    )
+    .unwrap();
+    assert!(!refused.accepted());
+    assert_eq!(refused.next().proof(), initial.proof());
+    let mut current = initial;
+    for ordinal in 0..8 {
+        let step = prepare_window8_step(
+            &current,
+            &basis(),
+            LanguageParserAction::RightArc,
+            &relation(ordinal == 0),
+        )
+        .unwrap();
+        assert!(step.accepted());
+        assert_eq!(*step.next().state().unread(), ordinal + 1);
+        current = step.next().clone();
+    }
+    for _ in 0..8 {
+        let step = prepare_window8_step(
+            &current,
+            &basis(),
+            LanguageParserAction::Reduce,
+            &relation(false),
+        )
+        .unwrap();
+        assert!(step.accepted());
+        current = step.next().clone();
+    }
+    assert!(window8_complete(&current).unwrap());
+    let foreign = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("foreign/analysis".into()).unwrap(),
+        basis().source_revision().clone(),
+        basis().text().clone(),
+    )
+    .unwrap();
+    let stale = prepare_window8_step(
+        &current,
+        &foreign,
+        LanguageParserAction::Shift,
+        &relation(false),
+    )
+    .unwrap();
+    assert!(!stale.accepted());
+    assert_eq!(
+        *stale.proposal().refusal(),
+        LanguageParserRefusal::StaleBasis
+    );
+    assert_eq!(stale.next().proof(), current.proof());
+}
+
+#[test]
+fn source_right_arc_cycle_refusal_retains_exact_prior() {
+    let raw = state(
+        [1, 9, 9, 9, 9, 9, 9, 9, 8],
+        [8, 0, 8, 8, 8, 8, 8, 8, 8],
+        1,
+        2,
+        0,
+        8,
+    );
+    let prior = prepare_window8_state(&raw).unwrap();
+    let refused = prepare_window8_step(
+        &prior,
+        &basis(),
+        LanguageParserAction::RightArc,
+        &relation(false),
+    )
+    .unwrap();
+    assert!(!refused.accepted());
+    assert_eq!(*refused.proposal().refusal(), LanguageParserRefusal::Cycle);
+    assert_eq!(refused.next().proof(), prior.proof());
+}
+
+#[test]
+fn raw_request_requires_the_exact_prior_ancestry_and_stack_top() {
+    let prior =
+        initialize_window8(&LanguageParserWindow8Begin::new(basis(), relation(false), 8).unwrap())
+            .unwrap();
+    assert!(LanguageParserWindow8RawRequest::new(
+        LanguageParserAction::Shift,
+        basis(),
+        relation(false),
+        prior.proof().clone(),
+        prior.proof().ancestry()[1].clone()
+    )
+    .is_err());
+    let changed = prepare_window8_step(
+        &prior,
+        &basis(),
+        LanguageParserAction::RightArc,
+        &relation(true),
+    )
+    .unwrap();
+    assert!(LanguageParserWindow8RawRequest::new(
+        LanguageParserAction::Shift,
+        basis(),
+        relation(false),
+        prior.proof().clone(),
+        changed.next().proof().ancestry()[0].clone()
+    )
+    .is_err());
+}
