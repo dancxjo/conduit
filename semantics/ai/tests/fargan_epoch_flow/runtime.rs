@@ -314,17 +314,21 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
         factories.push(Box::new(seeded));
     }
     let mut repeat_profiles = Vec::new();
+    let mut singleton_profiles = Vec::new();
     let mut concat = conduitos::flow_concat_finite::FlowConcatFiniteOperationFactory::default();
     for implementation in [
         conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION,
         conduitos::flow_concat_finite::IMPLEMENTATION,
+        conduit_std_offers::FLOW_EXACTLY_ONE_IMPLEMENTATION,
     ] {
         if let Some(gear) = fragment
             .placements
             .iter()
             .find(|gear| gear.implementation_id.as_str() == implementation)
         {
-            let input = if implementation == conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION {
+            let input = if implementation == conduit_std_offers::FLOW_EXACTLY_ONE_IMPLEMENTATION {
+                "item"
+            } else if implementation == conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION {
                 "value"
             } else {
                 "left"
@@ -352,7 +356,15 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
                         })
                 })
                 .expect("terminal fixture operation requires its retained complete native profile");
-            if implementation == conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION {
+            if implementation == conduit_std_offers::FLOW_EXACTLY_ONE_IMPLEMENTATION {
+                singleton_profiles.push(std::sync::Arc::new(
+                    conduit_std_host::flow_exactly_one::PreparedFlowExactlyOne::new(
+                        value.clone(),
+                        profile.value_type().clone(),
+                    )
+                    .unwrap(),
+                ));
+            } else if implementation == conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION {
                 let prepare = if gear.kind_id.as_str()
                     == conduit_semantic_catalog::VALUE_REPEAT_CAPACITY2_KIND
                 {
@@ -367,6 +379,15 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
                 concat.install(value, profile.value_type()).unwrap();
             }
         }
+    }
+    if !singleton_profiles.is_empty() {
+        factories.push(Box::new(
+            conduit_std_host::flow_exactly_one::FlowExactlyOneOperationFactory::for_plan(
+                &plan,
+                &singleton_profiles,
+            )
+            .unwrap(),
+        ));
     }
     if !repeat_profiles.is_empty() {
         factories.push(Box::new(
@@ -1052,6 +1073,104 @@ fn utterance_tail_runs_two_source_epochs_in_order_and_drains() {
             }
             eprintln!(
                 "ordinary Source tail: {}nodes/{}cords, preparation{:?}, execution{:?}",
+                result.nodes, result.cords, result.preparation, result.execution
+            );
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+#[test]
+fn last_live_feature_closure_releases_exactly_two_ordered_continuations() {
+    std::thread::Builder::new()
+        .stack_size(32 * 1024 * 1024)
+        .spawn(|| {
+            let (context, _, ids) = super::feature_cycle::prepare_feedback();
+            let event = context
+                .native
+                .iter()
+                .find(|profile| {
+                    profile.kind_identity(true) == ids["__FEATURE_MODEL_EVENT_NATIVE__"]
+                })
+                .unwrap()
+                .value_type()
+                .clone();
+            let fixture = super::declarations::fixture_value(&event);
+            let StructuredInfoValueShape::Record(fields) = fixture.shape() else {
+                panic!("event")
+            };
+            let inputs = [60u64, 61, 62]
+                .into_iter()
+                .map(|epoch| {
+                    StructuredInfoValue::record(
+                        event.clone(),
+                        fields
+                            .iter()
+                            .map(|field| {
+                                StructuredFieldValue::new(
+                                    field.name(),
+                                    if field.name() == "epoch" {
+                                        StructuredInfoValue::leaf(
+                                            field.value().value_type().clone(),
+                                            epoch.to_le_bytes().to_vec(),
+                                        )
+                                        .unwrap()
+                                    } else {
+                                        field.value().clone()
+                                    },
+                                )
+                                .unwrap()
+                            })
+                            .collect(),
+                    )
+                    .unwrap()
+                    .canonical_bytes()
+                    .unwrap()
+                })
+                .collect();
+            let (context, source, _, offers) = super::feature_cycle::prepare_tail(context, &ids);
+            let (plan, context) = super::prepare_authored_epoch_entry(
+                context,
+                source,
+                "speech/flow-fargan-feature-utterance",
+                true,
+                offers,
+            )
+            .unwrap();
+            let result = run_epoch_stream_plan(
+                plan,
+                &context,
+                &Resources::new(),
+                BTreeMap::from([("value".into(), inputs)]),
+                None,
+                5,
+                ExecutionMode::Normal,
+            )
+            .expect("live closure and exact singleton must release two tails");
+            assert!(result.drained);
+            let epochs: Vec<_> = result
+                .values
+                .iter()
+                .map(|value| {
+                    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+                        panic!("event")
+                    };
+                    let StructuredInfoValueShape::Leaf(bytes) = fields
+                        .iter()
+                        .find(|field| field.name() == "epoch")
+                        .unwrap()
+                        .value()
+                        .shape()
+                    else {
+                        panic!("epoch")
+                    };
+                    u64::from_le_bytes(bytes.try_into().unwrap())
+                })
+                .collect();
+            assert_eq!(epochs, [60, 61, 62, 63, 64]);
+            eprintln!(
+                "ordinary live/EOF Source closure: {}nodes/{}cords, preparation{:?}, execution{:?}",
                 result.nodes, result.cords, result.preparation, result.execution
             );
         })
