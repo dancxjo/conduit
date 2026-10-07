@@ -110,6 +110,50 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedTensorAffine<'a, INPUT, O
         Ok(())
     }
 }
+/// An exact resource-backed row-major table. Index policy belongs to the
+/// authored caller; this primitive only admits and copies a generic row.
+pub struct FixedTensorEmbedding<'a, const ROWS: usize, const WIDTH: usize> {
+    tensor: &'a TensorValue,
+    bytes: &'a [u8],
+}
+impl<'a, const ROWS: usize, const WIDTH: usize> FixedTensorEmbedding<'a, ROWS, WIDTH> {
+    pub fn prepare(tensor: &'a TensorValue, bytes: &'a [u8]) -> Result<Self, FixedTensorRefusal> {
+        if ROWS == 0 || WIDTH == 0 {
+            return Err(FixedTensorRefusal::Numeric(FixedNumericRefusal::EmptyShape));
+        }
+        validate_tensor(tensor, bytes, &[ROWS as u64, WIDTH as u64])?;
+        if bytes
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .any(|value| !read_f32(value).is_finite())
+        {
+            return Err(FixedTensorRefusal::Numeric(
+                FixedNumericRefusal::NonfiniteWeight,
+            ));
+        }
+        Ok(Self { tensor, bytes })
+    }
+    pub fn tensor(&self) -> &'a TensorValue {
+        self.tensor
+    }
+    pub fn lookup(
+        &self,
+        index: usize,
+        output: &mut [f32; WIDTH],
+    ) -> Result<(), FixedNumericRefusal> {
+        if index >= ROWS {
+            return Err(FixedNumericRefusal::Index);
+        }
+        let mut staged = [0.0; WIDTH];
+        for (column, value) in staged.iter_mut().enumerate() {
+            let offset = (index * WIDTH + column) * 4;
+            *value = read_f32(&self.bytes[offset..offset + 4]);
+        }
+        *output = staged;
+        Ok(())
+    }
+}
 fn validate_tensor(
     tensor: &TensorValue,
     bytes: &[u8],
