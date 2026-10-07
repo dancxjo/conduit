@@ -118,11 +118,12 @@ fn admitted_survivors_drive_the_source_agreement_graph() {
     let admitted =
         admitted::LanguageParserAdmittedAgreementQuery::from_structured(request).unwrap();
     let source = format!(
-        "{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}",
         include_str!("../identity.conduit"),
         include_str!("../types.conduit"),
         include_str!("../parser.conduit"),
-        include_str!("../parser_beam.conduit")
+        include_str!("../parser_beam.conduit"),
+        include_str!("../parser_mask.conduit")
     );
     let mut run = parser_kernel::Execution::prepare(source, "language-parser-admitted-agreement");
     let boundary = &run.kernel.definition().boundary;

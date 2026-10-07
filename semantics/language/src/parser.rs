@@ -3,6 +3,18 @@
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserLegalFacts",
+            crate::LanguageParserLegalFacts::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserLegalMask",
+            crate::LanguageParserLegalMask::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserMaskQuery",
+            crate::LanguageParserMaskQuery::semantic_type().expect("checked Language Type")
+        ),
+        (
             "LanguageParserPosEvidence",
             crate::LanguageParserPosEvidence::semantic_type().expect("checked Language Type")
         ),

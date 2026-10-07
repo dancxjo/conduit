@@ -148,22 +148,6 @@ plot language-parser-admit-9 (
     input: LanguageParserContext...| >> output: LanguageParserContext...|
 ) = ({ request: .request, top: .top, admitted: (.admitted && (((.request.state.heads.3 < .request.state.token_count || .request.state.heads.3 >= 4) && (.request.state.depth > 1 ? .request.state.stack.1 < .request.state.unread : true) && (.request.state.depth > 2 ? .request.state.stack.2 < .request.state.unread : true) && (.request.state.depth > 3 ? .request.state.stack.3 < .request.state.unread : true)) && ((.request.state.depth > 4 ? .request.state.stack.4 < .request.state.unread : true) && (.request.state.depth > 2 ? .request.state.stack.1 < .request.state.stack.2 : true) && (.request.state.depth > 3 ? .request.state.stack.2 < .request.state.stack.3 : true) && (.request.state.depth > 4 ? .request.state.stack.3 < .request.state.stack.4 : true)))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
 
-plot language-parser-legal-shift (
- input: LanguageParserContext...| >> output: LanguageParserContext...|
-) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"shift") && (.request.state.unread < .request.state.token_count && .request.state.depth < 5)))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
-
-plot language-parser-legal-reduce (
- input: LanguageParserContext...| >> output: LanguageParserContext...|
-) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"reduce") && (.request.state.depth > 1 && (.top < 4 && sequence/at(.request.state.heads,.top) < 5))))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
-
-plot language-parser-legal-left (
- input: LanguageParserContext...| >> output: LanguageParserContext...|
-) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"left_arc") && ((.request.state.unread < .request.state.token_count && (.request.state.depth > 1 && .top < 4)) && (.top >= .request.state.committed && (sequence/at(.request.state.heads,.top) == 5 && !variant/is(.request.relation.base,"root"))))))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
-
-plot language-parser-legal-right (
- input: LanguageParserContext...| >> output: LanguageParserContext...|
-) = ({ request: .request, top: .top, admitted: .admitted, legal: (.legal || (.admitted && (variant/is(.request.action,"right_arc") && ((.request.state.unread < .request.state.token_count && .request.state.depth < 5) && (.request.state.unread >= .request.state.committed && (sequence/at(.request.state.heads,.request.state.unread) == 5 && (((.top == 4 && (variant/is(.request.relation.base,"root") && .request.state.heads.0 != 4)) && (.request.state.heads.1 != 4 && (.request.state.heads.2 != 4 && .request.state.heads.3 != 4))) || (.top < 4 && !variant/is(.request.relation.base,"root"))))))))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
-
 plot language-parser-legal (
  input: LanguageParserContext...| >> output: LanguageParserContext...|
 ) = ({ request: .request, top: .top, admitted: .admitted, legal: (.admitted && (.legal && (.request.basis.text == .request.state.basis.text && (.request.basis.source_revision == .request.state.basis.source_revision && .request.basis.analysis_revision == .request.state.basis.analysis_revision)))), dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
@@ -179,7 +163,7 @@ plot language-parser-apply (
 plot language-parser-transition (
     request: LanguageParserRequest...| >> result: LanguageParserResult...|
 ) {
-    request >> language-parser-context() >> language-parser-admit-0() >> language-parser-admit-1() >> language-parser-admit-2() >> language-parser-admit-3() >> language-parser-admit-4() >> language-parser-admit-5() >> language-parser-admit-6() >> language-parser-admit-7() >> language-parser-admit-8() >> language-parser-admit-9() >> language-parser-legal-shift() >> language-parser-legal-reduce() >> language-parser-legal-left() >> language-parser-legal-right() >> language-parser-legal() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-apply() >> result
+    request >> language-parser-context() >> language-parser-admit-0() >> language-parser-admit-1() >> language-parser-admit-2() >> language-parser-admit-3() >> language-parser-admit-4() >> language-parser-admit-5() >> language-parser-admit-6() >> language-parser-admit-7() >> language-parser-admit-8() >> language-parser-admit-9() >> language-parser-legal-facts() >> language-parser-fact-shift() >> language-parser-fact-reduce() >> language-parser-fact-left() >> language-parser-fact-right() >> language-parser-fact-right-root() >> language-parser-fact-right-nonroot() >> language-parser-fact-select() >> language-parser-legal() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-follow() >> language-parser-apply() >> result
 }
 
 # Export an exact assigned arc proposal. Generic native admission constructs

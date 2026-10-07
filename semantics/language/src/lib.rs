@@ -90,7 +90,8 @@ pub mod discourse;
 pub mod prosody;
 
 pub use generated::{
-    LanguageParserBufferGrowth, LanguageParserModelFeatures, LanguageParserPosEvidence,
+    LanguageParserBufferGrowth, LanguageParserLegalFacts, LanguageParserLegalMask,
+    LanguageParserMaskQuery, LanguageParserModelFeatures, LanguageParserPosEvidence,
     LanguageParserScoreContext, LanguageParserScoredClass, LanguageParserScoredProposal,
     LanguageParserScorerContext, LanguageParserScorerQuery,
 };

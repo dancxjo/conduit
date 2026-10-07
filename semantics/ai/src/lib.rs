@@ -187,3 +187,5 @@ pub use provider::*;
 pub const TEXT_VALUE_KIND: &str = "value/text";
 
 pub mod integer_categorical;
+
+pub mod integer_masked_rank;
