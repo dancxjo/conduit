@@ -601,9 +601,11 @@ dependencies = [
 name = "conduit-ai"
 version = "0.1.0"
 dependencies = [
+ "conduit-composite",
  "conduit-core",
  "conduit-data",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-presentation",

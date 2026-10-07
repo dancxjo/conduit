@@ -1,0 +1,445 @@
+#![cfg(all(feature = "kernel-operation-owners", target_has_atomic = "ptr"))]
+use conduit_ai::{integer_categorical::*, integer_categorical_step::*, *};
+use conduit_core::*;
+use conduit_data::{TensorAxisRole, TensorElement};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    PortId as KPort, ValueRef,
+};
+use std::sync::Arc;
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+#[allow(dead_code)]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
+fn fixture() -> (Arc<AdmittedModelResource>, ResourceContentOffer) {
+    let port = |name: &str, element| {
+        ModelPortConstraint::new(
+            ModelPortIdentity::new(name.into()).unwrap(),
+            ModelPortPresence::Required,
+            ModelSemanticKind::new(format!("test/numeric/{name}@1")).unwrap(),
+            ModelValueConstraint::tensor(
+                ModelTensorConstraint::from_parts(
+                    vec![element],
+                    vec![ModelAxisConstraint::new(
+                        ModelDimensionConstraint::fixed(2).unwrap(),
+                        TensorAxisRole::Feature,
+                    )
+                    .unwrap()],
+                    16,
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    };
+    let signature = ModelSignature::from_parts(
+        "test/numeric-categorical@1".into(),
+        1,
+        vec![ModelOperation::Infer],
+        vec![port("features", TensorElement::U64)],
+        vec![port("scores", TensorElement::I64)],
+    )
+    .unwrap();
+    let mut bytes = b"CI16SUM1".to_vec();
+    for dimension in [3u32, 2, 2] {
+        bytes.extend_from_slice(&dimension.to_le_bytes());
+    }
+    for weight in [-1i16, 2, 4, 5, -2, 3] {
+        bytes.extend_from_slice(&weight.to_le_bytes());
+    }
+    let digest = model_content_digest(&bytes);
+    let reference = BoundedResourceRef {
+        identity: ResourceSemanticIdentity::from_digest(digest),
+        content_profile: CATEGORICAL_I16_FORMAT.into(),
+        access_class: "test/model/read@1".into(),
+        extent: ResourceExtent {
+            bytes: bytes.len() as u64,
+            items: Some(1),
+        },
+        lifetime: ResourceLifetime {
+            version: ResourceVersionIdentity::from_digest(digest),
+            expires_at: None,
+        },
+    };
+    let artifact = ModelArtifact {
+        architecture_profile: CATEGORICAL_I16_ARCHITECTURE.into(),
+        format_profile: CATEGORICAL_I16_FORMAT.into(),
+        precision_profile: CATEGORICAL_I16_PRECISION.into(),
+        state_schema_version: 1,
+        signature_identity: signature.semantic_digest().unwrap(),
+        content: reference.clone(),
+    };
+    let binding = ResourceReferenceBinding {
+        identity: reference.identity,
+        version: reference.lifetime.version,
+        content_profile: reference.content_profile.clone(),
+        access_class: reference.access_class.clone(),
+        handle: "test/model-handle".into(),
+        authority_contract: MODEL_READ_AUTHORITY.into(),
+        authority_grant: "test/model-grant".into(),
+        maximum_bytes: reference.extent.bytes,
+        maximum_items: Some(1),
+        availability: ResourceReferenceAvailability::Available,
+    };
+    let admitted = Arc::new(
+        AdmittedModelResource::adopt(artifact, signature, Arc::from(bytes), &binding).unwrap(),
+    );
+    let residence = ResourceContentOffer {
+        contract: ResourceContentRequirement {
+            identity: reference.identity,
+            version: reference.lifetime.version,
+            content_profile: reference.content_profile,
+            maximum_bytes: reference.extent.bytes as u32,
+            maximum_items: 1,
+            retention: ResourceRetention::Play,
+            sharing: ResourceSharing::ImmutableReadMany,
+            access: ResourceAccessMode::ReadPublished,
+            generation_slots: 1,
+            reader_leases: 16,
+            publication_slots: 0,
+            sensitive: false,
+        },
+        owner_host: "categorical-test".into(),
+        owner_boot: "categorical-test-boot".into(),
+        base_id: "categorical-test-base".into(),
+        residence_profile: "test/owned-immutable-memory@1".into(),
+    };
+    (admitted, residence)
+}
+fn profile() -> Arc<PreparedCategoricalStep> {
+    let (model, residence) = fixture();
+    Arc::new(PreparedCategoricalStep::prepare(model, "test/model-pool".into(), residence).unwrap())
+}
+fn indices(profile: &PreparedCategoricalStep, values: &[u64]) -> Vec<u8> {
+    let StructuredInfoTypeShape::Collection { element, .. } = profile.indices_type().shape() else {
+        panic!("collection")
+    };
+    StructuredInfoValue::collection(
+        profile.indices_type().clone(),
+        values
+            .iter()
+            .map(|v| StructuredInfoValue::leaf(element.clone(), v.to_le_bytes().to_vec()).unwrap())
+            .collect(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap()
+}
+fn scores(bytes: &[u8]) -> Vec<i64> {
+    let value = StructuredInfoValue::from_canonical_bytes(bytes).unwrap();
+    let StructuredInfoValueShape::Collection(values) = value.shape() else {
+        panic!("collection")
+    };
+    values
+        .iter()
+        .map(|v| {
+            let StructuredInfoValueShape::Leaf(bytes) = v.shape() else {
+                panic!("leaf")
+            };
+            i64::from_le_bytes(bytes.try_into().unwrap())
+        })
+        .collect()
+}
+fn fixture_kind(name: &str, ty: &StructuredInfoType, source: bool, flow: bool) -> Kind {
+    let port = PortDescriptor {
+        port_id: port_id("value"),
+        value_kind: ty.profile().unwrap().value_kind().clone(),
+        direction: if source {
+            PortDirection::Output
+        } else {
+            PortDirection::Input
+        },
+        temporal: if flow {
+            PortTemporal::Flow { closes: true }
+        } else {
+            PortTemporal::Value
+        },
+        abnormal_kind: None,
+    };
+    let bound = conduit_plot::maximum_prepared_canonical_value_bytes(ty).unwrap();
+    Kind {
+        kind_id: name.into(),
+        kind_contract_revision: "test/fixture@1".into(),
+        startup_parameters: vec![],
+        shorthand: None,
+        configuration: vec![],
+        inputs: if source { vec![] } else { vec![port.clone()] },
+        outputs: if source { vec![port.clone()] } else { vec![] },
+        semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+            location: if source {
+                FrontValueLocation::Output(port.port_id)
+            } else {
+                FrontValueLocation::Input(port.port_id)
+            },
+            contract: CheckedValueContract::new(port.value_kind, bound, vec![]).unwrap(),
+        }])],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: bound,
+        },
+    }
+}
+fn plan(
+    profile: &PreparedCategoricalStep,
+    flow: bool,
+    resource_present: bool,
+) -> Result<Plan, String> {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    profile.install(&mut startup, &mut profiles, flow)?;
+    let mut offers = vec![profile.offer(flow)?];
+    for (name, ty, source) in [
+        ("categorical-test/source", profile.indices_type(), true),
+        ("categorical-test/sink", profile.scores_type(), false),
+    ] {
+        let kind = fixture_kind(name, ty, source, flow);
+        startup.insert(conduit_plot::KindSignature {
+            kind: name.into(),
+            startup_parameters: vec![],
+        })?;
+        profiles
+            .insert_kind(kind.clone())
+            .map_err(|e| format!("{e:?}"))?;
+        offers.push(
+            BackOfferBuilder::new(
+                kind,
+                Back {
+                    capability_id: name.into(),
+                    execution_profile_id: "test/fixture@1".into(),
+                    implementation_id: name.into(),
+                    artifact_id: name.into(),
+                    host_calls: vec![],
+                    resource_requirements: vec![],
+                    authority_requirements: vec![],
+                },
+            )
+            .build(),
+        );
+    }
+    let source = format!("plot categorical-proof {{\n source: categorical-test/source\n model: {}\n sink: categorical-test/sink\n source.value >> model.indices\n model.scores >> sink.value\n}}\n", profile.kind_identity(flow));
+    let plot = conduit_plot::parse_with_startup(&source, &startup, &profiles)
+        .map_err(|e| format!("{e:?}"))?;
+    let hosts = [HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: "categorical-test".into(),
+        boot_id: "categorical-test-boot".into(),
+        offer_generation: OfferGeneration(1),
+        profile: "test/host@1".into(),
+        bases: vec![],
+        resources: if resource_present {
+            vec![profile.resource_offer().clone()]
+        } else {
+            vec![]
+        },
+        planner_capabilities: vec![],
+        capabilities: offers,
+    }];
+    let placements =
+        conduit_planner::default_placements(&plot, &hosts).map_err(|e| format!("{e:?}"))?;
+    conduit_planner::plan_with_connection_limits(
+        &plot,
+        &hosts,
+        &placements,
+        &["conduit.base/local@1".into()],
+        1,
+        conduit_plot::maximum_prepared_canonical_value_bytes(profile.indices_type())
+            .unwrap()
+            .max(
+                conduit_plot::maximum_prepared_canonical_value_bytes(profile.scores_type())
+                    .unwrap(),
+            ),
+    )
+    .map_err(|e| format!("{e:?}"))
+}
+fn gear(plan: &Plan) -> &PlannedGear {
+    plan.fragments[0]
+        .placements
+        .iter()
+        .find(|g| g.implementation_id.as_str() == CATEGORICAL_STEP_IMPLEMENTATION)
+        .unwrap()
+}
+
+#[test]
+fn exact_resource_planning_and_model_adoption_refuse_missing_foreign_or_unsealed_selection() {
+    let profile = profile();
+    assert!(plan(&profile, true, false).is_err());
+    let plan = plan(&profile, true, true).unwrap();
+    assert!(verify_plan(&plan));
+    assert_eq!(gear(&plan).resources.len(), 1);
+    owner::CategoricalOperationFactory::for_plan(&plan, &[profile.clone()]).unwrap();
+    assert!(owner::CategoricalOperationFactory::for_plan(&plan, &[]).is_err());
+    assert!(owner::CategoricalOperationFactory::for_plan(
+        &plan,
+        &[profile.clone(), profile.clone()]
+    )
+    .is_err());
+    let mut foreign = plan.clone();
+    foreign.fragments[0].placements[0].artifact_id = "foreign".into();
+    assert!(owner::CategoricalOperationFactory::for_plan(&foreign, &[profile.clone()]).is_err());
+    let mut wrong = gear(&plan).clone();
+    wrong.resources[0].pool_id = "foreign".into();
+    assert!(CategoricalStepBack::prepare_planned::<4>(&wrong, 2, profile.clone(), true).is_err());
+    let (model, mut residence) = fixture();
+    residence.owner_host = "foreign-host".into();
+    let different = Arc::new(
+        PreparedCategoricalStep::prepare(model, "test/model-pool".into(), residence).unwrap(),
+    );
+    assert!(owner::CategoricalOperationFactory::for_plan(&plan, &[different]).is_err());
+    assert!(CategoricalStepBack::prepare_planned::<4>(gear(&plan), 2, profile, false).is_err());
+}
+
+#[test]
+fn prepared_exact_integer_inference_is_allocation_free_and_commits_receipts_only_after_ack() {
+    let profile = profile();
+    let plan = plan(&profile, true, true).unwrap();
+    let mut back =
+        CategoricalStepBack::prepare_planned::<4>(gear(&plan), 2, profile.clone(), true).unwrap();
+    for (invocation, (values, expected)) in [([0, 2], [3, 8]), ([1, 1], [4, -4]), ([2, 0], [3, 8])]
+        .into_iter()
+        .enumerate()
+    {
+        let bytes = indices(&profile, &values);
+        let reference = ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: bytes.len() as u32,
+        };
+        let mut io = StepIo::test_frame(
+            [Some(reference), None, None, None],
+            [false; 4],
+            [Some(4096), None, None, None],
+            None,
+            2,
+        );
+        let inputs = StepInputBytes::test_frame([Some(bytes.as_slice()), None, None, None], None);
+        let (outcome, allocations) = allocation_probe::observe(|| back.step(&mut io, &inputs));
+        assert_eq!(allocations.allocations, 0);
+        assert_eq!(allocations.reallocations, 0);
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(back.committed_invocations(), invocation as u64);
+        assert_eq!(
+            back.last_receipt().map(|r| r.invocation),
+            (invocation > 0).then_some(invocation as u64)
+        );
+        let output =
+            <CategoricalStepBack as StepBack<4>>::prepared_output(&back, KPort(0)).unwrap();
+        assert_eq!(scores(output), expected);
+        let output_identity = semantic_digest("numeric/categorical-scores@1", output);
+        <CategoricalStepBack as StepBack<4>>::step_committed(&mut back);
+        assert_eq!(back.committed_invocations(), invocation as u64 + 1);
+        let receipt = back.last_receipt().unwrap();
+        assert_eq!(
+            receipt.model_content,
+            profile.resource().artifact().content_identity()
+        );
+        assert_eq!(
+            receipt.input,
+            semantic_digest("numeric/categorical-indices@1", &bytes)
+        );
+        assert_eq!(receipt.output, output_identity);
+        assert_eq!(receipt.work_units, 4);
+    }
+}
+
+#[test]
+fn bad_indices_malformed_frame_pressure_and_cancel_do_not_consume_or_advance_model_progress() {
+    let profile = profile();
+    let plan = plan(&profile, true, true).unwrap();
+    let mut back =
+        CategoricalStepBack::prepare_planned::<4>(gear(&plan), 2, profile.clone(), true).unwrap();
+    let good = indices(&profile, &[0, 2]);
+    let mut tail = good.clone();
+    tail.push(0);
+    let mut truncated = good.clone();
+    truncated.pop();
+    for bytes in [
+        indices(&profile, &[0, 3]),
+        indices(&profile, &[u64::MAX, 0]),
+        tail,
+        truncated,
+    ] {
+        let reference = ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: bytes.len() as u32,
+        };
+        let mut io = StepIo::test_frame(
+            [Some(reference), None, None, None],
+            [false; 4],
+            [Some(4096), None, None, None],
+            None,
+            2,
+        );
+        let inputs = StepInputBytes::test_frame([Some(bytes.as_slice()), None, None, None], None);
+        let (outcome, allocations) = allocation_probe::observe(|| back.step(&mut io, &inputs));
+        assert_eq!(allocations.allocations, 0);
+        assert_eq!(allocations.reallocations, 0);
+        assert!(matches!(outcome, StepOutcome::Fail(_)));
+        assert!(!io.test_consumed(KPort(0)));
+        assert_eq!(back.committed_invocations(), 0);
+        assert_eq!(back.last_receipt(), None);
+        assert!(<CategoricalStepBack as StepBack<4>>::prepared_output(&back, KPort(0)).is_none());
+    }
+    let reference = ValueRef {
+        slot: 0,
+        generation: 1,
+        byte_len: good.len() as u32,
+    };
+    let mut io = StepIo::test_frame(
+        [Some(reference), None, None, None],
+        [false; 4],
+        [None; 4],
+        None,
+        2,
+    );
+    let inputs = StepInputBytes::test_frame([Some(good.as_slice()), None, None, None], None);
+    assert_eq!(back.step(&mut io, &inputs), StepOutcome::Await);
+    assert!(!io.test_consumed(KPort(0)));
+    assert_eq!(back.committed_invocations(), 0);
+    <CategoricalStepBack as StepBack<4>>::cancel(&mut back);
+    assert!(matches!(back.step(&mut io, &inputs), StepOutcome::Fail(_)));
+    assert_eq!(back.last_receipt(), None);
+}
+
+#[test]
+fn value_operation_finishes_once_while_closing_flow_reports_exact_end_of_input() {
+    let profile = profile();
+    let value_plan = plan(&profile, false, true).unwrap();
+    let mut value =
+        CategoricalStepBack::prepare_planned::<4>(gear(&value_plan), 2, profile.clone(), false)
+            .unwrap();
+    let bytes = indices(&profile, &[0, 2]);
+    let reference = ValueRef {
+        slot: 0,
+        generation: 1,
+        byte_len: bytes.len() as u32,
+    };
+    let mut io = StepIo::test_frame(
+        [Some(reference), None, None, None],
+        [false; 4],
+        [Some(4096), None, None, None],
+        None,
+        2,
+    );
+    let inputs = StepInputBytes::test_frame([Some(bytes.as_slice()), None, None, None], None);
+    assert_eq!(value.step(&mut io, &inputs), StepOutcome::Progress);
+    <CategoricalStepBack as StepBack<4>>::step_committed(&mut value);
+    assert_eq!(value.step(&mut io, &inputs), StepOutcome::Complete);
+    let flow_plan = plan(&profile, true, true).unwrap();
+    let mut flow =
+        CategoricalStepBack::prepare_planned::<4>(gear(&flow_plan), 2, profile, true).unwrap();
+    let mut io = StepIo::test_frame(
+        [None; 4],
+        [true, false, false, false],
+        [Some(4096), None, None, None],
+        None,
+        2,
+    );
+    let inputs = StepInputBytes::test_frame([None; 4], None);
+    assert_eq!(flow.step(&mut io, &inputs), StepOutcome::Complete);
+    assert_eq!(flow.committed_invocations(), 0);
+}
