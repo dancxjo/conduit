@@ -252,24 +252,38 @@ completed digital delivery to the selected ALSA device, not attended hearing
 or model-provider withdrawal from the installed owner's wardrobe.
 
 To exercise loss of the **installed owner's** selected model provider in a new
-run, hold an isolated loopback route before installing that owner. Use a private
-directory and leave this entrance running through install, Boot, Birth, capture,
-and restoration:
+run, choose an unused loopback port and a private directory before installing
+the owner. Select `http://127.0.0.1:PORT` as the fresh owner's exact
+`--model-endpoint`. The installer verifies the selected model, so the route
+must be alive during installation. Run installation as the first supervised
+command, then run the proof as the second supervised command on the same port.
+Use a new control socket for each phase; installation uses `--no-start`, so
+there is no owner Boot between them:
 
 ```sh
 mkdir -m 700 PRIVATE_ROUTE_DIR
 cargo xtask make conduitos owner-model-route \
   --upstream http://127.0.0.1:11434 \
-  --control-socket PRIVATE_ROUTE_DIR/model-control.sock
+  --control-socket PRIVATE_ROUTE_DIR/install-control.sock \
+  --listen-port PORT -- \
+  conduit host service install ... --no-start \
+    --selected-model MODEL --model-endpoint http://127.0.0.1:PORT
+cargo xtask make conduitos owner-model-route \
+  --upstream http://127.0.0.1:11434 \
+  --control-socket PRIVATE_ROUTE_DIR/proof-control.sock \
+  --listen-port PORT -- \
+  cargo xtask make conduitos screen-free-three-host-proof ... \
+    --owner-model-route-control PRIVATE_ROUTE_DIR/proof-control.sock \
+    --ollama-endpoint http://127.0.0.1:PORT
 ```
 
-It prints a loopback `endpoint`. In a fresh installed zero-Body state, select
-the exact printed endpoint with `--selected-model`, `--model-endpoint`, and
-`--model-memory-mib` at `conduit host service install --no-start`. A direct
+The route reports the selected endpoint after binding it, then launches and
+monitors its command. If the route exits unexpectedly, it stops that command
+and fails immediately; when the command ends, it closes the route and removes
+the control socket. Use the same `PORT` in both invocations and the installed
+owner's `--model-endpoint`; also supply `--model-memory-mib` at install. A direct
 Ollama endpoint in `installation.json` cannot be substituted later: the owner
-reobserves the selected offer at Boot. Add
-`--owner-model-route-control PRIVATE_ROUTE_DIR/model-control.sock` to the
-`screen-free-three-host-proof` command. The producer verifies that the private
+reobserves the selected offer at Boot. The producer verifies that the private
 control socket names that exact installed endpoint, withdraws only that route,
 asks the owner-selected model Mask to start, checks its refusal before a Play
 and the absence of a new listener WAV, restores the same endpoint, and captures a new
