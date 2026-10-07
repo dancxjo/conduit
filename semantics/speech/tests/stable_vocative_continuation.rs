@@ -78,6 +78,22 @@ fn early_admitted_vocative_fact_prepares_only_its_word_before_final() {
         relation.subtype().clone(),
     )
     .unwrap();
+    let commit_row = events
+        .lines()
+        .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+        .find(|row| {
+            row["event"] == "dependency-commit"
+                && row["source_revision"] == snapshot["source_revision"]
+        })
+        .expect("actual Source contiguous commit output");
+    let runtime_bytes: Vec<u8> =
+        serde_json::from_value(commit_row["native_runtime_bytes"].clone()).unwrap();
+    let committed = LanguageParserCommittedDependencyAdmission::new(
+        admission,
+        LanguageParserJointCommitQuery::new(fact.clone()).unwrap(),
+        LanguageParserJointRuntimeBeam::decode(&runtime_bytes).unwrap(),
+    )
+    .unwrap();
     let revisions: Vec<Vec<u8>> = serde_json::from_slice(
         &std::fs::read(std::env::var("CONDUIT_STABLE_PARSER_HISTORY").unwrap()).unwrap(),
     )
@@ -97,7 +113,8 @@ fn early_admitted_vocative_fact_prepares_only_its_word_before_final() {
             break;
         }
     }
-    let stable = language::admitted_stable_vocative(previous.unwrap(), admission);
+    let stable =
+        language::admitted_stable_vocative(previous.unwrap(), committed.admission().clone());
     assert_eq!(stable.admission.fact(), &fact);
     assert_eq!(stable.case.spoken_ordinals, [dependent]);
     assert_eq!(stable.case.arcs.len(), 1);
@@ -143,7 +160,8 @@ fn early_admitted_vocative_fact_prepares_only_its_word_before_final() {
     let graph_receipt = serde_json::json!({
         "parser_snapshot": snapshot,
         "dependency_admission_bytes": stable.admission.clone().encode().unwrap(),
-        "contiguous_commit_custody_admitted": false
+        "committed_dependency_admission_bytes": committed.encode().unwrap(),
+        "contiguous_commit_custody_admitted": true
     });
     evidence::retain(
         dependent,
