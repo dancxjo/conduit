@@ -286,10 +286,12 @@ try {
   const terminalSetup = spawnSync(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
     input: 'wardrobe wear\nwardrobe prefer\nquit\n', encoding: 'utf8', timeout: 10_000,
   });
-  assert.equal(terminalSetup.status, 0, terminalSetup.stderr);
+  await writeFile(path.join(output, 'terminal-setup.txt'), terminalSetup.stdout ?? '');
+  await writeFile(path.join(output, 'terminal-setup.stderr.txt'), terminalSetup.stderr ?? '');
+  assert.equal(terminalSetup.status, 0,
+    `terminal setup status ${terminalSetup.status}; stdout:\n${terminalSetup.stdout}\nstderr:\n${terminalSetup.stderr}`);
   assert.doesNotMatch(terminalSetup.stdout, /Wardrobe refused:/);
   assert.match(terminalSetup.stdout, /selected route: route\//);
-  await writeFile(path.join(output, 'terminal-setup.txt'), terminalSetup.stdout);
   const terminal = spawnSync(owner, ['body', 'terminal', '--owner-show', '--state-dir', state], {
     input: 'apply 500\nquit\n', encoding: 'utf8', timeout: 10_000,
   });
