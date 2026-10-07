@@ -81,6 +81,7 @@ struct ChapterEvent {
     kind: String,
     id: String,
     face_revision: String,
+    observed_at_unix_ms: u64,
     source_receipt_id: String,
 }
 
@@ -209,6 +210,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
     }
     let mut used = BTreeSet::new();
     let mut used_events = BTreeSet::new();
+    let mut last_event_time = 0;
     let mut all_sources = BTreeSet::new();
     let mut audio_modes = BTreeSet::new();
     let mut chapters = Vec::with_capacity(CHAPTERS.len());
@@ -257,6 +259,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 !identity(&event.id)
                     || !identity(&event.face_revision)
                     || !event_kind(&event.kind)
+                    || event.observed_at_unix_ms == 0
                     || !identity(&event.source_receipt_id)
             })
         {
@@ -266,6 +269,13 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
             ));
         }
         for event in &receipt.events {
+            if event.observed_at_unix_ms < last_event_time {
+                return Err(format!(
+                    "chapter '{}' event chronology is reversed",
+                    chapter.id
+                ));
+            }
+            last_event_time = event.observed_at_unix_ms;
             if !used_events.insert(event.id.clone()) {
                 return Err(format!(
                     "chapter '{}' repeats an event identity",
@@ -280,6 +290,7 @@ pub fn render_one_body_journey(request: &OneBodyJourneyRequest) -> Result<(), St
                 || source["body_id"] != journey.body_id
                 || source["event_kind"] != event.kind
                 || source["event_id"] != event.id
+                || source["observed_at_unix_ms"] != event.observed_at_unix_ms
                 || !json_revision_matches(&source["resulting_face_revision"], &event.face_revision)
                 || source["outcome"] != "completed"
             {

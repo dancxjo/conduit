@@ -163,6 +163,7 @@ fn fixture_with_source_gap(
             &json!({
                 "source_commit":commit,"run_id":"test-run","body_id":"test-body",
                 "event_kind":"typed-interaction","event_id":event_id,
+                "observed_at_unix_ms":index + 1,
                 "resulting_face_revision":face_revision,"outcome":"completed"
             }),
         );
@@ -174,6 +175,7 @@ fn fixture_with_source_gap(
                 "schema":"conduit.journey/chapter-receipt@2", "source_commit":commit,
                 "run_id":"test-run", "body_id":"test-body", "chapter_id":chapter,
                 "events":[{"kind":"typed-interaction", "id":event_id,
+                    "observed_at_unix_ms":index + 1,
                     "face_revision":face_revision,"source_receipt_id":event_source}],
                 "resulting_face_revision":face_revision,
                 "outcome":"completed"
@@ -479,17 +481,19 @@ fn captures_can_follow_successive_typed_event_face_revisions() {
     let fixture = fixture(false, false, false, false);
     let first_source = json!({"source_commit":fixture.commit,"run_id":"test-run",
         "body_id":"test-body","event_kind":"membership","event_id":"event-join-first",
+        "observed_at_unix_ms":2,
         "resulting_face_revision":"face-join-first","outcome":"completed"});
     let last_source = json!({"source_commit":fixture.commit,"run_id":"test-run",
         "body_id":"test-body","event_kind":"acknowledged-show","event_id":"event-join",
+        "observed_at_unix_ms":2,
         "resulting_face_revision":"face-join","outcome":"completed"});
     rewrite_json_output(&fixture, "event-source-join", &first_source);
     append_json_output(&fixture, "event-source-join-last", &last_source);
     let receipt_path = fixture.root.join("receipt-join.json");
     let mut receipt: Value = serde_json::from_slice(&fs::read(receipt_path).unwrap()).unwrap();
     receipt["events"] = json!([
-        {"kind":"membership","id":"event-join-first","face_revision":"face-join-first","source_receipt_id":"event-source-join"},
-        {"kind":"acknowledged-show","id":"event-join","face_revision":"face-join","source_receipt_id":"event-source-join-last"}
+        {"kind":"membership","id":"event-join-first","face_revision":"face-join-first","observed_at_unix_ms":2,"source_receipt_id":"event-source-join"},
+        {"kind":"acknowledged-show","id":"event-join","face_revision":"face-join","observed_at_unix_ms":2,"source_receipt_id":"event-source-join-last"}
     ]);
     rewrite_json_output(&fixture, "receipt-join", &receipt);
 
@@ -549,6 +553,39 @@ fn rejects_relabelled_producer_event_and_media_sources() {
     assert!(run(&media)
         .unwrap_err()
         .contains("source receipt is not correlated"));
+}
+
+#[test]
+fn rejects_reordered_or_retimestamped_producer_events() {
+    let reordered = fixture(false, false, false, false);
+    let path = reordered.root.join("receipt-join.json");
+    let mut receipt: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    receipt["events"][0]["observed_at_unix_ms"] = json!(1);
+    rewrite_json_output(&reordered, "receipt-join", &receipt);
+    assert!(run(&reordered)
+        .unwrap_err()
+        .contains("event source receipt is not correlated"));
+
+    let reversed = fixture(false, false, false, false);
+    let path = reversed.root.join("receipt-join.json");
+    let mut receipt: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    receipt["events"][0]["observed_at_unix_ms"] = json!(1);
+    rewrite_json_output(&reversed, "receipt-join", &receipt);
+    let path = reversed.root.join("event-source-join.json");
+    let mut source: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    source["observed_at_unix_ms"] = json!(1);
+    rewrite_json_output(&reversed, "event-source-join", &source);
+    let path = reversed.root.join("receipt-birth.json");
+    let mut birth: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    birth["events"][0]["observed_at_unix_ms"] = json!(2);
+    rewrite_json_output(&reversed, "receipt-birth", &birth);
+    let path = reversed.root.join("event-source-birth.json");
+    let mut source: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    source["observed_at_unix_ms"] = json!(2);
+    rewrite_json_output(&reversed, "event-source-birth", &source);
+    assert!(run(&reversed)
+        .unwrap_err()
+        .contains("event chronology is reversed"));
 }
 
 #[test]
