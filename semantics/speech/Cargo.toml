@@ -28,3 +28,4 @@ conduit-core = { path = "../../architecture/core" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["step-test-support", "alloc"] }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
+serde_json = "1"
