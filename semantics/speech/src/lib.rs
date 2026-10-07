@@ -246,6 +246,9 @@ pub mod translation_structure;
 pub mod lexical_pronunciation;
 
 #[cfg(feature = "semantic-bindings")]
+pub mod stable_lexical_pronunciation;
+
+#[cfg(feature = "semantic-bindings")]
 pub mod pronunciation_intent;
 
 #[cfg(feature = "semantic-bindings")]
