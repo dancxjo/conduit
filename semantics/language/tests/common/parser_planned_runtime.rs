@@ -281,7 +281,13 @@ fn prepare_source_with_storage(
         definition,
         &registry,
         KernelCompositeSignStorage {
-            additional_local_items: 1024,
+            // Remote lifecycle records occupy main journal slots as well.
+            additional_local_items: maximum_inferences.map_or(1024, |count| {
+                count
+                    .checked_mul(4)
+                    .and_then(|items| items.checked_add(1024))
+                    .expect("combined retained journal bound overflows")
+            }),
             additional_remote_items: maximum_inferences
                 .map_or(256, |count| count.checked_mul(4).unwrap()),
         },
