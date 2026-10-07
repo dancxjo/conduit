@@ -1,4 +1,6 @@
 #![cfg(all(feature = "kernel", feature = "semantic-bindings"))]
+#[path = "common/playback_binding_refusals.rs"]
+mod binding_refusals;
 #[path = "common/playback_fixture.rs"]
 mod fixture;
 #[path = "common/playback_graph.rs"]
@@ -87,6 +89,7 @@ fn staged_output_queue_and_played_feedback_are_distinct_and_source_exact() {
         7
     )
     .is_err());
+    binding_refusals::check(&tape, &other_tape);
     let mut back = back(&tape);
     let raw = 0u64.to_le_bytes();
     let reference = ValueRef {
@@ -372,10 +375,7 @@ fn preplay_revision_withdrawal_and_stability_do_not_commit_playback() {
     journal.append(&w, None).unwrap();
     assert!(journal.journal().current_proposal().is_none());
     assert_eq!(journal.journal().history().count(), 4);
-    assert_eq!(
-        revised.interpretation_data().unwrap().prior().as_ref(),
-        Some(tape.basis())
-    );
+    assert_eq!(revised.old().map(|tape| tape.basis()), Some(tape.basis()));
 }
 #[test]
 fn queued_tape_cannot_be_rewritten_and_played_correction_keeps_exact_old_receipt() {
@@ -477,14 +477,8 @@ fn queued_tape_cannot_be_rewritten_and_played_correction_keeps_exact_old_receipt
         journal.journal().frontiers().committed.acknowledgement(),
         Some(&acknowledgement)
     );
-    assert_eq!(
-        correction.correction_data().unwrap().previous(),
-        tape.basis()
-    );
-    assert_eq!(
-        correction.correction_data().unwrap().replacement(),
-        replacement.basis()
-    );
+    assert_eq!(correction.old().unwrap().basis(), tape.basis());
+    assert_eq!(correction.next().unwrap().basis(), replacement.basis());
     assert_eq!(journal.producer().unwrap().queued_frames(), 128);
     assert_eq!(journal.producer().unwrap().played_frames(), 128);
     assert_eq!(journal.journal().history().count(), 3);

@@ -1,5 +1,8 @@
-# Supplied reviewed relation-to-governor POS policy; no word or grammar heuristic.
+# Supplied reviewed relation/target-to-POS policy; no word or grammar heuristic.
 # A canonical supplied graph does not by itself prove parser accuracy.
+type LanguagePronunciationArcTarget =
+    governor
+    | dependent
 type LanguagePronunciationSelectionRule = {
     relation: LanguageDependencyRelation
     pos: LanguageLexicalPos
@@ -9,6 +12,7 @@ type LanguagePronunciationSelectionProfile = {
     language: LanguageId
     rules: sequence LanguagePronunciationSelectionRule in 1..=4
     provenance: LinguisticDerivationProvenance
+    target: LanguagePronunciationArcTarget
 }
 type LanguagePronunciationSelectionRequest = {
     source: LanguageTextRevision
@@ -21,9 +25,9 @@ type LanguagePronunciationSelectionRequest = {
     where .profile.language == .source.material.language
     where .token.identity.text_identity == .source.material.identity
     where .token.identity.text_revision == .source.material.revision
-    where .basis.governor is token
-    where .basis.governor.token.token == .token.identity
-    where .basis.governor.token.revision == .analysis
+    where .profile.target is governor ? .basis.governor is token : true
+    where .profile.target is governor ? .basis.governor.token.token == .token.identity : .basis.dependent.token == .token.identity
+    where .basis.governor is token ? .basis.governor.token.revision == .analysis : true
     where .basis.dependent.revision == .analysis
 }
 type LanguagePronunciationPosResult = {

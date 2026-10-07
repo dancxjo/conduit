@@ -10,7 +10,6 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     FailureCode, PortId, ValueRef,
 };
-use conduit_plot::rust_binding::NativeRustBinding;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativePlaybackPreparationRefusal {
@@ -97,9 +96,8 @@ impl<'a> NativeSpeechPlaybackBack<'a> {
             return Err(NativePlaybackPreparationRefusal::Configuration);
         };
         if entry.key != "basis"
-            || SpeechPlaybackBasis::decode(basis.canonical_value())
-                .map_err(|_| NativePlaybackPreparationRefusal::Configuration)?
-                != *tape.basis()
+            || basis.profile() != tape.profile()
+            || basis.canonical_value() != tape.canonical()
         {
             return Err(NativePlaybackPreparationRefusal::Configuration);
         }
