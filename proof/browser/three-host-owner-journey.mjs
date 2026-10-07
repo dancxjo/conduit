@@ -596,7 +596,7 @@ try {
       face: currentBrowserFace, bodyId, ownerHostId: ownerPart.current.host_id,
       ownerBootId: ownerPart.current.boot_id,
       providerSha256: installed.selected_speech.provider_sha256,
-    });
+    }, path.join(output, 'owner-selected-speech-start.json'));
     const batches = await retainOwnerSpeechArtifacts(state, output, receipt.batches);
     const retained = { ...receipt, batches };
     const bytes = Buffer.from(`${JSON.stringify(retained, null, 2)}\n`);

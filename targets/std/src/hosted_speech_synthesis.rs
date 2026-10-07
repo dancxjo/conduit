@@ -162,6 +162,21 @@ impl EspeakSpeechAdapter {
         }
         Ok(())
     }
+
+    /// The same initialized provider remains installed when this Host adds or
+    /// removes an unrelated terminal offer. Old Plans remain fenced by their
+    /// prior generation; only future placements may use the new one.
+    pub(crate) fn advance_offer_generation(
+        &mut self,
+        host: &HostId,
+        boot: &BootId,
+        prior: OfferGeneration,
+        next: OfferGeneration,
+    ) -> Result<(), EspeakFailure> {
+        self.validate_host(host, boot, prior)?;
+        self.generation = next;
+        Ok(())
+    }
     pub fn offer(&self) -> CapabilityOffer {
         let mut offer =
             conduit_std_offers::espeak_speech_offer(self.discovery.content_requirement());
