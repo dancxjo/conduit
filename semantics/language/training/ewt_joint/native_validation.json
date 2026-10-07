@@ -14,5 +14,18 @@
     "corrupted artifact bytes",
     "wrong model signature identity"
   ],
-  "limits": "four-token TRAIN-profile supervised scorer; lexical diagnostic conditions on gold action sequence; native lexical/attachment beam decode not established by this proof"
+  "limits": "four-token TRAIN-profile supervised scorer; lexical diagnostic conditions on gold action sequence; native lexical/attachment beam decode not established by this proof",
+  "joint_native_runtime_foundation": {
+    "source_policy_identity": "1c4f3be2b5dddd6b6f405172687c6b65d1a38a5a7e5a36c6aa39220bc22dbd25",
+    "proof": "ordinary Source Flow graphs for choice/feature/mask/proposal/transition/score/width-four merge; recursively admitted hypotheses; exact prepared basis admitted before retained truth; canonical arc admission",
+    "representative": "held-out ambiguous Mark; blind POS/proper noun and root attachment and completion correct",
+    "native_refusals": [
+      "invalid choice prefix count",
+      "consumed token missing locked lexical prefix",
+      "out-of-profile lexical choice",
+      "four mutually agreeing hypotheses on foreign analysis basis against prepared current basis"
+    ],
+    "metrics": "native_representative_metrics.json",
+    "limitations": "full immutable four-token tape; corpus accuracy pending; no incremental revision/stabilization/commitment or practical latency claim"
+  }
 }

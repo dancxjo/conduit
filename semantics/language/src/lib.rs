@@ -109,3 +109,10 @@ pub use generated::{
     LanguagePronunciationPosResult, LanguagePronunciationSelectionProfile,
     LanguagePronunciationSelectionRequest, LanguagePronunciationSelectionRule,
 };
+
+pub use generated::{
+    LanguageParserJointBranchQuery, LanguageParserJointBranchResult, LanguageParserJointExpansion,
+    LanguageParserJointRuntimeBeam, LanguageParserJointRuntimeHypothesis,
+    LanguageParserJointRuntimeMerge, LanguageParserJointRuntimeRawBeam,
+    LanguageParserJointRuntimeRawHypothesis, LanguageParserRawJointHypothesis,
+};

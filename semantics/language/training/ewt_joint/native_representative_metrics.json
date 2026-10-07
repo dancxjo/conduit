@@ -1,0 +1,76 @@
+{
+  "ambiguous_pos_correct": 1,
+  "ambiguous_tokens": 1,
+  "canonical_exclusions": {},
+  "complete_sentences": 1,
+  "conditional_gold_pos": false,
+  "decode_max_ms": 7040,
+  "decode_ms": 7040,
+  "elapsed_ms": 171231,
+  "eligible_heldout_sentences": 1,
+  "host_memory": "VmHWM:\t 1548444 kB; VmRSS:\t 1499428 kB",
+  "last_scope_flow_timing": [
+    {
+      "calls": 4,
+      "entry": "language-parser-joint-branch",
+      "maximum_nanos": 16017674,
+      "nanos": 62285453
+    },
+    {
+      "calls": 7,
+      "entry": "language-parser-joint-pos",
+      "maximum_nanos": 40581029,
+      "nanos": 269496432
+    },
+    {
+      "calls": 6,
+      "entry": "language-parser-model-features",
+      "maximum_nanos": 1987089,
+      "nanos": 11412362
+    },
+    {
+      "calls": 6,
+      "entry": "language-parser-legal-mask",
+      "maximum_nanos": 52168546,
+      "nanos": 301966241
+    },
+    {
+      "calls": 6,
+      "entry": "language-parser-score-proposal",
+      "maximum_nanos": 4268127,
+      "nanos": 24265157
+    },
+    {
+      "calls": 6,
+      "entry": "language-parser-transition",
+      "maximum_nanos": 40821616,
+      "nanos": 234498689
+    },
+    {
+      "calls": 6,
+      "entry": "language-parser-joint-expansion",
+      "maximum_nanos": 2291797,
+      "nanos": 12914031
+    },
+    {
+      "calls": 9,
+      "entry": "language-parser-joint-runtime-merge",
+      "maximum_nanos": 107440395,
+      "nanos": 875249143
+    }
+  ],
+  "limitations": "finite full-tape beam proof; no incremental revision, stabilization/commitment latency or broad English accuracy; score outputs are not calibrated lexical confidence",
+  "model_content_identity": "bf8770e9bd5fd425e40205c1722491d85401f4bf2e8fe12ecd510f620e17a229",
+  "ordinary_plan_preparation_ms": 93891,
+  "pos_correct": 1,
+  "profile": "TRAIN-only64 lexical entries; four-token complete immutable tape; blind learned joint decode",
+  "proof": "actual Source Flow POS/branch/features/mask/proposal/transition/score/width4 merge with recursive native admission and exact hosted learned artifact",
+  "selected_occurrence": "email-enronsent32_01-0051",
+  "sentences": 1,
+  "source_preparation_ms": 68981,
+  "tokens": 1,
+  "uas_correct": 1,
+  "universal_base_las_correct": 1,
+  "vocative_correct": 0,
+  "vocative_gold": 0
+}

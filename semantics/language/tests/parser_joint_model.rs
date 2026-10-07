@@ -1,5 +1,12 @@
 use conduit_ai::integer_categorical::IntegerCategoricalModel;
 use conduit_core::*;
+use conduit_language::*;
+use conduit_plot::rust_binding::NativeRustBinding;
+#[path = "common/parser_fixture.rs"]
+mod fixture;
+#[path = "common/parser_joint_fixture.rs"]
+mod joint;
+use fixture::replace;
 #[path = "common/scorer_model.rs"]
 mod scorer_model;
 const BYTES: &[u8] = include_bytes!("../training/ewt_joint/ewt_joint.i16");
@@ -75,4 +82,83 @@ fn wrong_pos_supervised_artifact_has_exact_native_identity_and_numeric_inference
         assert_eq!(*score, expected);
     }
     assert_eq!(scorer.adapter.work_units(), 532);
+}
+
+#[test]
+fn native_choice_prefix_and_prepared_shared_basis_refuse_forgery() {
+    let row: joint::Sentence = include_str!("../training/ewt_joint/test_annotations.jsonl")
+        .lines()
+        .map(|line| serde_json::from_str::<joint::Sentence>(line).unwrap())
+        .find(|row| row.id == "email-enronsent32_01-0051")
+        .unwrap();
+    let lexical = joint::lexical(&row).unwrap();
+    let mut f = fixture::Fixture::new();
+    let scorer = joint::scorer();
+    let initial = joint::initial(&mut f, &lexical, &scorer);
+    let hypothesis = LanguageParserJointHypothesis::new(
+        [0; 4],
+        LanguageParserHypothesis::new(true, 1, 0, initial.clone()).unwrap(),
+    )
+    .unwrap();
+    assert!(LanguageParserJointRuntimeHypothesis::new(hypothesis.clone(), 2).is_err());
+    assert!(
+        LanguageParserJointChoiceQuery::new([3, 0, 0, 0], 0, 0, lexical.clone(), initial.clone())
+            .is_err()
+    );
+    let foreign = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("foreign-analysis".into()).unwrap(),
+        initial.basis().source_revision().clone(),
+        initial.basis().text().clone(),
+    )
+    .unwrap();
+    let state = LanguageParserState::from_structured(replace(
+        &initial.clone().into_structured().unwrap(),
+        "basis",
+        foreign.into_structured().unwrap(),
+    ))
+    .unwrap();
+    let foreign = LanguageParserJointHypothesis::new(
+        [0; 4],
+        LanguageParserHypothesis::new(true, 2, 0, state).unwrap(),
+    )
+    .unwrap();
+    assert!(
+        LanguageParserJointBeam::new(
+            initial.basis().clone(),
+            foreign.clone(),
+            foreign.clone(),
+            foreign.clone(),
+            foreign,
+            0,
+            0,
+            lexical
+        )
+        .is_err()
+    );
+    let root = LanguageParserRelation::new(
+        LanguageUniversalDependencyRelation::Root,
+        LanguageParserSubtype::new("".into()).unwrap(),
+    )
+    .unwrap();
+    let assigned = LanguageParserState::new(
+        initial.basis().clone(),
+        0,
+        2,
+        [4, 5, 5, 5, 4],
+        root,
+        initial.relation1().clone(),
+        initial.relation2().clone(),
+        initial.relation3().clone(),
+        [4, 0, 4, 4, 4],
+        1,
+        1,
+    )
+    .unwrap();
+    let advanced = LanguageParserJointHypothesis::new(
+        [0; 4],
+        LanguageParserHypothesis::new(true, 3, 0, assigned).unwrap(),
+    )
+    .unwrap();
+    assert!(LanguageParserJointRuntimeHypothesis::new(advanced.clone(), 0).is_err());
+    assert!(LanguageParserJointRuntimeHypothesis::new(advanced, 1).is_ok());
 }
