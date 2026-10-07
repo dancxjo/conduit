@@ -662,9 +662,13 @@ try {
       nativeReceipt.face_before.face_revision, nativeReceipt.guest_part);
     const started = await event('typed-interaction', start.action_id,
       start.result_face_revision, start);
-    const changedNative = await event('typed-interaction', report.native_action.action_id,
+    const changedNative = await event('typed-interaction', nativeReceipt.action.interaction_id,
       nativeReceipt.face_after.face_revision, nativeReceipt.action);
-    const changedBrowser = await event('typed-interaction', report.browser_action.action_id,
+    // The browser UI exposes the typed action and exact source Show, but does
+    // not expose an invocation ID. Bind this accepted return to its real Show
+    // instead of pretending the reusable action identity is a unique event.
+    const changedBrowser = await event('typed-interaction-source-show',
+      browserAction.cause.source_show_id,
       browserAction.resulting_face.face_revision, browserAction.cause);
     const changedTerminal = await event('typed-interaction', report.terminal_action.interaction_id,
       browserTerminal.resulting_face.face_revision, browserTerminal.cause);
