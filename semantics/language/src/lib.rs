@@ -18,14 +18,14 @@ pub use generated::{
     LanguageProsodyPitch, LanguageProsodyProfile, LanguageProsodyProminence, LanguageRequest,
     LanguageRichProsodyAccepted, LanguageRichProsodyRequest, LanguageText, LanguageTextFinality,
     LanguageTextId, LanguageTextPriorRevision, LanguageTextRange, LanguageTextReferenceMatch,
-    LanguageTextRevision, LanguageTextRevisionId, LanguageTextSegmentKind, LanguageTextSegmentRef,
-    LanguageUniversalDependencyRelation, LanguageVariety, LanguageVarietyPolicy,
-    LanguageVocativeDiscourseAdmission, LanguageVocativeDiscourseFact, LinguisticAnnotation,
-    LinguisticDependencyEdge, LinguisticDependencyRelation, LinguisticDerivationProvenance,
-    LinguisticEvidence, LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment,
-    LinguisticSegmentKind, LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory,
-    LinguisticTokenFeature, LinguisticTokenFeatureSlot, LinguisticTokenIdentity,
-    LinguisticTokensFour, TextSpan, VarietyId,
+    LanguageTextRevision, LanguageTextRevisionId, LanguageTextRevisionLineage,
+    LanguageTextSegmentKind, LanguageTextSegmentRef, LanguageUniversalDependencyRelation,
+    LanguageVariety, LanguageVarietyPolicy, LanguageVocativeDiscourseAdmission,
+    LanguageVocativeDiscourseFact, LinguisticAnnotation, LinguisticDependencyEdge,
+    LinguisticDependencyRelation, LinguisticDerivationProvenance, LinguisticEvidence,
+    LinguisticOffsetBasis, LinguisticOptionalText, LinguisticSegment, LinguisticSegmentKind,
+    LinguisticSyntacticLinkKind, LinguisticToken, LinguisticTokenCategory, LinguisticTokenFeature,
+    LinguisticTokenFeatureSlot, LinguisticTokenIdentity, LinguisticTokensFour, TextSpan, VarietyId,
 };
 
 pub use generated::{
@@ -82,6 +82,9 @@ pub use source_material::*;
 
 mod text_revision;
 pub use text_revision::*;
+
+mod revision_lineage;
+pub use revision_lineage::*;
 
 pub mod lexical;
 
