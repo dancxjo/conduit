@@ -109,3 +109,17 @@ pub use generated::{
     LanguageParserJointRuntimeMerge, LanguageParserJointRuntimeRawBeam,
     LanguageParserJointRuntimeRawHypothesis, LanguageParserRawJointHypothesis,
 };
+
+pub use generated::{
+    LanguageParserAvailability, LanguageParserAvailableGrowth, LanguageParserAvailableLexical,
+    LanguageParserAvailableMask, LanguageParserAvailableState, LanguageParserWaitState,
+};
+
+pub use generated::{
+    LanguageParserV2ChoiceQuery, LanguageParserV2FeaturesContext, LanguageParserV2ModelFeatures,
+    LanguageParserV2PosContext,
+};
+
+mod revision_lineage;
+pub use generated::LanguageTextRevisionLineage;
+pub use revision_lineage::*;

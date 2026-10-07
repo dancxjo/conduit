@@ -1,0 +1,123 @@
+# Admitted available prefix. Trailing incomplete tokens are not parser input.
+# Availability never grants finality; finality comes from the exact source tape.
+type LanguageParserAvailableLexical = {
+    tape: LanguageLexicalTape
+    token_count: U64 in 0..=4
+    where .token_count <= sequence/length(.tape.tokens)
+    where sequence/length(.tape.tokens) <= 4
+    where .tape.profile.language == .tape.source.material.language
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).identity.ordinal == 0)
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 0 ? true : (variant/is(sequence/at(.tape.tokens, 0).span.basis,"unicode_scalar"))
+    where .token_count <= 0 ? true : (variant/is(sequence/at(.tape.tokens, 0).completeness,"complete"))
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 0 ? true : (sequence/length(sequence/at(.tape.tokens, 0).candidates) >= 1)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).identity.ordinal == 1)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 1 ? true : (variant/is(sequence/at(.tape.tokens, 1).span.basis,"unicode_scalar"))
+    where .token_count <= 1 ? true : (variant/is(sequence/at(.tape.tokens, 1).completeness,"complete"))
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 1 ? true : (sequence/length(sequence/at(.tape.tokens, 1).candidates) >= 1)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).identity.ordinal == 2)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 2 ? true : (variant/is(sequence/at(.tape.tokens, 2).span.basis,"unicode_scalar"))
+    where .token_count <= 2 ? true : (variant/is(sequence/at(.tape.tokens, 2).completeness,"complete"))
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 2 ? true : (sequence/length(sequence/at(.tape.tokens, 2).candidates) >= 1)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).identity.ordinal == 3)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 3 ? true : (variant/is(sequence/at(.tape.tokens, 3).span.basis,"unicode_scalar"))
+    where .token_count <= 3 ? true : (variant/is(sequence/at(.tape.tokens, 3).completeness,"complete"))
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 3 ? true : (sequence/length(sequence/at(.tape.tokens, 3).candidates) >= 1)
+}
+
+type LanguageParserAvailability = {
+    lexical: LanguageParserAvailableLexical
+    waiting: Boolean
+    final_input: Boolean
+    where .waiting == (.lexical.token_count == 0)
+    where .final_input == (.lexical.token_count == sequence/length(.lexical.tape.tokens) && variant/is(.lexical.tape.source.finality,"final"))
+}
+type LanguageParserRawAvailability = {
+    lexical: LanguageParserAvailableLexical
+    waiting: Boolean
+    final_input: Boolean
+}
+plot language-parser-availability (
+    input: LanguageParserAvailableLexical...| >> output: LanguageParserRawAvailability...|
+) = { lexical: ., waiting: .token_count == 0, final_input: (.token_count == sequence/length(.tape.tokens) && variant/is(.tape.source.finality,"final")) }
+
+type LanguageParserAvailableState = {
+    lexical: LanguageParserAvailableLexical
+    state: LanguageParserState
+    where .state.token_count == .lexical.token_count
+    where .state.basis.text == .lexical.tape.source.material.identity
+    where .state.basis.source_revision == .lexical.tape.source.material.revision
+}
+type LanguageParserWaitState = {
+    input: LanguageParserAvailableState
+    waiting: Boolean
+    final_input: Boolean
+    where .final_input == (.input.lexical.token_count == sequence/length(.input.lexical.tape.tokens) && variant/is(.input.lexical.tape.source.finality,"final"))
+    where .waiting == (.input.state.unread == .input.lexical.token_count && !.final_input)
+}
+type LanguageParserRawWaitState = {
+    input: LanguageParserAvailableState
+    waiting: Boolean
+    final_input: Boolean
+}
+plot language-parser-wait-state (
+    input: LanguageParserAvailableState...| >> output: LanguageParserRawWaitState...|
+) = { input: ., waiting: (.state.unread == .lexical.token_count && !(.lexical.token_count == sequence/length(.lexical.tape.tokens) && variant/is(.lexical.tape.source.finality,"final"))), final_input: (.lexical.token_count == sequence/length(.lexical.tape.tokens) && variant/is(.lexical.tape.source.finality,"final")) }
+
+# The existing source mask remains the legality authority. Waiting suppresses
+# proposals including Reduce, retaining an assigned root for later dependents.
+type LanguageParserAvailableMask = {
+    status: LanguageParserWaitState
+    mask: LanguageParserLegalMask
+    where .mask.basis.text == .status.input.state.basis.text
+    where .mask.basis.source_revision == .status.input.state.basis.source_revision
+    where .mask.basis.analysis_revision == .status.input.state.basis.analysis_revision
+    where .mask.state.token_count == .status.input.state.token_count
+    where .mask.state.unread == .status.input.state.unread
+    where .mask.state.depth == .status.input.state.depth
+    where .mask.state.stack == .status.input.state.stack
+    where .mask.state.heads == .status.input.state.heads
+    where .mask.state.relation0 == .status.input.state.relation0
+    where .mask.state.relation1 == .status.input.state.relation1
+    where .mask.state.relation2 == .status.input.state.relation2
+    where .mask.state.relation3 == .status.input.state.relation3
+    where .mask.state.committed == .status.input.state.committed
+}
+plot language-parser-wait-mask (
+    input: LanguageParserAvailableMask...| >> output: LanguageParserLegalMask...|
+) = { basis: .mask.basis, state: .mask.state, allowed: (.status.waiting ? [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false] : .mask.allowed) }
+
+# Same immutable material and analysis basis; the existing grow Plot owns the
+# mutation. Revised material requires a separate revision admission.
+type LanguageParserAvailableGrowth = {
+    lexical: LanguageParserAvailableLexical
+    state: LanguageParserState
+    where .lexical.token_count >= .state.token_count
+    where .state.basis.text == .lexical.tape.source.material.identity
+    where .state.basis.source_revision == .lexical.tape.source.material.revision
+}
+plot language-parser-available-growth (
+    input: LanguageParserAvailableGrowth...| >> output: LanguageParserRawAvailableGrowth...|
+) = { state: .state, available: .lexical.token_count }
+
+type LanguageParserRawAvailableGrowth = {
+    state: LanguageParserState
+    available: U64
+}
+# Admit the raw proposal through generic NativeRustBinding BufferGrowth before
+# invoking the existing source grow-buffer Plot. No raw growth is truth.

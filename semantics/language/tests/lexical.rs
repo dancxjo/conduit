@@ -235,16 +235,33 @@ fn unicode_runs_are_honest_unknown_units_not_segmented_language_claims() {
 fn listed_punctuation_preserves_exact_mixed_occurrences_and_partial_abstention() {
     let original = profile();
     let mut entries = original.entries().iter().cloned().collect::<Vec<_>>();
-    entries.push(LanguageLexicalEntry::new(
-        BoundedSequence::try_from_iter([LanguageLexicalCandidate::new(
-            ",".into(), BoundedSequence::new(), LanguageLexicalPos::Punctuation,
-        ).unwrap()]).unwrap(), ",".into(),
-    ).unwrap());
+    entries.push(
+        LanguageLexicalEntry::new(
+            BoundedSequence::try_from_iter([LanguageLexicalCandidate::new(
+                ",".into(),
+                BoundedSequence::new(),
+                LanguageLexicalPos::Punctuation,
+            )
+            .unwrap()])
+            .unwrap(),
+            ",".into(),
+        )
+        .unwrap(),
+    );
     let profile = LanguageLexicalProfile::new(
-        BoundedSequence::try_from_iter(entries).unwrap(), "punctuation/fixture".into(),
-        original.language().clone(), provenance(),
-    ).unwrap();
-    let first = revision("answer, re", 0, None, Some(8), LanguageTextFinality::Partial);
+        BoundedSequence::try_from_iter(entries).unwrap(),
+        "punctuation/fixture".into(),
+        original.language().clone(),
+        provenance(),
+    )
+    .unwrap();
+    let first = revision(
+        "answer, re",
+        0,
+        None,
+        Some(8),
+        LanguageTextFinality::Partial,
+    );
     let old = prepare_lexical_tape(&first, &profile, None).unwrap();
     let tokens = old.tape().tokens();
     assert_eq!(tokens.len(), 3);
@@ -255,10 +272,22 @@ fn listed_punctuation_preserves_exact_mixed_occurrences_and_partial_abstention()
     assert_eq!((*tokens[1].span().start(), *tokens[1].span().end()), (6, 7));
     assert_eq!(tokens[1].candidates().len(), 1);
     assert!(tokens[2].candidates().is_empty());
-    let second = revision("answer, record !", 1, Some(&first), Some(8), LanguageTextFinality::Final);
+    let second = revision(
+        "answer, record !",
+        1,
+        Some(&first),
+        Some(8),
+        LanguageTextFinality::Final,
+    );
     let new = prepare_lexical_tape(&second, &profile, Some(&old)).unwrap();
-    assert_eq!(new.tape().tokens()[1].prior_occurrence(), &Some(tokens[1].identity().clone()));
+    assert_eq!(
+        new.tape().tokens()[1].prior_occurrence(),
+        &Some(tokens[1].identity().clone())
+    );
     assert_eq!(new.tape().tokens()[2].candidates().len(), 2);
     assert!(new.tape().tokens()[3].candidates().is_empty());
-    assert_eq!(new.tape().tokens()[1].span().text_revision(), second.material().revision());
+    assert_eq!(
+        new.tape().tokens()[1].span().text_revision(),
+        second.material().revision()
+    );
 }

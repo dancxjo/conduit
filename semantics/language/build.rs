@@ -1,5 +1,5 @@
-use conduit_plot::rust_binding::{RustBindingOptions, generate_rust_bindings};
-use conduit_plot::{StartupCatalog, check_syntax_document, parse_syntax_document};
+use conduit_plot::rust_binding::{generate_rust_bindings, RustBindingOptions};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
@@ -8,6 +8,7 @@ fn main() {
     println!("cargo:rerun-if-changed=coverage.conduit");
     println!("cargo:rerun-if-changed=syntax.conduit");
     println!("cargo:rerun-if-changed=text_revision.conduit");
+    println!("cargo:rerun-if-changed=revision_lineage.conduit");
     println!("cargo:rerun-if-changed=lexical.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
@@ -15,15 +16,18 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_mask.conduit");
     println!("cargo:rerun-if-changed=parser_joint.conduit");
     println!("cargo:rerun-if-changed=parser_joint_decode.conduit");
+    println!("cargo:rerun-if-changed=parser_available.conduit");
+    println!("cargo:rerun-if-changed=parser_scorer_v2.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
         include_str!("syntax.conduit"),
         include_str!("text_revision.conduit"),
+        include_str!("revision_lineage.conduit"),
         include_str!("lexical.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_beam.conduit"),
@@ -31,6 +35,8 @@ fn main() {
         include_str!("parser_mask.conduit"),
         include_str!("parser_joint.conduit"),
         include_str!("parser_joint_decode.conduit"),
+        include_str!("parser_available.conduit"),
+        include_str!("parser_scorer_v2.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit")
     );

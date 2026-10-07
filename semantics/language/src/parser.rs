@@ -3,6 +3,46 @@
 pub fn parser_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
     alloc::vec![
         (
+            "LanguageParserAvailableLexical",
+            crate::LanguageParserAvailableLexical::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserAvailability",
+            crate::LanguageParserAvailability::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserAvailableState",
+            crate::LanguageParserAvailableState::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserWaitState",
+            crate::LanguageParserWaitState::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserAvailableMask",
+            crate::LanguageParserAvailableMask::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserAvailableGrowth",
+            crate::LanguageParserAvailableGrowth::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserV2ChoiceQuery",
+            crate::LanguageParserV2ChoiceQuery::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserV2PosContext",
+            crate::LanguageParserV2PosContext::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserV2FeaturesContext",
+            crate::LanguageParserV2FeaturesContext::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageParserV2ModelFeatures",
+            crate::LanguageParserV2ModelFeatures::semantic_type().expect("checked Language Type")
+        ),
+        (
             "LanguageParserJointRuntimeHypothesis",
             crate::LanguageParserJointRuntimeHypothesis::semantic_type()
                 .expect("checked Language Type")
