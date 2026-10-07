@@ -33,7 +33,7 @@ pub(super) fn atomic(
     context: &ExpressionTypeContext<'_>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
     if let Some(value_type) = context.immutable_values.get(text) {
-        return Ok(value_type.clone());
+        return expected_or_exact(value_type.clone(), expected, span);
     }
     if let Some(value_type) = context.literal_types.get(text) {
         return expected_or_exact(value_type.clone(), expected, span);

@@ -64,6 +64,74 @@ impl CanonicalStructuredStartupValue {
         concrete(self).ok()
     }
 
+    /// Reifies an admitted concrete startup value for contextual expression checking.
+    /// Unsupported leaf laws and unresolved parameters refuse rather than erase types.
+    pub(crate) fn expression_syntax(&self, span: Span) -> Option<ExpressionSyntax> {
+        use CanonicalStructuredStartupNode as Node;
+        match &self.node {
+            Node::Parameter(_) => None,
+            Node::Literal { canonical } => {
+                let mut ty = &self.value_type;
+                while let StructuredInfoTypeShape::Nominal { representation, .. } = ty.shape() {
+                    ty = representation;
+                }
+                let StructuredInfoTypeShape::Leaf(kind) = ty.shape() else {
+                    return None;
+                };
+                let text = match conduit_core::primitive_info_kind(kind.as_str())? {
+                    conduit_core::PrimitiveInfoKind::Unit if canonical.is_empty() => "unit".into(),
+                    conduit_core::PrimitiveInfoKind::Bool => match canonical.as_slice() {
+                        [0] => "false".into(),
+                        [1] => "true".into(),
+                        _ => return None,
+                    },
+                    integer_kind => {
+                        let integer =
+                            conduit_core::FixedInteger::decode(integer_kind, canonical).ok()?;
+                        if let Ok(value) = integer.unsigned() {
+                            value.to_string()
+                        } else {
+                            integer.signed().ok()?.to_string()
+                        }
+                    }
+                };
+                Some(ExpressionSyntax::Atomic(SpannedText { text, span }))
+            }
+            Node::Collection(values) => Some(ExpressionSyntax::Collection {
+                values: values
+                    .iter()
+                    .map(|value| value.expression_syntax(span))
+                    .collect::<Option<_>>()?,
+                span,
+            }),
+            Node::Record(fields) => Some(ExpressionSyntax::Record {
+                fields: fields
+                    .iter()
+                    .map(|field| {
+                        Some(crate::StructuredExpressionField {
+                            name: SpannedText {
+                                text: field.name.clone(),
+                                span,
+                            },
+                            value: field.value.expression_syntax(span)?,
+                            punned: false,
+                            span,
+                        })
+                    })
+                    .collect::<Option<_>>()?,
+                span,
+            }),
+            Node::Variant { tag, payload } => Some(ExpressionSyntax::Variant {
+                tag: SpannedText {
+                    text: tag.clone(),
+                    span,
+                },
+                payload: Box::new(payload.expression_syntax(span)?),
+                span,
+            }),
+        }
+    }
+
     pub(crate) fn satisfies_concrete_bounds(&self) -> bool {
         self.value_type
             .canonical_bytes()
