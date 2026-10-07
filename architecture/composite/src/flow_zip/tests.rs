@@ -356,3 +356,86 @@ fn empty_feedback_close_waits_for_initial_state_without_growth() {
     });
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn feedback_close_waits_for_committed_return_and_never_emits_surplus_pair() {
+    let ty = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+    let contract = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let mut operation =
+        FlowZipBack::prepare_typed_feedback(&contract, ty.clone(), &contract, ty).unwrap();
+    let state = conduit_core::encode_count(7);
+    let event = conduit_core::encode_count(1);
+    for (side, bytes) in [(0, state.as_slice()), (1, event.as_slice())] {
+        let mut refs = [None; 2];
+        let mut bytes_by_port = [None; 2];
+        refs[side] = Some(reference(side as u16, bytes));
+        bytes_by_port[side] = Some(bytes);
+        let mut io = StepIo::test_frame(refs, [false; 2], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame(bytes_by_port, None)),
+            StepOutcome::Progress
+        );
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+    }
+    for _ in 0..100 {
+        let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Await
+        );
+        assert!(!operation.return_owed);
+    }
+    let mut io = StepIo::test_frame(
+        [None; 2],
+        [false; 2],
+        [Some(operation.output_maximum), None],
+        None,
+        16,
+    );
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
+    );
+    assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_some());
+    assert!(!operation.return_owed);
+    <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+    assert!(operation.return_owed);
+    let mut io = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 16);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
+    );
+    <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+    for _ in 0..100 {
+        let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Await
+        );
+    }
+    let returned = conduit_core::encode_count(8);
+    let mut io = StepIo::test_frame(
+        [Some(reference(0, &returned)), None],
+        [false; 2],
+        [None; 2],
+        None,
+        16,
+    );
+    assert_eq!(
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&returned), None], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert!(operation.return_owed);
+    assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+    <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+    assert!(!operation.return_owed);
+    let mut io = StepIo::test_frame([None; 2], [false; 2], [None; 2], None, 16);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Complete
+    );
+    assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+}
