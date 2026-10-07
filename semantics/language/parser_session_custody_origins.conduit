@@ -1,0 +1,69 @@
+# This Source projection consumes the original full admitted receipt directly;
+# the private owner retains that unchanged receipt with this exact result.
+plot language-parser-protected-origin-edge (
+ origin: LanguageParserIndependentProtectedAdmission...| >> edge: LanguageParserProtectedEdgeProposal...|
+) = (.admission.fact.query.dependent == 0 ? .output.edge0 : (.admission.fact.query.dependent == 1 ? .output.edge1 : (.admission.fact.query.dependent == 2 ? .output.edge2 : .output.edge3)))
+
+# Compact projected origin is evidence only with private complete origin custody.
+# This carrier does not claim to contain, or replace, that whole original receipt.
+type LanguageParserProtectedOriginCorrelation = {
+ origin: LanguageParserProtectedEdgeProposal
+ current: LanguageParserProtectedSetProposal
+ where .origin.dependent < 4
+ where .origin.dependent == 0 ? .current.active.0 : true
+ where .origin.dependent == 0 ? .current.edge0.origin_basis == .origin.origin_basis : true
+ where .origin.dependent == 0 ? .current.edge0.dependent == .origin.dependent : true
+ where .origin.dependent == 0 ? .current.edge0.head == .origin.head : true
+ where .origin.dependent == 0 ? .current.edge0.dependent_choice == .origin.dependent_choice : true
+ where .origin.dependent == 0 ? .current.edge0.head_choice == .origin.head_choice : true
+ where .origin.dependent == 0 ? ((variant/tag(.current.edge0.relation.base) == variant/tag(.origin.relation.base)) && (.current.edge0.relation.subtype == .origin.relation.subtype)) : true
+ where .origin.dependent == 0 ? .current.edge0.current_basis == .current.basis : true
+ where .origin.dependent == 1 ? .current.active.1 : true
+ where .origin.dependent == 1 ? .current.edge1.origin_basis == .origin.origin_basis : true
+ where .origin.dependent == 1 ? .current.edge1.dependent == .origin.dependent : true
+ where .origin.dependent == 1 ? .current.edge1.head == .origin.head : true
+ where .origin.dependent == 1 ? .current.edge1.dependent_choice == .origin.dependent_choice : true
+ where .origin.dependent == 1 ? .current.edge1.head_choice == .origin.head_choice : true
+ where .origin.dependent == 1 ? ((variant/tag(.current.edge1.relation.base) == variant/tag(.origin.relation.base)) && (.current.edge1.relation.subtype == .origin.relation.subtype)) : true
+ where .origin.dependent == 1 ? .current.edge1.current_basis == .current.basis : true
+ where .origin.dependent == 2 ? .current.active.2 : true
+ where .origin.dependent == 2 ? .current.edge2.origin_basis == .origin.origin_basis : true
+ where .origin.dependent == 2 ? .current.edge2.dependent == .origin.dependent : true
+ where .origin.dependent == 2 ? .current.edge2.head == .origin.head : true
+ where .origin.dependent == 2 ? .current.edge2.dependent_choice == .origin.dependent_choice : true
+ where .origin.dependent == 2 ? .current.edge2.head_choice == .origin.head_choice : true
+ where .origin.dependent == 2 ? ((variant/tag(.current.edge2.relation.base) == variant/tag(.origin.relation.base)) && (.current.edge2.relation.subtype == .origin.relation.subtype)) : true
+ where .origin.dependent == 2 ? .current.edge2.current_basis == .current.basis : true
+ where .origin.dependent == 3 ? .current.active.3 : true
+ where .origin.dependent == 3 ? .current.edge3.origin_basis == .origin.origin_basis : true
+ where .origin.dependent == 3 ? .current.edge3.dependent == .origin.dependent : true
+ where .origin.dependent == 3 ? .current.edge3.head == .origin.head : true
+ where .origin.dependent == 3 ? .current.edge3.dependent_choice == .origin.dependent_choice : true
+ where .origin.dependent == 3 ? .current.edge3.head_choice == .origin.head_choice : true
+ where .origin.dependent == 3 ? ((variant/tag(.current.edge3.relation.base) == variant/tag(.origin.relation.base)) && (.current.edge3.relation.subtype == .origin.relation.subtype)) : true
+ where .origin.dependent == 3 ? .current.edge3.current_basis == .current.basis : true
+}
+
+# Checked first insertion into an empty protection set. Full original admission
+# remains private and its exact projected edge is the origin below.
+type LanguageParserProtectedInsertReceipt = {
+ previous: LanguageParserProtectedSetProposal
+ origin: LanguageParserProtectedEdgeProposal
+ output: LanguageParserProtectedSetProposal
+ where .origin.dependent < 4
+ where .origin.origin_basis == .previous.basis
+ where .origin.current_basis == .previous.basis
+ where .output.basis == .previous.basis
+ where .output.active.0 == (.previous.active.0 || .origin.dependent == 0)
+ where .previous.active.0 || .origin.dependent != 0 ? .output.edge0 == .previous.edge0 : .output.edge0 == .origin
+ where .output.active.1 == (.previous.active.1 || .origin.dependent == 1)
+ where .previous.active.1 || .origin.dependent != 1 ? .output.edge1 == .previous.edge1 : .output.edge1 == .origin
+ where .output.active.2 == (.previous.active.2 || .origin.dependent == 2)
+ where .previous.active.2 || .origin.dependent != 2 ? .output.edge2 == .previous.edge2 : .output.edge2 == .origin
+ where .output.active.3 == (.previous.active.3 || .origin.dependent == 3)
+ where .previous.active.3 || .origin.dependent != 3 ? .output.edge3 == .previous.edge3 : .output.edge3 == .origin
+}
+type LanguageParserProtectedInitialReceipt = {
+ insertion: LanguageParserProtectedInsertReceipt
+ where .insertion.previous.active == [false,false,false,false]
+}
