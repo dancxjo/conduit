@@ -167,12 +167,12 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             "spoken-mask-direct-artifact-show",
             DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
             vec![
+                call(DIRECT_ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
                 call(
                     REGISTER_DIRECT_FACE_OPERATION,
                     conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
                     0,
                 ),
-                call(DIRECT_ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
             ],
             vec![],
             vec![],
@@ -250,5 +250,28 @@ fn targeted_call(id: &str, input: u32, output: u32, target: &str) -> HostCallReq
     HostCallRequirement {
         target_kind: Some(kind_id(target)),
         ..call(id, input, output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spoken_mask_offers_have_canonical_host_call_requirements() {
+        for offer in spoken_mask_offers() {
+            assert!(
+                offer.host_calls.iter().all(|call| {
+                    !call.contract_id.as_str().is_empty() && call.maximum_in_flight > 0
+                }),
+                "{} has an invalid Host Call",
+                offer.capability_id.as_str()
+            );
+            assert!(
+                offer.host_calls.windows(2).all(|pair| pair[0] < pair[1]),
+                "{} has noncanonical Host Call order",
+                offer.capability_id.as_str()
+            );
+        }
     }
 }
