@@ -46,12 +46,19 @@ async function fixture() {
       input: await artifact('wardrobe-input.txt'),
       transcript: await artifact('wardrobe-transcript.txt'),
     },
-    screen_free_checkpoints: { checkpoints: [{
-      phase: 'browser-presentation-unavailable',
-      input: await artifact('screen-free-checkpoint-browser-presentation-unavailable-input.txt'),
-      transcript: await artifact('screen-free-checkpoint-browser-presentation-unavailable-transcript.txt'),
-    }] },
   };
+  const checkpointInput = 'screen-free-checkpoint-browser-presentation-unavailable-input.txt';
+  const checkpointTranscript = 'screen-free-checkpoint-browser-presentation-unavailable-transcript.txt';
+  const liveArtifact = async name => {
+    const bytes = Buffer.from(`observed ${name}\n`);
+    await writeFile(path.join(walkthrough, name), bytes);
+    return { path: name, bytes: bytes.length, sha256: digest(bytes) };
+  };
+  report.screen_free_checkpoints = { checkpoints: [{
+    phase: 'browser-presentation-unavailable',
+    input: await liveArtifact(checkpointInput),
+    transcript: await liveArtifact(checkpointTranscript),
+  }] };
   return { root, walkthrough, report };
 }
 
@@ -80,6 +87,9 @@ test('refuses a changed transcript before retaining it', async () => {
     await writeFile(path.join(root, 'zero-body-before.json'), 'changed');
     await assert.rejects(retainScreenFreeSessions(root, walkthrough, report),
       /changed after its receipt/);
-    assert.deepEqual(await readdir(walkthrough), []);
+    assert.deepEqual((await readdir(walkthrough)).sort(), [
+      'screen-free-checkpoint-browser-presentation-unavailable-input.txt',
+      'screen-free-checkpoint-browser-presentation-unavailable-transcript.txt',
+    ]);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

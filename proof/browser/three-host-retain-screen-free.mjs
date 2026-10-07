@@ -21,10 +21,6 @@ export async function retainScreenFreeSessions(privateRoot, walkthroughRoot, rep
     [report.screen_free_wardrobe.provider_transcript, 'wardrobe-provider-transcript.txt'],
     [report.screen_free_wardrobe.input, 'wardrobe-input.txt'],
     [report.screen_free_wardrobe.transcript, 'wardrobe-transcript.txt'],
-    ...(report.screen_free_checkpoints?.checkpoints ?? []).flatMap(checkpoint => [
-      [checkpoint.input, `screen-free-checkpoint-${checkpoint.phase}-input.txt`],
-      [checkpoint.transcript, `screen-free-checkpoint-${checkpoint.phase}-transcript.txt`],
-    ]),
   ];
   for (const [artifact, name] of files) {
     assert.equal(artifact.path, `../${name}`, `unexpected screen-free artifact ${name}`);
@@ -33,5 +29,16 @@ export async function retainScreenFreeSessions(privateRoot, walkthroughRoot, rep
     if (artifact.bytes !== undefined) assert.equal(bytes.length, artifact.bytes);
     await writeFile(path.join(walkthroughRoot, name), bytes, { flag: 'wx', mode: 0o600 });
     artifact.path = name;
+  }
+  for (const checkpoint of report.screen_free_checkpoints?.checkpoints ?? []) {
+    for (const [artifact, name] of [
+      [checkpoint.input, `screen-free-checkpoint-${checkpoint.phase}-input.txt`],
+      [checkpoint.transcript, `screen-free-checkpoint-${checkpoint.phase}-transcript.txt`],
+    ]) {
+      assert.equal(artifact.path, name, `unexpected live checkpoint artifact ${name}`);
+      const bytes = await readFile(path.join(walkthroughRoot, name));
+      assert.equal(digest(bytes), artifact.sha256, `${name} changed after its receipt`);
+      assert.equal(bytes.length, artifact.bytes);
+    }
   }
 }
