@@ -5,6 +5,102 @@ use conduit_core::{
 };
 use conduit_data::{TensorAxisRole, TensorElement};
 
+#[cfg(target_has_atomic = "ptr")]
+fn model_access(artifact: &ModelArtifact) -> conduit_core::ResourceReferenceBinding {
+    use conduit_core::*;
+    let reference = &artifact.content;
+    ResourceReferenceBinding {
+        identity: reference.identity,
+        version: reference.lifetime.version,
+        content_profile: reference.content_profile.clone(),
+        access_class: reference.access_class.clone(),
+        handle: ResourceHandleId::from("test/model-content"),
+        authority_contract: AuthorityContractId::from(MODEL_READ_AUTHORITY),
+        authority_grant: AuthorityGrantId::from("test/model-read-grant"),
+        maximum_bytes: reference.extent.bytes,
+        maximum_items: reference.extent.items,
+        availability: ResourceReferenceAvailability::Available,
+    }
+}
+
+#[cfg(target_has_atomic = "ptr")]
+#[test]
+fn immutable_model_custody_retains_exact_artifact_signature_and_one_storage() {
+    use std::sync::Arc;
+    let signature = signature_fixture();
+    let artifact = artifact_fixture(&signature);
+    let bytes: Arc<[u8]> = Arc::from(&b"finite non-llm articulatory encoder"[..]);
+    let pointer = bytes.as_ptr();
+    let admitted = AdmittedModelResource::adopt(
+        artifact.clone(),
+        signature.clone(),
+        bytes.clone(),
+        &model_access(&artifact),
+    )
+    .unwrap();
+    drop(bytes);
+    assert_eq!(admitted.artifact(), &artifact);
+    assert_eq!(admitted.signature(), &signature);
+    assert_eq!(admitted.bytes().as_ptr(), pointer);
+    let shared = admitted.shared_storage();
+    assert_eq!(shared.as_ptr(), pointer);
+    assert_eq!(admitted.access().maximum_bytes, shared.len() as u64);
+    assert_eq!(
+        admitted.descriptor_identity(),
+        artifact.descriptor_digest(&signature).unwrap()
+    );
+    drop(admitted);
+    assert_eq!(&*shared, b"finite non-llm articulatory encoder");
+}
+
+#[cfg(target_has_atomic = "ptr")]
+#[test]
+fn model_custody_refuses_changed_content_signature_extent_and_access() {
+    use conduit_core::*;
+    use std::sync::Arc;
+    let signature = signature_fixture();
+    let artifact = artifact_fixture(&signature);
+    let bytes: Arc<[u8]> = Arc::from(&b"finite non-llm articulatory encoder"[..]);
+    let grant = model_access(&artifact);
+    let mut changed = bytes.to_vec();
+    changed[0] ^= 1;
+    assert!(matches!(
+        AdmittedModelResource::adopt(artifact.clone(), signature.clone(), Arc::from(changed), &grant),
+        Err(ModelResourceRefusal::Content)
+    ));
+    let mut wrong_signature = signature.clone();
+    wrong_signature.compatibility_version += 1;
+    assert!(matches!(
+        AdmittedModelResource::adopt(artifact.clone(), wrong_signature, bytes.clone(), &grant),
+        Err(ModelResourceRefusal::Compatibility(ModelCompatibilityRefusal::SignatureMismatch))
+    ));
+    let mut wrong_extent = artifact.clone();
+    wrong_extent.content.extent.bytes += 1;
+    assert!(matches!(
+        AdmittedModelResource::adopt(wrong_extent, signature.clone(), bytes.clone(), &grant),
+        Err(ModelResourceRefusal::Content)
+    ));
+    let mut wrong_grants = Vec::new();
+    let mut lost = grant.clone();
+    lost.availability = ResourceReferenceAvailability::Lost;
+    wrong_grants.push(lost);
+    let mut stale = grant.clone();
+    stale.version = ResourceVersionIdentity::from_digest([8; 32]);
+    wrong_grants.push(stale);
+    let mut foreign = grant.clone();
+    foreign.authority_contract = AuthorityContractId::from("test/foreign-authority");
+    wrong_grants.push(foreign);
+    let mut short = grant;
+    short.maximum_bytes -= 1;
+    wrong_grants.push(short);
+    for invalid in wrong_grants {
+        assert!(matches!(
+            AdmittedModelResource::adopt(artifact.clone(), signature.clone(), bytes.clone(), &invalid),
+            Err(ModelResourceRefusal::Authority(_))
+        ));
+    }
+}
+
 fn reference(digest: [u8; 32], profile: &str, bytes: u64) -> BoundedResourceRef {
     BoundedResourceRef {
         identity: ResourceSemanticIdentity::from_digest(digest),
