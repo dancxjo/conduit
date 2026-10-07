@@ -2,11 +2,14 @@
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(unix)]
+use std::sync::atomic::{AtomicI32, Ordering};
 use std::{
     ffi::OsString,
     io::{BufRead, BufReader},
     path::PathBuf,
     process::{Command, Stdio},
+    sync::mpsc,
     thread,
     time::Duration,
 };
@@ -16,6 +19,14 @@ use clap::Args as ClapArgs;
 use crate::cli::GlobalOpts;
 
 use super::{profile::Paths, ConduitosArch, ConduitosError};
+
+#[cfg(unix)]
+static INTERRUPTED: AtomicI32 = AtomicI32::new(0);
+
+#[cfg(unix)]
+extern "C" fn record_signal(signal: libc::c_int) {
+    INTERRUPTED.store(signal, Ordering::SeqCst);
+}
 
 #[derive(ClapArgs, Debug)]
 pub(super) struct Args {
@@ -130,12 +141,32 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
             format!("controlled route exited with {status}"),
         ));
     }
-    let mut ready = String::new();
-    BufReader::new(route.stdout.take().expect("piped route stdout"))
-        .read_line(&mut ready)
-        .map_err(|error| {
-            ConduitosError::refusal("owner-model-route-readiness", error.to_string())
-        })?;
+    let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
+    let stdout = route.stdout.take().expect("piped route stdout");
+    thread::spawn(move || {
+        let mut ready = String::new();
+        let result = BufReader::new(stdout).read_line(&mut ready).map(|_| ready);
+        let _ = ready_sender.send(result);
+    });
+    let ready = match ready_receiver.recv_timeout(Duration::from_secs(10)) {
+        Ok(Ok(ready)) => ready,
+        Ok(Err(error)) => {
+            let _ = route.kill();
+            let _ = route.wait();
+            return Err(ConduitosError::refusal(
+                "owner-model-route-readiness",
+                error.to_string(),
+            ));
+        }
+        Err(error) => {
+            let _ = route.kill();
+            let _ = route.wait();
+            return Err(ConduitosError::refusal(
+                "owner-model-route-readiness",
+                format!("route did not report its selected endpoint within ten seconds: {error}"),
+            ));
+        }
+    };
     let expected = format!(
         "http://127.0.0.1:{}",
         args.listen_port.expect("checked above")
@@ -156,11 +187,43 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
     let mut command = Command::new(&args.command[0]);
     #[cfg(unix)]
     command.process_group(0);
+    #[cfg(unix)]
+    unsafe {
+        libc::signal(
+            libc::SIGINT,
+            record_signal as *const () as libc::sighandler_t,
+        );
+        libc::signal(
+            libc::SIGTERM,
+            record_signal as *const () as libc::sighandler_t,
+        );
+    }
     let mut child = command.args(&args.command[1..]).spawn().map_err(|error| {
         let _ = route.kill();
         ConduitosError::refusal("owner-model-route-command", error.to_string())
     })?;
     loop {
+        #[cfg(unix)]
+        {
+            let signal = INTERRUPTED.swap(0, Ordering::SeqCst);
+            if signal != 0 {
+                unsafe {
+                    libc::kill(-(child.id() as i32), signal);
+                }
+                drop(route.stdin.take());
+                // A stopped run must not strand its guest or browser.
+                thread::sleep(Duration::from_millis(250));
+                unsafe {
+                    libc::kill(-(child.id() as i32), libc::SIGKILL);
+                }
+                let _ = child.wait();
+                let _ = route.wait();
+                return Err(ConduitosError::refusal(
+                    "owner-model-route-interrupted",
+                    "supervised command and selected route were interrupted",
+                ));
+            }
+        }
         if let Some(status) = route
             .try_wait()
             .map_err(|error| ConduitosError::refusal("owner-model-route-wait", error.to_string()))?

@@ -96,6 +96,8 @@ test('supervised route binds the installed endpoint and retires with its produce
       assert.equal((await ownerModelRouteControl(proofSocket, 'status', ready.endpoint)).state,
         'available');
       assert.equal(await (await fetch(proofReady.endpoint)).text(), 'same-provider');
+      assert.equal((await ownerModelRouteControl(proofSocket, 'withdraw', ready.endpoint)).state,
+        'withdrawn');
       proofRoute.stdin.end();
       assert.equal(await new Promise(resolve => proofRoute.once('exit', resolve)), 0);
     } finally {
