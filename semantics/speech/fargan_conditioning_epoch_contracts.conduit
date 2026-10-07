@@ -15,3 +15,12 @@ type FarganConditioningPendingHistory = {
     history: NumericHistory2x64
     epoch: U64
 }
+
+# This aggregate keeps provisional numerical history attached to its exact epoch.
+# Only the separately accepted final canonical PCM16 epoch releases its feedback.
+type FarganConditioningProposalEpoch = {
+    condition: NumericF32Vector320
+    history: NumericHistory2x64
+    period: FarganPeriod
+    epoch: U64
+}
