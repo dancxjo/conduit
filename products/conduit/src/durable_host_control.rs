@@ -2112,8 +2112,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         } if protocol == PROTOCOL => runtime
             .owned_body_local_wardrobe(
                 &body_id,
-                &face_id,
-                face_revision,
+                (&face_id, face_revision),
                 &advertisement,
                 owner_plan_id.as_ref(),
                 basis_revision,

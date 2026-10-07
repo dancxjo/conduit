@@ -55,6 +55,7 @@ fn reserve_play_sequence_range(state_dir: &Path, boot_id: &str) -> Result<u64, S
         .read(true)
         .write(true)
         .create(true)
+        .truncate(false)
         .open(&lock_path)
         .map_err(|error| format!("open screen-free Play sequence lock: {error}"))?;
     lock.lock()

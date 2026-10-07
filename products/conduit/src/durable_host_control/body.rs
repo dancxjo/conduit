@@ -99,8 +99,7 @@ impl DurableHostRuntime {
     pub(super) fn owned_body_local_wardrobe(
         &mut self,
         body_id: &conduit_body::BodyId,
-        face_id: &str,
-        face_revision: u64,
+        face: (&str, u64),
         advertisement: &conduit_core::HostAdvertisement,
         owner_plan_id: Option<&conduit_core::PlanId>,
         basis_revision: u64,
@@ -111,8 +110,8 @@ impl DurableHostRuntime {
         };
         let current = owner.local_face_snapshot()?;
         if current.basis.body_id.as_ref() != Some(body_id)
-            || current.identity.as_str() != face_id
-            || current.revision != face_revision
+            || current.identity.as_str() != face.0
+            || current.revision != face.1
             || owner.host.advertisement() != advertisement
         {
             return Err("owner-wardrobe-face-or-host-stale".into());
