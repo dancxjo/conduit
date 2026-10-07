@@ -9,3 +9,9 @@ unsafe impl GlobalAlloc for NoAllocation {
 }
 #[global_allocator]
 static ALLOCATOR: NoAllocation = NoAllocation;
+
+// The prebuilt IA-32 Linux alloc archive retains this link reference even
+// under panic=abort. This freestanding image cannot unwind across its gate.
+#[cfg(all(target_arch = "x86", target_os = "linux"))]
+#[unsafe(no_mangle)]
+extern "C" fn rust_eh_personality() {}

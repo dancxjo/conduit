@@ -163,7 +163,7 @@ a complete normal graphical Body run.
 | Target | Ordinary protection evidence | Remaining boundary |
 |---|---|---|
 | x86_64 | Checked text Source, retained keymap and hostile-entry proofs; ordinary graphical Keyboard canvas uses actual Body-bound CPL3 execution and a gated serial effect | Broader ordinary implementation coverage, complete conformance and release acceptance remain unfinished |
-| IA-32 | ELF32 artifact admission and malformed-mapping tests | No earned ordinary CPL3 execution proof |
+| IA-32 | ELF32 artifact admission and malformed-mapping tests; Root-owned flat GDT and bounded TSS retain the normal legacy BIOS product boot | User mappings, domain transitions and independent preemption remain unfinished; no earned ordinary CPL3 execution proof |
 | AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
 | LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |

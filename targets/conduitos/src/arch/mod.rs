@@ -42,6 +42,10 @@ pub use x86_64::{
 #[cfg(target_arch = "x86")]
 mod ia32;
 #[cfg(any(target_arch = "x86", test))]
+#[allow(dead_code)]
+#[path = "ia32/domain_gdt.rs"]
+mod ia32_domain_gdt;
+#[cfg(any(target_arch = "x86", test))]
 #[path = "ia32/timer_lifecycle.rs"]
 mod ia32_timer_lifecycle;
 #[cfg(any(target_arch = "x86", all(test, target_arch = "x86_64")))]
