@@ -2,6 +2,8 @@ mod acpi;
 mod cpu;
 mod deadline;
 #[cfg(target_os = "none")]
+mod domain_budget;
+#[cfg(target_os = "none")]
 mod domain_memory;
 #[cfg(target_os = "none")]
 mod domain_transition;

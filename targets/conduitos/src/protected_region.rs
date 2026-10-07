@@ -117,6 +117,9 @@ impl DomainMemory {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct DomainCost {
     pub entries: u64,
+    pub interrupt_entries: u64,
+    pub source_timer_interrupts: u64,
+    pub privilege_transitions: u64,
     pub gate_transitions: u64,
     pub copied_bytes: u64,
     pub setup_copied_bytes: u64,

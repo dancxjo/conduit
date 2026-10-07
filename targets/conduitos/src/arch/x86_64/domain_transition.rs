@@ -1,5 +1,5 @@
 //! Ordinary CPL3 entry, terminal gate, and hard timer return to Root.
-use super::{domain_memory, gdt, idt, interrupt_controller};
+use super::{domain_budget, domain_memory, gdt, idt};
 use crate::protected_region::DomainRefusal;
 use core::{
     arch::global_asm,
@@ -33,11 +33,13 @@ unsafe extern "C" {
     fn conduitos_ordinary_exception_21();
     fn conduitos_ordinary_exception_30();
     fn conduitos_ordinary_timer();
+    fn conduitos_ordinary_budget();
 }
 
 pub(super) fn enter(
     space: &domain_memory::AddressSpace,
 ) -> Result<TransitionReturn, DomainRefusal> {
+    let _interrupts = super::cpu::InterruptMask::new();
     if ACTIVE.swap(true, Ordering::AcqRel) {
         return Err(DomainRefusal::InvalidLifecycle);
     }
@@ -104,9 +106,20 @@ pub(super) fn enter(
             0x8e,
         );
     }
-    // This profile reserves one hard timer slice for a computation entry. A
-    // domain cannot disable this interrupt and never receives timer authority.
-    interrupt_controller::arm_timer();
+    unsafe {
+        idt::install_handler(
+            domain_budget::VECTOR,
+            conduitos_ordinary_budget as *const () as u64,
+            0x8e,
+        );
+    }
+    let budget = match domain_budget::Budget::arm() {
+        Ok(budget) => budget,
+        Err(error) => {
+            ACTIVE.store(false, Ordering::Release);
+            return Err(error);
+        }
+    };
     let result = unsafe {
         conduitos_ordinary_enter(
             space.entry,
@@ -115,17 +128,22 @@ pub(super) fn enter(
             space.cr3,
         )
     };
-    interrupt_controller::cancel_timer();
+    drop(budget);
     ACTIVE.store(false, Ordering::Release);
     Ok(result)
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn conduitos_ordinary_timer_handler(user: u64) -> u64 {
-    if user & 3 == 3 && ACTIVE.load(Ordering::Acquire) {
-        interrupt_controller::end_timer_interrupt();
-        1
+extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64) -> u64 {
+    if budget != 0 {
+        u64::from(domain_budget::interrupt(
+            user & 3 == 3 && ACTIVE.load(Ordering::Acquire),
+        ))
     } else {
+        if user & 3 == 3 {
+            domain_budget::source_interrupt();
+        }
+        // Source timer facts remain Source facts even while a domain is running.
         super::irq::conduitos_timer_irq_handler();
         0
     }
@@ -140,6 +158,7 @@ conduitos_ordinary_root_cr3: .quad 0
 conduitos_ordinary_root_cr0: .quad 0
 conduitos_ordinary_root_cr4: .quad 0
 conduitos_ordinary_root_segments: .quad 0
+conduitos_ordinary_root_ss: .quad 0
 conduitos_ordinary_root_fs: .quad 0
 conduitos_ordinary_root_gs: .quad 0
     .text
@@ -165,6 +184,8 @@ conduitos_ordinary_enter:
     or rax, 4
     and rax, -65793
     mov cr4, rax
+    mov ax, ss
+    mov [rip + conduitos_ordinary_root_ss], ax
     mov ax, ds
     mov [rip + conduitos_ordinary_root_segments], ax
     mov ax, es
@@ -319,6 +340,12 @@ conduitos_ordinary_root_fault:
 
     .global conduitos_ordinary_timer
 conduitos_ordinary_timer:
+    push 0
+    jmp conduitos_ordinary_irq
+    .global conduitos_ordinary_budget
+conduitos_ordinary_budget:
+    push 1
+conduitos_ordinary_irq:
     push rax
     push rcx
     push rdx
@@ -335,7 +362,8 @@ conduitos_ordinary_timer:
     push r14
     push r15
     mov r15, rsp
-    mov rdi, [rsp + 128]
+    mov rdi, [rsp + 136]
+    mov rsi, [rsp + 120]
     and rsp, -16
     call conduitos_ordinary_timer_handler
     mov rsp, r15
@@ -360,6 +388,7 @@ conduitos_ordinary_timer_resume:
     pop rdx
     pop rcx
     pop rax
+    add rsp, 8
     iretq
 
 conduitos_ordinary_return:
@@ -368,6 +397,8 @@ conduitos_ordinary_return:
     mov r9, rdx
     mov rcx, [rip + conduitos_ordinary_root_cr4]
     mov cr4, rcx
+    mov ax, [rip + conduitos_ordinary_root_ss]
+    mov ss, ax
     mov ax, [rip + conduitos_ordinary_root_segments]
     mov ds, ax
     mov ax, [rip + conduitos_ordinary_root_segments + 2]

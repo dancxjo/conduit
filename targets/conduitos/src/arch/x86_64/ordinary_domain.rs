@@ -154,6 +154,13 @@ impl DomainBackend for TextDomain {
         self.cost.tlb_flushes += 2;
         let result = domain_transition::enter(&self.space)?;
         self.cost.scheduler_returns += 1;
+        let (budget_irqs, source_irqs) = super::domain_budget::user_interrupts();
+        let interrupts = u64::from(budget_irqs) + u64::from(source_irqs);
+        self.cost.interrupt_entries += interrupts;
+        self.cost.source_timer_interrupts += u64::from(source_irqs);
+        // Terminal IRQ return already contributes the ordinary Root return.
+        self.cost.privilege_transitions +=
+            2 + 2 * interrupts.saturating_sub(u64::from(result.origin == 2));
         #[cfg(feature = "ordinary-domain-proof")]
         {
             let mut sign = crate::sign_format::FixedText::new();

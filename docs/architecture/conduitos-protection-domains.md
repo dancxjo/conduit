@@ -103,14 +103,33 @@ the actual Source run; they do not establish normal graphical-path integration.
 The local positive x86_64 QEMU run produced `HELLO, CONDUITOS` through that gate.
 It recorded three entries, three gates, one Base gate, six CR3 switches/TLB
 flushes, three scheduler returns, 64 runtime copy bytes, a 32-byte shared-window
-peak, and 118,784 backend bytes. Setup image copies and setup/teardown TSC ticks
+peak, six privilege transitions, and 118,784 backend bytes. Setup image copies and setup/teardown TSC ticks
 are reported separately. Root metadata is charged to region admission; teardown
 zeros the backend allocation. These are emulator measurements, with a shared
-page and no ring slots; scheduler/timer coexistence remains unfinished.
+page and no ring slots; the native graphical scheduler is still unprotected.
+
+The x86 budget now uses a separate Root-owned RTC periodic interrupt route.
+Admission requires an unused RTC interrupt channel and verifies interrupt
+delivery in Root with finite polling before entering hostile code. Three
+1024-Hz ticks bound an entry; Root restores RTC configuration, PIC masks and
+LINT routing afterward. Root owns the CMOS index port and keeps NMI enabled;
+it never attempts to recover the mask by reading the write-only index port
+([QEMU RTC implementation](https://github.com/qemu/qemu/blob/master/hw/rtc/mc146818rtc.c)). This does not reprogram the Source LAPIC/PIT timer.
+The Source timer vector queues its original fact and resumes user execution;
+only the budget vector can preempt the domain. Cost records include user
+interrupt entries, Source timer interrupts and actual privilege transitions.
+
+A separate native fixture arms the real Root Timer Base, runs a hostile loop,
+and consumes exactly one matching wake after independent budget preemption.
+It observed the Source interrupt in user mode on both the local x2APIC and
+legacy PIC/PIT QEMU profiles. The legacy timer now clears an old IRQ0 while
+the PIT counter is unloaded, before starting the new one-shot. This fixture
+establishes timer coexistence at the mechanism boundary; it is not evidence of
+a complete normal graphical Body run.
 
 | Target | Ordinary protection evidence | Remaining boundary |
 |---|---|---|
-| x86_64 | Supplemental emulator run of checked text Source and hostile entries; bounded CPL3 implementation in the ordinary text runner | Current product paths and shared timer reservation remain unfinished |
+| x86_64 | Supplemental emulator run of checked text Source and hostile entries; bounded CPL3 implementation in the ordinary text runner | Current product paths and Body scheduler integration remain unfinished |
 | IA-32 | ELF32 artifact admission and malformed-mapping tests | No earned ordinary CPL3 execution proof |
 | AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
 | RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
