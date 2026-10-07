@@ -40,7 +40,7 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
-        self.install_mode(value, schema, false, false)
+        self.install_mode(value, schema, false, false, false)
     }
 
     /// Retain a closing observation Flow with exactly one item per generation.
@@ -49,7 +49,7 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
-        self.install_mode(value, schema, true, false)
+        self.install_mode(value, schema, true, false, false)
     }
 
     pub fn install_until(
@@ -57,7 +57,16 @@ impl SeededStateOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, &'static str> {
-        self.install_mode(value, schema, true, true)
+        self.install_mode(value, schema, true, true, false)
+    }
+
+    /// Explicit selected 16 KiB profile; default state offers retain their 4096-byte limit.
+    pub fn install_flow_specialized_frame16k(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, &'static str> {
+        self.install_mode(value, schema, true, false, true)
     }
 
     fn install_mode(
@@ -66,11 +75,18 @@ impl SeededStateOperationFactory {
         schema: &StructuredInfoType,
         flow: bool,
         until: bool,
+        specialized: bool,
     ) -> Result<CapabilityOffer, &'static str> {
-        if self.states.len() >= MAXIMUM_SPECIALIZATIONS || value.maximum_bytes > MAXIMUM_BYTES {
+        if self.states.len() >= MAXIMUM_SPECIALIZATIONS
+            || value.maximum_bytes > if specialized { 16384 } else { MAXIMUM_BYTES }
+        {
             return Err("native seeded state exceeds its finite prepared profile");
         }
-        let kind = if until {
+        let kind = if specialized {
+            conduit_semantic_catalog::seeded_state_flow_specialized_semantic_contract(
+                value, schema,
+            )?
+        } else if until {
             conduit_semantic_catalog::seeded_state_until_semantic_contract(value, schema)?
         } else if flow {
             conduit_semantic_catalog::seeded_state_flow_semantic_contract(value, schema)?
@@ -78,7 +94,7 @@ impl SeededStateOperationFactory {
             conduit_semantic_catalog::seeded_state_semantic_contract(value, schema)?
         };
         let offer = BackOfferBuilder::new(
-            kind,
+            kind.clone(),
             Back {
                 capability_id: CapabilityId::from(format!(
                     "conduitos/{}/{}/{}@1",
@@ -89,10 +105,18 @@ impl SeededStateOperationFactory {
                     } else {
                         "seeded-state-finite"
                     },
-                    value.value_kind.as_str(),
+                    if specialized {
+                        kind.kind_id.as_str()
+                    } else {
+                        value.value_kind.as_str()
+                    },
                     value.maximum_bytes
                 )),
-                execution_profile_id: ExecutionProfileId::from(PROFILE),
+                execution_profile_id: ExecutionProfileId::from(if specialized {
+                    "conduitos/seeded-state-flow-frame16k-prepared@1"
+                } else {
+                    PROFILE
+                }),
                 implementation_id: ImplementationId::from(IMPLEMENTATION),
                 artifact_id: ArtifactId::from(ARTIFACT),
                 host_calls: Vec::new(),
