@@ -11,8 +11,8 @@ mod fixture;
 mod model_resource;
 #[path = "common/parser_planned_runtime.rs"]
 mod planned;
-use conduit_language::parser_model_selection as selection;
 use conduit_core::*;
+use conduit_language::parser_model_selection as selection;
 use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
