@@ -1,0 +1,253 @@
+with structure/flow-native-profile/43df6f22820f27a8227d1f33ce6549433e526567098a7f19b7ac685ff781bc75/candidate as FarganPhase1Candidate
+with structure/flow-native-profile/4030791b88fea80a81aae74c0d1e051685c560825abaa04286976b3ec81e6e27/candidate as FarganPhase2Candidate
+with structure/flow-native-profile/c6d0f5f43fc948607e83daecfea85f1df559c00117e9e6a5cbc67d5fce54b273/candidate as FarganPhase3Candidate
+with structure/flow-native-profile/dd1de25e6e8de4719277cb2988ea3bef3c5c010239f9ef9de6f9ee054925194d/candidate as FarganPhase4Candidate
+with structure/flow-native-profile/93b983e558e40ddcee49024aecb3def69461ce11eb32806eda19efa7d99254c5/candidate as FarganPcm16Candidate
+with structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642/result as FarganEpochPhasePair
+with structure/flow-nominal-weakening/typed-4e6bdc913e146a929ca0466be56e26cfcd6fb8016a157655db44f2f012780a49107552b171e5e158d9bcba64eb8deaa493215ba9b0cf0954b77b88b53434e652/result as FarganPcm16Pair
+
+# Source-owned four-phase epoch, completed only after canonical PCM16.
+# Generic exact profile identities below are resolved from these checked Types.
+plot speech/flow-fargan-float-epoch (
+    selected: FarganModelFrameAnchor
+    >> value: FarganFloatEpochInput...|
+    >> gain_weights: NumericF32MatrixRef80x1
+    >> gain_bias: NumericF32BiasRef1
+    >> conv_weights: NumericF32MatrixRef328x192
+    >> conv_bias: NumericF32BiasRef192
+    >> conv_glu_weights: NumericF32MatrixRef192x192
+    >> conv_glu_bias: NumericF32BiasRef192
+    >> pitch_gate_weights: NumericF32MatrixRef192x4
+    >> pitch_gate_bias: NumericF32BiasRef4
+    >> gru1_input_weights: NumericF32MatrixRef272x480
+    >> gru1_recurrent_weights: NumericF32MatrixRef160x480
+    >> gru2_input_weights: NumericF32MatrixRef240x384
+    >> gru2_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru3_input_weights: NumericF32MatrixRef208x384
+    >> gru3_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru1_glu_weights: NumericF32MatrixRef160x160
+    >> gru1_glu_bias: NumericF32BiasRef160
+    >> gru2_glu_weights: NumericF32MatrixRef128x128
+    >> gru2_glu_bias: NumericF32BiasRef128
+    >> gru3_glu_weights: NumericF32MatrixRef128x128
+    >> gru3_glu_bias: NumericF32BiasRef128
+    >> skip_weights: NumericF32MatrixRef688x128
+    >> skip_bias: NumericF32BiasRef128
+    >> skip_glu_weights: NumericF32MatrixRef128x128
+    >> skip_glu_bias: NumericF32BiasRef128
+    >> output_weights: NumericF32MatrixRef128x40
+    >> output_bias: NumericF32BiasRef40
+    result: FarganPcm16EpochResult...| >>
+) {
+    matcher: speech/flow-fargan-model-anchor-matches (selected = selected)
+    guard: value/flow-assert-true/typed-74a1c25b756777ea117a6a078848c23a24a854f4cbec265b4259b28bb90e78e8
+    entryweak: structure/flow-nominal-weakening/typed-74a1c25b756777ea117a6a078848c23a24a854f4cbec265b4259b28bb90e78e82d19d620ff48750aabe88e745d26ce0840bc92ea37bb1eca24e15f071ac869df
+    entry: structure/flow-native-profile/1ddbd444d72e89b5248cba0bd21dae1940e8ce3f7950e3729b7c63c0a6c3471d
+    carry1: speech/flow-fargan-epoch-carry1
+    condition1: speech/flow-fargan-epoch-condition1
+    state1: speech/flow-fargan-epoch-state1
+    period1: speech/flow-fargan-epoch-period1
+    subframe1: speech/flow-fargan-subframe
+    pair1: flow/zip/finite/typed-80477d4bcbf124178f1667de21978d8bcfdf085c0721c3104b97a10bc78cdb2e
+    weak1: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
+    merge1: speech/flow-fargan-phase1-candidate (selected = selected)
+    admit1: structure/flow-native-profile/43df6f22820f27a8227d1f33ce6549433e526567098a7f19b7ac685ff781bc75
+    carry2: speech/flow-fargan-epoch-carry2
+    condition2: speech/flow-fargan-epoch-condition2
+    state2: speech/flow-fargan-epoch-state2
+    period2: speech/flow-fargan-epoch-period2
+    subframe2: speech/flow-fargan-subframe
+    pair2: flow/zip/finite/typed-80477d4bcbf124178f1667de21978d8bcfdf085c0721c3104b97a10bc78cdb2e
+    weak2: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
+    merge2: speech/flow-fargan-phase2-candidate (selected = selected)
+    admit2: structure/flow-native-profile/4030791b88fea80a81aae74c0d1e051685c560825abaa04286976b3ec81e6e27
+    carry3: speech/flow-fargan-epoch-carry3
+    condition3: speech/flow-fargan-epoch-condition3
+    state3: speech/flow-fargan-epoch-state3
+    period3: speech/flow-fargan-epoch-period3
+    subframe3: speech/flow-fargan-subframe
+    pair3: flow/zip/finite/typed-80477d4bcbf124178f1667de21978d8bcfdf085c0721c3104b97a10bc78cdb2e
+    weak3: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
+    merge3: speech/flow-fargan-phase3-candidate (selected = selected)
+    admit3: structure/flow-native-profile/c6d0f5f43fc948607e83daecfea85f1df559c00117e9e6a5cbc67d5fce54b273
+    carry4: speech/flow-fargan-epoch-carry4
+    condition4: speech/flow-fargan-epoch-condition4
+    state4: speech/flow-fargan-epoch-state4
+    period4: speech/flow-fargan-epoch-period4
+    subframe4: speech/flow-fargan-subframe
+    pair4: flow/zip/finite/typed-80477d4bcbf124178f1667de21978d8bcfdf085c0721c3104b97a10bc78cdb2e
+    weak4: structure/flow-nominal-weakening/typed-f7bb96270651cb88034410a1938b462bb5bbce7ef805c342842d7449c9f23a7ea7ff4fbd5eca20b4a96a6ef29e5395f25195eb8a4d1d6aa96234ee5cd8386642
+    merge4: speech/flow-fargan-phase4-candidate (selected = selected)
+    admit4: structure/flow-native-profile/dd1de25e6e8de4719277cb2988ea3bef3c5c010239f9ef9de6f9ee054925194d
+    pcm: speech/flow-fargan-pcm16
+    finalcarry: speech/flow-fargan-epoch-final-carry
+    finalpair: flow/zip/finite/typed-10597172f93141a981f1bb7c96fc00c8ba03c7cb0e8beeda38e3471a875a17e7
+    finalweak: structure/flow-nominal-weakening/typed-4e6bdc913e146a929ca0466be56e26cfcd6fb8016a157655db44f2f012780a49107552b171e5e158d9bcba64eb8deaa493215ba9b0cf0954b77b88b53434e652
+    finalmerge: speech/flow-fargan-epoch-pcm16-candidate (selected = selected)
+    finaladmit: structure/flow-native-profile/93b983e558e40ddcee49024aecb3def69461ce11eb32806eda19efa7d99254c5
+    value >> (.model) >> matcher.value
+    matcher.result >> guard.condition
+    value >> guard.value
+    guard.result >> entryweak.value
+    entryweak.result >> entry.candidate
+    entry.result >> carry1.value
+    entry.result >> condition1.value
+    entry.result >> state1.value
+    entry.result >> period1.value
+    condition1.result >> subframe1.condition
+    state1.result >> subframe1.state
+    period1.result >> subframe1.period
+    gain_weights >> subframe1.gain_weights
+    gain_bias >> subframe1.gain_bias
+    conv_weights >> subframe1.conv_weights
+    conv_bias >> subframe1.conv_bias
+    conv_glu_weights >> subframe1.conv_glu_weights
+    conv_glu_bias >> subframe1.conv_glu_bias
+    pitch_gate_weights >> subframe1.pitch_gate_weights
+    pitch_gate_bias >> subframe1.pitch_gate_bias
+    gru1_input_weights >> subframe1.gru1_input_weights
+    gru1_recurrent_weights >> subframe1.gru1_recurrent_weights
+    gru2_input_weights >> subframe1.gru2_input_weights
+    gru2_recurrent_weights >> subframe1.gru2_recurrent_weights
+    gru3_input_weights >> subframe1.gru3_input_weights
+    gru3_recurrent_weights >> subframe1.gru3_recurrent_weights
+    gru1_glu_weights >> subframe1.gru1_glu_weights
+    gru1_glu_bias >> subframe1.gru1_glu_bias
+    gru2_glu_weights >> subframe1.gru2_glu_weights
+    gru2_glu_bias >> subframe1.gru2_glu_bias
+    gru3_glu_weights >> subframe1.gru3_glu_weights
+    gru3_glu_bias >> subframe1.gru3_glu_bias
+    skip_weights >> subframe1.skip_weights
+    skip_bias >> subframe1.skip_bias
+    skip_glu_weights >> subframe1.skip_glu_weights
+    skip_glu_bias >> subframe1.skip_glu_bias
+    output_weights >> subframe1.output_weights
+    output_bias >> subframe1.output_bias
+    carry1.result >> pair1.left
+    subframe1.result >> pair1.right
+    pair1.paired >> weak1.value
+    weak1.result >> merge1.value
+    merge1.result >> admit1.candidate
+    admit1.result >> carry2.value
+    admit1.result >> condition2.value
+    admit1.result >> state2.value
+    admit1.result >> period2.value
+    condition2.result >> subframe2.condition
+    state2.result >> subframe2.state
+    period2.result >> subframe2.period
+    gain_weights >> subframe2.gain_weights
+    gain_bias >> subframe2.gain_bias
+    conv_weights >> subframe2.conv_weights
+    conv_bias >> subframe2.conv_bias
+    conv_glu_weights >> subframe2.conv_glu_weights
+    conv_glu_bias >> subframe2.conv_glu_bias
+    pitch_gate_weights >> subframe2.pitch_gate_weights
+    pitch_gate_bias >> subframe2.pitch_gate_bias
+    gru1_input_weights >> subframe2.gru1_input_weights
+    gru1_recurrent_weights >> subframe2.gru1_recurrent_weights
+    gru2_input_weights >> subframe2.gru2_input_weights
+    gru2_recurrent_weights >> subframe2.gru2_recurrent_weights
+    gru3_input_weights >> subframe2.gru3_input_weights
+    gru3_recurrent_weights >> subframe2.gru3_recurrent_weights
+    gru1_glu_weights >> subframe2.gru1_glu_weights
+    gru1_glu_bias >> subframe2.gru1_glu_bias
+    gru2_glu_weights >> subframe2.gru2_glu_weights
+    gru2_glu_bias >> subframe2.gru2_glu_bias
+    gru3_glu_weights >> subframe2.gru3_glu_weights
+    gru3_glu_bias >> subframe2.gru3_glu_bias
+    skip_weights >> subframe2.skip_weights
+    skip_bias >> subframe2.skip_bias
+    skip_glu_weights >> subframe2.skip_glu_weights
+    skip_glu_bias >> subframe2.skip_glu_bias
+    output_weights >> subframe2.output_weights
+    output_bias >> subframe2.output_bias
+    carry2.result >> pair2.left
+    subframe2.result >> pair2.right
+    pair2.paired >> weak2.value
+    weak2.result >> merge2.value
+    merge2.result >> admit2.candidate
+    admit2.result >> carry3.value
+    admit2.result >> condition3.value
+    admit2.result >> state3.value
+    admit2.result >> period3.value
+    condition3.result >> subframe3.condition
+    state3.result >> subframe3.state
+    period3.result >> subframe3.period
+    gain_weights >> subframe3.gain_weights
+    gain_bias >> subframe3.gain_bias
+    conv_weights >> subframe3.conv_weights
+    conv_bias >> subframe3.conv_bias
+    conv_glu_weights >> subframe3.conv_glu_weights
+    conv_glu_bias >> subframe3.conv_glu_bias
+    pitch_gate_weights >> subframe3.pitch_gate_weights
+    pitch_gate_bias >> subframe3.pitch_gate_bias
+    gru1_input_weights >> subframe3.gru1_input_weights
+    gru1_recurrent_weights >> subframe3.gru1_recurrent_weights
+    gru2_input_weights >> subframe3.gru2_input_weights
+    gru2_recurrent_weights >> subframe3.gru2_recurrent_weights
+    gru3_input_weights >> subframe3.gru3_input_weights
+    gru3_recurrent_weights >> subframe3.gru3_recurrent_weights
+    gru1_glu_weights >> subframe3.gru1_glu_weights
+    gru1_glu_bias >> subframe3.gru1_glu_bias
+    gru2_glu_weights >> subframe3.gru2_glu_weights
+    gru2_glu_bias >> subframe3.gru2_glu_bias
+    gru3_glu_weights >> subframe3.gru3_glu_weights
+    gru3_glu_bias >> subframe3.gru3_glu_bias
+    skip_weights >> subframe3.skip_weights
+    skip_bias >> subframe3.skip_bias
+    skip_glu_weights >> subframe3.skip_glu_weights
+    skip_glu_bias >> subframe3.skip_glu_bias
+    output_weights >> subframe3.output_weights
+    output_bias >> subframe3.output_bias
+    carry3.result >> pair3.left
+    subframe3.result >> pair3.right
+    pair3.paired >> weak3.value
+    weak3.result >> merge3.value
+    merge3.result >> admit3.candidate
+    admit3.result >> carry4.value
+    admit3.result >> condition4.value
+    admit3.result >> state4.value
+    admit3.result >> period4.value
+    condition4.result >> subframe4.condition
+    state4.result >> subframe4.state
+    period4.result >> subframe4.period
+    gain_weights >> subframe4.gain_weights
+    gain_bias >> subframe4.gain_bias
+    conv_weights >> subframe4.conv_weights
+    conv_bias >> subframe4.conv_bias
+    conv_glu_weights >> subframe4.conv_glu_weights
+    conv_glu_bias >> subframe4.conv_glu_bias
+    pitch_gate_weights >> subframe4.pitch_gate_weights
+    pitch_gate_bias >> subframe4.pitch_gate_bias
+    gru1_input_weights >> subframe4.gru1_input_weights
+    gru1_recurrent_weights >> subframe4.gru1_recurrent_weights
+    gru2_input_weights >> subframe4.gru2_input_weights
+    gru2_recurrent_weights >> subframe4.gru2_recurrent_weights
+    gru3_input_weights >> subframe4.gru3_input_weights
+    gru3_recurrent_weights >> subframe4.gru3_recurrent_weights
+    gru1_glu_weights >> subframe4.gru1_glu_weights
+    gru1_glu_bias >> subframe4.gru1_glu_bias
+    gru2_glu_weights >> subframe4.gru2_glu_weights
+    gru2_glu_bias >> subframe4.gru2_glu_bias
+    gru3_glu_weights >> subframe4.gru3_glu_weights
+    gru3_glu_bias >> subframe4.gru3_glu_bias
+    skip_weights >> subframe4.skip_weights
+    skip_bias >> subframe4.skip_bias
+    skip_glu_weights >> subframe4.skip_glu_weights
+    skip_glu_bias >> subframe4.skip_glu_bias
+    output_weights >> subframe4.output_weights
+    output_bias >> subframe4.output_bias
+    carry4.result >> pair4.left
+    subframe4.result >> pair4.right
+    pair4.paired >> weak4.value
+    weak4.result >> merge4.value
+    merge4.result >> admit4.candidate
+    admit4.result >> (.pcm_f32) >> pcm.value
+    admit4.result >> finalcarry.value
+    finalcarry.result >> finalpair.left
+    pcm.result >> finalpair.right
+    finalpair.paired >> finalweak.value
+    finalweak.result >> finalmerge.value
+    finalmerge.result >> finaladmit.candidate
+    finaladmit.result >> result
+}

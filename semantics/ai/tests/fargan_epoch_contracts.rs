@@ -262,7 +262,7 @@ fn authored_phase_carries_drop_consumed_condition_and_preserve_provisional_pcm()
 
 // Fixture-only raw schema projection: production comes from the native-profile
 // owner and validates/reframes every candidate before native admission.
-fn declarations_only(source: &str) -> String {
+pub(crate) fn declarations_only(source: &str) -> String {
     let mut active = false;
     let mut result = String::new();
     for line in source.lines() {
@@ -279,7 +279,7 @@ fn declarations_only(source: &str) -> String {
     }
     result
 }
-fn exact_epoch_declarations() -> String {
+pub(crate) fn exact_epoch_declarations() -> String {
     [
         include_str!("../fixed_numeric.conduit"),
         include_str!("../fixed_numeric_signal.conduit"),
