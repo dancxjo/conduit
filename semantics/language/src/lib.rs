@@ -142,3 +142,5 @@ pub use generated::{
     LanguageParserWindow8WalkQuery,
 };
 pub mod parser_window8;
+#[cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
+pub mod parser_model_selection;
