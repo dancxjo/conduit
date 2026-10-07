@@ -23,12 +23,14 @@ fn main() {
     fs::write(output, generated.source).expect("write generated language bindings");
     println!("cargo:rerun-if-changed=parser.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
+    println!("cargo:rerun-if-changed=parser_scorer.conduit");
     let parser_source = format!(
-        "{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}",
         include_str!("identity.conduit"),
         include_str!("types.conduit"),
         include_str!("parser.conduit"),
-        include_str!("parser_beam.conduit")
+        include_str!("parser_beam.conduit"),
+        include_str!("parser_scorer.conduit")
     );
     let parser_checked = check_syntax_document(
         &parse_syntax_document(&parser_source),

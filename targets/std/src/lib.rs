@@ -99,6 +99,7 @@ pub trait ExternalForeOutputAdapter {
 }
 pub mod direct_spoken_mask;
 pub mod direct_spoken_mask_runtime;
+pub mod hosted_integer_categorical;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;

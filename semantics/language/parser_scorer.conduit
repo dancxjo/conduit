@@ -1,0 +1,86 @@
+# The finite scorer consumes admitted exact occurrence/POS evidence, not strings.
+# The gold-UPOS artifact evaluation is conditional; this profile predicts no POS.
+# UD UPOS code order: ADJ ADP ADV AUX CCONJ DET INTJ NOUN NUM PART PRON
+# PROPN PUNCT SCONJ SYM VERB X. Code17 is only artificial root/end context.
+type LanguageParserPosEvidence = {
+    basis: LanguageParserBasis
+    token_count: U64 in 1..=4
+    pos: collection U64 = 4
+    where .pos.0 < 17 && .pos.1 < 17 && .pos.2 < 17 && .pos.3 < 17
+}
+type LanguageParserScorerQuery = {
+    state: LanguageParserState
+    lexical: LanguageParserPosEvidence
+    where .state.token_count == .lexical.token_count
+    where .state.basis.text == .lexical.basis.text
+    where .state.basis.source_revision == .lexical.basis.source_revision
+    where .state.basis.analysis_revision == .lexical.basis.analysis_revision
+}
+type LanguageParserScorerContext = {
+    query: LanguageParserScorerQuery
+    top: U64
+    top_pos: U64
+    next_pos: U64
+}
+type LanguageParserModelFeatures = {
+    basis: LanguageParserBasis
+    indices: collection U64 = 7
+}
+plot language-parser-scorer-context (
+    query: LanguageParserScorerQuery...| >> context: LanguageParserScorerContext...|
+) = { query: ., top: sequence/at(.state.stack, .state.depth - 1), top_pos: 17, next_pos: 17 }
+plot language-parser-scorer-pos (
+    context: LanguageParserScorerContext...| >> resolved: LanguageParserScorerContext...|
+) = { query: .query, top: .top, top_pos: (.top == 4 ? 17 : sequence/at(.query.lexical.pos, .top)), next_pos: (.query.state.unread == .query.state.token_count ? 17 : sequence/at(.query.lexical.pos, .query.state.unread)) }
+plot language-parser-scorer-features (
+    context: LanguageParserScorerContext...| >> features: LanguageParserModelFeatures...|
+) = { basis: .query.state.basis, indices: [.top_pos, 18 + .next_pos, 36 + .top_pos * 18 + .next_pos, 360 + .query.state.depth, 366 + .query.state.unread, 371 + (.top != 4 && sequence/at(.query.state.heads, .top) != 5 ? 1 : 0), 373] }
+plot language-parser-model-features (
+    query: LanguageParserScorerQuery...| >> features: LanguageParserModelFeatures...|
+) {
+    query >> language-parser-scorer-context() >> language-parser-scorer-pos() >> language-parser-scorer-features() >> features
+}
+# Generic numeric inference produces I64 logits; only this source maps classes
+# onto semantic proposals. Class0/1 are shift/reduce, then37 left and37 right.
+type LanguageParserScoredClass = {
+    basis: LanguageParserBasis
+    state: LanguageParserNumericState
+    class: U64 in 0..=75
+    score: I64
+    default_relation: LanguageParserRelation
+}
+type LanguageParserScoredProposal = {
+    request: LanguageParserRequest
+    score: I64
+}
+
+type LanguageParserScoreContext = {
+    scored: LanguageParserScoredClass
+    relations: collection LanguageUniversalDependencyRelation = 37
+}
+plot language-parser-score-context (
+    scored: LanguageParserScoredClass...| >> context: LanguageParserScoreContext...|
+) = { scored: ., relations: [acl(unit), advcl(unit), advmod(unit), amod(unit), appos(unit), aux(unit), case(unit), cc(unit), ccomp(unit), clf(unit), compound(unit), conj(unit), cop(unit), csubj(unit), dep(unit), det(unit), discourse(unit), dislocated(unit), expl(unit), fixed(unit), flat(unit), goeswith(unit), iobj(unit), list(unit), mark(unit), nmod(unit), nsubj(unit), nummod(unit), obj(unit), obl(unit), orphan(unit), parataxis(unit), punct(unit), reparandum(unit), root(unit), vocative(unit), xcomp(unit)] }
+plot language-parser-score-decode (
+    context: LanguageParserScoreContext...| >> proposal: LanguageParserScoredProposal...|
+) = { request: { basis: .scored.basis, state: .scored.state, action: (.scored.class == 0 ? shift(unit) : (.scored.class == 1 ? reduce(unit) : (.scored.class < 39 ? left_arc(unit) : right_arc(unit)))), relation: { base: (.scored.class < 2 ? .scored.default_relation.base : sequence/at(.relations, (.scored.class - 2) % 37)), subtype: .scored.default_relation.subtype } }, score: .scored.score }
+plot language-parser-score-proposal (
+    scored: LanguageParserScoredClass...| >> proposal: LanguageParserScoredProposal...|
+) {
+    scored >> language-parser-score-context() >> language-parser-score-decode() >> proposal
+}
+# New immutable-source token availability grows this profile's bounded buffer.
+# The containing revision owner handles actual text/analysis basis changes.
+type LanguageParserBufferGrowth = {
+    state: LanguageParserState
+    available: U64 in 1..=4
+    where .available >= .state.token_count
+}
+plot language-parser-grow-buffer (
+    growth: LanguageParserBufferGrowth...| >> state: LanguageParserNumericState...|
+) = { basis: .state.basis, token_count: .available, unread: .state.unread, depth: .state.depth, stack: .state.stack, heads: .state.heads, relation0: .state.relation0, relation1: .state.relation1, relation2: .state.relation2, relation3: .state.relation3, committed: .state.committed }
+# This completion predicate remains Language source policy. The model supplies
+# no hidden tree or terminal decision.
+plot language-parser-decode-complete (
+    state: LanguageParserState...| >> complete: Boolean...|
+) = .unread == .token_count && .depth == 1 && .heads.0 < 5 && (.token_count < 2 || .heads.1 < 5) && (.token_count < 3 || .heads.2 < 5) && (.token_count < 4 || .heads.3 < 5)
