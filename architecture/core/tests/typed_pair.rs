@@ -137,3 +137,28 @@ fn combined_traversal_is_admitted_before_accepting_individually_valid_members() 
         Err(StructuredInfoRefusal::TooManyNodes)
     ));
 }
+
+#[test]
+fn exact_structured_member_envelopes_count_each_type_prefix_once() {
+    let (left, left_bytes) = packet("count", 19);
+    let (right, right_bytes) = packet("other", 31);
+    let mut encoder = PreparedTypedTuplePairEncoder::new(
+        left.clone(),
+        left_bytes.len() as u32,
+        right.clone(),
+        right_bytes.len() as u32,
+    )
+    .unwrap();
+    let maximum = encoder.maximum_bytes();
+    assert_eq!(
+        encoder.encode(&left_bytes, &right_bytes).unwrap().len(),
+        maximum as usize
+    );
+    assert!(PreparedTypedTuplePairEncoder::new(
+        left.clone(),
+        left.canonical_bytes().unwrap().len() as u32 - 1,
+        right,
+        right_bytes.len() as u32,
+    )
+    .is_err());
+}
