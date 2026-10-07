@@ -191,7 +191,14 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
     expected: usize,
     mode: ExecutionMode,
 ) -> Option<StreamResultAndTiming> {
-    let run_to_drain = seeded.is_some();
+    let run_to_drain = seeded.is_some()
+        || plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .any(|gear| {
+                gear.implementation_id.as_str() == conduit_std_host::pure_filter::IMPLEMENTATION
+            });
     let start = Instant::now();
     assert!(verify_plan(&plan));
     let fragment = &plan.fragments[0];
@@ -303,6 +310,16 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
     }
     context.zip.validate_plan(&plan).unwrap();
     let received = Rc::new(std::cell::RefCell::new(Vec::with_capacity(expected)));
+    let filter_factory = fragment
+        .placements
+        .iter()
+        .any(|gear| {
+            gear.implementation_id.as_str() == conduit_std_host::pure_filter::IMPLEMENTATION
+        })
+        .then(|| {
+            conduit_std_host::pure_filter::PureFilterOperationFactory::for_plan(&plan).unwrap()
+        });
+    let mut filter_owners = BTreeMap::new();
     let mut owners = BTreeMap::new();
     let mut drivers = Vec::new();
     for (index, gear) in fragment.placements.iter().enumerate() {
@@ -311,6 +328,16 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
             .find(|f| f.implementation_id() == &gear.implementation_id)
         {
             factory.budget(gear).unwrap();
+            drivers.push(Driver::Operation(
+                factory.prepare(gear, &mut store).unwrap(),
+            ));
+        } else if gear.implementation_id.as_str() == conduit_std_host::pure_filter::IMPLEMENTATION {
+            let factory = filter_factory.as_ref().unwrap();
+            factory.budget(gear).unwrap();
+            filter_owners.insert(
+                conduit_kernel::NodeId(index as u16),
+                factory.prepare_host(gear).unwrap(),
+            );
             drivers.push(Driver::Operation(
                 factory.prepare(gear, &mut store).unwrap(),
             ));
@@ -413,11 +440,11 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
         }
         if let Some(call) = scheduler.next_host_request() {
             if matches!(mode, ExecutionMode::CancelFirstExpression) {
-                owners
-                    .get_mut(&call.node)
-                    .unwrap()
-                    .cancel(call.node, call.call)
-                    .unwrap();
+                if let Some(owner) = owners.get_mut(&call.node) {
+                    owner.cancel(call.node, call.call).unwrap();
+                } else {
+                    assert!(filter_owners.contains_key(&call.node));
+                }
                 scheduler
                     .complete_host_call(
                         call.node,
@@ -436,13 +463,25 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
                 break;
             }
             let input = scheduler.values().get(call.input.value).unwrap();
-            let output = owners
-                .get_mut(&call.node)
-                .unwrap()
-                .invoke(call.node, call.call, call.request, input)
-                .unwrap();
-            let Ok(value) = scheduler.store_host_value(output) else {
-                break;
+            let output = if let Some(filter) = filter_owners.get_mut(&call.node) {
+                filter.execute(input).unwrap()
+            } else {
+                Some(
+                    owners
+                        .get_mut(&call.node)
+                        .unwrap()
+                        .invoke(call.node, call.call, call.request, input)
+                        .unwrap(),
+                )
+            };
+            let value = match output {
+                Some(output) => {
+                    let Ok(value) = scheduler.store_host_value(output) else {
+                        break;
+                    };
+                    Some(BoundedValueRef::new(value, output.len() as u32).unwrap())
+                }
+                None => None,
             };
             scheduler
                 .complete_host_call(
@@ -450,7 +489,7 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
                     call.request,
                     conduit_kernel::HostCallOutcome {
                         disposition: conduit_kernel::HostCallDisposition::Completed,
-                        output: Some(BoundedValueRef::new(value, output.len() as u32).unwrap()),
+                        output: value,
                         failure: None,
                     },
                 )
@@ -897,4 +936,90 @@ fn native_feature_causal_cell_drains_only_matching_final_pcm_acknowledgments() {
         assert!(run_epoch_stream_plan(plan,&context,&resources,missing,Some(missing_seeded),2,ExecutionMode::Normal).is_none(),"closed accepted input must never waive outstanding final PCM ACK debt");
         eprintln!("Source causal642 feedback: {}nodes/{}cords, prep{:?}/exec{:?}; synthetic admitted PCM acknowledgments, no trained synthesis claim",result.nodes,result.cords,result.preparation,result.execution);
     }).unwrap().join().unwrap();
+}
+
+#[test]
+fn generic_source_when_filter_keeps_original_frames_and_drains_false_items() {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+        let source="type ProbePayload = collection F32 = 3\ntype ProbeFrame = {\n epoch: U64\n payload: ProbePayload\n}\nplot generic-filter (\n >> value: ProbeFrame...|\n result: ProbeFrame...| >>\n) {\n value >> when(.epoch < 2) >> result\n}\n".to_string();
+        let (plan, context)=super::prepare_authored_epoch_entry(super::prepared_epoch_profiles_with_capacity(true),source,"generic-filter",true,vec![]).unwrap();
+        let ty=plan.fragments[0].placements.iter().find(|gear|gear.implementation_id.as_str()==conduit_std_host::pure_filter::IMPLEMENTATION).unwrap();
+        let factory=conduit_std_host::pure_filter::PureFilterOperationFactory::for_plan(&plan).unwrap();
+        let mut drift=ty.clone();drift.host_calls[0].maximum_input_bytes-=1;
+        assert!(factory.budget(&drift).is_err());
+        let program=conduit_plot::PortableExpressionProgram::from_canonical_hex(match &ty.configuration[0].value {ConfigurationValue::Text(v)=>v,_=>panic!("program")}).unwrap();
+        let inputs:Vec<_>=[0,1,2].iter().map(|epoch|super::epoch_pair_fixture(&program.input_type,"",*epoch,*epoch).canonical_bytes().unwrap()).collect();
+        let mut host = factory.prepare_host(ty).unwrap();
+        let (result, allocations) = super::allocation_probe::measure(|| host.execute(&inputs[0]));
+        assert_eq!(result.unwrap(), Some(inputs[0].as_slice()));
+        assert_eq!(allocations, 0, "prepared true filter must not allocate");
+        let (result, allocations) = super::allocation_probe::measure(|| host.execute(&inputs[2]));
+        assert_eq!(result.unwrap(), None);
+        assert_eq!(allocations, 0, "prepared false filter must not allocate");
+        assert!(host.execute(&inputs[0][..inputs[0].len()-1]).is_err());
+        let foreign = super::case_state::vector(&conduit_ai::fixed_numeric_catalog::fixed_numeric_type("NumericF32Vector3").unwrap(), &[0.;3]).canonical_bytes().unwrap();
+        assert!(host.execute(&foreign).is_err());
+        assert_eq!(host.execute(&inputs[1]).unwrap(), Some(inputs[1].as_slice()));
+        let mut unsealed=plan.clone();unsealed.fragments[0].placements[0].artifact_id="foreign".into();
+        assert!(conduit_std_host::pure_filter::PureFilterOperationFactory::for_plan(&unsealed).is_err());
+        let result=run_epoch_stream_plan(plan.clone(),&context,&BTreeMap::<String,Resource>::new(),BTreeMap::from([("value".into(),inputs.clone())]),None,2,ExecutionMode::Normal).unwrap();
+        assert!(result.drained);assert_eq!(result.values.len(),2);
+        for (actual,expected) in result.values.iter().zip(&inputs) {assert_eq!(actual.canonical_bytes().unwrap(),*expected);}
+        assert!(run_epoch_stream_plan(plan,&context,&BTreeMap::<String,Resource>::new(),BTreeMap::from([("value".into(),inputs)]),None,2,ExecutionMode::CancelFirstExpression).is_none());
+    }).unwrap().join().unwrap();
+}
+
+#[test]
+fn reused_filter_back_waits_under_output_pressure_and_refuses_cancel_publication() {
+    use conduit_kernel::{FailureCode, HostCallDisposition, HostCallOutcome, RequestId};
+    let input = ValueRef {
+        slot: 0,
+        generation: 1,
+        byte_len: 8,
+    };
+    let output = ValueRef {
+        slot: 1,
+        generation: 1,
+        byte_len: 8,
+    };
+    for disposition in [
+        HostCallDisposition::Completed,
+        HostCallDisposition::Cancelled,
+    ] {
+        let mut back = conduit_semantic_catalog::StructuredSelectorBack::new(8);
+        let mut request = StepIo::test_frame([Some(input)], [false], [Some(8)], None, 32);
+        let bytes = 0u64.to_le_bytes();
+        let view = StepInputBytes::test_frame([Some(bytes.as_slice())], None);
+        let (outcome, allocations) =
+            super::allocation_probe::measure(|| back.step(&mut request, &view));
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(allocations, 0, "filter request Step must not allocate");
+        assert!(request.test_consumed(KPort(0)));
+        let completion = Some((
+            RequestId(0),
+            HostCallOutcome {
+                disposition,
+                output: (disposition == HostCallDisposition::Completed)
+                    .then_some(BoundedValueRef::new(output, 8).unwrap()),
+                failure: None,
+            },
+        ));
+        let mut blocked = StepIo::test_frame([None], [true], [None], completion, 32);
+        let no_input = StepInputBytes::test_frame([None], None);
+        if disposition == HostCallDisposition::Completed {
+            assert_eq!(back.step(&mut blocked, &no_input), StepOutcome::Await);
+            assert!(!blocked.test_host_completion_consumed());
+            let mut ready = StepIo::test_frame([None], [true], [Some(8)], completion, 32);
+            assert_eq!(back.step(&mut ready, &no_input), StepOutcome::Progress);
+            assert!(ready.test_host_completion_consumed());
+            let mut close = StepIo::test_frame([None], [true], [Some(8)], None, 32);
+            assert_eq!(back.step(&mut close, &no_input), StepOutcome::Complete);
+        } else {
+            let StepOutcome::Fail(failure) = back.step(&mut blocked, &no_input) else {
+                panic!("cancel must refuse publication")
+            };
+            assert_eq!(failure.code, FailureCode::Cancelled);
+            assert!(!blocked.test_host_completion_consumed());
+        }
+    }
 }
