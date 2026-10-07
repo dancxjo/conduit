@@ -38,6 +38,50 @@ fn claim(scope: &KernelCapabilityScope) -> KernelOperationClaim {
 }
 
 #[test]
+fn every_current_authority_dimension_is_rechecked_before_a_gate_lease() {
+    let domain = ProtectionDomainId(1);
+    let exact = scope();
+    let mut table = KernelCapabilityTable::new(123).unwrap();
+    let handle = table.issue(domain, exact).unwrap();
+    for mutation in 0..17 {
+        let mut current = exact;
+        match mutation {
+            0 => current.host[0] ^= 1,
+            1 => current.boot[0] ^= 1,
+            2 => current.plan[0] ^= 1,
+            3 => current.play[0] ^= 1,
+            4 => current.implementation[0] ^= 1,
+            5 => current.base[0] ^= 1,
+            6 => current.base_generation += 1,
+            7 => current.resource[0] ^= 1,
+            8 => current.resource_generation += 1,
+            9 => current.operation += 1,
+            10 => current.subject[0] ^= 1,
+            11 => current.authority[0] ^= 1,
+            12 => current.maximum_parameter_bytes += 1,
+            13 => current.maximum_work_units += 1,
+            14 => current.maximum_in_flight += 1,
+            15 => current.maximum_operations += 1,
+            16 => current.maximum_parameter_bytes = 0,
+            _ => unreachable!(),
+        }
+        assert_eq!(
+            table.authorize_current(domain, handle, &current, claim(&exact)),
+            Err(KernelCapabilityRefusal::WrongScope),
+            "mutation {mutation}",
+        );
+    }
+    let lease = table
+        .authorize_current(domain, handle, &exact, claim(&exact))
+        .unwrap();
+    table.complete(lease).unwrap();
+    assert_eq!(
+        table.authorize_current(domain, handle, &exact, claim(&exact)),
+        Err(KernelCapabilityRefusal::Exhausted)
+    );
+}
+
+#[test]
 fn every_owned_lifecycle_event_fences_the_old_handle() {
     for cause in [
         KernelRevocationCause::PlayCancelled,
@@ -47,6 +91,8 @@ fn every_owned_lifecycle_event_fences_the_old_handle() {
         KernelRevocationCause::ResourceReplaced,
         KernelRevocationCause::BaseReplaced,
         KernelRevocationCause::BootReplaced,
+        KernelRevocationCause::ProtectionFault,
+        KernelRevocationCause::ProviderLost,
     ] {
         let domain = ProtectionDomainId(1);
         let exact = scope();

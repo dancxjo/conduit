@@ -15,6 +15,8 @@ pub fn initialize_machine(
     gdt::initialize();
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-idt\n");
     idt::initialize();
+    #[cfg(target_os = "none")]
+    super::domain_memory::initialize(record.hhdm_offset);
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-pic\n");
     pic::initialize();
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-acpi\n");

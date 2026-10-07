@@ -1,9 +1,17 @@
 mod acpi;
 mod cpu;
 mod deadline;
+#[cfg(target_os = "none")]
+mod domain_memory;
+#[cfg(target_os = "none")]
+mod domain_transition;
 mod entropy;
 mod ftdi_line;
 mod gdt;
+#[cfg(target_os = "none")]
+mod ordinary_domain;
+#[cfg(target_os = "none")]
+pub use ordinary_domain::TextDomain;
 mod hid;
 mod hid_pointer;
 mod hid_transfer_ring;

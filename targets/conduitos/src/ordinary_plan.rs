@@ -25,6 +25,15 @@ pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
 const ORDINARY_PLACEMENT_COUNT: usize = 3;
 pub const COOPERATIVE_REGION_PROFILE: &str = "conduitos/cooperative-bounded-step@1";
+pub const PROTECTED_REGION_PROFILE: &str = "conduitos/protected-region@1";
+
+pub(crate) const fn region_profile(protected: bool) -> &'static str {
+    if protected {
+        PROTECTED_REGION_PROFILE
+    } else {
+        COOPERATIVE_REGION_PROFILE
+    }
+}
 
 pub struct PreparedOrdinaryPlay {
     pub kernel: TextPlannedKernel,
@@ -48,6 +57,7 @@ pub enum PreparationError {
     PlanRejected,
     LoweringRejected,
     KernelRejected,
+    Protection(crate::protected_region::DomainRefusal),
 }
 
 impl PreparationError {
@@ -59,6 +69,7 @@ impl PreparationError {
             Self::PlanRejected => "ordinary-plan-rejected",
             Self::LoweringRejected => "ordinary-lowering-rejected",
             Self::KernelRejected => "ordinary-kernel-rejected",
+            Self::Protection(refusal) => refusal.as_str(),
         }
     }
 }
@@ -131,9 +142,19 @@ pub fn prepare_source(
     {
         return Err(PreparationError::PlanRejected);
     }
-    let kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
+    #[allow(unused_mut)]
+    let mut kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
         .map_err(|_| PreparationError::KernelRejected)?;
     let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    kernel
+        .protect(&plan, &active_play)
+        .map_err(|error| match error {
+            crate::composition::MachineRunError::ProtectionDomain(refusal) => {
+                PreparationError::Protection(refusal)
+            }
+            _ => PreparationError::KernelRejected,
+        })?;
     Ok(PreparedOrdinaryPlay {
         kernel,
         advertisement,
@@ -411,11 +432,17 @@ fn bind_native_capability(
         ExecutionProfileId::from("conduitos/single-lane-cooperative@1");
     portable.implementation.implementation_id = ImplementationId::from(fixed.implementation);
     portable.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
+    #[allow(unused_mut)]
+    let mut memory_bytes = 4096;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    if fixed.kind == conduit_text::TEXT_UPPER_KIND {
+        memory_bytes += crate::arch::TextDomain::RESERVED_BYTES;
+    }
     portable
         .resource_requirements
         .push(conduit_core::resource_requirement(
             "conduit.resource/runtime-memory@1",
-            4_096,
+            memory_bytes,
         ));
     portable.resource_requirements.sort();
 }

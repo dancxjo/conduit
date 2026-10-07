@@ -12,6 +12,13 @@ preserves older proof receipts and limitations.
 **[Follow the ConduitOS journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)**
 for the ordered actions, captured screens, and exact emulator evidence.
 
+Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
+is in progress: a local x86_64 emulator run exercised checked ordinary text
+Source with its computation in CPL3 and 11 hostile-entry checks. Effects still
+use the trusted Root path, other product paths and architectures are unfinished,
+and DMA/driver isolation remain false. This is not accepted-release evidence.
+See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
+
 ## What exists
 
 | Area | Available behavior and evidence | Boundary |

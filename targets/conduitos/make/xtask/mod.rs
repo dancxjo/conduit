@@ -59,6 +59,7 @@ mod opl2_proof;
 mod orange_pi_5_image;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_media.rs"]
 mod orange_pi_5_media;
+mod ordinary_domain_proof;
 mod owner_action_proof;
 mod owner_boot;
 mod owner_model_route;
@@ -514,6 +515,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::EmergencyHaltProof => emergency_halt_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
+        ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }

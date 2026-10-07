@@ -12,7 +12,7 @@ static ENTRIES: [AtomicU32; FACT_CAPACITY as usize] =
 static OVERFLOWED: AtomicBool = AtomicBool::new(false);
 
 #[unsafe(no_mangle)]
-extern "C" fn conduitos_timer_irq_handler() {
+pub(super) extern "C" fn conduitos_timer_irq_handler() {
     let tail = TAIL.load(Ordering::Relaxed);
     let head = HEAD.load(Ordering::Acquire);
     if tail.wrapping_sub(head) == FACT_CAPACITY {

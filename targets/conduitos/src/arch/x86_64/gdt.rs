@@ -3,9 +3,9 @@ use core::{arch::asm, cell::UnsafeCell, mem::size_of};
 const KERNEL_CODE_SELECTOR: u16 = 0x08;
 const KERNEL_DATA_SELECTOR: u16 = 0x10;
 const TSS_SELECTOR: u16 = 0x18;
-#[cfg(feature = "conduitos-isolation-proof")]
+#[cfg(any(feature = "conduitos-isolation-proof", target_os = "none"))]
 pub(super) const USER_CODE_SELECTOR: u16 = 0x2b;
-#[cfg(feature = "conduitos-isolation-proof")]
+#[cfg(any(feature = "conduitos-isolation-proof", target_os = "none"))]
 pub(super) const USER_DATA_SELECTOR: u16 = 0x33;
 const IST_STACK_BYTES: usize = 16 * 1024;
 
@@ -106,7 +106,7 @@ pub(super) fn initialize() {
     }
 }
 
-#[cfg(feature = "conduitos-isolation-proof")]
+#[cfg(any(feature = "conduitos-isolation-proof", target_os = "none"))]
 pub(super) unsafe fn set_ring0_stack(stack_top: u64) {
     unsafe {
         (*STATE.0.get()).tss.rsp[0] = stack_top;

@@ -4,97 +4,8 @@
 //! semantic capability authority in `conduit-core`; it seals the already
 //! selected scope into a small domain-local handle suitable for a trap gate.
 
-pub const MAXIMUM_DOMAIN_CAPABILITIES: usize = 8;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ProtectionDomainId(pub u32);
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelCapabilityHandle(u64);
-
-impl KernelCapabilityHandle {
-    #[cfg(feature = "conduitos-isolation-proof")]
-    pub(crate) const fn raw_for_domain(self) -> u64 {
-        self.0
-    }
-
-    #[cfg(feature = "conduitos-isolation-proof")]
-    pub(crate) const fn from_untrusted(raw: u64) -> Self {
-        Self(raw)
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelCapabilityScope {
-    pub host: [u8; 32],
-    pub boot: [u8; 32],
-    pub plan: [u8; 32],
-    pub play: [u8; 32],
-    pub implementation: [u8; 32],
-    pub base: [u8; 32],
-    pub base_generation: u32,
-    pub resource: [u8; 32],
-    pub resource_generation: u32,
-    pub operation: u32,
-    pub subject: [u8; 32],
-    pub authority: [u8; 32],
-    pub maximum_parameter_bytes: u32,
-    pub maximum_work_units: u32,
-    pub maximum_in_flight: u16,
-    pub maximum_operations: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelOperationClaim {
-    pub boot: [u8; 32],
-    pub plan: [u8; 32],
-    pub play: [u8; 32],
-    pub base_generation: u32,
-    pub resource_generation: u32,
-    pub operation: u32,
-    pub parameter_bytes: u32,
-    pub work_units: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelOperationLease {
-    slot: u16,
-    table_generation: u32,
-    sequence: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum KernelCapabilityRefusal {
-    InvalidTable,
-    InvalidScope,
-    TableFull,
-    UnknownHandle,
-    WrongDomain,
-    WrongScope,
-    ParameterEnvelope,
-    WorkEnvelope,
-    InFlightFull,
-    Exhausted,
-    Revoked,
-    StaleLease,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum KernelRevocationCause {
-    PlayCancelled,
-    PlayCompleted,
-    PlanReplaced,
-    AuthorityRevoked,
-    ResourceReplaced,
-    BaseReplaced,
-    BootReplaced,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelRevocationReceipt {
-    pub cause: KernelRevocationCause,
-    pub revoked_handles: u16,
-}
+mod types;
+pub use types::*;
 
 #[derive(Clone, Copy)]
 struct Entry {
@@ -188,6 +99,26 @@ impl KernelCapabilityTable {
             revoked: false,
         };
         Ok(handle)
+    }
+
+    /// Root rechecks the entire currently selected scope before accepting an
+    /// untrusted gate claim. A cached handle is never current authority by itself.
+    pub fn authorize_current(
+        &mut self,
+        domain: ProtectionDomainId,
+        handle: KernelCapabilityHandle,
+        current: &KernelCapabilityScope,
+        claim: KernelOperationClaim,
+    ) -> Result<KernelOperationLease, KernelCapabilityRefusal> {
+        let entry = self
+            .entries
+            .iter()
+            .find(|entry| entry.occupied && constant_time_equal(entry.handle.0, handle.0))
+            .ok_or(KernelCapabilityRefusal::UnknownHandle)?;
+        if entry.scope != *current {
+            return Err(KernelCapabilityRefusal::WrongScope);
+        }
+        self.authorize(domain, handle, claim)
     }
 
     pub fn authorize(

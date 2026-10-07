@@ -399,6 +399,19 @@ fn execute_with_features(
     Ok(record)
 }
 
+pub(super) fn execute_ordinary_domain_proof(
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["native-compositor", "ordinary-domain-proof"],
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+    )
+}
+
 pub(super) fn execute_isolation_proof(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     execute_with_features(
         ConduitosArch::X86_64,
