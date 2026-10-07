@@ -17,8 +17,9 @@ const output = path.resolve(outputArg);
 const report = JSON.parse(await readFile(path.join(run, 'three-host/report.json'), 'utf8'));
 assert.match(report.native_source_commit, /^[a-f0-9]{40}$/);
 assert.match(report.run_id, /^[A-Za-z0-9._-]+$/);
-assert.ok(report.body_id && report.owner_selected_speech && report.owner_llm_speech,
-  'the development page requires one Body and both selected listener speech modes');
+assert.ok(report.body_id && report.owner_selected_speech && report.owner_direct_speech
+  && report.owner_llm_speech,
+  'the development page requires one Body and all selected listener speech modes');
 assert.ok(report.birth && report.screen_free_clock,
   'the development page requires real nonvisual Birth and clock actions');
 assert.equal(report.walkthrough?.path, 'walkthrough.html');
@@ -37,6 +38,7 @@ for (const ref of refs) {
   assert.ok(relative.split('/').every(segment => segment && segment !== '.' && segment !== '..'));
   if (relative.endsWith('.wav')) {
     assert.ok(relative.startsWith('owner-selected-speech/') ||
+      relative.startsWith('owner-direct-spoken/') ||
       relative.startsWith('owner-llm-selected/') ||
       relative.startsWith('owner-llm-restored/'),
     'only the selected listener Play may be offered as playable audio');
@@ -79,6 +81,49 @@ const selectedWav = report.owner_llm_speech.wav;
 assert.ok(files.has(selectedWav.path), 'page must link the model listener WAV');
 assert.equal(digest(await readFile(path.join(run, 'three-host', selectedWav.path))),
   selectedWav.sha256, 'model listener WAV differs from its completed Play receipt');
+const direct = report.owner_direct_speech;
+assert.equal(direct.source_commit, report.native_source_commit);
+assert.equal(direct.run_id, report.run_id);
+assert.equal(direct.body_id, report.body_id);
+assert.equal(direct.human_hearing_observed, false);
+assert.ok(direct.show_id && direct.route_plan_id && direct.face_id);
+assert.ok(direct.batches.length > 1, 'the installed direct Mask must complete multiple speaker Plays');
+assert.ok(files.has(direct.terminal.path), 'page must link the direct owner terminal receipt');
+const directTerminalBytes = await readFile(path.join(run, 'three-host', direct.terminal.path));
+assert.equal(digest(directTerminalBytes), direct.terminal.sha256);
+const directTerminal = JSON.parse(directTerminalBytes);
+assert.equal(directTerminal.schema, 'conduit.body/owner-spoken-terminal@1');
+assert.equal(directTerminal.mode, 'direct');
+assert.equal(directTerminal.outcome, 'available');
+assert.equal(directTerminal.direct_reading_complete, true);
+assert.equal(directTerminal.speaker_played, true);
+assert.equal(directTerminal.show_id, direct.show_id);
+assert.equal(directTerminal.route_plan_id, direct.route_plan_id);
+assert.equal(directTerminal.source_face_id, direct.face_id);
+assert.equal(directTerminal.speaker_playback?.source_show_id, direct.show_id);
+assert.equal(directTerminal.speaker_playback?.outcome, 'completed');
+assert.equal(directTerminal.speaker_playback?.provider_sha256, direct.provider_sha256);
+assert.equal(directTerminal.speaker_playback?.correlation_sha256, direct.correlation_sha256);
+assert.equal(directTerminal.speaker_playback?.completed_segments, direct.completed_segments);
+assert.equal(directTerminal.speaker_playback?.batches?.length, direct.batches.length);
+const directPlays = new Set([direct.mask_artifact_play_id]);
+for (const [index, batch] of direct.batches.entries()) {
+  assert.ok(batch.plan_id && batch.play_id && !directPlays.has(batch.play_id));
+  directPlays.add(batch.play_id);
+  assert.equal(batch.provider_sha256, direct.provider_sha256);
+  assert.equal(batch.wav.sha256, batch.wav_sha256);
+  const terminalBatch = directTerminal.speaker_playback.batches[index];
+  assert.equal(batch.plan_id, terminalBatch.plan_id);
+  assert.equal(batch.play_id, terminalBatch.play_id);
+  assert.equal(batch.wav_sha256, terminalBatch.wav_sha256);
+  assert.equal(batch.pcm_sha256, terminalBatch.pcm_sha256);
+  assert.ok(files.has(batch.wav.path), 'page must link each direct listener WAV');
+  const wav = await readFile(path.join(run, 'three-host', batch.wav.path));
+  assert.equal(wav.length, batch.wav.bytes);
+  assert.equal(digest(wav), batch.wav.sha256);
+  assert.equal(digest(wav.subarray(44)), batch.pcm_sha256);
+  assert.equal(wav.length - 44, batch.pcm_bytes);
+}
 
 try {
   await mkdir(path.dirname(output), { recursive: true });
