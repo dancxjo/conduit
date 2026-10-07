@@ -173,6 +173,18 @@ impl SeededStateOperationFactory {
             || gear.outputs != expected.outputs
             || gear.semantic_contract != expected.semantic_contract
             || gear.limits != expected.limits
+            || gear.realization_properties != expected.realization_properties
+            || !gear.realization_characteristics.is_empty()
+            || gear.terminal_transductions
+                != expected
+                    .semantic_contract
+                    .laws
+                    .iter()
+                    .filter_map(|law| match law {
+                        KindSemanticLaw::TerminalTransduction(profile) => Some(profile.clone()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
             || !gear.configuration.is_empty()
             || !gear.host_calls.is_empty()
             || gear.base.is_some()
