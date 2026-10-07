@@ -1,0 +1,28 @@
+# Explicit uncommitted withdrawal/reanalysis. Protected lexical receipts remain
+# independently retained and must gate every later choice; no played authority.
+type LanguageParserWindow8ReanalysisContext = {
+    previous: LanguageParserWindow8Snapshot
+    next: LanguageParserWindow8Lexical
+    lineage: LanguageTextRevisionLineage
+    basis: LanguageParserBasis
+    default_relation: LanguageParserRelation
+    where .lineage.previous == .previous.lexical.tape.source && .lineage.next == .next.tape.source
+    where .previous.lexical.tape.profile == .next.tape.profile
+    where .next.token_count > 0
+    where .basis.text == .next.tape.source.material.identity && .basis.source_revision == .next.tape.source.material.revision
+    where .basis.analysis_revision != .previous.basis.analysis_revision
+    where !.previous.candidate0.hypothesis.active || .previous.candidate0.hypothesis.state.committed == 0
+    where !.previous.candidate1.hypothesis.active || .previous.candidate1.hypothesis.state.committed == 0
+    where !.previous.candidate2.hypothesis.active || .previous.candidate2.hypothesis.state.committed == 0
+    where !.previous.candidate3.hypothesis.active || .previous.candidate3.hypothesis.state.committed == 0
+    where !variant/is(.default_relation.base,"root")
+}
+type LanguageParserWindow8ReanalysisProposal = {
+    state: LanguageParserWindow8RawState
+    choices: collection U64 = 8
+    selected: U64
+    withdrawn_analysis: LanguageAnalysisRevisionId
+}
+plot language-window8-reanalysis (
+    input: LanguageParserWindow8ReanalysisContext...| >> output: LanguageParserWindow8ReanalysisProposal...|
+) = { state: { basis: .basis, token_count: .next.token_count, unread: 0, depth: 1, stack: [8,8,8,8,8,8,8,8,8], heads: [9,9,9,9,9,9,9,9,8], relation0: .default_relation, relation1: .default_relation, relation2: .default_relation, relation3: .default_relation, relation4: .default_relation, relation5: .default_relation, relation6: .default_relation, relation7: .default_relation, committed: 0 }, choices: [0,0,0,0,0,0,0,0], selected: 0, withdrawn_analysis: .previous.basis.analysis_revision }
