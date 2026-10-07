@@ -157,7 +157,7 @@ impl Blueprint {
             &registry,
             KernelCompositeSignStorage {
                 additional_local_items: 60000,
-                additional_remote_items: 1024,
+                additional_remote_items: 4096,
             },
         )
         .unwrap();

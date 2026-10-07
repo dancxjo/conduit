@@ -1,0 +1,80 @@
+# Shared source-owned legality facts. The transition and scoring mask use the
+# same predicates; numerical ranking receives only this source's admissible mask.
+# Raw mask outputs remain proposals; final recursive native state admission is
+# mandatory before beam agreement, stability, commitment, or arc publication.
+type LanguageParserLegalFacts = {
+    context: LanguageParserContext
+    shift: Boolean
+    reduce: Boolean
+    left: Boolean
+    right: Boolean
+    right_root: Boolean
+    right_nonroot: Boolean
+    left_ancestor: U64
+    right_ancestor: U64
+    left_cycle: Boolean
+    right_cycle: Boolean
+}
+type LanguageParserMaskQuery = {
+    basis: LanguageParserBasis
+    state: LanguageParserNumericState
+}
+type LanguageParserLegalMask = {
+    basis: LanguageParserBasis
+    state: LanguageParserNumericState
+    allowed: collection Boolean = 76
+}
+
+plot language-parser-legal-facts (
+    input: LanguageParserContext...| >> output: LanguageParserLegalFacts...|
+) = { context: ., shift: false, reduce: false, left: false, right: false, right_root: false, right_nonroot: false, left_ancestor: .request.state.unread, right_ancestor: .top, left_cycle: false, right_cycle: false }
+
+plot language-parser-fact-shift (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .context.admitted && (.context.request.state.unread < .context.request.state.token_count && .context.request.state.depth < 5), reduce: .reduce, left: .left, right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+
+plot language-parser-fact-reduce (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .shift, reduce: .context.admitted && (.context.request.state.depth > 1 && (.context.top < 4 && sequence/at(.context.request.state.heads, .context.top) < 5)), left: .left, right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+
+plot language-parser-fact-left (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .shift, reduce: .reduce, left: .context.admitted && ((.context.request.state.unread < .context.request.state.token_count && .context.request.state.depth > 1) && (.context.top < 4 && (.context.top >= .context.request.state.committed && sequence/at(.context.request.state.heads, .context.top) == 5))), right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+
+plot language-parser-fact-right (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .shift, reduce: .reduce, left: .left, right: .context.admitted && ((.context.request.state.unread < .context.request.state.token_count && .context.request.state.depth < 5) && (.context.request.state.unread >= .context.request.state.committed && sequence/at(.context.request.state.heads, .context.request.state.unread) == 5)), right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+
+plot language-parser-fact-right-root (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .shift, reduce: .reduce, left: .left, right: .right, right_root: .right && ((.context.top == 4 && .context.request.state.heads.0 != 4) && (.context.request.state.heads.1 != 4 && (.context.request.state.heads.2 != 4 && .context.request.state.heads.3 != 4))), right_nonroot: .right_nonroot, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+
+plot language-parser-fact-right-nonroot (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .shift, reduce: .reduce, left: .left, right: .right, right_root: .right_root, right_nonroot: .right && .context.top < 4, left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+
+plot language-parser-fact-select (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserContext...|
+) = { request: .context.request, top: .context.top, admitted: .context.admitted, legal: .context.legal || ((variant/is(.context.request.action,"shift") && .shift) || ((variant/is(.context.request.action,"reduce") && .reduce) || ((variant/is(.context.request.action,"left_arc") && (.left && !variant/is(.context.request.relation.base,"root"))) || (variant/is(.context.request.action,"right_arc") && (variant/is(.context.request.relation.base,"root") ? .right_root : .right_nonroot))))), dependent: .context.dependent, ancestor: .context.ancestor, cycle: .context.cycle }
+
+plot language-parser-mask-request (
+    input: LanguageParserMaskQuery...| >> output: LanguageParserRequest...|
+) = { basis: .basis, state: .state, action: shift(unit), relation: .state.relation0 }
+
+plot language-parser-mask-basis (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .shift && (.context.request.basis.text == .context.request.state.basis.text && (.context.request.basis.source_revision == .context.request.state.basis.source_revision && .context.request.basis.analysis_revision == .context.request.state.basis.analysis_revision)), reduce: .reduce && (.context.request.basis.text == .context.request.state.basis.text && (.context.request.basis.source_revision == .context.request.state.basis.source_revision && .context.request.basis.analysis_revision == .context.request.state.basis.analysis_revision)), left: .left && (.context.request.basis.text == .context.request.state.basis.text && (.context.request.basis.source_revision == .context.request.state.basis.source_revision && .context.request.basis.analysis_revision == .context.request.state.basis.analysis_revision)), right: .right, right_root: .right_root && (.context.request.basis.text == .context.request.state.basis.text && (.context.request.basis.source_revision == .context.request.state.basis.source_revision && .context.request.basis.analysis_revision == .context.request.state.basis.analysis_revision)), right_nonroot: .right_nonroot && (.context.request.basis.text == .context.request.state.basis.text && (.context.request.basis.source_revision == .context.request.state.basis.source_revision && .context.request.basis.analysis_revision == .context.request.state.basis.analysis_revision)), left_ancestor: .left_ancestor, right_ancestor: .right_ancestor, left_cycle: .left_cycle, right_cycle: .right_cycle }
+
+plot language-parser-mask-follow (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalFacts...|
+) = { context: .context, shift: .shift, reduce: .reduce, left: .left, right: .right, right_root: .right_root, right_nonroot: .right_nonroot, left_ancestor: (.left_ancestor < 5 ? sequence/at(.context.request.state.heads, .left_ancestor) : 5), right_ancestor: (.right_ancestor < 5 ? sequence/at(.context.request.state.heads, .right_ancestor) : 5), left_cycle: .left_cycle || .left_ancestor == .context.top, right_cycle: .right_cycle || .right_ancestor == .context.request.state.unread }
+
+plot language-parser-mask-output (
+    input: LanguageParserLegalFacts...| >> output: LanguageParserLegalMask...|
+) = { basis: .context.request.basis, state: .context.request.state, allowed: [.shift, .reduce, (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), (.left && !.left_cycle), false, (.left && !.left_cycle), (.left && !.left_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_root && !.right_cycle), (.right_nonroot && !.right_cycle), (.right_nonroot && !.right_cycle)] }
+
+plot language-parser-legal-mask (
+    query: LanguageParserMaskQuery...| >> mask: LanguageParserLegalMask...|
+) {
+    query >> language-parser-mask-request() >> language-parser-context() >> language-parser-admit-0() >> language-parser-admit-1() >> language-parser-admit-2() >> language-parser-admit-3() >> language-parser-admit-4() >> language-parser-admit-5() >> language-parser-admit-6() >> language-parser-admit-7() >> language-parser-admit-8() >> language-parser-admit-9() >> language-parser-legal-facts() >> language-parser-fact-shift() >> language-parser-fact-reduce() >> language-parser-fact-left() >> language-parser-fact-right() >> language-parser-fact-right-root() >> language-parser-fact-right-nonroot() >> language-parser-mask-basis() >> language-parser-mask-follow() >> language-parser-mask-follow() >> language-parser-mask-follow() >> language-parser-mask-follow() >> language-parser-mask-follow() >> language-parser-mask-output() >> mask
+}
