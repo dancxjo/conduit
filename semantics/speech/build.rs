@@ -30,8 +30,9 @@ fn main() {
     println!("cargo:rerun-if-changed=playback.conduit");
     println!("cargo:rerun-if-changed=lexical_pronunciation.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
+    println!("cargo:rerun-if-changed=text_token_role.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
@@ -46,7 +47,8 @@ fn main() {
         include_str!("linguistic_prosody.conduit"),
         include_str!("pitch_trajectory.conduit"),
         include_str!("playback.conduit"),
-        include_str!("lexical_pronunciation.conduit")
+        include_str!("lexical_pronunciation.conduit"),
+        include_str!("text_token_role.conduit")
     );
     let mut language_types = conduit_language::identity_types();
     language_types.extend(conduit_language::revision_lineage_types());
@@ -64,6 +66,16 @@ fn main() {
             }),
     );
     language_types.extend([
+        (
+            "LanguageLexicalToken",
+            conduit_language::LanguageLexicalToken::semantic_type()
+                .expect("Language lexical token"),
+        ),
+        (
+            "LanguageDependencyArc",
+            conduit_language::LanguageDependencyArc::semantic_type()
+                .expect("Language dependency arc"),
+        ),
         (
             "LanguageLexicalCandidate",
             conduit_language::LanguageLexicalCandidate::semantic_type()
@@ -129,6 +141,24 @@ fn main() {
         program,
     )
     .expect("retain pronunciation lookup");
+    let participation = expand_canonical_plot_for_authoring(
+        &semantic,
+        "speech/text-token-role",
+        &ProfileCatalog::new(),
+    )
+    .expect("checked text participation expands");
+    assert_eq!(participation.expanded.gears.len(), 1);
+    let [entry] = participation.expanded.gears[0].configuration.as_slice() else {
+        panic!("one participation program")
+    };
+    let conduit_core::ConfigurationValue::Text(program) = &entry.value else {
+        panic!("participation program")
+    };
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("text_token_role_program.hex"),
+        program,
+    )
+    .expect("retain text participation");
     let identities = language_types
         .iter()
         .map(|(_, ty)| match ty.shape() {

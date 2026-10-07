@@ -244,3 +244,6 @@ pub mod lexical_pronunciation;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod pronunciation_intent;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod text_token_role;
