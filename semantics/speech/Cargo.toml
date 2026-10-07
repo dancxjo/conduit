@@ -23,6 +23,7 @@ conduit-plot = { path = "../../architecture/plot" }
 conduit-core = { path = "../../architecture/core" }
 
 [dev-dependencies]
+conduit-ai = { path = "../ai" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-core = { path = "../../architecture/core" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["step-test-support", "alloc"] }

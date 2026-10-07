@@ -1,6 +1,6 @@
 # Conditioning-only topology from xiph/opus
 # 503d81b138d76621aae4b12786e90de48aa8db3a, dnn/fargan.c.
-# Generic fixed numeric Kind signatures are currently a checker-test fixture.
+# Generic numeric kinds have independent owned contracts and bounded Backs.
 # This Source establishes topology, not executable synthesis or model admission.
 # Matrix profiles carry immutable resource references, content digest, f32 element,
 # and exact dimensions. Columns denote inputs; rows denote outputs. Model admission
@@ -8,66 +8,8 @@
 # Features arrive at 100 Hz. History is the two prior dense/tanh vectors.
 # The three-frame window produces conditioning centered one frame before input.
 # Caller stages next_history and next_period and commits only with accepted PCM.
-type FarganFinite = F32 finite
+# Numeric Types are imported from the AI fixed_numeric owner catalog.
 type FarganPeriod = U16 in 32..=255
-type FarganVector12 = collection FarganFinite = 12
-type FarganVector20 = collection FarganFinite = 20
-type FarganVector32 = collection FarganFinite = 32
-type FarganVector64 = collection FarganFinite = 64
-type FarganVector128 = collection FarganFinite = 128
-type FarganVector192 = collection FarganFinite = 192
-type FarganVector320 = collection FarganFinite = 320
-type FarganTensorDigest = collection U8 = 32
-type FarganTensorElement =
-    f32
-type FarganEmbedding224x12 = {
-    resource: ResourceRef
-    content_digest: FarganTensorDigest
-    element: FarganTensorElement
-    columns: U16 in 224..=224
-    rows: U16 in 12..=12
-}
-type FarganMatrix32x64 = {
-    resource: ResourceRef
-    content_digest: FarganTensorDigest
-    element: FarganTensorElement
-    columns: U16 in 32..=32
-    rows: U16 in 64..=64
-}
-type FarganMatrix192x128 = {
-    resource: ResourceRef
-    content_digest: FarganTensorDigest
-    element: FarganTensorElement
-    columns: U16 in 192..=192
-    rows: U16 in 128..=128
-}
-type FarganMatrix128x320 = {
-    resource: ResourceRef
-    content_digest: FarganTensorDigest
-    element: FarganTensorElement
-    columns: U16 in 128..=128
-    rows: U16 in 320..=320
-}
-type FarganBias64 = {
-    resource: ResourceRef
-    content_digest: FarganTensorDigest
-    element: FarganTensorElement
-    length: U16 in 64..=64
-}
-type FarganBias128 = {
-    resource: ResourceRef
-    content_digest: FarganTensorDigest
-    element: FarganTensorElement
-    length: U16 in 128..=128
-}
-type FarganBias320 = {
-    resource: ResourceRef
-    content_digest: FarganTensorDigest
-    element: FarganTensorElement
-    length: U16 in 320..=320
-}
-
-type FarganConditionHistory = collection FarganVector64 = 2
 
 # The admitted period range yields 0..223. Generic lookup checks its own
 # index bound; offset policy is this authored subtraction, not primitive code.
@@ -82,19 +24,19 @@ plot speech/fargan-period-identity (
 ) = (.)
 
 plot speech/fargan-conditioning (
-    >> features: FarganVector20
+    >> features: NumericF32Vector20
     >> period: FarganPeriod
     >> previous_period: FarganPeriod
-    >> history: FarganConditionHistory
-    >> embedding_weights: FarganEmbedding224x12
-    >> dense1_weights: FarganMatrix32x64
-    >> dense1_bias: FarganBias64
-    >> conv_weights: FarganMatrix192x128
-    >> conv_bias: FarganBias128
-    >> dense2_weights: FarganMatrix128x320
-    >> dense2_bias: FarganBias320
-    condition: FarganVector320 >>
-    next_history: FarganConditionHistory >>
+    >> history: NumericHistory2x64
+    >> embedding_weights: NumericEmbedding224x12
+    >> dense1_weights: NumericF32MatrixRef32x64
+    >> dense1_bias: NumericF32BiasRef64
+    >> conv_weights: NumericF32MatrixRef192x128
+    >> conv_bias: NumericF32BiasRef128
+    >> dense2_weights: NumericF32MatrixRef128x320
+    >> dense2_bias: NumericF32BiasRef320
+    condition: NumericF32Vector320 >>
+    next_history: NumericHistory2x64 >>
     conditioned_period: FarganPeriod >>
     next_period: FarganPeriod >>
 ) {
@@ -121,8 +63,8 @@ plot speech/fargan-conditioning (
     dense1.result >> activate1.value
     activate1.result >> window.value
     history >> window.history
-    window.next_history >> next_history
-    window.window >> convolution.value
+    window.result >> (.next_history) >> next_history
+    window.result >> (.window) >> convolution.value
     conv_weights >> convolution.weights
     conv_bias >> convolution.bias
     convolution.result >> activate2.value
