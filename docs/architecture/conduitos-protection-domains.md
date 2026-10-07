@@ -87,9 +87,10 @@ state. A hard timer returns a hostile loop as a work-exhaustion fault. A fault
 terminates the region; it does not resume the hostile instruction.
 
 The supplemental `cargo xtask make conduitos ordinary-domain-proof` lane runs
-checked ordinary text Source through the production kernel and then checks 17
+checked ordinary text Source through the production kernel and then checks 18
 hostile entries: Root memory, capability memory, sibling memory, Root entry,
-MMIO, ports, interrupt disabling, an infinite loop, floating-point access,
+MMIO, ports, interrupt disabling, infinite loops with a clear or set direction
+flag, floating-point access,
 alternate syscall entries, division by zero, breakpoint, single-step, timestamp
 access, code writes, and data execution. This lane does not establish that every
 current product path uses protection domains. It also checks that Compose
