@@ -660,9 +660,13 @@ try {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     assert.ok(terminal, 'owner direct spoken Mask did not reach a terminal result');
+    const directTerminalBytes = Buffer.from(`${JSON.stringify(terminal, null, 2)}\n`);
+    await writeFile(path.join(output, 'owner-direct-spoken-terminal.json'), directTerminalBytes,
+      { flag: 'wx', mode: 0o600 });
     assert.equal(terminal.outcome, 'available', terminal.detail);
     assert.equal(terminal.mode, 'direct');
-    assert.equal(terminal.direct_reading_complete, true);
+    assert.equal(terminal.direct_reading_complete, true,
+      terminal.speaker_playback?.detail ?? 'direct speaker reading was incomplete');
     assert.equal(terminal.speaker_played, true);
     assert.equal(terminal.route_plan_id, selected.route_plan_id);
     assert.equal(terminal.source_face_id, before.presentation.identity);
