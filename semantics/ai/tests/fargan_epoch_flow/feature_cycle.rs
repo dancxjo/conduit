@@ -253,6 +253,75 @@ pub(super) fn prepare_feedback() -> (
         .unwrap();
     ids.insert("__FEATURE_PROPOSAL_WEAK__".into(), weak.kind_identity(true));
     context.weakening.push(weak);
+    let event_definition = declarations::exact_epoch_declarations()
+        + "\n"
+        + include_str!("../../../speech/fargan_conditioning_epoch_contracts.conduit");
+    let model_event = Arc::new(
+        PreparedNativeProfile::check_definition(&event_definition, "FarganFeatureConditionEpoch")
+            .unwrap(),
+    );
+    model_event
+        .install(&mut context.startup, &mut context.profiles, true)
+        .unwrap();
+    ids.insert(
+        "__FEATURE_MODEL_EVENT_NATIVE__".into(),
+        model_event.kind_identity(true),
+    );
+    context.native.push(model_event);
+    let raw_proposal =
+        Arc::new(PreparedNominalWeakening::prepare(native["PROPOSAL"].clone()).unwrap());
+    raw_proposal
+        .install(&mut context.startup, &mut context.profiles, true)
+        .unwrap();
+    ids.insert(
+        "__FEATURE_NATIVE_PROPOSAL_WEAK__".into(),
+        raw_proposal.kind_identity(true),
+    );
+    context.weakening.push(raw_proposal);
+    let ack = register_pair(
+        &mut context,
+        &mut ids,
+        "ACK",
+        native["PENDING"].clone(),
+        StructuredInfoType::leaf(kind_id("value/u64")).unwrap(),
+    );
+    let weak_ack = Arc::new(PreparedNominalWeakening::prepare(ack).unwrap());
+    weak_ack
+        .install(&mut context.startup, &mut context.profiles, true)
+        .unwrap();
+    ids.insert("__FEATURE_ACK_WEAK__".into(), weak_ack.kind_identity(true));
+    let ack_guard =
+        conduit_ai::fixed_numeric_guard::FixedGuardProfile::prepare(weak_ack.output_type().clone())
+            .unwrap();
+    ack_guard
+        .install(&mut context.startup, &mut context.profiles)
+        .unwrap();
+    ids.insert(
+        "__FEATURE_ACK_GUARD__".into(),
+        ack_guard.contract().unwrap().kind_id.as_str().into(),
+    );
+    context.guards.push(ack_guard);
+    context.weakening.push(weak_ack);
+    let pcm = context
+        .native
+        .iter()
+        .find(|profile| profile.kind_identity(true) == context.kinds["__PCM_VALIDATOR__"])
+        .unwrap()
+        .value_type()
+        .clone();
+    let ack_model_guard = conduit_ai::fixed_numeric_guard::FixedGuardProfile::prepare(pcm).unwrap();
+    ack_model_guard
+        .install(&mut context.startup, &mut context.profiles)
+        .unwrap();
+    ids.insert(
+        "__FEATURE_ACK_MODEL_GUARD__".into(),
+        ack_model_guard.contract().unwrap().kind_id.as_str().into(),
+    );
+    ids.insert(
+        "__FEATURE_PCM_NATIVE__".into(),
+        context.kinds["__PCM_VALIDATOR__"].clone(),
+    );
+    context.guards.push(ack_model_guard);
     (context, seeded, ids)
 }
 
@@ -403,4 +472,72 @@ fn native_feature_source(ids: &std::collections::BTreeMap<String, String>) -> St
         .collect::<Vec<_>>()
         .join("\n");
     imports + "\n" + &feature_source(true) + "\n" + &body
+}
+
+pub(super) fn cycle_source(ids: &std::collections::BTreeMap<String, String>) -> String {
+    let policy = include_str!("../../../speech/fargan_feature_cycle.conduit");
+    for key in [
+        "__FEATURE_NATIVE_PROPOSAL_WEAK__",
+        "__FEATURE_PENDING_NATIVE__",
+        "__FEATURE_STATE_NATIVE__",
+        "__FEATURE_EVENT_NATIVE__",
+        "__FEATURE_MODEL_EVENT_NATIVE__",
+        "__FEATURE_ACK_WEAK__",
+        "__FEATURE_PCM_NATIVE__",
+        "__FEATURE_CELL__",
+        "__FEATURE_ZIP__",
+        "__FEATURE_INPUT_WEAK__",
+        "__FEATURE_INPUT_GUARD__",
+        "__FEATURE_INPUT_NATIVE__",
+        "__FEATURE_ACK_MODEL_GUARD__",
+        "__FEATURE_ACK_PAIR__",
+        "__FEATURE_ACK_GUARD__",
+    ] {
+        assert!(
+            policy.contains(&ids[key]),
+            "retained exact Source owner {key}"
+        );
+    }
+    let authored = [
+        analysis_entry_source(ids),
+        feedback_entry_source(ids),
+        include_str!("../../../speech/fargan_epoch_anchor.conduit").into(),
+        policy.into(),
+    ]
+    .join("\n");
+    let imports = authored
+        .lines()
+        .filter(|line| line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let body = authored
+        .lines()
+        .filter(|line| !line.starts_with("with "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    imports + "\n" + &body
+}
+#[test]
+fn feature_cycle_authors_model_anchor_and_final_pcm_ack_before_causal_replacement() {
+    let (context, _, ids) = prepare_feedback();
+    let receipt = format!("[{}]", vec!["1"; 32].join(","));
+    let anchor=format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
+    let source = cycle_source(&ids).replace(
+        "selected: FarganModelFrameAnchor\n",
+        &format!("selected: FarganModelFrameAnchor = {anchor}\n"),
+    );
+    let document =
+        check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
+    let graph = expand_canonical_plot_for_authoring(
+        &document,
+        "speech/flow-fargan-feature-cycle",
+        &context.profiles,
+    )
+    .unwrap();
+    assert!(graph.expanded.gears.len() > 105);
+    eprintln!(
+        "Source causal642/finalPCM-ACK feature cycle: {}nodes/{}cords",
+        graph.expanded.gears.len(),
+        graph.expanded.connections.len()
+    );
 }
