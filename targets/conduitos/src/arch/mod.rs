@@ -95,8 +95,13 @@ pub use riscv64::{
 };
 #[cfg(target_arch = "riscv64")]
 pub const ARCHITECTURE: &str = "riscv64";
+#[cfg(target_arch = "riscv64")]
+pub use riscv64::SeedEntropy;
 #[cfg(target_arch = "loongarch64")]
 mod loongarch64;
+#[cfg(test)]
+#[path = "riscv64/seed_conditioner.rs"]
+mod riscv64_seed_conditioner;
 #[cfg(target_arch = "loongarch64")]
 pub use loongarch64::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,

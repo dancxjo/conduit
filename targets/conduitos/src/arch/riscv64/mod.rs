@@ -4,6 +4,8 @@ use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
+mod entropy;
+pub use entropy::SeedEntropy;
 
 const SBI_EXT_TIME: usize = 0x5449_4d45;
 const SUPERVISOR_TIMER_INTERRUPT: usize = 5;
