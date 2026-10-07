@@ -7,7 +7,8 @@ import { recordBrowserCapture } from './three-host-capture-observation.mjs';
 
 export async function capturePresentationRecovery({ page, context, serverUrl, owner, state,
   bodyId, ownerPartId, guestPartId, browserCredential, browserBootId, oldFace,
-  oldWardrobe, initialOwnerWindowUrl, output, sourceCommit, runId }) {
+  oldWardrobe, initialOwnerWindowUrl, output, sourceCommit, runId,
+  observeTransition = async () => {} }) {
   const status = () => {
     const result = owner(['body', 'status', '--state-dir', state, '--json']);
     assert.equal(result.biography.body_id, bodyId);
@@ -68,6 +69,9 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
   for (const partId of [ownerPartId, guestPartId]) {
     assert.ok(duringLoss.biography.membership.parts.find(part => part.part_id === partId)?.current);
   }
+  await observeTransition({ phase: 'browser-presentation-unavailable',
+    routeId: oldWardrobe.selected.route_id, routeAvailable: false,
+    partId: browserCredential.part_id, bootId: browserBootId });
   const recoveredPage = await context.newPage();
   await recoveredPage.goto(`${serverUrl}?participate=owner#your-handbook`);
   await recoveredPage.locator('[data-owner-key]').waitFor();
@@ -128,6 +132,9 @@ export async function capturePresentationRecovery({ page, context, serverUrl, ow
   assert.equal(after.biography.membership.parts.find(part =>
     part.part_id === ownerPartId)?.current?.boot_id,
     duringLoss.biography.membership.parts.find(part => part.part_id === ownerPartId)?.current?.boot_id);
+  await observeTransition({ phase: 'browser-presentation-restored',
+    routeId: wardrobe.selected.route_id, routeAvailable: true,
+    wardrobe, partId: browserCredential.part_id, bootId: identity.bootId });
   await recoveredPage.locator('[data-owner-face]').screenshot({
     path: path.join(output, 'browser-after-recovery.png'),
   });

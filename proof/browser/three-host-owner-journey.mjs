@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
@@ -129,6 +129,64 @@ try {
   const bodyId = ownerBefore.biography.body_id;
   const ownerPartAtCapture = ownerBefore.biography.membership.parts[0].current;
   const runId = captureRunId(bodyId, ownerPartAtCapture.host_id, ownerPartAtCapture.boot_id);
+  const checkpointHandoffs = [];
+  const checkpointDirectory = path.join(output, 'screen-free-checkpoints');
+  if (process.env.CONDUIT_SCREEN_FREE_CHECKPOINTS === '1') {
+    await mkdir(checkpointDirectory, { mode: 0o700 });
+  }
+  const screenFreeCheckpoint = async (phase, routeId, routeAvailable, details = {}) => {
+    if (process.env.CONDUIT_SCREEN_FREE_CHECKPOINTS !== '1') return;
+    assert.ok(['model-provider-unavailable', 'model-provider-restored',
+      'browser-presentation-unavailable', 'browser-presentation-restored'].includes(phase));
+    assert.match(routeId, /^route\//);
+    const face = run(['body', 'face', '--state-dir', state, '--json']);
+    assert.equal(face.presentation.basis.body_id, bodyId);
+    const ready = {
+      schema: 'conduit.proof/screen-free-checkpoint@1', phase,
+      source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
+      owner_host_id: ownerPartAtCapture.host_id, owner_boot_id: ownerPartAtCapture.boot_id,
+      face_id: face.presentation.identity,
+      face_revision: face.presentation_revision_decimal,
+      route_id: routeId, route_available: routeAvailable,
+      ...details,
+    };
+    const readyPath = path.join(checkpointDirectory, `${phase}.ready.json`);
+    const temporary = `${readyPath}.tmp`;
+    await writeFile(temporary, `${JSON.stringify(ready, null, 2)}\n`, { mode: 0o600 });
+    await rename(temporary, readyPath);
+    const resumePath = path.join(checkpointDirectory, `${phase}.resume.json`);
+    const deadline = Date.now() + 600_000;
+    while (!existsSync(resumePath) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    assert.ok(existsSync(resumePath), `screen-free operator did not finish ${phase}`);
+    const resumeBytes = await readFile(resumePath);
+    const resume = JSON.parse(resumeBytes);
+    for (const key of ['schema', 'phase', 'body_id', 'owner_host_id', 'owner_boot_id',
+      'route_id', 'route_available']) {
+      assert.deepEqual(resume[key], ready[key], `${phase} resume ${key} differs`);
+    }
+    assert.equal(resume.speaker_playback_selected, Boolean(installed.selected_speech));
+    assert.ok(Number.isSafeInteger(resume.selected_playback_receipts) &&
+      resume.selected_playback_receipts >= 0);
+    if (resume.speaker_playback_selected) {
+      assert.ok(resume.selected_playback_receipts > 0,
+        `${phase} has no completed selected speaker Play`);
+    }
+    assert.ok(resume.face_id && resume.source_show_id,
+      `${phase} omitted final Face or Show`);
+    const transcriptPath = path.resolve(checkpointDirectory, resume.transcript?.path ?? '');
+    assert.ok(transcriptPath.startsWith(`${output}${path.sep}`),
+      `${phase} transcript must remain within this run`);
+    const transcript = await readFile(transcriptPath);
+    assert.equal(transcript.length, resume.transcript.bytes);
+    assert.equal(digest(transcript), resume.transcript.sha256);
+    checkpointHandoffs.push({ phase, route_id: routeId, route_available: routeAvailable,
+      ready: { path: path.relative(output, readyPath), sha256: digest(await readFile(readyPath)) },
+      resume: { path: path.relative(output, resumePath), sha256: digest(resumeBytes) },
+      transcript: resume.transcript, source_show_id: resume.source_show_id,
+      selected_playback_receipts: resume.selected_playback_receipts });
+  };
   const observations = [];
   const observeBrowserCapture = async (name, face, cause, screenshot) => {
     observations.push(await recordBrowserCapture({ output, name,
@@ -709,6 +767,7 @@ try {
     ? await captureOwnerLlmSpeaker({ owner: run, state, output, installation: installed,
       bodyId, runId, sourceCommit: installed.release_source_identity, model: modelArgument })
     : undefined;
+  let modelWardrobeObservations = 0;
   const ownerModelRouteLoss = ownerLlmSpeech && ownerModelRouteControlArgument &&
     ownerModelRouteControlArgument !== '-'
     ? await captureOwnerModelRouteLoss({ owner: run, state, output, installation: installed,
@@ -725,7 +784,16 @@ try {
               route.route_id === routeId && route.currently_available === available);
           } catch { return false; }
         }, { routeId, available }, { timeout: 12_000 });
-        return readWardrobe();
+        const report = await readWardrobe();
+        modelWardrobeObservations += 1;
+        if (modelWardrobeObservations > 1) {
+          await screenFreeCheckpoint(available ? 'model-provider-restored' : 'model-provider-unavailable',
+            routeId, available, {
+              wardrobe_revision: report.wardrobe_revision_decimal,
+              observed_route_status: available ? 'restored' : 'provider-withdrawn',
+            });
+        }
+        return report;
       } }) : undefined;
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(expectedShow => {
@@ -788,6 +856,13 @@ try {
     oldFace: await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()),
     oldWardrobe: await readWardrobe(), output,
     sourceCommit: installed.release_source_identity, runId,
+    observeTransition: async ({ phase, routeId, routeAvailable, wardrobe, partId, bootId }) => {
+      await screenFreeCheckpoint(phase, routeId, routeAvailable, {
+        wardrobe_revision: wardrobe?.wardrobe_revision_decimal,
+        observed_route_status: routeAvailable ? 'restored' : 'browser-part-retired',
+        part_id: partId, observed_boot_id: bootId,
+      });
+    },
   });
   observations.push(presentationRecovery.observation);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
@@ -818,6 +893,15 @@ try {
       `browser capture changed after ${retained.path}`);
   }
   const nativeReceiptBytes = await readFile(path.join(native, 'owner-action-proof.json'));
+  if (process.env.CONDUIT_SCREEN_FREE_CHECKPOINTS === '1') {
+    const expected = ownerLlmSpeech && ownerModelRouteControlArgument &&
+      ownerModelRouteControlArgument !== '-'
+      ? ['model-provider-unavailable', 'model-provider-restored',
+        'browser-presentation-unavailable', 'browser-presentation-restored']
+      : ['browser-presentation-unavailable', 'browser-presentation-restored'];
+    assert.deepEqual(checkpointHandoffs.map(item => item.phase), expected,
+      'every held route transition needs a completed screen-free operator checkpoint');
+  }
   const report = {
     schema: 'conduit.body/three-host-owner-journey@1',
     proof_class: ownerLlmSpeech
@@ -899,6 +983,7 @@ try {
     ...(ownerDirectSpeech ? { owner_direct_speech: ownerDirectSpeech } : {}),
     ...(ownerLlmSpeech ? { owner_llm_speech: ownerLlmSpeech } : {}),
     ...(ownerModelRouteLoss ? { owner_model_route_loss: ownerModelRouteLoss } : {}),
+    ...(checkpointHandoffs.length ? { screen_free_checkpoint_handoffs: checkpointHandoffs } : {}),
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
       model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
