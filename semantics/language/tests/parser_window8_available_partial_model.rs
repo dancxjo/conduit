@@ -217,11 +217,13 @@ fn actual_partial_available_context_emits_native_boundaries() {
                     )
                     .unwrap();
                     let frontier = bank.choice_frontier(choice_query).unwrap();
+                    observer.emit("model-inference-start", json!({"id":id,"epoch":epoch,"invocation":invocations,"feature_bytes":bytes_hex(&features.features().raw().clone().encode().unwrap())})).unwrap();
                     let scores = execution.infer(
                         invocations,
                         &features.features().raw().clone().into_structured().unwrap(),
                     );
                     invocations += 1;
+                    observer.emit("model-inference-complete", json!({"id":id,"epoch":epoch,"completed_model_invocations":invocations,"scores_bytes":bytes_hex(&scores.canonical_bytes().unwrap())})).unwrap();
                     let StructuredInfoValueShape::Collection(scores) = scores.shape() else {
                         panic!("bare numerical scores")
                     };
