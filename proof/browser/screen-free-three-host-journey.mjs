@@ -674,8 +674,27 @@ try {
       browserTerminal.resulting_face.face_revision, browserTerminal.cause);
     const selectedWardrobe = await event('acknowledged-show', report.browser_wardrobe.selected_show_id,
       browserWardrobe.resulting_face.face_revision, report.browser_wardrobe);
-    const heardDirect = await event('selected-speaker-play', direct.batches[0].play_id,
-      direct.face_revision_decimal, direct.batches[0]);
+    // Each completed stream batch is a distinct listener Play. Preserve the
+    // complete ordered reading, subject to the twelve-media Hear envelope
+    // (one slot is reserved for the model-assisted explanation).
+    assert.ok(direct.batches.length > 1 && direct.batches.length <= 11,
+      'the complete direct reading exceeds the Hear chapter media bound');
+    const directTerminal = await load(path.join(live, direct.terminal.path));
+    assert.equal(directTerminal.speaker_playback.batches.length, direct.batches.length);
+    const directAudioBytes = direct.batches.reduce((total, batch, index) => {
+      const original = directTerminal.speaker_playback.batches[index];
+      for (const key of ['plan_id', 'play_id', 'wav_sha256', 'pcm_sha256']) {
+        assert.equal(batch[key], original[key], `direct batch ${index + 1} ${key} changed`);
+      }
+      assert.deepEqual(batch.spoken_segments, original.spoken_segments,
+        `direct batch ${index + 1} words changed`);
+      return total + batch.wav.bytes;
+    }, 0);
+    assert.ok(directAudioBytes + llm.wav.bytes <= 64 * 1024 * 1024,
+      'complete Hear audio exceeds its bounded share of the public carrier');
+    const directEvents = await Promise.all(direct.batches.map(batch =>
+      event('selected-speaker-play', batch.play_id,
+        direct.face_revision_decimal, batch)));
     const heardModel = await event('selected-speaker-play', llm.listener_play_id,
       llm.face_revision_decimal, llm);
     const modelLost = await event('provider-withdrawal', `route/${loss.route_plan_id}`,
@@ -702,11 +721,10 @@ try {
       screenshot(file), eventRecord, alt, capture);
     const transcriptMedia = (artifact, eventRecord, alt) => media('screen-free-transcript',
       artifact, eventRecord, alt, artifact);
-    const directBatch = direct.batches[0];
-    const directSpeech = { mode: 'direct', show_id: direct.show_id,
-      plan_id: directBatch.plan_id, play_id: directBatch.play_id,
+    const directSpeech = batch => ({ mode: 'direct', show_id: direct.show_id,
+      plan_id: batch.plan_id, play_id: batch.play_id,
       voice_id: installation.selected_speech.voice,
-      text: directBatch.spoken_segments.join(' '), provenance: direct.terminal };
+      text: batch.spoken_segments.join(' '), provenance: direct.terminal });
     const modelSpeech = (record, originalOutput) => ({ mode: 'llm-assisted', show_id: record.show_id,
       plan_id: record.listener_plan_id, play_id: record.listener_play_id,
       voice_id: installation.selected_speech.voice,
@@ -714,6 +732,10 @@ try {
       original_model_output: originalOutput,
       provider_id: record.provider_identity,
       model_id: record.model_identity });
+    const directMedia = await Promise.all(direct.batches.map((batch, index) =>
+      media('selected-speaker-same-play', batch.wav, directEvents[index],
+        `Direct spoken Face, batch ${index + 1} of ${direct.batches.length}, from its selected speaker Play`,
+        batch, directSpeech(batch))));
     report.publication_chapters = [
       chapter('birth', 'Make a Body', 'Create one Body without a screen.',
         'Review the clock Plot and activate Birth.', 'The installed owner retains the new Body.',
@@ -751,12 +773,11 @@ try {
         ]),
       chapter('hear', 'Hear it', 'Listen to the current Face and its explanation.',
         'Select direct and model-assisted speech.',
-        'Both selected speaker Plays complete with retained listener WAVs.',
+        'The complete direct reading and selected model explanation have retained listener WAVs.',
         'The recording is from the same Play as the speaker output.', 'Withdraw a route.',
         ['Automated playback does not establish attended human hearing.'],
-        [heardDirect, heardModel], [
-          await media('selected-speaker-same-play', directBatch.wav, heardDirect,
-            'Direct spoken Face from the selected speaker Play', directBatch, directSpeech),
+        [...directEvents, heardModel], [
+          ...directMedia,
           await media('selected-speaker-same-play', llm.wav, heardModel,
             'Model-assisted explanation from the selected speaker Play', llm,
             modelSpeech(llm, originalModelOutput)),
