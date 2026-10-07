@@ -275,3 +275,6 @@ pub mod fixed_numeric_guard;
 
 #[cfg(feature = "kernel-step")]
 pub mod native_profile;
+
+#[cfg(feature = "kernel-step")]
+pub mod nominal_weakening;
