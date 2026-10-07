@@ -531,7 +531,7 @@ try {
     };
   }
   let directSpeech;
-  if (directSpeechEnabled) {
+  if (directSpeechEnabled && !ownerDirectSpeech) {
     const directory = path.join(output, 'speech-direct');
     const speech = spawnSync(xtask, [
       'prove', 'one-body-spoken-chapter', '--mode', 'direct',
@@ -586,7 +586,7 @@ try {
     };
   }
   let llmSpeech, modelRouteLoss, modelRouteRestoration;
-  if (modelArgument) {
+  if (modelArgument && installed.selected_model?.model_name !== modelArgument) {
     const captured = await captureLlmChapter({
       xtask, owner, state, output, sourceCommit: installed.release_source_identity,
       runId, bodyId, ownerHostId: ownerPart.current.host_id,
@@ -629,8 +629,9 @@ try {
       return report.schema === 'conduit.body/owner-mask-wardrobe@1'
         && (!expectedShow || report.show_id === expectedShow);
     } catch { return false; }
-  }, ownerLlmSpeech?.show_id, { timeout: 12_000 });
-  if (ownerLlmSpeech) {
+  }, ownerModelRouteLoss?.restored.show_id ?? ownerLlmSpeech?.show_id ??
+    ownerDirectSpeech?.show_id, { timeout: 12_000 });
+  if (ownerLlmSpeech || ownerDirectSpeech) {
     let report = await readWardrobe();
     const browserDescription = report.route_descriptions.find(route =>
       route.host_id === identity.hostId);
@@ -657,9 +658,15 @@ try {
     }
     assert.equal(report.selected?.route_id, browserRoute.route_id);
   }
+  const ownerBeforeBrowserReturn = run(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(ownerBeforeBrowserReturn.presentation.basis.body_id, bodyId);
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
-  await page.waitForFunction(() => Boolean(document.querySelector('[data-handbook-application]')
-    ?.dataset.ownerShowAcknowledged), null, { timeout: 12_000 });
+  await page.waitForFunction(faceId => {
+    const face = globalThis.__conduitOwnerParticipation.face();
+    return face?.face_id === faceId && face.show_state === 'available'
+      && document.querySelector('[data-handbook-application]')
+        ?.dataset.ownerShowAcknowledged === face.show_id;
+  }, ownerBeforeBrowserReturn.presentation.identity, { timeout: 12_000 });
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(() => {
     try {
