@@ -97,7 +97,9 @@ impl State {
         .unwrap()
     }
     pub fn from_result(value: &StructuredInfoValue) -> Self {
-        let next = field(value, "next_state");
+        Self::from_state(field(value, "next_state"))
+    }
+    pub fn from_state(next: &StructuredInfoValue) -> Self {
         let signal = field(next, "signal");
         Self {
             conv: floats(field(signal, "conv_history")).try_into().unwrap(),

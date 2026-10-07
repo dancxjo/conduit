@@ -10,7 +10,11 @@ use conduit_plot::*;
 fn catalogs(capacity64: bool) -> (StartupCatalog, ProfileCatalog) {
     let mut s = StartupCatalog::new();
     let mut p = ProfileCatalog::new();
-    install_fixed_numeric_catalogs(&mut s, &mut p).unwrap();
+    if capacity64 {
+        install_fixed_numeric_catalogs_capacity64(&mut s, &mut p).unwrap();
+    } else {
+        install_fixed_numeric_catalogs(&mut s, &mut p).unwrap();
+    }
     install_fixed_numeric_pair_catalogs(&mut s, &mut p).unwrap();
     conduit_ai::fixed_numeric_flow::install_affine_flow_catalogs(&mut s, &mut p).unwrap();
     conduit_ai::fixed_numeric_linear_flow::install_linear_flow_catalogs(&mut s, &mut p).unwrap();
@@ -459,11 +463,7 @@ fn prepare_authored_epoch_entry(
             };
             let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
             Some(
-                conduitos::expression_host_call::offer(
-                    &program,
-                    PortTemporal::Flow { closes: true },
-                )
-                .unwrap(),
+                conduitos::expression_host_call::offer(&program, gear.outputs[0].temporal).unwrap(),
             )
         } else {
             None
@@ -977,4 +977,33 @@ fn conditioning_feedback_domains_preserve_exact_native_bounds() {
         assert!(maximum <= 16384);
         eprintln!("conditioning domain {name}: exact maximum {maximum}B");
     }
+}
+
+#[test]
+fn source_zero_continuation_startup_checks_four_sequential_subframes() {
+    let context = prepared_epoch_profiles_with_capacity(true);
+    let source = [
+        include_str!("../../speech/fargan_conditioning.conduit"),
+        include_str!("../../speech/fargan_signal.conduit"),
+        include_str!("../../speech/fargan_pitch_history.conduit"),
+        include_str!("../../speech/fargan_subframe.conduit"),
+        include_str!("../../speech/fargan_zero_continuation.conduit"),
+    ]
+    .join("\n");
+    let checked = check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(
+        &checked,
+        "speech/fargan-zero-continuation-startup",
+        &context.profiles,
+    )
+    .unwrap();
+    let count = expanded
+        .expanded
+        .gears
+        .iter()
+        .filter(|g| g.kind_id.as_str() == "numeric/dense128x40")
+        .count();
+    assert_eq!(count, 4);
+    assert!(expanded.expanded.gears.len() <= 1024);
+    eprintln!("Source zero-continuation warm startup: {}nodes/{}cords; four explicit signal updates and reset",expanded.expanded.gears.len(),expanded.expanded.connections.len());
 }

@@ -1,0 +1,75 @@
+# Profile speech/fargan-repeat-first-five-conditioning@1.
+# This finite startup composition repeats the first feature and period five times.
+# Initial history is explicit; continuation/signal warm initialization is separate.
+plot speech/fargan-warm-first-conditioning (
+    >> features: NumericF32Vector20
+    >> period: FarganPeriod
+    >> initial_history: NumericHistory2x64
+    >> embedding_weights: NumericEmbedding224x12
+    >> dense1_weights: NumericF32MatrixRef32x64
+    >> dense1_bias: NumericF32BiasRef64
+    >> conv_weights: NumericF32MatrixRef192x128
+    >> conv_bias: NumericF32BiasRef128
+    >> dense2_weights: NumericF32MatrixRef128x320
+    >> dense2_bias: NumericF32BiasRef320
+    condition: NumericF32Vector320 >>
+    next_history: NumericHistory2x64 >>
+) {
+    warm0: speech/fargan-conditioning-core
+    warm1: speech/fargan-conditioning-core
+    warm2: speech/fargan-conditioning-core
+    warm3: speech/fargan-conditioning-core
+    warm4: speech/fargan-conditioning-core
+    features >> warm0.features
+    period >> warm0.period
+    initial_history >> warm0.history
+    embedding_weights >> warm0.embedding_weights
+    dense1_weights >> warm0.dense1_weights
+    dense1_bias >> warm0.dense1_bias
+    conv_weights >> warm0.conv_weights
+    conv_bias >> warm0.conv_bias
+    dense2_weights >> warm0.dense2_weights
+    dense2_bias >> warm0.dense2_bias
+    features >> warm1.features
+    period >> warm1.period
+    warm0.next_history >> warm1.history
+    embedding_weights >> warm1.embedding_weights
+    dense1_weights >> warm1.dense1_weights
+    dense1_bias >> warm1.dense1_bias
+    conv_weights >> warm1.conv_weights
+    conv_bias >> warm1.conv_bias
+    dense2_weights >> warm1.dense2_weights
+    dense2_bias >> warm1.dense2_bias
+    features >> warm2.features
+    period >> warm2.period
+    warm1.next_history >> warm2.history
+    embedding_weights >> warm2.embedding_weights
+    dense1_weights >> warm2.dense1_weights
+    dense1_bias >> warm2.dense1_bias
+    conv_weights >> warm2.conv_weights
+    conv_bias >> warm2.conv_bias
+    dense2_weights >> warm2.dense2_weights
+    dense2_bias >> warm2.dense2_bias
+    features >> warm3.features
+    period >> warm3.period
+    warm2.next_history >> warm3.history
+    embedding_weights >> warm3.embedding_weights
+    dense1_weights >> warm3.dense1_weights
+    dense1_bias >> warm3.dense1_bias
+    conv_weights >> warm3.conv_weights
+    conv_bias >> warm3.conv_bias
+    dense2_weights >> warm3.dense2_weights
+    dense2_bias >> warm3.dense2_bias
+    features >> warm4.features
+    period >> warm4.period
+    warm3.next_history >> warm4.history
+    embedding_weights >> warm4.embedding_weights
+    dense1_weights >> warm4.dense1_weights
+    dense1_bias >> warm4.dense1_bias
+    conv_weights >> warm4.conv_weights
+    conv_bias >> warm4.conv_bias
+    dense2_weights >> warm4.dense2_weights
+    dense2_bias >> warm4.dense2_bias
+    warm4.condition >> condition
+    warm4.next_history >> next_history
+}

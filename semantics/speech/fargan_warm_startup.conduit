@@ -1,0 +1,97 @@
+# Profile speech/fargan-repeat-first-zero-continuation@1.
+# Source owns five first-feature conditioning history updates, four continuation
+# subframes, zero pitch replacement and final zero deemphasis seed.
+# This cold-start profile does not admit a model, linguistic basis or live epoch.
+plot speech/fargan-zero-conditioning-history (
+    >> trigger: NumericF32Vector20
+    result: NumericHistory2x64 >>
+) = [[0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000], [0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000]]
+
+plot speech/fargan-warm-startup (
+    >> first_features: NumericF32Vector20
+    >> first_period: FarganPeriod
+    >> conditioning_embedding_weights: NumericEmbedding224x12
+    >> conditioning_dense1_weights: NumericF32MatrixRef32x64
+    >> conditioning_dense1_bias: NumericF32BiasRef64
+    >> conditioning_conv_weights: NumericF32MatrixRef192x128
+    >> conditioning_conv_bias: NumericF32BiasRef128
+    >> conditioning_dense2_weights: NumericF32MatrixRef128x320
+    >> conditioning_dense2_bias: NumericF32BiasRef320
+    >> gain_weights: NumericF32MatrixRef80x1
+    >> gain_bias: NumericF32BiasRef1
+    >> conv_weights: NumericF32MatrixRef328x192
+    >> conv_bias: NumericF32BiasRef192
+    >> conv_glu_weights: NumericF32MatrixRef192x192
+    >> conv_glu_bias: NumericF32BiasRef192
+    >> pitch_gate_weights: NumericF32MatrixRef192x4
+    >> pitch_gate_bias: NumericF32BiasRef4
+    >> gru1_input_weights: NumericF32MatrixRef272x480
+    >> gru1_recurrent_weights: NumericF32MatrixRef160x480
+    >> gru2_input_weights: NumericF32MatrixRef240x384
+    >> gru2_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru3_input_weights: NumericF32MatrixRef208x384
+    >> gru3_recurrent_weights: NumericF32MatrixRef128x384
+    >> gru1_glu_weights: NumericF32MatrixRef160x160
+    >> gru1_glu_bias: NumericF32BiasRef160
+    >> gru2_glu_weights: NumericF32MatrixRef128x128
+    >> gru2_glu_bias: NumericF32BiasRef128
+    >> gru3_glu_weights: NumericF32MatrixRef128x128
+    >> gru3_glu_bias: NumericF32BiasRef128
+    >> skip_weights: NumericF32MatrixRef688x128
+    >> skip_bias: NumericF32BiasRef128
+    >> skip_glu_weights: NumericF32MatrixRef128x128
+    >> skip_glu_bias: NumericF32BiasRef128
+    >> output_weights: NumericF32MatrixRef128x40
+    >> output_bias: NumericF32BiasRef40
+    state: FarganSubframeState >>
+    history: NumericHistory2x64 >>
+    period: FarganPeriod >>
+) {
+    initial: speech/fargan-zero-conditioning-history
+    warm: speech/fargan-warm-first-conditioning
+    continuation: speech/fargan-zero-continuation-startup
+    retained_period: speech/fargan-period-identity
+    first_features >> initial.trigger
+    initial.result >> warm.initial_history
+    first_features >> warm.features
+    first_period >> warm.period
+    first_period >> continuation.period
+    first_period >> retained_period.value
+    retained_period.result >> period
+    conditioning_embedding_weights >> warm.embedding_weights
+    conditioning_dense1_weights >> warm.dense1_weights
+    conditioning_dense1_bias >> warm.dense1_bias
+    conditioning_conv_weights >> warm.conv_weights
+    conditioning_conv_bias >> warm.conv_bias
+    conditioning_dense2_weights >> warm.dense2_weights
+    conditioning_dense2_bias >> warm.dense2_bias
+    gain_weights >> continuation.gain_weights
+    gain_bias >> continuation.gain_bias
+    conv_weights >> continuation.conv_weights
+    conv_bias >> continuation.conv_bias
+    conv_glu_weights >> continuation.conv_glu_weights
+    conv_glu_bias >> continuation.conv_glu_bias
+    pitch_gate_weights >> continuation.pitch_gate_weights
+    pitch_gate_bias >> continuation.pitch_gate_bias
+    gru1_input_weights >> continuation.gru1_input_weights
+    gru1_recurrent_weights >> continuation.gru1_recurrent_weights
+    gru2_input_weights >> continuation.gru2_input_weights
+    gru2_recurrent_weights >> continuation.gru2_recurrent_weights
+    gru3_input_weights >> continuation.gru3_input_weights
+    gru3_recurrent_weights >> continuation.gru3_recurrent_weights
+    gru1_glu_weights >> continuation.gru1_glu_weights
+    gru1_glu_bias >> continuation.gru1_glu_bias
+    gru2_glu_weights >> continuation.gru2_glu_weights
+    gru2_glu_bias >> continuation.gru2_glu_bias
+    gru3_glu_weights >> continuation.gru3_glu_weights
+    gru3_glu_bias >> continuation.gru3_glu_bias
+    skip_weights >> continuation.skip_weights
+    skip_bias >> continuation.skip_bias
+    skip_glu_weights >> continuation.skip_glu_weights
+    skip_glu_bias >> continuation.skip_glu_bias
+    output_weights >> continuation.output_weights
+    output_bias >> continuation.output_bias
+    warm.condition >> continuation.condition
+    warm.next_history >> history
+    continuation.result >> state
+}
