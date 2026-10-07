@@ -60,3 +60,12 @@ held-out corpus accuracy. The inherited `eligible_heldout_sentences` metric
 field counts synthetic snapshots here. This does not prove independent VOC2
 protection for `Hello, Travis.`, played audio, or a production stream entrance.
 The band1000 remains uncalibrated and has not been selected on TRAIN/DEV.
+
+
+`native_stream_protected_custody_receipts.json` independently re-admits the
+three exact green rebase inputs and replays their ordinary Source graphs.
+Every resulting Native state equals its original trace state. Complete Source
+proposal bytes are retained beside admitted and refused canonical branch
+queries. The branch fixture explicitly uses synthetic identity0/score0; it
+checks preservation policy rather than replaying original inference or played
+speech. This ignored proof passed in65.44s; scoped Clippy also passed.
