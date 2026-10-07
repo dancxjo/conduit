@@ -4,11 +4,15 @@
 use crate::fixed_numeric_preparation::{
     admit_tensor_access, verify_affine_placement, FixedPlannedRefusal,
 };
+#[cfg(target_has_atomic = "ptr")]
+use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
 use crate::{
     fixed_numeric_binding::{FixedBindingRefusal, FixedTensorPortBinding},
     fixed_numeric_codec::{FixedCodecRefusal, FixedF32VectorCodec},
     fixed_tensor::{FixedMatrixOrder, FixedTensorAffine, FixedTensorRefusal},
 };
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;
 use conduit_core::{
     AdmittedResourceAccess, PlannedGear, ResourceReferenceBinding, StructuredInfoType,
 };
@@ -57,13 +61,28 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedAffineBack<'a, INPUT, OUT
     ) -> Result<Self, FixedAffineBackPreparationRefusal> {
         let affine = FixedTensorAffine::prepare(weights, weight_bytes, bias, bias_bytes, order)
             .map_err(FixedAffineBackPreparationRefusal::Tensor)?;
+        Self::prepare_projection(
+            input_type,
+            output_type,
+            weight_profile,
+            bias_profile,
+            affine,
+        )
+    }
+    fn prepare_projection(
+        input_type: &StructuredInfoType,
+        output_type: &StructuredInfoType,
+        weight_profile: &StructuredInfoType,
+        bias_profile: &StructuredInfoType,
+        affine: FixedTensorAffine<'a, INPUT, OUTPUT>,
+    ) -> Result<Self, FixedAffineBackPreparationRefusal> {
         let input = FixedF32VectorCodec::prepare(input_type)
             .map_err(FixedAffineBackPreparationRefusal::Codec)?;
         let output = FixedF32VectorCodec::prepare(output_type)
             .map_err(FixedAffineBackPreparationRefusal::Codec)?;
-        let weights = FixedTensorPortBinding::prepare(weight_profile, weights)
+        let weights = FixedTensorPortBinding::prepare(weight_profile, affine.weights())
             .map_err(FixedAffineBackPreparationRefusal::Binding)?;
-        let bias = FixedTensorPortBinding::prepare(bias_profile, bias)
+        let bias = FixedTensorPortBinding::prepare(bias_profile, affine.bias())
             .map_err(FixedAffineBackPreparationRefusal::Binding)?;
         Ok(Self {
             affine,
@@ -130,6 +149,47 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedAffineBack<'a, INPUT, OUT
             FixedMatrixOrder::InputMajor,
         )?;
         let ordinal = |name: &str| {
+            PortId(
+                placement
+                    .inputs
+                    .iter()
+                    .position(|p| p.port_id.as_str() == name)
+                    .expect("verified exact Fore") as u16,
+            )
+        };
+        back.value_port = ordinal("value");
+        back.weight_port = ordinal("weights");
+        back.bias_port = ordinal("bias");
+        back.access = Some(access);
+        Ok(back)
+    }
+    #[cfg(target_has_atomic = "ptr")]
+    pub fn prepare_planned_owned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        weights: Arc<AdmittedFixedTensorResource>,
+        bias: Arc<AdmittedFixedTensorResource>,
+    ) -> Result<Self, FixedAffineBackPreparationRefusal> {
+        if PORTS < 3 || fuel < 4 {
+            return Err(FixedAffineBackPreparationRefusal::StepBudget);
+        }
+        verify_affine_placement::<INPUT, OUTPUT>(placement)
+            .map_err(FixedAffineBackPreparationRefusal::Planned)?;
+        let ty = |name: alloc::string::String| {
+            crate::fixed_numeric_catalog::fixed_numeric_type(&name).map_err(|_| {
+                FixedAffineBackPreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)
+            })
+        };
+        let access = [weights.access().clone(), bias.access().clone()];
+        let mut back = Self::prepare_projection(
+            &ty(alloc::format!("NumericF32Vector{INPUT}"))?,
+            &ty(alloc::format!("NumericF32Vector{OUTPUT}"))?,
+            &ty(alloc::format!("NumericF32MatrixRef{INPUT}x{OUTPUT}"))?,
+            &ty(alloc::format!("NumericF32BiasRef{OUTPUT}"))?,
+            FixedTensorAffine::prepare_owned(weights, bias, FixedMatrixOrder::InputMajor)
+                .map_err(FixedAffineBackPreparationRefusal::Tensor)?,
+        )?;
+        let ordinal = |name| {
             PortId(
                 placement
                     .inputs

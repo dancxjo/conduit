@@ -1,4 +1,6 @@
 //! Generic one-invocation numeric Backs. Source owns composition and feedback.
+#[cfg(target_has_atomic = "ptr")]
+use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
 use crate::{
     fixed_neural::{fixed_tanh, FixedNumericRefusal},
     fixed_numeric_binding::{FixedBindingRefusal, FixedTensorPortBinding},
@@ -9,6 +11,8 @@ use crate::{
     },
     fixed_tensor::{FixedTensorEmbedding, FixedTensorRefusal},
 };
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;
 use alloc::{format, string::String, vec};
 use conduit_core::*;
 use conduit_data::TensorValue;
@@ -269,6 +273,29 @@ pub struct FixedEmbeddingBack<'a, const ROWS: usize, const WIDTH: usize> {
     state: Invocation,
 }
 impl<'a, const ROWS: usize, const WIDTH: usize> FixedEmbeddingBack<'a, ROWS, WIDTH> {
+    #[cfg(target_has_atomic = "ptr")]
+    pub fn prepare_planned_owned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        resource: Arc<AdmittedFixedTensorResource>,
+    ) -> Result<Self, FixedOperationPreparationRefusal> {
+        let expected = fixed_embedding_offer::<ROWS, WIDTH>()
+            .map_err(|_| FixedOperationPreparationRefusal::Shape)?;
+        admit::<PORTS>(placement, fuel, 2, expected)?;
+        let profile = fixed_numeric_type(&format!("NumericEmbedding{ROWS}x{WIDTH}"))
+            .map_err(|_| FixedOperationPreparationRefusal::Shape)?;
+        let binding = FixedTensorPortBinding::prepare(&profile, resource.tensor())
+            .map_err(FixedOperationPreparationRefusal::Binding)?;
+        let access = resource.access().clone();
+        Ok(Self {
+            table: FixedTensorEmbedding::prepare_owned(resource)
+                .map_err(FixedOperationPreparationRefusal::Tensor)?,
+            access,
+            binding,
+            output: codec()?,
+            state: Invocation::default(),
+        })
+    }
     pub fn admitted_resource_access(&self) -> &AdmittedResourceAccess {
         &self.access
     }

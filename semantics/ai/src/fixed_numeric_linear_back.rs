@@ -1,4 +1,6 @@
 //! One-invocation unbiased projection; source owns every subsequent operation.
+#[cfg(target_has_atomic = "ptr")]
+use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
 use crate::{
     fixed_numeric_binding::{FixedBindingRefusal, FixedTensorPortBinding},
     fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
@@ -9,6 +11,8 @@ use crate::{
     fixed_tensor::{FixedMatrixOrder, FixedTensorRefusal},
     fixed_tensor_linear::FixedTensorLinear,
 };
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;
 use alloc::{format, string::String, vec};
 use conduit_core::*;
 use conduit_data::TensorValue;
@@ -91,6 +95,45 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> FixedLinearBack<'a, INPUT, OUT
             .map_err(FixedLinearPreparationRefusal::Binding)?,
             access: admit_tensor_access(tensor, authority)
                 .map_err(FixedLinearPreparationRefusal::Planned)?,
+            staged: false,
+            finished: false,
+            cancelled: false,
+        })
+    }
+    #[cfg(target_has_atomic = "ptr")]
+    pub fn prepare_planned_owned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        resource: Arc<AdmittedFixedTensorResource>,
+    ) -> Result<Self, FixedLinearPreparationRefusal> {
+        if PORTS < 2 || fuel < 3 {
+            return Err(FixedLinearPreparationRefusal::StepBudget);
+        }
+        let expected = fixed_linear_offer::<INPUT, OUTPUT>().map_err(|_| {
+            FixedLinearPreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)
+        })?;
+        verify_fixed_placement(placement, &expected)
+            .map_err(FixedLinearPreparationRefusal::Planned)?;
+        let ty = |name: String| {
+            fixed_numeric_type(&name).map_err(|_| {
+                FixedLinearPreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)
+            })
+        };
+        let binding = FixedTensorPortBinding::prepare(
+            &ty(format!("NumericF32MatrixRef{INPUT}x{OUTPUT}"))?,
+            resource.tensor(),
+        )
+        .map_err(FixedLinearPreparationRefusal::Binding)?;
+        let access = resource.access().clone();
+        Ok(Self {
+            projection: FixedTensorLinear::prepare_owned(resource, FixedMatrixOrder::InputMajor)
+                .map_err(FixedLinearPreparationRefusal::Tensor)?,
+            input: FixedF32VectorCodec::prepare(&ty(format!("NumericF32Vector{INPUT}"))?)
+                .map_err(FixedLinearPreparationRefusal::Codec)?,
+            output: FixedF32VectorCodec::prepare(&ty(format!("NumericF32Vector{OUTPUT}"))?)
+                .map_err(FixedLinearPreparationRefusal::Codec)?,
+            binding,
+            access,
             staged: false,
             finished: false,
             cancelled: false,
