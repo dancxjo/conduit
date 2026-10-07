@@ -248,6 +248,11 @@ fn prepare_show(
         ArtifactAcknowledgedShowBack::new(
             conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
             4_096,
+            planned_call(
+                placement,
+                conduit_std_offers::REGISTER_MANIFESTATION_OPERATION,
+            )?,
+            planned_call(placement, conduit_std_offers::ARTIFACT_SHOW_OPERATION)?,
         )
         .map_err(str::to_string)?,
     ))
@@ -278,6 +283,14 @@ fn prepare_direct_show(
         ArtifactAcknowledgedShowBack::new(
             conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
             4_096,
+            planned_call(
+                placement,
+                conduit_std_offers::REGISTER_DIRECT_FACE_OPERATION,
+            )?,
+            planned_call(
+                placement,
+                conduit_std_offers::DIRECT_ARTIFACT_SHOW_OPERATION,
+            )?,
         )
         .map_err(str::to_string)?,
     ))
@@ -310,6 +323,16 @@ fn validate(placement: &PlannedGear, implementation: &str) -> Result<(), String>
         return Err("planned spoken Mask stage differs from installed realization".into());
     }
     Ok(())
+}
+
+fn planned_call(placement: &PlannedGear, contract: &str) -> Result<HostCallId, String> {
+    placement
+        .host_calls
+        .iter()
+        .position(|call| call.contract_id.as_str() == contract)
+        .and_then(|index| u16::try_from(index).ok())
+        .map(HostCallId)
+        .ok_or_else(|| format!("planned spoken Show omitted Host Call {contract}"))
 }
 
 fn adapter_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
