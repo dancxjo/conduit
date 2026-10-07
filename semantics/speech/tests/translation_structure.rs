@@ -1,6 +1,6 @@
 #![cfg(feature = "semantic-bindings")]
 use conduit_language::{discourse::*, lexical::*, *};
-use conduit_plot::rust_binding::BoundedSequence;
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 use conduit_speech::{semantic::*, translation_structure::*};
 #[path = "common/asr_graph_sources.rs"]
 #[allow(dead_code)]
@@ -227,4 +227,39 @@ fn learned_source_graph_retains_addressee_through_explicit_translation_alignment
     )
     .unwrap();
     check_alignment(admitted.lexical, fact);
+}
+
+#[test]
+#[ignore = "requires whole actual independent protection via CONDUIT_INDEPENDENT_RECEIPT_PATH; target/alignment are supplied fixtures"]
+fn protected_partial_vocative_enters_explicit_translation_alignment() {
+    let bytes = std::fs::read(std::env::var("CONDUIT_INDEPENDENT_RECEIPT_PATH").unwrap()).unwrap();
+    let protected = LanguageParserIndependentProtectedAdmission::decode(&bytes).unwrap();
+    let admission = protected.admission();
+    let query = admission.fact().query();
+    let native_tape = query.beam().lexical().tape();
+    assert_eq!(native_tape.source().material().text(), "Hello, Travis ");
+    assert_eq!(
+        *native_tape.source().finality(),
+        LanguageTextFinality::Partial
+    );
+    assert_eq!(*query.dependent(), 2);
+    assert_eq!(*admission.head(), 0);
+    assert_eq!(*query.beam().candidate0().parser().state().committed(), 0);
+    let lexical = prepare_lexical_tape(native_tape.source(), native_tape.profile(), None).unwrap();
+    assert_eq!(lexical.tape(), native_tape);
+    let fact = prepare_vocative_fact(
+        "actual-independent/addressee-translation".into(),
+        native_tape.source(),
+        query.beam().basis().analysis_revision(),
+        admission.arc(),
+        native_tape.source().provenance().clone(),
+        native_tape.tokens().len() as u64,
+    )
+    .unwrap();
+    assert_eq!(fact.fact().basis(), admission.arc());
+    assert_eq!(fact.fact().source(), native_tape.source());
+    // Native admission owns the source arc. The helper supplies only the target
+    // graph and accepted alignment; it does not infer them from punctuation.
+    check_alignment(lexical, fact);
+    assert_eq!(protected.clone().encode().unwrap(), bytes);
 }

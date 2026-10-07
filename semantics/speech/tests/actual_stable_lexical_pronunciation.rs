@@ -225,3 +225,53 @@ fn check_actual(
         .unwrap();
     }
 }
+
+#[test]
+#[ignore = "requires original actual record pair via CONDUIT_AVAILABLE_RECORD_PAIR_RECEIPTS"]
+fn actual_available_noun_disagreement_refuses_fresh_generated_stable_fact() {
+    let rows: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(std::env::var("CONDUIT_AVAILABLE_RECORD_PAIR_RECEIPTS").unwrap()).unwrap(),
+    )
+    .unwrap();
+    let row = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["text"] == "I record the record ")
+        .unwrap();
+    assert_eq!(row["complete"], false);
+    let bytes = hex(row["lexical_fact_bytes"].as_str().unwrap());
+    let original = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+    let old_snapshot = field(field(&original, "query"), "snapshot");
+    let snapshot = LanguageParserWindow8Snapshot::new(
+        LanguageParserBasis::from_structured(field(old_snapshot, "basis").clone()).unwrap(),
+        readmit_checked(field(old_snapshot, "candidate0")),
+        readmit_checked(field(old_snapshot, "candidate1")),
+        readmit_checked(field(old_snapshot, "candidate2")),
+        readmit_checked(field(old_snapshot, "candidate3")),
+        LanguageParserWindow8Lexical::from_structured(field(old_snapshot, "lexical").clone())
+            .unwrap(),
+    )
+    .unwrap();
+    let hypotheses = [
+        snapshot.candidate0(),
+        snapshot.candidate1(),
+        snapshot.candidate2(),
+        snapshot.candidate3(),
+    ];
+    assert!(hypotheses
+        .iter()
+        .all(|candidate| *candidate.hypothesis().active()
+            && *candidate.hypothesis().selected() == 4
+            && *candidate.hypothesis().state().unread() == 4));
+    assert_eq!(
+        hypotheses.map(|candidate| candidate.hypothesis().choices()[3]),
+        [0, 0, 0, 1]
+    );
+    let query = LanguageParserWindow8FactQuery::new(3, snapshot).unwrap();
+    assert!(matches!(
+        LanguageParserWindow8StableLexicalFact::new(query),
+        Err(conduit_plot::rust_binding::NativeBindingRefusal::ViolatedInvariant { .. })
+    ));
+    assert_eq!(original.canonical_bytes().unwrap(), bytes);
+}
