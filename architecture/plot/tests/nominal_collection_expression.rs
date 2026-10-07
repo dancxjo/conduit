@@ -71,3 +71,15 @@ fn collection_law_proof_refuses_unproven_indices_optional_elements_and_foreign_l
         assert!(refused, "{source}");
     }
 }
+
+#[test]
+fn equal_primitive_ranges_do_not_erase_foreign_element_identity_or_array_invariants() {
+    let foreign="type First = U16 in 1..=3\ntype Second = U16 in 1..=3\ntype InputSamples = collection First = 2\ntype OutputSamples = collection Second = 2\ntype Envelope = {\n samples: OutputSamples\n}\nplot make (\n >> value: InputSamples\n result: Envelope >>\n) = ({samples: [.0,.1]})\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(foreign), &StartupCatalog::new()).unwrap();
+    assert!(expand_canonical_plot_for_authoring(&checked, "make", &ProfileCatalog::new()).is_err());
+    let array_law="type Positive = U16 in 1..=3\ntype Samples = collection Positive = 2\ntype InputReceipt = {\n samples: collection U16 = 2\n where .samples.0 >= 1 && .samples.0 <= 3\n}\ntype Envelope = {\n samples: Samples\n}\nplot make (\n >> value: InputReceipt\n result: Envelope >>\n) = ({samples: [.samples.0,.samples.1]})\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(array_law), &StartupCatalog::new()).unwrap();
+    assert!(expand_canonical_plot_for_authoring(&checked, "make", &ProfileCatalog::new()).is_err());
+}
