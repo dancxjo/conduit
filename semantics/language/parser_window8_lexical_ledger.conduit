@@ -1,0 +1,77 @@
+# Compact anchors are custody receipts, not standalone linguistic authority.
+# A private ledger retains the whole original fact and every admitted hop, with
+# at most eight protected occurrences. Every branch carries the checked context.
+type LanguageParserWindow8LexicalAnchor = {
+    origin_basis: LanguageParserBasis
+    current_basis: LanguageParserBasis
+    dependent: U64 in 0..=7
+    choice: U64 in 0..=3
+    occurrence: LinguisticTokenIdentity
+    where .origin_basis.text == .current_basis.text
+    where .occurrence.ordinal == .dependent && .occurrence.text_identity == .current_basis.text && .occurrence.text_revision == .current_basis.source_revision
+}
+type LanguageParserWindow8LexicalAnchorProposal = {
+    origin_basis: LanguageParserBasis
+    current_basis: LanguageParserBasis
+    dependent: U64
+    choice: U64
+    occurrence: LinguisticTokenIdentity
+}
+type LanguageParserWindow8LexicalAnchorContext = {
+    receipt: LanguageParserWindow8ProtectedLexicalChoice
+    occurrence: LinguisticTokenIdentity
+    choice: U64 in 0..=3
+    where .occurrence == sequence/at(.receipt.next.tape.tokens,.receipt.fact.query.dependent).identity
+    where .choice == sequence/at(.receipt.fact.query.snapshot.candidate0.hypothesis.choices,.receipt.fact.query.dependent)
+}
+plot language-window8-lexical-anchor (
+    input: LanguageParserWindow8LexicalAnchorContext...| >> output: LanguageParserWindow8LexicalAnchorProposal...|
+) = { origin_basis: .receipt.origin_basis, current_basis: .receipt.current_basis, dependent: .receipt.fact.query.dependent, choice: .choice, occurrence: .occurrence }
+type LanguageParserWindow8LexicalCustody = {
+    origin: LanguageParserWindow8StableLexicalFact
+    anchor: LanguageParserWindow8LexicalAnchor
+    lexical: LanguageParserWindow8Lexical
+    where .anchor.origin_basis.text == .origin.query.snapshot.basis.text && .anchor.origin_basis.source_revision == .origin.query.snapshot.basis.source_revision && .anchor.origin_basis.analysis_revision == .origin.query.snapshot.basis.analysis_revision
+    where .anchor.dependent == .origin.query.dependent && .anchor.choice == sequence/at(.origin.query.snapshot.candidate0.hypothesis.choices,.origin.query.dependent)
+    where .anchor.current_basis.text == .lexical.tape.source.material.identity && .anchor.current_basis.source_revision == .lexical.tape.source.material.revision
+    where .anchor.dependent < .lexical.token_count
+    where .anchor.occurrence == sequence/at(.lexical.tape.tokens,.anchor.dependent).identity
+    where .lexical.tape.profile == .origin.query.snapshot.lexical.tape.profile
+    where sequence/at(.lexical.tape.tokens,.anchor.dependent).candidates == sequence/at(.origin.query.snapshot.lexical.tape.tokens,.anchor.dependent).candidates
+    where sequence/at(.lexical.tape.tokens,.anchor.dependent).surface == sequence/at(.origin.query.snapshot.lexical.tape.tokens,.anchor.dependent).surface
+    where sequence/at(.lexical.tape.tokens,.anchor.dependent).span.start == sequence/at(.origin.query.snapshot.lexical.tape.tokens,.anchor.dependent).span.start && sequence/at(.lexical.tape.tokens,.anchor.dependent).span.end == sequence/at(.origin.query.snapshot.lexical.tape.tokens,.anchor.dependent).span.end
+    where variant/tag(sequence/at(.lexical.tape.tokens,.anchor.dependent).span.basis) == variant/tag(sequence/at(.origin.query.snapshot.lexical.tape.tokens,.anchor.dependent).span.basis)
+}
+type LanguageParserWindow8LexicalRebase = {
+    previous: LanguageParserWindow8LexicalCustody
+    occurrence: LinguisticTokenIdentity
+    next: LanguageParserWindow8Lexical
+    lineage: LanguageTextRevisionLineage
+    basis: LanguageParserBasis
+    where .lineage.previous == .previous.lexical.tape.source && .lineage.next == .next.tape.source
+    where .previous.lexical.tape.profile == .next.tape.profile
+    where .basis.text == .next.tape.source.material.identity && .basis.source_revision == .next.tape.source.material.revision
+    where .basis.analysis_revision != .previous.anchor.current_basis.analysis_revision
+    where .previous.anchor.dependent < .next.token_count
+    where .occurrence == sequence/at(.next.tape.tokens,.previous.anchor.dependent).identity
+    where variant/is(sequence/at(.next.tape.tokens,.previous.anchor.dependent).prior_occurrence,"some") ? sequence/at(.next.tape.tokens,.previous.anchor.dependent).prior_occurrence.some == .previous.anchor.occurrence : false
+    where sequence/at(.next.tape.tokens,.previous.anchor.dependent).candidates == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).candidates
+    where sequence/at(.next.tape.tokens,.previous.anchor.dependent).surface == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).surface
+    where sequence/at(.next.tape.tokens,.previous.anchor.dependent).span.start == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).span.start && sequence/at(.next.tape.tokens,.previous.anchor.dependent).span.end == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).span.end
+    where variant/tag(sequence/at(.next.tape.tokens,.previous.anchor.dependent).span.basis) == variant/tag(sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).span.basis)
+}
+plot language-window8-lexical-rebase (
+    receipt: LanguageParserWindow8LexicalRebase...| >> output: LanguageParserWindow8LexicalAnchorProposal...|
+) = { origin_basis: .previous.anchor.origin_basis, current_basis: .basis, dependent: .previous.anchor.dependent, choice: .previous.anchor.choice, occurrence: .occurrence }
+type LanguageParserWindow8LexicalLedgerBranch = {
+    receipt: LanguageParserWindow8LexicalCustody
+    dependent: U64 in 0..=7
+    choice: U64 in 0..=3
+    basis: LanguageParserBasis
+    where .basis.text == .receipt.anchor.current_basis.text && .basis.source_revision == .receipt.anchor.current_basis.source_revision && .basis.analysis_revision == .receipt.anchor.current_basis.analysis_revision
+    where .dependent < .receipt.lexical.token_count
+    where .choice < sequence/length(sequence/at(.receipt.lexical.tape.tokens,.dependent).candidates)
+}
+plot language-window8-lexical-ledger-branch (
+    receipt: LanguageParserWindow8LexicalLedgerBranch...| >> output: LanguageParserWindow8ProtectedChoiceDecision...|
+) = { allowed: .dependent != .receipt.anchor.dependent || .choice == .receipt.anchor.choice }
