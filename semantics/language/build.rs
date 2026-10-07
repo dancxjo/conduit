@@ -7,12 +7,14 @@ fn main() {
     println!("cargo:rerun-if-changed=identity.conduit");
     println!("cargo:rerun-if-changed=coverage.conduit");
     println!("cargo:rerun-if-changed=syntax.conduit");
+    println!("cargo:rerun-if-changed=text_revision.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
-        include_str!("syntax.conduit")
+        include_str!("syntax.conduit"),
+        include_str!("text_revision.conduit")
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
         .expect("language semantic Types must check");

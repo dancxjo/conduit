@@ -40,6 +40,7 @@ pub fn install_linguistics_catalogs(
     for (name, value_type) in crate::identity_types()
         .into_iter()
         .chain(crate::realization_types())
+        .chain(crate::text_revision_types())
         .chain(linguistic_types())
     {
         startup.ensure_structured_type(name, value_type)?;
