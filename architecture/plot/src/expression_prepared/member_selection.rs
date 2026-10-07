@@ -29,7 +29,26 @@ pub(super) fn prepare(
             PortableExpressionOperation::Input if &node.value_type == input => Ok(&node.value_type),
             PortableExpressionOperation::Projection { value, member } => {
                 let source = collect(value, input, steps)?;
-                let (selected, step) = match (source.shape(), member) {
+                let mut representation = source;
+                while let StructuredInfoTypeShape::Nominal {
+                    representation: inner,
+                    ..
+                } = representation.shape()
+                {
+                    representation = inner;
+                }
+                let selected_source =
+                    if matches!(member, PortableExpressionProjection::TupleIndex(_))
+                        && matches!(
+                            representation.shape(),
+                            StructuredInfoTypeShape::Collection { .. }
+                        )
+                    {
+                        representation
+                    } else {
+                        source
+                    };
+                let (selected, step) = match (selected_source.shape(), member) {
                     (
                         StructuredInfoTypeShape::Record { fields, .. },
                         PortableExpressionProjection::Field(name),

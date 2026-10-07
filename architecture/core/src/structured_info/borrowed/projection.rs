@@ -6,11 +6,17 @@ use super::{
 impl<'a> ValidatedCanonicalStructuredValue<'a> {
     pub fn collection_index(self, index: u16) -> Result<Option<Self>, StructuredInfoRefusal> {
         let mut kind = Cursor::new(self.type_bytes);
+        let mut nominal = false;
+        while kind.remaining.first() == Some(&5) {
+            kind.byte()?;
+            kind.text()?;
+            nominal = true;
+        }
         match kind.byte()? {
             1 => {
                 kind.u16()?;
             }
-            4 => {
+            4 if !nominal => {
                 kind.u16()?;
                 kind.u16()?;
             }

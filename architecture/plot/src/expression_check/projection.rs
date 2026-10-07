@@ -24,6 +24,31 @@ pub(super) fn check(
         (source, member)
     {
         if let Some(ty) = context.structured_types.get(kind) {
+            // Selection keeps the admitted nominal root and the exact native
+            // element identity; only inspect its fixed collection representation.
+            let mut representation = ty;
+            while let StructuredInfoTypeShape::Nominal {
+                representation: inner,
+                ..
+            } = representation.shape()
+            {
+                representation = inner;
+            }
+            if let StructuredInfoTypeShape::Collection { element, length } = representation.shape()
+            {
+                return index
+                    .text
+                    .parse::<u16>()
+                    .ok()
+                    .filter(|index| *index < length)
+                    .map(|_| structures::member(element))
+                    .ok_or_else(|| {
+                        diagnostic(
+                            index.span,
+                            "collection index is outside the exact collection",
+                        )
+                    });
+            }
             if let StructuredInfoTypeShape::Record { schema, fields } = ty.shape() {
                 if schema.as_str().starts_with("conduitese/anonymous-tuple-")
                     && tuple_info_type(
