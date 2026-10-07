@@ -6,22 +6,30 @@ use conduit_data::*;
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 use conduit_std_host::{hosted_integer_categorical::HostedIntegerCategorical, hosted_model::*};
 pub const BYTES: &[u8] = include_bytes!("../../training/ewt_four_token/ewt_four_token.i16");
-pub struct Store;
+pub struct Store(pub &'static [u8]);
 impl ModelArtifactStore for Store {
     fn load(&self, reference: &BoundedResourceRef) -> Result<Vec<u8>, HostedModelRefusal> {
-        if reference.identity.digest() != model_content_digest(BYTES) {
+        if reference.identity.digest() != model_content_digest(self.0) {
             return Err(HostedModelRefusal::ResourceUnavailable);
         }
-        Ok(BYTES.to_vec())
+        Ok(self.0.to_vec())
     }
 }
 pub struct Scorer {
     pub artifact: ModelArtifact,
     pub signature: ModelSignature,
     pub adapter: HostedIntegerCategorical,
+    bytes: &'static [u8],
 }
 impl Scorer {
     pub fn new() -> Self {
+        Self::prepare(
+            BYTES,
+            include_str!("../../training/ewt_four_token/manifest.json"),
+            "gold-upos",
+        )
+    }
+    pub fn prepare(bytes: &'static [u8], manifest: &str, profile: &str) -> Self {
         let encoding = semantic_digest(
             "language/parser-scorer-encoding@1",
             include_bytes!("../../parser_scorer.conduit"),
@@ -30,9 +38,7 @@ impl Scorer {
             .iter()
             .map(|b| format!("{b:02x}"))
             .collect::<String>();
-        let manifest: serde_json::Value =
-            serde_json::from_str(include_str!("../../training/ewt_four_token/manifest.json"))
-                .unwrap();
+        let manifest: serde_json::Value = serde_json::from_str(manifest).unwrap();
         assert_eq!(manifest["feature_class_contract_identity"], encoding);
         let port = |name: &str, element, count| {
             ModelPortConstraint::new(
@@ -42,11 +48,13 @@ impl Scorer {
                 ModelValueConstraint::tensor(
                     ModelTensorConstraint::from_parts(
                         vec![element],
-                        vec![ModelAxisConstraint::new(
-                            ModelDimensionConstraint::fixed(count).unwrap(),
-                            TensorAxisRole::Feature,
-                        )
-                        .unwrap()],
+                        vec![
+                            ModelAxisConstraint::new(
+                                ModelDimensionConstraint::fixed(count).unwrap(),
+                                TensorAxisRole::Feature,
+                            )
+                            .unwrap(),
+                        ],
                         count * 8,
                     )
                     .unwrap(),
@@ -55,15 +63,28 @@ impl Scorer {
             )
             .unwrap()
         };
+        let identity = if profile == "gold-upos" {
+            format!("language/parser-ewt-four-token-gold-upos/{encoding}@1")
+        } else {
+            let contract = semantic_digest(
+                "language/parser-model-contract@1",
+                format!("{encoding}/{profile}").as_bytes(),
+            );
+            let contract = contract
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>();
+            format!("language/parser-joint/{contract}@1")
+        };
         let signature = ModelSignature::from_parts(
-            format!("language/parser-ewt-four-token-gold-upos/{encoding}@1"),
+            identity,
             1,
             vec![ModelOperation::Infer],
             vec![port("features", TensorElement::U64, 7)],
             vec![port("scores", TensorElement::I64, 76)],
         )
         .unwrap();
-        let digest = model_content_digest(BYTES);
+        let digest = model_content_digest(bytes);
         let artifact = ModelArtifact {
             architecture_profile: CATEGORICAL_I16_ARCHITECTURE.into(),
             format_profile: CATEGORICAL_I16_FORMAT.into(),
@@ -75,7 +96,7 @@ impl Scorer {
                 content_profile: CATEGORICAL_I16_FORMAT.into(),
                 access_class: "model/pinned-training-artifact/read@1".into(),
                 extent: ResourceExtent {
-                    bytes: BYTES.len() as u64,
+                    bytes: bytes.len() as u64,
                     items: None,
                 },
                 lifetime: ResourceLifetime {
@@ -89,7 +110,7 @@ impl Scorer {
             model_format: CATEGORICAL_I16_FORMAT.into(),
             element: TensorElement::U64,
             rank: 1,
-            model_bytes: BYTES.len() as u64,
+            model_bytes: bytes.len() as u64,
             working_memory_bytes: 1024 * 1024,
             device_memory_bytes: 0,
             input_bytes: 56,
@@ -169,7 +190,7 @@ impl Scorer {
         let adapter = HostedIntegerCategorical::prepare(
             &artifact,
             &signature,
-            BYTES,
+            bytes,
             offer,
             runtime,
             requirement,
@@ -180,6 +201,7 @@ impl Scorer {
             artifact,
             signature,
             adapter,
+            bytes,
         }
     }
     pub fn score(
@@ -205,7 +227,7 @@ impl Scorer {
         };
         let units = self.adapter.work_units();
         let result = invoke_hosted_model(
-            &Store,
+            &Store(self.bytes),
             &mut self.adapter,
             &self.artifact,
             None,

@@ -1,0 +1,18 @@
+{
+  "proof": "exact hosted native integer artifact/signature/weight tensor admission and inference; not parser decode",
+  "exact_tests": [
+    "parser_joint_model::wrong_pos_supervised_artifact_has_exact_native_identity_and_numeric_inference"
+  ],
+  "reproducibility": "two independent training invocations produced byte-identical artifact, profile and manifest",
+  "artifact_sha256": "4e80ea237f27d03b77a228cad5149a7e14de5f26ada0800d68ece776860deebc",
+  "lexical_profile_sha256": "6113de8169ad241fb3e723266640d125455fb78e2a21fcde5d94ab2b86c7245d",
+  "model_bytes": 56868,
+  "numeric_work_units": 532,
+  "numeric_working_memory_bound_bytes": 1048576,
+  "source_feature_and_joint_choice_contracts": "verified against exact Source digests before native model preparation",
+  "refusals": [
+    "corrupted artifact bytes",
+    "wrong model signature identity"
+  ],
+  "limits": "four-token TRAIN-profile supervised scorer; lexical diagnostic conditions on gold action sequence; native lexical/attachment beam decode not established by this proof"
+}
