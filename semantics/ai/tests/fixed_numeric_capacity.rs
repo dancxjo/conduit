@@ -22,10 +22,22 @@ fn plan(count: usize, large: bool) -> Result<Plan, String> {
 fn plan_kind(count: usize, large: bool, kind: &str) -> Result<Plan, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
-    if large {
-        install_closing_numeric_catalogs_capacity64(&mut startup, &mut profiles)?;
+    if kind.starts_with("numeric/flow-") {
+        if large {
+            install_closing_numeric_catalogs_capacity64(&mut startup, &mut profiles)?;
+        } else {
+            install_closing_numeric_catalogs(&mut startup, &mut profiles)?;
+        }
+    } else if large {
+        conduit_ai::fixed_numeric_catalog::install_fixed_numeric_catalogs_capacity64(
+            &mut startup,
+            &mut profiles,
+        )?;
     } else {
-        install_closing_numeric_catalogs(&mut startup, &mut profiles)?;
+        conduit_ai::fixed_numeric_catalog::install_fixed_numeric_catalogs(
+            &mut startup,
+            &mut profiles,
+        )?;
     }
     let mut source = String::from("plot capacity {\n");
     for i in 0..count {
@@ -213,4 +225,72 @@ fn capacity64_index_profile_prepares_exact_slice_and_refuses_edited_budget() {
         FixedIndexOperation::Slice
     )
     .is_err());
+}
+
+#[test]
+fn explicit_value_capacity_preserves_one_shot_semantics_and_default_resource_limits() {
+    for kind in ["numeric/tanh128", "numeric/add128", "numeric/slice384x128"] {
+        let default = fixed_numeric_offer(kind).unwrap();
+        let large = fixed_numeric_offer_capacity64(kind).unwrap();
+        assert_eq!(default.limits.max_active_instances, 16);
+        assert_eq!(large.limits.max_active_instances, 64);
+        assert_eq!(default.semantic_contract, large.semantic_contract);
+        assert_eq!(default.inputs, large.inputs);
+        assert_eq!(default.outputs, large.outputs);
+        assert_ne!(default.kind_contract_revision, large.kind_contract_revision);
+        assert!(plan_kind(17, false, kind).is_err());
+        assert!(plan_kind(65, true, kind).is_err());
+        let admitted = plan_kind(17, true, kind).unwrap();
+        assert!(FixedNumericOperationFactory::for_plan(&admitted, &BTreeMap::new()).is_err());
+        FixedNumericOperationFactory::for_plan_capacity64(&admitted, &BTreeMap::new()).unwrap();
+    }
+    for kind in [
+        "numeric/dense32x64",
+        "numeric/linear128x384",
+        "numeric/embedding224x12",
+    ] {
+        assert_eq!(
+            fixed_numeric_offer_capacity64(kind).unwrap(),
+            fixed_numeric_offer(kind).unwrap()
+        );
+    }
+    let admitted = plan_kind(17, true, "numeric/tanh128").unwrap();
+    let owners =
+        FixedNumericOperationFactory::for_plan_capacity64(&admitted, &BTreeMap::new()).unwrap();
+    let mut store = HostedValueStore::new(64, 16384, 64 * 16384).unwrap();
+    let mut codec =
+        FixedF32VectorCodec::<128>::prepare(&fixed_numeric_type("NumericF32Vector128").unwrap())
+            .unwrap();
+    let input = codec.encode(&[0.; 128]).unwrap().to_vec();
+    for gear in &admitted.fragments[0].placements {
+        let mut back = owners[0].prepare(gear, &mut store).unwrap();
+        let mut ports = [None; PORTS];
+        ports[0] = Some(ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: input.len() as u32,
+        });
+        let mut capacity = [None; PORTS];
+        capacity[0] = Some(16384);
+        let mut io = StepIo::test_frame(ports, [false; PORTS], capacity, None, 3);
+        let mut bytes = [None; PORTS];
+        bytes[0] = Some(input.as_slice());
+        let bytes = StepInputBytes::test_frame(bytes, None);
+        let (outcome, heap) = allocation_probe::observe(|| back.step(&mut io, &bytes));
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(heap.allocations, 0);
+        assert_eq!(heap.reallocations, 0);
+        assert_eq!(back.prepared_output(KPort(0)).unwrap(), input.as_slice());
+        back.step_committed();
+        let mut io = StepIo::test_frame(ports, [false; PORTS], capacity, None, 3);
+        assert_eq!(back.step(&mut io, &bytes), StepOutcome::Complete);
+    }
+    let mut forged = admitted.fragments[0].placements[0].clone();
+    forged.limits.max_active_instances = 65;
+    assert!(
+        conduit_ai::fixed_numeric_operations_back::FixedTanhBack::<128>::prepare_planned::<PORTS>(
+            &forged, 3
+        )
+        .is_err()
+    );
 }

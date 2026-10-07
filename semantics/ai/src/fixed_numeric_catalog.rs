@@ -252,6 +252,19 @@ pub fn install_fixed_numeric_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    install_fixed_numeric_catalogs_mode(startup, profile, false)
+}
+pub fn install_fixed_numeric_catalogs_capacity64(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    install_fixed_numeric_catalogs_mode(startup, profile, true)
+}
+fn install_fixed_numeric_catalogs_mode(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+    capacity64: bool,
+) -> Result<(), String> {
     startup.insert_value_kind_alias(
         "ResourceRef",
         kind_id(conduit_core::RESOURCE_REFERENCE_INFO_ID),
@@ -260,6 +273,16 @@ pub fn install_fixed_numeric_catalogs(
         startup.insert_checked_native_type(ty.name.clone(), &ty)?;
     }
     for kind in fixed_numeric_contracts()? {
+        let kind = if capacity64
+            && crate::fixed_numeric_value_capacity::value_capacity64_implementation(
+                kind.kind_id.as_str(),
+            )
+            .is_some()
+        {
+            crate::fixed_numeric_value_capacity::value_capacity64_contract(kind)?
+        } else {
+            kind
+        };
         startup.insert(KindSignature {
             kind: kind.kind_id.as_str().into(),
             startup_parameters: vec![],

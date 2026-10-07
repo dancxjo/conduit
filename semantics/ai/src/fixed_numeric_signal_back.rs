@@ -1,4 +1,5 @@
 //! One-invocation finite elementwise operators. No model gate ordering is here.
+pub use crate::fixed_numeric_value_capacity::ELEMENTWISE_IMPLEMENTATION;
 use crate::{
     fixed_numeric_catalog::{fixed_numeric_contracts, fixed_numeric_type},
     fixed_numeric_codec::{FixedCodecRefusal, FixedF32VectorCodec},
@@ -10,7 +11,6 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
-pub const ELEMENTWISE_IMPLEMENTATION: &str = "conduit.numeric/scalar-finite-elementwise@1";
 pub const FLOW_ELEMENTWISE_IMPLEMENTATION: &str = "conduit.numeric/closing-flow-elementwise@1";
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FixedElementwiseOperation {
@@ -24,7 +24,7 @@ pub enum FixedElementwiseOperation {
     ReciprocalOffset,
 }
 impl FixedElementwiseOperation {
-    fn name(self) -> &'static str {
+    pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Add => "add",
             Self::Multiply => "multiply",
@@ -128,7 +128,9 @@ impl<const WIDTH: usize> FixedElementwiseBack<WIDTH> {
                 placement,
             )
         } else {
-            fixed_elementwise_offer::<WIDTH>(operation)
+            fixed_elementwise_offer::<WIDTH>(operation).and_then(|base| {
+                crate::fixed_numeric_value_capacity::value_offer_for_placement(base, placement)
+            })
         }
         .map_err(|_| {
             FixedElementwisePreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)

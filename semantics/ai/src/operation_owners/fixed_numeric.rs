@@ -104,6 +104,9 @@ pub fn fixed_numeric_offer_capacity64(kind: &str) -> Result<CapabilityOffer, Str
             &format!("numeric/{suffix}"),
             implementation,
         )
+    } else if crate::fixed_numeric_value_capacity::value_capacity64_profile(implementation).is_ok()
+    {
+        crate::fixed_numeric_value_capacity::value_offer_capacity64(original)
     } else {
         Ok(original)
     }

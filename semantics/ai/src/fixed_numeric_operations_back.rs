@@ -205,7 +205,9 @@ impl<const WIDTH: usize> FixedTanhBack<WIDTH> {
                 FLOW_OPERATION_IMPLEMENTATION,
             )
         } else {
-            fixed_tanh_offer::<WIDTH>()
+            fixed_tanh_offer::<WIDTH>().and_then(|base| {
+                crate::fixed_numeric_value_capacity::value_offer_for_placement(base, placement)
+            })
         }
         .map_err(|_| FixedOperationPreparationRefusal::Shape)?;
         admit::<PORTS>(placement, fuel, 1, expected)?;
