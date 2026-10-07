@@ -94,8 +94,10 @@ fn pinned_scalar_full_float_subframe_pcm_and_accumulated_state_differential() {
             }
         }
         eprintln!("96 authored ordinary Plan invocations: PCM max_abs={pcm_error}; active state max_abs={state_error}; total preparation={preparation:?}, execution={execution:?}. Uses exact oracle conditioning; upstream activation approximations differ from libm. Per-invocation Value, not streaming/realtime/intelligibility proof.");
-        assert!(pcm_error < 0.002);
-        assert!(state_error < 0.02);
+        // Empirical guard for these96 pinned frames and this explicit precision
+        // profile; not a global upstream/libm activation error theorem.
+        assert!(pcm_error < 0.00001);
+        assert!(state_error < 0.01);
     });
 }
 
