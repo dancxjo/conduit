@@ -123,16 +123,15 @@ pub fn prepare_complete_phone_layout<'a, 'word, 'basis>(
     validated_words(order, words).map(|(layout, _)| layout)
 }
 
+type ValidatedWordSegments<'a> = (
+    SpeechCompletePhoneLayout4,
+    Vec<(usize, &'a SpeechPlannedSegmentIntent)>,
+);
+
 fn validated_words<'a, 'word, 'basis>(
     order: &PreparedSpeechSpokenOrder<'a>,
     words: &[&'a PreparedPronunciationIntent<'word, 'basis>],
-) -> Result<
-    (
-        SpeechCompletePhoneLayout4,
-        Vec<(usize, &'a SpeechPlannedSegmentIntent)>,
-    ),
-    SpeechPlanCoverageRefusal,
-> {
+) -> Result<ValidatedWordSegments<'a>, SpeechPlanCoverageRefusal> {
     use SpeechPlanCoverageRefusal::*;
     if words.len() != order.ordinals.len() {
         return Err(MissingWord);
