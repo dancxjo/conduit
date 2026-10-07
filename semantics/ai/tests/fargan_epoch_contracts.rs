@@ -1,6 +1,6 @@
 #![cfg(feature = "kernel-step")]
 use conduit_ai::fixed_numeric_catalog::*;
-use conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
+const SELECTED_FRAME_BYTES: usize = 16_384;
 use conduit_plot::*;
 #[test]
 fn all_explicit_phase_and_final_pcm16_anchor_records_fit_exact_transport_envelopes() {
@@ -39,8 +39,37 @@ fn all_explicit_phase_and_final_pcm16_anchor_records_fit_exact_transport_envelop
         let maximum = maximum_prepared_transport_value_bytes(ty).unwrap();
         eprintln!("{name}: max canonical transport {maximum}");
         assert!(
-            maximum as usize <= MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+            maximum as usize <= SELECTED_FRAME_BYTES,
             "{name}: {maximum}"
         );
+    }
+    let right = &checked
+        .native_types
+        .iter()
+        .find(|t| t.name == "FarganSubframeResult")
+        .unwrap()
+        .value_type;
+    let right_max = maximum_prepared_canonical_value_bytes(right).unwrap();
+    {
+        let name = "FarganEpochPhaseCarry";
+        let left = &checked
+            .native_types
+            .iter()
+            .find(|t| t.name == name)
+            .unwrap()
+            .value_type;
+        let left_max = maximum_prepared_canonical_value_bytes(left).unwrap();
+        let pair = conduit_core::PreparedTypedTuplePairEncoder::new(
+            left.clone(),
+            left_max,
+            right.clone(),
+            right_max,
+        )
+        .unwrap();
+        eprintln!(
+            "{name}: left={left_max}, right={right_max}, paired={}",
+            pair.maximum_bytes()
+        );
+        assert!(pair.maximum_bytes() as usize <= SELECTED_FRAME_BYTES);
     }
 }
