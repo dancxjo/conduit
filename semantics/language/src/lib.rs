@@ -32,6 +32,15 @@ pub use generated::{
     LanguageParserRequest, LanguageParserResult, LanguageParserState, LanguageParserSubtype,
 };
 
+pub use generated::{
+    LanguageParserAdvanceRequest, LanguageParserAgreement, LanguageParserAgreementQuery,
+    LanguageParserBeam, LanguageParserCommitRequest, LanguageParserEdgeVote,
+    LanguageParserFeatures, LanguageParserFrontier, LanguageParserFrontierRefusal,
+    LanguageParserFrontierResult, LanguageParserHypothesis, LanguageParserPruneRequest,
+    LanguageParserRawFrontier, LanguageParserRawHypothesis, LanguageParserVoteCheck,
+    LanguageParserVotes,
+};
+
 mod parser;
 pub use parser::parser_types;
 

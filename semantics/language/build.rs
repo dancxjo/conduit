@@ -10,9 +10,10 @@ fn main() {
     println!("cargo:rerun-if-changed=text_revision.conduit");
     println!("cargo:rerun-if-changed=lexical.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
+    println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
@@ -20,6 +21,7 @@ fn main() {
         include_str!("text_revision.conduit"),
         include_str!("lexical.conduit"),
         include_str!("parser.conduit"),
+        include_str!("parser_beam.conduit"),
         include_str!("discourse.conduit")
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())

@@ -86,8 +86,13 @@ The development symbolic parser profile has four token slots, one artificial
 root and a finite stack. Checked source predicates own Shift, Reduce, LeftArc
 and RightArc admission and mutation; native admission validates exact source
 and analysis identities, graph laws and canonical UD arc material. Numeric
-carriers remain proposals until admitted. This profile establishes neither a
-beam or learned scorer nor ordinary kernel parsing, discourse or prosody.
+carriers remain proposals until admitted. Its four-slot beam retains competing
+candidates with explicit integer fixture scores, exact edge agreement and a
+source-owned pressure/cancellation frontier. Raw beam and frontier records are
+proposals; active hypotheses need native graph and shared-basis admission before
+truth publication.
+This profile establishes neither a learned scorer nor ordinary kernel parsing
+or prosody.
 
 ## Ownership migration
 
