@@ -3,7 +3,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_plot::PreparedPortableExpressionEvaluator;
 #[allow(dead_code)]
 mod admitted {
-    include!(concat!(env!("OUT_DIR"), "/parser_admission_types.rs"));
+    pub use conduit_language::*;
 }
 #[path = "common/parser_fixture.rs"]
 mod fixture;

@@ -88,3 +88,9 @@ pub mod lexical;
 pub mod discourse;
 
 pub mod prosody;
+
+pub use generated::{
+    LanguageParserBufferGrowth, LanguageParserModelFeatures, LanguageParserPosEvidence,
+    LanguageParserScoreContext, LanguageParserScoredClass, LanguageParserScoredProposal,
+    LanguageParserScorerContext, LanguageParserScorerQuery,
+};
