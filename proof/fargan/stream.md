@@ -13,6 +13,8 @@ The authored epoch contracts carry an exact bounded model/session anchor and U64
 | FarganFloatEpochProposal | 12672 |
 | FarganPcm16EpochResult | 12246 |
 
-The frame anchor is an exact link to session-owned admitted model, graph, precision and immutable intent receipts. It cannot independently admit them. The complete record fits the existing 16 KiB canonical limit; no queue contract has been widened.
+The frame anchor is an exact link to session-owned admitted model, graph, precision and immutable intent receipts. It cannot independently admit them. Each complete record fits the selected 16 KiB frame envelope. This is narrower than the core structured-value maximum; the test asserts 16,384 bytes explicitly.
+
+A homogeneous anchorless phase carry uses one 240-element workspace: remaining conditioning followed by provisional PCM, with explicit Source zero padding. The four meaningful layouts are 240+0, 160+40, 80+80 and 0+120 elements. Its exact canonical payload bound is 2,846 bytes; pairing it with the 9,962-byte subframe result requires 15,468 bytes including retained schema metadata. The selected immutable model anchor must be checked at epoch entry and authored into results through a typed Source startup parameter. These declarations establish bounds; the actual Source projections, startup substitution and scheduler cycle remain to be proved.
 
 The final externally accepted epoch must contain canonical I16 PCM, next recurrent state, next period, epoch and model anchor. Provisional float subframes are computation material. Feature641 and conditioning128 proposals must remain held until the final PCM16 record is committed; pressure or cancellation before that publication must leave their externally committed feedback unchanged. The current contracts do not yet prove this complete scheduler cycle, startup initialization, resource/heap footprint on a booted target, same-intent WAV, real-time performance or intelligibility.

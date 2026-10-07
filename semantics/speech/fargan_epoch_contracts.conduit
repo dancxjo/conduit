@@ -55,3 +55,16 @@ type FarganPcm16EpochResult = {
     epoch: U64
     model: FarganModelFrameAnchor
 }
+
+# One homogeneous workspace holds the unconsumed conditioning followed by
+# provisional PCM: phase lengths are 240+0, 160+40, 80+80 and 0+120.
+# Source writes explicit zero padding and owns every index projection.
+# The admitted immutable model anchor is a Source startup parameter, checked
+# against the incoming epoch anchor and authored into the final result.
+# State is excluded here: the paired subframe result carries the new state.
+type FarganEpochPhaseCarry = {
+    workspace: NumericF32Vector240
+    conditioned_period: FarganPeriod
+    next_period: FarganPeriod
+    epoch: U64
+}
