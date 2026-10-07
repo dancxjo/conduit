@@ -20,6 +20,9 @@ pub struct NativeProfileOperationFactory {
 }
 impl NativeProfileOperationFactory {
     pub fn for_plan(plan: &Plan, profiles: &[Arc<PreparedNativeProfile>]) -> Result<Self, String> {
+        if !verify_plan(plan) {
+            return Err("native profile requires a sealed Plan".into());
+        }
         let mut selected = BTreeMap::new();
         for gear in plan
             .fragments
