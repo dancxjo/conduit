@@ -1,0 +1,44 @@
+# The last native feature is retained once, then explicitly assigned two tail epochs.
+# Native admission follows each candidate; these maps confer no model/session authority.
+plot speech/fargan-first-tail-candidate (
+    native_epochs: U64
+    value: FarganRawTailFeature >> result: FarganTailEventCandidate
+) = {features: .features, period: .period, epoch: native_epochs}
+plot speech/fargan-second-tail-candidate (
+    native_epochs: U64
+    value: FarganRawTailFeature >> result: FarganTailEventCandidate
+) = {features: .features, period: .period, epoch: (native_epochs + 1)}
+plot speech/fargan-utterance-tail (
+    native_epochs: U64
+    >> value: FarganRawTailFeature
+    result: FeatureModelEvent...| >>
+) {
+    first: speech/fargan-first-tail-candidate (native_epochs = native_epochs)
+    second: speech/fargan-second-tail-candidate (native_epochs = native_epochs)
+    first_native: structure/native-profile/3c85fe2d50e54ae9750071fd116ab8f606c19d2495b8ecd4da6056d2742d3515
+    second_native: structure/native-profile/3c85fe2d50e54ae9750071fd116ab8f606c19d2495b8ecd4da6056d2742d3515
+    first_flow: value/repeat/finite-capacity2 (count = 1)
+    second_flow: value/repeat/finite-capacity2 (count = 1)
+    ordered: flow/concat/finite
+    value >> first.value
+    value >> second.value
+    first.result >> first_native.candidate
+    second.result >> second_native.candidate
+    first_native.result >> first_flow.value
+    second_native.result >> second_flow.value
+    first_flow.items >> ordered.left
+    second_flow.items >> ordered.right
+    ordered.concatenated >> result
+}
+plot speech/flow-fargan-last-native-feature (
+    last_native_epoch: U64
+    value: FeatureModelEvent...| >> result: FeatureModelEvent...|
+) {
+    value >> when(.epoch == last_native_epoch) >> result
+}
+plot speech/flow-fargan-native-pcm-ack (
+    native_epochs: U64
+    value: FarganPcm16EpochResult...| >> result: FarganPcm16EpochResult...|
+) {
+    value >> when(.epoch < native_epochs) >> result
+}

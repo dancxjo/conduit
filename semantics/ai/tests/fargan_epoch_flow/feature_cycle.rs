@@ -645,3 +645,102 @@ fn conditioning_candidate_profile_survives_three_cell_registration() {
     let source = format!("with {identity}/candidate as Candidate\nplot profile-probe (\n value: Candidate...| >> result: Candidate...|\n) = (.)\n");
     check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
 }
+
+pub(super) fn prepare_tail(
+    mut context: EpochProfiles,
+    ids: &std::collections::BTreeMap<String, String>,
+) -> (
+    EpochProfiles,
+    String,
+    StructuredInfoType,
+    Vec<CapabilityOffer>,
+) {
+    let profile = context
+        .native
+        .iter()
+        .find(|profile| profile.kind_identity(true) == ids["__FEATURE_MODEL_EVENT_NATIVE__"])
+        .unwrap()
+        .clone();
+    profile
+        .install(&mut context.startup, &mut context.profiles, false)
+        .unwrap();
+    let weak = PreparedNominalWeakening::prepare(profile.value_type().clone()).unwrap();
+    weak.install(&mut context.startup, &mut context.profiles, false)
+        .unwrap();
+    let event_contract = profile
+        .contract(false)
+        .unwrap()
+        .checked_front()
+        .value_contracts()
+        .iter()
+        .find(|entry| entry.location == FrontValueLocation::Output(port_id("result")))
+        .unwrap()
+        .contract
+        .clone();
+    conduit_semantic_catalog::install_value_repeat_capacity2_kind(
+        &event_contract,
+        profile.value_type(),
+        &mut context.startup,
+        &mut context.profiles,
+    )
+    .unwrap();
+    conduit_semantic_catalog::install_flow_concat_finite_kind(
+        &event_contract,
+        profile.value_type(),
+        &mut context.startup,
+        &mut context.profiles,
+    )
+    .unwrap();
+    let maximum = maximum_prepared_transport_value_bytes(profile.value_type()).unwrap();
+    assert!(
+        maximum <= 4096,
+        "ordered concat profile must admit the actual feature event"
+    );
+    let policy = include_str!("../../../speech/fargan_utterance_tail.conduit");
+    let source = format!(
+        "with {}/result as FarganRawTailFeature\nwith {}/candidate as FarganTailEventCandidate\nwith {}/result as FeatureModelEvent\nwith {}/result as FarganPcm16EpochResult\n{}",
+        weak.kind_identity(false),
+        profile.kind_identity(false),
+        profile.kind_identity(true),
+        context.kinds["__PCM_VALIDATOR__"],
+        policy.replace("native_epochs: U64\n", "native_epochs: U64 = 63\n").replace("last_native_epoch: U64\n", "last_native_epoch: U64 = 62\n")
+    );
+    let mut concat = conduitos::flow_concat_finite::FlowConcatFiniteOperationFactory::default();
+    let offers = vec![
+        profile.offer(false).unwrap(),
+        weak.offer(false).unwrap(),
+        conduit_std_host::value_repeat::PreparedValueRepeat::capacity2(
+            event_contract.clone(),
+            profile.value_type().clone(),
+        )
+        .unwrap()
+        .offer()
+        .clone(),
+        concat
+            .install(&event_contract, profile.value_type())
+            .unwrap(),
+    ];
+    let raw = weak.output_type().clone();
+    context.weakening.push(std::sync::Arc::new(weak));
+    (context, source, raw, offers)
+}
+
+#[test]
+fn utterance_tail_candidates_keep_feature_shape_and_assign_source_epochs() {
+    let (context, _, ids) = prepare_feedback();
+    let (context, source, _, _) = prepare_tail(context, &ids);
+    let document =
+        check_syntax_document(&parse_syntax_document(&source), &context.startup).unwrap();
+    for name in [
+        "speech/fargan-first-tail-candidate",
+        "speech/fargan-second-tail-candidate",
+        "speech/fargan-utterance-tail",
+        "speech/flow-fargan-last-native-feature",
+        "speech/flow-fargan-native-pcm-ack",
+    ] {
+        expand_canonical_plot_for_authoring(&document, name, &context.profiles).unwrap();
+    }
+    assert!(source.contains("epoch: native_epochs}"));
+    assert!(source.contains("epoch: (native_epochs + 1)"));
+    eprintln!("Source tail event fits ordered concat limit4096B");
+}

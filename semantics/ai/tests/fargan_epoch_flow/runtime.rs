@@ -197,7 +197,12 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
             .iter()
             .flat_map(|f| &f.placements)
             .any(|gear| {
-                gear.implementation_id.as_str() == conduit_std_host::pure_filter::IMPLEMENTATION
+                matches!(
+                    gear.implementation_id.as_str(),
+                    conduit_std_host::pure_filter::IMPLEMENTATION
+                        | conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION
+                        | conduitos::flow_concat_finite::IMPLEMENTATION
+                )
             });
     let start = Instant::now();
     assert!(verify_plan(&plan));
@@ -307,6 +312,76 @@ fn run_epoch_stream_plan<R: RuntimeTensor>(
     factories.push(Box::new(conduit_ai::operation_owners::closing_structured_pair::ClosingStructuredPairOperationFactory::for_plan(&plan, context.pairs.clone()).unwrap()));
     if let Some(seeded) = seeded {
         factories.push(Box::new(seeded));
+    }
+    let mut repeat_profiles = Vec::new();
+    let mut concat = conduitos::flow_concat_finite::FlowConcatFiniteOperationFactory::default();
+    for implementation in [
+        conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION,
+        conduitos::flow_concat_finite::IMPLEMENTATION,
+    ] {
+        if let Some(gear) = fragment
+            .placements
+            .iter()
+            .find(|gear| gear.implementation_id.as_str() == implementation)
+        {
+            let input = if implementation == conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION {
+                "value"
+            } else {
+                "left"
+            };
+            let value = &gear
+                .semantic_contract
+                .value_contracts()
+                .iter()
+                .find(|entry| entry.location == FrontValueLocation::Input(port_id(input)))
+                .unwrap()
+                .contract;
+            let profile = context
+                .native
+                .iter()
+                .find(|profile| {
+                    profile
+                        .contract(false)
+                        .unwrap()
+                        .checked_front()
+                        .value_contracts()
+                        .iter()
+                        .any(|entry| {
+                            entry.location == FrontValueLocation::Output(port_id("result"))
+                                && &entry.contract == value
+                        })
+                })
+                .expect("terminal fixture operation requires its retained complete native profile");
+            if implementation == conduit_std_offers::VALUE_REPEAT_IMPLEMENTATION {
+                let prepare = if gear.kind_id.as_str()
+                    == conduit_semantic_catalog::VALUE_REPEAT_CAPACITY2_KIND
+                {
+                    conduit_std_host::value_repeat::PreparedValueRepeat::capacity2
+                } else {
+                    conduit_std_host::value_repeat::PreparedValueRepeat::new
+                };
+                repeat_profiles.push(std::sync::Arc::new(
+                    prepare(value.clone(), profile.value_type().clone()).unwrap(),
+                ));
+            } else {
+                concat.install(value, profile.value_type()).unwrap();
+            }
+        }
+    }
+    if !repeat_profiles.is_empty() {
+        factories.push(Box::new(
+            conduit_std_host::value_repeat::ValueRepeatOperationFactory::for_plan(
+                &plan,
+                &repeat_profiles,
+            )
+            .unwrap(),
+        ));
+    }
+    if fragment.placements.iter().any(|gear| {
+        gear.implementation_id.as_str() == conduitos::flow_concat_finite::IMPLEMENTATION
+    }) {
+        concat.validate_plan(&plan).unwrap();
+        factories.push(Box::new(concat));
     }
     context.zip.validate_plan(&plan).unwrap();
     let received = Rc::new(std::cell::RefCell::new(Vec::with_capacity(expected)));
@@ -907,6 +982,82 @@ fn native_feature_analysis_stream_commits_exact_provisional_memories_for_two_pcm
         assert!(history[482..].iter().all(|v|(leaf(v)-(1000.-0.85*1000.)/32768.).abs()<1e-8));
         eprintln!("Source native PCM→feature/provisional642: {}nodes/{}cords, prep{:?}/exec{:?}; no feedback ACK or trained waveform claim",result.nodes,result.cords,result.preparation,result.execution);
     }).unwrap().join().unwrap();
+}
+
+#[test]
+fn utterance_tail_runs_two_source_epochs_in_order_and_drains() {
+    std::thread::Builder::new()
+        .stack_size(32 * 1024 * 1024)
+        .spawn(|| {
+            let (context, _, ids) = super::feature_cycle::prepare_feedback();
+            let (context, source, raw, offers) = super::feature_cycle::prepare_tail(context, &ids);
+            let input = super::declarations::fixture_value(&raw)
+                .canonical_bytes()
+                .unwrap();
+            let (plan, context) = super::prepare_authored_epoch_entry(
+                context,
+                source,
+                "speech/fargan-utterance-tail",
+                true,
+                offers,
+            )
+            .unwrap();
+            let inputs = BTreeMap::from([("value".into(), vec![input])]);
+            let result = run_epoch_stream_plan(
+                plan.clone(),
+                &context,
+                &Resources::new(),
+                inputs.clone(),
+                None,
+                2,
+                ExecutionMode::Normal,
+            )
+            .expect("two Source-admitted tails must drain");
+            assert!(result.drained);
+            assert_eq!(result.values.len(), 2);
+            assert!(run_epoch_stream_plan(
+                plan.clone(),
+                &context,
+                &Resources::new(),
+                inputs.clone(),
+                None,
+                2,
+                ExecutionMode::StoragePressure,
+            )
+            .is_none());
+            assert!(run_epoch_stream_plan(
+                plan,
+                &context,
+                &Resources::new(),
+                inputs,
+                None,
+                2,
+                ExecutionMode::CancelFirstExpression
+            )
+            .is_none());
+            for (value, epoch) in result.values.iter().zip([63u64, 64]) {
+                let StructuredInfoValueShape::Record(fields) = value.shape() else {
+                    panic!("tail event")
+                };
+                let StructuredInfoValueShape::Leaf(bytes) = fields
+                    .iter()
+                    .find(|field| field.name() == "epoch")
+                    .unwrap()
+                    .value()
+                    .shape()
+                else {
+                    panic!("epoch")
+                };
+                assert_eq!(bytes, &epoch.to_le_bytes());
+            }
+            eprintln!(
+                "ordinary Source tail: {}nodes/{}cords, preparation{:?}, execution{:?}",
+                result.nodes, result.cords, result.preparation, result.execution
+            );
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }
 
 #[test]
