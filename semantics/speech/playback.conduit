@@ -1,0 +1,57 @@
+# Source/analysis identity and queue acceptance do not attest physical playback.
+type SpeechPlaybackProsodyMode =
+    rich
+    | fallback
+# Exact canonical-hex@1 checked Language receipt bytes retain alternatives/profile/UD
+# without increasing native Type nesting. Only prepared tape admission supplies
+# them; this opaque evidence field alone does not establish a Language fact.
+type SpeechPlaybackAnalysisSpecification = SpeechSpec<LanguageAnalysisRevisionId>
+type SpeechPlaybackOccurrenceBasis = {
+    event: U64 in 0..=255
+    prosody: SpeechLinguisticTrajectoryAdmission
+    material: LanguageTextRevision
+    linguistic_evidence: Text <= 65536B
+    linguistic_evidence_encoding: Text <= 64B in ["canonical-hex@1"]
+    linguistic_evidence_profile: Text <= 96B not in [""]
+    token: LinguisticTokenIdentity
+    source: LanguageTextSegmentRef
+    analysis: SpeechPlaybackAnalysisSpecification
+    mode: SpeechPlaybackProsodyMode
+    where .token.text_identity == .source.text_id
+    where .token.text_revision == .source.revision_id
+    where .prosody.pitch.segment.occurrence.language == .source.language
+    where .prosody.language == .source.language
+    where .material.material.language == .source.language
+    where .material.material.identity == .source.text_id
+    where .material.material.revision == .source.revision_id
+    where .mode is rich ? .analysis is known : .analysis is unspecified
+}
+type SpeechPlaybackBasis = {
+    intent: SpeechUtteranceIntent
+    voice_profile: SpeechFormantVoiceProfile
+    clock_id: U64 in 1..=18446744073709551615
+    occurrences: sequence SpeechPlaybackOccurrenceBasis <= 256
+}
+type SpeechPlaybackDisposition =
+    queued
+    | played
+type SpeechPlaybackAcknowledgement = {
+    basis: SpeechPlaybackBasis
+    first_frame: U64
+    through_frame: U64
+    disposition: SpeechPlaybackDisposition
+    provenance: SpeechEvidenceProvenance
+    where .through_frame > .first_frame
+}
+# Corrections link immutable old and new data; they do not rewrite old frames.
+type SpeechPlaybackInterpretationChange = {
+    prior: SpeechPlaybackBasis?
+    next: SpeechPlaybackBasis
+}
+type SpeechPlaybackWithdrawal = {
+    basis: SpeechPlaybackBasis
+}
+type SpeechPlaybackCorrection = {
+    previous: SpeechPlaybackBasis
+    replacement: SpeechPlaybackBasis
+}
