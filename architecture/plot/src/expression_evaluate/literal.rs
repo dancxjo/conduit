@@ -28,6 +28,9 @@ pub(super) fn literal_value(
         Some(PrimitiveInfoKind::Text) => crate::text_value::parse_quoted_text(literal)
             .ok_or(PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .into_bytes(),
+        Some(PrimitiveInfoKind::F32) => crate::ieee_literal::f32_bits(literal)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
+            .to_vec(),
         Some(PrimitiveInfoKind::Count) => encode_count(
             literal
                 .parse()
