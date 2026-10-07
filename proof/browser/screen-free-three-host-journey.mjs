@@ -7,6 +7,7 @@ import { closeSync, existsSync, openSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
+import { writeThreeHostPublicationReceipts } from './three-host-publication-receipts.mjs';
 import { makeZeroBodyReceipt } from './zero-body-receipt.mjs';
 import { runPacedScreenFree } from './paced-screen-free-input.mjs';
 import { screenFreeWardrobeCommands, verifyScreenFreeWardrobe } from './screen-free-wardrobe-proof.mjs';
@@ -209,6 +210,7 @@ try {
   assert.ok(birthFaceId && birthShowId);
   const born = ownerJson(['body', 'status', '--state-dir', state, '--json']);
   const bornFace = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  const birthObservedAtUnixMs = Date.now();
   const bodyId = born.biography.body_id;
   assert.ok(bodyId && transcript.includes(bodyId));
   assert.equal(bornFace.presentation.basis.body_id, bodyId);
@@ -236,6 +238,7 @@ try {
     review_requested: true,
     birth_interaction: { action_id: birthAction, face_id: birthFaceId,
       face_revision: birthFaceRevision, show_id: birthShowId },
+    observed_at_unix_ms: birthObservedAtUnixMs,
     speaker_playback_selected: Boolean(speakerCard),
     human_hearing_observed: false,
     owner_instance_speech_realization_observed: false,
@@ -262,6 +265,65 @@ try {
     );
     audioSessions.push({ name: 'birth', transcript });
   }
+  const available = (face, intent) => face.presentation.actions.find(action =>
+    action.intent === intent && action.availability === 'Available');
+  const clockAudioSessions = [];
+  const exercise = async (name, before, action) => {
+    assert.ok(action, `the current owner Face offers no available ${name} action`);
+    const commands = [...(speakerCard ? [] : ['read all']),
+      `focus ${action.identity}`, 'activate',
+      ...(speakerCard && name === 'start' ? [] : ['read all']), 'quit'];
+    const input = `${commands.join('\n')}\n`;
+    const inputFile = `clock-${name}-input.txt`;
+    const transcriptFile = `clock-${name}-transcript.txt`;
+    await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
+    const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
+    const selected = speakerCard
+      ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
+        { retryStaleReadAll: name === 'start' ? 0 : 4 }) : null;
+    const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
+    if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
+    const transcript = selected?.transcript ??
+      invoke(owner, args, { input, timeout: screenFreeSessionTimeout });
+    await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
+    assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
+    const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
+    assert.equal(enacted.length, 1, `screen-free ${name} must submit one semantic action`);
+    assert.equal(enacted[0][1], action.identity);
+    assert.equal(enacted[0][2], before.presentation_revision_decimal);
+    assert.match(transcript, /Owner action result:/);
+    const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+    const observedAtUnixMs = Date.now();
+    assert.equal(after.presentation.basis.body_id, bodyId);
+    assert.ok(BigInt(after.presentation_revision_decimal) >
+      BigInt(before.presentation_revision_decimal));
+    const reading = attestReading(transcript, after, ownerPart,
+      `screen-free clock ${name}`, true);
+    assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
+    assert.equal(enacted[0][3], reading.first.source_show_id);
+    if (selected) {
+      const lastReading = selected.responses.findLast(response => response.command === 'read all');
+      const actionResponse = selected.responses.find(response => response.command === 'activate');
+      audioChapters.push({ name: `clock-${name}`,
+        output: (lastReading ?? actionResponse).output,
+        face_id: after.presentation.identity,
+        face_revision: after.presentation_revision_decimal });
+      clockAudioSessions.push({ name: `clock-${name}`, transcript });
+    }
+    return {
+      action_id: action.identity, source_face_id: before.presentation.identity,
+      source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
+      result_face_id: after.presentation.identity,
+      result_face_revision: after.presentation_revision_decimal,
+      observed_at_unix_ms: observedAtUnixMs,
+      final_reading: reading.final,
+      input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),
+        sha256: digest(Buffer.from(actualInput)) },
+      transcript: { path: `../${transcriptFile}`, bytes: Buffer.byteLength(transcript),
+        sha256: digest(Buffer.from(transcript)) },
+      after,
+    };
+  };
   const inviteFd = openSync(inviteFile, 'wx', 0o600);
   const inviteLog = openSync(path.join(output, 'invitation-service.log'), 'wx', 0o600);
   invitation = spawn(owner, ['body', 'invite', '--state-dir', state, '--ttl-seconds', '600',
@@ -313,6 +375,56 @@ try {
   closeSync(proofLog);
   let liveError;
   liveProof.once('error', error => { liveError = error; });
+  // The browser and QMP guest first join the retained Body. The graphical
+  // producer then holds before either clock action, so a real nonvisual Start
+  // can occur in the published order without invalidating a native Show.
+  const startReadyFile = path.join(live, 'clock-start.ready.json');
+  const startReady = await waitFor(async () => {
+    if (!existsSync(startReadyFile)) return null;
+    try { return await load(startReadyFile); } catch { return null; }
+  }, liveProof, 'three-host clock Start checkpoint', 10 * 60_000);
+  assert.equal(startReady.schema, 'conduit.proof/held-clock-start@1');
+  assert.equal(startReady.source_commit, installation.release_source_identity);
+  assert.equal(startReady.body_id, bodyId);
+  assert.equal(startReady.owner_host_id, ownerPart.host_id);
+  assert.equal(startReady.owner_boot_id, ownerPart.boot_id);
+  const joinedStatus = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(joinedStatus.biography.body_id, bodyId);
+  assert.equal(joinedStatus.biography.membership.parts.length, 3);
+  for (const partId of [startReady.browser_part_id, startReady.guest_part_id]) {
+    assert.ok(joinedStatus.biography.membership.parts.some(part =>
+      part.part_id === partId && part.current !== null),
+    `held Start lost joined Part ${partId}`);
+  }
+  const beforeStart = ownerJson(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(beforeStart.presentation.identity, startReady.source_face_id);
+  assert.equal(beforeStart.presentation_revision_decimal, startReady.source_face_revision);
+  assert.equal(beforeStart.presentation.basis.body_id, bodyId);
+  assert.equal(beforeStart.advertisement.host_id, ownerPart.host_id);
+  assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
+  const start = await exercise('start', beforeStart,
+    available(beforeStart, 'conduit.intent/start-clock@1'));
+  const afterStart = ownerJson(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(afterStart.biography.body_id, bodyId);
+  assert.ok(afterStart.biography.body.state.Awake);
+  assert.ok(available(start.after, 'conduit.intent/lull-clock@1'));
+  const startResumeFile = path.join(live, 'clock-start.resume.json');
+  const startResume = { schema: 'conduit.proof/held-clock-start@1',
+    source_commit: installation.release_source_identity,
+    run_id: startReady.run_id, body_id: bodyId,
+    owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
+    browser_part_id: startReady.browser_part_id,
+    guest_part_id: startReady.guest_part_id,
+    source_face_id: start.source_face_id,
+    source_face_revision: start.source_face_revision,
+    result_face_id: start.result_face_id,
+    result_face_revision: start.result_face_revision,
+    source_show_id: start.source_show_id, action_id: start.action_id,
+    observed_at_unix_ms: start.observed_at_unix_ms,
+    transcript_sha256: start.transcript.sha256 };
+  await writeFile(`${startResumeFile}.tmp`, `${JSON.stringify(startResume, null, 2)}\n`,
+    { mode: 0o600 });
+  await rename(`${startResumeFile}.tmp`, startResumeFile);
   const liveDeadline = Date.now() + (speakerCard ? 55 * 60_000 : 10 * 60_000);
   for (const phase of phases) {
     const readyFile = path.join(checkpointDir, `${phase}.ready.json`);
@@ -407,73 +519,6 @@ try {
     human_hearing_observed: false, checkpoints,
   };
   audioSessions.push(...checkpointSessions);
-  const beforeStart = ownerJson(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(beforeStart.presentation.basis.body_id, bodyId);
-  assert.equal(beforeStart.advertisement.host_id, ownerPart.host_id);
-  assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
-  const available = (face, intent) => face.presentation.actions.find(action =>
-    action.intent === intent && action.availability === 'Available');
-  const clockAudioSessions = [];
-  const exercise = async (name, before, action) => {
-    assert.ok(action, `the current owner Face offers no available ${name} action`);
-    const commands = [...(speakerCard ? [] : ['read all']),
-      `focus ${action.identity}`, 'activate',
-      ...(speakerCard && name === 'start' ? [] : ['read all']), 'quit'];
-    const input = `${commands.join('\n')}\n`;
-    const inputFile = `clock-${name}-input.txt`;
-    const transcriptFile = `clock-${name}-transcript.txt`;
-    await writeFile(path.join(output, inputFile), input, { mode: 0o600 });
-    const args = ['body', 'screen-free', '--state-dir', state, ...selectedSpeechArgs];
-    const selected = speakerCard
-      ? await runPacedScreenFree(owner, args, commands, 'body> ', screenFreeSessionTimeout,
-        { retryStaleReadAll: name === 'start' ? 0 : 4 }) : null;
-    const actualInput = selected ? `${selected.commands.join('\n')}\n` : input;
-    if (selected) await writeFile(path.join(output, inputFile), actualInput, { mode: 0o600 });
-    const transcript = selected?.transcript ??
-      invoke(owner, args, { input, timeout: screenFreeSessionTimeout });
-    await writeFile(path.join(output, transcriptFile), transcript, { mode: 0o600 });
-    assert.ok(transcript.includes(`Continuing retained Body ${bodyId}`));
-    const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
-    assert.equal(enacted.length, 1, `screen-free ${name} must submit one semantic action`);
-    assert.equal(enacted[0][1], action.identity);
-    assert.equal(enacted[0][2], before.presentation_revision_decimal);
-    assert.match(transcript, /Owner action result:/);
-    const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
-    assert.equal(after.presentation.basis.body_id, bodyId);
-    assert.ok(BigInt(after.presentation_revision_decimal) >
-      BigInt(before.presentation_revision_decimal));
-    const reading = attestReading(transcript, after, ownerPart,
-      `screen-free clock ${name}`, true);
-    assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
-    assert.equal(enacted[0][3], reading.first.source_show_id);
-    if (selected) {
-      const lastReading = selected.responses.findLast(response => response.command === 'read all');
-      const actionResponse = selected.responses.find(response => response.command === 'activate');
-      audioChapters.push({ name: `clock-${name}`,
-        output: (lastReading ?? actionResponse).output,
-        face_id: after.presentation.identity,
-        face_revision: after.presentation_revision_decimal });
-      clockAudioSessions.push({ name: `clock-${name}`, transcript });
-    }
-    return {
-      action_id: action.identity, source_face_id: before.presentation.identity,
-      source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
-      result_face_id: after.presentation.identity,
-      result_face_revision: after.presentation_revision_decimal,
-      final_reading: reading.final,
-      input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),
-        sha256: digest(Buffer.from(actualInput)) },
-      transcript: { path: `../${transcriptFile}`, bytes: Buffer.byteLength(transcript),
-        sha256: digest(Buffer.from(transcript)) },
-      after,
-    };
-  };
-  const start = await exercise('start', beforeStart,
-    available(beforeStart, 'conduit.intent/start-clock@1'));
-  const afterStart = ownerJson(['body', 'status', '--state-dir', state, '--json']);
-  assert.equal(afterStart.biography.body_id, bodyId);
-  assert.ok(afterStart.biography.body.state.Awake);
-  assert.ok(available(start.after, 'conduit.intent/lull-clock@1'));
   const lull = await exercise('lull', start.after,
     available(start.after, 'conduit.intent/lull-clock@1'));
   const afterLull = ownerJson(['body', 'status', '--state-dir', state, '--json']);
@@ -576,242 +621,9 @@ try {
   // captures observed in this run. A missing transition is a refusal, never an
   // invitation to fill a chapter from prose or a previous run.
   if (speakerCard && model && ownerModelRouteControlArg && ownerModelRouteControlArg !== '-') {
-    const exact = (value, label) => {
-      assert.ok(value !== undefined && value !== null && value !== '', `${label} is missing`);
-      return value;
-    };
-    const observations = new Map(report.observations.map(asyncReceipt =>
-      [path.basename(asyncReceipt.path, '.json'), asyncReceipt]));
-    const observation = async name => {
-      const artifact = exact(observations.get(name), `${name} capture observation`);
-      const bytes = await readFile(path.join(live, artifact.path));
-      assert.equal(digest(bytes), artifact.sha256);
-      return JSON.parse(bytes);
-    };
-    const screenshot = file => exact(report.screenshots.find(item => item.path === file), file);
-    const checkpoint = phase => exact(checkpoints.find(item => item.phase === phase), phase);
-    const publicationDirectory = path.join(live, 'publication-receipts');
-    await mkdir(publicationDirectory, { mode: 0o700 });
-    let receiptNumber = 0;
-    const emit = async (type, record) => {
-      const file = `publication-receipts/${String(++receiptNumber).padStart(2, '0')}-${type}.json`;
-      const bytes = Buffer.from(`${JSON.stringify({
-        schema: `conduit.proof/three-host-publication-${type}@1`,
-        source_commit: report.native_source_commit, run_id: report.run_id,
-        body_id: report.body_id, ...record,
-      }, null, 2)}\n`);
-      await writeFile(path.join(live, file), bytes, { flag: 'wx', mode: 0o600 });
-      return { path: file, sha256: digest(bytes) };
-    };
-    const event = async (kind, id, faceRevision, basis) => {
-      exact(kind, 'event kind'); exact(id, 'event identity');
-      exact(faceRevision, 'event Face revision'); exact(basis, 'event basis');
-      const sourceReceipt = await emit('event', {
-        event_kind: kind, event_id: id,
-        resulting_face_revision: String(faceRevision), outcome: 'completed',
-        observed_basis_sha256: digest(Buffer.from(JSON.stringify(basis))),
-      });
-      return { kind, id, face_revision: String(faceRevision), source_receipt: sourceReceipt };
-    };
-    const media = async (captureSource, artifact, eventRecord, alt, basis, speech) => {
-      exact(artifact?.path, 'media path'); exact(artifact?.sha256, 'media digest');
-      const bytes = await readFile(path.join(live, artifact.path));
-      assert.equal(digest(bytes), artifact.sha256, `${artifact.path} changed`);
-      const sourceReceipt = await emit('media', {
-        event_kind: eventRecord.kind, event_id: eventRecord.id,
-        face_revision: eventRecord.face_revision,
-        media_path: artifact.path, media_sha256: artifact.sha256,
-        capture_source: captureSource,
-        observed_basis_sha256: digest(Buffer.from(JSON.stringify(basis))),
-      });
-      return { path: artifact.path, sha256: artifact.sha256,
-        capture_source: captureSource, event_id: eventRecord.id,
-        face_revision: eventRecord.face_revision, alt,
-        source_receipt: sourceReceipt, ...(speech ? { speech } : {}) };
-    };
-    const chapter = (id, title, intention, action, result, why, next,
-      limitations, events, mediaItems) => ({ id, title, intention, action, result, why,
-      next, limitations, events, media: mediaItems });
-    const browserJoin = await observation('browser-joined');
-    const browserNative = await observation('after-native-action');
-    const browserAction = await observation('after-browser-action');
-    const browserTerminal = await observation('after-terminal-action');
-    const browserWardrobe = await observation('wardrobe-restored');
-    const browserRecovery = await observation('browser-recovered');
-    const nativeReceipt = await load(path.join(live, 'native/owner-action-proof.json'));
-    assert.equal(nativeReceipt.source_commit, report.native_source_commit);
-    assert.equal(nativeReceipt.guest_part.part_id, report.guest_part_id);
-    assert.equal(nativeReceipt.action.action_id, report.native_action.action_id);
-    const recovery = await load(path.join(live, report.presentation_host_recovery.path));
-    assert.equal(recovery.body_id, report.body_id);
-    const loss = exact(report.owner_model_route_loss, 'selected model route loss');
-    const direct = exact(report.owner_direct_speech, 'direct owner speech');
-    const llm = exact(report.owner_llm_speech, 'selected owner model speech');
-    const originalModelOutput = (await load(path.join(live, llm.terminal.path)))
-      .generation_evidence.original_model_output;
-    const restoredModelOutput = (await load(path.join(live, loss.restored.terminal.path)))
-      .generation_evidence.original_model_output;
-    assert.equal(digest(Buffer.from(originalModelOutput)), llm.original_model_output_sha256);
-    assert.equal(digest(Buffer.from(restoredModelOutput)),
-      loss.restored.original_model_output_sha256);
-    const born = await event('typed-interaction', birth.birth_interaction.action_id,
-      birth.final_reading.face_revision, birth.birth_interaction);
-    const joinedBrowser = await event('membership', report.browser_part_id,
-      browserJoin.resulting_face.face_revision, browserJoin);
-    const joinedGuest = await event('membership', report.guest_part_id,
-      nativeReceipt.face_before.face_revision, nativeReceipt.guest_part);
-    const started = await event('typed-interaction', start.action_id,
-      start.result_face_revision, start);
-    const changedNative = await event('typed-interaction', nativeReceipt.action.interaction_id,
-      nativeReceipt.face_after.face_revision, nativeReceipt.action);
-    // The browser UI exposes the typed action and exact source Show, but does
-    // not expose an invocation ID. Bind this accepted return to its real Show
-    // instead of pretending the reusable action identity is a unique event.
-    const changedBrowser = await event('typed-interaction-source-show',
-      browserAction.cause.source_show_id,
-      browserAction.resulting_face.face_revision, browserAction.cause);
-    const changedTerminal = await event('typed-interaction', report.terminal_action.interaction_id,
-      browserTerminal.resulting_face.face_revision, browserTerminal.cause);
-    const selectedWardrobe = await event('acknowledged-show', report.browser_wardrobe.selected_show_id,
-      browserWardrobe.resulting_face.face_revision, report.browser_wardrobe);
-    // Each completed stream batch is a distinct listener Play. Preserve the
-    // complete ordered reading, subject to the twelve-media Hear envelope
-    // (one slot is reserved for the model-assisted explanation).
-    assert.ok(direct.batches.length > 1 && direct.batches.length <= 11,
-      'the complete direct reading exceeds the Hear chapter media bound');
-    const directTerminal = await load(path.join(live, direct.terminal.path));
-    assert.equal(directTerminal.speaker_playback.batches.length, direct.batches.length);
-    const directAudioBytes = direct.batches.reduce((total, batch, index) => {
-      const original = directTerminal.speaker_playback.batches[index];
-      for (const key of ['plan_id', 'play_id', 'wav_sha256', 'pcm_sha256']) {
-        assert.equal(batch[key], original[key], `direct batch ${index + 1} ${key} changed`);
-      }
-      assert.deepEqual(batch.spoken_segments, original.spoken_segments,
-        `direct batch ${index + 1} words changed`);
-      return total + batch.wav.bytes;
-    }, 0);
-    assert.ok(directAudioBytes + llm.wav.bytes <= 64 * 1024 * 1024,
-      'complete Hear audio exceeds its bounded share of the public carrier');
-    const directEvents = await Promise.all(direct.batches.map(batch =>
-      event('selected-speaker-play', batch.play_id,
-        direct.face_revision_decimal, batch)));
-    const heardModel = await event('selected-speaker-play', llm.listener_play_id,
-      llm.face_revision_decimal, llm);
-    const modelLost = await event('provider-withdrawal', `route/${loss.route_plan_id}`,
-      checkpoint('model-provider-unavailable').final_reading.face_revision,
-      checkpoint('model-provider-unavailable'));
-    const browserLost = await event('presentation-leave', recovery.lost_browser_boot_id,
-      checkpoint('browser-presentation-unavailable').final_reading.face_revision,
-      recovery.loss);
-    const modelReturned = await event('selected-speaker-play', loss.restored.listener_play_id,
-      loss.restored.face_revision_decimal, loss.restored);
-    const browserReturned = await event('membership-return', recovery.recovered_browser_boot_id,
-      browserRecovery.resulting_face.face_revision, recovery);
-    const lulled = await event('typed-interaction', finish.action_id,
-      finish.result_face_revision, finish);
-    const qmp = (file, eventRecord, alt, face) => {
-      const capture = exact(nativeReceipt.screenshots.find(item =>
-        item.png === path.basename(file)), `${file} QMP capture receipt`);
-      assert.equal(capture.png_sha256, screenshot(file).sha256,
-        `${file} differs from the QMP producer receipt`);
-      return media('qmp', screenshot(file), eventRecord,
-        alt, { capture, face, source_receipt_sha256: report.native_receipt_sha256 });
-    };
-    const chromium = (file, eventRecord, alt, capture) => media('pinned-chromium',
-      screenshot(file), eventRecord, alt, capture);
-    const transcriptMedia = (artifact, eventRecord, alt) => media('screen-free-transcript',
-      artifact, eventRecord, alt, artifact);
-    const directSpeech = batch => ({ mode: 'direct', show_id: direct.show_id,
-      plan_id: batch.plan_id, play_id: batch.play_id,
-      voice_id: installation.selected_speech.voice,
-      text: batch.spoken_segments.join(' '), provenance: direct.terminal });
-    const modelSpeech = (record, originalOutput) => ({ mode: 'llm-assisted', show_id: record.show_id,
-      plan_id: record.listener_plan_id, play_id: record.listener_play_id,
-      voice_id: installation.selected_speech.voice,
-      text: record.accepted_wording, provenance: record.terminal,
-      original_model_output: originalOutput,
-      provider_id: record.provider_identity,
-      model_id: record.model_identity });
-    const directMedia = await Promise.all(direct.batches.map((batch, index) =>
-      media('selected-speaker-same-play', batch.wav, directEvents[index],
-        `Direct spoken Face, batch ${index + 1} of ${direct.batches.length}, from its selected speaker Play`,
-        batch, directSpeech(batch))));
-    report.publication_chapters = [
-      chapter('birth', 'Make a Body', 'Create one Body without a screen.',
-        'Review the clock Plot and activate Birth.', 'The installed owner retains the new Body.',
-        'The other Hosts must join this same Body.', 'Open the browser and QEMU guest.',
-        ['No attended human listening is claimed.'], [born],
-        [await transcriptMedia(birth.transcript, born, 'Actual nonvisual Birth session')]),
-      chapter('join', 'Give it more places to meet you', 'Meet the same Body on three Hosts.',
-        'Join through the browser and QEMU guest.', 'Three current Parts have distinct Host and Boot identities.',
-        'Membership does not silently birth another Body.', 'Start the clock.',
-        ['QMP is emulator evidence, not physical hardware evidence.'],
-        [joinedBrowser, joinedGuest], [
-          await chromium('browser-before.png', joinedBrowser, 'Joined browser Face', browserJoin),
-          await qmp('native/owner-standby.png', joinedGuest, 'Joined QEMU guest before Mask activation', nativeReceipt.face_before),
-        ]),
-      chapter('start', 'Start something useful', 'Run a clock and change its interval.',
-        'Start nonvisually, then set the interval on ConduitOS and in the browser.',
-        'Typed interactions change the shared owner Face.',
-        'The workload remains on its admitted owner.', 'Inspect another Mask.',
-        ['This does not prove distributed workload migration.'],
-        [started, changedNative, changedBrowser], [
-          await transcriptMedia(start.transcript, started, 'Nonvisual clock Start session'),
-          await qmp('native/owner-after.png', changedNative, 'QEMU clock after the 500 millisecond action', nativeReceipt.face_after),
-          await chromium('browser-after-browser.png', changedBrowser, 'Browser clock after the 1000 millisecond action', browserAction),
-        ]),
-      chapter('see', 'Change how you see it', 'Meet the current work through different Masks.',
-        'Use the terminal action and change browser wardrobe preference.',
-        'The current Face and selected Show remain correlated.',
-        'Presentation changes do not make a second Body.', 'Hear the Face.',
-        ['A wardrobe choice is not a new clock action.'],
-        [changedTerminal, selectedWardrobe], [
-          await media('terminal', report.terminal_show, changedTerminal,
-            'Installed owner terminal Show and typed clock action', report.terminal_show),
-          await chromium('browser-wardrobe.png', selectedWardrobe, 'Browser wardrobe after preference change', browserWardrobe),
-        ]),
-      chapter('hear', 'Hear it', 'Listen to the current Face and its explanation.',
-        'Select direct and model-assisted speech.',
-        'The complete direct reading and selected model explanation have retained listener WAVs.',
-        'The recording is from the same Play as the speaker output.', 'Withdraw a route.',
-        ['Automated playback does not establish attended human hearing.'],
-        [...directEvents, heardModel], [
-          ...directMedia,
-          await media('selected-speaker-same-play', llm.wav, heardModel,
-            'Model-assisted explanation from the selected speaker Play', llm,
-            modelSpeech(llm, originalModelOutput)),
-        ]),
-      chapter('loss', 'Change the circumstances', 'Understand what fails when routes disappear.',
-        'Withdraw the model route and leave the browser presentation.',
-        'Model Start refuses before a new Play; the old browser actions become unavailable.',
-        'Availability and a current Show are separate from Body identity.', 'Return on fresh routes.',
-        ['No automatic fallback or workload failover is claimed.'],
-        [modelLost, browserLost], [
-          await media('terminal', loss.refusal, modelLost,
-            'Owner refusal when the selected model route is withdrawn', loss),
-          await transcriptMedia(checkpoint('model-provider-unavailable').transcript,
-            modelLost, 'Screen-free inspection during model route loss'),
-          await transcriptMedia(checkpoint('browser-presentation-unavailable').transcript,
-            browserLost, 'Screen-free inspection during browser presentation loss'),
-        ]),
-      chapter('return', 'Come back', 'Return to the retained Body.',
-        'Restore the model route and rejoin the browser on a fresh Boot.',
-        'Fresh selected speaker Play and browser Show replace stale facts.',
-        'The owner preserves Body continuity while route identities change.', 'Lull the clock.',
-        ['No QEMU reboot is claimed.'], [modelReturned, browserReturned], [
-          await media('selected-speaker-same-play', loss.restored.wav, modelReturned,
-            'Restored model explanation from the selected speaker Play',
-            loss.restored, modelSpeech(loss.restored, restoredModelOutput)),
-          await chromium('browser-after-recovery.png', browserReturned,
-            'Fresh browser Boot showing the same Body', browserRecovery),
-        ]),
-      chapter('lull', 'Leave it well', 'Leave the clock in a known retained state.',
-        'Activate Lull nonvisually and read the resulting Face.',
-        'The clock Play retires while the Body remains retained.',
-        'Retained identity is distinct from continuing execution.', 'Inspect the report.',
-        ['A retained Body is not proof of an active Play.'], [lulled],
-        [await transcriptMedia(finish.transcript, lulled, 'Nonvisual Lull session')]),
-    ];
+    report.publication_chapters = await writeThreeHostPublicationReceipts({
+      output: live, report, birth, start, finish, checkpoints, installation,
+    });
   }
   const walkthrough = await writeThreeHostWalkthrough(live, handbook, report);
   report.walkthrough = {

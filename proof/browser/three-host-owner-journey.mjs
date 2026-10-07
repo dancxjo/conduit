@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
@@ -129,6 +129,7 @@ try {
   const bodyId = ownerBefore.biography.body_id;
   const ownerPartAtCapture = ownerBefore.biography.membership.parts[0].current;
   const runId = captureRunId(bodyId, ownerPartAtCapture.host_id, ownerPartAtCapture.boot_id);
+  const eventObservedAt = {};
   const checkpointHandoffs = [];
   const checkpointDirectory = path.join(output, 'screen-free-checkpoints');
   if (process.env.CONDUIT_SCREEN_FREE_CHECKPOINTS === '1') {
@@ -219,6 +220,7 @@ try {
   assert.equal(joined.credential.body_id, bodyId);
   assert.equal(joined.face.body_id, bodyId);
   assert.equal(joined.face.show_state, 'available');
+  eventObservedAt.browser_join = Date.now();
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-before.png') });
   await observeBrowserCapture('browser-joined', joined.face,
     { kind: 'browser-membership', part_id: joined.credential.part_id }, 'browser-before.png');
@@ -247,6 +249,57 @@ try {
   assert.equal(standby.guest_part.membership_installed, true);
   assert.equal(standby.guest_part.body_id, bodyId);
   assert.equal(standby.face.interactions_admitted, false);
+  eventObservedAt.guest_join = Date.now();
+  const joinedBeforeStart = run(['body', 'status', '--state-dir', state, '--json']);
+  assert.equal(joinedBeforeStart.biography.membership.parts.length, 3);
+  for (const partId of [joined.credential.part_id, standby.guest_part.part_id]) {
+    assert.ok(joinedBeforeStart.biography.membership.parts.some(part =>
+      part.part_id === partId && part.current !== null));
+  }
+  const faceBeforeStart = run(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(faceBeforeStart.presentation.basis.body_id, bodyId);
+  assert.equal(faceBeforeStart.presentation.identity, standby.face.face_id,
+    'QMP standby must show the current owner Face before Start');
+  assert.equal(Number(faceBeforeStart.presentation_revision_decimal), standby.face.face_revision);
+  const startReady = {
+    schema: 'conduit.proof/held-clock-start@1',
+    source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
+    owner_host_id: ownerPartAtCapture.host_id, owner_boot_id: ownerPartAtCapture.boot_id,
+    browser_part_id: joined.credential.part_id,
+    guest_part_id: standby.guest_part.part_id,
+    source_face_id: faceBeforeStart.presentation.identity,
+    source_face_revision: faceBeforeStart.presentation_revision_decimal,
+    guest_boot_id: standby.guest_part.boot_id,
+  };
+  const startReadyPath = path.join(output, 'clock-start.ready.json');
+  await writeFile(`${startReadyPath}.tmp`, `${JSON.stringify(startReady, null, 2)}\n`,
+    { mode: 0o600 });
+  await rename(`${startReadyPath}.tmp`, startReadyPath);
+  const startResume = await waitForFile(path.join(output, 'clock-start.resume.json'), 15 * 60_000);
+  for (const key of ['schema', 'source_commit', 'run_id', 'body_id',
+    'owner_host_id', 'owner_boot_id', 'browser_part_id', 'guest_part_id',
+    'source_face_id', 'source_face_revision']) {
+    assert.equal(startResume[key], startReady[key], `held Start ${key} changed`);
+  }
+  assert.match(startResume.action_id, /^body\/action\/start-clock\//);
+  assert.ok(BigInt(startResume.result_face_revision) >
+    BigInt(startResume.source_face_revision));
+  assert.ok(Number.isSafeInteger(startResume.observed_at_unix_ms) &&
+    startResume.observed_at_unix_ms > 0);
+  const faceAfterStart = run(['body', 'face', '--state-dir', state, '--json']);
+  assert.equal(faceAfterStart.presentation.identity, startResume.result_face_id);
+  assert.equal(faceAfterStart.presentation_revision_decimal, startResume.result_face_revision);
+  assert.equal(faceAfterStart.presentation.basis.body_id, bodyId);
+  // The QMP producer will fetch this newer Face when the person presses F5.
+  // Preserve the exact authorized transition so its later proof can refuse
+  // an unrelated or stale revision instead of demanding standby equality.
+  const nativeStartBasis = {
+    ...startResume, guest_boot_id: standby.guest_part.boot_id,
+    standby_face_id: standby.face.face_id,
+    standby_face_revision: standby.face.face_revision,
+  };
+  await writeFile(path.join(native, 'held-clock-start.json'),
+    `${JSON.stringify(nativeStartBasis, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(() => {
     try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
@@ -281,6 +334,9 @@ try {
   assert.equal(arrived.guest_part.body_id, bodyId);
   assert.equal(arrived.face.interactions_admitted, true);
   assert.equal(arrived.show_ack.show_id, arrived.face.show_id);
+  assert.equal(arrived.face.face_id, startResume.result_face_id,
+    'native F5 must show the Face reached by the held nonvisual Start');
+  assert.equal(String(arrived.face.face_revision), startResume.result_face_revision);
   const threeHosts = run(['body', 'status', '--state-dir', state, '--json']);
   assert.equal(threeHosts.biography.membership.parts.length, 3);
   const ownerPart = threeHosts.biography.membership.parts.find(part =>
@@ -298,6 +354,7 @@ try {
   assert.equal(nativeAction.action.status, 'accepted');
   assert.equal(nativeAction.action.requested_interval_ms, 500);
   assert.equal(nativeAction.show_ack.show_id, nativeAction.face.show_id);
+  eventObservedAt.native_action = Date.now();
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(prior => {
     try {
@@ -357,6 +414,7 @@ try {
       subject.text.some(text => text.includes('1000 milliseconds')));
   }, afterNative.face_revision, { timeout: 12_000 });
   const afterBrowser = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  eventObservedAt.browser_action = Date.now();
   assert.equal(afterBrowser.body_id, bodyId);
   assert.notEqual(afterBrowser.face_id, afterNative.face_id);
   assert.equal(await page.locator('[data-owner-action-result]').textContent(),
@@ -481,6 +539,7 @@ try {
     line.includes('"schema":"conduit.body/clock-interval-changed@1"'));
   assert.ok(terminalActionLine, 'terminal must submit a semantic clock action');
   const terminalAction = JSON.parse(terminalActionLine.slice(terminalActionLine.indexOf('{')));
+  eventObservedAt.terminal_action = Date.now();
   assert.equal(terminalAction.body_id, bodyId);
   assert.equal(terminalAction.interval_ms, 500);
   assert.equal(terminalAction.prior_show_id, actionShow[1]);
@@ -560,6 +619,7 @@ try {
       .show_id !== prior; } catch { return false; }
   }, wardrobePreferred.show_id, { timeout: 12_000 });
   const wardrobeRecovered = await readWardrobe();
+  eventObservedAt.wardrobe_show = Date.now();
   assert.equal(wardrobeRecovered.owner_plan_id, wardrobeBefore.owner_plan_id);
   assert.equal(wardrobeRecovered.selected?.route_id, browserRoute.route_id);
   assert.ok(wardrobeRecovered.show_id && !wardrobeRecovered.fresh_show_required);
@@ -665,7 +725,10 @@ try {
       assert.ok(!playIds.has(batch.play_id), 'speaker Play IDs must be unique');
       playIds.add(batch.play_id);
       assert.match(batch.wav_artifact_id, /^play-[0-9a-f]{64}\.wav$/);
-      const wav = await readFile(path.join(artifactRoot, batch.wav_artifact_id));
+      const originalWavPath = path.join(artifactRoot, batch.wav_artifact_id);
+      const wav = await readFile(originalWavPath);
+      const wavWrittenAtUnixMs = Math.trunc((await stat(originalWavPath)).mtimeMs);
+      assert.ok(Number.isSafeInteger(wavWrittenAtUnixMs) && wavWrittenAtUnixMs > 0);
       assert.equal(wav.subarray(0, 4).toString(), 'RIFF');
       assert.equal(wav.subarray(8, 12).toString(), 'WAVE');
       assert.equal(wav.length, batch.wav_bytes);
@@ -674,7 +737,8 @@ try {
       assert.equal(digest(wav.subarray(44)), batch.pcm_sha256);
       assert.ok(wav.subarray(44).some(byte => byte !== 0), 'direct speaker WAV is silent');
       await writeFile(path.join(directory, batch.wav_artifact_id), wav, { flag: 'wx' });
-      batches.push({ ...batch, wav: { path: `owner-direct-spoken/${batch.wav_artifact_id}`,
+      batches.push({ ...batch, observed_at_unix_ms: wavWrittenAtUnixMs,
+        wav: { path: `owner-direct-spoken/${batch.wav_artifact_id}`,
         bytes: wav.length, sha256: batch.wav_sha256 } });
     }
     const after = run(['body', 'face', '--state-dir', state, '--json']);
@@ -771,6 +835,7 @@ try {
     ? await captureOwnerLlmSpeaker({ owner: run, state, output, installation: installed,
       bodyId, runId, sourceCommit: installed.release_source_identity, model: modelArgument })
     : undefined;
+  if (ownerLlmSpeech) eventObservedAt.initial_model_play = Date.now();
   let modelWardrobeObservations = 0;
   const ownerModelRouteLoss = ownerLlmSpeech && ownerModelRouteControlArgument &&
     ownerModelRouteControlArgument !== '-'
@@ -809,6 +874,9 @@ try {
               wardrobe_revision: report.wardrobe_revision_decimal,
               observed_route_status: available ? 'restored' : 'provider-withdrawn',
             }) : undefined;
+        if (checkpoint) {
+          eventObservedAt[available ? 'model_restored' : 'model_unavailable'] = Date.now();
+        }
         return { wardrobe: report, checkpoint };
       } }) : undefined;
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
@@ -878,8 +946,11 @@ try {
         observed_route_status: routeAvailable ? 'restored' : 'browser-part-retired',
         part_id: partId, observed_boot_id: bootId,
       });
+      eventObservedAt[phase === 'browser-presentation-unavailable'
+        ? 'browser_unavailable' : 'browser_restored_checkpoint'] = Date.now();
     },
   });
+  eventObservedAt.browser_return = Date.now();
   observations.push(presentationRecovery.observation);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
@@ -1004,6 +1075,7 @@ try {
       model_route_restoration: modelRouteRestoration } : {}),
     screenshots,
     observations,
+    event_observed_at_unix_ms: eventObservedAt,
     concurrent_part_count: threeHosts.biography.membership.parts.length,
     qemu_alive_through_browser_actions: true,
   };
