@@ -63,10 +63,9 @@ fn revisions_grow_and_revise_before_finality_on_scalar_basis() {
         Some(5),
         LanguageTextFinality::Partial,
     );
-    assert_eq!(
-        validate_text_revision(Some(&last), &after, 2, 8),
-        Err(TextRevisionRefusal::Finalized)
-    );
+    validate_text_revision(Some(&last), &after, 2, 8).unwrap();
+    // Finality describes a completed snapshot, not permanent closure: an
+    // authored/typed source can be edited under the same exact revision law.
 }
 
 #[test]
