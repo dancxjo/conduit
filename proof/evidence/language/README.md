@@ -23,3 +23,20 @@ The retained v2 trace is a narrow four-token profile. It changes its provisional
 analysis as context arrives; its stable and committed frontiers remain zero.
 This recorded inspection is not a live session, real-time speech, physical
 playback, or proof that the full linguistic-spine acceptance contract is met.
+
+With an installed Playwright Chromium, check the recorded controls and exact
+native event display in a single browser worker:
+
+```sh
+node proof/evidence/language/revision_inspector_browser.mjs \
+  /tmp/parser-revision-inspector.html \
+  semantics/language/training/ewt_joint_v2/native_stream_planned_events.jsonl \
+  /tmp/parser-inspector-browser-proof
+```
+
+`PLAYWRIGHT_MODULE` can name an existing absolute module path when the worktree
+has no local package installation. The check covers navigation, exact recorded
+event equality, file loading, malformed-file preservation, mobile horizontal
+layout and uncaught browser errors. It emits screenshots and a compact proof
+JSON. It explicitly does not verify an OS-selected live file-follow handle or
+execute the parser. The local retained seven-event trace passes these checks.
