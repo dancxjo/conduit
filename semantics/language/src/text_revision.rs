@@ -2,6 +2,26 @@
 //! candidate atomically; pressure/cancellation cannot mutate the previous value.
 use crate::{LanguageTextFinality, LanguageTextRevision};
 
+/// Revision-domain schemas are installed explicitly, independently of the
+/// identity family consumed by speech/listening/translation native bindings.
+pub fn text_revision_types() -> alloc::vec::Vec<(&'static str, conduit_core::StructuredInfoType)> {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    alloc::vec![
+        (
+            "LanguageTextFinality",
+            crate::LanguageTextFinality::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageTextPriorRevision",
+            crate::LanguageTextPriorRevision::semantic_type().expect("checked Language Type")
+        ),
+        (
+            "LanguageTextRevision",
+            crate::LanguageTextRevision::semantic_type().expect("checked Language Type")
+        ),
+    ]
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextRevisionRefusal {
     Identity,
