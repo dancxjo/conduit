@@ -18,6 +18,27 @@ pub(super) struct NativeTape {
     pub pcm: Vec<i16>,
     pub immutable_material: Vec<u8>,
 }
+
+#[test]
+#[ignore = "complete private committed native basis and33 shared trained tensors"]
+fn committed_native_first_feature_drives_source_warm_startup_with_retained_model() {
+    std::thread::Builder::new().stack_size(32 * 1024 * 1024).spawn(|| {
+        let basis = super::committed_lineage::admit_shared_basis();
+        let tape = prepare_native_tape(&basis);
+        let observations = tape.epochs.iter().map(|epoch| (epoch.cycle.is_none(), epoch.q8)).collect::<Vec<_>>();
+        let periods = super::runtime::run_native_period_controls(&observations);
+        assert_eq!(periods.len(), 63);
+        let proposal = super::runtime::run_native_first_feature(&tape.epochs[0].samples, &periods[0]);
+        let root = std::path::PathBuf::from(std::env::var("CONDUIT_FARGAN_MODEL_FIXTURE").unwrap());
+        let mut model = super::custody::RetainedSignalModel::load(&root);
+        let (_, conditioning) = model.conditioning_resources();
+        for (name, resource) in conditioning { assert!(model.resources.insert(format!("conditioning_{name}"), resource).is_none()); }
+        let warm = super::runtime::run_native_warm_startup(&model, &proposal);
+        assert!(warm.iter().any(|value| matches!(value.shape(), StructuredInfoValueShape::Record(_))));
+        assert!(warm.iter().any(|value| matches!(value.shape(), StructuredInfoValueShape::Collection(_))));
+        eprintln!("complete committed native basis→63 Source period admissions→first native feature→33 shared-resource Source warm startup; no native utterance PCM claim");
+    }).unwrap().join().unwrap();
+}
 fn bytes(value: &serde_json::Value) -> Vec<u8> {
     serde_json::from_value(value.clone()).unwrap()
 }
