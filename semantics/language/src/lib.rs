@@ -151,3 +151,6 @@ pub use generated::{
     LanguageParserProtectedInsertStage, LanguageParserProtectedMaskResolved,
     LanguageParserProtectedSetProposal,
 };
+/// Full Source-admitted correlation of an independent parser fact and portable arc.
+/// This retains stable fact custody; it does not imply playback commitment.
+pub use generated::LanguageParserStableDependencyAdmission;

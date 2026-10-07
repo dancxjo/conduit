@@ -175,3 +175,19 @@ bounded declaration and request files. This records supplied Host metadata,
 not pronunciation or recognition accuracy. See the
 [runtime speech guide](../proof/runtime-speech.md) for declaration and synthesis.
 Full consumer proof and stable acceptance remain open.
+
+`LanguageParserStableDependencyAdmission` retains an independent Native parser
+fact and its proposed portable dependency arc. The Source laws in
+`semantics/language/parser_session_dependency.conduit` correlate the complete
+query, dependent and governor token identities, analysis revision, head ordinal,
+universal relation base and full subtype material. Explicit `text/material`
+observation compares the parser's empty-capable subtype with the portable
+optional nonempty subtype without retagging either nominal contract.
+The generated binding enforces field constraints and every `where` invariant.
+
+This admission proves correlation with the retained stable fact. It does not
+prove contiguous commitment, protected playback, learned-model execution or a
+complete linguistic session. Those require their own retained Source execution
+and model/policy custody. The subtype conformance test uses an explicitly
+amended Native fixture, rather than claiming a subtype prediction from the
+learned base-relation scorer.

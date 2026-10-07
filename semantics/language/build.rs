@@ -21,6 +21,7 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_session.conduit");
     println!("cargo:rerun-if-changed=parser_session_policy.conduit");
     println!("cargo:rerun-if-changed=parser_session_facts.conduit");
+    println!("cargo:rerun-if-changed=parser_session_dependency.conduit");
     println!("cargo:rerun-if-changed=parser_session_commit.conduit");
     println!("cargo:rerun-if-changed=parser_session_rebase.conduit");
     println!("cargo:rerun-if-changed=parser_session_branch.conduit");
@@ -52,6 +53,7 @@ fn main() {
         include_str!("parser_session.conduit"),
         include_str!("parser_session_policy.conduit"),
         include_str!("parser_session_facts.conduit"),
+        include_str!("parser_session_dependency.conduit"),
         include_str!("parser_session_commit.conduit"),
         include_str!("parser_session_rebase.conduit"),
         include_str!("parser_session_branch.conduit"),
