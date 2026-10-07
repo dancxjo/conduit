@@ -191,3 +191,17 @@ complete linguistic session. Those require their own retained Source execution
 and model/policy custody. The subtype conformance test uses an explicitly
 amended Native fixture, rather than claiming a subtype prediction from the
 learned base-relation scorer.
+
+The opt-in `stable_vocative_continuation` Speech test consumes exact recorded
+Native stable facts and the complete revision history. It reconstructs the
+lexical tape, admits the portable arc against the retained fact, and prepares
+only that dependent's pronunciation, linguistic prosody, formant realization
+and playback tape while the Language source is still Partial. The sparse-arc
+adapter retains the original token ordinal rather than renumbering it by the
+spoken-word index. The proof records the dependency admission, utterance intent,
+playback basis and rendered frame count. Its played acknowledgements are explicit
+manual effect-owner fixtures: queued evidence does not commit, premature commit
+is refused, and withdrawal after played evidence is refused. This does not prove
+physical playback, neural realization or protection through a later parser
+revision. Those boundaries remain separate even when the recorded parser run
+itself has admitted a subsequent rebase.

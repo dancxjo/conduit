@@ -233,12 +233,54 @@ pub fn admitted_graph_with_choices(
     vocative: usize,
     choices: &[usize],
 ) -> Case {
+    let ordinals = (0..arcs.len()).collect::<Vec<_>>();
+    admitted_arcs_with_choices(lexical, analysis, arcs, vocative, choices, &ordinals)
+}
+
+/// Retains the full independent Source fact while preparing only its target vocative word.
+/// This adapter does not assert contiguous commitment or protected playback.
+pub struct StableDependencyCase {
+    pub case: Case,
+    pub admission: LanguageParserStableDependencyAdmission,
+}
+pub fn admitted_stable_vocative(
+    lexical: PreparedLexicalTape,
+    admission: LanguageParserStableDependencyAdmission,
+) -> StableDependencyCase {
+    let query = admission.fact().query();
+    assert_eq!(lexical.tape(), query.beam().lexical().tape());
+    let dependent = *query.dependent() as usize;
+    let choices = query
+        .beam()
+        .candidate0()
+        .choices()
+        .iter()
+        .map(|choice| *choice as usize)
+        .collect::<Vec<_>>();
+    let case = admitted_arcs_with_choices(
+        lexical,
+        query.beam().basis().analysis_revision().clone(),
+        vec![admission.arc().clone()],
+        dependent,
+        &choices,
+        &[dependent],
+    );
+    StableDependencyCase { case, admission }
+}
+fn admitted_arcs_with_choices(
+    lexical: PreparedLexicalTape,
+    analysis: LanguageAnalysisRevisionId,
+    arcs: Vec<LanguageDependencyArc>,
+    vocative: usize,
+    choices: &[usize],
+    ordinals: &[usize],
+) -> Case {
     let source = lexical.tape().source().clone();
     let revision = source.material().revision().get();
     let participation = arcs
         .iter()
-        .enumerate()
-        .map(|(ordinal, arc)| {
+        .zip(ordinals.iter().copied())
+        .map(|(arc, ordinal)| {
             conduit_speech::text_token_role::prepare_text_token_role(
                 &lexical,
                 ordinal,
@@ -251,8 +293,8 @@ pub fn admitted_graph_with_choices(
         .collect::<Vec<_>>();
     let spoken_ordinals = participation
         .iter()
-        .enumerate()
-        .filter_map(|(ordinal, role)| {
+        .zip(ordinals.iter().copied())
+        .filter_map(|(role, ordinal)| {
             matches!(role.result().role(), SpeechTextTokenRole::Spoken).then_some(ordinal)
         })
         .collect::<Vec<_>>();
@@ -267,7 +309,9 @@ pub fn admitted_graph_with_choices(
         fact_identity,
         &source,
         &analysis,
-        &arcs[vocative],
+        arcs.iter()
+            .find(|arc| arc.dependent().token() == lexical.tape().tokens()[vocative].identity())
+            .expect("admitted target arc"),
         language_provenance(),
         lexical.tape().tokens().len() as u64,
     )
@@ -304,7 +348,11 @@ pub fn admitted_graph_with_choices(
                 &lexical,
                 ordinal,
                 &analysis,
-                &arcs[ordinal],
+                arcs.iter()
+                    .find(|arc| {
+                        arc.dependent().token() == lexical.tape().tokens()[ordinal].identity()
+                    })
+                    .expect("admitted spoken arc"),
                 &selection_profile(),
             )
             .unwrap();
