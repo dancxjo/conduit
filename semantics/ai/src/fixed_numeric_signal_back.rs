@@ -11,6 +11,7 @@ use conduit_kernel::{
     Failure, FailureCode, PortId,
 };
 pub const ELEMENTWISE_IMPLEMENTATION: &str = "conduit.numeric/scalar-finite-elementwise@1";
+pub const FLOW_ELEMENTWISE_IMPLEMENTATION: &str = "conduit.numeric/closing-flow-elementwise@1";
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FixedElementwiseOperation {
     Add,
@@ -93,6 +94,8 @@ pub struct FixedElementwiseBack<const WIDTH: usize> {
     staged: bool,
     finished: bool,
     cancelled: bool,
+    flow: bool,
+    committed_frames: u64,
 }
 impl<const WIDTH: usize> FixedElementwiseBack<WIDTH> {
     pub fn prepare_planned<const PORTS: usize>(
@@ -100,10 +103,33 @@ impl<const WIDTH: usize> FixedElementwiseBack<WIDTH> {
         fuel: u16,
         operation: FixedElementwiseOperation,
     ) -> Result<Self, FixedElementwisePreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, operation, false)
+    }
+    pub fn prepare_flow_planned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        operation: FixedElementwiseOperation,
+    ) -> Result<Self, FixedElementwisePreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, operation, true)
+    }
+    fn prepare_internal<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        operation: FixedElementwiseOperation,
+        flow: bool,
+    ) -> Result<Self, FixedElementwisePreparationRefusal> {
         if PORTS < operation.arity() || usize::from(fuel) < operation.arity() + 1 {
             return Err(FixedElementwisePreparationRefusal::StepBudget);
         }
-        let offer = fixed_elementwise_offer::<WIDTH>(operation).map_err(|_| {
+        let offer = if flow {
+            crate::fixed_numeric_temporal::closing_numeric_offer(
+                &format!("numeric/{}{WIDTH}", operation.name()),
+                FLOW_ELEMENTWISE_IMPLEMENTATION,
+            )
+        } else {
+            fixed_elementwise_offer::<WIDTH>(operation)
+        }
+        .map_err(|_| {
             FixedElementwisePreparationRefusal::Planned(FixedPlannedRefusal::UnsupportedShape)
         })?;
         verify_fixed_placement(placement, &offer)
@@ -135,7 +161,12 @@ impl<const WIDTH: usize> FixedElementwiseBack<WIDTH> {
             staged: false,
             finished: false,
             cancelled: false,
+            flow,
+            committed_frames: 0,
         })
+    }
+    pub fn committed_frames(&self) -> u64 {
+        self.committed_frames
     }
     pub fn output(&self) -> &[u8] {
         self.output.encoded()
@@ -152,12 +183,28 @@ impl<const WIDTH: usize, const PORTS: usize> StepBack<PORTS> for FixedElementwis
                 detail: 1500,
             });
         }
+        self.staged = false;
+        if self.committed_frames == u64::MAX {
+            return fail(1599);
+        }
         if self.finished {
             return StepOutcome::Complete;
         }
         let arity = self.operation.arity();
-        if PORTS < arity || (0..arity).any(|p| io.input_closed(PortId(p as u16))) {
+        if PORTS < arity {
             return fail(1501);
+        }
+        if (0..arity).any(|p| io.input_closed(PortId(p as u16))) {
+            if !self.flow {
+                return fail(1501);
+            }
+            if (0..arity).all(|p| io.input_closed(PortId(p as u16))) {
+                return StepOutcome::Complete;
+            }
+            if (0..arity).any(|p| io.input(PortId(p as u16)).is_some()) {
+                return fail(1598);
+            }
+            return StepOutcome::Await;
         }
         if (0..arity).any(|p| io.input(PortId(p as u16)).is_none()) || !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
@@ -238,11 +285,12 @@ impl<const WIDTH: usize, const PORTS: usize> StepBack<PORTS> for FixedElementwis
     fn step_committed(&mut self) {
         if self.staged {
             self.staged = false;
-            self.finished = true;
+            self.finished = !self.flow;
+            self.committed_frames += 1;
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0)).then(|| self.output.encoded())
+        (port == PortId(0) && (!self.flow || self.staged)).then(|| self.output.encoded())
     }
     fn cancel(&mut self) {
         self.cancelled = true;

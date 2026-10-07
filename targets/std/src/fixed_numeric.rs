@@ -26,6 +26,7 @@ macro_rules! run {
         })()
     }};
 }
+mod dispatch_temporal;
 mod dispatch_tensors;
 mod dispatch_values;
 mod dispatch_vectors;
@@ -43,7 +44,8 @@ fn select(
     planned: Option<(&PlannedGear, u16)>,
     bindings: &TensorBindings,
 ) -> Result<Selection, String> {
-    dispatch_tensors::select(kind, planned, bindings)
+    dispatch_temporal::select(kind, planned)
+        .or_else(|| dispatch_tensors::select(kind, planned, bindings))
         .or_else(|| dispatch_vectors::select(kind, planned))
         .or_else(|| dispatch_values::select(kind, planned))
         .ok_or_else(|| format!("unsupported generic numeric operation {kind}"))?
