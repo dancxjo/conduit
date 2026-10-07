@@ -34,6 +34,7 @@ conduitos_ia32_irq_entry:
 
 pub fn initialize_machine() {
     disable_interrupts();
+    super::ia32_domain_gdt::initialize();
     timer_hardware::report_inherited_state();
     timer_hardware::stop();
     TIMER_IRQ.retire();

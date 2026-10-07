@@ -10,11 +10,11 @@ use std::{
     process::{Command, Stdio},
 };
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::{
-    ConduitosArch, ConduitosError, hid_qmp, image, journey_input, journey_records, profile::Paths,
-    report::git_head,
+    hid_qmp, image, journey_input, journey_records, profile::Paths, report::git_head,
+    ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 
