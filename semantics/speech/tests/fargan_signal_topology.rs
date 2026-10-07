@@ -13,15 +13,21 @@ fn pinned_signal_and_explicit_gru_gate_topologies_check() {
     .unwrap();
     let checked = check_syntax_document(
         &parse_syntax_document(&format!(
-            "{}\n{}\n{}",
+            "{}\n{}\n{}\n{}",
             include_str!("../fargan_conditioning.conduit"),
             SOURCE,
-            include_str!("../fargan_pitch_history.conduit")
+            include_str!("../fargan_pitch_history.conduit"),
+            include_str!("../fargan_subframe.conduit")
         )),
         &startup,
     )
     .unwrap();
-    for name in ["FarganNetworkState", "FarganSignalResult"] {
+    for name in [
+        "FarganNetworkState",
+        "FarganSignalResult",
+        "FarganSubframeState",
+        "FarganSubframeResult",
+    ] {
         let ty = &checked
             .native_types
             .iter()
@@ -41,6 +47,7 @@ fn pinned_signal_and_explicit_gru_gate_topologies_check() {
         "speech/fargan-history-deemphasis",
         "speech/fargan-pitch-indices",
         "speech/fargan-condition-subframe",
+        "speech/fargan-subframe",
     ] {
         conduit_plot::expand_canonical_plot_for_authoring(&checked, name, &profiles)
             .unwrap_or_else(|error| panic!("{name}: {error:?}"));
