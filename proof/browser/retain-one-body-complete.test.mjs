@@ -52,11 +52,13 @@ test('publication copy refuses an event identity absent from its producer receip
     const names = ['birth', 'join', 'start', 'see', 'hear', 'loss', 'return', 'lull'];
     const evidence = Buffer.from(JSON.stringify({
       ...owned, event_kind: 'membership', event_id: 'browser-part-id',
-      resulting_face_revision: '1', outcome: 'completed',
+      resulting_face_revision: '1', observed_at_unix_ms: 1,
+      outcome: 'completed',
     }));
     item.publication_chapters = names.map(id => ({ id, title: id, intention: id,
       action: id, result: id, why: id, next: id, limitations: ['Local proof only.'],
       events: [{ kind: 'membership', id: `${id}-event`, face_revision: '1',
+        observed_at_unix_ms: 1,
         source_receipt: { path: 'event.json', sha256: digest(evidence) } }],
       media: [{ path: `${id}.png`, sha256: '0'.repeat(64),
         source_receipt: { path: 'capture.json', sha256: '0'.repeat(64) },
@@ -66,5 +68,38 @@ test('publication copy refuses an event identity absent from its producer receip
     await writeFile(path.join(source, 'event.json'), evidence);
     await assert.rejects(retainOneBodyComplete(path.dirname(source), output),
       /source has no exact event identity/);
+    await assert.rejects(readFile(path.join(output, 'manifest.json')), /ENOENT/);
+  }));
+
+test('a later chapter cannot move back before an earlier recorded event',
+  async () => fixture(async ({ source, output }) => {
+    const item = report();
+    const ids = ['birth', 'join', 'start', 'see', 'hear', 'loss', 'return', 'lull'];
+    const first = Buffer.from(JSON.stringify({ ...owned,
+      event_kind: 'typed-interaction', event_id: 'birth-event',
+      resulting_face_revision: '1', observed_at_unix_ms: 200,
+      outcome: 'completed' }));
+    const terminal = Buffer.from('Birth completed.\n');
+    const capture = Buffer.from(JSON.stringify({ ...owned,
+      event_kind: 'typed-interaction', event_id: 'birth-event',
+      face_revision: '1', media_path: 'birth.txt',
+      media_sha256: digest(terminal), capture_source: 'terminal' }));
+    await writeFile(path.join(source, 'birth-event.json'), first);
+    await writeFile(path.join(source, 'birth.txt'), terminal);
+    await writeFile(path.join(source, 'capture.json'), capture);
+    item.publication_chapters = ids.map((id, index) => ({ id,
+      title: id, intention: id, action: id, result: id, why: id, next: id,
+      limitations: ['Local proof only.'],
+      events: [{ kind: 'typed-interaction', id: `${id}-event`,
+        face_revision: '1', observed_at_unix_ms: index === 0 ? 200 : 100,
+        source_receipt: { path: 'birth-event.json', sha256: digest(first) } }],
+      media: [{ path: index === 0 ? 'birth.txt' : `${id}.png`,
+        sha256: index === 0 ? digest(terminal) : '0'.repeat(64),
+        source_receipt: { path: 'capture.json', sha256: digest(capture) },
+        event_id: `${id}-event`, face_revision: '1', alt: id,
+        capture_source: index === 0 ? 'terminal' : 'chromium' }] }));
+    await writeFile(path.join(source, 'report.json'), JSON.stringify(item));
+    await assert.rejects(retainOneBodyComplete(path.dirname(source), output),
+      /breaks journey chronology/);
     await assert.rejects(readFile(path.join(output, 'manifest.json')), /ENOENT/);
   }));
