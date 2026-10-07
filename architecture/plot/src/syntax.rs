@@ -265,8 +265,23 @@ pub struct PlotFront {
     pub kind_parameters: Vec<KindParameter>,
     pub startup_parameters: Vec<StartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
+    /// An authored semantic action mapped to one exact typed workload input.
+    pub action_bindings: Vec<ActionBindingSyntax>,
+    /// One Plot-produced bounded Face fragment output.
+    pub face_fragment_output: Option<SpannedText>,
     pub shorthand: Option<ShorthandPair>,
     pub span: Option<Span>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionBindingSyntax {
+    pub intent: SpannedText,
+    /// `target` selects the offered action's exact subject; another name
+    /// selects one named, checked argument from the Face interaction.
+    pub argument: SpannedText,
+    pub value_type: SpannedText,
+    pub input: SpannedText,
+    pub span: Span,
 }
 
 /// One exact compile-time Kind or checked source Plot parameter.

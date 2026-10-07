@@ -1,5 +1,6 @@
 //! Parsing for the checked callable boundary of one authored Plot.
 
+mod action_face;
 mod kind_parameter;
 mod startup;
 
@@ -121,6 +122,10 @@ impl Parser<'_> {
                 return Ok((front, Some(expression)));
             }
             if text.is_empty() || text.starts_with('#') {
+                self.index += 1;
+                continue;
+            }
+            if self.parse_action_face_directive(text, start, &mut front)? {
                 self.index += 1;
                 continue;
             }

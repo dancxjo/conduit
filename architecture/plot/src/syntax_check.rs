@@ -17,6 +17,7 @@ use conduit_core::{
     UnmatchedVariantDisposition,
 };
 
+mod face_bindings;
 mod lexical_plots;
 mod matched_route;
 mod resolution;
@@ -906,12 +907,15 @@ fn check_plot(
         .get(&plot.name.text)
         .expect("every parsed plot has a checked front")
         .clone();
+    let (action_bindings, face_fragment_output) = face_bindings::check(&plot.front, catalog)?;
     let checked_plot_id = checked_identity(
         (&plot.name.text, plot.completion),
         crate::syntax_identity::CheckedIdentityFront {
             parameters: &parameters,
             runtime_ports: &plot.front.runtime_ports,
             runtime_front: &runtime_front,
+            action_bindings: &action_bindings,
+            face_fragment_output: face_fragment_output.as_deref(),
             shorthand: plot.front.shorthand.as_ref().map(|pair| {
                 (
                     pair.input_port.text.as_str(),
@@ -929,6 +933,8 @@ fn check_plot(
         completion: plot.completion,
         startup_parameters: parameters,
         runtime_ports: plot.front.runtime_ports.clone(),
+        action_bindings,
+        face_fragment_output,
         runtime_front,
         shorthand: plot
             .front

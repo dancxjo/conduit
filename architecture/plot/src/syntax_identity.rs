@@ -9,6 +9,8 @@ pub(crate) struct CheckedIdentityFront<'a> {
     pub parameters: &'a [CheckedStartupParameter],
     pub runtime_ports: &'a [crate::RuntimePort],
     pub runtime_front: &'a conduit_core::CheckedFront,
+    pub action_bindings: &'a [crate::CheckedActionBinding],
+    pub face_fragment_output: Option<&'a str>,
     pub shorthand: Option<(&'a str, &'a str)>,
 }
 
@@ -24,6 +26,8 @@ pub(crate) fn checked_identity(
         parameters,
         runtime_ports,
         runtime_front,
+        action_bindings,
+        face_fragment_output,
         shorthand,
     } = front;
     let mut canonical = String::from("canonical-plot");
@@ -92,6 +96,18 @@ pub(crate) fn checked_identity(
     if let Some((input, output)) = shorthand {
         canonical.push_str("shorthand");
         push_field(&mut canonical, input);
+        push_field(&mut canonical, output);
+    }
+    for binding in action_bindings {
+        canonical.push_str("face-action");
+        push_field(&mut canonical, &binding.intent);
+        push_field(&mut canonical, &binding.argument);
+        push_field(&mut canonical, binding.value_kind.as_str());
+        push_field(&mut canonical, binding.input_port.as_str());
+        push_field(&mut canonical, &binding.maximum_bytes.to_string());
+    }
+    if let Some(output) = face_fragment_output {
+        canonical.push_str("face-fragment-output");
         push_field(&mut canonical, output);
     }
     for gear in gears {

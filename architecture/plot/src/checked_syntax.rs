@@ -292,12 +292,23 @@ pub struct CheckedCanonicalPlot {
     pub completion: PlotCompletionPolicy,
     pub startup_parameters: Vec<CheckedStartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
+    pub action_bindings: Vec<CheckedActionBinding>,
+    pub face_fragment_output: Option<String>,
     pub runtime_front: CheckedFront,
     pub shorthand: Option<(String, String)>,
     pub local_values: Vec<(String, CanonicalStartupValue)>,
     pub pools: Vec<CheckedPoolDeclaration>,
     pub gears: Vec<CheckedCanonicalGear>,
     pub cords: Vec<CheckedCanonicalCord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedActionBinding {
+    pub intent: String,
+    pub argument: String,
+    pub value_kind: conduit_core::KindId,
+    pub input_port: conduit_core::PortId,
+    pub maximum_bytes: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

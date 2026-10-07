@@ -9,6 +9,8 @@ impl ExpandedCanonicalPlot {
             completion: self.completion,
             startup_parameters: vec![],
             runtime_ports: Vec::new(),
+            action_bindings: Vec::new(),
+            face_fragment_output: None,
             runtime_front: conduit_core::CheckedFront::new(vec![], vec![], vec![], None),
             shorthand: None,
             local_values: Vec::new(),
