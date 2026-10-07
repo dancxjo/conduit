@@ -36,7 +36,7 @@ pub fn compose(case: &language::Case, pronunciations: &[PreparedPronunciation<'_
     let mut events = Vec::new();
     let mut word_indices = Vec::new();
     for (word, pronunciation) in pronunciations.iter().enumerate() {
-        let rich = word == case.vocative;
+        let rich = case.spoken_ordinals[word] == case.vocative;
         let basis = if rich {
             LinguisticProsodyBasis::Rich(&case.rich)
         } else {
@@ -178,7 +178,7 @@ impl Composite {
             .enumerate()
             .map(|(index, segment)| {
                 let word = self.word_indices[index];
-                let basis = if word == case.vocative {
+                let basis = if case.spoken_ordinals[word] == case.vocative {
                     LinguisticProsodyBasis::Rich(&case.rich)
                 } else {
                     LinguisticProsodyBasis::Fallback(&case.fallback[word])

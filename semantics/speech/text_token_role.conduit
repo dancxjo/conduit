@@ -1,0 +1,29 @@
+# Rate-independent participation of exact admitted lexical/syntax occurrences.
+# Canonical punctuation remains in the graph and complete material receipt; it
+# emits no phones. This projection does not infer pause, syntax or parser truth.
+type SpeechTextTokenRole =
+    spoken
+    | nonspoken
+    | refused
+
+type SpeechTextTokenRoleRequest = {
+    analysis: LanguageAnalysisRevisionId
+    basis: LanguageDependencyArc
+    choice: U64 in 0..=3
+    source: LanguageTextRevision
+    token: LanguageLexicalToken
+    where .token.completeness is complete
+    where .token.identity.text_identity == .source.material.identity
+    where .token.identity.text_revision == .source.material.revision
+    where .basis.dependent.token == .token.identity
+    where .basis.dependent.revision == .analysis
+    where .basis.governor is token ? .basis.governor.token.revision == .analysis : true
+    where .choice < sequence/length(.token.candidates)
+}
+type SpeechTextTokenRoleResult = {
+    role: SpeechTextTokenRole
+}
+plot speech/text-token-role (
+    >> value: SpeechTextTokenRoleRequest
+    result: SpeechTextTokenRoleResult >>
+) = (.basis.relation.base is punct     ? { role: (.token.category is punctuation && sequence/at(.token.candidates, .choice).pos is punctuation ? nonspoken(unit) : refused(unit)) }     : { role: (.token.category is word && !(sequence/at(.token.candidates, .choice).pos is punctuation) ? spoken(unit) : refused(unit)) }) 

@@ -34,74 +34,91 @@ fn actual_learned_native_graphs_feed_three_position_playback() {
     assert_eq!(rows.len(), 3, "exact reviewed three-position run");
     let mut seen = [false; 3];
     for row in rows {
-        let admitted = receipt::admit(row).unwrap();
-        let position = admitted.vocative;
+        let position = playback_row(row);
         assert!(position < 3 && !seen[position]);
         seen[position] = true;
-        let mut case = language::admitted_graph(
-            admitted.lexical,
-            admitted.basis.analysis_revision().clone(),
-            admitted.arcs,
-            position,
-        );
-        case.phones = language::parser_phone_profile();
-        for (ordinal, (selection, choice)) in
-            case.selections.iter().zip(&admitted.choices).enumerate()
-        {
-            assert_eq!(
-                selection.candidate(),
-                &case.lexical.tape().tokens()[ordinal].candidates()[*choice]
-            );
-        }
-        let pronunciations = case
-            .selections
-            .iter()
-            .map(|selection| prepare_pronunciation(selection, &case.phones).unwrap())
-            .collect::<Vec<_>>();
-        let composite = intent::compose(&case, &pronunciations);
-        assert_eq!(composite.words.len(), case.selections.len());
-        assert_eq!(composite.correspondence.len(), composite.segments.len());
-        let linguistic = composite.linguistic(&case);
-        let offers = linguistic
-            .iter()
-            .zip(&composite.events)
-            .map(|(admission, event)| OfferedSegmentPitch {
-                event: *event,
-                admission: admission.accepted().pitch(),
-            })
-            .collect::<Vec<_>>();
-        let pitch = prepare_utterance_pitch(&composite.source, &offers).unwrap();
-        let realized = prepare_intent_realization(
-            &composite.source,
-            &case.inventory,
-            &case.voice,
-            &case.boundaries,
-        )
-        .unwrap();
-        let bindings = linguistic
-            .iter()
-            .zip(&composite.events)
-            .map(|(admitted, event)| PlaybackLinguisticBinding {
-                event: *event,
-                admitted,
-            })
-            .collect::<Vec<_>>();
-        let tape = prepare_speech_playback_tape(&realized, &pitch, &bindings, 7).unwrap();
-        let epoch = epoch::commitment(&tape);
-        let pcm = lifecycle::scheduler_pressure(&tape);
-        assert!(!pcm.is_empty());
-        evidence::retain(
-            position,
-            row,
-            &case,
-            &pronunciations,
-            &composite,
-            &tape,
-            &pcm,
-            epoch,
-        );
     }
     assert!(seen.into_iter().all(|v| v));
+}
+
+fn playback_row(row: &serde_json::Value) -> usize {
+    let admitted = receipt::admit(row).unwrap();
+    let position = admitted.vocative;
+    let mut case = language::admitted_graph_with_choices(
+        admitted.lexical,
+        admitted.basis.analysis_revision().clone(),
+        admitted.arcs,
+        position,
+        &admitted.choices,
+    );
+    case.phones = language::parser_phone_profile();
+    for (word, selection) in case.selections.iter().enumerate() {
+        let ordinal = case.spoken_ordinals[word];
+        let choice = admitted.choices[ordinal];
+        assert_eq!(
+            selection.candidate(),
+            &case.lexical.tape().tokens()[ordinal].candidates()[choice]
+        );
+    }
+    let pronunciations = case
+        .selections
+        .iter()
+        .map(|selection| prepare_pronunciation(selection, &case.phones).unwrap())
+        .collect::<Vec<_>>();
+    let composite = intent::compose(&case, &pronunciations);
+    assert_eq!(composite.words.len(), case.selections.len());
+    assert_eq!(composite.correspondence.len(), composite.segments.len());
+    let linguistic = composite.linguistic(&case);
+    let offers = linguistic
+        .iter()
+        .zip(&composite.events)
+        .map(|(admission, event)| OfferedSegmentPitch {
+            event: *event,
+            admission: admission.accepted().pitch(),
+        })
+        .collect::<Vec<_>>();
+    let pitch = prepare_utterance_pitch(&composite.source, &offers).unwrap();
+    let realized = prepare_intent_realization(
+        &composite.source,
+        &case.inventory,
+        &case.voice,
+        &case.boundaries,
+    )
+    .unwrap();
+    let bindings = linguistic
+        .iter()
+        .zip(&composite.events)
+        .map(|(admitted, event)| PlaybackLinguisticBinding {
+            event: *event,
+            admitted,
+        })
+        .collect::<Vec<_>>();
+    let tape = prepare_speech_playback_tape(&realized, &pitch, &bindings, 7).unwrap();
+    let epoch = epoch::commitment(&tape);
+    let pcm = lifecycle::scheduler_pressure(&tape);
+    assert!(!pcm.is_empty());
+    evidence::retain(
+        position,
+        row,
+        &case,
+        &pronunciations,
+        &composite,
+        &tape,
+        &pcm,
+        epoch,
+    );
+    position
+}
+#[test]
+#[ignore = "requires separate actual exact punctuated parser receipts"]
+fn actual_learned_exact_punctuated_hello_travis_playback() {
+    let path = std::env::var("CONDUIT_LEARNED_GRAPH_RECEIPTS").unwrap();
+    assert!(std::fs::metadata(&path).unwrap().len() <= 8 * 1024 * 1024);
+    let rows: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["text"], "Hello, Travis.");
+    assert_eq!(playback_row(&rows[0]), 2);
 }
 
 #[test]

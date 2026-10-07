@@ -54,3 +54,17 @@ phonetic correspondence, playback basis and explicit queued/played acknowledgeme
 receipts plus the actual scheduler PCM as mono 8kHz S16 WAVs. ASR acquisition
 arrays may be preserved under `acquisition_history`; they are replayed before
 accepting the final lexical tape. Retain decoder artifact evidence beside outputs.
+
+Exact `Hello, Travis.` is a separate actual native graph file with four lexical
+occurrences. Run `actual_learned_exact_punctuated_hello_travis_playback -- --ignored`
+against that file and a fresh proof directory. Source `speech/text-token-role`
+checks exact source/analysis/token/arc and candidate index, then classifies
+canonical punctuation as nonspoken. All graph occurrences and full material stay
+in receipts. Only Source-admitted spoken ordinals enter the pronunciation/prosody
+route; compact phone indices never substitute for original lexical ordinals.
+
+The punctuation disagreement regression checks the same exact lexical/syntax
+fixture: existing lexical fallback would insert a comma phrase boundary, while
+rich Source vocative prosody emits only its selected post-vocative boundary.
+A changed punctuation material under reused source IDs is refused by full
+Language revision lineage; omitted phones do not erase material authority.
