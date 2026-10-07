@@ -28,9 +28,10 @@ fn main() {
     println!("cargo:rerun-if-changed=context_match.conduit");
     println!("cargo:rerun-if-changed=linguistic_prosody.conduit");
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
+    println!("cargo:rerun-if-changed=playback.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
     let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
         include_str!("selection.conduit"),
@@ -44,7 +45,8 @@ fn main() {
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit"),
         include_str!("linguistic_prosody.conduit"),
-        include_str!("pitch_trajectory.conduit")
+        include_str!("pitch_trajectory.conduit"),
+        include_str!("playback.conduit")
     );
     let mut language_types = conduit_language::identity_types();
     language_types.extend(
@@ -63,25 +65,31 @@ fn main() {
     language_types.extend([
         (
             "LanguageVocativeDiscourseFact",
-            conduit_language::LanguageVocativeDiscourseFact::semantic_type().unwrap(),
+            conduit_language::LanguageVocativeDiscourseFact::semantic_type()
+                .expect("checked Language Type"),
         ),
         (
             "LinguisticTokenIdentity",
-            conduit_language::LinguisticTokenIdentity::semantic_type().unwrap(),
+            conduit_language::LinguisticTokenIdentity::semantic_type()
+                .expect("checked Language Type"),
         ),
         (
             "TextSpan",
-            conduit_language::TextSpan::semantic_type().unwrap(),
+            conduit_language::TextSpan::semantic_type().expect("checked Language Type"),
         ),
-    ]);
-    language_types.extend([
         (
             "LanguageAnalysisRevisionId",
-            conduit_language::LanguageAnalysisRevisionId::semantic_type().unwrap(),
+            conduit_language::LanguageAnalysisRevisionId::semantic_type()
+                .expect("checked Language Type"),
         ),
         (
             "LanguageDiscourseRole",
-            conduit_language::LanguageDiscourseRole::semantic_type().unwrap(),
+            conduit_language::LanguageDiscourseRole::semantic_type()
+                .expect("checked Language Type"),
+        ),
+        (
+            "LanguageTextRevision",
+            conduit_language::LanguageTextRevision::semantic_type().expect("checked Language Type"),
         ),
     ]);
     let mut semantic_catalog = StartupCatalog::new();

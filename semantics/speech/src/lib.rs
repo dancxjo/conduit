@@ -87,6 +87,10 @@ pub mod language_projection;
 pub mod language_revision;
 #[cfg(feature = "semantic-bindings")]
 pub mod linguistic_prosody;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod native_playback_back;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod native_playback_contract;
 #[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
 #[cfg(feature = "semantic-bindings")]
@@ -95,6 +99,10 @@ pub mod occurrence_context;
 pub mod output_features;
 #[cfg(feature = "semantic-bindings")]
 pub mod pitch_trajectory;
+#[cfg(feature = "semantic-bindings")]
+pub mod playback_basis;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod playback_revision;
 #[cfg(feature = "semantic-bindings")]
 pub mod profile_admission;
 #[cfg(feature = "semantic-bindings")]
