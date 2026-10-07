@@ -439,6 +439,97 @@ try {
     ownerSelectedSpeech = { ...retained, path: 'owner-selected-speech.json', sha256: digest(bytes) };
     assert.equal(run(['body', 'status', '--state-dir', state, '--json']).biography.body_id, bodyId);
   }
+  let ownerDirectSpeech;
+  if (installed.selected_speech) {
+    const command = (verb, ...extra) => run(['body', 'spoken-mask', '--state-dir', state,
+      verb, ...extra]);
+    const before = run(['body', 'face', '--state-dir', state, '--json']);
+    assert.equal(before.presentation.identity, currentBrowserFace.face_id);
+    const admitted = command('admit');
+    const selected = command('select');
+    assert.equal(admitted.schema, 'conduit.body/direct-spoken-route@1');
+    assert.equal(selected.schema, admitted.schema);
+    assert.equal(selected.selected, true);
+    const started = command('start');
+    assert.equal(started.schema, 'conduit.body/direct-spoken-start@1');
+    assert.equal(started.state, 'running');
+    let terminal;
+    for (let attempt = 0; attempt < 1800; attempt += 1) {
+      const status = command('status', started.operation_id);
+      if (status.schema === 'conduit.body/owner-spoken-terminal@1') {
+        terminal = status;
+        break;
+      }
+      assert.equal(status.schema, 'conduit.body/owner-spoken-status@1');
+      assert.equal(status.state, 'running');
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.ok(terminal, 'owner direct spoken Mask did not reach a terminal result');
+    assert.equal(terminal.outcome, 'available', terminal.detail);
+    assert.equal(terminal.mode, 'direct');
+    assert.equal(terminal.direct_reading_complete, true);
+    assert.equal(terminal.speaker_played, true);
+    assert.equal(terminal.route_plan_id, selected.route_plan_id);
+    assert.equal(terminal.source_face_id, before.presentation.identity);
+    assert.equal(terminal.mask_artifact_scope, 'opening');
+    assert.equal(terminal.artifact.active_play_id, terminal.active_play_id);
+    const played = terminal.speaker_playback;
+    assert.equal(played.schema, 'conduit.body/selected-speech-terminal@1');
+    assert.equal(played.outcome, 'completed');
+    assert.equal(played.face_id, before.presentation.identity);
+    assert.equal(played.face_revision_decimal, before.presentation_revision_decimal);
+    assert.equal(played.source_show_id, terminal.show_id);
+    assert.equal(played.host_id, ownerPart.current.host_id);
+    assert.equal(played.boot_id, ownerPart.current.boot_id);
+    assert.equal(played.provider_sha256, installed.selected_speech.provider_sha256);
+    assert.ok(played.batches.length > 1, 'direct Face reading must span multiple speaker Plays');
+    assert.equal(terminal.speaker_completed_batches, played.batches.length);
+    const artifactRoot = path.join(state, 'spoken-artifacts');
+    const directory = path.join(output, 'owner-direct-spoken');
+    await mkdir(directory, { mode: 0o700 });
+    const batches = [];
+    const playIds = new Set();
+    for (const batch of played.batches) {
+      assert.equal(batch.outcome, 'completed');
+      assert.equal(batch.provider_sha256, played.provider_sha256);
+      assert.ok(batch.speaker_blocks_committed > 0 && batch.speaker_frames_committed > 0);
+      assert.equal(batch.speaker_blocks_committed, batch.pcm_blocks);
+      assert.equal(batch.speaker_frames_committed * 4, batch.pcm_bytes);
+      assert.ok(!playIds.has(batch.play_id), 'speaker Play IDs must be unique');
+      playIds.add(batch.play_id);
+      assert.match(batch.wav_artifact_id, /^play-[0-9a-f]{64}\.wav$/);
+      const wav = await readFile(path.join(artifactRoot, batch.wav_artifact_id));
+      assert.equal(wav.subarray(0, 4).toString(), 'RIFF');
+      assert.equal(wav.subarray(8, 12).toString(), 'WAVE');
+      assert.equal(wav.length, batch.wav_bytes);
+      assert.equal(digest(wav), batch.wav_sha256);
+      assert.equal(wav.length - 44, batch.pcm_bytes);
+      assert.equal(digest(wav.subarray(44)), batch.pcm_sha256);
+      assert.ok(wav.subarray(44).some(byte => byte !== 0), 'direct speaker WAV is silent');
+      await writeFile(path.join(directory, batch.wav_artifact_id), wav, { flag: 'wx' });
+      batches.push({ ...batch, wav: { path: `owner-direct-spoken/${batch.wav_artifact_id}`,
+        bytes: wav.length, sha256: batch.wav_sha256 } });
+    }
+    const after = run(['body', 'face', '--state-dir', state, '--json']);
+    assert.equal(after.presentation.identity, before.presentation.identity,
+      'direct Mask may not invent a new Face');
+    const terminalBytes = Buffer.from(`${JSON.stringify(terminal, null, 2)}\n`);
+    await writeFile(path.join(directory, 'terminal.json'), terminalBytes, { flag: 'wx' });
+    ownerDirectSpeech = {
+      proof_class: 'installed-owner-direct-mask-and-same-play-speaker',
+      source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
+      face_id: before.presentation.identity,
+      face_revision_decimal: before.presentation_revision_decimal,
+      route_plan_id: selected.route_plan_id, show_id: terminal.show_id,
+      mask_artifact_play_id: terminal.active_play_id,
+      provider_sha256: played.provider_sha256,
+      completed_segments: played.completed_segments,
+      correlation_sha256: played.correlation_sha256,
+      opening_wording: terminal.direct_opening_wording,
+      batches, terminal: { path: 'owner-direct-spoken/terminal.json',
+        sha256: digest(terminalBytes) }, human_hearing_observed: false,
+    };
+  }
   let directSpeech;
   if (directSpeechEnabled) {
     const directory = path.join(output, 'speech-direct');
@@ -619,6 +710,8 @@ try {
     schema: 'conduit.body/three-host-owner-journey@1',
     proof_class: ownerLlmSpeech
       ? 'live-local-installed-owner-qmp-pinned-chromium-selected-model-speaker'
+      : ownerDirectSpeech
+      ? 'live-local-installed-owner-qmp-pinned-chromium-direct-mask-speaker'
       : llmSpeech
       ? 'live-local-installed-owner-qmp-pinned-chromium-direct-and-llm-speech-route-loss-restoration'
       : directSpeech
@@ -689,6 +782,7 @@ try {
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
     ...(ownerSelectedSpeech ? { owner_selected_speech: ownerSelectedSpeech } : {}),
+    ...(ownerDirectSpeech ? { owner_direct_speech: ownerDirectSpeech } : {}),
     ...(ownerLlmSpeech ? { owner_llm_speech: ownerLlmSpeech } : {}),
     ...(ownerModelRouteLoss ? { owner_model_route_loss: ownerModelRouteLoss } : {}),
     ...(llmSpeech ? { llm_speech: llmSpeech, model_route_loss: modelRouteLoss,
