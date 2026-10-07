@@ -197,9 +197,15 @@ pub mod fixed_numeric_back;
 pub mod fixed_numeric_binding;
 pub mod fixed_numeric_catalog;
 pub mod fixed_numeric_codec;
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_pair_back;
+pub mod fixed_numeric_pair_catalog;
 pub mod fixed_numeric_preparation;
+mod fixed_numeric_signal_catalog;
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_window_back;
 
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_operations_back;
+#[cfg(feature = "kernel-step")]
+mod fixed_numeric_finite_envelope;

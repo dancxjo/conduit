@@ -5,6 +5,13 @@
 # Matrix profiles carry immutable resource references, content digest, f32 element,
 # and exact dimensions. Columns denote inputs; rows denote outputs. Model admission
 # must correlate these profiles with the ordinary TensorValue/ModelArtifact owners.
+# Selected upstream features0..17 are eighteen log-band cepstral coefficients
+# (smoothed log10(.01+energy), DCT, coefficient0 shifted by−4); feature18 is
+# log2(256/period)−1.5; feature19 is softplus(5*normalized correlation)/softplus(5)−.5.
+# The36-feature training/scratch carrier additionally contains16 LPC values;
+# these are not network inputs. A source-correlated speech-plan feature producer
+# must separately identify and validate its conditioning approximation/profile.
+# This numerical topology does not establish that producer or intelligibility.
 # Features arrive at 100 Hz. History is the two prior dense/tanh vectors.
 # The three-frame window produces conditioning centered one frame before input.
 # Caller stages next_history and next_period and commits only with accepted PCM.
