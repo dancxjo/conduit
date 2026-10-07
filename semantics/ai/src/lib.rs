@@ -240,3 +240,6 @@ pub mod fixed_numeric_dsp_catalog;
 pub mod fixed_numeric_i16_codec;
 #[cfg(feature = "kernel-step")]
 pub mod fixed_numeric_integer_conversion;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_temporal;

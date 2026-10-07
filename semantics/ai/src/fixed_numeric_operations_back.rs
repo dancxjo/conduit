@@ -21,6 +21,8 @@ use conduit_kernel::{
     Failure, FailureCode, PortId,
 };
 
+pub const FLOW_OPERATION_IMPLEMENTATION: &str = "conduit.numeric/closing-flow-stateless@1";
+
 #[derive(Debug)]
 pub enum FixedOperationPreparationRefusal {
     Planned(FixedPlannedRefusal),
@@ -93,21 +95,43 @@ struct Invocation {
     staged: bool,
     finished: bool,
     cancelled: bool,
+    flow: bool,
+    committed_frames: u64,
 }
 impl Invocation {
     fn preflight<const PORTS: usize>(
-        &self,
+        &mut self,
         io: &StepIo<PORTS>,
         required: usize,
     ) -> Option<StepOutcome> {
+        self.staged = false;
         if self.cancelled {
-            return Some(fail(1200));
+            return Some(if self.flow {
+                StepOutcome::Fail(Failure {
+                    code: FailureCode::Cancelled,
+                    detail: 1200,
+                })
+            } else {
+                fail(1200)
+            });
         }
         if self.finished {
             return Some(StepOutcome::Complete);
         }
-        if PORTS < required || (0..required).any(|p| io.input_closed(PortId(p as u16))) {
+        if PORTS < required || self.committed_frames == u64::MAX {
             return Some(fail(1201));
+        }
+        if (0..required).any(|p| io.input_closed(PortId(p as u16))) {
+            if !self.flow {
+                return Some(fail(1201));
+            }
+            if (0..required).all(|p| io.input_closed(PortId(p as u16))) {
+                return Some(StepOutcome::Complete);
+            }
+            if (0..required).any(|p| io.input(PortId(p as u16)).is_some()) {
+                return Some(fail(1298));
+            }
+            return Some(StepOutcome::Await);
         }
         if (0..required).any(|p| io.input(PortId(p as u16)).is_none())
             || !io.output_ready(PortId(0))
@@ -119,7 +143,8 @@ impl Invocation {
     fn committed(&mut self) {
         if self.staged {
             self.staged = false;
-            self.finished = true;
+            self.finished = !self.flow;
+            self.committed_frames += 1;
         }
     }
     fn cancel(&mut self) {
@@ -161,13 +186,36 @@ impl<const WIDTH: usize> FixedTanhBack<WIDTH> {
         placement: &PlannedGear,
         fuel: u16,
     ) -> Result<Self, FixedOperationPreparationRefusal> {
-        let expected =
-            fixed_tanh_offer::<WIDTH>().map_err(|_| FixedOperationPreparationRefusal::Shape)?;
+        Self::prepare_internal::<PORTS>(placement, fuel, false)
+    }
+    pub fn prepare_flow_planned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+    ) -> Result<Self, FixedOperationPreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, true)
+    }
+    fn prepare_internal<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        flow: bool,
+    ) -> Result<Self, FixedOperationPreparationRefusal> {
+        let expected = if flow {
+            crate::fixed_numeric_temporal::closing_numeric_offer(
+                &format!("numeric/tanh{WIDTH}"),
+                FLOW_OPERATION_IMPLEMENTATION,
+            )
+        } else {
+            fixed_tanh_offer::<WIDTH>()
+        }
+        .map_err(|_| FixedOperationPreparationRefusal::Shape)?;
         admit::<PORTS>(placement, fuel, 1, expected)?;
         Ok(Self {
             input: codec()?,
             output: codec()?,
-            state: Invocation::default(),
+            state: Invocation {
+                flow,
+                ..Invocation::default()
+            },
         })
     }
 }
@@ -190,7 +238,8 @@ impl<const WIDTH: usize, const PORTS: usize> StepBack<PORTS> for FixedTanhBack<W
         publish(io, 1, self.output.maximum_bytes(), &mut self.state)
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0)).then(|| self.output.encoded())
+        (port == PortId(0) && (!self.state.flow || self.state.staged))
+            .then(|| self.output.encoded())
     }
     fn step_committed(&mut self) {
         self.state.committed();
@@ -213,17 +262,40 @@ impl<const LEFT: usize, const RIGHT: usize, const OUTPUT: usize>
         placement: &PlannedGear,
         fuel: u16,
     ) -> Result<Self, FixedOperationPreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, false)
+    }
+    pub fn prepare_flow_planned<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+    ) -> Result<Self, FixedOperationPreparationRefusal> {
+        Self::prepare_internal::<PORTS>(placement, fuel, true)
+    }
+    fn prepare_internal<const PORTS: usize>(
+        placement: &PlannedGear,
+        fuel: u16,
+        flow: bool,
+    ) -> Result<Self, FixedOperationPreparationRefusal> {
         if LEFT.checked_add(RIGHT) != Some(OUTPUT) {
             return Err(FixedOperationPreparationRefusal::Shape);
         }
-        let expected = fixed_concatenate_offer::<LEFT, RIGHT>()
-            .map_err(|_| FixedOperationPreparationRefusal::Shape)?;
+        let expected = if flow {
+            crate::fixed_numeric_temporal::closing_numeric_offer(
+                &format!("numeric/concatenate{LEFT}x{RIGHT}"),
+                FLOW_OPERATION_IMPLEMENTATION,
+            )
+        } else {
+            fixed_concatenate_offer::<LEFT, RIGHT>()
+        }
+        .map_err(|_| FixedOperationPreparationRefusal::Shape)?;
         admit::<PORTS>(placement, fuel, 2, expected)?;
         Ok(Self {
             left: codec()?,
             right: codec()?,
             output: codec()?,
-            state: Invocation::default(),
+            state: Invocation {
+                flow,
+                ..Invocation::default()
+            },
         })
     }
 }
@@ -251,7 +323,8 @@ impl<const LEFT: usize, const RIGHT: usize, const OUTPUT: usize, const PORTS: us
         publish(io, 2, self.output.maximum_bytes(), &mut self.state)
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0)).then(|| self.output.encoded())
+        (port == PortId(0) && (!self.state.flow || self.state.staged))
+            .then(|| self.output.encoded())
     }
     fn step_committed(&mut self) {
         self.state.committed();
@@ -350,7 +423,8 @@ impl<const ROWS: usize, const WIDTH: usize, const PORTS: usize> StepBack<PORTS>
         publish(io, 2, self.output.maximum_bytes(), &mut self.state)
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0)).then(|| self.output.encoded())
+        (port == PortId(0) && (!self.state.flow || self.state.staged))
+            .then(|| self.output.encoded())
     }
     fn step_committed(&mut self) {
         self.state.committed();
