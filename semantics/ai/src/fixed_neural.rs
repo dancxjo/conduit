@@ -152,6 +152,73 @@ pub fn fixed_sigmoid<const SIZE: usize>(
     })
 }
 
+/// Gather exactly the caller-supplied indices. Wrapping/padding policy belongs
+/// to the authored graph, and refusal publishes no partial output.
+pub fn fixed_gather<const INPUT: usize, const OUTPUT: usize>(
+    input: &[f32; INPUT],
+    indices: &[usize; OUTPUT],
+    output: &mut [f32; OUTPUT],
+) -> Result<(), FixedNumericRefusal> {
+    finite_input(input)?;
+    if OUTPUT == 0 {
+        return Err(FixedNumericRefusal::EmptyShape);
+    }
+    let mut staged = [0.0; OUTPUT];
+    for (value, index) in staged.iter_mut().zip(indices) {
+        *value = *input.get(*index).ok_or(FixedNumericRefusal::Index)?;
+    }
+    *output = staged;
+    Ok(())
+}
+
+pub fn fixed_slice<const INPUT: usize, const OUTPUT: usize>(
+    input: &[f32; INPUT],
+    start: usize,
+    output: &mut [f32; OUTPUT],
+) -> Result<(), FixedNumericRefusal> {
+    finite_input(input)?;
+    if OUTPUT == 0 {
+        return Err(FixedNumericRefusal::EmptyShape);
+    }
+    let end = start
+        .checked_add(OUTPUT)
+        .ok_or(FixedNumericRefusal::Index)?;
+    let slice = input.get(start..end).ok_or(FixedNumericRefusal::Index)?;
+    output.copy_from_slice(slice);
+    Ok(())
+}
+
+/// Generic scan y[n] = x[n] + coefficient * y[n-1]. Both output and explicit
+/// next state publish only after every result is finite. No speech coefficient,
+/// sample rate or state ownership is selected here.
+pub fn fixed_one_pole<const SIZE: usize>(
+    input: &[f32; SIZE],
+    coefficient: f32,
+    prior: f32,
+    output: &mut [f32; SIZE],
+    next: &mut f32,
+) -> Result<(), FixedNumericRefusal> {
+    finite_input(input)?;
+    if !coefficient.is_finite() {
+        return Err(FixedNumericRefusal::NonfiniteWeight);
+    }
+    if !prior.is_finite() {
+        return Err(FixedNumericRefusal::NonfiniteInput);
+    }
+    let mut staged = [0.0; SIZE];
+    let mut state = prior;
+    for (value, input) in staged.iter_mut().zip(input) {
+        state = *input + coefficient * state;
+        if !state.is_finite() {
+            return Err(FixedNumericRefusal::NonfiniteOutput);
+        }
+        *value = state;
+    }
+    *output = staged;
+    *next = state;
+    Ok(())
+}
+
 fn finite_input<const SIZE: usize>(input: &[f32; SIZE]) -> Result<(), FixedNumericRefusal> {
     if SIZE == 0 {
         return Err(FixedNumericRefusal::EmptyShape);
