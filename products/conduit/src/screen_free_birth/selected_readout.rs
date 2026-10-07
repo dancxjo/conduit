@@ -193,20 +193,27 @@ pub(super) fn emit_readout(
                 return Err(reason);
             }
         };
-        if let Err(refusal) = selected.verify_receipt(face, show, &batch, &result) {
-            let terminal = reader
-                .acknowledge_batch(SpokenBatchDelivery::Failed(refusal.clone()))
-                .map_err(debug_error)?;
-            if let Some(terminal) = terminal {
-                write_turn(&terminal, output)?;
+        let spoken_segments = match selected.verify_receipt(face, show, &batch, &result) {
+            Ok(segments) => segments,
+            Err(refusal) => {
+                let terminal = reader
+                    .acknowledge_batch(SpokenBatchDelivery::Failed(refusal.clone()))
+                    .map_err(debug_error)?;
+                if let Some(terminal) = terminal {
+                    write_turn(&terminal, output)?;
+                }
+                return Err(refusal);
             }
-            return Err(refusal);
-        }
+        };
         let terminal = reader
             .acknowledge_batch(result.delivery())
             .map_err(debug_error)?;
-        writeln!(output, "{}", selected.receipt_json(&result))
-            .map_err(|error| error.to_string())?;
+        writeln!(
+            output,
+            "{}",
+            selected.receipt_json(&result, &spoken_segments)
+        )
+        .map_err(|error| error.to_string())?;
         if let Some(terminal) = &terminal {
             write_turn(terminal, output)?;
         }
