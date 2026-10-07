@@ -69,3 +69,13 @@ proposal bytes are retained beside admitted and refused canonical branch
 queries. The branch fixture explicitly uses synthetic identity0/score0; it
 checks preservation policy rather than replaying original inference or played
 speech. This ignored proof passed in65.44s; scoped Clippy also passed.
+
+`native_stream_protected_projection_receipt.json` retains the original admitted
+VOC0 fact, a checked projection context and its ordinary Source output. Source
+requires the supplied whole dependent/head tokens to equal the fact's exact
+tape tokens. Foreign endpoint tokens refuse Native admission. The compact
+output preserves both basis fields, both lexical choices, the whole relation
+including subtype, and both occurrence identities. This ignored proof passed
+in37.03s. The output is a proposal for private retained-session custody;
+it does not independently authorize a protected or played fact, nor establish
+the separate `Hello, Travis.` VOC2 append case.

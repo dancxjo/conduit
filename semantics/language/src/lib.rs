@@ -141,5 +141,6 @@ pub use generated::{LanguageParserJointCommitProposal, LanguageParserJointCommit
 
 pub use generated::{
     LanguageParserJointProtectedBranchQuery, LanguageParserJointRebaseContext,
-    LanguageParserJointRebaseProposal,
+    LanguageParserJointRebaseProposal, LanguageParserProtectedEdgeProposal,
+    LanguageParserProtectedProjectionContext,
 };

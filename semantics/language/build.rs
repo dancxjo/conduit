@@ -24,11 +24,12 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_session_commit.conduit");
     println!("cargo:rerun-if-changed=parser_session_rebase.conduit");
     println!("cargo:rerun-if-changed=parser_session_branch.conduit");
+    println!("cargo:rerun-if-changed=parser_session_protection.conduit");
     println!("cargo:rerun-if-changed=parser_scorer_v2.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
     let source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
         include_str!("coverage.conduit"),
@@ -51,6 +52,7 @@ fn main() {
         include_str!("parser_session_commit.conduit"),
         include_str!("parser_session_rebase.conduit"),
         include_str!("parser_session_branch.conduit"),
+        include_str!("parser_session_protection.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit")
     );
