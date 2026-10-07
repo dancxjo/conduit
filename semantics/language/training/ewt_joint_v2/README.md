@@ -79,3 +79,19 @@ including subtype, and both occurrence identities. This ignored proof passed
 in37.03s. The output is a proposal for private retained-session custody;
 it does not independently authorize a protected or played fact, nor establish
 the separate `Hello, Travis.` VOC2 append case.
+
+`native_protected_set_codec_proof.json` records the next Source protection
+foundation. Active flags and four opaque valid edge payloads avoid constructing
+invalid refined optional defaults. Source owns set initialization/upsert,
+lexical-choice preservation and refinement of the existing legal-action mask.
+Ten authored graphs previously expanded successfully. The first ordinary
+replay exposed four insert laws at expression depth19, beyond the existing
+decoder limit16; that failed run is retained rather than claimed successful.
+Balancing the same conjunctions reduces their depth to16 without dropping any
+predicate. Five exact programs round-trip, admit the unchanged full actual
+VOC0 fact and refuse changed head/dependent-choice/head-choice cases in72.91s.
+This direct diagnostic packs fields into the exact checked Source schema.
+Updated generated Native admission and ordinary replay remain pending.
+Raw protected sets/masks do not authorize published truth: recursive protected
+hypothesis/forest admission and independent `Hello, Travis.` VOC2 append/played
+proofs are still required. No fresh inference or played commitment is claimed.

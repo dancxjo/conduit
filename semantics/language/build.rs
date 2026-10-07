@@ -30,6 +30,9 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_session_rebase.conduit");
     println!("cargo:rerun-if-changed=parser_session_branch.conduit");
     println!("cargo:rerun-if-changed=parser_session_protection.conduit");
+    println!("cargo:rerun-if-changed=parser_session_protected_set.conduit");
+    println!("cargo:rerun-if-changed=parser_session_protected_branch.conduit");
+    println!("cargo:rerun-if-changed=parser_session_protected_mask.conduit");
     println!("cargo:rerun-if-changed=parser_scorer_v2.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
@@ -63,6 +66,9 @@ fn main() {
         include_str!("parser_session_rebase.conduit"),
         include_str!("parser_session_branch.conduit"),
         include_str!("parser_session_protection.conduit"),
+        include_str!("parser_session_protected_set.conduit"),
+        include_str!("parser_session_protected_branch.conduit"),
+        include_str!("parser_session_protected_mask.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
         include_str!("pronunciation_selection.conduit"),
