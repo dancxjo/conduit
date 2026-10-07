@@ -135,6 +135,14 @@ impl FixedF32VectorCodec<320> {
         Self::prepare_tree(&ty)
     }
 }
+impl FixedF32VectorCodec<41> {
+    /// Exact combined generic scan result: next_state1 then value40.
+    pub fn prepare_one_pole_result() -> Result<Self, FixedCodecRefusal> {
+        let ty = crate::fixed_numeric_catalog::fixed_numeric_type("NumericOnePole40Result")
+            .map_err(|_| FixedCodecRefusal::Shape)?;
+        Self::prepare_tree(&ty)
+    }
+}
 fn tree(ty: &StructuredInfoType, value: f32) -> Result<StructuredInfoValue, FixedCodecRefusal> {
     match ty.shape() {
         Shape::Nominal { representation, .. } => {
