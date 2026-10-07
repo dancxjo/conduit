@@ -172,12 +172,15 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
         args.listen_port.expect("checked above")
     );
     let reported: serde_json::Value = serde_json::from_str(&ready).map_err(|error| {
+        let _ = route.kill();
+        let _ = route.wait();
         ConduitosError::refusal("owner-model-route-readiness", error.to_string())
     })?;
     if reported["endpoint"] != expected
         || reported["control_socket"] != control_socket.to_string_lossy().as_ref()
     {
         let _ = route.kill();
+        let _ = route.wait();
         return Err(ConduitosError::refusal(
             "owner-model-route-readiness",
             "route did not bind the selected endpoint and private control socket",
@@ -200,6 +203,7 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
     }
     let mut child = command.args(&args.command[1..]).spawn().map_err(|error| {
         let _ = route.kill();
+        let _ = route.wait();
         ConduitosError::refusal("owner-model-route-command", error.to_string())
     })?;
     loop {
@@ -231,9 +235,9 @@ pub(super) fn execute(args: &Args, opts: &GlobalOpts) -> Result<(), ConduitosErr
             // The proof command launches Node/QEMU descendants. Retire its
             // process group when the selected route disappears.
             #[cfg(unix)]
-            let _ = Command::new("kill")
-                .args(["-TERM", "--", &format!("-{}", child.id())])
-                .status();
+            unsafe {
+                libc::kill(-(child.id() as i32), libc::SIGTERM);
+            }
             let _ = child.kill();
             let _ = child.wait();
             return Err(ConduitosError::refusal(
