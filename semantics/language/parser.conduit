@@ -122,7 +122,7 @@ plot language-parser-admit-2 (
 
 plot language-parser-admit-3 (
     input: LanguageParserContext...| >> output: LanguageParserContext...|
-) = ({ request: .request, top: .top, admitted: (.admitted && (((.request.state.stack.0 == 4) && (.request.state.heads.4 == 4) && (.request.state.depth <= .request.state.unread + 1) && (0 >= .request.state.unread ? .request.state.heads.0 == 5 : true)) && ((.request.state.heads.0 == 4 ? .request.state.relation0.base is root : !(.request.state.relation0.base is root)) && (0 < .request.state.committed ? .request.state.heads.0 < 5 : true) && (1 >= .request.state.unread ? .request.state.heads.1 == 5 : true) && (.request.state.heads.1 == 4 ? .request.state.relation1.base is root : !(.request.state.relation1.base is root))))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
+) = ({ request: .request, top: .top, admitted: (.admitted && (((.request.state.stack.0 == 4) && (.request.state.heads.4 == 4) && (.request.state.depth <= (.request.state.unread <= 4 ? .request.state.unread + 1 : 0)) && (0 >= .request.state.unread ? .request.state.heads.0 == 5 : true)) && ((.request.state.heads.0 == 4 ? .request.state.relation0.base is root : !(.request.state.relation0.base is root)) && (0 < .request.state.committed ? .request.state.heads.0 < 5 : true) && (1 >= .request.state.unread ? .request.state.heads.1 == 5 : true) && (.request.state.heads.1 == 4 ? .request.state.relation1.base is root : !(.request.state.relation1.base is root))))), legal: .legal, dependent: .dependent, ancestor: .ancestor, cycle: .cycle })
 
 plot language-parser-admit-4 (
     input: LanguageParserContext...| >> output: LanguageParserContext...|
