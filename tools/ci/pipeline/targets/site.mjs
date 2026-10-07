@@ -38,7 +38,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   // runner. Carry its complete raw evidence in source, then render it only
   // after preflight checks source ancestry and the strict renderer checks media.
   const oneBodyEvidence = retainedOneBodyEvidence();
-  const threeHostDevelopment = retainedThreeHostDevelopmentEvidence();
+  const threeHostDevelopment = oneBodyEvidence ? null : retainedThreeHostDevelopmentEvidence();
   if (oneBodyEvidence) {
     xtask('prove', 'render-one-body-journey',
       '--evidence-root', oneBodyEvidence.root,
