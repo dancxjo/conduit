@@ -1,0 +1,73 @@
+# Finite width4 raw search proposals. Source ranks complete bodies; no score,
+# identity or raw Boolean admits a forest or linguistic fact. Private producers
+# retain exact native lexical/model/feature/prior receipts and admit selected
+# forests before exposing checked snapshots. Scores are uncalibrated.
+type LanguageParserWindow8RawHypothesis = {
+    identity: U64
+    active: Boolean
+    score: I64
+    state: LanguageParserWindow8RawState
+    choices: collection U64 = 8
+    selected: U64
+}
+type LanguageParserWindow8RawBeam = {
+    candidate0: LanguageParserWindow8RawHypothesis
+    candidate1: LanguageParserWindow8RawHypothesis
+    candidate2: LanguageParserWindow8RawHypothesis
+    candidate3: LanguageParserWindow8RawHypothesis
+}
+type LanguageParserWindow8RawMerge = {
+    beam: LanguageParserWindow8RawBeam
+    proposal: LanguageParserWindow8RawHypothesis
+}
+plot language-window8-rank-0-1 (
+    input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|
+) = { candidate0: (((.candidate0.active && !.candidate1.active) || (.candidate0.active == .candidate1.active && (.candidate0.score > .candidate1.score || (.candidate0.score == .candidate1.score && .candidate0.identity <= .candidate1.identity)))) ? .candidate0 : .candidate1), candidate1: (((.candidate0.active && !.candidate1.active) || (.candidate0.active == .candidate1.active && (.candidate0.score > .candidate1.score || (.candidate0.score == .candidate1.score && .candidate0.identity <= .candidate1.identity)))) ? .candidate1 : .candidate0), candidate2: .candidate2, candidate3: .candidate3 }
+plot language-window8-rank-2-3 (
+    input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|
+) = { candidate0: .candidate0, candidate1: .candidate1, candidate2: (((.candidate2.active && !.candidate3.active) || (.candidate2.active == .candidate3.active && (.candidate2.score > .candidate3.score || (.candidate2.score == .candidate3.score && .candidate2.identity <= .candidate3.identity)))) ? .candidate2 : .candidate3), candidate3: (((.candidate2.active && !.candidate3.active) || (.candidate2.active == .candidate3.active && (.candidate2.score > .candidate3.score || (.candidate2.score == .candidate3.score && .candidate2.identity <= .candidate3.identity)))) ? .candidate3 : .candidate2) }
+plot language-window8-rank-0-2 (
+    input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|
+) = { candidate0: (((.candidate0.active && !.candidate2.active) || (.candidate0.active == .candidate2.active && (.candidate0.score > .candidate2.score || (.candidate0.score == .candidate2.score && .candidate0.identity <= .candidate2.identity)))) ? .candidate0 : .candidate2), candidate1: .candidate1, candidate2: (((.candidate0.active && !.candidate2.active) || (.candidate0.active == .candidate2.active && (.candidate0.score > .candidate2.score || (.candidate0.score == .candidate2.score && .candidate0.identity <= .candidate2.identity)))) ? .candidate2 : .candidate0), candidate3: .candidate3 }
+plot language-window8-rank-1-3 (
+    input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|
+) = { candidate0: .candidate0, candidate1: (((.candidate1.active && !.candidate3.active) || (.candidate1.active == .candidate3.active && (.candidate1.score > .candidate3.score || (.candidate1.score == .candidate3.score && .candidate1.identity <= .candidate3.identity)))) ? .candidate1 : .candidate3), candidate2: .candidate2, candidate3: (((.candidate1.active && !.candidate3.active) || (.candidate1.active == .candidate3.active && (.candidate1.score > .candidate3.score || (.candidate1.score == .candidate3.score && .candidate1.identity <= .candidate3.identity)))) ? .candidate3 : .candidate1) }
+plot language-window8-rank-1-2 (
+    input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|
+) = { candidate0: .candidate0, candidate1: (((.candidate1.active && !.candidate2.active) || (.candidate1.active == .candidate2.active && (.candidate1.score > .candidate2.score || (.candidate1.score == .candidate2.score && .candidate1.identity <= .candidate2.identity)))) ? .candidate1 : .candidate2), candidate2: (((.candidate1.active && !.candidate2.active) || (.candidate1.active == .candidate2.active && (.candidate1.score > .candidate2.score || (.candidate1.score == .candidate2.score && .candidate1.identity <= .candidate2.identity)))) ? .candidate2 : .candidate1), candidate3: .candidate3 }
+plot language-window8-rank-insert (
+    input: LanguageParserWindow8RawMerge...| >> ranked: LanguageParserWindow8RawBeam...|
+) = { candidate0: .beam.candidate0, candidate1: .beam.candidate1, candidate2: .beam.candidate2, candidate3: (((.proposal.active && !.beam.candidate3.active) || (.proposal.active == .beam.candidate3.active && (.proposal.score > .beam.candidate3.score || (.proposal.score == .beam.candidate3.score && .proposal.identity <= .beam.candidate3.identity)))) ? .proposal : .beam.candidate3) }
+
+type LanguageParserWindow8ChoiceQuery = {
+    features: LanguageParserWindow8RawFeatureQuery
+    prior_choices: collection U64 = 8
+    selected: U64 in 0..=8
+    where .selected >= .features.state.unread
+    where .selected <= .features.state.unread + 1 && .selected <= .features.projection.token_count
+    where (0 < .selected || 0 > .features.state.unread) ? .features.choices.0 == .prior_choices.0 : true
+    where (1 < .selected || 1 > .features.state.unread) ? .features.choices.1 == .prior_choices.1 : true
+    where (2 < .selected || 2 > .features.state.unread) ? .features.choices.2 == .prior_choices.2 : true
+    where (3 < .selected || 3 > .features.state.unread) ? .features.choices.3 == .prior_choices.3 : true
+    where (4 < .selected || 4 > .features.state.unread) ? .features.choices.4 == .prior_choices.4 : true
+    where (5 < .selected || 5 > .features.state.unread) ? .features.choices.5 == .prior_choices.5 : true
+    where (6 < .selected || 6 > .features.state.unread) ? .features.choices.6 == .prior_choices.6 : true
+    where (7 < .selected || 7 > .features.state.unread) ? .features.choices.7 == .prior_choices.7 : true
+}
+type LanguageParserWindow8Selected = {
+    count: U64
+}
+plot language-window8-choice-frontier (
+    query: LanguageParserWindow8ChoiceQuery...| >> frontier: LanguageParserWindow8Selected...|
+) = { count: (.selected == .features.state.unread && .features.state.unread < .features.projection.token_count ? .selected + 1 : .selected) }
+type LanguageParserWindow8RawAdvance = {
+    identity: U64
+    prior_score: I64 in -32000000..=32000000
+    step_score: I64 in -1000000..=1000000
+    outcome: LanguageParserWindow8RawResult
+    choices: collection U64 = 8
+    selected: U64 in 0..=8
+}
+plot language-window8-score-advance (
+    query: LanguageParserWindow8RawAdvance...| >> proposal: LanguageParserWindow8RawHypothesis...|
+) = { identity: .identity, active: .outcome.accepted, score: .prior_score + .step_score, state: .outcome.state, choices: .choices, selected: .selected }

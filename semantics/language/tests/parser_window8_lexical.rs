@@ -84,11 +84,22 @@ fn source_codes_and_425_features_preserve_alternatives_and_available_future_only
     future_choices[1] = 1;
     let future = prepare_window8_features(&state, &lexical, &exact_basis, future_choices).unwrap();
     assert_eq!(first.features(), future.features());
+    let choice = LanguageParserWindow8ChoiceQuery::new(first.query().clone(), [0; 8], 0).unwrap();
+    assert_eq!(
+        *parser_window8::window8_choice_frontier(choice)
+            .unwrap()
+            .count(),
+        1
+    );
+    assert!(LanguageParserWindow8ChoiceQuery::new(future.query().clone(), [0; 8], 0).is_err());
+
     let mut current_choices = [0; 8];
     current_choices[0] = 1;
     let current =
         prepare_window8_features(&state, &lexical, &exact_basis, current_choices).unwrap();
     assert_eq!(&current.features().raw().indices()[..3], &[17, 33, 357]);
+    assert!(LanguageParserWindow8ChoiceQuery::new(current.query().clone(), [0; 8], 1).is_err());
+
     let foreign = LanguageParserBasis::new(
         LanguageAnalysisRevisionId::new("foreign".into()).unwrap(),
         exact_basis.source_revision().clone(),

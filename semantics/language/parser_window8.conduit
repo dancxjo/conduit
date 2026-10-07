@@ -282,3 +282,33 @@ plot language-window8-model-features (
 ) {
     query >> language-window8-feature-context() >> language-window8-feature-values() >> features
 }
+
+# Version3 model class encoding: Shift0, Reduce1, Left2..38, Right39..75.
+# All labels predict canonical UD bases only; this finite model has no subtype output.
+type LanguageParserWindow8ClassQuery = {
+    code: U64 in 0..=75
+    default_relation: LanguageParserRelation
+    where text/material(.default_relation.subtype) == ""
+}
+type LanguageParserWindow8RawClassIndex = {
+    action: LanguageParserAction
+    index: U64
+    default_relation: LanguageParserRelation
+}
+type LanguageParserWindow8RawClass = {
+    action: LanguageParserAction
+    relation: LanguageParserRelation
+}
+plot language-window8-class-index (
+    query: LanguageParserWindow8ClassQuery...| >> index: LanguageParserWindow8RawClassIndex...|
+) = { action: (.code == 0 ? shift(unit) : (.code == 1 ? reduce(unit) : (.code < 39 ? left_arc(unit) : right_arc(unit)))), index: (.code < 2 ? 14 : (.code < 39 ? .code - 2 : .code - 39)), default_relation: .default_relation }
+type LanguageParserWindow8RawClassRelations = {
+    index: LanguageParserWindow8RawClassIndex
+    relations: collection LanguageUniversalDependencyRelation = 37
+}
+plot language-window8-class-relations (
+    index: LanguageParserWindow8RawClassIndex...| >> relations: LanguageParserWindow8RawClassRelations...|
+) = { index: ., relations: [acl(unit), advcl(unit), advmod(unit), amod(unit), appos(unit), aux(unit), case(unit), cc(unit), ccomp(unit), clf(unit), compound(unit), conj(unit), cop(unit), csubj(unit), dep(unit), det(unit), discourse(unit), dislocated(unit), expl(unit), fixed(unit), flat(unit), goeswith(unit), iobj(unit), list(unit), mark(unit), nmod(unit), nsubj(unit), nummod(unit), obj(unit), obl(unit), orphan(unit), parataxis(unit), punct(unit), reparandum(unit), root(unit), vocative(unit), xcomp(unit)] }
+plot language-window8-class-relation (
+    relations: LanguageParserWindow8RawClassRelations...| >> decoded: LanguageParserWindow8RawClass...|
+) = { action: .index.action, relation: { base: sequence/at(.relations,.index.index), subtype: .index.default_relation.subtype } }
