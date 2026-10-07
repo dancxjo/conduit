@@ -869,3 +869,32 @@ fn native_feature_analysis_stream_commits_exact_provisional_memories_for_two_pcm
         eprintln!("Source native PCM→feature/provisional642: {}nodes/{}cords, prep{:?}/exec{:?}; no feedback ACK or trained waveform claim",result.nodes,result.cords,result.preparation,result.execution);
     }).unwrap().join().unwrap();
 }
+
+#[test]
+fn native_feature_causal_cell_drains_only_matching_final_pcm_acknowledgments() {
+    std::thread::Builder::new().stack_size(32*1024*1024).spawn(|| {
+        let (context,seeded,ids)=super::feature_cycle::prepare_feedback();
+        let native=|key:&str|context.native.iter().find(|p|p.kind_identity(true)==ids[key]).unwrap().value_type().clone();
+        let seed_type=native("__FEATURE_STATE_NATIVE__");
+        let event_type=native("__FEATURE_EVENT_NATIVE__");
+        let pcm_type=native("__FEATURE_PCM_NATIVE__");
+        let receipt=format!("[{}]",vec!["1";32].join(","));
+        let selected=format!("{{artifact_identity:{receipt},model_descriptor_identity:{receipt},session_basis_identity:{receipt},precision:reference_float32(\"\")}}");
+        let source=super::feature_cycle::cycle_source(&ids).replace("selected: FarganModelFrameAnchor\n",&format!("selected: FarganModelFrameAnchor = {selected}\n"));
+        let (plan,context)=super::prepare_authored_epoch_entry(context,source,"speech/flow-fargan-feature-cycle",true,seeded.offers().cloned().collect()).unwrap();
+        let load=|bytes:&[u8]|bytes.as_chunks::<4>().0.iter().map(|v|f32::from_le_bytes(*v)).collect();
+        let resources:Resources=[("band_weights","NumericF32MatrixRef161x18",vec![161,18],load(include_bytes!("../../../../proof/fargan/feature-profile/bands161x18.bin"))),("band_bias","NumericF32BiasRef18",vec![18],load(include_bytes!("../../../../proof/fargan/feature-profile/band_bias18.bin"))),("dct_weights","NumericF32MatrixRef18x18",vec![18,18],load(include_bytes!("../../../../proof/fargan/feature-profile/dct18x18.bin")))].into_iter().map(|(name,ty,dims,values)|(name.into(),Resource::new(conduit_ai::fixed_numeric_catalog::fixed_numeric_type(ty).unwrap(),&dims,values))).collect();
+        let inputs=BTreeMap::from([
+            ("seed".into(),vec![super::epoch_pair_fixture(&seed_type,"",0,0).canonical_bytes().unwrap()]),
+            ("events".into(),[0,1].into_iter().map(|epoch|super::epoch_pair_fixture(&event_type,"",epoch,epoch).canonical_bytes().unwrap()).collect()),
+            ("accepted".into(),[0,1].into_iter().map(|epoch|super::epoch_pair_fixture(&pcm_type,"",epoch,epoch).canonical_bytes().unwrap()).collect()),
+        ]);
+        let (_, missing_seeded, _)=super::feature_cycle::prepare_feedback();
+        let result=run_epoch_stream_plan(plan.clone(),&context,&resources,inputs.clone(),Some(seeded),2,ExecutionMode::Normal).expect("Source feature feedback must receive each matching final PCM receipt and drain");
+        assert!(result.drained);assert_eq!(result.values.len(),2);
+        for (epoch,value) in [0u64,1].iter().zip(&result.values) {let raw=super::case_state::field(value,"epoch");let StructuredInfoValueShape::Leaf(bytes)=raw.shape() else {panic!("epoch")};assert_eq!(u64::from_le_bytes(bytes.try_into().unwrap()),*epoch);}
+        let mut missing=inputs;missing.insert("accepted".into(),vec![]);
+        assert!(run_epoch_stream_plan(plan,&context,&resources,missing,Some(missing_seeded),2,ExecutionMode::Normal).is_none(),"closed accepted input must never waive outstanding final PCM ACK debt");
+        eprintln!("Source causal642 feedback: {}nodes/{}cords, prep{:?}/exec{:?}; synthetic admitted PCM acknowledgments, no trained synthesis claim",result.nodes,result.cords,result.preparation,result.execution);
+    }).unwrap().join().unwrap();
+}

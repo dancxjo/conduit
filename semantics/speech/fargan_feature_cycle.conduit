@@ -1,0 +1,95 @@
+with structure/flow-nominal-weakening/typed-df76bf5278e813dde69ae588afc4a65d06acf7d2e279412772358c8e4ebd37343da837ec53547511829c09fe3274f6573eaa597277244491f91221399f47b719/result as FeatureRawProposal
+with structure/flow-native-profile/be897180d1a88b74aa0e87d6da2ad2ad5789f1622ac52fb5a4ec86dabe624615/candidate as FeaturePendingCandidate
+with structure/flow-native-profile/482b9e63c33e2d9a1f3c187974bfee7565c0cd0be3c9f7dd63745ac1edbeefbe/candidate as FeatureStateCandidate
+with structure/flow-native-profile/482b9e63c33e2d9a1f3c187974bfee7565c0cd0be3c9f7dd63745ac1edbeefbe/result as FeatureAdmittedState
+with structure/flow-native-profile/2512b323fa7e60e4e3a0d6e3236d6c624da8e2d2d29e85f07e0227f66bd5d36b/result as FeatureAdmittedEvent
+with structure/flow-native-profile/3c85fe2d50e54ae9750071fd116ab8f606c19d2495b8ecd4da6056d2742d3515/candidate as FeatureModelEventCandidate
+with structure/flow-native-profile/3c85fe2d50e54ae9750071fd116ab8f606c19d2495b8ecd4da6056d2742d3515/result as FeatureModelEvent
+with structure/flow-nominal-weakening/typed-b63c7aeea7e26ce8e61b299bfa966b0ba1ce94fb5b025cf17678ced8a20b6bf8070aad6890217d41f1724ffd87646c12d1cf243d680feaf0b4e52c26fbecf435/result as FeatureAckPair
+with structure/flow-native-profile/93b983e558e40ddcee49024aecb3def69461ce11eb32806eda19efa7d99254c5/result as FeatureAcceptedPcm
+with structure/flow-native-profile/93b983e558e40ddcee49024aecb3def69461ce11eb32806eda19efa7d99254c5/native/FarganModelFrameAnchor as FarganModelFrameAnchor
+plot speech/flow-fargan-feature-model-event-candidate (
+ value: FeatureRawProposal...| >> result: FeatureModelEventCandidate...|
+) = {features: .features, period: .period, epoch: .epoch}
+plot speech/flow-fargan-feature-pending-candidate (
+ value: FeatureRawProposal...| >> result: FeaturePendingCandidate...|
+) = {history: .history, previous_raw: .previous_raw, previous_normalized: .previous_normalized, epoch: .epoch}
+plot speech/flow-fargan-feature-pcm-anchor (
+ value: FeatureAcceptedPcm...| >> result: FarganModelFrameAnchor...|
+) = (.model)
+plot speech/flow-fargan-feature-pcm-ack (
+ value: FeatureAcceptedPcm...| >> result: U64...|
+) = (.epoch + 0)
+plot speech/flow-fargan-feature-ack-matches (
+ value: FeatureAckPair...| >> result: Boolean...|
+) = ((.item-00000.epoch == .item-00001) && (.item-00001 < 18446744073709551615))
+plot speech/flow-fargan-feature-state-candidate (
+ value: FeatureAckPair...| >> result: FeatureStateCandidate...|
+) = {history: .item-00000.history, previous_raw: .item-00000.previous_raw, previous_normalized: .item-00000.previous_normalized, next_epoch: (.item-00001 + 1)}
+plot speech/flow-fargan-feature-cycle (
+ selected: FarganModelFrameAnchor
+ >> seed: FeatureAdmittedState...|
+ >> events: FeatureAdmittedEvent...|
+ >> accepted: FeatureAcceptedPcm...|
+ >> band_weights: NumericF32MatrixRef161x18
+ >> band_bias: NumericF32BiasRef18
+ >> dct_weights: NumericF32MatrixRef18x18
+ result: FeatureModelEvent...| >>
+) {
+ cell: state/seeded/flow/finite/typed-df3a8062ffc5259ed4557b9385aab18400fb3c571d51407d1c20e84a7c9b4ac4
+ joined: flow/zip/feedback/typed-6ba8905bdab51a544b54cf6a054ac588501e8101c0828cd3139739a3f71fc5aa
+ weak: structure/flow-nominal-weakening/typed-d52e2204a66317364909c4cda64a58c30332c0149b477cfa62303b09c190cc4430bfb791a727299c03012263aab6c3b8f00b4e6e002cf78eed9f9a7f329022ba
+ matcher: speech/flow-fargan-feature-input-matches
+ guard: value/flow-assert-true/typed-30bfb791a727299c03012263aab6c3b8f00b4e6e002cf78eed9f9a7f329022ba
+ candidate: speech/flow-fargan-feature-input-candidate
+ input: structure/flow-native-profile/ef369dad524433926fcc044d946c6b34d29523c4d832635703722cce46141794
+ analysis: speech/flow-fargan-feature-native-analysis
+ raw: structure/flow-nominal-weakening/typed-df76bf5278e813dde69ae588afc4a65d06acf7d2e279412772358c8e4ebd37343da837ec53547511829c09fe3274f6573eaa597277244491f91221399f47b719
+ event_candidate: speech/flow-fargan-feature-model-event-candidate
+ event: structure/flow-native-profile/3c85fe2d50e54ae9750071fd116ab8f606c19d2495b8ecd4da6056d2742d3515
+ pending_candidate: speech/flow-fargan-feature-pending-candidate
+ pending: structure/flow-native-profile/be897180d1a88b74aa0e87d6da2ad2ad5789f1622ac52fb5a4ec86dabe624615
+ anchor: speech/flow-fargan-feature-pcm-anchor
+ anchor_match: speech/flow-fargan-model-anchor-matches (selected = selected)
+ accepted_guard: value/flow-assert-true/typed-fa9d870b02a24fcdc0dc452fe6046bce65e380294d06bfb24f45e15d0730bcd7
+ ack: speech/flow-fargan-feature-pcm-ack
+ ack_pair: structure/flow-atomic-pair/typed-6cf9c8343f73ec97d8d68e91f40ee77f9b29e668e58a51f24f6925145c7a84ea97da511cabd798b4600e78b25a60d9acf44c4e40b028774a275a92779d8e68d7
+ ack_weak: structure/flow-nominal-weakening/typed-b63c7aeea7e26ce8e61b299bfa966b0ba1ce94fb5b025cf17678ced8a20b6bf8070aad6890217d41f1724ffd87646c12d1cf243d680feaf0b4e52c26fbecf435
+ ack_matcher: speech/flow-fargan-feature-ack-matches
+ ack_guard: value/flow-assert-true/typed-070aad6890217d41f1724ffd87646c12d1cf243d680feaf0b4e52c26fbecf435
+ state_candidate: speech/flow-fargan-feature-state-candidate
+ state: structure/flow-native-profile/482b9e63c33e2d9a1f3c187974bfee7565c0cd0be3c9f7dd63745ac1edbeefbe
+ seed >> cell.seed
+ cell.current >> joined.left
+ events >> joined.right
+ joined.paired >> weak.value
+ weak.result >> matcher.value
+ weak.result >> guard.value
+ matcher.result >> guard.condition
+ guard.result >> candidate.value
+ candidate.result >> input.candidate
+ input.result >> analysis.value
+ band_weights >> analysis.band_weights
+ band_bias >> analysis.band_bias
+ dct_weights >> analysis.dct_weights
+ analysis.result >> raw.value
+ raw.result >> event_candidate.value
+ event_candidate.result >> event.candidate
+ event.result >> result
+ raw.result >> pending_candidate.value
+ pending_candidate.result >> pending.candidate
+ pending.result >> ack_pair.left
+ accepted >> anchor.value
+ anchor.result >> anchor_match.value
+ accepted >> accepted_guard.value
+ anchor_match.result >> accepted_guard.condition
+ accepted_guard.result >> ack.value
+ ack.result >> ack_pair.right
+ ack_pair.paired >> ack_weak.value
+ ack_weak.result >> ack_matcher.value
+ ack_weak.result >> ack_guard.value
+ ack_matcher.result >> ack_guard.condition
+ ack_guard.result >> state_candidate.value
+ state_candidate.result >> state.candidate
+ state.result >> cell.next
+}
