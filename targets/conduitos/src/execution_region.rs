@@ -9,7 +9,7 @@ use conduit_core::{
 use crate::{
     machine::BaseKind,
     offer::{BaseOffer, HostOffer},
-    ordinary_plan::{COOPERATIVE_REGION_PROFILE, PreparationError},
+    ordinary_plan::{PreparationError, region_profile},
 };
 
 pub(super) fn seal_execution_region(
@@ -231,6 +231,17 @@ fn build_region(
     lane_base_identity: alloc::string::String,
     fragment: &PlanFragment,
 ) -> Result<ExecutionRegion, PreparationError> {
+    let protected = cfg!(all(target_arch = "x86_64", target_os = "none"))
+        && region_id == "region/0"
+        && fragment.placements.len() == 3
+        && fragment.placements.iter().all(|placement| {
+            matches!(
+                placement.kind_id.as_str(),
+                conduit_text::TEXT_LITERAL_KIND
+                    | conduit_text::TEXT_UPPER_KIND
+                    | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            )
+        });
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {
             total.checked_add(u32::from(connection.item_capacity))
@@ -260,7 +271,7 @@ fn build_region(
             mandatory_sign_bytes: fragment.sign_storage_budget.byte_capacity,
         },
         admitted_placements,
-        execution_profile_id: ExecutionProfileId::from(COOPERATIVE_REGION_PROFILE),
+        execution_profile_id: ExecutionProfileId::from(region_profile(protected)),
         scheduling: ExecutionScheduling::CooperativeBoundedStep,
         lane_count: 1,
         lane_resource: ResourceBinding {
@@ -280,8 +291,8 @@ fn build_region(
             }),
         },
         lane_base_id: HostBaseId::from(lane_base_identity),
-        preemption_required: false,
-        isolation_required: false,
+        preemption_required: protected,
+        isolation_required: protected,
     })
 }
 

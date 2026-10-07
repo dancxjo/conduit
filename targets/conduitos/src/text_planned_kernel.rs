@@ -44,6 +44,8 @@ pub struct TextPlannedKernel {
     scheduler: Scheduler,
     upper_node: NodeId,
     presentation_node: NodeId,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    protected: Option<crate::text_protection::ProtectedText>,
 }
 
 impl TextPlannedKernel {
@@ -134,11 +136,60 @@ impl TextPlannedKernel {
             )?,
             upper_node: NodeId(upper_index as u16),
             presentation_node: NodeId(presentation_index as u16),
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            protected: None,
         })
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
-        self.scheduler.step()
+        let status = self.scheduler.step()?;
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if status == SchedulerStatus::Drained
+            && let Some(domain) = &mut self.protected
+        {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCompleted);
+        }
+        Ok(status)
+    }
+
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(crate) fn protect(
+        &mut self,
+        plan: &conduit_core::Plan,
+        active: &conduit_core::ActivePlayIdentity,
+    ) -> Result<(), crate::composition::MachineRunError> {
+        self.protected = Some(crate::text_protection::ProtectedText::prepare(
+            plan, active,
+        )?);
+        Ok(())
+    }
+
+    pub(crate) fn compute_upper(
+        &mut self,
+        request: HostCallRequest,
+    ) -> Result<crate::text_upper::UppercaseText, crate::composition::MachineRunError> {
+        use crate::composition::MachineRunError as Error;
+        if !self.is_upper_request(&request) {
+            return Err(Error::UnexpectedHostCall);
+        }
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|_| Error::KernelFailure)?;
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.protected
+                .as_mut()
+                .ok_or(Error::KernelConstruction)?
+                .uppercase(input)
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        {
+            crate::text_upper::uppercase(input).map_err(|error| match error {
+                crate::text_upper::UppercaseError::MalformedUtf8 => Error::TextMalformedUtf8,
+                crate::text_upper::UppercaseError::OutputOverflow => Error::TextOutputOverflow,
+            })
+        }
     }
 
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
@@ -214,6 +265,10 @@ impl TextPlannedKernel {
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if let Some(domain) = &mut self.protected {
+            domain.revoke(crate::protection_domain::KernelRevocationCause::PlayCancelled);
+        }
         self.scheduler.cancel()
     }
     pub fn decisions(&self) -> u32 {

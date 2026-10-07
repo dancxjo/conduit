@@ -1,4 +1,4 @@
-# ConduitOS x86_64 protection domains
+# ConduitOS protection domains
 
 Status: one bounded freestanding-emulator enforcement profile, owned by
 [#3078](https://github.com/dancxjo/conduit/issues/3078). This is not a claim
@@ -58,6 +58,55 @@ Acceptance requires both the structured protection sign and the independently
 observed `CONDUIT_SERIAL_PRESENT protected-domain-authorized-effect` line. The
 sibling sentinel is independently checked by the kernel before success. A
 protection fault is recorded as a refusal fact, never semantic completion.
+
+## Ordinary execution work in progress (#5113)
+
+`protected_region.rs` owns verified Plan/Play/region/domain binding, finite
+memory admission, and terminal lifecycle transitions independently of the CPU
+backend. Protection faults and provider loss revoke domain handles and fence
+in-flight leases. `authorize_current` compares the complete currently selected
+Root scope before accepting a gate claim, including Host, implementation,
+Base/resource, subject, authority and their admitted envelopes.
+
+The x86_64 ordinary three-placement text runner now loads an independently
+compiled Unicode-uppercase implementation into a CPL3 address space. It uses
+one entry and one terminal gate for the entire bounded input rather than a
+privileged transition per character. Code is read-only/executable; constants,
+input/output and stack have separate permissions; inherited Root mappings are
+supervisor-only. Floating-point access traps instead of exposing Root register
+state. A hard timer returns a hostile loop as a work-exhaustion fault. A fault
+terminates the region; it does not resume the hostile instruction.
+
+The supplemental `cargo xtask make conduitos ordinary-domain-proof` lane runs
+checked ordinary text Source through the production kernel and then checks 11
+hostile entries: Root memory, capability memory, a sibling domain's private
+frame, Root entry, MMIO, ports, interrupt disabling, an infinite loop,
+floating-point access, code writes, and data execution. This lane does not
+establish that every current product path uses protection domains.
+
+A local x86_64 QEMU run produced `HELLO, CONDUITOS`, returned all 11 hostile
+entries to Root, and preserved sibling state. Its ordinary region recorded one
+entry, one gate, two CR3 switches, one scheduler return and 118,784 reserved
+bytes. `copied_bytes` currently includes both implementation setup and input/
+output copies; it is not a steady-state copy-cost measurement. Preparation,
+teardown and timer/TLB cost measurements remain incomplete.
+
+| Target | Ordinary protection evidence | Remaining boundary |
+|---|---|---|
+| x86_64 | Supplemental emulator run of checked text Source and hostile entries; bounded CPL3 implementation in the ordinary text runner | Exact effect capability gate, current product paths, shared timer reservation and full cost evidence remain unfinished |
+| IA-32 | ELF32 artifact admission and malformed-mapping tests | No earned ordinary CPL3 execution proof |
+| AArch64 | Separately compiled pure image only | No earned ordinary EL0 execution proof |
+| RISC-V64 | Separately compiled pure image only | No earned ordinary U-mode execution proof |
+| LoongArch64 | Separately compiled pure image only | No earned ordinary least-privileged execution proof |
+| ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
+
+The ordinary text serial presentation still crosses its existing trusted Root
+Host Call path; this work does not yet enforce that effect through the domain
+capability gate. The supplemental Sign therefore reports
+`effect_capability_gates:false`. The current native workset, timer/Morse and
+other paths have not been migrated. DMA and driver isolation remain false.
+Issue #5113 stays open until its complete cross-architecture product and proof
+criteria are earned; the local emulator run is not accepted-release evidence.
 
 ## Deliberate limits
 
