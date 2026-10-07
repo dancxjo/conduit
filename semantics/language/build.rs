@@ -16,6 +16,8 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_mask.conduit");
     println!("cargo:rerun-if-changed=parser_joint.conduit");
     println!("cargo:rerun-if-changed=parser_joint_decode.conduit");
+    println!("cargo:rerun-if-changed=parser_available.conduit");
+    println!("cargo:rerun-if-changed=parser_scorer_v2.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
     println!("cargo:rerun-if-changed=pronunciation_selection.conduit");
@@ -33,6 +35,8 @@ fn main() {
         include_str!("parser_mask.conduit"),
         include_str!("parser_joint.conduit"),
         include_str!("parser_joint_decode.conduit"),
+        include_str!("parser_available.conduit"),
+        include_str!("parser_scorer_v2.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
         include_str!("pronunciation_selection.conduit"),

@@ -1,0 +1,67 @@
+[
+  {
+    "id": "reviewed-teaching/initial",
+    "forms": [
+      "Travis",
+      "Hello"
+    ],
+    "pos": [
+      11,
+      6
+    ],
+    "heads": [
+      1,
+      4
+    ],
+    "relations": [
+      "vocative",
+      "root"
+    ]
+  },
+  {
+    "id": "reviewed-teaching/medial",
+    "forms": [
+      "Hello",
+      "Travis",
+      "friend"
+    ],
+    "pos": [
+      6,
+      11,
+      7
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "obj"
+    ]
+  },
+  {
+    "id": "reviewed-teaching/final",
+    "forms": [
+      "Hello",
+      "friend",
+      "Travis"
+    ],
+    "pos": [
+      6,
+      7,
+      11
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "obj",
+      "vocative"
+    ]
+  }
+]

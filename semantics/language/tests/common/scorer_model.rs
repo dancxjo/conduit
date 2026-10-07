@@ -20,6 +20,7 @@ pub struct Scorer {
     pub signature: ModelSignature,
     pub adapter: HostedIntegerCategorical,
     bytes: &'static [u8],
+    lookups: u64,
 }
 impl Scorer {
     pub fn new() -> Self {
@@ -34,12 +35,30 @@ impl Scorer {
             "language/parser-scorer-encoding@1",
             include_bytes!("../../parser_scorer.conduit"),
         );
+        Self::prepare_encoding(bytes, manifest, profile, encoding)
+    }
+    pub fn prepare_v2(bytes: &'static [u8], manifest: &str, profile: &str) -> Self {
+        let encoding = semantic_digest(
+            "language/parser-v2-scorer-encoding@1",
+            include_bytes!("../../parser_scorer_v2.conduit"),
+        );
+        Self::prepare_encoding(bytes, manifest, profile, encoding)
+    }
+    fn prepare_encoding(
+        bytes: &'static [u8],
+        manifest: &str,
+        profile: &str,
+        encoding: [u8; 32],
+    ) -> Self {
         let encoding = encoding
             .iter()
             .map(|b| format!("{b:02x}"))
             .collect::<String>();
         let manifest: serde_json::Value = serde_json::from_str(manifest).unwrap();
         assert_eq!(manifest["feature_class_contract_identity"], encoding);
+        let lookups = manifest["lookups"].as_u64().unwrap();
+        assert!((1..=64).contains(&lookups));
+        let input_bytes = lookups * 8;
         let port = |name: &str, element, count| {
             ModelPortConstraint::new(
                 ModelPortIdentity::new(name.into()).unwrap(),
@@ -78,7 +97,7 @@ impl Scorer {
             identity,
             1,
             vec![ModelOperation::Infer],
-            vec![port("features", TensorElement::U64, 7)],
+            vec![port("features", TensorElement::U64, lookups)],
             vec![port("scores", TensorElement::I64, 76)],
         )
         .unwrap();
@@ -111,7 +130,7 @@ impl Scorer {
             model_bytes: bytes.len() as u64,
             working_memory_bytes: 1024 * 1024,
             device_memory_bytes: 0,
-            input_bytes: 56,
+            input_bytes,
             output_bytes: 608,
             batch_items: 1,
             compute_class: PortableComputeClass::GeneralCpu,
@@ -137,13 +156,13 @@ impl Scorer {
                 maximum_model_bytes: 65536,
                 maximum_working_memory_bytes: 1024 * 1024,
                 maximum_device_memory_bytes: 0,
-                maximum_input_bytes: 56,
+                maximum_input_bytes: input_bytes,
                 maximum_output_bytes: 608,
                 maximum_batch_items: 1,
                 maximum_rank: 1,
                 maximum_in_flight: 1,
                 maximum_queue_items: 1,
-                maximum_queue_bytes: 56,
+                maximum_queue_bytes: input_bytes,
                 cancellation_supported: true,
                 compute: ComputeCapacity {
                     class: PortableComputeClass::GeneralCpu,
@@ -200,6 +219,7 @@ impl Scorer {
             signature,
             adapter,
             bytes,
+            lookups,
         }
     }
     pub fn score(
@@ -207,13 +227,14 @@ impl Scorer {
         indices: &[u64],
         basis_identity: [u8; 32],
     ) -> (Vec<i64>, ModelInvocationEvidence) {
+        assert_eq!(indices.len() as u64, self.lookups);
         let bytes = indices
             .iter()
             .flat_map(|v| v.to_le_bytes())
             .collect::<Vec<_>>();
         let input = TensorValue {
             element: TensorElement::U64,
-            dimensions: BoundedSequence::try_from_iter([7]).unwrap(),
+            dimensions: BoundedSequence::try_from_iter([self.lookups]).unwrap(),
             axes: BoundedSequence::try_from_iter([TensorAxis {
                 role: TensorAxisRole::Feature,
                 identity: Some("language/parser-indices-v1".into()),

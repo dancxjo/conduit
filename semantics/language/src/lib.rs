@@ -120,3 +120,13 @@ pub use generated::{
     LanguageParserJointRuntimeMerge, LanguageParserJointRuntimeRawBeam,
     LanguageParserJointRuntimeRawHypothesis, LanguageParserRawJointHypothesis,
 };
+
+pub use generated::{
+    LanguageParserAvailability, LanguageParserAvailableGrowth, LanguageParserAvailableLexical,
+    LanguageParserAvailableMask, LanguageParserAvailableState, LanguageParserWaitState,
+};
+
+pub use generated::{
+    LanguageParserV2ChoiceQuery, LanguageParserV2FeaturesContext, LanguageParserV2ModelFeatures,
+    LanguageParserV2PosContext,
+};

@@ -1,0 +1,132 @@
+[
+  {
+    "id": "reviewed-generalization/initial/Morgan",
+    "forms": [
+      "Morgan",
+      "Hi"
+    ],
+    "pos": [
+      11,
+      6
+    ],
+    "heads": [
+      1,
+      4
+    ],
+    "relations": [
+      "vocative",
+      "root"
+    ]
+  },
+  {
+    "id": "reviewed-generalization/medial/Morgan",
+    "forms": [
+      "Hi",
+      "Morgan",
+      "pal"
+    ],
+    "pos": [
+      6,
+      11,
+      7
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "obj"
+    ]
+  },
+  {
+    "id": "reviewed-generalization/final/Morgan",
+    "forms": [
+      "Hi",
+      "pal",
+      "Morgan"
+    ],
+    "pos": [
+      6,
+      7,
+      11
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "obj",
+      "vocative"
+    ]
+  },
+  {
+    "id": "reviewed-generalization/initial/Alex",
+    "forms": [
+      "Alex",
+      "Hello"
+    ],
+    "pos": [
+      11,
+      6
+    ],
+    "heads": [
+      1,
+      4
+    ],
+    "relations": [
+      "vocative",
+      "root"
+    ]
+  },
+  {
+    "id": "reviewed-generalization/medial/Alex",
+    "forms": [
+      "Hello",
+      "Alex",
+      "friend"
+    ],
+    "pos": [
+      6,
+      11,
+      7
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "vocative",
+      "obj"
+    ]
+  },
+  {
+    "id": "reviewed-generalization/final/Alex",
+    "forms": [
+      "Hello",
+      "friend",
+      "Alex"
+    ],
+    "pos": [
+      6,
+      7,
+      11
+    ],
+    "heads": [
+      4,
+      0,
+      0
+    ],
+    "relations": [
+      "root",
+      "obj",
+      "vocative"
+    ]
+  }
+]
