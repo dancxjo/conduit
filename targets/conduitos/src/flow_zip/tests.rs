@@ -37,3 +37,63 @@ fn unsupported_input_envelopes_and_foreign_schemas_never_become_offers() {
     assert!(factory.install(&contract, &other, &contract, &ty).is_err());
     assert_eq!(factory.offers().count(), 0);
 }
+
+#[test]
+fn explicit_frame_profile_admits_larger_inputs_but_preserves_total_pair_bound() {
+    let ty = StructuredInfoType::leaf(kind_id("value/u64")).unwrap();
+    let small = CheckedValueContract::new(kind_id("value/u64"), 1000, alloc::vec![]).unwrap();
+    let frame = CheckedValueContract::new(kind_id("value/u64"), 9962, alloc::vec![]).unwrap();
+    let mut default = FlowZipOperationFactory::default();
+    assert!(default.install(&small, &ty, &frame, &ty).is_err());
+    let mut larger = FlowZipOperationFactory::frame16k();
+    let admitted = larger.install(&small, &ty, &frame, &ty).unwrap();
+    assert_eq!(
+        admitted.implementation.implementation_id.as_str(),
+        FRAME16K_IMPLEMENTATION
+    );
+    assert_eq!(
+        admitted.implementation.execution_profile_id.as_str(),
+        FRAME16K_PROFILE
+    );
+    let paired = admitted
+        .semantic_contract
+        .value_contracts()
+        .iter()
+        .find(|v| v.location == FrontValueLocation::Output(port_id("paired")))
+        .unwrap();
+    assert!(paired.contract.maximum_bytes <= MAXIMUM_PAIR_BYTES);
+    assert!(larger.install(&frame, &ty, &frame, &ty).is_err());
+    let excessive =
+        CheckedValueContract::new(kind_id("value/u64"), MAXIMUM_PAIR_BYTES + 1, alloc::vec![])
+            .unwrap();
+    assert!(larger.install(&excessive, &ty, &small, &ty).is_err());
+    let foreign = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
+    assert!(larger.install(&small, &foreign, &frame, &ty).is_err());
+    assert_eq!(larger.offers().count(), 1);
+}
+
+#[test]
+fn default_and_frame_profiles_have_distinct_custody_for_the_same_schema() {
+    let ty = StructuredInfoType::leaf(kind_id("value/u64")).unwrap();
+    let value = CheckedValueContract::new(kind_id("value/u64"), 8, alloc::vec![]).unwrap();
+    let ordinary = FlowZipOperationFactory::default()
+        .install(&value, &ty, &value, &ty)
+        .unwrap();
+    let large = FlowZipOperationFactory::frame16k()
+        .install(&value, &ty, &value, &ty)
+        .unwrap();
+    assert_eq!(
+        ordinary.capability_id.as_str(),
+        "conduitos/flow-zip-finite/value/u64/8/value/u64/8@1"
+    );
+    assert_ne!(ordinary.capability_id, large.capability_id);
+    assert_ne!(
+        ordinary.implementation.implementation_id,
+        large.implementation.implementation_id
+    );
+    assert_ne!(
+        ordinary.implementation.execution_profile_id,
+        large.implementation.execution_profile_id
+    );
+    assert_eq!(ordinary.semantic_contract, large.semantic_contract);
+}
