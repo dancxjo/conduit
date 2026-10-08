@@ -94,12 +94,7 @@ impl Owner {
             || self.host.is_playing()
             || self.session.realization().is_some()
             || self.session.evidence().body.state != BodyState::Lulled
-            || self.resident_name.as_deref()
-                != Some(if fresh_boot {
-                    "todo/checkpoint-restore"
-                } else {
-                    "todo/checkpoint-once"
-                })
+            || !self.todo_read_resident_matches(fresh_boot)
             || selected_write.access != ResourceAccessMode::WriteCandidatePublish
         {
             return Err("Todo read requires one retired selected write Play".into());
@@ -220,11 +215,10 @@ impl Owner {
             .map_err(debug)?;
             let mut staged = self.session.clone();
             let revision = staged.evidence().body.workload_revision;
-            if fresh_boot {
-                if old_resident != read_resident {
+            if old_resident != read_resident {
+                if old_resident.checked_plot_id != write_plot_id {
                     return Err("Todo re-encounter resident Plot changed".into());
                 }
-            } else {
                 staged
                     .remove_plot(
                         revision,

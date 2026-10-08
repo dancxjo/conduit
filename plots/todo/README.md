@@ -90,3 +90,10 @@ reads, cancellation, resource exhaustion and failed publication. An acknowledged
 filesystem sync is the provider's durability boundary; this suite makes no
 claim about a physical device surviving power loss. The handoff is an explicit
 local fixture, not remote transport or a rendered Mask demonstration.
+
+After an interrupted next action, explicitly reselecting the preceding published
+version with `conduit host service install --selected-todo-checkpoint-root …
+--selected-todo-checkpoint-version …` permits a fresh verified read on restart.
+Use the exact version from the retained successful write/read receipt. Selecting
+the unfinished candidate does not fall back to an older list, and a retained
+receipt never substitutes for reading the selected checkpoint bytes.

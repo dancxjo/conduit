@@ -7,8 +7,34 @@ use std::path::Path;
 
 impl Owner {
     pub(crate) fn has_retained_verified_todo_read(&self) -> bool {
-        self.resident_name.as_deref() == Some("todo/checkpoint-restore")
-            && self.todo_verified_read_receipt().is_some()
+        let Some(read) = self.todo_verified_read_receipt() else {
+            return false;
+        };
+        match self.resident_name.as_deref() {
+            Some("todo/checkpoint-restore") => true,
+            // An interrupted next write retains the preceding verified read.
+            // Re-encounter only an explicit selection of that published version.
+            Some("todo/checkpoint-once") => {
+                self.host.advertisement().resources.iter().any(|resource| {
+                    resource.class_id.as_str() == "resource/todo-checkpoint@1"
+                        && resource.content.as_ref().is_some_and(|content| {
+                            read["selected_content"]["identity"]
+                                == serde_json::json!(content.contract.identity)
+                                && read["selected_content"]["version"]
+                                    == serde_json::json!(content.contract.version)
+                        })
+                })
+            }
+            _ => false,
+        }
+    }
+
+    pub(super) fn todo_read_resident_matches(&self, fresh_boot: bool) -> bool {
+        match self.resident_name.as_deref() {
+            Some("todo/checkpoint-restore") => fresh_boot,
+            Some("todo/checkpoint-once") => !fresh_boot || self.has_retained_verified_todo_read(),
+            _ => false,
+        }
     }
 
     pub(crate) fn has_retained_failed_todo_read(&self) -> bool {
