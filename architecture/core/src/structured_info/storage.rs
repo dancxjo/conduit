@@ -100,3 +100,53 @@ fn type_length(ty: &StructuredInfoType) -> Result<usize, super::StructuredInfoRe
         }
     }
 }
+
+impl super::StructuredInfoValue {
+    /// Exact encoding length, without allocating an encoding buffer.
+    pub fn canonical_byte_length(&self) -> Result<usize, super::StructuredInfoRefusal> {
+        let length = add(
+            self.value_type.canonical_byte_length()?,
+            value_length(&self.node)?,
+        )?;
+        if length > super::MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(super::StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        Ok(length)
+    }
+
+    /// Rejects the input ceiling before allocating and reserves the exact framing.
+    pub fn canonical_bytes_with_limit(
+        &self,
+        maximum_bytes: usize,
+    ) -> Result<alloc::vec::Vec<u8>, super::StructuredInfoRefusal> {
+        let length = self.canonical_byte_length()?;
+        if length > maximum_bytes {
+            return Err(super::StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        let mut bytes = alloc::vec::Vec::with_capacity(length);
+        super::canonical::encode_type(&self.value_type, &mut bytes);
+        super::canonical::encode_value_node(&self.node, &mut bytes);
+        Ok(bytes)
+    }
+}
+
+fn value_length(
+    value: &super::StructuredInfoValueNode,
+) -> Result<usize, super::StructuredInfoRefusal> {
+    use super::StructuredInfoValueNode as Node;
+    match value {
+        Node::Leaf(bytes) => add(5, bytes.len()),
+        Node::Collection(values) => values
+            .iter()
+            .try_fold(5, |length, value| add(length, value_length(&value.node)?)),
+        Node::Record(fields) => fields.iter().try_fold(5, |length, field| {
+            add(
+                add(length, text_length(&field.name)?)?,
+                value_length(&field.value.node)?,
+            )
+        }),
+        Node::Variant { tag, payload } => {
+            add(add(1, text_length(tag)?)?, value_length(&payload.node)?)
+        }
+    }
+}
