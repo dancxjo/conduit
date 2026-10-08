@@ -26,9 +26,6 @@ impl NativeWorksetPlay {
                         Err(crate::text_protection::KeyboardChainError::InputRefused) => {
                             return self.failed(request, FailureCode::InvalidInput, 72);
                         }
-                        Err(crate::text_protection::KeyboardChainError::StateCapacityExhausted) => {
-                            return self.failed(request, FailureCode::StateCapacityExhausted, 82);
-                        }
                         Err(crate::text_protection::KeyboardChainError::Execution(error)) => {
                             return self.protected_failure(request, error);
                         }
@@ -91,6 +88,9 @@ impl NativeWorksetPlay {
                             request,
                             crate::composition::MachineRunError::KernelFailure,
                         );
+                    }
+                    if result.edit_refused() {
+                        return self.failed(request, FailureCode::StateCapacityExhausted, 82);
                     }
                     return self.output(request, Some(result.transformed()));
                 }

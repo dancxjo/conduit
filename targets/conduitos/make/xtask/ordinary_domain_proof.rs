@@ -148,6 +148,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "the selected pure chain must perform Unicode expansion in one entry",
         ));
     }
+    if !transcript.lines().any(|line| {
+        line == "CONDUIT_DOMAIN_EDITOR_FIXTURE bounded-capacity retained-state edit-refusal"
+    }) {
+        return Err(ConduitosError::refusal(
+            "ordinary-domain-editor-fixture-absent",
+            "the diagnostic editor must retain state across a bounded capacity refusal",
+        ));
+    }
     let costs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_DOMAIN_COST "))

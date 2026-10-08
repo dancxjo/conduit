@@ -1,6 +1,6 @@
 //! The separately compiled text implementation runs outside privileged Root.
 use super::{
-    domain_memory::{AddressSpace, enable_no_execute},
+    domain_memory::{enable_no_execute, AddressSpace},
     domain_transition,
 };
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
 };
 #[path = "../../domain/frame.rs"]
 mod frame;
-pub(super) use frame::{TEXT_CAPACITY, TextFrame};
+pub(super) use frame::{TextFrame, TEXT_CAPACITY};
 
 #[cfg(target_arch = "x86_64")]
 const IMAGE_MACHINE: u16 = 62;
@@ -158,7 +158,12 @@ impl TextDomain {
     pub fn intermediate(&mut self, output: &mut [u8; 4]) -> Result<usize, DomainRefusal> {
         let frame = self.space.frame();
         let length = frame.intermediate_length as usize;
-        if self.quarantined || !matches!(frame.command, 5 | 7) || frame.status != 0 || length > 4 {
+        let edit_refused = frame.command == 7 && frame.status == 2 && frame.output_length == 0;
+        if self.quarantined
+            || !matches!(frame.command, 5 | 7)
+            || (frame.status != 0 && !edit_refused)
+            || length > 4
+        {
             return Err(DomainRefusal::InvalidMemory);
         }
         output[..length].copy_from_slice(&frame.intermediate[..length]);
