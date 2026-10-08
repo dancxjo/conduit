@@ -26,6 +26,9 @@ pub(crate) enum RevisionStageRefusal<E, S, N> {
     Registry(RegistryRefusal),
     Queries(crate::parser_session_queries::ParserQueryRefusal),
     ParentReplay(FixedRefusal<core::convert::Infallible>),
+    ModelParentReplay(
+        crate::parser_session_numeric_custody::ParserNumericRefusal<core::convert::Infallible>,
+    ),
     Source(FixedRefusal<E>),
     Model(ParserMixedRefusal<S, N>),
     StableCandidate(StableCandidateRefusal),
@@ -135,6 +138,14 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
                             .map_err(R::Registry)?
                             .replay_history(parent)
                             .map_err(R::ParentReplay)?;
+                    }
+                    for parent in &ancestor.mixed_histories {
+                        self.guard
+                            .targets()
+                            .mixed()
+                            .map_err(R::Registry)?
+                            .replay_history(parent)
+                            .map_err(R::ModelParentReplay)?;
                     }
                     ancestors = ancestor.previous.as_deref();
                 }

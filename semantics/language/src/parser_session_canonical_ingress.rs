@@ -221,6 +221,11 @@ impl<
             binding: PhantomData,
         })
     }
+    /// Exclusive scratch access for the closed mixed owner's full historical
+    /// readmission; this does not authorize caller-selected programs or values.
+    pub(crate) fn historical_verifier(&mut self) -> &mut PreparedSourceVerification {
+        &mut self.verifier
+    }
     pub fn verification_storage(&self) -> ParserSessionVerificationReceipt {
         self.verification_storage
     }

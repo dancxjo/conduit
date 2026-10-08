@@ -51,6 +51,28 @@ impl<S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor, P: FixedParserN
             cancelled: false,
         }
     }
+    /// Replay the complete original Source→model→score-wrapper chain before
+    /// later consumption. Neither its locators nor a Native-valid score snapshot
+    /// substitutes for original feature input, Plan, model and whole score frame.
+    pub(crate) fn replay_history(
+        &mut self,
+        history: &ParserMixedHistory<P>,
+    ) -> Result<(), ParserNumericRefusal<core::convert::Infallible>> {
+        if self.cancelled {
+            return Err(ParserNumericRefusal::Cancelled);
+        }
+        let result = if history.original_source_plan.as_ref() != self.original_source_plan.as_ref()
+        {
+            Err(ParserNumericRefusal::Parent)
+        } else {
+            self.numeric
+                .replay_history(&history.numeric, self.source.historical_verifier())
+        };
+        if result.is_err() {
+            self.cancel();
+        }
+        result
+    }
     pub(crate) fn cancel(&mut self) {
         self.cancelled = true;
         self.source.cancel();
@@ -77,10 +99,10 @@ impl<S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor, P: FixedParserN
             published: bool,
         }
         impl<
-            S: ParserCanonicalSourceExecutor,
-            N: ParserNumericExecutor,
-            P: FixedParserNumericProfile,
-        > Drop for Stage<'_, S, N, P>
+                S: ParserCanonicalSourceExecutor,
+                N: ParserNumericExecutor,
+                P: FixedParserNumericProfile,
+            > Drop for Stage<'_, S, N, P>
         {
             fn drop(&mut self) {
                 if !self.published {

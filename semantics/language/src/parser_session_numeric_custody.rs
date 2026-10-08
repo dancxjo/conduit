@@ -128,6 +128,37 @@ impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumer
         })
     }
 
+    /// The fixed Session factory already admits two concurrently live Native
+    /// values. Historical replay reuses that reservation sequentially, alongside
+    /// the retained complete model/Plan and prepared canonical Source scratch.
+    pub(crate) fn replay_history(
+        &mut self,
+        history: &ParserNumericHistory<P>,
+        feature_verifier: &mut PreparedSourceVerification,
+    ) -> Result<(), ParserNumericRefusal<core::convert::Infallible>> {
+        if self.cancelled {
+            return Err(ParserNumericRefusal::Cancelled);
+        }
+        let mut family = self.family.borrow_mut();
+        let maximum_live_native_bytes = family
+            .storage_receipt()
+            .conversion_requested_bytes_bound
+            .checked_mul(2)
+            .ok_or(ParserNumericRefusal::Pressure)?;
+        let mut budget = ParserNumericReadmissionBudget {
+            maximum_live_native_bytes,
+        };
+        drop(history.replay_and_readmit(
+            feature_verifier,
+            &mut self.projector,
+            &mut self.wrapper,
+            &mut self.numerical,
+            &mut family,
+            &self.original_plan,
+            &mut budget,
+        )?);
+        Ok(())
+    }
     pub(crate) fn cancel(&mut self) {
         self.cancelled = true;
         self.executor.cancel();

@@ -791,6 +791,9 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
         .unwrap();
     assert_eq!(typed.output.scores().len(), 76);
     drop(typed);
+    owner.replay_history(&history).unwrap();
+    assert_eq!(source_calls.get(), 1);
+    assert_eq!(numeric_calls.get(), 1);
     let mut changed = history.numeric.output.clone();
     *changed.last_mut().unwrap() ^= 1;
     family
