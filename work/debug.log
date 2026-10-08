@@ -1,0 +1,20 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-parser/semantics/language)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.30s
+     Running tests/parser_transition.rs (/home/dancxjo/conduit/target/debug/deps/parser_transition-031a7d8a6f2c9e06)
+
+running 1 test
+statesEqual false
+
+thread 'root_vocative_and_reduce_are_source_owned_transitions' (75937) panicked at semantics/language/tests/parser_transition.rs:34:45:
+language-parser-admit: CanonicalExpansionDiagnostic { code: "CND-FRM-046", message: "pure construction of a refined native Type requires an admitted law validator" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test root_vocative_and_reduce_are_source_owned_transitions ... FAILED
+
+failures:
+
+failures:
+    root_vocative_and_reduce_are_source_owned_transitions
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 2.35s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_transition`
