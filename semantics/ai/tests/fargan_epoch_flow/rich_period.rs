@@ -850,3 +850,64 @@ fn rich_wide_period_consumes_actual_joined_dsp_frame_receipts() {
 
 #[path = "rich_period_aggregate.rs"]
 mod aggregate;
+
+#[test]
+#[ignore = "requires new actual opaque committed-owner six-frame receipt"]
+fn rich_actual_committed_trajectory_cross_sdk_canonical_admission() {
+    let path = std::env::var("CONDUIT_FARGAN_OPAQUE_TRAJECTORY_RECEIPT").unwrap();
+    assert!(std::fs::metadata(&path).unwrap().len() <= 32 * 1024 * 1024);
+    let input: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let d =
+        check_syntax_document(&parse_syntax_document(&source()), &StartupCatalog::new()).unwrap();
+    let mut receipts = Vec::new();
+    for (index, entry) in input["first_frames"].as_array().unwrap().iter().enumerate() {
+        let bytes = |n: &str| serde_json::from_value::<Vec<u8>>(entry[n].clone()).unwrap();
+        assert_eq!(entry["bound_ordinal"], index);
+        assert_eq!(entry["original_owner_identity"], true);
+        assert_eq!(entry["foreign_equal_byte_owner_refused"], true);
+        let trajectory = bytes("bound_original_trajectory");
+        // No Rust values/types cross SDK families: original canonical bytes are
+        // freshly admitted through the older SDK's exact authored Source owner.
+        interface::admit_retained_session_native(&d, "SpeechLinearPitchTrajectory", &trajectory)
+            .unwrap();
+        let full = StructuredInfoValue::from_canonical_bytes(&bytes("pitch_admission")).unwrap();
+        let original = field(&full, "original");
+        let pitch = field(field(original, "pitch"), "admission");
+        assert_eq!(
+            pitch.canonical_bytes().unwrap(),
+            bytes("bound_original_pitch_admission")
+        );
+        assert_eq!(
+            field(pitch, "trajectory").canonical_bytes().unwrap(),
+            trajectory
+        );
+        let query = field(original, "global_frame");
+        let frame = number(query);
+        assert_eq!(frame % 160, 0);
+        let q8 = field(&full, "projected").canonical_bytes().unwrap();
+        let basis = bytes("bound_original_rich_admission");
+        let upstream = serde_json::to_vec(entry).unwrap();
+        let receipt = PreparedRichPeriod::prepare_wide(
+            &q8,
+            &query.canonical_bytes().unwrap(),
+            &basis,
+            &upstream,
+            frame / 160,
+            named(
+                ty(&d, "FarganRichPeriodPolicy"),
+                "nearest_whole_sample_ties_up",
+            ),
+            named(
+                ty(&d, "FarganRichPeriodCadence"),
+                "epoch_onset_160_frames_at_16000_hz",
+            ),
+        )
+        .unwrap();
+        assert_eq!(receipt.original_q8(), q8);
+        receipts.push(serde_json::json!({"ordinal":index,"original_trajectory":trajectory,"full_original_pitch_admission":bytes("bound_original_pitch_admission"),"receipt":serde_json::from_slice::<serde_json::Value>(&receipt.material()).unwrap()}));
+    }
+    assert_eq!(receipts.len(), 6);
+    if let Ok(path) = std::env::var("CONDUIT_FARGAN_OPAQUE_TRAJECTORY_OUTPUT") {
+        std::fs::write(path, serde_json::to_vec(&receipts).unwrap()).unwrap();
+    }
+}

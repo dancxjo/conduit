@@ -180,3 +180,25 @@ to the older FARGAN component uses complete canonical bytes and fresh original
 Source admission, never an ABI cast. Root must still bind each completed actual
 frame receipt/query to its exact selected admission and retain the complete final
 shared carrier before a varying-period inference run.
+
+## Actual committed-owner six-frame runtime checkpoint
+
+The owned copied six-frame fixture instantiates all six trajectory bindings from
+the actual original four-revision committed greeting and opaque
+`PreparedCommittedWordPitch`. It prepares a second owner over the same original
+coverage/rich basis, verifies equal complete realized intent/admissions, and
+requires address-based rejection when offered as the first owner's authority.
+Each actual renderer query's complete selected pitch admission and full trajectory
+must equal its binding's original canonical material. The Source grid execution
+input must equal that complete original query frame; full rich admission bytes
+also match the exact selected owner entry. All pre-existing complete six-frame
+Native DSP inputs/outputs and Source executions must remain equal to the pinned
+golden artifact, not merely the resulting samples.
+
+A separate older-FARGAN-SDK probe consumes only that completed new receipt. It
+freshly admits each complete trajectory through the exact existing Source owner
+and every Q8 onset through the original numerical Source guards, binding its
+actual global frame to epoch*160. It retains the full actual pitch/rich/upstream
+material and exact numerical Source receipts. No Rust Type/value crosses the SDK
+boundary. This proves six onset samples, not coverage of all 200 cadence queries,
+full varying-period inference or a new neural waveform.
