@@ -366,7 +366,7 @@ where
         canonical,
         numeric_plan,
         limits.maximum_invocations,
-        &selection,
+        selection.as_ref(),
     )
     .map_err(|_| R::Model)?;
     let owner = PreparedParserMixedCustody::from_prepared(source_port, numeric_port, source_plan);

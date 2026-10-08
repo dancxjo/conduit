@@ -3,7 +3,7 @@
 //! a target response must equal their complete canonical composition.
 use crate::{
     parser_canonical_history::ParserCanonicalHistory,
-    parser_session_execution::{ParserSessionExecution, verification::PreparedSourceVerification},
+    parser_session_execution::{verification::PreparedSourceVerification, ParserSessionExecution},
     parser_session_numeric_profile::{FixedParserNumericProfile, PinnedFourSlotNumericProfile},
 };
 use alloc::{rc::Rc, sync::Arc, vec::Vec};
@@ -94,11 +94,11 @@ impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumer
         numerical: PreparedCategoricalCanonicalAdmission,
         original_plan: Rc<conduit_core::Plan>,
         maximum_invocations: u32,
-        selection: &crate::parser_model_selection::PreparedParserModelSelection,
+        selection: &P::Selection,
     ) -> Result<Self, ParserNumericRefusal<E::Error>> {
         use ParserNumericRefusal as R;
         if !P::admits_selection(selection)
-            || !Arc::ptr_eq(selection.prepared_categorical(), numerical.profile())
+            || !core::ptr::eq(P::selected_model(selection), numerical.profile().as_ref())
             || maximum_invocations == 0
             || original_plan.fragments.is_empty()
             || projector.entry() != P::INDICES

@@ -2,15 +2,16 @@
 //! Types and fixed Source entries; implementing it is library-owned acceptance,
 //! never caller-selected metadata. Window8 remains unimplemented until readiness.
 use crate::{
-    LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
     parser_model_selection::PreparedParserModelSelection,
-    parser_session_execution::ParserSessionEntry,
+    parser_session_execution::ParserSessionEntry, LanguageParserV2ChoiceQuery,
+    LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
 };
 use conduit_plot::rust_binding::PreparedNativeRustBinding;
 mod sealed {
     pub trait Sealed {}
 }
 pub(crate) trait FixedParserNumericProfile: sealed::Sealed {
+    type Selection;
     type Query: PreparedNativeRustBinding;
     type Features: PreparedNativeRustBinding;
     type Scores: PreparedNativeRustBinding;
@@ -19,11 +20,15 @@ pub(crate) trait FixedParserNumericProfile: sealed::Sealed {
     const SCORES: ParserSessionEntry;
     const SCORE_CLASSES: usize;
     const LOOKUPS: usize;
-    fn admits_selection(selection: &PreparedParserModelSelection) -> bool;
+    fn admits_selection(selection: &Self::Selection) -> bool;
+    fn selected_model(
+        selection: &Self::Selection,
+    ) -> &conduit_ai::integer_categorical_step::PreparedCategoricalStep;
 }
 pub(crate) struct PinnedFourSlotNumericProfile;
 impl sealed::Sealed for PinnedFourSlotNumericProfile {}
 impl FixedParserNumericProfile for PinnedFourSlotNumericProfile {
+    type Selection = PreparedParserModelSelection;
     type Query = LanguageParserV2ChoiceQuery;
     type Features = LanguageParserV2ModelFeatures;
     type Scores = LanguageParserV2ModelScores;
@@ -32,7 +37,12 @@ impl FixedParserNumericProfile for PinnedFourSlotNumericProfile {
     const SCORES: ParserSessionEntry = ParserSessionEntry::V2ScoreObservation;
     const SCORE_CLASSES: usize = 76;
     const LOOKUPS: usize = 25;
-    fn admits_selection(selection: &PreparedParserModelSelection) -> bool {
+    fn admits_selection(selection: &Self::Selection) -> bool {
         selection.declaration().is_none()
+    }
+    fn selected_model(
+        selection: &Self::Selection,
+    ) -> &conduit_ai::integer_categorical_step::PreparedCategoricalStep {
+        selection.prepared_categorical().as_ref()
     }
 }
