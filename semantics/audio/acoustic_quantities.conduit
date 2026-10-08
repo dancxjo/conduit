@@ -8,3 +8,10 @@ plot audio/cycle-to-frequency (
     >> value: AudioCycleDuration
     result: AudioFrequencyHz >>
 ) = ({numerator_hz: .denominator, denominator: .numerator_seconds})
+
+# The declared common positive proportionality cancels between ratios.
+# Eligibility is admitted before either multiplication is evaluated.
+plot audio/amplitude-to-power (
+    >> value: AudioAmplitudePowerEligible
+    result: AudioAmplitudePowerSquared >>
+) = ({numerator: .request.amplitude.numerator * .request.amplitude.numerator, denominator: .request.amplitude.denominator * .request.amplitude.denominator})

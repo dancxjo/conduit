@@ -42,8 +42,8 @@ is not the nominal numeric payload.
 These measurements matter because a structured value also carries its static
 Type encoding; payload length alone is not its full admission cost.
 
-Trajectories, interpolation, timebases, numeric projection/fidelity, amplitude /
-power / reference-bearing dB, catalog realization and all remaining #5216
+Trajectories, interpolation, timebases, numeric projection/fidelity,
+reference-bearing dB, catalog realization and all remaining #5216
 acceptance are deferred. This local semantic proof does not establish playback,
 platform execution, model conditioning or stable release acceptance.
 
@@ -64,3 +64,45 @@ Each opaque `AcousticConversion` exposes borrowed access to typed admitted input
 original canonical input frame, the admitted result frame and exact canonical
 Source program hex. Inspection can reproduce the executed conversion without
 recovering intent from a rounded numeric output.
+
+## Relative amplitude and power prerequisite
+
+| Type / field | Domain | Unit and reference |
+| --- | --- | --- |
+| `AudioRelativeAmplitude.numerator` | nonnegative U64 | magnitude numerator relative to a positive matching amplitude reference |
+| `AudioRelativeAmplitude.denominator` | positive U64 | dimensionless divisor |
+| `AudioPowerRatio.numerator` | nonnegative U64 | power numerator relative to a positive matching power reference |
+| `AudioPowerRatio.denominator` | positive U64 | dimensionless divisor |
+| `AudioAmplitudePowerRequest.amplitude` | `AudioRelativeAmplitude` | exact authored fraction |
+| `AudioAmplitudePowerRequest.relationship` | `same-positive-proportionality` | explicit declaration that signal and reference obey the same positive `P = k A²` relationship |
+| `AudioAmplitudePowerEligible.request` | full original request | Source laws require both amplitude fraction fields at most U32 MAX before squaring |
+
+The declaration permits squaring the ratio because the common positive
+proportionality cancels. It does not prove measured reference authority,
+impedance, absolute SPL or watts. Amplitude is a nonnegative magnitude, distinct
+from signed waveform values, gain, probability, power and dB. No logarithm,
+reference inference or implicit interchange is offered.
+
+Both quantity Types retain their full U64 domains. Conversion refuses authored
+numerators or denominators above U32 MAX even when their ratio is reducible;
+zero amplitude is valid, zero denominator is not. Fractions are never normalized:
+2/4 amplitude produces 4/16 power. Squared eligible fields fit U64 and a squared
+positive denominator remains positive; independent u128 tests check these laws
+and their boundaries.
+
+`PreparedAmplitudePower` admits the original full request, then the Source-owned
+eligibility wrapper before multiplication. The Source plot returns an explicitly
+raw `AudioAmplitudePowerSquared` carrier. The existing refinement construction
+guard cannot prove arithmetic-generated positive refinements; the adapter does
+no arithmetic and copies the raw fields into the checked `AudioPowerRatio`
+constructor. No guard is weakened. The immutable receipt exposes the original
+full request frame, eligible executed frame, raw result frame, exact program and
+finally admitted semantic result frame as separate identities. This is an
+allocating preparation/conformance seam, not a Flow execution or Play Back.
+
+Measured static Type / canonical value bytes: amplitude 157/216, power 150/209,
+full request 449/581, eligible wrapper 566/714. Numeric fraction payloads alone
+are 16 bytes; the complete structural encodings must be admitted.
+
+This slice adds amplitude-to-power only. Inverse square root, dB/reference
+conversion, Speech bridging, trajectories and remaining #5216 criteria stay open.
