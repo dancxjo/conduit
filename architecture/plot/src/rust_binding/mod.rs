@@ -13,8 +13,9 @@ mod generate_invariant;
 #[cfg(test)]
 mod generate_layout_tests;
 mod generate_options;
-mod generate_prepared_family;
+pub use generate_options::MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES;
 mod generate_package;
+mod generate_prepared_family;
 #[cfg(test)]
 mod generate_tests;
 mod generate_value;
