@@ -61,6 +61,9 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
         }
         let result = (|| {
             let book = Rc::get_mut(&mut self.book).ok_or(R::Closed)?;
+            if entry == ParserSessionEntry::Seed && !seed_matches_original_tape(book, query) {
+                return Err(R::Closed);
+            }
             let frames = book.source_frame().map_err(R::Storage)?;
             let history = self
                 .guard
@@ -120,4 +123,39 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
         self.guard.publication_complete();
         Ok(self.book)
     }
+}
+
+// The Source seed still performs its original exact basis/token-count laws.
+// This additional custody check ties its whole lexical input to the opaque
+// original producer owned by this revision, before target consumption.
+fn seed_matches_original_tape(book: &ParserRevisionCustody, query: &[u8]) -> bool {
+    if book.previous.is_some()
+        || book
+            .source_histories
+            .iter()
+            .any(|history| history.entry == ParserSessionEntry::Seed)
+    {
+        return false;
+    }
+    fn field<'a>(
+        value: conduit_core::ValidatedCanonicalStructuredValue<'a>,
+        name: &str,
+    ) -> Option<conduit_core::ValidatedCanonicalStructuredValue<'a>> {
+        value.record_field(name).ok().flatten()
+    }
+    let Some(request) = conduit_core::validate_canonical_structured_value(query).ok() else {
+        return false;
+    };
+    let Some(lexical) = field(request, "lexical") else {
+        return false;
+    };
+    let Some(tape) = field(lexical, "tape") else {
+        return false;
+    };
+    let Ok(original) =
+        conduit_core::validate_canonical_structured_value(book.original_lexical_bytes.as_slice())
+    else {
+        return false;
+    };
+    tape == original
 }

@@ -12,8 +12,8 @@ use conduit_plot::rust_binding::{
 };
 
 pub(crate) struct ParserStableCandidateAdmission {
-    /// Locates a complete retained consensus execution in the same revision book.
-    pub(crate) consensus_execution: usize,
+    /// Locates a complete retained stable-proposal execution in the same revision book.
+    pub(crate) stable_proposal_execution: usize,
     /// Full refined candidate including original query, context and proposal.
     pub(crate) original_candidate: Vec<u8>,
     pub(crate) outcome: StableCandidateOutcome,
@@ -32,10 +32,10 @@ pub(crate) enum StableCandidateRefusal {
 }
 impl ParserStableCandidateAdmission {
     /// The supplied buffer is reserved by the revision before any consumption.
-    /// This mechanically preserves all fields from the exact consensus output;
+    /// This mechanically preserves all fields from the exact stable-proposal output;
     /// neither a caller-selected snapshot nor an independently valid fact enters.
     pub(crate) fn admit(
-        consensus_execution: usize,
+        stable_proposal_execution: usize,
         origin: &ParserFixedHistory,
         refinement: &mut PreparedParserCanonicalRefinement<
             LanguageParserJointStableFactProposal,
@@ -45,7 +45,7 @@ impl ParserStableCandidateAdmission {
         mut buffer: Vec<u8>,
     ) -> Result<Self, StableCandidateRefusal> {
         use StableCandidateRefusal as R;
-        if origin.entry != ParserSessionEntry::JointConsensus
+        if origin.entry != ParserSessionEntry::StableFact
             || !family.contains_descriptor(LanguageParserJointStableFact::PREPARED_DESCRIPTOR)
         {
             return Err(R::Origin);
@@ -68,7 +68,7 @@ impl ParserStableCandidateAdmission {
             Err(error) => return Err(R::Native(error)),
         };
         Ok(Self {
-            consensus_execution,
+            stable_proposal_execution,
             original_candidate: buffer,
             outcome,
         })
@@ -88,7 +88,7 @@ impl ParserStableCandidateAdmission {
         if !family.contains_descriptor(LanguageParserJointStableFact::PREPARED_DESCRIPTOR) {
             return Err(R::Origin);
         }
-        if origin.entry != ParserSessionEntry::JointConsensus {
+        if origin.entry != ParserSessionEntry::StableFact {
             return Err(R::Origin);
         }
         let source = validate_canonical_structured_value(&origin.output).map_err(|_| R::Origin)?;

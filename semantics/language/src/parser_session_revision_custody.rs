@@ -433,9 +433,9 @@ impl ParserRevisionCustody {
         }
         if self
             .source_histories
-            .get(admission.consensus_execution)
+            .get(admission.stable_proposal_execution)
             .is_none_or(|origin| {
-                origin.entry != crate::parser_session_execution::ParserSessionEntry::JointConsensus
+                origin.entry != crate::parser_session_execution::ParserSessionEntry::StableFact
             })
         {
             return Err(RevisionStorageRefusal::OriginalTape);
