@@ -34,6 +34,7 @@ impl From<AudioSourceExecutionRefusal> for AudioTrajectoryRefusal {
 struct SegmentProjection {
     left: AudioTrajectoryRatio,
     right: AudioTrajectoryRatio,
+    step: bool,
 }
 
 pub struct PreparedAudioQuantityTrajectory {
@@ -45,6 +46,8 @@ pub struct PreparedAudioQuantityTrajectory {
     covers: Program,
     weight: Program,
     blend: Program,
+    step_covers: Program,
+    step_select: Program,
 }
 
 /// Original trajectory/query, selected segment and all exact Source executions.
@@ -95,7 +98,9 @@ impl PreparedAudioQuantityTrajectory {
             .map_err(AudioTrajectoryRefusal::Admission)?;
         let ratio = Program::new(TRAJECTORY_RATIO)?;
         let valid = Program::new(TRAJECTORY_VALID)?;
-        let order = Program::new(TRAJECTORY_ORDER)?;
+        let order = Program::new(TRAJECTORY_ORDER_U32)?;
+        let is_step = Program::new(TRAJECTORY_IS_STEP)?;
+        let step_valid = Program::new(TRAJECTORY_STEP_VALID)?;
         let domain = Program::new(TRAJECTORY_DOMAIN)?;
         let mut preparation = Vec::new();
         let mut projections: Vec<SegmentProjection> = Vec::with_capacity(16);
@@ -104,9 +109,20 @@ impl PreparedAudioQuantityTrajectory {
                 ratio.native(segment.left().clone(), &mut preparation)?;
             let right: AudioTrajectoryRatio =
                 ratio.native(segment.right().clone(), &mut preparation)?;
-            let projection = SegmentProjection { left, right };
-            let eligible = eligibility(segment, &projection, segment.start(), false)?;
-            if !valid.boolean(eligible, &mut preparation)? {
+            let step = is_step.boolean(*segment.interpolation(), &mut preparation)?;
+            let projection = SegmentProjection { left, right, step };
+            let valid_segment = if step {
+                step_valid.boolean(
+                    step_eligibility(segment, &projection, segment.start(), false)?,
+                    &mut preparation,
+                )?
+            } else {
+                valid.boolean(
+                    eligibility(segment, &projection, segment.start(), false)?,
+                    &mut preparation,
+                )?
+            };
+            if !valid_segment {
                 return Err(AudioTrajectoryRefusal::InvalidSegment);
             }
             if let Some(first) = projections.first() {
@@ -124,8 +140,8 @@ impl PreparedAudioQuantityTrajectory {
                     previous.end().clone(),
                 )
                 .map_err(AudioTrajectoryRefusal::Admission)?;
-                let eligible =
-                    AudioTrajectoryOrderU8::new(pair).map_err(AudioTrajectoryRefusal::Admission)?;
+                let eligible = AudioTrajectoryOrderU32::new(pair)
+                    .map_err(AudioTrajectoryRefusal::Admission)?;
                 if !order.boolean(eligible, &mut preparation)? {
                     return Err(AudioTrajectoryRefusal::UnorderedOrOverlapping);
                 }
@@ -141,6 +157,8 @@ impl PreparedAudioQuantityTrajectory {
             covers: Program::new(TRAJECTORY_COVERS)?,
             weight: Program::new(TRAJECTORY_WEIGHT)?,
             blend: Program::new(TRAJECTORY_BLEND)?,
+            step_covers: Program::new(TRAJECTORY_STEP_COVERS)?,
+            step_select: Program::new(TRAJECTORY_STEP_SELECT)?,
         })
     }
 
@@ -161,20 +179,36 @@ impl PreparedAudioQuantityTrajectory {
         }
         // Source decides coverage; Rust only traverses the admitted finite sequence.
         for (index, segment) in self.original.segments().as_slice().iter().enumerate() {
-            let eligible = eligibility(
-                segment,
-                &self.projections[index],
-                query.time(),
-                index + 1 == self.projections.len(),
-            )?;
-            if !self.covers.boolean(eligible.clone(), &mut executions)? {
-                continue;
-            }
-            let weight: AudioTrajectoryWeight =
-                self.weight.native(eligible.clone(), &mut executions)?;
-            let blend = AudioTrajectoryBlendInput::new(eligible, weight)
-                .map_err(AudioTrajectoryRefusal::Admission)?;
-            let raw: AudioTrajectoryRatio = self.blend.native(blend, &mut executions)?;
+            let raw: AudioTrajectoryRatio = if self.projections[index].step {
+                let eligible = step_eligibility(
+                    segment,
+                    &self.projections[index],
+                    query.time(),
+                    index + 1 == self.projections.len(),
+                )?;
+                if !self
+                    .step_covers
+                    .boolean(eligible.clone(), &mut executions)?
+                {
+                    continue;
+                }
+                self.step_select.native(eligible, &mut executions)?
+            } else {
+                let eligible = eligibility(
+                    segment,
+                    &self.projections[index],
+                    query.time(),
+                    index + 1 == self.projections.len(),
+                )?;
+                if !self.covers.boolean(eligible.clone(), &mut executions)? {
+                    continue;
+                }
+                let weight: AudioTrajectoryWeight =
+                    self.weight.native(eligible.clone(), &mut executions)?;
+                let blend = AudioTrajectoryBlendInput::new(eligible, weight)
+                    .map_err(AudioTrajectoryRefusal::Admission)?;
+                self.blend.native(blend, &mut executions)?
+            };
             let result = admit_result(raw)?;
             let admitted_result_canonical = result
                 .clone()
@@ -216,6 +250,25 @@ fn eligibility(
     )
     .map_err(AudioTrajectoryRefusal::Admission)?;
     AudioTrajectoryU8Arithmetic::new(input).map_err(AudioTrajectoryRefusal::Admission)
+}
+
+fn step_eligibility(
+    segment: &AudioTrajectorySegment,
+    projection: &SegmentProjection,
+    query: &AudioExactTimeOffset,
+    final_segment: bool,
+) -> Result<AudioTrajectoryU32Step, AudioTrajectoryRefusal> {
+    let input = AudioTrajectoryArithmeticInput::new(
+        segment.end().clone(),
+        final_segment,
+        *segment.interpolation(),
+        projection.left.clone(),
+        query.clone(),
+        projection.right.clone(),
+        segment.start().clone(),
+    )
+    .map_err(AudioTrajectoryRefusal::Admission)?;
+    AudioTrajectoryU32Step::new(input).map_err(AudioTrajectoryRefusal::Admission)
 }
 
 // Exact field-copy admission; all interpolation arithmetic belongs to Source.

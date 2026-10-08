@@ -127,7 +127,7 @@ fn full_domain_values_are_not_silently_reduced_into_arithmetic_profile() {
         time(1, 1),
         hz(u64::MAX, u64::MAX),
         hz(100, 1),
-        AudioTrajectoryInterpolation::Step,
+        AudioTrajectoryInterpolation::Linear,
     )]);
     assert!(matches!(
         prepare(&authored),
@@ -194,7 +194,7 @@ fn segment_count_and_provenance_bounds_are_native_admission() {
     let prepared = prepare(&authored).unwrap();
     let result = prepared.evaluate(&query(time(31, 2))).unwrap();
     assert_eq!(result.selected_segment(), 15);
-    assert_eq!(result.executions().len(), 97);
+    assert_eq!(result.executions().len(), 113);
     let max_input_type = result
         .executions()
         .iter()

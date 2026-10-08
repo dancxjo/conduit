@@ -44,3 +44,24 @@ plot audio/trajectory-blend (
     >> value: AudioTrajectoryBlendInput
     result: AudioTrajectoryRatio >>
 ) = (.weight.numerator == .weight.denominator ? .request.input.right : .weight.numerator == 0 || .request.input.interpolation is step ? .request.input.left : {numerator: (.weight.denominator - .weight.numerator) * .request.input.left.numerator * .request.input.right.denominator + .weight.numerator * .request.input.right.numerator * .request.input.left.denominator, denominator: .weight.denominator * .request.input.left.denominator * .request.input.right.denominator, domain: .request.input.left.domain})
+
+plot audio/trajectory-is-step (
+    >> value: AudioTrajectoryInterpolation
+    result: Boolean >>
+) = (. is step)
+plot audio/trajectory-step-valid (
+    >> value: AudioTrajectoryU32Step
+    result: Boolean >>
+) = (.input.start.numerator_seconds * .input.end.denominator < .input.end.numerator_seconds * .input.start.denominator && .input.left.domain == .input.right.domain)
+plot audio/trajectory-order-u32 (
+    >> value: AudioTrajectoryOrderU32
+    result: Boolean >>
+) = (.input.previous_end.numerator_seconds * .input.next_start.denominator <= .input.next_start.numerator_seconds * .input.previous_end.denominator)
+plot audio/trajectory-step-covers (
+    >> value: AudioTrajectoryU32Step
+    result: Boolean >>
+) = (.input.query.numerator_seconds * .input.start.denominator >= .input.start.numerator_seconds * .input.query.denominator && (.input.query.numerator_seconds * .input.end.denominator < .input.end.numerator_seconds * .input.query.denominator || (.input.final_segment && .input.query.numerator_seconds * .input.end.denominator == .input.end.numerator_seconds * .input.query.denominator)))
+plot audio/trajectory-step-select (
+    >> value: AudioTrajectoryU32Step
+    result: AudioTrajectoryRatio >>
+) = (.input.query.numerator_seconds * .input.end.denominator == .input.end.numerator_seconds * .input.query.denominator ? .input.right : .input.left)
