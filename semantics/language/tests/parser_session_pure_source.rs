@@ -244,6 +244,17 @@ fn complete_chain_preparation_is_bounded_and_one_under_is_preallocation_refusal(
     let family = family();
     REQUESTS.store(0, Ordering::Relaxed);
     TRACK.store(true, Ordering::Relaxed);
+    let reserved = PreparedParserPureSource::reservation::<
+        LanguageParserState,
+        LanguageParserCompletionObservation,
+    >(PROGRAM, &family, &family, limits());
+    TRACK.store(false, Ordering::Relaxed);
+    let reserved = reserved.unwrap();
+    assert_eq!(REQUESTS.load(Ordering::Relaxed), 0);
+    assert_eq!(reserved.programs, 2);
+
+    REQUESTS.store(0, Ordering::Relaxed);
+    TRACK.store(true, Ordering::Relaxed);
     let result = PreparedParserPureSource::prepare::<
         LanguageParserState,
         LanguageParserCompletionObservation,
@@ -251,6 +262,10 @@ fn complete_chain_preparation_is_bounded_and_one_under_is_preallocation_refusal(
     TRACK.store(false, Ordering::Relaxed);
     let port = result.unwrap();
     let requested = REQUESTS.load(Ordering::Relaxed);
+    assert_eq!(
+        reserved.combined_preparation_bytes_bound,
+        port.receipt.combined_preparation_bytes_bound
+    );
     assert!(requested <= port.receipt.combined_preparation_bytes_bound);
     let mut one_under = limits();
     one_under.maximum_combined_preparation_bytes =

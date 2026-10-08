@@ -28,6 +28,12 @@ pub(crate) struct PureSourceLimits {
     pub(crate) maximum_combined_preparation_bytes: usize,
 }
 #[derive(Clone, Copy, Debug)]
+pub(crate) struct PureSourceReservation {
+    pub(crate) programs: usize,
+    pub(crate) active_native_bytes_bound: usize,
+    pub(crate) combined_preparation_bytes_bound: usize,
+}
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct PureSourceReceipt {
     pub(crate) original_program_artifact_bytes: usize,
     pub(crate) evaluator: PreparedExpressionStorageReceipt,
@@ -95,86 +101,11 @@ impl PreparedParserPureSource {
         limits: PureSourceLimits,
     ) -> Result<Self, PureSourceRefusal> {
         use PureSourceRefusal as R;
-        let input = input_family.try_borrow().map_err(|_| R::Closed)?;
-        let output = output_family.try_borrow().map_err(|_| R::Closed)?;
-        if !input.contains_descriptor(I::PREPARED_DESCRIPTOR)
-            || !output.contains_descriptor(O::PREPARED_DESCRIPTOR)
-        {
-            return Err(R::Descriptor);
-        }
-        let input_receipt = input.storage_receipt();
-        let output_receipt = output.storage_receipt();
-        let mut family_bytes = input_receipt.retained_heap_bytes_bound;
-        if !Rc::ptr_eq(&input_family, &output_family) {
-            family_bytes = add(family_bytes, output_receipt.retained_heap_bytes_bound)?;
-        }
-        let active = input_receipt
-            .conversion_requested_bytes_bound
-            .max(output_receipt.conversion_requested_bytes_bound);
-        drop(input);
-        drop(output);
-        let count = original_program.lines().count();
-        if limits.maximum_invocations == 0
-            || limits.maximum_input_bytes == 0
-            || limits.maximum_output_bytes == 0
-            || limits.maximum_input_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            || limits.maximum_output_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            || active > limits.maximum_active_native_bytes
-            || !(1..=64).contains(&count)
-        {
-            return Err(R::Pressure);
-        }
-        let mut raw_length = 0;
-        for encoded in original_program.lines() {
-            if encoded.is_empty()
-                || !encoded.len().is_multiple_of(2)
-                || !encoded.bytes().all(|v| v.is_ascii_hexdigit())
-            {
-                return Err(R::Program);
-            }
-            raw_length = raw_length.max(encoded.len() / 2);
-        }
-        if raw_length == 0 || raw_length > limits.maximum_program_bytes {
-            return Err(R::Pressure);
-        }
-        // Every ordered Source gear is retained. Reserve the complete chain
-        // before even its evaluator array or the first hex buffer is allocated.
-        let retained = limits
-            .maximum_evaluator_retained_bytes
-            .checked_mul(count)
-            .ok_or(R::Pressure)?;
-        let array = size_of::<PreparedPortableExpressionEvaluator>()
-            .checked_mul(count)
-            .ok_or(R::Pressure)?;
-        let preparation = add(
-            add(
-                limits.maximum_program_decode_bytes,
-                limits.maximum_evaluator_preparation_bytes,
-            )?,
-            limits
-                .maximum_type_encoding_bytes
-                .checked_mul(2)
-                .ok_or(R::Pressure)?,
-        )?;
-        let source_preparation = add(add(add(raw_length, preparation)?, retained)?, array)?;
-        let source_execution = add(add(retained, array)?, active)?;
-        let histories = limits
-            .maximum_history_retained_bytes
-            .checked_mul(limits.maximum_invocations as usize)
-            .ok_or(R::Pressure)?;
-        let combined = add(
-            add(
-                add(size_of::<Self>(), family_bytes)?,
-                add(
-                    original_program.len(),
-                    add(histories, source_preparation.max(source_execution))?,
-                )?,
-            )?,
-            limits.other_existing_bytes,
-        )?;
-        if combined > limits.maximum_combined_preparation_bytes {
-            return Err(R::Pressure);
-        }
+        let reservation =
+            Self::reservation::<I, O>(original_program, &input_family, &output_family, limits)?;
+        let count = reservation.programs;
+        let active = reservation.active_native_bytes_bound;
+        let combined = reservation.combined_preparation_bytes_bound;
         let mut evaluators = Vec::new();
         evaluators
             .try_reserve_exact(count)
@@ -288,6 +219,101 @@ impl PreparedParserPureSource {
             },
             next_ordinal: 0,
             closed: false,
+        })
+    }
+    /// Allocation-free readiness and whole-port reservation for the enclosing
+    /// bank: it sums every selected port before constructing the first one.
+    pub(crate) fn reservation<I: PreparedNativeRustBinding, O: PreparedNativeRustBinding>(
+        original_program: &'static str,
+        input_family: &Rc<RefCell<PreparedNativeFamily>>,
+        output_family: &Rc<RefCell<PreparedNativeFamily>>,
+        limits: PureSourceLimits,
+    ) -> Result<PureSourceReservation, PureSourceRefusal> {
+        use PureSourceRefusal as R;
+        let input = input_family.try_borrow().map_err(|_| R::Closed)?;
+        let output = output_family.try_borrow().map_err(|_| R::Closed)?;
+        if !input.contains_descriptor(I::PREPARED_DESCRIPTOR)
+            || !output.contains_descriptor(O::PREPARED_DESCRIPTOR)
+        {
+            return Err(R::Descriptor);
+        }
+        let input_receipt = input.storage_receipt();
+        let output_receipt = output.storage_receipt();
+        let mut family_bytes = input_receipt.retained_heap_bytes_bound;
+        if !Rc::ptr_eq(input_family, output_family) {
+            family_bytes = add(family_bytes, output_receipt.retained_heap_bytes_bound)?;
+        }
+        let active = input_receipt
+            .conversion_requested_bytes_bound
+            .max(output_receipt.conversion_requested_bytes_bound);
+        drop(input);
+        drop(output);
+        let count = original_program.lines().count();
+        if limits.maximum_invocations == 0
+            || limits.maximum_input_bytes == 0
+            || limits.maximum_output_bytes == 0
+            || limits.maximum_input_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || limits.maximum_output_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || active > limits.maximum_active_native_bytes
+            || !(1..=64).contains(&count)
+        {
+            return Err(R::Pressure);
+        }
+        let mut raw_length = 0;
+        for encoded in original_program.lines() {
+            if encoded.is_empty()
+                || !encoded.len().is_multiple_of(2)
+                || !encoded.bytes().all(|v| v.is_ascii_hexdigit())
+            {
+                return Err(R::Program);
+            }
+            raw_length = raw_length.max(encoded.len() / 2);
+        }
+        if raw_length == 0 || raw_length > limits.maximum_program_bytes {
+            return Err(R::Pressure);
+        }
+        // Every ordered Source gear is retained. Reserve the complete chain
+        // before even its evaluator array or the first hex buffer is allocated.
+        let retained = limits
+            .maximum_evaluator_retained_bytes
+            .checked_mul(count)
+            .ok_or(R::Pressure)?;
+        let array = size_of::<PreparedPortableExpressionEvaluator>()
+            .checked_mul(count)
+            .ok_or(R::Pressure)?;
+        let preparation = add(
+            add(
+                limits.maximum_program_decode_bytes,
+                limits.maximum_evaluator_preparation_bytes,
+            )?,
+            limits
+                .maximum_type_encoding_bytes
+                .checked_mul(2)
+                .ok_or(R::Pressure)?,
+        )?;
+        let source_preparation = add(add(add(raw_length, preparation)?, retained)?, array)?;
+        let source_execution = add(add(retained, array)?, active)?;
+        let histories = limits
+            .maximum_history_retained_bytes
+            .checked_mul(limits.maximum_invocations as usize)
+            .ok_or(R::Pressure)?;
+        let combined = add(
+            add(
+                add(size_of::<Self>(), family_bytes)?,
+                add(
+                    original_program.len(),
+                    add(histories, source_preparation.max(source_execution))?,
+                )?,
+            )?,
+            limits.other_existing_bytes,
+        )?;
+        if combined > limits.maximum_combined_preparation_bytes {
+            return Err(R::Pressure);
+        }
+        Ok(PureSourceReservation {
+            programs: count,
+            active_native_bytes_bound: active,
+            combined_preparation_bytes_bound: combined,
         })
     }
     pub(crate) fn cancel(&mut self) {
