@@ -46,12 +46,20 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        let selected = crate::durable_host::selected_todo_checkpoint(match &self.host {
+            HostSource::Body { root, .. } => root,
+            _ => return Err("installed Todo does not own a Body".into()),
+        })?
+        .ok_or("installed Todo has no selected checkpoint residence")?;
         let HostSource::Body {
             owner,
             root,
-            running: Some(OwnedRunWorker::Todo(worker)),
+            running,
         } = &mut self.host
         else {
+            return Err("installed Todo has no current waiting Play".into());
+        };
+        let Some(OwnedRunWorker::Todo(worker)) = running else {
             return Err("installed Todo has no current waiting Play".into());
         };
         let admitted = worker.submit_interaction(owner, show, interaction)?;
@@ -66,14 +74,27 @@ impl DurableHostRuntime {
                     .todo_commit_receipt()
                     .ok_or("Todo commit receipt was not retained")?
                     .clone();
-                if let HostSource::Body { running, .. } = &mut self.host {
-                    *running = None;
+                *running = None;
+                let restored = owner.read_committed_todo(
+                    root,
+                    &selected.root,
+                    &selected.content,
+                    &committed,
+                    5_000,
+                )?;
+                if let Some(equipment) = &mut self.selected_speech_equipment {
+                    equipment.advance_offer_generation(owner.host.current())?;
                 }
+                let read_receipt = owner
+                    .todo_verified_read_receipt()
+                    .ok_or("Todo read receipt was not retained")?
+                    .clone();
                 return Ok(serde_json::json!({
                     "schema":"conduit.todo/committed-action@1",
                     "interaction_id":interaction.identity,
-                    "state_revision":committed.revision,
+                    "state_revision":restored.revision,
                     "receipt":receipt,
+                    "read_receipt":read_receipt,
                 }));
             }
             if Instant::now() >= deadline {

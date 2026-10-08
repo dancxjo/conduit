@@ -61,6 +61,8 @@ pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_
 mod terminal_route;
 #[path = "todo_face.rs"]
 mod todo_face;
+#[path = "todo_read.rs"]
+mod todo_read;
 #[path = "todo_waiting.rs"]
 #[allow(dead_code)] // Waiting Play enters the installed service after Host selection lands.
 mod todo_waiting;
@@ -109,6 +111,20 @@ impl OwnerHost {
         }
         self.advertised = host.advertisement().clone();
         self.current = Some(host);
+        Ok(())
+    }
+
+    pub(crate) fn transition_todo_checkpoint_offer(
+        &mut self,
+        root: &Path,
+        content: conduit_core::ResourceContentRequirement,
+    ) -> Result<(), String> {
+        let host = self
+            .current
+            .as_mut()
+            .ok_or("Todo checkpoint transition requires an idle Host")?;
+        host.transition_todo_checkpoint_offer(root, content)?;
+        self.advertised = host.advertisement().clone();
         Ok(())
     }
 

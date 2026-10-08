@@ -121,7 +121,7 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
             &plot,
             &grant,
             super::super::todo_waiting::NewTodoCheckpoint {
-                root: checkpoint_root,
+                root: checkpoint_root.clone(),
                 identity: CheckpointIdentity {
                     body,
                     plot: plot.expanded.checked_plot_id.as_str().into(),
@@ -168,7 +168,7 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
     };
     assert_eq!(committed.revision, 1);
     assert_eq!(committed.items[0].text, "Buy milk");
-    let receipt = owner.todo_commit_receipt().unwrap();
+    let receipt = owner.todo_commit_receipt().unwrap().clone();
     assert_eq!(
         receipt["interaction_id"],
         serde_json::json!(action.identity)
@@ -196,6 +196,128 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .actions
         .iter()
         .any(|a| a.identity.as_str().starts_with("todo.")));
+    let boot = owner.host.advertisement().boot_id.clone();
+    let selected_write = owner
+        .host
+        .advertisement()
+        .resources
+        .iter()
+        .find(|offer| offer.class_id.as_str() == "resource/todo-checkpoint@1")
+        .unwrap()
+        .content
+        .as_ref()
+        .unwrap()
+        .contract
+        .clone();
+    let restored = owner
+        .read_committed_todo(
+            &state_root,
+            &checkpoint_root,
+            &selected_write,
+            &committed,
+            5_000,
+        )
+        .unwrap();
+    assert_eq!(restored, committed);
+    assert_eq!(owner.host.advertisement().boot_id, boot);
+    assert_eq!(
+        owner.session.evidence().body_id.as_str(),
+        receipt["body_id"]
+    );
+    assert_eq!(
+        owner.last_execution.as_ref().unwrap()["schema"],
+        "conduit.todo/verified-read-receipt@1"
+    );
+    std::fs::remove_dir_all(state_root).unwrap();
+}
+
+#[test]
+fn corrupt_selected_read_lulls_without_claiming_verified_todo() {
+    let (mut owner, source, plot, grant, state_root, checkpoint_root) = fixture();
+    let identity = CheckpointIdentity {
+        body: owner.session.evidence().body_id.as_str().to_owned(),
+        plot: plot.expanded.checked_plot_id.as_str().to_owned(),
+        workload: "todo-list".into(),
+        missing_v2: MissingV2Disposition::StartNewList,
+    };
+    let mut worker = owner
+        .start_waiting_todo(
+            &state_root,
+            &source,
+            &plot,
+            &grant,
+            super::super::todo_waiting::NewTodoCheckpoint {
+                root: checkpoint_root.clone(),
+                identity,
+                current: TodoState::new("Groceries".into()).unwrap(),
+            },
+            5_000,
+        )
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while owner.todo_live.is_none() {
+        assert!(worker.progress(&mut owner, &state_root).unwrap().is_none());
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    let face = owner.local_face_snapshot().unwrap();
+    let show = mask_test_common::available_mask_show(&face);
+    let interaction = FaceInteraction::new(
+        &face,
+        &show,
+        "todo.add",
+        "todo/list",
+        vec![FaceInteractionArgument {
+            name: "text".into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: b"Buy milk".to_vec(),
+        }],
+        1,
+    )
+    .unwrap();
+    worker
+        .submit_interaction(&owner, &show, &interaction)
+        .unwrap();
+    let committed = loop {
+        if let Some(value) = worker.progress(&mut owner, &state_root).unwrap() {
+            break value;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    };
+    let selected_write = owner
+        .host
+        .advertisement()
+        .resources
+        .iter()
+        .find(|offer| offer.class_id.as_str() == "resource/todo-checkpoint@1")
+        .unwrap()
+        .content
+        .as_ref()
+        .unwrap()
+        .contract
+        .clone();
+    let selector = std::fs::read_dir(&checkpoint_root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "current"))
+        .unwrap();
+    std::fs::write(selector, b"corrupt").unwrap();
+    assert!(owner
+        .read_committed_todo(
+            &state_root,
+            &checkpoint_root,
+            &selected_write,
+            &committed,
+            5_000,
+        )
+        .is_err());
+    assert_eq!(
+        owner.session.evidence().body.state,
+        conduit_body::BodyState::Lulled
+    );
+    assert!(owner.todo_verified_read_receipt().is_none());
+    assert_eq!(owner.last_execution.as_ref().unwrap()["verified"], false);
     std::fs::remove_dir_all(state_root).unwrap();
 }
 
