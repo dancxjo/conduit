@@ -1,6 +1,8 @@
 use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
 use conduit_core::*;
-use conduit_std_host::body_execution::{BodyForeOutputAdapter, BodyRunRequest};
+use conduit_std_host::body_execution::{
+    BodyForeExchange, BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
+};
 use conduit_std_host::todo_durable_resource::{
     CheckpointIdentity, SelectedTodoResidence, READ_OPERATION,
 };
@@ -270,10 +272,14 @@ fn public_body_play_proof() {
                 control: &control,
                 keyboard: None,
             },
-            &inputs(),
-            &mut fore,
-            &root,
-            checkpoint_identity(),
+            BodyForeExchange {
+                inputs: &inputs(),
+                output: &mut fore,
+            },
+            TodoCheckpointSelection {
+                root: &root,
+                identity: checkpoint_identity(),
+            },
             &mut output,
             &mut timer,
             |_, _| {
@@ -335,10 +341,14 @@ fn refused_start_proof() {
             control: &control,
             keyboard: None,
         },
-        &inputs(),
-        &mut fore,
-        &root,
-        checkpoint_identity(),
+        BodyForeExchange {
+            inputs: &inputs(),
+            output: &mut fore,
+        },
+        TodoCheckpointSelection {
+            root: &root,
+            identity: checkpoint_identity(),
+        },
         &mut Vec::new(),
         &mut ThreadTimer,
         |_, _| Err("start receipt refused".into()),
@@ -366,10 +376,14 @@ fn rebound_residence_is_refused_before_play() {
             control: &control,
             keyboard: None,
         },
-        &inputs(),
-        &mut fore,
-        &root,
-        checkpoint_identity(),
+        BodyForeExchange {
+            inputs: &inputs(),
+            output: &mut fore,
+        },
+        TodoCheckpointSelection {
+            root: &root,
+            identity: checkpoint_identity(),
+        },
         &mut Vec::new(),
         &mut ThreadTimer,
     );

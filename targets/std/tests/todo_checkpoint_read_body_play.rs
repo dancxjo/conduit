@@ -4,7 +4,9 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     CanonicalBackCatalog, KindSignature, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_host::body_execution::{BodyForeOutputAdapter, BodyRunRequest};
+use conduit_std_host::body_execution::{
+    BodyForeExchange, BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
+};
 use conduit_std_host::todo_durable_resource::CheckpointIdentity;
 use conduit_std_host::{
     ExternalForeDelivery, ExternalForeInput, RunControl, StdHost, StdHostConfig, ThreadTimer,
@@ -268,10 +270,14 @@ fn seed(root: &Path) {
                 control: &control,
                 keyboard: None,
             },
-            &inputs,
-            &mut fore,
-            root,
-            identity(),
+            BodyForeExchange {
+                inputs: &inputs,
+                output: &mut fore,
+            },
+            TodoCheckpointSelection {
+                root,
+                identity: identity(),
+            },
             &mut Vec::new(),
             &mut ThreadTimer,
             |_, _| Ok(()),
@@ -310,8 +316,10 @@ fn restore_with_identity(
                 keyboard: None,
             },
             &mut fore,
-            root,
-            checkpoint,
+            TodoCheckpointSelection {
+                root,
+                identity: checkpoint,
+            },
             &mut Vec::new(),
             &mut ThreadTimer,
             |_, _| Ok(()),
@@ -380,10 +388,14 @@ fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() 
                         control: &control,
                         keyboard: None,
                     },
-                    &inputs,
-                    &mut fore,
-                    &root,
-                    identity(),
+                    BodyForeExchange {
+                        inputs: &inputs,
+                        output: &mut fore,
+                    },
+                    TodoCheckpointSelection {
+                        root: &root,
+                        identity: identity(),
+                    },
                     &mut Vec::new(),
                     &mut ThreadTimer,
                     |_, _| Ok(()),
@@ -425,10 +437,14 @@ fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() 
                     control: &RunControl::default(),
                     keyboard: None
                 },
-                &stale_inputs,
-                &mut fore,
-                &root,
-                identity(),
+                BodyForeExchange {
+                    inputs: &stale_inputs,
+                    output: &mut fore,
+                },
+                TodoCheckpointSelection {
+                    root: &root,
+                    identity: identity(),
+                },
                 &mut Vec::new(),
                 &mut ThreadTimer,
                 |_, _| Ok(()),
@@ -448,8 +464,10 @@ fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() 
                     keyboard: None,
                 },
                 &mut restored,
-                &root,
-                identity(),
+                TodoCheckpointSelection {
+                    root: &root,
+                    identity: identity(),
+                },
                 &mut Vec::new(),
                 &mut ThreadTimer,
                 |_, _| Ok(()),
@@ -472,8 +490,10 @@ fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() 
                     keyboard: None
                 },
                 &mut fore,
-                &root,
-                identity(),
+                TodoCheckpointSelection {
+                    root: &root,
+                    identity: identity(),
+                },
                 &mut Vec::new(),
                 &mut ThreadTimer,
                 |_, _| Ok(()),

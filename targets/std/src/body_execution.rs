@@ -33,6 +33,18 @@ pub trait BodyForeOutputAdapter {
     fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String>;
 }
 
+/// The selected residence and immutable checkpoint namespace for one Play.
+pub struct TodoCheckpointSelection<'a> {
+    pub root: &'a Path,
+    pub identity: crate::todo_durable_resource::CheckpointIdentity,
+}
+
+/// The typed input and acknowledged output Fores of one checkpoint Play.
+pub struct BodyForeExchange<'a> {
+    pub inputs: &'a [ExternalForeInput],
+    pub output: &'a mut dyn BodyForeOutputAdapter,
+}
+
 #[derive(Debug)]
 pub struct BodyRunReport {
     pub play: BodyPlayIdentity,
@@ -143,18 +155,14 @@ impl StdHost {
     pub fn run_body_plan_with_todo_checkpoint_to<W: Write, T: TimerAdapter>(
         &mut self,
         request: BodyRunRequest<'_>,
-        inputs: &[ExternalForeInput],
-        fore_output: &mut dyn BodyForeOutputAdapter,
-        root: &Path,
-        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+        fore: BodyForeExchange<'_>,
+        checkpoint: TodoCheckpointSelection<'_>,
         output: &mut W,
         timer: &mut T,
     ) -> Result<BodyRunReport, String> {
         self.run_body_plan_with_todo_checkpoint_to_with_start(
             request,
-            inputs,
-            fore_output,
-            root,
+            fore,
             checkpoint,
             output,
             timer,
@@ -167,10 +175,8 @@ impl StdHost {
     pub fn run_body_plan_with_todo_checkpoint_to_with_start<W: Write, T: TimerAdapter, F>(
         &mut self,
         request: BodyRunRequest<'_>,
-        inputs: &[ExternalForeInput],
-        fore_output: &mut dyn BodyForeOutputAdapter,
-        root: &Path,
-        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+        fore: BodyForeExchange<'_>,
+        checkpoint: TodoCheckpointSelection<'_>,
         output: &mut W,
         timer: &mut T,
         started: F,
@@ -178,16 +184,16 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        self.require_selected_todo_checkpoint_root(root)?;
+        self.require_selected_todo_checkpoint_root(checkpoint.root)?;
         self.run_body_plan_to_with_start_and_clock(
             request,
             output,
             timer,
             None,
             None,
-            Some((inputs, false, fore_output)),
+            Some((fore.inputs, false, fore.output)),
             None,
-            Some((root, checkpoint)),
+            Some((checkpoint.root, checkpoint.identity)),
             started,
         )
     }
@@ -198,8 +204,7 @@ impl StdHost {
         &mut self,
         request: BodyRunRequest<'_>,
         fore_output: &mut dyn BodyForeOutputAdapter,
-        root: &Path,
-        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+        checkpoint: TodoCheckpointSelection<'_>,
         output: &mut W,
         timer: &mut T,
         started: F,
@@ -207,7 +212,7 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        self.require_selected_todo_checkpoint_root(root)?;
+        self.require_selected_todo_checkpoint_root(checkpoint.root)?;
         self.run_body_plan_to_with_start_and_clock(
             request,
             output,
@@ -216,7 +221,7 @@ impl StdHost {
             None,
             Some((&[], false, fore_output)),
             None,
-            Some((root, checkpoint)),
+            Some((checkpoint.root, checkpoint.identity)),
             started,
         )
     }
