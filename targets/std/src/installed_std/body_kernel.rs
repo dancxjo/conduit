@@ -14,7 +14,8 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{HostCallRequest, SchedulerStatus},
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedValueStore, KernelEvent,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome, HostedValueStore,
+    KernelEvent,
 };
 use conduit_plan_lowering::{
     activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
@@ -45,6 +46,7 @@ pub(crate) struct BodyKernel<'a> {
     clock_observations: KernelClockObservations,
     supported_todo_scan: bool,
     todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
+    todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
 
 pub(crate) struct BodyKernelResult {
@@ -90,6 +92,15 @@ fn todo_checkpoint(operation: &LoweredHostCall) -> bool {
             .is_some_and(|kind| kind.as_str() == conduit_todo_plot::TODO_CHECKPOINT_KIND)
         && operation.binding.maximum_input_bytes == 4096
         && operation.binding.maximum_output_bytes == 4096
+}
+fn todo_checkpoint_read(operation: &LoweredHostCall) -> bool {
+    operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_READ_CALL
+        && operation
+            .target_kind
+            .as_ref()
+            .is_some_and(|kind| kind.as_str() == conduit_todo_plot::TODO_CHECKPOINT_READ_KIND)
+        && operation.binding.maximum_input_bytes == 0
+        && operation.binding.maximum_output_bytes == conduit_todo_plot::STATE_MAX_BYTES as u32
 }
 fn timer(contract: &conduit_core::HostCallContractId) -> bool {
     contract.as_str() == conduit_core::WAIT_HOST_CALL_CONTRACT
@@ -242,6 +253,7 @@ impl<'a> BodyKernel<'a> {
                 && !text_state(&operation.contract_id)
                 && !input_semantic(&operation.contract_id)
                 && !todo_checkpoint(operation)
+                && !todo_checkpoint_read(operation)
                 && !presentation(operation)
             {
                 return Err(format!(
@@ -372,43 +384,72 @@ impl<'a> BodyKernel<'a> {
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
             supported_todo_scan,
             todo_checkpoint: None,
+            todo_checkpoint_read: None,
         })
     }
 
-    /// Bind one selected storage residence to the exact lowered checkpoint
-    /// placement before Play. No ambient storage fallback is available.
+    /// Bind at most one selected reader and publisher to their exact lowered
+    /// placements before Play. No ambient storage fallback is available.
     pub(crate) fn attach_todo_checkpoint(
         &mut self,
         partitions: &[BodyPlotPlan],
         root: &std::path::Path,
         checkpoint: crate::todo_durable_resource::CheckpointIdentity,
     ) -> Result<(), String> {
-        let selections = partitions
-            .iter()
-            .enumerate()
-            .flat_map(|(partition, body_plot)| {
-                body_plot.plan.fragments.iter().flat_map(move |fragment| {
-                    fragment.placements.iter().filter_map(move |placement| {
-                        (placement.implementation_id.as_str()
-                            == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION)
-                            .then_some((partition, placement))
-                    })
-                })
-            })
-            .collect::<Vec<_>>();
-        let [(partition, placement)] = selections.as_slice() else {
-            return Err("Body requires exactly one selected Todo checkpoint placement".into());
-        };
-        let lowered = self
-            .partitions
-            .get(*partition)
-            .ok_or("Todo checkpoint partition missing")?;
-        self.todo_checkpoint = Some(
-            crate::todo_checkpoint_call::TodoCheckpointHost::prepare(
-                root, placement, lowered, checkpoint,
-            )
-            .map_err(|error| format!("prepare selected Todo checkpoint: {error:?}"))?,
-        );
+        let mut selected = 0;
+        for (partition, body_plot) in partitions.iter().enumerate() {
+            let lowered = self
+                .partitions
+                .get(partition)
+                .ok_or("Todo checkpoint partition missing")?;
+            for placement in body_plot
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+            {
+                match placement.implementation_id.as_str() {
+                    conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION => {
+                        if self.todo_checkpoint.is_some() {
+                            return Err("duplicate Todo checkpoint publisher".into());
+                        }
+                        self.todo_checkpoint = Some(
+                            crate::todo_checkpoint_call::TodoCheckpointHost::prepare(
+                                root,
+                                placement,
+                                lowered,
+                                checkpoint.clone(),
+                            )
+                            .map_err(|error| {
+                                format!("prepare selected Todo checkpoint: {error:?}")
+                            })?,
+                        );
+                        selected += 1;
+                    }
+                    conduit_std_offers::TODO_CHECKPOINT_READ_IMPLEMENTATION => {
+                        if self.todo_checkpoint_read.is_some() {
+                            return Err("duplicate Todo checkpoint reader".into());
+                        }
+                        self.todo_checkpoint_read = Some(
+                            crate::todo_checkpoint_read_call::TodoCheckpointReadHost::prepare(
+                                root,
+                                placement,
+                                lowered,
+                                checkpoint.clone(),
+                            )
+                            .map_err(|error| {
+                                format!("prepare selected Todo checkpoint read: {error:?}")
+                            })?,
+                        );
+                        selected += 1;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        if selected == 0 {
+            return Err("Body has no selected Todo checkpoint placement".into());
+        }
         Ok(())
     }
 
@@ -421,6 +462,14 @@ impl<'a> BodyKernel<'a> {
         }) && self.todo_checkpoint.is_none()
         {
             return Err("planned Todo checkpoint has no selected durable Host residence".into());
+        }
+        if self.operations.iter().any(|operation| {
+            operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_READ_CALL
+        }) && self.todo_checkpoint_read.is_none()
+        {
+            return Err(
+                "planned Todo checkpoint read has no selected durable Host residence".into(),
+            );
         }
         if self
             .activations
@@ -567,6 +616,63 @@ impl<'a> BodyKernel<'a> {
                         self.scheduler
                             .complete_host_call(request.node, request.request, outcome)
                             .map_err(|error| format!("Todo checkpoint completion: {error:?}"))?;
+                        continue;
+                    }
+                    if operation.contract_id.as_str()
+                        == conduit_std_offers::TODO_CHECKPOINT_READ_CALL
+                    {
+                        let reader = self
+                            .todo_checkpoint_read
+                            .as_ref()
+                            .ok_or("Todo checkpoint read Host Call has no selected residence")?;
+                        let result = reader.read(request, input);
+                        let outcome = match result {
+                            Ok(bytes) => {
+                                let value =
+                                    self.scheduler.store_host_value(&bytes).map_err(|error| {
+                                        format!("Todo checkpoint read value storage: {error:?}")
+                                    })?;
+                                let output = BoundedValueRef::new(
+                                    value,
+                                    conduit_todo_plot::STATE_MAX_BYTES as u32,
+                                )
+                                .map_err(|error| {
+                                    format!("Todo checkpoint read bound: {error:?}")
+                                })?;
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Completed,
+                                    output: Some(output),
+                                    failure: None,
+                                }
+                            }
+                            Err(error) => HostCallOutcome {
+                                disposition: if error
+                                    == crate::todo_durable_resource::Refusal::InvalidBinding
+                                {
+                                    HostCallDisposition::Denied
+                                } else {
+                                    HostCallDisposition::Failed
+                                },
+                                output: None,
+                                failure: Some(Failure {
+                                    code: if error
+                                        == crate::todo_durable_resource::Refusal::InvalidBinding
+                                    {
+                                        FailureCode::HostCallDenied
+                                    } else {
+                                        FailureCode::HostCallFailed
+                                    },
+                                    detail: crate::todo_checkpoint_read_call::read_failure_detail(
+                                        &error,
+                                    ),
+                                }),
+                            },
+                        };
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|error| {
+                                format!("Todo checkpoint read completion: {error:?}")
+                            })?;
                         continue;
                     }
                     if keyboard(&operation.contract_id) {

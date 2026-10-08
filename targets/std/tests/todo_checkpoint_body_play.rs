@@ -290,6 +290,8 @@ fn public_body_play_proof() {
     read.host_id = "host-b".into();
     read.boot_id = "boot-b".into();
     read.host_calls[0].contract_id = READ_OPERATION.into();
+    read.host_calls[0].maximum_input_bytes = 0;
+    read.host_calls[0].maximum_output_bytes = STATE_MAX_BYTES as u32;
     read.resources[0].content.as_mut().unwrap().contract.access = ResourceAccessMode::ReadPublished;
     read.resources[0]
         .content

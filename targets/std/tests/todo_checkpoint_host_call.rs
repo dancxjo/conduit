@@ -249,7 +249,9 @@ fn placement(host: &str, boot: &str, write: bool) -> PlannedGear {
         inputs: Vec::new(), outputs: Vec::new(), terminal_transductions: Vec::new(),
         host_calls: vec![HostCallRequirement {
             contract_id: operation.into(), target_kind: Some(kind.clone()),
-            maximum_in_flight: 1, maximum_input_bytes: 4096, maximum_output_bytes: 4096,
+            maximum_in_flight: 1,
+            maximum_input_bytes: if write { 4096 } else { 0 },
+            maximum_output_bytes: if write { 4096 } else { STATE_MAX_BYTES as u32 },
         }],
         resources: vec![ResourceBinding {
             pool_id: "shared-checkpoint".into(), class_id: "resource/todo-checkpoint@1".into(),

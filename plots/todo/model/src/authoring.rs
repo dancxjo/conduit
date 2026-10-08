@@ -2,7 +2,10 @@
 
 use alloc::{format, string::String, string::ToString};
 
-use crate::{TodoState, TODO_CHECKPOINT_KIND, TODO_COMBINE_KIND, TODO_STATE_INFO_ID};
+use crate::{
+    TodoState, TODO_CHECKPOINT_KIND, TODO_CHECKPOINT_READ_KIND, TODO_COMBINE_KIND,
+    TODO_STATE_INFO_ID,
+};
 
 /// Admit the Todo leaf Kind and one owner-validated initial state Form. The
 /// authored transition Plot wires its exact Fore to this Kind's offered Back.
@@ -24,6 +27,13 @@ pub fn install_todo_catalogs(
     })?;
     profile
         .insert_kind(crate::todo_checkpoint_kind())
+        .map_err(|error| error.to_string())?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: TODO_CHECKPOINT_READ_KIND.to_string(),
+        startup_parameters: alloc::vec![],
+    })?;
+    profile
+        .insert_kind(crate::todo_checkpoint_read_kind())
         .map_err(|error| error.to_string())?;
     admit_empty_todo_initial(startup, title)
 }
