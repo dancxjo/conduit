@@ -94,8 +94,8 @@ use super::wav_artifact_back::WavArtifactBack;
 use conduit_data::FlowCollectBack;
 use conduit_todo_plot::TodoCombineBack;
 
-// Todo's admitted fixed scratch stays inline so preparing and stepping a Back
-// cannot acquire hidden heap capacity. The enum's larger static size is finite.
+// Todo's fixed scratch is prepared on the heap before Play so every installed
+// operation shares a small driver envelope on the bounded runner stack.
 #[allow(clippy::large_enum_variant)]
 pub(super) enum InstalledBack {
     NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
@@ -148,7 +148,7 @@ pub(super) enum InstalledBack {
     StateSelectScalar(StateSelectScalarBack),
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
-    TodoCombine(TodoCombineBack),
+    TodoCombine(Box<TodoCombineBack>),
     TodoCheckpoint(crate::todo_checkpoint_call::TodoCheckpointBack),
     TodoCheckpointRead(crate::todo_checkpoint_read_call::TodoCheckpointReadBack),
     FlowZip(FlowZipBack),

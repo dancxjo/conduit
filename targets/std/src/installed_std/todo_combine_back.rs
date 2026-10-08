@@ -47,9 +47,9 @@ fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledBack::TodoCombine(
+    Ok(InstalledBack::TodoCombine(Box::new(
         conduit_todo_plot::TodoCombineBack::new(),
-    ))
+    )))
 }
 
 #[cfg(test)]
