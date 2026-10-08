@@ -6,6 +6,9 @@ impl StructuredInfoType {
     /// Bounds requested allocations made while decoding this exact tagged Type.
     /// Names, boxed child Types and collection capacities are counted separately;
     /// record/variant sorting scratch is conservatively counted with their buffers.
+    /// Every non-leaf constructor also validates its canonical encoding using an
+    /// exactly preallocated temporary buffer. These per-subtree buffers are charged
+    /// cumulatively, so the result also bounds simultaneous requested heap storage.
     /// The existing decoder remains the authority for the returned Type.
     pub fn canonical_decode_storage_bound(encoded: &[u8]) -> Result<usize, StructuredInfoRefusal> {
         if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
@@ -54,14 +57,13 @@ fn node(
         return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
     }
     *remaining -= 1;
-    match cursor.byte()? {
+    let before = cursor.remaining.len();
+    let tag = cursor.byte()?;
+    match tag {
         0 => validate_name(text(cursor, bytes)?),
         1 => {
             let length = cursor.u16()?;
             node(cursor, depth + 1, remaining, bytes)?;
-            if length == 0 {
-                return Err(StructuredInfoRefusal::EmptyShape);
-            }
             if usize::from(length) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
                 return Err(StructuredInfoRefusal::CollectionTooLarge);
             }
@@ -128,7 +130,15 @@ fn node(
             Ok(())
         }
         _ => Err(StructuredInfoRefusal::MalformedCanonicalEncoding),
+    }?;
+    if tag != 0 {
+        // canonical::decode_type_node calls a validating constructor for every
+        // non-leaf. Its canonical_bytes reserves exactly canonical_byte_length
+        // bytes before writing; sorting member names cannot change that length.
+        // The leaf constructor only validates its name and allocates no buffer.
+        charge(bytes, before - cursor.remaining.len())?;
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -138,6 +148,18 @@ mod tests {
         assert_eq!(
             StructuredInfoType::canonical_decode_storage_bound(encoded).unwrap_err(),
             StructuredInfoType::from_canonical_bytes(encoded).unwrap_err(),
+        );
+    }
+    #[test]
+    fn storage_arithmetic_refuses_overflow() {
+        let mut bytes = usize::MAX;
+        assert_eq!(
+            charge(&mut bytes, 1),
+            Err(StructuredInfoRefusal::CanonicalEncodingTooLarge)
+        );
+        assert_eq!(
+            slots::<StructuredFieldType>(&mut 0, usize::MAX),
+            Err(StructuredInfoRefusal::CanonicalEncodingTooLarge)
         );
     }
     #[test]
