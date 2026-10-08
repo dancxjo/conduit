@@ -31,6 +31,8 @@ use std::{
 #[allow(dead_code)]
 #[path = "checkpoint_once.rs"]
 mod checkpoint_once;
+#[cfg(test)]
+pub(crate) use checkpoint_once::tests::published_fixture as published_todo_test_fixture;
 #[path = "continuing.rs"]
 mod continuing;
 pub(crate) use continuing::RunWorker;

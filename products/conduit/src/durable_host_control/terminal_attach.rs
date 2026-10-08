@@ -237,6 +237,15 @@ impl DurableHostRuntime {
             .execution
             .interact(interaction)
             .map_err(|error| format!("attached terminal Mask return refused: {error:?}"))?;
+        if correlated.interaction.action_id.starts_with("todo.") {
+            let resolved =
+                owner.resolve_committed_todo_interaction(show, &correlated.interaction)?;
+            let state_dir = root.clone();
+            // Consume and retire this exact Mask before StdHost moves into
+            // the next admitted workload Play. No concurrent Host is made.
+            retire(&state_dir, self)?;
+            return self.submit_committed_todo_action(show, &correlated.interaction, resolved);
+        }
         owner.apply_clock_interval_interaction(root, show, &correlated.interaction)
     }
 }

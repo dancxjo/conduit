@@ -808,3 +808,7 @@ fn stale_current_and_foreign_grant_refuse_before_play() {
         .is_none());
     std::fs::remove_dir_all(state_root).unwrap();
 }
+
+#[path = "checkpoint_once_tests/published_fixture.rs"]
+mod published_fixture;
+pub(crate) use published_fixture::published_fixture;

@@ -27,6 +27,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[path = "todo_waiting/admission.rs"]
+mod admission;
+
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 type Outcome = (StdHost, Result<BodyRunReport, String>, u8);
 
@@ -53,6 +56,7 @@ pub(crate) struct TodoWaitingWorker {
     checkpoint_identity: CheckpointIdentity,
     selected_content: ResourceContentRequirement,
     accepted_interaction: Option<FaceInteractionId>,
+    accepted_mask: Option<(MaskShow, FaceInteraction)>,
     started: Receiver<(BodyPlayIdentity, Wake)>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
     thread: Option<JoinHandle<Outcome>>,
@@ -280,6 +284,7 @@ impl Owner {
             checkpoint_identity,
             selected_content,
             accepted_interaction: None,
+            accepted_mask: None,
             started: started_rx,
             acknowledge: Some(ack_tx),
             thread: Some(thread),
@@ -308,6 +313,7 @@ impl TodoWaitingWorker {
         let admission = self.queue.submit(&canonical)?;
         if matches!(admission, BodyLiveForeAdmission::Accepted { .. }) {
             self.accepted_interaction = Some(interaction.identity.clone());
+            self.accepted_mask = Some((show.clone(), interaction.clone()));
         }
         Ok(admission)
     }
@@ -419,6 +425,8 @@ impl TodoWaitingWorker {
             "failure":report.failure, "cleanup_failure":report.cleanup_failure,
             "terminal_sign":report.terminal_sign,
             "interaction_id":self.accepted_interaction.as_ref(),
+            "initiating_show":self.accepted_mask.as_ref().map(|(show, _)| show),
+            "initiating_action":self.accepted_mask.as_ref().map(|(_, action)| action),
             "committed_fore_count":count,
             "committed_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
             "checkpoint_namespace":{

@@ -75,7 +75,7 @@ impl Owner {
                 active_play_id: basis.read.play_id.clone(),
                 required_interaction_context: None,
             },
-            false,
+            true,
         )
         .map_err(|error| format!("Todo committed contribution refused: {error:?}"))?;
         let names = [FaceResidentPlotName {
@@ -103,6 +103,34 @@ impl Owner {
             .validate()
             .map_err(|error| format!("owner-committed-face-invalid:{error:?}"))?;
         Ok(face.presentation)
+    }
+
+    /// Validate a return against the exact verified committed Face before
+    /// the owner retires its Mask and admits the next ordinary Todo Play.
+    pub(crate) fn resolve_committed_todo_interaction(
+        &self,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+    ) -> Result<(TodoState, TodoCommand), String> {
+        let (basis, state) = self
+            .todo_verified
+            .as_ref()
+            .ok_or("Todo action has no verified committed state")?;
+        let face = self.project_verified_todo_face(basis, state)?;
+        let command = todo_command_from_contributed_interaction(
+            state,
+            &face,
+            show,
+            interaction,
+            PresentationContributionBasis {
+                checked_plot_id: basis.checked_plot_id.clone(),
+                plan_id: basis.read.plan_id.clone(),
+                active_play_id: basis.read.play_id.clone(),
+                required_interaction_context: None,
+            },
+        )
+        .map_err(|error| format!("committed Todo action refused: {error:?}"))?;
+        Ok((state.clone(), command))
     }
 
     /// Resolve only an action offered by this exact current Owner Face and

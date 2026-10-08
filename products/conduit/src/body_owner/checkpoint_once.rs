@@ -292,4 +292,4 @@ impl Owner {
 
 #[cfg(test)]
 #[path = "checkpoint_once_tests.rs"]
-mod tests;
+pub(crate) mod tests;
