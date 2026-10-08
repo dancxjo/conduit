@@ -38,6 +38,7 @@ const PROGRAM: &str = include_str!(concat!(env!("OUT_DIR"), "/parser_session_com
 fn limits() -> PureSourceLimits {
     PureSourceLimits {
         maximum_invocations: 2,
+        maximum_history_retained_bytes: 2 * 1024 * 1024,
         maximum_input_bytes: 262144,
         maximum_output_bytes: 262144,
         maximum_program_bytes: 16 * 1024 * 1024,
@@ -291,6 +292,45 @@ fn original_intermediate_output_is_retained_and_wrong_frame_refuses() {
     ));
     assert!(matches!(
         port.execute(&state(false), frames()),
+        Err(PureSourceRefusal::Closed)
+    ));
+}
+#[test]
+fn malformed_native_ingress_and_history_pressure_close_the_consumed_port() {
+    let _lock = LOCK.lock().unwrap();
+    let family = family();
+    let mut port = PreparedParserPureSource::prepare::<
+        LanguageParserState,
+        LanguageParserCompletionObservation,
+    >(PROGRAM, family.clone(), family.clone(), limits())
+    .unwrap();
+    match port.execute(&[], frames()) {
+        Err(PureSourceRefusal::Native(reason)) => {
+            let _ = reason;
+        }
+        _ => panic!("malformed original Native ingress must refuse"),
+    }
+    assert!(matches!(
+        port.execute(&state(false), frames()),
+        Err(PureSourceRefusal::Closed)
+    ));
+    let mut small = limits();
+    small.maximum_history_retained_bytes = 1;
+    let mut port = PreparedParserPureSource::prepare::<
+        LanguageParserState,
+        LanguageParserCompletionObservation,
+    >(PROGRAM, family.clone(), family, small)
+    .unwrap();
+    let query = state(false);
+    let pool = frames();
+    REQUESTS.store(0, Ordering::Relaxed);
+    TRACK.store(true, Ordering::Relaxed);
+    let result = port.execute(&query, pool);
+    TRACK.store(false, Ordering::Relaxed);
+    assert!(matches!(result, Err(PureSourceRefusal::Pressure)));
+    assert_eq!(REQUESTS.load(Ordering::Relaxed), 0);
+    assert!(matches!(
+        port.execute(&query, frames()),
         Err(PureSourceRefusal::Closed)
     ));
 }

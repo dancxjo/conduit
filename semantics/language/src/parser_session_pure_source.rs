@@ -15,6 +15,7 @@ use core::{cell::RefCell, mem::size_of};
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct PureSourceLimits {
     pub(crate) maximum_invocations: u32,
+    pub(crate) maximum_history_retained_bytes: usize,
     pub(crate) maximum_input_bytes: usize,
     pub(crate) maximum_output_bytes: usize,
     pub(crate) maximum_program_bytes: usize,
@@ -157,12 +158,16 @@ impl PreparedParserPureSource {
         )?;
         let source_preparation = add(add(add(raw_length, preparation)?, retained)?, array)?;
         let source_execution = add(add(retained, array)?, active)?;
+        let histories = limits
+            .maximum_history_retained_bytes
+            .checked_mul(limits.maximum_invocations as usize)
+            .ok_or(R::Pressure)?;
         let combined = add(
             add(
                 add(size_of::<Self>(), family_bytes)?,
                 add(
                     original_program.len(),
-                    source_preparation.max(source_execution),
+                    add(histories, source_preparation.max(source_execution))?,
                 )?,
             )?,
             limits.other_existing_bytes,
@@ -300,6 +305,22 @@ impl PreparedParserPureSource {
         // Every failure below closes this consumed port. The enclosing atomic
         // revision additionally cancels all Source/model ingresses on refusal.
         self.closed = true;
+        let mut history_bytes = add(size_of::<PureSourceHistory>(), frames.input.capacity())?;
+        history_bytes = add(history_bytes, frames.output.capacity())?;
+        history_bytes = add(
+            history_bytes,
+            frames
+                .intermediates
+                .capacity()
+                .checked_mul(size_of::<Vec<u8>>())
+                .ok_or(R::Pressure)?,
+        )?;
+        for frame in &frames.intermediates {
+            history_bytes = add(history_bytes, frame.capacity())?;
+        }
+        if history_bytes > self.limits.maximum_history_retained_bytes {
+            return Err(R::Pressure);
+        }
         if self.next_ordinal >= u64::from(self.limits.maximum_invocations)
             || query.len() > self.limits.maximum_input_bytes
             || frames.input.capacity() < self.limits.maximum_input_bytes
