@@ -785,6 +785,20 @@ fn prepared_recursive_family_matches_existing_entrances() {
         maximum_conversion_requested_bytes: usize::MAX,
     };
     let mut family = PreparedNativeFamily::prepare(PREPARED_NATIVE_FAMILY_ROOTS, limits).unwrap();
+    use conduit_plot::rust_binding::{PreparedNativeRustBinding, NativeFamilyTypeDescriptor};
+    let only_chord = PreparedNativeFamily::prepare(&[Chord::PREPARED_DESCRIPTOR], limits).unwrap();
+    assert!(only_chord.contains_descriptor(Chord::PREPARED_DESCRIPTOR));
+    assert!(only_chord.contains_descriptor(Note::PREPARED_DESCRIPTOR));
+    assert!(!only_chord.contains_descriptor(Observation::PREPARED_DESCRIPTOR));
+    let original = Chord::PREPARED_DESCRIPTOR;
+    let foreign = Box::leak(Box::new(NativeFamilyTypeDescriptor {
+        type_bytes: original.type_bytes, laws: original.laws, contracts: original.contracts,
+        children: original.children, conversion_profile: original.conversion_profile,
+        maximum_inline_bytes: original.maximum_inline_bytes,
+    }));
+    assert_eq!(foreign.type_bytes, original.type_bytes);
+    assert!(!only_chord.contains_descriptor(foreign));
+
     let chord = Chord::new([Note::new(3).unwrap(), Note::new(7).unwrap(), Note::new(9).unwrap()]).unwrap();
     let encoded = chord.clone().encode().unwrap();
     assert_eq!(family.decode::<Chord>(&encoded), Chord::decode(&encoded));
