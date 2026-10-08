@@ -247,3 +247,10 @@ pub mod authoring;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod ipa_phone;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_diagnostic;
+#[cfg(feature = "semantic-bindings")]
+mod ipa_order;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_phonetic;
