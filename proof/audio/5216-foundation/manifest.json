@@ -1,0 +1,31 @@
+{
+  "schema": "conduit.proof/audio-foundation@1",
+  "source_head": "c154a359be168d17a33aa392ebfa33ba218b5f79",
+  "proof_class": "local-source-native-conformance",
+  "tests": {
+    "passed": 76,
+    "failed": 0,
+    "ignored": 0,
+    "executables": 18
+  },
+  "clippy": "all-targets, warnings denied",
+  "records": [
+    {
+      "path": "clippy.log",
+      "bytes": 901,
+      "sha256": "1a67e3cdbe3b376846397e11a4743877eaf7946372ffd7bf2caea9775457f8e6"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 10567,
+      "sha256": "9192b1040e842ae599255a31eb69296cfaa0b437aa4e6f3ba0ccd3443ef9434d"
+    }
+  ],
+  "does_not_establish": [
+    "complete issue 5216",
+    "catalog Host realization",
+    "real-time or allocation-free playback",
+    "general logarithmic numeric conversion",
+    "speech rendering or attended listening"
+  ]
+}
