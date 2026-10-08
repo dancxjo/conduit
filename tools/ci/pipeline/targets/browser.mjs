@@ -2,6 +2,7 @@ import { cpSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'no
 import path from 'node:path';
 import { cargo, command, digest, xtask } from './common.mjs';
 import { assembleSite } from './site.mjs';
+import { publicationHistorySnapshot } from '../complete-publication-history.mjs';
 import { retainWorkspaceEvidence } from './workspace-evidence.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
@@ -30,6 +31,7 @@ function inventory(directory, prefix = '') {
 }
 
 export function browser(directory) {
+  publicationHistorySnapshot('browser-start');
   const product = 'target/workspace-product';
   const releases = path.join(directory, 'host-release');
   if (existsSync(product)) throw new Error(`Stale staged product exists: ${product}; use a clean target lane`);
@@ -72,6 +74,7 @@ export function browser(directory) {
   if (JSON.stringify(handbookBefore) !== JSON.stringify(inventory('target/handbook-static'))
     || JSON.stringify(clockBefore) !== JSON.stringify(inventory('target/handbook-static-second'))) throw new Error('Static Body proof modified its products');
   const site = path.join(directory, 'site');
+  publicationHistorySnapshot('before-site');
   assembleSite(site, process.env.CONDUIT_CHECKOUT_SHA);
   command('node', ['proof/browser/verify-public-site.mjs', site, path.join(directory, 'site-proof')]);
   writeFileSync(path.join(directory, 'proof-scope.json'), JSON.stringify({
