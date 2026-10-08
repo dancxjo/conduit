@@ -11,14 +11,13 @@ pub(super) fn run(offer: &HostOffer<'_>) {
         host: offer.host_id,
         boot: offer.boot_id,
     };
-    let prepared =
-        crate::tour_timer_plan::prepare(&ids, offer, crate::make::EMBEDDED_MAKE.build_id)
-            .unwrap_or_else(|_| refuse("timer-runtime-plan"));
-    let fragment = &prepared.plan.fragments[0];
-    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
-        .unwrap_or_else(|_| refuse("timer-runtime-lowering"));
-    let graph = crate::tour_timer_kernel::TourTimerKernel::prepare_graph(fragment, &lowered)
-        .unwrap_or_else(|_| refuse("timer-runtime-graph"));
+    let prepared = crate::tour_timer_plan::prepare_description(
+        &ids,
+        offer,
+        crate::make::EMBEDDED_MAKE.build_id,
+    )
+    .unwrap_or_else(|_| refuse("timer-runtime-plan"));
+    let graph = prepared.graph;
     let mut domain =
         arch::TextDomain::install().unwrap_or_else(|_| refuse("timer-runtime-install"));
     // Fixture labels are not issued capabilities and never authorize a Base.
@@ -139,4 +138,49 @@ fn complete(
     {
         refuse("timer-runtime-completion-return");
     }
+}
+
+/// The ordinary product entrance uses actual issued capabilities and providers.
+/// Assertions observe its result; they never substitute semantic completions.
+pub(super) fn run_product(offer: &HostOffer<'_>) {
+    use crate::machine::{IdleBase, SerialBase, TimerBase};
+    let ids = crate::identity::BootIdentities {
+        host: offer.host_id,
+        boot: offer.boot_id,
+    };
+    let mut prepared =
+        crate::tour_play::prepare_timer_stage(&ids, offer, crate::make::EMBEDDED_MAKE.build_id)
+            .unwrap_or_else(|_| refuse("timer-product-plan"));
+    let mut clock = arch::Clock::new();
+    let mut timer = arch::Timer::new();
+    let mut serial = arch::Serial::new();
+    let mut interrupts = arch::Interrupts::new();
+    let mut idle = arch::Idle::new();
+    let evidence = crate::tour_play::run_timer_stage(
+        &mut prepared,
+        &mut clock,
+        &mut timer,
+        &mut serial,
+        &mut interrupts,
+        &mut idle,
+    )
+    .unwrap_or_else(|_| refuse("timer-product-run"));
+    if evidence.run.timer_irq_wakes != 1
+        || timer.wake_count() != 1
+        || serial.presentation_count() != 2
+        || idle.idle_count() == 0
+        || evidence.run.pending_host_calls != 1
+        || !evidence.run.clock_monotonic
+    {
+        refuse("timer-product-lifecycle");
+    }
+    let cost = prepared.kernel.cost();
+    if cost.entries == 0
+        || cost.base_gate_transitions != 4
+        || cost.teardown_zeroed_bytes != cost.reserved_bytes
+    {
+        refuse("timer-product-domain-cost");
+    }
+    drop(prepared);
+    arch::early_write(b"CONDUIT_DOMAIN_TIMER_PRODUCT private-production-kernel physical-duration-120ms exact-capabilities counts-presented-2 timer-wakes-1 cancelled zeroed\n");
 }

@@ -46,6 +46,7 @@ pub fn run(record: &boot::BootRecord) -> ! {
     gates::run(&plan, &offer);
     morse::run(&plan, &offer);
     timer_runtime::run(&offer);
+    timer_runtime::run_product(&offer);
     keymap_entries();
     retained_text::run(&plan, &offer);
     hostile_entries();
