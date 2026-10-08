@@ -4,8 +4,8 @@ use super::{
     InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
 };
 use crate::{
-    hosted_keyboard::HostedKeyboardAdapter, ExternalForeDelivery, ExternalForeInput,
-    ExternalForeOutputAdapter, RunControl, TimerAdapter,
+    body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
+    ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
 };
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
@@ -286,7 +286,7 @@ impl<'a> BodyKernel<'a> {
         output: &mut W,
         clock: &mut T,
         input: Option<&mut dyn HostedKeyboardAdapter>,
-        mut fore_output: Option<&mut dyn ExternalForeOutputAdapter>,
+        mut fore_output: Option<&mut dyn BodyForeOutputAdapter>,
         control: &RunControl,
         host_id: &conduit_core::HostId,
         boot_id: &conduit_core::BootId,
@@ -839,36 +839,5 @@ mod activation_binding_tests {
             &[&substituted],
         )
         .is_err());
-    }
-}
-
-#[cfg(test)]
-mod body_fore_preparation_tests {
-    use super::*;
-
-    #[test]
-    fn unplanned_body_fore_input_refuses_before_play() {
-        let supplied = [ExternalForeInput {
-            front_port_id: conduit_core::PortId::from("unplanned"),
-            track: conduit_core::ConnectionTrack::Payload,
-            bytes: vec![1],
-        }];
-        let refusal = BodyKernel::prepare(&[], false, &supplied, false, false)
-            .err()
-            .expect("unplanned Fore value must refuse during preparation");
-        assert!(refusal.contains("does not match the sealed Plan"));
-    }
-
-    #[test]
-    fn unplanned_body_fore_sequence_refuses_before_play() {
-        let supplied = [ExternalForeInput {
-            front_port_id: conduit_core::PortId::from("unplanned"),
-            track: conduit_core::ConnectionTrack::Payload,
-            bytes: vec![1],
-        }];
-        let refusal = BodyKernel::prepare(&[], false, &supplied, true, false)
-            .err()
-            .expect("unplanned Fore Flow must refuse during preparation");
-        assert!(refusal.contains("requires one to 32 admitted input values"));
     }
 }

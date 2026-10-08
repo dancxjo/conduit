@@ -1,8 +1,7 @@
 //! Local body-wide execution through the installed std kernel.
 use crate::{
     hosted_keyboard::HostedKeyboardAdapter, installed_std::body_kernel::BodyKernel,
-    ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, RunControl, StdHost,
-    TimerAdapter,
+    ExternalForeDelivery, ExternalForeInput, RunControl, StdHost, TimerAdapter,
 };
 use conduit_body::{BodyPlan, BodyPlanTimeAdmission, BodyPlayIdentity, Wake};
 use conduit_core::{
@@ -24,6 +23,12 @@ pub struct BodyRunRequest<'a> {
     pub plan: &'a BodyPlan,
     pub control: &'a RunControl,
     pub keyboard: Option<&'a mut dyn HostedKeyboardAdapter>,
+}
+
+/// Acknowledges one bounded Body Fore delivery by borrowing its prepared
+/// storage. Returning an error leaves the kernel output unacknowledged.
+pub trait BodyForeOutputAdapter {
+    fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String>;
 }
 
 #[derive(Debug)]
@@ -104,7 +109,7 @@ impl StdHost {
         request: BodyRunRequest<'_>,
         inputs: &[ExternalForeInput],
         sequential: bool,
-        fore_output: &mut dyn ExternalForeOutputAdapter,
+        fore_output: &mut dyn BodyForeOutputAdapter,
         output: &mut W,
         timer: &mut T,
     ) -> Result<BodyRunReport, String> {
@@ -229,11 +234,7 @@ impl StdHost {
         timer: &mut T,
         correlation: Option<&BodyClockCorrelation>,
         execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
-        fore: Option<(
-            &[ExternalForeInput],
-            bool,
-            &mut dyn ExternalForeOutputAdapter,
-        )>,
+        fore: Option<(&[ExternalForeInput], bool, &mut dyn BodyForeOutputAdapter)>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
