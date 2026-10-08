@@ -14,7 +14,6 @@ mod morse;
 #[path = "ordinary_domain/timer.rs"]
 mod timer;
 pub(super) use frame::{TEXT_CAPACITY, TextFrame};
-pub(crate) use timer::{TimerDomainObservation, TimerDomainRequest};
 
 #[cfg(target_arch = "x86_64")]
 const IMAGE_MACHINE: u16 = 62;

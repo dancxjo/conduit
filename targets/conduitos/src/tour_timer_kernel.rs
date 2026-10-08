@@ -1,4 +1,5 @@
 //! Root preparation for the separately reusable standing timer kernel.
+#[cfg(not(conduitos_protected_execution))]
 use crate::machine::KernelInterest;
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
@@ -6,13 +7,21 @@ use conduit_kernel::{
     scheduler::{NodeSpec, SchedulerError},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
+#[cfg(not(conduitos_protected_execution))]
 #[path = "tour_timer_runtime.rs"]
 pub(crate) mod runtime;
+#[cfg(conduitos_protected_execution)]
+#[path = "tour_timer_graph.rs"]
+pub(crate) mod runtime;
+#[cfg(not(conduitos_protected_execution))]
 pub use runtime::TourTimerKernel;
+#[cfg(conduitos_protected_execution)]
+pub struct TourTimerKernel;
 use runtime::{CORDS, NODES, PORTS, PreparedTimerGraph, PreparedTimerRoute};
 const _: () = assert!(PORTS <= FIXED_KERNEL_STORAGE_PORTS_PER_NODE);
 
 impl TourTimerKernel {
+    #[cfg(not(conduitos_protected_execution))]
     pub fn prepare(
         fragment: &PlanFragment,
         lowered: &LoweredPlanFragment,
@@ -84,6 +93,7 @@ impl TourTimerKernel {
         })
     }
 
+    #[cfg(not(conduitos_protected_execution))]
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
         self.complete_request(interest.node, interest.request)
     }

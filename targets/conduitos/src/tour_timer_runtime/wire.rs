@@ -1,14 +1,18 @@
 //! Explicit bounded mechanism ABI; never copy a Rust object layout across domains.
-use super::{CORDS, NODES, PORTS, PreparedTimerGraph, PreparedTimerRoute};
+use super::PreparedTimerGraph;
+#[cfg(any(test, conduitos_domain_image))]
+use super::{CORDS, NODES, PORTS, PreparedTimerRoute};
+use conduit_kernel::{CordEndpoint, scheduler::SchedulerError};
+#[cfg(any(test, conduitos_domain_image))]
 use conduit_kernel::{
-    CordEndpoint, CordId, HostCallBinding, HostCallId, NodeId, PortId, RouteRange, RouteTarget,
+    CordId, HostCallBinding, HostCallId, NodeId, PortId, RouteRange, RouteTarget,
     scheduler::{
         AssignedConnectionTrack, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
-        SchedulerError,
     },
 };
 
 impl PreparedTimerGraph {
+    #[cfg(any(test, conduitos_protected_execution))]
     pub(crate) fn encode(&self, output: &mut [u8]) -> Result<usize, SchedulerError> {
         let mut writer = Writer {
             output,
@@ -61,6 +65,7 @@ impl PreparedTimerGraph {
         Ok(writer.position)
     }
 
+    #[cfg(any(test, conduitos_domain_image))]
     pub(crate) fn decode(input: &[u8]) -> Result<Self, SchedulerError> {
         let mut reader = Reader { input, position: 0 };
         if reader.u16()? != 0x5451 || reader.u16()? != 1 {
@@ -170,10 +175,12 @@ fn invalid<T>() -> Result<T, SchedulerError> {
     Err(SchedulerError::InvalidPlan)
 }
 
+#[cfg(any(test, conduitos_protected_execution))]
 struct Writer<'a> {
     output: &'a mut [u8],
     position: usize,
 }
+#[cfg(any(test, conduitos_protected_execution))]
 impl Writer<'_> {
     fn bytes(&mut self, bytes: &[u8]) -> Result<(), SchedulerError> {
         let end = self
@@ -202,10 +209,12 @@ impl Writer<'_> {
     }
 }
 
+#[cfg(any(test, conduitos_domain_image))]
 struct Reader<'a> {
     input: &'a [u8],
     position: usize,
 }
+#[cfg(any(test, conduitos_domain_image))]
 impl Reader<'_> {
     fn take<const N: usize>(&mut self) -> Result<[u8; N], SchedulerError> {
         let end = self

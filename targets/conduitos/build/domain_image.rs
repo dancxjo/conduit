@@ -7,6 +7,7 @@ mod image;
 pub fn generate() {
     for source in [
         "domain/main.rs",
+        "domain/build.rs",
         "domain/Cargo.toml",
         "domain/Cargo.lock",
         "domain/allocation.rs",
@@ -41,6 +42,7 @@ pub fn generate() {
     let architecture = env::var("CARGO_CFG_TARGET_ARCH").expect("Cargo sets architecture");
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("Cargo sets target OS");
     println!("cargo:rustc-check-cfg=cfg(conduitos_protected_execution)");
+    println!("cargo:rustc-check-cfg=cfg(conduitos_domain_image)");
     let protected = match architecture.as_str() {
         "x86_64" => target_os == "none",
         "x86" => target_os == "linux" && env::var_os("CARGO_FEATURE_IA32_PRODUCT").is_some(),
