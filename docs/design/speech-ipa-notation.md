@@ -90,8 +90,8 @@ planning may select support for it, but never invent its phonological contrasts.
 The notation mechanism must be reusable for DSLs. A proposed regex consumer
 `r/[A-Z]+/` uses the same prefix/delimiter contract. The existing slash form
 and prefixed form must share the same portable pattern parser, flags, matching
-semantics and admitted bounds. Existing `Text ~ /[A-Z]+/` remains valid.
-The proposed `Text ~ r/[A-Z]+/` must check to the identical pattern constraint;
+semantics and admitted bounds. Existing `Text <= 64B ~ /[A-Z]+/` remains valid.
+The proposed `Text <= 64B ~ r/[A-Z]+/` must check to the identical pattern constraint;
 accepting typed pattern values at this consumer remains implementation work
 under #5317, not a second regex engine.
 Each binding has one output Type, bounded parsing, source custody and explicit
@@ -117,10 +117,13 @@ unknown escapes refuse rather than dropping backslashes. No generic string
 unescaping is applied before parsing. This avoids double decoding regex escapes
 such as `\.` or `\\` and gives other DSLs the same source-custody mechanism.
 
-The regex consumer must route both `/a\/b/` and `r/a\/b/` through the same
-scanner and parser, matching the literal slash between `a` and `b`. Likewise,
-flags, escaped backslashes, character classes and anchor handling must have
-identical meanings. Parser-specific suffixes such as regex `i` are part of the
+The regex consumer must route bare and prefixed forms through the same scanner
+and parser. Today the scanner recognizes an escaped closing slash, but the
+pattern parser rejects `\/`; literal slash is expressible inside a character
+class, as `/a[/]b/`. The proposed `r/a[/]b/` must accept that same pattern and
+`r/a\/b/` must retain the existing refusal. Any extension of accepted escapes
+belongs in the shared parser, with conformance for both forms. Likewise, flags,
+escaped backslashes, character classes and anchors must have identical meanings. Parser-specific suffixes such as regex `i` are part of the
 reviewed parser contract and source identity; there is no universal flag syntax.
 The existing regex scanner already accounts for character classes (so a slash
 inside a class keeps its existing meaning); the prefixed form must use that same
@@ -161,8 +164,8 @@ refusals. At the preceding quoted-phone checkpoint, 18 generic construction/
 projection tests, all 313 Plot library tests, product catalog integration,
 targeted lint and a thumbv6m no_std check also pass. The latter checks must run
 again on the final implementation. This is development evidence, not stable
-acceptance. Full quoted-transcription Source constructors and complete phonemic
-inventory resolution remain unfinished. #5260 remains open and its PR a draft.
+acceptance. Full quoted-transcription Source constructors remain unfinished; complete phonemic inventory resolution
+now has its own focused proof below. #5260 remains open and its PR a draft.
 
 
 The new `phonetic_from_ipa` preparation entrance accepts an exact quoted IPA
@@ -175,3 +178,26 @@ underlines unsupported scalars, invalid mark order and ambiguous suffixes;
 capacity refusal underlines the first excess scalar without scanning an
 unbounded body. These are preparation APIs; public qualified Source constructor
 integration is still required before #5260 can close.
+
+
+### Phonemic resolution under development
+
+The complete phonemic entrance resolves parsed units against the explicit
+prepared inventory's phoneme bindings. It refuses multiple complete partitions,
+including both competing IDs with one spelling and competing groupings of units.
+Length must belong to a declared phoneme binding: an inventory with only /a/
+does not gain /aː/ from punctuation. Version1 keeps stress and syllable-boundary
+marks as separate events and refuses bindings that absorb those marks into a
+phoneme definition. It does not infer syllable or utterance structure.
+
+The Native transcription retains the exact quoted body, generated display
+notation, resolved references, original byte/scalar spans, unit ranges, the complete
+phoneme binding table with its provenance, and the full notation basis. Its opaque executed receipt additionally retains the actual
+inventory. Decoding a candidate Native record is not membership admission.
+The quoted phonemic body is limited to 4094 bytes, leaving room for the profile
+parser's two display slashes within its 4096-byte limit.
+
+Five phonemic conformance tests pass, covering explicit long/short contrasts,
+complete-parse ambiguity, alias evidence, source spans, foreign revision and
+inventory substitution, unsupported bindings and capacity. Qualified Source
+constructors remain required; these preparation APIs do not implement `p/.../` or `r/.../`.

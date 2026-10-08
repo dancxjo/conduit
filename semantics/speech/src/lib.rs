@@ -253,4 +253,8 @@ pub mod ipa_diagnostic;
 #[cfg(feature = "semantic-bindings")]
 mod ipa_order;
 #[cfg(feature = "semantic-bindings")]
+mod ipa_phoneme_partition;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_phonemic;
+#[cfg(feature = "semantic-bindings")]
 pub mod ipa_phonetic;

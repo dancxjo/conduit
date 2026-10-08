@@ -106,9 +106,3 @@ type SpeechPhoneticTranscription = {
     units: sequence SpeechPhoneticOccurrence in 1..=256
     provenance: SpeechEvidenceProvenance
 }
-# Phonemic notation retains its explicit inventory/variety profile.
-# It cannot coerce to a universal phonetic transcription.
-type SpeechPhonemicTranscription = {
-    notation: SpeechIpaTranscription
-    where .notation.display is phonemic
-}
