@@ -491,7 +491,10 @@ pub(crate) fn todo_scan_plan() -> Plan {
         .unwrap()
         .encode_info()
         .unwrap();
-    let outer = common::fragment();
+    let mut outer = common::fragment();
+    outer.placements[0].kind_id = kind_id(conduit_semantic_catalog::FLOW_SCAN_KIND);
+    outer.placements[0].kind_contract_revision =
+        conduit_core::KindIdentity::from(conduit_semantic_catalog::FLOW_SCAN_CONTRACT_REVISION);
     conduit_core::seal_plan_with_activation_entries(
         conduit_core::PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
@@ -654,4 +657,119 @@ fn production_todo_scan_preserves_queue_pressure_and_cancellation() {
     scan.cancel().unwrap();
     assert_eq!(scan.step().unwrap(), &BoundedScanState::Cancelled);
     assert!(scan.admit(&command).is_err());
+}
+
+#[test]
+fn pure_todo_scan_handoff_preserves_receipts_pressure_and_child_signs() {
+    let plan = todo_scan_plan();
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut scan = install_pure_todo_scan(&plan, &mut prepared, "scan", &mut host).unwrap();
+    assert!(install_pure_todo_scan(&plan, &mut prepared, "scan", &mut host).is_err());
+    let command = ValuePayload {
+        value_kind: kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+        encoded: conduit_todo_plot::TodoCommand::Add {
+            text: "Milk".into(),
+        }
+        .encode_info()
+        .unwrap(),
+    };
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        scan.admit(&command).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(scan.admit(&command).unwrap(), BoundedScanAdmission::Full);
+    for _ in 0..128 {
+        if matches!(scan.step().unwrap(), BoundedScanState::OutputReady) {
+            break;
+        }
+    }
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::OutputReady);
+    scan.cancel().unwrap();
+    assert_eq!(scan.step().unwrap(), &BoundedScanState::Cancelled);
+    let signs = scan.signs();
+    assert!(signs
+        .get(&identity().host_id)
+        .is_some_and(|events| !events.is_empty()));
+}
+
+#[test]
+fn pure_todo_scan_handoff_refuses_non_exact_or_effectful_children() {
+    let plan = todo_scan_plan();
+    let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    assert!(install_pure_todo_scan(&plan, &mut prepared, "unknown", &mut host).is_err());
+
+    let effectful = reseal_todo_scan_child(&plan, |child| {
+        child.placements[0]
+            .host_calls
+            .push(conduit_core::wait_host_call_requirement());
+    });
+    assert!(conduit_core::verify_plan(&effectful));
+    assert!(super::pure_todo_scan::exact_pure_child(&effectful, "scan")
+        .unwrap_err()
+        .contains("effects"));
+
+    let PlannedActivationEntry::Scan(original_scan) = &plan.activations[0] else {
+        unreachable!()
+    };
+    let original_child = original_scan.selected_plan.as_ref();
+    let nested_child = conduit_core::seal_plan_with_activation_entries(
+        conduit_core::PlotIdentity {
+            source_document_id: original_child.source_document_id.clone(),
+            checked_plot_id: original_child.checked_plot_id.clone(),
+            expanded_plot_id: original_child.expanded_plot_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        unary_plan("nested").activations,
+        original_child.fragments.clone(),
+    );
+    let nested = reseal_todo_scan_with_child_plan(&plan, nested_child);
+    assert!(conduit_core::verify_plan(&nested));
+    assert!(super::pure_todo_scan::exact_pure_child(&nested, "scan")
+        .unwrap_err()
+        .contains("non-nested"));
+
+    let foreign = reseal_todo_scan_child(&plan, |child| {
+        child.host_id = conduit_core::HostId::from("foreign");
+        child.placements[0].host_id = child.host_id.clone();
+    });
+    assert!(!conduit_core::verify_plan(&foreign));
+    assert!(install_pure_todo_scan(&foreign, &mut prepared, "scan", &mut host).is_err());
+}
+
+fn reseal_todo_scan_child(
+    original: &Plan,
+    change: impl FnOnce(&mut conduit_core::PlanFragment),
+) -> Plan {
+    let PlannedActivationEntry::Scan(scan) = &original.activations[0] else {
+        panic!("expected scan");
+    };
+    let mut child = scan.selected_plan.fragments[0].clone();
+    change(&mut child);
+    reseal_todo_scan_with_child_plan(original, common::seal(child))
+}
+
+fn reseal_todo_scan_with_child_plan(original: &Plan, child: Plan) -> Plan {
+    let PlannedActivationEntry::Scan(mut scan) = original.activations[0].clone() else {
+        panic!("expected scan");
+    };
+    scan.selected_plan = Box::new(child);
+    scan.selected_plan_id = scan.selected_plan.plan_id.clone();
+    conduit_core::seal_plan_with_activation_entries(
+        conduit_core::PlotIdentity {
+            source_document_id: original.source_document_id.clone(),
+            checked_plot_id: original.checked_plot_id.clone(),
+            expanded_plot_id: original.expanded_plot_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        vec![PlannedActivationEntry::Scan(scan)],
+        original.fragments.clone(),
+    )
 }

@@ -10,7 +10,9 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod pure_todo_scan;
 mod todo_combine;
+pub use pure_todo_scan::install_pure_todo_scan;
 pub use todo_combine::{offer as todo_combine_offer, TodoCombineFactory};
 
 /// Production child operations that the std activation host can actually

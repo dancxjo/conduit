@@ -392,6 +392,21 @@ impl BoundedScanActivationHost {
             .last()
             .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
+
+    /// Receipt-correlated child Signs for presentation after the bounded Play.
+    /// The selected Plan and prepared child identities remain the source of
+    /// provenance; this snapshot never grants a new Host route.
+    pub fn signs(
+        &self,
+    ) -> alloc::collections::BTreeMap<conduit_core::HostId, Vec<conduit_kernel::KernelEvent>> {
+        let mut signs = alloc::collections::BTreeMap::new();
+        for receipt in self.receipts.iter().chain(self.active.iter()) {
+            for (host, events) in receipt.signs() {
+                signs.entry(host).or_insert_with(Vec::new).extend(events);
+            }
+        }
+        signs
+    }
     pub fn storage_capacities(&self) -> (usize, usize, usize, usize) {
         (
             self.accumulator.encoded.capacity(),
