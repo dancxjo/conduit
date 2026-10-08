@@ -75,6 +75,14 @@ Its training forward participates in the existing
 the same model with a smaller configuration. A tiny adjacent regression model
 demonstrates generic reuse without replacing the voice walkthrough.
 
+For a complete small implementation, read the executable
+[regression model definition](https://github.com/dancxjo/conduit/blob/dev/mechanisms/implementations/burn-model/tests/common/mod.rs)
+and its [retained journey](https://github.com/dancxjo/conduit/blob/dev/mechanisms/implementations/burn-model/tests/retained_journey.rs).
+It learns `y = 2x + 1` with a single Burn linear layer, an explicit bounded
+signature, one parameter group, and mean-square objective. Its synthetic dataset
+and identities are fixtures. Copy the authoring pattern, then supply your own
+semantic contract and truthful preparation evidence.
+
 The following Rust helpers compile against the public hosted library seam:
 
 ```rust,no_run
