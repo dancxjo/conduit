@@ -1,4 +1,6 @@
 use super::*;
+use conduit_plan_lowering::lowering::lower_plan_fragment;
+mod batch;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_plot::*;
 

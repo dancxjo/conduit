@@ -2,7 +2,7 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::*;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
-use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
+use conduit_plan_lowering::lowering::LoweredPlanFragment;
 use conduit_plot::{PortableExpressionProgram, PreparedPortableExpressionEvaluator};
 
 pub const IMPLEMENTATION: &str = "conduitos/kernel-pure-expression@1";
@@ -79,52 +79,7 @@ impl ExpressionHostCall {
         active: &ActivePlayIdentity,
         placement: &PlacementId,
     ) -> Result<Self, ExpressionCallRefusal> {
-        use ExpressionCallRefusal as Refusal;
-        if !verify_plan_fragment(fragment)
-            || active.plan_id != fragment.plan_id
-            || active.host_id != fragment.host_id
-            || active.boot_id != fragment.boot_id
-            || bind_active_play(
-                &fragment.plan_id,
-                &fragment.host_id,
-                &fragment.boot_id,
-                active.play_sequence,
-            ) != *active
-            || lower_plan_fragment(fragment).map_err(|_| Refusal::WrongBinding)? != *lowered
-        {
-            return Err(Refusal::WrongBinding);
-        }
-        let mut gears = fragment
-            .placements
-            .iter()
-            .filter(|gear| &gear.placement_id == placement);
-        let gear = gears.next().ok_or(Refusal::WrongBinding)?;
-        if gears.next().is_some() {
-            return Err(Refusal::WrongBinding);
-        }
-        if gear.host_id != fragment.host_id || gear.boot_id != fragment.boot_id {
-            return Err(Refusal::WrongBinding);
-        }
-        let program = prepared_program(gear)?;
-        let mut nodes = lowered
-            .identity
-            .placements
-            .iter()
-            .filter(|(_, id)| id == placement);
-        let node = nodes.next().ok_or(Refusal::WrongBinding)?.0;
-        if nodes.next().is_some() {
-            return Err(Refusal::WrongBinding);
-        }
-        Ok(Self {
-            evaluator: PreparedPortableExpressionEvaluator::new(&program)
-                .map_err(Refusal::Evaluation)?,
-            node,
-            next_request: 0,
-            maximum_input_bytes: program
-                .maximum_prepared_input_bytes()
-                .map_err(Refusal::Evaluation)?,
-            cancelled: false,
-        })
+        PreparedExpressionFragment::prepare(fragment, lowered, active)?.owner(placement)
     }
 
     /// Evaluate once using storage admitted at preparation; never retry a failed program.
@@ -197,6 +152,9 @@ fn prepared_program(
     }
     Ok(program)
 }
+
+mod fragment;
+pub use fragment::PreparedExpressionFragment;
 
 mod factory;
 pub use factory::ExpressionOperationFactory;
