@@ -1,7 +1,33 @@
 use conduit_web::{
-    json_collection_step, json_collection_step_bytes, JsonCollectionRefusal as Refusal,
-    JsonRefusal, JsonValue,
+    json_collection_combine, json_collection_step, json_collection_step_bytes,
+    JsonCollectionRefusal as Refusal, JsonRefusal, JsonValue,
 };
+
+#[test]
+fn scan_combine_uses_the_same_bounded_transition_without_mutating_prior_state() {
+    let initial = request("[]");
+    let add = request(
+        r#"{"key":"id","op":"append-unique","value":{"complete":false,"id":"a","text":"Buy milk"}}"#,
+    );
+    let first = json_collection_combine(&initial, &add).unwrap();
+    let complete = request(
+        r#"{"field":"complete","key":"id","match":"a","op":"set-field-by-key","value":true}"#,
+    );
+    let second = json_collection_combine(&first, &complete).unwrap();
+    assert_eq!(
+        first.encode_text().unwrap(),
+        br#"[{"complete":false,"id":"a","text":"Buy milk"}]"#
+    );
+    assert_eq!(
+        second.encode_text().unwrap(),
+        br#"[{"complete":true,"id":"a","text":"Buy milk"}]"#
+    );
+    assert_eq!(initial.encode_text().unwrap(), b"[]");
+    assert_eq!(
+        json_collection_combine(&initial, &complete),
+        Err(Refusal::MissingIndex)
+    );
+}
 
 fn request(text: &str) -> JsonValue {
     JsonValue::decode_text(text.as_bytes()).unwrap()
