@@ -232,6 +232,14 @@ pub(super) fn prepare(
         });
     }
     Ok(NativeWorksetPlay {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        pure_results: core::array::from_fn(|_| None),
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        protected: core::array::from_fn(|_| None),
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        protection_admissions: core::array::from_fn(|index| {
+            prepared.protected_text.get(index).cloned().flatten()
+        }),
         scheduler: Box::new(scheduler),
         bindings,
         keymaps: core::array::from_fn(|_| ConduitIntlKeymap::new()),
@@ -245,5 +253,7 @@ pub(super) fn prepare(
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         plot_count: count,
         cancelled: false,
+        admitted_plan: prepared.plan.plan_id.clone(),
+        active_body_play: None,
     })
 }

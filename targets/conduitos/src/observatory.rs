@@ -185,7 +185,7 @@ pub fn prepare_export(
             firmware_environment: record.firmware.as_str().into(),
             adapter_name: "Limine".into(),
             adapter_version: "12.5.2".into(),
-            adapter_revision: "3".into(),
+            adapter_revision: alloc::format!("{}", crate::boot::LIMINE_BASE_REVISION),
             image_id: ArtifactId::from(image_id),
             build_id: ArtifactId::from(build_id),
             image_build_trace: None,
@@ -297,7 +297,7 @@ pub(crate) fn append_advertised_bases(
             .filter(|resource| advertised.resource_pool_ids.contains(&resource.pool_id))
             .map(|resource| u64::from(resource.capacity_units))
             .sum::<u64>();
-        bases.push(BaseReport {
+        let mut report = BaseReport {
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             base_id: advertised.base_id.clone(),
@@ -311,7 +311,21 @@ pub(crate) fn append_advertised_bases(
             capacity_units: resource_capacity
                 .max(advertised.capability_ids.len() as u64)
                 .max(1),
-        });
+        };
+        // Enrich the same fixed Root provider instead of reporting it twice.
+        // A contradictory provider epoch remains a duplicate for validation to refuse.
+        if let Some(existing) = bases.iter_mut().find(|base| {
+            base.host_id == report.host_id
+                && base.boot_id == report.boot_id
+                && base.base_id == report.base_id
+                && base.provider_instance_id == report.provider_instance_id
+                && base.provider_generation == report.provider_generation
+        }) {
+            report.capacity_units = existing.capacity_units;
+            *existing = report;
+        } else {
+            bases.push(report);
+        }
     }
 }
 

@@ -49,6 +49,8 @@ pub struct DualRegionKernel {
     tick_presentation_node: NodeId,
     upper_node: NodeId,
     text_presentation_node: NodeId,
+    #[cfg(conduitos_protected_execution)]
+    protected: Option<crate::text_protection::ProtectedText>,
 }
 
 impl DualRegionKernel {
@@ -140,6 +142,8 @@ impl DualRegionKernel {
             tick_presentation_node: NodeId(tick_presentation_index as u16),
             upper_node: NodeId(upper_index as u16),
             text_presentation_node: NodeId(text_presentation_index as u16),
+            #[cfg(conduitos_protected_execution)]
+            protected: None,
         })
     }
 
@@ -153,6 +157,91 @@ impl DualRegionKernel {
 
     pub fn host_value(&self, value: ValueRef) -> Result<&[u8], SchedulerError> {
         self.scheduler.host_value(value)
+    }
+
+    #[cfg(conduitos_protected_execution)]
+    pub(crate) fn protect(
+        &mut self,
+        plan: &conduit_core::Plan,
+        active: &conduit_core::ActivePlayIdentity,
+        fixed: &crate::offer::HostOffer<'_>,
+    ) -> Result<(), crate::composition::MachineRunError> {
+        let next = crate::text_protection::ProtectedText::prepare_with_kernel_bytes(
+            plan,
+            active,
+            fixed,
+            core::mem::size_of::<Self>(),
+        )?;
+        self.finish_protection(crate::protection_domain::KernelRevocationCause::PlanReplaced);
+        self.protected = Some(next);
+        Ok(())
+    }
+
+    pub(crate) fn compute_upper(
+        &mut self,
+        request: HostCallRequest,
+    ) -> Result<crate::text_upper::UppercaseText, crate::composition::MachineRunError> {
+        use crate::composition::MachineRunError as Error;
+        if !self.is_upper_request(&request) {
+            return Err(Error::UnexpectedHostCall);
+        }
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|_| Error::KernelFailure)?;
+        #[cfg(conduitos_protected_execution)]
+        {
+            self.protected
+                .as_mut()
+                .ok_or(Error::KernelConstruction)?
+                .uppercase(input)
+        }
+        #[cfg(not(conduitos_protected_execution))]
+        {
+            crate::text_upper::uppercase(input).map_err(|error| match error {
+                crate::text_upper::UppercaseError::MalformedUtf8 => Error::TextMalformedUtf8,
+                crate::text_upper::UppercaseError::OutputOverflow => Error::TextOutputOverflow,
+            })
+        }
+    }
+
+    pub(crate) fn present_text(
+        &mut self,
+        request: HostCallRequest,
+        serial: &mut impl crate::machine::SerialBase,
+    ) -> Result<(), crate::composition::MachineRunError> {
+        use crate::composition::MachineRunError as Error;
+        if !self.is_text_presentation_request(&request) {
+            return Err(Error::UnexpectedHostCall);
+        }
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|_| Error::KernelFailure)?;
+        core::str::from_utf8(input).map_err(|_| Error::SerialBaseFailure)?;
+        #[cfg(conduitos_protected_execution)]
+        {
+            self.protected
+                .as_mut()
+                .ok_or(Error::KernelConstruction)?
+                .present(input, serial)
+        }
+        #[cfg(not(conduitos_protected_execution))]
+        {
+            serial.present(input).map_err(|_| Error::SerialBaseFailure)
+        }
+    }
+
+    pub(crate) fn finish_protection(
+        &mut self,
+        cause: crate::protection_domain::KernelRevocationCause,
+    ) {
+        #[cfg(conduitos_protected_execution)]
+        if let Some(mut domain) = self.protected.take() {
+            domain.revoke(cause);
+        }
+        #[cfg(not(conduitos_protected_execution))]
+        let _ = cause;
     }
 
     pub fn is_timer_request(&self, request: &HostCallRequest) -> bool {
@@ -240,6 +329,7 @@ impl DualRegionKernel {
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
+        self.finish_protection(crate::protection_domain::KernelRevocationCause::PlayCancelled);
         self.scheduler.cancel()
     }
 

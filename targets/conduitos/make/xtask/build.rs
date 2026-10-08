@@ -15,7 +15,11 @@ use super::{
     riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
 };
 
+pub(super) mod aarch64_domain;
 mod backbone;
+pub(super) mod ia32_domain;
+pub(super) mod loongarch64_domain;
+pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(
     arch: ConduitosArch,
@@ -325,29 +329,22 @@ fn execute_with_features(
         .env("CONDUITOS_IMAGE_ID", image_binding);
     if arch == ConduitosArch::Ia32 {
         let linker = ia32_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/ia32_product.ld");
         command.env(
             "RUSTFLAGS",
             format!(
-                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg chacha20_force_soft --cfg poly1305_force_soft -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
-                linker.display(),
-                script.display()
+                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg chacha20_force_soft --cfg poly1305_force_soft -C linker={} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
+                linker.display()
             ),
         );
     } else if arch == ConduitosArch::Riscv64 {
         let linker = riscv64_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/riscv64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        // build.rs owns the product linker script. Passing it twice makes
+        // the second empty section walk reset the executable extent symbols.
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=--nostdlib", linker.display()));
     } else if arch == ConduitosArch::Loongarch64 {
         let linker = loongarch64_a0::rust_lld(&paths.root)?;
-        let script = paths
-            .root
-            .join("targets/conduitos/firmware/linker/loongarch64_product.ld");
-        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
+        // build.rs owns this script and its executable extent symbols too.
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=--nostdlib", linker.display()));
     } else {
         command.env(
             "RUSTFLAGS",
@@ -397,6 +394,19 @@ fn execute_with_features(
         println!("ConduitOS ELF: {}", paths.kernel.display());
     }
     Ok(record)
+}
+
+pub(super) fn execute_ordinary_domain_proof(
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    execute_with_features(
+        ConduitosArch::X86_64,
+        opts,
+        &["native-compositor", "ordinary-domain-proof"],
+        None,
+        ArtifactRole::ArchitectureProofAppliance,
+        None,
+    )
 }
 
 pub(super) fn execute_isolation_proof(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {

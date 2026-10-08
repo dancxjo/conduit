@@ -17,6 +17,10 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "targets/avr/firmware/promicro-host/Cargo.lock",
     },
     StandaloneLock {
+        manifest: "targets/conduitos/domain/Cargo.toml",
+        lock: "targets/conduitos/domain/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/esp32/firmware/c3-signal/Cargo.toml",
         lock: "targets/esp32/firmware/c3-signal/Cargo.lock",
     },

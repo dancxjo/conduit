@@ -12,7 +12,7 @@ use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
 const BOARD_ID: &str = env!("CONDUITOS_BOARD_ID");
-const ARENA_BYTES: usize = 4 * 1024 * 1024;
+const ARENA_BYTES: usize = 8 * 1024 * 1024;
 
 #[repr(C, align(64))]
 struct RuntimeArena(UnsafeCell<[u8; ARENA_BYTES]>);
@@ -111,6 +111,16 @@ pub extern "C" fn conduitos_armv6_rpi_b_plus_a3_start() -> ! {
         .validate()
         .unwrap_or_else(|error| refuse(error.as_str()));
     stage("offer");
+    // This appliance retains reviewed cooperative Source for A3 diagnostics.
+    // A request for protected Source must refuse before any kernel is created.
+    match conduitos::ordinary_plan::prepare_protected(&identities, &offer, BUILD_ID) {
+        Err(conduitos::ordinary_plan::PreparationError::Protection(
+            conduitos::protected_region::DomainRefusal::Unsupported,
+        )) => arch::present(
+            b"CONDUIT_ARMV6_PROTECTED_EXECUTION_REFUSAL protected-execution-unsupported\n",
+        ),
+        _ => refuse("protected-execution-disposition-invalid"),
+    }
     let mut prepared = dual_region_plan::prepare(&identities, &offer, BUILD_ID)
         .unwrap_or_else(|error| refuse(error.as_str()));
     stage("plan");
@@ -147,7 +157,7 @@ pub extern "C" fn conduitos_armv6_rpi_b_plus_a3_start() -> ! {
     arch::present(sign.as_bytes());
     arch::present(b"CONDUIT_ARMV6_RPI_A3_IDENTITY {\"image_id\":\"");
     arch::present(IMAGE_ID.as_bytes());
-    arch::present(b"\",\"wake_source\":\"bcm2835-system-timer-compare-1\",\"wake_irq\":1,\"a3_ordinary_plot_claimed\":true}\n");
+    arch::present(b"\",\"wake_source\":\"bcm2835-system-timer-compare-1\",\"wake_irq\":1,\"a3_ordinary_plot_claimed\":true,\"protected_execution\":\"unsupported\",\"cooperative_execution\":true}\n");
     loop {
         unsafe { core::arch::asm!("wfe", options(nomem, nostack)) };
     }

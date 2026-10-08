@@ -175,7 +175,9 @@ pub(super) fn boot_until_image(
         .append(true)
         .open(&log)
         .map_err(|error| refusal("loongarch64-boot-failed", error.to_string()))?;
+    let entropy = super::loongarch64_entropy_input::Input::acquire(&paths.target)?;
     let mut child = Command::new(qemu)
+        .args(["-fw_cfg", &entropy.argument()?])
         .args([
             "-M",
             "virt",
@@ -252,6 +254,10 @@ fn product_refusal(text: &str) -> Option<&str> {
         .find_map(|line| {
             line.trim_end_matches('\r')
                 .strip_prefix("CONDUIT_LOONGARCH64_PRODUCT_REFUSAL ")
+                .or_else(|| {
+                    line.trim_end_matches('\r')
+                        .strip_prefix("CONDUIT_LOONGARCH64_DOMAIN_REFUSAL ")
+                })
         })
 }
 
@@ -295,21 +301,7 @@ pub(super) fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosE
 }
 
 pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError> {
-    let local_qemu = paths
-        .root
-        .join("target/conduitos/toolchain/riscv64-root/usr/bin/qemu-system-loongarch64");
-    let qemu = [
-        local_qemu,
-        PathBuf::from("/usr/bin/qemu-system-loongarch64"),
-    ]
-    .into_iter()
-    .find(|path| path.is_file())
-    .ok_or_else(|| {
-        refusal(
-            "unavailable-loongarch64-emulator",
-            "qemu-system-loongarch64 is required",
-        )
-    })?;
+    let qemu = super::loongarch64_emulator::selected(paths)?;
     require_supported_qemu(&version(&qemu, paths)?)?;
     let firmware = prepare_firmware(paths)?;
     Ok((qemu, firmware))
@@ -421,7 +413,7 @@ fn command(program: &str, args: &[&str], cwd: &Path) -> Result<(), ConduitosErro
     }
 }
 
-fn version(qemu: &Path, paths: &Paths) -> Result<String, ConduitosError> {
+pub(super) fn version(qemu: &Path, paths: &Paths) -> Result<String, ConduitosError> {
     let output = Command::new(qemu)
         .arg("--version")
         .current_dir(&paths.root)
