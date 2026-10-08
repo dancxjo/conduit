@@ -21,7 +21,7 @@ mod resource;
 use conduit_core::*;
 use conduit_language::{
     parser_model_selection::*,
-    parser_window8::{lexical, lexical::*, *},
+    parser_window8::lexical::*,
     *,
 };
 use conduit_plot::rust_binding::NativeRustBinding;
@@ -145,7 +145,35 @@ fn actual_cached_window8_reviewed_clause_decode() {
         4096,
     );
     eprintln!("window8 cached corpus: numeric Source preparation complete");
-    let bank = owned_bank::Window8ProgramBank::prepare().unwrap();
+    let prepared_native = std::env::var_os("WINDOW8_PREPARED_NATIVE")
+        .map(|value| {
+            assert_eq!(value, "1", "explicit prepared Native opt-in must be 1");
+            true
+        })
+        .unwrap_or(false);
+    let bank = if prepared_native {
+        owned_bank::Window8ProgramBank::prepare_native(
+            conduit_plot::rust_binding::PreparedNativeFamilyLimits {
+                maximum_types: 64,
+                maximum_laws_per_type: 64,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+                maximum_retained_bytes: 256 * 1024 * 1024,
+                maximum_preparation_peak_bytes: 512 * 1024 * 1024,
+                maximum_conversion_requested_bytes: 1024 * 1024 * 1024,
+            },
+        )
+        .expect("complete exact Native output family must prepare before replay")
+    } else {
+        owned_bank::Window8ProgramBank::prepare().unwrap()
+    };
+    let native_admission_receipt = bank.native_storage_receipt().map(|receipt| json!({
+        "types": receipt.types,
+        "retained_heap_bytes_bound": receipt.retained_heap_bytes_bound,
+        "preparation_peak_heap_bytes_bound": receipt.preparation_peak_heap_bytes_bound,
+        "conversion_requested_bytes_bound": receipt.conversion_requested_bytes_bound,
+        "scope": "Native bank output admission only; excludes Reference Source evaluation, ordinary input encoding, model execution, retained outputs and queues"
+    }));
+    eprintln!("window8 Native admission receipt: {native_admission_receipt:?}");
     eprintln!("window8 cached corpus: fact Source preparation start");
     let fact_schema = facts::FactSchema::prepare();
     eprintln!("window8 cached corpus: fact Source preparation complete");
@@ -450,7 +478,7 @@ fn actual_cached_window8_reviewed_clause_decode() {
         )
         .unwrap();
     }
-    let result = json!({"receipts":receipts,"exact_base_graphs":correct,"exact_reference_teaching_graphs":if evaluation {None} else {Some(correct)},"examples":rows.as_array().unwrap().len(),"actual_model_invocations":invocations,"admitted_inference_bound":4096,"elapsed_nanos":started.elapsed().as_nanos().to_string(),"heldout_accuracy_claim":false,"stable_or_played_fact_claim":false,"external_evaluation_references":evaluation,"training_membership_disjointness_verified":false,"metric_token_scope":"all supplied tokens including punctuation; universal base labels only, subtypes excluded","tokens":tokens,"correct_heads":correct_heads,"correct_base_labels":correct_base_labels,"correct_pos":correct_pos,"uas":correct_heads as f64 / tokens as f64,"base_las":correct_base_labels as f64 / tokens as f64,"pos_accuracy":correct_pos as f64 / tokens as f64});
+    let result = json!({"native_admission_receipt":native_admission_receipt,"prepared_native_output_admission":prepared_native,"receipts":receipts,"exact_base_graphs":correct,"exact_reference_teaching_graphs":if evaluation {None} else {Some(correct)},"examples":rows.as_array().unwrap().len(),"actual_model_invocations":invocations,"admitted_inference_bound":4096,"elapsed_nanos":started.elapsed().as_nanos().to_string(),"heldout_accuracy_claim":false,"stable_or_played_fact_claim":false,"external_evaluation_references":evaluation,"training_membership_disjointness_verified":false,"metric_token_scope":"all supplied tokens including punctuation; universal base labels only, subtypes excluded","tokens":tokens,"correct_heads":correct_heads,"correct_base_labels":correct_base_labels,"correct_pos":correct_pos,"uas":correct_heads as f64 / tokens as f64,"base_las":correct_base_labels as f64 / tokens as f64,"pos_accuracy":correct_pos as f64 / tokens as f64});
     let mut result = result;
     result["vocative_edges"] = json!({
         "scope": "exact dependent occurrence, governor and universal base relation; wrong governor counts as both false positive and false negative",
