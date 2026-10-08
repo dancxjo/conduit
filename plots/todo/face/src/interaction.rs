@@ -3,10 +3,13 @@
 //! module does not retain state or mutate it outside the scan.
 
 use alloc::{string::String, string::ToString};
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation, PresentationPropertyValue};
+use conduit_presentation::{
+    FaceInteraction, MaskShow, Presentation, PresentationContributionBasis,
+    PresentationPropertyValue,
+};
 use conduit_todo_plot::{TodoCommand, TodoState};
 
-use crate::TodoFaceError;
+use crate::{todo_fragment, TodoFaceError};
 
 pub fn todo_command_from_interaction(
     state: &TodoState,
@@ -25,6 +28,41 @@ pub fn todo_command_from_interaction(
     interaction
         .validate_against(face, show)
         .map_err(TodoFaceError::InvalidInteraction)?;
+    // Face validation proves the interaction matches this Show, but the Face
+    // itself must still offer the Plot's exact action contract. A Host or Mask
+    // cannot redefine a Todo action's intent, argument Form, or availability.
+    let basis = PresentationContributionBasis {
+        checked_plot_id: face
+            .basis
+            .checked_plot_id
+            .clone()
+            .ok_or(TodoFaceError::InvalidActionContract)?,
+        plan_id: face
+            .basis
+            .plan_id
+            .clone()
+            .ok_or(TodoFaceError::InvalidActionContract)?,
+        active_play_id: face
+            .basis
+            .active_play_id
+            .clone()
+            .ok_or(TodoFaceError::InvalidActionContract)?,
+        required_interaction_context: None,
+    };
+    let expected = todo_fragment(state, basis, true)?;
+    let canonical = expected
+        .actions
+        .iter()
+        .find(|action| action.identity == interaction.action_id)
+        .ok_or(TodoFaceError::UnsupportedAction)?;
+    if face
+        .actions
+        .iter()
+        .find(|action| action.identity == interaction.action_id)
+        != Some(canonical)
+    {
+        return Err(TodoFaceError::InvalidActionContract);
+    }
     let command = command_for_action(
         state,
         &interaction.action_id,
