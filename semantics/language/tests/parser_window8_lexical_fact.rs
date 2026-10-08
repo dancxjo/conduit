@@ -98,6 +98,50 @@ fn generated_lexical_fact_admits_agreement_and_refuses_changed_basis_choice_or_p
     };
     let agreed = admit(snapshot(0, lexical.lexical(), &basis).unwrap()).unwrap();
     assert_eq!(*agreed.query().dependent(), 0);
+    {
+        use conduit_plot::rust_binding::{
+            NativeBindingRefusal, NativeRustBinding, PreparedNativeFamilyLimits,
+        };
+        let mut prepared = conduit_language::prepared_stable_lexical_fact::PreparedStableLexicalFactAdmission::prepare(
+            PreparedNativeFamilyLimits {
+                maximum_types: 64,
+                maximum_laws_per_type: 64,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+                maximum_retained_bytes: 256 * 1024 * 1024,
+                maximum_preparation_peak_bytes: 512 * 1024 * 1024,
+                maximum_conversion_requested_bytes: 1024 * 1024 * 1024,
+            },
+        ).unwrap();
+        let canonical = agreed.clone().encode().unwrap();
+        assert_eq!(prepared.decode(&canonical).unwrap(), agreed);
+        let structured = agreed.clone().into_structured().unwrap();
+        assert_eq!(prepared.convert_structured(&structured).unwrap(), agreed);
+        assert_eq!(prepared.storage_receipt().types, 35);
+        let changed_query =
+            LanguageParserWindow8FactQuery::new(0, snapshot(1, lexical.lexical(), &basis).unwrap())
+                .unwrap();
+        let invalid = conduit_core::StructuredInfoValue::record(
+            LanguageParserWindow8StableLexicalFact::semantic_type().unwrap(),
+            vec![conduit_core::StructuredFieldValue::new(
+                "query",
+                changed_query.into_structured().unwrap(),
+            )
+            .unwrap()],
+        )
+        .unwrap();
+        let reference = LanguageParserWindow8StableLexicalFact::from_structured(invalid.clone());
+        assert_eq!(
+            reference.as_ref().err(),
+            Some(&NativeBindingRefusal::ViolatedInvariant { index: 3 })
+        );
+        assert_eq!(prepared.convert_structured(&invalid), reference);
+
+        assert!(prepared.decode(&canonical[..canonical.len() - 1]).is_err());
+        assert!(prepared
+            .decode(&agreed.query().clone().encode().unwrap())
+            .is_err());
+    }
+
     assert!(admit(snapshot(1, lexical.lexical(), &basis).unwrap()).is_err());
     let foreign_basis = LanguageParserBasis::new(
         LanguageAnalysisRevisionId::new("window8/foreign-analysis".into()).unwrap(),

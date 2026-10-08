@@ -109,6 +109,7 @@ pub use generated::{
 pub use generated::{LanguageParserJointMerge, LanguageParserJointRawBeam};
 pub mod pronunciation_selection;
 pub mod stable_lexical_selection;
+pub mod prepared_stable_lexical_fact;
 
 pub use generated::{
     LanguagePronunciationArcTarget, LanguagePronunciationCandidateQuery,
