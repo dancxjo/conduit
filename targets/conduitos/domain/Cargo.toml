@@ -23,6 +23,7 @@ proof = []
 
 [profile.release]
 panic = "abort"
-opt-level = 2
+# The separately admitted image has a fixed 64 KiB code/constant window.
+opt-level = "s"
 codegen-units = 1
 lto = false
