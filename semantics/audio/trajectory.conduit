@@ -1,0 +1,67 @@
+# Source alone chooses domain and exact numeric quantity projection.
+plot audio/trajectory-ratio (
+    >> value: AudioTrajectoryQuantity
+    result: AudioTrajectoryRatio >>
+) = (. is frequency ? {numerator: .frequency.numerator_hz, denominator: .frequency.denominator, domain: AudioTrajectoryDomain.frequency} : . is cycle ? {numerator: .cycle.numerator_seconds, denominator: .cycle.denominator, domain: AudioTrajectoryDomain.cycle} : . is amplitude ? {numerator: .amplitude.numerator, denominator: .amplitude.denominator, domain: AudioTrajectoryDomain.amplitude} : {numerator: .power.numerator, denominator: .power.denominator, domain: AudioTrajectoryDomain.power})
+
+plot audio/trajectory-anchor-equal (
+    >> value: AudioTrajectoryAnchorComparison
+    result: Boolean >>
+) = (.trajectory.timeline.value == .query.timeline.value && .trajectory.origin.value == .query.origin.value)
+
+# Strictly positive duration and one quantity domain across both endpoints.
+plot audio/trajectory-segment-valid (
+    >> value: AudioTrajectoryU8Arithmetic
+    result: Boolean >>
+) = (.input.start.numerator_seconds * .input.end.denominator < .input.end.numerator_seconds * .input.start.denominator && .input.left.domain == .input.right.domain)
+
+# Gaps are legal; overlap and out-of-order segments are not.
+plot audio/trajectory-order-valid (
+    >> value: AudioTrajectoryOrderU8
+    result: Boolean >>
+) = (.input.previous_end.numerator_seconds * .input.next_start.denominator <= .input.next_start.numerator_seconds * .input.previous_end.denominator)
+
+plot audio/trajectory-domain-equal (
+    >> value: AudioTrajectoryDomainComparison
+    result: Boolean >>
+) = (.left == .right)
+
+# A shared boundary belongs to the next segment; only the final end is included.
+plot audio/trajectory-covers (
+    >> value: AudioTrajectoryU8Arithmetic
+    result: Boolean >>
+) = (.input.query.numerator_seconds * .input.start.denominator >= .input.start.numerator_seconds * .input.query.denominator && (.input.query.numerator_seconds * .input.end.denominator < .input.end.numerator_seconds * .input.query.denominator || (.input.final_segment && .input.query.numerator_seconds * .input.end.denominator == .input.end.numerator_seconds * .input.query.denominator)))
+
+# Exact elapsed / span weight. Coverage and segment validity are admitted first.
+plot audio/trajectory-weight (
+    >> value: AudioTrajectoryU8Arithmetic
+    result: AudioTrajectoryWeight >>
+) = ({numerator: (.input.query.numerator_seconds * .input.start.denominator - .input.start.numerator_seconds * .input.query.denominator) * .input.end.denominator, denominator: (.input.end.numerator_seconds * .input.start.denominator - .input.start.numerator_seconds * .input.end.denominator) * .input.query.denominator})
+
+# Explicit endpoints preserve the authored endpoint fractions. Interior step
+# holds left; linear combines exact rational values in the chosen unit domain.
+plot audio/trajectory-blend (
+    >> value: AudioTrajectoryBlendInput
+    result: AudioTrajectoryRatio >>
+) = (.weight.numerator == .weight.denominator ? .request.input.right : .weight.numerator == 0 || .request.input.interpolation is step ? .request.input.left : {numerator: (.weight.denominator - .weight.numerator) * .request.input.left.numerator * .request.input.right.denominator + .weight.numerator * .request.input.right.numerator * .request.input.left.denominator, denominator: .weight.denominator * .request.input.left.denominator * .request.input.right.denominator, domain: .request.input.left.domain})
+
+plot audio/trajectory-is-step (
+    >> value: AudioTrajectoryInterpolation
+    result: Boolean >>
+) = (. is step)
+plot audio/trajectory-step-valid (
+    >> value: AudioTrajectoryU32Step
+    result: Boolean >>
+) = (.input.start.numerator_seconds * .input.end.denominator < .input.end.numerator_seconds * .input.start.denominator && .input.left.domain == .input.right.domain)
+plot audio/trajectory-order-u32 (
+    >> value: AudioTrajectoryOrderU32
+    result: Boolean >>
+) = (.input.previous_end.numerator_seconds * .input.next_start.denominator <= .input.next_start.numerator_seconds * .input.previous_end.denominator)
+plot audio/trajectory-step-covers (
+    >> value: AudioTrajectoryU32Step
+    result: Boolean >>
+) = (.input.query.numerator_seconds * .input.start.denominator >= .input.start.numerator_seconds * .input.query.denominator && (.input.query.numerator_seconds * .input.end.denominator < .input.end.numerator_seconds * .input.query.denominator || (.input.final_segment && .input.query.numerator_seconds * .input.end.denominator == .input.end.numerator_seconds * .input.query.denominator)))
+plot audio/trajectory-step-select (
+    >> value: AudioTrajectoryU32Step
+    result: AudioTrajectoryRatio >>
+) = (.input.query.numerator_seconds * .input.end.denominator == .input.end.numerator_seconds * .input.query.denominator ? .input.right : .input.left)

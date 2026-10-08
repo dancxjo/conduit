@@ -186,5 +186,22 @@ pub use provider::*;
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
 
+/// Generic fixed-shape reference numeric helpers; graph admission is separate.
+pub mod fixed_neural;
+
+/// Reference computation over exact fixed resource-backed Data tensors.
+pub mod fixed_tensor;
+
+#[cfg(feature = "kernel-step")]
+pub mod fixed_numeric_back;
+pub mod fixed_numeric_binding;
+pub mod fixed_numeric_catalog;
+pub mod fixed_numeric_codec;
+pub mod fixed_numeric_preparation;
+
+/// Fixed unbiased reference projection over an exact tensor resource.
+pub mod fixed_tensor_linear;
+/// Shared immutable resource custody for fixed numerical reference operators.
+pub mod fixed_tensor_resource;
 mod model_work_contract;
 pub use model_work_contract::*;
