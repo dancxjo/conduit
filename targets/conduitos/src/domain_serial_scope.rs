@@ -12,6 +12,7 @@ use conduit_core::Plan;
 use sha2::{Digest, Sha256};
 
 pub const SERIAL_PRESENT_OPERATION: u32 = 7;
+pub const COUNT_PRESENT_OPERATION: u32 = 11;
 
 #[derive(Clone, Copy)]
 pub struct SerialScope {
@@ -127,6 +128,28 @@ impl SerialScope {
             ),
             fixed,
             Presentation::Indicator,
+        )
+    }
+
+    /// Count's semantic input is eight bytes; the domain renders at most twenty
+    /// decimal digits before crossing this separately bounded physical gate.
+    pub fn admit_count(
+        plan: &Plan,
+        binding: &RegionBinding,
+        fixed: &HostOffer<'_>,
+    ) -> Result<Self, DomainRefusal> {
+        RegionBinding::admit(plan, &binding.active, &binding.region, binding.domain)?;
+        Self::admit_selected(
+            plan,
+            &binding.active.host_id,
+            &binding.active.boot_id,
+            &binding.region,
+            (
+                parse_identity(binding.active.plan_id.as_str())?,
+                parse_identity(binding.active.active_play_id.as_str())?,
+            ),
+            fixed,
+            Presentation::Count,
         )
     }
 
@@ -252,6 +275,7 @@ impl SerialScope {
             || call.maximum_input_bytes == 0
             || call.maximum_input_bytes > capability.maximum_input_bytes
             || call.maximum_output_bytes > presentation.maximum_completion_bytes()
+            || (matches!(presentation, Presentation::Count) && call.maximum_input_bytes != 8)
         {
             return Err(DomainRefusal::WrongBinding);
         }
@@ -276,6 +300,8 @@ impl SerialScope {
             .ok_or(DomainRefusal::WrongBinding)?;
         let _ = pool;
         let maximum_operations = match presentation {
+            Presentation::Count if placement.configuration.is_empty() => 2,
+            Presentation::Count => return Err(DomainRefusal::WrongBinding),
             Presentation::Indicator if placement.configuration.is_empty() => 1,
             Presentation::Indicator => return Err(DomainRefusal::WrongBinding),
             Presentation::Text => placement
@@ -310,7 +336,11 @@ impl SerialScope {
                 resource: identity(b"resource", &[resource.pool_id.as_str().as_bytes()]),
                 resource_generation: u32::try_from(fixed.generation)
                     .map_err(|_| DomainRefusal::WrongBinding)?,
-                operation: SERIAL_PRESENT_OPERATION,
+                operation: if matches!(presentation, Presentation::Count) {
+                    COUNT_PRESENT_OPERATION
+                } else {
+                    SERIAL_PRESENT_OPERATION
+                },
                 subject: identity(
                     b"subject",
                     &[
@@ -326,7 +356,10 @@ impl SerialScope {
                         call.contract_id.as_str().as_bytes(),
                     ],
                 ),
-                maximum_parameter_bytes: call.maximum_input_bytes,
+                maximum_parameter_bytes: match presentation {
+                    Presentation::Count => 20,
+                    _ => call.maximum_input_bytes,
+                },
                 maximum_work_units: 1,
                 maximum_in_flight: 1,
                 maximum_operations,
@@ -379,11 +412,13 @@ impl SerialScope {
 enum Presentation {
     Text,
     Indicator,
+    Count,
 }
 
 impl Presentation {
     fn kind(self) -> &'static str {
         match self {
+            Self::Count => conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
             Self::Text => conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
             Self::Indicator => conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
         }
@@ -391,11 +426,12 @@ impl Presentation {
     fn maximum_completion_bytes(self) -> u32 {
         match self {
             Self::Text => conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
-            Self::Indicator => 0,
+            Self::Indicator | Self::Count => 0,
         }
     }
     fn implementation(self) -> &'static str {
         match self {
+            Self::Count => crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
             Self::Text => TEXT_PRESENTATION_IMPLEMENTATION,
             Self::Indicator => INDICATOR_PRESENTATION_IMPLEMENTATION,
         }
