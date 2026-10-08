@@ -19,8 +19,12 @@ type LanguageParserRetainedCommitAnchor = {
  dependent: U64
  where .dependent < 4
 }
+type LanguageParserRetainedCommitAnchorProposal = {
+ basis: LanguageParserBasis
+ dependent: U64
+}
 plot language-parser-retained-commit-anchor (
- input: LanguageParserJointCommitQuery...| >> anchor: LanguageParserRetainedCommitAnchor...|
+ input: LanguageParserJointCommitQuery...| >> anchor: LanguageParserRetainedCommitAnchorProposal...|
 ) = { basis: .fact.query.beam.basis, dependent: .fact.query.dependent }
 type LanguageParserRetainedCommitReceipt = {
  previous: LanguageParserJointBeam
