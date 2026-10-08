@@ -12,8 +12,11 @@ use conduit_core::{
 
 mod pure_todo_scan;
 mod todo_combine;
+mod todo_scan_offer;
 pub use pure_todo_scan::install_pure_todo_scan;
 pub use todo_combine::{offer as todo_combine_offer, TodoCombineFactory};
+pub use todo_scan_offer::todo_scan_offer;
+pub(crate) use todo_scan_offer::validate_planned_todo_scan;
 
 /// Production child operations that the std activation host can actually
 /// prepare. The scan coordinator is selected by the whole Plan, not by this

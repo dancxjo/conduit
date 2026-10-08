@@ -31,12 +31,26 @@ impl BodyScanBack {
             || planned.output.abnormal_kind.is_some()
             || planned.accumulator_input.abnormal_kind.is_some()
             || planned.limits.maximum_items == 0
-            || planned.limits.maximum_items > 32
+            || planned.limits.maximum_items > 64
             || planned.retained_item_bytes == 0
             || planned.retained_accumulator_bytes == 0
         {
             return Err(
                 "installed pure Todo scan requires value-only bounded Flow terminals".into(),
+            );
+        }
+        let expected_children = usize::from(planned.limits.maximum_items);
+        let (ready, receipts) = scan.allocation_capacities();
+        let (accumulator, candidate, queued, admission) = scan.storage_capacities();
+        if ready != expected_children
+            || receipts != expected_children
+            || accumulator < planned.retained_accumulator_bytes as usize
+            || candidate < planned.retained_accumulator_bytes as usize
+            || queued < planned.retained_item_bytes as usize
+            || admission < planned.retained_item_bytes as usize
+        {
+            return Err(
+                "installed Todo scan child receipts or value scratch were not admitted".into(),
             );
         }
         let maximum_child_steps = u32::from(planned.limits.maximum_items)
