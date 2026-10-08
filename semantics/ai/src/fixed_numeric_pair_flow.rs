@@ -15,20 +15,30 @@ pub fn fixed_flow_pair_contract(identity: &str) -> Result<Kind, String> {
         .strip_prefix("numeric/flow-pair")
         .ok_or_else(|| String::from("explicit Flow pair identity required"))?;
     let source_identity = format!("numeric/pair{suffix}");
-    let (_, _, mut kind) = fixed_numeric_pair_contracts()?
+    let (_, _, kind) = fixed_numeric_pair_contracts()?
         .into_iter()
         .find(|(_, _, kind)| kind.kind_id.as_str() == source_identity)
         .ok_or_else(|| String::from("unsupported exact Value pair"))?;
+    Ok(as_flow_contract(kind, identity))
+}
+fn as_flow_contract(mut kind: Kind, identity: &str) -> Kind {
     kind.kind_id = kind_id(identity);
     kind.kind_contract_revision = KindIdentity::from(FLOW_PAIR_IMPLEMENTATION);
     for port in kind.inputs.iter_mut().chain(&mut kind.outputs) {
         port.temporal = PortTemporal::Flow { closes: true };
     }
-    Ok(kind)
+    kind
 }
+
 pub fn fixed_flow_pair_offer(identity: &str) -> Result<CapabilityOffer, String> {
-    Ok(BackOfferBuilder::new(
+    Ok(offer_for_contract(
         fixed_flow_pair_contract(identity)?,
+        identity,
+    ))
+}
+fn offer_for_contract(contract: Kind, identity: &str) -> CapabilityOffer {
+    BackOfferBuilder::new(
+        contract,
         Back {
             capability_id: CapabilityId::from(format!("{FLOW_PAIR_IMPLEMENTATION}/{identity}")),
             execution_profile_id: ExecutionProfileId::from(FLOW_PAIR_IMPLEMENTATION),
@@ -39,7 +49,7 @@ pub fn fixed_flow_pair_offer(identity: &str) -> Result<CapabilityOffer, String> 
             authority_requirements: vec![],
         },
     )
-    .build())
+    .build()
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FixedPairPreparationRefusal {
@@ -215,3 +225,6 @@ impl FixedFlowPairBack {
             .saturating_add(self.right.local_accounted_heap_bytes())
     }
 }
+
+mod storage;
+pub use storage::*;

@@ -77,3 +77,79 @@ impl FixedFlowPairOperationFactory {
         ))
     }
 }
+
+impl FixedFlowPairOperationFactory {
+    // This is per-Back preparation only: the caller separately admits the
+    // immutable profile and this factory's Plan/selection preparation.
+    fn profile_for_storage<'a>(
+        &self,
+        gear: &PlannedGear,
+        profile: &'a PreparedFixedFlowPairProfile,
+    ) -> Result<&'a PreparedFixedFlowPairProfile, FlowPairStorageRefusal> {
+        let offer = self
+            .selected
+            .get(&gear.placement_id)
+            .ok_or(FlowPairStorageRefusal::ProfileNotPrepared)?;
+        if offer != profile.offer() {
+            return Err(FlowPairStorageRefusal::ProfileNotPrepared);
+        }
+        verify_fixed_placement(gear, offer)
+            .map_err(|_| FlowPairStorageRefusal::ProfileNotPrepared)?;
+        Ok(profile)
+    }
+    pub fn preparation_storage_reservation(
+        &self,
+        gear: &PlannedGear,
+        profile: &PreparedFixedFlowPairProfile,
+    ) -> Result<FlowPairStorageReceipt, FlowPairStorageRefusal> {
+        let mut r =
+            FixedFlowPairBack::storage_reservation(self.profile_for_storage(gear, profile)?)?;
+        let root = core::mem::size_of::<FixedFlowPairBack>();
+        r.preparation_requested_bytes_bound = r
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(FlowPairStorageRefusal::Capacity)?;
+        r.preparation_peak_bytes_bound = r
+            .preparation_peak_bytes_bound
+            .checked_add(root)
+            .ok_or(FlowPairStorageRefusal::Capacity)?;
+        r.retained_heap_bytes_bound = r
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(FlowPairStorageRefusal::Capacity)?;
+        Ok(r)
+    }
+    pub fn prepare_with_storage_limits(
+        &self,
+        gear: &PlannedGear,
+        profile: &PreparedFixedFlowPairProfile,
+        maximum_preparation_requested_bytes: usize,
+        maximum_retained_heap_bytes: usize,
+    ) -> Result<
+        (
+            super::prepared_numeric_back::PreparedNumericBack,
+            FlowPairStorageReceipt,
+        ),
+        FlowPairStorageRefusal,
+    > {
+        let profile = self.profile_for_storage(gear, profile)?;
+        let root = core::mem::size_of::<FixedFlowPairBack>();
+        let requested = maximum_preparation_requested_bytes
+            .checked_sub(root)
+            .ok_or(FlowPairStorageRefusal::Capacity)?;
+        let retained = maximum_retained_heap_bytes
+            .checked_sub(root)
+            .ok_or(FlowPairStorageRefusal::Capacity)?;
+        let (back, mut r) =
+            FixedFlowPairBack::prepare_selected_with_storage_limits(profile, requested, retained)?;
+        r.preparation_requested_bytes_bound += root;
+        r.preparation_peak_bytes_bound += root;
+        r.retained_heap_bytes_bound += root;
+        let local = back.local_accounted_heap_bytes();
+        r.retained_accounted_heap_bytes = local + root;
+        Ok((
+            super::prepared_numeric_back::PreparedNumericBack::new(back, local),
+            r,
+        ))
+    }
+}

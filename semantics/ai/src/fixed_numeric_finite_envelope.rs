@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape as Shape, StructuredInfoValue,
 };
+#[derive(Clone)]
 pub(crate) struct FiniteEnvelope {
     template: Vec<u8>,
     offsets: Vec<usize>,
