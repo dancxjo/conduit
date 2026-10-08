@@ -128,6 +128,7 @@ pub(super) fn prepare(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         return Ok(());
     }
     if selected(&paths)?.is_some() {
+        retain_receipt(&paths, &destination)?;
         if opts.json {
             println!(
                 "{}",
@@ -194,6 +195,7 @@ pub(super) fn prepare(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     )
     .map_err(refusal)?;
     selected(&paths)?.ok_or_else(|| refusal("prepared tool receipt absent"))?;
+    retain_receipt(&paths, &destination)?;
     if opts.json {
         println!(
             "{}",
@@ -207,6 +209,16 @@ pub(super) fn prepare(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
     Ok(())
 }
+fn retain_receipt(paths: &Paths, destination: &Path) -> Result<(), ConduitosError> {
+    fs::create_dir_all(&paths.target).map_err(refusal)?;
+    fs::copy(
+        destination.join("receipt.json"),
+        paths.target.join("riscv64-protected-emulator.json"),
+    )
+    .map_err(refusal)?;
+    Ok(())
+}
+
 fn refusal(error: impl std::fmt::Display) -> ConduitosError {
     ConduitosError::refusal("riscv64-emulator-preparation-refused", error.to_string())
 }

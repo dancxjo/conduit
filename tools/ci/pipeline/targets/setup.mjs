@@ -76,7 +76,10 @@ export function setup(target) {
     };
     rustTargets(...triples[arch]);
     rustComponents('rust-src', 'llvm-tools-preview');
-    if (arch === 'riscv64') xtask('make', 'conduitos', 'prepare-riscv64-domain-emulator');
+    if (arch === 'riscv64') {
+      xtask('make', 'conduitos', 'prepare-riscv64-domain-emulator');
+      recordTool('riscv64-protected-emulator', JSON.parse(readFileSync('target/conduitos/riscv64/riscv64-protected-emulator.json', 'utf8')));
+    }
     if (arch === 'loongarch64') xtask('make', 'conduitos', 'prepare-loongarch64-domain-emulator');
   } else if (target.family === 'esp32') {
     if (target.id === 'esp32-c3') {
