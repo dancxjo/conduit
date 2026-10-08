@@ -6,6 +6,8 @@ import path from 'node:path';
 export const TODO_BROWSER_DEVELOPMENT_ROOT = 'site/evidence/todo-browser-development';
 const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.png',
   'browser-full-after.png', 'index.html', 'long-list-browser-receipt.json',
+  'long-list-requested-detail-playback.json', 'long-list-requested-detail-proof.json',
+  'long-list-requested-detail-same-play.wav', 'long-list-requested-detail-turn.json',
   'long-list-spoken-proof.json', 'long-list-spoken-same-play.wav',
   'long-list-spoken-status.json', 'long-list-terminal-summary.json',
   'read-only-card-receipt.json', 'receipt.json',
@@ -34,6 +36,9 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const longListBrowser = JSON.parse(bytes('long-list-browser-receipt.json'));
   const spoken = JSON.parse(bytes('long-list-spoken-proof.json'));
   const spokenStatus = JSON.parse(bytes('long-list-spoken-status.json'));
+  const detail = JSON.parse(bytes('long-list-requested-detail-proof.json'));
+  const detailPlay = JSON.parse(bytes('long-list-requested-detail-playback.json'));
+  const detailTurn = JSON.parse(bytes('long-list-requested-detail-turn.json'));
   if (!commit(publicationCommit) || !commit(action.owner_source_commit)
       || !commit(action.browser_runtime_source_commit)
       || action.schema !== 'conduit.proof/todo-owner-browser@1'
@@ -99,8 +104,33 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || wav.readUInt16LE(34) !== 16 || wav.length !== speechBatch.wav_bytes) {
     throw new Error('Todo spoken evidence is not one completed selected-speaker Play');
   }
+  const detailWav = bytes('long-list-requested-detail-same-play.wav');
+  if (detail.body_id !== action.body_id || !commit(detail.release_source_identity)
+      || detail.release_source_identity !== 'c49b89b58170762299cbceb36c4e52ea7d71eb9b'
+      || detail.boot_id === spoken.boot_id || detail.face_id === spoken.face_id
+      || detail.face_id !== detailPlay.face_id || detail.face_id !== detailTurn.face_id
+      || detail.face_revision !== detailTurn.face_revision
+      || detail.show_id !== detailPlay.source_show_id
+      || detail.show_id !== detailTurn.source_show_id
+      || detail.speech_plan_id !== detailPlay.plan_id
+      || detail.speech_play_id !== detailPlay.play_id
+      || detailPlay.outcome !== 'Completed' || detailTurn.outcome !== 'Completed'
+      || detailTurn.completed_segments !== 3
+      || detail.words.join(',') !== detailPlay.spoken_segments.map(segment => segment.text).join(',')
+      || detailPlay.spoken_segments.at(-1)?.reason !== 'final-flush'
+      || detail.speaker_frames_committed !== detailPlay.speaker_frames_committed
+      || detail.same_play_wav_sha256 !== sha(detailWav).slice(7)
+      || detail.same_play_wav_sha256 !== detailPlay.same_play_capture?.wav_sha256
+      || detailWav.toString('ascii', 0, 4) !== 'RIFF'
+      || detailWav.toString('ascii', 8, 12) !== 'WAVE'
+      || detailWav.readUInt32LE(24) !== 48000 || detailWav.readUInt16LE(22) !== 2
+      || detailWav.readUInt16LE(34) !== 16
+      || detailWav.length !== detailPlay.same_play_capture?.wav_bytes) {
+    throw new Error('Todo requested detail is not one completed same-Body speaker Play');
+  }
   for (const source of [action.owner_source_commit, action.browser_runtime_source_commit,
-    longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity]) {
+    longList.owner_source_commit, longListBrowser.owner_source_identity, spoken.source_identity,
+    detail.release_source_identity]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch { throw new Error('Todo browser capture source is absent from publication ancestry'); }
   }
@@ -132,6 +162,7 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || !page.includes(longList.owner_source_commit.slice(0, 9))
       || !page.includes(longListBrowser.owner_source_identity.slice(0, 9))
       || !page.includes(spoken.source_identity.slice(0, 9))
+      || !page.includes(detail.release_source_identity.slice(0, 9))
       || !page.includes('This WAV captures the audio delivered by the completed selected-speaker Play')) {
     throw new Error('Todo browser development page overclaims its capture');
   }
@@ -146,5 +177,5 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     browserRuntimeCommit: action.browser_runtime_source_commit, bodyId: action.body_id,
     longListActionsCommit: longList.owner_source_commit,
     longListBrowserCommit: longListBrowser.owner_source_identity,
-    spokenCommit: spoken.source_identity };
+    spokenCommit: spoken.source_identity, detailCommit: detail.release_source_identity };
 }
