@@ -8,6 +8,7 @@ use conduit_std_host::body_execution::{
     BodyForeExchange, BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
 };
 use conduit_std_host::todo_durable_resource::CheckpointIdentity;
+use conduit_std_host::todo_durable_resource::{Refusal, SelectedTodoResidence};
 use conduit_std_host::{
     ExternalForeDelivery, ExternalForeInput, RunControl, StdHost, StdHostConfig, ThreadTimer,
 };
@@ -37,6 +38,12 @@ fn identity() -> CheckpointIdentity {
         body: "body-1".into(),
         plot: "checked-todo-1".into(),
         workload: "todo-list-1".into(),
+    }
+}
+fn read_identity() -> CheckpointIdentity {
+    CheckpointIdentity {
+        plot: "checked-todo-restore-2".into(),
+        ..identity()
     }
 }
 fn content(mode: Mode, version: u8) -> ResourceContentRequirement {
@@ -293,7 +300,7 @@ fn restore(
     conduit_std_host::body_execution::BodyRunReport,
     CapturedFore,
 ) {
-    restore_with_identity(root, version, identity())
+    restore_with_identity(root, version, read_identity())
 }
 fn restore_with_identity(
     root: &Path,
@@ -394,7 +401,10 @@ fn idle_offer_transition_preserves_host_play_sequence_and_refuses_stale_plans() 
                     },
                     TodoCheckpointSelection {
                         root: &root,
-                        identity: identity(),
+                        identity: CheckpointIdentity {
+                            plot: format!("checked-todo-write/{text}"),
+                            ..identity()
+                        },
                     },
                     &mut Vec::new(),
                     &mut ThreadTimer,
@@ -529,6 +539,80 @@ fn second_host_restores_exact_published_state_through_fore() {
     });
 }
 #[test]
+fn old_plot_keyed_checkpoint_requires_explicit_migration() {
+    on_body_stack(|| {
+        let root = root();
+        let (host, plan) = planned(Mode::Read, &root, 2);
+        let placement = &plan.fragments[0].placements[0];
+        let selected = placement.resources[0].content.as_ref().unwrap();
+        let checkpoint = identity();
+        let mut key = Vec::new();
+        key.extend_from_slice(&selected.contract.identity.digest());
+        for part in [&checkpoint.body, &checkpoint.plot, &checkpoint.workload] {
+            key.extend_from_slice(&(part.len() as u16).to_le_bytes());
+            key.extend_from_slice(part.as_bytes());
+        }
+        let legacy = semantic_digest("conduit.todo/checkpoint-namespace@1", &key);
+        let namespace = legacy
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        std::fs::write(root.join(format!("{namespace}.current")), [0u8; 36]).unwrap();
+        let residence = SelectedTodoResidence::prepare(&root, placement, checkpoint).unwrap();
+        assert_eq!(
+            residence.recover(&placement.authority[0]),
+            Err(Refusal::MigrationRequired)
+        );
+        drop(host);
+        std::fs::remove_dir_all(root).unwrap();
+    });
+}
+#[test]
+fn selected_resource_body_and_list_mismatch_refuse_before_state_output() {
+    on_body_stack(|| {
+        let root = root();
+        seed(&root);
+        let (_, plan) = planned(Mode::Read, &root, 2);
+        let placement = &plan.fragments[0].placements[0];
+        let mut wrong_body = read_identity();
+        wrong_body.body = "other-body".into();
+        let residence = SelectedTodoResidence::prepare(&root, placement, wrong_body).unwrap();
+        assert_eq!(
+            residence.recover(&placement.authority[0]),
+            Err(Refusal::Missing)
+        );
+        let mut wrong_key = read_identity();
+        wrong_key.workload = "other-list".into();
+        let residence = SelectedTodoResidence::prepare(&root, placement, wrong_key).unwrap();
+        assert_eq!(
+            residence.recover(&placement.authority[0]),
+            Err(Refusal::Missing)
+        );
+        let wrong_content = ResourceContentRequirement {
+            identity: ResourceSemanticIdentity::from_digest([9; 32]),
+            ..content(Mode::Read, 2)
+        };
+        let host = StdHost::new_for_todo_checkpoint_read(
+            StdHostConfig {
+                host_id: "host-b".into(),
+                boot_id: "boot-b".into(),
+                offer_generation: OfferGeneration(1),
+            },
+            &root,
+            wrong_content,
+        )
+        .unwrap();
+        let plan = plan_on_host(Mode::Read, &host, 2, None).unwrap();
+        let placement = &plan.fragments[0].placements[0];
+        let residence = SelectedTodoResidence::prepare(&root, placement, read_identity()).unwrap();
+        assert_eq!(
+            residence.recover(&placement.authority[0]),
+            Err(Refusal::Missing)
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    });
+}
+#[test]
 fn missing_stale_and_corrupt_versions_never_emit_state() {
     on_body_stack(|| {
         let root = root();
@@ -542,6 +626,11 @@ fn missing_stale_and_corrupt_versions_never_emit_state() {
         let mut other_namespace = identity();
         other_namespace.workload = "other-todo-list".into();
         let (mismatch, fore) = restore_with_identity(&root, 2, other_namespace);
+        assert_ne!(mismatch.terminal, TerminalDisposition::Completed);
+        assert!(fore.0.is_empty());
+        let mut other_body = read_identity();
+        other_body.body = "body-2".into();
+        let (mismatch, fore) = restore_with_identity(&root, 2, other_body);
         assert_ne!(mismatch.terminal, TerminalDisposition::Completed);
         assert!(fore.0.is_empty());
         let candidate = std::fs::read_dir(&root)
