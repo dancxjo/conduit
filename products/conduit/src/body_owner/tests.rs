@@ -1,4 +1,4 @@
-use super::super::{expand_owner_entry, scoped_todo_initial};
+use super::super::scoped_todo_initial;
 use super::*;
 use conduit_core::PlannedActivationEntry;
 use conduit_core::{BootId, HostId, OfferGeneration};
@@ -30,7 +30,7 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
 #[test]
 fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
     let source = crate::plot_source::parse(TODO_SOURCE).unwrap();
-    let plot = expand_owner_entry(&source).unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
     assert_eq!(plot.expanded.name, "todo/main");
     let (initial, maximum) = scoped_todo_initial(&plot).unwrap().unwrap();
     assert_eq!(initial.title, "Groceries");
@@ -74,14 +74,20 @@ fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
 #[test]
 fn scoped_todo_host_refuses_invalid_checked_form_and_keeps_ordinary_source() {
     assert!(scoped_todo_initial(&source()).unwrap().is_none());
-    let mut checked = expand_owner_entry(&crate::plot_source::parse(TODO_SOURCE).unwrap()).unwrap();
+    let mut checked = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
     checked.expanded.activations[0].initial_accumulator_bytes = Some(vec![0xff]);
     assert!(scoped_todo_initial(&checked).is_err());
 }
 
 #[test]
 fn installed_owner_refuses_live_todo_before_shedding_its_scan_activation() {
-    let plot = expand_owner_entry(&crate::plot_source::parse(TODO_SOURCE).unwrap()).unwrap();
+    let plot = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
     let owner = Owner::open(host("boot/todo-plan"), resident(&plot), None, "Groceries").unwrap();
     assert_eq!(
         owner.plan_partition(&plot, &resident(&plot)).unwrap_err(),

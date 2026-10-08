@@ -51,28 +51,9 @@ fn checked_retained_source(
     }
     let bytes = super::bounded_read(&path, MAXIMUM_SOURCE)?;
     let source = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
-    expand_owner_entry(&crate::plot_source::parse(source)?).map(Some)
-}
-
-/// Checked Plots are ordered for dependencies, while the authored entry is
-/// the final top-level declaration in source order. Keep the resident Plot
-/// bound to that authored entry rather than accidentally selecting its child.
-fn expand_owner_entry(
-    source: &crate::plot_source::CanonicalSource,
-) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
-    let entry = &source
-        .syntax
-        .plots
-        .last()
-        .ok_or("canonical Plot source contains no Plot")?
-        .name
-        .text;
-    conduit_plot::expand_canonical_plot_for_authoring(
-        &source.check()?,
-        entry,
-        source.authoring_catalog(),
-    )
-    .map_err(|diagnostic| diagnostic.to_string())
+    crate::plot_source::parse(source)?
+        .expand_entry_for_authoring()
+        .map(Some)
 }
 
 /// Only a checked, exact Todo scan can request the scoped production offer.
@@ -150,7 +131,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
     let source_bytes = super::bounded_read(source, MAXIMUM_SOURCE)?;
     let source_text = std::str::from_utf8(&source_bytes).map_err(|e| e.to_string())?;
     let canonical_source = crate::plot_source::parse(source_text)?;
-    let checked = expand_owner_entry(&canonical_source)?;
+    let checked = canonical_source.expand_entry_for_authoring()?;
     let resident = ResidentPlot::new(
         checked.expanded.source_document_id.clone(),
         checked.expanded.checked_plot_id.clone(),
