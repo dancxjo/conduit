@@ -206,6 +206,10 @@ impl PreparedProposalModelSelection {
     pub fn declaration(&self) -> &ProposalModelDefinition {
         &self.declaration
     }
+    /// Borrow the exact retained numerical owner for composed bounded execution.
+    pub fn categorical_owner(&self) -> &Arc<PreparedCategoricalStep> {
+        &self.categorical
+    }
     pub fn categorical(&self) -> &PreparedCategoricalStep {
         &self.categorical
     }
