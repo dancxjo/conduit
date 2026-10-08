@@ -74,6 +74,9 @@ impl Default for Clock {
 }
 
 impl MonotonicClockBase for Clock {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn now(&mut self) -> u64 {
         let observed = cpu::read_tsc();
         self.last = observed.max(self.last);
@@ -108,6 +111,9 @@ impl Default for Timer {
 }
 
 impl TimerBase for Timer {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
         let _interrupts = cpu::InterruptMask::new();
         let token = self.slots.arm(interest).inspect_err(|error| {

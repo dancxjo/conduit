@@ -312,6 +312,10 @@ impl<T: Copy, const SLOTS: usize> Default for FixedFactRing<T, SLOTS> {
 
 pub trait MonotonicClockBase {
     fn now(&mut self) -> u64;
+    /// Current Root provider epoch; absence refuses a protected clock binding.
+    fn provider_generation(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait TimerBase {
@@ -319,6 +323,10 @@ pub trait TimerBase {
     fn cancel(&mut self, token: TimerToken) -> Result<KernelInterest, BaseError>;
     fn take_wake(&mut self) -> Result<Option<KernelInterest>, BaseError>;
     fn wake_count(&self) -> u32;
+    /// Current Root provider epoch; absence refuses a protected timer binding.
+    fn provider_generation(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait SerialBase {

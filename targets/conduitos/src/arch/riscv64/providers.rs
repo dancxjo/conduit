@@ -25,6 +25,9 @@ impl Clock {
     }
 }
 impl MonotonicClockBase for Clock {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn now(&mut self) -> u64 {
         self.0 = read_counter().max(self.0);
         self.0
@@ -46,6 +49,9 @@ impl Timer {
     }
 }
 impl TimerBase for Timer {
+    fn provider_generation(&self) -> Option<u64> {
+        Some(1)
+    }
     fn arm(&mut self, interest: KernelInterest) -> Result<TimerToken, BaseError> {
         let token = self.slots.arm(interest)?;
         if self.active.replace(token).is_some() {
