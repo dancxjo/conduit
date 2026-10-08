@@ -1,0 +1,107 @@
+# Exact singleton-word correspondence is selected before structural projection.
+# Whole original accepted candidates and both fixed Source executions remain
+# retained by the preparation owner. Raw pair output alone grants no authority.
+type TranslationWordPairSelectionRequest = {
+ accepted: TranslationAccepted
+ candidate: TranslationCandidate
+ alignment_index: U64 in 0..=63
+ source: LanguageTextSegmentRef
+ target: LanguageTextSegmentRef
+ where .candidate.identity == .accepted.candidate_id
+ where .candidate.source.identity == .accepted.source_text_id
+ where .candidate.source.revision == .accepted.source_revision
+ where .candidate.target.identity == .accepted.target_text_id
+ where .candidate.target.revision == .accepted.target_revision
+ where .source.text_id == .candidate.source.identity
+ where .source.revision_id == .candidate.source.revision
+ where .source.language == .candidate.source.language
+ where .target.text_id == .candidate.target.identity
+ where .target.revision_id == .candidate.target.revision
+ where .target.language == .candidate.target.language
+ where .source.kind is word
+ where .target.kind is word
+ where .alignment_index < sequence/length(.candidate.alignments)
+ where sequence/at(.candidate.alignments,.alignment_index).correspondence is aligned
+ where sequence/at(.candidate.alignments,.alignment_index).correspondence is aligned ? sequence/length(sequence/at(.candidate.alignments,.alignment_index).correspondence.aligned.sources) == 1 : false
+ where sequence/at(.candidate.alignments,.alignment_index).correspondence is aligned ? sequence/length(sequence/at(.candidate.alignments,.alignment_index).correspondence.aligned.targets) == 1 : false
+ where sequence/at(.candidate.alignments,.alignment_index).correspondence is aligned ? sequence/at(sequence/at(.candidate.alignments,.alignment_index).correspondence.aligned.sources,0) == text(.source) : false
+ where sequence/at(.candidate.alignments,.alignment_index).correspondence is aligned ? sequence/at(sequence/at(.candidate.alignments,.alignment_index).correspondence.aligned.targets,0) == text(.target) : false
+}
+type TranslationSelectedWordPair = {
+ accepted_candidate_id: TranslationCandidateId
+ source_material: LanguageText
+ target_material: LanguageText
+ source: LanguageTextSegmentRef
+ target: LanguageTextSegmentRef
+}
+plot speech/translation-select-word-pair (
+ input: TranslationWordPairSelectionRequest...| >> output: TranslationSelectedWordPair...|
+) = { accepted_candidate_id: .candidate.identity, source_material: .candidate.source, target_material: .candidate.target, source: .source, target: .target }
+type TranslationVocativeProjectionRequest = {
+ source: LanguageVocativeDiscourseFact
+ source_governor: LanguageAnalysisTokenRef
+ source_dependent_token: LanguageLexicalToken
+ source_governor_token: LanguageLexicalToken
+ target: LanguageLexicalTape
+ target_dependent: LanguageAnalysisTokenRef
+ target_governor: LanguageAnalysisTokenRef
+ dependent_alignment: TranslationSelectedWordPair
+ governor_alignment: TranslationSelectedWordPair
+ where .dependent_alignment.accepted_candidate_id == .governor_alignment.accepted_candidate_id
+ where .dependent_alignment.source_material == .source.source.material
+ where .governor_alignment.source_material == .source.source.material
+ where .dependent_alignment.target_material == .target.source.material
+ where .governor_alignment.target_material == .target.source.material
+ where .source.basis.governor == token(.source_governor)
+ where .source.role is addressee
+ where .source_dependent_token.identity == .source.basis.dependent.token
+ where .source_dependent_token.category is word
+ where .source_governor_token.category is word
+ where .source_governor_token.identity == .source_governor.token
+ where .target_dependent.revision == .target_governor.revision
+ where .target_dependent.token.text_identity == .target.source.material.identity
+ where .target_dependent.token.text_revision == .target.source.material.revision
+ where .target_governor.token.text_identity == .target.source.material.identity
+ where .target_governor.token.text_revision == .target.source.material.revision
+ where .target_dependent.token.ordinal < sequence/length(.target.tokens)
+ where .target_governor.token.ordinal < sequence/length(.target.tokens)
+ where .target_dependent.token == sequence/at(.target.tokens,.target_dependent.token.ordinal).identity
+ where .target_governor.token == sequence/at(.target.tokens,.target_governor.token.ordinal).identity
+ where .target_dependent.token.ordinal != .target_governor.token.ordinal
+ where sequence/at(.target.tokens,.target_dependent.token.ordinal).category is word
+ where sequence/at(.target.tokens,.target_governor.token.ordinal).category is word
+ where .dependent_alignment.source.text_id == .source.source.material.identity
+ where .dependent_alignment.source.revision_id == .source.source.material.revision
+ where .dependent_alignment.source.language == .source.source.material.language
+ where .governor_alignment.source.text_id == .source.source.material.identity
+ where .governor_alignment.source.revision_id == .source.source.material.revision
+ where .governor_alignment.source.language == .source.source.material.language
+ where .dependent_alignment.target.text_id == .target.source.material.identity
+ where .dependent_alignment.target.revision_id == .target.source.material.revision
+ where .dependent_alignment.target.language == .target.source.material.language
+ where .governor_alignment.target.text_id == .target.source.material.identity
+ where .governor_alignment.target.revision_id == .target.source.material.revision
+ where .governor_alignment.target.language == .target.source.material.language
+ where .dependent_alignment.source.kind is word
+ where .governor_alignment.source.kind is word
+ where .dependent_alignment.target.kind is word
+ where .governor_alignment.target.kind is word
+ where value/u64(.dependent_alignment.source.range.start) == .source_dependent_token.span.start
+ where value/u64(.dependent_alignment.source.range.end) == .source_dependent_token.span.end
+ where value/u64(.governor_alignment.source.range.start) == .source_governor_token.span.start
+ where value/u64(.governor_alignment.source.range.end) == .source_governor_token.span.end
+ where value/u64(.dependent_alignment.target.range.start) == sequence/at(.target.tokens,.target_dependent.token.ordinal).span.start
+ where value/u64(.dependent_alignment.target.range.end) == sequence/at(.target.tokens,.target_dependent.token.ordinal).span.end
+ where value/u64(.governor_alignment.target.range.start) == sequence/at(.target.tokens,.target_governor.token.ordinal).span.start
+ where value/u64(.governor_alignment.target.range.end) == sequence/at(.target.tokens,.target_governor.token.ordinal).span.end
+}
+# Raw structural output is readmitted through the existing canonical Language
+# dependency Type. Its relation/subtype comes from the original source edge.
+type TranslationProjectedDependency = {
+ dependent: LanguageAnalysisTokenRef
+ governor: LanguageAnalysisTokenRef
+ relation: LanguageDependencyRelation
+}
+plot speech/translation-project-vocative (
+ input: TranslationVocativeProjectionRequest...| >> output: TranslationProjectedDependency...|
+) = { dependent: .target_dependent, governor: .target_governor, relation: .source.basis.relation }

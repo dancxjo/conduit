@@ -243,6 +243,9 @@ pub mod revision;
 pub mod translation_structure;
 
 #[cfg(feature = "semantic-bindings")]
+pub mod translation_dependency_projection;
+
+#[cfg(feature = "semantic-bindings")]
 pub mod lexical_pronunciation;
 
 #[cfg(feature = "semantic-bindings")]
