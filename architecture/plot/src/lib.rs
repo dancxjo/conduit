@@ -47,6 +47,8 @@ mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
 mod pure_expression;
+mod quoted_text_source;
+pub use quoted_text_source::{source_span, QuotedTextSourceMap};
 pub mod rust_binding;
 mod structured_expression;
 mod structured_selector;

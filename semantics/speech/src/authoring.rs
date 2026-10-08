@@ -8,11 +8,7 @@ use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog}
 /// invariants used by generated Native bindings; no renderer or speaking grant.
 pub fn install(startup: &mut StartupCatalog) -> Result<(), String> {
     let mut basis = StartupCatalog::new();
-    let identities = check_syntax_document(
-        &parse_syntax_document(include_str!("../../language/identity.conduit")),
-        &StartupCatalog::new(),
-    )
-    .map_err(|error| alloc::format!("{error:?}"))?;
+    let identities = semantic_source::language_identities()?;
     for (name, ty) in conduit_language::identity_types() {
         if let Some(checked) = identities.native_types.iter().find(|ty| ty.name == name) {
             if checked.value_type != ty {
