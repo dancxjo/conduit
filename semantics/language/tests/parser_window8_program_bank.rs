@@ -349,3 +349,97 @@ fn owned_bank_features_choices_and_scores_retain_exact_native_custody() {
         window8_score_advance(advance).unwrap()
     );
 }
+
+fn source_limits() -> owned_bank::Window8SourcePreparationLimits {
+    owned_bank::Window8SourcePreparationLimits {
+        maximum_retained_bytes: 1024 * 1024 * 1024,
+        maximum_preparation_peak_bytes: 2 * 1024 * 1024 * 1024,
+        maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    }
+}
+#[test]
+fn prepared_source_bank_preserves_refusals_and_exact_resource_ceilings() {
+    let reference = owned_bank::Window8ProgramBank::prepare().unwrap();
+    let prepared =
+        owned_bank::Window8ProgramBank::prepare_native_evaluator(native_limits(), source_limits())
+            .unwrap();
+    assert!(reference.prepared_source_receipt().is_none());
+    let receipt = prepared.prepared_source_receipt().unwrap();
+    assert_eq!(receipt.programs, 26);
+    assert_eq!(prepared.prepared_program_receipts().count(), 26);
+    let prior = initial();
+    let r = reference.admit_state(prior.state()).unwrap();
+    let p = prepared.admit_state(prior.state()).unwrap();
+    assert_eq!(r.proof(), p.proof());
+    let foreign = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("prepared-source-foreign".into()).unwrap(),
+        prior.state().basis().source_revision().clone(),
+        prior.state().basis().text().clone(),
+    )
+    .unwrap();
+    let rc = reference.context(&r, &foreign).unwrap();
+    let pc = prepared.context(&p, &foreign).unwrap();
+    let class = reference.class(0, prior.state().relation0()).unwrap();
+    let expected = rc.propose(&class).unwrap();
+    let actual = pc.propose(&class).unwrap();
+    assert!(!actual.proposal().accepted());
+    assert_eq!(actual.proposal(), expected.proposal());
+    assert_eq!(
+        format!("{:?}", reference.class(76, prior.state().relation0()).err()),
+        format!("{:?}", prepared.class(76, prior.state().relation0()).err())
+    );
+    assert!(owned_bank::Window8ProgramBank::prepare_native_evaluator(
+        native_limits(),
+        owned_bank::Window8SourcePreparationLimits {
+            maximum_retained_bytes: receipt.retained_heap_bytes_bound - 1,
+            ..source_limits()
+        }
+    )
+    .is_err());
+    assert!(owned_bank::Window8ProgramBank::prepare_native_evaluator(
+        native_limits(),
+        owned_bank::Window8SourcePreparationLimits {
+            maximum_preparation_peak_bytes: receipt.preparation_peak_heap_bytes_bound - 1,
+            ..source_limits()
+        }
+    )
+    .is_err());
+    eprintln!("preparedSource exact resource/refusal parity receipt={receipt:?}");
+}
+#[test]
+#[ignore = "requires actual canonical lexical-fact evidence"]
+fn actual_retained_context_all76_prepared_source_proposals_match_reference() {
+    let canonical =
+        std::fs::read(std::env::var("CONDUIT_WINDOW8_NATIVE_PROFILE_INPUT").unwrap()).unwrap();
+    let fact = LanguageParserWindow8StableLexicalFact::decode(&canonical).unwrap();
+    let snapshot = fact.query().snapshot();
+    let raw = snapshot.candidate0().hypothesis().state();
+    let reference = owned_bank::Window8ProgramBank::prepare().unwrap();
+    let start = std::time::Instant::now();
+    let prepared =
+        owned_bank::Window8ProgramBank::prepare_native_evaluator(native_limits(), source_limits())
+            .unwrap();
+    let preparation_us = start.elapsed().as_micros();
+    let r = reference.admit_state(raw).unwrap();
+    let p = prepared.admit_state(raw).unwrap();
+    assert_eq!(r.proof(), p.proof());
+    let rc = reference.context(&r, snapshot.basis()).unwrap();
+    let pc = prepared.context(&p, snapshot.basis()).unwrap();
+    let classes = (0..76)
+        .map(|code| reference.class(code, raw.relation0()).unwrap())
+        .collect::<Vec<_>>();
+    let start = std::time::Instant::now();
+    let expected = classes
+        .iter()
+        .map(|class| rc.propose(class).unwrap())
+        .collect::<Vec<_>>();
+    let reference_us = start.elapsed().as_micros();
+    let start = std::time::Instant::now();
+    for (class, expected) in classes.iter().zip(&expected) {
+        let actual = pc.propose(class).unwrap();
+        assert_eq!(actual.prior().proof(), expected.prior().proof());
+        assert_eq!(actual.proposal(), expected.proposal());
+    }
+    let prepared_us = start.elapsed().as_micros();
+    eprintln!("actual76 preparedSource full Native parity preparation_us={preparation_us} reference_us={reference_us} prepared_us={prepared_us} receipt={:?}; excludes context/class preparation and model inference; ordinary input encode included",prepared.prepared_source_receipt().unwrap());
+}

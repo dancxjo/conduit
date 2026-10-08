@@ -1,11 +1,30 @@
-//! Explicitly owned, allocating Reference evaluator program bank. No globals,
-//! prepared evaluator subset, grammar policy, or raw-state admission shortcut.
-use super::*;
+//! Explicitly owned Source program bank with optional bounded Native output admission.
+//! Default Source execution uses Reference; explicit preparation preserves exact laws.
+use crate::parser_window8::{lexical, Window8Refusal};
+use crate::*;
 use alloc::{collections::BTreeMap, vec::Vec};
-use conduit_plot::{rust_binding::NativeRustBinding, PortableExpressionProgram};
+use conduit_plot::{
+    rust_binding::{
+        NativeRustBinding, PreparedNativeFamily, PreparedNativeFamilyLimits,
+        PreparedNativeFamilyRefusal, PreparedNativeFamilyStorageReceipt, PreparedNativeRustBinding,
+    },
+    PortableExpressionProgram,
+};
+use core::cell::RefCell;
 
+#[derive(Debug)]
+pub enum Window8PreparedBankRefusal {
+    NativePreparation(PreparedNativeFamilyRefusal),
+    SourcePreparation(Window8Refusal),
+    SourceCapacity,
+    SourceEvaluator(conduit_plot::PreparedExpressionStorageRefusal),
+}
 pub struct Window8ProgramBank {
     programs: BTreeMap<&'static str, PortableExpressionProgram>,
+    native: Option<RefCell<PreparedNativeFamily>>,
+    prepared: Option<Vec<PreparedBankProgram>>,
+    prepared_receipt: Option<Window8PreparedSourceReceipt>,
+    maximum_prepared_input_bytes: usize,
 }
 #[derive(Clone)]
 pub struct Window8BankState {
@@ -57,57 +76,80 @@ impl Window8BankFeatures {
     }
 }
 impl Window8ProgramBank {
+    /// Native output admission is bounded separately from the allocating
+    /// Reference Source evaluator and retained Source programs.
+    pub fn prepare_native(
+        limits: PreparedNativeFamilyLimits,
+    ) -> Result<Self, Window8PreparedBankRefusal> {
+        let family =
+            prepare_native_family(limits).map_err(Window8PreparedBankRefusal::NativePreparation)?;
+        let mut bank = Self::prepare().map_err(Window8PreparedBankRefusal::SourcePreparation)?;
+        bank.native = Some(RefCell::new(family));
+        Ok(bank)
+    }
+    pub fn native_storage_receipt(&self) -> Option<PreparedNativeFamilyStorageReceipt> {
+        self.native
+            .as_ref()
+            .map(|family| family.borrow().storage_receipt())
+    }
     pub fn prepare() -> Result<Self, Window8Refusal> {
-        macro_rules! entries {
-            ($($name:literal),* $(,)?) => { [$(($name,include_str!(concat!(env!("OUT_DIR"),"/",$name,".hex")))),*] };
-        }
         let mut programs = BTreeMap::new();
-        for (name, encoded) in entries!(
-            "window8_initialize",
-            "window8_walk_initialize",
-            "window8_walk_follow",
-            "window8_root_count",
-            "window8_move_context",
-            "window8_class_context",
-            "window8_move_legal_shift",
-            "window8_move_legal_reduce",
-            "window8_move_legal_left",
-            "window8_move_legal_right_root",
-            "window8_move_legal_right_nonroot",
-            "window8_move_apply",
-            "window8_complete",
-            "window8_class_index",
-            "window8_class_relations",
-            "window8_class_relation",
-            "window8_rank_0_1",
-            "window8_rank_2_3",
-            "window8_rank_0_2",
-            "window8_rank_1_3",
-            "window8_rank_1_2",
-            "window8_rank_insert",
-            "window8_choice_frontier",
-            "window8_score_advance",
-            "window8_feature_context",
-            "window8_feature_values"
-        ) {
+        for (name, encoded) in source_entries() {
             programs.insert(
                 name,
                 PortableExpressionProgram::from_canonical_hex(encoded)
                     .map_err(|_| Window8Refusal::Program)?,
             );
         }
-        Ok(Self { programs })
+        Ok(Self {
+            programs,
+            native: None,
+            prepared: None,
+            prepared_receipt: None,
+            maximum_prepared_input_bytes: 0,
+        })
     }
-    fn run<I: NativeRustBinding, O: NativeRustBinding>(
+    fn run<I: NativeRustBinding, O: PreparedNativeRustBinding>(
         &self,
         name: &str,
         input: I,
     ) -> Result<O, Window8Refusal> {
+        let input = input.encode().map_err(Window8Refusal::Native)?;
+        if let Some(prepared) = &self.prepared {
+            if input.len() > self.maximum_prepared_input_bytes {
+                return Err(Window8Refusal::Program);
+            }
+            let program = prepared
+                .iter()
+                .find(|program| program.name == name)
+                .ok_or(Window8Refusal::Program)?;
+            let mut evaluator = program
+                .evaluator
+                .try_borrow_mut()
+                .map_err(|_| Window8Refusal::Program)?;
+            let bytes = evaluator
+                .evaluate(&input)
+                .map_err(|_| Window8Refusal::Program)?;
+            return self.decode_output(bytes);
+        }
         let program = self.programs.get(name).ok_or(Window8Refusal::Program)?;
         let bytes = program
-            .evaluate(&input.encode().map_err(Window8Refusal::Native)?)
+            .evaluate(&input)
             .map_err(|_| Window8Refusal::Program)?;
-        O::decode(&bytes).map_err(Window8Refusal::Native)
+        self.decode_output(&bytes)
+    }
+    fn decode_output<O: PreparedNativeRustBinding>(
+        &self,
+        bytes: &[u8],
+    ) -> Result<O, Window8Refusal> {
+        match &self.native {
+            Some(family) => family
+                .try_borrow_mut()
+                .map_err(|_| Window8Refusal::Program)?
+                .decode::<O>(bytes)
+                .map_err(Window8Refusal::Native),
+            None => O::decode(bytes).map_err(Window8Refusal::Native),
+        }
     }
     pub fn admit_state(
         &self,
@@ -275,3 +317,144 @@ impl Window8BankContext<'_> {
         })
     }
 }
+
+fn prepare_native_family(
+    limits: PreparedNativeFamilyLimits,
+) -> Result<PreparedNativeFamily, PreparedNativeFamilyRefusal> {
+    PreparedNativeFamily::prepare(
+        &[
+            LanguageParserWindow8StableLexicalFact::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawState::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawWalk::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RootCount::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawClassIndex::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawClassRelations::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawClass::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawBeam::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawContext::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawResult::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8Completion::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8Selected::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawHypothesis::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawFeatureContext::PREPARED_DESCRIPTOR,
+            LanguageParserWindow8RawModelFeatures::PREPARED_DESCRIPTOR,
+        ],
+        limits,
+    )
+}
+
+fn source_entries() -> [(&'static str, &'static str); 26] {
+    [
+        (
+            "window8_initialize",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_initialize.hex")),
+        ),
+        (
+            "window8_walk_initialize",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_walk_initialize.hex")),
+        ),
+        (
+            "window8_walk_follow",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_walk_follow.hex")),
+        ),
+        (
+            "window8_root_count",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_root_count.hex")),
+        ),
+        (
+            "window8_move_context",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_context.hex")),
+        ),
+        (
+            "window8_class_context",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_context.hex")),
+        ),
+        (
+            "window8_move_legal_shift",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_legal_shift.hex")),
+        ),
+        (
+            "window8_move_legal_reduce",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_legal_reduce.hex")),
+        ),
+        (
+            "window8_move_legal_left",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_legal_left.hex")),
+        ),
+        (
+            "window8_move_legal_right_root",
+            include_str!(concat!(
+                env!("OUT_DIR"),
+                "/window8_move_legal_right_root.hex"
+            )),
+        ),
+        (
+            "window8_move_legal_right_nonroot",
+            include_str!(concat!(
+                env!("OUT_DIR"),
+                "/window8_move_legal_right_nonroot.hex"
+            )),
+        ),
+        (
+            "window8_move_apply",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_move_apply.hex")),
+        ),
+        (
+            "window8_complete",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_complete.hex")),
+        ),
+        (
+            "window8_class_index",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_index.hex")),
+        ),
+        (
+            "window8_class_relations",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_relations.hex")),
+        ),
+        (
+            "window8_class_relation",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_class_relation.hex")),
+        ),
+        (
+            "window8_rank_0_1",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_0_1.hex")),
+        ),
+        (
+            "window8_rank_2_3",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_2_3.hex")),
+        ),
+        (
+            "window8_rank_0_2",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_0_2.hex")),
+        ),
+        (
+            "window8_rank_1_3",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_1_3.hex")),
+        ),
+        (
+            "window8_rank_1_2",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_1_2.hex")),
+        ),
+        (
+            "window8_rank_insert",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_rank_insert.hex")),
+        ),
+        (
+            "window8_choice_frontier",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_choice_frontier.hex")),
+        ),
+        (
+            "window8_score_advance",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_score_advance.hex")),
+        ),
+        (
+            "window8_feature_context",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_feature_context.hex")),
+        ),
+        (
+            "window8_feature_values",
+            include_str!(concat!(env!("OUT_DIR"), "/window8_feature_values.hex")),
+        ),
+    ]
+}
+include!("parser_window8_program_bank_prepared.rs");
