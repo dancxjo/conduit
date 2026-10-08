@@ -148,3 +148,28 @@ fn runtime_node(
         maximum_step_fuel: spec.maximum_step_fuel,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tour_timer_single_port_projection_refuses_hidden_inputs() {
+        let mut spec = NodeSpec {
+            input_cords: [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
+            maximum_step_fuel: 7,
+        };
+        spec.input_cords[0] = Some(conduit_kernel::CordId(0));
+        let projected = runtime_node(&spec).unwrap();
+        assert_eq!(projected.input_cords, [Some(conduit_kernel::CordId(0))]);
+        assert_eq!(projected.maximum_step_fuel, 7);
+        for port in PORTS..FIXED_KERNEL_STORAGE_PORTS_PER_NODE {
+            spec.input_cords[port] = Some(conduit_kernel::CordId(1));
+            assert!(matches!(
+                runtime_node(&spec),
+                Err(SchedulerError::InvalidPlan)
+            ));
+            spec.input_cords[port] = None;
+        }
+    }
+}
