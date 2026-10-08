@@ -1,5 +1,8 @@
 //! Exact, finite local Fore boundary for one installed Body Play.
-use crate::{body_execution::BodyForeOutputAdapter, ExternalForeDelivery, ExternalForeInput};
+use crate::{
+    body_execution::BodyForeOutputAdapter, BodyLiveForeQueue, ExternalForeDelivery,
+    ExternalForeInput,
+};
 use conduit_core::PortDirection;
 use conduit_plan_lowering::lowering::{LoweredForePort, LoweredPlanFragment};
 
@@ -28,12 +31,33 @@ impl<'a> BodyForeRoute<'a> {
         sequential: bool,
         has_output: bool,
     ) -> Result<Self, String> {
+        Self::prepare_with_live(partitions, supplied, sequential, has_output, None)
+    }
+
+    pub(super) fn prepare_live(
+        partitions: &[LoweredPlanFragment],
+        queue: &BodyLiveForeQueue,
+    ) -> Result<Self, String> {
+        Self::prepare_with_live(partitions, &[], false, true, Some(queue))
+    }
+
+    fn prepare_with_live(
+        partitions: &[LoweredPlanFragment],
+        supplied: &'a [ExternalForeInput],
+        sequential: bool,
+        has_output: bool,
+        live: Option<&BodyLiveForeQueue>,
+    ) -> Result<Self, String> {
         let planned_inputs = partitions
             .iter()
             .flat_map(|part| &part.fore_ports)
             .filter(|port| port.direction == PortDirection::Input)
             .collect::<Vec<_>>();
-        let inputs = PreparedForeInputs::prepare(&planned_inputs, supplied, sequential)?;
+        let inputs = if let Some(queue) = live {
+            PreparedForeInputs::prepare_live(&planned_inputs, queue)?
+        } else {
+            PreparedForeInputs::prepare(&planned_inputs, supplied, sequential)?
+        };
         // An external Fore input or delivery has no Plot discriminator. Refuse
         // names shared by distinct resident Plots instead of inventing fan-out.
         let mut seen = Vec::new();
@@ -132,6 +156,14 @@ impl<'a> BodyForeRoute<'a> {
             self.started = true;
         }
         self.inputs.feed_next(scheduler)
+    }
+
+    pub(super) fn activity_generation(&self) -> Option<u64> {
+        self.inputs.activity_generation()
+    }
+
+    pub(super) fn wait_for_activity(&self, observed: u64) -> Result<bool, String> {
+        self.inputs.wait_for_activity(observed)
     }
 
     pub(super) fn drain(
