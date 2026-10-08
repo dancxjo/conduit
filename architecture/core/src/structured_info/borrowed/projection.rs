@@ -1,7 +1,8 @@
 //! Borrow exact sequence elements and active variant payloads without copying.
+use super::validated_extent::{skip_validated_value, split_validated_type};
 use super::{
-    malformed, split_type, validate_value, Cursor, StructuredInfoRefusal,
-    ValidatedCanonicalStructuredValue, MAXIMUM_STRUCTURED_INFO_NODES,
+    malformed, Cursor, StructuredInfoRefusal, ValidatedCanonicalStructuredValue,
+    MAXIMUM_STRUCTURED_INFO_NODES,
 };
 impl<'a> ValidatedCanonicalStructuredValue<'a> {
     pub fn collection_index(self, index: u16) -> Result<Option<Self>, StructuredInfoRefusal> {
@@ -16,8 +17,7 @@ impl<'a> ValidatedCanonicalStructuredValue<'a> {
             }
             _ => return Err(StructuredInfoRefusal::WrongType),
         }
-        let mut scratch = MAXIMUM_STRUCTURED_INFO_NODES;
-        let (element, remaining) = split_type(kind.remaining, 1, &mut scratch)?;
+        let (element, remaining) = split_validated_type(kind.remaining)?;
         if !remaining.is_empty() {
             return Err(malformed());
         }
@@ -32,7 +32,7 @@ impl<'a> ValidatedCanonicalStructuredValue<'a> {
         let mut nodes = MAXIMUM_STRUCTURED_INFO_NODES;
         for current in 0..=usize::from(index) {
             let beginning = value.remaining;
-            validate_value(element, &mut value, 1, &mut nodes)?;
+            skip_validated_value(&mut value, &mut nodes)?;
             if current == usize::from(index) {
                 return Ok(Some(Self {
                     type_bytes: element,
@@ -59,8 +59,7 @@ impl<'a> ValidatedCanonicalStructuredValue<'a> {
         }
         for _ in 0..count {
             let tag = kind.text()?;
-            let mut scratch = MAXIMUM_STRUCTURED_INFO_NODES;
-            let (payload, remaining) = split_type(kind.remaining, 1, &mut scratch)?;
+            let (payload, remaining) = split_validated_type(kind.remaining)?;
             kind.remaining = remaining;
             if tag == wanted {
                 return Ok(Some(Self {

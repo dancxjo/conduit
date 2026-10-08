@@ -9,9 +9,13 @@ use super::{
 use sha2::{Digest, Sha256};
 
 mod leaf_sequence;
+mod collection_iter;
+pub use collection_iter::ValidatedCanonicalCollectionIter;
+mod nominal;
 mod projection;
 mod record;
 mod shape_observation;
+mod validated_extent;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ValidatedCanonicalStructuredValue<'a> {
