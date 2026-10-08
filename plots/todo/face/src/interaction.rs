@@ -3,9 +3,7 @@
 //! module does not retain state or mutate it outside the scan.
 
 use alloc::{string::String, string::ToString};
-use conduit_presentation::{
-    FaceInteraction, MaskShow, Presentation, PresentationPropertyValue,
-};
+use conduit_presentation::{FaceInteraction, MaskShow, Presentation, PresentationPropertyValue};
 use conduit_todo_plot::{TodoCommand, TodoState};
 
 use crate::TodoFaceError;

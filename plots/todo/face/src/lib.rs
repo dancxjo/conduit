@@ -58,7 +58,7 @@ pub fn todo_fragment(
             PresentationSubject {
                 identity: status.clone(),
                 role: PresentationRole::Status,
-                name: count.clone(),
+                name: "Progress".into(),
             },
         ],
         relationships: vec![PresentationRelationship {
@@ -72,21 +72,15 @@ pub fn todo_fragment(
             name: "todo-revision".into(),
             value: PresentationPropertyValue::Count(u64::from(state.revision)),
         }],
-        text: vec![
-            PresentationText {
-                subject: list.clone(),
-                text: state.title.clone(),
-            },
-            PresentationText {
-                subject: status.clone(),
-                text: count,
-            },
-        ],
+        text: vec![PresentationText {
+            subject: status.clone(),
+            text: count,
+        }],
         actions: Vec::new(),
         disclosures: vec![
             PresentationDisclosure {
                 subject: list.clone(),
-                level: PresentationDisclosureLevel::Context,
+                level: PresentationDisclosureLevel::Primary,
             },
             PresentationDisclosure {
                 subject: status,

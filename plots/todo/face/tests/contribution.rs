@@ -40,6 +40,13 @@ fn same_todo_truth_is_ready_for_distinct_masks_without_reading_seventeen_complet
         .find(|subject| subject.role == PresentationRole::Collection)
         .unwrap();
     assert_eq!(list.name, "Groceries");
+    assert!(!fragment
+        .text
+        .iter()
+        .any(|wording| wording.text == list.name));
+    assert!(fragment.text.iter().any(|wording| {
+        wording.subject == "todo/status" && wording.text == "3 things left · 17 completed"
+    }));
     assert_eq!(
         fragment
             .disclosures
@@ -47,7 +54,7 @@ fn same_todo_truth_is_ready_for_distinct_masks_without_reading_seventeen_complet
             .find(|entry| entry.subject == list.identity)
             .unwrap()
             .level,
-        PresentationDisclosureLevel::Context
+        PresentationDisclosureLevel::Primary
     );
     let primary = fragment
         .subjects
