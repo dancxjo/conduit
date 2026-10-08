@@ -92,6 +92,8 @@ fn source_refusals_locate_unicode_escapes_and_explicit_scope_fields() {
     let catalogs = catalogs();
     for (source, expected) in [
         (PHONETIC.replace("ˈt͡ʃãː.n̩", r"t͡ʃ\n"), r"\n"),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", r#"t͡ʃ\""#), r#"\""#),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", r"t͡ʃ\\"), r"\\"),
         (PHONETIC.replace("ˈt͡ʃãː.n̩", "t͡ʃ̃"), "̃"),
         (PHONETIC.replace("ˈt͡ʃãː.n̩", "ːt"), "ː"),
         (PHONETIC.replace("ˈt͡ʃãː.n̩", "t͡ʃ."), "."),
@@ -133,6 +135,19 @@ fn source_refusals_locate_unicode_escapes_and_explicit_scope_fields() {
             "{error:?}"
         );
         assert_eq!(error.source_document_id, checked.source_document_id);
+        let before = &source[..error.span.start];
+        assert_eq!(
+            error.span.line,
+            before.chars().filter(|c| *c == '\n').count() + 1
+        );
+        assert_eq!(
+            error.span.column,
+            before.rsplit('\n').next().unwrap().chars().count() + 1
+        );
+        assert_eq!(
+            error.span.end_column - error.span.column,
+            expected.chars().count()
+        );
     }
     let mut foreign = parse_syntax_document(PHONETIC);
     let checked = check_syntax_document(&foreign, &catalogs.0).unwrap();
@@ -196,4 +211,54 @@ fn source_refuses_competing_phonemes_and_equal_spelling_across_types() {
         )
         .is_err());
     }
+}
+
+#[test]
+fn preparation_refuses_counterfeit_profiles_and_legacy_inventory_identity() {
+    use conduit_core::StructuredConfigurationValue;
+    let catalogs = catalogs();
+    let syntax = parse_syntax_document(PHONEMIC);
+    let checked = check_syntax_document(&syntax, &catalogs.0).unwrap();
+    let authored =
+        expand_canonical_plot_for_authoring(&checked, &syntax.plots[0].name.text, &catalogs.1)
+            .unwrap();
+    let configuration = &authored.expanded.gears[0].configuration;
+    assert!(prepare_configuration(IpaConstructor::Phonemic, configuration).is_ok());
+    for index in 0..configuration.len() {
+        let mut counterfeit = configuration.clone();
+        let ConfigurationValue::Structured(original) = &configuration[index].value else {
+            panic!("typed argument")
+        };
+        counterfeit[index].value = ConfigurationValue::Structured(
+            StructuredConfigurationValue::new(
+                "structured-info/profile-foreign@1".into(),
+                original.canonical_value().to_vec(),
+            )
+            .unwrap(),
+        );
+        assert!(prepare_configuration(IpaConstructor::Phonemic, &counterfeit).is_err());
+    }
+    let mut legacy = configuration.clone();
+    let entry = legacy
+        .iter_mut()
+        .find(|entry| entry.key == "inventory")
+        .unwrap();
+    let ConfigurationValue::Structured(original) = &entry.value else {
+        panic!("inventory")
+    };
+    let mut bytes = original.canonical_value().to_vec();
+    let schema = b"type/SpeechInventory@";
+    let start = bytes
+        .windows(schema.len())
+        .position(|part| part == schema)
+        .unwrap()
+        + schema.len();
+    // Exact shape-only root identity from the pinned #5327 generator. Keep all
+    // selected payload bytes and its declared profile to test root substitution.
+    bytes[start..start + 64]
+        .copy_from_slice(b"18be04a2cf4dee09e520c22f45fcea3ea4bbc5f4b5e4f9d3859305ab5eb0c656");
+    entry.value = ConfigurationValue::Structured(
+        StructuredConfigurationValue::new(original.profile().clone(), bytes).unwrap(),
+    );
+    assert!(prepare_configuration(IpaConstructor::Phonemic, &legacy).is_err());
 }
