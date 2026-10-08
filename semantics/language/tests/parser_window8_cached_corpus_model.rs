@@ -48,6 +48,82 @@ fn evaluation_source_ids(id: &str) -> (LanguageTextId, LanguageTextRevisionId) {
         LanguageTextRevisionId::new(revision).unwrap(),
     )
 }
+// This opt-in capability is supplied by the immutable-text producer. Finality
+// never grants it. Labels, model scores, and parse agreement never grant it.
+fn reviewed_stability_profile(bytes: &[u8], rows: &Value) -> Result<Vec<(String, u32)>, String> {
+    let profile: Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    if profile["schema"] != "language/window8-reviewed-immutable-text@1"
+        || profile["producer"] != "reviewed-authored-immutable-text"
+    {
+        return Err("explicit reviewed immutable producer profile required".into());
+    }
+    let declarations = profile["rows"].as_array().ok_or("profile rows")?;
+    let inputs = rows.as_array().ok_or("evaluation rows")?;
+    if declarations.len() != inputs.len() {
+        return Err("exact profile row coverage required".into());
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    let mut admitted = Vec::new();
+    for row in inputs {
+        let id = row["id"].as_str().ok_or("row id")?;
+        if !seen.insert(id) {
+            return Err("duplicate input identity".into());
+        }
+        let matches = declarations
+            .iter()
+            .filter(|declaration| declaration["id"] == id)
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            return Err("exact unique producer declaration required".into());
+        }
+        let declaration = matches[0];
+        let text = row["text"].as_str().ok_or("row text")?;
+        let scalars = text.chars().count();
+        if declaration["text"] != text
+            || scalars > 4096
+            || declaration["stable_prefix_scalars"].as_u64() != Some(scalars as u64)
+        {
+            return Err(
+                "immutable declaration must match exact text and full scalar extent".into(),
+            );
+        }
+        admitted.push((id.to_owned(), scalars as u32));
+    }
+    Ok(admitted)
+}
+fn stability_revision_id(profile: &[u8], id: &str) -> LanguageTextRevisionId {
+    let mut material = model::hex(semantic_digest(
+        "language/window8-reviewed-immutable-profile@1",
+        profile,
+    ))
+    .into_bytes();
+    material.extend_from_slice(id.as_bytes());
+    LanguageTextRevisionId::new(model::hex(semantic_digest(
+        "language/window8-reviewed-immutable-source-revision@1",
+        &material,
+    )))
+    .unwrap()
+}
+#[test]
+fn immutable_profile_requires_exact_explicit_producer_text_and_scalar_extent() {
+    let rows = json!([{"id":"one","text":"é I"}]);
+    let profile = json!({"schema":"language/window8-reviewed-immutable-text@1","producer":"reviewed-authored-immutable-text","rows":[{"id":"one","text":"é I","stable_prefix_scalars":3}]});
+    let bytes = serde_json::to_vec(&profile).unwrap();
+    assert_eq!(
+        reviewed_stability_profile(&bytes, &rows).unwrap(),
+        vec![("one".into(), 3)]
+    );
+    for bad in [
+        json!({"schema":"wrong"}),
+        json!({"schema":"language/window8-reviewed-immutable-text@1","producer":"reviewed-authored-immutable-text","rows":[{"id":"one","text":"é I","stable_prefix_scalars":4}]}),
+        json!({"schema":"language/window8-reviewed-immutable-text@1","producer":"reviewed-authored-immutable-text","rows":[{"id":"one","text":"e I","stable_prefix_scalars":3}]}),
+    ] {
+        assert!(reviewed_stability_profile(&serde_json::to_vec(&bad).unwrap(), &rows).is_err());
+    }
+    let revision = stability_revision_id(&bytes, "one");
+    assert_ne!(revision, evaluation_source_ids("one").1);
+    assert_ne!(revision, stability_revision_id(&bytes, "two"));
+}
 #[test]
 fn evaluation_source_ids_preserve_short_ids_and_bound_full_original_identity() {
     let (material, revision) = evaluation_source_ids("reviewed-example");
@@ -185,6 +261,16 @@ fn actual_cached_window8_reviewed_clause_decode() {
     }
     // No whole-training disjointness claim: that requires the model's complete
     // supervision/membership manifest, beyond this teaching-overlap check.
+    let stability_bytes = std::env::var_os("WINDOW8_REVIEWED_IMMUTABLE_PROFILE")
+        .map(|path| std::fs::read(path).expect("exact producer stability profile"));
+    let stability = stability_bytes.as_ref().map(|bytes| {
+        assert!(
+            evaluation,
+            "producer profile requires disjoint external replay output"
+        );
+        reviewed_stability_profile(bytes, &rows)
+            .expect("reviewed producer capability before inference")
+    });
     let lexical_profile = model::lexical(&profile_bytes);
     let scorer = resource::categorical(weights, model::signature(), 1);
     let (definition, contracts) = model::declaration(&scorer, &lexical_profile);
@@ -254,7 +340,19 @@ fn actual_cached_window8_reviewed_clause_decode() {
     let started = std::time::Instant::now();
     for row in rows.as_array().unwrap() {
         let id = row["id"].as_str().unwrap();
-        let (material_id, revision_id) = evaluation_source_ids(id);
+        let (material_id, original_revision_id) = evaluation_source_ids(id);
+        let revision_id = stability_bytes
+            .as_ref()
+            .map_or(original_revision_id, |profile| {
+                stability_revision_id(profile, id)
+            });
+        let stable_prefix = stability.as_ref().map(|declarations| {
+            declarations
+                .iter()
+                .find(|(identity, _)| identity == id)
+                .unwrap()
+                .1
+        });
         let source = LanguageTextRevision::new(
             LanguageTextFinality::Final,
             LanguageText::new(
@@ -265,9 +363,20 @@ fn actual_cached_window8_reviewed_clause_decode() {
             )
             .unwrap(),
             None,
-            model::provenance(),
+            stability_bytes
+                .as_ref()
+                .map_or_else(model::provenance, |profile| {
+                    LinguisticDerivationProvenance::deterministic_rule(
+                        "reviewed-authored-immutable-text".into(),
+                        model::hex(semantic_digest(
+                            "language/window8-reviewed-immutable-profile@1",
+                            profile,
+                        )),
+                    )
+                    .unwrap()
+                }),
             0,
-            None,
+            stable_prefix,
         )
         .unwrap();
         let tape = conduit_language::lexical::prepare_lexical_tape(&source, &lexical_profile, None)
@@ -288,6 +397,7 @@ fn actual_cached_window8_reviewed_clause_decode() {
             "reference token occurrences must match actual lexical reconstruction"
         );
         let lexical = prepare_window8_lexical(&tape).unwrap();
+        conduit_language::validate_text_revision(None, &source, 0, 4096).unwrap();
         let mut analysis_material = tape.tape().clone().encode().unwrap();
         analysis_material.extend_from_slice(&selected.compatibility().model_content);
         analysis_material.extend_from_slice(&selected.compatibility().signature);
@@ -437,8 +547,7 @@ fn actual_cached_window8_reviewed_clause_decode() {
                 let proof = bank.admit_state(candidate.state()).unwrap();
                 proofs.push(bytes_hex(&proof.proof().clone().encode().unwrap()));
             }
-            epochs.push(json!({"epoch":epoch,"completed_model_invocations":invocations,"beam_bytes":bytes_hex(&beam.clone().encode().unwrap()),"state_proof_bytes":proofs}));
-            if [
+            let all_complete = [
                 beam.candidate0(),
                 beam.candidate1(),
                 beam.candidate2(),
@@ -449,7 +558,37 @@ fn actual_cached_window8_reviewed_clause_decode() {
             .all(|candidate| {
                 bank.complete(&bank.admit_state(candidate.state()).unwrap())
                     .unwrap()
-            }) {
+            });
+            let early_fact = if stability.is_some()
+                && proofs.len() == 4
+                && *lexical.lexical().token_count() > 1
+            {
+                let exact_proofs = [
+                    beam.candidate0(),
+                    beam.candidate1(),
+                    beam.candidate2(),
+                    beam.candidate3(),
+                ]
+                .map(|candidate| bank.admit_state(candidate.state()).unwrap().proof().clone());
+                Some(
+                    match fact_schema.lexical_fact(
+                        lexical.lexical(),
+                        &basis,
+                        &beam,
+                        &exact_proofs,
+                        1,
+                    ) {
+                        Ok(value) => {
+                            json!({"accepted":true,"canonical_bytes":bytes_hex(&value.canonical_bytes().unwrap())})
+                        }
+                        Err(refusal) => json!({"accepted":false,"refusal":refusal}),
+                    },
+                )
+            } else {
+                None
+            };
+            epochs.push(json!({"epoch":epoch,"completed_model_invocations":invocations,"beam_bytes":bytes_hex(&beam.clone().encode().unwrap()),"state_proof_bytes":proofs,"independent_lexical_fact":early_fact,"all_candidates_complete":all_complete}));
+            if all_complete {
                 break;
             }
         }
@@ -530,7 +669,7 @@ fn actual_cached_window8_reviewed_clause_decode() {
         eprintln!(
             "actual cached corpus window8 {id}: complete={complete}, exact_base_graph={matches}"
         );
-        receipts.push(json!({"id":id,"text":row["text"],"text_identity":source.material().identity().get(),"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"source_material_bytes":bytes_hex(&source.clone().encode().unwrap()),"lexical_tape_bytes":bytes_hex(&tape.tape().clone().encode().unwrap()),"basis":bytes_hex(&basis.clone().encode().unwrap()),"state_proof_bytes":bytes_hex(&state.proof().clone().encode().unwrap()),"choices":preferred.choices(),"pos":pos,"predicted":predicted,"complete":complete,"lexical_fact_bytes":fact_bytes,"lexical_fact_refusal":fact_refusal,"epochs":epochs,"root_sentinel":8,"reviewed_train_teaching_demonstration":!evaluation,"external_evaluation_references":evaluation,"model_content":model::hex(selected.compatibility().model_content),"feature_contract":model::hex(contracts.feature_contract),"choice_contract":model::hex(contracts.joint_choice_contract)}));
+        receipts.push(json!({"id":id,"text":row["text"],"text_identity":source.material().identity().get(),"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"reviewed_immutable_profile":stability_bytes.as_ref().map(|bytes| model::hex(semantic_digest("language/window8-reviewed-immutable-profile@1",bytes))),"source_material_bytes":bytes_hex(&source.clone().encode().unwrap()),"lexical_tape_bytes":bytes_hex(&tape.tape().clone().encode().unwrap()),"basis":bytes_hex(&basis.clone().encode().unwrap()),"state_proof_bytes":bytes_hex(&state.proof().clone().encode().unwrap()),"choices":preferred.choices(),"pos":pos,"predicted":predicted,"complete":complete,"lexical_fact_bytes":fact_bytes,"lexical_fact_refusal":fact_refusal,"epochs":epochs,"root_sentinel":8,"reviewed_train_teaching_demonstration":!evaluation,"external_evaluation_references":evaluation,"model_content":model::hex(selected.compatibility().model_content),"feature_contract":model::hex(contracts.feature_contract),"choice_contract":model::hex(contracts.joint_choice_contract)}));
         std::fs::write(
             output_directory.join("native_cached_clause_rows.json"),
             serde_json::to_vec_pretty(&receipts).unwrap(),
