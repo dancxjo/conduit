@@ -1,5 +1,7 @@
 #[path = "../../../../targets/conduitos/src/pending_host_output.rs"]
 mod pending_output;
+#[path = "../../../../targets/conduitos/src/bounded_runtime_table.rs"]
+mod runtime_table;
 use super::fixtures::*;
 use super::synthetic_resources::synthetic_resources;
 use conduit_ai::fixed_numeric_binding::*;
@@ -43,6 +45,13 @@ mod model_compute_session;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const N: usize = 1024;
 const C: usize = 2048;
+
+// Array quota only. Every nested owner remains separately charged; this helper
+// is not a whole-working-memory admission or new execution capability.
+fn retained_runtime_table<K: Ord, V>() -> runtime_table::BoundedRuntimeTable<K,V> {
+    let receipt=runtime_table::BoundedRuntimeTable::<K,V>::storage_reservation(N).unwrap();
+    runtime_table::BoundedRuntimeTable::with_storage_limits(N,receipt.preparation_requested_bytes_bound,receipt.retained_array_bytes_bound).unwrap().0
+}
 
 fn analysis_resources() -> Resources {
     let load = |bytes: &[u8]| {
@@ -386,6 +395,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
             )
         })
         .collect();
+    drop(input_values); // prepared ingress owns its exact canonical frames.
     for (name, resource) in resources {
         let binding =
             FixedTensorPortBinding::prepare(resource.value_type(), resource.tensor()).unwrap();
@@ -549,8 +559,8 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         .then(|| {
             conduit_std_host::pure_filter::PureFilterOperationFactory::for_plan(&plan).unwrap()
         });
-    let mut filter_owners = BTreeMap::new();
-    let mut owners = BTreeMap::new();
+    let mut filter_owners = retained_runtime_table();
+    let mut owners = retained_runtime_table();
     let mut drivers = Vec::new();
     for (index, gear) in fragment.placements.iter().enumerate() {
         if let Some(factory) = factories
@@ -566,10 +576,10 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         } else if gear.implementation_id.as_str() == conduit_std_host::pure_filter::IMPLEMENTATION {
             let factory = filter_factory.as_ref().unwrap();
             factory.budget(gear).unwrap();
-            filter_owners.insert(
+            filter_owners.try_insert(
                 conduit_kernel::NodeId(index as u16),
                 factory.prepare_host(gear).unwrap(),
-            );
+            ).unwrap_or_else(|_| panic!("finite filter owner table refused original placement"));
             drivers.push(Driver::Operation(
                 factory.prepare(gear, &mut store).unwrap(),
             ));
@@ -581,7 +591,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         } else if gear.implementation_id.as_str() == conduitos::expression_host_call::IMPLEMENTATION
         {
             let owner = expression_fragment.as_ref().unwrap().owner(&gear.placement_id).unwrap();
-            owners.insert(conduit_kernel::NodeId(index as u16), owner);
+            owners.try_insert(conduit_kernel::NodeId(index as u16), owner).unwrap_or_else(|_| panic!("finite expression owner table refused original placement"));
             drivers.push(Driver::Operation(Box::new(
                 conduit_kernel::scheduler::HostCallBack::new(
                     gear.host_calls[0].maximum_input_bytes,
@@ -608,9 +618,11 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
             }
         }
     }
+    drop(filter_factory);
     drop(factories);
     drop(adopted); // drivers retain immutable admitted resource custody.
     let store = fixed_storage::prepare(store, &fixtures, trace.is_some());
+    drop(fixtures); // drivers and storage retain the admitted references.
     let nodes = drivers.len();
     while drivers.len() < N {
         drivers.push(Driver::Inactive);

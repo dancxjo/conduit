@@ -328,3 +328,5 @@ pub mod local_plan_image;
 
 #[cfg(feature = "numeric-topology-proof")]
 pub mod numeric_topology_proof;
+
+pub mod bounded_runtime_table;
