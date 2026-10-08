@@ -68,14 +68,16 @@ Face/Show, interaction, and media identities used in the per-chapter producer
 receipts. A human reviewer or admission job must verify that terminal receipt
 came from the command's actual run. This renderer checks only documentary
 consistency; self-authored JSON and hashes cannot prove live execution.
-As of this slice the installed
-Owner can select the checked Todo Plot for planning but cannot activate its
-durable action Play. Once that route exists, the producer should retain one
-Body ID, take each screenshot from the actual browser, native display, and
-QMP guest in the same run, and capture speaker or QEMU output from the exact
-selected speech Play. It must derive event and media receipts from actual
-Owner/Body/Mask observations, not copy or edit old clock evidence. The
-renderer verifies documentary consistency; only the producer and target
+The installed Owner can now activate the first Todo write, read its committed
+checkpoint through an admitted Host Call in the same Body, and offer the
+verified result to a read-only Face. That focused Owner proof does not yet
+establish later Todo actions, recovery after a fresh Boot, or a live journey
+through browser, native, terminal, and spoken Masks. The producer should
+retain one Body ID, take each screenshot from the actual browser, native
+display, and QMP guest in the same run, and capture speaker or QEMU output
+from the exact selected speech Play. It must derive event and media receipts
+from actual Owner/Body/Mask observations, not copy or edit old clock evidence.
+The renderer verifies documentary consistency; only the producer and target
 acceptance prove that real actions and audio delivery happened.
 
 Focused fixture tests live in `proof/ci/todo-journey.spec.mjs`. Their generated
