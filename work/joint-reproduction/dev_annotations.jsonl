@@ -1,0 +1,54 @@
+{"forms": ["Regards", ","], "heads": [4, 0], "id": "email-enronsent23_14-0003", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent26_02-0005", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent26_02-0006", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Kay"], "heads": [4], "id": "email-enronsent26_02-0007", "pos": [11], "relations": ["root"]}
+{"forms": ["?"], "heads": [4], "id": "email-enronsent26_02-0021", "pos": [12], "relations": ["root"]}
+{"forms": ["?"], "heads": [4], "id": "email-enronsent26_02-0023", "pos": [12], "relations": ["root"]}
+{"forms": ["?"], "heads": [4], "id": "email-enronsent26_02-0025", "pos": [12], "relations": ["root"]}
+{"forms": ["?"], "heads": [4], "id": "email-enronsent26_02-0028", "pos": [12], "relations": ["root"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent28_02-0010", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent28_03-0012", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent28_03-0019", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Mike"], "heads": [4], "id": "email-enronsent08_01-0024", "pos": [11], "relations": ["root"]}
+{"forms": ["Chris"], "heads": [4], "id": "email-enronsent08_01-0032", "pos": [11], "relations": ["root"]}
+{"forms": ["Thank", "you", "."], "heads": [4, 0, 0], "id": "email-enronsent08_01-0045", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["John", ","], "heads": [4, 0], "id": "email-enronsent30_02-0015", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent30_02-0023", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["John"], "heads": [4], "id": "email-enronsent30_02-0024", "pos": [11], "relations": ["root"]}
+{"forms": ["Thank", "you", "."], "heads": [4, 0, 0], "id": "email-enronsent30_02-0032", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["Regards", ","], "heads": [4, 0], "id": "email-enronsent29_01-0009", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Regards", ","], "heads": [4, 0], "id": "email-enronsent29_01-0016", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Regards", ","], "heads": [4, 0], "id": "email-enronsent29_01-0047", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Jeff", "!"], "heads": [4, 0], "id": "email-enronsent29_01-0077", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent29_01-0080", "pos": [7], "relations": ["root"]}
+{"forms": ["Cindy", ","], "heads": [4, 0], "id": "email-enronsent29_01-0082", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "!!"], "heads": [4, 0], "id": "email-enronsent29_01-0085", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent19_02-0004", "pos": [11], "relations": ["root"]}
+{"forms": ["Chris", ","], "heads": [4, 0], "id": "email-enronsent19_02-0021", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent19_02-0023", "pos": [11], "relations": ["root"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent19_02-0025", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent19_02-0027", "pos": [11], "relations": ["root"]}
+{"forms": ["Vince", "-"], "heads": [4, 0], "id": "email-enronsent19_02-0028", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent19_02-0043", "pos": [11], "relations": ["root"]}
+{"forms": ["Hi", "."], "heads": [4, 0], "id": "email-enronsent19_02-0045", "pos": [6, 12], "relations": ["root", "punct"]}
+{"forms": ["Thank", "you", "."], "heads": [4, 0, 0], "id": "email-enronsent19_02-0055", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent19_02-0062", "pos": [11], "relations": ["root"]}
+{"forms": ["Thank", "you", ","], "heads": [4, 0, 0], "id": "email-enronsent00_02-0006", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent00_02-0020", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thank", "you", ","], "heads": [4, 0, 0], "id": "email-enronsent00_02-0029", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["Jim", ","], "heads": [4, 0], "id": "email-enronsent00_02-0052", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks"], "heads": [4], "id": "newsgroup-groups.google.com_AgeingMonkeys_37131d1864a0b950_ENG_20051114_080100-0003", "pos": [7], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_0bfb82789af9c3c5_ENG_20050309_232400-0006", "pos": [12], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_edef226e24a57863_ENG_20051116_085200-0015", "pos": [12], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_23708a8afef2f3a8_ENG_20041226_230600-0016", "pos": [12], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_5380fdd00f8e5e56_ENG_20050926_194800-0021", "pos": [12], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "answers-20111106210027AAhMxfE_ans-0005", "pos": [7], "relations": ["root"]}
+{"forms": ["thanks"], "heads": [4], "id": "answers-20100416184011AAtazxe_ans-0003", "pos": [7], "relations": ["root"]}
+{"forms": ["Hi", ","], "heads": [4, 0], "id": "answers-20111108024148AAO8oFI_ans-0007", "pos": [6, 12], "relations": ["root", "punct"]}
+{"forms": ["Hi", ","], "heads": [4, 0], "id": "answers-20111108093942AAYF9Dn_ans-0006", "pos": [6, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "answers-20111108093942AAYF9Dn_ans-0011", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Great", "service"], "heads": [1, 4], "id": "reviews-356361-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "reviews-356361-0004", "pos": [7], "relations": ["root"]}
+{"forms": ["Great", "service"], "heads": [1, 4], "id": "reviews-198455-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"forms": ["Great", "Service"], "heads": [1, 4], "id": "reviews-173944-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"forms": ["Excellent", "service", "!"], "heads": [1, 4, 1], "id": "reviews-371492-0001", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
