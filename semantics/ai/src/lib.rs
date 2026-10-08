@@ -146,6 +146,8 @@ mod learned_lifecycle;
 pub use learned_lifecycle::*;
 mod model_compute;
 pub use model_compute::*;
+mod model_compute_owned;
+pub use model_compute_owned::*;
 mod probability;
 pub use probability::*;
 mod probability_digest;
