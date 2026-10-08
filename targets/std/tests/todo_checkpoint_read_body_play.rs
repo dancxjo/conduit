@@ -544,7 +544,11 @@ fn second_host_restores_exact_published_state_through_fore() {
 fn read_body_play_transfers_large_admitted_state_and_refuses_oversize_checkpoint() {
     on_body_stack(|| {
         for (title, count, text) in [
-            ("Groceries".to_owned(), 4, "Long-list item".to_owned()),
+            (
+                "Groceries".to_owned(),
+                4,
+                "Long-list item with details".to_owned(),
+            ),
             ("L".repeat(64), 20, "I".repeat(72)),
         ] {
             let root = root();
@@ -563,8 +567,11 @@ fn read_body_play_transfers_large_admitted_state_and_refuses_oversize_checkpoint
                 state = state
                     .apply(&TodoCommand::Add { text: text.clone() })
                     .unwrap();
-                residence.commit(&placement.authority[0], &state).unwrap();
             }
+            // This fixture tests the admitted read value, not transition history.
+            // Publish one valid first revision with the desired finite shape.
+            state.revision = 1;
+            residence.commit(&placement.authority[0], &state).unwrap();
             let bytes = state.encode_info().unwrap();
             assert!(bytes.len() > 100);
             if count == 20 {
