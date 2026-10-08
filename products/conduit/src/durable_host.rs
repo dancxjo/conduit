@@ -454,14 +454,37 @@ fn prepare_runtime(
     ),
     String,
 > {
+    prepare_runtime_with_todo(state_dir, None)
+}
+
+/// Select the request-scoped Todo Back before the Host advertisement and
+/// resource ledger are constructed. A selected equipment profile needs a
+/// combined constructor; refusing it preserves the installed Host's truth.
+fn prepare_runtime_with_todo(
+    state_dir: &Path,
+    todo: Option<(&conduit_todo_plot::TodoState, u16)>,
+) -> Result<
+    (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+    String,
+> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
+    if todo.is_some()
+        && (installation.selected_model.is_some() || installation.selected_speech.is_some())
+    {
+        return Err("installed Todo scan cannot preserve selected model or speech equipment in its scoped Host".into());
+    }
     let boot_id = fresh_identity("boot/installed", &installation.host_id);
     let config = StdHostConfig {
         host_id: HostId::from(installation.host_id.as_str()),
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
     };
-    let mut host = if let Some(selection) = &installation.selected_model {
+    let mut host = if let Some((initial, maximum_items)) = todo {
+        StdHost::new_for_todo_scan(config, initial, maximum_items)?
+    } else if let Some(selection) = &installation.selected_model {
         StdHost::new_with_local_model(
             config,
             StdHostComposition::reference(),

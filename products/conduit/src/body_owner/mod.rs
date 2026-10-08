@@ -4,6 +4,7 @@ mod image;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;
+use conduit_plot::ActivationSyntax;
 #[cfg(unix)]
 pub(crate) use controller::run_service_window;
 pub(crate) use controller::{
@@ -54,6 +55,40 @@ fn checked_retained_source(
         .expand_entry_for_authoring()
         .map(Some)
 }
+
+/// Only a checked, exact Todo scan can request the scoped production offer.
+/// Its initial Form comes from authored source, never from the display name.
+fn scoped_todo_initial(
+    checked: &conduit_plot::ExpandedAuthoringPlot,
+) -> Result<Option<(conduit_todo_plot::TodoState, u16)>, String> {
+    if checked.expanded.activations.is_empty() {
+        return Ok(None);
+    }
+    if checked.expanded.name != "todo/main" || checked.expanded.activations.len() != 1 {
+        return Err("installed Body supports no other activation source".into());
+    }
+    let activation = &checked.expanded.activations[0];
+    if activation.selected_plot != "todo/transition" {
+        return Err("installed Todo scan requires the exact transition child".into());
+    }
+    let ActivationSyntax::Scan { maximum_items, .. } = &activation.mode else {
+        return Err("installed Todo activation is not scan".into());
+    };
+    let bytes = activation
+        .initial_accumulator_bytes
+        .as_deref()
+        .ok_or("installed Todo scan has no checked initial Form")?;
+    let initial = conduit_todo_plot::TodoState::decode_info(bytes)
+        .map_err(|error| format!("installed Todo initial Form: {error:?}"))?;
+    if initial
+        .encode_info()
+        .map_err(|error| format!("installed Todo initial Form: {error:?}"))?
+        != bytes
+    {
+        return Err("installed Todo initial Form is not canonical".into());
+    }
+    Ok(Some((initial, *maximum_items)))
+}
 #[derive(Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
@@ -102,7 +137,11 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
         checked.expanded.checked_plot_id.clone(),
     );
     let retained = state::load(&root)?;
-    let (mut status, runtime) = super::prepare_runtime(&root)?;
+    let todo = scoped_todo_initial(&checked)?;
+    let (mut status, runtime) = super::prepare_runtime_with_todo(
+        &root,
+        todo.as_ref().map(|(initial, maximum)| (initial, *maximum)),
+    )?;
     let result = (|| {
         let mut owner =
             controller::Owner::open(runtime.into_owner_host(), resident, retained, name)?;
