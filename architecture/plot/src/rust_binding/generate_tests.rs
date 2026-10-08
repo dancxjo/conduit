@@ -1357,3 +1357,79 @@ fn external_values_round_trip_through_root_owned_shapes() {
     );
     fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn shared_generated_descriptor_union_has_separate_runtime_and_generation_ceilings() {
+    use alloc::string::String;
+    use core::fmt::Write;
+
+    assert_eq!(MAXIMUM_NATIVE_FAMILY_TYPES, 64);
+    assert_eq!(MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES, 128);
+    let mut source = String::new();
+    for index in 0..126 {
+        writeln!(source, "type Item{index} = U8\n").unwrap();
+    }
+    for (name, start) in [("FirstRoot", 0), ("SecondRoot", 63)] {
+        writeln!(source, "type {name} = {{").unwrap();
+        for index in 0..63 {
+            writeln!(source, "field{index}: Item{}", start + index).unwrap();
+        }
+        writeln!(source, "}}\n").unwrap();
+    }
+    writeln!(source, "type ExtraRoot = U8\ntype OversizedRoot = {{").unwrap();
+    for index in 0..64 {
+        writeln!(source, "field{index}: Item{index}").unwrap();
+    }
+    writeln!(source, "}}\n").unwrap();
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document(&source),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            prepared_family_roots: ["FirstRoot".into(), "SecondRoot".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    // Two disjoint complete 64-Type roots share one generated module without
+    // authorizing a runtime owner to retain their combined 128-Type union.
+    assert_eq!(
+        generated
+            .source
+            .matches("_PREPARED_NATIVE_DESCRIPTOR: ")
+            .count(),
+        128
+    );
+    for roots in [
+        ["FirstRoot", "SecondRoot", "ExtraRoot"].as_slice(),
+        ["OversizedRoot"].as_slice(),
+    ] {
+        assert_eq!(
+            generate_rust_bindings(
+                &checked.native_types,
+                &RustBindingOptions {
+                    prepared_family_roots: roots.iter().map(|name| (*name).into()).collect(),
+                    ..RustBindingOptions::default()
+                },
+            ),
+            Err(RustBindingGenerationError::InvalidSemanticType)
+        );
+    }
+    assert!(matches!(
+        PreparedNativeFamily::prepare(
+            &[],
+            PreparedNativeFamilyLimits {
+                maximum_types: 65,
+                maximum_laws_per_type: 0,
+                maximum_input_bytes: 0,
+                maximum_retained_bytes: 0,
+                maximum_preparation_peak_bytes: 0,
+                maximum_conversion_requested_bytes: 0,
+            }
+        ),
+        Err(PreparedNativeFamilyRefusal::Capacity)
+    ));
+}
