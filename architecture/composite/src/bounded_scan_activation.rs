@@ -380,6 +380,15 @@ impl BoundedScanActivationHost {
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
     }
+    /// Read-only scheduling phase for an installed parent Back's admitted
+    /// child-Step budget. Output pressure must not consume a child Step.
+    pub fn has_active_child(&self) -> bool {
+        self.active.is_some()
+    }
+
+    pub fn has_pending_output(&self) -> bool {
+        self.output_ready
+    }
     /// Resolve a failure index against the exact prepared child identities.
     pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
         self.active

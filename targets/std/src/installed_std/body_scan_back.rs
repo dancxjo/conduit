@@ -20,6 +20,9 @@ pub(super) struct BodyScanBack {
     parent_bound: bool,
     child_steps: u32,
     maximum_child_steps: u32,
+    accepted_items: u16,
+    committed_outputs: u16,
+    input_closed: bool,
     output_completion_failed: bool,
     cancellation_failed: bool,
 }
@@ -55,9 +58,7 @@ impl BodyScanBack {
                 "installed Todo scan child receipts or value scratch were not admitted".into(),
             );
         }
-        let maximum_child_steps = u32::from(planned.limits.maximum_items)
-            .checked_mul(128)
-            .ok_or("installed scan child step budget overflow")?;
+        let maximum_child_steps = crate::flow_activation::maximum_scan_child_steps(planned)?;
         Ok(Self {
             scan,
             item: ValuePayload {
@@ -72,6 +73,9 @@ impl BodyScanBack {
             parent_bound: false,
             child_steps: 0,
             maximum_child_steps,
+            accepted_items: 0,
+            committed_outputs: 0,
+            input_closed: false,
             output_completion_failed: false,
             cancellation_failed: false,
         })
@@ -164,6 +168,10 @@ impl<const PORTS: usize> StepBack<PORTS> for BodyScanBack {
                     if io.consume(PortId(0)).is_err() {
                         return fail(FailureCode::InvalidPort, 7);
                     }
+                    let Some(next) = self.accepted_items.checked_add(1) else {
+                        return fail(FailureCode::WorkBudgetExhausted, 18);
+                    };
+                    self.accepted_items = next;
                     return StepOutcome::Progress;
                 }
                 Ok(BoundedScanAdmission::Full) => {}
@@ -178,15 +186,21 @@ impl<const PORTS: usize> StepBack<PORTS> for BodyScanBack {
                     if io.consume_closed(PortId(0)).is_err() {
                         return fail(FailureCode::InvalidPort, 9);
                     }
+                    self.input_closed = true;
                     return StepOutcome::Progress;
                 }
                 Err(error) => return scan_failure(error),
             }
         }
-        if self.child_steps == self.maximum_child_steps {
-            return fail(FailureCode::WorkBudgetExhausted, 10);
+        if self.scan.has_pending_output() {
+            return self.stage_output(io);
         }
-        self.child_steps += 1;
+        if self.scan.has_active_child() {
+            if self.child_steps == self.maximum_child_steps {
+                return fail(FailureCode::WorkBudgetExhausted, 10);
+            }
+            self.child_steps += 1;
+        }
         let state = match self.scan.step() {
             Ok(state) => state.clone(),
             Err(error) => return scan_failure(error),
@@ -196,7 +210,12 @@ impl<const PORTS: usize> StepBack<PORTS> for BodyScanBack {
         }
         match state {
             BoundedScanState::OutputReady => self.stage_output(io),
-            BoundedScanState::Complete => StepOutcome::Complete,
+            BoundedScanState::Complete
+                if self.input_closed && self.accepted_items == self.committed_outputs =>
+            {
+                StepOutcome::Complete
+            }
+            BoundedScanState::Complete => fail(FailureCode::InvalidLifecycle, 19),
             BoundedScanState::Cancelled => fail(FailureCode::Cancelled, 12),
             BoundedScanState::Abnormal(_) => fail(FailureCode::InvalidLifecycle, 13),
             BoundedScanState::Idle => StepOutcome::Await,
@@ -215,6 +234,10 @@ impl<const PORTS: usize> StepBack<PORTS> for BodyScanBack {
         if self.staged_output {
             self.staged_output = false;
             if self.scan.complete_output().is_err() {
+                self.output_completion_failed = true;
+            } else if let Some(next) = self.committed_outputs.checked_add(1) {
+                self.committed_outputs = next;
+            } else {
                 self.output_completion_failed = true;
             }
         }
