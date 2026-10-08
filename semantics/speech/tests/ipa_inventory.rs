@@ -229,7 +229,7 @@ fn phoneme_realization_cannot_reference_a_foreign_phone() {
             definition.identity().clone(),
             definition.notation().clone(),
             possible,
-            definition.status().clone(),
+            *definition.status(),
         )
         .unwrap();
         let inventory = SpeechInventory::new(

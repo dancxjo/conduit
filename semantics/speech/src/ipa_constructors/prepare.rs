@@ -4,7 +4,7 @@ use crate::{
     ipa_diagnostic::IpaSourceSpan, ipa_inventory::*, ipa_notation::IpaNotationRefusal,
     ipa_phone::phone_from_ipa, ipa_phonetic::phonetic_from_ipa, semantic::*,
 };
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{ConfigurationEntry, ConfigurationValue, KindId, StructuredInfoValue};
 use conduit_plot::rust_binding::{record_field_value, NativeBindingRefusal, NativeRustBinding};
 
@@ -26,7 +26,7 @@ pub enum IpaConstructorLocation {
 #[derive(Debug)]
 pub struct IpaConstructorDiagnostic {
     pub refusal: IpaConstructorRefusal,
-    pub location: IpaConstructorLocation,
+    pub location: Box<IpaConstructorLocation>,
 }
 impl IpaConstructorDiagnostic {
     fn native(error: NativeBindingRefusal) -> Self {
@@ -35,19 +35,19 @@ impl IpaConstructorDiagnostic {
     fn field(error: NativeBindingRefusal, path: &'static str) -> Self {
         Self {
             refusal: IpaConstructorRefusal::Native(error),
-            location: IpaConstructorLocation::Field(path),
+            location: Box::new(IpaConstructorLocation::Field(path)),
         }
     }
     fn inventory(error: IpaInventoryRefusal, path: &'static str) -> Self {
         Self {
             refusal: IpaConstructorRefusal::Inventory(error),
-            location: IpaConstructorLocation::Field(path),
+            location: Box::new(IpaConstructorLocation::Field(path)),
         }
     }
     fn configuration() -> Self {
         Self {
             refusal: IpaConstructorRefusal::Configuration,
-            location: IpaConstructorLocation::Request,
+            location: Box::new(IpaConstructorLocation::Request),
         }
     }
 }
@@ -94,7 +94,7 @@ pub fn prepare_configuration(
         IpaConstructor::Phone => phone_from_ipa(original.clone(), request.provenance().clone())
             .map_err(|refusal| D {
                 refusal: IpaConstructorRefusal::Notation(refusal),
-                location: whole(),
+                location: Box::new(whole()),
             })?
             .notation()
             .clone()
@@ -104,7 +104,7 @@ pub fn prepare_configuration(
             phonetic_from_ipa(original.clone(), request.provenance().clone())
                 .map_err(|error| D {
                     refusal: IpaConstructorRefusal::Notation(error.refusal),
-                    location: IpaConstructorLocation::Original(error.span),
+                    location: Box::new(IpaConstructorLocation::Original(error.span)),
                 })?
                 .transcription()
                 .clone()
@@ -154,7 +154,7 @@ pub fn prepare_configuration(
                     .phonemic_from_ipa(original.clone(), request.provenance().clone())
                     .map_err(|error| D {
                         refusal: IpaConstructorRefusal::Inventory(error.refusal),
-                        location: IpaConstructorLocation::Original(error.span),
+                        location: Box::new(IpaConstructorLocation::Original(error.span)),
                     })?
                     .transcription()
                     .clone()
@@ -165,7 +165,7 @@ pub fn prepare_configuration(
                     .phoneme_from_ipa(original.clone(), request.provenance().clone())
                     .map_err(|error| D {
                         refusal: IpaConstructorRefusal::Inventory(error),
-                        location: whole(),
+                        location: Box::new(whole()),
                     })?;
                 let binding = prepared
                     .phonemes()
