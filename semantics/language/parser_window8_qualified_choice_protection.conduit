@@ -1,0 +1,24 @@
+# Source checks each branch against an actual retained qualified lexical anchor.
+# Closed Session must retain and replay the complete original analysis and every
+# anchor/rebase projection. An individually Native-valid anchor has no authority.
+type LanguageParserWindow8QualifiedChoiceBranch = {
+ anchor: LanguageParserWindow8QualifiedLexicalAnchor
+ proposed: LanguageLexicalProposedTape
+ lexical: LanguageParserWindow8Lexical
+ basis: LanguageParserBasis
+ dependent: U64 in 0..=7
+ choice: U64 in 0..=3
+ where .proposed.tape == .lexical.tape
+ where .anchor.basis == .basis
+ where .basis.text == .lexical.tape.source.material.identity && .basis.source_revision == .lexical.tape.source.material.revision
+ where .anchor.definition == .proposed.definition
+ where .anchor.dependent < .lexical.token_count
+ where .anchor.token == sequence/at(.proposed.tape.tokens,.anchor.dependent)
+ where .anchor.origin == sequence/at(.proposed.origins,.anchor.dependent)
+ where .anchor.choice < sequence/length(.anchor.token.candidates)
+ where .dependent < .lexical.token_count
+ where .choice < sequence/length(sequence/at(.lexical.tape.tokens,.dependent).candidates)
+}
+plot language-window8-qualified-protected-choice (
+ input: LanguageParserWindow8QualifiedChoiceBranch...| >> output: LanguageParserWindow8ProtectedChoiceDecision...|
+) = { allowed: .dependent != .anchor.dependent || .choice == .anchor.choice }
