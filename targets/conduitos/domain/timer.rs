@@ -33,30 +33,37 @@ pub unsafe fn execute(frame: &mut TextFrame) -> ! {
         }
         let graph =
             PreparedTimerGraph::decode(&frame.input[..length]).unwrap_or_else(|_| gate::finish(3));
-        #[cfg(feature = "proof")]
-        let kernel = TourTimerKernel::from_prepared_graph_with_progress(graph, |stage| {
-            // Bounded diagnostic metadata only; never a capability or semantic input.
-            unsafe { core::ptr::write_volatile(&mut frame.timer_status, stage) };
-        })
-        .unwrap_or_else(|_| gate::finish(3));
-        #[cfg(not(feature = "proof"))]
-        let kernel =
-            TourTimerKernel::from_prepared_graph(graph).unwrap_or_else(|_| gate::finish(3));
-        #[cfg(feature = "proof")]
-        unsafe {
-            core::ptr::write_volatile(&mut frame.timer_status, 0x308)
-        };
-        // This allocation is private, writable and non-executable on every backend.
-        unsafe {
+        // Initialize the small envelope separately so constructing the retained
+        // scheduler does not copy it through a second whole-State temporary.
+        // Magic is published only after the private kernel is initialized.
+        let state = unsafe {
             STATE.write(State {
-                magic: MAGIC,
-                kernel: MaybeUninit::new(kernel),
+                magic: 0,
+                kernel: MaybeUninit::uninit(),
                 timer_handle: frame.timer_handle,
                 count_handle: frame.count_handle,
                 timer: None,
                 presentation: None,
             });
-        }
+            &mut *STATE
+        };
+        #[cfg(feature = "proof")]
+        state.kernel.write(
+            TourTimerKernel::from_prepared_graph_with_progress(graph, |stage| {
+                // Bounded diagnostic metadata only; never authority or semantic input.
+                unsafe { core::ptr::write_volatile(&mut frame.timer_status, stage) };
+            })
+            .unwrap_or_else(|_| gate::finish(3)),
+        );
+        #[cfg(not(feature = "proof"))]
+        state
+            .kernel
+            .write(TourTimerKernel::from_prepared_graph(graph).unwrap_or_else(|_| gate::finish(3)));
+        state.magic = MAGIC;
+        #[cfg(feature = "proof")]
+        unsafe {
+            core::ptr::write_volatile(&mut frame.timer_status, 0x308)
+        };
     }
     let state = unsafe { &mut *STATE };
     if state.magic != MAGIC {
