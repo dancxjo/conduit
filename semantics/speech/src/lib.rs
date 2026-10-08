@@ -409,3 +409,6 @@ pub mod word_pitch_programs {
  pub const END:&str=crate::greeting_programs::WORD_END;
  pub const FRACTION:&str=crate::greeting_programs::PITCH_FRACTION;
 }
+
+#[cfg(feature = "semantic-bindings")]
+pub mod rendered_gesture_occurrence;

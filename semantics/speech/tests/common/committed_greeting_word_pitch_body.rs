@@ -135,6 +135,20 @@
  assert!(matches!(owner::prepare(&committed,&foreign_rich,&admissions),Err(owner::Refusal::ForeignCommitment)));
  println!("PASS actual original four-revision committed greeting: opaque complete-coverage/rich-owner custody; six Source word-pitch admissions; new complete10segment intent; unchanged Hello; adjacent exact cycles; missing/swapped/foreign-address commitment refusals. Six actual first DSP frames only; no complete waveform or playback.");
 
+ use conduit_speech::rendered_gesture_occurrence::{ActualGestureRenderer as Actual,PreparedRenderedGestureOccurrence as Mapped,RenderedOccurrenceRefusal as MapRefusal};
+ for (gesture,renderer) in realized_gestures.iter().skip(4).zip(&renderers) {
+  let mapped=Mapped::prepare(prepared.realized(),gesture,Actual::Exact(renderer)).unwrap();
+  assert_eq!(mapped.frame_range(),renderer.renderer().first_target().frame_range().start as u64..renderer.renderer().first_target().frame_range().end as u64);
+  assert_eq!(mapped.sample_rate_hz(),16000);
+  assert!(core::ptr::eq(mapped.shared(),gesture));
+  assert!(matches!(Mapped::prepare(&composite,gesture,Actual::Exact(renderer)),Err(MapRefusal::ForeignIntent)));
+ }
+ assert!(matches!(Mapped::prepare(prepared.realized(),&realized_gestures[5],Actual::Exact(&renderers[0])),Err(MapRefusal::ForeignGesture)));
+ let constant_renderers=realized_gestures.iter().take(4).zip(cycles.iter().take(4)).map(|(gesture,cycle)|prepare_greeting_renderer_q8(gesture.contextual().profile(),&grid,cycle.admitted_canonical()).unwrap()).collect::<Vec<_>>();
+ for (gesture,renderer) in realized_gestures.iter().take(4).zip(&constant_renderers) {Mapped::prepare(prepared.realized(),gesture,Actual::Constant(renderer)).unwrap();}
+ assert!(matches!(Mapped::prepare(prepared.realized(),&realized_gestures[1],Actual::Constant(&constant_renderers[0])),Err(MapRefusal::ForeignGesture)));
+ println!("PASS actual ten original committed IPA gesture/renderer mappings, six exact pitch wrappers, four original constant cycles, admitted frame ranges, foreign intent and foreign gesture refusals; no queued/played claim");
+
  if let Ok(output_directory)=std::env::var("CONDUIT_WORD_PITCH_FULL_OUTPUT") {
  // Actual complete new IPA-owner realization; Hello retains its original cycles.
  let hello_renderers=realized_gestures.iter().take(4).zip(cycles.iter().take(4)).map(|(gesture,cycle)|prepare_greeting_renderer_q8(gesture.contextual().profile(),&grid,cycle.admitted_canonical()).unwrap()).collect::<Vec<_>>();
