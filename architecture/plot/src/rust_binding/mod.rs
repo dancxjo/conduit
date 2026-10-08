@@ -3,7 +3,9 @@
 //! Generated Rust is a consumer of checked Conduit meaning. These helpers do
 //! not derive semantic identity from Rust names, layout, or traits.
 
+mod borrowed_contracts;
 mod bounded;
+pub use borrowed_contracts::validate_borrowed_native_contracts;
 mod generate;
 mod generate_conversion;
 mod generate_direct;
@@ -11,6 +13,7 @@ mod generate_invariant;
 #[cfg(test)]
 mod generate_layout_tests;
 mod generate_options;
+mod generate_prepared_family;
 mod generate_package;
 #[cfg(test)]
 mod generate_tests;
@@ -20,9 +23,19 @@ mod prepared_invariants;
 pub use prepared_invariant_storage::{
     PreparedNativeInvariantStorageLimits, PreparedNativeInvariantStorageReceipt,
 };
+mod prepared_family;
+mod prepared_family_contracts;
 #[cfg(test)]
 mod prepared_invariants_tests;
 mod primitive;
+pub use prepared_family::{
+    NativeFamilyConversionProfile, NativeFamilyTypeDescriptor, PreparedNativeFamily,
+    PreparedNativeFamilyLimits, PreparedNativeFamilyRefusal, PreparedNativeFamilyStorageReceipt,
+    PreparedNativeRustBinding, MAXIMUM_NATIVE_FAMILY_TYPES,
+};
+pub use prepared_family_contracts::{
+    NativeFamilyConstraintDescriptor, NativeFamilyContractDescriptor,
+};
 pub use prepared_invariants::{PreparedNativeInvariantAdmission, PreparedNativeInvariantRefusal};
 mod value;
 

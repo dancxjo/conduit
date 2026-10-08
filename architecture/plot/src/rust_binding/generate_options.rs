@@ -7,6 +7,9 @@ use conduit_core::StructuredInfoTypeShape;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RustBindingOptions {
+    /// Authored roots whose exact owned Type closure gains an explicitly owned
+    /// prepared conversion family. Empty retains the existing generated API.
+    pub prepared_family_roots: BTreeSet<String>,
     /// A Rust-only spelling prefix. It never participates in semantic identity.
     pub type_prefix: String,
     /// Adds form-only Serde derives to variants whose generated Rust payloads
