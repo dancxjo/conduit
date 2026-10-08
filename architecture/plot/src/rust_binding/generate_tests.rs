@@ -621,8 +621,34 @@ fn generated_bindings_compile_as_an_independent_rust_library() {
     use std::process::Command;
     use std::string::String;
 
+    let mut types = checked_types();
+    types.extend(
+        crate::check_syntax_document(
+            &crate::parse_syntax_document(
+                r#"
+type GuardedChild = {
+    value: U32
+    where .value <= 127
+}
+type GuardedParent = {
+    left: GuardedChild
+    right: GuardedChild
+    where .left.value <= .right.value
+}
+type GuardedGrandparent = {
+    child: GuardedParent
+    other: GuardedChild
+    where .child.right.value <= .other.value
+}
+"#,
+            ),
+            &crate::StartupCatalog::new(),
+        )
+        .unwrap()
+        .native_types,
+    );
     let generated = generate_rust_bindings(
-        &checked_types(),
+        &types,
         &RustBindingOptions {
             prepared_family_roots: [
                 "Chord".into(),
@@ -630,6 +656,7 @@ fn generated_bindings_compile_as_an_independent_rust_library() {
                 "Observation".into(),
                 "Interval".into(),
                 "Input".into(),
+                "GuardedGrandparent".into(),
             ]
             .into(),
             boxed_variant_payloads: ["MusicEvent.note".into()].into(),
@@ -844,10 +871,116 @@ fn prepared_recursive_family_matches_existing_entrances() {
     assert!(PreparedNativeFamily::prepare(PREPARED_NATIVE_FAMILY_ROOTS,
         PreparedNativeFamilyLimits { maximum_preparation_peak_bytes: receipt.preparation_peak_heap_bytes_bound - 1, ..limits }).is_err());
 }
+struct AdmissionAllocator;
+std::thread_local! { static ADMISSION_REQUESTED: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) }; }
+unsafe impl std::alloc::GlobalAlloc for AdmissionAllocator {
+ unsafe fn alloc(&self, layout:std::alloc::Layout)->*mut u8 { ADMISSION_REQUESTED.with(|count|if let Some(total)=count.get(){count.set(Some(total.checked_add(layout.size()).unwrap()));}); unsafe {std::alloc::System.alloc(layout)} }
+ unsafe fn dealloc(&self, pointer:*mut u8,layout:std::alloc::Layout){unsafe{std::alloc::System.dealloc(pointer,layout)}}
+ unsafe fn realloc(&self,pointer:*mut u8,layout:std::alloc::Layout,size:usize)->*mut u8 { ADMISSION_REQUESTED.with(|count|if let Some(total)=count.get(){count.set(Some(total.checked_add(size).unwrap()));}); unsafe{std::alloc::System.realloc(pointer,layout,size)} }
+}
+#[global_allocator] static ADMISSION_ALLOCATOR: AdmissionAllocator=AdmissionAllocator;
+fn admission_requested<T>(operation:impl FnOnce()->T)->(T,usize){ADMISSION_REQUESTED.with(|count|count.set(Some(0)));let value=operation();let requested=ADMISSION_REQUESTED.with(|count|count.replace(None).unwrap());(value,requested)}
+static SCOPED_VALIDATIONS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+#[test]
+fn immutable_child_capabilities_keep_parent_laws_fresh() {
+ use conduit_plot::rust_binding::{AdmittedNativeChild,NativeChildAdmissionScope,PreparedNativeFamily,PreparedNativeFamilyLimits,PreparedNativeRustBinding};
+ use std::rc::Rc;
+ use std::sync::atomic::Ordering;
+ let limits=PreparedNativeFamilyLimits { maximum_types:64,maximum_laws_per_type:64,maximum_input_bytes:262144,maximum_retained_bytes:64*1024*1024,maximum_preparation_peak_bytes:128*1024*1024,maximum_conversion_requested_bytes:usize::MAX };
+ #[cfg(target_has_atomic="ptr")] {fn assert_send<T:Send>(){} assert_send::<PreparedNativeFamily>();}
+ let mut family=PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,limits).unwrap();
+ fn complete_admission<T:PreparedNativeRustBinding+Clone+PartialEq+core::fmt::Debug>(family:&mut PreparedNativeFamily,value:T){let bytes=value.clone().encode().unwrap();let (decoded,_)=family.decode_admitted::<T>(Rc::from(bytes),usize::MAX).unwrap();assert_eq!(decoded,value);}
+ complete_admission(&mut family,Chord::new([Note::new(60).unwrap(),Note::new(64).unwrap(),Note::new(67).unwrap()]).unwrap());
+ let mut pitches=BoundedSequence::<Note,16>::new();pitches.push(Note::new(60).unwrap()).unwrap();complete_admission(&mut family,MusicEvent::note(pitches,100).unwrap());complete_admission(&mut family,MusicEvent::rest());
+ let identity=Digest::new([7;32]).unwrap();let mut ancestors=BoundedSequence::<Digest,16>::new();ancestors.push(Digest::new([8;32]).unwrap()).unwrap();complete_admission(&mut family,Observation::new(DigestSet::new(ancestors).unwrap(),identity,OptionalDigest::new(Some(identity)).unwrap()).unwrap());
+ let low=GuardedChild::new(3).unwrap();let high=GuardedChild::new(7).unwrap();let other=GuardedChild::new(9).unwrap();
+ let original_frame=low.clone().encode().unwrap();let reservation=AdmittedNativeChild::storage_reservation(original_frame.len()).unwrap();
+ let (frame,frame_requested)=admission_requested(||Rc::<[u8]>::from(original_frame.as_slice()));
+ assert!(frame_requested<=reservation.retained_heap_bytes_bound);
+ let (_,clone_requested)=admission_requested(||frame.clone());assert_eq!(clone_requested,0);
+ let (under,under_requested)=admission_requested(||family.decode_admitted::<GuardedChild>(frame.clone(),reservation.combined_bytes_bound-1));assert!(under.is_err());assert_eq!(under_requested,0);
+ assert!(family.decode_admitted::<GuardedChild>(frame.clone(),reservation.combined_bytes_bound-1).is_err());
+ let (_,lo)=family.decode_admitted::<GuardedChild>(frame,reservation.combined_bytes_bound).unwrap();
+ let (_,hi)=family.decode_admitted::<GuardedChild>(Rc::from(high.clone().encode().unwrap()),usize::MAX).unwrap();
+ let (_,ot)=family.decode_admitted::<GuardedChild>(Rc::from(other.clone().encode().unwrap()),usize::MAX).unwrap();
+ let parent=GuardedParent::new(low.clone(),high.clone()).unwrap();
+ let grand=GuardedGrandparent::new(parent.clone(),other).unwrap();let encoded=grand.clone().encode().unwrap();
+ let scratch=NativeChildAdmissionScope::maximum_scope_state_bytes();
+ SCOPED_VALIDATIONS.store(0,Ordering::SeqCst);
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),5);
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo,&hi,&ot],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),2,"only unchanged children reuse admission; both parent laws stay fresh");
+ let (under,under_requested)=admission_requested(||family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo],scratch-1));assert!(under.is_err());assert_eq!(under_requested,0);
+ let (decoded,conversion_requested)=admission_requested(||family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo,&hi,&ot],scratch));assert_eq!(decoded.unwrap(),grand);assert!(conversion_requested<=family.storage_receipt().conversion_requested_bytes_bound);SCOPED_VALIDATIONS.store(0,Ordering::SeqCst);
+ assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo;17],scratch).is_err());
+ // The same Type at another path matches only its complete original value.
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),4);
+ let mut foreign=PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,limits).unwrap();
+ let (_,foreign_lo)=foreign.decode_admitted::<GuardedChild>(Rc::from(low.clone().encode().unwrap()),usize::MAX).unwrap();
+ assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&foreign_lo],scratch).is_err());
+ let parent_type=GuardedParent::semantic_type().unwrap();
+ let invalid_parent=StructuredInfoValue::record(parent_type,vec![StructuredFieldValue::new("left",high.into_structured().unwrap()).unwrap(),StructuredFieldValue::new("right",low.into_structured().unwrap()).unwrap()]).unwrap().canonical_bytes().unwrap();
+ assert_eq!(family.decode_with_admitted_children::<GuardedParent>(&invalid_parent,&[&lo,&hi],scratch),GuardedParent::decode(&invalid_parent));
+ assert!(family.decode_with_admitted_children::<GuardedParent>(&invalid_parent,&[&lo,&hi],scratch).is_err());
+ let child_type=GuardedChild::semantic_type().unwrap();let value_type=conduit_plot::rust_binding::record_field_type(&child_type,"value").unwrap();
+ let invalid_child=StructuredInfoValue::record(child_type,vec![StructuredFieldValue::new("value",conduit_plot::rust_binding::primitive_into_structured(value_type,&129u32).unwrap()).unwrap()]).unwrap();
+ struct ForgedBinding;
+ impl NativeRustBinding for ForgedBinding {
+  fn semantic_type()->Result<StructuredInfoType,NativeBindingRefusal>{GuardedChild::semantic_type()}
+  fn into_structured(self)->Result<StructuredInfoValue,NativeBindingRefusal>{GuardedChild::new(3)?.into_structured()}
+  fn from_structured(_:StructuredInfoValue)->Result<Self,NativeBindingRefusal>{Ok(Self)}
+ }
+ impl PreparedNativeRustBinding for ForgedBinding {
+  const PREPARED_DESCRIPTOR:&'static conduit_plot::rust_binding::NativeFamilyTypeDescriptor=GuardedChild::PREPARED_DESCRIPTOR;
+  fn from_borrowed_prepared(_:conduit_core::ValidatedCanonicalStructuredValue<'_>,_:&mut PreparedNativeFamily)->Result<Self,NativeBindingRefusal>{Ok(Self)}
+ }
+ assert!(family.decode_admitted::<ForgedBinding>(Rc::from(invalid_child.canonical_bytes().unwrap()),usize::MAX).is_err(),"custom binding cannot issue a capability by omitting original laws");
+ let invalid=StructuredInfoValue::record(GuardedParent::semantic_type().unwrap(),vec![StructuredFieldValue::new("left",invalid_child).unwrap(),StructuredFieldValue::new("right",GuardedChild::new(7).unwrap().into_structured().unwrap()).unwrap()]).unwrap().canonical_bytes().unwrap();
+ assert_eq!(family.decode_with_admitted_children::<GuardedParent>(&invalid,&[&lo,&hi],scratch),GuardedParent::decode(&invalid));
+ assert!(family.decode_with_admitted_children::<GuardedParent>(&invalid,&[&lo,&hi],scratch).is_err());
+ let invalid_outer=StructuredInfoValue::record(GuardedGrandparent::semantic_type().unwrap(),vec![StructuredFieldValue::new("child",parent.clone().into_structured().unwrap()).unwrap(),StructuredFieldValue::new("other",GuardedChild::new(3).unwrap().into_structured().unwrap()).unwrap()]).unwrap().canonical_bytes().unwrap();
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&invalid_outer,&[&lo,&hi],scratch),GuardedGrandparent::decode(&invalid_outer));assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&invalid_outer,&[&lo,&hi],scratch).is_err());
+ let (_,parent_cap)=family.decode_admitted::<GuardedParent>(Rc::from(parent.encode().unwrap()),usize::MAX).unwrap();
+ struct Reroute(GuardedGrandparent);
+ impl NativeRustBinding for Reroute {
+  fn semantic_type()->Result<StructuredInfoType,NativeBindingRefusal>{GuardedGrandparent::semantic_type()}
+  fn into_structured(self)->Result<StructuredInfoValue,NativeBindingRefusal>{self.0.into_structured()}
+  fn from_structured(value:StructuredInfoValue)->Result<Self,NativeBindingRefusal>{GuardedGrandparent::from_structured(value).map(Self)}
+ }
+ impl PreparedNativeRustBinding for Reroute {
+  const PREPARED_DESCRIPTOR:&'static conduit_plot::rust_binding::NativeFamilyTypeDescriptor=GuardedGrandparent::PREPARED_DESCRIPTOR;
+  fn from_borrowed_prepared(value:conduit_core::ValidatedCanonicalStructuredValue<'_>,family:&mut PreparedNativeFamily)->Result<Self,NativeBindingRefusal>{GuardedGrandparent::from_borrowed_prepared(value,family).map(Self)}
+  fn from_borrowed_prepared_with_children(value:conduit_core::ValidatedCanonicalStructuredValue<'_>,family:&mut PreparedNativeFamily,scope:&NativeChildAdmissionScope<'_>)->Result<Self,NativeBindingRefusal>{
+   let root=scope.for_node(family,Self::PREPARED_DESCRIPTOR,value)?;let child_scope=root.child_scope()?;
+   let child=value.record_field("child").unwrap().unwrap();let admitted=child_scope.for_node(family,GuardedParent::PREPARED_DESCRIPTOR,child)?;assert!(!admitted.requires_validation());
+   let inherited=admitted.child_scope()?;
+   let child_type=GuardedChild::semantic_type().unwrap();let leaf=conduit_plot::rust_binding::record_field_type(&child_type,"value").unwrap();
+   let unrelated=StructuredInfoValue::record(child_type,vec![StructuredFieldValue::new("value",conduit_plot::rust_binding::primitive_into_structured(leaf,&129u32).unwrap()).unwrap()]).unwrap().canonical_bytes().unwrap();
+   let unrelated=conduit_core::validate_canonical_structured_value(&unrelated).unwrap();
+   let escaped=inherited.for_node(family,GuardedChild::PREPARED_DESCRIPTOR,unrelated)?;assert!(escaped.requires_validation(),"inherited admission is bound to its immutable ancestor bytes");
+   GuardedChild::from_borrowed_prepared_with_children(unrelated,family,&inherited)?;
+   panic!("changed unrelated child bypassed its original law")
+  }
+ }
+ assert!(family.decode_with_admitted_children::<Reroute>(&encoded,&[&parent_cap],scratch).is_err());
+ let (_,whole)=family.decode_admitted::<GuardedGrandparent>(Rc::from(encoded.clone()),usize::MAX).unwrap();
+ SCOPED_VALIDATIONS.store(0,Ordering::SeqCst);
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&whole],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),5,"root is never skipped");
+ let mut malformed=encoded.clone();malformed.pop();assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&malformed,&[&lo,&hi,&ot],scratch).is_err());
+ // All scopes are immutable stack values: failure cannot leave a bypass behind.
+ assert!(family.decode::<GuardedParent>(&invalid).is_err());
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo,&hi,&ot],scratch).unwrap(),grand);
+ let receipt=family.storage_receipt();
+ assert!(PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,PreparedNativeFamilyLimits{maximum_retained_bytes:receipt.retained_heap_bytes_bound-1,..limits}).is_err());
+ assert!(PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,PreparedNativeFamilyLimits{maximum_preparation_peak_bytes:receipt.preparation_peak_heap_bytes_bound-1,..limits}).is_err());
+}
 "#;
     fs::write(
         &source,
-        format!("{}{}{}", generated.source, exercise, prepared_exercise),
+        format!("{}{}{}", generated.source.replace("if __conduit_node_scope.requires_validation() { family.validate", "if __conduit_node_scope.requires_validation() { SCOPED_VALIDATIONS.fetch_add(1, std::sync::atomic::Ordering::SeqCst); family.validate"), exercise, prepared_exercise),
     )
     .unwrap();
     let executable = directory.join("bindings-test");

@@ -25,6 +25,11 @@ pub use prepared_invariant_storage::{
     PreparedNativeInvariantStorageLimits, PreparedNativeInvariantStorageReceipt,
 };
 mod prepared_family;
+mod prepared_family_admission;
+pub use prepared_family_admission::{
+    AdmittedNativeChild, NativeChildAdmissionScope, NativeChildStorageReceipt,
+    NativeNodeAdmissionScope, MAXIMUM_ADMITTED_NATIVE_CHILDREN,
+};
 mod prepared_family_contracts;
 mod prepared_family_external;
 #[cfg(test)]

@@ -75,27 +75,41 @@ pub enum PreparedNativeFamilyRefusal {
     InvalidLaws(PreparedNativeInvariantRefusal),
 }
 
-struct PreparedType {
-    descriptor: &'static NativeFamilyTypeDescriptor,
+pub(super) struct PreparedType {
+    pub(super) descriptor: &'static NativeFamilyTypeDescriptor,
     contracts: Vec<NativeTypeValueContract>,
     laws: PreparedNativeInvariantAdmission,
     framing: Vec<u8>,
 }
 
 pub struct PreparedNativeFamily {
-    types: Vec<PreparedType>,
-    maximum_input_bytes: usize,
-    receipt: PreparedNativeFamilyStorageReceipt,
+    pub(super) types: Vec<PreparedType>,
+    pub(super) maximum_input_bytes: usize,
+    pub(super) receipt: PreparedNativeFamilyStorageReceipt,
+    pub(super) admission_domain:
+        Option<super::prepared_family_admission::NativeAdmissionDomainOwner>,
 }
 
 /// Implemented by generated bindings; every named child uses this same owner.
-/// Custom implementations must independently account for their allocations.
+/// Custom implementations must preserve complete child-before-parent Native
+/// validation and independently account for their allocations. Scoped converters
+/// may omit a node's validation only when its authenticated scope permits it.
+/// This trait does not authenticate arbitrary custom implementation behavior;
+/// capability issuance separately validates the complete canonical subtree.
 pub trait PreparedNativeRustBinding: NativeRustBinding {
     const PREPARED_DESCRIPTOR: &'static NativeFamilyTypeDescriptor;
     fn from_borrowed_prepared(
         value: ValidatedCanonicalStructuredValue<'_>,
         family: &mut PreparedNativeFamily,
     ) -> Result<Self, NativeBindingRefusal>;
+    /// Older imported bindings safely retain their complete validation path.
+    fn from_borrowed_prepared_with_children(
+        value: ValidatedCanonicalStructuredValue<'_>,
+        family: &mut PreparedNativeFamily,
+        _scope: &super::NativeChildAdmissionScope<'_>,
+    ) -> Result<Self, NativeBindingRefusal> {
+        Self::from_borrowed_prepared(value, family)
+    }
 }
 
 impl PreparedNativeFamily {
@@ -233,6 +247,7 @@ impl PreparedNativeFamily {
         admit(conversion, limits.maximum_conversion_requested_bytes)?;
         Ok(Self {
             types,
+            admission_domain: None,
             maximum_input_bytes: limits.maximum_input_bytes,
             receipt: PreparedNativeFamilyStorageReceipt {
                 types: count,

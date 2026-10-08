@@ -16,6 +16,7 @@ mod projection;
 mod record;
 mod shape_observation;
 mod validated_extent;
+mod visit;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ValidatedCanonicalStructuredValue<'a> {

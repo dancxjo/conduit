@@ -359,6 +359,9 @@ fn emit_converter(
     names: &BTreeMap<String, String>,
     options: &RustBindingOptions,
 ) -> Result<(), Error> {
+    let destination = out;
+    let mut generated = String::new();
+    let out = &mut generated;
     writeln!(out, "impl conduit_plot::rust_binding::PreparedNativeRustBinding for {name} {{\n    const PREPARED_DESCRIPTOR: &'static conduit_plot::rust_binding::NativeFamilyTypeDescriptor = &{name}_PREPARED_NATIVE_DESCRIPTOR;\n    fn from_borrowed_prepared(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plot::rust_binding::PreparedNativeFamily) -> Result<Self, NativeBindingRefusal> {{\n        family.check_type(Self::PREPARED_DESCRIPTOR, value)?;").unwrap();
     match ty.value_type.shape() {
         StructuredInfoTypeShape::Record { fields, .. } => {
@@ -424,6 +427,21 @@ fn emit_converter(
         _ => return Err(Error::InvalidSemanticType),
     }
     writeln!(out, "    }}\n}}\n").unwrap();
+    let body_start = generated
+        .find("        family.check_type")
+        .ok_or(Error::InvalidSemanticType)?;
+    let body_end = generated
+        .rfind("    }\n}")
+        .ok_or(Error::InvalidSemanticType)?;
+    let scoped_body = generated[body_start..body_end]
+        .replace("::from_borrowed_prepared(", "::from_borrowed_prepared_with_children(")
+        .replace(", family)?", ", family, &__conduit_child_scope)?")
+        .replace("        family.check_type(Self::PREPARED_DESCRIPTOR, value)?;", "        family.check_type(Self::PREPARED_DESCRIPTOR, value)?;\n        let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;\n        let __conduit_child_scope = __conduit_node_scope.child_scope()?;")
+        .replace("family.validate(Self::PREPARED_DESCRIPTOR, value)?;", "if __conduit_node_scope.requires_validation() { family.validate(Self::PREPARED_DESCRIPTOR, value)?; }");
+    let insertion = generated.rfind("\n}").ok_or(Error::InvalidSemanticType)?;
+    destination.push_str(&generated[..insertion]);
+    writeln!(destination, "\n    fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plot::rust_binding::PreparedNativeFamily, scope: &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {{\n{scoped_body}    }}").unwrap();
+    destination.push_str(&generated[insertion..]);
     Ok(())
 }
 
