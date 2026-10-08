@@ -1,12 +1,10 @@
-//! Fixed FourSlotV2 mixed Source/model custody, preceding Session publication.
+//! Fixed profile mixed Source/model custody, preceding Session publication.
 //! The Source projectors and original adopted model are retained independently;
 //! a target response must equal their complete canonical composition.
 use crate::{
     parser_canonical_history::ParserCanonicalHistory,
-    parser_session_execution::{
-        verification::PreparedSourceVerification, ParserSessionEntry, ParserSessionExecution,
-    },
-    LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
+    parser_session_execution::{ParserSessionExecution, verification::PreparedSourceVerification},
+    parser_session_numeric_profile::{FixedParserNumericProfile, PinnedFourSlotNumericProfile},
 };
 use alloc::{rc::Rc, sync::Arc, vec::Vec};
 use conduit_ai::integer_categorical_step::{
@@ -45,9 +43,9 @@ impl ParserNumericFrames {
     }
 }
 
-pub(crate) struct ParserNumericHistory {
-    pub(crate) features:
-        ParserCanonicalHistory<LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures>,
+pub(crate) struct ParserNumericHistory<P: FixedParserNumericProfile = PinnedFourSlotNumericProfile>
+{
+    pub(crate) features: ParserCanonicalHistory<P::Query, P::Features>,
     pub(crate) indices: Vec<u8>,
     pub(crate) scores: Vec<u8>,
     pub(crate) output: Vec<u8>,
@@ -70,7 +68,11 @@ pub(crate) enum ParserNumericRefusal<E> {
     Execution(E),
 }
 
-pub(crate) struct PreparedParserNumericCustody<E: ParserNumericExecutor> {
+pub(crate) struct PreparedParserNumericCustody<
+    E: ParserNumericExecutor,
+    P: FixedParserNumericProfile = PinnedFourSlotNumericProfile,
+> {
+    profile: core::marker::PhantomData<fn() -> P>,
     executor: E,
     family: Rc<RefCell<PreparedNativeFamily>>,
     projector: PreparedSourceVerification,
@@ -81,7 +83,7 @@ pub(crate) struct PreparedParserNumericCustody<E: ParserNumericExecutor> {
     next_ordinal: u64,
     cancelled: bool,
 }
-impl<E: ParserNumericExecutor> PreparedParserNumericCustody<E> {
+impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> PreparedParserNumericCustody<E, P> {
     /// Only the fixed mixed Plan owner may assemble this after complete Source,
     /// resource, ordered-cord, endpoint and selected-placement admission.
     pub(crate) fn from_prepared(
@@ -95,24 +97,25 @@ impl<E: ParserNumericExecutor> PreparedParserNumericCustody<E> {
         selection: &crate::parser_model_selection::PreparedParserModelSelection,
     ) -> Result<Self, ParserNumericRefusal<E::Error>> {
         use ParserNumericRefusal as R;
-        if selection.declaration().is_some()
+        if !P::admits_selection(selection)
             || !Arc::ptr_eq(selection.prepared_categorical(), numerical.profile())
             || maximum_invocations == 0
             || original_plan.fragments.is_empty()
-            || projector.entry() != ParserSessionEntry::V2FeatureIndices
-            || wrapper.entry() != ParserSessionEntry::V2ScoreObservation
-            || numerical.profile().dimensions().1 != 76
-            || numerical.profile().dimensions().2 != 25
+            || projector.entry() != P::INDICES
+            || wrapper.entry() != P::SCORES
+            || numerical.profile().dimensions().1 != P::SCORE_CLASSES
+            || numerical.profile().dimensions().2 != P::LOOKUPS
             || !family
                 .borrow()
-                .contains_descriptor(LanguageParserV2ModelFeatures::PREPARED_DESCRIPTOR)
+                .contains_descriptor(P::Features::PREPARED_DESCRIPTOR)
             || !family
                 .borrow()
-                .contains_descriptor(LanguageParserV2ModelScores::PREPARED_DESCRIPTOR)
+                .contains_descriptor(P::Scores::PREPARED_DESCRIPTOR)
         {
             return Err(R::Parent);
         }
         Ok(Self {
+            profile: core::marker::PhantomData,
             executor,
             family,
             projector,
@@ -133,17 +136,14 @@ impl<E: ParserNumericExecutor> PreparedParserNumericCustody<E> {
     /// Arbitrary individually valid Native feature snapshots cannot enter here.
     pub(crate) fn execute(
         &mut self,
-        features: ParserSessionExecution<
-            LanguageParserV2ChoiceQuery,
-            LanguageParserV2ModelFeatures,
-        >,
+        features: ParserSessionExecution<P::Query, P::Features>,
         mut frames: ParserNumericFrames,
-    ) -> Result<ParserNumericHistory, ParserNumericRefusal<E::Error>> {
+    ) -> Result<ParserNumericHistory<P>, ParserNumericRefusal<E::Error>> {
         use ParserNumericRefusal as R;
         if self.cancelled {
             return Err(R::Cancelled);
         }
-        if features.entry() != ParserSessionEntry::V2ModelFeatures {
+        if features.entry() != P::FEATURES {
             return Err(R::Parent);
         }
         if self.next_ordinal >= u64::from(self.maximum_invocations) {
@@ -158,7 +158,7 @@ impl<E: ParserNumericExecutor> PreparedParserNumericCustody<E> {
         drop(
             self.family
                 .borrow_mut()
-                .decode::<LanguageParserV2ModelFeatures>(history.output_bytes())
+                .decode::<P::Features>(history.output_bytes())
                 .map_err(|_| R::Native)?,
         );
         let indices = self
@@ -189,7 +189,7 @@ impl<E: ParserNumericExecutor> PreparedParserNumericCustody<E> {
         drop(
             self.family
                 .borrow_mut()
-                .decode::<LanguageParserV2ModelScores>(expected)
+                .decode::<P::Scores>(expected)
                 .map_err(|_| R::Native)?,
         );
         // Poison before the first target consumption. Late refusal and unwinding
@@ -238,7 +238,9 @@ impl<E: ParserNumericExecutor> PreparedParserNumericCustody<E> {
         Ok(receipt)
     }
 }
-impl<E: ParserNumericExecutor> Drop for PreparedParserNumericCustody<E> {
+impl<E: ParserNumericExecutor, P: FixedParserNumericProfile> Drop
+    for PreparedParserNumericCustody<E, P>
+{
     fn drop(&mut self) {
         self.executor.cancel();
     }
@@ -249,11 +251,14 @@ impl<E: ParserNumericExecutor> Drop for PreparedParserNumericCustody<E> {
 pub(crate) struct ParserNumericReadmissionBudget {
     pub(crate) maximum_live_native_bytes: usize,
 }
-pub(crate) struct ParserNumericReadmission<'a> {
-    pub(crate) output: LanguageParserV2ModelScores,
+pub(crate) struct ParserNumericReadmission<
+    'a,
+    P: FixedParserNumericProfile = PinnedFourSlotNumericProfile,
+> {
+    pub(crate) output: P::Scores,
     _budget: &'a mut ParserNumericReadmissionBudget,
 }
-impl ParserNumericHistory {
+impl<P: FixedParserNumericProfile> ParserNumericHistory<P> {
     pub(crate) fn replay_and_readmit<'a>(
         &self,
         feature_verifier: &mut PreparedSourceVerification,
@@ -263,7 +268,8 @@ impl ParserNumericHistory {
         family: &mut PreparedNativeFamily,
         expected_original_plan: &conduit_core::Plan,
         budget: &'a mut ParserNumericReadmissionBudget,
-    ) -> Result<ParserNumericReadmission<'a>, ParserNumericRefusal<core::convert::Infallible>> {
+    ) -> Result<ParserNumericReadmission<'a, P>, ParserNumericRefusal<core::convert::Infallible>>
+    {
         use ParserNumericRefusal as R;
         // Reserve the entire historical peak before any decode or replay.
         let peak = family
@@ -274,9 +280,9 @@ impl ParserNumericHistory {
         if peak > budget.maximum_live_native_bytes {
             return Err(R::Pressure);
         }
-        if self.features.entry() != ParserSessionEntry::V2ModelFeatures
-            || projector.entry() != ParserSessionEntry::V2FeatureIndices
-            || wrapper.entry() != ParserSessionEntry::V2ScoreObservation
+        if self.features.entry() != P::FEATURES
+            || projector.entry() != P::INDICES
+            || wrapper.entry() != P::SCORES
             || !Arc::ptr_eq(numerical.profile(), &self.original_model)
             || self.original_plan.as_ref() != expected_original_plan
         {
@@ -303,11 +309,11 @@ impl ParserNumericHistory {
         if wrapper.evaluate(&self.scores).map_err(|_| R::Source)? != self.output {
             return Err(R::DifferentOutput);
         }
-        if !family.contains_descriptor(LanguageParserV2ModelScores::PREPARED_DESCRIPTOR) {
+        if !family.contains_descriptor(P::Scores::PREPARED_DESCRIPTOR) {
             return Err(R::Native);
         }
         let output = family
-            .decode::<LanguageParserV2ModelScores>(&self.output)
+            .decode::<P::Scores>(&self.output)
             .map_err(|_| R::Native)?;
         Ok(ParserNumericReadmission {
             output,

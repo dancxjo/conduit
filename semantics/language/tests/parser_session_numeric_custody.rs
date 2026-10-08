@@ -14,6 +14,8 @@ mod mixed_custody;
 mod model_resource;
 #[path = "../src/parser_source_native_parity.rs"]
 mod native_parity;
+#[path = "../src/parser_session_numeric_profile.rs"]
+mod parser_session_numeric_profile;
 #[path = "../src/parser_session_numeric_custody.rs"]
 mod parser_session_numeric_custody;
 use parser_session_numeric_custody as numeric_custody;

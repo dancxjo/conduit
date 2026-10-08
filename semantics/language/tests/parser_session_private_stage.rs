@@ -12,6 +12,8 @@ mod parser_session_fixed_ingress;
 mod parser_session_historical_base;
 #[path = "../src/parser_session_mixed_custody.rs"]
 mod parser_session_mixed_custody;
+#[path = "../src/parser_session_numeric_profile.rs"]
+mod parser_session_numeric_profile;
 #[path = "../src/parser_session_numeric_custody.rs"]
 mod parser_session_numeric_custody;
 #[path = "../src/parser_session_numeric_plan_storage.rs"]
