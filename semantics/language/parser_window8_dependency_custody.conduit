@@ -1,0 +1,71 @@
+# DRAFT, unselected: whole original stable dependency custody across revisions.
+# Compact anchors are locators only; Session retains full origin and every Source hop.
+type LanguageParserWindow8DependencyAnchorProposal = {
+ origin_basis: LanguageParserBasis
+ current_basis: LanguageParserBasis
+ dependent: U64
+ head: U64
+ dependent_choice: U64
+ head_choice: U64
+ relation: LanguageParserRelation
+}
+type LanguageParserWindow8DependencyCustody = {
+ origin: LanguageParserWindow8StableDependencyFact
+ anchor: LanguageParserWindow8DependencyAnchorProposal
+ lexical: LanguageParserWindow8Lexical
+ where .anchor.origin_basis == .origin.context.query.snapshot.basis
+ where .anchor.current_basis.text == .lexical.tape.source.material.identity && .anchor.current_basis.source_revision == .lexical.tape.source.material.revision
+ where .anchor.dependent == .origin.context.query.dependent && .anchor.head == .origin.context.head
+ where variant/tag(.anchor.relation.base) == variant/tag(.origin.context.relation.base) && .anchor.relation.subtype == .origin.context.relation.subtype
+ where .anchor.dependent_choice == sequence/at(.origin.context.query.snapshot.candidate0.hypothesis.choices,.anchor.dependent)
+ where .anchor.head_choice == (.anchor.head == 8 ? 0 : sequence/at(.origin.context.query.snapshot.candidate0.hypothesis.choices,.anchor.head))
+ where .anchor.dependent < .lexical.token_count && (.anchor.head == 8 || .anchor.head < .lexical.token_count)
+ where .lexical.tape.profile == .origin.context.query.snapshot.lexical.tape.profile
+ where sequence/at(.lexical.tape.tokens,.anchor.dependent).surface == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.dependent).surface
+ where sequence/at(.lexical.tape.tokens,.anchor.dependent).candidates == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.dependent).candidates
+ where sequence/at(.lexical.tape.tokens,.anchor.dependent).span.start == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.dependent).span.start
+ where sequence/at(.lexical.tape.tokens,.anchor.dependent).span.end == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.dependent).span.end
+ where variant/tag(sequence/at(.lexical.tape.tokens,.anchor.dependent).span.basis) == variant/tag(sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.dependent).span.basis)
+ where .anchor.head == 8 || sequence/at(.lexical.tape.tokens,.anchor.head).surface == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.head).surface
+ where .anchor.head == 8 || sequence/at(.lexical.tape.tokens,.anchor.head).candidates == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.head).candidates
+ where .anchor.head == 8 || sequence/at(.lexical.tape.tokens,.anchor.head).span.start == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.head).span.start
+ where .anchor.head == 8 || sequence/at(.lexical.tape.tokens,.anchor.head).span.end == sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.head).span.end
+ where .anchor.head == 8 || variant/tag(sequence/at(.lexical.tape.tokens,.anchor.head).span.basis) == variant/tag(sequence/at(.origin.context.query.snapshot.lexical.tape.tokens,.anchor.head).span.basis)
+}
+type LanguageParserWindow8DependencyRebaseQuery = {
+ previous: LanguageParserWindow8DependencyCustody
+ next: LanguageParserWindow8Lexical
+ lineage: LanguageTextRevisionLineage
+ basis: LanguageParserBasis
+ where .lineage.previous == .previous.lexical.tape.source && .lineage.next == .next.tape.source
+ where .previous.lexical.tape.profile == .next.tape.profile
+ where .basis.text == .next.tape.source.material.identity && .basis.source_revision == .next.tape.source.material.revision
+ where .basis.analysis_revision != .previous.anchor.current_basis.analysis_revision
+ where .previous.anchor.dependent < .next.token_count && (.previous.anchor.head == 8 || .previous.anchor.head < .next.token_count)
+ where (variant/is(sequence/at(.next.tape.tokens,.previous.anchor.dependent).prior_occurrence,"some") ? sequence/at(.next.tape.tokens,.previous.anchor.dependent).prior_occurrence.some == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).identity : false)
+ where sequence/at(.next.tape.tokens,.previous.anchor.dependent).surface == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).surface
+ where sequence/at(.next.tape.tokens,.previous.anchor.dependent).candidates == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).candidates
+ where sequence/at(.next.tape.tokens,.previous.anchor.dependent).span.start == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).span.start
+ where sequence/at(.next.tape.tokens,.previous.anchor.dependent).span.end == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).span.end
+ where variant/tag(sequence/at(.next.tape.tokens,.previous.anchor.dependent).span.basis) == variant/tag(sequence/at(.previous.lexical.tape.tokens,.previous.anchor.dependent).span.basis)
+ where .previous.anchor.head == 8 || (variant/is(sequence/at(.next.tape.tokens,.previous.anchor.head).prior_occurrence,"some") ? sequence/at(.next.tape.tokens,.previous.anchor.head).prior_occurrence.some == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.head).identity : false)
+ where .previous.anchor.head == 8 || sequence/at(.next.tape.tokens,.previous.anchor.head).surface == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.head).surface
+ where .previous.anchor.head == 8 || sequence/at(.next.tape.tokens,.previous.anchor.head).candidates == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.head).candidates
+ where .previous.anchor.head == 8 || sequence/at(.next.tape.tokens,.previous.anchor.head).span.start == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.head).span.start
+ where .previous.anchor.head == 8 || sequence/at(.next.tape.tokens,.previous.anchor.head).span.end == sequence/at(.previous.lexical.tape.tokens,.previous.anchor.head).span.end
+ where .previous.anchor.head == 8 || variant/tag(sequence/at(.next.tape.tokens,.previous.anchor.head).span.basis) == variant/tag(sequence/at(.previous.lexical.tape.tokens,.previous.anchor.head).span.basis)
+}
+type LanguageParserWindow8DependencyCustodyProposal = {
+ origin: LanguageParserWindow8StableDependencyFact
+ anchor: LanguageParserWindow8DependencyAnchorProposal
+ lexical: LanguageParserWindow8Lexical
+}
+plot language-window8-dependency-custody-rebase (
+ input: LanguageParserWindow8DependencyRebaseQuery...| >> output: LanguageParserWindow8DependencyCustodyProposal...|
+) = { origin: .previous.origin, lexical: .next, anchor: { origin_basis: .previous.anchor.origin_basis, current_basis: .basis, dependent: .previous.anchor.dependent, head: .previous.anchor.head, dependent_choice: .previous.anchor.dependent_choice, head_choice: .previous.anchor.head_choice, relation: .previous.anchor.relation } }
+
+# The exact Source stable fact is the only origin. Full generated custody
+# readmission follows this whole output before Session retention.
+plot language-window8-dependency-custody-origin (
+ input: LanguageParserWindow8StableDependencyFact...| >> output: LanguageParserWindow8DependencyCustodyProposal...|
+) = { origin: ., lexical: .context.query.snapshot.lexical, anchor: { origin_basis: .context.query.snapshot.basis, current_basis: .context.query.snapshot.basis, dependent: .context.query.dependent, head: .context.head, dependent_choice: sequence/at(.context.query.snapshot.candidate0.hypothesis.choices,.context.query.dependent), head_choice: (.context.head == 8 ? 0 : sequence/at(.context.query.snapshot.candidate0.hypothesis.choices,.context.head)), relation: .context.relation } }

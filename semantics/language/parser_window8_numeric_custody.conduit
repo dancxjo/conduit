@@ -1,0 +1,13 @@
+# DRAFT exact canonical numeric boundary. Full original feature frame, selected
+# model definition/signature/resource and ordered original Plans remain owned.
+# Bare numerical collections are admitted by the original model's canonical
+# adapter; this Source observation never substitutes for that model authority.
+type LanguageParserWindow8ModelScores = {
+ scores: collection I64 = 76
+}
+plot language-window8-model-feature-indices (
+ input: LanguageParserWindow8RawModelFeatures...| >> output: LanguageParserCategoricalIndices...|
+) = .indices
+plot language-window8-model-score-observation (
+ input: LanguageParserCategoricalScores...| >> output: LanguageParserWindow8ModelScores...|
+) = { scores: . }

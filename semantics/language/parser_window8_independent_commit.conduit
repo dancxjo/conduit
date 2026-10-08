@@ -1,0 +1,104 @@
+# DRAFT legacy reviewed profile only. Full original fact/Source hops are retained by owner.
+# Independent commitment never advances contiguous or played frontiers.
+type LanguageParserWindow8IndependentCommitSetProposal = {
+ basis: LanguageParserBasis
+ active: collection Boolean = 8
+ edge0: LanguageParserWindow8DependencyAnchorProposal
+ edge1: LanguageParserWindow8DependencyAnchorProposal
+ edge2: LanguageParserWindow8DependencyAnchorProposal
+ edge3: LanguageParserWindow8DependencyAnchorProposal
+ edge4: LanguageParserWindow8DependencyAnchorProposal
+ edge5: LanguageParserWindow8DependencyAnchorProposal
+ edge6: LanguageParserWindow8DependencyAnchorProposal
+ edge7: LanguageParserWindow8DependencyAnchorProposal
+}
+type LanguageParserWindow8IndependentCommitSet = {
+ basis: LanguageParserBasis
+ active: collection Boolean = 8
+ edge0: LanguageParserWindow8DependencyAnchorProposal
+ edge1: LanguageParserWindow8DependencyAnchorProposal
+ edge2: LanguageParserWindow8DependencyAnchorProposal
+ edge3: LanguageParserWindow8DependencyAnchorProposal
+ edge4: LanguageParserWindow8DependencyAnchorProposal
+ edge5: LanguageParserWindow8DependencyAnchorProposal
+ edge6: LanguageParserWindow8DependencyAnchorProposal
+ edge7: LanguageParserWindow8DependencyAnchorProposal
+ where .active.0 ? (.edge0.dependent == 0) : true
+ where .active.0 ? (.edge0.current_basis == .basis) : true
+ where .active.0 ? (.edge0.head <= 8 && .edge0.head != 0) : true
+ where .active.0 ? (.edge0.dependent_choice < 4 && .edge0.head_choice < 4) : true
+ where .active.1 ? (.edge1.dependent == 1) : true
+ where .active.1 ? (.edge1.current_basis == .basis) : true
+ where .active.1 ? (.edge1.head <= 8 && .edge1.head != 1) : true
+ where .active.1 ? (.edge1.dependent_choice < 4 && .edge1.head_choice < 4) : true
+ where .active.2 ? (.edge2.dependent == 2) : true
+ where .active.2 ? (.edge2.current_basis == .basis) : true
+ where .active.2 ? (.edge2.head <= 8 && .edge2.head != 2) : true
+ where .active.2 ? (.edge2.dependent_choice < 4 && .edge2.head_choice < 4) : true
+ where .active.3 ? (.edge3.dependent == 3) : true
+ where .active.3 ? (.edge3.current_basis == .basis) : true
+ where .active.3 ? (.edge3.head <= 8 && .edge3.head != 3) : true
+ where .active.3 ? (.edge3.dependent_choice < 4 && .edge3.head_choice < 4) : true
+ where .active.4 ? (.edge4.dependent == 4) : true
+ where .active.4 ? (.edge4.current_basis == .basis) : true
+ where .active.4 ? (.edge4.head <= 8 && .edge4.head != 4) : true
+ where .active.4 ? (.edge4.dependent_choice < 4 && .edge4.head_choice < 4) : true
+ where .active.5 ? (.edge5.dependent == 5) : true
+ where .active.5 ? (.edge5.current_basis == .basis) : true
+ where .active.5 ? (.edge5.head <= 8 && .edge5.head != 5) : true
+ where .active.5 ? (.edge5.dependent_choice < 4 && .edge5.head_choice < 4) : true
+ where .active.6 ? (.edge6.dependent == 6) : true
+ where .active.6 ? (.edge6.current_basis == .basis) : true
+ where .active.6 ? (.edge6.head <= 8 && .edge6.head != 6) : true
+ where .active.6 ? (.edge6.dependent_choice < 4 && .edge6.head_choice < 4) : true
+ where .active.7 ? (.edge7.dependent == 7) : true
+ where .active.7 ? (.edge7.current_basis == .basis) : true
+ where .active.7 ? (.edge7.head <= 8 && .edge7.head != 7) : true
+ where .active.7 ? (.edge7.dependent_choice < 4 && .edge7.head_choice < 4) : true
+}
+type LanguageParserWindow8IndependentCommitInitialize = {
+ basis: LanguageParserBasis
+ default_relation: LanguageParserRelation
+}
+plot language-window8-independent-commit-initialize (
+ input: LanguageParserWindow8IndependentCommitInitialize...| >> output: LanguageParserWindow8IndependentCommitSetProposal...|
+) = { basis: .basis, active: [false,false,false,false,false,false,false,false], edge0: { origin_basis: .basis, current_basis: .basis, dependent: 0, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation }, edge1: { origin_basis: .basis, current_basis: .basis, dependent: 1, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation }, edge2: { origin_basis: .basis, current_basis: .basis, dependent: 2, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation }, edge3: { origin_basis: .basis, current_basis: .basis, dependent: 3, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation }, edge4: { origin_basis: .basis, current_basis: .basis, dependent: 4, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation }, edge5: { origin_basis: .basis, current_basis: .basis, dependent: 5, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation }, edge6: { origin_basis: .basis, current_basis: .basis, dependent: 6, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation }, edge7: { origin_basis: .basis, current_basis: .basis, dependent: 7, head: 8, dependent_choice: 0, head_choice: 0, relation: .default_relation } }
+type LanguageParserWindow8IndependentCommitRequest = {
+ fact: LanguageParserWindow8StableDependencyFact
+ previous: LanguageParserWindow8IndependentCommitSet
+ where .previous.basis == .fact.context.query.snapshot.basis
+ where (.fact.context.query.dependent == 0 && .previous.active.0) ? (.previous.edge0.head == .fact.context.head && .previous.edge0.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,0) && .previous.edge0.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge0.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge0.relation.subtype == .fact.context.relation.subtype) : true
+ where (.fact.context.query.dependent == 1 && .previous.active.1) ? (.previous.edge1.head == .fact.context.head && .previous.edge1.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,1) && .previous.edge1.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge1.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge1.relation.subtype == .fact.context.relation.subtype) : true
+ where (.fact.context.query.dependent == 2 && .previous.active.2) ? (.previous.edge2.head == .fact.context.head && .previous.edge2.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,2) && .previous.edge2.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge2.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge2.relation.subtype == .fact.context.relation.subtype) : true
+ where (.fact.context.query.dependent == 3 && .previous.active.3) ? (.previous.edge3.head == .fact.context.head && .previous.edge3.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,3) && .previous.edge3.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge3.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge3.relation.subtype == .fact.context.relation.subtype) : true
+ where (.fact.context.query.dependent == 4 && .previous.active.4) ? (.previous.edge4.head == .fact.context.head && .previous.edge4.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,4) && .previous.edge4.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge4.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge4.relation.subtype == .fact.context.relation.subtype) : true
+ where (.fact.context.query.dependent == 5 && .previous.active.5) ? (.previous.edge5.head == .fact.context.head && .previous.edge5.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,5) && .previous.edge5.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge5.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge5.relation.subtype == .fact.context.relation.subtype) : true
+ where (.fact.context.query.dependent == 6 && .previous.active.6) ? (.previous.edge6.head == .fact.context.head && .previous.edge6.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,6) && .previous.edge6.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge6.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge6.relation.subtype == .fact.context.relation.subtype) : true
+ where (.fact.context.query.dependent == 7 && .previous.active.7) ? (.previous.edge7.head == .fact.context.head && .previous.edge7.dependent_choice == sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,7) && .previous.edge7.head_choice == (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)) && variant/tag(.previous.edge7.relation.base) == variant/tag(.fact.context.relation.base) && .previous.edge7.relation.subtype == .fact.context.relation.subtype) : true
+}
+plot language-window8-independent-commit (
+ input: LanguageParserWindow8IndependentCommitRequest...| >> output: LanguageParserWindow8IndependentCommitSetProposal...|
+) = { basis: .previous.basis, active: [(.previous.active.0 || .fact.context.query.dependent == 0),(.previous.active.1 || .fact.context.query.dependent == 1),(.previous.active.2 || .fact.context.query.dependent == 2),(.previous.active.3 || .fact.context.query.dependent == 3),(.previous.active.4 || .fact.context.query.dependent == 4),(.previous.active.5 || .fact.context.query.dependent == 5),(.previous.active.6 || .fact.context.query.dependent == 6),(.previous.active.7 || .fact.context.query.dependent == 7)], edge0: (.previous.active.0 || .fact.context.query.dependent != 0 ? .previous.edge0 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,0), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }), edge1: (.previous.active.1 || .fact.context.query.dependent != 1 ? .previous.edge1 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,1), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }), edge2: (.previous.active.2 || .fact.context.query.dependent != 2 ? .previous.edge2 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,2), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }), edge3: (.previous.active.3 || .fact.context.query.dependent != 3 ? .previous.edge3 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,3), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }), edge4: (.previous.active.4 || .fact.context.query.dependent != 4 ? .previous.edge4 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,4), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }), edge5: (.previous.active.5 || .fact.context.query.dependent != 5 ? .previous.edge5 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,5), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }), edge6: (.previous.active.6 || .fact.context.query.dependent != 6 ? .previous.edge6 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,6), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }), edge7: (.previous.active.7 || .fact.context.query.dependent != 7 ? .previous.edge7 : { origin_basis: .fact.context.query.snapshot.basis, current_basis: .fact.context.query.snapshot.basis, dependent: .fact.context.query.dependent, head: .fact.context.head, dependent_choice: sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,7), head_choice: (.fact.context.head == 8 ? 0 : sequence/at(.fact.context.query.snapshot.candidate0.hypothesis.choices,.fact.context.head)), relation: .fact.context.relation }) }
+
+# This aggregate correlation is insufficient by itself: the fixed Session
+# also retains and replays every original dependency custody rebase hop.
+type LanguageParserWindow8IndependentCommitRebase = {
+ previous: LanguageParserWindow8IndependentCommitSet
+ next: LanguageParserWindow8IndependentCommitSet
+ lineage: LanguageTextRevisionLineage
+ where .previous.basis.text == .lineage.previous.material.identity && .previous.basis.source_revision == .lineage.previous.material.revision
+ where .next.basis.text == .lineage.next.material.identity && .next.basis.source_revision == .lineage.next.material.revision
+ where .previous.basis.analysis_revision != .next.basis.analysis_revision
+ where .previous.active == .next.active
+ where .previous.active.0 ? (.previous.edge0.origin_basis == .next.edge0.origin_basis && .previous.edge0.dependent == .next.edge0.dependent && .previous.edge0.head == .next.edge0.head && .previous.edge0.dependent_choice == .next.edge0.dependent_choice && .previous.edge0.head_choice == .next.edge0.head_choice && variant/tag(.previous.edge0.relation.base) == variant/tag(.next.edge0.relation.base) && .previous.edge0.relation.subtype == .next.edge0.relation.subtype) : true
+ where .previous.active.1 ? (.previous.edge1.origin_basis == .next.edge1.origin_basis && .previous.edge1.dependent == .next.edge1.dependent && .previous.edge1.head == .next.edge1.head && .previous.edge1.dependent_choice == .next.edge1.dependent_choice && .previous.edge1.head_choice == .next.edge1.head_choice && variant/tag(.previous.edge1.relation.base) == variant/tag(.next.edge1.relation.base) && .previous.edge1.relation.subtype == .next.edge1.relation.subtype) : true
+ where .previous.active.2 ? (.previous.edge2.origin_basis == .next.edge2.origin_basis && .previous.edge2.dependent == .next.edge2.dependent && .previous.edge2.head == .next.edge2.head && .previous.edge2.dependent_choice == .next.edge2.dependent_choice && .previous.edge2.head_choice == .next.edge2.head_choice && variant/tag(.previous.edge2.relation.base) == variant/tag(.next.edge2.relation.base) && .previous.edge2.relation.subtype == .next.edge2.relation.subtype) : true
+ where .previous.active.3 ? (.previous.edge3.origin_basis == .next.edge3.origin_basis && .previous.edge3.dependent == .next.edge3.dependent && .previous.edge3.head == .next.edge3.head && .previous.edge3.dependent_choice == .next.edge3.dependent_choice && .previous.edge3.head_choice == .next.edge3.head_choice && variant/tag(.previous.edge3.relation.base) == variant/tag(.next.edge3.relation.base) && .previous.edge3.relation.subtype == .next.edge3.relation.subtype) : true
+ where .previous.active.4 ? (.previous.edge4.origin_basis == .next.edge4.origin_basis && .previous.edge4.dependent == .next.edge4.dependent && .previous.edge4.head == .next.edge4.head && .previous.edge4.dependent_choice == .next.edge4.dependent_choice && .previous.edge4.head_choice == .next.edge4.head_choice && variant/tag(.previous.edge4.relation.base) == variant/tag(.next.edge4.relation.base) && .previous.edge4.relation.subtype == .next.edge4.relation.subtype) : true
+ where .previous.active.5 ? (.previous.edge5.origin_basis == .next.edge5.origin_basis && .previous.edge5.dependent == .next.edge5.dependent && .previous.edge5.head == .next.edge5.head && .previous.edge5.dependent_choice == .next.edge5.dependent_choice && .previous.edge5.head_choice == .next.edge5.head_choice && variant/tag(.previous.edge5.relation.base) == variant/tag(.next.edge5.relation.base) && .previous.edge5.relation.subtype == .next.edge5.relation.subtype) : true
+ where .previous.active.6 ? (.previous.edge6.origin_basis == .next.edge6.origin_basis && .previous.edge6.dependent == .next.edge6.dependent && .previous.edge6.head == .next.edge6.head && .previous.edge6.dependent_choice == .next.edge6.dependent_choice && .previous.edge6.head_choice == .next.edge6.head_choice && variant/tag(.previous.edge6.relation.base) == variant/tag(.next.edge6.relation.base) && .previous.edge6.relation.subtype == .next.edge6.relation.subtype) : true
+ where .previous.active.7 ? (.previous.edge7.origin_basis == .next.edge7.origin_basis && .previous.edge7.dependent == .next.edge7.dependent && .previous.edge7.head == .next.edge7.head && .previous.edge7.dependent_choice == .next.edge7.dependent_choice && .previous.edge7.head_choice == .next.edge7.head_choice && variant/tag(.previous.edge7.relation.base) == variant/tag(.next.edge7.relation.base) && .previous.edge7.relation.subtype == .next.edge7.relation.subtype) : true
+}
+plot language-window8-independent-commit-rebase (
+ input: LanguageParserWindow8IndependentCommitRebase...| >> output: LanguageParserWindow8IndependentCommitSet...|
+) = .next

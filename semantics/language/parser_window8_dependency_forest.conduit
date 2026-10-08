@@ -1,0 +1,104 @@
+# DRAFT legacy reviewed profile. Source owns all protected compatibility/cycle decisions.
+# Full query, graph and finite height witness remain in every accepted/rejected result.
+type LanguageParserWindow8DependencyCompatibilityQuery = {
+ hypothesis: LanguageParserWindow8RawHypothesis
+ retained: LanguageParserWindow8IndependentCommitSet
+}
+type LanguageParserWindow8DependencyForestWorking = {
+ query: LanguageParserWindow8DependencyCompatibilityQuery
+ heads: collection U64 = 9
+ heights: collection U64 = 9
+ roots: U64
+}
+type LanguageParserWindow8DependencyCompatibilityDecision = {
+ forest: LanguageParserWindow8DependencyForestWorking
+ accepted: Boolean
+}
+plot language-window8-dependency-forest-project (
+ input: LanguageParserWindow8DependencyCompatibilityQuery...| >> output: LanguageParserWindow8DependencyForestWorking...|
+) = { query: ., heads: [(.retained.active.0 ? .retained.edge0.head : .hypothesis.state.heads.0),(.retained.active.1 ? .retained.edge1.head : .hypothesis.state.heads.1),(.retained.active.2 ? .retained.edge2.head : .hypothesis.state.heads.2),(.retained.active.3 ? .retained.edge3.head : .hypothesis.state.heads.3),(.retained.active.4 ? .retained.edge4.head : .hypothesis.state.heads.4),(.retained.active.5 ? .retained.edge5.head : .hypothesis.state.heads.5),(.retained.active.6 ? .retained.edge6.head : .hypothesis.state.heads.6),(.retained.active.7 ? .retained.edge7.head : .hypothesis.state.heads.7),8], heights: [0,0,0,0,0,0,0,0,0], roots: 0 }
+plot language-window8-dependency-forest-height (
+ input: LanguageParserWindow8DependencyForestWorking...| >> output: LanguageParserWindow8DependencyForestWorking...|
+) = { query: .query, heads: .heads, heights: [(.heads.0 < 8 ? sequence/at(.heights,.heads.0) + 1 : (.heads.0 == 8 ? 1 : 0)),(.heads.1 < 8 ? sequence/at(.heights,.heads.1) + 1 : (.heads.1 == 8 ? 1 : 0)),(.heads.2 < 8 ? sequence/at(.heights,.heads.2) + 1 : (.heads.2 == 8 ? 1 : 0)),(.heads.3 < 8 ? sequence/at(.heights,.heads.3) + 1 : (.heads.3 == 8 ? 1 : 0)),(.heads.4 < 8 ? sequence/at(.heights,.heads.4) + 1 : (.heads.4 == 8 ? 1 : 0)),(.heads.5 < 8 ? sequence/at(.heights,.heads.5) + 1 : (.heads.5 == 8 ? 1 : 0)),(.heads.6 < 8 ? sequence/at(.heights,.heads.6) + 1 : (.heads.6 == 8 ? 1 : 0)),(.heads.7 < 8 ? sequence/at(.heights,.heads.7) + 1 : (.heads.7 == 8 ? 1 : 0)),0], roots: ((((.heads.0 == 8 ? 1 : 0) + (.heads.1 == 8 ? 1 : 0)) + ((.heads.2 == 8 ? 1 : 0) + (.heads.3 == 8 ? 1 : 0))) + (((.heads.4 == 8 ? 1 : 0) + (.heads.5 == 8 ? 1 : 0)) + ((.heads.6 == 8 ? 1 : 0) + (.heads.7 == 8 ? 1 : 0)))) }
+# Finite guard stages preserve the complete forest and cumulative decision.
+# The single decision body had expression depth21; portable bound remains16.
+plot language-window8-dependency-forest-decision (
+ input: LanguageParserWindow8DependencyForestWorking...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: ., accepted: ((.heads.8 == 8 && .heights.8 == 0) && (.roots <= 1 && .query.hypothesis.state.basis == .query.retained.basis)) }
+plot language-window8-dependency-forest-geometry-0 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.0 <= 9 && .forest.heads.0 != 0) && (.forest.heights.0 <= 8 && ((.forest.heads.0 < 8 ? .forest.heights.0 > sequence/at(.forest.heights,.forest.heads.0) : (.forest.heads.0 == 8 ? .forest.heights.0 > 0 : .forest.heights.0 == 0)) && (.forest.query.retained.active.0 ? (0 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge0.head == 8 || .forest.query.retained.edge0.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-0 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.0 ? ((0 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.0 == .forest.query.retained.edge0.dependent_choice : true) && (.forest.query.retained.edge0.head < 8 && .forest.query.retained.edge0.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge0.head) == .forest.query.retained.edge0.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-0 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.0 ? (.forest.query.hypothesis.state.heads.0 < 9 ? (.forest.query.hypothesis.state.heads.0 == .forest.query.retained.edge0.head && (variant/tag(.forest.query.hypothesis.state.relation0.base) == variant/tag(.forest.query.retained.edge0.relation.base) && .forest.query.hypothesis.state.relation0.subtype == .forest.query.retained.edge0.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-forest-geometry-1 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.1 <= 9 && .forest.heads.1 != 1) && (.forest.heights.1 <= 8 && ((.forest.heads.1 < 8 ? .forest.heights.1 > sequence/at(.forest.heights,.forest.heads.1) : (.forest.heads.1 == 8 ? .forest.heights.1 > 0 : .forest.heights.1 == 0)) && (.forest.query.retained.active.1 ? (1 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge1.head == 8 || .forest.query.retained.edge1.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-1 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.1 ? ((1 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.1 == .forest.query.retained.edge1.dependent_choice : true) && (.forest.query.retained.edge1.head < 8 && .forest.query.retained.edge1.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge1.head) == .forest.query.retained.edge1.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-1 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.1 ? (.forest.query.hypothesis.state.heads.1 < 9 ? (.forest.query.hypothesis.state.heads.1 == .forest.query.retained.edge1.head && (variant/tag(.forest.query.hypothesis.state.relation1.base) == variant/tag(.forest.query.retained.edge1.relation.base) && .forest.query.hypothesis.state.relation1.subtype == .forest.query.retained.edge1.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-forest-geometry-2 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.2 <= 9 && .forest.heads.2 != 2) && (.forest.heights.2 <= 8 && ((.forest.heads.2 < 8 ? .forest.heights.2 > sequence/at(.forest.heights,.forest.heads.2) : (.forest.heads.2 == 8 ? .forest.heights.2 > 0 : .forest.heights.2 == 0)) && (.forest.query.retained.active.2 ? (2 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge2.head == 8 || .forest.query.retained.edge2.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-2 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.2 ? ((2 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.2 == .forest.query.retained.edge2.dependent_choice : true) && (.forest.query.retained.edge2.head < 8 && .forest.query.retained.edge2.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge2.head) == .forest.query.retained.edge2.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-2 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.2 ? (.forest.query.hypothesis.state.heads.2 < 9 ? (.forest.query.hypothesis.state.heads.2 == .forest.query.retained.edge2.head && (variant/tag(.forest.query.hypothesis.state.relation2.base) == variant/tag(.forest.query.retained.edge2.relation.base) && .forest.query.hypothesis.state.relation2.subtype == .forest.query.retained.edge2.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-forest-geometry-3 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.3 <= 9 && .forest.heads.3 != 3) && (.forest.heights.3 <= 8 && ((.forest.heads.3 < 8 ? .forest.heights.3 > sequence/at(.forest.heights,.forest.heads.3) : (.forest.heads.3 == 8 ? .forest.heights.3 > 0 : .forest.heights.3 == 0)) && (.forest.query.retained.active.3 ? (3 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge3.head == 8 || .forest.query.retained.edge3.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-3 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.3 ? ((3 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.3 == .forest.query.retained.edge3.dependent_choice : true) && (.forest.query.retained.edge3.head < 8 && .forest.query.retained.edge3.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge3.head) == .forest.query.retained.edge3.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-3 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.3 ? (.forest.query.hypothesis.state.heads.3 < 9 ? (.forest.query.hypothesis.state.heads.3 == .forest.query.retained.edge3.head && (variant/tag(.forest.query.hypothesis.state.relation3.base) == variant/tag(.forest.query.retained.edge3.relation.base) && .forest.query.hypothesis.state.relation3.subtype == .forest.query.retained.edge3.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-forest-geometry-4 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.4 <= 9 && .forest.heads.4 != 4) && (.forest.heights.4 <= 8 && ((.forest.heads.4 < 8 ? .forest.heights.4 > sequence/at(.forest.heights,.forest.heads.4) : (.forest.heads.4 == 8 ? .forest.heights.4 > 0 : .forest.heights.4 == 0)) && (.forest.query.retained.active.4 ? (4 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge4.head == 8 || .forest.query.retained.edge4.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-4 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.4 ? ((4 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.4 == .forest.query.retained.edge4.dependent_choice : true) && (.forest.query.retained.edge4.head < 8 && .forest.query.retained.edge4.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge4.head) == .forest.query.retained.edge4.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-4 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.4 ? (.forest.query.hypothesis.state.heads.4 < 9 ? (.forest.query.hypothesis.state.heads.4 == .forest.query.retained.edge4.head && (variant/tag(.forest.query.hypothesis.state.relation4.base) == variant/tag(.forest.query.retained.edge4.relation.base) && .forest.query.hypothesis.state.relation4.subtype == .forest.query.retained.edge4.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-forest-geometry-5 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.5 <= 9 && .forest.heads.5 != 5) && (.forest.heights.5 <= 8 && ((.forest.heads.5 < 8 ? .forest.heights.5 > sequence/at(.forest.heights,.forest.heads.5) : (.forest.heads.5 == 8 ? .forest.heights.5 > 0 : .forest.heights.5 == 0)) && (.forest.query.retained.active.5 ? (5 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge5.head == 8 || .forest.query.retained.edge5.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-5 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.5 ? ((5 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.5 == .forest.query.retained.edge5.dependent_choice : true) && (.forest.query.retained.edge5.head < 8 && .forest.query.retained.edge5.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge5.head) == .forest.query.retained.edge5.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-5 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.5 ? (.forest.query.hypothesis.state.heads.5 < 9 ? (.forest.query.hypothesis.state.heads.5 == .forest.query.retained.edge5.head && (variant/tag(.forest.query.hypothesis.state.relation5.base) == variant/tag(.forest.query.retained.edge5.relation.base) && .forest.query.hypothesis.state.relation5.subtype == .forest.query.retained.edge5.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-forest-geometry-6 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.6 <= 9 && .forest.heads.6 != 6) && (.forest.heights.6 <= 8 && ((.forest.heads.6 < 8 ? .forest.heights.6 > sequence/at(.forest.heights,.forest.heads.6) : (.forest.heads.6 == 8 ? .forest.heights.6 > 0 : .forest.heights.6 == 0)) && (.forest.query.retained.active.6 ? (6 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge6.head == 8 || .forest.query.retained.edge6.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-6 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.6 ? ((6 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.6 == .forest.query.retained.edge6.dependent_choice : true) && (.forest.query.retained.edge6.head < 8 && .forest.query.retained.edge6.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge6.head) == .forest.query.retained.edge6.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-6 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.6 ? (.forest.query.hypothesis.state.heads.6 < 9 ? (.forest.query.hypothesis.state.heads.6 == .forest.query.retained.edge6.head && (variant/tag(.forest.query.hypothesis.state.relation6.base) == variant/tag(.forest.query.retained.edge6.relation.base) && .forest.query.hypothesis.state.relation6.subtype == .forest.query.retained.edge6.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-forest-geometry-7 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && ((.forest.heads.7 <= 9 && .forest.heads.7 != 7) && (.forest.heights.7 <= 8 && ((.forest.heads.7 < 8 ? .forest.heights.7 > sequence/at(.forest.heights,.forest.heads.7) : (.forest.heads.7 == 8 ? .forest.heights.7 > 0 : .forest.heights.7 == 0)) && (.forest.query.retained.active.7 ? (7 < .forest.query.hypothesis.state.token_count && (.forest.query.retained.edge7.head == 8 || .forest.query.retained.edge7.head < .forest.query.hypothesis.state.token_count)) : true))))) }
+plot language-window8-dependency-forest-choices-7 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.7 ? ((7 < .forest.query.hypothesis.selected ? .forest.query.hypothesis.choices.7 == .forest.query.retained.edge7.dependent_choice : true) && (.forest.query.retained.edge7.head < 8 && .forest.query.retained.edge7.head < .forest.query.hypothesis.selected ? sequence/at(.forest.query.hypothesis.choices,.forest.query.retained.edge7.head) == .forest.query.retained.edge7.head_choice : true)) : true)) }
+plot language-window8-dependency-forest-arc-7 (
+ input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) = { forest: .forest, accepted: (.accepted && (.forest.query.retained.active.7 ? (.forest.query.hypothesis.state.heads.7 < 9 ? (.forest.query.hypothesis.state.heads.7 == .forest.query.retained.edge7.head && (variant/tag(.forest.query.hypothesis.state.relation7.base) == variant/tag(.forest.query.retained.edge7.relation.base) && .forest.query.hypothesis.state.relation7.subtype == .forest.query.retained.edge7.relation.subtype)) : true) : true)) }
+plot language-window8-dependency-compatible (
+ input: LanguageParserWindow8DependencyCompatibilityQuery...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|
+) {
+ input >> language-window8-dependency-forest-project() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-height() >> language-window8-dependency-forest-decision() >> language-window8-dependency-forest-geometry-0() >> language-window8-dependency-forest-choices-0() >> language-window8-dependency-forest-arc-0() >> language-window8-dependency-forest-geometry-1() >> language-window8-dependency-forest-choices-1() >> language-window8-dependency-forest-arc-1() >> language-window8-dependency-forest-geometry-2() >> language-window8-dependency-forest-choices-2() >> language-window8-dependency-forest-arc-2() >> language-window8-dependency-forest-geometry-3() >> language-window8-dependency-forest-choices-3() >> language-window8-dependency-forest-arc-3() >> language-window8-dependency-forest-geometry-4() >> language-window8-dependency-forest-choices-4() >> language-window8-dependency-forest-arc-4() >> language-window8-dependency-forest-geometry-5() >> language-window8-dependency-forest-choices-5() >> language-window8-dependency-forest-arc-5() >> language-window8-dependency-forest-geometry-6() >> language-window8-dependency-forest-choices-6() >> language-window8-dependency-forest-arc-6() >> language-window8-dependency-forest-geometry-7() >> language-window8-dependency-forest-choices-7() >> language-window8-dependency-forest-arc-7() >> output
+}
