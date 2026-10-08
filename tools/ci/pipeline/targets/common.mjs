@@ -22,11 +22,11 @@ export function command(program, args, options = {}) {
     env: { ...process.env, RUSTUP_TOOLCHAIN: toolchain() }, ...options,
   });
   recordOperation({ kind: 'command', program, args, durationMs: performance.now() - started, outcome: result.error || result.status !== 0 ? 'failed' : 'success' });
-  if (result.error || result.status !== 0) {
-    throw new Error(`${program} ${args.join(' ')} failed: ${result.error?.message || result.status}`);
-  }
   if (historyBefore === 'false' && checkoutIsShallow(options.cwd) === 'true') {
     throw new Error(`Pipeline command made the full source checkout shallow: ${program} ${args.join(' ')}`);
+  }
+  if (result.error || result.status !== 0) {
+    throw new Error(`${program} ${args.join(' ')} failed: ${result.error?.message || result.status}`);
   }
   return result;
 }
