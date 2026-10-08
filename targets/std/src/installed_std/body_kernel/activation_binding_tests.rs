@@ -62,7 +62,7 @@ fn internal_preloaded_todo_body_play_delivers_before_complete_with_child_signs()
         true,
     )
     .unwrap();
-    assert!(kernel.require_supported_execution().is_err());
+    kernel.require_supported_execution().unwrap();
     let mut fore = CapturedFore::default();
     let result = kernel.run(
         &mut Vec::new(),
@@ -124,7 +124,7 @@ fn internal_preloaded_todo_body_cancels_after_first_delivery() {
         true,
     )
     .unwrap();
-    assert!(kernel.require_supported_execution().is_err());
+    kernel.require_supported_execution().unwrap();
     let control = RunControl::default();
     let mut fore = StopOnFirst {
         control: control.clone(),
@@ -155,7 +155,7 @@ fn internal_preloaded_todo_body_cancels_after_first_delivery() {
 }
 
 #[test]
-fn authored_todo_prepares_typed_body_fore_but_cannot_start_play() {
+fn authored_todo_prepares_typed_body_fore_with_exact_preloaded_gate() {
     let plan = crate::flow_activation::authored_todo_plan();
     assert!(conduit_core::verify_plan(&plan));
     let partition = BodyPlotPlan {
@@ -185,10 +185,7 @@ fn authored_todo_prepares_typed_body_fore_but_cannot_start_play() {
         true,
     )
     .expect("exact Todo Plan, child pool and typed Fore must prepare");
-    assert_eq!(
-        kernel.require_supported_execution().unwrap_err(),
-        "Body activation coordinator is not installed"
-    );
+    kernel.require_supported_execution().unwrap();
     let mut over_capacity = inputs.clone();
     over_capacity.push(command);
     assert!(BodyKernel::prepare(
@@ -206,6 +203,260 @@ fn authored_todo_prepares_typed_body_fore_but_cannot_start_play() {
         true,
     )
     .is_err());
+}
+
+#[test]
+fn scoped_std_host_runs_public_preloaded_todo_body_with_correlated_child_signs() {
+    use crate::body_execution::BodyRunRequest;
+    use conduit_body::{Body, BodyPlan};
+    use conduit_core::{BootId, HostId, OfferGeneration, SignId};
+
+    let initial = conduit_todo_plot::TodoState::new("Groceries".into()).unwrap();
+    let config = crate::StdHostConfig {
+        host_id: HostId::from("std-todo-offer-proof"),
+        boot_id: BootId::from("std-todo-offer-proof/boot"),
+        offer_generation: OfferGeneration(1),
+    };
+    let mut host = crate::StdHost::new_for_todo_scan(config.clone(), &initial, 64).unwrap();
+    let plan = crate::flow_activation::authored_todo_plan_on_host(host.advertisement(), 64);
+    assert!(host
+        .advertisement()
+        .capabilities
+        .iter()
+        .any(|offer| { offer.capability_id == plan.fragments[0].placements[0].capability_id }));
+    let body = Body::born(
+        plan.source_document_id.clone(),
+        plan.checked_plot_id.clone(),
+        1,
+        SignId::from("sign/todo-born"),
+    )
+    .unwrap();
+    let wake = body.wake(1, SignId::from("sign/todo-wake")).unwrap().1;
+    let body_plan = BodyPlan::seal(
+        &wake,
+        vec![BodyPlotPlan {
+            plot: ResidentPlot::new(
+                plan.source_document_id.clone(),
+                plan.checked_plot_id.clone(),
+            ),
+            plan,
+        }],
+    )
+    .unwrap();
+    let inputs = sixty_four_commands();
+    let control = RunControl::default();
+    let mut fore = CapturedFore::default();
+    let report = host
+        .run_body_plan_with_fore_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body_plan,
+                control: &control,
+                keyboard: None,
+            },
+            &inputs,
+            true,
+            &mut fore,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap();
+    assert_eq!(report.play.plan_id, body_plan.plan_id);
+    assert_eq!(report.play.play_sequence, 0);
+    assert_eq!(report.terminal, TerminalDisposition::Completed);
+    assert!(report.failure.is_none(), "{:?}", report.failure);
+    assert_eq!(fore.0.len(), 64);
+    let receipts = report.scan_child_signs.unwrap();
+    assert_eq!(receipts.len(), 64);
+    for (index, receipt) in receipts.iter().enumerate() {
+        assert_eq!(receipt.parent_active_play_id, report.play.active_play_id);
+        assert_eq!(usize::from(receipt.invocation), index);
+        assert!(!receipt.events.is_empty());
+    }
+
+    struct StopOnFirst {
+        control: RunControl,
+        deliveries: usize,
+    }
+    impl BodyForeOutputAdapter for StopOnFirst {
+        fn deliver(&mut self, _: &ExternalForeDelivery) -> Result<(), String> {
+            self.deliveries += 1;
+            if self.deliveries == 1 {
+                self.control
+                    .request_stop(crate::RunControlRequestId::new("stop-public-todo").unwrap())
+                    .unwrap();
+            }
+            Ok(())
+        }
+    }
+    let stop = RunControl::default();
+    let mut stopping = StopOnFirst {
+        control: stop.clone(),
+        deliveries: 0,
+    };
+    let cancelled = host
+        .run_body_plan_with_fore_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body_plan,
+                control: &stop,
+                keyboard: None,
+            },
+            &inputs,
+            true,
+            &mut stopping,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap();
+    assert_eq!(cancelled.play.play_sequence, 1);
+    assert!(matches!(
+        cancelled.terminal,
+        TerminalDisposition::Cancelled {
+            reason: CancellationReason::OperatorRequested
+        }
+    ));
+    assert_eq!(stopping.deliveries, 1);
+    assert!(!cancelled.scan_cancellation_failed);
+    assert!(cancelled
+        .scan_child_signs
+        .unwrap()
+        .iter()
+        .all(|receipt| receipt.parent_active_play_id == cancelled.play.active_play_id));
+
+    let wrong_initial = conduit_todo_plot::TodoState::new("Other".into()).unwrap();
+    let mut wrong_host = crate::StdHost::new_for_todo_scan(config, &wrong_initial, 64).unwrap();
+    let mut no_fore = CapturedFore::default();
+    let refusal = wrong_host
+        .run_body_plan_with_fore_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body_plan,
+                control: &control,
+                keyboard: None,
+            },
+            &inputs,
+            true,
+            &mut no_fore,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap_err();
+    assert!(refusal.contains("installed exact capability"), "{refusal}");
+    assert!(no_fore.0.is_empty());
+
+    let mut unscoped = crate::StdHost::new_with_config(crate::StdHostConfig {
+        host_id: HostId::from("std-todo-offer-proof"),
+        boot_id: BootId::from("std-todo-offer-proof/boot"),
+        offer_generation: OfferGeneration(1),
+    });
+    let refusal = unscoped
+        .run_body_plan_with_fore_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body_plan,
+                control: &control,
+                keyboard: None,
+            },
+            &inputs,
+            true,
+            &mut CapturedFore::default(),
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap_err();
+    assert!(refusal.contains("unavailable capability"), "{refusal}");
+
+    let mut wrong_generation = crate::StdHost::new_for_todo_scan(
+        crate::StdHostConfig {
+            host_id: HostId::from("std-todo-offer-proof"),
+            boot_id: BootId::from("std-todo-offer-proof/boot"),
+            offer_generation: OfferGeneration(2),
+        },
+        &initial,
+        64,
+    )
+    .unwrap();
+    let refusal = wrong_generation
+        .run_body_plan_with_fore_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body_plan,
+                control: &control,
+                keyboard: None,
+            },
+            &inputs,
+            true,
+            &mut CapturedFore::default(),
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap_err();
+    assert!(refusal.contains("current host boot and offer"), "{refusal}");
+}
+
+#[test]
+fn scoped_todo_host_refuses_preloaded_inputs_above_selected_bound_before_play() {
+    use crate::body_execution::BodyRunRequest;
+    use conduit_body::{Body, BodyPlan};
+    use conduit_core::{BootId, HostId, OfferGeneration, SignId};
+
+    let mut host = crate::StdHost::new_for_todo_scan(
+        crate::StdHostConfig {
+            host_id: HostId::from("std-todo-offer-proof"),
+            boot_id: BootId::from("std-todo-offer-proof/boot"),
+            offer_generation: OfferGeneration(1),
+        },
+        &conduit_todo_plot::TodoState::new("Groceries".into()).unwrap(),
+        2,
+    )
+    .unwrap();
+    let plan = crate::flow_activation::authored_todo_plan_on_host(host.advertisement(), 2);
+    assert!(conduit_core::verify_plan(&plan));
+    let body = Body::born(
+        plan.source_document_id.clone(),
+        plan.checked_plot_id.clone(),
+        1,
+        SignId::from("sign/bounded-born"),
+    )
+    .unwrap();
+    let wake = body.wake(1, SignId::from("sign/bounded-wake")).unwrap().1;
+    let body_plan = BodyPlan::seal(
+        &wake,
+        vec![BodyPlotPlan {
+            plot: ResidentPlot::new(
+                plan.source_document_id.clone(),
+                plan.checked_plot_id.clone(),
+            ),
+            plan,
+        }],
+    )
+    .unwrap();
+    let inputs = sixty_four_commands();
+    let control = RunControl::default();
+    let mut fore = CapturedFore::default();
+    let run = |host: &mut crate::StdHost, inputs: &[ExternalForeInput], fore: &mut CapturedFore| {
+        host.run_body_plan_with_fore_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body_plan,
+                control: &control,
+                keyboard: None,
+            },
+            inputs,
+            true,
+            fore,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+    };
+    let refusal = run(&mut host, &inputs[..3], &mut fore).unwrap_err();
+    assert!(refusal.contains("selected scan bound"), "{refusal}");
+    assert!(fore.0.is_empty());
+    let accepted = run(&mut host, &inputs[..2], &mut fore).unwrap();
+    assert_eq!(accepted.play.play_sequence, 0);
+    assert_eq!(accepted.terminal, TerminalDisposition::Completed);
+    assert_eq!(fore.0.len(), 2);
 }
 
 #[test]

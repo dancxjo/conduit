@@ -108,8 +108,9 @@ impl StdHost {
     }
 
     /// Execute a sealed local Body with caller-supplied, typed Fore values and
-    /// an acknowledging output adapter. This entrance still refuses activation
-    /// coordinators until their scheduler Back is installed.
+    /// an acknowledging output adapter. The exact scoped, finite preloaded
+    /// Todo scan is admitted; later Mask actions and other activation routes
+    /// remain unavailable.
     pub fn run_body_plan_with_fore_to<W: Write, T: TimerAdapter>(
         &mut self,
         request: BodyRunRequest<'_>,

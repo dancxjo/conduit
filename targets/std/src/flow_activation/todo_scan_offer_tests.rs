@@ -21,6 +21,16 @@ fn authored() -> (
     conduit_plot::ExpandedAuthoringPlot,
     ProfileCatalog,
 ) {
+    authored_with_maximum(64)
+}
+
+fn authored_with_maximum(
+    maximum_items: u16,
+) -> (
+    conduit_plot::CheckedSyntaxDocument,
+    conduit_plot::ExpandedAuthoringPlot,
+    ProfileCatalog,
+) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     startup
@@ -42,7 +52,11 @@ fn authored() -> (
             |bytes| TodoState::decode_info(bytes).is_ok(),
         )
         .unwrap();
-    let document = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
+    let source = SOURCE.replace(
+        "maximum-items = 64",
+        &format!("maximum-items = {maximum_items}"),
+    );
+    let document = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let authoring = expand_canonical_plot_for_authoring(&document, "todo/main", &profile).unwrap();
     (document, authoring, profile)
 }
@@ -62,9 +76,21 @@ fn host(scan: conduit_core::CapabilityOffer) -> HostAdvertisement {
 }
 
 pub(crate) fn authored_todo_plan() -> conduit_core::Plan {
-    let (document, authoring, profile) = authored();
-    let scan = todo_scan_offer(&TodoState::new("Groceries".into()).unwrap(), 64).unwrap();
-    let hosts = [host(scan)];
+    authored_todo_plan_with_maximum(64)
+}
+
+pub(crate) fn authored_todo_plan_with_maximum(maximum_items: u16) -> conduit_core::Plan {
+    let scan =
+        todo_scan_offer(&TodoState::new("Groceries".into()).unwrap(), maximum_items).unwrap();
+    authored_todo_plan_on_host(&host(scan), maximum_items)
+}
+
+pub(crate) fn authored_todo_plan_on_host(
+    advertisement: &HostAdvertisement,
+    maximum_items: u16,
+) -> conduit_core::Plan {
+    let (document, authoring, profile) = authored_with_maximum(maximum_items);
+    let hosts = [advertisement.clone()];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let empty_bases = BTreeMap::new();
     let empty_lines = BTreeMap::new();

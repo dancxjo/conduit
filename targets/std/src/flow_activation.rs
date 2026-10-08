@@ -18,6 +18,8 @@ pub(crate) use todo_combine::maximum_scan_child_steps;
 pub use todo_combine::{offer as todo_combine_offer, TodoCombineFactory};
 #[cfg(test)]
 pub(crate) use todo_scan_offer::tests::authored_todo_plan;
+#[cfg(test)]
+pub(crate) use todo_scan_offer::tests::authored_todo_plan_on_host;
 pub use todo_scan_offer::todo_scan_offer;
 pub(crate) use todo_scan_offer::validate_planned_todo_scan;
 
