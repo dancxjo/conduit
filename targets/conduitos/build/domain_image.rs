@@ -80,7 +80,13 @@ pub fn generate() {
         "-C".into(),
         "relocation-model=static".into(),
         "-C".into(),
-        "code-model=small".into(),
+        // Match the target sysroot for cross-crate optimization. These targets
+        // ship medium-model core/alloc, whose LLVM module flag must agree.
+        if matches!(architecture.as_str(), "riscv64" | "loongarch64") {
+            "code-model=medium".into()
+        } else {
+            "code-model=small".into()
+        },
         "-C".into(),
         format!("link-arg=-T{}", manifest.join("domain/linker.ld").display()),
         "-C".into(),
