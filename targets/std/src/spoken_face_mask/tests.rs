@@ -349,7 +349,7 @@ fn read_current_items_uses_the_same_show_without_completed_detail() {
 }
 
 #[test]
-fn long_primary_list_reads_count_and_offers_detail_instead_of_items() {
+fn long_primary_list_reads_bounded_items_and_offers_exact_detail_command() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
     let mut disclosures = base.disclosures;
@@ -390,8 +390,13 @@ fn long_primary_list_reads_count_and_offers_detail_instead_of_items() {
     .unwrap();
     let opening = primary_face_clauses(&face).unwrap().join(" ");
     assert!(opening.starts_with("4 remaining"));
-    assert!(opening.contains("More details are available on request."));
-    assert!(!opening.contains("Open item"));
+    assert!(opening.contains("Type read current items to hear what remains."));
+    assert!(opening.contains("Open item 0."));
+    assert!(opening.contains("Open item 2."));
+    assert!(!opening.contains("Open item 3."));
+    let direct = crate::direct_spoken_mask_runtime::prepare_wording_items(&face).unwrap();
+    let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
+    assert!(direct.contains("Type read current items to hear what remains."));
 }
 
 #[test]

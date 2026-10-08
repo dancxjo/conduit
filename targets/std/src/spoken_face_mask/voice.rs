@@ -73,11 +73,10 @@ pub(super) fn primary_voice_clauses(
         .iter()
         .filter(|subject| primary(&subject.identity) && subject.role == PresentationRole::Item)
         .collect::<Vec<_>>();
-    if primary_items.len() <= 3 {
-        for subject in primary_items {
-            result.push(format!("{}.", subject.name));
-        }
-    } else {
+    for subject in primary_items.iter().take(3) {
+        result.push(format!("{}.", subject.name));
+    }
+    if primary_items.len() > 3 {
         omitted = true;
     }
     if result.is_empty() {
@@ -95,7 +94,11 @@ pub(super) fn primary_voice_clauses(
         return Err(SpokenFaceRefusal::VoiceBound);
     }
     if omitted {
-        result.push("More details are available on request.".into());
+        if primary_items.len() > 3 {
+            result.push("Type read current items to hear what remains.".into());
+        } else {
+            result.push("Type read all for more detail.".into());
+        }
     } else if result.len() < 7 {
         let mut offered = face.actions.iter().filter(|action| {
             action.availability.is_available()
