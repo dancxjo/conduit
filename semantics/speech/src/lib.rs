@@ -67,6 +67,7 @@ pub mod global_intent_realization;
 pub mod global_rule_selection;
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_admission;
+
 #[cfg(feature = "semantic-bindings")]
 pub mod intent_inventory;
 #[cfg(feature = "semantic-bindings")]
@@ -123,6 +124,8 @@ pub mod rule_neighbors;
 pub mod rule_stress;
 #[cfg(feature = "semantic-bindings")]
 pub mod rule_style;
+#[cfg(feature = "semantic-bindings")]
+pub mod syllable_intent;
 #[cfg(feature = "semantic-bindings")]
 pub mod text_admission;
 #[cfg(feature = "semantic-bindings")]

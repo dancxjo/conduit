@@ -21,7 +21,7 @@ profile refusal. No missing field may be silently reconstructed from PCM or IPA.
 | `intended_morphemes` | Sources may reference Language segments | Partial; missing aggregate morpheme/word correspondence and membership. |
 | `intended_phonemes` | Segment `phoneme`; separate `SpeechPhonemeToken` contract | Partial; intended sequence and correspondence must survive independently of phones. |
 | `target_phones` | Segment `phone`; separate `SpeechPhoneToken` contract | Partial; target sequence, insertions/deletions and many-to-many realization need aggregate custody. |
-| `target_syllables` | Stress specification and syllable-position enum exist | Missing syllable identities/membership, ordered positions, nucleus reference and span. |
+| `target_syllables` | Stress specification and syllable-position enum exist | Partial; explicit syllable component now retains identities, ordered phone membership/positions, optional nucleus and span with the original intent and phone sequence. Aggregate coverage and conversion remain unfinished. |
 | `boundaries` | Typed boundary events with sources and exact duration | Partial; kinds cover phone/syllable/morpheme/word/phrase/breath-group/turn, but aggregate anchors and overlapping spans need admission. |
 | `target_prosody` | Per-segment exact duration, fundamental cycle and relative intensity; Language prosodic intent | Partial; missing shared pitch/intensity/rate trajectories and labels with explicit timebase/domain. |
 | `target_acoustics` | Generic acoustic observations and renderer-private controls | Missing unit-bearing shared acoustic targets, separately typed from observations. |
