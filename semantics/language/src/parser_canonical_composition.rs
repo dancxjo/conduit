@@ -1,6 +1,8 @@
 //! Mechanical canonical record composition with pre-admitted preparation work.
 //! Only the exact prepared Native descriptor chooses a schema. The resulting
-//! bytes still require full family admission before any target consumption.
+//! bytes still require full family admission and original Source execution before
+//! any target consumption. This component grants no admission, commitment or
+//! Session publication authority. It is shared by parser and lexical owners.
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     PreparedStructuredComposer, StructuredInfoType, StructuredInfoTypeShape,
@@ -11,24 +13,24 @@ use conduit_plot::rust_binding::{
 };
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct ParserCompositionLimits {
+pub struct ParserCompositionLimits {
     pub maximum_output_bytes: usize,
     pub maximum_preparation_requested_bytes: usize,
     pub maximum_retained_requested_bytes: usize,
 }
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct ParserCompositionReceipt {
+pub struct ParserCompositionReceipt {
     pub preparation_requested_bytes_bound: usize,
     pub retained_requested_bytes_bound: usize,
 }
 #[derive(Debug)]
-pub(crate) enum ParserCompositionRefusal {
+pub enum ParserCompositionRefusal {
     Descriptor,
     Type,
     Pressure,
     Composition,
 }
-pub(crate) struct PreparedParserCanonicalComposer {
+pub struct PreparedParserCanonicalComposer {
     composer: PreparedStructuredComposer,
     receipt: ParserCompositionReceipt,
 }
@@ -135,7 +137,7 @@ pub(crate) fn encoded_composer_requests(
 impl PreparedParserCanonicalComposer {
     /// Allocation-free reservation for the exact ready descriptor field. Whole
     /// Session construction sums these before preparing its first composer.
-    pub(crate) fn descriptor_reservation(
+    pub fn descriptor_reservation(
         family: &PreparedNativeFamily,
         descriptor: &'static NativeFamilyTypeDescriptor,
         field_path: &[&str],
@@ -161,7 +163,7 @@ impl PreparedParserCanonicalComposer {
             retained_requested_bytes_bound: retained,
         })
     }
-    pub(crate) fn prepare<T: PreparedNativeRustBinding>(
+    pub fn prepare<T: PreparedNativeRustBinding>(
         family: &PreparedNativeFamily,
         limits: ParserCompositionLimits,
     ) -> Result<Self, ParserCompositionRefusal> {
@@ -169,7 +171,7 @@ impl PreparedParserCanonicalComposer {
     }
     /// Primitive leaf schemas come from an exact admitted record field; they
     /// cannot be supplied as an unrelated caller Type or Native descriptor.
-    pub(crate) fn prepare_field<T: PreparedNativeRustBinding>(
+    pub fn prepare_field<T: PreparedNativeRustBinding>(
         family: &PreparedNativeFamily,
         field_path: &[&str],
         limits: ParserCompositionLimits,
@@ -178,7 +180,7 @@ impl PreparedParserCanonicalComposer {
     }
     /// The closed Session port inventory supplies this descriptor. Exact family
     /// membership is checked before encoded schema traversal or allocation.
-    pub(crate) fn prepare_descriptor_field(
+    pub fn prepare_descriptor_field(
         family: &PreparedNativeFamily,
         descriptor: &'static NativeFamilyTypeDescriptor,
         field_path: &[&str],
@@ -218,7 +220,7 @@ impl PreparedParserCanonicalComposer {
             },
         })
     }
-    pub(crate) fn descriptor_steps_reservation(
+    pub fn descriptor_steps_reservation(
         family: &PreparedNativeFamily,
         descriptor: &'static NativeFamilyTypeDescriptor,
         path: &[crate::parser_canonical_schema::SchemaStep<'_>],
@@ -246,7 +248,7 @@ impl PreparedParserCanonicalComposer {
     /// Prepares one exact nested shape, including an enum's declared payload.
     /// Roots remain complete family members; selected child bytes confer no
     /// independent Native authority. Full containing query admission follows.
-    pub(crate) fn prepare_descriptor_steps(
+    pub fn prepare_descriptor_steps(
         family: &PreparedNativeFamily,
         descriptor: &'static NativeFamilyTypeDescriptor,
         path: &[crate::parser_canonical_schema::SchemaStep<'_>],
@@ -282,10 +284,10 @@ impl PreparedParserCanonicalComposer {
             },
         })
     }
-    pub(crate) fn receipt(&self) -> ParserCompositionReceipt {
+    pub fn receipt(&self) -> ParserCompositionReceipt {
         self.receipt
     }
-    pub(crate) fn record(
+    pub fn record(
         &mut self,
         fields: &[ValidatedCanonicalStructuredValue<'_>],
     ) -> Result<&[u8], ParserCompositionRefusal> {
@@ -293,12 +295,12 @@ impl PreparedParserCanonicalComposer {
             .record(fields)
             .map_err(|_| ParserCompositionRefusal::Composition)
     }
-    pub(crate) fn leaf(&mut self, bytes: &[u8]) -> Result<&[u8], ParserCompositionRefusal> {
+    pub fn leaf(&mut self, bytes: &[u8]) -> Result<&[u8], ParserCompositionRefusal> {
         self.composer
             .leaf(bytes)
             .map_err(|_| ParserCompositionRefusal::Composition)
     }
-    pub(crate) fn variant(
+    pub fn variant(
         &mut self,
         tag: &str,
         payload: ValidatedCanonicalStructuredValue<'_>,

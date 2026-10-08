@@ -400,3 +400,6 @@ impl PreparedLexicalProposerPort {
         })
     }
 }
+
+/// Resource-backed token and whole original-revision proposal owners.
+pub mod token_producer;

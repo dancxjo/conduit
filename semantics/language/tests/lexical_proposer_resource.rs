@@ -101,10 +101,58 @@ fn complete_shard_lookup_foreign_duplicate_and_quota_refusals() {
 }
 
 use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
-static LIVE: AtomicIsize = AtomicIsize::new(0);
-static PEAK: AtomicIsize = AtomicIsize::new(0);
-static TRACK: AtomicBool = AtomicBool::new(false);
+use std::sync::atomic::Ordering;
+use std::{cell::Cell, thread::LocalKey};
+// Tests can run concurrently. Counters observe only the allocating test thread;
+// all values measured by these probes are created and dropped on that thread.
+// No production allocator or runtime behavior is changed.
+std::thread_local! {
+ static LIVE_COUNT:Cell<isize>=const{Cell::new(0)};
+ static PEAK_COUNT:Cell<isize>=const{Cell::new(0)};
+ static TRACK_FLAG:Cell<bool>=const{Cell::new(false)};
+}
+struct LocalCounter(&'static LocalKey<Cell<isize>>);
+impl LocalCounter {
+    fn load(&self, _: Ordering) -> isize {
+        self.0.try_with(Cell::get).unwrap_or(0)
+    }
+    fn store(&self, value: isize, _: Ordering) {
+        let _ = self.0.try_with(|cell| cell.set(value));
+    }
+    fn fetch_add(&self, value: isize, _: Ordering) -> isize {
+        self.0
+            .try_with(|cell| {
+                let old = cell.get();
+                cell.set(old + value);
+                old
+            })
+            .unwrap_or(0)
+    }
+    fn fetch_sub(&self, value: isize, order: Ordering) -> isize {
+        self.fetch_add(-value, order)
+    }
+    fn fetch_max(&self, value: isize, _: Ordering) -> isize {
+        self.0
+            .try_with(|cell| {
+                let old = cell.get();
+                cell.set(old.max(value));
+                old
+            })
+            .unwrap_or(0)
+    }
+}
+struct LocalFlag;
+impl LocalFlag {
+    fn load(&self, _: Ordering) -> bool {
+        TRACK_FLAG.try_with(Cell::get).unwrap_or(false)
+    }
+    fn store(&self, value: bool, _: Ordering) {
+        let _ = TRACK_FLAG.try_with(|cell| cell.set(value));
+    }
+}
+static LIVE: LocalCounter = LocalCounter(&LIVE_COUNT);
+static PEAK: LocalCounter = LocalCounter(&PEAK_COUNT);
+static TRACK: LocalFlag = LocalFlag;
 struct Probe;
 unsafe impl GlobalAlloc for Probe {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {

@@ -1,13 +1,13 @@
 //! Allocation-free traversal of exact canonical Types retained by Native family
 //! descriptors. This handles representation framing, never parser policy/laws.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct SchemaRefusal;
+pub struct SchemaRefusal;
 #[derive(Clone, Copy)]
-pub(crate) struct Fields<'a> {
+pub struct Fields<'a> {
     remaining: &'a [u8],
     count: usize,
 }
-pub(crate) enum Shape<'a> {
+pub enum Shape<'a> {
     Leaf(&'a str),
     Collection { element: &'a [u8], length: u16 },
     Sequence,
@@ -94,7 +94,7 @@ impl<'a> Iterator for Fields<'a> {
     }
 }
 impl ExactSizeIterator for Fields<'_> {}
-pub(crate) fn shape(mut encoded: &[u8]) -> Result<Shape<'_>, SchemaRefusal> {
+pub fn shape(mut encoded: &[u8]) -> Result<Shape<'_>, SchemaRefusal> {
     let original = encoded;
     let complete = child(&mut encoded)?;
     if !encoded.is_empty() || complete.len() != original.len() {
@@ -134,10 +134,7 @@ pub(crate) fn shape(mut encoded: &[u8]) -> Result<Shape<'_>, SchemaRefusal> {
         _ => return Err(SchemaRefusal),
     })
 }
-pub(crate) fn select_field<'a>(
-    mut encoded: &'a [u8],
-    path: &[&str],
-) -> Result<&'a [u8], SchemaRefusal> {
+pub fn select_field<'a>(mut encoded: &'a [u8], path: &[&str]) -> Result<&'a [u8], SchemaRefusal> {
     for name in path {
         let Shape::Record(fields) = shape(encoded)? else {
             return Err(SchemaRefusal);
@@ -157,11 +154,11 @@ pub(crate) fn select_field<'a>(
 /// A closed representation route chosen by the Session driver. Every step
 /// preserves the exact named parent schema; no caller-supplied Type is admitted.
 #[derive(Clone, Copy)]
-pub(crate) enum SchemaStep<'a> {
+pub enum SchemaStep<'a> {
     Field(&'a str),
     Case(&'a str),
 }
-pub(crate) fn select_steps<'a>(
+pub fn select_steps<'a>(
     mut encoded: &'a [u8],
     path: &[SchemaStep<'_>],
 ) -> Result<&'a [u8], SchemaRefusal> {

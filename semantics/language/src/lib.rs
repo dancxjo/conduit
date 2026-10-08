@@ -89,8 +89,14 @@ mod revision_lineage;
 pub use revision_lineage::*;
 
 pub mod lexical;
-pub mod lexical_proposer_resource;
+mod lexical_canonical_sequence;
 pub mod lexical_proposer_port;
+pub mod lexical_proposer_resource;
+mod lexical_scalar_scan;
+/// Exact descriptor-backed representation construction for independent owners.
+pub mod parser_canonical_composition;
+/// Representation construction only; no admission or publication authority.
+pub mod parser_canonical_schema;
 pub use generated::{
     LanguageLexicalProposalOrigin, LanguageLexicalProposalQuery, LanguageLexicalProposedTape,
     LanguageLexicalProposerDefinition, LanguageLexicalReviewedOrigin, LanguageLexicalTokenProposal,
