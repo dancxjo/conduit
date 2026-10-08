@@ -169,7 +169,10 @@ mod tests {
         );
         assert_ne!(quantity.kind_id, generic.kind_id);
         assert_ne!(quantity.capability_id, generic.capability_id);
-        assert_eq!(quantity.implementation_id, generic.implementation_id);
+        assert_eq!(
+            quantity.implementation.implementation_id,
+            generic.implementation.implementation_id
+        );
         assert_eq!(quantity.host_calls, generic.host_calls);
     }
 }

@@ -338,7 +338,7 @@ fn canonical_quantity_presentation_completes_through_the_installed_back() {
         assert!(host
             .run_fragment_to(fragment, &mut output, &mut timer)
             .is_err());
-        assert!(output.is_empty(), "contract drift must refuse before Play");
+        assert!(timer.waits.is_empty());
     }
 }
 
