@@ -93,11 +93,10 @@ impl OwnerHost {
     }
 
     pub(crate) fn restore_after_play(&mut self, host: StdHost) -> Result<(), String> {
-        if self.current.is_some()
-            || host.advertisement().host_id != self.advertised.host_id
-            || host.advertisement().boot_id != self.advertised.boot_id
-        {
-            return Err("Body Play returned a different or duplicate Host Boot".into());
+        if self.current.is_some() || host.advertisement() != &self.advertised {
+            return Err(
+                "Body Play returned a different Host advertisement or duplicate Host".into(),
+            );
         }
         self.advertised = host.advertisement().clone();
         self.current = Some(host);
