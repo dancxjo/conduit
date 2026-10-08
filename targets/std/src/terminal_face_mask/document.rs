@@ -208,7 +208,7 @@ fn primary_rows(
         )?;
     }
     if rows.is_empty() {
-        for subject in face.subjects.iter().filter(|subject| {
+        if let Some(subject) = face.subjects.iter().find(|subject| {
             matches!(
                 level(&subject.identity),
                 None | Some(PresentationDisclosureLevel::Primary)
@@ -221,7 +221,6 @@ fn primary_rows(
                 subject_clause(plan, &subject.identity),
                 None,
             )?;
-            break;
         }
     }
     for (index, action) in face.actions.iter().enumerate() {
