@@ -53,13 +53,22 @@ fn fixed_pipeline(
 
 #[test]
 fn fixed_stages_match_canonical_values_at_semantic_bounds() {
-    for text in [
+    let mut texts = [
         "sos",
         "HELLO WORLD",
         "a b",
         "01234567890123456789012345678901",
-        "00000000000000000000000000000000",
-    ] {
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    for byte in (b'A'..=b'Z').chain(b'0'..=b'9') {
+        texts.push(String::from_utf8(vec![byte; MAXIMUM_MORSE_INPUT_BYTES]).unwrap());
+        texts.push(
+            String::from_utf8(vec![byte.to_ascii_lowercase(); MAXIMUM_MORSE_INPUT_BYTES]).unwrap(),
+        );
+    }
+    for text in &texts {
+        let text = text.as_str();
         let mut first = [0xa5; MAXIMUM_MORSE_PATTERN_BYTES];
         let mut second = [0xa5; MAXIMUM_MORSE_PATTERN_BYTES];
         let characters = morse_characters_from_text(text).unwrap();
@@ -87,8 +96,11 @@ fn fixed_stages_match_canonical_values_at_semantic_bounds() {
 fn repeated_fixed_pipeline_performs_no_allocation() {
     let mut first = [0; MAXIMUM_MORSE_PATTERN_BYTES];
     let mut second = [0; MAXIMUM_MORSE_PATTERN_BYTES];
+    let mut vec_first = Vec::with_capacity(MAXIMUM_MORSE_PATTERN_BYTES);
+    let mut vec_second = Vec::with_capacity(MAXIMUM_MORSE_PATTERN_BYTES);
     ALLOCATIONS.with(|count| count.set(Some(0)));
     let mut result = Ok(0);
+    let mut vec_result = Ok(());
     for _ in 0..100 {
         result = fixed_pipeline(
             "00000000000000000000000000000000",
@@ -98,7 +110,8 @@ fn repeated_fixed_pipeline_performs_no_allocation() {
         );
     }
     let allocations = ALLOCATIONS.with(|count| count.replace(None).unwrap());
-    assert!(result.is_ok());
+    assert!(vec_result.is_ok());
+    assert_eq!(&first[..result.unwrap()], vec_first);
     assert_eq!(allocations, 0);
 }
 
