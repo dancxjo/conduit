@@ -29,6 +29,10 @@ pub(crate) struct PureSourceLimits {
 }
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct PureSourceReservation {
+    pub(crate) family_retained_bytes_bound: usize,
+    pub(crate) source_preparation_bytes_bound: usize,
+    pub(crate) source_retained_bytes_bound: usize,
+    pub(crate) history_bytes_bound: usize,
     pub(crate) programs: usize,
     pub(crate) active_native_bytes_bound: usize,
     pub(crate) combined_preparation_bytes_bound: usize,
@@ -311,6 +315,16 @@ impl PreparedParserPureSource {
             return Err(R::Pressure);
         }
         Ok(PureSourceReservation {
+            family_retained_bytes_bound: family_bytes,
+            source_preparation_bytes_bound: add(
+                add(size_of::<Self>(), original_program.len())?,
+                source_preparation,
+            )?,
+            source_retained_bytes_bound: add(
+                add(add(size_of::<Self>(), original_program.len())?, retained)?,
+                array,
+            )?,
+            history_bytes_bound: histories,
             programs: count,
             active_native_bytes_bound: active,
             combined_preparation_bytes_bound: combined,

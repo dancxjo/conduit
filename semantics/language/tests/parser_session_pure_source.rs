@@ -252,6 +252,22 @@ fn complete_chain_preparation_is_bounded_and_one_under_is_preallocation_refusal(
     let reserved = reserved.unwrap();
     assert_eq!(REQUESTS.load(Ordering::Relaxed), 0);
     assert_eq!(reserved.programs, 2);
+    assert_eq!(
+        reserved.family_retained_bytes_bound,
+        family.borrow().storage_receipt().retained_heap_bytes_bound
+    );
+    assert_eq!(
+        reserved.history_bytes_bound,
+        limits().maximum_history_retained_bytes * 2
+    );
+    assert_eq!(
+        reserved.combined_preparation_bytes_bound,
+        reserved.family_retained_bytes_bound
+            + reserved.history_bytes_bound
+            + reserved
+                .source_preparation_bytes_bound
+                .max(reserved.source_retained_bytes_bound + reserved.active_native_bytes_bound)
+    );
 
     REQUESTS.store(0, Ordering::Relaxed);
     TRACK.store(true, Ordering::Relaxed);
