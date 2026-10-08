@@ -149,6 +149,7 @@ pub(super) enum InstalledBack {
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
     TodoCombine(TodoCombineBack),
+    TodoCheckpoint(crate::todo_checkpoint_call::TodoCheckpointBack),
     FlowZip(FlowZipBack),
     FlowCollect(Box<FlowCollectBack>),
     BodyScan(Box<BodyScanBack>),

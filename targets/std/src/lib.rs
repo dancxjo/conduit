@@ -133,6 +133,7 @@ pub mod spoken_mask_runtime;
 mod spoken_mask_runtime_tests;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
+pub mod todo_checkpoint_call;
 pub mod todo_durable_resource;
 mod vision_ocr;
 mod vision_tracker;
@@ -532,6 +533,7 @@ pub struct StdHost {
     body_conversation_context: Option<BodyConversationContextSource>,
     vision: Option<hosted_vision::FiniteHostedVisionBase>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
+    todo_checkpoint_root: Option<std::path::PathBuf>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -711,6 +713,55 @@ impl StdHost {
         Self::from_advertisement(advertisement)
     }
 
+    /// Advertise one exact Todo checkpoint publication and its selected
+    /// ExternalDurable residence before resource-ledger admission. The root
+    /// remains explicitly selected and must match the later Play call.
+    pub fn new_for_todo_checkpoint_once(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+    ) -> Result<Self, String> {
+        let metadata = std::fs::symlink_metadata(root)
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err("Todo checkpoint root must be an existing directory".into());
+        }
+        let root = root
+            .canonicalize()
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+        let offer =
+            conduit_std_offers::todo_checkpoint_offer(content.clone()).map_err(str::to_string)?;
+        let mut advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::reference(),
+            None,
+            None,
+            None,
+            false,
+        );
+        advertisement.resources.push(conduit_core::ResourceOffer {
+            pool_id: "std/todo-checkpoint".into(),
+            class_id: "resource/todo-checkpoint@1".into(),
+            capacity_units: 1,
+            compute: None,
+            content: Some(conduit_core::ResourceContentOffer {
+                contract: content,
+                owner_host: advertisement.host_id.clone(),
+                owner_boot: advertisement.boot_id.clone(),
+                base_id: "std/explicit-shared-checkpoint".into(),
+                residence_profile: conduit_core::kind_id("std/explicit-shared-checkpoint@1"),
+            }),
+        });
+        advertisement.capabilities.push(offer);
+        advertisement.resources.sort();
+        advertisement
+            .capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        let mut host = Self::from_advertisement(advertisement)?;
+        host.todo_checkpoint_root = Some(root);
+        Ok(host)
+    }
+
     pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
         let advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
@@ -733,6 +784,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -802,6 +854,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: Some(vision),
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -882,6 +935,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -926,6 +980,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -970,6 +1025,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -999,6 +1055,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1052,6 +1109,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1100,6 +1158,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1137,6 +1196,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1187,6 +1247,7 @@ impl StdHost {
             body_conversation_context: None,
             vision: None,
             kernel_resources,
+            todo_checkpoint_root: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]

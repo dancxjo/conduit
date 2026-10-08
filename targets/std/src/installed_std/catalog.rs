@@ -186,6 +186,7 @@ use super::time_window_back::FACTORY as TIME_WINDOW_FACTORY;
 use super::timed_button_attempt_back::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
 use super::timed_pattern_back::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_backs::{TIME_DEADLINE_FACTORY, TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
+use super::todo_checkpoint_back::FACTORY as TODO_CHECKPOINT_FACTORY;
 use super::todo_combine_back::FACTORY as TODO_COMBINE_FACTORY;
 use super::toggle_back::STATE_TOGGLE_FACTORY;
 use super::typed_record_back::{
@@ -289,6 +290,7 @@ const FACTORIES: &[&BackFactory] = &[
     &CURRENT_SAMPLE_FACTORY,
     &COMBINE_LATEST_FACTORY,
     &TODO_COMBINE_FACTORY,
+    &TODO_CHECKPOINT_FACTORY,
     &FLOW_ZIP_FACTORY,
     &FLOW_COLLECT_FACTORY,
     &FLOW_JOIN_BY_KEY_FACTORY,

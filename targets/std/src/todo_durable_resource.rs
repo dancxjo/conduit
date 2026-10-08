@@ -1,9 +1,9 @@
 //! Explicitly selected std residence for bounded Todo checkpoints.
 //!
-//! This is a provider prerequisite, not an installed Back or Body action route.
 //! The caller owns the selected directory and supplies exact current Plan
-//! placements. A successful commit means the immutable candidate and selector
-//! have both been synced; callers must not acknowledge an action earlier.
+//! placements. The installed checkpoint Back invokes this provider only through
+//! an admitted Host Call. A successful commit means the immutable candidate
+//! and selector have both been synced before the Back can emit committed state.
 use conduit_core::{
     kind_id, semantic_digest, AuthorityBinding, PlannedGear, ResourceAccessMode, ResourceRetention,
     ResourceSharing,

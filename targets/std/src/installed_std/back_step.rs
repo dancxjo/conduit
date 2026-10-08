@@ -233,6 +233,7 @@ installed_step_dispatch!(
     CurrentSample,
     CombineLatest,
     TodoCombine,
+    TodoCheckpoint,
     FlowZip,
     FlowGateScalar,
     FlowFirst,

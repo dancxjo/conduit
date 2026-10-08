@@ -44,6 +44,7 @@ pub(crate) struct BodyKernel<'a> {
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
     supported_todo_scan: bool,
+    todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
 }
 
 pub(crate) struct BodyKernelResult {
@@ -360,13 +361,57 @@ impl<'a> BodyKernel<'a> {
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
             supported_todo_scan,
+            todo_checkpoint: None,
         })
+    }
+
+    /// Bind one selected storage residence to the exact lowered checkpoint
+    /// placement before Play. No ambient storage fallback is available.
+    pub(crate) fn attach_todo_checkpoint(
+        &mut self,
+        partitions: &[BodyPlotPlan],
+        root: &std::path::Path,
+        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+    ) -> Result<(), String> {
+        let selections = partitions
+            .iter()
+            .enumerate()
+            .flat_map(|(partition, body_plot)| {
+                body_plot.plan.fragments.iter().flat_map(move |fragment| {
+                    fragment.placements.iter().filter_map(move |placement| {
+                        (placement.implementation_id.as_str()
+                            == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION)
+                            .then_some((partition, placement))
+                    })
+                })
+            })
+            .collect::<Vec<_>>();
+        let [(partition, placement)] = selections.as_slice() else {
+            return Err("Body requires exactly one selected Todo checkpoint placement".into());
+        };
+        let lowered = self
+            .partitions
+            .get(*partition)
+            .ok_or("Todo checkpoint partition missing")?;
+        self.todo_checkpoint = Some(
+            crate::todo_checkpoint_call::TodoCheckpointHost::prepare(
+                root, placement, lowered, checkpoint,
+            )
+            .map_err(|error| format!("prepare selected Todo checkpoint: {error:?}"))?,
+        );
+        Ok(())
     }
 
     /// Only the exact finite pure Todo coordinator has an installed Body
     /// route, with preloaded or admitted live typed Fore values. Face action
     /// routing and other activations remain separate or refused.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        if self.operations.iter().any(|operation| {
+            operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
+        }) && self.todo_checkpoint.is_none()
+        {
+            return Err("planned Todo checkpoint has no selected durable Host residence".into());
+        }
         if self
             .activations
             .iter()
@@ -501,6 +546,19 @@ impl<'a> BodyKernel<'a> {
                         .scheduler
                         .host_value(request.input.value)
                         .map_err(|error| format!("Body request value: {error:?}"))?;
+                    if operation.contract_id.as_str()
+                        == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
+                    {
+                        let checkpoint = self
+                            .todo_checkpoint
+                            .as_ref()
+                            .ok_or("Todo checkpoint Host Call has no selected residence")?;
+                        let outcome = checkpoint.perform(request, input);
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|error| format!("Todo checkpoint completion: {error:?}"))?;
+                        continue;
+                    }
                     if keyboard(&operation.contract_id) {
                         keys.accept(
                             request,
