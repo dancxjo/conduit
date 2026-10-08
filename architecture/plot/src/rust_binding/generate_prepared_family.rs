@@ -1,4 +1,5 @@
 //! Exact Source Type closure and opt-in generated metadata projection.
+use super::generate::ExternalPreparedNativeRustBinding;
 use super::generate::{
     rust_pascal_identifier, rust_snake_identifier, rust_type, unit_type,
     RustBindingGenerationError as Error,
@@ -13,6 +14,7 @@ pub(super) fn projection<'a>(
     types: &'a [CheckedNativeType],
     options: &RustBindingOptions,
     names: &BTreeMap<String, String>,
+    external_prepared: &[ExternalPreparedNativeRustBinding<'_>],
 ) -> Result<Vec<&'a CheckedNativeType>, Error> {
     if options.prepared_family_roots.is_empty() {
         return Ok(Vec::new());
@@ -41,7 +43,19 @@ pub(super) fn projection<'a>(
                 return Err(Error::InvalidSemanticType);
             }
             let mut children = Vec::new();
-            children_of(&ty.value_type, true, &owned, names, &mut children)?;
+            let mut external_children = Vec::new();
+            children_of(
+                &ty.value_type,
+                true,
+                &owned,
+                names,
+                &mut children,
+                external_prepared,
+                &mut external_children,
+            )?;
+            for external in external_children {
+                include_external(external.descriptor, &mut root_selected, &mut selected)?;
+            }
             pending.extend(children);
         }
     }
@@ -51,12 +65,14 @@ pub(super) fn projection<'a>(
         .collect())
 }
 
-fn children_of<'a>(
+fn children_of<'a, 'b>(
     value_type: &StructuredInfoType,
     root: bool,
     types: &[&'a CheckedNativeType],
     names: &BTreeMap<String, String>,
     children: &mut Vec<&'a CheckedNativeType>,
+    external_prepared: &'b [ExternalPreparedNativeRustBinding<'b>],
+    external_children: &mut Vec<&'b ExternalPreparedNativeRustBinding<'b>>,
 ) -> Result<(), Error> {
     let schema = match value_type.shape() {
         StructuredInfoTypeShape::Nominal { schema, .. }
@@ -76,29 +92,126 @@ fn children_of<'a>(
                 return Ok(());
             }
             if names.contains_key(schema.as_str()) {
-                return Err(Error::InvalidSemanticType);
+                let external = external_prepared
+                    .iter()
+                    .find(|binding| binding.semantic_identity == schema.as_str())
+                    .ok_or(Error::InvalidSemanticType)?;
+                if value_type
+                    .canonical_bytes()
+                    .map_err(|_| Error::InvalidSemanticType)?
+                    != external.descriptor.type_bytes
+                {
+                    return Err(Error::InvalidSemanticType);
+                }
+                if !external_children
+                    .iter()
+                    .any(|child| child.semantic_identity == external.semantic_identity)
+                {
+                    external_children.push(external);
+                }
+                return Ok(());
             }
         }
     }
     match value_type.shape() {
-        StructuredInfoTypeShape::Nominal { representation, .. } => {
-            children_of(representation, false, types, names, children)?
-        }
+        StructuredInfoTypeShape::Nominal { representation, .. } => children_of(
+            representation,
+            false,
+            types,
+            names,
+            children,
+            external_prepared,
+            external_children,
+        )?,
         StructuredInfoTypeShape::Collection { element, .. }
-        | StructuredInfoTypeShape::Sequence { element, .. } => {
-            children_of(element, false, types, names, children)?
-        }
+        | StructuredInfoTypeShape::Sequence { element, .. } => children_of(
+            element,
+            false,
+            types,
+            names,
+            children,
+            external_prepared,
+            external_children,
+        )?,
         StructuredInfoTypeShape::Record { fields, .. } => {
             for field in fields {
-                children_of(field.value_type(), false, types, names, children)?;
+                children_of(
+                    field.value_type(),
+                    false,
+                    types,
+                    names,
+                    children,
+                    external_prepared,
+                    external_children,
+                )?;
             }
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
             for case in cases {
-                children_of(case.payload_type(), false, types, names, children)?;
+                children_of(
+                    case.payload_type(),
+                    false,
+                    types,
+                    names,
+                    children,
+                    external_prepared,
+                    external_children,
+                )?;
             }
         }
         StructuredInfoTypeShape::Leaf(_) => {}
+    }
+    Ok(())
+}
+
+fn include_external<'a>(
+    descriptor: &'static super::NativeFamilyTypeDescriptor,
+    root: &mut BTreeSet<&'a str>,
+    selected: &mut BTreeSet<&'a str>,
+) -> Result<(), Error> {
+    super::prepared_family_external::metadata_extent(descriptor)
+        .map_err(|_| Error::InvalidSemanticType)?;
+    // Count identities without retaining decoded Types: their original canonical
+    // schema strings are borrowed directly from the static canonical frame below.
+    let mut seen = Vec::new();
+    let mut pending = vec![descriptor];
+    while let Some(descriptor) = pending.pop() {
+        if seen.iter().any(|prior| core::ptr::eq(*prior, descriptor)) {
+            continue;
+        }
+        if seen.len() >= super::MAXIMUM_NATIVE_FAMILY_TYPES
+            || descriptor.children.len() > super::MAXIMUM_NATIVE_FAMILY_TYPES
+            || descriptor.type_bytes.len() > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err(Error::InvalidSemanticType);
+        }
+        seen.push(descriptor);
+        let value_type = StructuredInfoType::from_canonical_bytes(descriptor.type_bytes)
+            .map_err(|_| Error::InvalidSemanticType)?;
+        let schema = match value_type.shape() {
+            StructuredInfoTypeShape::Nominal { schema, .. }
+            | StructuredInfoTypeShape::Record { schema, .. }
+            | StructuredInfoTypeShape::Variant { schema, .. } => schema.as_str(),
+            _ => return Err(Error::InvalidSemanticType),
+        };
+        // The canonical Type stores exactly this validated schema spelling. Locate
+        // that byte slice in its immutable frame rather than leaking decoded data.
+        let encoded = descriptor
+            .type_bytes
+            .windows(schema.len())
+            .position(|bytes| bytes == schema.as_bytes())
+            .ok_or(Error::InvalidSemanticType)?;
+        let identity =
+            core::str::from_utf8(&descriptor.type_bytes[encoded..encoded + schema.len()])
+                .map_err(|_| Error::InvalidSemanticType)?;
+        root.insert(identity);
+        selected.insert(identity);
+        if root.len() > super::MAXIMUM_NATIVE_FAMILY_TYPES
+            || selected.len() > super::MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES
+        {
+            return Err(Error::InvalidSemanticType);
+        }
+        pending.extend_from_slice(descriptor.children);
     }
     Ok(())
 }
@@ -108,6 +221,7 @@ pub(super) fn emit(
     selected: &[&CheckedNativeType],
     names: &BTreeMap<String, String>,
     options: &RustBindingOptions,
+    external_prepared: &[ExternalPreparedNativeRustBinding<'_>],
 ) -> Result<(), Error> {
     for ty in selected {
         let name = &names[ty.identity.as_str()];
@@ -115,7 +229,25 @@ pub(super) fn emit(
         let mut children = Vec::new();
         // Projection has already verified the entire owned closure. Looking up
         // selected Types repeats exact full-Type checks for each emitted edge.
-        children_of(&ty.value_type, true, selected, names, &mut children)?;
+        let mut external_children = Vec::new();
+        children_of(
+            &ty.value_type,
+            true,
+            selected,
+            names,
+            &mut children,
+            external_prepared,
+            &mut external_children,
+        )?;
+        let mut external_edges = Vec::new();
+        for (index, external) in external_children.iter().enumerate() {
+            let expected = emit_external_shadow(
+                out,
+                external.descriptor,
+                &format!("{name}_EXTERNAL_{index}"),
+            )?;
+            external_edges.push(format!("conduit_plot::rust_binding::NativeFamilyExternalEdge {{ descriptor: <{} as conduit_plot::rust_binding::PreparedNativeRustBinding>::PREPARED_DESCRIPTOR, expected: &{expected} }}", external.rust_type_path));
+        }
         let profile = match ty.value_type.shape() {
             StructuredInfoTypeShape::Record { .. } => "Record",
             StructuredInfoTypeShape::Nominal { .. } => "Nominal",
@@ -138,7 +270,7 @@ pub(super) fn emit(
             }
             writeln!(out, "        ] }},").unwrap();
         }
-        writeln!(out, "    ],\n    children: &[{}],\n    conversion_profile: conduit_plot::rust_binding::NativeFamilyConversionProfile::{profile},\n    maximum_inline_bytes: {},\n}};", children.iter().map(|child| format!("&{}_PREPARED_NATIVE_DESCRIPTOR", names[child.identity.as_str()])).collect::<Vec<_>>().join(", "), layout_bound(ty, name, names)?).unwrap();
+        writeln!(out, "    ],\n    children: &[{}],\n    external_edges: &[{}],\n    conversion_profile: conduit_plot::rust_binding::NativeFamilyConversionProfile::{profile},\n    maximum_inline_bytes: {},\n}};", children.iter().map(|child| format!("&{}_PREPARED_NATIVE_DESCRIPTOR", names[child.identity.as_str()])).chain(external_children.iter().map(|child| format!("<{} as conduit_plot::rust_binding::PreparedNativeRustBinding>::PREPARED_DESCRIPTOR", child.rust_type_path))).collect::<Vec<_>>().join(", "), external_edges.join(", "), layout_bound(ty, name, names)?).unwrap();
         emit_converter(out, ty, name, names, options)?;
     }
     writeln!(out, "pub static PREPARED_NATIVE_FAMILY_ROOTS: &[&conduit_plot::rust_binding::NativeFamilyTypeDescriptor] = &[{}];", selected.iter().filter(|ty| options.prepared_family_roots.contains(&ty.name)).map(|ty| format!("&{}_PREPARED_NATIVE_DESCRIPTOR", names[ty.identity.as_str()])).collect::<Vec<_>>().join(", ")).unwrap();
@@ -316,4 +448,62 @@ fn decode(
         }
         _ => Err(Error::InvalidSemanticType),
     }
+}
+fn emit_external_shadow(
+    out: &mut String,
+    descriptor: &'static super::NativeFamilyTypeDescriptor,
+    prefix: &str,
+) -> Result<String, Error> {
+    super::prepared_family_external::metadata_extent(descriptor)
+        .map_err(|_| Error::InvalidSemanticType)?;
+    let mut nodes = vec![descriptor];
+    let mut cursor = 0;
+    while cursor < nodes.len() {
+        for child in nodes[cursor].children {
+            if !nodes.iter().any(|node| core::ptr::eq(*node, *child)) {
+                nodes.push(*child);
+            }
+        }
+        cursor += 1;
+    }
+    for (index, node) in nodes.iter().enumerate() {
+        let name = format!("{prefix}_{index}_EXPECTED");
+        writeln!(out,"#[allow(non_upper_case_globals)]\nstatic {name}: conduit_plot::rust_binding::NativeFamilyTypeDescriptor = conduit_plot::rust_binding::NativeFamilyTypeDescriptor {{\n    type_bytes: {},\n    laws: &[{}],\n    contracts: &[", static_bytes(node.type_bytes), node.laws.iter().map(|law|static_bytes(law)).collect::<Vec<_>>().join(", ")).unwrap();
+        for contract in node.contracts {
+            writeln!(out,"        conduit_plot::rust_binding::NativeFamilyContractDescriptor {{ representation_path: {:?}, value_kind: {:?}, maximum_bytes: {}, constraints: &[",contract.representation_path,contract.value_kind,contract.maximum_bytes).unwrap();
+            for constraint in contract.constraints {
+                use super::NativeFamilyConstraintDescriptor as C;
+                let recipe = match constraint {
+                    C::CanonicalMembership { members, negated } => format!("CanonicalMembership {{ members: &[{}], negated: {negated} }}",members.iter().map(|member|static_bytes(member)).collect::<Vec<_>>().join(", ")),
+                    C::FixedIntegerRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!("FixedIntegerRange {{ minimum: {}, maximum: {}, minimum_endpoint: conduit_core::IntervalEndpoint::{minimum_endpoint:?}, maximum_endpoint: conduit_core::IntervalEndpoint::{maximum_endpoint:?} }}",minimum.map_or_else(||"None".into(),|bytes|format!("Some({})",static_bytes(bytes))),maximum.map_or_else(||"None".into(),|bytes|format!("Some({})",static_bytes(bytes)))),
+                };
+                writeln!(out,"            conduit_plot::rust_binding::NativeFamilyConstraintDescriptor::{recipe},").unwrap();
+            }
+            writeln!(out, "        ] }},").unwrap();
+        }
+        let children = node
+            .children
+            .iter()
+            .map(|child| {
+                let index = nodes
+                    .iter()
+                    .position(|node| core::ptr::eq(*node, *child))
+                    .expect("bounded complete graph collected");
+                format!("&{prefix}_{index}_EXPECTED")
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        writeln!(out,"    ],\n    children: &[{children}],\n    external_edges: &[],\n    conversion_profile: conduit_plot::rust_binding::NativeFamilyConversionProfile::{:?},\n    maximum_inline_bytes: 0,\n}};",node.conversion_profile).unwrap();
+    }
+    Ok(format!("{prefix}_0_EXPECTED"))
+}
+
+fn static_bytes(bytes: &[u8]) -> String {
+    let mut encoded = String::with_capacity(bytes.len().saturating_mul(4).saturating_add(3));
+    encoded.push_str("b\"");
+    for byte in bytes {
+        write!(encoded, "\\x{byte:02x}").unwrap();
+    }
+    encoded.push('"');
+    encoded
 }
