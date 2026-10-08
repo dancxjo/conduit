@@ -244,8 +244,13 @@ pub(super) fn run(
     }
     if opts.dry_run {
         println!(
-            "would Birth one Todo Body at {} and capture one browser Add in {}",
+            "would Birth one Todo Body at {} and capture {} in {}",
             state.display(),
+            if args.cross_mask_actions {
+                "three browser Adds, terminal completion and browser observation"
+            } else {
+                "one browser Add"
+            },
             args.output.display()
         );
         return Ok(());
@@ -417,7 +422,7 @@ pub(super) fn run(
         )
     })?;
     println!(
-        "Retained fresh Todo Birth, browser Add, and terminal read at {}. Publication remains incomplete.",
+        "Retained partial fresh Todo browser/terminal capture at {}. Publication remains incomplete.",
         output.display()
     );
     Ok(())
