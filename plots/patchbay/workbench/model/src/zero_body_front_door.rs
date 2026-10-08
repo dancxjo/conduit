@@ -294,7 +294,7 @@ impl ZeroBodyFrontDoor {
             1,
         )?;
         let clock = PlotCandidate::from_source(
-            "Clock",
+            "Interval ticker",
             "plots/clock/main.conduit",
             include_str!("../../../../../plots/clock/main.conduit"),
             "reviewed plot inventory; opening is inert and BIRTH remains explicit",

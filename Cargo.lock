@@ -1153,6 +1153,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-wire",
  "conduit-workspace-make",
  "patchbay-application",
