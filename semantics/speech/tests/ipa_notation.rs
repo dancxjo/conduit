@@ -72,6 +72,14 @@ fn checked_unicode_profile_retains_original_spelling_and_all_unit_spans() {
                 &text[*occurrence.start() as usize..*occurrence.end() as usize],
                 occurrence.source_spelling().get().as_str()
             );
+            assert_eq!(
+                *occurrence.scalar_start() as usize,
+                text[..*occurrence.start() as usize].chars().count()
+            );
+            assert_eq!(
+                *occurrence.scalar_end() as usize,
+                text[..*occurrence.end() as usize].chars().count()
+            );
             cursor = *occurrence.end();
         }
         assert_eq!(cursor as usize, text.len() - 1);
@@ -94,4 +102,52 @@ fn unsupported_notation_delimiters_and_suprasegmental_order_refuse() {
     assert!(prepared
         .parse("/ã/".into(), SpeechIpaDisplayKind::Phonetic, provenance())
         .is_err());
+}
+#[test]
+fn located_refusals_keep_byte_and_scalar_coordinates_in_original_unicode_source() {
+    let profile = profile();
+    let prepared = PreparedIpaNotationProfile::prepare(&profile).unwrap();
+    for (text, offending) in [
+        ("[ã̃]", "̃"),
+        ("[ãːː]", "ː"),
+        ("[ˈˌã]", "ˌ"),
+        ("[.ã]", "."),
+        ("[ã.]", "."),
+        ("[ã#]", "#"),
+        ("/ã]", "/"),
+        ("[ã/", "/"),
+    ] {
+        let error = prepared
+            .parse_located(text.into(), SpeechIpaDisplayKind::Phonetic, provenance())
+            .unwrap_err();
+        let start = text.rfind(offending).unwrap();
+        let end = start + offending.len();
+        assert_eq!(
+            (error.span.byte_start, error.span.byte_end),
+            (start, end),
+            "{text}"
+        );
+        assert_eq!(
+            (error.span.scalar_start, error.span.scalar_end),
+            (text[..start].chars().count(), text[..end].chars().count()),
+            "{text}"
+        );
+        assert_eq!(&text[error.span.byte_start..error.span.byte_end], offending);
+    }
+    let empty = prepared
+        .parse_located("[]".into(), SpeechIpaDisplayKind::Phonetic, provenance())
+        .unwrap_err();
+    assert_eq!((empty.span.byte_start, empty.span.byte_end), (1, 1));
+    let over_limit = format!("[{}]", "ã".repeat(2048));
+    let error = prepared
+        .parse_located(
+            over_limit.clone(),
+            SpeechIpaDisplayKind::Phonetic,
+            provenance(),
+        )
+        .unwrap_err();
+    assert!(matches!(error.refusal, IpaNotationRefusal::Capacity));
+    assert!(over_limit.is_char_boundary(error.span.byte_start));
+    assert!(over_limit.is_char_boundary(error.span.byte_end));
+    assert!(error.span.byte_end <= 4099);
 }
