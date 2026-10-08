@@ -20,6 +20,10 @@ pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy}
 mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
+#[cfg(feature = "alloc")]
+pub use boxed_preparation::{
+    SchedulerBoxPreparationRefusal, SchedulerBoxStorageLimits, SchedulerBoxStorageReceipt,
+};
 mod debug_control;
 mod derived_value;
 mod remote_fanout;

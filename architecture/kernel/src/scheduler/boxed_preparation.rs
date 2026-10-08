@@ -96,3 +96,97 @@ where
         }))
     }
 }
+
+/// Only the complete boxed scheduler root, including every fixed-capacity array
+/// and inline driver/storage/sign field. Their nested payloads and preparation,
+/// allocator bookkeeping, caller argument owners and stack remain separate.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SchedulerBoxStorageReceipt {
+    pub preparation_requested_bytes_bound: usize,
+    pub retained_root_bytes: usize,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SchedulerBoxStorageLimits {
+    pub maximum_preparation_requested_bytes: usize,
+    pub maximum_retained_root_bytes: usize,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SchedulerBoxPreparationRefusal {
+    Capacity,
+    Scheduler(SchedulerError),
+}
+impl<
+        D,
+        S,
+        E,
+        const NODES: usize,
+        const CORDS: usize,
+        const PORTS: usize,
+        const QUEUE_SLOTS: usize,
+        const ROUTE_SLOTS: usize,
+        const ROUTE_TARGETS: usize,
+        const HOST_BINDING_SLOTS: usize,
+        const PENDING_REQUESTS: usize,
+    >
+    FixedScheduler<
+        D,
+        S,
+        E,
+        NODES,
+        CORDS,
+        PORTS,
+        QUEUE_SLOTS,
+        ROUTE_SLOTS,
+        ROUTE_TARGETS,
+        HOST_BINDING_SLOTS,
+        PENDING_REQUESTS,
+    >
+where
+    D: StepBack<PORTS>,
+    S: ValueStorage,
+    E: SignSink,
+{
+    pub const fn boxed_storage_reservation() -> SchedulerBoxStorageReceipt {
+        let bytes = core::mem::size_of::<Self>();
+        SchedulerBoxStorageReceipt {
+            preparation_requested_bytes_bound: bytes,
+            retained_root_bytes: bytes,
+        }
+    }
+    /// The complete root charge is checked before original topology validation
+    /// or allocation. Original constructor guards and scheduler behavior remain.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_boxed_with_storage_limits(
+        active_nodes: usize,
+        active_cords: usize,
+        node_specs: [NodeSpec<PORTS>; NODES],
+        cord_specs: [CordSpec; CORDS],
+        routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+        host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
+        drivers: [D; NODES],
+        values: S,
+        signs: E,
+        limits: SchedulerBoxStorageLimits,
+    ) -> Result<(alloc::boxed::Box<Self>, SchedulerBoxStorageReceipt), SchedulerBoxPreparationRefusal>
+    {
+        let receipt = Self::boxed_storage_reservation();
+        if limits.maximum_preparation_requested_bytes < receipt.preparation_requested_bytes_bound
+            || limits.maximum_retained_root_bytes < receipt.retained_root_bytes
+        {
+            return Err(SchedulerBoxPreparationRefusal::Capacity);
+        }
+        let scheduler = Self::new_boxed_with_active_counts_and_host_calls(
+            active_nodes,
+            active_cords,
+            node_specs,
+            cord_specs,
+            routes,
+            host_bindings,
+            drivers,
+            values,
+            signs,
+        )
+        .map_err(SchedulerBoxPreparationRefusal::Scheduler)?;
+        Ok((scheduler, receipt))
+    }
+}
