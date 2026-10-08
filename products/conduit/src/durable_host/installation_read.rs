@@ -60,11 +60,10 @@ fn read(
     }
     if !explicit_todo_reselection
         && value.selected_todo_checkpoint.is_some()
-        && (value.selected_speech.is_some() || value.selected_model.is_some())
+        && value.selected_model.is_some()
     {
         return Err(
-            "installed Todo checkpoint cannot compose with selected speech or model equipment"
-                .into(),
+            "installed Todo checkpoint cannot compose with selected model equipment".into(),
         );
     }
     if let Some(binding) = &value.body_state {
