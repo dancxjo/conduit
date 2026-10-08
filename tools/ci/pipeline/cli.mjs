@@ -10,6 +10,7 @@ import { emitAcquisitionKey, measureAcquisition } from './acquisition/metrics.mj
 import { retainedOneBodyEvidence } from './one-body-evidence.mjs';
 import { retainedThreeHostDevelopmentEvidence } from './three-host-development-evidence.mjs';
 import { retainedDirectSpokenDevelopmentEvidence } from './direct-spoken-development-evidence.mjs';
+import { retainedTodoBrowserDevelopmentEvidence } from './todo-browser-development-evidence.mjs';
 
 function run(program, args, capture = false) {
   const result = spawnSync(program, args, { stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', encoding: 'utf8' });
@@ -76,6 +77,7 @@ try {
       if (directSpokenDevelopment) {
         run('git', ['merge-base', '--is-ancestor', directSpokenDevelopment.sourceCommit, 'HEAD']);
       }
+      retainedTodoBrowserDevelopmentEvidence(undefined, run('git', ['rev-parse', 'HEAD'], true));
       run('git', ['diff', '--check', exactSha(args[0]), 'HEAD']);
       run('cargo', ['fmt', '--all', '--check']);
       run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true);
