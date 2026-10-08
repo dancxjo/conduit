@@ -86,28 +86,39 @@ pub fn evaluate_observed(
         "language-parser-joint-expansion",
         "language-parser-joint-runtime-merge",
     ];
-    let blueprints = entries
-        .iter()
-        .enumerate()
-        .map(|(i, entry)| {
-            eprintln!(
-                "joint Source prepare {entry} elapsed_ms={}",
-                started.elapsed().as_millis()
-            );
-            let source = if (3..=5).contains(&i) {
-                fixture::parser_source()
-            } else if i == 1 || i == 2 {
-                joint::pos_source()
-            } else {
-                joint::runtime_source()
-            };
-            if i == 0 {
-                if let Some((protected_entry, complete_source)) = observer.branch_entry() {
-                    return parser_kernel::Blueprint::prepare(complete_source, protected_entry);
-                }
-            }
-            parser_kernel::Blueprint::prepare(source, entry)
-        })
+    let mut blueprints = (0..entries.len()).map(|_| None).collect::<Vec<_>>();
+    let branch = observer.branch_entry();
+    let runtime_indices = if let Some((entry, source)) = branch {
+        blueprints[0] = Some(parser_kernel::Blueprint::prepare(source, entry));
+        vec![6, 7]
+    } else {
+        vec![0, 6, 7]
+    };
+    // Share only identical complete Source packages; retain each requested
+    // expansion and its own host advertisement in the original invocation order.
+    for (source, indices) in [
+        (joint::pos_source(), vec![1, 2]),
+        (fixture::parser_source(), vec![3, 4, 5]),
+        (joint::runtime_source(), runtime_indices),
+    ] {
+        let names = indices
+            .iter()
+            .map(|index| entries[*index])
+            .collect::<Vec<_>>();
+        eprintln!(
+            "joint Source prepare {names:?} elapsed_ms={}",
+            started.elapsed().as_millis()
+        );
+        for (index, blueprint) in indices
+            .into_iter()
+            .zip(parser_kernel::Blueprint::prepare_many(source, &names))
+        {
+            blueprints[index] = Some(blueprint);
+        }
+    }
+    let blueprints = blueprints
+        .into_iter()
+        .map(Option::unwrap)
         .collect::<Vec<_>>();
     let source_preparation_ms = started.elapsed().as_millis();
     let mut scorer = joint::scorer();

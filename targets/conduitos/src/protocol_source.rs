@@ -333,6 +333,9 @@ pub use admission::PreparedProtocolArtifact;
 mod entry;
 pub use entry::PreparedProtocolEntry;
 
+mod pure_batch;
+pub use pure_batch::{MAXIMUM_PURE_ENTRIES, PreparedPureProtocolBatch, PreparedPureProtocolEntry};
+
 mod boot_source;
 pub use boot_source::{PROTOCOL_MODULE_COMMAND, ProtocolBootRefusal, prepare_boot_source};
 

@@ -80,10 +80,10 @@ impl Session {
             "language-parser-joint-commit",
             "language-parser-joint-rebase",
         ];
-        let blueprints = blueprints[..if policy { 8 } else { 4 }]
-            .iter()
-            .map(|entry| parser_kernel::Blueprint::prepare(ordinary_source.clone(), entry))
-            .collect::<Vec<_>>();
+        let blueprints = parser_kernel::Blueprint::prepare_many(
+            ordinary_source,
+            &blueprints[..if policy { 8 } else { 4 }],
+        );
         let protection =
             independent_source.map(|source| protection::Protection::prepare(source, &model));
         Self {

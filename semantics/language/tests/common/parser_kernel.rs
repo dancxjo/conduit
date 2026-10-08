@@ -7,10 +7,10 @@ use conduit_kernel::{HostCallDisposition, HostCallOutcome, NodeId};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduitos::{
     expression_host_call::{ExpressionHostCall, ExpressionOperationFactory},
-    protocol_source::{PreparedProtocolEntry, ProtocolSourcePackage},
+    protocol_source::{PreparedPureProtocolBatch, ProtocolSourcePackage},
     structured_selector_host_call::{SelectorHostCall, SelectorOperationFactory},
 };
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, rc::Rc};
 
 enum Owner {
     Expression(ExpressionHostCall),
@@ -22,36 +22,67 @@ pub struct Execution {
     pub preparation_nanoseconds: [u128; 4],
 }
 pub struct Blueprint {
-    entry: PreparedProtocolEntry,
+    batch: Rc<PreparedPureProtocolBatch>,
+    entry_index: usize,
     host: HostAdvertisement,
 }
 impl Blueprint {
     pub fn prepare(source: String, entry_name: &str) -> Self {
+        Self::prepare_many(source, &[entry_name]).pop().unwrap()
+    }
+    pub fn prepare_many(source: String, entry_names: &[&str]) -> Vec<Self> {
         let source_bytes = source.len();
-        let package = ProtocolSourcePackage::compile(source, &[]).unwrap_or_else(|error| {
-            panic!("{entry_name} ({source_bytes} Source bytes): {error:?}")
-        });
-        let entry =
-            PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), entry_name)
-                .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));
-        let mut host = HostAdvertisement {
-            protocol_version: PROTOCOL_VERSION,
-            host_id: "fixture/language-parser".into(),
-            boot_id: "fixture/language-parser-boot".into(),
-            offer_generation: OfferGeneration(1),
-            profile: "fixture/pure-language-parser".into(),
-            bases: vec![],
-            resources: vec![],
-            capabilities: vec![],
-            planner_capabilities: vec![],
+        let package = ProtocolSourcePackage {
+            schema: conduitos::protocol_source::PACKAGE_SCHEMA.into(),
+            source,
+            specializations: Vec::new(),
         };
-        entry.publish_pure_backs(&mut host).unwrap();
-        Self { entry, host }
+        let batch = Rc::new(
+            PreparedPureProtocolBatch::prepare(&serde_json::to_vec(&package).unwrap(), entry_names)
+                .unwrap_or_else(|error| {
+                    let names = entry_names
+                        .iter()
+                        .take(conduitos::protocol_source::MAXIMUM_PURE_ENTRIES)
+                        .map(|name| name.chars().take(96).collect::<String>())
+                        .collect::<Vec<_>>();
+                    panic!(
+                        "{names:?} ({} entries, {source_bytes} Source bytes): {error:?}",
+                        entry_names.len()
+                    )
+                }),
+        );
+        entry_names
+            .iter()
+            .enumerate()
+            .map(|(entry_index, _)| {
+                let mut host = HostAdvertisement {
+                    protocol_version: PROTOCOL_VERSION,
+                    host_id: "fixture/language-parser".into(),
+                    boot_id: "fixture/language-parser-boot".into(),
+                    offer_generation: OfferGeneration(1),
+                    profile: "fixture/pure-language-parser".into(),
+                    bases: vec![],
+                    resources: vec![],
+                    capabilities: vec![],
+                    planner_capabilities: vec![],
+                };
+                batch
+                    .entry(entry_index)
+                    .unwrap()
+                    .publish_pure_backs(&mut host)
+                    .unwrap();
+                Self {
+                    batch: batch.clone(),
+                    entry_index,
+                    host,
+                }
+            })
+            .collect()
     }
     /// Each bounded corpus fixture has a fresh exact Boot/Plan identity.
     pub fn realize(&self, epoch: usize) -> Execution {
         let preparation_started = std::time::Instant::now();
-        let entry = &self.entry;
+        let entry = self.batch.entry(self.entry_index).unwrap();
         let mut host = self.host.clone();
         host.boot_id = BootId::from(format!("fixture/language-parser-boot/{epoch}"));
         let hosts = [host];
