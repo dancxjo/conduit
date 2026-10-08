@@ -164,6 +164,20 @@ pub(in super::super) fn run_native_warm_startup(
     model: &super::super::custody::RetainedSignalModel,
     first_proposal: &StructuredInfoValue,
 ) -> Vec<StructuredInfoValue> {
+    run_warm_profile(model, first_proposal, ExecutionMode::Normal)
+        .result
+        .values
+}
+pub(super) struct WarmRun {
+    pub(super) result: StreamResultAndTiming,
+    pub(super) plan: Plan,
+    pub(super) source: String,
+}
+pub(super) fn run_warm_profile(
+    model: &super::super::custody::RetainedSignalModel,
+    first_proposal: &StructuredInfoValue,
+    mode: ExecutionMode,
+) -> WarmRun {
     assert_eq!(model.resources.len(), 33);
     let source = [
         include_str!("../../../../speech/fargan_conditioning.conduit"),
@@ -186,33 +200,35 @@ pub(in super::super) fn run_native_warm_startup(
     let inputs = BTreeMap::from([
         (
             "first_features".into(),
-            vec![super::super::case_state::field(first_proposal, "features")
-                .canonical_bytes()
-                .unwrap()],
+            vec![
+                super::super::case_state::field(first_proposal, "features")
+                    .canonical_bytes()
+                    .unwrap(),
+            ],
         ),
         (
             "first_period".into(),
-            vec![super::super::case_state::field(first_proposal, "period")
-                .canonical_bytes()
-                .unwrap()],
+            vec![
+                super::super::case_state::field(first_proposal, "period")
+                    .canonical_bytes()
+                    .unwrap(),
+            ],
         ),
     ]);
-    let result = run_epoch_stream_plan(
-        plan,
-        &context,
-        &model.resources,
-        inputs,
-        None,
-        3,
-        ExecutionMode::Normal,
-    )
-    .unwrap();
+    let retained_plan = plan.clone();
+    let retained_source = context.checked_source.as_ref().unwrap().text.clone();
+    let result =
+        run_epoch_stream_plan(plan, &context, &model.resources, inputs, None, 3, mode).unwrap();
     assert_eq!(result.values.len(), 3);
     eprintln!(
         "native first-feature Source warm startup: {}nodes/{}cords; prep{:?}/execution{:?}",
         result.nodes, result.cords, result.preparation, result.execution
     );
-    result.values
+    WarmRun {
+        result,
+        plan: retained_plan,
+        source: retained_source,
+    }
 }
 
 pub(in super::super) fn run_native_startup_feedback(

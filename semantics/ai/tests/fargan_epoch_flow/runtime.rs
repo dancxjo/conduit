@@ -35,6 +35,9 @@ pub(super) use native_startup::{
 };
 pub(super) use native_utterance::{run_native_trained_utterance, run_direct16k_trained_utterance};
 
+#[path = "runtime/model_compute_session.rs"]
+mod model_compute_session;
+
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const N: usize = 1024;
 const C: usize = 2048;
@@ -122,6 +125,7 @@ impl RuntimeTensor for super::custody::RetainedTensor {
         self.resource.clone()
     }
 }
+fn source_cursors(drivers:&[Driver;N])->Vec<usize>{drivers.iter().filter_map(|d|match d{Driver::Source{next,..}=>Some(*next),_=>None}).collect()}
 enum Driver {
     Source {
         references: Vec<ValueRef>,
@@ -196,6 +200,11 @@ impl StepBack<PORTS> for Driver {
 #[derive(Clone, Copy)]
 enum ExecutionMode {
     Normal,
+    LifecycleNormal,
+    LifecycleWarm,
+    LifecycleCancel,
+    LifecycleProviderLost,
+    LifecyclePressure,
     StoragePressure,
     CancelFirstExpression,
 }
@@ -244,6 +253,7 @@ struct StreamResultAndTiming {
     prepared_expression_allocations: usize,
     service_steps: u32,
     quantum_boundaries: u32,
+    warm_retired: bool,
 }
 fn run_epoch_stream_plan<R: RuntimeTensor>(
     plan: Plan,
@@ -300,7 +310,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         trace,
         service,
     } = run;
-    let run_to_drain = trace.is_some()
+    let run_to_drain = matches!(mode, ExecutionMode::LifecycleNormal | ExecutionMode::LifecycleWarm) || trace.is_some()
         || seeded.is_some()
         || plan
             .fragments
@@ -634,6 +644,8 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     eprintln!("epoch owners prepared: {nodes} nodes/{cords} cords in {preparation:?}");
     let execute = Instant::now();
     let mut drained = false;
+    let mut warm_retired = false;
+    let mut stop_evidence = serde_json::Value::Null;
     let mut scheduler_step_allocations = 0;
     let mut prepared_expression_allocations = 0;
     let mut completed_host_calls = 0u64;
@@ -677,6 +689,18 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         ) && scheduler.pending_host_call_count() == 0
         {
             stop_reason = "scheduler_settled";
+            if matches!(mode, ExecutionMode::LifecycleWarm) && matches!(status, conduit_kernel::scheduler::SchedulerStatus::Idle) && received.borrow().len() == expected {
+                let decisions=scheduler.decisions();
+                let cursors=source_cursors(scheduler.drivers());
+                scheduler.cancel().unwrap();
+                assert_eq!(scheduler.decisions(),decisions);
+                assert_eq!(source_cursors(scheduler.drivers()),cursors);
+                assert_eq!(scheduler.pending_host_call_count(),0);
+                assert_eq!(scheduler.values().used_items(),0);
+                warm_retired=true;
+                stop_reason="warm_source_products_complete_idle_explicit_cancel_retirement";
+                stop_evidence=serde_json::json!({"decisions":decisions,"source_cursors":cursors,"complete_outputs":expected,"no_pending_host_work":true,"warm_cleanup_cancelled":true});
+            }
             drained = matches!(status, conduit_kernel::scheduler::SchedulerStatus::Drained);
             eprintln!("epoch scheduler settled: {status:?}");
             break;
@@ -687,6 +711,18 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
             eprintln!("epoch storage used_items={}/{} used_bytes={}/{}", scheduler.values().used_items(), scheduler.values().item_capacity(), scheduler.values().used_bytes(), scheduler.values().byte_capacity());
         }
         if let Some(call) = scheduler.next_host_request() {
+            if matches!(mode, ExecutionMode::LifecycleCancel | ExecutionMode::LifecycleProviderLost) {
+                let decisions=scheduler.decisions();let cursors=source_cursors(scheduler.drivers());let rows=received.borrow().len();
+                if matches!(mode, ExecutionMode::LifecycleProviderLost) {
+                    assert!(owners.remove(&call.node).is_some() || filter_owners.remove(&call.node).is_some());
+                }
+                scheduler.cancel().unwrap();
+                assert!(matches!(scheduler.step().unwrap(),conduit_kernel::scheduler::SchedulerStatus::Cancelled));
+                assert_eq!(scheduler.decisions(),decisions);assert_eq!(source_cursors(scheduler.drivers()),cursors);assert_eq!(received.borrow().len(),rows);
+                assert_eq!(scheduler.pending_host_call_count(),0);assert_eq!(scheduler.values().used_items(),0);
+                stop_reason=if matches!(mode, ExecutionMode::LifecycleProviderLost) {"actual_selected_provider_owner_removed_and_scheduler_cancelled"} else {"actual_lifecycle_scheduler_cancelled"};
+                stop_evidence=serde_json::json!({"decisions_before_after":decisions,"source_cursors_before_after":cursors,"rows_before_after":rows,"pending_after":0,"storage_items_after":0,"no_further_step_commit":true});break;
+            }
             if matches!(mode, ExecutionMode::CancelFirstExpression) {
                 if let Some(owner) = owners.get_mut(&call.node) {
                     owner.cancel(call.node, call.call).unwrap();
@@ -735,6 +771,15 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
             completed_host_calls += 1;
             let value = match output {
                 Some(output) => {
+                    if matches!(mode,ExecutionMode::LifecyclePressure) {
+                        let decisions=scheduler.decisions();let cursors=source_cursors(scheduler.drivers());let rows=received.borrow().len();
+                        while scheduler.values().used_items()<scheduler.values().item_capacity() {scheduler.store_host_value(&[]).unwrap();}
+                        assert!(scheduler.store_host_value(output).is_err());
+                        assert_eq!(scheduler.decisions(),decisions);assert_eq!(source_cursors(scheduler.drivers()),cursors);assert_eq!(received.borrow().len(),rows);
+                        assert!(scheduler.pending_host_call_count()>0);
+                        stop_reason="actual_output_store_pressure_before_host_completion";
+                        stop_evidence=serde_json::json!({"decisions_before_after":decisions,"source_cursors_before_after":cursors,"rows_before_after":rows,"pending_host_calls":scheduler.pending_host_call_count(),"output_bytes":output.len(),"no_host_completion_or_step_commit":true});break;
+                    }
                     let value = match scheduler.store_host_value(output) {
                         Ok(value) => value,
                         Err(error) => {
@@ -766,7 +811,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     }
     let execution = execute.elapsed();
     let encoded = received.borrow();
-    let metrics = serde_json::json!({"nodes":nodes,"cords":cords,"service_steps":service_steps,"quantum_steps":service.quantum,"maximum_quanta":service.quanta,"observed_boundaries":quantum_boundaries,"boundary_receipts":quantum_receipts,"observe_boundaries":service.observe_boundaries,"stop_reason":stop_reason,"rows":encoded.len(),"expected_rows":expected,"completed_host_calls":completed_host_calls,"pending_host_calls":scheduler.pending_host_call_count(),"used_items":scheduler.values().used_items(),"item_capacity":scheduler.values().item_capacity(),"used_bytes":scheduler.values().used_bytes(),"byte_capacity":scheduler.values().byte_capacity(),"preparation_seconds":preparation.as_secs_f64(),"execution_seconds":execution.as_secs_f64(),"drained":drained});
+    let metrics = serde_json::json!({"nodes":nodes,"cords":cords,"service_steps":service_steps,"quantum_steps":service.quantum,"maximum_quanta":service.quanta,"observed_boundaries":quantum_boundaries,"boundary_receipts":quantum_receipts,"observe_boundaries":service.observe_boundaries,"stop_reason":stop_reason,"rows":encoded.len(),"expected_rows":expected,"completed_host_calls":completed_host_calls,"pending_host_calls":scheduler.pending_host_call_count(),"used_items":scheduler.values().used_items(),"item_capacity":scheduler.values().item_capacity(),"used_bytes":scheduler.values().used_bytes(),"byte_capacity":scheduler.values().byte_capacity(),"preparation_seconds":preparation.as_secs_f64(),"execution_seconds":execution.as_secs_f64(),"drained":drained,"warm_retired":warm_retired,"stop_evidence":stop_evidence});
     eprintln!("epoch terminal service metrics: {metrics}");
     if let Ok(directory) = std::env::var("CONDUIT_FARGAN_NATIVE_OUTPUT") {
         std::fs::write(std::path::Path::new(&directory).join(format!("service-{nodes}-{expected}-{}.json", if service.observe_boundaries { "bounded" } else { "uninterrupted" })), serde_json::to_vec_pretty(&metrics).unwrap()).unwrap();
@@ -809,7 +854,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
     if trace.is_some_and(|trace| !trace.finished()) {
         return None;
     }
-    if encoded.len() != expected || (run_to_drain && !drained) {
+    if encoded.len() != expected || (run_to_drain && !drained && !warm_retired) {
         return None;
     }
     Some(StreamResultAndTiming {
@@ -826,6 +871,7 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         prepared_expression_allocations,
         service_steps,
         quantum_boundaries,
+        warm_retired,
     })
 }
 
