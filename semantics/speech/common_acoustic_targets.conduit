@@ -1,0 +1,287 @@
+# Pinned Tongues b03702798db5a5e7d174278ac2fc1233f171b02e acoustic/prosodic
+# components. Additive to SpeechUtteranceIntent; targets are not observations.
+type SpeechAcousticScopeKind =
+    segment
+    | syllable
+    | word
+    | phrase
+    | breath_group
+    | turn
+    | utterance
+type SpeechAcousticScope = {
+    identity: Text <= 64B not in [""]
+    kind: SpeechAcousticScopeKind
+    sources: sequence LanguageSegmentRef in 1..=8
+}
+type SpeechCommonAcousticSpan = {
+    anchor: AudioTrajectoryAnchor
+    start: AudioTimeFraction
+    end: AudioTimeFraction
+}
+# Exact probabilities are not amplitude or periodic samples.
+type SpeechUnitInterval = {
+    numerator: U64
+    denominator: U64 in 1..=18446744073709551615
+    where .numerator <= .denominator
+}
+type SpeechSyllabicRate = {
+    numerator_syllables: U64
+    denominator_seconds: U64 in 1..=18446744073709551615
+    scope: SpeechAcousticScope
+}
+# Nonnegative spectral centroid / crossing rate allow zero, unlike positive F0.
+type SpeechSpectralCentroidHz = {
+    numerator_hz: U64
+    denominator: U64 in 1..=18446744073709551615
+}
+type SpeechZeroCrossingRate = {
+    numerator_crossings: U64
+    denominator_seconds: U64 in 1..=18446744073709551615
+    convention: Text <= 64B not in [""]
+}
+type SpeechSpectralTilt = {
+    slope_db_per_octave: AudioDecibelFraction
+    convention: AudioDecibelConvention
+}
+# A step capability can preserve all six states without inventing numeric zeros.
+# Linear is canonical authoring, but outside the first typed-step capability.
+type SpeechTypedCurveSegment<T> = {
+    start: AudioTimeFraction
+    end: AudioTimeFraction
+    value: SpeechSpec<T>
+    interpolation: AudioTrajectoryInterpolation
+}
+type SpeechTypedCurve<T> = {
+    anchor: AudioTrajectoryAnchor
+    segments: sequence SpeechTypedCurveSegment<T> in 1..=16
+    outside: AudioTrajectoryOutside
+    endpoints: AudioTrajectoryEndpoints
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechSyllabicRateCurve = SpeechTypedCurve<SpeechSyllabicRate>
+type SpeechProbabilityCurve = SpeechTypedCurve<SpeechUnitInterval>
+type SpeechSpectralTiltCurve = SpeechTypedCurve<SpeechSpectralTilt>
+type SpeechFormantTarget = {
+    index: U32 in 1..=64
+    center: SpeechAudioTrajectorySpecification
+    bandwidth: SpeechAudioTrajectorySpecification
+    provenance: SpeechEvidenceProvenance
+}
+# Smaller ordinary component ports; the common prepared owner composes these.
+# No second utterance aggregate and no oversized all-prosody Type wrapper.
+type SpeechTimingPitchTargets = {
+    scope: SpeechAcousticScope
+    anchor: AudioTrajectoryAnchor
+    duration: SpeechDurationSpecification
+    duration_curve: SpeechDurationCurveSpecification
+    pitch: SpeechAudioTrajectorySpecification
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechLinguisticRateTargets = {
+    scope: SpeechAcousticScope
+    anchor: AudioTrajectoryAnchor
+    speaking_rate: SpeechRateCurveSpecification
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechIntensityTargets = {
+    scope: SpeechAcousticScope
+    anchor: AudioTrajectoryAnchor
+    amplitude_power: SpeechAudioTrajectorySpecification
+    decibels: SpeechDecibelCurveSpecification
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechFormantTargets = {
+    scope: SpeechAcousticScope
+    anchor: AudioTrajectoryAnchor
+    formants: sequence SpeechFormantTarget <= 16
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechVoiceQualityTargets = {
+    scope: SpeechAcousticScope
+    anchor: AudioTrajectoryAnchor
+    voicing_probability: SpeechProbabilityCurveSpecification
+    periodicity: SpeechProbabilityCurveSpecification
+    spectral_tilt: SpeechSpectralTiltCurveSpecification
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechObservedFormant = {
+    index: U32 in 1..=64
+    center_hz: SpeechFrequencySpecification
+    bandwidth_hz: SpeechFrequencySpecification
+}
+# Tongues harmonicity has no declared unit, and vectors only have a kind string.
+# Preserve their original material under explicitly unsupported profile metadata.
+type SpeechUninterpretedAcousticMeasure = {
+    source_profile: Text <= 128B not in [""]
+    original: SpeechFeatureValue
+    limitation: Text <= 128B not in [""]
+}
+type SpeechDeclaredAcousticVector = {
+    kind: Text <= 64B not in [""]
+    source_profile: Text <= 128B not in [""]
+    original: sequence F32 finite in 1..=64
+    unit_declaration: Text <= 128B not in [""]
+    provenance: SpeechEvidenceProvenance
+}
+type SpeechUnsupportedAcousticField = {
+    field: Text <= 64B not in [""]
+    original: SpeechSpec<SpeechFeatureValue>
+    source_profile: Text <= 128B not in [""]
+    limitation: Text <= 128B not in [""]
+}
+type SpeechFrameConfidenceSpecification = SpeechSpec<SpeechConfidence>
+type SpeechCommonAcousticEvidence = {
+    span: SpeechCommonAcousticSpan
+    source_span: SpeechSegmentSpan?
+    unsupported_fields: sequence SpeechUnsupportedAcousticField <= 8
+    f0_hz: SpeechFrequencySpecification
+    energy_db: SpeechDecibelLevelSpecification
+    voicing_probability: SpeechProbabilitySpecification
+    periodicity: SpeechProbabilitySpecification
+    harmonicity: SpeechHarmonicitySpecification
+    formants: sequence SpeechObservedFormant <= 16
+    spectral_centroid_hz: SpeechSpectralCentroidSpecification
+    spectral_tilt: SpeechSpectralTiltSpecification
+    zero_crossing_rate: SpeechZeroCrossingSpecification
+    vectors: sequence SpeechDeclaredAcousticVector <= 8
+    confidence: SpeechFrameConfidenceSpecification
+    provenance: SpeechEvidenceProvenance
+}
+# Separate U32 cross-product profile proves exact temporal comparison safety.
+type SpeechAcousticTimeComparison = {
+    left: AudioTimeFraction
+    right: AudioTimeFraction
+    where .left.numerator_seconds <= 4294967295
+    where .left.denominator <= 4294967295
+    where .right.numerator_seconds <= 4294967295
+    where .right.denominator <= 4294967295
+}
+type SpeechTiltOctaveRequest = {
+    tilt: SpeechSpectralTilt
+    octaves: I64
+}
+type SpeechTiltSingleOctaveEligible = {
+    request: SpeechTiltOctaveRequest
+    where .request.octaves >= -1 && .request.octaves <= 1
+    where .request.octaves == -1 ? .request.tilt.slope_db_per_octave.numerator_db >= -9223372036854775807 : true
+}
+type SpeechTiltDeltaRaw = {
+    numerator_db: I64
+    denominator: U64
+}
+plot speech/common-duration-to-audio (
+    >> value: SpeechExactDuration
+    result: AudioTimeFraction >>
+) = ({numerator_seconds: .numerator_seconds, denominator: .denominator})
+plot speech/common-cycle-to-audio (
+    >> value: SpeechFundamentalCycle
+    result: AudioCycleDuration >>
+) = ({numerator_seconds: .numerator_seconds, denominator: .denominator})
+plot speech/common-intensity-to-audio (
+    >> value: SpeechRelativeIntensity
+    result: AudioRelativeAmplitude >>
+) = ({numerator: .numerator, denominator: .denominator})
+plot speech/common-time-before (
+    >> value: SpeechAcousticTimeComparison
+    result: Boolean >>
+) = (.left.numerator_seconds * .right.denominator < .right.numerator_seconds * .left.denominator)
+plot speech/common-time-equal (
+    >> value: SpeechAcousticTimeComparison
+    result: Boolean >>
+) = (.left.numerator_seconds * .right.denominator == .right.numerator_seconds * .left.denominator)
+plot speech/common-tilt-single-octave (
+    >> value: SpeechTiltSingleOctaveEligible
+    result: SpeechTiltDeltaRaw >>
+) = ({numerator_db: .request.tilt.slope_db_per_octave.numerator_db * .request.octaves, denominator: .request.tilt.slope_db_per_octave.denominator})
+type SpeechStepCoverageInput = {
+    start: AudioTimeFraction
+    end: AudioTimeFraction
+    query: AudioTimeFraction
+    final_segment: Boolean
+    where .start.numerator_seconds <= 4294967295 && .start.denominator <= 4294967295
+    where .end.numerator_seconds <= 4294967295 && .end.denominator <= 4294967295
+    where .query.numerator_seconds <= 4294967295 && .query.denominator <= 4294967295
+}
+plot speech/common-step-covers (
+    >> value: SpeechStepCoverageInput
+    result: Boolean >>
+) = (.query.numerator_seconds * .start.denominator >= .start.numerator_seconds * .query.denominator && (.query.numerator_seconds * .end.denominator < .end.numerator_seconds * .query.denominator || (.final_segment && .query.numerator_seconds * .end.denominator == .end.numerator_seconds * .query.denominator)))
+plot speech/common-step-profile (
+    >> value: AudioTrajectoryInterpolation
+    result: Boolean >>
+) = (. is step)
+type SpeechRateReciprocalInput = {
+    numerator_syllables: U64 in 1..=18446744073709551615
+    denominator_seconds: U64 in 1..=18446744073709551615
+}
+type SpeechSyllablePeriod = {
+    numerator_seconds: U64 in 1..=18446744073709551615
+    denominator_syllables: U64 in 1..=18446744073709551615
+    scope: SpeechAcousticScope
+}
+type SpeechSyllablePeriodRaw = {
+    numerator_seconds: U64
+    denominator_syllables: U64
+}
+plot speech/common-rate-to-period (
+    >> value: SpeechRateReciprocalInput
+    result: SpeechSyllablePeriodRaw >>
+) = ({numerator_seconds: .denominator_seconds, denominator_syllables: .numerator_syllables})
+type SpeechAcousticAnchorComparison = {
+    left: AudioTrajectoryAnchor
+    right: AudioTrajectoryAnchor
+}
+plot speech/common-anchor-equal (
+    >> value: SpeechAcousticAnchorComparison
+    result: Boolean >>
+) = (.left.timeline.value == .right.timeline.value && .left.origin.value == .right.origin.value)
+
+type SpeechSyllabicRateSpecification = SpeechSpec<SpeechSyllabicRate>
+type SpeechProbabilitySpecification = SpeechSpec<SpeechUnitInterval>
+type SpeechSpectralTiltSpecification = SpeechSpec<SpeechSpectralTilt>
+type SpeechTargetAudioRole =
+    pitch
+    | intensity
+    | formant_center
+    | formant_bandwidth
+type SpeechTargetAudioDomain = {
+    role: SpeechTargetAudioRole
+    value: AudioTrajectoryQuantity
+}
+plot speech/common-audio-target-domain (
+    >> value: SpeechTargetAudioDomain
+    result: Boolean >>
+) = (.role is pitch ? (.value is frequency || .value is cycle) : .role is intensity ? (.value is amplitude || .value is power) : .value is frequency)
+# Explicit Known execution request, formed by the common prepared owner only
+# after preserving the original six-state specification; no unknown default.
+type SpeechKnownAudioTarget = {
+    scope: SpeechAcousticScope
+    role: SpeechTargetAudioRole
+    trajectory: AudioQuantityTrajectory
+    provenance: SpeechEvidenceProvenance
+}
+
+type SpeechAudioTrajectorySpecification = SpeechSpec<AudioQuantityTrajectory>
+type SpeechFrequencySpecification = SpeechSpec<AudioFrequencyHz>
+type SpeechDecibelLevelSpecification = SpeechSpec<AudioDecibelLevel>
+type SpeechProbabilityCurveSegment = SpeechTypedCurveSegment<SpeechUnitInterval>
+type SpeechSyllabicRateCurveSegment = SpeechTypedCurveSegment<SpeechSyllabicRate>
+type SpeechSpectralTiltCurveSegment = SpeechTypedCurveSegment<SpeechSpectralTilt>
+type SpeechDurationCurve = SpeechTypedCurve<SpeechExactDuration>
+type SpeechDurationCurveSegment = SpeechTypedCurveSegment<SpeechExactDuration>
+type SpeechDecibelLevelCurve = SpeechTypedCurve<AudioDecibelLevel>
+type SpeechDecibelLevelCurveSegment = SpeechTypedCurveSegment<AudioDecibelLevel>
+
+type SpeechHarmonicitySpecification = SpeechSpec<SpeechUninterpretedAcousticMeasure>
+type SpeechSpectralCentroidSpecification = SpeechSpec<SpeechSpectralCentroidHz>
+type SpeechZeroCrossingSpecification = SpeechSpec<SpeechZeroCrossingRate>
+
+type SpeechProbabilityCurveSpecification = SpeechSpec<SpeechProbabilityCurve>
+
+type SpeechRateCurveSpecification = SpeechSpec<SpeechSyllabicRateCurve>
+
+type SpeechSpectralTiltCurveSpecification = SpeechSpec<SpeechSpectralTiltCurve>
+
+type SpeechDurationCurveSpecification = SpeechSpec<SpeechDurationCurve>
+
+type SpeechDecibelCurveSpecification = SpeechSpec<SpeechDecibelLevelCurve>
