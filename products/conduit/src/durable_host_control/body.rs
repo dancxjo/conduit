@@ -26,6 +26,9 @@ use std::{
 
 #[path = "body/clock_action.rs"]
 mod clock_action;
+#[path = "body/speech.rs"]
+pub(super) mod speech;
+pub(super) use speech::SpeechSelection;
 #[cfg(unix)]
 #[path = "body/control_client.rs"]
 mod control_client;
@@ -249,6 +252,8 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
+            speech_worker,
+            speech_terminal,
         } = self;
         let HostSource::Bare(host) = host else {
             return Err("durable Host already owns a Body session".into());
@@ -270,6 +275,8 @@ impl DurableHostRuntime {
             next_observation_sequence,
             #[cfg(unix)]
             terminal_route,
+            speech_worker,
+            speech_terminal,
         })
     }
 
