@@ -1,7 +1,9 @@
 # Todo state slice
 
 `live.conduit` authors a bounded `scan` over the exact Todo state and command
-Info Kinds. During source preparation, the Todo semantic owner admits its
+Info Kinds. Its `todo/transition` Plot wires the combine Kind's exact ports;
+the Host selects the Back for that leaf Kind. During source preparation, the
+Todo semantic owner admits its
 validated empty-list Form with `admit_empty_todo_initial`; expansion rejects a
 missing or wrong-Kind literal. This proves an authored initial accumulator,
 separate from installing the combine Back or connecting a live Body/Mask route.

@@ -9,7 +9,7 @@ extern crate alloc;
 mod authoring;
 mod fixed;
 #[cfg(feature = "authoring")]
-pub use authoring::admit_empty_todo_initial;
+pub use authoring::{admit_empty_todo_initial, install_todo_catalogs};
 pub use fixed::{COMMAND_MAX_BYTES, STATE_MAX_BYTES};
 #[cfg(feature = "kernel-step")]
 mod combine_back;

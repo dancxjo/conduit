@@ -1,18 +1,22 @@
 # One bounded Todo transition: scan retains exact Todo state across commands.
 # The authored literal is admitted by the Todo semantic owner as its checked
 # empty-list Form before source checking; no Host owns the state transition.
-plot todo/combine (
+plot todo/transition (
     >> accumulator: conduit.todo/state@1 <= 1635B
     >> item: conduit.todo/command@1 <= 75B
     combined: conduit.todo/state@1 <= 1635B >>
 ) {
+    step: todo/combine
+    accumulator >> step.accumulator
+    item >> step.item
+    step.combined >> combined
 }
 
 plot todo/main (
     >> commands: conduit.todo/command@1...| <= 75B
     states: conduit.todo/state@1...| <= 1635B >>
 ) {
-    reducer: scan("Groceries", maximum-items = 64) todo/combine()
+    reducer: scan("Groceries", maximum-items = 64) todo/transition()
     commands >> reducer.item
     reducer.combined >> states
 }

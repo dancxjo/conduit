@@ -1,8 +1,25 @@
 //! Todo-owned admission of initial Forms for authored `scan`.
 
-use alloc::{format, string::String};
+use alloc::{format, string::String, string::ToString};
 
-use crate::{TodoState, TODO_STATE_INFO_ID};
+use crate::{TodoState, TODO_COMBINE_KIND, TODO_STATE_INFO_ID};
+
+/// Admit the Todo leaf Kind and one owner-validated initial state Form. The
+/// authored transition Plot wires its exact Fore to this Kind's offered Back.
+pub fn install_todo_catalogs(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+    title: &str,
+) -> Result<(), String> {
+    startup.insert(conduit_plot::KindSignature {
+        kind: TODO_COMBINE_KIND.to_string(),
+        startup_parameters: alloc::vec![],
+    })?;
+    profile
+        .insert_kind(crate::todo_combine_kind())
+        .map_err(|error| error.to_string())?;
+    admit_empty_todo_initial(startup, title)
+}
 
 /// Register one empty list as a checked source literal for Todo scan.
 /// The compiler sees only the exact Kind and the owner's validated Form.
