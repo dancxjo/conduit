@@ -628,3 +628,7 @@ pub mod owner {
 // Canonical numerical replay retains the exact adopted resource through this
 // existing owner. It does not stand in for ordinary target Plan execution.
 include!("integer_categorical_canonical_admission.rs");
+
+#[path = "integer_categorical_storage.rs"]
+mod storage;
+pub use storage::*;
