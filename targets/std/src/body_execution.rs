@@ -12,6 +12,7 @@ use conduit_core::{
 use conduit_kernel::{scheduler::HostCallRequest, KernelEvent};
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct ObservedKernelEvent {
@@ -132,7 +133,89 @@ impl StdHost {
             None,
             Some((inputs, sequential, fore_output)),
             None,
+            None,
             |_, _| Ok(()),
+        )
+    }
+
+    /// Run one exact Todo command with a selected checkpoint residence. The
+    /// committed Fore state is available only after its admitted Host Call.
+    pub fn run_body_plan_with_todo_checkpoint_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        root: &Path,
+        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_with_todo_checkpoint_to_with_start(
+            request,
+            inputs,
+            fore_output,
+            root,
+            checkpoint,
+            output,
+            timer,
+            |_, _| Ok(()),
+        )
+    }
+
+    /// Retain the exact started Play before any checkpoint Host Call can
+    /// publish state. A refused start leaves the selected residence untouched.
+    pub fn run_body_plan_with_todo_checkpoint_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        root: &Path,
+        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        let selected = self
+            .todo_checkpoint_root
+            .as_ref()
+            .ok_or("std Host has no selected Todo checkpoint residence")?;
+        if root
+            .symlink_metadata()
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?
+            .file_type()
+            .is_symlink()
+        {
+            return Err("Todo checkpoint root changed to a symlink".into());
+        }
+        let actual = root
+            .canonicalize()
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+        if actual != selected.path {
+            return Err("Todo checkpoint root differs from advertised residence".into());
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = actual
+                .metadata()
+                .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+            if metadata.dev() != selected.device || metadata.ino() != selected.inode {
+                return Err("Todo checkpoint residence was rebound after advertisement".into());
+            }
+        }
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((inputs, false, fore_output)),
+            None,
+            Some((root, checkpoint)),
+            started,
         )
     }
 
@@ -178,6 +261,7 @@ impl StdHost {
             None,
             None,
             Some((queue, fore_output)),
+            None,
             started,
         )
     }
@@ -196,7 +280,7 @@ impl StdHost {
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
         self.run_body_plan_to_with_start_and_clock(
-            request, output, timer, None, None, None, None, started,
+            request, output, timer, None, None, None, None, None, started,
         )
     }
 
@@ -212,6 +296,7 @@ impl StdHost {
             output,
             timer,
             Some(correlation),
+            None,
             None,
             None,
             None,
@@ -234,6 +319,7 @@ impl StdHost {
             timer,
             Some(correlation),
             Some((transport_uncertainty, scheduler_uncertainty)),
+            None,
             None,
             None,
             |_, _| Ok(()),
@@ -283,6 +369,7 @@ impl StdHost {
             None,
             None,
             None,
+            None,
             started,
         )
     }
@@ -301,6 +388,7 @@ impl StdHost {
             &'a mut dyn BodyForeOutputAdapter,
         )>,
         live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
+        checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -340,7 +428,7 @@ impl StdHost {
         // a preparation refusal leaves the Host sequence untouched.
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
-        let kernel = if let Some((queue, _)) = &live {
+        let mut kernel = if let Some((queue, _)) = &live {
             if request.keyboard.is_some() {
                 return Err("live Body Fore cannot also claim keyboard ingress".into());
             }
@@ -360,6 +448,9 @@ impl StdHost {
                 has_fore_output,
             )?
         };
+        if let Some((root, checkpoint)) = checkpoint {
+            kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
+        }
         kernel.require_supported_execution()?;
         let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,

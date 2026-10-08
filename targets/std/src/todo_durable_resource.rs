@@ -1,9 +1,9 @@
 //! Explicitly selected std residence for bounded Todo checkpoints.
 //!
-//! This is a provider prerequisite, not an installed Back or Body action route.
 //! The caller owns the selected directory and supplies exact current Plan
-//! placements. A successful commit means the immutable candidate and selector
-//! have both been synced; callers must not acknowledge an action earlier.
+//! placements. The installed checkpoint Back invokes this provider only through
+//! an admitted Host Call. A successful commit means the immutable candidate
+//! and selector have both been synced before the Back can emit committed state.
 use conduit_core::{
     kind_id, semantic_digest, AuthorityBinding, PlannedGear, ResourceAccessMode, ResourceRetention,
     ResourceSharing,
@@ -16,8 +16,9 @@ use std::path::{Path, PathBuf};
 const MAGIC: &[u8; 8] = b"CDTODO01";
 const SCHEMA: u8 = 1;
 const MAX_ID: usize = 128;
-pub const CHECKPOINT_MAX_BYTES: usize =
-    8 + 1 + 64 + 3 * (1 + MAX_ID) + 4 + 4 + 32 + STATE_MAX_BYTES;
+pub const CHECKPOINT_MAX_BYTES: usize = conduit_std_offers::TODO_CHECKPOINT_MAX_BYTES as usize;
+const _: [(); CHECKPOINT_MAX_BYTES] =
+    [(); 8 + 1 + 64 + 3 * (1 + MAX_ID) + 4 + 4 + 32 + STATE_MAX_BYTES];
 pub const PUBLISH_OPERATION: &str = "conduit.host/todo-checkpoint-publish@1";
 pub const READ_OPERATION: &str = "conduit.host/todo-checkpoint-read@1";
 pub const AUTHORITY_CONTRACT: &str = "authority/todo-checkpoint@1";
