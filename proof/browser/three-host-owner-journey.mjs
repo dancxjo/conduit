@@ -372,10 +372,10 @@ try {
     outcome: nativeAction.action.status,
   }, 'browser-after-native.png');
   const control = page.locator('[data-owner-action]').filter({
-    has: page.getByRole('button', { name: 'Change clock interval' }),
+    has: page.getByRole('button', { name: 'Change ticker pace' }),
   });
   await control.getByRole('combobox').selectOption('1000');
-  await control.getByRole('button', { name: 'Change clock interval' }).click();
+  await control.getByRole('button', { name: 'Change ticker pace' }).click();
   await page.waitForFunction(prior => {
     const face = globalThis.__conduitOwnerParticipation.face();
     return face && face.face_revision !== prior && face.subjects.some(subject =>
@@ -386,7 +386,7 @@ try {
   assert.equal(afterBrowser.body_id, bodyId);
   assert.notEqual(afterBrowser.face_id, afterNative.face_id);
   assert.equal(await page.locator('[data-owner-action-result]').textContent(),
-    'The owner accepted Change clock interval.');
+    'The owner accepted Change ticker pace.');
   assert.equal(await page.locator('[data-handbook-application]').getAttribute('data-owner-show-acknowledged'),
     afterBrowser.show_id);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after-browser.png') });

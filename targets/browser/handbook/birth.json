@@ -18,8 +18,8 @@
     {
       "role": "clock-source",
       "name": "clock-demo",
-      "title": "A clock you can stop",
-      "lesson": "Predict: what changes if the interval doubles? Try this clock, watch its ticks, then change 1s to 2s and try again. Open Patchbay and select the clock to follow the cord from time/every to presentation/tick. Lull stops the run; Wake admits another run."
+      "title": "A ticker you can stop",
+      "lesson": "Predict: what changes if the interval doubles? Try this ticker, watch its pulses, then change 1s to 2s and try again. Open Patchbay and select the ticker to follow the cord from time/every to presentation/tick. Lull stops the run; Wake admits another run. This specimen shows a repeating pulse, not the time of day."
     },
     {
       "role": "lantern-source",

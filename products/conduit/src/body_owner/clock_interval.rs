@@ -72,6 +72,12 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         .as_ref()
         .ok_or("clock has no resident Plot")?;
     let target = format!("plot/{}", resident.checked_plot_id.as_str());
+    let mut disclosures = face.disclosures.clone();
+    disclosures
+        .iter_mut()
+        .find(|disclosure| disclosure.subject == target)
+        .ok_or("clock Plot has no Face disclosure")?
+        .level = PresentationDisclosureLevel::Primary;
     let lulled = owner.session.evidence().body.state == BodyState::Lulled
         && owner.session.realization().is_none()
         && !owner.host.is_playing();
@@ -86,7 +92,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
     members.sort();
     let argument = FaceActionArgument {
         name: "clock/interval-ms".into(),
-        value_name: "Interval in milliseconds: 250, 500, 1000, or 2000".into(),
+        value_name: "Time between ticks in milliseconds: 250, 500, 1000, or 2000".into(),
         contract: CheckedValueContract::new(
             kind_id(UTF8_TEXT_VALUE_KIND),
             4,
@@ -106,19 +112,19 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
     let mut text = face.text.clone();
     text.push(PresentationText {
         subject: target.clone(),
-        text: format!("The current clock interval is {interval_ms} milliseconds."),
+        text: format!("The ticker emits a pulse every {interval_ms} milliseconds."),
     });
     let mut actions = face.actions.clone();
     for action in &mut actions {
         if action.intent == BODY_WAKE_ACTION && terminal_attached {
             action.availability = PresentationActionAvailability::Unavailable {
                 reason_code: "terminal-mask-attached".into(),
-                explanation: "Detach the terminal Mask before waking this clock Body.".into(),
+                explanation: "Detach the terminal Mask before waking this ticker Body.".into(),
             };
         } else if action.intent == BODY_LULL_ACTION && owner.current_play_id().is_none() {
             action.availability = PresentationActionAvailability::Unavailable {
                 reason_code: "clock-not-playing".into(),
-                explanation: "The clock Play has not started yet.".into(),
+                explanation: "The ticker Play has not started yet.".into(),
             };
         } else if !matches!(action.intent.as_str(), BODY_WAKE_ACTION | BODY_LULL_ACTION)
             && action.availability.is_available()
@@ -137,7 +143,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         ),
         intent: CLOCK_INTERVAL_ACTION.into(),
         target: target.clone(),
-        name: "Change clock interval".into(),
+        name: "Change ticker pace".into(),
         arguments: vec![argument],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if lulled {
@@ -145,7 +151,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         } else {
             PresentationActionAvailability::Unavailable {
                 reason_code: "clock-play-must-lull".into(),
-                explanation: "Lull the current clock Play before changing its checked interval. The next start will require a replacement Plan.".into(),
+                explanation: "Lull the current ticker Play before changing its checked interval. The next start will require a replacement Plan.".into(),
             }
         },
     });
@@ -156,7 +162,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         ),
         intent: CLOCK_START_ACTION.into(),
         target: target.clone(),
-        name: "Start the clock".into(),
+        name: "Start the ticker".into(),
         arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if lulled && !terminal_attached {
@@ -164,12 +170,12 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         } else if terminal_attached {
             PresentationActionAvailability::Unavailable {
                 reason_code: "terminal-mask-attached".into(),
-                explanation: "Detach the terminal Mask before starting a new clock Play.".into(),
+                explanation: "Detach the terminal Mask before starting a new ticker Play.".into(),
             }
         } else {
             PresentationActionAvailability::Unavailable {
                 reason_code: "clock-already-started".into(),
-                explanation: "The clock needs to finish or be lulled before it starts again."
+                explanation: "The ticker needs to finish or be lulled before it starts again."
                     .into(),
             }
         },
@@ -181,7 +187,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         ),
         intent: CLOCK_LULL_ACTION.into(),
         target,
-        name: "Stop the clock".into(),
+        name: "Stop the ticker".into(),
         arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if owner.current_play_id().is_some() {
@@ -189,7 +195,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         } else {
             PresentationActionAvailability::Unavailable {
                 reason_code: "clock-not-playing".into(),
-                explanation: "Start the clock before stopping it.".into(),
+                explanation: "Start the ticker before stopping it.".into(),
             }
         },
     });
@@ -201,7 +207,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         properties,
         text,
         actions,
-        face.disclosures,
+        disclosures,
         face.temporal_references,
         face.temporal_facts,
     )

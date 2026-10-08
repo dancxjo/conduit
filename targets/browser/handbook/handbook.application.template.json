@@ -29,7 +29,7 @@
       "role": "owner-participation",
       "kind": "module",
       "path": "owner-participation.mjs",
-      "maximum_bytes": 32768
+      "maximum_bytes": 65536
     },
     {
       "role": "birth-specification",

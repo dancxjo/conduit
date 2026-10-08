@@ -2,6 +2,31 @@
 // Linux Host. All admission and biography facts come from the production SDK.
 const encoder = new TextEncoder();
 
+// A Mask-local layout choice over the current Face, never a second Todo store.
+export function projectFaceCollections(view) {
+  const subjects = new Map((view.subjects ?? []).map(subject => [subject.identity, subject]));
+  const collections = [];
+  const placed = new Set();
+  for (const collection of view.subjects ?? []) {
+    if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)) continue;
+    const items = (view.relationships ?? [])
+      .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
+      .map(relation => subjects.get(relation.target))
+      .filter(item => item?.role === 'Item');
+    if (items.some(item => {
+      const complete = item.flags?.filter(flag => flag.name === 'complete');
+      return complete?.length !== 1 || typeof complete[0].value !== 'boolean'
+        || item.disclosure !== (complete[0].value ? 'SelectedDetail' : 'Primary');
+    })) continue;
+    const open = items.filter(item => !item.flags.find(flag => flag.name === 'complete').value);
+    const completed = items.filter(item => item.flags.find(flag => flag.name === 'complete').value);
+    collections.push({ collection, open, completed });
+    placed.add(collection.identity);
+    for (const item of items) placed.add(item.identity);
+  }
+  return { collections, placed };
+}
+
 export function checkedLoopbackOwnerWindow(value) {
   if (typeof value !== 'string' || value.length > 2048) throw new Error('Enter one bounded owner window URL.');
   let url;
@@ -225,9 +250,80 @@ export async function startOwnerParticipation(application, root) {
   const renderFace = view => {
     const names = new Map(view.subjects.map(subject => [subject.identity, subject.name]));
     const documentNode = faceNode('article', '', 'owner-face-document');
-    const overview = faceNode('p', `${view.subjects.length} subjects · ${view.relationships.length} relationships · ${view.actions.length} described actions`, 'owner-face-summary');
-    documentNode.append(overview);
-    for (const subject of view.subjects) {
+    const { collections, placed } = projectFaceCollections(view);
+    const actionControl = action => {
+      const control = document.createElement('form');
+      control.dataset.ownerAction = action.identity;
+      control.append(faceNode('h5', action.name));
+      const inputs = [];
+      let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
+      for (const argument of action.arguments ?? []) {
+        const label = faceNode('label', argument.value_name);
+        let input;
+        if (Array.isArray(argument.choices) && argument.choices.length) {
+          if (argument.choices.length > 64 || argument.choices.includes('')) {
+            supported = false;
+            continue;
+          }
+          input = document.createElement('select');
+          const prompt = document.createElement('option');
+          prompt.value = ''; prompt.textContent = 'Choose an option';
+          input.append(prompt);
+          for (const choice of argument.choices) {
+            const option = document.createElement('option');
+            option.value = choice; option.textContent = choice;
+            input.append(option);
+          }
+          input.required = true;
+        } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text'
+          && Number.isSafeInteger(argument.maximum_bytes) && argument.maximum_bytes <= 4096) {
+          input = document.createElement('input');
+          input.type = 'text'; input.maxLength = argument.maximum_bytes;
+          input.addEventListener('input', () => input.setCustomValidity(
+            encoder.encode(input.value).length > argument.maximum_bytes
+              ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : ''));
+        } else {
+          supported = false;
+          continue;
+        }
+        label.append(input);
+        control.append(label);
+        inputs.push({ name: argument.name, input });
+      }
+      const button = faceNode('button', action.name);
+      button.type = 'submit';
+      button.disabled = !view.interactions_admitted || view.show_state !== 'available'
+        || !supported || inputs.length !== action.arguments.length
+        || action.availability !== 'available';
+      control.append(button);
+      if (button.disabled) control.append(faceNode('p', action.explanation ??
+        (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
+      control.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
+        faceBusy = true;
+        button.disabled = true;
+        try {
+          const outcome = await participation.submitOwnerFaceInteraction({
+            view: faceView, actionId: action.identity, target: action.target,
+            arguments: inputs.map(({ name, input }) => ({ name, value: input.value })),
+            sequence: ++actionSequence,
+          });
+          if (outcome.accepted !== true) throw new Error('owner did not accept the interaction');
+          actionResult.textContent = `The owner accepted ${action.name}.`;
+          delete actionResult.dataset.refused;
+        } catch (error) {
+          actionResult.textContent = `${action.name} refused: ${error.message}`;
+          actionResult.dataset.refused = 'true';
+        } finally {
+          faceBusy = false;
+          faceView = null;
+          await refreshFace();
+        }
+      });
+      return control;
+    };
+    const renderSubject = subject => {
       const node = document.createElement(subject.role === 'Body' || subject.role === 'Plot' ? 'article' : 'section');
       node.className = 'owner-face-subject';
       node.dataset.faceRole = subject.role;
@@ -243,8 +339,58 @@ export async function startOwnerParticipation(application, root) {
         }
         details.append(list); node.append(details);
       }
-      documentNode.append(node);
+      return node;
+    };
+    for (const { collection, open, completed } of collections) {
+      const section = document.createElement('section');
+      section.className = 'owner-face-collection';
+      section.append(faceNode('h4', collection.name));
+      for (const text of collection.text) section.append(faceNode('p', text));
+      section.append(faceNode('p', `${open.length} open · ${completed.length} completed`, 'owner-face-collection-count'));
+      const openList = document.createElement('ol');
+      openList.className = 'owner-face-items';
+      for (const item of open) {
+        const row = document.createElement('li');
+        row.append(faceNode('span', `☐ ${item.name}`));
+        for (const action of view.actions.filter(action => action.target === item.identity
+          && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
+          row.append(actionControl(action));
+        }
+        openList.append(row);
+      }
+      section.append(openList);
+      if (completed.length) {
+        const details = document.createElement('details');
+        details.className = 'owner-face-completed';
+        details.append(faceNode('summary', `${completed.length} completed`));
+        const completedList = document.createElement('ol');
+        completedList.className = 'owner-face-items';
+        for (const item of completed) {
+          const row = document.createElement('li');
+          row.append(faceNode('span', `☑ ${item.name}`));
+          for (const action of view.actions.filter(action => action.target === item.identity
+            && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
+            row.append(actionControl(action));
+          }
+          completedList.append(row);
+        }
+        details.append(completedList); section.append(details);
+      }
+      for (const action of view.actions.filter(action => action.target === collection.identity
+        && action.availability === 'available' && action.disclosure === 'CurrentAction')) {
+        section.append(actionControl(action));
+      }
+      documentNode.append(section);
     }
+    const inspection = document.createElement('details');
+    inspection.append(faceNode('summary', 'Inspect other Face subjects'));
+    for (const subject of view.subjects) {
+      if (placed.has(subject.identity)) continue;
+      const main = ['Primary', 'Context'].includes(subject.disclosure)
+        && (!collections.length || !['Body', 'Plot'].includes(subject.role));
+      (main ? documentNode : inspection).append(renderSubject(subject));
+    }
+    if (inspection.children.length > 1) documentNode.append(inspection);
     if (view.relationships.length) {
       const relations = document.createElement('details');
       relations.append(faceNode('summary', 'How these parts relate'));
@@ -259,79 +405,17 @@ export async function startOwnerParticipation(application, root) {
     if (view.actions.length) {
       const actions = document.createElement('section');
       actions.append(faceNode('h4', 'What you can do'));
+      const secondary = document.createElement('details');
+      secondary.append(faceNode('summary', 'More actions and unavailable controls'));
       for (const action of view.actions) {
-        const control = document.createElement('form');
-        control.dataset.ownerAction = action.identity;
-        control.append(faceNode('h5', action.name));
-        const inputs = [];
-        let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
-        for (const argument of action.arguments ?? []) {
-          const label = faceNode('label', argument.value_name);
-          let input;
-          if (Array.isArray(argument.choices) && argument.choices.length) {
-            if (argument.choices.length > 64 || argument.choices.includes('')) {
-              supported = false;
-              continue;
-            }
-            input = document.createElement('select');
-            const prompt = document.createElement('option');
-            prompt.value = ''; prompt.textContent = 'Choose an option';
-            input.append(prompt);
-            for (const choice of argument.choices) {
-              const option = document.createElement('option');
-              option.value = choice; option.textContent = choice;
-              input.append(option);
-            }
-            input.required = true;
-          } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text'
-            && Number.isSafeInteger(argument.maximum_bytes) && argument.maximum_bytes <= 4096) {
-            input = document.createElement('input');
-            input.type = 'text'; input.maxLength = argument.maximum_bytes;
-            input.addEventListener('input', () => input.setCustomValidity(
-              encoder.encode(input.value).length > argument.maximum_bytes
-                ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : ''));
-          } else {
-            supported = false;
-            continue;
-          }
-          label.append(input);
-          control.append(label);
-          inputs.push({ name: argument.name, input });
-        }
-        const button = faceNode('button', action.name);
-        button.type = 'submit';
-        button.disabled = !view.interactions_admitted || view.show_state !== 'available'
-          || !supported || inputs.length !== action.arguments.length
-          || action.availability !== 'available';
-        control.append(button);
-        if (button.disabled) control.append(faceNode('p', action.explanation ??
-          (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
-        control.addEventListener('submit', async event => {
-          event.preventDefault();
-          if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
-          faceBusy = true;
-          button.disabled = true;
-          try {
-            const outcome = await participation.submitOwnerFaceInteraction({
-              view: faceView, actionId: action.identity, target: action.target,
-              arguments: inputs.map(({ name, input }) => ({ name, value: input.value })),
-              sequence: ++actionSequence,
-            });
-            if (outcome.accepted !== true) throw new Error('owner did not accept the interaction');
-            actionResult.textContent = `The owner accepted ${action.name}.`;
-            delete actionResult.dataset.refused;
-          } catch (error) {
-            actionResult.textContent = `${action.name} refused: ${error.message}`;
-            actionResult.dataset.refused = 'true';
-          } finally {
-            faceBusy = false;
-            faceView = null;
-            await refreshFace();
-          }
-        });
-        actions.append(control);
+        if (placed.has(action.target) && action.availability === 'available'
+          && action.disclosure === 'CurrentAction') continue;
+        const container = action.availability === 'available'
+          && action.disclosure === 'CurrentAction' ? actions : secondary;
+        container.append(actionControl(action));
       }
-      documentNode.append(actions);
+      if (actions.children.length > 1) documentNode.append(actions);
+      if (secondary.children.length > 1) documentNode.append(secondary);
     }
     faceDocument.replaceChildren(documentNode);
     faceDocument.dataset.faceId = view.face_id;

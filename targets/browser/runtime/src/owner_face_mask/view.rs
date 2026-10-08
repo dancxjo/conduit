@@ -41,6 +41,12 @@ impl OwnerBrowserMask {
                     identity: subject.identity.clone(),
                     name: subject.name.clone(),
                     role: format!("{:?}", subject.role),
+                    disclosure: face
+                        .disclosures
+                        .iter()
+                        .find(|disclosure| disclosure.subject == subject.identity)
+                        .map(|disclosure| format!("{:?}", disclosure.level))
+                        .unwrap_or_else(|| "ExactProvenance".into()),
                     text: face
                         .text
                         .iter()
@@ -53,6 +59,18 @@ impl OwnerBrowserMask {
                         .filter(|property| property.subject == subject.identity)
                         .map(|property| {
                             format!("{}: {}", property.name, property_value(&property.value))
+                        })
+                        .collect(),
+                    flags: face
+                        .properties
+                        .iter()
+                        .filter(|property| property.subject == subject.identity)
+                        .filter_map(|property| match &property.value {
+                            PresentationPropertyValue::Flag(value) => Some(FlagView {
+                                name: property.name.clone(),
+                                value: *value,
+                            }),
+                            _ => None,
                         })
                         .collect(),
                 })
@@ -94,6 +112,7 @@ impl OwnerBrowserMask {
                         name: action.name.clone(),
                         intent: action.intent.clone(),
                         target: action.target.clone(),
+                        disclosure: format!("{:?}", action.disclosure),
                         availability: availability.into(),
                         explanation,
                         reason_code,

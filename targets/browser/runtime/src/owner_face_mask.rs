@@ -79,8 +79,16 @@ struct SubjectView {
     identity: String,
     name: String,
     role: String,
+    disclosure: String,
     text: Vec<String>,
     properties: Vec<String>,
+    flags: Vec<FlagView>,
+}
+
+#[derive(Serialize)]
+struct FlagView {
+    name: String,
+    value: bool,
 }
 
 #[derive(Serialize)]
@@ -96,6 +104,7 @@ struct ActionView {
     name: String,
     intent: String,
     target: String,
+    disclosure: String,
     availability: String,
     explanation: Option<String>,
     reason_code: Option<String>,

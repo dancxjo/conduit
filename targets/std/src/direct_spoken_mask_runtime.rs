@@ -98,21 +98,20 @@ impl DirectSpokenMaskPreparation {
 pub fn prepare_wording_items(
     presentation: &Presentation,
 ) -> Result<std::collections::VecDeque<Vec<u8>>, String> {
-    // Check that the same complete Face can enter the interactive reader. Its
-    // clauses are deliberately not flattened into this one 30-second Play.
-    crate::spoken_face_mask::mechanical_face_clauses(presentation)
+    let clauses = crate::spoken_face_mask::primary_face_clauses(presentation)
         .map_err(|error| format!("project direct Face speech: {error:?}"))?;
-    let name = presentation
-        .subjects
-        .iter()
-        .find(|subject| subject.role == conduit_presentation::PresentationRole::Body)
-        .map(|subject| subject.name.as_str())
-        .filter(|name| !name.is_empty() && name.len() <= 128);
-    let opening = match name {
-        Some(name) => format!("Current view of {name}. This opening is brief; the complete reading needs a selected speaker."),
-        None => "Current view. This opening is brief; the complete reading needs a selected speaker.".to_owned(),
-    };
-    if opening.len() > MAX_OPENING_BYTES {
+    let mut opening = String::new();
+    for clause in clauses {
+        let separator = usize::from(!opening.is_empty());
+        if opening.len() + separator + clause.len() > MAX_OPENING_BYTES {
+            break;
+        }
+        if !opening.is_empty() {
+            opening.push(' ');
+        }
+        opening.push_str(&clause);
+    }
+    if opening.is_empty() {
         return Err("direct Face opening exceeds admitted bound".into());
     }
     Ok(std::collections::VecDeque::from([opening.into_bytes()]))
@@ -335,8 +334,6 @@ mod tests {
             .iter()
             .map(|item| std::str::from_utf8(item).unwrap())
             .collect::<String>();
-        assert!(spoken.contains("Current body"));
-        assert!(spoken.contains("opening is brief"));
-        assert!(!spoken.contains("Ready to create a Body."));
+        assert_eq!(spoken, "Ready to create a Body.");
     }
 }
