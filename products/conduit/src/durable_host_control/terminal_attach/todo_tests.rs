@@ -78,3 +78,43 @@ fn terminal_completes_verified_todo_and_rejects_prior_show() {
     retire_closed_attachment(&root, &mut runtime).unwrap();
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn committed_todo_admits_next_action_without_terminal_provider() {
+    let (owner, root) = crate::durable_host::owner::published_todo_test_fixture();
+    let mut runtime = DurableHostRuntime::new("test".into(), "test".into(), StdHost::new());
+    runtime.host = HostSource::Body {
+        owner: Box::new(owner),
+        root: root.clone(),
+        running: None,
+    };
+    let marker_root = state(&runtime);
+    fs::copy(marker_root.join("runtime.json"), root.join("runtime.json")).unwrap();
+    fs::remove_dir_all(marker_root).unwrap();
+    for sequence in 1..=2 {
+        let HostSource::Body { owner, .. } = &runtime.host else {
+            unreachable!()
+        };
+        let face = owner.local_face_snapshot().unwrap();
+        let show = crate::mask_test_common::available_mask_show(&face);
+        let interaction = FaceInteraction::new(
+            &face,
+            &show,
+            "todo.add",
+            "todo/list",
+            vec![conduit_presentation::FaceInteractionArgument {
+                name: "text".into(),
+                value_kind: conduit_presentation::UTF8_TEXT_VALUE_KIND.into(),
+                value: format!("Next {sequence}").into_bytes(),
+            }],
+            sequence,
+        )
+        .unwrap();
+        let result = runtime
+            .submit_owned_todo_action(&show, &interaction)
+            .unwrap();
+        assert_eq!(result["state_revision"], sequence + 1);
+        assert_eq!(result["read_receipt"]["verified"], true);
+    }
+    fs::remove_dir_all(root).unwrap();
+}

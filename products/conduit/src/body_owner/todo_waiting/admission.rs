@@ -21,6 +21,10 @@ impl TodoWaitingWorker {
         {
             return Err("committed Todo action differs from newly admitted Play".into());
         }
+        // Retaining the owner's started event acknowledges the runner callback;
+        // the runner marks its queue started immediately after that callback.
+        // Wait for that existing handshake before attempting queue admission.
+        self.queue.wait_until_play_started()?;
         let admission = self.queue.submit(&command.encode_info().map_err(debug)?)?;
         if matches!(admission, BodyLiveForeAdmission::Accepted { .. }) {
             self.accepted_interaction = Some(interaction.identity.clone());
