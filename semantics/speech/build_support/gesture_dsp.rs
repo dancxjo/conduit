@@ -91,5 +91,16 @@ pub fn write(source: &CheckedSyntaxDocument) {
         .iter()
         .position(|g| g.gear_id == plot.output_bindings[0].gear_id)
         .unwrap();
-    fs::write(out.join("gesture_dsp_programs.rs"),format!("pub const PROGRAMS:&[&str]=&{programs:?};\npub const INPUTS:&[usize]=&{input_bindings:?};\npub const CONNECTIONS:&[(usize,usize)]=&{connections:?};\npub const RESULT:usize={result};\npub const INITIAL_STATE:&str={initial_hex:?};\n")).unwrap();
+    let reset = conduit_plot::expand_canonical_plot_for_authoring(
+        source,
+        "speech/greeting-filter-reset-v2",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
+    let conduit_core::ConfigurationValue::Text(reset_hex) =
+        &reset.expanded.gears[0].configuration[0].value
+    else {
+        panic!("reset Source")
+    };
+    fs::write(out.join("gesture_dsp_programs.rs"),format!("pub const PROGRAMS:&[&str]=&{programs:?};\npub const INPUTS:&[usize]=&{input_bindings:?};\npub const CONNECTIONS:&[(usize,usize)]=&{connections:?};\npub const RESULT:usize={result};\npub const INITIAL_STATE:&str={initial_hex:?};\npub const GREETING_FILTER_RESET:&str={reset_hex:?};\n")).unwrap();
 }
