@@ -3,12 +3,12 @@
 use alloc::{string::String, vec::Vec};
 
 use super::{
-    validate_canonical_structured_value, StructuredInfoRefusal as Refusal, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, StructuredInfoRefusal as Refusal, StructuredInfoType,
     StructuredInfoTypeShape as Shape, ValidatedCanonicalStructuredValue as Value,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    validate_canonical_structured_value,
 };
 
-struct Field {
+pub(super) struct Field {
     name: String,
     type_bytes: Vec<u8>,
 }
@@ -37,28 +37,26 @@ impl PreparedStructuredComposer {
         }
         let shape = match value_type.shape() {
             Shape::Leaf(kind) => CompositionShape::Leaf(kind.as_str().into()),
-            Shape::Record { fields, .. } => CompositionShape::Record(
-                fields
-                    .iter()
-                    .map(|field| {
-                        Ok(Field {
-                            name: field.name().into(),
-                            type_bytes: field.value_type().canonical_bytes()?,
-                        })
-                    })
-                    .collect::<Result<_, Refusal>>()?,
-            ),
-            Shape::Variant { cases, .. } => CompositionShape::Variant(
-                cases
-                    .iter()
-                    .map(|case| {
-                        Ok(Field {
-                            name: case.tag().into(),
-                            type_bytes: case.payload_type().canonical_bytes()?,
-                        })
-                    })
-                    .collect::<Result<_, Refusal>>()?,
-            ),
+            Shape::Record { fields, .. } => {
+                let mut prepared = Vec::with_capacity(fields.len());
+                for field in fields {
+                    prepared.push(Field {
+                        name: field.name().into(),
+                        type_bytes: field.value_type().canonical_bytes()?,
+                    });
+                }
+                CompositionShape::Record(prepared)
+            }
+            Shape::Variant { cases, .. } => {
+                let mut prepared = Vec::with_capacity(cases.len());
+                for case in cases {
+                    prepared.push(Field {
+                        name: case.tag().into(),
+                        type_bytes: case.payload_type().canonical_bytes()?,
+                    });
+                }
+                CompositionShape::Variant(prepared)
+            }
             _ => return Err(Refusal::WrongType),
         };
         Ok(Self {
@@ -170,3 +168,6 @@ fn push_bytes(bytes: &[u8], output: &mut Vec<u8>) {
 
 #[cfg(test)]
 mod tests;
+
+mod storage;
+pub use storage::*;

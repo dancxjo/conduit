@@ -164,3 +164,5 @@ fn maximum_value_nodes(ty: &StructuredInfoType) -> Result<usize, Refusal> {
         .filter(|count| *count <= MAXIMUM_STRUCTURED_INFO_NODES)
         .ok_or(Refusal::TooManyNodes)
 }
+
+mod storage;
