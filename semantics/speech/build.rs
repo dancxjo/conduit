@@ -1,5 +1,7 @@
 #[path = "build_support/common_acoustic.rs"]
 mod common_acoustic;
+#[path = "build_support/gesture_lowering.rs"]
+mod gesture_lowering;
 #[path = "build_support/graph.rs"]
 mod graph;
 #[path = "build_support/lower.rs"]
@@ -49,6 +51,7 @@ fn main() {
     println!("cargo:rerun-if-changed=phone_layout.conduit");
     println!("cargo:rerun-if-changed=phone_composition.conduit");
     println!("cargo:rerun-if-changed=common_acoustic_targets.conduit");
+    println!("cargo:rerun-if-changed=gesture_lowering.conduit");
     let semantic_source = [
         include_str!("types.conduit"),
         include_str!("rule_status.conduit"),
@@ -81,6 +84,7 @@ fn main() {
         include_str!("phone_layout.conduit"),
         include_str!("phone_composition.conduit"),
         include_str!("common_acoustic_targets.conduit"),
+        include_str!("gesture_lowering.conduit"),
         include_str!("shared_acoustic.conduit"),
     ]
     .join("\n");
@@ -179,6 +183,7 @@ fn main() {
         check_syntax_document(&parse_syntax_document(&semantic_source), &semantic_catalog)
             .expect("Speaking segment and listening contracts check");
     common_acoustic::write_programs(&semantic);
+    gesture_lowering::write_programs(&semantic);
     let expanded = expand_canonical_plot_for_authoring(
         &semantic,
         "speech/linguistic-prosody",

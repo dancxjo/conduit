@@ -323,3 +323,14 @@ pub use common_audio_targets::*;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod ipa_shared;
+
+#[cfg(feature = "semantic-bindings")]
+mod gesture_programs {
+    include!(concat!(env!("OUT_DIR"), "/gesture_programs.rs"));
+}
+#[cfg(feature = "semantic-bindings")]
+mod gesture_lowering;
+#[cfg(feature = "semantic-bindings")]
+pub use gesture_lowering::*;
+#[cfg(feature = "semantic-bindings")]
+pub mod contextual_gestures;
