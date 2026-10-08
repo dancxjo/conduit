@@ -1469,6 +1469,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
  "conduit-wire",
