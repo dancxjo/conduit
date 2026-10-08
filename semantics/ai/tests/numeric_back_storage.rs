@@ -13,7 +13,7 @@ fn actual_original_back_box_inventory_and_legacy_projection() {
     use conduit_ai::fixed_numeric_float_integer::{
         FLOAT_INTEGER_IMPLEMENTATION, FixedFloatIntegerBack,
     };
-    use prepared_numeric_back::PreparedNumericBack;
+    use conduit_ai::operation_owners::fixed_numeric_float_integer::FloatIntegerOperationFactory;
     let project = std::path::PathBuf::from(
         std::env::var_os("CONDUIT_FARGAN_PREPARATION_ARTIFACT_ROOT").unwrap(),
     );
@@ -30,11 +30,9 @@ fn actual_original_back_box_inventory_and_legacy_projection() {
         .flat_map(|f| &f.placements)
         .find(|g| g.implementation_id.as_str() == FLOAT_INTEGER_IMPLEMENTATION)
         .unwrap();
-    let (back, observed) = allocation_probe::observe(|| {
-        let back = FixedFloatIntegerBack::prepare_planned::<16>(gear, 4, true).unwrap();
-        let local = back.local_accounted_heap_bytes();
-        PreparedNumericBack::new(back, local)
-    });
+    let factory = FloatIntegerOperationFactory::for_plan(&plan).unwrap();
+    let (back, observed) =
+        allocation_probe::observe(|| factory.prepare_with_inventory(gear).unwrap());
     let (storage, getter) = allocation_probe::observe(|| back.storage());
     assert_eq!(
         storage.concrete_root_bytes(),

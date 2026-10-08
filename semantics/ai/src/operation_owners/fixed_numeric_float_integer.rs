@@ -74,9 +74,23 @@ impl KernelOperationFactory for FloatIntegerOperationFactory {
         gear: &PlannedGear,
         _store: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
+        self.prepare_with_inventory(gear)
+            .map(|prepared| prepared.into_back())
+    }
+}
+
+impl FloatIntegerOperationFactory {
+    pub fn prepare_with_inventory(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<super::prepared_numeric_back::PreparedNumericBack, String> {
         let (flow, _) = self.selected(gear)?;
-        Ok(Box::new(FixedFloatIntegerBack::prepare_planned::<
-            FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
-        >(gear, 2, *flow)?))
+        let back = FixedFloatIntegerBack::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+            gear, 2, *flow,
+        )?;
+        let local = back.local_accounted_heap_bytes();
+        Ok(super::prepared_numeric_back::PreparedNumericBack::new(
+            back, local,
+        ))
     }
 }
