@@ -319,3 +319,6 @@ pub mod finite_value;
 
 #[cfg(feature = "finite-value-owners")]
 pub mod pure_filter;
+
+#[cfg(feature = "local-plan-images")]
+pub mod local_plan_image;

@@ -166,6 +166,7 @@ bench = false
 required-features = ["loongarch64-a4"]
 
 [features]
+local-plan-images = []
 finite-value-owners = ["conduit-semantic-catalog/kernel-operation-owners"]
 fixed-numeric-owners = ["dep:conduit-ai", "conduit-ai/kernel-operation-owners"]
 default = []
