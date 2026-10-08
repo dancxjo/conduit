@@ -80,10 +80,10 @@ impl Session {
             "language-parser-joint-commit",
             "language-parser-joint-rebase",
         ];
-        let blueprints = blueprints[..if policy { 8 } else { 4 }]
-            .iter()
-            .map(|entry| parser_kernel::Blueprint::prepare(ordinary_source.clone(), entry))
-            .collect::<Vec<_>>();
+        let blueprints = parser_kernel::Blueprint::prepare_many(
+            ordinary_source,
+            &blueprints[..if policy { 8 } else { 4 }],
+        );
         let protection =
             independent_source.map(|source| protection::Protection::prepare(source, &model));
         Self {
@@ -348,21 +348,16 @@ impl runtime::Observer for Session {
     }
     fn branch_entry(&self) -> Option<(&'static str, String)> {
         if self.protection.is_some() {
-            return Some((
-                "language-parser-independent-branch",
-                [
-                    include_str!("../../parser_session_branch.conduit"),
-                    include_str!("../../parser_session_protection.conduit"),
-                    include_str!("../../parser_session_protected_set.conduit"),
-                    include_str!("../../parser_session_protected_branch.conduit"),
-                ]
-                .join("\n"),
-            ));
+            return Some(("language-parser-independent-branch", protected_source()));
         }
         self.policy.then(|| {
             (
                 "language-parser-joint-protected-branch",
-                include_str!("../../parser_session_branch.conduit").into(),
+                format!(
+                    "{}\n{}",
+                    joint::runtime_source(),
+                    include_str!("../../parser_session_branch.conduit")
+                ),
             )
         })
     }

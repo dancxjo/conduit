@@ -23,6 +23,7 @@ pub trait Observer {
     fn seed_metadata(&self) -> ([u64; 4], u64) {
         ([0; 4], 0)
     }
+    /// Override with a complete dependency-closed package, not a Source suffix.
     fn branch_entry(&self) -> Option<(&'static str, String)> {
         None
     }
@@ -101,11 +102,8 @@ pub fn evaluate_observed(
                 joint::runtime_source()
             };
             if i == 0 {
-                if let Some((protected_entry, extra_source)) = observer.branch_entry() {
-                    return parser_kernel::Blueprint::prepare(
-                        format!("{source}\n{extra_source}"),
-                        protected_entry,
-                    );
+                if let Some((protected_entry, complete_source)) = observer.branch_entry() {
+                    return parser_kernel::Blueprint::prepare(complete_source, protected_entry);
                 }
             }
             parser_kernel::Blueprint::prepare(source, entry)

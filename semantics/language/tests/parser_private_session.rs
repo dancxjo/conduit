@@ -255,7 +255,11 @@ fn private_protection_dependency_closure_checks_and_expands() {
     use conduitos::protocol_source::{PreparedProtocolSource, ProtocolSourcePackage};
     let source = retained::protected_source();
     eprintln!("protection dependency Source bytes={}", source.len());
-    let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
+    let package = ProtocolSourcePackage {
+        schema: conduitos::protocol_source::PACKAGE_SCHEMA.into(),
+        source,
+        specializations: Vec::new(),
+    };
     let prepared = PreparedProtocolSource::prepare(package).unwrap();
     for entry in [
         "language-parser-protected-edge-projection",
@@ -264,6 +268,7 @@ fn private_protection_dependency_closure_checks_and_expands() {
         "language-parser-protected-set-rebase",
         "language-parser-protection-forest-projection",
         "language-parser-independent-mask",
+        "language-parser-independent-branch",
     ] {
         eprintln!("protection dependency expand {entry}");
         prepared.expand(entry).unwrap();

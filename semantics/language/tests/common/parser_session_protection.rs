@@ -54,10 +54,7 @@ impl Protection {
             "language-parser-protection-forest-projection",
             "language-parser-independent-mask",
         ];
-        let blueprints = entries
-            .iter()
-            .map(|entry| parser_kernel::Blueprint::prepare(source.clone(), entry))
-            .collect::<Vec<_>>();
+        let blueprints = parser_kernel::Blueprint::prepare_many(source, &entries);
         Self {
             _model: model.prepared_categorical().clone(),
             expected_profile: model.expected_lexical_profile().clone(),
