@@ -198,3 +198,163 @@ fn native_valid_foreign_seed_output_closes_the_consumed_port() {
         ))
     ));
 }
+
+pub(crate) use execution as parser_session_execution;
+#[path = "../src/parser_canonical_history.rs"]
+mod canonical_history;
+#[path = "../src/parser_session_canonical_ingress.rs"]
+mod canonical_ingress;
+
+struct CanonicalFixture {
+    source: execution::verification::PreparedSourceVerification,
+    foreign: Option<Vec<u8>>,
+    calls: alloc::rc::Rc<core::cell::Cell<u32>>,
+}
+impl canonical_ingress::ParserCanonicalSourceExecutor for CanonicalFixture {
+    type Error = ();
+    fn entry(&self) -> &str {
+        "language-parser-session-seed"
+    }
+    fn input_type_bytes(&self) -> &[u8] {
+        use conduit_plot::rust_binding::PreparedNativeRustBinding;
+        LanguageParserSessionSeedRequest::PREPARED_DESCRIPTOR.type_bytes
+    }
+    fn output_type_bytes(&self) -> &[u8] {
+        use conduit_plot::rust_binding::PreparedNativeRustBinding;
+        LanguageParserSessionSeedProposal::PREPARED_DESCRIPTOR.type_bytes
+    }
+    fn transact(&mut self, _: u64, input: &[u8], output: &mut [u8]) -> Result<usize, ()> {
+        self.calls.set(self.calls.get() + 1);
+        let expected = self
+            .source
+            .evaluate(self.foreign.as_deref().unwrap_or(input))?;
+        output[..expected.len()].copy_from_slice(expected);
+        Ok(expected.len())
+    }
+}
+fn verification_limits() -> ParserSessionVerificationLimits {
+    ParserSessionVerificationLimits {
+        decoded_program_bytes: 128 * 1024 * 1024,
+        preparation_peak_bytes: 512 * 1024 * 1024,
+        retained_bytes: 256 * 1024 * 1024,
+    }
+}
+#[test]
+fn actual_seed_canonical_frames_replay_and_foreign_output_cancels() {
+    use alloc::rc::Rc;
+    use canonical_history::*;
+    use canonical_ingress::*;
+    use conduit_plot::rust_binding::{
+        PreparedNativeFamily, PreparedNativeFamilyLimits, PreparedNativeRustBinding,
+    };
+    use core::cell::{Cell, RefCell};
+    let family = PreparedNativeFamily::prepare(
+        &[
+            LanguageParserSessionSeedRequest::PREPARED_DESCRIPTOR,
+            LanguageParserSessionSeedProposal::PREPARED_DESCRIPTOR,
+        ],
+        PreparedNativeFamilyLimits {
+            maximum_types: 64,
+            maximum_laws_per_type: 128,
+            maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+            maximum_retained_bytes: 512 * 1024 * 1024,
+            maximum_preparation_peak_bytes: 512 * 1024 * 1024,
+            maximum_conversion_requested_bytes: 1024 * 1024 * 1024,
+        },
+    )
+    .unwrap();
+    let readmission_peak = family
+        .storage_receipt()
+        .conversion_requested_bytes_bound
+        .checked_mul(2)
+        .unwrap();
+    let family = Rc::new(RefCell::new(family));
+    let input = request();
+    let input_bytes = input.clone().encode().unwrap();
+    for foreign in [false, true] {
+        let calls = Rc::new(Cell::new(0));
+        let (source, _, _, _) = execution::verification::PreparedSourceVerification::prepare(
+            ParserSessionEntry::Seed,
+            verification_limits(),
+        )
+        .unwrap();
+        let foreign_input = foreign.then(|| {
+            LanguageParserSessionSeedRequest::new(
+                input.begin().clone(),
+                18,
+                input.lexical().clone(),
+            )
+            .unwrap()
+            .encode()
+            .unwrap()
+        });
+        let target = CanonicalFixture {
+            source,
+            foreign: foreign_input,
+            calls: calls.clone(),
+        };
+        let mut port = PreparedCanonicalParserSessionPort::<
+            LanguageParserSessionSeedRequest,
+            LanguageParserSessionSeedProposal,
+            _,
+        >::prepare(
+            ParserSessionEntry::Seed,
+            target,
+            family.clone(),
+            ParserCanonicalIngressLimits {
+                maximum_invocations: 1,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+                maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+            },
+            verification_limits(),
+        )
+        .unwrap();
+        let frames = PreparedParserExecutionFrames::prepare(
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+        )
+        .unwrap();
+        let result = port.execute(&input_bytes, frames);
+        assert_eq!(calls.get(), 1);
+        if foreign {
+            assert!(matches!(
+                result,
+                Err(ParserCanonicalIngressRefusal::DifferentOutput)
+            ));
+            assert!(port.is_cancelled());
+        } else {
+            let (original, output, history) =
+                ParserCanonicalHistory::from_execution(result.unwrap());
+            assert_eq!(original, input);
+            assert_eq!(history.input_bytes(), input_bytes);
+            assert_eq!(history.output_bytes(), output.encode().unwrap());
+            drop(original);
+            let (mut verifier, _, _, _) =
+                execution::verification::PreparedSourceVerification::prepare(
+                    ParserSessionEntry::Seed,
+                    verification_limits(),
+                )
+                .unwrap();
+            let mut too_small =
+                ParserHistoricalReadmissionBudget::new(readmission_peak - 1).unwrap();
+            assert!(matches!(
+                history.replay_and_readmit(&mut verifier, &mut family.borrow_mut(), &mut too_small),
+                Err(ParserHistoricalReadmissionRefusal::Pressure)
+            ));
+            let mut budget = ParserHistoricalReadmissionBudget::new(readmission_peak).unwrap();
+            let decoded = history
+                .replay_and_readmit(&mut verifier, &mut family.borrow_mut(), &mut budget)
+                .unwrap();
+            assert_eq!(decoded.input(), &input);
+            assert_eq!(
+                *decoded
+                    .output()
+                    .candidate0()
+                    .hypothesis()
+                    .parser()
+                    .identity(),
+                17
+            );
+        }
+    }
+}
