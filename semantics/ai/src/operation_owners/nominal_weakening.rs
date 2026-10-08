@@ -124,3 +124,84 @@ impl NominalWeakeningOperationFactory {
         ))
     }
 }
+
+impl NominalWeakeningOperationFactory {
+    fn selected_for_storage(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<&SelectedProfile, crate::nominal_weakening::WeakeningBackPreparationRefusal> {
+        use crate::nominal_weakening::WeakeningBackPreparationRefusal as Error;
+        let selected = self
+            .selected
+            .get(&gear.placement_id)
+            .ok_or(Error::Validation)?;
+        verify_fixed_placement(gear, &selected.offer).map_err(|_| Error::Validation)?;
+        Ok(selected)
+    }
+    pub fn preparation_storage_reservation(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<
+        crate::nominal_weakening::WeakeningBackStorageReceipt,
+        crate::nominal_weakening::WeakeningBackPreparationRefusal,
+    > {
+        use crate::nominal_weakening::WeakeningBackPreparationRefusal as Error;
+        let mut r =
+            NominalWeakeningBack::storage_reservation(&self.selected_for_storage(gear)?.profile)?;
+        let root = core::mem::size_of::<NominalWeakeningBack>();
+        r.preparation_requested_bytes_bound = r
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        r.retained_heap_bytes_bound = r
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        Ok(r)
+    }
+    pub fn prepare_with_storage_limits(
+        &self,
+        gear: &PlannedGear,
+        maximum_preparation_requested_bytes: usize,
+        maximum_retained_heap_bytes: usize,
+    ) -> Result<
+        (
+            super::prepared_numeric_back::PreparedNumericBack,
+            crate::nominal_weakening::WeakeningBackStorageReceipt,
+        ),
+        crate::nominal_weakening::WeakeningBackPreparationRefusal,
+    > {
+        use crate::nominal_weakening::WeakeningBackPreparationRefusal as Error;
+        let selected = self.selected_for_storage(gear)?;
+        let root = core::mem::size_of::<NominalWeakeningBack>();
+        let requested = maximum_preparation_requested_bytes
+            .checked_sub(root)
+            .ok_or(Error::Capacity)?;
+        let retained = maximum_retained_heap_bytes
+            .checked_sub(root)
+            .ok_or(Error::Capacity)?;
+        let (back, mut r) = NominalWeakeningBack::prepare_selected_with_storage_limits(
+            &selected.profile,
+            selected.flow,
+            requested,
+            retained,
+        )?;
+        r.preparation_requested_bytes_bound = r
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        r.retained_heap_bytes_bound = r
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        r.retained_accounted_heap_bytes = r
+            .retained_accounted_heap_bytes
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        let local = back.local_accounted_heap_bytes();
+        Ok((
+            super::prepared_numeric_back::PreparedNumericBack::new(back, local),
+            r,
+        ))
+    }
+}
