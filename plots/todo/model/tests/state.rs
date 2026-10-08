@@ -1,9 +1,14 @@
-use conduit_todo_plot::{todo_combine_kind, TodoCommand, TodoRefusal, TodoState, MAX_TODO_ITEMS};
+use conduit_todo_plot::{
+    apply_transition_packet, todo_apply_kind, todo_combine_kind, todo_pack_kind,
+    PreparedTodoPacket, TodoCommand, TodoRefusal, TodoState, MAX_TODO_ITEMS,
+};
 
 #[test]
 fn combine_kind_has_exact_typed_state_and_command_ports() {
+    for kind in [todo_combine_kind(), todo_pack_kind(), todo_apply_kind()] {
+        kind.validate().unwrap();
+    }
     let kind = todo_combine_kind();
-    kind.validate().unwrap();
     assert_eq!(
         kind.inputs[0].value_kind.as_str(),
         conduit_todo_plot::TODO_STATE_INFO_ID
@@ -16,6 +21,91 @@ fn combine_kind_has_exact_typed_state_and_command_ports() {
         kind.outputs[0].value_kind.as_str(),
         conduit_todo_plot::TODO_STATE_INFO_ID
     );
+}
+
+#[test]
+fn preallocated_transition_packet_round_trips_exact_values_and_refuses_malformed() {
+    let state = TodoState::new("Groceries".into()).unwrap();
+    let command = TodoCommand::Add {
+        text: "Buy milk".into(),
+    };
+    let mut packet = PreparedTodoPacket::new();
+    let capacity = packet.allocation_capacity();
+    let output = apply_transition_packet(
+        packet
+            .pack(
+                &state.encode_info().unwrap(),
+                &command.encode_info().unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        TodoState::decode_info(&output).unwrap().items[0].text,
+        "Buy milk"
+    );
+    assert_eq!(packet.allocation_capacity(), capacity);
+    let mut malformed = packet.bytes().to_vec();
+    malformed.pop();
+    assert_eq!(
+        apply_transition_packet(&malformed),
+        Err(TodoRefusal::InvalidTransition)
+    );
+}
+
+#[cfg(feature = "kernel-step")]
+#[test]
+fn packet_back_stages_two_exact_inputs_without_allocating_during_step() {
+    use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+    use conduit_kernel::{PortId, ValueRef};
+    use conduit_todo_plot::TodoPacketBack;
+
+    let state = TodoState::new("Groceries".into())
+        .unwrap()
+        .encode_info()
+        .unwrap();
+    let command = TodoCommand::Add {
+        text: "Buy milk".into(),
+    }
+    .encode_info()
+    .unwrap();
+    let mut back = TodoPacketBack::new();
+    let capacity = back.allocation_capacity();
+    let mut io = StepIo::<2>::test_frame(
+        [
+            Some(ValueRef {
+                slot: 0,
+                generation: 1,
+                byte_len: state.len() as u32,
+            }),
+            Some(ValueRef {
+                slot: 1,
+                generation: 1,
+                byte_len: command.len() as u32,
+            }),
+        ],
+        [false, false],
+        [
+            Some(conduit_todo_plot::TODO_TRANSITION_MAX_BYTES as u32),
+            None,
+        ],
+        None,
+        8,
+    );
+    let inputs = StepInputBytes::test_frame([Some(&state), Some(&command)], None);
+    assert!(matches!(back.step(&mut io, &inputs), StepOutcome::Progress));
+    assert!(io.test_consumed(PortId(0)) && io.test_consumed(PortId(1)));
+    assert_eq!(io.test_prepared_output().unwrap().0, PortId(0));
+    let packet = <TodoPacketBack as StepBack<2>>::prepared_output(&back, PortId(0)).unwrap();
+    assert_eq!(
+        TodoState::decode_info(&apply_transition_packet(packet).unwrap())
+            .unwrap()
+            .items[0]
+            .text,
+        "Buy milk"
+    );
+    assert_eq!(back.allocation_capacity(), capacity);
+    <TodoPacketBack as StepBack<2>>::step_committed(&mut back);
 }
 
 #[test]

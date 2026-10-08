@@ -7,6 +7,11 @@
 
 extern crate alloc;
 
+#[cfg(feature = "kernel-step")]
+mod packet_back;
+#[cfg(feature = "kernel-step")]
+pub use packet_back::TodoPacketBack;
+
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
@@ -21,6 +26,79 @@ pub const TODO_STATE_INFO_ID: &str = "conduit.todo/state@1";
 pub const TODO_COMMAND_INFO_ID: &str = "conduit.todo/command@1";
 pub const TODO_COMBINE_KIND: &str = "todo/combine";
 pub const TODO_COMBINE_REVISION: &str = "conduit.todo/combine@1";
+pub const TODO_TRANSITION_INFO_ID: &str = "conduit.todo/transition@1";
+pub const TODO_PACK_KIND: &str = "todo/pack-command";
+pub const TODO_APPLY_KIND: &str = "todo/apply";
+pub const TODO_TRANSITION_MAX_BYTES: usize = 2 * conduit_web::JSON_MAXIMUM_ENCODED_BYTES + 4;
+
+/// A preallocated packet builder for the two exact values consumed by a
+/// one-input Host Call. It does not parse or silently reinterpret either port.
+pub struct PreparedTodoPacket {
+    bytes: Vec<u8>,
+}
+
+impl PreparedTodoPacket {
+    pub fn new() -> Self {
+        Self {
+            bytes: Vec::with_capacity(TODO_TRANSITION_MAX_BYTES),
+        }
+    }
+
+    pub fn pack(&mut self, state: &[u8], command: &[u8]) -> Result<&[u8], TodoRefusal> {
+        if state.len() > conduit_web::JSON_MAXIMUM_ENCODED_BYTES
+            || command.len() > conduit_web::JSON_MAXIMUM_ENCODED_BYTES
+        {
+            return Err(TodoRefusal::InvalidTransition);
+        }
+        self.bytes.clear();
+        self.bytes
+            .extend_from_slice(&(state.len() as u16).to_le_bytes());
+        self.bytes.extend_from_slice(state);
+        self.bytes
+            .extend_from_slice(&(command.len() as u16).to_le_bytes());
+        self.bytes.extend_from_slice(command);
+        Ok(&self.bytes)
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub fn allocation_capacity(&self) -> usize {
+        self.bytes.capacity()
+    }
+}
+
+impl Default for PreparedTodoPacket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// The unary Host Call owns validation and invokes the Plot's pure transition.
+/// A malformed packet cannot alter retained `scan` state.
+pub fn apply_transition_packet(packet: &[u8]) -> Result<Vec<u8>, TodoRefusal> {
+    let state_len = packet
+        .get(..2)
+        .map(|bytes| u16::from_le_bytes([bytes[0], bytes[1]]) as usize)
+        .ok_or(TodoRefusal::InvalidTransition)?;
+    let command_offset = 2_usize
+        .checked_add(state_len)
+        .ok_or(TodoRefusal::InvalidTransition)?;
+    let command_len = packet
+        .get(command_offset..command_offset + 2)
+        .map(|bytes| u16::from_le_bytes([bytes[0], bytes[1]]) as usize)
+        .ok_or(TodoRefusal::InvalidTransition)?;
+    if state_len > conduit_web::JSON_MAXIMUM_ENCODED_BYTES
+        || command_len > conduit_web::JSON_MAXIMUM_ENCODED_BYTES
+        || command_offset + 2 + command_len != packet.len()
+    {
+        return Err(TodoRefusal::InvalidTransition);
+    }
+    let state = TodoState::decode_info(&packet[2..command_offset])?;
+    let command = TodoCommand::decode_info(&packet[command_offset + 2..])?;
+    state.apply(&command)?.encode_info()
+}
 
 /// The exact two-input combine Kind selected by the ordinary bounded `scan`
 /// activation. It owns no scheduler or retained state; `scan` retains state.
@@ -47,6 +125,63 @@ pub fn todo_combine_kind() -> Kind {
             max_active_instances: 1,
             max_queue_items: 3,
             max_queue_bytes: (3 * conduit_web::JSON_MAXIMUM_ENCODED_BYTES) as u32,
+        },
+    }
+}
+
+pub fn todo_pack_kind() -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(TODO_PACK_KIND),
+        kind_contract_revision: KindIdentity::from("conduit.todo/pack-command@1"),
+        inputs: vec![
+            todo_port("accumulator", TODO_STATE_INFO_ID, PortDirection::Input),
+            todo_port("command", TODO_COMMAND_INFO_ID, PortDirection::Input),
+        ],
+        outputs: vec![todo_port(
+            "request",
+            TODO_TRANSITION_INFO_ID,
+            PortDirection::Output,
+        )],
+        configuration: Vec::new(),
+        semantic_laws: vec![KindSemanticLaw::Terminal(
+            KindTerminalBehavior::CompletesWhenInputsClose,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 3,
+            max_queue_bytes: (2 * conduit_web::JSON_MAXIMUM_ENCODED_BYTES
+                + TODO_TRANSITION_MAX_BYTES) as u32,
+        },
+    }
+}
+
+pub fn todo_apply_kind() -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(TODO_APPLY_KIND),
+        kind_contract_revision: KindIdentity::from("conduit.todo/apply@1"),
+        inputs: vec![todo_port(
+            "request",
+            TODO_TRANSITION_INFO_ID,
+            PortDirection::Input,
+        )],
+        outputs: vec![todo_port(
+            "state",
+            TODO_STATE_INFO_ID,
+            PortDirection::Output,
+        )],
+        configuration: Vec::new(),
+        semantic_laws: vec![KindSemanticLaw::Terminal(
+            KindTerminalBehavior::MirrorsInputTerminal,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 2,
+            max_queue_bytes: (TODO_TRANSITION_MAX_BYTES + conduit_web::JSON_MAXIMUM_ENCODED_BYTES)
+                as u32,
         },
     }
 }
@@ -90,6 +225,7 @@ pub enum TodoRefusal {
     InvalidId,
     InvalidState,
     InvalidCommand,
+    InvalidTransition,
     MissingItem,
     ItemCapacity,
     IdentityExhausted,

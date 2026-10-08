@@ -7,3 +7,10 @@ publish = false
 [dependencies]
 conduit-core = { path = "../../../architecture/core", default-features = false }
 conduit-web = { path = "../../../semantics/web", default-features = false }
+conduit-kernel = { path = "../../../architecture/kernel", default-features = false, features = ["alloc"], optional = true }
+
+[features]
+kernel-step = ["dep:conduit-kernel"]
+
+[dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", default-features = false, features = ["alloc", "step-test-support"] }
