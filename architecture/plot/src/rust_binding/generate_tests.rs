@@ -1264,6 +1264,10 @@ fn ordinary_generation_refuses_missing_drifted_and_unused_external_bindings() {
 }
 
 fn compile_external_binding_round_trip(dependency: &str, root: &str) {
+    compile_external_binding_round_trip_named(dependency, root, "default")
+}
+
+fn compile_external_binding_round_trip_named(dependency: &str, root: &str, suffix: &str) {
     use std::ffi::OsStr;
     use std::fs;
     use std::process::Command;
@@ -1292,7 +1296,7 @@ fn compile_external_binding_round_trip(dependency: &str, root: &str) {
         })
         .unwrap();
     let directory = std::env::temp_dir().join(format!(
-        "conduit-external-rust-bindings-{}",
+        "conduit-external-rust-bindings-{}-{suffix}",
         std::process::id()
     ));
     fs::create_dir_all(&directory).unwrap();
@@ -1351,6 +1355,38 @@ fn shared_generated_descriptor_union_has_separate_runtime_and_generation_ceiling
 
     assert_eq!(MAXIMUM_NATIVE_FAMILY_TYPES, 64);
     assert_eq!(MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES, 192);
+    // Runtime root-count admission remains independent of the emitted union.
+    let bytes = conduit_core::StructuredInfoType::nominal(
+        conduit_core::KindId::new("test/finite-root"),
+        conduit_core::StructuredInfoType::leaf(conduit_core::KindId::new("value/u8")).unwrap(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let descriptor: &'static NativeFamilyTypeDescriptor =
+        alloc::boxed::Box::leak(alloc::boxed::Box::new(NativeFamilyTypeDescriptor {
+            type_bytes: alloc::boxed::Box::leak(bytes.into_boxed_slice()),
+            laws: &[],
+            contracts: &[],
+            children: &[],
+            external_edges: &[],
+            conversion_profile: NativeFamilyConversionProfile::Nominal,
+            maximum_inline_bytes: 1,
+        }));
+    let limits = PreparedNativeFamilyLimits {
+        maximum_types: 64,
+        maximum_laws_per_type: 0,
+        maximum_input_bytes: 262144,
+        maximum_retained_bytes: 1024 * 1024,
+        maximum_preparation_peak_bytes: 2 * 1024 * 1024,
+        maximum_conversion_requested_bytes: 1024 * 1024,
+    };
+    assert!(PreparedNativeFamily::prepare(&[descriptor; 16], limits).is_ok());
+    assert!(matches!(
+        PreparedNativeFamily::prepare(&[descriptor; 17], limits),
+        Err(PreparedNativeFamilyRefusal::Capacity)
+    ));
+
     let mut source = String::new();
     for index in 0..189 {
         writeln!(source, "type Item{index} = U8\n").unwrap();
@@ -1418,5 +1454,386 @@ fn shared_generated_descriptor_union_has_separate_runtime_and_generation_ceiling
             }
         ),
         Err(PreparedNativeFamilyRefusal::Capacity)
+    ));
+}
+
+#[test]
+fn imported_prepared_descriptors_keep_original_guards_and_owner_metadata() {
+    use alloc::boxed::Box;
+    let checked = crate::check_syntax_document(&crate::parse_syntax_document(
+        "type Note = U8 in 0..=127\n\ntype Event = {\n pitch: Note\n history: sequence Note <= 4\n previous: Note?\n}\n\ntype Choice =\n selected Note\n | absent\n"), &crate::StartupCatalog::new()).unwrap();
+    let note = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "Note")
+        .unwrap();
+    let local = checked
+        .native_types
+        .iter()
+        .filter(|ty| ty.name != "Note")
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(!note.value_contracts.is_empty());
+    let contracts = note
+        .value_contracts
+        .iter()
+        .map(|value| {
+            let constraints = value
+                .contract
+                .constraints
+                .iter()
+                .map(|constraint| match constraint {
+                    conduit_core::ValueConstraint::FixedIntegerRange {
+                        minimum,
+                        maximum,
+                        minimum_endpoint,
+                        maximum_endpoint,
+                    } => NativeFamilyConstraintDescriptor::FixedIntegerRange {
+                        minimum: minimum
+                            .as_ref()
+                            .map(|bytes| &*Box::leak(bytes.clone().into_boxed_slice())),
+                        maximum: maximum
+                            .as_ref()
+                            .map(|bytes| &*Box::leak(bytes.clone().into_boxed_slice())),
+                        minimum_endpoint: *minimum_endpoint,
+                        maximum_endpoint: *maximum_endpoint,
+                    },
+                    _ => panic!("fixture's complete original integer contract"),
+                })
+                .collect::<Vec<_>>();
+            NativeFamilyContractDescriptor {
+                representation_path: Box::leak(value.representation_path.clone().into_boxed_str()),
+                value_kind: Box::leak(value.contract.value_kind.as_str().into()),
+                maximum_bytes: value.contract.maximum_bytes,
+                constraints: Box::leak(constraints.into_boxed_slice()),
+            }
+        })
+        .collect::<Vec<_>>();
+    let laws = note
+        .invariants
+        .iter()
+        .map(|law| &*Box::leak(law.canonical_bytes().unwrap().into_boxed_slice()))
+        .collect::<Vec<_>>();
+    let descriptor = Box::leak(Box::new(NativeFamilyTypeDescriptor {
+        type_bytes: Box::leak(
+            note.value_type
+                .canonical_bytes()
+                .unwrap()
+                .into_boxed_slice(),
+        ),
+        laws: Box::leak(laws.into_boxed_slice()),
+        contracts: Box::leak(contracts.into_boxed_slice()),
+        children: &[],
+        external_edges: &[],
+        conversion_profile: NativeFamilyConversionProfile::Nominal,
+        maximum_inline_bytes: 1,
+    }));
+    let bindings = [ExternalNativeRustBinding {
+        semantic_identity: note.identity.as_str(),
+        rust_type_path: "dependency::Note",
+    }];
+    let prepared = [ExternalPreparedNativeRustBinding {
+        semantic_identity: note.identity.as_str(),
+        rust_type_path: "dependency::Note",
+        descriptor,
+    }];
+    let options = RustBindingOptions {
+        prepared_family_roots: ["Event".into(), "Choice".into()].into(),
+        ..Default::default()
+    };
+    let mut generated = generate_rust_bindings_with_forms_and_external_prepared_bindings(
+        &local,
+        &[],
+        core::slice::from_ref(&note.value_type),
+        &bindings,
+        &prepared,
+        &options,
+    )
+    .unwrap();
+    assert!(generated.source.contains("NativeFamilyExternalEdge"));
+    assert!(generated.source.contains("FixedIntegerRange"));
+    let dependency = generate_rust_bindings(
+        core::slice::from_ref(note),
+        &RustBindingOptions {
+            prepared_family_roots: ["Note".into()].into(),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    // Equal imported Type bytes cannot mask a different expected leaf contract.
+    let contract = &descriptor.contracts[0];
+    let changed = Box::leak(Box::new(NativeFamilyTypeDescriptor {
+        type_bytes: descriptor.type_bytes,
+        laws: descriptor.laws,
+        children: descriptor.children,
+        external_edges: &[],
+        conversion_profile: descriptor.conversion_profile,
+        maximum_inline_bytes: 1,
+        contracts: Box::leak(
+            vec![NativeFamilyContractDescriptor {
+                representation_path: contract.representation_path,
+                value_kind: contract.value_kind,
+                maximum_bytes: contract.maximum_bytes,
+                constraints: Box::leak(
+                    vec![NativeFamilyConstraintDescriptor::FixedIntegerRange {
+                        minimum: Some(&[0]),
+                        maximum: Some(&[126]),
+                        minimum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
+                        maximum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
+                    }]
+                    .into_boxed_slice(),
+                ),
+            }]
+            .into_boxed_slice(),
+        ),
+    }));
+    let bad = generate_rust_bindings_with_forms_and_external_prepared_bindings(
+        &local,
+        &[],
+        core::slice::from_ref(&note.value_type),
+        &bindings,
+        &[ExternalPreparedNativeRustBinding {
+            descriptor: changed,
+            ..prepared[0]
+        }],
+        &options,
+    )
+    .unwrap();
+    generated.source.push_str(&format!(
+        "\nmod mismatched {{ use super::dependency; {} }}\n",
+        bad.source
+    ));
+    generated.source.push_str(r#"
+#[test]
+fn imported_prepared_full_value_and_invalid_child_parity() {
+ use conduit_plot::rust_binding::{PreparedNativeFamily,PreparedNativeFamilyLimits,PreparedNativeRustBinding};
+ let limits=PreparedNativeFamilyLimits { maximum_types:64,maximum_laws_per_type:64,maximum_input_bytes:262144,maximum_retained_bytes:64*1024*1024,maximum_preparation_peak_bytes:128*1024*1024,maximum_conversion_requested_bytes:usize::MAX };
+ let mut family=PreparedNativeFamily::prepare(PREPARED_NATIVE_FAMILY_ROOTS,limits).unwrap();
+ assert!(family.contains_descriptor(dependency::Note::PREPARED_DESCRIPTOR));
+ assert!(PreparedNativeFamily::prepare(mismatched::PREPARED_NATIVE_FAMILY_ROOTS,limits).is_err());
+ let note=dependency::Note::new(64).unwrap();let mut history=BoundedSequence::<dependency::Note,4>::new();history.push(note.clone()).unwrap();
+ let event=Event::new(history,note.clone(),Some(note.clone())).unwrap();let encoded=event.clone().encode().unwrap();assert_eq!(family.decode::<Event>(&encoded),Event::decode(&encoded));
+ let choice=Choice::selected(note).unwrap();let encoded=choice.clone().encode().unwrap();assert_eq!(family.decode::<Choice>(&encoded),Choice::decode(&encoded));
+ let mut invalid=event.encode().unwrap();let view=conduit_core::validate_canonical_structured_value(&invalid).unwrap();let pitch=view.record_field("pitch").unwrap().unwrap().nominal_representation().unwrap();let offset=pitch.value_node().as_ptr() as usize-invalid.as_ptr() as usize+5;invalid[offset]=128;
+ assert!(Event::decode(&invalid).is_err());assert_eq!(family.decode::<Event>(&invalid),Event::decode(&invalid));
+ let mut only_note=PreparedNativeFamily::prepare(&[dependency::Note::PREPARED_DESCRIPTOR],limits).unwrap();assert!(only_note.decode::<Event>(&invalid).is_err());
+}
+"#);
+    compile_external_binding_round_trip_named(&dependency.source, &generated.source, "prepared");
+    let bad_path = [ExternalPreparedNativeRustBinding {
+        rust_type_path: "foreign::Note",
+        ..prepared[0]
+    }];
+    assert!(
+        generate_rust_bindings_with_forms_and_external_prepared_bindings(
+            &local,
+            &[],
+            core::slice::from_ref(&note.value_type),
+            &bindings,
+            &bad_path,
+            &options
+        )
+        .is_err()
+    );
+    let wrong_type = Box::leak(Box::new(NativeFamilyTypeDescriptor {
+        type_bytes: b"invalid",
+        laws: &[],
+        contracts: &[],
+        children: &[],
+        external_edges: &[],
+        conversion_profile: NativeFamilyConversionProfile::Nominal,
+        maximum_inline_bytes: 1,
+    }));
+    assert!(
+        generate_rust_bindings_with_forms_and_external_prepared_bindings(
+            &local,
+            &[],
+            core::slice::from_ref(&note.value_type),
+            &bindings,
+            &[ExternalPreparedNativeRustBinding {
+                descriptor: wrong_type,
+                ..prepared[0]
+            }],
+            &options
+        )
+        .is_err()
+    );
+}
+#[test]
+fn external_descendants_count_toward_complete_root_and_generated_union() {
+    use alloc::boxed::Box;
+    use core::fmt::Write;
+    fn descriptor(
+        ty: &crate::CheckedNativeType,
+        children: Vec<&'static NativeFamilyTypeDescriptor>,
+    ) -> &'static NativeFamilyTypeDescriptor {
+        assert!(ty.invariants.is_empty());
+        let contracts = ty
+            .value_contracts
+            .iter()
+            .map(|contract| {
+                assert!(contract.contract.constraints.is_empty());
+                NativeFamilyContractDescriptor {
+                    representation_path: Box::leak(
+                        contract.representation_path.clone().into_boxed_str(),
+                    ),
+                    value_kind: Box::leak(contract.contract.value_kind.as_str().into()),
+                    maximum_bytes: contract.contract.maximum_bytes,
+                    constraints: &[],
+                }
+            })
+            .collect::<Vec<_>>();
+        Box::leak(Box::new(NativeFamilyTypeDescriptor {
+            type_bytes: Box::leak(ty.value_type.canonical_bytes().unwrap().into_boxed_slice()),
+            laws: &[],
+            contracts: Box::leak(contracts.into_boxed_slice()),
+            children: Box::leak(children.into_boxed_slice()),
+            external_edges: &[],
+            conversion_profile: match ty.value_type.shape() {
+                conduit_core::StructuredInfoTypeShape::Nominal { .. } => {
+                    NativeFamilyConversionProfile::Nominal
+                }
+                conduit_core::StructuredInfoTypeShape::Record { .. } => {
+                    NativeFamilyConversionProfile::Record
+                }
+                _ => panic!("fixture"),
+            },
+            maximum_inline_bytes: 128,
+        }))
+    }
+    let mut source = alloc::string::String::new();
+    for group in 0..4 {
+        for item in 0..63 {
+            writeln!(source, "type Imported{group}Item{item} = U8\n").unwrap();
+        }
+        writeln!(source, "type Imported{group} = {{").unwrap();
+        for item in 0..62 {
+            writeln!(source, "field{item}: Imported{group}Item{item}").unwrap();
+        }
+        writeln!(
+            source,
+            "}}\ntype Local{group} = {{\n value: Imported{group}\n}}\n"
+        )
+        .unwrap();
+    }
+    writeln!(source, "type ExtraRoot = U8\ntype ImportedOversized = {{").unwrap();
+    for item in 0..63 {
+        writeln!(source, "field{item}: Imported0Item{item}").unwrap();
+    }
+    writeln!(
+        source,
+        "}}\ntype LocalOversized = {{\n value: ImportedOversized\n}}\n"
+    )
+    .unwrap();
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document(&source),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let ty = |name: &str| {
+        checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .unwrap()
+    };
+    let mut external_types = Vec::new();
+    let mut identities = Vec::new();
+    let mut paths = Vec::new();
+    let mut descriptors = Vec::new();
+    for group in 0..4 {
+        let root = ty(&alloc::format!("Imported{group}"));
+        let children = (0..62)
+            .map(|item| descriptor(ty(&alloc::format!("Imported{group}Item{item}")), Vec::new()))
+            .collect();
+        descriptors.push(descriptor(root, children));
+        external_types.push(root.value_type.clone());
+        identities.push(root.identity.as_str());
+        paths.push(alloc::format!("dependency::Imported{group}"));
+    }
+    let oversized = ty("ImportedOversized");
+    let children = (0..63)
+        .map(|item| descriptor(ty(&alloc::format!("Imported0Item{item}")), Vec::new()))
+        .collect();
+    descriptors.push(descriptor(oversized, children));
+    external_types.push(oversized.value_type.clone());
+    identities.push(oversized.identity.as_str());
+    paths.push("dependency::ImportedOversized".into());
+    let bindings = identities
+        .iter()
+        .zip(&paths)
+        .map(|(semantic_identity, path)| ExternalNativeRustBinding {
+            semantic_identity,
+            rust_type_path: path,
+        })
+        .collect::<Vec<_>>();
+    let prepared = bindings
+        .iter()
+        .zip(&descriptors)
+        .map(|(binding, descriptor)| ExternalPreparedNativeRustBinding {
+            semantic_identity: binding.semantic_identity,
+            rust_type_path: binding.rust_type_path,
+            descriptor,
+        })
+        .collect::<Vec<_>>();
+    let local = checked
+        .native_types
+        .iter()
+        .filter(|ty| ty.name.starts_with("Local") || ty.name == "ExtraRoot")
+        .cloned()
+        .collect::<Vec<_>>();
+    let options = RustBindingOptions {
+        prepared_family_roots: (0..4).map(|group| alloc::format!("Local{group}")).collect(),
+        ..Default::default()
+    };
+    // Four complete roots each consist of one local, one external and62 imported
+    // children. All256 Types count even though only four descriptors are local.
+    let generated = generate_rust_bindings_with_forms_and_external_prepared_bindings(
+        &local,
+        &[],
+        &external_types,
+        &bindings,
+        &prepared,
+        &options,
+    )
+    .unwrap();
+    assert_eq!(
+        generated
+            .source
+            .matches("_PREPARED_NATIVE_DESCRIPTOR: ")
+            .count(),
+        4
+    );
+    let mut over_union = options.clone();
+    over_union.prepared_family_roots.insert("ExtraRoot".into());
+    assert!(matches!(
+        generate_rust_bindings_with_forms_and_external_prepared_bindings(
+            &local,
+            &[],
+            &external_types,
+            &bindings,
+            &prepared,
+            &over_union
+        ),
+        Err(ExternalRustBindingGenerationError::Generation(
+            RustBindingGenerationError::InvalidSemanticType
+        ))
+    ));
+    let over_root = RustBindingOptions {
+        prepared_family_roots: ["LocalOversized".into()].into(),
+        ..Default::default()
+    };
+    assert!(matches!(
+        generate_rust_bindings_with_forms_and_external_prepared_bindings(
+            &local,
+            &[],
+            &external_types,
+            &bindings,
+            &prepared,
+            &over_root
+        ),
+        Err(ExternalRustBindingGenerationError::Generation(
+            RustBindingGenerationError::InvalidSemanticType
+        ))
     ));
 }
