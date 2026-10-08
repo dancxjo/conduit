@@ -1364,12 +1364,12 @@ fn shared_generated_descriptor_union_has_separate_runtime_and_generation_ceiling
     use core::fmt::Write;
 
     assert_eq!(MAXIMUM_NATIVE_FAMILY_TYPES, 64);
-    assert_eq!(MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES, 128);
+    assert_eq!(MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES, 192);
     let mut source = String::new();
-    for index in 0..126 {
+    for index in 0..189 {
         writeln!(source, "type Item{index} = U8\n").unwrap();
     }
-    for (name, start) in [("FirstRoot", 0), ("SecondRoot", 63)] {
+    for (name, start) in [("FirstRoot", 0), ("SecondRoot", 63), ("ThirdRoot", 126)] {
         writeln!(source, "type {name} = {{").unwrap();
         for index in 0..63 {
             writeln!(source, "field{index}: Item{}", start + index).unwrap();
@@ -1389,22 +1389,23 @@ fn shared_generated_descriptor_union_has_separate_runtime_and_generation_ceiling
     let generated = generate_rust_bindings(
         &checked.native_types,
         &RustBindingOptions {
-            prepared_family_roots: ["FirstRoot".into(), "SecondRoot".into()].into(),
+            prepared_family_roots: ["FirstRoot".into(), "SecondRoot".into(), "ThirdRoot".into()]
+                .into(),
             ..RustBindingOptions::default()
         },
     )
     .unwrap();
-    // Two disjoint complete 64-Type roots share one generated module without
-    // authorizing a runtime owner to retain their combined 128-Type union.
+    // Three disjoint complete 64-Type roots share one generated module without
+    // authorizing a runtime owner to retain their combined 192-Type union.
     assert_eq!(
         generated
             .source
             .matches("_PREPARED_NATIVE_DESCRIPTOR: ")
             .count(),
-        128
+        192
     );
     for roots in [
-        ["FirstRoot", "SecondRoot", "ExtraRoot"].as_slice(),
+        ["FirstRoot", "SecondRoot", "ThirdRoot", "ExtraRoot"].as_slice(),
         ["OversizedRoot"].as_slice(),
     ] {
         assert_eq!(
