@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -8,6 +8,21 @@ const FILES = ['browser-after.png', 'browser-before.png', 'browser-card-after.pn
   'browser-full-after.png', 'index.html', 'read-only-card-receipt.json', 'receipt.json'];
 const sha = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const commit = value => /^[a-f0-9]{40}$/.test(value ?? '');
+
+// Keep failure context limited to repository identities; never dump the environment.
+function ancestryContext(source, publicationCommit) {
+  const inspect = args => {
+    const result = spawnSync('git', args, { encoding: 'utf8' });
+    return { status: result.status, output: result.stdout?.trim(),
+      error: result.error?.message || result.stderr?.trim() };
+  };
+  return JSON.stringify({ cwd: process.cwd(),
+    version: inspect(['--version']),
+    checkout: inspect(['rev-parse', '--show-toplevel', '--absolute-git-dir',
+      '--is-shallow-repository', 'HEAD']),
+    parents: inspect(['rev-list', '--parents', '--no-walk', source, publicationCommit]),
+  });
+}
 
 /** Admit a retained partial journey only with its exact, separate source labels. */
 export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVELOPMENT_ROOT,
@@ -49,7 +64,7 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   for (const source of [action.owner_source_commit, action.browser_runtime_source_commit]) {
     try { execFileSync('git', ['merge-base', '--is-ancestor', source, publicationCommit]); }
     catch (cause) {
-      throw new Error(`Todo browser capture ancestry check failed: ${source} -> ${publicationCommit}; status=${cause.status ?? cause.code ?? "unknown"}, signal=${cause.signal ?? "none"}; ${cause.message}`, { cause });
+      throw new Error(`Todo browser capture ancestry check failed: ${source} -> ${publicationCommit}; status=${cause.status ?? cause.code ?? "unknown"}, signal=${cause.signal ?? "none"}; ${cause.message}; context=${ancestryContext(source, publicationCommit)}`, { cause });
     }
   }
   for (const name of FILES.filter(file => file.endsWith('.png'))) {

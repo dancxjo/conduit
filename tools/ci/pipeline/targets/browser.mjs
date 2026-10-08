@@ -2,6 +2,7 @@ import { cpSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'no
 import path from 'node:path';
 import { cargo, command, digest, xtask } from './common.mjs';
 import { assembleSite } from './site.mjs';
+import { retainedTodoBrowserDevelopmentEvidence } from '../todo-browser-development-evidence.mjs';
 import { retainWorkspaceEvidence } from './workspace-evidence.mjs';
 
 // Exact staged Workspace acceptance plus independent browser adapter contracts.
@@ -30,6 +31,8 @@ function inventory(directory, prefix = '') {
 }
 
 export function browser(directory) {
+  retainedTodoBrowserDevelopmentEvidence(undefined, process.env.CONDUIT_CHECKOUT_SHA);
+  console.log('PASS: retained Todo browser ancestry before browser build');
   const product = 'target/workspace-product';
   const releases = path.join(directory, 'host-release');
   if (existsSync(product)) throw new Error(`Stale staged product exists: ${product}; use a clean target lane`);
