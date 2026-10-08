@@ -9,12 +9,49 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("audio semantic Types must check");
+    println!("cargo:rerun-if-changed=acoustic_quantities.conduit");
+    let acoustic_source = format!(
+        "{}\n{}",
+        include_str!("types.conduit"),
+        include_str!("acoustic_quantities.conduit")
+    );
+    let acoustic = check_syntax_document(
+        &parse_syntax_document(&acoustic_source),
+        &StartupCatalog::new(),
+    )
+    .expect("acoustic Source checks");
+    let mut programs = String::new();
+    for (name, constant) in [
+        ("audio/frequency-to-cycle", "FREQUENCY_TO_CYCLE"),
+        ("audio/cycle-to-frequency", "CYCLE_TO_FREQUENCY"),
+    ] {
+        let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+            &acoustic,
+            name,
+            &conduit_plot::ProfileCatalog::new(),
+        )
+        .expect("expand acoustic Source");
+        let conduit_core::ConfigurationValue::Text(encoded) =
+            &expanded.expanded.gears[0].configuration[0].value
+        else {
+            panic!("acoustic program")
+        };
+        programs.push_str(&format!("const {constant}: &str = {encoded:?};\n"));
+    }
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("acoustic_programs.rs"),
+        programs,
+    )
+    .expect("write acoustic programs");
     let generated = generate_rust_bindings_with_forms(
         &checked.native_types,
         &checked.type_forms,
         &RustBindingOptions {
             derive_serde_for_variants: true,
             copy_record_types: [
+                "AudioFrequencyHz".into(),
+                "AudioCycleDuration".into(),
+                "AudioResonator".into(),
                 "AudioRenderDemand".into(),
                 "BeatReference".into(),
                 "MusicalPitch".into(),
@@ -44,6 +81,9 @@ fn main() {
             .into(),
             serde_record_types: ["PcmCompatibilityProfile".into()].into(),
             direct_checked_record_constructors: [
+                "AudioFrequencyHz".into(),
+                "AudioCycleDuration".into(),
+                "AudioResonator".into(),
                 "MusicalControlEvent".into(),
                 "MusicalPitch".into(),
                 "MusicalNoteEvent".into(),
