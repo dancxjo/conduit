@@ -357,3 +357,34 @@ fn hosted_and_fixed_value_profiles_produce_the_same_storage_vector() {
     let mut hosted_sign = HostedSignLog::new(2, charge * 2).unwrap();
     assert_eq!(sign_vector(&mut fixed_sign), sign_vector(&mut hosted_sign));
 }
+
+#[test]
+fn const_value_store_initialization_preserves_budget_and_custody() {
+    const INITIAL: Result<FixedValueStore<2, 8>, StorageError> = FixedValueStore::new(12);
+    static PLACED: FixedValueStore<2, 8> = match FixedValueStore::new(12) {
+        Ok(store) => store,
+        Err(_) => panic!("invalid static profile"),
+    };
+    assert_eq!(PLACED.byte_capacity(), 12);
+    assert_eq!(PLACED.used_items(), 0);
+    const ZERO: Result<FixedValueStore<2, 8>, StorageError> = FixedValueStore::new(0);
+    const OVER: Result<FixedValueStore<2, 8>, StorageError> = FixedValueStore::new(17);
+    const EMPTY: Result<FixedValueStore<0, 8>, StorageError> = FixedValueStore::new(1);
+    static TOO_MANY: Result<FixedValueStore<65536, 1>, StorageError> = FixedValueStore::new(1);
+    assert!(matches!(ZERO, Err(StorageError::InvalidBudget)));
+    assert!(matches!(OVER, Err(StorageError::InvalidBudget)));
+    assert!(matches!(EMPTY, Err(StorageError::InvalidBudget)));
+    assert!(matches!(TOO_MANY, Err(StorageError::InvalidBudget)));
+    let mut store = INITIAL.unwrap();
+    let value = store.store(b"exact").unwrap();
+    store.retain(value).unwrap();
+    assert_eq!(store.get(value).unwrap(), b"exact");
+    assert_eq!(store.reference_count(value).unwrap(), 2);
+    store.release(value).unwrap();
+    store.release(value).unwrap();
+    assert_eq!(store.used_bytes(), 0);
+    assert!(matches!(
+        store.get(value),
+        Err(StorageError::StaleReference)
+    ));
+}
