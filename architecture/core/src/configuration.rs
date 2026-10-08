@@ -32,6 +32,12 @@ impl StructuredConfigurationValue {
     pub fn canonical_value(&self) -> &[u8] {
         &self.canonical_value
     }
+
+    /// Actual owned canonical buffer allocation, including spare capacity.
+    /// The separately owned profile identity is not included.
+    pub fn canonical_storage_capacity(&self) -> usize {
+        self.canonical_value.capacity()
+    }
 }
 
 impl<'de> Deserialize<'de> for StructuredConfigurationValue {
