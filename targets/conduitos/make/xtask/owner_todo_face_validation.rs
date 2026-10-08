@@ -2,14 +2,23 @@
 
 use std::{fs, process::Command};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-use super::{refusal, ConduitosError, LiveOwnerTodoFaceProofArgs};
+use super::{ConduitosError, LiveOwnerTodoFaceProofArgs, refusal};
 
 pub(super) fn read_and_validate(
     args: &LiveOwnerTodoFaceProofArgs,
     guest_face: &Value,
+) -> Result<Value, ConduitosError> {
+    read_and_validate_current(args, guest_face, &args.expected_status, None)
+}
+
+pub(super) fn read_and_validate_current(
+    args: &LiveOwnerTodoFaceProofArgs,
+    guest_face: &Value,
+    expected_status: &str,
+    expected_action: Option<&str>,
 ) -> Result<Value, ConduitosError> {
     let bin = fs::canonicalize(&args.owner_conduit_bin)
         .map_err(|error| ConduitosError::refusal("native-todo-owner-bin", error.to_string()))?;
@@ -48,7 +57,14 @@ pub(super) fn read_and_validate(
     let has_status = face["text"].as_array().is_some_and(|texts| {
         texts
             .iter()
-            .any(|text| text["subject"] == "todo/status" && text["text"] == args.expected_status)
+            .any(|text| text["subject"] == "todo/status" && text["text"] == expected_status)
+    });
+    let action_available = expected_action.is_none_or(|identity| {
+        face["actions"].as_array().is_some_and(|actions| {
+            actions.iter().any(|action| {
+                action["identity"] == identity && action["availability"] == "Available"
+            })
+        })
     });
     if document["schema"] != "conduit.body/local-face-snapshot@1"
         || face["basis"]["body_id"] != args.expected_body_id
@@ -56,6 +72,7 @@ pub(super) fn read_and_validate(
         || face["revision"] != guest_face["face_revision"]
         || !has_list
         || !has_status
+        || !action_available
         || items != args.expected_item_count
     {
         return Err(refusal("native-todo-owner-face-does-not-match-guest"));
@@ -66,7 +83,8 @@ pub(super) fn read_and_validate(
         "face_id":face["identity"],
         "face_revision":face["revision"],
         "item_count":items,
-        "status":args.expected_status,
+        "status":expected_status,
+        "expected_action_available":action_available,
         "snapshot_sha256":format!("sha256:{:x}", Sha256::digest(&output.stdout)),
     }))
 }
