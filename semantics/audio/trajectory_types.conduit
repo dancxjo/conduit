@@ -116,3 +116,25 @@ type AudioTrajectoryDomainComparison = {
     left: AudioTrajectoryDomain
     right: AudioTrajectoryDomain
 }
+
+# Exact step needs only time cross-products: U32*U32 fits U64. Quantities retain
+# their full original U64 fractions; no interpolation arithmetic touches them.
+type AudioTrajectoryU32Step = {
+    input: AudioTrajectoryArithmeticInput
+    where .input.interpolation is step
+    where .input.start.numerator_seconds <= 4294967295
+    where .input.start.denominator <= 4294967295
+    where .input.end.numerator_seconds <= 4294967295
+    where .input.end.denominator <= 4294967295
+    where .input.query.numerator_seconds <= 4294967295
+    where .input.query.denominator <= 4294967295
+    where .input.left.denominator > 0
+    where .input.right.denominator > 0
+}
+type AudioTrajectoryOrderU32 = {
+    input: AudioTrajectorySegmentOrder
+    where .input.previous_end.numerator_seconds <= 4294967295
+    where .input.previous_end.denominator <= 4294967295
+    where .input.next_start.numerator_seconds <= 4294967295
+    where .input.next_start.denominator <= 4294967295
+}

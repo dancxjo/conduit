@@ -44,8 +44,18 @@ foreign or unresolved carriers must fail typed admission rather than become zero
 
 ## Separately admitted arithmetic profile
 
-Canonical fractions retain full U64 domains. The first numeric implementation
-is explicitly `AudioTrajectoryU8Arithmetic`: each original numerator and
+Canonical fractions retain full U64 domains. Exact step evaluation separately
+admits `AudioTrajectoryU32Step`: only the original time numerators/denominators
+are bounded to U32 MAX; quantity fractions retain full U64. U32 time cross-products
+fit U64 without subtraction or three-factor arithmetic. Source validates strict
+span/domain, order, coverage and exact left/right selection. Real 1500/2500 Hz
+formants and queries at 1/8000, 1/16000 and 1/48000 seconds execute through the
+actual prepared evaluator. Final endpoints retain the exact right fraction; no
+other step value is arithmetically transformed. Foreign anchors, gaps and outside
+queries still refuse. Time values beyond this distinct profile refuse even if
+reducible. This is not sample-rate admission or a clock mapping.
+
+Linear numerical eligibility remains explicitly `AudioTrajectoryU8Arithmetic`: each original numerator and
 denominator used by a segment/query must be at most 255 (denominators positive).
 Preparation admits every segment; evaluation additionally admits the query.
 An authored 256/512 fraction refuses this profile even though it equals 1/2.
@@ -78,20 +88,20 @@ retains its source, provenance and exact endpoint fractions. `evaluate` accepts
 one complete canonical query. The opaque result exposes borrowed original
 trajectory/query frames, selected segment index/frame, every exact Source
 program with its actual input/output frames, and the finally admitted semantic
-quantity frame. The last blend output is explicitly a raw numeric ratio; Native
+quantity frame. The last selection/blend output is explicitly a raw numeric ratio; Native
 admission establishes the semantic quantity afterward. Program evaluation alone
 does not establish positive refinements.
 
-A 16-segment trajectory has at most 78 preparation executions and 19 evaluation
-executions, 97 total retained executions. The method/version metadata is bounded,
+A 16-segment trajectory has at most 94 preparation executions and 19 evaluation
+executions, 113 total retained executions. The method/version metadata is bounded,
 and the sequence bound is checked before traversal. This API allocates during
 preparation/evaluation and is a semantic conformance seam, not an admitted Play
 Back. There is no runtime scheduling or Flow execution claim.
 
 Measured canonical static Type sizes: trajectory 3454B and query 646B. The
 16-segment test carrier is 9479B; its query is 817B. The largest executed
-Source input Type is 1978B; that test retains 138532B of executed input/output
-frames across 97 expressions (excluding static program references, original
+Source input Type is 1978B; that test retains 141299B of executed input/output
+frames across 113 expressions (excluding static program references, original
 frames and container overhead). These full encodings, not only
 numeric fraction payloads, matter for future admission.
 
