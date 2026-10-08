@@ -33,7 +33,7 @@ pub const MAXIMUM_BATCH_EXAMPLES: usize = 4096;
 pub const MAXIMUM_BATCH_MODALITIES: usize = 32;
 pub const MAXIMUM_METRICS: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TrainingState {
     pub session_identity: [u8; 32],
     pub model: MutableModelState,
@@ -42,7 +42,7 @@ pub struct TrainingState {
     pub consumed_work_units: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HostTrainingRealization {
     pub implementation_identity: String,
     pub runtime_name: String,
@@ -345,40 +345,47 @@ impl TrainingSession {
         )))
     }
 
-    pub fn evaluate(
-        &self,
-        request: EvaluationRequest<'_>,
-    ) -> Result<EvaluationReceipt, TrainingRefusal> {
-        let EvaluationRequest {
-            artifact,
-            dataset,
-            split,
-            state,
-            batch,
-            metrics,
-            consumed_work_units,
-            realization,
-        } = request;
-        self.validate(artifact, dataset, split)?;
-        state.validate_for(self, artifact)?;
-        realization.validate_for(self, artifact)?;
-        batch.validate_for(self, split)?;
-        validate_metrics(&metrics, self.objectives_slice())?;
-        if consumed_work_units == 0 || consumed_work_units > self.resources.maximum_work_units() {
+    /// Admit evaluation identity, bounds and cadence before invoking a numerical back.
+    /// Metric values are validated only when producing the final receipt.
+    pub fn admit_evaluation(&self, request: &EvaluationRequest<'_>) -> Result<(), TrainingRefusal> {
+        self.validate(request.artifact, request.dataset, request.split)?;
+        request.state.validate_for(self, request.artifact)?;
+        request.realization.validate_for(self, request.artifact)?;
+        request.batch.validate_for(self, request.split)?;
+        if request.consumed_work_units == 0
+            || request.consumed_work_units > self.resources.maximum_work_units()
+        {
             return Err(TrainingRefusal::WorkBoundExceeded);
         }
         let scheduled = match self.evaluation_policy {
             EvaluationPolicy::None => false,
             EvaluationPolicy::EverySteps(interval) => {
-                state.completed_steps.is_multiple_of(interval)
+                request.state.completed_steps.is_multiple_of(interval)
             }
             EvaluationPolicy::AtCompletion => {
-                state.completed_steps == self.resources.maximum_steps()
+                request.state.completed_steps == self.resources.maximum_steps()
             }
         };
         if !scheduled {
             return Err(TrainingRefusal::EvaluationNotScheduled);
         }
+        Ok(())
+    }
+
+    pub fn evaluate(
+        &self,
+        request: EvaluationRequest<'_>,
+    ) -> Result<EvaluationReceipt, TrainingRefusal> {
+        self.admit_evaluation(&request)?;
+        validate_metrics(&request.metrics, self.objectives_slice())?;
+        let EvaluationRequest {
+            state,
+            batch,
+            metrics,
+            consumed_work_units,
+            realization,
+            ..
+        } = request;
         Ok(EvaluationReceipt {
             session_identity: self.identity,
             batch_identity: batch.identity,

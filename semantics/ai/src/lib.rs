@@ -203,3 +203,5 @@ pub mod fixed_numeric_preparation;
 pub mod fixed_tensor_linear;
 /// Shared immutable resource custody for fixed numerical reference operators.
 pub mod fixed_tensor_resource;
+mod model_work_contract;
+pub use model_work_contract::*;

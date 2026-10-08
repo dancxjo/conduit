@@ -1,0 +1,23 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-07/take-on-dancxjo-conduit-5205-5207/work/conduit/mechanisms/implementations/burn-model)
+    Finished `test` profile [unoptimized] target(s) in 3m 10s
+     Running tests/state_safety.rs (target/debug/deps/state_safety-f799b63c437e52f6)
+
+running 1 test
+test invalid_evaluation_batch_refuses_before_objective_execution ... FAILED
+
+failures:
+
+---- invalid_evaluation_batch_refuses_before_objective_execution stdout ----
+
+thread 'invalid_evaluation_batch_refuses_before_objective_execution' (2261146) panicked at mechanisms/implementations/burn-model/tests/state_safety.rs:305:5:
+objective ran before semantic admission
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    invalid_evaluation_batch_refuses_before_objective_execution
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p conduit-burn-model --test state_safety`

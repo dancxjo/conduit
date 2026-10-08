@@ -113,6 +113,7 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
             keyboard: None,
             local_model: None,
             vector_search: None,
+            model_work: None,
             calendar: None,
             body_conversation_context: None,
         },

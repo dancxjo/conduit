@@ -41,6 +41,8 @@ pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
         Option<&'model mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static)>,
     pub vector_search:
         Option<&'model mut (dyn crate::hosted_vector_search::HostedVectorSearchAdapter + 'static)>,
+    pub model_work:
+        Option<&'model mut (dyn crate::hosted_model_work::HostedModelWorkAdapter + 'static)>,
     pub calendar: Option<&'model mut (dyn crate::hosted_calendar::HostedCalendarAdapter + 'static)>,
     pub body_conversation_context: Option<&'a crate::BodyConversationContextSource>,
 }

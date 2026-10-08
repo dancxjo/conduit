@@ -1,5 +1,9 @@
 # Native speech and language segments
 
+The proposed [model-authoring tutorial](../../wiki/Creating-models.md) describes
+ConduitVoice training and exact FARGAN feature composition, including model-level
+and native-plot on-ramps and explicit artifact off-ramps.
+
 Development foundation for [#4832](https://github.com/dancxjo/conduit/issues/4832).
 Conduitese owns the segment, listening, and translation meaning. Checked plots
 own this compact English voice's realization choices and fixed-point equations.

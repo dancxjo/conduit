@@ -78,6 +78,7 @@ fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
     ModelComputeInvocation {
         request_identity: [31; 32],
         artifact_identity: artifact,
+        checkpoint_identity: None,
         requirement: ModelComputeRequirement {
             operation: ModelComputeOperation::Inference,
             model_format: "model/reference-linear".into(),

@@ -11,6 +11,7 @@ use conduit_plot::rust_binding::BoundedBytes;
 pub struct ModelComputeInvocation {
     pub request_identity: [u8; 32],
     pub artifact_identity: [u8; 32],
+    pub checkpoint_identity: Option<[u8; 32]>,
     pub requirement: ModelComputeRequirement,
     pub input: TensorValue,
 }
@@ -19,6 +20,7 @@ pub struct ModelComputeInvocation {
 pub struct ModelComputeExecution {
     pub request_identity: [u8; 32],
     pub artifact_identity: [u8; 32],
+    pub checkpoint_identity: Option<[u8; 32]>,
     pub input_identity: [u8; 32],
     pub output: TensorValue,
     pub consumed_work_units: u64,
@@ -108,6 +110,7 @@ impl ModelComputeAdapter for ReferenceModelComputeAdapter {
         ModelComputeAdapterTerminal::Produced(Box::new(ModelComputeExecution {
             request_identity: invocation.request_identity,
             artifact_identity: invocation.artifact_identity,
+            checkpoint_identity: None,
             input_identity: input,
             output,
             consumed_work_units: 1,
@@ -173,6 +176,7 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
         ModelComputeAdapterTerminal::Produced(Box::new(ModelComputeExecution {
             request_identity: invocation.request_identity,
             artifact_identity: invocation.artifact_identity,
+            checkpoint_identity: None,
             input_identity,
             output,
             consumed_work_units: 8,
@@ -195,6 +199,9 @@ fn validate_invocation(
 ) -> Result<[u8; 32], ModelComputeRefusal> {
     if invocation.request_identity == [0; 32] || invocation.artifact_identity == [0; 32] {
         return Err(ModelComputeRefusal::MissingIdentity);
+    }
+    if invocation.checkpoint_identity.is_some() {
+        return Err(ModelComputeRefusal::ProviderUnavailable);
     }
     if session.loaded_model_identity() != Some(invocation.artifact_identity) {
         return Err(ModelComputeRefusal::ProviderUnavailable);
@@ -227,3 +234,9 @@ fn unload(session: &mut ModelComputeSession) -> Result<(), ModelComputeRefusal> 
     session.begin_unload()?;
     session.shutdown()
 }
+
+#[cfg(feature = "burn-model")]
+#[path = "hosted_burn_model.rs"]
+mod burn_model;
+#[cfg(feature = "burn-model")]
+pub use burn_model::HostedBurnModelComputeAdapter;
