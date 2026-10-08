@@ -24,18 +24,8 @@ impl HostedValueStore {
         maximum_value_bytes: u32,
         byte_capacity: u32,
     ) -> Result<Self, StorageError> {
-        if item_capacity == 0
-            || maximum_value_bytes == 0
-            || byte_capacity == 0
-            || byte_capacity
-                > u32::from(item_capacity)
-                    .checked_mul(maximum_value_bytes)
-                    .ok_or(StorageError::InvalidBudget)?
-        {
-            return Err(StorageError::InvalidBudget);
-        }
         let maximum_value_bytes =
-            usize::try_from(maximum_value_bytes).map_err(|_| StorageError::InvalidBudget)?;
+            validate_budget(item_capacity, maximum_value_bytes, byte_capacity)?;
         let mut slots = Vec::with_capacity(usize::from(item_capacity));
         for _ in 0..item_capacity {
             slots.push(HostedValueSlot {
@@ -182,3 +172,23 @@ impl ValueStorage for HostedValueStore {
 }
 
 pub use HostedValueStore as Store;
+
+fn validate_budget(
+    item_capacity: u16,
+    maximum_value_bytes: u32,
+    byte_capacity: u32,
+) -> Result<usize, StorageError> {
+    if item_capacity == 0
+        || maximum_value_bytes == 0
+        || byte_capacity == 0
+        || byte_capacity
+            > u32::from(item_capacity)
+                .checked_mul(maximum_value_bytes)
+                .ok_or(StorageError::InvalidBudget)?
+    {
+        return Err(StorageError::InvalidBudget);
+    }
+    usize::try_from(maximum_value_bytes).map_err(|_| StorageError::InvalidBudget)
+}
+mod storage;
+pub use storage::*;

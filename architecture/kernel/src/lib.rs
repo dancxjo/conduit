@@ -594,7 +594,9 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
 mod hosted;
 
 #[cfg(feature = "alloc")]
-pub use hosted::Store as HostedValueStore;
+pub use hosted::{
+    HostedValueStorePreparationRefusal, HostedValueStoreStorageReceipt, Store as HostedValueStore,
+};
 
 mod remote_sign;
 use remote_sign::RemoteLifecycleSign;
