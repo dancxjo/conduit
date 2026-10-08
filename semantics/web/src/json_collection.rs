@@ -115,6 +115,20 @@ pub fn json_collection_step(request: &JsonValue) -> Result<JsonValue, JsonCollec
     Ok(next)
 }
 
+/// Combine one retained collection with one command. This is the two-input
+/// operation used by a bounded `scan` activation: the scan owns the previous
+/// collection and invokes this pure transition once per accepted command.
+pub fn json_collection_combine(
+    collection: &JsonValue,
+    command: &JsonValue,
+) -> Result<JsonValue, JsonCollectionRefusal> {
+    let request = JsonValue::Object(alloc::vec![
+        ("collection".into(), collection.clone()),
+        ("command".into(), command.clone()),
+    ]);
+    json_collection_step(&request)
+}
+
 fn key_name(command: &[(String, JsonValue)]) -> Result<&str, JsonCollectionRefusal> {
     let JsonValue::String(name) = field(command, "key")? else {
         return Err(JsonCollectionRefusal::InvalidCommand);
