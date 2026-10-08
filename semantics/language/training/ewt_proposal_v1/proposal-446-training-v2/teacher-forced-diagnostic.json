@@ -1,0 +1,163 @@
+{
+  "scope": "External numerical teacher-forced class diagnostic only; not free-running parse, Native acceptance, heldout accuracy or stability proof",
+  "artifact_sha256": "2732ce2c0956d1ec83eafa5fe615dc559a10106d6fd781f58074d2ccc331c9af",
+  "teaching_rows": 22,
+  "rows": [
+    {
+      "id": "record-pair",
+      "text": "I record the record.",
+      "oracle_steps": 10,
+      "correct_teacher_forced_class_choices": 10,
+      "elapsed_seconds": 0.004438742995262146
+    },
+    {
+      "id": "refuse-pair",
+      "text": "They refuse the refuse",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.002923994034063071
+    },
+    {
+      "id": "garden-path",
+      "text": "The horse raced past the barn fell",
+      "oracle_steps": 14,
+      "correct_teacher_forced_class_choices": 14,
+      "elapsed_seconds": 0.004217486013658345
+    },
+    {
+      "id": "complement",
+      "text": "I think you record songs",
+      "oracle_steps": 10,
+      "correct_teacher_forced_class_choices": 10,
+      "elapsed_seconds": 0.0031868020305410028
+    },
+    {
+      "id": "coordination",
+      "text": "I record songs and stories",
+      "oracle_steps": 10,
+      "correct_teacher_forced_class_choices": 10,
+      "elapsed_seconds": 0.003245258005335927
+    },
+    {
+      "id": "apposition",
+      "text": "Travis my friend arrived",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.0019000520114786923
+    },
+    {
+      "id": "parenthetical",
+      "text": "Travis I think arrived",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.0036281769862398505
+    },
+    {
+      "id": "question",
+      "text": "Do they record songs ?",
+      "oracle_steps": 10,
+      "correct_teacher_forced_class_choices": 10,
+      "elapsed_seconds": 0.0036471920320764184
+    },
+    {
+      "id": "vocative-greeting",
+      "text": "Hello, Travis.",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.0016118609928525984
+    },
+    {
+      "id": "vocative-initial",
+      "text": "Travis, record songs.",
+      "oracle_steps": 10,
+      "correct_teacher_forced_class_choices": 9,
+      "elapsed_seconds": 0.003343535994645208
+    },
+    {
+      "id": "vocative-medial",
+      "text": "I record, Travis, songs.",
+      "oracle_steps": 14,
+      "correct_teacher_forced_class_choices": 14,
+      "elapsed_seconds": 0.004149641026742756
+    },
+    {
+      "id": "vocative-final",
+      "text": "Thanks, Travis.",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.0018113759579136968
+    },
+    {
+      "id": "authored-vocative-final-I",
+      "text": "I record songs, Travis.",
+      "oracle_steps": 12,
+      "correct_teacher_forced_class_choices": 12,
+      "elapsed_seconds": 0.0036543330061249435
+    },
+    {
+      "id": "authored-vocative-initial-I",
+      "text": "Travis, I record songs.",
+      "oracle_steps": 12,
+      "correct_teacher_forced_class_choices": 11,
+      "elapsed_seconds": 0.004543660033959895
+    },
+    {
+      "id": "authored-vocative-medial-They",
+      "text": "They record, Travis, songs.",
+      "oracle_steps": 14,
+      "correct_teacher_forced_class_choices": 14,
+      "elapsed_seconds": 0.003989866003394127
+    },
+    {
+      "id": "authored-vocative-object-I",
+      "text": "I record Travis.",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.0023660020087845623
+    },
+    {
+      "id": "authored-vocative-object-They",
+      "text": "They record Travis.",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.0021035330137237906
+    },
+    {
+      "id": "authored-vocative-object-imperative",
+      "text": "record Travis.",
+      "oracle_steps": 6,
+      "correct_teacher_forced_class_choices": 6,
+      "elapsed_seconds": 0.0013710710336454213
+    },
+    {
+      "id": "authored-vocative-object-refuse",
+      "text": "I refuse Travis.",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.001979016000404954
+    },
+    {
+      "id": "authored-vocative-thanks",
+      "text": "Thanks Travis.",
+      "oracle_steps": 6,
+      "correct_teacher_forced_class_choices": 6,
+      "elapsed_seconds": 0.0011607369524426758
+    },
+    {
+      "id": "authored-old-man-verbal",
+      "text": "The old man the boats.",
+      "oracle_steps": 12,
+      "correct_teacher_forced_class_choices": 12,
+      "elapsed_seconds": 0.003717964980751276
+    },
+    {
+      "id": "authored-old-man-nominal",
+      "text": "The old man.",
+      "oracle_steps": 8,
+      "correct_teacher_forced_class_choices": 8,
+      "elapsed_seconds": 0.002556157996878028
+    }
+  ],
+  "correct_steps": 210,
+  "total_steps": 212
+}

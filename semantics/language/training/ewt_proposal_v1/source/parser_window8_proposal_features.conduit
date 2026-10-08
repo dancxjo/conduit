@@ -1,0 +1,83 @@
+# Additive draft; never changes legacy425/25 Source or artifact pins.
+# Origins come from the original proposed tape through the retained Source chain.
+type LanguageParserProposalWindow8OriginQuery = {
+ proposed: LanguageLexicalProposedTape
+ lexical: LanguageParserWindow8Lexical
+ where .proposed.tape == .lexical.tape
+}
+type LanguageParserProposalWindow8RawOrigins = {
+ text: LanguageTextId
+ source_revision: LanguageTextRevisionId
+ sequence: U64
+ profile_identity: Text <= 64B not in [""]
+ token_count: U64 in 0..=8
+ origins: collection U64 = 8
+}
+type LanguageParserProposalWindow8Origins = {
+ raw: LanguageParserProposalWindow8RawOrigins
+ where 0 < .raw.token_count ? .raw.origins.0 < 2 : .raw.origins.0 == 2
+ where 1 < .raw.token_count ? .raw.origins.1 < 2 : .raw.origins.1 == 2
+ where 2 < .raw.token_count ? .raw.origins.2 < 2 : .raw.origins.2 == 2
+ where 3 < .raw.token_count ? .raw.origins.3 < 2 : .raw.origins.3 == 2
+ where 4 < .raw.token_count ? .raw.origins.4 < 2 : .raw.origins.4 == 2
+ where 5 < .raw.token_count ? .raw.origins.5 < 2 : .raw.origins.5 == 2
+ where 6 < .raw.token_count ? .raw.origins.6 < 2 : .raw.origins.6 == 2
+ where 7 < .raw.token_count ? .raw.origins.7 < 2 : .raw.origins.7 == 2
+}
+plot language-proposal-window8-origins (
+ query: LanguageParserProposalWindow8OriginQuery...| >> output: LanguageParserProposalWindow8RawOrigins...|
+) = { text: .proposed.tape.source.material.identity, source_revision: .proposed.tape.source.material.revision, sequence: .proposed.tape.source.sequence, profile_identity: .proposed.definition.identity, token_count: .lexical.token_count, origins: [(0 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,0),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,0),"unknown") ? 1 : 2)) : 2),(1 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,1),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,1),"unknown") ? 1 : 2)) : 2),(2 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,2),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,2),"unknown") ? 1 : 2)) : 2),(3 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,3),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,3),"unknown") ? 1 : 2)) : 2),(4 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,4),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,4),"unknown") ? 1 : 2)) : 2),(5 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,5),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,5),"unknown") ? 1 : 2)) : 2),(6 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,6),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,6),"unknown") ? 1 : 2)) : 2),(7 < .lexical.token_count ? (variant/is(sequence/at(.proposed.origins,7),"reviewed") ? 0 : (variant/is(sequence/at(.proposed.origins,7),"unknown") ? 1 : 2)) : 2)] }
+type LanguageParserProposalWindow8FeatureQuery = {
+ raw: LanguageParserWindow8RawFeatureQuery
+ origins: LanguageParserProposalWindow8Origins
+ where .raw.projection.text == .origins.raw.text && .raw.projection.source_revision == .origins.raw.source_revision
+ where .raw.projection.sequence == .origins.raw.sequence && .raw.projection.profile_identity == .origins.raw.profile_identity
+ where .raw.projection.token_count == .origins.raw.token_count
+}
+type LanguageParserProposalWindow8FeatureContext = {
+ query: LanguageParserProposalWindow8FeatureQuery
+ top_pos: U64
+ next_pos: U64
+ future: LanguageParserWindow8RawCodes
+}
+type LanguageParserProposalWindow8RawFeatures = {
+ basis: LanguageParserBasis
+ indices: collection U64 = 27
+}
+type LanguageParserProposalWindow8Features = {
+ raw: LanguageParserProposalWindow8RawFeatures
+ where .raw.indices.0 < 446
+ where .raw.indices.1 < 446
+ where .raw.indices.2 < 446
+ where .raw.indices.3 < 446
+ where .raw.indices.4 < 446
+ where .raw.indices.5 < 446
+ where .raw.indices.6 < 446
+ where .raw.indices.7 < 446
+ where .raw.indices.8 < 446
+ where .raw.indices.9 < 446
+ where .raw.indices.10 < 446
+ where .raw.indices.11 < 446
+ where .raw.indices.12 < 446
+ where .raw.indices.13 < 446
+ where .raw.indices.14 < 446
+ where .raw.indices.15 < 446
+ where .raw.indices.16 < 446
+ where .raw.indices.17 < 446
+ where .raw.indices.18 < 446
+ where .raw.indices.19 < 446
+ where .raw.indices.20 < 446
+ where .raw.indices.21 < 446
+ where .raw.indices.22 < 446
+ where .raw.indices.23 < 446
+ where .raw.indices.24 < 446
+ where .raw.indices.25 < 446
+ where .raw.indices.26 < 446
+}
+plot language-proposal-window8-feature-context (
+ query: LanguageParserProposalWindow8FeatureQuery...| >> context: LanguageParserProposalWindow8FeatureContext...|
+) = { query: ., top_pos: (sequence/at(.raw.state.stack, .raw.state.depth - 1) == 8 ? 17 : sequence/at(sequence/at(.raw.projection.tokens, sequence/at(.raw.state.stack, .raw.state.depth - 1)).codes, sequence/at(.raw.choices, sequence/at(.raw.state.stack, .raw.state.depth - 1)))), next_pos: (.raw.state.unread == .raw.state.token_count ? 17 : sequence/at(sequence/at(.raw.projection.tokens, .raw.state.unread).codes, sequence/at(.raw.choices, .raw.state.unread))), future: (.raw.state.unread + 1 < .raw.projection.token_count ? sequence/at(.raw.projection.tokens, .raw.state.unread + 1) : { ordinal: 9, count: 0, codes: [17,17,17,17] }) }
+plot language-proposal-window8-feature-values (
+ context: LanguageParserProposalWindow8FeatureContext...| >> features: LanguageParserProposalWindow8RawFeatures...|
+) = { basis: .query.raw.state.basis, indices: [.top_pos, 18 + .next_pos, 36 + .top_pos * 18 + .next_pos, 360 + .query.raw.state.depth, 370 + .query.raw.state.unread, 379 + (sequence/at(.query.raw.state.stack, .query.raw.state.depth - 1) != 8 && sequence/at(.query.raw.state.heads, sequence/at(.query.raw.state.stack, .query.raw.state.depth - 1)) != 9 ? 1 : 0), 381, 382 + .query.raw.projection.token_count, 391 + ((.future.count > 0 && .future.codes.0 == 0) || (.future.count > 1 && .future.codes.1 == 0) || (.future.count > 2 && .future.codes.2 == 0) || (.future.count > 3 && .future.codes.3 == 0) ? 1 : 0), 393 + ((.future.count > 0 && .future.codes.0 == 1) || (.future.count > 1 && .future.codes.1 == 1) || (.future.count > 2 && .future.codes.2 == 1) || (.future.count > 3 && .future.codes.3 == 1) ? 1 : 0), 395 + ((.future.count > 0 && .future.codes.0 == 2) || (.future.count > 1 && .future.codes.1 == 2) || (.future.count > 2 && .future.codes.2 == 2) || (.future.count > 3 && .future.codes.3 == 2) ? 1 : 0), 397 + ((.future.count > 0 && .future.codes.0 == 3) || (.future.count > 1 && .future.codes.1 == 3) || (.future.count > 2 && .future.codes.2 == 3) || (.future.count > 3 && .future.codes.3 == 3) ? 1 : 0), 399 + ((.future.count > 0 && .future.codes.0 == 4) || (.future.count > 1 && .future.codes.1 == 4) || (.future.count > 2 && .future.codes.2 == 4) || (.future.count > 3 && .future.codes.3 == 4) ? 1 : 0), 401 + ((.future.count > 0 && .future.codes.0 == 5) || (.future.count > 1 && .future.codes.1 == 5) || (.future.count > 2 && .future.codes.2 == 5) || (.future.count > 3 && .future.codes.3 == 5) ? 1 : 0), 403 + ((.future.count > 0 && .future.codes.0 == 6) || (.future.count > 1 && .future.codes.1 == 6) || (.future.count > 2 && .future.codes.2 == 6) || (.future.count > 3 && .future.codes.3 == 6) ? 1 : 0), 405 + ((.future.count > 0 && .future.codes.0 == 7) || (.future.count > 1 && .future.codes.1 == 7) || (.future.count > 2 && .future.codes.2 == 7) || (.future.count > 3 && .future.codes.3 == 7) ? 1 : 0), 407 + ((.future.count > 0 && .future.codes.0 == 8) || (.future.count > 1 && .future.codes.1 == 8) || (.future.count > 2 && .future.codes.2 == 8) || (.future.count > 3 && .future.codes.3 == 8) ? 1 : 0), 409 + ((.future.count > 0 && .future.codes.0 == 9) || (.future.count > 1 && .future.codes.1 == 9) || (.future.count > 2 && .future.codes.2 == 9) || (.future.count > 3 && .future.codes.3 == 9) ? 1 : 0), 411 + ((.future.count > 0 && .future.codes.0 == 10) || (.future.count > 1 && .future.codes.1 == 10) || (.future.count > 2 && .future.codes.2 == 10) || (.future.count > 3 && .future.codes.3 == 10) ? 1 : 0), 413 + ((.future.count > 0 && .future.codes.0 == 11) || (.future.count > 1 && .future.codes.1 == 11) || (.future.count > 2 && .future.codes.2 == 11) || (.future.count > 3 && .future.codes.3 == 11) ? 1 : 0), 415 + ((.future.count > 0 && .future.codes.0 == 12) || (.future.count > 1 && .future.codes.1 == 12) || (.future.count > 2 && .future.codes.2 == 12) || (.future.count > 3 && .future.codes.3 == 12) ? 1 : 0), 417 + ((.future.count > 0 && .future.codes.0 == 13) || (.future.count > 1 && .future.codes.1 == 13) || (.future.count > 2 && .future.codes.2 == 13) || (.future.count > 3 && .future.codes.3 == 13) ? 1 : 0), 419 + ((.future.count > 0 && .future.codes.0 == 14) || (.future.count > 1 && .future.codes.1 == 14) || (.future.count > 2 && .future.codes.2 == 14) || (.future.count > 3 && .future.codes.3 == 14) ? 1 : 0), 421 + ((.future.count > 0 && .future.codes.0 == 15) || (.future.count > 1 && .future.codes.1 == 15) || (.future.count > 2 && .future.codes.2 == 15) || (.future.count > 3 && .future.codes.3 == 15) ? 1 : 0), 423 + ((.future.count > 0 && .future.codes.0 == 16) || (.future.count > 1 && .future.codes.1 == 16) || (.future.count > 2 && .future.codes.2 == 16) || (.future.count > 3 && .future.codes.3 == 16) ? 1 : 0), 425 + (.query.raw.state.unread == 0 ? 17 : sequence/at(sequence/at(.query.raw.projection.tokens,.query.raw.state.unread - 1).codes, sequence/at(.query.raw.choices,.query.raw.state.unread - 1))), 443 + (.query.raw.state.unread == 0 ? 2 : sequence/at(.query.origins.raw.origins,.query.raw.state.unread - 1))] }
+

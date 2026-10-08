@@ -1,0 +1,1085 @@
+{
+  "scope": "Explicit external supervision only, not runtime parser constraints; authored contrasts are not heldout for new candidate",
+  "legacy_teaching_sha256": "05fb914ad5e9cc3820fd7387e742f56c570794643f12afee6e47d1aa27e0441c",
+  "old08425a_evaluation_reference_sha256": "4b537a0e9eafe45885adac0b651eb6f73c21a3bb4cf3d547a8d8ade2df857c23",
+  "rows": [
+    {
+      "id": "record-pair",
+      "text": "I record the record.",
+      "forms": [
+        "I",
+        "record",
+        "the",
+        "record",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        5,
+        7,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        3,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "det",
+        "obj",
+        "punct"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        0,
+        17,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "refuse-pair",
+      "text": "They refuse the refuse",
+      "forms": [
+        "They",
+        "refuse",
+        "the",
+        "refuse"
+      ],
+      "pos": [
+        10,
+        15,
+        5,
+        7
+      ],
+      "heads": [
+        1,
+        8,
+        3,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "det",
+        "obj"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        0,
+        17,
+        67,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "garden-path",
+      "text": "The horse raced past the barn fell",
+      "forms": [
+        "The",
+        "horse",
+        "raced",
+        "past",
+        "the",
+        "barn",
+        "fell"
+      ],
+      "pos": [
+        5,
+        7,
+        15,
+        1,
+        5,
+        7,
+        15
+      ],
+      "heads": [
+        1,
+        6,
+        1,
+        5,
+        5,
+        2,
+        8
+      ],
+      "relations": [
+        "det",
+        "nsubj",
+        "acl",
+        "case",
+        "det",
+        "obl",
+        "root"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        17,
+        0,
+        39,
+        0,
+        0,
+        17,
+        8,
+        68,
+        1,
+        1,
+        28,
+        73,
+        1
+      ]
+    },
+    {
+      "id": "complement",
+      "text": "I think you record songs",
+      "forms": [
+        "I",
+        "think",
+        "you",
+        "record",
+        "songs"
+      ],
+      "pos": [
+        10,
+        15,
+        10,
+        15,
+        7
+      ],
+      "heads": [
+        1,
+        8,
+        3,
+        1,
+        3
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "nsubj",
+        "ccomp",
+        "obj"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        0,
+        28,
+        47,
+        67,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "coordination",
+      "text": "I record songs and stories",
+      "forms": [
+        "I",
+        "record",
+        "songs",
+        "and",
+        "stories"
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        4,
+        7
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        4,
+        2
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "cc",
+        "conj"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        67,
+        0,
+        9,
+        50,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "apposition",
+      "text": "Travis my friend arrived",
+      "forms": [
+        "Travis",
+        "my",
+        "friend",
+        "arrived"
+      ],
+      "pos": [
+        11,
+        10,
+        7,
+        15
+      ],
+      "heads": [
+        3,
+        2,
+        0,
+        8
+      ],
+      "relations": [
+        "nsubj",
+        "nmod:poss",
+        "appos",
+        "root"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        0,
+        27,
+        43,
+        1,
+        28,
+        73,
+        1
+      ]
+    },
+    {
+      "id": "parenthetical",
+      "text": "Travis I think arrived",
+      "forms": [
+        "Travis",
+        "I",
+        "think",
+        "arrived"
+      ],
+      "pos": [
+        11,
+        10,
+        15,
+        15
+      ],
+      "heads": [
+        3,
+        2,
+        3,
+        8
+      ],
+      "relations": [
+        "nsubj",
+        "nsubj",
+        "parataxis",
+        "root"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        0,
+        28,
+        0,
+        33,
+        28,
+        73,
+        1
+      ]
+    },
+    {
+      "id": "question",
+      "text": "Do they record songs ?",
+      "forms": [
+        "Do",
+        "they",
+        "record",
+        "songs",
+        "?"
+      ],
+      "pos": [
+        3,
+        10,
+        15,
+        7,
+        12
+      ],
+      "heads": [
+        2,
+        2,
+        8,
+        2,
+        2
+      ],
+      "relations": [
+        "aux",
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "provenance": "separately authored TRAIN-only teaching graph; no held-out accuracy claim",
+      "oracle": [
+        0,
+        0,
+        28,
+        7,
+        73,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "vocative-greeting",
+      "text": "Hello, Travis.",
+      "forms": [
+        "Hello",
+        ",",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        6,
+        12,
+        11,
+        12
+      ],
+      "heads": [
+        8,
+        0,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence",
+      "oracle": [
+        73,
+        71,
+        1,
+        74,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "vocative-initial",
+      "text": "Travis, record songs.",
+      "forms": [
+        "Travis",
+        ",",
+        "record",
+        "songs",
+        "."
+      ],
+      "pos": [
+        11,
+        12,
+        15,
+        7,
+        12
+      ],
+      "heads": [
+        2,
+        2,
+        8,
+        2,
+        2
+      ],
+      "relations": [
+        "vocative",
+        "punct",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence",
+      "oracle": [
+        0,
+        0,
+        34,
+        37,
+        73,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "vocative-medial",
+      "text": "I record, Travis, songs.",
+      "forms": [
+        "I",
+        "record",
+        ",",
+        "Travis",
+        ",",
+        "songs",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        12,
+        11,
+        12,
+        7,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "punct",
+        "vocative",
+        "punct",
+        "obj",
+        "punct"
+      ],
+      "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence",
+      "oracle": [
+        0,
+        28,
+        73,
+        71,
+        1,
+        74,
+        1,
+        71,
+        1,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "vocative-final",
+      "text": "Thanks, Travis.",
+      "forms": [
+        "Thanks",
+        ",",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        6,
+        12,
+        11,
+        12
+      ],
+      "heads": [
+        8,
+        0,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "provenance": "separately authored TRAIN-only vocative supervision; not held-out or human-reviewed accuracy evidence",
+      "oracle": [
+        73,
+        71,
+        1,
+        74,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-final-I",
+      "forms": [
+        "I",
+        "record",
+        "songs",
+        ",",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        12,
+        11,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct",
+        "vocative",
+        "punct"
+      ],
+      "text": "I record songs, Travis.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        67,
+        1,
+        71,
+        1,
+        74,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-initial-I",
+      "forms": [
+        "Travis",
+        ",",
+        "I",
+        "record",
+        "songs",
+        "."
+      ],
+      "pos": [
+        11,
+        12,
+        10,
+        15,
+        7,
+        12
+      ],
+      "heads": [
+        3,
+        3,
+        3,
+        8,
+        3,
+        3
+      ],
+      "relations": [
+        "vocative",
+        "punct",
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "text": "Travis, I record songs.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        0,
+        0,
+        0,
+        28,
+        34,
+        37,
+        73,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-medial-They",
+      "forms": [
+        "They",
+        "record",
+        ",",
+        "Travis",
+        ",",
+        "songs",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        12,
+        11,
+        12,
+        7,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "punct",
+        "vocative",
+        "punct",
+        "obj",
+        "punct"
+      ],
+      "text": "They record, Travis, songs.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        71,
+        1,
+        74,
+        1,
+        71,
+        1,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-object-I",
+      "forms": [
+        "I",
+        "record",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "text": "I record Travis.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-object-They",
+      "forms": [
+        "They",
+        "record",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "text": "They record Travis.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-object-imperative",
+      "forms": [
+        "record",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        15,
+        11,
+        12
+      ],
+      "heads": [
+        8,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "obj",
+        "punct"
+      ],
+      "text": "record Travis.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        73,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-object-refuse",
+      "forms": [
+        "I",
+        "refuse",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "text": "I refuse Travis.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        0,
+        28,
+        73,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-vocative-thanks",
+      "forms": [
+        "Thanks",
+        "Travis",
+        "."
+      ],
+      "pos": [
+        6,
+        11,
+        12
+      ],
+      "heads": [
+        8,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "vocative",
+        "punct"
+      ],
+      "text": "Thanks Travis.",
+      "original_evaluation_provenance": {
+        "dataset": "separately authored evaluation",
+        "commit": null,
+        "split": "authored_vocative",
+        "license": null,
+        "text_policy": "original authored text",
+        "labels": "reference only; never decoder constraints",
+        "authored_reference": {
+          "kind": "separately authored evaluation reference after fixed candidate training",
+          "model_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+          "labels": "analyst-authored UD-base references; not independently human reviewed",
+          "scope": "small lexical/structural contrasts; shared templates and vocabulary, no broad English accuracy claim"
+        }
+      },
+      "provenance": "Explicit analyst-authored contrast supervision for new27-feature candidate after08425a evaluation; no longer heldout for this new candidate; no runtime constraints or human-review claim",
+      "oracle": [
+        73,
+        74,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-old-man-verbal",
+      "text": "The old man the boats.",
+      "forms": [
+        "The",
+        "old",
+        "man",
+        "the",
+        "boats",
+        "."
+      ],
+      "pos": [
+        5,
+        7,
+        15,
+        5,
+        7,
+        12
+      ],
+      "heads": [
+        1,
+        2,
+        8,
+        4,
+        2,
+        2
+      ],
+      "relations": [
+        "det",
+        "nsubj",
+        "root",
+        "det",
+        "obj",
+        "punct"
+      ],
+      "provenance": "Separately analyst-authored garden-path supervision; manVERB/oldNOUN; no human-review or runtime acceptance claim",
+      "oracle": [
+        0,
+        17,
+        0,
+        28,
+        73,
+        0,
+        17,
+        67,
+        1,
+        71,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "authored-old-man-nominal",
+      "text": "The old man.",
+      "forms": [
+        "The",
+        "old",
+        "man",
+        "."
+      ],
+      "pos": [
+        5,
+        0,
+        7,
+        12
+      ],
+      "heads": [
+        2,
+        2,
+        8,
+        2
+      ],
+      "relations": [
+        "det",
+        "amod",
+        "root",
+        "punct"
+      ],
+      "provenance": "Separately analyst-authored nominal contrast supervision; manNOUN/oldADJ; no human-review or runtime acceptance claim",
+      "oracle": [
+        0,
+        0,
+        5,
+        17,
+        73,
+        71,
+        1,
+        1
+      ]
+    }
+  ]
+}

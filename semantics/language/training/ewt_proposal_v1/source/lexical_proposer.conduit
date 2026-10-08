@@ -1,0 +1,83 @@
+# Additive resource-backed alternatives. Unknown origin never becomes reviewed
+# origin when an analysis is selected or committed. These are proposals, not
+# claims that a lemma, POS, pronunciation or dependency is linguistically true.
+type LanguageLexicalUnknownCommitPolicy =
+    refuse
+    | stable_input_consensus
+    | final_input_consensus
+
+type LanguageLexicalUnknownPolicy = {
+    identity: Text <= 64B not in [""]
+    alternatives: sequence LanguageLexicalPos in 1..=4
+    commitment: LanguageLexicalUnknownCommitPolicy
+    provenance: LinguisticDerivationProvenance
+    where sequence/length(.alternatives) > 1 ? sequence/at(.alternatives,0) != sequence/at(.alternatives,1) : true
+    where sequence/length(.alternatives) > 2 ? sequence/at(.alternatives,0) != sequence/at(.alternatives,2) : true
+    where sequence/length(.alternatives) > 2 ? sequence/at(.alternatives,1) != sequence/at(.alternatives,2) : true
+    where sequence/length(.alternatives) > 3 ? sequence/at(.alternatives,0) != sequence/at(.alternatives,3) : true
+    where sequence/length(.alternatives) > 3 ? sequence/at(.alternatives,1) != sequence/at(.alternatives,3) : true
+    where sequence/length(.alternatives) > 3 ? sequence/at(.alternatives,2) != sequence/at(.alternatives,3) : true
+}
+type LanguageLexicalProposerDefinition = {
+    identity: Text <= 64B not in [""]
+    dictionary_identity: Text <= 64B not in [""]
+    language: LanguageId
+    unknown: LanguageLexicalUnknownPolicy
+    provenance: LinguisticDerivationProvenance
+}
+type LanguageLexicalReviewedOrigin = {
+    dictionary_identity: Text <= 64B not in [""]
+    shard_identity: Text <= 64B not in [""]
+    shard: U64 in 0..=127
+    entry: U64 in 0..=63
+}
+type LanguageLexicalUnknownOrigin = {
+    policy_identity: Text <= 64B not in [""]
+    provenance: LinguisticDerivationProvenance
+}
+type LanguageLexicalProposalOrigin =
+    reviewed LanguageLexicalReviewedOrigin
+    | unknown LanguageLexicalUnknownOrigin
+    | incomplete
+
+# The prepared finite dictionary owner verifies the exact lookup resource,
+# shard and entry before this Source query. Full original resource custody is
+# retained separately; the frame does not duplicate the whole dictionary.
+type LanguageLexicalProposalQuery = {
+    definition: LanguageLexicalProposerDefinition
+    token: LanguageLexicalToken
+    origin: LanguageLexicalProposalOrigin
+    reviewed_entry: LanguageLexicalEntry?
+    where .token.identity.text_identity == .token.span.text_identity
+    where .token.identity.text_revision == .token.span.text_revision
+    where variant/is(.origin,"incomplete") ? (variant/is(.token.completeness,"trailing_partial") && sequence/length(.token.candidates) == 0 && variant/is(.reviewed_entry,"none")) : variant/is(.token.completeness,"complete")
+    where variant/is(.origin,"reviewed") ? (.origin.reviewed.dictionary_identity == .definition.dictionary_identity && variant/is(.reviewed_entry,"some")) : variant/is(.reviewed_entry,"none")
+    where variant/is(.origin,"reviewed") ? (.reviewed_entry.some.surface == .token.surface && sequence/length(.reviewed_entry.some.candidates) == sequence/length(.token.candidates)) : true
+    where variant/is(.origin,"reviewed") && sequence/length(.token.candidates) > 0 ? sequence/at(.reviewed_entry.some.candidates,0) == sequence/at(.token.candidates,0) : true
+    where variant/is(.origin,"reviewed") && sequence/length(.token.candidates) > 1 ? sequence/at(.reviewed_entry.some.candidates,1) == sequence/at(.token.candidates,1) : true
+    where variant/is(.origin,"reviewed") && sequence/length(.token.candidates) > 2 ? sequence/at(.reviewed_entry.some.candidates,2) == sequence/at(.token.candidates,2) : true
+    where variant/is(.origin,"reviewed") && sequence/length(.token.candidates) > 3 ? sequence/at(.reviewed_entry.some.candidates,3) == sequence/at(.token.candidates,3) : true
+    where variant/is(.origin,"unknown") ? (.origin.unknown.policy_identity == .definition.unknown.identity && .origin.unknown.provenance == .definition.unknown.provenance && sequence/length(.token.candidates) == sequence/length(.definition.unknown.alternatives)) : true
+    where variant/is(.origin,"unknown") && sequence/length(.token.candidates) > 0 ? (sequence/at(.token.candidates,0).pos == sequence/at(.definition.unknown.alternatives,0) && sequence/at(.token.candidates,0).lemma == "<unknown>" && sequence/length(sequence/at(.token.candidates,0).morphology) == 0) : true
+    where variant/is(.origin,"unknown") && sequence/length(.token.candidates) > 1 ? (sequence/at(.token.candidates,1).pos == sequence/at(.definition.unknown.alternatives,1) && sequence/at(.token.candidates,1).lemma == "<unknown>" && sequence/length(sequence/at(.token.candidates,1).morphology) == 0) : true
+    where variant/is(.origin,"unknown") && sequence/length(.token.candidates) > 2 ? (sequence/at(.token.candidates,2).pos == sequence/at(.definition.unknown.alternatives,2) && sequence/at(.token.candidates,2).lemma == "<unknown>" && sequence/length(sequence/at(.token.candidates,2).morphology) == 0) : true
+    where variant/is(.origin,"unknown") && sequence/length(.token.candidates) > 3 ? (sequence/at(.token.candidates,3).pos == sequence/at(.definition.unknown.alternatives,3) && sequence/at(.token.candidates,3).lemma == "<unknown>" && sequence/length(sequence/at(.token.candidates,3).morphology) == 0) : true
+}
+type LanguageLexicalTokenProposal = {
+    query: LanguageLexicalProposalQuery
+}
+plot language-lexical-token-proposal (
+    input: LanguageLexicalProposalQuery...| >> output: LanguageLexicalTokenProposal...|
+) = { query: . }
+
+# This wrapper records the original per-token origins. Its private prepared
+# owner additionally retains all exact per-token Source proposal admissions.
+type LanguageLexicalProposedTape = {
+    definition: LanguageLexicalProposerDefinition
+    tape: LanguageLexicalTape
+    origins: sequence LanguageLexicalProposalOrigin <= 128
+    where .definition.identity == .tape.profile.identity
+    where .definition.language == .tape.profile.language && .definition.language == .tape.source.material.language
+    where sequence/length(.tape.profile.entries) == 0
+    where sequence/length(.origins) == sequence/length(.tape.tokens)
+}
