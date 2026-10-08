@@ -104,6 +104,20 @@ impl Selection {
             .collect()
     }
 
+    /// Installation-owned successor choice. This is selected before the next
+    /// Plan and persisted with its Body transition, never inferred from files.
+    pub(super) fn next_generation(&self) -> Result<Self, String> {
+        self.validate()?;
+        let seed = super::fresh_identity("todo-checkpoint-next", &self.version_hex());
+        let version = semantic_digest("conduit.todo/installed-next-generation@1", seed.as_bytes());
+        let hex: String = version.iter().map(|byte| format!("{byte:02x}")).collect();
+        let selected = Self::select(&self.root, Some(&hex))?;
+        if selected.version == self.version {
+            return Err("Todo successor repeated the selected generation".into());
+        }
+        Ok(selected)
+    }
+
     pub(super) fn content(&self) -> ResourceContentRequirement {
         ResourceContentRequirement {
             identity: ResourceSemanticIdentity::from_digest(semantic_digest(

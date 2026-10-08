@@ -125,6 +125,14 @@ impl DurableHostRuntime {
         maximum_millis: u64,
         todo_new_list: Option<String>,
     ) -> Result<(), String> {
+        let next_todo = match &self.host {
+            HostSource::Body { owner, root, .. }
+                if todo_new_list.is_none() && owner.has_verified_todo() =>
+            {
+                Some(crate::durable_host::next_selected_todo_checkpoint(root)?)
+            }
+            _ => None,
+        };
         let selected = if todo_new_list.is_some() {
             Some(
                 crate::durable_host::selected_todo_checkpoint(match &self.host {
@@ -151,8 +159,8 @@ impl DurableHostRuntime {
         if running.is_some() {
             return Err("Body Play is already running".into());
         }
-        *running = Some(match (todo_new_list, selected) {
-            (Some(list_key), Some(selected)) => {
+        *running = Some(match (todo_new_list, selected, next_todo) {
+            (Some(list_key), Some(selected), None) => {
                 OwnedRunWorker::Todo(Box::new(owner.start_selected_new_todo_list(
                     root,
                     selected.root,
@@ -161,7 +169,12 @@ impl DurableHostRuntime {
                     maximum_millis,
                 )?))
             }
-            (None, None) => OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?),
+            (None, None, Some(next)) => OwnedRunWorker::Todo(Box::new(
+                owner.start_next_todo_action(root, &next, maximum_millis)?,
+            )),
+            (None, None, None) => {
+                OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?)
+            }
             _ => return Err("selected Todo list and Host residence differ".into()),
         });
         Ok(())

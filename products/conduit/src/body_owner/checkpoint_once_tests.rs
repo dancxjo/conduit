@@ -1,8 +1,5 @@
 use super::*;
-use conduit_core::{
-    kind_id, BootId, HostId, OfferGeneration, ResourceAccessMode, ResourceContentRequirement,
-    ResourceRetention, ResourceSemanticIdentity, ResourceSharing, ResourceVersionIdentity,
-};
+use conduit_core::{BootId, HostId, OfferGeneration, ResourceVersionIdentity};
 use conduit_presentation::{FaceInteraction, FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
 use conduit_std_host::todo_durable_resource::MissingV2Disposition;
 use conduit_std_host::{StdHost, StdHostConfig};
@@ -13,6 +10,9 @@ mod mask_test_common;
 const SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-once.conduit");
 
 fn selected_host(root: &Path) -> StdHost {
+    let selection =
+        super::super::super::super::selected_todo::Selection::select(root, Some(&"02".repeat(32)))
+            .unwrap();
     StdHost::new_for_todo_checkpoint_once(
         StdHostConfig {
             host_id: HostId::from("host/todo-owner-test"),
@@ -20,20 +20,7 @@ fn selected_host(root: &Path) -> StdHost {
             offer_generation: OfferGeneration(1),
         },
         root,
-        ResourceContentRequirement {
-            identity: ResourceSemanticIdentity::from_digest([1; 32]),
-            version: ResourceVersionIdentity::from_digest([2; 32]),
-            content_profile: kind_id("conduit.todo/checkpoint-envelope@1"),
-            maximum_bytes: conduit_std_offers::TODO_CHECKPOINT_MAX_BYTES,
-            maximum_items: 1,
-            retention: ResourceRetention::ExternalDurable,
-            sharing: ResourceSharing::SingleWriterPublished,
-            access: ResourceAccessMode::WriteCandidatePublish,
-            generation_slots: 1,
-            reader_leases: 1,
-            publication_slots: 1,
-            sensitive: false,
-        },
+        selection.content(),
     )
     .unwrap()
 }
@@ -62,7 +49,13 @@ fn fixture() -> (
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
-        selected_todo_checkpoint: None,
+        selected_todo_checkpoint: Some(
+            super::super::super::super::selected_todo::Selection::select(
+                &checkpoint_root,
+                Some(&"02".repeat(32)),
+            )
+            .unwrap(),
+        ),
     };
     super::super::super::super::write_json_atomic(
         &state_root.join("installation.json"),
@@ -123,7 +116,7 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
             super::super::todo_waiting::NewTodoCheckpoint {
                 root: checkpoint_root.clone(),
                 identity: CheckpointIdentity {
-                    body,
+                    body: body.clone(),
                     plot: plot.expanded.checked_plot_id.as_str().into(),
                     workload: "todo-list".into(),
                     missing_v2: MissingV2Disposition::StartNewList,
@@ -249,6 +242,7 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         )
         .unwrap();
     assert_eq!(restored, committed);
+    assert!(owner.has_verified_todo());
     assert_eq!(owner.host.advertisement().boot_id, boot);
     assert_eq!(
         owner.session.evidence().body_id.as_str(),
@@ -278,11 +272,113 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
         .join(" ");
     assert!(spoken.contains("Groceries") && spoken.contains("Buy milk"));
     assert!(!spoken.contains("sha256:") && !spoken.contains("Unavailable"));
-    let mut next_write = selected_write;
-    next_write.version = ResourceVersionIdentity::from_digest([9; 32]);
+    let selected_read = owner
+        .host
+        .advertisement()
+        .resources
+        .iter()
+        .find(|resource| resource.class_id.as_str() == "resource/todo-checkpoint@1")
+        .unwrap()
+        .content
+        .as_ref()
+        .unwrap()
+        .contract
+        .clone();
+    let first_read_receipt = owner.todo_verified_read_receipt().unwrap().clone();
+    let next_selection =
+        super::super::super::super::next_selected_todo_checkpoint(&state_root).unwrap();
+    let next_write = next_selection.write_content();
+    assert_ne!(next_write.version, selected_read.version);
+    let stale_show = show;
+    let mut next = owner
+        .start_next_todo_action(&state_root, &next_selection, 5_000)
+        .unwrap();
+    assert_eq!(
+        super::super::super::super::selected_todo_checkpoint(&state_root)
+            .unwrap()
+            .unwrap()
+            .content
+            .version,
+        next_write.version
+    );
+    while owner.todo_live.is_none() {
+        assert!(next.progress(&mut owner, &state_root).unwrap().is_none());
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    let second_face = owner.local_face_snapshot().unwrap();
+    let second_show = mask_test_common::available_mask_show(&second_face);
+    let item_id = restored.items[0].id.clone();
+    let second_action = FaceInteraction::new(
+        &second_face,
+        &second_show,
+        &format!("todo.complete.{item_id}"),
+        &format!("todo/item/{item_id}"),
+        vec![],
+        2,
+    )
+    .unwrap();
+    assert!(next
+        .submit_interaction(&owner, &stale_show, &second_action)
+        .is_err());
+    assert!(matches!(
+        next.submit_interaction(&owner, &second_show, &second_action)
+            .unwrap(),
+        conduit_std_host::BodyLiveForeAdmission::Accepted { .. }
+    ));
+    let second = loop {
+        if let Some(committed) = next.progress(&mut owner, &state_root).unwrap() {
+            break committed;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    };
+    assert_eq!(second.revision, 2);
+    assert!(second.items[0].complete);
+    let second_receipt = owner.todo_commit_receipt().unwrap().clone();
+    assert_eq!(
+        second_receipt["schema"],
+        "conduit.todo/next-checkpoint-receipt@1"
+    );
+    assert_eq!(
+        second_receipt["selected_content"],
+        serde_json::json!(next_write)
+    );
+    assert_eq!(
+        second_receipt["previous_read"]["read_plan_id"],
+        first_read_receipt["read_plan_id"]
+    );
+    assert_eq!(
+        second_receipt["previous_read"]["read_terminal_sign_id"],
+        first_read_receipt["read_terminal_sign"]["sign_id"]
+    );
+    let second_read = owner
+        .read_committed_todo(&state_root, &checkpoint_root, &next_write, &second, 5_000)
+        .unwrap();
+    assert_eq!(second_read, second);
+    let second_read_receipt = owner.todo_verified_read_receipt().unwrap();
+    assert_eq!(second_read_receipt["verified"], true);
+    assert_eq!(
+        second_read_receipt["write"]["plan_id"],
+        second_receipt["plan_id"]
+    );
+    assert_ne!(
+        second_read_receipt["read_plan_id"],
+        first_read_receipt["read_plan_id"]
+    );
+    assert_eq!(owner.session.evidence().body_id.as_str(), body);
+    assert_eq!(owner.host.advertisement().boot_id, boot);
+    assert!(owner
+        .local_face_snapshot()
+        .unwrap()
+        .subjects
+        .iter()
+        .any(|subject| subject.name == "Buy milk"));
+    let mut stale_write = next_write.clone();
+    stale_write.version = ResourceVersionIdentity::from_digest([10; 32]);
     owner
         .host
-        .transition_todo_checkpoint_offer(&checkpoint_root, next_write)
+        .transition_todo_checkpoint_offer(&checkpoint_root, stale_write)
         .unwrap();
     assert!(owner.local_face_snapshot().is_err());
     std::fs::remove_dir_all(state_root).unwrap();

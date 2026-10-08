@@ -68,11 +68,12 @@ Face/Show, interaction, and media identities used in the per-chapter producer
 receipts. A human reviewer or admission job must verify that terminal receipt
 came from the command's actual run. This renderer checks only documentary
 consistency; self-authored JSON and hashes cannot prove live execution.
-The installed Owner can now activate the first Todo write, read its committed
-checkpoint through an admitted Host Call in the same Body, and offer the
-verified result to a read-only Face. That focused Owner proof does not yet
-establish later Todo actions, recovery after a fresh Boot, or a live journey
-through browser, native, terminal, and spoken Masks. The producer should
+The installed Owner can activate a Todo write, read its committed checkpoint
+through an admitted Host Call in the same Body, then admit a second selected
+action and verified read on that Body and Boot. Focused Owner tests establish
+that sequence, including refusal of a stale Show. They do not yet establish
+recovery after a fresh Boot or a live journey through browser, native,
+terminal, and spoken Masks. The producer should
 retain one Body ID, take each screenshot from the actual browser, native
 display, and QMP guest in the same run, and capture speaker or QEMU output
 from the exact selected speech Play. It must derive event and media receipts
