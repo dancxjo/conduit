@@ -13,6 +13,9 @@ use std::{
 };
 
 pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
+// The installed kernel's finite inline scratch exceeds the platform default
+// worker stack. This is one service worker per owned Body Play, never a pool.
+const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 type WorkerOutcome = (StdHost, Result<BodyRunReport, String>, Vec<u8>);
 
 pub(crate) struct RunWorker {
@@ -64,6 +67,7 @@ impl Owner {
         let (ack_tx, ack_rx) = mpsc::sync_channel(1);
         let thread = thread::Builder::new()
             .name("conduit-body-play".into())
+            .stack_size(BODY_PLAY_STACK_BYTES)
             .spawn(move || {
                 let mut host = host;
                 let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
