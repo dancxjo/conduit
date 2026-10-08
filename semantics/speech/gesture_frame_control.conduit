@@ -1,0 +1,71 @@
+# Explicit sample-grid windows, half-open. Endpoints are supplied only by the
+# retained exact Audio projection. Disabled roles use empty windows, never an
+# unknown state mapped to zero. This is a separately declared rendering profile.
+type SpeechGestureFrameWindow = {
+    start: I32 in 0..=2000000
+    end: I32 in 0..=2000000
+    where .start <= .end
+}
+type SpeechGestureFrameWindows = {
+    frames: I32 in 1..=2000000
+    closure: SpeechGestureFrameWindow
+    release: SpeechGestureFrameWindow
+    aspiration: SpeechGestureFrameWindow
+    frication: SpeechGestureFrameWindow
+    voicing: SpeechGestureFrameWindow
+    where .closure.end <= .frames
+    where .release.end <= .frames
+    where .aspiration.end <= .frames
+    where .frication.end <= .frames
+    where .voicing.end <= .frames
+    # The current renderer has one turbulent stream. Distinct declared roles
+    # may be adjacent; simultaneous roles need an unsupported richer profile.
+    where .release.end <= .aspiration.start || .aspiration.end <= .release.start
+    where .release.end <= .frication.start || .frication.end <= .release.start
+    where .aspiration.end <= .frication.start || .frication.end <= .aspiration.start
+}
+type SpeechGestureFrameQuery = {
+    windows: SpeechGestureFrameWindows
+    frame: I32 in 0..=1999999
+    where .frame < .windows.frames
+}
+type SpeechGestureFrameGates = {
+    closure: Boolean
+    release: Boolean
+    aspiration: Boolean
+    frication: Boolean
+    voiced: Boolean
+}
+plot speech/gesture-frame-gates (
+    >> value: SpeechGestureFrameQuery
+    result: SpeechGestureFrameGates >>
+) = ({closure: .frame >= .windows.closure.start && .frame < .windows.closure.end, release: .frame >= .windows.release.start && .frame < .windows.release.end, aspiration: .frame >= .windows.aspiration.start && .frame < .windows.aspiration.end, frication: .frame >= .windows.frication.start && .frame < .windows.frication.end, voiced: .frame >= .windows.voicing.start && .frame < .windows.voicing.end})
+
+# Existing vowel-profile branch gains, explicitly declared, not inferred from
+# relative amplitude or absolute acoustic power. All three parallel branches
+# use the same original periodic source and one disjoint broadband-noise role.
+type SpeechGestureDspProfileRequest = {
+    cycle_frames: I32 in 8..=512
+    remainder_numerator: U64
+    where .remainder_numerator == 0
+}
+type SpeechGestureDspProfile = {
+    phase_q8: I32 in 0..=0
+    period_q8: I32 in 2048..=131072
+    gain1: I32
+    gain2: I32
+    gain3: I32
+    bypass_gain: I32
+}
+type SpeechGestureDspRawProfile = {
+    phase_q8: I32
+    period_q8: I32
+    gain1: I32
+    gain2: I32
+    gain3: I32
+    bypass_gain: I32
+}
+plot speech/gesture-dsp-profile (
+    >> value: SpeechGestureDspProfileRequest
+    result: SpeechGestureDspRawProfile >>
+) = ({phase_q8: 0, period_q8: .cycle_frames * 256, gain1: 444, gain2: 631, gain3: 876, bypass_gain: 0})
