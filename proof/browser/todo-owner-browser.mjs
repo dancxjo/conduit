@@ -3,6 +3,7 @@
 // creates a second Body or constructs Face state for the browser.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -24,6 +25,29 @@ assert.ok(itemText && Buffer.byteLength(itemText, 'utf8') <= 64, 'Todo text must
 const installed = JSON.parse(await readFile(path.join(state, 'installation.json')));
 assert.equal(path.resolve(ownerCwd, installed.product_executable), binary,
   'use the owner installed for this Body');
+const packageManifest = JSON.parse(await readFile(path.join(handbook, 'application.application.json')));
+const browserBundle = JSON.parse(await readFile(path.join(handbook, 'sdk/bundle/browser-bundle-release.json')));
+const uiResource = packageManifest.resources.find(resource => resource.role === 'owner-participation');
+const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+assert.equal(digest(await readFile(path.join(ownerCwd, 'targets/browser/handbook/owner-participation.mjs'))),
+  uiResource.sha256, 'packaged Handbook UI differs from this source checkout');
+const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ownerCwd, encoding: 'utf8' });
+assert.equal(head.status, 0, head.stderr);
+const handbookUiSource = head.stdout.trim();
+const uiStatus = spawnSync('git', ['status', '--porcelain', '--', 'targets/browser/handbook'],
+  { cwd: ownerCwd, encoding: 'utf8' });
+assert.equal(uiStatus.status, 0, uiStatus.stderr);
+const handbookUiSourceClean = uiStatus.stdout.length === 0;
+const sourceRecord = {
+  owner_source_commit: installed.release_source_identity,
+  browser_runtime_source_commit: browserBundle.source_identity,
+  handbook_ui_source_commit: handbookUiSource,
+  handbook_ui_source_clean: handbookUiSourceClean,
+  handbook_package_digest: packageManifest.package_digest,
+  source_relation: installed.release_source_identity === browserBundle.source_identity
+    && installed.release_source_identity === handbookUiSource && handbookUiSourceClean
+    ? 'exact-source' : 'development-cross-source',
+};
 const expectedPlaywright = JSON.parse(await readFile(new URL('./package.json', import.meta.url)))
   .devDependencies['@playwright/test'];
 const actualPlaywright = JSON.parse(await readFile(path.join(path.dirname(playwrightArg), 'package.json'))).version;
@@ -111,7 +135,9 @@ try {
     action: document.querySelector('[data-owner-action="todo.add"]')?.outerHTML,
   }));
   if (!prepared.face.interactions_admitted || prepared.face.show_state !== 'available') {
-    await writeFile(path.join(output, 'diagnostic.json'), `${JSON.stringify(prepared, null, 2)}\n`);
+    await writeFile(path.join(output, 'diagnostic.json'), `${JSON.stringify({
+      ...sourceRecord, ...prepared,
+    }, null, 2)}\n`);
     await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-route-diagnostic.png') });
     throw new Error(`Todo browser Show has no admitted action return: ${prepared.status}`);
   }
@@ -141,7 +167,8 @@ try {
   assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
   assert.deepEqual(errors, []);
   await writeFile(path.join(output, 'receipt.json'), `${JSON.stringify({
-    schema: 'conduit.proof/todo-owner-browser@1', source_commit: installed.release_source_identity,
+    schema: 'conduit.proof/todo-owner-browser@1',
+    ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
     item_text: itemText, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
