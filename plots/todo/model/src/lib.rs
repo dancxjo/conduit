@@ -8,12 +8,58 @@
 extern crate alloc;
 
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_core::Scalar;
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
+    PortDescriptor, PortDirection, PortTemporal, Scalar,
+};
 use conduit_web::{json_collection_combine, JsonCollectionRefusal, JsonRefusal, JsonValue};
 
 pub const MAX_TODO_ITEMS: usize = 20;
 pub const MAX_TODO_TEXT_BYTES: usize = 72;
 pub const MAX_TODO_TITLE_BYTES: usize = 64;
+pub const TODO_STATE_INFO_ID: &str = "conduit.todo/state@1";
+pub const TODO_COMMAND_INFO_ID: &str = "conduit.todo/command@1";
+pub const TODO_COMBINE_KIND: &str = "todo/combine";
+pub const TODO_COMBINE_REVISION: &str = "conduit.todo/combine@1";
+
+/// The exact two-input combine Kind selected by the ordinary bounded `scan`
+/// activation. It owns no scheduler or retained state; `scan` retains state.
+pub fn todo_combine_kind() -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(TODO_COMBINE_KIND),
+        kind_contract_revision: KindIdentity::from(TODO_COMBINE_REVISION),
+        inputs: vec![
+            todo_port("accumulator", TODO_STATE_INFO_ID, PortDirection::Input),
+            todo_port("item", TODO_COMMAND_INFO_ID, PortDirection::Input),
+        ],
+        outputs: vec![todo_port(
+            "combined",
+            TODO_STATE_INFO_ID,
+            PortDirection::Output,
+        )],
+        configuration: Vec::new(),
+        semantic_laws: vec![KindSemanticLaw::Terminal(
+            KindTerminalBehavior::CompletesWhenInputsClose,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 3,
+            max_queue_bytes: (3 * conduit_web::JSON_MAXIMUM_ENCODED_BYTES) as u32,
+        },
+    }
+}
+
+fn todo_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id(value_kind),
+        direction,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TodoItem {
@@ -43,12 +89,82 @@ pub enum TodoRefusal {
     InvalidText,
     InvalidId,
     InvalidState,
+    InvalidCommand,
     MissingItem,
     ItemCapacity,
     IdentityExhausted,
     RevisionExhausted,
     Json(JsonRefusal),
     Collection(JsonCollectionRefusal),
+}
+
+impl TodoCommand {
+    pub fn encode_info(&self) -> Result<Vec<u8>, TodoRefusal> {
+        let value = match self {
+            Self::Add { text } => {
+                if !valid_text(text, MAX_TODO_TEXT_BYTES) {
+                    return Err(TodoRefusal::InvalidText);
+                }
+                object(vec![
+                    ("op", JsonValue::String("add".into())),
+                    ("text", JsonValue::String(text.clone())),
+                ])
+            }
+            Self::SetComplete { id, complete } => {
+                if !valid_id(id) {
+                    return Err(TodoRefusal::InvalidId);
+                }
+                object(vec![
+                    ("complete", JsonValue::Bool(*complete)),
+                    ("id", JsonValue::String(id.clone())),
+                    ("op", JsonValue::String("set-complete".into())),
+                ])
+            }
+            Self::Remove { id } => {
+                if !valid_id(id) {
+                    return Err(TodoRefusal::InvalidId);
+                }
+                object(vec![
+                    ("id", JsonValue::String(id.clone())),
+                    ("op", JsonValue::String("remove".into())),
+                ])
+            }
+        };
+        value.encode_info().map_err(TodoRefusal::Json)
+    }
+
+    pub fn decode_info(bytes: &[u8]) -> Result<Self, TodoRefusal> {
+        let value = JsonValue::decode_info(bytes).map_err(TodoRefusal::Json)?;
+        let JsonValue::Object(fields) = value else {
+            return Err(TodoRefusal::InvalidCommand);
+        };
+        let command = match fields.as_slice() {
+            [(op, JsonValue::String(kind)), (text, JsonValue::String(value))]
+                if op == "op" && kind == "add" && text == "text" =>
+            {
+                Self::Add {
+                    text: value.clone(),
+                }
+            }
+            [(complete, JsonValue::Bool(value)), (id, JsonValue::String(target)), (op, JsonValue::String(kind))]
+                if complete == "complete" && id == "id" && op == "op" && kind == "set-complete" =>
+            {
+                Self::SetComplete {
+                    id: target.clone(),
+                    complete: *value,
+                }
+            }
+            [(id, JsonValue::String(target)), (op, JsonValue::String(kind))]
+                if id == "id" && op == "op" && kind == "remove" =>
+            {
+                Self::Remove { id: target.clone() }
+            }
+            _ => return Err(TodoRefusal::InvalidCommand),
+        };
+        // One validation path for locally constructed and decoded commands.
+        command.encode_info()?;
+        Ok(command)
+    }
 }
 
 impl TodoState {

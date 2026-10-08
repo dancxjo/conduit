@@ -1,4 +1,55 @@
-use conduit_todo_plot::{TodoCommand, TodoRefusal, TodoState, MAX_TODO_ITEMS};
+use conduit_todo_plot::{todo_combine_kind, TodoCommand, TodoRefusal, TodoState, MAX_TODO_ITEMS};
+
+#[test]
+fn combine_kind_has_exact_typed_state_and_command_ports() {
+    let kind = todo_combine_kind();
+    kind.validate().unwrap();
+    assert_eq!(
+        kind.inputs[0].value_kind.as_str(),
+        conduit_todo_plot::TODO_STATE_INFO_ID
+    );
+    assert_eq!(
+        kind.inputs[1].value_kind.as_str(),
+        conduit_todo_plot::TODO_COMMAND_INFO_ID
+    );
+    assert_eq!(
+        kind.outputs[0].value_kind.as_str(),
+        conduit_todo_plot::TODO_STATE_INFO_ID
+    );
+}
+
+#[test]
+fn typed_command_codec_refuses_unknown_shapes_and_preserves_arguments() {
+    for command in [
+        TodoCommand::Add {
+            text: "Buy milk".into(),
+        },
+        TodoCommand::SetComplete {
+            id: "task-1".into(),
+            complete: true,
+        },
+        TodoCommand::Remove {
+            id: "task-1".into(),
+        },
+    ] {
+        assert_eq!(
+            TodoCommand::decode_info(&command.encode_info().unwrap()).unwrap(),
+            command
+        );
+    }
+    let unknown = conduit_web::JsonValue::decode_text(br#"{"op":"clear"}"#)
+        .unwrap()
+        .encode_info()
+        .unwrap();
+    assert_eq!(
+        TodoCommand::decode_info(&unknown),
+        Err(TodoRefusal::InvalidCommand)
+    );
+    assert_eq!(
+        TodoCommand::Add { text: " ".into() }.encode_info(),
+        Err(TodoRefusal::InvalidText)
+    );
+}
 
 #[test]
 fn add_complete_reopen_remove_preserves_stable_identity_and_order() {
