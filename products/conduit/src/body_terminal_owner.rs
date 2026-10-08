@@ -137,6 +137,11 @@ pub(crate) fn run(
                 interaction,
             );
             match result {
+                Ok(value) if value["schema"] == "conduit.todo/committed-action@1" => writeln!(
+                    output,
+                    "Todo saved at revision {}.",
+                    value["state_revision"]
+                ),
                 Ok(value) => writeln!(output, "{value}"),
                 Err(error) => writeln!(output, "Action refused: {error}"),
             }

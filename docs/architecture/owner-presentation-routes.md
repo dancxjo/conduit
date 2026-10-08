@@ -58,10 +58,14 @@ selects one exact action from that Show; it accepts zero arguments or one typed
 value. The command parser accepts the typed action forms of a Todo Face, such as `action todo.add Buy tea`,
 `action todo.complete.task-1`, `action todo.reopen.task-1`, or
 `action todo.remove.task-1`. Use the identities actually listed by `actions`;
-item identities are retained application truth, not list positions. The installed terminal return currently applies clock actions only; these Todo
-forms have parser coverage but do not yet establish a terminal Todo mutation.
-A successful clock mutation reattaches to the new Face. Unknown or unavailable actions, unsupported
-values and stale Shows refuse through the existing interaction boundary.
+item identities are retained application truth, not list positions. For a verified
+committed Todo Face, the owner resolves the exact returned action before retiring
+this single-use terminal route. It detaches the provider, admits the existing
+next Todo write Play, and submits the typed command only if the newly admitted
+state matches the verified state. After publication and a fresh verified read,
+the terminal reattaches and renders the changed list. The receipt retains the
+initiating Show and action separately; primary output gives a short save message.
+Unknown or unavailable actions, unsupported values and stale Shows refuse.
 `apply <value>` remains a shortcut when exactly one single-value action is
 available. Listing choices does not refresh a stale Show; enter `show` explicitly.
 
@@ -77,12 +81,12 @@ cargo xtask prove todo-journey --state-dir /absolute/host-state \
   --cross-mask-actions --output /absolute/new-capture
 ```
 
-The current live trace commits three items through the browser, then refuses
-terminal attachment with `terminal-route-requires-lulled-body`: the next Todo
-action needs an active waiting Play, while the installed terminal route requires
-a lulled Body. Terminal completion, stale browser refusal after that completion,
-and the subsequent browser encounter remain unproven. The capture retains the
-three additions and terminal refusal beside the screenshots.
+Earlier live capture committed three browser additions, then refused attachment
+because it had already admitted a waiting write Play. The updated capture leaves
+the committed Body lulled for terminal completion and relies on the owner to
+admit the write after consuming the terminal Show. The actual-provider regression
+proves this lifecycle, completion, fresh read, reattachment and stale-Show refusal;
+the updated installed browser/terminal trace still requires a new sealed capture.
 The capture remains partial: direct spoken playback, rejoin, failure traces and
 publication acceptance require their own evidence. The default capture still
 performs one browser Add followed by a terminal read.
