@@ -1,0 +1,1421 @@
+{
+  "schema": "conduit.language.proposal-training-origin-correction.v2",
+  "scope": "TRAIN plus the same22reviewed teaching rows,32repetitions; no DEV/TEST adaptation; distinct candidate with original baseline retained",
+  "predecessor_full_manifest": {
+    "predecessor_checkpoint_files": {
+      "scope": "Exact archived numerical/model/dictionary candidate, not installed or selected by production",
+      "files": {
+        "authored-proposal-window8-teaching-v1.json": {
+          "sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+          "bytes": 22601
+        },
+        "authored-teaching-overlay-v1.json": {
+          "sha256": "97b44f564b65f3a566df7252886732ba80cb077a78db48e1d53fd5673918bdbe",
+          "bytes": 1416
+        },
+        "canonical-dictionary-overlay-v2/manifest.json": {
+          "sha256": "ad156799d752931a3e91ff88f64b2cb861e5abb7e5d64a4a575d5698d6ce2ad6",
+          "bytes": 19772
+        },
+        "canonical-dictionary-overlay-v2/shard-000.native.bin": {
+          "sha256": "f8494f6da23cd7097ac138f6b15621f7ce6af7a5be3006a640bf31a73efe8493",
+          "bytes": 11365
+        },
+        "canonical-dictionary-overlay-v2/shard-001.native.bin": {
+          "sha256": "19845b51515cfdd0fd507797bd03566fecef579483df6e52e8ddd098bc781c49",
+          "bytes": 10665
+        },
+        "canonical-dictionary-overlay-v2/shard-002.native.bin": {
+          "sha256": "edcfc78228b62993d18acadb20011deefe8635e16d3e34967ad7e2484ac03e4b",
+          "bytes": 9613
+        },
+        "canonical-dictionary-overlay-v2/shard-003.native.bin": {
+          "sha256": "05ef0985458c5268b4be978d760e51c563cc0813052238be36a6029a6eac22a9",
+          "bytes": 9574
+        },
+        "canonical-dictionary-overlay-v2/shard-004.native.bin": {
+          "sha256": "c9012795dff9247a8775f441cccf98f99ca3c8b3509dade8d113d5153bbf8362",
+          "bytes": 9625
+        },
+        "canonical-dictionary-overlay-v2/shard-005.native.bin": {
+          "sha256": "2cbc34dc9c3e18f1619b6dd1b89db249444c7ed7884c25f1e9c74d3cbff4bd6d",
+          "bytes": 9671
+        },
+        "canonical-dictionary-overlay-v2/shard-006.native.bin": {
+          "sha256": "8852bee5f8481b1da3abbdfc3d8057caba4da0def40f064566af747821e0b7d5",
+          "bytes": 9568
+        },
+        "canonical-dictionary-overlay-v2/shard-007.native.bin": {
+          "sha256": "eaca3aac888330dd52ed2ebe53a5e6543df4ecacbdf0f06c0dda359666a110f6",
+          "bytes": 9537
+        },
+        "canonical-dictionary-overlay-v2/shard-008.native.bin": {
+          "sha256": "85f51ab66e3181611cde11adb874debf096cb16be4fc5b11c2d50ff8e5101d58",
+          "bytes": 9567
+        },
+        "canonical-dictionary-overlay-v2/shard-009.native.bin": {
+          "sha256": "0413eb5a2cf9614a0ac7cd031d34f96a72c6d5fd8c10154d4e7501778a8dccb4",
+          "bytes": 10820
+        },
+        "canonical-dictionary-overlay-v2/shard-010.native.bin": {
+          "sha256": "9478fd645ed510ed0f6c0c6cb015165786948a1f4420ff67320463a53c59300f",
+          "bytes": 10665
+        },
+        "canonical-dictionary-overlay-v2/shard-011.native.bin": {
+          "sha256": "9a2a1bc84ba025a55058ea7391f72c19854546a4c71454a9e282f6189d17c940",
+          "bytes": 10308
+        },
+        "canonical-dictionary-overlay-v2/shard-012.native.bin": {
+          "sha256": "622d18b16a7c0cc1bb3f96c4e16478f74766b4bda1af43e9884f8559c9f17776",
+          "bytes": 10644
+        },
+        "canonical-dictionary-overlay-v2/shard-013.native.bin": {
+          "sha256": "869dd66ed1b2418969e605011d69eb8f8e2129ad3cf93a0d5b997ded297c65b1",
+          "bytes": 10486
+        },
+        "canonical-dictionary-overlay-v2/shard-014.native.bin": {
+          "sha256": "9686c3442433c74a3dae69d055df5bfdc3f0ce0a5ba596e39e597cc5d908fdc7",
+          "bytes": 9971
+        },
+        "canonical-dictionary-overlay-v2/shard-015.native.bin": {
+          "sha256": "4f09a3333553392bb9f7788b0636dadc813079adcf050431449a239c9beca971",
+          "bytes": 10497
+        },
+        "canonical-dictionary-overlay-v2/shard-016.native.bin": {
+          "sha256": "a4c705a91ee0cdb89ff6b97bea66e24f792c8a0d9b694cc8fec17a5d3cbfea06",
+          "bytes": 10584
+        },
+        "canonical-dictionary-overlay-v2/shard-017.native.bin": {
+          "sha256": "6c78a3f64b26892b41c3b3bf028f8b07cff6f03f2005fafa92f6e3093a6ed01b",
+          "bytes": 10910
+        },
+        "canonical-dictionary-overlay-v2/shard-018.native.bin": {
+          "sha256": "b9d3196c48cec13946fd050d37c9625a19fe683d869b10ec7c6f7156c0921526",
+          "bytes": 10215
+        },
+        "canonical-dictionary-overlay-v2/shard-019.native.bin": {
+          "sha256": "4a48dd0d1eadec772047b9ff5eb3faac88112017e6046d43ab2afd8e934f2005",
+          "bytes": 10507
+        },
+        "canonical-dictionary-overlay-v2/shard-020.native.bin": {
+          "sha256": "862d627bdad809514ed0106c6cb8f0e57784cc19f828550e644a21b5223a3204",
+          "bytes": 10724
+        },
+        "canonical-dictionary-overlay-v2/shard-021.native.bin": {
+          "sha256": "8f6f21fe9e93a574f3d1d86c189bb285f23c80eb70449f5f8a40300a22123d11",
+          "bytes": 10551
+        },
+        "canonical-dictionary-overlay-v2/shard-022.native.bin": {
+          "sha256": "205383205d3cff1e84da19d91424730f1bd4d3ee15907f90ea5e811475067df6",
+          "bytes": 10239
+        },
+        "canonical-dictionary-overlay-v2/shard-023.native.bin": {
+          "sha256": "17506e8a42485df7e9c2d71f40cbda3ae2032bc29df3d06666b624feb406eec3",
+          "bytes": 10065
+        },
+        "canonical-dictionary-overlay-v2/shard-024.native.bin": {
+          "sha256": "3d1c53083ab7b607355140564b14c1f8663118ad253ef51b9ba145b2e3519809",
+          "bytes": 10492
+        },
+        "canonical-dictionary-overlay-v2/shard-025.native.bin": {
+          "sha256": "97a0cfbdb09d18287a8b0a9de6477cec68d05bb0f9ed291eccb999a755b02844",
+          "bytes": 10749
+        },
+        "canonical-dictionary-overlay-v2/shard-026.native.bin": {
+          "sha256": "c5eca78bd6f7091f835dff196e459970102db48482c709e5d1280a4c1574b3b5",
+          "bytes": 10484
+        },
+        "canonical-dictionary-overlay-v2/shard-027.native.bin": {
+          "sha256": "ebf6c6b90046a73dc7b511fd5ac7675bc0bbe331305d11926546ab1ee8971690",
+          "bytes": 10230
+        },
+        "canonical-dictionary-overlay-v2/shard-028.native.bin": {
+          "sha256": "fa2ca2514ea4981300399fd6fe71d4e2ac6f3efc5a7552fa74c8c82e11fb4567",
+          "bytes": 10558
+        },
+        "canonical-dictionary-overlay-v2/shard-029.native.bin": {
+          "sha256": "820ad4603666eabef947cc64fc3bc45b9f4d2f26dccc0899cbaa44f06eebacce",
+          "bytes": 10671
+        },
+        "canonical-dictionary-overlay-v2/shard-030.native.bin": {
+          "sha256": "ef364ec1d5e250f0b11e0fe67693cd64a091a04709dcc012fedd579afa7f6af9",
+          "bytes": 10037
+        },
+        "canonical-dictionary-overlay-v2/shard-031.native.bin": {
+          "sha256": "4531e2f3d5fdd0d527820b332db9a673ae3913792feb9d9eaf51fba87425db2f",
+          "bytes": 10029
+        },
+        "canonical-dictionary-overlay-v2/shard-032.native.bin": {
+          "sha256": "0eee1284ac413ba2f30f0f902ebc3cb6915ed6fadd589d5dc60fa4231bbad611",
+          "bytes": 10050
+        },
+        "canonical-dictionary-overlay-v2/shard-033.native.bin": {
+          "sha256": "3cd640fa26698538aee6a730437a5015715329859d260b580ec07379480edbec",
+          "bytes": 10965
+        },
+        "canonical-dictionary-overlay-v2/shard-034.native.bin": {
+          "sha256": "bf0a3b954c27a03f015ad7abad5713694cd429a3626952bd968c77be38bb8763",
+          "bytes": 10368
+        },
+        "canonical-dictionary-overlay-v2/shard-035.native.bin": {
+          "sha256": "4b9d793aa947842e27fdcf0c3d381b72ba11ecbc8297731034a943ca38494bf4",
+          "bytes": 10081
+        },
+        "canonical-dictionary-overlay-v2/shard-036.native.bin": {
+          "sha256": "71c4c4fd92e6862f51950f98b583d9bcf360dca6d5c30c3d38c99465b2aa561d",
+          "bytes": 10211
+        },
+        "canonical-dictionary-overlay-v2/shard-037.native.bin": {
+          "sha256": "5b5c26417dc544faa8db795f345f62c5998e20f1215f80cc627dfe8e5501a191",
+          "bytes": 11086
+        },
+        "canonical-dictionary-overlay-v2/shard-038.native.bin": {
+          "sha256": "9ddc2ea3bb515454eb7b3b9d26dfbb1cf06eb1ce52d05aacee2711f9723e15e0",
+          "bytes": 11375
+        },
+        "canonical-dictionary-overlay-v2/shard-039.native.bin": {
+          "sha256": "24b03c836f0a30b5e5ff99a7d4740bd7b8e4d87b36e6cff698a83909543e99bd",
+          "bytes": 10443
+        },
+        "canonical-dictionary-overlay-v2/shard-040.native.bin": {
+          "sha256": "03869fdeaf489ebd6942b3487c891c27892e063aba2129d22a0f7c7798432e93",
+          "bytes": 10254
+        },
+        "canonical-dictionary-overlay-v2/shard-041.native.bin": {
+          "sha256": "93e62a34016ea102563b0e0ed1514bbe8a99cfef2f30a67c1946dc0e4eef8ee8",
+          "bytes": 10808
+        },
+        "canonical-dictionary-overlay-v2/shard-042.native.bin": {
+          "sha256": "f38234b564396551081bad895da33525b3df8c7897e1c46e06cf3cde01639620",
+          "bytes": 10218
+        },
+        "canonical-dictionary-overlay-v2/shard-043.native.bin": {
+          "sha256": "f006a2b7484885b432ec1937ff3a1df506b1a10032e38d0be9b73bb59b9fd467",
+          "bytes": 10758
+        },
+        "canonical-dictionary-overlay-v2/shard-044.native.bin": {
+          "sha256": "b927e23ddccbc4cc958a493be615862761aadff5e0366f45d4d56430f349a07d",
+          "bytes": 10207
+        },
+        "canonical-dictionary-overlay-v2/shard-045.native.bin": {
+          "sha256": "9d5a1678a93fa3719b48bb1880c2ea3f4c2309f89908f1c06bd7fb72d13bc3f9",
+          "bytes": 10058
+        },
+        "canonical-dictionary-overlay-v2/shard-046.native.bin": {
+          "sha256": "e7bd71d414e3c173692ac43c0828e4d6b8a38330a448840ad73ffa2655c0f54e",
+          "bytes": 10697
+        },
+        "canonical-dictionary-overlay-v2/shard-047.native.bin": {
+          "sha256": "5c62284606eddbf8af1358c07850f1f97eba35c71c23c2cfdfa68cac85493c83",
+          "bytes": 10409
+        },
+        "canonical-dictionary-overlay-v2/shard-048.native.bin": {
+          "sha256": "0d2e36f98c4df39a534dfebd61e333cd8897276f6db2580248d600aa7054abdd",
+          "bytes": 10516
+        },
+        "canonical-dictionary-overlay-v2/shard-049.native.bin": {
+          "sha256": "76745fe22d73db849b3ef146da121cfebc8b689b6e516485e8f0ca90f76c1df4",
+          "bytes": 10486
+        },
+        "canonical-dictionary-overlay-v2/shard-050.native.bin": {
+          "sha256": "cd7cfd59b2cdc3fb5a63ee61a25f33e9c3d170c6fb1b6af61d46b1de26abbd4f",
+          "bytes": 10692
+        },
+        "canonical-dictionary-overlay-v2/shard-051.native.bin": {
+          "sha256": "513c3a529946f7e111c3f6f6b85d2e955c29d50c82629ab6b9cf1b02af936a98",
+          "bytes": 10295
+        },
+        "canonical-dictionary-overlay-v2/shard-052.native.bin": {
+          "sha256": "01c6ff609f3c8cf6d0bbec72766b98007a6a76211b122132ee18f55ab99499e8",
+          "bytes": 10044
+        },
+        "canonical-dictionary-overlay-v2/shard-053.native.bin": {
+          "sha256": "c77d2f4d0615bf5d8115a16fede5ef54ddeebe22d3072560aacfc510006f5be7",
+          "bytes": 10744
+        },
+        "canonical-dictionary-overlay-v2/shard-054.native.bin": {
+          "sha256": "2b274b41b1779d92943ba69783c9e2f6f85f6779b308e340f8478a253b07c704",
+          "bytes": 10683
+        },
+        "canonical-dictionary-overlay-v2/shard-055.native.bin": {
+          "sha256": "c833585af82129679a28c7d34fd3e9d9008d75a0ccb69291130082eeb1dab9b8",
+          "bytes": 11110
+        },
+        "canonical-dictionary-overlay-v2/shard-056.native.bin": {
+          "sha256": "18b05f06e67f96f8b562a9f34f97eb0ee5f76b7f73c5e09f6a3adf33bf5c10d6",
+          "bytes": 10430
+        },
+        "canonical-dictionary-overlay-v2/shard-057.native.bin": {
+          "sha256": "0c2e3b30b06bc6920b35b770b1b35be3c2e3244c07527ab9889574c95b7813c8",
+          "bytes": 10720
+        },
+        "canonical-dictionary-overlay-v2/shard-058.native.bin": {
+          "sha256": "dbad5504c3854579c9404b0730e7fd8f013b018caacb86d780fb82ffa6acba5f",
+          "bytes": 10618
+        },
+        "canonical-dictionary-overlay-v2/shard-059.native.bin": {
+          "sha256": "1f59ee988065d5502e069a062807e974a50eaf24f78e90dff029388c64866483",
+          "bytes": 10905
+        },
+        "canonical-dictionary-overlay-v2/shard-060.native.bin": {
+          "sha256": "6a01814c542b92e78b32ae6daec898794977eb443c59530ef9e7e76161ba1e86",
+          "bytes": 10636
+        },
+        "canonical-dictionary-overlay-v2/shard-061.native.bin": {
+          "sha256": "5dbe0821b92d089e332667fe2c84f274cbb24c66a96d2d0c261f5df42900f528",
+          "bytes": 10997
+        },
+        "canonical-dictionary-overlay-v2/shard-062.native.bin": {
+          "sha256": "0c7624511c3d7d74a08fdfda83678c6e7fec883b812ece9bc1ab3c2f6dcca973",
+          "bytes": 10748
+        },
+        "canonical-dictionary-overlay-v2/shard-063.native.bin": {
+          "sha256": "71c6449d6ba1752b37b36815bf359101da05c04d6d8c040c414ea9401d17b911",
+          "bytes": 10696
+        },
+        "canonical-dictionary-overlay-v2/shard-064.native.bin": {
+          "sha256": "865ededdb606dbdf409c43a6be9c9c34d89ee757f0105f763eec0a12aeeb62fe",
+          "bytes": 10967
+        },
+        "canonical-dictionary-overlay-v2/shard-065.native.bin": {
+          "sha256": "b591860cdc55caf7409b082e78a5a3809144a13f07c12cc87cb86a26a56a49bd",
+          "bytes": 10470
+        },
+        "canonical-dictionary-overlay-v2/shard-066.native.bin": {
+          "sha256": "07161aaecafd4f540c9c09e28edfc7ab30b853dee292638d86402a9b98de63c8",
+          "bytes": 10481
+        },
+        "canonical-dictionary-overlay-v2/shard-067.native.bin": {
+          "sha256": "1689a1b6219e9453cae66abcb184521d3bd7176ac320bab4b3e65d8edcabafbc",
+          "bytes": 10555
+        },
+        "canonical-dictionary-overlay-v2/shard-068.native.bin": {
+          "sha256": "fde1d0da43d9407b716bda1ea185a69f87bc08d55a8065b2ead1d489f22e7797",
+          "bytes": 10384
+        },
+        "canonical-dictionary-overlay-v2/shard-069.native.bin": {
+          "sha256": "920b94c45e392506623e58f9b020bd86dc79c973a10f4b03a90ad25ad2cdab88",
+          "bytes": 10676
+        },
+        "canonical-dictionary-overlay-v2/shard-070.native.bin": {
+          "sha256": "52d151123ccedb2a810fdd564b330c1f38879f409328e47ca74c451e6350d850",
+          "bytes": 10680
+        },
+        "canonical-dictionary-overlay-v2/shard-071.native.bin": {
+          "sha256": "632ed1aa46e9a1b396b336ccc0fccf8c077f7f0e75ec8b6dc437b3e401a4450d",
+          "bytes": 10432
+        },
+        "canonical-dictionary-overlay-v2/shard-072.native.bin": {
+          "sha256": "be53c8683d89c5fddb0303265e2646f0945ef6a11ee6d1456d8a5b97a1660585",
+          "bytes": 10630
+        },
+        "canonical-dictionary-overlay-v2/shard-073.native.bin": {
+          "sha256": "0111d65151461bebd5a70b82d49db1f3cc11b287141497c8cc381ac3e534d60a",
+          "bytes": 10313
+        },
+        "canonical-dictionary-overlay-v2/shard-074.native.bin": {
+          "sha256": "24a18198c0652c124a3c4ad1de03b603a3270431de53b4cf6cca120ee25cb419",
+          "bytes": 10407
+        },
+        "canonical-dictionary-overlay-v2/shard-075.native.bin": {
+          "sha256": "ce59dad94838166f7793f68ef43dbb144e26beb1d2d52fa5e2d3e2817fa2a8d4",
+          "bytes": 10688
+        },
+        "canonical-dictionary-overlay-v2/shard-076.native.bin": {
+          "sha256": "3f3a4eba4ec55ff79dfba37f46924a26445103145faa5b44cf90a22227de297d",
+          "bytes": 11317
+        },
+        "canonical-dictionary-overlay-v2/shard-077.native.bin": {
+          "sha256": "9dc66ff1b234f7d1a2f0bd7b43f28f5ec4745bffe8bd2a2234db8567e47ee613",
+          "bytes": 10438
+        },
+        "canonical-dictionary-overlay-v2/shard-078.native.bin": {
+          "sha256": "5f0bffd96febf9eb19eda77ef84564732811a6dea455282e5797f2f6e289119a",
+          "bytes": 10592
+        },
+        "canonical-dictionary-overlay-v2/shard-079.native.bin": {
+          "sha256": "af95d968c030e1bea699273150b3e90c0306ce112d7b81d06d5c488dbb829601",
+          "bytes": 10636
+        },
+        "canonical-dictionary-overlay-v2/shard-080.native.bin": {
+          "sha256": "6ef1b92b8f9fcd1ce8673356f03268c5c7f2d94046fe567e900d58a094eb3f5b",
+          "bytes": 10483
+        },
+        "canonical-dictionary-overlay-v2/shard-081.native.bin": {
+          "sha256": "44c23caeed07d3ba9abb8b56c580c42ffc043b894b9addf7b1d399612b9cb443",
+          "bytes": 10988
+        },
+        "canonical-dictionary-overlay-v2/shard-082.native.bin": {
+          "sha256": "8a03099c989baad764660c68753ca9cb0080d19ca2622a380fe5be5039ef7fd3",
+          "bytes": 11204
+        },
+        "canonical-dictionary-overlay-v2/shard-083.native.bin": {
+          "sha256": "e0d5155f6d5c91078ca5e8d061f8588d984e521bde879203704f8e1ad05bd244",
+          "bytes": 11246
+        },
+        "canonical-dictionary-overlay-v2/shard-084.native.bin": {
+          "sha256": "b16bc5eb1e5cc110dad7fda795caa4d602cfcef3f1d232ab8f2fa3bfe9d0e9a2",
+          "bytes": 10854
+        },
+        "canonical-dictionary-overlay-v2/shard-085.native.bin": {
+          "sha256": "938d1a979c0c94a83411dfc0a427f6b433d2fa5160b17a89ca3ee94c252e703f",
+          "bytes": 10568
+        },
+        "canonical-dictionary-overlay-v2/shard-086.native.bin": {
+          "sha256": "a78aed9d36721419417e940ada98ba51739b5daf152b6fa65e8f8d5233a0ab81",
+          "bytes": 10353
+        },
+        "canonical-dictionary-overlay-v2/shard-087.native.bin": {
+          "sha256": "f1c3b10b6f6f7221a4f2c8baead16a98a994f59b249a7a2f67a505794b3f1cd1",
+          "bytes": 10950
+        },
+        "canonical-dictionary-overlay-v2/shard-088.native.bin": {
+          "sha256": "0e4f1c2a5422dcfcd94a9cfe4324074392014ed3ddf2470e6aef4777d84743a9",
+          "bytes": 10274
+        },
+        "canonical-dictionary-overlay-v2/shard-089.native.bin": {
+          "sha256": "86a8d89971af6b05c05612a4574fae73eefab350e1224822376381d6139b878b",
+          "bytes": 16348
+        },
+        "canonical-dictionary-overlay-v2/shard-090.native.bin": {
+          "sha256": "998fd0cdf628de0faeed528e2272f7d7e1973c86720e229ce3ac08cc34466de0",
+          "bytes": 13134
+        },
+        "canonical-dictionary-overlay-v2/shard-091.native.bin": {
+          "sha256": "3af3ba782cefb6d44b56bd8053f7790011951554db67d2df548ebbf81939c952",
+          "bytes": 10570
+        },
+        "canonical-dictionary-overlay-v2/shard-092.native.bin": {
+          "sha256": "9e6f046791825e2553f6ef8d0ab8eed8d00148f3d3d5e95514aa60896f2af1c6",
+          "bytes": 10703
+        },
+        "canonical-dictionary-overlay-v2/shard-093.native.bin": {
+          "sha256": "adb634daeb34e96813ca2030e00d462aa14fb00fc3f655a64b41f3cb20b9ad2e",
+          "bytes": 11048
+        },
+        "canonical-dictionary-overlay-v2/shard-094.native.bin": {
+          "sha256": "517161c42d908536f5bf51483b727e27de77dd63959bd5c1b766319ed53354a5",
+          "bytes": 10621
+        },
+        "canonical-dictionary-overlay-v2/shard-095.native.bin": {
+          "sha256": "44a4f7f0e11fee7ebf9f1d143a9c474d4ccea0c4597969eb21db5c35b2e0277d",
+          "bytes": 11102
+        },
+        "canonical-dictionary-overlay-v2/shard-096.native.bin": {
+          "sha256": "e981360e18ba654157ac3946c8e10f31a43329ba67f5f7a20ed608c732bf722f",
+          "bytes": 11672
+        },
+        "canonical-dictionary-overlay-v2/shard-097.native.bin": {
+          "sha256": "6b5121c38caace814b20146fb262886de18668a6822ec9b8d633642599bb8076",
+          "bytes": 10691
+        },
+        "canonical-dictionary-overlay-v2/shard-098.native.bin": {
+          "sha256": "fed019baa69bc4e2af53a3e57301dc38e1be2f96357b8ec05041282cd3c8ec41",
+          "bytes": 10420
+        },
+        "canonical-dictionary-overlay-v2/shard-099.native.bin": {
+          "sha256": "f5e968e2941b482594f141feebe9171fe5a55ff8a655fba575fba5c01f60fde4",
+          "bytes": 10593
+        },
+        "canonical-dictionary-overlay-v2/shard-100.native.bin": {
+          "sha256": "c3aeecfa6c0603e948be14964cc0e8fafc0b3c369fda69704f6f14c469a28a26",
+          "bytes": 10710
+        },
+        "canonical-dictionary-overlay-v2/shard-101.native.bin": {
+          "sha256": "cc2f40882ad9a839344fe98a7090341c69e01bc583ca47ec51a3466e1d6486d3",
+          "bytes": 11314
+        },
+        "canonical-dictionary-overlay-v2/shard-102.native.bin": {
+          "sha256": "65c5869d092b41710f11b5e6fb111a2f257cba465b4c7254bba697603a5e3786",
+          "bytes": 11663
+        },
+        "canonical-dictionary-overlay-v2/shard-103.native.bin": {
+          "sha256": "05e48a454d0b40e9b28afef771e40b689d735cfcbe6b07b3ac795e0accdc2e14",
+          "bytes": 11121
+        },
+        "canonical-dictionary-overlay-v2/shard-104.native.bin": {
+          "sha256": "178e0c154f3081bb91aed4fd07c21a519fe9a6132a732372bc720bd5fd236dc7",
+          "bytes": 10502
+        },
+        "canonical-dictionary-overlay-v2/shard-105.native.bin": {
+          "sha256": "95df60b0350e36a76027c0c04600312e376f2f847a48d73bda6aed4da2d83966",
+          "bytes": 10948
+        },
+        "canonical-dictionary-overlay-v2/shard-106.native.bin": {
+          "sha256": "70011e03de98cd866e7c0605ab90486e28662a95987d9c50572768eccd635078",
+          "bytes": 11168
+        },
+        "canonical-dictionary-overlay-v2/shard-107.native.bin": {
+          "sha256": "cf39cd4c6e3d53cf314e35fc02038775d98254775dfefc658f37a3a8a94ee4ee",
+          "bytes": 10298
+        },
+        "canonical-dictionary-overlay-v2/shard-108.native.bin": {
+          "sha256": "f4f0b40de4e90e7906a4b60e530f21de0ae66917fcf356028814165d093a7d21",
+          "bytes": 10789
+        },
+        "canonical-dictionary-overlay-v2/shard-109.native.bin": {
+          "sha256": "a0d95ce3279fdd1f9c37ec0d1861239632dafa5013559131f3c73a9efaa64868",
+          "bytes": 10653
+        },
+        "canonical-dictionary-overlay-v2/shard-110.native.bin": {
+          "sha256": "e9636735bd9944008d8a875fa36361e8853e02e4adc0870750e8a6fa5a9992f8",
+          "bytes": 10661
+        },
+        "canonical-dictionary-overlay-v2/shard-111.native.bin": {
+          "sha256": "e9c6995e631266f327d9f7f9e4c8f6231cac03577d7cbab29d32d877b1baef7b",
+          "bytes": 11189
+        },
+        "canonical-dictionary-overlay-v2/shard-112.native.bin": {
+          "sha256": "bc5ad6c7ead0b6b7112da786d1582b40e52fb0540a231ca1aa735067525f208b",
+          "bytes": 10860
+        },
+        "canonical-dictionary-overlay-v2/shard-113.native.bin": {
+          "sha256": "960eac9e403abf0badaaa3472c5d3f60795940ac1502b2b02db5f30905edb65c",
+          "bytes": 10937
+        },
+        "canonical-dictionary-overlay-v2/shard-114.native.bin": {
+          "sha256": "1b067803fd51b17e2c4bb2158ce2c0129aa108ba7f687dd1d2e998b450432132",
+          "bytes": 10994
+        },
+        "canonical-dictionary-overlay-v2/shard-115.native.bin": {
+          "sha256": "b4be2acafd3d326089495db6b25f57fcc64765940d6a978c8d104f73783cee31",
+          "bytes": 11359
+        },
+        "canonical-dictionary-overlay-v2/shard-116.native.bin": {
+          "sha256": "c852f1aa340fa2a4fb466c44f4680f4685f01e084c16a2b58e16ccc6c1264e9f",
+          "bytes": 10558
+        },
+        "canonical-dictionary-overlay-v2/shard-117.native.bin": {
+          "sha256": "a6a9397d9cf3bf499790185e1e81b4659015b69493adf6ae960155bc529ac9bc",
+          "bytes": 11055
+        },
+        "canonical-dictionary-overlay-v2/shard-118.native.bin": {
+          "sha256": "d8e64bac6144548dafab4b9c42cae4c1bc977aefea127398c8ae9aa61d878c5b",
+          "bytes": 10623
+        },
+        "canonical-dictionary-overlay-v2/shard-119.native.bin": {
+          "sha256": "fa7d7d9fc5b77b3121c7d6362e0394d1255bc49ab4a1e9ceb08abfcacde3406a",
+          "bytes": 10621
+        },
+        "canonical-dictionary-overlay-v2/shard-120.native.bin": {
+          "sha256": "9b4f611b120dddf0dd6e1212ba43b967e2b452869d1f2c1520f07638222ac190",
+          "bytes": 11489
+        },
+        "canonical-dictionary-overlay-v2/shard-121.native.bin": {
+          "sha256": "10fb2a6006e547802785c2d42ee23d6279b011ca6819604792229cd67b000ae8",
+          "bytes": 10900
+        },
+        "canonical-dictionary-overlay-v2/shard-122.native.bin": {
+          "sha256": "ce220559ea9e8e69ca40c3cb8a8478425327adf1d89a97ffe8b149d81fbfc7da",
+          "bytes": 11109
+        },
+        "canonical-dictionary-overlay-v2/shard-123.native.bin": {
+          "sha256": "24e152223ef1d9a6ae1877fcf5ae85a75cc6c5f66e3af20921f0ac409b907073",
+          "bytes": 10858
+        },
+        "canonical-dictionary-overlay-v2/shard-124.native.bin": {
+          "sha256": "b168ab51f0b93bbfa2442bb048898d54052aabf49652ae6d2fb74e0dd5028ee2",
+          "bytes": 10254
+        },
+        "canonical-dictionary-overlay-v2/shard-125.native.bin": {
+          "sha256": "92b2b72a09b52fdf3ef33b96d14ca46617cdce707d388078d308b3526cd216cc",
+          "bytes": 11228
+        },
+        "canonical-dictionary-overlay-v2/shard-126.native.bin": {
+          "sha256": "4b50a5bb3be2329e7edc38ec5d5366176e9e70fad597d6a9bf968393292948d8",
+          "bytes": 11335
+        },
+        "canonical-dictionary-overlay-v2/shard-127.native.bin": {
+          "sha256": "78e185e85da7c0c4ece7ea711ac900d01c4d29e379bdf1a8ebe04370f99c8d3d",
+          "bytes": 11072
+        },
+        "diagnose_proposal_beam.py": {
+          "sha256": "6728150c9c60edef394c4cea37dac5d834e732b53254c5ce018b87b6156ba639",
+          "bytes": 2873
+        },
+        "diagnose_proposal_candidate.py": {
+          "sha256": "e0a25e3effdbae133980a20c241561536e37b1e9c76f1ebffc0658795e01321a",
+          "bytes": 2183
+        },
+        "export-native-run.log": {
+          "sha256": "dda21e5f4c4caff396b874f42ae31612cb5e4e58bc9311975e71539bcc4b55b5",
+          "bytes": 116
+        },
+        "export_native_dictionary.rs": {
+          "sha256": "42828015a22175b4b929ad7f2a5931bbb7779b46b00b5b5547a154e518e75ac1",
+          "bytes": 4842
+        },
+        "export_train_dictionary_with_overlay.py": {
+          "sha256": "3e181b7a6e2a15826956b412d8b2e66fb5acd22cc5ffe32d7433da74428efeb9",
+          "bytes": 3675
+        },
+        "extract_proposal_training.py": {
+          "sha256": "f7fbf68fd261544cba1a57c509f11405f8b41c85141586223dd5e988545f7715",
+          "bytes": 3813
+        },
+        "proposal-446-training-v2/external-beam-diagnostic.json": {
+          "sha256": "bf6f79d8891da633d85583b1647afea7b0712b5e37624ffc37fe510cbe97184a",
+          "bytes": 12812
+        },
+        "proposal-446-training-v2/manifest.json": {
+          "sha256": "284819f8968a7eba08fa7605644dae5070c20bed79888e534a525553aa0fc9fc",
+          "bytes": 5707
+        },
+        "proposal-446-training-v2/proposal_window8.i16": {
+          "sha256": "2732ce2c0956d1ec83eafa5fe615dc559a10106d6fd781f58074d2ccc331c9af",
+          "bytes": 67812
+        },
+        "proposal-446-training-v2/teacher-forced-diagnostic.json": {
+          "sha256": "55b2c1e720e893474f2e37725976b866866771aadb8624e1a780f47795ea0168",
+          "bytes": 4908
+        },
+        "proposal27-expected-metadata-v1/artifact-full.debug.txt": {
+          "sha256": "168a6a4275c75e8dba99e2fd7e41969407055de2dd70d8f4c38307348fae5dbb",
+          "bytes": 2700
+        },
+        "proposal27-expected-metadata-v1/artifact-reference.bin": {
+          "sha256": "5df62afe443831c988cfa53c9922a492566df5919e448ee653d6abf775951369",
+          "bytes": 151
+        },
+        "proposal27-expected-metadata-v1/expected.json": {
+          "sha256": "540a85a47249c2fac2490eb42e887e662a1af4dc9448ba24874891e114d2e25e",
+          "bytes": 1270
+        },
+        "proposal27-expected-metadata-v1/numeric-indices.type.bin": {
+          "sha256": "c71c657455b5c2038385133ccb1ee9f60f8218af1d1111623b6b2e0c19e83a67",
+          "bytes": 17
+        },
+        "proposal27-expected-metadata-v1/numeric-scores.type.bin": {
+          "sha256": "20e1cc29b858f4ddde0e9295d58ad0a09042254f76152b26ea095ad8eb96049b",
+          "bytes": 17
+        },
+        "proposal27-expected-metadata-v1/proposer-definition.native.bin": {
+          "sha256": "b2b736dc93efe45e0c472d44da8b77e0fdeb87bb6249f6e32c404905cf904d73",
+          "bytes": 3287
+        },
+        "proposal27-expected-metadata-v1/signature.native.bin": {
+          "sha256": "d2549e476d2ca731e61fb7cac4762b212e515fa616b2b246c9e332ea219bc053",
+          "bytes": 17158
+        },
+        "proposal27-expected-metadata-v1/unknown-policy.native.bin": {
+          "sha256": "9db5503e2454ada0bfdb5508ae362a5751e4da1fb18fdd3abbc7ceab06720cde",
+          "bytes": 2013
+        },
+        "proposal27_expected_metadata.rs": {
+          "sha256": "90183010d2085f483d40f096fa7b8129be45541a381e1f6787c77d1a1832a0b6",
+          "bytes": 8172
+        },
+        "proposal_window8_training_reference.py": {
+          "sha256": "5c66467f722e5d988555b3756629eeebbd31cbb1cc4998b19045872f6c53d9ee",
+          "bytes": 2049
+        },
+        "supervision-extraction-manifest.json": {
+          "sha256": "5cc768852551f86b7856b8a7801cbcf2a59167abd0087f057539ee287103ac27",
+          "bytes": 1679
+        },
+        "train-dictionary-authored-overlay-v2/manifest.json": {
+          "sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+          "bytes": 26222
+        },
+        "train-dictionary-authored-overlay-v2/shard-000.json": {
+          "sha256": "ccb8b127fed1a36a0e00ea88c2ddcd69703771cf7ace172298645d3f123a5bad",
+          "bytes": 5248
+        },
+        "train-dictionary-authored-overlay-v2/shard-001.json": {
+          "sha256": "350c9c3dfb36da4884731b6f5554f187e08412bb21fcf4ee099bfc67d21432ca",
+          "bytes": 5369
+        },
+        "train-dictionary-authored-overlay-v2/shard-002.json": {
+          "sha256": "b5ada4f986bdfb4f820b84eb256574ffc4c3a931927a5fd2c01687292e302a43",
+          "bytes": 4885
+        },
+        "train-dictionary-authored-overlay-v2/shard-003.json": {
+          "sha256": "02b8e18ea9232a2b5b344646223a8864909cc5009a71fb250380b5ed0d9028cd",
+          "bytes": 4867
+        },
+        "train-dictionary-authored-overlay-v2/shard-004.json": {
+          "sha256": "893e83ae5b3acd76b12fbb38289327de91504f49a1fc524c4892811224b77c1a",
+          "bytes": 4830
+        },
+        "train-dictionary-authored-overlay-v2/shard-005.json": {
+          "sha256": "67e8b478f5f8dfeee80a7b956d7f241a60d7469ae36ac3babea3bd6d871f9473",
+          "bytes": 4739
+        },
+        "train-dictionary-authored-overlay-v2/shard-006.json": {
+          "sha256": "413c52c941ed3140ed1e2d4b591ca9886b7d99a2b27522f56375ce38a70c58e9",
+          "bytes": 4743
+        },
+        "train-dictionary-authored-overlay-v2/shard-007.json": {
+          "sha256": "beff9e223f6edb41c2433e8515401d90070a61427b4f1844104006168b7b0959",
+          "bytes": 4759
+        },
+        "train-dictionary-authored-overlay-v2/shard-008.json": {
+          "sha256": "5aadcb0241228a92365ce4058545b72322e0e4703156ac6c7d4f720766707e0a",
+          "bytes": 4816
+        },
+        "train-dictionary-authored-overlay-v2/shard-009.json": {
+          "sha256": "fdce5dd15ed8bcdbf16d7685f34a3608979a0de14765f2280286ebddac211058",
+          "bytes": 5012
+        },
+        "train-dictionary-authored-overlay-v2/shard-010.json": {
+          "sha256": "a1448668426467200d8f4430055c07d1573f844e5588edd894d80acd2c62e89b",
+          "bytes": 4970
+        },
+        "train-dictionary-authored-overlay-v2/shard-011.json": {
+          "sha256": "f298b2f068cc2060357661fd880822f59cd3663a81193fc1b313b8f05dac2691",
+          "bytes": 4943
+        },
+        "train-dictionary-authored-overlay-v2/shard-012.json": {
+          "sha256": "18b0aa000427a6806cf1c3a7cb2b011aad38251e485a6fe55a65461c74b697be",
+          "bytes": 4873
+        },
+        "train-dictionary-authored-overlay-v2/shard-013.json": {
+          "sha256": "498fb6bae0766dc5170b1550c88de43155b92b61100974459d9bfb5637911fd0",
+          "bytes": 4934
+        },
+        "train-dictionary-authored-overlay-v2/shard-014.json": {
+          "sha256": "78647ca8485a3b446724a484bb13031cee1e38d6bca719c70bb5c23e771af150",
+          "bytes": 4914
+        },
+        "train-dictionary-authored-overlay-v2/shard-015.json": {
+          "sha256": "c6c74d47ef30498ac4d20a0d265bf4ae294b7021812137084553ed9d8d89279b",
+          "bytes": 4893
+        },
+        "train-dictionary-authored-overlay-v2/shard-016.json": {
+          "sha256": "634bde34b536b9a619d7d49cd185ef585cf449f811dfb7a19df9d54a6f4884c3",
+          "bytes": 5022
+        },
+        "train-dictionary-authored-overlay-v2/shard-017.json": {
+          "sha256": "87c4184f3ba408c95860db261c7d4352af59d29085f5d5f2bc609fe7c1cc2879",
+          "bytes": 5001
+        },
+        "train-dictionary-authored-overlay-v2/shard-018.json": {
+          "sha256": "66fdee735b5fec9d27d8064ec598f884bd25bcff04b28d3579cb7248cd96b342",
+          "bytes": 4967
+        },
+        "train-dictionary-authored-overlay-v2/shard-019.json": {
+          "sha256": "982bd141a659788f35639631087177340072387f1f0d1d046336ca077389dcc3",
+          "bytes": 4892
+        },
+        "train-dictionary-authored-overlay-v2/shard-020.json": {
+          "sha256": "553a9683ac0d328973c36273c68182bf52b266b6cd6a873549cea76522a4361b",
+          "bytes": 4994
+        },
+        "train-dictionary-authored-overlay-v2/shard-021.json": {
+          "sha256": "7337bda76b023f98d986dbd70f98ea1cbd85ab927ec4b0a9d77ee78e935efaad",
+          "bytes": 4873
+        },
+        "train-dictionary-authored-overlay-v2/shard-022.json": {
+          "sha256": "9fa417b6c45bddd06388e11bcec8a98f3453112629eb0fdd7563f1d67071d09f",
+          "bytes": 4978
+        },
+        "train-dictionary-authored-overlay-v2/shard-023.json": {
+          "sha256": "d99da616cdb8c1151547217f52b32cec190b4cf76f0944698a209736836651d4",
+          "bytes": 4844
+        },
+        "train-dictionary-authored-overlay-v2/shard-024.json": {
+          "sha256": "68eda907999060daced50eda16c6956ae7cafc295520fd949c2f1e73ef41ad3c",
+          "bytes": 4914
+        },
+        "train-dictionary-authored-overlay-v2/shard-025.json": {
+          "sha256": "025206b3c91bb956e7b50c8b503a403913c51f7b7e6e8bbe0ee004bcec822005",
+          "bytes": 4912
+        },
+        "train-dictionary-authored-overlay-v2/shard-026.json": {
+          "sha256": "fc6065c018e70ab18a18ddab75d7688aad8e38f5718f0b1b2282148edf212ef5",
+          "bytes": 4898
+        },
+        "train-dictionary-authored-overlay-v2/shard-027.json": {
+          "sha256": "5a10c078df3d77ba28adedd1f16bebad96a195f0838e39ac2c9e4393d52c1444",
+          "bytes": 4930
+        },
+        "train-dictionary-authored-overlay-v2/shard-028.json": {
+          "sha256": "1118f77a55b54b4d3c43407f516c46c21fd1fafe0e8423d8b5b362920b2ebdb9",
+          "bytes": 4889
+        },
+        "train-dictionary-authored-overlay-v2/shard-029.json": {
+          "sha256": "816f25bece08f57420af479afb2a2724cfea8af75e408357ccd55dbdf84d7697",
+          "bytes": 4953
+        },
+        "train-dictionary-authored-overlay-v2/shard-030.json": {
+          "sha256": "06c12b3064056a7ca50f95caec99854acde62d674b5425f29eddaab3c5cca97d",
+          "bytes": 4898
+        },
+        "train-dictionary-authored-overlay-v2/shard-031.json": {
+          "sha256": "6c1c70aa1675c62a652869362131d62ab13824d7fa8aba6d1d3c873235d62999",
+          "bytes": 4936
+        },
+        "train-dictionary-authored-overlay-v2/shard-032.json": {
+          "sha256": "04a050bb455c65f83de664944d41c196feffb3f73477f8668ee82059f6e49ca7",
+          "bytes": 4852
+        },
+        "train-dictionary-authored-overlay-v2/shard-033.json": {
+          "sha256": "55fc50e0f612912bc3cf5d39aa67cfa9ac1f69f013ec2ec2d339666012021af5",
+          "bytes": 4883
+        },
+        "train-dictionary-authored-overlay-v2/shard-034.json": {
+          "sha256": "6189caf6d8ab1d53b6fc9036b46719c4c975364ef94d7b2008421e6d6190c47b",
+          "bytes": 4908
+        },
+        "train-dictionary-authored-overlay-v2/shard-035.json": {
+          "sha256": "eb99504e1b4242b50d3a9ef82928a58d66f9424b80c70159d1e8abb9d5e4689d",
+          "bytes": 4962
+        },
+        "train-dictionary-authored-overlay-v2/shard-036.json": {
+          "sha256": "7d53bc615246d1ee826130d65c9605b3922c93e16b7b24a11a5d818a6a8888e3",
+          "bytes": 4860
+        },
+        "train-dictionary-authored-overlay-v2/shard-037.json": {
+          "sha256": "b6a21eca6ca031e419d56396ae463ac940f92d680007aadfb23a2b7886c46ce5",
+          "bytes": 4922
+        },
+        "train-dictionary-authored-overlay-v2/shard-038.json": {
+          "sha256": "8f949c7f8abd3ee120126e2b8ff05ac6c834002f7c92482646ab75248bd6074b",
+          "bytes": 4886
+        },
+        "train-dictionary-authored-overlay-v2/shard-039.json": {
+          "sha256": "8529c5b2ce63d8008b88aa118143e463168541bc8ae0dbc9f42466b64178994e",
+          "bytes": 4887
+        },
+        "train-dictionary-authored-overlay-v2/shard-040.json": {
+          "sha256": "7b903c082599a22ca42da4365c792276488d1b0dde4cc08d5afb4642edfce17b",
+          "bytes": 4984
+        },
+        "train-dictionary-authored-overlay-v2/shard-041.json": {
+          "sha256": "1326f7c61167b61576488c7e630659a7dd912f251cf6f976cb5e179b3e54c524",
+          "bytes": 4955
+        },
+        "train-dictionary-authored-overlay-v2/shard-042.json": {
+          "sha256": "4efc4117a3df0f7279494ead10d47064c765b5d5c0c90a064158be777f6c06eb",
+          "bytes": 4896
+        },
+        "train-dictionary-authored-overlay-v2/shard-043.json": {
+          "sha256": "3af5fea1f35eef2b23f1ad6c69952680ee1354383886890b5dd5a593b36ba07f",
+          "bytes": 5005
+        },
+        "train-dictionary-authored-overlay-v2/shard-044.json": {
+          "sha256": "f927395e926812fc2655df95842555c9d5e039c92a719cf1b9c56cef6d1c438c",
+          "bytes": 4869
+        },
+        "train-dictionary-authored-overlay-v2/shard-045.json": {
+          "sha256": "b6098e4419423704d7f32c10aec81e0a4b83d352c77ea7bd6d50da391a622bbb",
+          "bytes": 4891
+        },
+        "train-dictionary-authored-overlay-v2/shard-046.json": {
+          "sha256": "e6a0af43bfbf3ffbd9c70885265bd56a072f0df9bc599de6ce73673a6eb3fce6",
+          "bytes": 4946
+        },
+        "train-dictionary-authored-overlay-v2/shard-047.json": {
+          "sha256": "01e67ef6d389bb388d8fd2162c45534a82195ab941cae907f5a81a698e95958a",
+          "bytes": 4907
+        },
+        "train-dictionary-authored-overlay-v2/shard-048.json": {
+          "sha256": "00c6dffe92504d74a60963f317d10f5df0725f6506b0928197e49a412a815b66",
+          "bytes": 4951
+        },
+        "train-dictionary-authored-overlay-v2/shard-049.json": {
+          "sha256": "5564127594e40359ca4e9a80f899b94c0bb7eec14c1f75e7417b257e2af17453",
+          "bytes": 4854
+        },
+        "train-dictionary-authored-overlay-v2/shard-050.json": {
+          "sha256": "a15064307ebfb83dbaddc5ccf564585a4bcdc1803a0ed0928a6cde0f1b0f91bf",
+          "bytes": 4952
+        },
+        "train-dictionary-authored-overlay-v2/shard-051.json": {
+          "sha256": "cd0bcd57b81aa364d004f8ca178382a794da8c0a797804f3b327ed38ce6f5abe",
+          "bytes": 4902
+        },
+        "train-dictionary-authored-overlay-v2/shard-052.json": {
+          "sha256": "a1a42e4a4bf4024ee152ca5963aba8a5b379fd80ecbaf114e5efdfa007484913",
+          "bytes": 4860
+        },
+        "train-dictionary-authored-overlay-v2/shard-053.json": {
+          "sha256": "3d324caa9e92d885beb055d9c46f02b87ff1b89e180a881b9d91adf436402ce2",
+          "bytes": 4905
+        },
+        "train-dictionary-authored-overlay-v2/shard-054.json": {
+          "sha256": "dd046326ecf796403be43ea8b41bead07284ef0182303977c55feda8d72a00a0",
+          "bytes": 4849
+        },
+        "train-dictionary-authored-overlay-v2/shard-055.json": {
+          "sha256": "c415d9aa06b45861d66427b0888710e31b7116ed0b257fc89f6f06fa5cf3cf51",
+          "bytes": 5135
+        },
+        "train-dictionary-authored-overlay-v2/shard-056.json": {
+          "sha256": "7aeec0edf71011f18b99bbc40a776e92f9921d84616dc16162776e5766a6d4c2",
+          "bytes": 4995
+        },
+        "train-dictionary-authored-overlay-v2/shard-057.json": {
+          "sha256": "cc15e8c715b4014d1160687334648b9ee39d67505dfa81783a35829233a8ef72",
+          "bytes": 4928
+        },
+        "train-dictionary-authored-overlay-v2/shard-058.json": {
+          "sha256": "a14135baa4e13f33a9e979b8abcc80332d45d84754a16360e2c3352da0189d0c",
+          "bytes": 5032
+        },
+        "train-dictionary-authored-overlay-v2/shard-059.json": {
+          "sha256": "a9dc3f6ebfaf344ef356d742149c7493ffacb4e944a01b530fa4cf8de5e395e3",
+          "bytes": 4997
+        },
+        "train-dictionary-authored-overlay-v2/shard-060.json": {
+          "sha256": "80b6fb2e6ee63acb0d1ead6bc96123af65c79dd72a0258940b1a83d5f89913ee",
+          "bytes": 4959
+        },
+        "train-dictionary-authored-overlay-v2/shard-061.json": {
+          "sha256": "986f69a6436bf5ebd8b844fc25b70629ca19495389c4b911d78292f702c39002",
+          "bytes": 4928
+        },
+        "train-dictionary-authored-overlay-v2/shard-062.json": {
+          "sha256": "0941bce6418b367e074c7e0b1210f6ca1aace466a4d0526f9606104b002817d4",
+          "bytes": 4902
+        },
+        "train-dictionary-authored-overlay-v2/shard-063.json": {
+          "sha256": "3b64a221af5eb44a9e6637f93138a6da56dc75ef5d3e2b8a4cddad0c4913078c",
+          "bytes": 4929
+        },
+        "train-dictionary-authored-overlay-v2/shard-064.json": {
+          "sha256": "2d66e262601a8ca4098b626bb2e0b2e91bc7fa02f06dac0aef07e27cee931d0e",
+          "bytes": 4873
+        },
+        "train-dictionary-authored-overlay-v2/shard-065.json": {
+          "sha256": "67b2d7836b71683db5a5d7a5aadb95e97ee9c4bc66df1d4bf78a14686b27db43",
+          "bytes": 4919
+        },
+        "train-dictionary-authored-overlay-v2/shard-066.json": {
+          "sha256": "3dfb17723296df42f4106206e93d89a18ddd710580af4966e01187c5e3f71d05",
+          "bytes": 4943
+        },
+        "train-dictionary-authored-overlay-v2/shard-067.json": {
+          "sha256": "6f28850809ab1cadd44eb6e6bc188923461759fbc7b43fb4673bcf23efd82895",
+          "bytes": 4915
+        },
+        "train-dictionary-authored-overlay-v2/shard-068.json": {
+          "sha256": "5a723e986e2431543d2b968306f0289bb52e41bc7a11a9972ca24031cf438178",
+          "bytes": 5077
+        },
+        "train-dictionary-authored-overlay-v2/shard-069.json": {
+          "sha256": "12a512add46bd3156b6d4f3c87a965615647f39a4392c284be2f30c67026b689",
+          "bytes": 5115
+        },
+        "train-dictionary-authored-overlay-v2/shard-070.json": {
+          "sha256": "d93d91433c1cb8bcd094515c6057ece8b4f2185b055c698aa4ad3ad14bb1ea38",
+          "bytes": 5045
+        },
+        "train-dictionary-authored-overlay-v2/shard-071.json": {
+          "sha256": "5d66fa2dba83027179d37bba5873ac729e03b1e9512db75bf84d49df625dcbdc",
+          "bytes": 4908
+        },
+        "train-dictionary-authored-overlay-v2/shard-072.json": {
+          "sha256": "2045ff764aae777eb3a4b3698999faceb8e4ad4edffef854680bb3cf75c380b1",
+          "bytes": 4903
+        },
+        "train-dictionary-authored-overlay-v2/shard-073.json": {
+          "sha256": "255a49e2fa0804c4da4a5e1266534f558674f391a453db6185136764025d2271",
+          "bytes": 5016
+        },
+        "train-dictionary-authored-overlay-v2/shard-074.json": {
+          "sha256": "613a1b0a1c7418ed2216980d64ccfd911df69ec8b9125761f434989b3a4fcfb3",
+          "bytes": 5031
+        },
+        "train-dictionary-authored-overlay-v2/shard-075.json": {
+          "sha256": "25c55e6e646cdf6f89b42711d9071c15f9e2767159c0ecaa5180299684a7bee5",
+          "bytes": 5012
+        },
+        "train-dictionary-authored-overlay-v2/shard-076.json": {
+          "sha256": "14c8a12edce10f40271c9d795c26c4a3815099f3d719ec4753f222b67143270b",
+          "bytes": 4924
+        },
+        "train-dictionary-authored-overlay-v2/shard-077.json": {
+          "sha256": "4cf9e49b6f2cdd05356e732b24add7b52bf98dabaf814fcbd9e275f15e2c6bac",
+          "bytes": 4969
+        },
+        "train-dictionary-authored-overlay-v2/shard-078.json": {
+          "sha256": "b6e9c0292ef83355a1add00a336234547549ac1435460aac5d514b0ea85f00c2",
+          "bytes": 5021
+        },
+        "train-dictionary-authored-overlay-v2/shard-079.json": {
+          "sha256": "fc0008bde36e21c7e32553b08df6475d82a669c467c250ee63b8464f1f200a3d",
+          "bytes": 4999
+        },
+        "train-dictionary-authored-overlay-v2/shard-080.json": {
+          "sha256": "dfcfa8377d76dbb50f99f46250ee09c19f510d899fea1ceefb40cc36f2cbdd7b",
+          "bytes": 4974
+        },
+        "train-dictionary-authored-overlay-v2/shard-081.json": {
+          "sha256": "e05b33fd0f554588eea71c5e07e22c44055029a33b35aeaedea954b46c3ba7e0",
+          "bytes": 4911
+        },
+        "train-dictionary-authored-overlay-v2/shard-082.json": {
+          "sha256": "013c50c03407adab84cb5e5e01991e147b116b0cdbd28849338bb34b5cc560e9",
+          "bytes": 4918
+        },
+        "train-dictionary-authored-overlay-v2/shard-083.json": {
+          "sha256": "68668d7128336087ef0d47a9a9196004139a90e327fc206f53138aaa6aae5c22",
+          "bytes": 4968
+        },
+        "train-dictionary-authored-overlay-v2/shard-084.json": {
+          "sha256": "a3f2e03168ee3c02f55f101f5ad699f8310dbe09668a43086c61cb95b1f73de0",
+          "bytes": 4941
+        },
+        "train-dictionary-authored-overlay-v2/shard-085.json": {
+          "sha256": "e46699dc97b877eb0ff32d70338ca01222e09f17150fafea32fbf87b7f6c344e",
+          "bytes": 4884
+        },
+        "train-dictionary-authored-overlay-v2/shard-086.json": {
+          "sha256": "b73cd661301ccd1ecbccf31bcde3d6d400c96b4609f3022938b8f4d37631566d",
+          "bytes": 4914
+        },
+        "train-dictionary-authored-overlay-v2/shard-087.json": {
+          "sha256": "398e3a7763c390ec738e2dfaef2ef89885e02215a6308b7cf8c869e67b3613c1",
+          "bytes": 4894
+        },
+        "train-dictionary-authored-overlay-v2/shard-088.json": {
+          "sha256": "3e8880a09a8290278eb69843785408b56f8a1be66230320981b58bb79fb1c4b3",
+          "bytes": 4924
+        },
+        "train-dictionary-authored-overlay-v2/shard-089.json": {
+          "sha256": "fc845731dd25371c5caad4e4b53c87112862633ad00f5e69c6b3841a0763e905",
+          "bytes": 8225
+        },
+        "train-dictionary-authored-overlay-v2/shard-090.json": {
+          "sha256": "4ef39da2136fe95c2a06a9f1216d5982051d98cda95e794ef7ae43f10e6d9e9c",
+          "bytes": 6453
+        },
+        "train-dictionary-authored-overlay-v2/shard-091.json": {
+          "sha256": "45508a41128d5bf25d520da0792dd9f4b880be2c20fdc0bd222fe04d588febc7",
+          "bytes": 5078
+        },
+        "train-dictionary-authored-overlay-v2/shard-092.json": {
+          "sha256": "e631490f116dd3d36dc73b3c4cc35c22fc3354588409b55dbf3ca9a3bce2c7c3",
+          "bytes": 5074
+        },
+        "train-dictionary-authored-overlay-v2/shard-093.json": {
+          "sha256": "804925e8d5a3fa94aa2506a5e5f710fbea3a514de35b60fe0cbcfe11309fbc1c",
+          "bytes": 4918
+        },
+        "train-dictionary-authored-overlay-v2/shard-094.json": {
+          "sha256": "7e6d17938028a4409c53beac53cb204d06eab53c42dcbc1b5afe5c15f67ef6bf",
+          "bytes": 4947
+        },
+        "train-dictionary-authored-overlay-v2/shard-095.json": {
+          "sha256": "fb7828183b7e57347d8cab812a40c583cfce538bacd46b35478a23b012362bed",
+          "bytes": 4945
+        },
+        "train-dictionary-authored-overlay-v2/shard-096.json": {
+          "sha256": "0083287cf841a41690095f5944449db5991539634030d976a424cfc94f93c8f9",
+          "bytes": 4931
+        },
+        "train-dictionary-authored-overlay-v2/shard-097.json": {
+          "sha256": "b4e14a66bf83a936152ca137d15e53ac274ef8e02f440b9c6acb70f95402e52b",
+          "bytes": 4996
+        },
+        "train-dictionary-authored-overlay-v2/shard-098.json": {
+          "sha256": "c90b30bb511f971c9015b7978e9fa3abf4e4f51b374641a4636df5ff64a595a6",
+          "bytes": 4926
+        },
+        "train-dictionary-authored-overlay-v2/shard-099.json": {
+          "sha256": "bbc005602cafec29b39f420d78d7f7178fd6d125108508d2e1d4419177911138",
+          "bytes": 4911
+        },
+        "train-dictionary-authored-overlay-v2/shard-100.json": {
+          "sha256": "9ca8eef0733726564a8ae77269e6051724cd1f65c38ed99be6ad3a9734fa9d9c",
+          "bytes": 4932
+        },
+        "train-dictionary-authored-overlay-v2/shard-101.json": {
+          "sha256": "9a8b43845a7988331afd8263a68a02a10a45c5ed898241fca3faec38114d0899",
+          "bytes": 4966
+        },
+        "train-dictionary-authored-overlay-v2/shard-102.json": {
+          "sha256": "b882acb68b2698f0bd45eec45ef573a99bdfc2fb09bc19f51452ff031da0f05a",
+          "bytes": 5008
+        },
+        "train-dictionary-authored-overlay-v2/shard-103.json": {
+          "sha256": "cd94f0757e70e8e1b8caaa82b2c06581e39729d908e8624dd4a7157c61680a50",
+          "bytes": 4964
+        },
+        "train-dictionary-authored-overlay-v2/shard-104.json": {
+          "sha256": "df6ad29ffea38c7bf0a5c2b3b32a0c2a33867dc1dfe48f721fcce417f96eb53b",
+          "bytes": 4964
+        },
+        "train-dictionary-authored-overlay-v2/shard-105.json": {
+          "sha256": "8c998eb7e2067a98dfca7060a3c810f1fa55618dd732d34e7bc5cd390c9756ae",
+          "bytes": 4919
+        },
+        "train-dictionary-authored-overlay-v2/shard-106.json": {
+          "sha256": "183f10236534730b08ed9931a16a72e6ffd6addcead6e0eef846caff81679cef",
+          "bytes": 5015
+        },
+        "train-dictionary-authored-overlay-v2/shard-107.json": {
+          "sha256": "95892e10472d9ac5a680b892eded0c758170c2450c7e50e53565624f3558a0ee",
+          "bytes": 5008
+        },
+        "train-dictionary-authored-overlay-v2/shard-108.json": {
+          "sha256": "a6473b604448eee815d0f8b18a0b2526668c1b6a9a020301e5682cf1f6a2f3a8",
+          "bytes": 4923
+        },
+        "train-dictionary-authored-overlay-v2/shard-109.json": {
+          "sha256": "fe4b5bb54d794384d773ae42f047618b2d6f957f5fd9a4ca2dd5855ce3fca31d",
+          "bytes": 5068
+        },
+        "train-dictionary-authored-overlay-v2/shard-110.json": {
+          "sha256": "bf70094d0f7f7dd4e50cbb6b169b52368758c584b90a62edd866845d03f27215",
+          "bytes": 5039
+        },
+        "train-dictionary-authored-overlay-v2/shard-111.json": {
+          "sha256": "fb0573a3791511ef65a810114b457d1a691365241c723a070dc7dc25a3c154e9",
+          "bytes": 5035
+        },
+        "train-dictionary-authored-overlay-v2/shard-112.json": {
+          "sha256": "36bfa2b0e0c71b47d3e47530c8cf43c27407e7fd7a63e6ef909a2d8528d3fdc1",
+          "bytes": 4920
+        },
+        "train-dictionary-authored-overlay-v2/shard-113.json": {
+          "sha256": "66c5924df90774cd8cb71d8cd1c87e976756117b127066f1979568e2dc382f38",
+          "bytes": 4942
+        },
+        "train-dictionary-authored-overlay-v2/shard-114.json": {
+          "sha256": "5b6b6eae51cb16d8d3286e3199e24f56088000f32945feea55ae50be75d8579e",
+          "bytes": 4916
+        },
+        "train-dictionary-authored-overlay-v2/shard-115.json": {
+          "sha256": "ffb913e91dfdd1c178cbee4f22d0c120fad0fd851997e8780b6ec27476ee01d3",
+          "bytes": 4939
+        },
+        "train-dictionary-authored-overlay-v2/shard-116.json": {
+          "sha256": "650e5225946c07b980dc81365397bf718841933815667315d71a028535bb27c1",
+          "bytes": 4962
+        },
+        "train-dictionary-authored-overlay-v2/shard-117.json": {
+          "sha256": "7a1c9f5e81ddbbdd33c12efb27f698eb0119cba7bf87c2dcdc742fc238fca3fd",
+          "bytes": 4972
+        },
+        "train-dictionary-authored-overlay-v2/shard-118.json": {
+          "sha256": "3362e831c1805bc813fd2c457acaeaff5b5669bfa9f6599358b674783a032fbd",
+          "bytes": 4978
+        },
+        "train-dictionary-authored-overlay-v2/shard-119.json": {
+          "sha256": "218b84fa82c81aa1e45c0bc24a00b014117040b725e947c813b91d1314acd91c",
+          "bytes": 4943
+        },
+        "train-dictionary-authored-overlay-v2/shard-120.json": {
+          "sha256": "7f4458642590a7aecfb3661a267270091ceadc110a47b8eac8afb99657d7fe11",
+          "bytes": 5012
+        },
+        "train-dictionary-authored-overlay-v2/shard-121.json": {
+          "sha256": "a3db8e51a50515ca31c9aec3fba7a786f0c3be6e8f9a511fd6556c0d0f58fa05",
+          "bytes": 4868
+        },
+        "train-dictionary-authored-overlay-v2/shard-122.json": {
+          "sha256": "6a5850ac62796067a3f30e33d0380d5c553b38196408d00efbba3a873d930768",
+          "bytes": 4946
+        },
+        "train-dictionary-authored-overlay-v2/shard-123.json": {
+          "sha256": "5bf496cbcece21a16088200a0d587d65869145edb24a6986c4c8aafe6b8529ca",
+          "bytes": 4934
+        },
+        "train-dictionary-authored-overlay-v2/shard-124.json": {
+          "sha256": "a04deec2e3a6e958e40d4c72ee2d8ce8c7516d54b2b8f09dc980fb983c1d9c9e",
+          "bytes": 4884
+        },
+        "train-dictionary-authored-overlay-v2/shard-125.json": {
+          "sha256": "96c4ad16e1370942c65fe77440b287c6cc749ed0437a9931d473f27360dbec51",
+          "bytes": 4906
+        },
+        "train-dictionary-authored-overlay-v2/shard-126.json": {
+          "sha256": "ad198023a6efb17ef98ee40b84ee38962a0ef5b098ca9fe5ecc4bb2c18ee8222",
+          "bytes": 4889
+        },
+        "train-dictionary-authored-overlay-v2/shard-127.json": {
+          "sha256": "5241f83877a30c5e7bf71e86470be3243ecd6c3fe2c5a6ec6e59c5e167f091c5",
+          "bytes": 4939
+        },
+        "train_categorical_window8.rs": {
+          "sha256": "3d2336e17a4b2eb5330cc980adc123b283f9bfa52b4f3d3a67ee646516e66bf7",
+          "bytes": 5931
+        },
+        "training-numerical-v2.log": {
+          "sha256": "2d67fb639e8ae9c205213fbdb190eaed9f42682faaeeb7c3306cec9f1dcddfec",
+          "bytes": 1578
+        },
+        "unknown-policy-overlay-v2.json": {
+          "sha256": "15b59cf71c2d5f12c4ffadc41225a89772b7c6976e6cdd0c54fe4645722c85b7",
+          "bytes": 905
+        },
+        "README.md": {
+          "sha256": "3c506808ffbe472c9c3177b278ff9e06ebcc90e35cf512a5d717bd2e449ee643",
+          "bytes": 2822
+        },
+        "source/parser_window8.conduit": {
+          "sha256": "cd34f6f9d079b88a7c279326c318d73d6abce884b7f481a4b720851b1094ee58",
+          "bytes": 50554
+        },
+        "source/parser_window8_search.conduit": {
+          "sha256": "bd8630b2356f2d5f8f7f68bb13119bc09c3f03d8e77ac90edcb1f46c1acc6ff9",
+          "bytes": 7629
+        },
+        "source/parser_window8_proposal_features.conduit": {
+          "sha256": "7bc6c52478f6565b399fb8bdc6171a4e5b0d660d98b1db0f2fcc92945bcce301",
+          "bytes": 9650
+        },
+        "source/lexical_proposer.conduit": {
+          "sha256": "2e86166d6e35cd0eb5d58a9311af0567d72e1eba3f784edc02e7ef6f7894e433",
+          "bytes": 6197
+        },
+        "prepare_candidate_evaluation.py": {
+          "sha256": "1a9264d8175dc29e7f854e25da43f391c9236a751821f1676642ce7e264a3b95",
+          "bytes": 3001
+        },
+        "evaluation-inputs-v1/unseen_authored.json": {
+          "sha256": "c3ba94dc9bada22342b5944a3b27a21f46d8da7eb0961847e84ff51f3292b248",
+          "bytes": 4204
+        },
+        "evaluation-inputs-v1/manifest.json": {
+          "sha256": "a6a2783e5e5a4526b3108381f815ebcb7a9e7a9fb275e6f63c7ba9061aae38b1",
+          "bytes": 77336
+        },
+        "evaluation-inputs-v1/test.json": {
+          "sha256": "513bbed9ef15ba9523124f98640bc9b5f52f9e100bdd5c374e86404c80942340",
+          "bytes": 619833
+        },
+        "evaluation-inputs-v1/dev.json": {
+          "sha256": "b06007c5c2e13a797ac590ea09ef0ea8a79640c7473f9c21441c1d6c074c8d49",
+          "bytes": 552053
+        }
+      }
+    },
+    "successor_training": {
+      "scope": "Mechanical ABI remap of exact frozen TRAIN+22reviewed teaching; no heldout inputs or new gold labels",
+      "source_samples_sha256": "4085aaab59f4cf6d6f5adb9d615b368bcd9ce2114b5169a907a97e119686e9e4",
+      "samples_sha256": "84d229d9e38a630d17ef1987267d565b53b8eb563c684313f13d0efbba83d0ed",
+      "samples": 36114,
+      "feature_tuples": 89859,
+      "categories": 411,
+      "classes": 76,
+      "lookups": 27,
+      "policy": "Other16 and boundary17 coalesce only in17x17 pair interaction; exact18way unigrams/history/origins preserved",
+      "source_training_manifest": {
+        "scope": "TRAIN+explicit authored supervised feature tuples; no native runtime/heldout/linguistic acceptance proof",
+        "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+        "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+        "teaching_sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+        "extractor_sha256": "f7fbf68fd261544cba1a57c509f11405f8b41c85141586223dd5e988545f7715",
+        "feature_reference_sha256": "5c66467f722e5d988555b3756629eeebbd31cbb1cc4998b19045872f6c53d9ee",
+        "legacy_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8",
+        "train_eligible_rows": 3531,
+        "train_covered_rows": 3530,
+        "train_exclusions": [
+          {
+            "id": "email-enronsent40_01-0023",
+            "missing": [
+              {
+                "ordinal": 0,
+                "surface": "A",
+                "gold_pos": 11,
+                "candidates": [
+                  5,
+                  14,
+                  16,
+                  7
+                ]
+              }
+            ]
+          }
+        ],
+        "train_corpus_shape_skips": {
+          "over_eight_tokens": 8809,
+          "multiword_or_empty_node": 196,
+          "unreachable_projective_profile": 8
+        },
+        "authored_rows": 22,
+        "authored_repetitions": 32,
+        "samples": 36114,
+        "samples_sha256": "4085aaab59f4cf6d6f5adb9d615b368bcd9ce2114b5169a907a97e119686e9e4",
+        "origin_training": "all selected boundedTRAIN/authored surfaces in dictionary: reviewed-origin0; unknown-origin1 not observed by this training, origin remains explicit at runtime",
+        "selected_history": "gold TRAIN/authored oracle trajectory, consumed POS retained, current alternatives varied; no runtime gold constraints"
+      }
+    },
+    "runtime_policy": {
+      "segmentation_abi": "UnicodeScalarAlphanumericApostropheV1",
+      "unicode_classifier_version": [
+        17,
+        0,
+        0
+      ],
+      "scope": "Exact current core::char classifier used by original revision producer; closed profile must refuse an unreviewed classifier version change",
+      "feature_abi": "selected-history-origin/411-27-76@2",
+      "source_sha256": "5a90a621fbd5d2b87dfea79698e9317639453f602e2cbc0762874171a79f0082"
+    }
+  },
+  "correction": {
+    "old_external_training_origin": "2 if unread==token_count else origins[unread]",
+    "unchanged_original_source_origin": "2 if unread==0 else origins[unread-1]",
+    "changed_index": 26,
+    "other26_features_targets_counts_unchanged": true,
+    "new_source_or_policy_changes": false,
+    "origin_training": "original covered TRAIN+22 rows remain reviewed-origin0; unknown-origin1 remains unobserved by numerical supervision"
+  },
+  "training_checkpoint": {
+    "scope": "TRAIN+explicit authored supervised feature tuples; no native runtime/heldout/linguistic acceptance proof",
+    "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+    "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+    "teaching_sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+    "extractor_sha256": "e17e041253d7ae575c7c9664dd6559d2406a61efb07614eb389d949e612d0f24",
+    "feature_reference_sha256": "f3cae572b1ed31cffb89dfdb2553f2721057c92aaa1763221f3432e68477e428",
+    "legacy_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8",
+    "train_eligible_rows": 3531,
+    "train_covered_rows": 3530,
+    "train_exclusions": [
+      {
+        "id": "email-enronsent40_01-0023",
+        "missing": [
+          {
+            "ordinal": 0,
+            "surface": "A",
+            "gold_pos": 11,
+            "candidates": [
+              5,
+              14,
+              16,
+              7
+            ]
+          }
+        ]
+      }
+    ],
+    "train_corpus_shape_skips": {
+      "over_eight_tokens": 8809,
+      "multiword_or_empty_node": 196,
+      "unreachable_projective_profile": 8
+    },
+    "authored_rows": 22,
+    "authored_repetitions": 32,
+    "samples": 36114,
+    "samples_sha256": "8e439ecdad8c6bb9b2dd7643c3fd1239b0dc40fd4af6f6ab3d18d691a13d5ccc",
+    "origin_training": "all selected boundedTRAIN/authored surfaces in dictionary: reviewed-origin0; unknown-origin1 not observed by this training, origin remains explicit at runtime",
+    "selected_history": "gold TRAIN/authored oracle trajectory, consumed POS retained, current alternatives varied; no runtime gold constraints"
+  },
+  "training_receipt": {
+    "scope": "Distinct numerical TRAIN+22reviewed teaching origin ABI correction only; no runtime selection or heldout acceptance",
+    "old_samples_sha256": "84d229d9e38a630d17ef1987267d565b53b8eb563c684313f13d0efbba83d0ed",
+    "new_samples_sha256": "8e439ecdad8c6bb9b2dd7643c3fd1239b0dc40fd4af6f6ab3d18d691a13d5ccc",
+    "tuples": 89859,
+    "changed_origin_tuples": 26619,
+    "all_other26_features_targets_alternative_counts_unchanged": true,
+    "trainer_sha256": "a5f373567e1c2321de3b7dd968c7dd911428ffb1a5ad69ee07b45af50031f287",
+    "epochs": 12,
+    "seed": 4907,
+    "RLIMIT_AS_bytes": 536870912,
+    "exit_code": 0,
+    "elapsed_seconds": 0.5311790439882316,
+    "child_maxrss_KiB": 19688,
+    "artifact_bytes": 62492,
+    "artifact_sha256": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15"
+  },
+  "independent_expected_model_metadata": {
+    "artifact_descriptor": "f89c0e6e617f8ba37e446384a7f0f02d94bae53f13765c7a5d3001020160e125",
+    "content_identity": "ce881ff0d56f6789ca39201d2019fd36cb2bb3200f6f85b979448f32cc89d7b5",
+    "contracts": {
+      "action": "ebd9353d96815c8d2a773026819e96dd0b730c62519697555c8e68cf4caa4985",
+      "availability": "ddfec0ab52cc3689bd2d971288c63be3711570a3f3f4f51fb272c3a4a97701fa",
+      "feature": "981798f0c7b8a01e226b223c8e03088929d15b939517f85f4711a7c5b1272e10",
+      "joint_choice": "43dd0c3e9908767af9d0083ba7eafdd814a6fa26d5d5df6fa2385690179a276e",
+      "numeric_indices": "0ef7960c3b368f3f2586cbf554bad61c396554226c4da7c48a87f77b1ec88a9a",
+      "numeric_scores": "37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1"
+    },
+    "dictionary_identity": "12458ed85a62ff19a794a8f79e24ff8c7e76e3975392379ed3ba9ed5c9ec89fe",
+    "dimensions": {
+      "categories": 411,
+      "classes": 76,
+      "lookups": 27
+    },
+    "maximum_score_magnitude": 1000000,
+    "reference_identity": "3a751113f3f5b74ec44923cdbcdf21a644ef1dd3ce4d95b351e6703dbf13d0ab",
+    "scope": "Independently derived expected metadata for pinned candidate before scorer adoption; no closed factory/runtime/accuracy authority",
+    "signature_identity": "017b25572da457becc14461fc43812e282ee3b52a26511a04173e6d371b8071c"
+  },
+  "exact_source_parity": {
+    "vectors": 140922,
+    "states": 33094,
+    "covered_TRAIN_rows": 3530,
+    "reviewed_teaching_rows": 22,
+    "origin_patterns": [
+      "reviewed",
+      "unknown",
+      "alternating"
+    ],
+    "feature_values_seconds": 971.748810755,
+    "context_then_values_seconds": 1465.125587659,
+    "allocating_reference_scope": "feature-values every1000thvector",
+    "scope": "structural diagnostic contexts and actual original Source; not full Native lexical admission or model/quality/commit acceptance"
+  },
+  "files": {
+    "reference_v2_corrected.py": {
+      "sha256": "f3cae572b1ed31cffb89dfdb2553f2721057c92aaa1763221f3432e68477e428",
+      "bytes": 2180
+    },
+    "extract_corrected_training.py": {
+      "sha256": "e17e041253d7ae575c7c9664dd6559d2406a61efb07614eb389d949e612d0f24",
+      "bytes": 3800
+    },
+    "proposal-411-origin-corrected-training-v2/manifest.json": {
+      "sha256": "b658e39fe8efe617681689743f7e8ca08efd736b0e5b83bc9ff23856fb110f5e",
+      "bytes": 1679
+    },
+    "proposal-411-origin-corrected-training-v2/training-receipt.json": {
+      "sha256": "5f2c9d662b7d9e71287b52455b0f91c959c0fda741c8f50d0d5a5c57a84f4041",
+      "bytes": 795
+    },
+    "proposal-411-origin-corrected-training-v2/launch.json": {
+      "sha256": "06d007475c419e0b5491cb8b1701cb89ed2af14313d60971efec1fb3f39fcc2f",
+      "bytes": 591
+    },
+    "proposal-411-origin-corrected-training-v2/samples.bin": {
+      "sha256": "8e439ecdad8c6bb9b2dd7643c3fd1239b0dc40fd4af6f6ab3d18d691a13d5ccc",
+      "bytes": 4996850
+    },
+    "proposal-411-origin-corrected-training-v2/proposal_window8.i16": {
+      "sha256": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15",
+      "bytes": 62492
+    }
+  },
+  "full_source_program_pins": {
+    "scope": "Frozen diagnostic sources/programs for complete TRAIN+22reviewed teaching oracle feature arithmetic parity; no retraining or model selection; synthetic unknown origins do not confer lexical truth",
+    "files": {
+      "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/reference_v2_corrected.py": {
+        "sha256": "f3cae572b1ed31cffb89dfdb2553f2721057c92aaa1763221f3432e68477e428",
+        "bytes": 2180
+      },
+      "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/export_vectors.py": {
+        "sha256": "9811b8eaa95ec58c7940a733101db635b5c05342e14c3c549a75f495eb21bd83",
+        "bytes": 2836
+      },
+      "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/export_vectors_full_context.py": {
+        "sha256": "cd83ff956248cee05a4e9093357b9087d9ecbb9d20aa61585fa1127acd4fcc8c",
+        "bytes": 2921
+      },
+      "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/actual_source.rs": {
+        "sha256": "3018ecfed3dddbc60d9ad8afab357ef833e9d8ac9fa44a35f3f1739c07ce9505",
+        "bytes": 4582
+      },
+      "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/actual_source_full_context.rs": {
+        "sha256": "946ea6d11c9fe00bacb894e9fb64bc237cd5519f6de76db575a5952b8e57974b",
+        "bytes": 5678
+      },
+      "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_proposal_features_v2.conduit": {
+        "sha256": "5a90a621fbd5d2b87dfea79698e9317639453f602e2cbc0762874171a79f0082",
+        "bytes": 5590
+      },
+      "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-language-70b796a2da20ac23/out/proposal_window8_feature_context.hex": {
+        "sha256": "984ecd46c1132b05e2a68e6d0c32253d3ca078ff619622ebf98ca7bed3d7e923",
+        "bytes": 1267948
+      },
+      "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-language-70b796a2da20ac23/out/proposal_window8_v2_feature_values.hex": {
+        "sha256": "282ee9af70aa8c8c5a6428307c4992507e326b51dd13172349b23ff0940e5d00",
+        "bytes": 5420322
+      }
+    },
+    "old_model_unchanged": true,
+    "source_laws_unchanged": true,
+    "structural_context_note": "Preexisting exact complete Type fixture is patched with bounded scalar/candidate field values; original Source context and values execute, but fixture metadata laws are not asserted as Native lexical admission."
+  }
+}

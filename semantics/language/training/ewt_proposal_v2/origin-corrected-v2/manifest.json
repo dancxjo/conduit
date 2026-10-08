@@ -1,0 +1,40 @@
+{
+  "scope": "TRAIN+explicit authored supervised feature tuples; no native runtime/heldout/linguistic acceptance proof",
+  "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+  "teaching_sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+  "extractor_sha256": "e17e041253d7ae575c7c9664dd6559d2406a61efb07614eb389d949e612d0f24",
+  "feature_reference_sha256": "f3cae572b1ed31cffb89dfdb2553f2721057c92aaa1763221f3432e68477e428",
+  "legacy_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8",
+  "train_eligible_rows": 3531,
+  "train_covered_rows": 3530,
+  "train_exclusions": [
+    {
+      "id": "email-enronsent40_01-0023",
+      "missing": [
+        {
+          "ordinal": 0,
+          "surface": "A",
+          "gold_pos": 11,
+          "candidates": [
+            5,
+            14,
+            16,
+            7
+          ]
+        }
+      ]
+    }
+  ],
+  "train_corpus_shape_skips": {
+    "over_eight_tokens": 8809,
+    "multiword_or_empty_node": 196,
+    "unreachable_projective_profile": 8
+  },
+  "authored_rows": 22,
+  "authored_repetitions": 32,
+  "samples": 36114,
+  "samples_sha256": "8e439ecdad8c6bb9b2dd7643c3fd1239b0dc40fd4af6f6ab3d18d691a13d5ccc",
+  "origin_training": "all selected boundedTRAIN/authored surfaces in dictionary: reviewed-origin0; unknown-origin1 not observed by this training, origin remains explicit at runtime",
+  "selected_history": "gold TRAIN/authored oracle trajectory, consumed POS retained, current alternatives varied; no runtime gold constraints"
+}

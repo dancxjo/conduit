@@ -1,0 +1,10 @@
+{
+  "full_manifest_sha256": "f2b7a02b85a3b177b5eb807642fcfe6fcdc53ac6e168a170a5a5c5af6c906c33",
+  "full_manifest_bytes": 67174,
+  "artifact_sha256": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15",
+  "content_identity": "ce881ff0d56f6789ca39201d2019fd36cb2bb3200f6f85b979448f32cc89d7b5",
+  "signature_identity": "017b25572da457becc14461fc43812e282ee3b52a26511a04173e6d371b8071c",
+  "reference_identity": "3a751113f3f5b74ec44923cdbcdf21a644ef1dd3ce4d95b351e6703dbf13d0ab",
+  "artifact_descriptor": "f89c0e6e617f8ba37e446384a7f0f02d94bae53f13765c7a5d3001020160e125",
+  "scope": "independent complete nextcandidate material; not production/modelselection/accuracy acceptance"
+}
