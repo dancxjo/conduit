@@ -113,3 +113,86 @@ impl U16ProfileOperationFactory {
         ))
     }
 }
+
+impl U16ProfileOperationFactory {
+    fn selected_for_storage(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<&SelectedProfile, crate::fixed_numeric_u16_profile::U16ContractOnlyPreparationRefusal>
+    {
+        use crate::fixed_numeric_u16_profile::U16ContractOnlyPreparationRefusal as Error;
+        let selected = self
+            .selected
+            .get(&gear.placement_id)
+            .ok_or(Error::Validation)?;
+        verify_fixed_placement(gear, &selected.offer).map_err(|_| Error::Validation)?;
+        Ok(selected)
+    }
+    pub fn preparation_storage_reservation_contract_only(
+        &self,
+        gear: &PlannedGear,
+    ) -> Result<
+        crate::fixed_numeric_u16_profile::U16ContractOnlyStorageReceipt,
+        crate::fixed_numeric_u16_profile::U16ContractOnlyPreparationRefusal,
+    > {
+        use crate::fixed_numeric_u16_profile::U16ContractOnlyPreparationRefusal as Error;
+        let mut r = U16ProfileBack::storage_reservation_contract_only(
+            &self.selected_for_storage(gear)?.profile,
+        )?;
+        let root = core::mem::size_of::<U16ProfileBack>();
+        r.preparation_requested_bytes_bound = r
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        r.retained_heap_bytes_bound = r
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        Ok(r)
+    }
+    pub fn prepare_contract_only_with_storage_limits(
+        &self,
+        gear: &PlannedGear,
+        maximum_preparation_requested_bytes: usize,
+        maximum_retained_heap_bytes: usize,
+    ) -> Result<
+        (
+            super::prepared_numeric_back::PreparedNumericBack,
+            crate::fixed_numeric_u16_profile::U16ContractOnlyStorageReceipt,
+        ),
+        crate::fixed_numeric_u16_profile::U16ContractOnlyPreparationRefusal,
+    > {
+        use crate::fixed_numeric_u16_profile::U16ContractOnlyPreparationRefusal as Error;
+        let selected = self.selected_for_storage(gear)?;
+        let root = core::mem::size_of::<U16ProfileBack>();
+        let requested = maximum_preparation_requested_bytes
+            .checked_sub(root)
+            .ok_or(Error::Capacity)?;
+        let retained = maximum_retained_heap_bytes
+            .checked_sub(root)
+            .ok_or(Error::Capacity)?;
+        let (back, mut r) = U16ProfileBack::prepare_contract_only_with_storage_limits(
+            &selected.profile,
+            selected.flow,
+            requested,
+            retained,
+        )?;
+        r.preparation_requested_bytes_bound = r
+            .preparation_requested_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        r.retained_heap_bytes_bound = r
+            .retained_heap_bytes_bound
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        r.retained_accounted_heap_bytes = r
+            .retained_accounted_heap_bytes
+            .checked_add(root)
+            .ok_or(Error::Capacity)?;
+        let local = back.local_accounted_heap_bytes();
+        Ok((
+            super::prepared_numeric_back::PreparedNumericBack::new(back, local),
+            r,
+        ))
+    }
+}
