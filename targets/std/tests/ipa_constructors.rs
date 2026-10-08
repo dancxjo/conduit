@@ -106,6 +106,16 @@ fn installed_constructors_emit_exact_typed_values_once_without_play_storage_grow
             &boundaries,
         )
         .unwrap();
+        assert!(plan
+            .fragments
+            .iter()
+            .all(
+                |fragment| fragment.placements.iter().all(|placement| placement
+                    .host_calls
+                    .is_empty()
+                    && placement.resources.is_empty()
+                    && placement.authority.is_empty())
+            ));
         let mut collected = Collector::default();
         let report = host
             .run_external_plot_to(
@@ -154,6 +164,12 @@ fn installed_constructors_emit_exact_typed_values_once_without_play_storage_grow
             .iter()
             .any(|sign| sign.kind == conduit_kernel::KernelEventKind::BackCompleted));
         assert!(kernel.playback.is_empty());
-        assert!(report.observations.is_empty());
+        assert!(kernel.kernel_sign.iter().all(|sign| !matches!(
+            sign.kind,
+            conduit_kernel::KernelEventKind::HostCallRequested
+                | conduit_kernel::KernelEventKind::HostCallCancellationRequested
+                | conduit_kernel::KernelEventKind::HostCallCompleted
+                | conduit_kernel::KernelEventKind::BackFailed
+        )));
     }
 }
