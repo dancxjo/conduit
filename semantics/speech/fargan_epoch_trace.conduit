@@ -1,0 +1,20 @@
+# Optional development observations of actual Source computation. These records
+# confer no session/model/native utterance authority and cannot acknowledge PCM.
+# Each row keeps the exact epoch and selected session anchor. The recorder must
+# reject duplicates, foreign anchors and absent rows instead of regenerating them.
+type FarganFeatureConditionTrace = {
+    features: NumericF32Vector20
+    condition: NumericF32Vector320
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
+type FarganConditionHistoryTrace = {
+    next_history: NumericHistory2x64
+    epoch: U64
+    model: FarganModelFrameAnchor
+}
+# This intentionally separate result supplies PCM, all837 signal/pitch/deemphasis
+# state values, next period and epoch from the final committed result.
+type FarganCommittedResultTrace = {
+    result: FarganPcm16EpochResult
+}
