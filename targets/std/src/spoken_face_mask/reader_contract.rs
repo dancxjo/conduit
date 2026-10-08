@@ -11,6 +11,8 @@ use super::SpokenTurnReceipt;
 pub enum ReaderCommand {
     Help,
     ReadAll,
+    /// Read the currently primary Item subjects without selected-detail spill.
+    ReadCurrentItems,
     Next,
     Previous,
     Repeat,

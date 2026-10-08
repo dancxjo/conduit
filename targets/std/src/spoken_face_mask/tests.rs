@@ -266,6 +266,89 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
 }
 
 #[test]
+fn read_current_items_uses_the_same_show_without_completed_detail() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for index in 0..20 {
+        subjects.push(PresentationSubject {
+            identity: format!("item/{index}"),
+            role: PresentationRole::Item,
+            name: format!("Task {index}"),
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: format!("item/{index}"),
+            level: if index < 3 {
+                PresentationDisclosureLevel::Primary
+            } else {
+                PresentationDisclosureLevel::SelectedDetail
+            },
+        });
+    }
+    let face = Presentation::new_with_semantics(
+        2,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+    let readout = reader.take_text_readout().unwrap().unwrap();
+    assert_eq!(readout.face_id, face.identity.as_str());
+    assert_eq!(readout.show_id, show.show_id.as_str());
+    assert_eq!(
+        readout.clauses,
+        ["Task 0, item.", "Task 1, item.", "Task 2, item."]
+    );
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 2)
+        .unwrap();
+    let complete = reader.take_text_readout().unwrap().unwrap();
+    assert!(complete.clauses.iter().any(|item| item == "Task 19, item."));
+
+    let mut finished = face;
+    finished.revision += 1;
+    for disclosure in &mut finished.disclosures {
+        if disclosure.subject.starts_with("item/") {
+            disclosure.level = PresentationDisclosureLevel::SelectedDetail;
+        }
+    }
+    let finished = Presentation::new_with_semantics(
+        finished.revision,
+        finished.basis,
+        finished.subjects,
+        finished.relationships,
+        finished.properties,
+        finished.text,
+        finished.actions,
+        finished.disclosures,
+    )
+    .unwrap();
+    let finished_show = common::available_mask_show(&finished);
+    let mut reader = SpokenFaceSession::new(finished.clone(), finished_show.clone()).unwrap();
+    reader
+        .command(
+            &finished,
+            &finished_show,
+            ReaderCommand::ReadCurrentItems,
+            3,
+        )
+        .unwrap();
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        ["No current items."]
+    );
+}
+
+#[test]
 fn long_primary_list_reads_count_and_offers_detail_instead_of_items() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
