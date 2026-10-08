@@ -5,21 +5,25 @@ use std::{env, fs, path::PathBuf};
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=trajectory_types.conduit");
+    println!("cargo:rerun-if-changed=rate_types.conduit");
+    println!("cargo:rerun-if-changed=rate_projection.conduit");
     println!("cargo:rerun-if-changed=trajectory.conduit");
     let type_source = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         include_str!("types.conduit"),
-        include_str!("trajectory_types.conduit")
+        include_str!("trajectory_types.conduit"),
+        include_str!("rate_types.conduit")
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&type_source), &StartupCatalog::new())
             .expect("audio semantic Types must check");
     println!("cargo:rerun-if-changed=acoustic_quantities.conduit");
     let acoustic_source = format!(
-        "{}\n{}\n{}",
+        "{}\n{}\n{}\n{}",
         type_source,
         include_str!("acoustic_quantities.conduit"),
-        include_str!("trajectory.conduit")
+        include_str!("trajectory.conduit"),
+        include_str!("rate_projection.conduit")
     );
     let acoustic = check_syntax_document(
         &parse_syntax_document(&acoustic_source),
@@ -39,6 +43,12 @@ fn main() {
         ("audio/trajectory-covers", "TRAJECTORY_COVERS"),
         ("audio/trajectory-weight", "TRAJECTORY_WEIGHT"),
         ("audio/trajectory-blend", "TRAJECTORY_BLEND"),
+        ("audio/sample-fraction", "SAMPLE_FRACTION"),
+        ("audio/sample-at-rate", "SAMPLE_AT_RATE"),
+        ("audio/frame-grid-fidelity", "FRAME_GRID_FIDELITY"),
+        ("audio/cumulative-basis-equal", "CUMULATIVE_BASIS"),
+        ("audio/cumulative-append", "CUMULATIVE_APPEND"),
+        ("audio/cumulative-origin", "CUMULATIVE_ORIGIN"),
     ] {
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(
             &acoustic,

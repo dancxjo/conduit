@@ -43,7 +43,9 @@ These measurements matter because a structured value also carries its static
 Type encoding; payload length alone is not its full admission cost.
 
 The bounded trajectory prerequisite is documented in [TRAJECTORIES.md](TRAJECTORIES.md).
-Physical clock mapping, numeric projection/fidelity, reference-bearing dB,
+Exact declared rate/cumulative projection and its generic fidelity reports are
+documented in [RATE_PROJECTION.md](RATE_PROJECTION.md). Physical clock mapping,
+control-rate/Q-format projection, reference-bearing dB,
 catalog realization and remaining #5216 acceptance are deferred. This local semantic proof does not establish playback,
 platform execution, model conditioning or stable release acceptance.
 

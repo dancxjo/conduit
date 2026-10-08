@@ -99,7 +99,9 @@ Executable native examples/tests cover independent u128 reference values,
 step/linear/endpoints, Hz versus cycle interpolation, two independent overlapping
 controls, 0.1-second 200-Hz and 1/3-second source fractions, gaps, foreign anchors,
 internal overlaps, coincident/reversed spans, profile bounds and forged typed
-zero-denominator refusal. No 8/16/48-kHz projection is claimed here. Sample-rate
-mapping/cumulative projection, log-frequency, additional numeric profiles,
+zero-denominator refusal. Trajectory evaluation itself makes no sample-rate projection claim. The
+separate [rate prerequisite](RATE_PROJECTION.md) executes declared sample-grid
+and cumulative projections with explicit basis. Actual clock mapping,
+log-frequency, additional numeric profiles,
 dB/reference conversions, renderer/clock implementations and remaining #5216
 acceptance remain open.
