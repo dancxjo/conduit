@@ -21,14 +21,6 @@ use runtime::{CORDS, NODES, PORTS, PreparedTimerGraph, PreparedTimerRoute};
 const _: () = assert!(PORTS <= FIXED_KERNEL_STORAGE_PORTS_PER_NODE);
 
 impl TourTimerKernel {
-    #[cfg(all(test, not(conduitos_protected_execution)))]
-    pub fn prepare(
-        fragment: &PlanFragment,
-        lowered: &LoweredPlanFragment,
-    ) -> Result<Self, SchedulerError> {
-        Self::from_prepared_graph(Self::prepare_graph(fragment, lowered)?)
-    }
-
     pub(crate) fn prepare_graph(
         fragment: &PlanFragment,
         lowered: &LoweredPlanFragment,
