@@ -673,6 +673,41 @@ impl StdHost {
         Self::new_with_composition(config, StdHostComposition::reference())
     }
 
+    /// Construct one std Host whose Todo scan Back is bound to the caller's
+    /// canonical initial Form before planning or resource-ledger admission.
+    /// The broad reference inventory remains unchanged.
+    pub fn new_for_todo_scan(
+        config: StdHostConfig,
+        initial: &conduit_todo_plot::TodoState,
+        maximum_items: u16,
+    ) -> Result<Self, String> {
+        let mut advertisement = composition::build_advertisement(
+            config,
+            StdHostComposition::reference(),
+            None,
+            None,
+            None,
+            false,
+        );
+        for offer in [
+            flow_activation::todo_scan_offer(initial, maximum_items)?,
+            flow_activation::todo_combine_offer(),
+        ] {
+            if advertisement
+                .capabilities
+                .iter()
+                .any(|existing| existing.capability_id == offer.capability_id)
+            {
+                return Err("std Todo scan capability identity is already offered".into());
+            }
+            advertisement.capabilities.push(offer);
+        }
+        advertisement
+            .capabilities
+            .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        Self::from_advertisement(advertisement)
+    }
+
     pub fn new_with_composition(config: StdHostConfig, composition: StdHostComposition) -> Self {
         let advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);

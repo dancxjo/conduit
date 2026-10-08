@@ -1,6 +1,6 @@
 //! Exact pre-Play child-pool handoff for the one supported pure Todo scan.
-//! This does not advertise a coordinator offer or authorize Body activation
-//! Play; the Body entrance retains its explicit refusal until integration proof.
+//! The scoped std Host may authorize this exact finite preloaded route; the
+//! broad inventory and later Mask action ingress remain unavailable.
 
 use super::super::{back::BackBudget, body_scan_back::BodyScanBack};
 use conduit_body::BodyPlotPlan;

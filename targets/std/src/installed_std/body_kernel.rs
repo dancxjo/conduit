@@ -43,6 +43,7 @@ pub(crate) struct BodyKernel<'a> {
     input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
+    supported_preloaded_scan: bool,
 }
 
 pub(crate) struct BodyKernelResult {
@@ -141,6 +142,24 @@ impl<'a> BodyKernel<'a> {
         // entry to its exact local fragment before lowering ordinary nodes.
         let activations = bind_body_activations(partitions, &fragments)?;
         let mut scans = scan_route::prepare(partitions, parent_play)?;
+        if scans.len() == 1 {
+            let conduit_core::PlannedActivationEntry::Scan(planned) =
+                &partitions[scans[0].partition].plan.activations[0]
+            else {
+                return Err("installed scan activation changed during preparation".into());
+            };
+            if fore_inputs.len() > usize::from(planned.limits.maximum_items) {
+                return Err("preloaded Todo commands exceed the selected scan bound".into());
+            }
+        }
+        let supported_preloaded_scan = scans.len() == 1
+            && partitions.len() == 1
+            && fragments[0].placements.len() == 1
+            && !has_keyboard
+            && sequential_fore
+            && has_fore_output
+            && fore_inputs.len() <= 64
+            && fragments[0].placements[0].host_calls.is_empty();
         let plans = partitions
             .iter()
             .map(|partition| &partition.plan)
@@ -303,16 +322,18 @@ impl<'a> BodyKernel<'a> {
             input_keymaps: [conduit_human::ConduitIntlKeymap::new(); MAX_NODES],
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
+            supported_preloaded_scan,
         })
     }
 
-    /// Keep unsupported coordinators out of Play until their typed parent
-    /// ingress, output, cancellation, and child Host Call routes are installed.
+    /// Only the exact finite preloaded pure Todo coordinator has an installed
+    /// Body route. Later Mask ingress and other activations remain refused.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
         if self
             .activations
             .iter()
             .any(|bound| !bound.entries.is_empty())
+            && !self.supported_preloaded_scan
         {
             return Err("Body activation coordinator is not installed".into());
         }
