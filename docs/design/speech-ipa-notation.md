@@ -65,3 +65,32 @@ hash was unchanged across that gate. These are notation and admission results;
 they do not establish inventory-definition binding, a common utterance aggregate,
 terminal projection, bounded Flow execution, or committed multiword audio through
 this notation entrance. Those remain acceptance work.
+
+## Binding inventory definitions
+
+`PreparedIpaInventory` binds the complete caller-supplied `SpeechInventory` to a
+prepared notation profile. Explicit phone and phoneme bindings name their own
+identities and the ordered notation-unit identities; equal spelling never makes
+a phone a phoneme or supplies an allophone rule. Every definition must have one
+binding, every binding must be consumed, and the parser's complete output must
+match that binding. The original inventory, aliases, features and status remain
+retained together with the executed phonetic or phonemic transcription for each
+definition. Provider spellings such as `ax` cannot enter the `ipa` field through
+this admission path.
+
+`SpeechIpaInventoryNotationBasis` checks the inventory/language, complete supplied
+LanguageVariety and notation-profile revision. This revision is the notation
+profile's declared basis; the existing SpeechInventory and LanguageVariety Types
+do not acquire a registry or independent revision authority here. A caller must
+retain the actual complete admitted inventory and profile rather than substitute
+objects sharing their IDs. The receipt establishes notation binding, not a
+phoneme-to-phone realization, current registry membership, utterance commitment,
+Flow resource admission or permission to play.
+
+Eight workspace conformance tests pass across the four IPA targets, including
+`ipa_inventory`. The additional cases exercise distinct phone/phoneme identities,
+whole-value Native round trips, foreign inventory/language/variety/profile
+revision refusal, missing bindings, wrong unit identities and provider-code
+refusal. Scoped Clippy across all four targets also passes with warnings denied
+and the `semantic-bindings,kernel` features. Shared utterance aggregation and
+terminal projection remain unfinished.

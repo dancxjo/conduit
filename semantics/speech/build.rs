@@ -21,6 +21,7 @@ fn main() {
     println!("cargo:rerun-if-changed=inventory.conduit");
     println!("cargo:rerun-if-changed=ipa.conduit");
     println!("cargo:rerun-if-changed=ipa_syntax.conduit");
+    println!("cargo:rerun-if-changed=ipa_inventory.conduit");
     println!("cargo:rerun-if-changed=profile_phones.conduit");
     println!("cargo:rerun-if-changed=voice_profile.conduit");
     println!("cargo:rerun-if-changed=timing_projection.conduit");
@@ -49,6 +50,7 @@ fn main() {
         include_str!("inventory.conduit"),
         include_str!("ipa.conduit"),
         include_str!("ipa_syntax.conduit"),
+        include_str!("ipa_inventory.conduit"),
         include_str!("profile_phones.conduit"),
         include_str!("voice_profile.conduit"),
         include_str!("context_match.conduit"),

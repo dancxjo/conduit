@@ -276,3 +276,6 @@ mod ipa_unicode;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod ipa_admission;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_inventory;
