@@ -1,18 +1,18 @@
 //! Ollama realization of the bounded `llm/present@3` semantic contract.
 
 use conduit_ai::LocalModelIdentity;
+use conduit_presentation::{
+    orifina_completion_presenter_policy, GeneratedActionAffordance, GeneratedContentRole,
+    GeneratedContentSegment, GeneratedManifestationCandidate, GeneratedManifestationDisposition,
+    GeneratedSemanticCorrelation, GeneratedWordingClause, GeneratedWordingProposal,
+    GenerativeNarratorRole, GenerativePresenterPolicy, GenerativePresenterRequest,
+    MAX_RAW_PRESENTER_OUTPUT_BYTES,
+};
 #[cfg(any(test, feature = "local-model-proof"))]
 use conduit_presentation::{
     Face, FaceContext, FaceFocus, GenerativePresenterBounds, Presentation, PresentationAction,
     PresentationActionAvailability, PresentationBasis, PresentationDisclosure,
     PresentationDisclosureLevel, PresentationRole, PresentationSubject, PresentationText,
-};
-use conduit_presentation::{
-    GeneratedActionAffordance, GeneratedContentRole, GeneratedContentSegment,
-    GeneratedManifestationCandidate, GeneratedManifestationDisposition,
-    GeneratedSemanticCorrelation, GeneratedWordingClause, GeneratedWordingProposal,
-    GenerativeNarratorRole, GenerativePresenterPolicy, GenerativePresenterRequest,
-    MAX_RAW_PRESENTER_OUTPUT_BYTES, orifina_completion_presenter_policy,
 };
 use serde::Deserialize;
 
@@ -408,16 +408,12 @@ mod tests {
         let encoded = serde_json::to_vec(&request).unwrap();
         let prepared = prepare(&encoded).unwrap();
         assert!(prepared.system_policy().contains(SYSTEM_POLICY));
-        assert!(
-            prepared
-                .system_policy()
-                .contains(&request.policy.instructions)
-        );
-        assert!(
-            !prepared
-                .semantic_data
-                .contains(&request.policy.instructions)
-        );
+        assert!(prepared
+            .system_policy()
+            .contains(&request.policy.instructions));
+        assert!(!prepared
+            .semantic_data
+            .contains(&request.policy.instructions));
         let payload = finish(
             prepared,
             r#"{"speech_text_index":0,"presented_thought_text_index":null,"suggested_action_identities":[]}"#,

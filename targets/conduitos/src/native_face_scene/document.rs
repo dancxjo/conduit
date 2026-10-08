@@ -85,7 +85,10 @@ pub(super) fn prepare(
                         | PresentationDisclosureLevel::SelectedDetail
                         | PresentationDisclosureLevel::ExactProvenance
                 ) || (disclosure.level == PresentationDisclosureLevel::Context
-                    && !matches!(subject.role, PresentationRole::Collection | PresentationRole::Document)))
+                    && !matches!(
+                        subject.role,
+                        PresentationRole::Collection | PresentationRole::Document
+                    )))
         }) {
             continue;
         }
