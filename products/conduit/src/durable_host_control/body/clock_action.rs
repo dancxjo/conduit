@@ -79,7 +79,14 @@ impl DurableHostRuntime {
                     return Err("browser-show-basis-mismatch".into());
                 }
             }
-            owner.resolve_clock_interaction(show, interaction)?
+            if interaction.action_id.starts_with("todo.") {
+                None
+            } else {
+                Some(owner.resolve_clock_interaction(show, interaction)?)
+            }
+        };
+        let Some(action) = action else {
+            return self.submit_owned_todo_action(show, interaction);
         };
         match action {
             crate::durable_host::owner::ClockAction::ChangeInterval => {
@@ -97,7 +104,7 @@ impl DurableHostRuntime {
                 owner.apply_clock_interval_interaction(root, show, interaction)
             }
             crate::durable_host::owner::ClockAction::Start => {
-                self.start_owned_body(crate::durable_host::owner::CLOCK_RUN_MAXIMUM_MILLIS)?;
+                self.start_owned_body(crate::durable_host::owner::CLOCK_RUN_MAXIMUM_MILLIS, None)?;
                 Ok(serde_json::json!({
                     "schema":"conduit.body/clock-start-requested@1",
                     "body_id":show.show.body_id,

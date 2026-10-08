@@ -167,7 +167,7 @@ fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
             && action.availability.is_available()
     }));
     assert_eq!(
-        runtime.start_owned_body(1_000).unwrap_err(),
+        runtime.start_owned_body(1_000, None).unwrap_err(),
         "terminal-attachment-must-detach-before-start"
     );
     drop(client);

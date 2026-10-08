@@ -410,6 +410,9 @@ pub(crate) enum BodyCommand {
         /// Finite execution deadline; the Play can be lulled earlier.
         #[arg(long, default_value_t = 300_000, value_parser = clap::value_parser!(u64).range(1..=900_000))]
         maximum_millis: u64,
+        /// Explicitly admit one new Todo list under this Body before its first action.
+        #[arg(long)]
+        todo_new_list: Option<String>,
     },
     /// Request that the current service-owned Body Play stop and lull.
     Lull {

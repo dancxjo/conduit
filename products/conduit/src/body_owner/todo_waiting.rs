@@ -4,8 +4,10 @@
 
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
-use conduit_core::{port_id, AuthorityGrant, ConnectionTrack, TerminalDisposition};
-use conduit_presentation::{FaceInteraction, MaskShow};
+use conduit_core::{
+    port_id, AuthorityGrant, ConnectionTrack, ResourceContentRequirement, TerminalDisposition,
+};
+use conduit_presentation::{FaceInteraction, FaceInteractionId, MaskShow};
 use conduit_std_host::body_execution::{
     BodyForeOutputAdapter, BodyRunReport, BodyRunRequest, TodoCheckpointSelection,
 };
@@ -45,12 +47,91 @@ pub(crate) struct TodoWaitingWorker {
     control: RunControl,
     queue: BodyLiveForeQueue,
     initial: TodoState,
+    accepted_interaction: Option<FaceInteractionId>,
     started: Receiver<(BodyPlayIdentity, Wake)>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
     thread: Option<JoinHandle<Outcome>>,
 }
 
 impl Owner {
+    pub(crate) fn start_selected_new_todo_list(
+        &mut self,
+        state_root: &Path,
+        checkpoint_root: PathBuf,
+        selected_content: &ResourceContentRequirement,
+        list_key: String,
+        maximum_millis: u64,
+    ) -> Result<TodoWaitingWorker, String> {
+        if list_key.is_empty() || list_key.len() > 128 || list_key.chars().any(char::is_control) {
+            return Err("new Todo list key is invalid".into());
+        }
+        let source_path = state_root.join("body/source.conduit");
+        let bytes = super::super::super::bounded_read(&source_path, 256 * 1024)?;
+        let text =
+            std::str::from_utf8(&bytes).map_err(|error| format!("Todo Source UTF-8: {error}"))?;
+        let source = crate::plot_source::parse(text)?;
+        let plot = source.expand_entry_for_authoring()?;
+        if plot.expanded.name != "todo/checkpoint-once" {
+            return Err("installed new Todo list requires checkpoint-once Source".into());
+        }
+        let advertisement = self.host.advertisement();
+        let offer = advertisement
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
+            })
+            .ok_or("installed Host has no selected Todo checkpoint offer")?;
+        let resource = advertisement
+            .resources
+            .iter()
+            .find(|resource| {
+                resource
+                    .content
+                    .as_ref()
+                    .is_some_and(|content| &content.contract == selected_content)
+            })
+            .ok_or("selected Todo checkpoint content differs from Host offer")?;
+        if resource.class_id.as_str() != "resource/todo-checkpoint@1"
+            || offer.authority_requirements.len() != 1
+        {
+            return Err("installed Todo checkpoint offer is not exact".into());
+        }
+        let requirement = &offer.authority_requirements[0];
+        let body = self.session.evidence().body_id.as_str().to_owned();
+        let grant = AuthorityGrant {
+            grant_id: format!("grant/todo/{body}/first").into(),
+            contract_id: requirement.contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
+            subject_kind: requirement.subject_kind.clone(),
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            capability_id: offer.capability_id.clone(),
+        };
+        self.start_waiting_todo(
+            state_root,
+            &source,
+            &plot,
+            &grant,
+            checkpoint_root,
+            CheckpointIdentity {
+                body,
+                plot: plot.expanded.checked_plot_id.as_str().to_owned(),
+                workload: list_key.clone(),
+                missing_v2: MissingV2Disposition::StartNewList,
+            },
+            TodoState::new(list_key).map_err(debug)?,
+            maximum_millis,
+        )
+    }
+
+    pub(crate) fn todo_commit_receipt(&self) -> Option<&serde_json::Value> {
+        self.last_execution
+            .as_ref()
+            .filter(|receipt| receipt["schema"] == "conduit.todo/first-checkpoint-receipt@1")
+    }
+
     /// Begin a single explicitly new list. The current Form is selected before
     /// planning; the caller separately selected Host residence and authority.
     pub(crate) fn start_waiting_todo(
@@ -139,6 +220,7 @@ impl Owner {
             control,
             queue,
             initial: current,
+            accepted_interaction: None,
             started: started_rx,
             acknowledge: Some(ack_tx),
             thread: Some(thread),
@@ -150,7 +232,7 @@ impl TodoWaitingWorker {
     /// Host staging is not a Todo acknowledgement. The caller must progress
     /// this worker to its committed output and terminal Sign first.
     pub(crate) fn submit_interaction(
-        &self,
+        &mut self,
         owner: &Owner,
         show: &MaskShow,
         interaction: &FaceInteraction,
@@ -164,7 +246,11 @@ impl TodoWaitingWorker {
         }
         let command = owner.resolve_todo_interaction(state, show, interaction)?;
         let canonical = command.encode_info().map_err(debug)?;
-        self.queue.submit(&canonical)
+        let admission = self.queue.submit(&canonical)?;
+        if matches!(admission, BodyLiveForeAdmission::Accepted { .. }) {
+            self.accepted_interaction = Some(interaction.identity.clone());
+        }
+        Ok(admission)
     }
 
     /// Return `Some(committed state)` only after the exact terminal report has
@@ -243,6 +329,7 @@ impl TodoWaitingWorker {
             "play":report.play, "terminal":report.terminal,
             "failure":report.failure, "cleanup_failure":report.cleanup_failure,
             "terminal_sign":report.terminal_sign,
+            "interaction_id":self.accepted_interaction.as_ref(),
             "committed_fore_count":count,
             "committed_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
         });

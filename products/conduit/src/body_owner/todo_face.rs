@@ -42,7 +42,7 @@ impl Owner {
             .play
             .as_ref()
             .ok_or("Todo has no current admitted Play")?;
-        let selected = realization
+        realization
             .plan
             .plots
             .iter()
@@ -50,7 +50,7 @@ impl Owner {
             .ok_or("Todo resident Plot is not in the current Plan")?;
         Ok(PresentationContributionBasis {
             checked_plot_id: resident.checked_plot_id.clone(),
-            plan_id: selected.plan.plan_id.clone(),
+            plan_id: realization.plan.plan_id.clone(),
             active_play_id: play.active_play_id.clone(),
             required_interaction_context: None,
         })
