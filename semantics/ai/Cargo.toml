@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-composite = { path = "../../architecture/composite", optional = true }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", optional = true, default-features = false }
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-data = { path = "../data" }
@@ -18,6 +20,7 @@ sha2 = { version = "0.10", default-features = false }
 [features]
 default = []
 kernel-step = ["dep:conduit-kernel"]
+kernel-operation-owners = ["kernel-step", "dep:conduit-composite", "dep:conduit-plan-lowering"]
 plot-catalog = ["dep:conduit-web"]
 
 [dev-dependencies]

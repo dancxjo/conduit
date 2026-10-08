@@ -203,3 +203,9 @@ pub mod fixed_numeric_preparation;
 pub mod fixed_tensor_linear;
 /// Shared immutable resource custody for fixed numerical reference operators.
 pub mod fixed_tensor_resource;
+
+pub mod integer_categorical;
+pub mod model_resource;
+pub use model_resource::{AdmittedModelResource, ModelResourceRefusal, MODEL_READ_AUTHORITY};
+#[cfg(feature = "kernel-step")]
+pub mod integer_categorical_step;

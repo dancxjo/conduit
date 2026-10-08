@@ -2103,3 +2103,5 @@ mod tests {
         assert!(timer.waits.is_empty());
     }
 }
+
+pub mod hosted_integer_categorical;

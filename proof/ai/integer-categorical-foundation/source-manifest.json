@@ -1,0 +1,35 @@
+{
+  "base": "a2fea6a2295e7ab34cfb32a9c187753e59b32585",
+  "files": {
+    "semantics/ai/src/integer_categorical.rs": {
+      "sha256": "6a5755ad63c32a762b9c5284ba49f726f4435a94619f1e5a8fdfa3d6ca3da16c",
+      "original_commit": "20f7be78ec3cb6c6c2b0562d955e67b5df2fd149",
+      "byte_exact": true
+    },
+    "semantics/ai/src/integer_categorical_step.rs": {
+      "sha256": "2689d5910d18fc6d6dc4f51847e377cb2fd09f62bed1bd93275a6b079ab7b1f6",
+      "original_commit": "20f7be78ec3cb6c6c2b0562d955e67b5df2fd149",
+      "byte_exact": true
+    },
+    "semantics/ai/src/model_resource.rs": {
+      "sha256": "ad2dd1473a293e5f4a82bbb7f8d52071c4532456ecb5ae5d55d8800cdae3ad3f",
+      "original_commit": "20f7be78ec3cb6c6c2b0562d955e67b5df2fd149",
+      "byte_exact": true
+    },
+    "semantics/ai/tests/integer_categorical_step.rs": {
+      "sha256": "8e16799bbfccb6004d902a5ac05ac7bc0169f32824127705608ddbeb07dfe4fc",
+      "original_commit": "20f7be78ec3cb6c6c2b0562d955e67b5df2fd149",
+      "byte_exact": true
+    },
+    "semantics/ai/tests/model_artifact.rs": {
+      "sha256": "36108d8f47d2499ecbec4c1dd1f8dd937c50289204d4e79454dff7839f79d7d2",
+      "original_commit": "20f7be78ec3cb6c6c2b0562d955e67b5df2fd149",
+      "byte_exact": true
+    },
+    "targets/std/src/hosted_integer_categorical.rs": {
+      "sha256": "71f66c7fc5600f4d6a07579f662310870b6a805deea0f83a2491596f63420e6f",
+      "original_commit": "9685e19dc2af0da9a0cf60e1643f601b6ba63cf0",
+      "byte_exact": true
+    }
+  }
+}
