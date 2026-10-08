@@ -3,13 +3,13 @@ use crate::{
     fixed_numeric_linear_flow::*, fixed_numeric_preparation::verify_fixed_placement,
     fixed_tensor_resource::AdmittedFixedTensorResource,
 };
-use alloc::{boxed::Box, format, string::String};
 use alloc::{collections::BTreeMap, sync::Arc};
+use alloc::{format, string::String};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
-type OwnedBack = Box<dyn StepBack<PORTS> + Send>;
+type OwnedBack = super::prepared_numeric_back::PreparedNumericBack;
 type Resources = BTreeMap<String, Arc<AdmittedFixedTensorResource>>;
 macro_rules! choose {
     ($inputs:literal, $outputs:literal, $placement:expr, $resources:expr) => {{
@@ -22,14 +22,14 @@ macro_rules! choose {
                     .cloned()
                     .ok_or_else(|| format!("missing Flow tensor {name}"))
             };
-            Some(Box::new(
-                FixedLinearFlowBack::<$inputs, $outputs>::prepare_planned_owned::<PORTS>(
-                    placement,
-                    4,
-                    get("weights")?,
-                )
-                .map_err(|error| format!("{error:?}"))?,
-            ) as OwnedBack)
+            let back = FixedLinearFlowBack::<$inputs, $outputs>::prepare_planned_owned::<PORTS>(
+                placement,
+                4,
+                get("weights")?,
+            )
+            .map_err(|error| format!("{error:?}"))?;
+            let local = back.local_accounted_heap_bytes();
+            Some(OwnedBack::new(back, local))
         } else {
             None
         };
@@ -143,7 +143,14 @@ impl KernelOperationFactory for FixedLinearFlowOperationFactory {
         &self,
         gear: &PlannedGear,
         _values: &mut HostedValueStore,
-    ) -> Result<OwnedBack, String> {
+    ) -> Result<alloc::boxed::Box<dyn StepBack<PORTS> + Send>, String> {
+        self.prepare_with_inventory(gear)
+            .map(|prepared| prepared.into_back())
+    }
+}
+
+impl FixedLinearFlowOperationFactory {
+    pub fn prepare_with_inventory(&self, gear: &PlannedGear) -> Result<OwnedBack, String> {
         select(gear.kind_id.as_str(), Some(gear), self.selected(gear)?)?
             .1
             .ok_or_else(|| "linear Flow did not prepare selected operation".into())

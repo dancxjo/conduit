@@ -7,8 +7,8 @@ use crate::{
 use alloc::{format, string::String};
 use conduit_core::*;
 use conduit_kernel::{
-    Failure, FailureCode, PortId,
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, PortId,
 };
 pub struct FixedIntegerConversionBack<const N: usize> {
     input: Option<FixedI16VectorCodec<N>>,
@@ -66,6 +66,21 @@ impl<const N: usize> FixedIntegerConversionBack<N> {
             cancelled: false,
             committed_frames: 0,
         })
+    }
+    /// Local codec capacities; concrete root and shared owners are separate.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        self.output
+            .local_accounted_heap_bytes()
+            .saturating_add(
+                self.input
+                    .as_ref()
+                    .map_or(0, |v| v.local_accounted_heap_bytes()),
+            )
+            .saturating_add(
+                self.raw
+                    .as_ref()
+                    .map_or(0, |v| v.local_accounted_heap_bytes()),
+            )
     }
     pub fn committed_frames(&self) -> u64 {
         self.committed_frames

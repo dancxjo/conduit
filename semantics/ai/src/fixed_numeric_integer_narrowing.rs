@@ -6,8 +6,8 @@ use crate::{
 use alloc::{format, string::String, vec};
 use conduit_core::*;
 use conduit_kernel::{
-    Failure, FailureCode, PortId,
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, PortId,
 };
 pub const INTEGER_NARROWING_IMPLEMENTATION: &str = "conduit.numeric/checked-u64-u16@1";
 pub const INTEGER_NARROWING_FLOW_IMPLEMENTATION: &str =
@@ -72,6 +72,10 @@ pub struct CheckedU64ToU16Back {
     committed_frames: u64,
 }
 impl CheckedU64ToU16Back {
+    /// This Back has no separately allocated local fields.
+    pub fn local_accounted_heap_bytes(&self) -> usize {
+        0
+    }
     pub fn prepare_planned<const PORTS: usize>(
         gear: &PlannedGear,
         fuel: u16,

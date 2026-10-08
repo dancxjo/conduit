@@ -2,13 +2,13 @@
 //! Authored source owns all layer ordering, indexing policy, and recurrence.
 use crate::fixed_numeric_preparation::verify_fixed_placement;
 use crate::fixed_tensor_resource::AdmittedFixedTensorResource;
-use alloc::{boxed::Box, format, string::String, vec::Vec};
 use alloc::{collections::BTreeMap, sync::Arc};
+use alloc::{format, string::String, vec::Vec};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-type NumericBack = Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>;
+type NumericBack = super::prepared_numeric_back::PreparedNumericBack;
 type TensorBindings = BTreeMap<String, Arc<AdmittedFixedTensorResource>>;
 struct Selection {
     offer: CapabilityOffer,
@@ -19,7 +19,11 @@ macro_rules! run {
         (|| -> Result<Selection, String> {
             let offer = $offer.map_err(|error| format!("{error:?}"))?;
             let back = if let Some(($gear, $fuel)) = $selected {
-                Some(Box::new($back.map_err(|error| format!("{error:?}"))?) as NumericBack)
+                {
+                    let back = $back.map_err(|error| format!("{error:?}"))?;
+                    let local = back.local_accounted_heap_bytes();
+                    Some(NumericBack::new(back, local))
+                }
             } else {
                 None
             };
@@ -224,7 +228,15 @@ impl KernelOperationFactory for FixedNumericOperationFactory {
         &self,
         gear: &PlannedGear,
         _values: &mut HostedValueStore,
-    ) -> Result<NumericBack, String> {
+    ) -> Result<alloc::boxed::Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String>
+    {
+        self.prepare_with_inventory(gear)
+            .map(|prepared| prepared.into_back())
+    }
+}
+
+impl FixedNumericOperationFactory {
+    pub fn prepare_with_inventory(&self, gear: &PlannedGear) -> Result<NumericBack, String> {
         let bindings = self.selected(gear)?;
         let fuel = u16::try_from(gear.inputs.len() + 1)
             .map_err(|_| "numeric step fuel exceeds finite port budget")?;
