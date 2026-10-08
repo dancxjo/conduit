@@ -14,10 +14,17 @@
     "work/native-record-recipe/fixture": "8bd42fb008f47b36e83cc3fb6c2f5c4d24a7dea710c824147d5ae375b4c6ca51"
   },
   "limitations": [
-    "No fresh coherent complete Language/Plan/Kernel merge runtime after this Core/Plot change.",
     "Field timing diagnostic links only newly built Core and reads an original immutable canonical frame; it does not use an old Language SDK.",
     "Prepared family receipts increase and require recalibration before production adoption.",
     "Nested contract path traversal retains the original fallback; this slice accelerates prepared record root lookup.",
-    "Recipe storage preflight refuses before recipe allocation; no new whole-family allocation-free preflight is claimed."
-  ]
+    "Recipe storage preflight refuses before recipe allocation; no new whole-family allocation-free preflight is claimed.",
+    "Fresh full418-hop Source/Native merge component passes separately; no model/Kernel/public Session runtime acceptance is claimed."
+  ],
+  "full_merge_evidence_files": {
+    "run-merge.py": "6ef927616261a2db5b3f8e96b1353a91b5934dac0a6506b97cf9a3735ed2b15d",
+    "full-merge-runtime.log": "1defc94ba8ec96a4cf613818a10e4b59d8e5abf40fc849d4139226a11cf76b8d",
+    "prepare-merge-graph.py": "99e0d27aa0cd55757304f2e84754802a87ed19b024fd28e84744d3ab82ef1a0d",
+    "full-merge-receipt.json": "ba4a33c0629edce78e90dcd793b803ac6e65dd75511a8c42fd8bc6aeddbf6adc",
+    "fresh-language-graph.json": "c0fbc8bdcb20593c63740448fa25548b1782c016de791508ef98db09a52d8fc2"
+  }
 }
