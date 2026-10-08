@@ -12,7 +12,7 @@ plot todo/main (
     >> commands: conduit.todo/command@1...| <= 75B
     states: conduit.todo/state@1...| <= 1635B >>
 ) {
-    reducer: scan("Groceries", maximum-items = 20) todo/combine()
+    reducer: scan("Groceries", maximum-items = 64) todo/combine()
     commands >> reducer.item
     reducer.combined >> states
 }

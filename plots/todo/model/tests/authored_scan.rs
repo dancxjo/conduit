@@ -18,6 +18,7 @@ fn authored_todo_scan_carries_owner_validated_exact_initial_form() {
             .unwrap()
             .expanded;
     let activation = &expanded.activations[0];
+    assert_eq!(activation.mode.maximum_items(), 64);
     assert_eq!(
         activation
             .accumulator_input
