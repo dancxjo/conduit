@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use core::mem::size_of;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct NativeFamilyContractDescriptor {
     pub representation_path: &'static str,
     pub value_kind: &'static str,
@@ -14,7 +14,7 @@ pub struct NativeFamilyContractDescriptor {
     pub constraints: &'static [NativeFamilyConstraintDescriptor],
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum NativeFamilyConstraintDescriptor {
     CanonicalMembership {
         members: &'static [&'static [u8]],

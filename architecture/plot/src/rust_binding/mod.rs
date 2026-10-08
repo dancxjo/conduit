@@ -26,13 +26,15 @@ pub use prepared_invariant_storage::{
 };
 mod prepared_family;
 mod prepared_family_contracts;
+mod prepared_family_external;
 #[cfg(test)]
 mod prepared_invariants_tests;
 mod primitive;
 pub use prepared_family::{
-    NativeFamilyConversionProfile, NativeFamilyTypeDescriptor, PreparedNativeFamily,
-    PreparedNativeFamilyLimits, PreparedNativeFamilyRefusal, PreparedNativeFamilyStorageReceipt,
-    PreparedNativeRustBinding, MAXIMUM_NATIVE_FAMILY_TYPES,
+    NativeFamilyConversionProfile, NativeFamilyExternalEdge, NativeFamilyTypeDescriptor,
+    PreparedNativeFamily, PreparedNativeFamilyLimits, PreparedNativeFamilyRefusal,
+    PreparedNativeFamilyStorageReceipt, PreparedNativeRustBinding,
+    MAXIMUM_NATIVE_FAMILY_EXTERNAL_METADATA_BYTES, MAXIMUM_NATIVE_FAMILY_TYPES,
 };
 pub use prepared_family_contracts::{
     NativeFamilyConstraintDescriptor, NativeFamilyContractDescriptor,
@@ -45,8 +47,9 @@ pub use conduit_core as semantic_core;
 pub use generate::{
     generate_rust_bindings, generate_rust_bindings_with_external_bindings,
     generate_rust_bindings_with_forms, generate_rust_bindings_with_forms_and_external_bindings,
-    ExternalNativeRustBinding, ExternalRustBindingGenerationError, RustBindingGenerationError,
-    RustBindingModule, RustBindingOptions,
+    generate_rust_bindings_with_forms_and_external_prepared_bindings, ExternalNativeRustBinding,
+    ExternalPreparedNativeRustBinding, ExternalRustBindingGenerationError,
+    RustBindingGenerationError, RustBindingModule, RustBindingOptions,
 };
 pub use generate_package::{
     generate_locked_package_rust_bindings, LockedPackageBindingSource,

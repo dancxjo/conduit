@@ -8,6 +8,7 @@ static NOMINAL: NativeFamilyTypeDescriptor = NativeFamilyTypeDescriptor {
     laws: &[],
     contracts: &[],
     children: &[],
+    external_edges: &[],
     conversion_profile: NativeFamilyConversionProfile::Nominal,
     maximum_inline_bytes: 8,
 };

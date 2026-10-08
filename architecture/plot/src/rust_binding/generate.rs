@@ -21,6 +21,15 @@ pub struct ExternalNativeRustBinding<'a> {
     pub rust_type_path: &'a str,
 }
 
+/// Exact prepared metadata owned by an imported semantic crate. The Rust path
+/// must be the same original binding registered in `ExternalNativeRustBinding`.
+#[derive(Clone, Copy, Debug)]
+pub struct ExternalPreparedNativeRustBinding<'a> {
+    pub semantic_identity: &'a str,
+    pub rust_type_path: &'a str,
+    pub descriptor: &'static super::NativeFamilyTypeDescriptor,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExternalRustBindingGenerationError {
     MissingExternalBinding(String),
@@ -82,6 +91,82 @@ pub fn generate_rust_bindings_with_forms_and_external_bindings(
         .map_err(ExternalRustBindingGenerationError::Generation)
 }
 
+/// Generates complete prepared bindings while reusing imported owners' exact
+/// descriptors. Expected metadata is embedded and checked before family allocation.
+pub fn generate_rust_bindings_with_forms_and_external_prepared_bindings(
+    types: &[CheckedNativeType],
+    type_forms: &[CheckedTypeForm],
+    external_types: &[StructuredInfoType],
+    external_bindings: &[ExternalNativeRustBinding<'_>],
+    external_prepared: &[ExternalPreparedNativeRustBinding<'_>],
+    options: &RustBindingOptions,
+) -> Result<RustBindingModule, ExternalRustBindingGenerationError> {
+    let external_names = validate_external_bindings(types, external_types, external_bindings)?;
+    let mut seen = BTreeSet::new();
+    for binding in external_prepared {
+        super::prepared_family_external::metadata_extent(binding.descriptor).map_err(|_| {
+            ExternalRustBindingGenerationError::Generation(
+                RustBindingGenerationError::InvalidSemanticType,
+            )
+        })?;
+        if !seen.insert(binding.semantic_identity) {
+            return Err(
+                ExternalRustBindingGenerationError::DuplicateExternalBinding(
+                    binding.semantic_identity.into(),
+                ),
+            );
+        }
+        if external_names
+            .get(binding.semantic_identity)
+            .map(String::as_str)
+            != Some(binding.rust_type_path)
+        {
+            return Err(
+                ExternalRustBindingGenerationError::ExternalBindingIdentityDrift(
+                    binding.semantic_identity.into(),
+                ),
+            );
+        }
+        let Some(value_type) = external_types.iter().find(|ty| {
+            ty.canonical_bytes()
+                .is_ok_and(|bytes| bytes == binding.descriptor.type_bytes)
+        }) else {
+            return Err(
+                ExternalRustBindingGenerationError::ExternalBindingIdentityDrift(
+                    binding.semantic_identity.into(),
+                ),
+            );
+        };
+        let identity = match value_type.shape() {
+            StructuredInfoTypeShape::Nominal { schema, .. }
+            | StructuredInfoTypeShape::Record { schema, .. }
+            | StructuredInfoTypeShape::Variant { schema, .. } => schema.as_str(),
+            _ => {
+                return Err(
+                    ExternalRustBindingGenerationError::ExternalBindingIdentityDrift(
+                        binding.semantic_identity.into(),
+                    ),
+                )
+            }
+        };
+        if identity != binding.semantic_identity {
+            return Err(
+                ExternalRustBindingGenerationError::ExternalBindingIdentityDrift(
+                    binding.semantic_identity.into(),
+                ),
+            );
+        }
+    }
+    generate_rust_bindings_with_external_names_and_prepared(
+        types,
+        type_forms,
+        options,
+        &external_names,
+        external_prepared,
+    )
+    .map_err(ExternalRustBindingGenerationError::Generation)
+}
+
 use super::external_binding_validation::validate_external_bindings;
 
 pub(super) fn generate_rust_bindings_with_external_names(
@@ -89,6 +174,22 @@ pub(super) fn generate_rust_bindings_with_external_names(
     type_forms: &[CheckedTypeForm],
     options: &RustBindingOptions,
     external_names: &BTreeMap<String, String>,
+) -> Result<RustBindingModule, RustBindingGenerationError> {
+    generate_rust_bindings_with_external_names_and_prepared(
+        types,
+        type_forms,
+        options,
+        external_names,
+        &[],
+    )
+}
+
+fn generate_rust_bindings_with_external_names_and_prepared(
+    types: &[CheckedNativeType],
+    type_forms: &[CheckedTypeForm],
+    options: &RustBindingOptions,
+    external_names: &BTreeMap<String, String>,
+    external_prepared: &[ExternalPreparedNativeRustBinding<'_>],
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
     if types.is_empty() {
         return Err(RustBindingGenerationError::EmptyTypeSet);
@@ -128,7 +229,8 @@ pub(super) fn generate_rust_bindings_with_external_names(
     }
     validate_boxed_variant_payloads(types, options, external_names)?;
     super::generate_options::validate_inline_variants(types, options)?;
-    let prepared_family = super::generate_prepared_family::projection(types, options, &names)?;
+    let prepared_family =
+        super::generate_prepared_family::projection(types, options, &names, external_prepared)?;
 
     let mut source = String::from(
         "// @generated by Conduit from checked semantic Types.\n\
@@ -157,7 +259,13 @@ pub(super) fn generate_rust_bindings_with_external_names(
     }
     emit_forms(&mut source, type_forms, &names)?;
     if !prepared_family.is_empty() {
-        super::generate_prepared_family::emit(&mut source, &prepared_family, &names, options)?;
+        super::generate_prepared_family::emit(
+            &mut source,
+            &prepared_family,
+            &names,
+            options,
+            external_prepared,
+        )?;
     }
     Ok(RustBindingModule {
         source,
