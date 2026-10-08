@@ -82,6 +82,15 @@ fn input_semantic(contract: &conduit_core::HostCallContractId) -> bool {
         conduit_std_offers::KEYMAP_HOST_CALL | conduit_std_offers::CHORDS_HOST_CALL
     )
 }
+fn todo_checkpoint(operation: &LoweredHostCall) -> bool {
+    operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
+        && operation
+            .target_kind
+            .as_ref()
+            .is_some_and(|kind| kind.as_str() == conduit_todo_plot::TODO_CHECKPOINT_KIND)
+        && operation.binding.maximum_input_bytes == 4096
+        && operation.binding.maximum_output_bytes == 4096
+}
 fn timer(contract: &conduit_core::HostCallContractId) -> bool {
     contract.as_str() == conduit_core::WAIT_HOST_CALL_CONTRACT
 }
@@ -232,6 +241,7 @@ impl<'a> BodyKernel<'a> {
                 && !image_text(&operation.contract_id)
                 && !text_state(&operation.contract_id)
                 && !input_semantic(&operation.contract_id)
+                && !todo_checkpoint(operation)
                 && !presentation(operation)
             {
                 return Err(format!(

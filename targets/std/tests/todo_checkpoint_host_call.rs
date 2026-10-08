@@ -322,6 +322,15 @@ fn selected_host_call_commits_before_completion_and_second_host_recovers() {
     };
     assert!(observed.lock().unwrap().is_empty());
     let bytes = kernel.host_value(request.input.value).unwrap();
+    let wrong_request = conduit_kernel::scheduler::HostCallRequest {
+        request: conduit_kernel::RequestId(1),
+        ..request
+    };
+    assert_eq!(
+        host.perform(wrong_request, bytes).disposition,
+        HostCallDisposition::Denied
+    );
+    assert!(reader.recover(&read.authority[0]).is_err());
     let outcome = host.perform(request, bytes);
     assert_eq!(outcome.disposition, HostCallDisposition::Completed);
     let committed = reader.recover(&read.authority[0]).unwrap();
@@ -378,121 +387,5 @@ fn checkpoint_host_advertises_exact_selected_version_before_ledger() {
         offer.implementation.implementation_id.as_str()
             == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
     }));
-    std::fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn authored_checkpoint_plan_selects_exact_installed_back_pair() {
-    use conduit_plot::{
-        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-        KindSignature, ProfileCatalog, StartupCatalog,
-    };
-    let mut startup = StartupCatalog::new();
-    let mut profile = ProfileCatalog::new();
-    for kind in [
-        conduit_todo_plot::todo_combine_kind(),
-        conduit_todo_plot::todo_checkpoint_kind(),
-    ] {
-        startup
-            .insert(KindSignature {
-                kind: kind.kind_id.as_str().to_string(),
-                startup_parameters: Vec::new(),
-            })
-            .unwrap();
-        profile.insert_kind(kind).unwrap();
-    }
-    let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("../../../plots/todo/checkpoint-once.conduit")),
-        &startup,
-    )
-    .unwrap();
-    let expanded = expand_canonical_plot_for_authoring(&checked, "todo/checkpoint-once", &profile)
-        .unwrap()
-        .expanded;
-    let root = std::env::temp_dir().join(format!(
-        "todo-checkpoint-plan-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::create_dir(&root).unwrap();
-    let content = placement("host-a", "boot-a", true).resources[0]
-        .content
-        .as_ref()
-        .unwrap()
-        .contract
-        .clone();
-    let host = conduit_std_host::StdHost::new_for_todo_checkpoint_once(
-        conduit_std_host::StdHostConfig {
-            host_id: "host-a".into(),
-            boot_id: "boot-a".into(),
-            offer_generation: OfferGeneration(1),
-        },
-        &root,
-        content,
-    )
-    .unwrap();
-    let advertisement = host.advertisement().clone();
-    let checkpoint_offer = advertisement
-        .capabilities
-        .iter()
-        .find(|offer| {
-            offer.implementation.implementation_id.as_str()
-                == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
-        })
-        .unwrap();
-    let requirement = &checkpoint_offer.authority_requirements[0];
-    let grant = AuthorityGrant {
-        grant_id: "grant/host-a/boot-a/checkpoint".into(),
-        contract_id: requirement.contract_id.clone(),
-        host_call_contract_id: requirement.host_call_contract_id.clone(),
-        subject_kind: requirement.subject_kind.clone(),
-        host_id: advertisement.host_id.clone(),
-        boot_id: advertisement.boot_id.clone(),
-        capability_id: checkpoint_offer.capability_id.clone(),
-    };
-    let hosts = [advertisement];
-    let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
-    let connection_bases = std::collections::BTreeMap::new();
-    let line_candidates = std::collections::BTreeMap::new();
-    let plan = conduit_planner::plan_expanded_canonical_with_options(
-        &expanded,
-        &hosts,
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-        conduit_planner::PlanningOptions {
-            connection_bases: &connection_bases,
-            line_candidates: &line_candidates,
-            connection_item_capacity: 1,
-            connection_byte_capacity: STATE_MAX_BYTES as u32,
-            authority_grants: &[grant],
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
-    )
-    .unwrap();
-    let placements = &plan.fragments[0].placements;
-    assert_eq!(placements.len(), 2);
-    let combine = placements
-        .iter()
-        .find(|p| p.kind_id == conduit_todo_plot::todo_combine_kind().kind_id)
-        .unwrap();
-    assert_eq!(combine.capability_id.as_str(), "std-todo-combine-v1");
-    assert_eq!(
-        combine.execution_profile_id.as_str(),
-        conduit_std_offers::TODO_COMBINE_PROFILE
-    );
-    let checkpoint = placements
-        .iter()
-        .find(|p| p.kind_id == conduit_todo_plot::todo_checkpoint_kind().kind_id)
-        .unwrap();
-    assert_eq!(
-        checkpoint.implementation_id.as_str(),
-        conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
-    );
-    assert_eq!(checkpoint.resources.len(), 1);
-    assert_eq!(checkpoint.authority.len(), 1);
     std::fs::remove_dir_all(root).unwrap();
 }

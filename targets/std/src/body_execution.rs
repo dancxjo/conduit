@@ -150,15 +150,61 @@ impl StdHost {
         output: &mut W,
         timer: &mut T,
     ) -> Result<BodyRunReport, String> {
+        self.run_body_plan_with_todo_checkpoint_to_with_start(
+            request,
+            inputs,
+            fore_output,
+            root,
+            checkpoint,
+            output,
+            timer,
+            |_, _| Ok(()),
+        )
+    }
+
+    /// Retain the exact started Play before any checkpoint Host Call can
+    /// publish state. A refused start leaves the selected residence untouched.
+    pub fn run_body_plan_with_todo_checkpoint_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        root: &Path,
+        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
         let selected = self
             .todo_checkpoint_root
             .as_ref()
             .ok_or("std Host has no selected Todo checkpoint residence")?;
+        if root
+            .symlink_metadata()
+            .map_err(|error| format!("Todo checkpoint root: {error}"))?
+            .file_type()
+            .is_symlink()
+        {
+            return Err("Todo checkpoint root changed to a symlink".into());
+        }
         let actual = root
             .canonicalize()
             .map_err(|error| format!("Todo checkpoint root: {error}"))?;
-        if &actual != selected {
+        if actual != selected.path {
             return Err("Todo checkpoint root differs from advertised residence".into());
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = actual
+                .metadata()
+                .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+            if metadata.dev() != selected.device || metadata.ino() != selected.inode {
+                return Err("Todo checkpoint residence was rebound after advertisement".into());
+            }
         }
         self.run_body_plan_to_with_start_and_clock(
             request,
@@ -166,10 +212,10 @@ impl StdHost {
             timer,
             None,
             None,
-            Some((inputs, true, fore_output)),
+            Some((inputs, false, fore_output)),
             None,
             Some((root, checkpoint)),
-            |_, _| Ok(()),
+            started,
         )
     }
 

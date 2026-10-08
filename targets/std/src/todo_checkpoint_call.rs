@@ -141,6 +141,7 @@ impl TodoCheckpointHost {
     pub fn perform(&self, request: HostCallRequest, input: &[u8]) -> HostCallOutcome {
         if request.node != self.node
             || request.call != self.call
+            || request.request != RequestId(0)
             || request.input.admitted_bytes != STATE_MAX_BYTES as u32
             || request.input.value.byte_len as usize != input.len()
             || input.len() > STATE_MAX_BYTES

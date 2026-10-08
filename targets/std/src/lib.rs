@@ -514,6 +514,14 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     Ok(report)
 }
 
+struct TodoCheckpointResidenceRoot {
+    path: std::path::PathBuf,
+    #[cfg(unix)]
+    device: u64,
+    #[cfg(unix)]
+    inode: u64,
+}
+
 pub struct StdHost {
     advertisement: HostAdvertisement,
     #[cfg(unix)]
@@ -533,7 +541,7 @@ pub struct StdHost {
     body_conversation_context: Option<BodyConversationContextSource>,
     vision: Option<hosted_vision::FiniteHostedVisionBase>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
-    todo_checkpoint_root: Option<std::path::PathBuf>,
+    todo_checkpoint_root: Option<TodoCheckpointResidenceRoot>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -758,7 +766,21 @@ impl StdHost {
             .capabilities
             .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
         let mut host = Self::from_advertisement(advertisement)?;
-        host.todo_checkpoint_root = Some(root);
+        #[cfg(unix)]
+        let selected = {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = root
+                .metadata()
+                .map_err(|error| format!("Todo checkpoint root: {error}"))?;
+            TodoCheckpointResidenceRoot {
+                path: root,
+                device: metadata.dev(),
+                inode: metadata.ino(),
+            }
+        };
+        #[cfg(not(unix))]
+        let selected = TodoCheckpointResidenceRoot { path: root };
+        host.todo_checkpoint_root = Some(selected);
         Ok(host)
     }
 

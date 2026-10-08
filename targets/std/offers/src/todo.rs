@@ -14,6 +14,8 @@ pub const TODO_CHECKPOINT_ARTIFACT: &str = "conduit-std-host/todo-checkpoint@1";
 pub const TODO_CHECKPOINT_PROFILE: &str = "conduit.std/todo-checkpoint@1";
 pub const TODO_CHECKPOINT_PUBLISH_CALL: &str = "conduit.host/todo-checkpoint-publish@1";
 pub const TODO_CHECKPOINT_AUTHORITY: &str = "authority/todo-checkpoint@1";
+pub const TODO_CHECKPOINT_MAX_BYTES: u32 =
+    (8 + 1 + 64 + 3 * (1 + 128) + 4 + 4 + 32 + conduit_todo_plot::STATE_MAX_BYTES) as u32;
 
 /// One externally durable immutable generation selected for one Todo command.
 pub fn todo_checkpoint_offer(
@@ -26,7 +28,7 @@ pub fn todo_checkpoint_offer(
         || contract.retention != ResourceRetention::ExternalDurable
         || contract.sharing != ResourceSharing::SingleWriterPublished
         || contract.content_profile != kind_id("conduit.todo/checkpoint-envelope@1")
-        || contract.maximum_bytes != 2135
+        || contract.maximum_bytes != TODO_CHECKPOINT_MAX_BYTES
         || contract.maximum_items != 1
         || contract.generation_slots != 1
         || contract.publication_slots != 1

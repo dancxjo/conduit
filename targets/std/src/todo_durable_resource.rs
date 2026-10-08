@@ -16,8 +16,9 @@ use std::path::{Path, PathBuf};
 const MAGIC: &[u8; 8] = b"CDTODO01";
 const SCHEMA: u8 = 1;
 const MAX_ID: usize = 128;
-pub const CHECKPOINT_MAX_BYTES: usize =
-    8 + 1 + 64 + 3 * (1 + MAX_ID) + 4 + 4 + 32 + STATE_MAX_BYTES;
+pub const CHECKPOINT_MAX_BYTES: usize = conduit_std_offers::TODO_CHECKPOINT_MAX_BYTES as usize;
+const _: [(); CHECKPOINT_MAX_BYTES] =
+    [(); 8 + 1 + 64 + 3 * (1 + MAX_ID) + 4 + 4 + 32 + STATE_MAX_BYTES];
 pub const PUBLISH_OPERATION: &str = "conduit.host/todo-checkpoint-publish@1";
 pub const READ_OPERATION: &str = "conduit.host/todo-checkpoint-read@1";
 pub const AUTHORITY_CONTRACT: &str = "authority/todo-checkpoint@1";
