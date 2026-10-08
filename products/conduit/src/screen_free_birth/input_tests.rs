@@ -27,6 +27,14 @@ fn read_current_items_is_a_generic_spoken_command() {
         super::super::present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
     let reader = SpokenFaceSession::new(face.clone(), show).unwrap();
     assert_eq!(
+        parse_command("read remaining", &reader, &face),
+        Ok(ReaderCommand::ReadItemPage)
+    );
+    assert_eq!(
+        parse_command("more items", &reader, &face),
+        Ok(ReaderCommand::MoreItems)
+    );
+    assert_eq!(
         parse_command("read current items", &reader, &face),
         Ok(ReaderCommand::ReadCurrentItems)
     );

@@ -15,6 +15,10 @@ pub enum ReaderCommand {
     ReadAll,
     /// Read the currently primary Item subjects without selected-detail spill.
     ReadCurrentItems,
+    /// Begin a finite page of primary items from the current Face.
+    ReadItemPage,
+    /// Continue that exact Face selection; refuse after a revision change.
+    MoreItems,
     Next,
     Previous,
     Repeat,

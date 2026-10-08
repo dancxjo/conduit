@@ -1,7 +1,6 @@
 use super::*;
 use conduit_core::ValueConstraint;
 use conduit_presentation::readable_finite_text_choices;
-use conduit_presentation::PresentationDisclosureLevel;
 
 /// The same bounded mechanical wording used by the interactive reader,
 /// available to an ordinary direct spoken Mask before it has produced a Show.
@@ -14,137 +13,7 @@ pub fn mechanical_face_clauses(face: &Presentation) -> Result<Vec<String>, Spoke
 /// The short first encounter for an artifact-output spoken Mask. The complete
 /// provenanced reading remains available through the interactive reader.
 pub fn primary_face_clauses(face: &Presentation) -> Result<Vec<String>, SpokenFaceRefusal> {
-    let cursor = FaceReadingCursor::new(face).map_err(reading_refusal)?;
-    primary_voice_clauses(face, cursor.plan())
-}
-
-/// Select a bounded first utterance from Face wording and explicitly primary
-/// subjects. This is a Mask reading policy, not a replacement for Face truth.
-pub(super) fn primary_voice_clauses(
-    face: &Presentation,
-    _plan: &FaceUtterancePlan,
-) -> Result<Vec<String>, SpokenFaceRefusal> {
-    let level = |identity: &str| {
-        face.disclosures
-            .iter()
-            .find(|disclosure| disclosure.subject == identity)
-            .map(|disclosure| disclosure.level)
-    };
-    let primary = |identity: &str| {
-        matches!(
-            level(identity),
-            None | Some(PresentationDisclosureLevel::Primary)
-        )
-    };
-    let subject_role = |identity: &str| {
-        face.subjects
-            .iter()
-            .find(|subject| subject.identity == identity)
-            .map(|subject| &subject.role)
-    };
-    let has_application_wording = face.text.iter().any(|wording| {
-        (primary(&wording.subject)
-            || level(&wording.subject) == Some(PresentationDisclosureLevel::Context))
-            && !matches!(subject_role(&wording.subject), Some(PresentationRole::Body))
-    });
-    let mut result = Vec::new();
-    let title = face.subjects.iter().find(|subject| {
-        matches!(
-            level(&subject.identity),
-            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
-        ) && matches!(
-            subject.role,
-            PresentationRole::Collection | PresentationRole::Document
-        )
-    });
-    if let Some(subject) = title {
-        result.push(format!("{}.", subject.name));
-    }
-    let mut omitted = false;
-    // Face Context is the encounter's orientation, so it precedes the result
-    // even if it was serialized after primary wording in the Face.
-    for expected in [
-        Some(PresentationDisclosureLevel::Context),
-        None,
-        Some(PresentationDisclosureLevel::Primary),
-    ] {
-        for wording in face.text.iter().filter(|wording| {
-            level(&wording.subject) == expected
-                && !title.is_some_and(|subject| {
-                    wording.subject == subject.identity && wording.text == subject.name
-                })
-                && !(has_application_wording
-                    && matches!(subject_role(&wording.subject), Some(PresentationRole::Body)))
-        }) {
-            if result.len() >= 4 {
-                omitted = true;
-                break;
-            }
-            result.push(wording.text.clone());
-        }
-    }
-    let primary_items = face
-        .subjects
-        .iter()
-        .filter(|subject| primary(&subject.identity) && subject.role == PresentationRole::Item)
-        .collect::<Vec<_>>();
-    for subject in primary_items.iter().take(3) {
-        result.push(format!("{}.", subject.name));
-    }
-    if primary_items.len() > 3 {
-        omitted = true;
-    }
-    if result.is_empty() {
-        if let Some(subject) = face.subjects.iter().find(|subject| {
-            primary(&subject.identity)
-                && matches!(
-                    subject.role,
-                    PresentationRole::Body | PresentationRole::Region
-                )
-        }) {
-            result.push(format!("{}.", subject.name));
-        }
-    }
-    if result.is_empty() {
-        return Err(SpokenFaceRefusal::VoiceBound);
-    }
-    if omitted {
-        if primary_items.len() > 3 {
-            result.push("Type read current items to hear what remains.".into());
-        } else {
-            result.push("Type read all for more detail.".into());
-        }
-    } else if result.len() < 7 {
-        // Application wording should lead to a content action, not a generic
-        // Body or Plot navigation prompt from the same Face.
-        let mut offered = face.actions.iter().filter(|action| {
-            action.availability.is_available()
-                && action.disclosure == PresentationDisclosureLevel::CurrentAction
-                && (!has_application_wording
-                    || matches!(
-                        subject_role(&action.target),
-                        Some(
-                            PresentationRole::Collection
-                                | PresentationRole::Item
-                                | PresentationRole::Document
-                                | PresentationRole::TextEntry
-                        )
-                    ))
-                && matches!(
-                    level(&action.target),
-                    None | Some(PresentationDisclosureLevel::Primary)
-                        | Some(PresentationDisclosureLevel::Context)
-                )
-        });
-        if let Some(action) = offered
-            .clone()
-            .find(|action| level(&action.target) == Some(PresentationDisclosureLevel::Context))
-            .or_else(|| offered.next())
-        {
-            result.push(format!("You can {}.", action.name));
-        }
-    }
-    Ok(result)
+    Ok(super::select_spoken_outline(face)?.clauses)
 }
 
 /// Keep the common Face's reading order and exact provenance; only the spoken
