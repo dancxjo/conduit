@@ -1,0 +1,7 @@
+Browser CI passed all 100 tests, then failed retained-evidence ancestry because Playwright 1.62 automatically fetched the PR base with `--depth=1` while collecting optional diff metadata. Disable that diff collection while retaining commit metadata and strict ancestry checks. Keep the subprocess history guard so future full-to-shallow mutations identify their source.
+
+Give the existing multi-lifecycle cue test a scoped 30-second budget; its assertions, one browser worker and zero retries remain intact. Box the enlarged Make CLI payload, preserving parser coverage. Refresh onto current development, which already contains the native return-route, snapshot-fixture and owner-proof lint repairs. Preserve its exact retained Todo evidence captures and newer reentry behavior.
+
+Validation: all 155 pipeline tests pass; focused CLI and ConduitOS parser tests pass (2+3+11); all five native return-route tests pass. Package all-target Clippy with warnings denied passes for std-host, xtask and conduit. A real Git fixture using the pinned Playwright runner reproduces loss of retained ancestry with default diff capture and preserves it with the updated config. Browser CI on the history repair passed all 100 assertions and completed product publication; ConduitOS unit CI passed as well. Workspace-wide Clippy with warnings denied and formatting pass on the refreshed source. The final candidate checks remain pending.
+
+Supports #5113. Stable acceptance and final exact-main native proof remain required before issue closure.

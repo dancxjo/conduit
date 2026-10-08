@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized] target(s) in 0.12s
+     Running unittests src/main.rs (../conduit/target/debug/deps/xtask-30a83b23af205162)
+
+running 3 tests
+test commands::conduitos::command::tests::source_compilation_requires_a_recipe_and_rejects_mixed_package_input ... ok
+test commands::conduitos::command::tests::protocol_source_command_requires_package_entry_and_output_directory ... ok
+test commands::conduitos::command::tests::protocol_image_requires_existing_kernel_record_and_both_exact_modules ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 507 filtered out; finished in 0.01s
+

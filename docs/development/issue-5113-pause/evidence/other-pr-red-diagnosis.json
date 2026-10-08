@@ -1,0 +1,18 @@
+{
+  "own_pr": 5194,
+  "own_quick": "success",
+  "own_remaining_failure": "intentional draft candidate gate",
+  "other_pr_findings": [
+    {
+      "pr": 5250,
+      "finding": "standalone Cargo lock preflight failure in ESP32 and Pico manifests",
+      "retained_log": "pr-5250-quick-diagnostic.log"
+    },
+    {
+      "pr": 5247,
+      "finding": "older proof complete job failed because PREFLIGHT was cancelled; newer target jobs still running",
+      "retained_log": "pr-5247-proof-complete-diagnostic.log"
+    }
+  ],
+  "unrelated_branches_changed": false
+}

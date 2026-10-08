@@ -1,0 +1,37 @@
+{
+  "branch": "codex/5113-protected-retained-text",
+  "source_commit": "24b8728cc",
+  "host_tests": {
+    "passed": 691,
+    "log": "protected-retained-text-host.log"
+  },
+  "semantic_tests": {
+    "passed": 5,
+    "log": "protected-retained-text-semantics.log"
+  },
+  "partition_cost_regression": {
+    "passed": 1,
+    "log": "protected-retained-text-cost.log"
+  },
+  "native_journey": "passed on clean commit; canonical graphical command still building headless images",
+  "native_editor_cost": {
+    "entries": 21,
+    "base_gate_transitions": 5,
+    "copied_bytes": 58,
+    "reserved_and_zeroed_bytes": 118784,
+    "root_metadata_bytes": 6356
+  },
+  "remaining_validation": [
+    "remove unused native Root editor field",
+    "workspace Clippy warnings denied",
+    "full workspace tests",
+    "native proof on final clean source",
+    "publish follow-up after predecessor integration"
+  ],
+  "ci_repair": {
+    "branch": "codex/fix-screen-free-lull-observation",
+    "workspace": "../conduit-lull-observation",
+    "reason": "product test mistakes stop-request acknowledgement for completed worker retirement",
+    "focused_test": "running"
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "schema": "conduit.pipeline-target/v1",
+  "target": "conduitos-x86_64",
+  "sha": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+  "proofClass": "emulator",
+  "files": [
+    {
+      "path": "build-manifest.json",
+      "size": 4292,
+      "sha256": "1f2048a8a6f2654557e57f405641bf9ad6b4b18202f5e99247d34d1e80d9c509"
+    },
+    {
+      "path": "conduitos-kernel.elf",
+      "size": 15507776,
+      "sha256": "7e1d4ebcce8eb09f6f164e14532de583e52ca54f1f546a5d035d169e72e64662"
+    },
+    {
+      "path": "conduitos-x86_64.iso",
+      "size": 19781632,
+      "sha256": "42980bcce19d21d445e6f849c7467ba5846e1ce2629fe9e721705b8e7886d6ce"
+    },
+    {
+      "path": "evidence/journey-frames/body-born.png",
+      "size": 101455,
+      "sha256": "58dbbcb67cff14696b64f9068d82ddbb2e2bc94657ded2e360a133f41d8c6f35"
+    },
+    {
+      "path": "evidence/journey-frames/body-planned.png",
+      "size": 100885,
+      "sha256": "035cf051e7a0d263e3b07a92168903964d939d52d8421133acc92a92c142c7b0"
+    },
+    {
+      "path": "evidence/journey-frames/body-playing.png",
+      "size": 106996,
+      "sha256": "2ef1778b47b5d116f764bf041afd9e218f5cdc17e9bcd70e84de1cefa3bdd476"
+    },
+    {
+      "path": "evidence/journey-frames/body-stopped.png",
+      "size": 76580,
+      "sha256": "6652d9feadc889c9166abdb8b1666b85d37b3c0fce3d0118881e8c77b3396e31"
+    },
+    {
+      "path": "evidence/journey-frames/body-woken.png",
+      "size": 99674,
+      "sha256": "288ec1ee617952e881c257dd9d163f3e3dfa31021a60feb300511c71eb9619b4"
+    },
+    {
+      "path": "evidence/journey-frames/front-door-ready.png",
+      "size": 115683,
+      "sha256": "8fc947ee44bc38ac485fb35a1263c74afd4260f78fe050d63ffbae2f444d3cc7"
+    },
+    {
+      "path": "evidence/journey-frames/home.png",
+      "size": 105376,
+      "sha256": "b2359713d8ad122c125b4053ead9eb2ea86ba7d09751c6fd00e7541b7b43fc67"
+    },
+    {
+      "path": "evidence/journey-frames/manifest.json",
+      "size": 58715,
+      "sha256": "abb09232a489869f8bda0d6f29ce9da20c33cc7c9b07aac7228117b6c4194a21"
+    },
+    {
+      "path": "evidence/journey-frames/patchbay-diagram.png",
+      "size": 136453,
+      "sha256": "b14121b1005ffb53e63fadaef85c5c5a2be7672b5a5c57276ef2d60a979ef669"
+    },
+    {
+      "path": "evidence/journey-frames/patchbay-face.png",
+      "size": 150564,
+      "sha256": "6ab1912b0c3e8d0d7ab6c63008e346da0eb5780b137cbd69984d034d71cf4348"
+    },
+    {
+      "path": "evidence/journey-frames/patchbay-workspace.png",
+      "size": 106269,
+      "sha256": "5540b34dbd06640b0338bd7be9b5732d0d9234f2b4eebb5f183479a40c563430"
+    },
+    {
+      "path": "evidence/journey-frames/protected-keyboard-canvas.png",
+      "size": 67253,
+      "sha256": "4dd607ac5929954c857cb80fc5ca278fe948bc398a2e058ac3ea1b465f08748a"
+    },
+    {
+      "path": "evidence/journey-frames/protected-memory-lantern.png",
+      "size": 66685,
+      "sha256": "7068fba238717adfcdbd3afc5e7b945a79a9efb426ee4b6601b7a9101e55931f"
+    },
+    {
+      "path": "evidence/journey-proof.json",
+      "size": 3668,
+      "sha256": "1b4ea5c0ff01c71c2c2c3222aa5103c066974255ba8f0ee31e3739d048788802"
+    },
+    {
+      "path": "evidence/journey-qmp.log",
+      "size": 20977,
+      "sha256": "68f36da885ecdc4ea10acd1b505de1bc4a714902075996cd760ded758e9fc108"
+    },
+    {
+      "path": "evidence/journey-serial.log",
+      "size": 154907,
+      "sha256": "b260b734918a78a5ac74383e91e575f48bafec8f045e9ce8f25661fd8e862122"
+    },
+    {
+      "path": "evidence/profile-built-boot.log",
+      "size": 5145,
+      "sha256": "c4698a427905b89e39af68cc61f65a93bc454e1270a4c833f987d4d7b979f63a"
+    },
+    {
+      "path": "evidence/x86_64-product-journey-proof.json",
+      "size": 3668,
+      "sha256": "1b4ea5c0ff01c71c2c2c3222aa5103c066974255ba8f0ee31e3739d048788802"
+    },
+    {
+      "path": "evidence/x86_64-product-proof.json",
+      "size": 1456,
+      "sha256": "09e071f4642a43bb5b5423b8a9a474978fccf64ecc7b9c0450e54d825cda1b4a"
+    },
+    {
+      "path": "resolved-image.json",
+      "size": 4483,
+      "sha256": "2c8be5f52abb5ca8f56eb1c9743f98d883aba6f920eba7aca3f2491ba705f2b6"
+    }
+  ]
+}

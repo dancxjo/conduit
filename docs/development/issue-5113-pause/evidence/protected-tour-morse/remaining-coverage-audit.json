@@ -1,0 +1,35 @@
+{
+  "goal": "dancxjo/conduit#5113",
+  "status": "incomplete",
+  "verified_native_morse_source": "3c1d779e7338cda564716f59b2c701f1b2e436bf",
+  "open_pr": 5294,
+  "observed_remaining_paths": [
+    {
+      "path": "targets/conduitos/src/execution_region.rs",
+      "evidence": "build_region classifies exact ordinary text, keyboard/edit and Morse sets as protected; other sets retain cooperative profile",
+      "implication": "passing Morse does not establish universal ordinary-region coverage"
+    },
+    {
+      "path": "targets/conduitos/src/tour_timer_kernel.rs",
+      "evidence": "TimerBack implements Every and Count state/progression directly in Root-hosted FixedScheduler",
+      "implication": "ordinary standing timer Source semantics still execute privileged"
+    },
+    {
+      "path": "targets/conduitos/src/tour_timer_plan.rs",
+      "evidence": "PreparedTourTimerPlan owns TourTimerKernel only, without a protected domain owner",
+      "implication": "standing timer Tour is a concrete next production integration gap"
+    },
+    {
+      "path": "targets/conduitos/src/protocol_source/body_play.rs",
+      "evidence": "PreparedProtocolBodyPlay prepares PreparedTimedProtocolPlay through artifact.prepare_timed",
+      "implication": "requires execution-location audit before claiming protocol Source confinement"
+    }
+  ],
+  "next_actions": [
+    "Finish live full workspace suite74086 without overlapping builds",
+    "Run normal graphical journey regression after terminal test result",
+    "Mark PR5294 ready only with recorded validation, inspect candidate checks and merge when green",
+    "Implement remaining ordinary Source execution under domain rather than one Root request per semantic micro-step",
+    "Audit all issue criteria and exact accepted-main evidence before closing"
+  ]
+}

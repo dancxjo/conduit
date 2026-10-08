@@ -1,0 +1,169 @@
+{
+  "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+  "accepted_release": false,
+  "lanes": [
+    {
+      "name": "ia32-repeat",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "ia32-legacy-bios-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 1.5157876014709473,
+      "retained": [
+        {
+          "name": "ia32-product-legacy-bios-only-vga.json",
+          "sha256": "5407e71622dc3db8270602160fe9775c3e247a1a74db60d6a1a7973b4923b380"
+        },
+        {
+          "name": "ia32-legacy-bios-product-proof.json",
+          "sha256": "f0839ca74228ffcb2fe594fcbb98ce2e51603eca5545f17afdd96db512078c1c"
+        },
+        {
+          "name": "ia32-product-legacy-bios-only.log",
+          "sha256": "aebae4833b993e85afa404283b9cc8d05c8b561fbb00fb21bdbfd5ee7055faa4"
+        }
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-ia32-repeat.log"
+    },
+    {
+      "name": "x86-boundary",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "ordinary-domain-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 136.0581123828888,
+      "retained": [
+        {
+          "name": "build.json",
+          "sha256": "d343b9cbe333bb15de08b722fb87b08a9da6d1767d210da72d7731c4b630c584"
+        },
+        {
+          "name": "ordinary-domain-proof.log",
+          "sha256": "0f1706c4b3b5f468b21568fae4fde258449b72a87e99dfe9c447ca0bccb1bc38"
+        },
+        {
+          "name": "image.json",
+          "sha256": "880094dff50bc1efc653e11cca2b891351e036f6d5d6b69bba2b5d0af7e7da5d"
+        }
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-x86-boundary.log"
+    },
+    {
+      "name": "x86-isolation",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "isolation-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 408.2935063838959,
+      "retained": [
+        {
+          "name": "isolation-proof.log",
+          "sha256": "ddd10e20ae1b08cd1ec26c197c453a9912f10537de88a0f30d3de3c049a7c657"
+        },
+        {
+          "name": "build.json",
+          "sha256": "a71b073a0ac9be74e2a720000ecfc909f752e8b518cc9dc0de4495ec599913db"
+        },
+        {
+          "name": "image.json",
+          "sha256": "b5857ce02c0ceebbda96ae1bdbba281c234eca79f0230c7f993d4b149a17c0ee"
+        }
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-x86-isolation.log"
+    },
+    {
+      "name": "armv6-disposition",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "run",
+        "--arch",
+        "armv6",
+        "--board",
+        "rpi-b-plus-v1.2"
+      ],
+      "exit_code": 0,
+      "seconds": 327.4736707210541,
+      "retained": [
+        {
+          "name": "rpi-b-plus-a0-inspection.json",
+          "sha256": "b229143129f4ff0ab61b5a16526ee472162d4065f48be1c0ec6d6062217d9f86"
+        },
+        {
+          "name": "rpi-b-plus-emulator-run.json",
+          "sha256": "c22c72fe3ee2954f3df294b32ce0a6e54df1b54ab3d3772a9af552d63b57df44"
+        },
+        {
+          "name": "rpi-b-plus-build.json",
+          "sha256": "135069944232c21ba8caa159aa8a54d35eb02cd25e171d6e299594b5a4e232f6"
+        },
+        {
+          "name": "rpi-b-plus-emulator.log",
+          "sha256": "c529067478baf1c663ec4d4f25653bf6362923ed8413e3ea8f7722df4cd75747"
+        }
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-armv6-disposition.log"
+    },
+    {
+      "name": "x86-graphical",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "graphical-profile-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 457.8454704284668,
+      "retained": [
+        {
+          "name": "journey-qmp.log",
+          "sha256": "7723eb3a73367dab43c2537d0eada3af250fbab245eafaa129324b92ea941219"
+        },
+        {
+          "name": "journey-qemu-stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "journey-proof.json",
+          "sha256": "46a17b99ad48dda1c3e4f78280e3a72f8f216f62077713a9f0c5b4c44d7ccc3b"
+        },
+        {
+          "name": "graphical-profile-proof.json",
+          "sha256": "1db49c3f8028fb743c87ec8f5b0fd69cec7a65053aca596ce6e8c756544e0328"
+        },
+        {
+          "name": "graphical-profile-gallery.html",
+          "sha256": "f2e72c21a8c0f852b959235f78e29a10d5886b49b9dd9baa37194b29d3100ce7"
+        },
+        {
+          "name": "build.json",
+          "sha256": "f28e790e830cbd2cdca782eb6da821193d56cc8301cf76da36eb871abd682fdc"
+        },
+        {
+          "name": "image.json",
+          "sha256": "ce02032dd54a9ce5380c538a5414a165b4aa6f9aaf0fe26d2c765d9b320d95bf"
+        },
+        {
+          "name": "journey-serial.log",
+          "sha256": "30fd77028c68dcdb83f9e8fe922f33c1d718df2ede42ef280b7a144020bf9ad2"
+        }
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-x86-graphical.log"
+    }
+  ]
+}

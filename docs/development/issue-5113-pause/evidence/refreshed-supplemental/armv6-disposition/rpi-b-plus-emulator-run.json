@@ -1,0 +1,21 @@
+{
+  "schema": "conduit.conduitos.armv6-rpi-emulator-run/v1",
+  "proof_class": "freestanding-emulator-ordinary-plot-plan-play",
+  "base_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+  "architecture": "armv6",
+  "machine_target": "BCM2835/ARM1176JZF-S",
+  "board_target": "raspberry-pi-model-b-plus-v1.2",
+  "emulator_firmware_board_revision": "00920092",
+  "emulator_machine": "raspi0",
+  "qemu_version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "kernel_image_sha256": "65bf70d329fef3cae811441e706687805e446be2fa2136d3b5f261750b684f97",
+  "load_address": 32768,
+  "entry_sign": "CONDUIT_ARMV6_RPI_ENTRY_SIGN {\"schema\":\"conduit.conduitos.armv6-rpi-entry/v1\",\"status\":\"entered\",\"architecture\":\"armv6\",\"machine\":\"BCM2835/ARM1176JZF-S\",\"board_target\":\"raspberry-pi-model-b-plus-v1.2\",\"firmware_board_revision\":\"00920092\",\"boot_mechanism\":\"direct-kernel\",\"runtime_bases_available\":true}",
+  "kernel_sign": "CONDUIT_KERNEL_SIGN {\"schema\":\"conduit.conduitos.kernel-sign/v2\",\"status\":\"accepted\",\"arch\":\"armv6\",\"build_id\":\"conduitos-build/011f6e79865c75465d9b6ef37da2818bedb6acff/armv6-rpi-b-plus/v1\",\"kernel\":\"conduit-kernel\",\"scheduler_profile\":\"conduitos/two-lane-cooperative@1\",\"host_id\":\"012ce11769ed2c2d4c41066f7111396e28080c3be916ba10a3eeabf5be4452a5\",\"boot_id\":\"0bbcf79dc3200f8de863422c094c2d7af86a6e1ec2b58e03b1414eab4d73ca4d\",\"pipeline\":\"check-plan-lower-kernel\",\"source_document_id\":\"1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8\",\"checked_plot_id\":\"4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb\",\"expanded_plot_id\":\"f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587\",\"plan_id\":\"e45944857d5b3efc2fd75d69b3808b101aa31407e81088c9a0c4a77da76ebc55\",\"fragment_id\":\"c232bfcf40ecedd9153873f0e793cce0efe17989424289fe24f5f1d03b9106e8\",\"active_play_id\":\"e91e07d1bc8f2147540a57b632e7f4abc062409610184f92a0965d2b1df90bda\",\"planned_sign_items\":15,\"planned_sign_bytes\":847,\"cord_item_capacity\":3,\"cord_byte_capacity\":192,\"semantic_result\":\"HELLO, CONDUITOS\",\"allocation_before_play\":77504,\"allocation_after_play\":77504,\"allocation_capacity\":8388608,\"allocation_stable_during_play\":true,\"base_ids\":[\"557c5be19273312cb54873ae112751cd4254b0441330fbcb4acda28d8f938df8\",\"6e9e554aaeedb2b705fb2278e6db724209d50c9c8c022f6533334e8085340ae9\",\"c77349bd8d566192022b9ea8f74063af061a8bb8b12e8b51c096b0de5f15208c\",\"5b9aa8f519e8eb3dfe465e55534b6c99fa5422a807102089897e4623f705aadf\",\"77ddd2d55c40ded8d5d547753809f2b2703b5859e8985a124ed07169dab974ff\",\"aa740446cf23a86a614edf8bffcbba616d4878e5c5a0ccad2fbdfbe114fbdaa8\",\"81fffab7b208b68f1f5c36c52601582bcb0bc744a0b2c749d37a9bd7e055d970\"],\"base_count\":7,\"memory_arena_bytes\":8388608,\"execution_regions\":2,\"execution_lanes\":2,\"region_ids\":[\"region/text\",\"region/timer\"],\"lane_resource_ids\":[\"conduitos-pool-1-execution-lane\",\"conduitos-pool-4-execution-lane\"],\"lane_base_id\":\"81fffab7b208b68f1f5c36c52601582bcb0bc744a0b2c749d37a9bd7e055d970\",\"timer_slots\":1,\"serial_slots\":2,\"serial_maximum_bytes\":256,\"interrupt_fact_slots\":4,\"sign_item_slots\":64,\"logical_operations\":5,\"kernel_decisions\":14,\"kernel_signs\":36,\"timer_irq_wakes\":1,\"idle_entries\":1,\"serial_presentations\":2,\"clock_monotonic\":true,\"pending_host_calls\":0,\"overlap_witness\":true,\"timer_pending_during_text_progress\":true,\"physical_parallelism\":false,\"preemption\":false,\"isolation\":false,\"sse2\":false,\"rdrand\":false,\"invariant_tsc\":false}",
+  "identity_sign": "CONDUIT_ARMV6_RPI_A3_IDENTITY {\"image_id\":\"conduitos-image/011f6e79865c75465d9b6ef37da2818bedb6acff/armv6-rpi-b-plus/v1\",\"wake_source\":\"bcm2835-system-timer-compare-1\",\"wake_irq\":1,\"a3_ordinary_plot_claimed\":true,\"protected_execution\":\"unsupported\",\"cooperative_execution\":true}",
+  "transcript_bytes": 3586,
+  "runtime_bases_available": true,
+  "physical_boot_claimed": false,
+  "protected_execution_refused": true,
+  "cooperative_execution": true
+}

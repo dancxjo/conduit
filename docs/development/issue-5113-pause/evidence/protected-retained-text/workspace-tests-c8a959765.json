@@ -1,0 +1,9 @@
+{
+  "source_commit": "c8a959765",
+  "suites": 894,
+  "passed": 6615,
+  "failed": 0,
+  "ignored": 13,
+  "doctests": "included",
+  "log": "protected-retained-text-workspace-tests.log"
+}

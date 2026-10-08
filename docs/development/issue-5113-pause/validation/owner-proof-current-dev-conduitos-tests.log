@@ -1,0 +1,18 @@
+    Finished `test` profile [unoptimized] target(s) in 0.13s
+     Running unittests src/main.rs (../conduit/target/debug/deps/xtask-30a83b23af205162)
+
+running 11 tests
+test commands::conduitos::tests::aarch64_has_a_bounded_boot_backend ... ok
+test commands::conduitos::tests::added_compile_link_backends_are_explicit ... ok
+test commands::conduitos::tests::loongarch64_has_a_bounded_boot_backend ... ok
+test commands::conduitos::tests::ia32_has_a_bounded_boot_backend ... ok
+test commands::conduitos::tests::refusal_detail_is_bounded_on_a_utf8_boundary ... ok
+test commands::conduitos::tests::mabel_physical_proof_requires_two_attended_boots ... ok
+test commands::conduitos::tests::ia32_flash_requires_one_explicit_repeated_whole_device ... ok
+test commands::conduitos::tests::visible_demo_is_an_explicit_conduitos_entrance ... ok
+test commands::conduitos::tests::every_pinned_matrix_name_is_architecture_valued ... ok
+test commands::conduitos::tests::live_media_build_boot_and_matrix_are_memorable_typed_entrances ... ok
+test commands::conduitos::tests::prepared_image_build_and_play_flags_are_explicit ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 499 filtered out; finished in 0.01s
+

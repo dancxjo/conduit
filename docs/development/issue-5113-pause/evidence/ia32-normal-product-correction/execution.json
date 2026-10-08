@@ -1,0 +1,33 @@
+{
+  "source_commit": "8863d8018f2cba7b0265dc9a58162fb53ad22b66",
+  "accepted_release": false,
+  "lanes": [
+    {
+      "name": "preflight",
+      "command": [
+        "cargo",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "b0ffd1310b07601ea4d960fd2a5b7fdbe86d2cd4"
+      ],
+      "exit_code": 0,
+      "seconds": 8.191939115524292,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-ia32-normal-preflight.log"
+    },
+    {
+      "name": "ia32-native",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "ia32-ordinary-domain-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 63.92645072937012,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-ia32-normal-ia32-native.log"
+    }
+  ]
+}

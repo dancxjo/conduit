@@ -1,0 +1,768 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running `target/debug/conduit-xtask-dispatch make conduitos aarch64-ordinary-domain-proof`
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running `target/debug/xtask make conduitos aarch64-ordinary-domain-proof`
+warning: unused imports: `prepare_exact` and `propose_partitions`
+  --> targets/conduitos/src/native_workset.rs:16:27
+   |
+16 | pub(crate) use planning::{prepare_exact, propose_partitions};
+   |                           ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:190:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+190 |     pub fn admit(
+    |            ^^^^^
+...
+199 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+203 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+206 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+209 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+212 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+223 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+226 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 14 warnings (run `cargo fix --lib -p conduitos` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/targets/conduitos)
+warning: unused import: `conduit_conduitos_mask_offer::native_host_advertisement`
+ --> targets/conduitos/src/mask_control.rs:7:9
+  |
+7 | pub use conduit_conduitos_mask_offer::native_host_advertisement;
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `KeyboardChainError`
+  --> targets/conduitos/src/text_protection.rs:13:24
+   |
+13 | pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};
+   |                        ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `body::BodyTextAdmission`
+  --> targets/conduitos/src/text_protection.rs:15:16
+   |
+15 | pub(crate) use body::BodyTextAdmission;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `reset_keymap` and `return_from_pure` are never used
+   --> targets/conduitos/src/text_protection.rs:186:12
+    |
+185 | impl<I: TextOwner> ProtectedText<I> {
+    | ----------------------------------- methods in this implementation
+186 |     pub fn reset_keymap(&mut self) -> Result<(), MachineRunError> {
+    |            ^^^^^^^^^^^^
+...
+195 |     fn return_from_pure(&mut self) -> Result<(), MachineRunError> {
+    |        ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `KeyboardChainError` is never used
+ --> targets/conduitos/src/text_protection/chain.rs:5:17
+  |
+5 | pub(crate) enum KeyboardChainError {
+  |                 ^^^^^^^^^^^^^^^^^^
+
+warning: struct `PureKeyboardOutput` is never constructed
+  --> targets/conduitos/src/text_protection/chain.rs:15:19
+   |
+15 | pub(crate) struct PureKeyboardOutput {
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: methods `source` and `upper` are never used
+  --> targets/conduitos/src/text_protection/chain.rs:21:12
+   |
+20 | impl PureKeyboardOutput {
+   | ----------------------- methods in this implementation
+21 |     pub fn source(&self) -> &[u8] {
+   |            ^^^^^^
+...
+24 |     pub fn upper(&self) -> &[u8] {
+   |            ^^^^^
+
+warning: method `keymap_chain` is never used
+  --> targets/conduitos/src/text_protection/chain.rs:30:12
+   |
+29 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+30 |     pub fn keymap_chain(
+   |            ^^^^^^^^^^^^
+
+warning: struct `BodyTextAdmission` is never constructed
+ --> targets/conduitos/src/text_protection/body.rs:8:19
+  |
+8 | pub(crate) struct BodyTextAdmission {
+  |                   ^^^^^^^^^^^^^^^^^
+
+warning: associated items `prepare` and `activate` are never used
+  --> targets/conduitos/src/text_protection/body.rs:18:12
+   |
+17 | impl BodyTextAdmission {
+   | ---------------------- associated items in this implementation
+18 |     pub fn prepare(
+   |            ^^^^^^^
+...
+53 |     pub fn activate(
+   |            ^^^^^^^^
+
+warning: function `body_binding_heap` is never used
+   --> targets/conduitos/src/text_protection/body.rs:134:4
+    |
+134 | fn body_binding_heap(binding: &BodyRegionBinding) -> usize {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:190:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+190 |     pub fn admit(
+    |            ^^^^^
+...
+199 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+203 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+206 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+209 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+212 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+223 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+226 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 24 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 14.27s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos.iso
+ConduitOS live media: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/live/aarch64-virt/conduitos-aarch64.iso
+Host type: conduitos/aarch64/virt
+manifest: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/live/aarch64-virt/build-manifest.json
+BOOTED /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos.iso to AArch64 linear product front door
+BOOTED /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos.iso to AArch64 linear product front door
+warning: unused imports: `prepare_exact` and `propose_partitions`
+  --> targets/conduitos/src/native_workset.rs:16:27
+   |
+16 | pub(crate) use planning::{prepare_exact, propose_partitions};
+   |                           ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:190:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+190 |     pub fn admit(
+    |            ^^^^^
+...
+199 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+203 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+206 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+209 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+212 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+223 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+226 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 14 warnings (run `cargo fix --lib -p conduitos` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/targets/conduitos)
+warning: unused import: `conduit_conduitos_mask_offer::native_host_advertisement`
+ --> targets/conduitos/src/mask_control.rs:7:9
+  |
+7 | pub use conduit_conduitos_mask_offer::native_host_advertisement;
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `KeyboardChainError`
+  --> targets/conduitos/src/text_protection.rs:13:24
+   |
+13 | pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};
+   |                        ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `body::BodyTextAdmission`
+  --> targets/conduitos/src/text_protection.rs:15:16
+   |
+15 | pub(crate) use body::BodyTextAdmission;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `reset_keymap` and `return_from_pure` are never used
+   --> targets/conduitos/src/text_protection.rs:186:12
+    |
+185 | impl<I: TextOwner> ProtectedText<I> {
+    | ----------------------------------- methods in this implementation
+186 |     pub fn reset_keymap(&mut self) -> Result<(), MachineRunError> {
+    |            ^^^^^^^^^^^^
+...
+195 |     fn return_from_pure(&mut self) -> Result<(), MachineRunError> {
+    |        ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `KeyboardChainError` is never used
+ --> targets/conduitos/src/text_protection/chain.rs:5:17
+  |
+5 | pub(crate) enum KeyboardChainError {
+  |                 ^^^^^^^^^^^^^^^^^^
+
+warning: struct `PureKeyboardOutput` is never constructed
+  --> targets/conduitos/src/text_protection/chain.rs:15:19
+   |
+15 | pub(crate) struct PureKeyboardOutput {
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: methods `source` and `upper` are never used
+  --> targets/conduitos/src/text_protection/chain.rs:21:12
+   |
+20 | impl PureKeyboardOutput {
+   | ----------------------- methods in this implementation
+21 |     pub fn source(&self) -> &[u8] {
+   |            ^^^^^^
+...
+24 |     pub fn upper(&self) -> &[u8] {
+   |            ^^^^^
+
+warning: method `keymap_chain` is never used
+  --> targets/conduitos/src/text_protection/chain.rs:30:12
+   |
+29 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+30 |     pub fn keymap_chain(
+   |            ^^^^^^^^^^^^
+
+warning: struct `BodyTextAdmission` is never constructed
+ --> targets/conduitos/src/text_protection/body.rs:8:19
+  |
+8 | pub(crate) struct BodyTextAdmission {
+  |                   ^^^^^^^^^^^^^^^^^
+
+warning: associated items `prepare` and `activate` are never used
+  --> targets/conduitos/src/text_protection/body.rs:18:12
+   |
+17 | impl BodyTextAdmission {
+   | ---------------------- associated items in this implementation
+18 |     pub fn prepare(
+   |            ^^^^^^^
+...
+53 |     pub fn activate(
+   |            ^^^^^^^^
+
+warning: function `body_binding_heap` is never used
+   --> targets/conduitos/src/text_protection/body.rs:134:4
+    |
+134 | fn body_binding_heap(binding: &BodyRegionBinding) -> usize {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:190:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+190 |     pub fn admit(
+    |            ^^^^^
+...
+199 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+203 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+206 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+209 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+212 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+223 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+226 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 24 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 49.43s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos.iso
+BOOTED /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos.iso to AArch64 linear product front door
+BOOTED /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos.iso to AArch64 linear product front door
+PROVED ordinary AArch64 EL0 execution and independent boundary checks

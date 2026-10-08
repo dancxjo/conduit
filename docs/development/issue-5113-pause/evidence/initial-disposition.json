@@ -1,0 +1,6 @@
+{
+  "public_proof_in_long_workspace": "qemu-qmp-unavailable SUN_LEN",
+  "short_root_proof": "invalid-observatory-snapshot",
+  "cause": "legacy validation required cooperative regions and 4096-byte uppercase reservation",
+  "acceptance_claimed": false
+}

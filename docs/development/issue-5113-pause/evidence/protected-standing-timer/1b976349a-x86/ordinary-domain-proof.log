@@ -1,0 +1,136 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_DEADLINE_CLOCK hpet-ready
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT HELLO, CONDUITOS
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"bdb5a05ec3191d7275db57f46c978981824a6843240ce9ea6aac8428674eeb92","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":1,"fixture":false,"state":"Revoked(PlayCompleted)","entries":3,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":6,"gate_transitions":3,"copied_bytes":64,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":6,"setup_ticks":9463166,"teardown_ticks":662104,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":32,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":6,"scheduler_returns":3,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"9e25161777a12677dffa21bc7006915b219e64da26d1740b0c8b7e5e6545c003","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":2,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":26,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":860744,"teardown_ticks":367293,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"13362cf65bc2d95f6eaa2923c740c233ea3b7047ea08eca702cfbebc1a0099ff","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":3,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":26,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":788728,"teardown_ticks":307869,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"2a7b8e2860fc8f05dd4405d7ab1593c1111e4d85c23b5eec97eff30aff9b7796","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":4,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":13,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":795828,"teardown_ticks":309106,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"3b500b56b13ebfb2ca7cbd7ae766123926dbd25b6ae52d7b5f2eabe3064a3a42","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":5,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":26,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":781153,"teardown_ticks":302341,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"1db5c41ff66974ef8537e426fdbb3c4c0097c2381095d7dc1a1b0ca358ff0143","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":6,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":13,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":760080,"teardown_ticks":309908,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT gate-negative
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"03a9d0c9cf1938948eb52ccdfbad9a8ed9cdee0fbc12e50ca8f165794580e80e","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":7,"fixture":true,"state":"Faulted(InvalidGate)","entries":2,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":4,"gate_transitions":2,"copied_bytes":26,"setup_copied_bytes":71639,"base_gate_transitions":2,"tlb_flushes":4,"setup_ticks":750373,"teardown_ticks":324785,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":4,"scheduler_returns":2,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"bb7abdf925df6fd174577bc75e2bc03e82daabf6e03312a17bdc336be8436a5f","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":8,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":26,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":768090,"teardown_ticks":312922,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 270
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"b7fc07267c93e702bc6fdb692481e65dcae3aadaa29cec1e3d41c9cbbe2aec42","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":9,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":0,"copied_bytes":13,"setup_copied_bytes":71639,"base_gate_transitions":0,"tlb_flushes":2,"setup_ticks":766169,"teardown_ticks":372558,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":13,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"3fc646065a3899bed62f8713783e0635e6a0118ec7eab677a68c080cd934b03e","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":11,"fixture":true,"state":"Faulted(InvalidGate)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":12,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":731726,"teardown_ticks":305071,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":6,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT once
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"437876d6f3d17ed769edfa5a669696d66ea6b0c7e8b9802005afaf5d8c6d324b","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":12,"fixture":true,"state":"Faulted(InvalidGate)","entries":3,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":6,"gate_transitions":3,"copied_bytes":18,"setup_copied_bytes":71639,"base_gate_transitions":2,"tlb_flushes":6,"setup_ticks":787545,"teardown_ticks":328155,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":5,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":6,"scheduler_returns":3,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"b965539abcaf1f5da168cc39d6ce8bfc8b30fb86dbbcac8fb845f318cc49136d","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":23,"fixture":true,"state":"Revoked(ProviderLost)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":8,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":658578,"teardown_ticks":309232,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":4,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT replacement-fixture
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"d496ec0864340c7e0a6008c340fefefb86592db6a9698d352eb3d93cdc3ae024","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":25,"fixture":true,"state":"Revoked(BaseReplaced)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":38,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":2,"setup_ticks":684681,"teardown_ticks":304498,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":19,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_GATE_NEGATIVES unknown-handle sibling-handle wrong-operation oversized-window excessive-work invalid-capacity invalid-utf8 forged-fault replay exhausted-operations revoked-lifecycle provider-loss provider-replacement
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT SOS
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT P          
+CONDUIT_DOMAIN_RETURN 0 0
+
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","play_id":"8dbbe7ec27d8c801b6cf958f0cfa67f4064dfd34d7e4bee9eb9bfa32e91ed45f","partition_plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","checked_plot_id":"","domain_id":26,"fixture":false,"state":"Revoked(PlayCompleted)","entries":5,"interrupt_entries":1,"source_timer_interrupts":0,"privilege_transitions":12,"gate_transitions":5,"copied_bytes":129,"setup_copied_bytes":71639,"base_gate_transitions":2,"tlb_flushes":10,"setup_ticks":1023026,"teardown_ticks":2351677,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":45,"root_metadata_bytes":66272,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":10,"scheduler_returns":5,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_MORSE {"schema":"conduit.conduitos/protected-tour-morse@1","proof_class":"freestanding-emulator","architecture":"x86_64","plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","play_id":"8dbbe7ec27d8c801b6cf958f0cfa67f4064dfd34d7e4bee9eb9bfa32e91ed45f","source_document_id":"9eabc0863db3cbdfb1e292407a5ef17362ddbc256cbe4984345d67d078036436","checked_plot_id":"c369bdd413380a150780b068b8e644386202d9d7e6bb3ca7e53e281e9952126c","expanded_plot_id":"75f2c592ac2d3a787661507d949fd370d6d9ce4f1e1daee934395e5f5193730d","canonical_pattern":true,"serial_effects":2,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","play_id":"8dbbe7ec27d8c801b6cf958f0cfa67f4064dfd34d7e4bee9eb9bfa32e91ed45f","partition_plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","checked_plot_id":"","domain_id":27,"fixture":true,"state":"Faulted(InvalidGate)","entries":2,"interrupt_entries":1,"source_timer_interrupts":0,"privilege_transitions":6,"gate_transitions":2,"copied_bytes":123,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":4,"setup_ticks":992719,"teardown_ticks":2248192,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":45,"root_metadata_bytes":66272,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":4,"scheduler_returns":2,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","play_id":"8dbbe7ec27d8c801b6cf958f0cfa67f4064dfd34d7e4bee9eb9bfa32e91ed45f","partition_plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","checked_plot_id":"","domain_id":28,"fixture":true,"state":"Faulted(InvalidGate)","entries":2,"interrupt_entries":1,"source_timer_interrupts":0,"privilege_transitions":6,"gate_transitions":2,"copied_bytes":51,"setup_copied_bytes":71639,"base_gate_transitions":1,"tlb_flushes":4,"setup_ticks":974567,"teardown_ticks":2233530,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":45,"root_metadata_bytes":66272,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":4,"scheduler_returns":2,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_MORSE_HANDLES text-indicator-cross-use-refused fault-revoked no-effect replay-refused
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","play_id":"8dbbe7ec27d8c801b6cf958f0cfa67f4064dfd34d7e4bee9eb9bfa32e91ed45f","partition_plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","checked_plot_id":"","domain_id":29,"fixture":true,"state":"Revoked(PlayCancelled)","entries":1,"interrupt_entries":1,"source_timer_interrupts":0,"privilege_transitions":4,"gate_transitions":1,"copied_bytes":45,"setup_copied_bytes":71639,"base_gate_transitions":0,"tlb_flushes":2,"setup_ticks":1021875,"teardown_ticks":2210078,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":45,"root_metadata_bytes":66272,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","play_id":"8dbbe7ec27d8c801b6cf958f0cfa67f4064dfd34d7e4bee9eb9bfa32e91ed45f","partition_plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","checked_plot_id":"","domain_id":30,"fixture":true,"state":"Revoked(PlayCancelled)","entries":1,"interrupt_entries":1,"source_timer_interrupts":0,"privilege_transitions":4,"gate_transitions":1,"copied_bytes":45,"setup_copied_bytes":71639,"base_gate_transitions":0,"tlb_flushes":2,"setup_ticks":970705,"teardown_ticks":2209562,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":45,"root_metadata_bytes":66272,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","play_id":"8dbbe7ec27d8c801b6cf958f0cfa67f4064dfd34d7e4bee9eb9bfa32e91ed45f","partition_plan_id":"997bd8f9f2b1ec4f0b0593d24ce2c279fbceff7d682680ba6077a76317e7e22b","checked_plot_id":"","domain_id":31,"fixture":true,"state":"Revoked(PlayCancelled)","entries":1,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":2,"gate_transitions":1,"copied_bytes":4,"setup_copied_bytes":71639,"base_gate_transitions":0,"tlb_flushes":2,"setup_ticks":969283,"teardown_ticks":1182993,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":4,"root_metadata_bytes":66272,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":2,"scheduler_returns":1,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_MORSE_FANOUT original-input either-request-order independent-refusals changed-input-refused
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 1
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_RETURN 0 1
+CONDUIT_DOMAIN_RETURN 0 2
+CONDUIT_DOMAIN_TIMER_RUNTIME private-production-kernel causal-counts-0-1 synthetic-completions no-base-effects cancelled zeroed
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 1
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_SERIAL_PRESENT 1
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 512
+CONDUIT_DOMAIN_RETURN 0 1
+CONDUIT_DOMAIN_RETURN 0 2
+CONDUIT_DOMAIN_TIMER_REPLAY refused-before-provider-access
+CONDUIT_DOMAIN_TIMER_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","plan_id":"5d8b5a1651721fe888a18386e0e9c55fe63cb797ee035a7a6b0d30867019387e","play_id":"7391148a8a0dfa4b7c26a48e0f7ff16b306d84cd01de77322f6c0b3bf9917aa0","domain_id":32,"state":"Revoked(PlayCancelled)","entries":11,"privilege_transitions":38,"gate_transitions":11,"base_gate_transitions":4,"copied_bytes":313,"shared_peak_bytes":163,"shared_page_bytes":4096,"ring_slots":0,"interrupt_entries":8,"source_timer_interrupts":1,"setup_copied_bytes":71639,"root_metadata_bytes":5280,"reserved_bytes":217088,"teardown_zeroed_bytes":217088,"tlb_flushes":22,"address_space_switches":22,"scheduler_returns":11,"preemptions":0,"setup_ticks":6918183,"teardown_ticks":26234556,"tick_unit":"tsc","dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_TIMER_PRODUCT private-production-kernel physical-duration-120ms exact-capabilities counts-presented-2 timer-wakes-1 cancelled zeroed
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_KEYMAP retained-compose canonical-sdk protected-uppercase
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_CHAIN one-entry unicode-expansion
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 2
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_RETURN 0 0
+CONDUIT_DOMAIN_EDITOR_FIXTURE bounded-capacity retained-state edit-refusal
+CONDUIT_DOMAIN_COST {"schema":"conduit.conduitos/domain-cost@1","architecture":"x86_64","region_id":"region/0","plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","play_id":"9e2bb84dc6d336b880894a565a6d499ea669256531b498a8c2389a140c626b5d","partition_plan_id":"23df572ea7a7e61425d543c5e8208dfa1babc767c3167c4e9c90eda742451b2d","checked_plot_id":"","domain_id":33,"fixture":true,"state":"Revoked(PlayCancelled)","entries":5,"interrupt_entries":0,"source_timer_interrupts":0,"privilege_transitions":10,"gate_transitions":5,"copied_bytes":26,"setup_copied_bytes":71639,"base_gate_transitions":0,"tlb_flushes":10,"setup_ticks":852803,"teardown_ticks":703110,"tick_unit":"tsc","teardown_zeroed_bytes":217088,"shared_peak_bytes":8,"root_metadata_bytes":19440,"shared_page_bytes":4096,"ring_slots":0,"address_space_switches":10,"scheduler_returns":5,"preemptions":0,"reserved_bytes":217088,"dma_isolation":false,"driver_isolation":false}
+CONDUIT_DOMAIN_RETURN 1 270
+CONDUIT_DOMAIN_RETURN 1 270
+CONDUIT_DOMAIN_RETURN 1 270
+CONDUIT_DOMAIN_RETURN 1 270
+CONDUIT_DOMAIN_RETURN 1 270
+CONDUIT_DOMAIN_RETURN 1 269
+CONDUIT_DOMAIN_RETURN 1 269
+CONDUIT_DOMAIN_RETURN 2 4
+CONDUIT_DOMAIN_RETURN 2 4
+CONDUIT_DOMAIN_RETURN 1 262
+CONDUIT_DOMAIN_RETURN 1 262
+CONDUIT_DOMAIN_RETURN 1 262
+CONDUIT_DOMAIN_RETURN 1 256
+CONDUIT_DOMAIN_RETURN 1 269
+CONDUIT_DOMAIN_RETURN 1 257
+CONDUIT_DOMAIN_RETURN 1 269
+CONDUIT_DOMAIN_RETURN 1 270
+CONDUIT_DOMAIN_RETURN 1 270
+CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop direction-flag fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute
+CONDUIT_DOMAIN_RETURN 2 4
+CONDUIT_DOMAIN_TIMER_COUNTS source=1 interrupts=4
+CONDUIT_DOMAIN_TIMER_COEXISTENCE source-wake-once user-irq budget-preemption
+CONDUIT_ORDINARY_DOMAIN_SIGN {"status":"completed","proof_class":"freestanding-emulator","architecture":"x86_64","privilege":"ring3","ordinary_source":true,"protected_computation":true,"effect_capability_gates":true,"dma_isolation":false,"driver_isolation":false,"bounded":true}

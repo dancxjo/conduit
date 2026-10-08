@@ -1,0 +1,22 @@
+{
+  "workspace": "work/conduit-morse-storage",
+  "branch": "codex/5113-bounded-morse-storage",
+  "head": "b7e9b6647",
+  "pushed": false,
+  "base": "42d currentdevatcreation;5194 subsequentlymerged1cd",
+  "files": [
+    "semantics/text/src/morse_values_into.rs",
+    "semantics/text/src/morse_values_into/output.rs",
+    "semantics/text/tests/morse_fixed_storage.rs"
+  ],
+  "behavior": "fivecanonicalencodersshareboundedOutput Vec/fixedSlice;publicVecAPIpreserved;new_into_slice returnswrittenprefix;allwritescheckcapacity;oversizedintermediatestagesrefusebeforewrites",
+  "tests": "35textpackage tests including4new:allalphabet32byteatunitbounds parityagainstcanonicalallocatingAPI;100repetitionsbothfixed/Vecpipeline0allocations;oversizedintermediatesnoVecgrowth;smallstorageandsemanticerrorcases",
+  "clippy": "workspacealltargets-Dwarnings passed28.37s",
+  "native_morse": "notimplemented; storageprerequisiteonly",
+  "running_full_workspace_tests": {
+    "session": 40799,
+    "source": "b7e9b6647",
+    "log": "work/protected-morse-storage-workspace-tests.log",
+    "rule": "Do not overlap any Cargo/native builds or mutateoriginalwork/conduit while fulltests+doctests run. Scriptfocused35+Clippy passed beforefullbegan."
+  }
+}

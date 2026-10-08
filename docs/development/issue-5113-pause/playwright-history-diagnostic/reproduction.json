@@ -1,0 +1,14 @@
+[
+  {
+    "diff_capture_disabled": false,
+    "shallow": "true",
+    "retained_ancestor_exit": 1,
+    "test_passed": true
+  },
+  {
+    "diff_capture_disabled": true,
+    "shallow": "false",
+    "retained_ancestor_exit": 0,
+    "test_passed": true
+  }
+]

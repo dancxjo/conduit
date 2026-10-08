@@ -1,0 +1,186 @@
+{
+  "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+  "execution_proof_class": "freestanding-emulator",
+  "conformance_proof_class": "sealed-plan-conformance",
+  "accepted_release": false,
+  "targets": [
+    {
+      "architecture": "x86_64",
+      "receipt": "kernel-proof.json",
+      "product_boot_count": 2,
+      "conformance": [
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "894f75e568923469093d69158f5da01fbf8ee92c1b38a4015d6b421dff550fc7",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        },
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "d61d39496061dd54ca8fc31b95422ad451d87d6c164d1cf453fceea7ae441ace",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        }
+      ]
+    },
+    {
+      "architecture": "aarch64",
+      "receipt": "aarch64-ordinary-domain-proof.json",
+      "product_boot_count": 2,
+      "conformance": [
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "fdb361e8c86a948c8b18878df8eeba24325d4fe688d81ce8b5154950d76f550f",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        },
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "5cac52fd14b1e93459494650bca30e486915498c7c7940ebea523989d4a9a711",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        }
+      ]
+    },
+    {
+      "architecture": "riscv64",
+      "receipt": "riscv64-ordinary-domain-proof.json",
+      "product_boot_count": 2,
+      "conformance": [
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "c6422121970130a1cbb609cc1ec0a78bcedf0b70ced34fa977615eaf0a80661c",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        },
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "4392370304ac9e674f66a54bb084eeb102f4b990f1b4a3d0cbaf9c92cf053517",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        }
+      ]
+    },
+    {
+      "architecture": "loongarch64",
+      "receipt": "loongarch64-ordinary-domain-proof.json",
+      "product_boot_count": 2,
+      "conformance": [
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "633cfb8c923d1b23434bb6233c2f25fa3eaf4713e7dfe2e07205df1fe3c85e13",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        },
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "ce90621d1e5c86f44cec732a0baee102ed0ece4bc58a850e61e20693a1fc342f",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        }
+      ]
+    },
+    {
+      "architecture": "ia32",
+      "product_boot_count": 2,
+      "conformance": [
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "c7fd7cf350675494727c561f1ab440d8ca668201274b1ab83b1257834129f77e",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        },
+        {
+          "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+          "cords": 3,
+          "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+          "placements": 5,
+          "plan_id": "534b87873004d2b852c2f3a108f448f3835290cd26a8a8fd9b644dfa2e7d8cd4",
+          "proof_class": "sealed-plan-conformance",
+          "protected_text_region": true,
+          "regions": 2,
+          "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+          "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+          "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+        }
+      ],
+      "normal_product_receipts": [
+        "../ordinary-plan-observatory-checkpoint/refreshed-supplemental/ia32-normal-first.json",
+        "../ordinary-plan-observatory-checkpoint/refreshed-supplemental/ia32-repeat/ia32-legacy-bios-product-proof.json"
+      ],
+      "normal_image_sha256": "0bfaf718a297d7a1c68594f529861dd31e626335431fe3baa5e09d0776cc1ec2",
+      "boundary_receipt": "ia32-ordinary-domain-proof.json",
+      "normal_product_command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "ia32-legacy-bios-proof"
+      ],
+      "note": "Two separately retained normal BIOS boots supplement the instrumented boundary command; supported boundary command needs normal-boot integration."
+    }
+  ]
+}

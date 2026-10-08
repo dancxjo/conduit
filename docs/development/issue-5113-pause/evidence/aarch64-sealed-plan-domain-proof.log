@@ -1,0 +1,519 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running `target/debug/conduit-xtask-dispatch make conduitos aarch64-ordinary-domain-proof`
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/tools/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 21.51s
+     Running `target/debug/xtask make conduitos aarch64-ordinary-domain-proof`
+    Checking serde v1.0.229
+    Checking zeroize v1.9.0
+    Checking thiserror v2.0.20
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/audio)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/purpose)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/process)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/text)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/alife)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/web)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/robotics)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/language)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/wire)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/home)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/tutorial)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/presentation)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/education)
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/assigned-plan)
+    Checking curve25519-dalek v4.1.3
+    Checking cobs v0.3.0
+    Checking cipher v0.4.4
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/ai)
+    Checking patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/patchbay)
+    Checking postcard v1.1.3
+    Checking chacha20 v0.9.1
+    Checking ed25519-dalek v2.2.0
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/kernel)
+    Checking x25519-dalek v2.0.1
+    Checking chacha20poly1305 v0.10.1
+    Checking noise-rust-crypto v0.6.2
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/protected-line)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/plan-lowering)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/observatory)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/composite)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/planner)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/mechanisms/protocols/midi)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/mechanisms/implementations/synth)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/birth)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/targets/conduitos/mask-offer)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/catalog)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/patchbay/graph)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/tour)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/patchbay/application)
+    Checking conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/targets/conduitos)
+warning: unused imports: `prepare_exact` and `propose_partitions`
+  --> targets/conduitos/src/native_workset.rs:16:27
+   |
+16 | pub(crate) use planning::{prepare_exact, propose_partitions};
+   |                           ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:190:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+190 |     pub fn admit(
+    |            ^^^^^
+...
+199 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+203 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+206 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+209 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+212 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+223 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+226 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 14 warnings (run `cargo fix --lib -p conduitos` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 25.11s
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.5
+   Compiling cpufeatures v0.2.17
+   Compiling subtle v2.6.1
+   Compiling signature v2.2.0
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling libm v0.2.16
+   Compiling zmij v1.0.23
+   Compiling thiserror v2.0.20
+   Compiling serde_json v1.0.151
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling curve25519-dalek v4.1.3
+   Compiling minicbor v2.3.0
+   Compiling opaque-debug v0.3.1
+   Compiling arrayvec v0.7.8
+   Compiling rand_core v0.6.4
+   Compiling zeroize v1.9.0
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/targets/conduitos)
+   Compiling bitflags v2.13.2
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/time)
+   Compiling cobs v0.3.0
+   Compiling ed25519 v2.2.3
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/presentation)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/audio)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/robotics)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/net)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/purpose)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/process)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/alife)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/education)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/language)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/ai)
+   Compiling noise-protocol v0.2.1
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/wire)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/home)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/tutorial)
+   Compiling limine v0.5.0
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling inout v0.1.4
+   Compiling universal-hash v0.5.1
+   Compiling aead v0.5.2
+   Compiling digest v0.10.7
+   Compiling cipher v0.4.4
+   Compiling poly1305 v0.8.0
+   Compiling sha2 v0.10.9
+   Compiling chacha20 v0.9.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling noise-rust-crypto v0.6.2
+   Compiling ed25519-dalek v2.2.0
+   Compiling x25519-dalek v2.0.1
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/protected-line)
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/assigned-plan)
+   Compiling postcard v1.1.3
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/patchbay)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/plan-lowering)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/observatory)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/composite)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/architecture/planner)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/mechanisms/protocols/midi)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/mechanisms/implementations/synth)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/targets/conduitos/mask-offer)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/birth)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/semantics/catalog)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/plots/patchbay/application)
+warning: unused import: `conduit_conduitos_mask_offer::native_host_advertisement`
+ --> targets/conduitos/src/mask_control.rs:7:9
+  |
+7 | pub use conduit_conduitos_mask_offer::native_host_advertisement;
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `KeyboardChainError`
+  --> targets/conduitos/src/text_protection.rs:13:24
+   |
+13 | pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};
+   |                        ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `body::BodyTextAdmission`
+  --> targets/conduitos/src/text_protection.rs:15:16
+   |
+15 | pub(crate) use body::BodyTextAdmission;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `reset_keymap` and `return_from_pure` are never used
+   --> targets/conduitos/src/text_protection.rs:186:12
+    |
+185 | impl<I: TextOwner> ProtectedText<I> {
+    | ----------------------------------- methods in this implementation
+186 |     pub fn reset_keymap(&mut self) -> Result<(), MachineRunError> {
+    |            ^^^^^^^^^^^^
+...
+195 |     fn return_from_pure(&mut self) -> Result<(), MachineRunError> {
+    |        ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `KeyboardChainError` is never used
+ --> targets/conduitos/src/text_protection/chain.rs:5:17
+  |
+5 | pub(crate) enum KeyboardChainError {
+  |                 ^^^^^^^^^^^^^^^^^^
+
+warning: struct `PureKeyboardOutput` is never constructed
+  --> targets/conduitos/src/text_protection/chain.rs:15:19
+   |
+15 | pub(crate) struct PureKeyboardOutput {
+   |                   ^^^^^^^^^^^^^^^^^^
+
+warning: methods `source` and `upper` are never used
+  --> targets/conduitos/src/text_protection/chain.rs:21:12
+   |
+20 | impl PureKeyboardOutput {
+   | ----------------------- methods in this implementation
+21 |     pub fn source(&self) -> &[u8] {
+   |            ^^^^^^
+...
+24 |     pub fn upper(&self) -> &[u8] {
+   |            ^^^^^
+
+warning: method `keymap_chain` is never used
+  --> targets/conduitos/src/text_protection/chain.rs:30:12
+   |
+29 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+30 |     pub fn keymap_chain(
+   |            ^^^^^^^^^^^^
+
+warning: struct `BodyTextAdmission` is never constructed
+ --> targets/conduitos/src/text_protection/body.rs:8:19
+  |
+8 | pub(crate) struct BodyTextAdmission {
+  |                   ^^^^^^^^^^^^^^^^^
+
+warning: associated items `prepare` and `activate` are never used
+  --> targets/conduitos/src/text_protection/body.rs:18:12
+   |
+17 | impl BodyTextAdmission {
+   | ---------------------- associated items in this implementation
+18 |     pub fn prepare(
+   |            ^^^^^^^
+...
+53 |     pub fn activate(
+   |            ^^^^^^^^
+
+warning: function `body_binding_heap` is never used
+   --> targets/conduitos/src/text_protection/body.rs:134:4
+    |
+134 | fn body_binding_heap(binding: &BodyRegionBinding) -> usize {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `prepare` is never used
+  --> targets/conduitos/src/tour_two_host.rs:11:8
+   |
+11 | pub fn prepare(
+   |        ^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host.rs:19:8
+   |
+19 | pub fn run(
+   |        ^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:48:5
+   |
+47 | pub struct SourceKernel {
+   |            ------------ fields in this struct
+48 |     scheduler: SourceScheduler,
+   |     ^^^^^^^^^
+49 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+50 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: fields `scheduler`, `endpoint`, and `cord` are never read
+  --> targets/conduitos/src/tour_two_host_kernel.rs:54:5
+   |
+53 | pub struct SinkKernel {
+   |            ---------- fields in this struct
+54 |     scheduler: SinkScheduler,
+   |     ^^^^^^^^^
+55 |     endpoint: RemoteEndpointId,
+   |     ^^^^^^^^
+56 |     cord: conduit_kernel::CordId,
+   |     ^^^^
+
+warning: methods `step`, `offer`, `accept`, `delivered`, `decisions`, and `signs` are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:114:12
+    |
+ 59 | impl SourceKernel {
+    | ----------------- methods in this implementation
+...
+114 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+118 |     pub fn offer(&mut self) -> Result<Option<(u64, &[u8])>, SchedulerError> {
+    |            ^^^^^
+...
+131 |     pub fn accept(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^
+...
+136 |     pub fn delivered(&mut self, sequence: u64) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^^
+...
+141 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+144 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: multiple methods are never used
+   --> targets/conduitos/src/tour_two_host_kernel.rs:190:12
+    |
+149 | impl SinkKernel {
+    | --------------- methods in this implementation
+...
+190 |     pub fn admit(
+    |            ^^^^^
+...
+199 |     pub fn close(&mut self) -> Result<(), SchedulerError> {
+    |            ^^^^^
+...
+203 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+    |            ^^^^
+...
+206 |     pub fn request(&mut self) -> Option<HostCallRequest> {
+    |            ^^^^^^^
+...
+209 |     pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
+    |            ^^^^^
+...
+212 |     pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+    |            ^^^^^^^^
+...
+223 |     pub fn decisions(&self) -> u32 {
+    |            ^^^^^^^^^
+...
+226 |     pub fn signs(&self) -> u16 {
+    |            ^^^^^
+
+warning: fields `source` and `sink` are never read
+  --> targets/conduitos/src/tour_two_host_plan.rs:31:16
+   |
+24 | pub struct PreparedTourTwoHostPlan {
+   |            ----------------------- fields in this struct
+...
+31 |     pub(crate) source: crate::tour_two_host_kernel::SourceKernel,
+   |                ^^^^^^
+32 |     pub(crate) sink: crate::tour_two_host_kernel::SinkKernel,
+   |                ^^^^
+
+warning: constant `MAXIMUM_STEPS` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:11:7
+   |
+11 | const MAXIMUM_STEPS: u32 = 32;
+   |       ^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:13:8
+   |
+13 | pub fn run(
+   |        ^^^
+
+warning: function `step_source` is never used
+  --> targets/conduitos/src/tour_two_host_play.rs:96:4
+   |
+96 | fn step_source(
+   |    ^^^^^^^^^^^
+
+warning: function `step_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:107:4
+    |
+107 | fn step_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^
+
+warning: function `drain_source` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:116:4
+    |
+116 | fn drain_source(
+    |    ^^^^^^^^^^^^
+
+warning: function `drain_sink` is never used
+   --> targets/conduitos/src/tour_two_host_play.rs:129:4
+    |
+129 | fn drain_sink(sink: &mut crate::tour_two_host_kernel::SinkKernel) -> Result<(), MachineRunError> {
+    |    ^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 24 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 53.27s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/conduitos.iso
+ConduitOS live media: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/live/aarch64-virt/conduitos-aarch64.iso
+Host type: conduitos/aarch64/virt
+manifest: /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/live/aarch64-virt/build-manifest.json
+xtask error: ConduitOS proof refusal [unavailable-aarch64-firmware]: /usr/share/qemu-efi-aarch64/QEMU_EFI.fd

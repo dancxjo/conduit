@@ -1,0 +1,28 @@
+{
+  "directory": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/toolchain/loongarch64-domain-qemu/83b88accc2d317b10d86224fef8969c3aaa901eba19e5b8dd171a0df5ca7e3fb",
+  "inputs": {
+    "schema": "conduit.conduitos/loongarch64-diagnostic-emulator@1",
+    "archive_sha256": "a3717477d8e2c84d630bfffbc20f6cd3293eb45aa1e6dac6d0cc27689991c9e1",
+    "patch_sha256": [
+      "abd2875c1db4a3a7897fda4967c2bddcce60f63db8e46f08d18774748a64cc5e",
+      "df89114623b6d2467a2a5bc77532981ce6b0cccc64b6e4585a7503e4b7af8347"
+    ],
+    "configure": [
+      "--target-list=loongarch64-softmmu",
+      "--with-pkgversion=conduit-diagnostic-misc-drdtl",
+      "--disable-docs",
+      "--disable-tools",
+      "--disable-guest-agent",
+      "--disable-user",
+      "--disable-werror",
+      "--disable-gtk",
+      "--disable-sdl",
+      "--disable-vnc",
+      "--disable-opengl",
+      "--disable-pixman",
+      "--disable-capstone",
+      "--disable-slirp",
+      "--disable-download"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized] target(s) in 0.11s
+     Running unittests src/main.rs (../conduit/target/debug/deps/conduit-b0a9ec0668cde657)
+
+running 5 tests
+test durable_host::routed_join::return_route::tests::grant_is_bearer_bound_to_exact_credential_and_current_boot_claim ... ok
+test durable_host::routed_join::return_route::tests::only_explicit_native_face_request_opts_into_return ... ok
+test durable_host::routed_join::return_route::tests::oversized_refreshed_face_keeps_action_truth_and_refuses_document_pressure ... ok
+test durable_host::routed_join::return_route::tests::native_eight_kib_frames_cover_the_full_bounded_return ... ok
+test durable_host::routed_join::return_route::tests::chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pressure ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 173 filtered out; finished in 0.00s
+

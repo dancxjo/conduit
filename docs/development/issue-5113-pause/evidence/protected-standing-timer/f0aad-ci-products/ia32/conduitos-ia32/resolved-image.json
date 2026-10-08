@@ -1,0 +1,128 @@
+{
+  "payload": {
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:1945e436f4b9183176b48288a9edced7878dfb5370a637db547d9c9eae817276",
+    "profile_id": "sha256:7aa840273a96d89b60c93840e963e107f53597c00ac84b5ed43fbdd47e70e3ea",
+    "source_configuration_id": "sha256:3ed75a01f3935d610e1ae9e8e6ee1e0a838b814adfcdc784ef8ed69532d7625b",
+    "target": "conduitos/ia32/pc",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/ia32-debugcon-text",
+        "driver": "conduitos/ia32-debugcon@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/ia32-debugcon@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/ia32-linear-debugcon@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 1048576,
+      "heap_arena_bytes": 0,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    }
+  },
+  "manifest": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:7aa840273a96d89b60c93840e963e107f53597c00ac84b5ed43fbdd47e70e3ea",
+    "source_configuration_id": "sha256:3ed75a01f3935d610e1ae9e8e6ee1e0a838b814adfcdc784ef8ed69532d7625b",
+    "build_id": "build:sha256:1945e436f4b9183176b48288a9edced7878dfb5370a637db547d9c9eae817276",
+    "image_id": "image:sha256:260fe60e0f8c5f145ebe5fd3c18978df8d6d842e04de2922b245ab2eca22cb36",
+    "source_identity": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+    "toolchain_identity": "rustc:stable+i686-unknown-linux-gnu-object+rust-lld-elf_i386+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-ia32@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-ia32@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/ia32-debugcon@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/ia32/pc",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/ia32-debugcon-text",
+        "driver": "conduitos/ia32-debugcon@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/ia32-debugcon@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/ia32-linear-debugcon@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 1048576,
+      "heap_arena_bytes": 0,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:conduitos/ia32-debugcon-text": [
+        "base:conduitos/ia32-debugcon-text"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ]
+    }
+  }
+}

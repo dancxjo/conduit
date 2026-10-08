@@ -1,0 +1,54 @@
+{
+  "source_commit": "2a8574a906469ba16a27993f90acee9b76127789",
+  "status": "open; inventory for subsequent implementation, not an acceptance claim",
+  "protected_current_slice": [
+    "five-target ordinary text region",
+    "x86_64 Body-bound Keyboard canvas keymap and uppercase",
+    "x86_64 Body-bound Memory Lantern keymap and retained editor; same pure owner as hosted implementation"
+  ],
+  "remaining": [
+    {
+      "surface": "timer region",
+      "owners": [
+        "targets/conduitos/src/text_kernel_backs.rs",
+        "targets/conduitos/src/dual_region_kernel.rs",
+        "targets/conduitos/src/execution_region.rs"
+      ],
+      "gap": "region/timer retains its explicitly cooperative realization"
+    },
+    {
+      "surface": "Tour Morse",
+      "owners": [
+        "targets/conduitos/src/tour_morse_play.rs",
+        "targets/conduitos/src/tour_morse_kernel.rs"
+      ],
+      "gap": "uppercase and Morse semantic transformations still execute in privileged code"
+    },
+    {
+      "surface": "native retained applications",
+      "owners": [
+        "targets/conduitos/src/native_workset/play.rs",
+        "targets/conduitos/src/native_workset/application_delivery.rs",
+        "targets/conduitos/src/native_workset/tutorial_application.rs"
+      ],
+      "gap": "Resident application semantic operations remain outside the protected Keyboard canvas and Memory Lantern slices."
+    },
+    {
+      "surface": "native protocol Source",
+      "owners": [
+        "targets/conduitos/src/protocol_source/body_play.rs",
+        "targets/conduitos/src/protocol_source/native_preparation.rs",
+        "targets/conduitos/src/protocol_play.rs",
+        "targets/conduitos/src/protocol_operations.rs"
+      ],
+      "gap": "the production composite kernel and pure operation owners require a reviewed protected execution realization while physical provider ownership remains in Root"
+    },
+    {
+      "surface": "release acceptance",
+      "gap": "required exact accepted-main evidence does not exist for this draft"
+    }
+  ],
+  "current_validation": "Pinned RISC-V tool cold preparation, supported warm verification and normal/boundary proof passed on9d33; fullworkspace6632pass0fail, Clippy and preflight151passed. Memory finalnative capacity fixture and canonical graphical journey passed on2a8574a90 with distinct domain/partition identities, exact costs and zeroing; final focusedhost/cost/Clippy running on doc-only db66a2037. Final Memory focused5semantic/691host/1cost,workspaceClippy-Dwarnings and preflight151passed ondoc-onlydb66. PR5281draftpublished;clock5271mergeddev42d.",
+  "dma_isolation": false,
+  "driver_isolation": false
+}

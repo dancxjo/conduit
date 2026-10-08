@@ -1,0 +1,1000 @@
+{
+  "goal": "finish and close #5113; still open with broad ordinary implementation and accepted-release gaps",
+  "main_workspace": "work/conduit",
+  "main_branch": "detached",
+  "main_head": "b7e9b6647",
+  "retained_validation": {
+    "semantic_tests": 5,
+    "host_tests": 691,
+    "cost_test": 1,
+    "workspace_clippy": "passed",
+    "canonical_graphical": "passed on 24b8728cc; final native Root editor field removal in c8a959765 needs clean native rerun",
+    "full_workspace_c8a959765": {
+      "suites": 894,
+      "passed": 6615,
+      "failed": 0,
+      "ignored": 13
+    },
+    "final_semantic_tests": 5,
+    "final_host_tests": 691,
+    "final_cost_tests": 1,
+    "final_workspace_clippy": "passed warnings denied",
+    "final_preflight": "passed againstcurrentdev42d afterfetch;151pipeline+8standalone locks",
+    "final_native": "passed2a8574a90 capacityfixture and canonical graphical; docs-onlyhead db66a2037"
+  },
+  "ci_test_repair": {
+    "pr": "https://github.com/dancxjo/conduit/pull/5271",
+    "workspace": "work/conduit-lull-observation",
+    "commit": "43951c126",
+    "focused_regression": "passed",
+    "state": "merged",
+    "merge_commit": "42d6c212f9dac742c92025c5fde8c74dfbde4e47",
+    "candidate": "all26checks passed before merge"
+  },
+  "predecessor_ci_repair": {
+    "pr": "https://github.com/dancxjo/conduit/pull/5194",
+    "workspace": "work/conduit-domain-ci",
+    "branch": "codex/5113-ordinary-protection-domains",
+    "head": "9d33f9f6d",
+    "pushed": true,
+    "js_tests": 14,
+    "requires": [
+      "focused Rust tests",
+      "workspace Clippy warnings denied",
+      "full workspace tests because common QEMU builder extraction",
+      "supported pinned RISC-V tool cold and warm preparation",
+      "supported ordinary RISC-V normal plus boundary proof",
+      "preflight"
+    ],
+    "refresh": "merged current dev ancestry through own tested clock fix 43951c126; conflict-free; JS14 passed again",
+    "focused_rust": "passed",
+    "workspace_clippy": "passed",
+    "full_workspace": {
+      "suites": 897,
+      "passed": 6632,
+      "failed": 0,
+      "ignored": 13,
+      "log": "work/protected-riscv-ci-workspace-tests.log"
+    },
+    "native_riscv": "passed; two normal product boots plus independent boundary proof on9d33",
+    "preflight": "passed151pipeline+8standalone locks",
+    "loong_warm": "passed unchanged receipt",
+    "last_ci_observation": "16passed0failed8running; leave healthyjobs alone until readiness",
+    "state": "merged",
+    "merge_commit": "1cd798af23f1587ae02a0825398e636a9945b284",
+    "candidate": "all26checks green; retainedwork/pr-5194-final-checks.json"
+  },
+  "riscv_ci_diagnosis": {
+    "artifacts": "work/qemu-ci-riscv64",
+    "old_pair": "QEMU8.2+OpenSBI1.3 reproduces CI refusal; trace confirms supervisor seed access illegal instruction",
+    "single_component_upgrades": "both refuse",
+    "reviewed_pair": "QEMU10.2+OpenSBI1.8 boots same product with old CI U-Boot; raw diagnostic only",
+    "fix": "new prepare-riscv64-domain-emulator source-builds pinned QEMU, verifies pinned OpenSBI and content receipts, setup provisions dependencies, tool selection prioritizes verified pair; preserves refusal and Loong recipe"
+  },
+  "next_execution": "Poll40799 exactsession; fullworkspacehealthybuild/testrunmustfinishincludingdoctests beforeotherCargo/nativebuilds. Retainresult, currentbranchb7 clean originalpath. ThenrefreshMorsestoragebranchonto currentdev1cd (ornewer) smallest3filedelta, focusedtext+format/preflightandrequiredcombinedvalidation;publishcoherentPRtargetdev afterproof. Own3unpublishedcommitsmaybesquashed ifdesired. PR5281ready8d freshCI; investigateactualfailuresor mergeonlyallcandidategreen. NoMorseunprivilegedexecutionexistsyet: nextverticalneedsconcreteTourregionowner, exactcapabilitygates2effects, fixed645byteMorsewindow preserving256textbounds, Sourceunchanged, all5nativeproofsifframechanges. Notesnext-morse-slice-notes.md. Broaderapps/protocol/timerandacceptedrelease gapsstillopen;do notclose5113prematurely. Disk93Gfree, protectotherworktrees.",
+  "retained_text_followup_correction": "Implemented in 2185b1bfb and rebased onto9d33: mapped source and bounded refusal flag survive Keymap, exact Edit completes capacity failure; native diagnostic fixture validates capacity1 state across refusal/backspace/re-entry. Needs native proof and final validation.",
+  "tool_preparation": {
+    "cold_session": 14632,
+    "cold_log": "work/protected-riscv-ci-prepare-local-complete.log",
+    "status": "source build succeeded using existing user-local Python/C prerequisites; initial missing local prerequisites preserved in logs",
+    "warm_session": 26042,
+    "warm_log": "work/protected-riscv-ci-prepare-warm.log",
+    "receipt": "work/ordinary-plan-observatory-checkpoint/protected-riscv-ci/riscv64-protected-emulator.json",
+    "warm_status": "passed; exact executable and firmware identities retained",
+    "standalone_version": "passed without build environment",
+    "supported_warm": "passed via cargo xtask; work/protected-riscv-ci-supported-warm.log"
+  },
+  "memory_worktree": "work/conduit-retained-text",
+  "memory_head": "8d016ac188235f19f46ee005874b5cce13681a83",
+  "memory_native_capacity_fixture": "passed clean2a8574a90 throughsupportedordinary-domain-proof; preservedwork/ordinary-plan-observatory-checkpoint/protected-retained-text/2a8574a90-ordinary-domain",
+  "memory_final_journey": {
+    "status": "passed",
+    "source": "2a8574a90",
+    "retained": "work/ordinary-plan-observatory-checkpoint/protected-retained-text/2a8574a90-journey",
+    "screenshot": "inspected Memory Lantern c",
+    "cost": "Memory21entries5Basegates58copies;Keyboard5entries1Basegate10copies;bothRoot6324bytes,zero118784onStop"
+  },
+  "memory_pr": {
+    "url": "https://github.com/dancxjo/conduit/pull/5281",
+    "state": "ready",
+    "head": "8d016ac188235f19f46ee005874b5cce13681a83",
+    "pushed": true,
+    "depends_on": "5194 nowmerged",
+    "attachment": "attempted mandated codex_app__attach_artifact; host returned tool no longer available through dynamic tools, no replacement codex_app server tool exposed",
+    "validation": "completed nativeordinarycapacity+canonicalgraphical,5semantic,691host,1cost,workspaceClippy-Dwarnings,preflight151",
+    "rebase": "complete tree identical to validated db66; gitdiff --exit-code passed",
+    "body": "updated viaREST; freshcandidate running"
+  },
+  "running_full_workspace_tests": {
+    "session": 40799,
+    "source": "b7e9b6647",
+    "log": "work/protected-morse-storage-workspace-tests.log",
+    "rule": "Do not overlap any Cargo/native builds or mutateoriginalwork/conduit while fulltests+doctests run. Scriptfocused35+Clippy passed beforefullbegan."
+  },
+  "morse_storage": {
+    "workspace": "work/conduit-morse-storage",
+    "branch": "codex/5113-bounded-morse-storage",
+    "head": "b7e9b6647",
+    "pushed": false,
+    "base": "42d currentdevatcreation;5194 subsequentlymerged1cd",
+    "files": [
+      "semantics/text/src/morse_values_into.rs",
+      "semantics/text/src/morse_values_into/output.rs",
+      "semantics/text/tests/morse_fixed_storage.rs"
+    ],
+    "behavior": "fivecanonicalencodersshareboundedOutput Vec/fixedSlice;publicVecAPIpreserved;new_into_slice returnswrittenprefix;allwritescheckcapacity;oversizedintermediatestagesrefusebeforewrites",
+    "tests": "35textpackage tests including4new:allalphabet32byteatunitbounds parityagainstcanonicalallocatingAPI;100repetitionsbothfixed/Vecpipeline0allocations;oversizedintermediatesnoVecgrowth;smallstorageandsemanticerrorcases",
+    "clippy": "workspacealltargets-Dwarnings passed28.37s",
+    "native_morse": "notimplemented; storageprerequisiteonly"
+  },
+  "native_morse_wip": {
+    "worktree": "work/conduit-protected-morse",
+    "branch": "codex/5113-protected-tour-morse",
+    "head": "3c1d779e7338cda564716f59b2c701f1b2e436bf",
+    "status": "clean local branch, standalone lock committed; first x86 proof PASS on1867e5874; final all5+Clippy+full workspace sequence LIVE83438 on3c1d779e7",
+    "base": "2e7ba50a6 current-dev Memory + canonical storage",
+    "tree_refresh": "a8c610a32 initial native commit rebased; predecessor tree identical to2e7 so no product changes duringrefresh",
+    "implemented": [
+      "fixed645byte appendedframe + canonicaldomainUpperMorsecommands8/9",
+      "RootboundedMorseaccessors",
+      "separateIndicatorSerialScope no inventedconfig; exactcurrentartifact andcontractrevision; outputenvelopecheck",
+      "hostscope tests artifactrevisionreplacement anddistincttext/indicator subjects",
+      "effect extraction andRootselectedfixedText256/Morse645 Window",
+      "ProtectedMorse192lineowner exactPlanunit-ms40..2000, currentartifacts, onepureentry/stagedUpperMorse/typedCordmatching, independenthandles",
+      "nativeTourrunner usesowner cfg; RootMorseScratch/encoding fixture comparison onlycooperativehosts",
+      "Morsefivekindregionsealedprotected; ROOTmetadata reserve includesMorseKernel+owner",
+      "normalTourrun wrapperrevokesoncomplete/failure andcancel",
+      "allfivearchitecture supplementalproofs runnormalcheckedTourSource, observeSOS+canonicalMorse onactualserialprovider, require5entries2gatesandzeroization",
+      "nativehandlecrossuse tests swapText/Indicator -> exactWrongScope, zeroeffects, faultrevocation,replayrefusal; fixturecostsmarkedtrue",
+      "sharedproofcollector validatesboundobservation/currentPlanPlaycost, architecture-specific reservedbytes, crossusemarker; 2newnegativecollector tests; allfivecollectorsrequireMorse"
+    ],
+    "next": [
+      "Pollsame83438 and currentstage logs, actonactualfailure only",
+      "Preserveall5architecture final receipts/UART cost andsameTourSourceidentities",
+      "Run normalgraphicaljourneyregression afterfullsequence ifnotalreadycovered; newnativeMorse proofclasscurrentlyfreestandingdiagnosticSource throughproductionTourkernel/runner, serialeffectnotphysicalindicator",
+      "UpdatearchitecturedevelopmentdocswithactualMorsemeasurements andbroadergaps",
+      "Merge5287onlyafterallcurrentcandidategreen; refreshnativeminimaldeltaonto currentdev, identicaltreerefreshshouldnotinventcompatibility; finalCIprovesactualrefreshedhead",
+      "PublishnativePRwhenreviewable validated; do notclose5113 untilfullacceptanceandrequiredreleaseevidence"
+    ],
+    "validated_head": "1867e5874",
+    "validation": [
+      "7domain_serial_scope tests PASS",
+      "2protected_morse_proof receipt tests PASS",
+      "supported cargo xtask make conduitos ordinary-domain-proof PASS: existing18boundary/gate/lifecycle/timer/keymap/editor plus newMorse"
+    ],
+    "first_x86_evidence": "work/ordinary-plan-observatory-checkpoint/protected-tour-morse/1867e5874-x86",
+    "first_x86_morse_cost": {
+      "entries": 5,
+      "pure_entries": 1,
+      "base_gate_transitions": 2,
+      "copied_bytes": 129,
+      "shared_peak_bytes": 45,
+      "root_metadata_bytes": 66272,
+      "reserved_bytes": 118784,
+      "teardown_zeroed_bytes": 118784,
+      "state": "Revoked(PlayCompleted)",
+      "setup_copied_bytes": 23005
+    },
+    "important_corrections": [
+      "HostCall completion metadata is distinct from semantic output. Textscope accepts <=MAX_PRESENTATION_COMPLETION_BYTES256, Indicator0. No offer normalization needed. New oversizecompletion test resealschangedPlan before refusal.",
+      "Actual canonicalTourSource branches ORIGINAL sos independently toUpper andMorse; notUpper->Morse. Domain nowcomputesbothfromoriginalinput. OwnerstagesOriginalSource[256], validates bothrequestedinputs, supportsMorsefirst orUpperfirst withoneentry, tracksperbranchcompletion.",
+      "Nativefanoutfixtures provebothorders,changedinputrefusalbeforecompletionconsumed, Unicode\u00df->UpperSS whileoriginalMorserefuses. CollectorsrequireFANOUT marker.",
+      "3c1d779e7 aftervalidated1867 changesONLYx86physicalSerialMAX_PRESENT_BYTES toMorse645; textcall/windowremain256. FinalsameHeadnativeall5sequencewillvalidatecurrentbound."
+    ],
+    "initial_failure_evidence": [
+      "work/protected-tour-morse-x86-initial-fanout-refusal.log",
+      "work/protected-tour-morse-x86-initial-fanout-refusal-uart.log"
+    ],
+    "live_session": 83438,
+    "live_source": "work/conduit detached3c1d779e7 clean",
+    "live_sequence": [
+      "cargo xtask make conduitos ordinary-domain-proof",
+      "cargo xtask make conduitos ia32-ordinary-domain-proof",
+      "cargo xtask make conduitos aarch64-ordinary-domain-proof",
+      "cargo xtask make conduitos riscv64-ordinary-domain-proof",
+      "cargo xtask make conduitos loongarch64-ordinary-domain-proof",
+      "cargo clippy --workspace --all-targets -j4 -- -D warnings",
+      "cargo test --workspace -j4"
+    ],
+    "live_logs": "work/protected-tour-morse-final-{x86,ia32,aarch64,riscv64,loongarch64}-proof.log; work/protected-tour-morse-final-clippy.log; work/protected-tour-morse-final-workspace.log",
+    "rule": "No overlapping Cargo/native builds or source edits in work/conduit until83438terminal. Pollsamehandle; no timeout restart."
+  },
+  "morse_storage_pr": {
+    "url": "https://github.com/dancxjo/conduit/pull/5287",
+    "draft": false,
+    "head": "2e7ba50a61b7c43752e0e30272ab5ab96f4e2dea",
+    "base": "9e84cdd627f8198d3d60a7eb43cc708de39c01c3",
+    "validation": "35 focused tests and workspace Clippy passed on pre-refresh b7; full b7 run40799 now doctests; refresh focused/Clippy pending",
+    "ready": true
+  },
+  "pr5281_latest_checks": "Old cancelled draft candidate failed intentionally; ready run37737420597 progressing, lint/quick/avr/orange-pi passed. No actual ready-run failure observed.",
+  "morse_storage_validation": {
+    "previous_head": "b7e9b6647",
+    "previous_full_result": {
+      "passed": 6588,
+      "failed": 0,
+      "ignored": 13,
+      "suites": 898,
+      "exit_code": 0
+    },
+    "current_head": "2e7ba50a61b7c43752e0e30272ab5ab96f4e2dea",
+    "live_session": null,
+    "worktree": "work/conduit detached ee2259005 clean",
+    "sequence": "focused conduit-text -> workspace Clippy -Dwarnings -> full workspace tests",
+    "logs": [
+      "work/protected-morse-storage-refreshed-focused.log",
+      "work/protected-morse-storage-refreshed-clippy.log",
+      "work/protected-morse-storage-refreshed-workspace.log"
+    ],
+    "rule": "No overlapping Cargo/native builds or source edits in work/conduit while40224live",
+    "tested_head": "ee2259005",
+    "phase": "full workspace tooling suites, no observed failures, focused35 and Clippy passed; originalpathdetachedee2259005 unchanged",
+    "note": "Memory PR5281 merged during run; canonical3commits rebased to2e7 onnewdev, sameproductdelta. Need focused/Clippy refresh and readyCI afterfull terminal.",
+    "completed_full_head": "ee2259005274cced5d2d7466e2e56d1782d44719",
+    "full_result": {
+      "passed": 6636,
+      "failed": 0,
+      "ignored": 13,
+      "suites": 898,
+      "exit_code": 0
+    },
+    "current_focused": "35 passed",
+    "current_clippy": "PASS workspace alltargets-Dwarnings28.28s",
+    "candidate_ci": "ready run in progress, no observed actual failure"
+  },
+  "artifact_attachment": "PR5281 and new5287 both successfully attached this continuation",
+  "pr5281": {
+    "state": "MERGED",
+    "head": "8d016ac188235f19f46ee005874b5cce13681a83",
+    "merge": "9e84cdd627f8198d3d60a7eb43cc708de39c01c3",
+    "all26_checks": "SUCCESS",
+    "run": 37737420597
+  },
+  "model_retry_progress": {
+    "storage_pr": {
+      "number": 5287,
+      "state": "MERGED",
+      "merge_commit": "41334d3a59e97fbcc7c40501dc5d0505f3a4b6ba",
+      "candidate_checks": "26 passed"
+    },
+    "native_source_branch_head": "7b53369d8d5f8839bed8d2d435cc3401095f026a",
+    "native_tested_source": "3c1d779e7338cda564716f59b2c701f1b2e436bf",
+    "rebased_tree_identical": true,
+    "live_session": null,
+    "stage": "All local native, Clippy, full-workspace and normal graphical journey checks passed; exhaustive CI5294 running",
+    "x86_evidence": "protected-tour-morse/3c1d779e7-x86",
+    "docs": "committed all-five factual cost table; source tree unchanged from validated3c1 except docs",
+    "previous_session": {
+      "id": 74086,
+      "exit_code": 0
+    },
+    "firmware_env": "CONDUITOS_AARCH64_FIRMWARE=work/qemu-tools/runtime/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
+    "qemu_path": "work/qemu-tools/runtime/usr/bin",
+    "native_pr": {
+      "number": 5294,
+      "url": "https://github.com/dancxjo/conduit/pull/5294",
+      "draft": false,
+      "head": "8779d4c5d",
+      "attached": true
+    },
+    "native_architectures_passed": [
+      "x86_64",
+      "ia32",
+      "aarch64",
+      "riscv64",
+      "loongarch64"
+    ],
+    "same_source_receipt": "protected-tour-morse/3c1d779e7-same-source.json",
+    "workspace_clippy": "PASS, warnings denied, 3m48s",
+    "completed_test_suites_so_far": 791,
+    "passed_tests_so_far": 6009,
+    "native_pr_quick": "PASS; candidate intentionally fails while draft (verified job113206884133)",
+    "coverage_audit": "protected-tour-morse/remaining-coverage-audit.json",
+    "next_required": "Implement standing timer ordinary execution in domain; canonical TimerBack Every/Count currently privileged in tour_timer_kernel.rs. Preserve production FixedScheduler and exact typed Cords; Root only current capability-admitted Timer/Clock/Serial effects. Check5294 terminal CI and merge when all exact candidate checks pass.",
+    "workspace_full": {
+      "source_commit": "3c1d779e7338cda564716f59b2c701f1b2e436bf",
+      "exit_code": 0,
+      "passed": 6645,
+      "failed": 0,
+      "ignored": 13,
+      "completed_suites": 898,
+      "doctests_completed": true,
+      "clippy_warnings_denied": "passed",
+      "architectures": [
+        "x86_64",
+        "ia32",
+        "aarch64",
+        "riscv64",
+        "loongarch64"
+      ]
+    },
+    "journey": {
+      "session": 53684,
+      "exit_code": 0,
+      "source_commit": "3c1d779e7338cda564716f59b2c701f1b2e436bf",
+      "evidence": "protected-tour-morse/3c1d779e7-journey",
+      "screenshots_inspected": [
+        "protected-keyboard-canvas.png",
+        "protected-memory-lantern.png"
+      ],
+      "keyboard_entries": 5,
+      "keyboard_base_gates": 1,
+      "memory_entries": 21,
+      "memory_base_gates": 5,
+      "retirement": "bothRevokedPlayCancelled and118784backendbyteszeroed"
+    },
+    "candidate_ci": {
+      "run": 37747909749,
+      "quick": "PASS",
+      "exhaustive": "running; do not confuse historical draft gate failure"
+    },
+    "next_worktree": "work/conduit-protected-timer",
+    "next_branch": "codex/5113-protected-standing-timer",
+    "next_branch_base": "8779d4c5d5294a54211216aa18bec547344d3f56",
+    "next_worktree_state": "clean; no timer implementation edits yet"
+  },
+  "standing_timer_progress": {
+    "branch": "codex/5113-protected-standing-timer",
+    "head": "1c658e9d8",
+    "base": "302abca404e9952e483bd9b2eb587b89a09a26de",
+    "native_x86_memory_regression": {
+      "head": "5b2e14ecf",
+      "session": 44147,
+      "exit_code": 0,
+      "log": "work/protected-standing-timer-domain-image-x86-bounded128.log",
+      "claim": "existing checked ordinary text and boundary proof passed with enlarged finite image/private memory; timer product not claimed"
+    },
+    "superseded_native_image_failures": [
+      {
+        "session": 55556,
+        "reason": "mapped image exceeded old 64KiB limit"
+      },
+      {
+        "session": 26076,
+        "reason": "one-port image still exceeded64KiB"
+      },
+      {
+        "session": 72116,
+        "reason": "size-optimized mapped image72KiB exceeded64KiB"
+      }
+    ],
+    "current_code_window_bytes": 131072,
+    "reserved_bytes": {
+      "x86_64": 217088,
+      "riscv64": 217088,
+      "ia32": 229376,
+      "aarch64": 225280,
+      "loongarch64": 225280
+    },
+    "loongarch_decode_bound": "derived from MAXIMUM_IMAGE_BYTES",
+    "focused_tests": {
+      "session": 61097,
+      "head": "9b581c89a",
+      "exit_code": 0,
+      "passed": 4,
+      "log": "work/protected-standing-timer-one-port-focused.log"
+    },
+    "new_fixture": "Committed1a0080303: all-five private runtime fixture, synthetic completions only; unvalidated until original build worktree advances after live61097.",
+    "remaining": [
+      "Native fixture validation",
+      "Root exact Timer/Clock/presentation capability owner and provider generations",
+      "Authored120ms duration must be honored; current TimerBase arm carries no duration",
+      "Actual product protected profile classification and memory admission",
+      "All-five product emulator proof",
+      "Clippy and full workspace tests",
+      "Broader ordinary execution coverage and exact stable-main acceptance"
+    ],
+    "next_actions": [
+      "Poll new live native validation session before other Cargo/builds or changing original work/conduit source",
+      "Retain TIMER_RUNTIME guest markers and current costs for each passing lane; inspect any terminal failures",
+      "Implement actual ProtectedTimer owner and physical120ms provider interface; do not classify product protected prematurely",
+      "Merge PR5303 after current all-green CI; stable publication must run corrected stager",
+      "Remaining broad execution coverage and exact stable-main audit still required"
+    ],
+    "latest_focused_tests": {
+      "head": "0c9b8af52",
+      "passed": 5,
+      "status": "pass",
+      "log": "work/protected-standing-timer-current-focused.log"
+    },
+    "native_fixture_validation": {
+      "head": "0c9b8af52",
+      "session": 99896,
+      "exit_code": 0,
+      "log": "work/protected-standing-timer-runtime-x86.log",
+      "guest_marker": "CONDUIT_DOMAIN_TIMER_RUNTIME private-production-kernel causal-counts-0-1 synthetic-completions no-base-effects cancelled zeroed",
+      "retained_uart": "work/ordinary-plan-observatory-checkpoint/protected-standing-timer/0c9b8af52-x86/ordinary-domain-proof.log",
+      "claim": "x86 private kernel fixture only; synthetic completions; no physical Timer effects"
+    },
+    "remaining_arch_fixture_attempt": {
+      "session": 85974,
+      "head": "0c9b8af52",
+      "exit_code": 1,
+      "failed_lane": "ia32",
+      "reason": "undefined freestanding bcmp used by production FixedScheduler",
+      "log": "work/protected-standing-timer-runtime-ia32.log",
+      "fix": "9ea8ad4a6 adds domain-local volatile comparison primitive",
+      "aarch64_riscv64_loongarch64": "not started because sequence stopped atIA32 failure"
+    },
+    "scope_admission_progress": {
+      "commits": [
+        "565646188",
+        "6ce291102",
+        "404588704"
+      ],
+      "claim": "Count scope physicaldigits20 vs semantic8, finite2operations; TimerBase selection now seals exact Timer+Clock pair into provider-instance identity; current independent provider epoch checks and replacement tests",
+      "test_status": "All11focused host timer tests pass on c35ae34e8",
+      "remaining": [
+        "Root async lease owner and protected product integration",
+        "Live provider epoch methods",
+        "Authored120ms physical duration",
+        "All-five actual product proof",
+        "Clippy and full workspace",
+        "Broader execution coverage/stable-main"
+      ],
+      "latest_commits": [
+        "a67501c7a",
+        "fccf5b351",
+        "47e6257f7",
+        "c35ae34e8"
+      ],
+      "discovered_and_fixed": "Count portable Host Call is present@1 with MAX_PRESENTATION_COMPLETION_BYTES; fixed native hint previouslypresent-count@1 and scope incorrectly assumedzero completion bytes. Both corrected.",
+      "async_gate": "Integrated actualnativeproduct; b921x86physical120ms+terminalreplayNoAccesspassed."
+    },
+    "current_validation": {
+      "head": "1c658e9d8",
+      "session": 96521,
+      "status": "live focusedtests16includingnewwordcopycanaries/forwardoverlap; thenpackageClippy andIA32,AArch,RISC,Loong,x86 actualnativeproofset-e",
+      "log_prefix": "work/protected-standing-timer-word-copy-",
+      "instructions": "Do not mutate originalwork/conduit oroverlapCargo/nativebuilds while96521live. Timerworktree clean samehead. No TimerPR yet. Currentdev51e included."
+    },
+    "native_fixture_sequence": {
+      "head": "c35ae34e8",
+      "original_session": 31610,
+      "original_status": "exit1 after x86 and ia32 passed; AArch normal product collector retained old64KiB setup-copy cap",
+      "repair_commit": "b6ebc4405",
+      "validation_source": "21292661f (c35+receipt fix; no new physical duration/product owner)",
+      "session": 82403,
+      "status": "exit0; all five architecture baseline runtime/boundary proofs passed",
+      "receipt_tests_passed": 6,
+      "log_prefix": "work/protected-standing-timer-gates-native-",
+      "warning": "do not mutate original work/conduit while session82403 live; do not overlap Cargo/native builds",
+      "retained": "work/ordinary-plan-observatory-checkpoint/protected-standing-timer/c35-212-runtime-baseline"
+    },
+    "duration_work": {
+      "commit": "83d36d09f",
+      "status": "13focused+refinedx86physical120ms productpassedb921; otherfourpending",
+      "architectures": [
+        "x86_64 calibrated counter",
+        "ia32 same logical timer over PIT chunks",
+        "aarch64 CNTFRQ",
+        "riscv64 pinned QEMU virt 10MHz",
+        "loongarch64 CPUCFG exact ratio"
+      ],
+      "tests": "two focused conversion/chunk tests pending execution"
+    },
+    "product_integration": {
+      "commit": "5c30ddd04",
+      "status": "Refined x86actualphysicalproduct andNoAccessreplaypassedb921; otherfourpending",
+      "owner": "targets/conduitos/src/protected_timer.rs",
+      "behavior": "native timer plan allocates protected domain and issues exact Timer/Count leases; actual production kernel progresses privately; physical timer wakes complete matching pending request; stop cancels provider before revocation/zeroization",
+      "proof_collector_commit": "0f29e7d1e",
+      "remaining": [
+        "compile/focused validation",
+        "all-five actual physical product proof",
+        "Clippy/full workspace",
+        "docs/current-dev refresh",
+        "broader coverage and exact stable-main acceptance"
+      ],
+      "latest_commits": [
+        "aa23f4bd3",
+        "ca20235b5",
+        "14fd0a799",
+        "1a69788f3",
+        "7541a73f9",
+        "de5d681c1"
+      ],
+      "new_unvalidated_since_frozen14fd": {
+        "head": "de5d681c1",
+        "changes": [
+          "retired owner refuses before provider access",
+          "pollTimer onlywithownpendingtoken",
+          "allfive product replay usesNoAccess providers; anyaccessrefusesguestproof",
+          "collectorrequiresindependentreplaymarker",
+          "hostpreparehelpercompiledonlyteststoremoveunusedwarning"
+        ],
+        "status": "notcompiledyet; do not switch original while71345live"
+      }
+    },
+    "product_validation": {
+      "head": "0f29e7d1e",
+      "session": 44691,
+      "status": "exit0:13 focused tests,1 collector test, x86 actual physical product proof passed",
+      "retained": "work/ordinary-plan-observatory-checkpoint/protected-standing-timer/0f29e7d1e-x86-physical-product",
+      "cost": {
+        "entries": 79,
+        "base_gate_transitions": 4,
+        "copied_bytes": 313,
+        "reserved_bytes": 217088,
+        "teardown_zeroed_bytes": 217088,
+        "root_metadata_bytes": 5280
+      }
+    },
+    "failed_validation": {
+      "head": "14fd0a799",
+      "session": 71345,
+      "exit": 1,
+      "failure": "matrix-common-backbone AArch backend compiledwithoutproductprofile; encodewasexcluded",
+      "fixed": "b921a1df9 separateconduitos_domain_backend fromconduitos_protected_execution"
+    },
+    "latest_physical_x86": {
+      "head": "b921a1df9",
+      "retained": "work/ordinary-plan-observatory-checkpoint/protected-standing-timer/b921a1df9-x86-physical-product",
+      "entries": 11,
+      "earlier_entries": 79,
+      "base_gate_transitions": 4,
+      "copied_bytes": 313,
+      "shared_peak_bytes": 163,
+      "root_metadata_bytes": 5280,
+      "reserved_and_zeroed_bytes": 217088,
+      "terminal_replay": "refused before any provider access"
+    },
+    "last_validation": {
+      "head": "b921a1df9",
+      "session": 39760,
+      "exit": 1,
+      "passed": [
+        "13focused",
+        "collector test",
+        "packageClippy-Dwarnings",
+        "x86actualproduct11entries+terminalreplay"
+      ],
+      "failed": "IA32 instrumented product: privatekernel initialization DomainReturn origin2/value4 WorkExhausted after3IRQs; normal boots andsyntheticprivatefixture hadpassed. Collectorreportedtimeoutbecauseguestrefusedbeforefinalproductsign. Retainedprivatefaultcostzeroed229376."
+    },
+    "initialization_optimization": {
+      "commit": "0f21bc21d",
+      "test_commit": "1c658e9d8",
+      "reason": "IA32 three-interrupt watchdog correctlycaughtslowkernelconstructor; preservewatchdog andcopyalignedprivate-statewords ratherthanvolatilebyteonly",
+      "contract": "exactinterval,alignedwordbody,bytetails; nooverread/overwrite; memmoveforwardoverlapverified; noRootsemanticexecution",
+      "status": "validationpending"
+    }
+  },
+  "morse_merge": {
+    "pr": 5294,
+    "merge": "302abca404e9952e483bd9b2eb587b89a09a26de",
+    "current_ci_run": 37747909749,
+    "current_checks": "all success",
+    "historical_red": "draft-only candidate gate run37745316163"
+  },
+  "publication_repair": {
+    "pr": 5303,
+    "url": "https://github.com/dancxjo/conduit/pull/5303",
+    "head": "d36092163",
+    "branch": "codex/5113-publish-complete-journey",
+    "worktree": "work/conduit-publish-journey",
+    "failure_run": 37749360150,
+    "integration_artifact_run": 37743911461,
+    "reason": "Pages required10 checkpoints; retained artifact contains12 including protected keyboard and Memory Lantern",
+    "local_pipeline_tests": {
+      "passed": 154,
+      "failed": 0,
+      "log": "work/publish-journey-ci-regression-current.log"
+    },
+    "actual_artifact_staging": "passed with exact retained41334d3a59e97fbcc7c40501dc5d0505f3a4b6ba artifact",
+    "ci": "merged51e all success; follow development integration/publisher before claiming published",
+    "artifact_directory": "work/publish-37743911461-x86",
+    "staged_site": "work/publish-37743911461-site",
+    "merge": "51e9884e3f6738ae8d237987e339f3e198f9d738"
+  },
+  "completion_audit_file": "work/ordinary-plan-observatory-checkpoint/protected-retained-text/completion-audit.json",
+  "latest_model_continuation": {
+    "head": "370db229c local timer branch; notpushed yet; remotePR5307stillbb515362c",
+    "branch": "codex/5113-protected-standing-timer pushed clean",
+    "base": "f7778c323",
+    "live_session": 46634,
+    "status": "cleanup inactive hosttarget/debug then checkout370; CI debug0/incremental0 sequential focusedobservatory,17tourTimer,packagealltargetsClippy,fullworkspace tests; do notoverlapCargo/switchsource untilterminal",
+    "previous_sessions": {
+      "54422": "exit1; focused17 PASS/packageClippy PASS; IA32 ctor fault stage0x307 after scheduler ctor",
+      "83839": "exit1; direct retained envelope init reached0x308 but same watchdog fault",
+      "44852": "exit0 IA32 full proof including actual120ms product and terminalreplay",
+      "16897": "exit1 missingsystemAArchfirmware beforeboot",
+      "48611": "exit1 AArchPASS then Risc thinLTOcode-model mismatch"
+    },
+    "fixes": [
+      "retain kernel directly instead of second State temporary; publish magic last",
+      "domain opt-level2 thinLTO instead of opt-s/noLTO; IA32 andAArchpassed unchanged3IRQbudget",
+      "targetsysroot models: RISC/Loongmedium,x86_64kernel; x86/AArchsmall"
+    ],
+    "evidence": "protected-standing-timer/1b976349a-{x86,ia32,aarch64,riscv64,loongarch64} andallfive-timer-costs.json",
+    "native_env": "PATH=work/qemu-tools/runtime/usr/bin:$PATH; CONDUITOS_AARCH64_FIRMWARE=absolute work/qemu-tools/runtime/usr/share/qemu-efi-aarch64/QEMU_EFI.fd; CARGO_BUILD_JOBS=4",
+    "format": "70changedRustfiles PASS grouped2021Make/2024others",
+    "still_required": [
+      "finishfullworkspace tests andupdatePRvalidation",
+      "CI5307green/merge",
+      "exactstableacceptance audit/close5113"
+    ],
+    "native_session_81822": "EXIT0 all5passed",
+    "disk_cleanup": "inactive cross-archdebug+release compiler caches removedafterverificationnoarchCargo/QEMU; nativekernelsandISOsregularcopiesretained. Nowclearinginactivehostdebug afterstoppingknownstalefulltest, thenCIdebug0profiletoavoidhugebinaries.",
+    "docs": "allfiveactualcost tables committed3812c8507; no further source changes",
+    "pr": 5307,
+    "pr_url": "https://github.com/dancxjo/conduit/pull/5307",
+    "pr_attached": true,
+    "native_session_16743": "EXIT101 atfullClippyunusedtest-onlypreparewrapper; ARMv6 andfullgraphicalPASS beforethat",
+    "wrapper_fix": "removed8unusedcfgtest-onlylines; no nativeproduction code change; fullworkspacealltargetsClippy rerun PASS9.04s",
+    "refreshed_native_tree": "git diff0768ae757..bb515362c --targets/conduitos empty; native/graphicalevidence1b976; docs+test-onlywrapper removedafterthat",
+    "dev_lint_repair": {
+      "pr": 5309,
+      "url": "https://github.com/dancxjo/conduit/pull/5309",
+      "head": "d28ec92ef",
+      "base": "ed7eed460",
+      "worktree": "work/conduit-dev-todo-lint",
+      "branch": "codex/5113-repair-dev-todo-lint",
+      "reason": "CI5307 lint failed inheriteddev Todo helper invoke8args; group fixedbin/root/state paths inInstalledCapture, preserveargvreceipts; nooverlappinglocalCargo; CIvalidationpending",
+      "attached": true
+    },
+    "ci5307": {
+      "run": 37770537878,
+      "failed_job": 113289329229,
+      "cause": "inheritedTodo helper8args clippytoo_many_arguments afterdevf777refresh; no timerfailureknown",
+      "last": "quick/products/severalhardwarePASS,16pending; finishmatrix beforepushnewhead"
+    },
+    "local_full_workspace": "session70132 stillLIVE originaldetached0768ae757;22min compiling/linkinglargehostintegrationtests; no testresult yet; NEVER switchsource/overlapCargo",
+    "disk": "removedinactivecrossarch target/*/debug caches onlyafterverifying host-onlyrustc/noQEMU. targetrelease imagesandallretainedreceipts kept; free33GiB aftercleanup,23GiB latest duringhosttestlink",
+    "pr5307": "headbb515362c, ready/open/attached, pushed; defermergeuntilbaseline5309fixmerged andheadrefreshed/currentchecks green",
+    "old_workspace_70132": "interruptedSIGINT exit130 after31min linking, because CIconfirmed same-source Snapshot InvalidSnapshot; no completedlocalfullworkspaceproof",
+    "second_ci_failure": {
+      "job": 113289329108,
+      "run": 37770537878,
+      "test": "keyboard_text_observatory::tests::snapshot_reports_the_exact_keyboard_base_that_drove_planning",
+      "cause": "rawTimerprovider andadvertisedTimerClockpair hadsameBaseIDbutdifferentinstances =>strictsnapshotvalidator refuses duplicate",
+      "fix": "370db229c extractsobservatory/provider_reports.rs from502linefacade,sharedfixedBaseReportsderivescurrentRootTimerClockpairandvalidatesadvertisedinstance/generation/mechanism; keepsstrictupsert epochrefusals.3focusedprovidertests addedpositivepair/staleTimerClock/forgedpair/contradictorySerial",
+      "pending": "focused/newfulltests thenpush370 fix, awaitbaseline5309 andCI5307refreshgreen"
+    },
+    "ci5307_last": "22checksPASS;2FAIL(inheritedTodoClippy plusnewpairedprovider snapshot);1pending"
+  },
+  "current_continuation": {
+    "timer_pr": 5307,
+    "head": "dec247817026064d5f00d8507b44de6f2af43fb6",
+    "pushed": true,
+    "candidate_run": 37794524209,
+    "prerequisite_pr": 5310,
+    "prerequisite_head": "ad29948aa8871758066d5b59fe55e7eb82d63481",
+    "prerequisite_auto_merge": true,
+    "local_source": "4aa6003151a2253c9623fe55b0445610322b81cd",
+    "local_session": null,
+    "local_status": "NoactiveCargo. ad299refreshpushedaftercurrentdev78510; fullworkspacealltargetsClippy-DwarningsPASS8.71s;workspacefmtPASS;pipeline155PASS;ownorigin/dev...HEADdiffcheckPASS. OwnerProofMode removedasredundantwithdevexplicitlintdisposition.",
+    "native_source": "1b976349a947565d53640fc5cc80a24e911fca7e",
+    "native_status": "allfive ordinary product/boundary proof PASS; ARMv6 explicit unsupported PASS; canonical graphical12stepjourney PASS",
+    "old_ci": "37770537878 complete:22 underlying jobs PASS, inheritedTodoClippy and Keyboard snapshot FAIL; both repaired in current head",
+    "disk_free_gib": 99,
+    "rule": "No active Cargo. Await actual candidate before further builds; final exact-main native collectors still required.",
+    "prerequisite_lint": "CI job113299522019 PASS on d28ec92ef; original too_many_arguments repaired; other current checks stillpending",
+    "local_partial": {
+      "suites": 830,
+      "passed": 6769,
+      "failed": 0,
+      "ignored": 13,
+      "session": 46634,
+      "terminal": false
+    },
+    "prerequisite_last": "5309MERGED all26checksPASS",
+    "local_conduitos": "Completed suite; Keyboard snapshot regression and3newproviderreporttests allPASS",
+    "local_full_workspace": {
+      "source": "370db229c",
+      "session": 46634,
+      "exit": 0,
+      "suites": 912,
+      "passed": 6769,
+      "failed": 0,
+      "ignored": 13,
+      "log": "work/protected-standing-timer-snapshot-workspace-tests.log"
+    },
+    "published_candidate_clippy": {
+      "source": "8a7242d0902c7947ff727597b505201b21a3cada",
+      "session": 42739,
+      "exit": 0,
+      "log": "work/protected-standing-timer-8a724-workspace-clippy.log"
+    },
+    "current_candidate_last": "37783780660 quick PASS; 3 running,20 queued, no failures at 2026-10-08T13:30Z",
+    "prerequisite_merged": "fe86d31d535bcf002a1ae4249ecb3103b2ba68ba",
+    "refresh": "48 timer commits rebased9f6->4aa; native targets/conduitos diff EMPTY4358..dec247. Publisheddec247 withlease4358. Preservebackupcodex/5113-timer-before-gallery-development-repair4358.",
+    "timer_auto_merge": false,
+    "timer_auto_merge_guard": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+    "candidate_watch_session": 25574,
+    "candidate_watch_log": "work/protected-standing-timer-dec247-candidate-watch.log",
+    "candidate_last": "Baseline8400quickPASS/full23queued; timer4358 18PASS6running0FAIL. Underlying9f6browser ancestryfail remains unresolved; do not falselycall8400a repair.",
+    "superseded_candidate": "37774968177cancelledbyrefresh; no underlyingFAIL, aggregatecomplete/candidateFAIL fromcancellation; do not rerunoldhead",
+    "products_failure": {
+      "run": 37778340441,
+      "job": 113316196746,
+      "log": "work/protected-standing-timer-f0aad-products-job.log",
+      "test": "interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth",
+      "cause": "preexisting fixture putsdirectory atbiography.json beforeHoststartup; new archiveverification correctlyrefusesbeforecontrolsocket; timeout5sec masksprocesserror",
+      "fix_worktree": "work/conduit-birth-startup-repair",
+      "fix_head": "648930173b710bd47680aba514b0720ce15414e7",
+      "fix": "testonly movefaultinjectionafterstart_service; productionarchivevalidation unchanged",
+      "next": "Poll43268 thenpublishseparateminimalbaselinePR; refresh/stacktimeronfix; noRoot/runtimeweakenings",
+      "baseline_reproduction": "299c55b67focusedtestFAIL101 same5.01s startupcontrol timeout; standaloneCLIexit1 biography.json violatesfinitefilebound",
+      "fixed_validation": "648930173 currentdev88 all5runnableinstalledBirthtestsPASS2.15sec,1hardwareignored",
+      "base": "88f187fdb",
+      "pr": 5310
+    },
+    "remote_timer_head": "dec247817026064d5f00d8507b44de6f2af43fb6",
+    "birth_repair_pr": 5310,
+    "birth_repair_head": "ad29948aa8871758066d5b59fe55e7eb82d63481",
+    "birth_repair_auto_merge": "MERGE preservingf200+648ancestry; attached; currentnewCIpending",
+    "pending_timer_refresh": null,
+    "birth_repair_run": 37827127228,
+    "browser_failure": {
+      "job": 113316197095,
+      "run": 37778340441,
+      "log": "work/protected-standing-timer-f0aad-browser-job.log",
+      "cause": "100ChromiumtestsPASS; siteassemblystrictTodoancestrycheckmisseshistoriccommit in shallowtargetcheckout",
+      "fix": "5310f200 addsbrowser-onlyfullhistory fetchdepth0; strictverifierunchanged; otherdepth1",
+      "validation": "154pipelineNodePASS; workflowYAMLparses; actualrealreceiptshallowclonefails/fullhistorypasses/oldpublicationstillrefuses; logbrowser-history-ancestry-reproduction.log"
+    },
+    "ci_proof_scope_correction": "Readnativejoblogs: targetlanesbuildandverifyactualordinaryproducts/conformance+journey; they DO NOT runordinary-domain-proof diagnosticnegative/physicalstandingTimercollectors. PortablehostssharddoesRusttestsnotnative. Do notclaimgreenCIequalsallfivehostile/Timerproofs.",
+    "remaining_exact_main_native": "After automatic stable acceptance, checkout exact accepted main clean. Sequentially run x86 prove (same Source/Plan conformance), all five ordinary-domain-proof commands, and ARMv6 rpi-b-plus-v1.2 run (explicit unsupported). Retain exact-source receipts; then audit all17 criteria and close. Never overlap Cargo.",
+    "previous_candidate": "37778340441terminalFAIL;22underlyingPASS inclall5normalproductlanes;2underlyingFAIL Birthfixture+browserhistory bothfixed5310f200; aggregate2FAILexpected. Rawfinalcheckswork/pr-5307-f0-final-checks.json",
+    "next": "Resume only at user request; inspect5310ad299CI and currentdev/main first; finishautomatedstableacceptance thenexactmainnativeproof/17auditbeforeclosing5113.",
+    "artifact_scope_audit": {
+      "source": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+      "archives": "All five GitHub artifact zip SHA256 digests verified; bounded regular JSON extracted",
+      "normal_conformance": "Four non-x86 native product receipts share exact Source, checked, expanded, and semantic-shape identities. x86 graphical product receipt lacks this conformance object; its journey separately proves protected keyboard/retained-text product domains.",
+      "remaining": "Run supported x86 headless prove on exact accepted main; do not infer the absent receipt from graphical CI success."
+    },
+    "baseline_watch_session": 76290,
+    "baseline_watch_log": "work/baseline-c185-candidate-watch.log",
+    "merge_readiness": {
+      "dev": "fc3623b345073a5a4813bdb147bbb7f3924b7805",
+      "baseline_merge_tree": "98b82db4a55f14cb4183fe479f9a44836189aa06",
+      "timer_merge_tree": "16d22481399522ebf5c5438202ba9998b16d0635",
+      "result": "Bothcleanmerge. Latestotherworkspace speech/Todoaudio verifier preserved alongside ancestrydiagnostics. No native timer overlap. Do not redundantrebase. CombinedIntegration required.",
+      "git_note": "These worktrees share original conduit/.git; never parallelize git ref mutations/fetches."
+    },
+    "native_return_fixture_failure": {
+      "run": 37783292650,
+      "job": 113333002155,
+      "cause": "Raised Face profile makes old fixture action exceed independent64KiB return-action limit",
+      "fix": "9f6f6e936 test-only exact64KiB payload in3 32KiBframes; production limits unchanged",
+      "baseline_log": "work/native-return-bound-baseline.log",
+      "fixed_log": "work/native-return-bound-fixed.log",
+      "validation": "Baseline FAIL101; fixed all5 return-route tests PASS",
+      "old_watchers": "58090 timer fd35;78439 baseline f200 (superseded; do not rerun)"
+    },
+    "verified_wait": {
+      "utc": "2026-10-08T17:00:33.355079+00:00",
+      "classification": "verified wait",
+      "live_sessions": [
+        76290,
+        72864
+      ],
+      "candidate": 37810402118,
+      "candidate_status": "3PASS0FAIL",
+      "browser_job": 113427692138,
+      "browser_status": "in_progressBuildproveexactproduct confirmedAPI",
+      "integration": 37809999655,
+      "integration_status": "preflightPASSfullstarted0FAIL",
+      "next": "AwaitcandidatehistorydiagnosticandactualdevIntegration/publisher. Noactivebuild."
+    },
+    "retained_ci_provenance_audit": "../protected-standing-timer/f0aad-ci-products/provenance-audit.json:5Githubzipdigests PASS;4nonx86bothboots exactSource/shape/PlanPlay/completezeroization PASS; x86graphicalqualification explicit.",
+    "dev_current_products_failure": {
+      "source": "c976ef798fa58f6a53e2b48ff376951437a45dd4",
+      "run": 37785142354,
+      "job": 113342184738,
+      "log": "work/dev-c976-products-job.log",
+      "failures": [
+        "interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth",
+        "chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pressure"
+      ],
+      "disposition": "Both existing fixture failures repaired in5310 9f6; no additional products failure in full log."
+    },
+    "baseline_current_lint": "PASS workspace lint current9f6 candidate37786074579",
+    "baseline_products_ci": {
+      "source": "9f6f6e936257edaebb968838c6d8eb14a716861b",
+      "run": 37786074579,
+      "job": 113342742477,
+      "result": "SUCCESS full products shard; both prior failures explicitlyPASS",
+      "log": "work/baseline-9f6-products-job.log"
+    },
+    "browser_remaining_failure": {
+      "source": "9f6f6e936257edaebb968838c6d8eb14a716861b",
+      "run": 37786074579,
+      "job": 113342742756,
+      "log": "work/baseline-9f6-browser-job.log",
+      "observations": "100 Chromium testsPASS; site assembly genericTodoancestryFAIL. Job checkoutdepth0 verifiedfullhistory. BothcaptureSources actualancestors9f6 in local ANDfreshremotebareclone; no replacements/grafts. WorkflowenvCONDUIT_CHECKOUT_SHA9f6 confirmed. Underlyingcause unresolved; genericcatch hidGiterror.",
+      "fresh_remote_check": "work/browser-history-fresh-remote-ancestry.json (both exit0)",
+      "diagnostic_change": "8400 moves same strict retainedTodo verifier into preflight and preserves source/publishedSHA, Gitstatus/signal/message/cause; no acceptance weakening. 154pipelineNodePASS.",
+      "next": "Watch8400preflight/candidate; extractactualGitfailurecause ifany. Do not yet rebasetimer4358: nativeunchanged, currentCI17PASS0FAIL, validprerequisite9f6 remainsancestryof8400. Refreshonceactualfixfound ifneeded.",
+      "preflight_result": "8400 candidate37792972093 quick/preflight SUCCESS; includes same strict retainedTodo verifier on actualGitHubrunner beforetargetwork. Confirms ancestry valid at jobstart; need browserjob final preservedcause to diagnose later failure."
+    },
+    "gallery_publication_failure": {
+      "source": "4358da83a37ed2f00080c57b2f23726422fc9ce0",
+      "run": 37786142769,
+      "job": 113346748340,
+      "log": "work/protected-standing-timer-4358-browser-job.log",
+      "observation": "100ChromiumPASS andTodoancestryPASS; refresh-gallery refused journeys/development undeclaredroot",
+      "fix": "4aa addsdeclareddevelopment namespace toexistingfinite/no-symlinkgalleryretention; testpreservesdevelopmentcaptureduringindexedeviction",
+      "baseline_reproduction": "work/gallery-development-baseline.log exit1 sameundeclaredroot",
+      "tests": "work/gallery-development-fixed-tests.log 4PASS (45524exit0)",
+      "supported_positive": "work/gallery-development-supported-refresh.log exit0 retainscapture",
+      "supported_negative": "work/gallery-development-undeclared-refusal.log exit1 unrelatedrootrefused,capturepreserved",
+      "published": true
+    },
+    "browser_remaining_failure_current": {
+      "source": "4aa6003151a2253c9623fe55b0445610322b81cd",
+      "run": 37794508715,
+      "job": 113371689294,
+      "log": "work/baseline-4aa-browser-job.log",
+      "diagnostic": "100 browser tests passed. Fullhistoryfetch confirmed. git merge-base --is-ancestor 99399.. 4aa exits1, no signal. Preflight passed. Local git2.53 ancestry PASS. CI git2.55.0. Cause still unknown.",
+      "next": "ExactGit2.55 diagnostic build session82878 active (NO_CURL needed); noCargo. Test ancestry same repository/freshclone. Do not weaken strict ancestry or publish guessed fix. Timer current watcher25574 still live nofailureyet.",
+      "exact_git_validation": "ExactGit2.55built successful session82878exit0. Both captures are ancestors4aa under2.53 and2.55, commitGraphtrue/false, originalrepoANDfreshremote bareclone(session26297exit0). Logswork/git-ancestry-diagnostic/{version-comparison,fresh-version-comparison}.json. VersionaloneNOTcause."
+    },
+    "browser_context_diagnostic": {
+      "head": "bb01a77b5",
+      "validation": "154 pipeline testsPASS; realcurrentancestryPASS; earlierpublicationrefusedwithboundedGitcontext",
+      "scope": "Diagnosis only: earlysamevalidator beforebrowserbuild; failureversion/cwd/gitdir/shallowHEAD/parents. No acceptanceweakening.",
+      "next": "Observe new5310candidate andcaptureearlycontextifrefused. Do notyetrebasetimerdec247 untilactualfixfound."
+    },
+    "timer_dec247_browser": {
+      "job": 113371711421,
+      "result": "SUCCESS",
+      "log": "work/protected-standing-timer-dec247-browser-job.log",
+      "scope": "100ChromiumPASS; strictTodoancestryPASS; galleryrefreshPASS; finalbrowserproductsiteverificationPASS"
+    },
+    "timer_candidate_result": {
+      "run": 37794524209,
+      "head": "dec247817026064d5f00d8507b44de6f2af43fb6",
+      "status": "completed",
+      "conclusion": "success",
+      "checks_passed": 26,
+      "observed": "2026-10-08T15:44:53.586775+00:00"
+    },
+    "browser_context_result": {
+      "run": 37799272309,
+      "job": 113393184409,
+      "log": "work/baseline-bb01-browser-job.log",
+      "head": "bb01a77b53c824449b9b3a636bb483f2bedab12f",
+      "diagnosis": "EarlyvalidatorPASS15:37:12; latevalidatorFAIL15:54:08 withsamecwd/HEAD/Git2.55 and is-shallow-repositoryTRUE. Checkoutfullhistoryconfirmed. Somebrowserbuild/proofstep makesrepo shallow. Thisisconcretecauseofancestryvisibilityfailure; mutatornotyetidentified.",
+      "search": "rg-uuu wholesource only--depth commandtargets/std/make/src/builder.rs:102 remoteGit workspace; run_gitcurrentdir/envclear appearsisolated. Nootherexplicitshallowwrite/fetchdepthfound. Coulddependency/externalprocess; donotguess.",
+      "next": "Pinpointstage makingcheckoutshallow with stageguards/filewatch inbrowserpipeline or targetedlocalrepro. Keepancestrystrict. Timerdec247all26PASSnormalfullpipeline so mutationmaybedependsHEAD/inheritedGit."
+    },
+    "history_transition_guard": {
+      "commit": "a4b2541a034bb94e9c00763b63d11f13dbfa8a45",
+      "files": [
+        "tools/ci/pipeline/targets/common.mjs",
+        "proof/ci/pipeline-checkout-history.spec.mjs"
+      ],
+      "scope": "Before/aftereachpipelinecommand compare Gitshallowstate; refuse false->true andnamecommand. Preservealreadyshallowtargets. No ancestry weakening.",
+      "validation": "155pipelineNodePASS; realfullclone+depth1fetch causesguardrefusal withcorrectcommand. DiffcheckPASS.",
+      "log": "work/browser-history-stage-pipeline-tests.log"
+    },
+    "baseline_browser_job": 113427692138,
+    "a4b_browser_failure": {
+      "job": 113408333473,
+      "run": 37804945698,
+      "log": "work/baseline-a4b-browser-job.log",
+      "artifact": 11564457195,
+      "evidence": "work/baseline-a4b-browser-diagnostics/{error-context.md,trace.zip}",
+      "result": "23otherunderlyingPASS. Browser99PASS1FAIL overall20stestdeadline cue-removal/reload. FinalsnapshotexpectedStartupNotinbody/FirstwakeInbody; cumulativesteps20sexhausted. No historyguardfailurebeforePlaywright.",
+      "fix": "aa664 scoped30sectestbudgetmatchesotherlifecycleproof; noassertiontimeouts/retrychanges. Historyguardcheckedbeforecommandfailurethrows sofailedsubprocessalsoidentifiesmutation.",
+      "validation": "155pipelinePASS;JSsyntax/diffcheckPASS. BrowsercurrentCIrequired."
+    },
+    "baseline_dev_refresh": {
+      "dev": "a121809d1",
+      "head": "c185038ef581ea26b2fdc2d0215c89149d3739ff",
+      "backup": "codex/5113-baseline-before-native-todo-refresh",
+      "conflict": "Singleverifierfile; preservedlatestdevnativeacknowledged/read-only/spokendetailchecksentirely; readdedonly19linediagnostics(import+helper+contextsuffix)",
+      "validation": "155pipelinePASS; realcurrentretainedreceipts+strictancestryPASS;cachedDiffcheckPASS; cleanpushed",
+      "log": "work/baseline-native-todo-refresh-pipeline-tests.log"
+    },
+    "timer_merged": "06beea3b991b5f12950dd5cd0d38e24074020137",
+    "dev_integration_run": 37818805526,
+    "dev_integration_source": "611df0bd3d936b4e7a92d009199eecc8cd5e7066",
+    "dev_integration_watch_session": 72864,
+    "remaining_baseline_scope": "Currentorigin/deva121...c185 diffonly5files62insert2delete: browserhistoryguard/diagnostics/testbudget. Birth/nativefixture/gallery/fullhistory/preflight fixesalreadydevvia5307andothermerges. PR5310titlebodyrewrittentofinalscope.",
+    "dev_browser_job": 113433402556,
+    "native_face_capacity_failure": {
+      "run": 37810402118,
+      "job": 113427691840,
+      "log": "work/baseline-c185-hosts-conduitos-job.log",
+      "test": "native_face_snapshot::tests::whole_valid_face_above_profile_capacity_is_refused_before_execution",
+      "cause": "Fixture32*MAX_PRESENTATION_TEXT_BYTES(1024) ~32KiB nowbelowMAX_SNAPSHOT_BYTES48KiB. Failureatfixturepreconditionserializedlen>MAX notproductionacceptance.",
+      "next": "Currentfixturefixdone; awaitbrowserdiagnosticthenpublishd654orcombinedfix. NoactiveCargo.",
+      "baseline_session": 51124,
+      "baseline_log": "work/native-face-capacity-baseline.log",
+      "baseline_exit": 101,
+      "fix_head": "d6547728ad22c4a897573c408b361c579e4bbb42",
+      "fix_validation": "All7native_face_snapshottestsPASS1159exit0;cargo fmt--all--checkPASS;diffcheckPASS",
+      "fixed_log": "work/native-face-capacity-fixed.log",
+      "publication": "LOCALCOMMITTEDUNPUSHED deliberatelyuntilcurrentc185browser113427692138terminal, toretainactualhistorydiagnostic; thenpush (unlessadditionalfixneeded)"
+    },
+    "spoken_mask_lint_failure": {
+      "run": 37810402118,
+      "job": 113427692075,
+      "log": "work/baseline-c185-lint-job.log",
+      "cause": "preexistingcurrentdevitems_after_test_module:spoken_mask_backs.rs tee_tests at88beforeproductionitems116+",
+      "fix": "Movedsametee_testsmoduletoendofsamefile; no semanticchange/moduleextraction. UncommittedpendingClippy.",
+      "local_clippy_session": 79072,
+      "local_clippy_log": "work/spoken-mask-test-order-clippy.log"
+    },
+    "timer_status": "5307 merged by user; all26 candidate checks passed.",
+    "playwright_history_root_cause": {
+      "version": "1.62.0",
+      "source": "lib/runner/index.js gitDiff fetches PR base --depth=1 under GitHubActions",
+      "fix": "captureGitInfo:{commit:true,diff:false} in primarybrowserconfig; keep strictancestryandhistoryguard",
+      "reproduction": "work/playwright-history-diagnostic/reproduction.json",
+      "results": "Actualpinnedrunner: default=>shallowtrue ancestorExit1; fix=>shallowfalse ancestorExit0; both fixturetestPASS",
+      "prior_ci": "c185 browser100PASS thenhistoryguardcorrectlyidentifiedPlaywrightcommand"
+    },
+    "birth_repair_watch_session": 3005,
+    "birth_repair_watch_log": "work/baseline-ad299-candidate-watch.log",
+    "birth_repair_status": "ad299Candidate37827127228pending;PRMERGEABLEautoMERGEenabled. Prior16dcCI lintSUCCESSplusmacOS/orangePi/ESP32C3/preflightPASS0FAIL. Latestad299workspaceClippy/fmt/pipeline155PASS; noactiveCargo.",
+    "birth_repair_live_state": {
+      "conclusion": "",
+      "failed": [],
+      "passed": [
+        "proof / candidate/quick"
+      ],
+      "running": 14,
+      "status": "queued"
+    },
+    "birth_repair_observed_at": "2026-10-08T17:58:42.805643+00:00",
+    "current_new_lint_failure": {
+      "run": 37815295745,
+      "job": 113443653547,
+      "log": "work/baseline-831360-lint-job.log",
+      "cause": "owner_action_proof.rs prove helper8arguments afternewTodoarg",
+      "fix": "group coordinate and expected_todo into modepair;3insert4delete; unchangedproofbehavior",
+      "clippy_log": "work/owner-proof-mode-clippy.log"
+    },
+    "pending_owner_proof_commit": null,
+    "old_dev_integration_terminal": {
+      "run": 37809999655,
+      "status": "failure",
+      "failures": "spoken_mask testmoduleordering and stale nativeFacecapacityfixture; both alreadyrepairedinpublished831360",
+      "logs": [
+        "work/dev-a121-lint-job.log",
+        "work/dev-a121-hosts-conduitos-job.log"
+      ]
+    },
+    "browser_history_fixed_ci": {
+      "source": "831360b0cb8a53eb73d19d1ef4ffc8be2d2ceea1",
+      "run": 37815295745,
+      "job": 113443653769,
+      "status": "SUCCESS",
+      "tests": 100,
+      "log": "work/baseline-831360-browser-job.log",
+      "artifact": 11567942988,
+      "artifact_sha256": "7d044c3ae6716e86370a295f6503d10de212c58374b1501b1d031884180a21f4"
+    },
+    "new_dev_show_gate_failure": {
+      "run": 37818805526,
+      "job": 113456616602,
+      "log": "work/dev-611df-lint-job.log",
+      "cause": "ShowGate::Refreshed(Grant)528bytes vsotheremptyvariants",
+      "files": [
+        "products/conduit/src/durable_body_join_route/return_route/show_ack.rs",
+        "products/conduit/src/durable_body_join_route/return_route/refresh.rs",
+        "products/conduit/src/durable_body_join_route/return_route.rs"
+      ],
+      "fix": "BoxonlyRefreshedGrant;Box::newproducer;dereferenceconsumer; unchangedgrantvalidation/refreshlimit",
+      "clippy_log": "work/native-show-gate-clippy.log",
+      "validation": "work/native-show-gate-clippy.log PASS;work/native-show-gate-focused-tests.log5PASS;workspacefmtPASS"
+    },
+    "pending_refresh_commit": null,
+    "latest_dev": "78510e962",
+    "workspace_clippy_log": "work/baseline-78510-workspace-clippy.log",
+    "current_workspace_clippy": {
+      "source": "ad29948aa8871758066d5b59fe55e7eb82d63481",
+      "log": "work/baseline-78510-workspace-clippy.log",
+      "exit": 0,
+      "scope": "workspace alltargets -Dwarnings"
+    },
+    "pause_requested": true,
+    "pause_reason": "User requested all local work on origin and stopping point for reprioritization.",
+    "auto_merge": false,
+    "preserved_aarch64_branch": "codex/5113-paused-aarch64-checkpoint",
+    "handoff_branch": "codex/5113-pause-checkpoint"
+  }
+}

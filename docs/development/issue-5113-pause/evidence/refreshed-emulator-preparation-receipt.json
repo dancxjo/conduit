@@ -1,0 +1,35 @@
+{
+  "inputs": {
+    "schema": "conduit.conduitos/loongarch64-diagnostic-emulator@1",
+    "archive_sha256": "a3717477d8e2c84d630bfffbc20f6cd3293eb45aa1e6dac6d0cc27689991c9e1",
+    "patch_sha256": [
+      "abd2875c1db4a3a7897fda4967c2bddcce60f63db8e46f08d18774748a64cc5e",
+      "df89114623b6d2467a2a5bc77532981ce6b0cccc64b6e4585a7503e4b7af8347"
+    ],
+    "configure": [
+      "--target-list=loongarch64-softmmu",
+      "--with-pkgversion=conduit-diagnostic-misc-drdtl",
+      "--disable-docs",
+      "--disable-tools",
+      "--disable-guest-agent",
+      "--disable-user",
+      "--disable-werror",
+      "--disable-gtk",
+      "--disable-sdl",
+      "--disable-vnc",
+      "--disable-opengl",
+      "--disable-pixman",
+      "--disable-capstone",
+      "--disable-slirp",
+      "--disable-download"
+    ]
+  },
+  "proof_class": "diagnostic-emulator-tool-only",
+  "version": "QEMU emulator version 10.2.1 (conduit-diagnostic-misc-drdtl)",
+  "executable_sha256": "1cc6c6513956ca82da6e6265afb840255adc3ba74838d98c2438629b8d857e8f",
+  "cc_version": "cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "ninja_version": "1.13.2",
+  "glib_version": "2.88.0",
+  "diagnostic_correction": true,
+  "upstream_release_claimed": false
+}

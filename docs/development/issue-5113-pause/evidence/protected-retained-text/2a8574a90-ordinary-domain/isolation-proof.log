@@ -1,0 +1,11 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_DEADLINE_CLOCK hpet-ready
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_SERIAL_PRESENT protected-domain-authorized-effect
+CONDUIT_PROTECTION_SIGN {"schema":"conduit.conduitos/protection-domain@1","status":"completed","proof_class":"freestanding-emulator","architecture":"x86_64","protection_domain_id":1,"privilege":"ring3","selected_base":"serial/present","selected_resource":"qemu-com1","capability_required":true,"capability_granted":true,"kernel_handle_identity":"slot-0-generation-1","enforcement_class":"x86_64-ring3-page-table-io-bitmap","page_isolation":true,"io_bitmap_denied":true,"kernel_capability_table":true,"authorized_base_effect":true,"faults":["kernel-memory","capability-table-write","sibling-memory","kernel-function","device-mmio","io-port"],"refusals":["arbitrary-handle","stolen-handle","wrong-operation","operation-capacity","malformed-pointer","revoked-handle"],"revocation":"authority-revoked","sibling_unchanged":true,"dma_isolation":false,"driver_isolation":false,"bounded":true}

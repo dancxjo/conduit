@@ -1,0 +1,1705 @@
+{
+  "base_commit": "8863d8018f2cba7b0265dc9a58162fb53ad22b66",
+  "carrier": "limine-hybrid-iso-legacy-bios-entry",
+  "emulator_cpu": "max",
+  "firmware_environment": "x86-bios",
+  "image_sha256": "1b80b30adb201816734a7c53baeee44bac711e83cb8b67c9e1ea3632157487e6",
+  "legacy_bios_vga_text_receipt": true,
+  "observatory": {
+    "bases": [
+      {
+        "base_id": "c43960d2077006c88a4e3c3f05898e8aeb445a8f0ec45b8a7b13fcbd847529fe",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "capacity_units": 1048576,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind_id": "conduitos.base/memory@1",
+        "provider_generation": 1,
+        "provider_instance_id": "e92ea28f022bb4225d5c858262eb03538b024ce5d84e1c9c0a6652b0d5c6513e",
+        "state": "Available"
+      },
+      {
+        "base_id": "faba509885520bca7dad3f837b8e7055aac35824372cb020761e8af5163302f5",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "capacity_units": 1,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind_id": "conduitos.base/clock@1",
+        "provider_generation": 1,
+        "provider_instance_id": "62a4df543636def5e9185a3ea379abdc02d0bbe074293e14207c6de637fee3fb",
+        "state": "Available"
+      },
+      {
+        "base_id": "0d62ec5dd277309e9e3b16e6bc3ec274c8c396ac0b829d90b7aa633ca75a9427",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "capacity_units": 1,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind_id": "conduitos.base/timer@1",
+        "provider_generation": 1,
+        "provider_instance_id": "4cee23733b5aa665da3618cf023bf3fce4b44b58ed100d6425682b7de5aa0d7f",
+        "state": "Available"
+      },
+      {
+        "base_id": "e7eaa786743f4722100aad224fac86a1c5d2c5de0abcbebe624fc4037cceef03",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "capacity_units": 2,
+        "enforcement_class": "Cooperative",
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "implementation_id": "conduitos/base/serial@1",
+        "kind_id": "serial",
+        "lifecycle": "Ready",
+        "provider_generation": 1,
+        "provider_instance_id": "e035d95e08836615ca7c405b7eb8f90d0ab7203421ce93f8fbed46cb5929ed89",
+        "state": "Available"
+      },
+      {
+        "base_id": "40bff5e04579cc434974e742e58b1b400eaaadf1ceac706909ea7b0b03a48b94",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "capacity_units": 4,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind_id": "conduitos.base/interrupt@1",
+        "provider_generation": 1,
+        "provider_instance_id": "758e4e4b37182a27e3174bb0622e49205765fa98198a07c623383908abcdfef9",
+        "state": "Available"
+      },
+      {
+        "base_id": "7d54cb3258200b06bac180a01623a2a0737ec4a29fd291bbdf8b2513613dfeb6",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "capacity_units": 1,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind_id": "conduitos.base/idle@1",
+        "provider_generation": 1,
+        "provider_instance_id": "b17d1ce8d80687739d8b133446202060e37215a3effc9523ded593ad1d7d96ec",
+        "state": "Available"
+      },
+      {
+        "base_id": "024b873831f91b4458c0e97b37a5fbea8d318a31cb98f89948bb6787452bbae0",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "capacity_units": 2,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind_id": "conduitos.base/execution-lane@1",
+        "provider_generation": 1,
+        "provider_instance_id": "8fd55d718bd93165cb9da454c89e511cbd1bd6501713b8db17e4aac46887a34e",
+        "state": "Available"
+      }
+    ],
+    "historical_observations": [
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "HostStarted",
+        "placement_id": null,
+        "plan_id": null,
+        "presentation_id": null,
+        "sign_id": "ff566ef96cff8b6549db2c734067a2044e861ae3a51c25a8a2f7fba5ef980179"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "AdvertisementPublished",
+        "placement_id": null,
+        "plan_id": null,
+        "presentation_id": null,
+        "sign_id": "338b7f5a0fb4a8b5beb00759ce24c8aa973af4f87e2a5174a6f518e2567cd61a"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "PlanFragmentReceived",
+        "placement_id": null,
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "8f196f72505303761062b06686c17749a08902f9baf70f157e602028df0a6643"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "PlacementPrepared",
+        "placement_id": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "40a6b2ac6edbab5dfd71bf4eca929df70e1fc45d7ec794b048bb254f8ab710e6"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "PlacementPrepared",
+        "placement_id": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "680b20c0476d6f9bb6bbaa97e44fb1c53343e61450e9c830100aee1906c610cb"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "PlacementPrepared",
+        "placement_id": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "01c68658aa81adab26afd8b310d44870f4e6f5bda55baff41bb4e0a4c1ca858f"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "PlacementPrepared",
+        "placement_id": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "3bc2815029cf8b7d9b5ff84fec9ea4dcff1ef161aa878d434c7e41211a111b55"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "PlacementPrepared",
+        "placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "718930213106150f260f4cb9da58b293ade56151865026346e5e047267ba4882"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": "PlanPlayStarted",
+        "placement_id": null,
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "3700b151310a85229477dcaea95cf5c4c40766fbde646f5a6b0aa59387a5ae13"
+      }
+    ],
+    "hosts": [
+      {
+        "advertisement": {
+          "bases": [
+            {
+              "base_id": "e7eaa786743f4722100aad224fac86a1c5d2c5de0abcbebe624fc4037cceef03",
+              "capability_ids": [
+                "conduitos/dual-1@1",
+                "conduitos/dual-4@1"
+              ],
+              "enforcement_class": "Cooperative",
+              "implementation_id": "conduitos/base/serial@1",
+              "lifecycle": "Ready",
+              "mechanism_family": "serial",
+              "provider_generation": 1,
+              "provider_instance_id": "e035d95e08836615ca7c405b7eb8f90d0ab7203421ce93f8fbed46cb5929ed89",
+              "resource_pool_ids": [
+                "conduitos-pool-3-serial"
+              ]
+            }
+          ],
+          "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+          "capabilities": [
+            {
+              "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+              "authority_requirements": [],
+              "capability_id": "conduitos/dual-0@1",
+              "execution_profile_id": "conduitos/single-lane-cooperative@1",
+              "host_calls": [
+                {
+                  "contract_id": "conduit.host/wait@1",
+                  "maximum_in_flight": 1,
+                  "maximum_input_bytes": 8,
+                  "maximum_output_bytes": 0,
+                  "target_kind": null
+                }
+              ],
+              "implementation_id": "conduitos/kernel-time-tick@1",
+              "inputs": [],
+              "kind_contract_revision": "conduit.std/time-tick@2",
+              "kind_id": "time/tick",
+              "limits": {
+                "max_active_instances": 16,
+                "max_queue_bytes": 64,
+                "max_queue_items": 4
+              },
+              "outputs": [
+                {
+                  "direction": "Output",
+                  "port_id": "tick",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "value/tick@1"
+                }
+              ],
+              "resource_requirements": [
+                {
+                  "class_id": "conduit.resource/runtime-memory@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 4096
+                },
+                {
+                  "class_id": "conduit.resource/timer-slot@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 1
+                }
+              ],
+              "semantic_contract": {
+                "configuration": [
+                  {
+                    "default_value": {
+                      "U64": 4
+                    },
+                    "key": "count",
+                    "rule": {
+                      "U64Range": {
+                        "maximum": 4096,
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  {
+                    "default_value": {
+                      "U64": 1000
+                    },
+                    "key": "period-ms",
+                    "rule": {
+                      "U64Range": {
+                        "maximum": "18446744073709551615",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                ],
+                "laws": [
+                  {
+                    "Terminal": "CompletesAfterConfiguredCount"
+                  }
+                ]
+              },
+              "shorthand": null,
+              "startup_parameters": [
+                {
+                  "has_default": true,
+                  "name": "count",
+                  "value_type": "value/count"
+                },
+                {
+                  "has_default": true,
+                  "name": "period-ms",
+                  "value_type": "value/count"
+                }
+              ]
+            },
+            {
+              "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+              "authority_requirements": [],
+              "capability_id": "conduitos/dual-1@1",
+              "execution_profile_id": "conduitos/single-lane-cooperative@1",
+              "host_calls": [
+                {
+                  "contract_id": "conduit.host/present@1",
+                  "maximum_in_flight": 1,
+                  "maximum_input_bytes": 8,
+                  "maximum_output_bytes": 256,
+                  "target_kind": "presentation/conduitos-tick"
+                }
+              ],
+              "implementation_id": "conduitos/kernel-serial-tick@1",
+              "inputs": [
+                {
+                  "direction": "Input",
+                  "port_id": "tick",
+                  "temporal": {
+                    "Flow": {
+                      "closes": false
+                    }
+                  },
+                  "value_kind": "value/tick@1"
+                }
+              ],
+              "kind_contract_revision": "conduit.std/presentation-tick@2",
+              "kind_id": "presentation/tick",
+              "limits": {
+                "max_active_instances": 16,
+                "max_queue_bytes": 64,
+                "max_queue_items": 4
+              },
+              "outputs": [],
+              "resource_requirements": [
+                {
+                  "class_id": "conduit.resource/presentation-slot@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 1
+                },
+                {
+                  "class_id": "conduit.resource/runtime-memory@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 4096
+                }
+              ],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "Terminal": "CompletesWhenInputsClose"
+                  }
+                ]
+              },
+              "shorthand": null,
+              "startup_parameters": []
+            },
+            {
+              "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+              "authority_requirements": [],
+              "capability_id": "conduitos/dual-2@1",
+              "execution_profile_id": "conduitos/single-lane-cooperative@1",
+              "host_calls": [],
+              "implementation_id": "conduitos/kernel-text-literal@1",
+              "inputs": [],
+              "kind_contract_revision": "conduit.std/text-literal@1",
+              "kind_id": "text/literal",
+              "limits": {
+                "max_active_instances": 16,
+                "max_queue_bytes": 256,
+                "max_queue_items": 4
+              },
+              "outputs": [
+                {
+                  "direction": "Output",
+                  "port_id": "text",
+                  "temporal": "Value",
+                  "value_kind": "value/text"
+                }
+              ],
+              "resource_requirements": [
+                {
+                  "class_id": "conduit.resource/runtime-memory@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 4096
+                }
+              ],
+              "semantic_contract": {
+                "configuration": [
+                  {
+                    "default_value": {
+                      "Text": ""
+                    },
+                    "key": "value",
+                    "rule": {
+                      "TextBytes": {
+                        "maximum": 256
+                      }
+                    }
+                  }
+                ],
+                "laws": [
+                  {
+                    "Terminal": "EmitsOnce"
+                  }
+                ]
+              },
+              "shorthand": null,
+              "startup_parameters": [
+                {
+                  "has_default": false,
+                  "name": "value",
+                  "value_type": "value/text"
+                }
+              ]
+            },
+            {
+              "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+              "authority_requirements": [],
+              "capability_id": "conduitos/dual-3@1",
+              "execution_profile_id": "conduitos/single-lane-cooperative@1",
+              "host_calls": [
+                {
+                  "contract_id": "conduit.host/text-upper@1",
+                  "maximum_in_flight": 1,
+                  "maximum_input_bytes": 256,
+                  "maximum_output_bytes": 256,
+                  "target_kind": "text/uppercase-utf8"
+                }
+              ],
+              "implementation_id": "conduitos/kernel-text-upper@1",
+              "inputs": [
+                {
+                  "direction": "Input",
+                  "port_id": "source",
+                  "temporal": "Value",
+                  "value_kind": "value/text"
+                }
+              ],
+              "kind_contract_revision": "conduit.std/text-upper@1",
+              "kind_id": "text/upper",
+              "limits": {
+                "max_active_instances": 16,
+                "max_queue_bytes": 256,
+                "max_queue_items": 4
+              },
+              "outputs": [
+                {
+                  "direction": "Output",
+                  "port_id": "text",
+                  "temporal": "Value",
+                  "value_kind": "value/text"
+                }
+              ],
+              "resource_requirements": [
+                {
+                  "class_id": "conduit.resource/runtime-memory@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 157152
+                }
+              ],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "Terminal": "MirrorsInputTerminal"
+                  }
+                ]
+              },
+              "shorthand": [
+                "source",
+                "text"
+              ],
+              "startup_parameters": []
+            },
+            {
+              "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+              "authority_requirements": [],
+              "capability_id": "conduitos/dual-4@1",
+              "execution_profile_id": "conduitos/single-lane-cooperative@1",
+              "host_calls": [
+                {
+                  "contract_id": "conduit.host/present@1",
+                  "maximum_in_flight": 1,
+                  "maximum_input_bytes": 256,
+                  "maximum_output_bytes": 256,
+                  "target_kind": "presentation/conduitos-text"
+                }
+              ],
+              "implementation_id": "conduitos/kernel-serial-text@1",
+              "inputs": [
+                {
+                  "direction": "Input",
+                  "port_id": "text",
+                  "temporal": "Value",
+                  "value_kind": "value/text"
+                }
+              ],
+              "kind_contract_revision": "conduit.std/presentation-text@1",
+              "kind_id": "presentation/text",
+              "limits": {
+                "max_active_instances": 16,
+                "max_queue_bytes": 256,
+                "max_queue_items": 4
+              },
+              "outputs": [],
+              "resource_requirements": [
+                {
+                  "class_id": "conduit.resource/presentation-slot@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 1
+                },
+                {
+                  "class_id": "conduit.resource/runtime-memory@1",
+                  "compute": null,
+                  "protected_role": null,
+                  "units": 4096
+                }
+              ],
+              "semantic_contract": {
+                "configuration": [
+                  {
+                    "default_value": {
+                      "U64": 8
+                    },
+                    "key": "maximum-values",
+                    "rule": {
+                      "U64Range": {
+                        "maximum": 8,
+                        "minimum": 1
+                      }
+                    }
+                  }
+                ],
+                "laws": [
+                  {
+                    "Terminal": "CompletesWhenInputsClose"
+                  }
+                ]
+              },
+              "shorthand": null,
+              "startup_parameters": [
+                {
+                  "has_default": true,
+                  "name": "maximum-values",
+                  "value_type": "value/count"
+                }
+              ]
+            }
+          ],
+          "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+          "offer_generation": 1,
+          "planner_capabilities": [],
+          "profile": "conduitos/two-lane-cooperative@1",
+          "protocol_version": 1,
+          "resources": [
+            {
+              "capacity_units": 1048576,
+              "class_id": "conduit.resource/runtime-memory@1",
+              "compute": null,
+              "pool_id": "conduitos-pool-0-memory"
+            },
+            {
+              "capacity_units": 1,
+              "class_id": "conduit.resource/execution-lane@1",
+              "compute": null,
+              "pool_id": "conduitos-pool-1-execution-lane"
+            },
+            {
+              "capacity_units": 1,
+              "class_id": "conduit.resource/timer-slot@1",
+              "compute": null,
+              "pool_id": "conduitos-pool-2-timer"
+            },
+            {
+              "capacity_units": 2,
+              "class_id": "conduit.resource/presentation-slot@1",
+              "compute": null,
+              "pool_id": "conduitos-pool-3-serial"
+            },
+            {
+              "capacity_units": 1,
+              "class_id": "conduit.resource/execution-lane@1",
+              "compute": null,
+              "pool_id": "conduitos-pool-4-execution-lane"
+            }
+          ]
+        },
+        "capabilities": [
+          {
+            "availability": "Available",
+            "capability_id": "conduitos/dual-0@1",
+            "freshness": "Fresh",
+            "support": "Supported"
+          },
+          {
+            "availability": "Available",
+            "capability_id": "conduitos/dual-1@1",
+            "freshness": "Fresh",
+            "support": "Supported"
+          },
+          {
+            "availability": "Available",
+            "capability_id": "conduitos/dual-2@1",
+            "freshness": "Fresh",
+            "support": "Supported"
+          },
+          {
+            "availability": "Available",
+            "capability_id": "conduitos/dual-3@1",
+            "freshness": "Fresh",
+            "support": "Supported"
+          },
+          {
+            "availability": "Available",
+            "capability_id": "conduitos/dual-4@1",
+            "freshness": "Fresh",
+            "support": "Supported"
+          }
+        ],
+        "devices": [],
+        "state": "Available"
+      }
+    ],
+    "lines": [],
+    "observations": [
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "ExecutionRegionOverlap": {
+            "physical_parallelism": false,
+            "progressing_region_id": "region/text",
+            "waiting_region_id": "region/timer"
+          }
+        },
+        "placement_id": null,
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "c4b0f5ec87d264344c9908d98d674e7bb111096f7485e470a587b5b5acf5bdcf"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "PlacementTerminal": {
+            "disposition": "Completed"
+          }
+        },
+        "placement_id": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "56d68d2e66094ad35e8f1520331d8f64e3110baa8809b859f90b3dd750fc7bb7"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "PlacementTerminal": {
+            "disposition": "Completed"
+          }
+        },
+        "placement_id": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "a68f9ae3402cfd7dc1e1701f1891350b87dcb9405d014ad57df0950e28e26500"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "PlacementTerminal": {
+            "disposition": "Completed"
+          }
+        },
+        "placement_id": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "17b0623d6e359d0d0509252e70aa603015e732118221df814b0e006149097544"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "PlacementTerminal": {
+            "disposition": "Completed"
+          }
+        },
+        "placement_id": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "6a0d5cc811dbe5327eae43ab94da31392bbfdbf3a3d699f5bdca35838c514f23"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "PlacementTerminal": {
+            "disposition": "Completed"
+          }
+        },
+        "placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "26aafdef3caaa3664b5b2f01f8b635e04c4d6b6175f93303576e5829c96a4f5d"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": "bce8fe8ee8c7eacccb7973503ba65eb7a70a441715527375ada9a4cea1a1c411",
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "ConnectionTerminal": {
+            "disposition": {
+              "disposition": "Completed",
+              "last_accepted_sequence": 0,
+              "last_manifested_sequence": 0,
+              "undeliverable_items": 0
+            }
+          }
+        },
+        "placement_id": null,
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "60ba39e683db636c7ea4b9d79225cc0b496dc79ec51d9fdbc1aad1c73ec77644"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": "7cd0103f3291c668fa0ca9710b31373626ecf34a18ee5b0d185dcbd0e22d87bb",
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "ConnectionTerminal": {
+            "disposition": {
+              "disposition": "Completed",
+              "last_accepted_sequence": 0,
+              "last_manifested_sequence": 0,
+              "undeliverable_items": 0
+            }
+          }
+        },
+        "placement_id": null,
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "6cb54060c46a289cc0674825631c64a121d28e6afc275b7171360014e425c777"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": "c3a126e1cb878fad5a311c82c7aa9666cd0bc9783b41cd527d294966023217be",
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "ConnectionTerminal": {
+            "disposition": {
+              "disposition": "Completed",
+              "last_accepted_sequence": 0,
+              "last_manifested_sequence": 0,
+              "undeliverable_items": 0
+            }
+          }
+        },
+        "placement_id": null,
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "aaea135b17b2656081ca3f71345bc83697f1600f5257306c71ee54d1d1e08139"
+      },
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connection_id": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "kind": {
+          "PlanTerminal": {
+            "disposition": "Completed"
+          }
+        },
+        "placement_id": null,
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "presentation_id": null,
+        "sign_id": "93eccc99d698042cc086d9591870999a6d5c1165019d13def50e9b818fe35875"
+      }
+    ],
+    "plans": [
+      {
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "completion_policy": "Live",
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "fragments": [
+          {
+            "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+            "cancellation_policy": "CancelAllAndRejectLateCompletion",
+            "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+            "completion_policy": "Live",
+            "connections": [
+              {
+                "admitted_lines": [],
+                "byte_capacity": 64,
+                "connection_id": "bce8fe8ee8c7eacccb7973503ba65eb7a70a441715527375ada9a4cea1a1c411",
+                "item_capacity": 1,
+                "pressure_policy": "preserve-order",
+                "selected_line": null,
+                "sink_placement_id": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197",
+                "sink_port_id": "tick",
+                "source_placement_id": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+                "source_port_id": "tick",
+                "temporal": {
+                  "Flow": {
+                    "closes": true
+                  }
+                },
+                "track": "payload",
+                "value_kind": "value/tick@1"
+              },
+              {
+                "admitted_lines": [],
+                "byte_capacity": 64,
+                "connection_id": "7cd0103f3291c668fa0ca9710b31373626ecf34a18ee5b0d185dcbd0e22d87bb",
+                "item_capacity": 1,
+                "pressure_policy": "preserve-order",
+                "selected_line": null,
+                "sink_placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+                "sink_port_id": "source",
+                "source_placement_id": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92",
+                "source_port_id": "text",
+                "temporal": "Value",
+                "track": "payload",
+                "value_kind": "value/text"
+              },
+              {
+                "admitted_lines": [],
+                "byte_capacity": 64,
+                "connection_id": "c3a126e1cb878fad5a311c82c7aa9666cd0bc9783b41cd527d294966023217be",
+                "item_capacity": 1,
+                "pressure_policy": "preserve-order",
+                "selected_line": null,
+                "sink_placement_id": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4",
+                "sink_port_id": "text",
+                "source_placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+                "source_port_id": "text",
+                "temporal": "Value",
+                "track": "payload",
+                "value_kind": "value/text"
+              }
+            ],
+            "execution_fusions": [],
+            "execution_regions": [
+              {
+                "admitted_placements": [
+                  "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92",
+                  "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+                  "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4"
+                ],
+                "execution_profile_id": "conduitos/protected-region@1",
+                "isolation_required": true,
+                "lane_base_id": "024b873831f91b4458c0e97b37a5fbea8d318a31cb98f89948bb6787452bbae0",
+                "lane_count": 1,
+                "lane_resource": {
+                  "class_id": "conduit.resource/execution-lane@1",
+                  "compute": {
+                    "architecture_base_id": "024b873831f91b4458c0e97b37a5fbea8d318a31cb98f89948bb6787452bbae0",
+                    "architecture_base_kind": "BareMetal",
+                    "nominal_clock_hz": null,
+                    "performance_class": null,
+                    "selected_lanes": 1,
+                    "service_guarantee": "Reserved",
+                    "topology_group_id": null
+                  },
+                  "pool_id": "conduitos-pool-1-execution-lane",
+                  "protected": null,
+                  "units": 1
+                },
+                "preemption_required": true,
+                "region_id": "region/text",
+                "requirements": {
+                  "cord_byte_capacity": 128,
+                  "cord_item_capacity": 2,
+                  "mandatory_sign_bytes": 847,
+                  "mandatory_sign_items": 15,
+                  "runtime_memory_bytes": 165344,
+                  "timer_slots": 0
+                },
+                "scheduling": "CooperativeBoundedStep"
+              },
+              {
+                "admitted_placements": [
+                  "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+                  "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197"
+                ],
+                "execution_profile_id": "conduitos/cooperative-bounded-step@1",
+                "isolation_required": false,
+                "lane_base_id": "024b873831f91b4458c0e97b37a5fbea8d318a31cb98f89948bb6787452bbae0",
+                "lane_count": 1,
+                "lane_resource": {
+                  "class_id": "conduit.resource/execution-lane@1",
+                  "compute": {
+                    "architecture_base_id": "024b873831f91b4458c0e97b37a5fbea8d318a31cb98f89948bb6787452bbae0",
+                    "architecture_base_kind": "BareMetal",
+                    "nominal_clock_hz": null,
+                    "performance_class": null,
+                    "selected_lanes": 1,
+                    "service_guarantee": "Reserved",
+                    "topology_group_id": null
+                  },
+                  "pool_id": "conduitos-pool-4-execution-lane",
+                  "protected": null,
+                  "units": 1
+                },
+                "preemption_required": false,
+                "region_id": "region/timer",
+                "requirements": {
+                  "cord_byte_capacity": 64,
+                  "cord_item_capacity": 1,
+                  "mandatory_sign_bytes": 847,
+                  "mandatory_sign_items": 15,
+                  "runtime_memory_bytes": 8192,
+                  "timer_slots": 1
+                },
+                "scheduling": "CooperativeBoundedStep"
+              }
+            ],
+            "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+            "expected_sign": [
+              "PlanFragmentReceived",
+              {
+                "PlacementPrepared": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449"
+              },
+              {
+                "PlacementPrepared": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92"
+              },
+              {
+                "PlacementPrepared": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4"
+              },
+              {
+                "PlacementPrepared": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197"
+              },
+              {
+                "PlacementPrepared": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b"
+              },
+              {
+                "PlacementTerminal": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449"
+              },
+              {
+                "PlacementTerminal": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92"
+              },
+              {
+                "PlacementTerminal": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4"
+              },
+              {
+                "PlacementTerminal": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197"
+              },
+              {
+                "PlacementTerminal": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b"
+              },
+              {
+                "ConnectionTerminal": "bce8fe8ee8c7eacccb7973503ba65eb7a70a441715527375ada9a4cea1a1c411"
+              },
+              {
+                "ConnectionTerminal": "7cd0103f3291c668fa0ca9710b31373626ecf34a18ee5b0d185dcbd0e22d87bb"
+              },
+              {
+                "ConnectionTerminal": "c3a126e1cb878fad5a311c82c7aa9666cd0bc9783b41cd527d294966023217be"
+              },
+              "PlanTerminal"
+            ],
+            "expected_terminals": [
+              {
+                "PlacementCompleted": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449"
+              },
+              {
+                "PlacementCompleted": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92"
+              },
+              {
+                "PlacementCompleted": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4"
+              },
+              {
+                "PlacementCompleted": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197"
+              },
+              {
+                "PlacementCompleted": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b"
+              },
+              {
+                "ConnectionCompleted": "bce8fe8ee8c7eacccb7973503ba65eb7a70a441715527375ada9a4cea1a1c411"
+              },
+              {
+                "ConnectionCompleted": "7cd0103f3291c668fa0ca9710b31373626ecf34a18ee5b0d185dcbd0e22d87bb"
+              },
+              {
+                "ConnectionCompleted": "c3a126e1cb878fad5a311c82c7aa9666cd0bc9783b41cd527d294966023217be"
+              },
+              "PlanCompleted"
+            ],
+            "fragment_id": "6796b200db011b7890660d56468c0a167ff793f519149e339ff6129f52a81869",
+            "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+            "offer_generation": 1,
+            "placements": [
+              {
+                "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+                "authority": [],
+                "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+                "capability_id": "conduitos/dual-0@1",
+                "configuration": [
+                  {
+                    "key": "count",
+                    "value": {
+                      "U64": 1
+                    }
+                  },
+                  {
+                    "key": "period-ms",
+                    "value": {
+                      "U64": 1
+                    }
+                  }
+                ],
+                "execution_profile_id": "conduitos/single-lane-cooperative@1",
+                "gear_id": "conduitos-two-regions/clock",
+                "host_calls": [
+                  {
+                    "contract_id": "conduit.host/wait@1",
+                    "maximum_in_flight": 1,
+                    "maximum_input_bytes": 8,
+                    "maximum_output_bytes": 0,
+                    "target_kind": null
+                  }
+                ],
+                "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+                "implementation_id": "conduitos/kernel-time-tick@1",
+                "inputs": [],
+                "kind_contract_revision": "conduit.std/time-tick@2",
+                "kind_id": "time/tick",
+                "limits": {
+                  "max_active_instances": 16,
+                  "max_queue_bytes": 64,
+                  "max_queue_items": 4
+                },
+                "offer_generation": 1,
+                "outputs": [
+                  {
+                    "direction": "Output",
+                    "port_id": "tick",
+                    "temporal": {
+                      "Flow": {
+                        "closes": true
+                      }
+                    },
+                    "value_kind": "value/tick@1"
+                  }
+                ],
+                "placement_id": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [
+                  {
+                    "class_id": "conduit.resource/runtime-memory@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-0-memory",
+                    "protected": null,
+                    "units": 4096
+                  },
+                  {
+                    "class_id": "conduit.resource/timer-slot@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-2-timer",
+                    "protected": null,
+                    "units": 1
+                  }
+                ],
+                "semantic_contract": {
+                  "configuration": [
+                    {
+                      "default_value": {
+                        "U64": 4
+                      },
+                      "key": "count",
+                      "rule": {
+                        "U64Range": {
+                          "maximum": 4096,
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    {
+                      "default_value": {
+                        "U64": 1000
+                      },
+                      "key": "period-ms",
+                      "rule": {
+                        "U64Range": {
+                          "maximum": "18446744073709551615",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  ],
+                  "laws": [
+                    {
+                      "Terminal": "CompletesAfterConfiguredCount"
+                    }
+                  ]
+                },
+                "source_span": {
+                  "column": 12,
+                  "end": 75,
+                  "end_column": 47,
+                  "end_line": 2,
+                  "line": 2,
+                  "start": 40
+                }
+              },
+              {
+                "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+                "authority": [],
+                "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+                "capability_id": "conduitos/dual-2@1",
+                "configuration": [
+                  {
+                    "key": "value",
+                    "value": {
+                      "Text": "Hello, ConduitOS"
+                    }
+                  }
+                ],
+                "execution_profile_id": "conduitos/single-lane-cooperative@1",
+                "gear_id": "conduitos-two-regions/literal-a03a45950785-0",
+                "host_calls": [],
+                "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+                "implementation_id": "conduitos/kernel-text-literal@1",
+                "inputs": [],
+                "kind_contract_revision": "conduit.std/text-literal@1",
+                "kind_id": "text/literal",
+                "limits": {
+                  "max_active_instances": 16,
+                  "max_queue_bytes": 256,
+                  "max_queue_items": 4
+                },
+                "offer_generation": 1,
+                "outputs": [
+                  {
+                    "direction": "Output",
+                    "port_id": "text",
+                    "temporal": "Value",
+                    "value_kind": "value/text"
+                  }
+                ],
+                "placement_id": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [
+                  {
+                    "class_id": "conduit.resource/runtime-memory@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-0-memory",
+                    "protected": null,
+                    "units": 4096
+                  }
+                ],
+                "semantic_contract": {
+                  "configuration": [
+                    {
+                      "default_value": {
+                        "Text": ""
+                      },
+                      "key": "value",
+                      "rule": {
+                        "TextBytes": {
+                          "maximum": 256
+                        }
+                      }
+                    }
+                  ],
+                  "laws": [
+                    {
+                      "Terminal": "EmitsOnce"
+                    }
+                  ]
+                },
+                "source_span": {
+                  "column": 5,
+                  "end": 196,
+                  "end_column": 23,
+                  "end_line": 7,
+                  "line": 7,
+                  "start": 178
+                }
+              },
+              {
+                "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+                "authority": [],
+                "base": {
+                  "base_id": "e7eaa786743f4722100aad224fac86a1c5d2c5de0abcbebe624fc4037cceef03",
+                  "enforcement_class": "Cooperative",
+                  "implementation_id": "conduitos/base/serial@1",
+                  "mechanism_family": "serial",
+                  "provider_generation": 1,
+                  "provider_instance_id": "e035d95e08836615ca7c405b7eb8f90d0ab7203421ce93f8fbed46cb5929ed89"
+                },
+                "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+                "capability_id": "conduitos/dual-4@1",
+                "configuration": [
+                  {
+                    "key": "maximum-values",
+                    "value": {
+                      "U64": 8
+                    }
+                  }
+                ],
+                "execution_profile_id": "conduitos/single-lane-cooperative@1",
+                "gear_id": "conduitos-two-regions/text",
+                "host_calls": [
+                  {
+                    "contract_id": "conduit.host/present@1",
+                    "maximum_in_flight": 1,
+                    "maximum_input_bytes": 256,
+                    "maximum_output_bytes": 256,
+                    "target_kind": "presentation/conduitos-text"
+                  }
+                ],
+                "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+                "implementation_id": "conduitos/kernel-serial-text@1",
+                "inputs": [
+                  {
+                    "direction": "Input",
+                    "port_id": "text",
+                    "temporal": "Value",
+                    "value_kind": "value/text"
+                  }
+                ],
+                "kind_contract_revision": "conduit.std/presentation-text@1",
+                "kind_id": "presentation/text",
+                "limits": {
+                  "max_active_instances": 16,
+                  "max_queue_bytes": 256,
+                  "max_queue_items": 4
+                },
+                "offer_generation": 1,
+                "outputs": [],
+                "placement_id": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [
+                  {
+                    "class_id": "conduit.resource/runtime-memory@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-0-memory",
+                    "protected": null,
+                    "units": 4096
+                  },
+                  {
+                    "class_id": "conduit.resource/presentation-slot@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-3-serial",
+                    "protected": null,
+                    "units": 1
+                  }
+                ],
+                "semantic_contract": {
+                  "configuration": [
+                    {
+                      "default_value": {
+                        "U64": 8
+                      },
+                      "key": "maximum-values",
+                      "rule": {
+                        "U64Range": {
+                          "maximum": 8,
+                          "minimum": 1
+                        }
+                      }
+                    }
+                  ],
+                  "laws": [
+                    {
+                      "Terminal": "CompletesWhenInputsClose"
+                    }
+                  ]
+                },
+                "source_span": {
+                  "column": 11,
+                  "end": 154,
+                  "end_column": 28,
+                  "end_line": 5,
+                  "line": 5,
+                  "start": 137
+                }
+              },
+              {
+                "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+                "authority": [],
+                "base": {
+                  "base_id": "e7eaa786743f4722100aad224fac86a1c5d2c5de0abcbebe624fc4037cceef03",
+                  "enforcement_class": "Cooperative",
+                  "implementation_id": "conduitos/base/serial@1",
+                  "mechanism_family": "serial",
+                  "provider_generation": 1,
+                  "provider_instance_id": "e035d95e08836615ca7c405b7eb8f90d0ab7203421ce93f8fbed46cb5929ed89"
+                },
+                "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+                "capability_id": "conduitos/dual-1@1",
+                "configuration": [],
+                "execution_profile_id": "conduitos/single-lane-cooperative@1",
+                "gear_id": "conduitos-two-regions/ticks",
+                "host_calls": [
+                  {
+                    "contract_id": "conduit.host/present@1",
+                    "maximum_in_flight": 1,
+                    "maximum_input_bytes": 8,
+                    "maximum_output_bytes": 256,
+                    "target_kind": "presentation/conduitos-tick"
+                  }
+                ],
+                "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+                "implementation_id": "conduitos/kernel-serial-tick@1",
+                "inputs": [
+                  {
+                    "direction": "Input",
+                    "port_id": "tick",
+                    "temporal": {
+                      "Flow": {
+                        "closes": false
+                      }
+                    },
+                    "value_kind": "value/tick@1"
+                  }
+                ],
+                "kind_contract_revision": "conduit.std/presentation-tick@2",
+                "kind_id": "presentation/tick",
+                "limits": {
+                  "max_active_instances": 16,
+                  "max_queue_bytes": 64,
+                  "max_queue_items": 4
+                },
+                "offer_generation": 1,
+                "outputs": [],
+                "placement_id": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [
+                  {
+                    "class_id": "conduit.resource/runtime-memory@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-0-memory",
+                    "protected": null,
+                    "units": 4096
+                  },
+                  {
+                    "class_id": "conduit.resource/presentation-slot@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-3-serial",
+                    "protected": null,
+                    "units": 1
+                  }
+                ],
+                "semantic_contract": {
+                  "configuration": [],
+                  "laws": [
+                    {
+                      "Terminal": "CompletesWhenInputsClose"
+                    }
+                  ]
+                },
+                "source_span": {
+                  "column": 12,
+                  "end": 104,
+                  "end_column": 29,
+                  "end_line": 3,
+                  "line": 3,
+                  "start": 87
+                }
+              },
+              {
+                "artifact_id": "conduitos-build/build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+                "authority": [],
+                "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+                "capability_id": "conduitos/dual-3@1",
+                "configuration": [],
+                "execution_profile_id": "conduitos/single-lane-cooperative@1",
+                "gear_id": "conduitos-two-regions/upper",
+                "host_calls": [
+                  {
+                    "contract_id": "conduit.host/text-upper@1",
+                    "maximum_in_flight": 1,
+                    "maximum_input_bytes": 256,
+                    "maximum_output_bytes": 256,
+                    "target_kind": "text/uppercase-utf8"
+                  }
+                ],
+                "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+                "implementation_id": "conduitos/kernel-text-upper@1",
+                "inputs": [
+                  {
+                    "direction": "Input",
+                    "port_id": "source",
+                    "temporal": "Value",
+                    "value_kind": "value/text"
+                  }
+                ],
+                "kind_contract_revision": "conduit.std/text-upper@1",
+                "kind_id": "text/upper",
+                "limits": {
+                  "max_active_instances": 16,
+                  "max_queue_bytes": 256,
+                  "max_queue_items": 4
+                },
+                "offer_generation": 1,
+                "outputs": [
+                  {
+                    "direction": "Output",
+                    "port_id": "text",
+                    "temporal": "Value",
+                    "value_kind": "value/text"
+                  }
+                ],
+                "placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [
+                  {
+                    "class_id": "conduit.resource/runtime-memory@1",
+                    "compute": null,
+                    "pool_id": "conduitos-pool-0-memory",
+                    "protected": null,
+                    "units": 157152
+                  }
+                ],
+                "semantic_contract": {
+                  "configuration": [],
+                  "laws": [
+                    {
+                      "Terminal": "MirrorsInputTerminal"
+                    }
+                  ]
+                },
+                "source_span": {
+                  "column": 12,
+                  "end": 126,
+                  "end_column": 22,
+                  "end_line": 4,
+                  "line": 4,
+                  "start": 116
+                }
+              }
+            ],
+            "plan_fragments": [
+              {
+                "fragment_id": "6796b200db011b7890660d56468c0a167ff793f519149e339ff6129f52a81869",
+                "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159"
+              }
+            ],
+            "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+            "realization_backs": [],
+            "shared_pools": [],
+            "sign_storage_budget": {
+              "byte_capacity": 847,
+              "item_capacity": 15
+            },
+            "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8",
+            "startup_dependencies": [
+              {
+                "dependent_placement_id": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+                "prerequisite_placement_id": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197"
+              },
+              {
+                "dependent_placement_id": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92",
+                "prerequisite_placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b"
+              },
+              {
+                "dependent_placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+                "prerequisite_placement_id": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4"
+              }
+            ],
+            "startup_order": [
+              "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197",
+              "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+              "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4",
+              "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+              "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92"
+            ],
+            "terminal_policy": "RequireAllPlacementsAndConnections"
+          }
+        ],
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "realization_backs": [],
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+      }
+    ],
+    "plays": [
+      {
+        "active_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "connections": [
+          {
+            "connection_id": "bce8fe8ee8c7eacccb7973503ba65eb7a70a441715527375ada9a4cea1a1c411",
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "pressure": {
+              "current_buffered_bytes": 0,
+              "current_in_flight_items": 0,
+              "last_pressure_sequence": null,
+              "pressure_events": 0
+            },
+            "terminal_disposition": {
+              "disposition": "Completed",
+              "last_accepted_sequence": 0,
+              "last_manifested_sequence": 0,
+              "undeliverable_items": 0
+            }
+          },
+          {
+            "connection_id": "7cd0103f3291c668fa0ca9710b31373626ecf34a18ee5b0d185dcbd0e22d87bb",
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "pressure": {
+              "current_buffered_bytes": 0,
+              "current_in_flight_items": 0,
+              "last_pressure_sequence": null,
+              "pressure_events": 0
+            },
+            "terminal_disposition": {
+              "disposition": "Completed",
+              "last_accepted_sequence": 0,
+              "last_manifested_sequence": 0,
+              "undeliverable_items": 0
+            }
+          },
+          {
+            "connection_id": "c3a126e1cb878fad5a311c82c7aa9666cd0bc9783b41cd527d294966023217be",
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "pressure": {
+              "current_buffered_bytes": 0,
+              "current_in_flight_items": 0,
+              "last_pressure_sequence": null,
+              "pressure_events": 0
+            },
+            "terminal_disposition": {
+              "disposition": "Completed",
+              "last_accepted_sequence": 0,
+              "last_manifested_sequence": 0,
+              "undeliverable_items": 0
+            }
+          }
+        ],
+        "failure_message": null,
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "lifecycle": "Completed",
+        "placements": [
+          {
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "placement_id": "177f7af74a6315c9bda1fcab5057045a148400d6ca85e888c6e331243fa91449",
+            "terminal_disposition": "Completed"
+          },
+          {
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "placement_id": "2d59f69addbe88849993656a350e1ce13cc87367ddb4778664b18e131224aa92",
+            "terminal_disposition": "Completed"
+          },
+          {
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "placement_id": "c65ed2a26adb506a2ee7dfd800c64ec5571868af160006d523624ab4daed84c4",
+            "terminal_disposition": "Completed"
+          },
+          {
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "placement_id": "45de05a59a68df0c83c54a817db3997b57ec75fd95a42cdd32dd1421104fa197",
+            "terminal_disposition": "Completed"
+          },
+          {
+            "failure_message": null,
+            "lifecycle": "Completed",
+            "placement_id": "6f5f4589b3907b147f6f03416d92d2063fd7e59140f882ac36e0b5079a45b73b",
+            "terminal_disposition": "Completed"
+          }
+        ],
+        "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+        "terminal_disposition": "Completed"
+      }
+    ],
+    "retention": {
+      "dropped_items": 0,
+      "item_capacity": 64,
+      "retained_items": 19
+    },
+    "schema": "conduit.observatory.snapshot/v2",
+    "sealed_boot_provenance": [
+      {
+        "adapter_name": "Limine",
+        "adapter_revision": "3",
+        "adapter_version": "12.5.2",
+        "boot_artifacts": [],
+        "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+        "build_id": "build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+        "firmware_environment": "x86-bios",
+        "framebuffers": [],
+        "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+        "image_build_trace": null,
+        "image_id": "image:sha256:da1fbe7422a18688f57ed558c7465e3fe4307639a57776c393426b650515f25d",
+        "initial_plan_artifact_id": null,
+        "memory_map": {
+          "normalized_region_count": 1,
+          "runtime_arena_bytes": 1048576
+        },
+        "proof_class": "FreestandingEmulator",
+        "recovery_plan_artifact_id": null
+      }
+    ]
+  },
+  "physical_machine_booted": false,
+  "product": {
+    "body_id": null,
+    "boot_id": "756d0abaeed0eaece1f4eafe0a17852d78119e97a6d09286bd3cec2bc3b51717",
+    "build_id": "build:sha256:21791bd739f416973cccbbd743ec5816d4ec45bc6d057d3a514647dad21916e9",
+    "host_id": "e31ca0d6a9dbb64b56aae947b138b0a80433049fad0b62f4c31ba675cdba8159",
+    "image_id": "image:sha256:da1fbe7422a18688f57ed558c7465e3fe4307639a57776c393426b650515f25d",
+    "interactive_local_control": false,
+    "long_lived": true,
+    "manifestation_id": "cb70d9040e0de97e9bda972a1ff7a7a8179c11185d86edb14dfeae47026cfaeb",
+    "offer_generation": 1,
+    "ordinary_checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+    "ordinary_domain_cost": {
+      "address_space_switches": 6,
+      "architecture": "ia32",
+      "base_gate_transitions": 1,
+      "copied_bytes": 64,
+      "dma_isolation": false,
+      "domain_id": 1,
+      "driver_isolation": false,
+      "entries": 3,
+      "fixture": false,
+      "gate_transitions": 3,
+      "interrupt_entries": 0,
+      "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+      "play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+      "preemptions": 0,
+      "privilege_transitions": 6,
+      "region_id": "region/text",
+      "reserved_bytes": 131072,
+      "ring_slots": 0,
+      "root_metadata_bytes": 21878,
+      "scheduler_returns": 3,
+      "schema": "conduit.conduitos/domain-cost@1",
+      "setup_copied_bytes": 13194,
+      "setup_ticks": 12597919,
+      "shared_page_bytes": 4096,
+      "shared_peak_bytes": 32,
+      "source_timer_interrupts": 0,
+      "state": "Revoked(PlayCompleted)",
+      "teardown_ticks": 481776,
+      "teardown_zeroed_bytes": 131072,
+      "tick_unit": "tsc",
+      "tlb_flushes": 6
+    },
+    "ordinary_expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+    "ordinary_plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+    "ordinary_play_id": "fec7c60fbd6318f5f6d2ffb71e164988457ccceb05bb0308ed464c4b3ac5d974",
+    "ordinary_source_conformance": {
+      "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+      "cords": 3,
+      "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+      "placements": 5,
+      "plan_id": "26890785294bf79de5b26c611cb0998873fd925f6154f094c55d0ec15abf5f72",
+      "proof_class": "sealed-plan-conformance",
+      "protected_text_region": true,
+      "regions": 2,
+      "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+      "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+      "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+    },
+    "ordinary_source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8",
+    "presentation_id": "097e04b99ec25567778ffddad3fb3a1e32af9709db51daaa7928f1e2cc52b227",
+    "presenter_implementation_id": "presenter/ia32-linear-debugcon@1",
+    "presenter_plan_id": "2621d1b4c5dbbdee3c7e61e2f7f09c7d813a23af914e926bd369de031e10e721",
+    "profile_id": "sha256:7aa840273a96d89b60c93840e963e107f53597c00ac84b5ed43fbdd47e70e3ea",
+    "schema": "conduit.conduitos/ia32-product@1",
+    "semantic_result": "HELLO, CONDUITOS",
+    "status": "ready"
+  },
+  "proof_class": "freestanding-ia32-legacy-bios-emulator",
+  "schema": "conduit.conduitos/ia32-legacy-bios-product-proof@1",
+  "stopped_by_harness": true
+}

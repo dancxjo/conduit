@@ -1,0 +1,40 @@
+{
+  "source_commit": "75e9124cba78f71f1d5fa97b501bd31162eb0eb7",
+  "proof_class": "freestanding-emulator",
+  "accepted_release": false,
+  "lanes": [
+    {
+      "architecture": "x86_64",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "prove",
+        "--arch",
+        "x86-64"
+      ],
+      "exit_code": 1,
+      "seconds": 552.8829188346863,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-x86_64-proof.log",
+      "retained": [
+        {
+          "name": "boot-serial.log",
+          "sha256": "777d05ecf8082d5227ef8ec2c0c734ac099e02d2499584367881bbf9957b4bf6"
+        },
+        {
+          "name": "observatory-snapshot.json",
+          "sha256": "1ea1600ce03c9318a70a18f2ba53af0f5f24bf8ccdf78893dcc043803fdedad7"
+        },
+        {
+          "name": "build.json",
+          "sha256": "9f848dcb57d2e123d31632e86d523b8be11a7afbd7cbf8565fbc4fb688e0b337"
+        },
+        {
+          "name": "image.json",
+          "sha256": "b19dc6dc4da650bcd316bbed96662cecb07a1637588ad480f4e394e3355384f5"
+        }
+      ]
+    }
+  ]
+}

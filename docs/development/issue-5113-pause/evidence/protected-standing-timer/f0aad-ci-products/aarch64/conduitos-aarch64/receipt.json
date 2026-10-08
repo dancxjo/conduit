@@ -1,0 +1,43 @@
+{
+  "schema": "conduit.pipeline-target/v1",
+  "target": "conduitos-aarch64",
+  "sha": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+  "proofClass": "emulator",
+  "files": [
+    {
+      "path": "build-manifest.json",
+      "size": 3776,
+      "sha256": "b176a9a529f6bc367de08fb8918ae6af6438c0a0f09db4727a8c2c86d533cfb1"
+    },
+    {
+      "path": "conduitos-aarch64.iso",
+      "size": 9431040,
+      "sha256": "cb2250677c045211dc38457f00ec247671221a9dd22334b4faef23101f7d5165"
+    },
+    {
+      "path": "conduitos-kernel.elf",
+      "size": 5201768,
+      "sha256": "afad3c2b2c6044915d9ffe644461eb172c1a534e6f720154129386bfee46aaeb"
+    },
+    {
+      "path": "evidence/aarch64-product-boot.log",
+      "size": 48937,
+      "sha256": "93916ed0772f8358ae552ae98cc76c9e87f99363a59636bada7bc1b9d348d7a5"
+    },
+    {
+      "path": "evidence/aarch64-product-observatory.json",
+      "size": 63329,
+      "sha256": "3975e99f1b4e2ad649dcbce61e5c13182716af9a573e98e59148f360b54025ee"
+    },
+    {
+      "path": "evidence/aarch64-product-proof.json",
+      "size": 146979,
+      "sha256": "4f91e90a4b27a3db8b4031a443809dbe74bde6e1c0d8922db001552015058fa4"
+    },
+    {
+      "path": "resolved-image.json",
+      "size": 3722,
+      "sha256": "21e255e813eca3ee81d44ae7d4c7a34ecef056f6d4a774e9137899f19aa55e54"
+    }
+  ]
+}

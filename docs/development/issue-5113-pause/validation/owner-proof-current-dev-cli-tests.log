@@ -1,0 +1,54 @@
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/presentation)
+   Compiling rustls-webpki v0.103.15
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/conduitos)
+   Compiling conduit-create-oi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/mechanisms/devices/create-oi)
+   Compiling conduit-mpu6050 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/mechanisms/devices/mpu6050)
+   Compiling rustls v0.23.45
+   Compiling ureq v3.4.2
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/robotics)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/chat)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/catalog)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/tutorial)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/plots/birth)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/body-invitation)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/proof/conformance/alife-distributed)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/home)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/conduitos/mask-offer)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/make/host)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/semantics/tongues)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/plots/patchbay/application)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/plots/tour)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/browser/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/std/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/conduitos/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/rp2040/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/orange-pi/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/raspberry-pi/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/avr/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/esp32/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/proof/conformance/network-r1)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/proof/conformance/patchbay-workbench)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/make/workspace)
+   Compiling conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/bodies/pete)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/browser/runtime)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit-birth-startup-repair/tools/xtask)
+    Finished `test` profile [unoptimized] target(s) in 33.94s
+     Running unittests src/main.rs (../conduit/target/debug/deps/xtask-30a83b23af205162)
+
+running 2 tests
+test commands::host::host_cli::tests::documentary_speech_requires_an_explicit_complete_provider ... ok
+test cli::tests::doctor_and_pico_commands_parse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 508 filtered out; finished in 0.07s
+

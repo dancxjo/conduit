@@ -1,0 +1,89 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/front-door-ready.ppm\"},\"execute\":\"screendump\",\"id\":\"1:front-door-ready\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:front-door-ready\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"2:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"2:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"3:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"4:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"4:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"5:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"5:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"6:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"6:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"7:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"7:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"8:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"8:creche-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"9:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"9:creche-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/body-born.ppm\"},\"execute\":\"screendump\",\"id\":\"10:body-born\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"10:body-born\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f4\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"11:journey-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"11:journey-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f4\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"12:journey-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"12:journey-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/body-woken.ppm\"},\"execute\":\"screendump\",\"id\":\"13:body-woken\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"13:body-woken\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"14:journey-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"14:journey-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"15:journey-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"15:journey-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/body-planned.ppm\"},\"execute\":\"screendump\",\"id\":\"16:body-planned\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"16:body-planned\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f6\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"17:journey-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"17:journey-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f6\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"18:journey-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"18:journey-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/body-playing.ppm\"},\"execute\":\"screendump\",\"id\":\"19:body-playing\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"19:body-playing\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"20:journey-select-keyboard-canvas\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"20:journey-select-keyboard-canvas\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"21:journey-select-keyboard-canvas\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"21:journey-select-keyboard-canvas\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"22:journey-select-keyboard-canvas\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"22:journey-select-keyboard-canvas\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"23:journey-select-keyboard-canvas\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"23:journey-select-keyboard-canvas\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"24:journey-protected-keyboard-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"24:journey-protected-keyboard-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"25:journey-protected-keyboard-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"25:journey-protected-keyboard-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/protected-keyboard-canvas.ppm\"},\"execute\":\"screendump\",\"id\":\"26:protected-keyboard-canvas\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"26:protected-keyboard-canvas\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"27:journey-home\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"27:journey-home\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"28:journey-home\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"28:journey-home\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/home.ppm\"},\"execute\":\"screendump\",\"id\":\"29:home\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"29:home\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"30:journey-select-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"30:journey-select-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"31:journey-select-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"31:journey-select-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"32:journey-open-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"32:journey-open-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"33:journey-open-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"33:journey-open-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-workspace.ppm\"},\"execute\":\"screendump\",\"id\":\"34:patchbay-workspace\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"34:patchbay-workspace\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"35:journey-open-face\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"35:journey-open-face\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"36:journey-open-face\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"36:journey-open-face\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-face.ppm\"},\"execute\":\"screendump\",\"id\":\"37:patchbay-face\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"37:patchbay-face\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f3\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"38:journey-open-diagram\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"38:journey-open-diagram\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f3\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"39:journey-open-diagram\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"39:journey-open-diagram\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/patchbay-diagram.ppm\"},\"execute\":\"screendump\",\"id\":\"40:patchbay-diagram\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"40:patchbay-diagram\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f8\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"41:journey-stop-through-face\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"41:journey-stop-through-face\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f8\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"42:journey-stop-through-face\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"42:journey-stop-through-face\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/x86_64/journey-frames/body-stopped.ppm\"},\"execute\":\"screendump\",\"id\":\"43:body-stopped\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"43:body-stopped\"}\r\n"}

@@ -1,0 +1,31 @@
+{
+  "inputs": {
+    "schema": "conduit.conduitos/riscv64-protected-emulator@1",
+    "qemu_source_sha256": "a3717477d8e2c84d630bfffbc20f6cd3293eb45aa1e6dac6d0cc27689991c9e1",
+    "opensbi_package_sha256": "ba78a00c48dfc5d2adf2ea5f6d01dcbfe7019e132ff02d3c7207ead51d645a32",
+    "opensbi_firmware_sha256": "b296d711ecb879489689109c0fd7e0698b5b9550725b4e50fac456bbd3ecbcdf",
+    "configure": [
+      "--target-list=riscv64-softmmu",
+      "--with-pkgversion=conduit-protected-riscv64",
+      "--disable-docs",
+      "--disable-tools",
+      "--disable-guest-agent",
+      "--disable-user",
+      "--disable-werror",
+      "--disable-gtk",
+      "--disable-sdl",
+      "--disable-vnc",
+      "--disable-opengl",
+      "--disable-pixman",
+      "--disable-capstone",
+      "--disable-slirp",
+      "--disable-download"
+    ]
+  },
+  "proof_class": "emulator-tool-only",
+  "version": "QEMU emulator version 10.2.1 (conduit-protected-riscv64)",
+  "executable_sha256": "985d8c706c346cb010a4bc1a126d06ce7f759fddcc47558a697260c9f3575792",
+  "cc_version": "cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "ninja_version": "1.13.2",
+  "glib_version": "2.88.0"
+}

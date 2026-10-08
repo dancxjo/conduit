@@ -1,0 +1,153 @@
+{
+  "source_commit": "75e9124cba78f71f1d5fa97b501bd31162eb0eb7",
+  "focused_tests": {
+    "log": "ordinary-source-conformance-refreshed-focused.log",
+    "passed": 196,
+    "failed": 0,
+    "exit_code": 0
+  },
+  "emulator_preparation": {
+    "log": "ordinary-source-conformance-emulator-preparation.log",
+    "exit_code": 0,
+    "recipe": "83b88accc2d317b10d86224fef8969c3aaa901eba19e5b8dd171a0df5ca7e3fb"
+  },
+  "remaining_validation": [
+    "fresh five-architecture product/conformance proofs"
+  ],
+  "proof_scope": "in-progress; no accepted-release claim",
+  "workspace_clippy": {
+    "log": "ordinary-source-conformance-refreshed-clippy-fixed.log",
+    "exit_code": 0,
+    "warnings_denied": true
+  },
+  "ci_preflight": {
+    "log": "ordinary-source-conformance-refreshed-preflight-ready.log",
+    "exit_code": 0,
+    "invariant_tests_passed": 150,
+    "standalone_lockfiles": 8
+  },
+  "published_draft_pr": "https://github.com/dancxjo/conduit/pull/5194",
+  "github_quick": {
+    "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+    "conclusion": "SUCCESS",
+    "url": "https://github.com/dancxjo/conduit/actions/runs/37724062651/job/113138090482"
+  },
+  "github_candidate": {
+    "conclusion": "FAILURE",
+    "log": "pr-5194-refreshed-candidate-gate.log",
+    "is_draft": true
+  },
+  "workspace_tests": {
+    "completed_suites": 894,
+    "passed": 6610,
+    "failed": 0,
+    "ignored": 13,
+    "exit_code": 0,
+    "log": "ordinary-source-conformance-refreshed-workspace-tests.log",
+    "source_commit": "75e9124cba78f71f1d5fa97b501bd31162eb0eb7"
+  },
+  "native_attempt_1": {
+    "log": "ordinary-source-conformance-refreshed-x86_64-proof.log",
+    "exit_code": 1,
+    "stage": "native Patchbay projection after two accepted guest boots",
+    "refusal": "patchbay-linear-projection-incomplete: runtime-memory=12288",
+    "retained": "refreshed-native-attempt-1",
+    "correction": "exact admitted region fields instead of stale cooperative text memory"
+  },
+  "latest_source_commit": "8863d8018f2cba7b0265dc9a58162fb53ad22b66",
+  "patchbay_correction": {
+    "log": "ordinary-source-conformance-patchbay-focused.log",
+    "focused_passed": 1,
+    "exit_code": 0,
+    "workspace_clippy": {
+      "log": "ordinary-source-conformance-patchbay-clippy.log",
+      "exit_code": 0,
+      "warnings_denied": true,
+      "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff"
+    },
+    "preserves_earlier_workspace_source": "75e9124cba78f71f1d5fa97b501bd31162eb0eb7",
+    "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff"
+  },
+  "native_attempt_2": {
+    "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+    "session": 87325,
+    "status": "all five architecture commands passed; summary harness corrected to retain one IA-32 lane boot explicitly",
+    "log": "ordinary-source-conformance-refreshed-native-sequence.log",
+    "retained": "refreshed-native",
+    "x86_64": {
+      "exit_code": 0,
+      "receipt": "refreshed-native/x86_64/kernel-proof.json",
+      "two_fresh_boots": true,
+      "reproducible_image": true,
+      "native_patchbay_consumed": true,
+      "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+    },
+    "aarch64": {
+      "exit_code": 0,
+      "receipt": "refreshed-native/aarch64/aarch64-ordinary-domain-proof.json",
+      "normal_boots": 2,
+      "instrumented_boots": 2,
+      "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+    },
+    "riscv64": {
+      "exit_code": 0,
+      "receipt": "refreshed-native/riscv64/riscv64-ordinary-domain-proof.json",
+      "normal_boots": 2,
+      "instrumented_boots": 2,
+      "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+    },
+    "loongarch64": {
+      "exit_code": 0,
+      "receipt": "refreshed-native/loongarch64/loongarch64-ordinary-domain-proof.json",
+      "normal_boots": 2,
+      "instrumented_boots": 2,
+      "architecture": "loongarch64",
+      "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+      "emulator_sha256": "1cc6c6513956ca82da6e6265afb840255adc3ba74838d98c2438629b8d857e8f",
+      "conformance_records": 2,
+      "semantic_shape_sha256": [
+        "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+      ]
+    },
+    "conformance_summary": "ordinary-plan-observatory-checkpoint/refreshed-native/same-source-conformance.json",
+    "same_source_semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+  },
+  "supplemental": {
+    "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+    "status": "all supplemental lanes passed",
+    "passed": [
+      "two independent normal IA-32 BIOS boots",
+      "x86 ordinary-domain proof",
+      "original x86 isolation proof",
+      "ARMv6 unsupported protection disposition with separate cooperative diagnostic",
+      "canonical graphical Body/keyboard/Stop and headless image proofs"
+    ],
+    "execution": "refreshed-supplemental/execution.json",
+    "normal_ia32_proof_gap": "supported boundary command needs its own normal-image repeat boots; prepared correction outside frozen tree"
+  },
+  "ia32_normal_correction": {
+    "source_commit": "8863d8018f2cba7b0265dc9a58162fb53ad22b66",
+    "focused_test": {
+      "passed": 1,
+      "failed": 0,
+      "log": "ordinary-source-conformance-ia32-normal-focused.log"
+    },
+    "workspace_clippy": {
+      "exit_code": 0,
+      "warnings_denied": true,
+      "log": "ordinary-source-conformance-ia32-normal-clippy.log"
+    },
+    "preflight_and_native": "passed",
+    "session": 45895,
+    "checkpoint": "ia32-normal-product-correction",
+    "normal_boots": 2,
+    "instrumented_boots": 1
+  },
+  "pull_request": {
+    "number": 5194,
+    "state": "ready for review",
+    "head": "8863d8018f2cba7b0265dc9a58162fb53ad22b66",
+    "exhaustive_ci": "triggered by ready_for_review; pending",
+    "issue_5113": "open; broader ordinary coverage and accepted-release verification remain"
+  }
+}

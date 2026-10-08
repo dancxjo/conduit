@@ -1,0 +1,89 @@
+{
+  "schema": "local.5113/retained-native-ci-provenance-audit@1",
+  "run": 37778340441,
+  "qualification": "Earlier candidate development evidence, not current candidate or stable main acceptance. Digests checked against retained GitHub metadata; not a signed attestation. Diagnostic boundary and standing-timer proofs are separate.",
+  "artifacts": [
+    {
+      "architecture": "aarch64",
+      "artifact_id": 11553066065,
+      "archive_sha256": "sha256:d6ccd1df1006ccb705c5fcbf3e547c6c9f4eab808b9fb6363f04333be78f5b73",
+      "github_digest_matches": true,
+      "source": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+      "product_proof": "aarch64/conduitos-aarch64/evidence/aarch64-product-proof.json",
+      "product_proof_sha256": "4f91e90a4b27a3db8b4031a443809dbe74bde6e1c0d8922db001552015058fa4",
+      "fresh_boot_and_host": true,
+      "conformance": {
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8",
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+      },
+      "exact_plan_play_and_zeroization": true
+    },
+    {
+      "architecture": "x86_64",
+      "artifact_id": 11552837173,
+      "archive_sha256": "sha256:d7c107ea7623c46fa68d1b029afc085a7b956691afae09038ecd850cf5932844",
+      "github_digest_matches": true,
+      "source": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+      "product_proof": "x86_64/conduitos-x86_64/evidence/x86_64-product-proof.json",
+      "product_proof_sha256": "09e071f4642a43bb5b5423b8a9a474978fccf64ecc7b9c0450e54d825cda1b4a",
+      "fresh_boot_and_host": true,
+      "conformance": null,
+      "qualification": "Graphical product receipt lacks headless text/timer conformance; separate journey proves Body-bound domains."
+    },
+    {
+      "architecture": "riscv64",
+      "artifact_id": 11552331786,
+      "archive_sha256": "sha256:cbe82ba1583199c8f915f3d5e9f0d62e230754cd3b32363c8ef6d9c3107c183c",
+      "github_digest_matches": true,
+      "source": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+      "product_proof": "riscv64/conduitos-riscv64/evidence/riscv64-product-proof.json",
+      "product_proof_sha256": "9130c834513b28e40b0a106ecf707c71d3dbe3c82556e4f9e5d088eeb3a338a8",
+      "fresh_boot_and_host": true,
+      "conformance": {
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8",
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+      },
+      "exact_plan_play_and_zeroization": true
+    },
+    {
+      "architecture": "loongarch64",
+      "artifact_id": 11551663824,
+      "archive_sha256": "sha256:0b8514ba955776843fc0dbba665504c2bd92f9459f82f0b3c9e69010efc42297",
+      "github_digest_matches": true,
+      "source": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+      "product_proof": "loongarch64/conduitos-loongarch64/evidence/loongarch64-product-proof.json",
+      "product_proof_sha256": "7ad8152c9f6a80913c069e5ec45587c6630a8142746ed910080a72f9c1762b22",
+      "fresh_boot_and_host": true,
+      "conformance": {
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8",
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+      },
+      "exact_plan_play_and_zeroization": true
+    },
+    {
+      "architecture": "ia32",
+      "artifact_id": 11551612410,
+      "archive_sha256": "sha256:70a66a6e1aa1934ef26650c5ca61ad7f6aadb7b2c80ca7102b2278369ace51fb",
+      "github_digest_matches": true,
+      "source": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+      "product_proof": "ia32/conduitos-ia32/evidence/ia32-product-proof.json",
+      "product_proof_sha256": "589b6a3ddb84169bca5eea658c737e8c90c25d6ec54c00104cacd1ae57fc129c",
+      "fresh_boot_and_host": true,
+      "conformance": {
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8",
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e"
+      },
+      "exact_plan_play_and_zeroization": true
+    }
+  ],
+  "four_non_x86_source_shapes_equal": true,
+  "missing_for_final_audit": "Exact accepted-main x86 headless prove, all5 ordinary-domain-proof collectors, ARMv6 explicit unsupported"
+}

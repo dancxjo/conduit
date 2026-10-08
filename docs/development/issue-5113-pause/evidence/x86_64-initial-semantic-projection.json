@@ -1,0 +1,364 @@
+{
+  "source": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8",
+  "checked": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+  "expanded": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+  "completion": "Live",
+  "gears": [
+    {
+      "gear_id": "conduitos-two-regions/clock",
+      "kind_id": "time/tick",
+      "kind_contract_revision": "conduit.std/time-tick@2",
+      "configuration": [
+        {
+          "key": "count",
+          "value": {
+            "U64": 1
+          }
+        },
+        {
+          "key": "period-ms",
+          "value": {
+            "U64": 1
+          }
+        }
+      ],
+      "limits": {
+        "max_active_instances": 16,
+        "max_queue_items": 4,
+        "max_queue_bytes": 64
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "port_id": "tick",
+          "value_kind": "value/tick@1",
+          "direction": "Output",
+          "temporal": {
+            "Flow": {
+              "closes": true
+            }
+          }
+        }
+      ],
+      "semantic_contract": {
+        "configuration": [
+          {
+            "key": "count",
+            "default_value": {
+              "U64": 4
+            },
+            "rule": {
+              "U64Range": {
+                "minimum": 0,
+                "maximum": 4096
+              }
+            }
+          },
+          {
+            "key": "period-ms",
+            "default_value": {
+              "U64": 1000
+            },
+            "rule": {
+              "U64Range": {
+                "minimum": 0,
+                "maximum": "18446744073709551615"
+              }
+            }
+          }
+        ],
+        "laws": [
+          {
+            "Terminal": "CompletesAfterConfiguredCount"
+          }
+        ]
+      },
+      "terminal_transductions": null,
+      "host_calls": [
+        {
+          "contract_id": "conduit.host/wait@1",
+          "target_kind": null,
+          "maximum_in_flight": 1,
+          "maximum_input_bytes": 8,
+          "maximum_output_bytes": 0
+        }
+      ]
+    },
+    {
+      "gear_id": "conduitos-two-regions/literal-a03a45950785-0",
+      "kind_id": "text/literal",
+      "kind_contract_revision": "conduit.std/text-literal@1",
+      "configuration": [
+        {
+          "key": "value",
+          "value": {
+            "Text": "Hello, ConduitOS"
+          }
+        }
+      ],
+      "limits": {
+        "max_active_instances": 16,
+        "max_queue_items": 4,
+        "max_queue_bytes": 256
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "port_id": "text",
+          "value_kind": "value/text",
+          "direction": "Output",
+          "temporal": "Value"
+        }
+      ],
+      "semantic_contract": {
+        "configuration": [
+          {
+            "key": "value",
+            "default_value": {
+              "Text": ""
+            },
+            "rule": {
+              "TextBytes": {
+                "maximum": 256
+              }
+            }
+          }
+        ],
+        "laws": [
+          {
+            "Terminal": "EmitsOnce"
+          }
+        ]
+      },
+      "terminal_transductions": null,
+      "host_calls": []
+    },
+    {
+      "gear_id": "conduitos-two-regions/text",
+      "kind_id": "presentation/text",
+      "kind_contract_revision": "conduit.std/presentation-text@1",
+      "configuration": [
+        {
+          "key": "maximum-values",
+          "value": {
+            "U64": 8
+          }
+        }
+      ],
+      "limits": {
+        "max_active_instances": 16,
+        "max_queue_items": 4,
+        "max_queue_bytes": 256
+      },
+      "inputs": [
+        {
+          "port_id": "text",
+          "value_kind": "value/text",
+          "direction": "Input",
+          "temporal": "Value"
+        }
+      ],
+      "outputs": [],
+      "semantic_contract": {
+        "configuration": [
+          {
+            "key": "maximum-values",
+            "default_value": {
+              "U64": 8
+            },
+            "rule": {
+              "U64Range": {
+                "minimum": 1,
+                "maximum": 8
+              }
+            }
+          }
+        ],
+        "laws": [
+          {
+            "Terminal": "CompletesWhenInputsClose"
+          }
+        ]
+      },
+      "terminal_transductions": null,
+      "host_calls": [
+        {
+          "contract_id": "conduit.host/present@1",
+          "target_kind": "presentation/conduitos-text",
+          "maximum_in_flight": 1,
+          "maximum_input_bytes": 256,
+          "maximum_output_bytes": 256
+        }
+      ]
+    },
+    {
+      "gear_id": "conduitos-two-regions/ticks",
+      "kind_id": "presentation/tick",
+      "kind_contract_revision": "conduit.std/presentation-tick@2",
+      "configuration": [],
+      "limits": {
+        "max_active_instances": 16,
+        "max_queue_items": 4,
+        "max_queue_bytes": 64
+      },
+      "inputs": [
+        {
+          "port_id": "tick",
+          "value_kind": "value/tick@1",
+          "direction": "Input",
+          "temporal": {
+            "Flow": {
+              "closes": false
+            }
+          }
+        }
+      ],
+      "outputs": [],
+      "semantic_contract": {
+        "configuration": [],
+        "laws": [
+          {
+            "Terminal": "CompletesWhenInputsClose"
+          }
+        ]
+      },
+      "terminal_transductions": null,
+      "host_calls": [
+        {
+          "contract_id": "conduit.host/present@1",
+          "target_kind": "presentation/conduitos-tick",
+          "maximum_in_flight": 1,
+          "maximum_input_bytes": 8,
+          "maximum_output_bytes": 256
+        }
+      ]
+    },
+    {
+      "gear_id": "conduitos-two-regions/upper",
+      "kind_id": "text/upper",
+      "kind_contract_revision": "conduit.std/text-upper@1",
+      "configuration": [],
+      "limits": {
+        "max_active_instances": 16,
+        "max_queue_items": 4,
+        "max_queue_bytes": 256
+      },
+      "inputs": [
+        {
+          "port_id": "source",
+          "value_kind": "value/text",
+          "direction": "Input",
+          "temporal": "Value"
+        }
+      ],
+      "outputs": [
+        {
+          "port_id": "text",
+          "value_kind": "value/text",
+          "direction": "Output",
+          "temporal": "Value"
+        }
+      ],
+      "semantic_contract": {
+        "configuration": [],
+        "laws": [
+          {
+            "Terminal": "MirrorsInputTerminal"
+          }
+        ]
+      },
+      "terminal_transductions": null,
+      "host_calls": [
+        {
+          "contract_id": "conduit.host/text-upper@1",
+          "target_kind": "text/uppercase-utf8",
+          "maximum_in_flight": 1,
+          "maximum_input_bytes": 256,
+          "maximum_output_bytes": 256
+        }
+      ]
+    }
+  ],
+  "cords": [
+    {
+      "connection_id": "7cd0103f3291c668fa0ca9710b31373626ecf34a18ee5b0d185dcbd0e22d87bb",
+      "source_placement_id": "conduitos-two-regions/literal-a03a45950785-0",
+      "source_port_id": "text",
+      "sink_placement_id": "conduitos-two-regions/upper",
+      "sink_port_id": "source",
+      "value_kind": "value/text",
+      "track": "payload",
+      "temporal": "Value",
+      "pressure_policy": "preserve-order",
+      "selected_line": null,
+      "admitted_lines": [],
+      "item_capacity": 1,
+      "byte_capacity": 64
+    },
+    {
+      "connection_id": "bce8fe8ee8c7eacccb7973503ba65eb7a70a441715527375ada9a4cea1a1c411",
+      "source_placement_id": "conduitos-two-regions/clock",
+      "source_port_id": "tick",
+      "sink_placement_id": "conduitos-two-regions/ticks",
+      "sink_port_id": "tick",
+      "value_kind": "value/tick@1",
+      "track": "payload",
+      "temporal": {
+        "Flow": {
+          "closes": true
+        }
+      },
+      "pressure_policy": "preserve-order",
+      "selected_line": null,
+      "admitted_lines": [],
+      "item_capacity": 1,
+      "byte_capacity": 64
+    },
+    {
+      "connection_id": "c3a126e1cb878fad5a311c82c7aa9666cd0bc9783b41cd527d294966023217be",
+      "source_placement_id": "conduitos-two-regions/upper",
+      "source_port_id": "text",
+      "sink_placement_id": "conduitos-two-regions/text",
+      "sink_port_id": "text",
+      "value_kind": "value/text",
+      "track": "payload",
+      "temporal": "Value",
+      "pressure_policy": "preserve-order",
+      "selected_line": null,
+      "admitted_lines": [],
+      "item_capacity": 1,
+      "byte_capacity": 64
+    }
+  ],
+  "regions": [
+    {
+      "region_id": "region/text",
+      "gears": [
+        "conduitos-two-regions/literal-a03a45950785-0",
+        "conduitos-two-regions/text",
+        "conduitos-two-regions/upper"
+      ],
+      "requirements": {
+        "timer_slots": 0,
+        "cord_item_capacity": 2,
+        "cord_byte_capacity": 128,
+        "mandatory_sign_items": 15,
+        "mandatory_sign_bytes": 847
+      }
+    },
+    {
+      "region_id": "region/timer",
+      "gears": [
+        "conduitos-two-regions/clock",
+        "conduitos-two-regions/ticks"
+      ],
+      "requirements": {
+        "timer_slots": 1,
+        "cord_item_capacity": 1,
+        "cord_byte_capacity": 64,
+        "mandatory_sign_items": 15,
+        "mandatory_sign_bytes": 847
+      }
+    }
+  ]
+}

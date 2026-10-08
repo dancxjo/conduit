@@ -1,0 +1,24 @@
+{
+  "free_bytes_before": 29497483264,
+  "free_bytes_after": 142938173440,
+  "removed": [
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/debug/deps",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/debug/build",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/debug/.fingerprint",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/debug/incremental",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/debug/examples"
+  ],
+  "active_references": [],
+  "preserved_top_level_executables": {
+    "xtask": {
+      "bytes": 799448736,
+      "sha256": "28e4eede42bf991c0499250b985f115200caa0b87cbb3170f3ae6f2d63e6d116"
+    },
+    "conduit-xtask-dispatch": {
+      "bytes": 23427200,
+      "sha256": "9b984b224488c6aeffdb185a8056cb1337bb5c79fd5af116f1044ac56f64e4f1"
+    }
+  },
+  "preserved": "all source trees, release/native outputs, emulator tooling, target/conduitos images/receipts, local checkpoints and dirty AArch64 worktree",
+  "reason": "refresh onto current dev invalidates prior host compiler cache; next checks use CI debug settings to avoid recreating oversized DWARF/incremental outputs"
+}

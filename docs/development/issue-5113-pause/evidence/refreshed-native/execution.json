@@ -1,0 +1,200 @@
+{
+  "source_commit": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+  "proof_class": "freestanding-emulator",
+  "accepted_release": false,
+  "lanes": [
+    {
+      "architecture": "x86_64",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "prove",
+        "--arch",
+        "x86-64"
+      ],
+      "exit_code": 0,
+      "seconds": 332.47985458374023,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-x86_64-proof.log",
+      "retained": [
+        {
+          "name": "boot-serial.log",
+          "sha256": "6762be1c5b41c29ac5a020440789bf47f1f9f1b6053cc0f59d9ca9b163493047"
+        },
+        {
+          "name": "kernel-proof.json",
+          "sha256": "ea6e6bea3abfdc8ddfd2e860dc871bf123054376fc8a388b2e248089f15ef70a"
+        },
+        {
+          "name": "observatory-snapshot.json",
+          "sha256": "cf807928cd865b99aae2b2134b160296b005a71d9b4350e7f73a86493a167982"
+        },
+        {
+          "name": "build.json",
+          "sha256": "13a5b2b93c49f7b9daa4ff886fa196d626113a7e2417ac25649deac854fbd74f"
+        },
+        {
+          "name": "image.json",
+          "sha256": "721d19923cd46b3c9555d1c1b1b6d85b76ab988f2296aa6b2ee9f03e62af58f8"
+        }
+      ]
+    },
+    {
+      "architecture": "aarch64",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "aarch64-ordinary-domain-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 317.7128736972809,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-aarch64-proof.log",
+      "retained": [
+        {
+          "name": "aarch64-product-boot.log",
+          "sha256": "5a315f8fc7ea0330af91cf3c0dd2ec4affc8e9d6d18176d38e49a1687b44b900"
+        },
+        {
+          "name": "aarch64-product-proof.json",
+          "sha256": "183816d51239a1f09ae9fa5b7329a98b1d750a751fa3dfbfc32dc8061f1c74af"
+        },
+        {
+          "name": "aarch64-product-observatory.json",
+          "sha256": "8998f35f73158069a2bc2f910f8e31346a5e7bcb56ed1701154e1f1beaa4e83f"
+        },
+        {
+          "name": "aarch64-ordinary-domain-proof.json",
+          "sha256": "2df1e96863bf64bf536dcc4ac5328c35cb16bce64a2020e8fe38b8a4f0a3ecef"
+        },
+        {
+          "name": "build.json",
+          "sha256": "8c06167635ca08111054e8890b44a5883cf73b10c7628bb5db2cbadd3601ca5a"
+        },
+        {
+          "name": "image.json",
+          "sha256": "401f3d2038dda11d27761539d5b20fb9b169bffb35993ca96aff8179bfedb2c6"
+        }
+      ]
+    },
+    {
+      "architecture": "riscv64",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "riscv64-ordinary-domain-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 156.30690121650696,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-riscv64-proof.log",
+      "retained": [
+        {
+          "name": "riscv64-product-observatory.json",
+          "sha256": "cca5de6b33a3a2c6f0b582ccf7794548a01cc26fab9d2663b431933964f74d13"
+        },
+        {
+          "name": "riscv64-ordinary-domain-proof.json",
+          "sha256": "70914969f8b67f773107888d6f9b25f3dfda9d95ca09068d5f57da4b972eb7d4"
+        },
+        {
+          "name": "riscv64-serial.log",
+          "sha256": "1f39f69bdce1a8c16670728c88cd121637168d9368960f2ec3191747727e1cea"
+        },
+        {
+          "name": "build.json",
+          "sha256": "39c923fd31e232c6e5dc1e0321d4a4ce037feba4f88d5ed8e4ea01746f3ba9b2"
+        },
+        {
+          "name": "image.json",
+          "sha256": "6ea71ef2fc5bf8a89f65a433358caec64a0f028c6b76ac4533edfb11713a8715"
+        },
+        {
+          "name": "riscv64-product-proof.json",
+          "sha256": "017ce426347c2a170bd761945caa618adaa652d314caffd0b56aae4504a3e6f0"
+        }
+      ]
+    },
+    {
+      "architecture": "loongarch64",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "loongarch64-ordinary-domain-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 71.88657736778259,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-loongarch64-proof.log",
+      "retained": [
+        {
+          "name": "loongarch64-product-observatory.json",
+          "sha256": "5b9342526a99de396193cc7ccea3eef486514012797b6288ba6fa59322bd36a0"
+        },
+        {
+          "name": "loongarch64-ordinary-domain-proof.json",
+          "sha256": "cd122cf53d2fd4905e90ac93c4ac1ce0185577c6ae769e6d47445954da6b1777"
+        },
+        {
+          "name": "build.json",
+          "sha256": "a187da0aed512966ef51b0d079b0bda6e88ea3d0c26f7e784d5519b1bf98925a"
+        },
+        {
+          "name": "image.json",
+          "sha256": "afb79b11e73cd7fea33e905af73f5c3259021f1ff3fedf2ffd5455f8f0558179"
+        },
+        {
+          "name": "loongarch64-serial.log",
+          "sha256": "48eaa94eca05150556b3c20cda26422bc849f08a7baf5417356e2a432211b3ef"
+        },
+        {
+          "name": "loongarch64-product-proof.json",
+          "sha256": "869170ea049641684fbe78a63c839b3c5d6ceba76c76f4736a3ae0c13a3d2a26"
+        }
+      ]
+    },
+    {
+      "architecture": "ia32",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "ia32-ordinary-domain-proof"
+      ],
+      "exit_code": 0,
+      "seconds": 183.01015543937683,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ordinary-source-conformance-refreshed-ia32-proof.log",
+      "retained": [
+        {
+          "name": "ia32-product-legacy-bios-only-vga.json",
+          "sha256": "121456ed2d3c9f76ee71193d32442cffc5681d81c7d653b85e33a163cdda3a99"
+        },
+        {
+          "name": "ia32-ordinary-domain-proof.json",
+          "sha256": "da3bfa6cb2a9c42b59b718b612845a8776bbd571e2a108de31d035af0bf5dc3a"
+        },
+        {
+          "name": "ia32-legacy-bios-product-proof.json",
+          "sha256": "74c8b89429906fbd6f920830db2db3150027423f7a7db8ab2441144b715be524"
+        },
+        {
+          "name": "build.json",
+          "sha256": "b53643287d8dbc15dff2af0597d5253fae961ba12b698956869077fd4e1e13ae"
+        },
+        {
+          "name": "image.json",
+          "sha256": "adad920a4a46864f534a1a37180437696baa5f32a6bc4468f8367431e170f8ca"
+        },
+        {
+          "name": "ia32-product-legacy-bios-only.log",
+          "sha256": "1c6ee70c3d93fb4b20cdaf33dbe8a32e1ea08f24df7bc1a0135a5def8ed49918"
+        }
+      ]
+    }
+  ]
+}

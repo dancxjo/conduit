@@ -1,0 +1,38 @@
+{
+  "schema": "conduit.pipeline-target/v1",
+  "target": "conduitos-riscv64",
+  "sha": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+  "proofClass": "emulator",
+  "files": [
+    {
+      "path": "build-manifest.json",
+      "size": 3787,
+      "sha256": "aa4aa7bf7f9a5474822fb32bbde8549f8a8c246872a7c6429c5d3f2c42eeb6c5"
+    },
+    {
+      "path": "conduitos-kernel.elf",
+      "size": 5463888,
+      "sha256": "7f4a73f680a48b3bf33c02e463db740130950cd007b8b45977167420b7c59cb0"
+    },
+    {
+      "path": "conduitos-riscv64.iso",
+      "size": 9676800,
+      "sha256": "c9a15622218dce82afdf8d7f5badc1aec7ad7c4cc5a27b31df59fd85f0343bdf"
+    },
+    {
+      "path": "evidence/riscv64-product-observatory.json",
+      "size": 63329,
+      "sha256": "423932173f38fb280e46ee1b418fb7e9c40bd2de1da02db33be9079448f85f5c"
+    },
+    {
+      "path": "evidence/riscv64-product-proof.json",
+      "size": 7120,
+      "sha256": "9130c834513b28e40b0a106ecf707c71d3dbe3c82556e4f9e5d088eeb3a338a8"
+    },
+    {
+      "path": "resolved-image.json",
+      "size": 3781,
+      "sha256": "80a8e359f825c350ec80df52951469edefbf98bc5e12ca0bd6cd320468bb290b"
+    }
+  ]
+}

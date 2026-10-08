@@ -1,0 +1,132 @@
+{
+  "payload": {
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:fc210acd2aef34796c52dc7e32a4c5e022bbe134e68703c36ab0aeb428d6185f",
+    "profile_id": "sha256:4971b8216a9fd9180a00a6113c741143d85202e157ed7d02b6cddef25582b936",
+    "source_configuration_id": "sha256:71fc9606071b9c54889f893f7ba8d5e343786387500d56480579058ace404d99",
+    "target": "conduitos/aarch64/virt",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "serial/text",
+        "driver": "conduitos/pl011@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/pl011@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/linear-serial@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 0,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    }
+  },
+  "manifest": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:4971b8216a9fd9180a00a6113c741143d85202e157ed7d02b6cddef25582b936",
+    "source_configuration_id": "sha256:71fc9606071b9c54889f893f7ba8d5e343786387500d56480579058ace404d99",
+    "build_id": "build:sha256:fc210acd2aef34796c52dc7e32a4c5e022bbe134e68703c36ab0aeb428d6185f",
+    "image_id": "image:sha256:8fc7a35cd84e593f3b36acddeb16900ec78fd81eb6e63fb066843c5940ac7db8",
+    "source_identity": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+    "toolchain_identity": "rustc:stable+aarch64-unknown-none+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-aarch64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-aarch64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/pl011@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/aarch64/virt",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "serial/text",
+        "driver": "conduitos/pl011@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/pl011@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/linear-serial@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 0,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:serial/text": [
+        "base:serial/text"
+      ],
+      "presenter:presenter/main > driver:conduitos/pl011@1": [
+        "base:serial/text",
+        "driver:conduitos/pl011@1"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ]
+    }
+  }
+}

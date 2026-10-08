@@ -1,0 +1,66 @@
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/tools/xtask)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.95s
+     Running unittests src/main.rs (target/debug/deps/xtask-51710615ed509e75)
+
+running 4 tests
+test commands::conduitos::run::observatory::tests::protected_text_reservation_covers_measured_storage_without_growing_other_gears ... ok
+test commands::conduitos::run::observatory::tests::cooperative_downgrade_or_unexpected_timer_protection_is_refused ... ok
+test commands::conduitos::product_observatory::tests::truncated_duplicate_oversized_or_unsealed_exports_cannot_be_promoted ... ok
+test commands::conduitos::product_observatory::tests::current_sealed_export_must_match_every_product_identity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 485 filtered out; finished in 0.03s
+
+     Running tests/architecture_vocabulary.rs (target/debug/deps/architecture_vocabulary-23e3ac00cbba2376)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/capability_offer_hygiene.rs (target/debug/deps/capability_offer_hygiene-e2aad9ed53a597a2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/ci_workflow_contract.rs (target/debug/deps/ci_workflow_contract-7e9a26e68770c8eb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/conduit_source_canon.rs (target/debug/deps/conduit_source_canon-7afbde2e2e811d7d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/output_cli.rs (target/debug/deps/output_cli-bb2c98b5d70cb9a7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/pico_midi_fixture.rs (target/debug/deps/pico_midi_fixture-6c587101227d4e70)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/proof_dependency_boundary.rs (target/debug/deps/proof_dependency_boundary-0de6cb27dcbaaca0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/startup_cue.rs (target/debug/deps/startup_cue-19acf8db813a4df2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/terminology_safety.rs (target/debug/deps/terminology_safety-02c917bc75444395)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+

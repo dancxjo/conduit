@@ -1,0 +1,66 @@
+[
+  {
+    "name": "ia32-normal-domain-first-receipt.json",
+    "sha256": "b6b187f00b60d1075d9af890454978b16ec507560a2bb5f213daa250f644048d"
+  },
+  {
+    "name": "ia32-product-legacy-bios-only-vga.json",
+    "sha256": "d05d8c38ce3bff0d7b919d1b4d552255880be790c48b58add8c08405abb3fa6a"
+  },
+  {
+    "name": "ia32-normal-domain-second-serial.log",
+    "sha256": "92069ee73e43c6b43d3975fa3ed06fb39f0c5bc493963258c20d362783aa164f"
+  },
+  {
+    "name": "ia32-normal-domain-first-vga.bin",
+    "sha256": "61d518d0607ce6f0ec90c1c581dbb8e34395b4a0ac1bb5e59e467c29954b3497"
+  },
+  {
+    "name": "ia32-normal-domain-second-vga.json",
+    "sha256": "9951c8423a0cd870a7531ec352d1eea904043637ee82ced0deef89b8d6c05719"
+  },
+  {
+    "name": "ia32-ordinary-domain-proof.json",
+    "sha256": "c22e721eb4070bd5e2313c5d66a06df5cd3031a1a18a3b6ae39fcca8274c1d07"
+  },
+  {
+    "name": "ia32-normal-domain-second-vga.bin",
+    "sha256": "77b3570e8ad086f43b1ec0d89d1b2e792235d422784725533db1e970bbebf9b7"
+  },
+  {
+    "name": "ia32-normal-domain-first-vga.json",
+    "sha256": "ce0a319357037f1bddf11514419d4a47e803d8de80f09b5e4e149d6822d6242a"
+  },
+  {
+    "name": "ia32-legacy-bios-product-proof.json",
+    "sha256": "292e5ce4e3942de7fc0c19738523299c5ce619ede284a620c9f67f15bd75f80e"
+  },
+  {
+    "name": "ia32-normal-domain-product-proof.json",
+    "sha256": "eb99e38dbad1c28be744dc7d1d73b0f5f53dc62280923cd9bce23bbfe512b726"
+  },
+  {
+    "name": "build.json",
+    "sha256": "f786581808352f656ce9e954034c13375c4359fa6bf0470034b558af31a85c27"
+  },
+  {
+    "name": "ia32-normal-domain-first-serial.log",
+    "sha256": "9cc435c7331e48f89bba78bb932c6f868f566b18d2c9579a15ed4e37d37aee9d"
+  },
+  {
+    "name": "image.json",
+    "sha256": "8a1f4dfc2d0f3ed522eddbbee3d76848383e7ea3aef2fead11dddeea39d5edbf"
+  },
+  {
+    "name": "ia32-product-legacy-bios-only.log",
+    "sha256": "0fe6372fead0ca2a8ae924aef1eacd60a345e868b46e4ce19d7b7933809c58b2"
+  },
+  {
+    "name": "ia32-product-legacy-bios-only-vga.bin",
+    "sha256": "6ef06a8042b2791d217e16d559331db93e381cfcb40c1035a7adc8facdb22897"
+  },
+  {
+    "name": "ia32-normal-domain-second-receipt.json",
+    "sha256": "ce50171aa71f290e8ceff4400448de8dae3bb73fbee2a1aae8a8c2c71e054a09"
+  }
+]

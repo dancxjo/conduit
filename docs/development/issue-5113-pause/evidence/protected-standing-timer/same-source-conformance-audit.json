@@ -1,0 +1,96 @@
+{
+  "architectures": {
+    "ia32": {
+      "source": "1b976349a947565d53640fc5cc80a24e911fca7e",
+      "conformance": {
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "cords": 3,
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "placements": 5,
+        "plan_id": "bf3295d9fd46179bd5f8cd5ebbf9aad87cdaba89dbf1b1a52a92121b75858e50",
+        "proof_class": "sealed-plan-conformance",
+        "protected_text_region": true,
+        "regions": 2,
+        "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+      },
+      "receipt": "../ordinary-plan-observatory-checkpoint/protected-standing-timer/1b976349a-ia32/ia32-ordinary-domain-proof.json"
+    },
+    "aarch64": {
+      "source": "1b976349a947565d53640fc5cc80a24e911fca7e",
+      "conformance": {
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "cords": 3,
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "placements": 5,
+        "plan_id": "338f13c6be268de3bd2f3cb3a229f2f55fe786734b1612bdeff19c41936c8a50",
+        "proof_class": "sealed-plan-conformance",
+        "protected_text_region": true,
+        "regions": 2,
+        "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+      },
+      "receipt": "../ordinary-plan-observatory-checkpoint/protected-standing-timer/1b976349a-aarch64/aarch64-ordinary-domain-proof.json"
+    },
+    "riscv64": {
+      "source": "1b976349a947565d53640fc5cc80a24e911fca7e",
+      "conformance": {
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "cords": 3,
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "placements": 5,
+        "plan_id": "b3b37597991f5787e6fcda1f1f1df0533615dbc098a0ada8c3c9d0e9abae987d",
+        "proof_class": "sealed-plan-conformance",
+        "protected_text_region": true,
+        "regions": 2,
+        "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+      },
+      "receipt": "../ordinary-plan-observatory-checkpoint/protected-standing-timer/1b976349a-riscv64/riscv64-ordinary-domain-proof.json"
+    },
+    "loongarch64": {
+      "source": "1b976349a947565d53640fc5cc80a24e911fca7e",
+      "conformance": {
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "cords": 3,
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "placements": 5,
+        "plan_id": "b3580f28b83d1533d19900a58429b4ef3f855a954ddb5dc2f4b94d0fa1665279",
+        "proof_class": "sealed-plan-conformance",
+        "protected_text_region": true,
+        "regions": 2,
+        "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+      },
+      "receipt": "../ordinary-plan-observatory-checkpoint/protected-standing-timer/1b976349a-loongarch64/loongarch64-ordinary-domain-proof.json"
+    },
+    "x86_64": {
+      "source": "011f6e79865c75465d9b6ef37da2818bedb6acff",
+      "conformance": {
+        "checked_plot_id": "4c0e3092ab0f3f04f0edaabca73cae5c1cf8625f7f883fcd5fc8b7e8f55ce7bb",
+        "cords": 3,
+        "expanded_plot_id": "f7e5f1f4ab99cdea2114cc2ee68687be252999401c4c0f1cc2f77f3924f7e587",
+        "placements": 5,
+        "plan_id": "894f75e568923469093d69158f5da01fbf8ee92c1b38a4015d6b421dff550fc7",
+        "proof_class": "sealed-plan-conformance",
+        "protected_text_region": true,
+        "regions": 2,
+        "schema": "conduit.conduitos/ordinary-source-plan-conformance@1",
+        "semantic_shape_sha256": "12e0eccca31d0b9e1dac5e1eda045c3052f16ba44621beab080bd89a77217b9e",
+        "source_document_id": "1341e1bd04eec43342f6e9ae79c7da5ca92574c1d2e373386c3495823527a9f8"
+      },
+      "receipt": "../ordinary-plan-observatory-checkpoint/protected-standing-timer/x86-prior-normal-product-kernel-proof.json"
+    }
+  },
+  "equal_fields": [
+    "source_document_id",
+    "checked_plot_id",
+    "expanded_plot_id",
+    "semantic_shape_sha256"
+  ],
+  "qualification": "x86 retainednormalproduct proof isearlier011f; otherfour1b976. AllhaveidenticalSourceandsemanticshape; finalcurrentcandidate CI andexactstable acceptance pending."
+}

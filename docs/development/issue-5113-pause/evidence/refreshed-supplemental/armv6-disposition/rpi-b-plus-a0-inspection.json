@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.conduitos.armv6-rpi-a0/v1",
+  "proof_class": "compile-link-artifact-only",
+  "architecture": "armv6",
+  "machine": "BCM2835/ARM1176JZF-S",
+  "board": "raspberry-pi-model-b-plus-v1.2",
+  "rust_target": "armv6-none-eabi",
+  "boot_path": "raspberry-pi-videocore-firmware-direct-kernel",
+  "entry_symbol": "conduitos_armv6_rpi_b_plus_product_entry",
+  "entry_address": 32768,
+  "load_address": 32768,
+  "elf_class": "ELF32",
+  "byte_order": "little-endian",
+  "eabi_version": 5,
+  "hard_float_abi": false,
+  "hosted_interpreter": false,
+  "dynamic_linkage": false,
+  "runtime_bases_available": false,
+  "boot_claimed": false,
+  "elf_sha256": "40fa35e4cbfd30f706a1aa150db96d8473d3c39b364551aca9c8305295236cee",
+  "kernel_image_sha256": "65bf70d329fef3cae811441e706687805e446be2fa2136d3b5f261750b684f97",
+  "kernel_image_bytes": 2452448
+}

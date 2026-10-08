@@ -1,0 +1,63 @@
+{
+  "schema": "conduit.pipeline-target/v1",
+  "target": "conduitos-ia32",
+  "sha": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+  "proofClass": "emulator",
+  "files": [
+    {
+      "path": "build-manifest.json",
+      "size": 3759,
+      "sha256": "3aaebdbf6f56a204fdedbec3f6464c6e76d66e72aefa63b3094cff6db3ce96fc"
+    },
+    {
+      "path": "conduitos-ia32.iso",
+      "size": 9072640,
+      "sha256": "5dbb814e1d87eac0d745136c13ca7b4fa8c17973040a65b075e926398e2dd3a5"
+    },
+    {
+      "path": "conduitos-kernel.elf",
+      "size": 4788684,
+      "sha256": "ea245aef3ff5043b5092e696857b6f54f89df366d351e43e6592f78573c88e9c"
+    },
+    {
+      "path": "evidence/ia32-product-first.log",
+      "size": 47636,
+      "sha256": "d23ac0257ee81c5b8501908f342324673934d519a6da60d2500935e07b0ba67a"
+    },
+    {
+      "path": "evidence/ia32-product-legacy-bios-vga.bin",
+      "size": 4000,
+      "sha256": "899f7c9005097bacba9fbea54e2dad271836e187fb34b82dd60ecdef6642b19c"
+    },
+    {
+      "path": "evidence/ia32-product-legacy-bios-vga.json",
+      "size": 32268,
+      "sha256": "72804e007a10a443179391a02f21c7b22a573247d6a2eee83af2df2b28f75f31"
+    },
+    {
+      "path": "evidence/ia32-product-legacy-bios.log",
+      "size": 47737,
+      "sha256": "bec6c2c962013aec301300ab042efb99d4bf3cda7441a0af43c6a2263bd3eec6"
+    },
+    {
+      "path": "evidence/ia32-product-observatory.json",
+      "size": 63328,
+      "sha256": "7a7d3a574b34fc6d14d6819310a9699e569f9fcd88dddd0d563f7f3a7c9a1709"
+    },
+    {
+      "path": "evidence/ia32-product-proof.json",
+      "size": 210894,
+      "sha256": "589b6a3ddb84169bca5eea658c737e8c90c25d6ec54c00104cacd1ae57fc129c"
+    },
+    {
+      "path": "evidence/ia32-product-second.log",
+      "size": 47636,
+      "sha256": "fca07bd71bf4163a09e5ea4aec22fe22c74cd2e29ce7ece02b20c61b04c8b3bd"
+    },
+    {
+      "path": "resolved-image.json",
+      "size": 3720,
+      "sha256": "00462107844d954ee0e0ac423fce3efc93812ddeb37dda57e67c498bca079a44"
+    }
+  ]
+}

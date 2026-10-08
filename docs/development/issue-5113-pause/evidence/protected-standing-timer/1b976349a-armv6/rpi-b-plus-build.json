@@ -1,0 +1,9 @@
+{
+  "schema": "conduit.conduitos.build/v2",
+  "artifact_role": "architecture-proof-appliance",
+  "base_commit": "1b976349a947565d53640fc5cc80a24e911fca7e",
+  "architecture": "armv6",
+  "rust_target": "armv6-none-eabi",
+  "limine_crate": "none",
+  "elf_sha256": "f9c27ae8efcae61a2c382822db1d3b98d71255efa7becda3506ff00a2b406640"
+}

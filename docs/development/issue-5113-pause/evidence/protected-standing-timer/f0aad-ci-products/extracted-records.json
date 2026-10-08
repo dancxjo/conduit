@@ -1,0 +1,149 @@
+[
+  {
+    "architecture": "x86_64",
+    "artifact_id": 11552837173,
+    "archive_digest": "sha256:d7c107ea7623c46fa68d1b029afc085a7b956691afae09038ecd850cf5932844",
+    "json_files": [
+      {
+        "path": "conduitos-x86_64/receipt.json",
+        "schema": "conduit.pipeline-target/v1"
+      },
+      {
+        "path": "conduitos-x86_64/build-manifest.json",
+        "schema": "conduit.host/target-build-manifest@3"
+      },
+      {
+        "path": "conduitos-x86_64/resolved-image.json",
+        "schema": null
+      },
+      {
+        "path": "conduitos-x86_64/evidence/journey-frames/manifest.json",
+        "schema": "conduit.conduitos/visual-journey@1"
+      },
+      {
+        "path": "conduitos-x86_64/evidence/journey-proof.json",
+        "schema": "conduit.conduitos/face-journey-proof@1"
+      },
+      {
+        "path": "conduitos-x86_64/evidence/x86_64-product-journey-proof.json",
+        "schema": "conduit.conduitos/face-journey-proof@1"
+      },
+      {
+        "path": "conduitos-x86_64/evidence/x86_64-product-proof.json",
+        "schema": "conduit.conduitos/x86_64-product-proof@1"
+      }
+    ]
+  },
+  {
+    "architecture": "ia32",
+    "artifact_id": 11551612410,
+    "archive_digest": "sha256:70a66a6e1aa1934ef26650c5ca61ad7f6aadb7b2c80ca7102b2278369ace51fb",
+    "json_files": [
+      {
+        "path": "conduitos-ia32/receipt.json",
+        "schema": "conduit.pipeline-target/v1"
+      },
+      {
+        "path": "conduitos-ia32/build-manifest.json",
+        "schema": "conduit.host/target-build-manifest@3"
+      },
+      {
+        "path": "conduitos-ia32/resolved-image.json",
+        "schema": null
+      },
+      {
+        "path": "conduitos-ia32/evidence/ia32-product-observatory.json",
+        "schema": "conduit.observatory.snapshot/v2"
+      },
+      {
+        "path": "conduitos-ia32/evidence/ia32-product-proof.json",
+        "schema": "conduit.conduitos/ia32-product-proof@2"
+      },
+      {
+        "path": "conduitos-ia32/evidence/ia32-product-legacy-bios-vga.json",
+        "schema": "conduit.conduitos/ia32-vga-capture@1"
+      }
+    ]
+  },
+  {
+    "architecture": "aarch64",
+    "artifact_id": 11553066065,
+    "archive_digest": "sha256:d6ccd1df1006ccb705c5fcbf3e547c6c9f4eab808b9fb6363f04333be78f5b73",
+    "json_files": [
+      {
+        "path": "conduitos-aarch64/receipt.json",
+        "schema": "conduit.pipeline-target/v1"
+      },
+      {
+        "path": "conduitos-aarch64/build-manifest.json",
+        "schema": "conduit.host/target-build-manifest@3"
+      },
+      {
+        "path": "conduitos-aarch64/resolved-image.json",
+        "schema": null
+      },
+      {
+        "path": "conduitos-aarch64/evidence/aarch64-product-proof.json",
+        "schema": "conduit.conduitos/aarch64-product-proof@1"
+      },
+      {
+        "path": "conduitos-aarch64/evidence/aarch64-product-observatory.json",
+        "schema": "conduit.observatory.snapshot/v2"
+      }
+    ]
+  },
+  {
+    "architecture": "riscv64",
+    "artifact_id": 11552331786,
+    "archive_digest": "sha256:cbe82ba1583199c8f915f3d5e9f0d62e230754cd3b32363c8ef6d9c3107c183c",
+    "json_files": [
+      {
+        "path": "conduitos-riscv64/receipt.json",
+        "schema": "conduit.pipeline-target/v1"
+      },
+      {
+        "path": "conduitos-riscv64/build-manifest.json",
+        "schema": "conduit.host/target-build-manifest@3"
+      },
+      {
+        "path": "conduitos-riscv64/resolved-image.json",
+        "schema": null
+      },
+      {
+        "path": "conduitos-riscv64/evidence/riscv64-product-proof.json",
+        "schema": "conduit.conduitos/riscv64-product-proof@1"
+      },
+      {
+        "path": "conduitos-riscv64/evidence/riscv64-product-observatory.json",
+        "schema": "conduit.observatory.snapshot/v2"
+      }
+    ]
+  },
+  {
+    "architecture": "loongarch64",
+    "artifact_id": 11551663824,
+    "archive_digest": "sha256:0b8514ba955776843fc0dbba665504c2bd92f9459f82f0b3c9e69010efc42297",
+    "json_files": [
+      {
+        "path": "conduitos-loongarch64/evidence/loongarch64-product-observatory.json",
+        "schema": "conduit.observatory.snapshot/v2"
+      },
+      {
+        "path": "conduitos-loongarch64/evidence/loongarch64-product-proof.json",
+        "schema": "conduit.conduitos/loongarch64-product-proof@1"
+      },
+      {
+        "path": "conduitos-loongarch64/build-manifest.json",
+        "schema": "conduit.host/target-build-manifest@3"
+      },
+      {
+        "path": "conduitos-loongarch64/resolved-image.json",
+        "schema": null
+      },
+      {
+        "path": "conduitos-loongarch64/receipt.json",
+        "schema": "conduit.pipeline-target/v1"
+      }
+    ]
+  }
+]

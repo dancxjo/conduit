@@ -1,0 +1,26 @@
+{
+  "base_commit": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+  "first": {
+    "boot_id": "ca1d7bca17adbcd570098a4488fa63347deb360876daac2a105f13e824709707",
+    "build_id": "build:sha256:657fd71c561b2a6b0f91b0ca64829218b0a332c305fb26b6a655ac87948ac6b6",
+    "host_id": "77ef944b1393c2f38e8a9786e7dd45e402bbab8be0b3c7bf4c22d1e8cd2f7d96",
+    "image_binding": "image:sha256:15aa6db5a5dfa1676d8c4aa8d68d65ab9ced8877645f06d9d88b2db25f6964c9",
+    "journey_status": "world",
+    "presenter_implementation_id": "presentation/renderer-conduitos-native@1",
+    "profile_id": "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3"
+  },
+  "fresh_boot_id": true,
+  "fresh_host_id": true,
+  "image_sha256": "42980bcce19d21d445e6f849c7467ba5846e1ce2629fe9e721705b8e7886d6ce",
+  "schema": "conduit.conduitos/x86_64-product-proof@1",
+  "second": {
+    "boot_id": "531642cdeceee6197871fb3446ce63b981b484513e2065129b6a8b0a1eb960fb",
+    "build_id": "build:sha256:657fd71c561b2a6b0f91b0ca64829218b0a332c305fb26b6a655ac87948ac6b6",
+    "host_id": "0bc8b294ac041e8501f8a8878c08629e50937a89739ee4827a540c3558b21cd5",
+    "image_binding": "image:sha256:15aa6db5a5dfa1676d8c4aa8d68d65ab9ced8877645f06d9d88b2db25f6964c9",
+    "journey_status": "world",
+    "presenter_implementation_id": "presentation/renderer-conduitos-native@1",
+    "profile_id": "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3"
+  },
+  "stopped_by_harness": true
+}

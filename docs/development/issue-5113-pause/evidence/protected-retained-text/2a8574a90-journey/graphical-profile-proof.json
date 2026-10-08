@@ -1,0 +1,37 @@
+{
+  "headless_images": [
+    {
+      "graphical_assets": false,
+      "host": "conduitos/ia32/pc",
+      "image_sha256": "a6fcedf75f6b4f08221535bc20a7eac16915f796b21aca1158a1ef3e438b8592"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/aarch64/virt",
+      "image_sha256": "2d8c995a07803479491c2f7a330c50fffb38b5dc3ce81d3a64fe9809ffb45f1e"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/riscv64/virt",
+      "image_sha256": "f6fbd63691acd2e8a64717f519b1a1b807418e95de31ef293dfc2e76a89b4ddd"
+    },
+    {
+      "graphical_assets": false,
+      "host": "conduitos/loongarch64/virt",
+      "image_sha256": "1bac5bece6918a7d2fafcb2294e1d930a8020f37be227908bdcf02742b482933"
+    }
+  ],
+  "image_sha256": "5f802ba62ed272bb8d1eb5af35494de28e5c53d7ff38e38c222971940270a255",
+  "journey": "journey-proof.json",
+  "physical_evidence": false,
+  "profile": {
+    "code": "DejaVu Sans Mono",
+    "fallback": "pinned Unifont",
+    "primary": "DejaVu Sans",
+    "primitive": false,
+    "profile": "conduitos/graphical/dejavu-v1"
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/graphical-profile-proof@1",
+  "source_commit": "24b8728ccf24b8ef897c581c0755102112c40854"
+}

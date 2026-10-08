@@ -1,0 +1,31 @@
+{
+  "records": {
+    "x86_64": {
+      "input": "/tmp/conduit-5113-source-py4kth5_/x86_64/boot-serial.log",
+      "plan_id": "fee2701f56f5ad441b4461b486025ebfc4528506cf470d09f31cb35a62cd0c72",
+      "diagnostic_projection_sha256": "3849fdcf8a0d94a7c0803445dcc9c8ff4341e0dd605c535fb5d17dec764c0fe2"
+    },
+    "aarch64": {
+      "input": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/conduit/target/conduitos/aarch64/aarch64-product-observatory.json",
+      "plan_id": "fb10e6c48fd57bde0a5f2d06a34d2d0e7be6034c82182bd37d1c82a7086b405a",
+      "diagnostic_projection_sha256": "3849fdcf8a0d94a7c0803445dcc9c8ff4341e0dd605c535fb5d17dec764c0fe2"
+    },
+    "riscv64": {
+      "input": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/riscv64-supported-checkpoint/riscv64-product-observatory.json",
+      "plan_id": "c252a6b6c0655f3bdd49c284ea1e7dfd432ab54460db92e1693a7fd7c2d8350d",
+      "diagnostic_projection_sha256": "3849fdcf8a0d94a7c0803445dcc9c8ff4341e0dd605c535fb5d17dec764c0fe2"
+    },
+    "loongarch64": {
+      "input": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/loongarch64-emulator-preparation-checkpoint/loongarch64-product-observatory.json",
+      "plan_id": "cb73b56228e7efe67afa6ec5228efddbff26454b98a2f85e731f88ce9376a6e5",
+      "diagnostic_projection_sha256": "3849fdcf8a0d94a7c0803445dcc9c8ff4341e0dd605c535fb5d17dec764c0fe2"
+    },
+    "ia32": {
+      "input": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-5113/work/ia32-domain-verified-checkpoint/ia32-legacy-bios-product-proof.json",
+      "plan_id": "00c7da2444a35d94638a9cf508e65a2121ad4908b108eb7a66715d1625aa80eb",
+      "diagnostic_projection_sha256": "3849fdcf8a0d94a7c0803445dcc9c8ff4341e0dd605c535fb5d17dec764c0fe2"
+    }
+  },
+  "supported_conformance_claimed": false,
+  "note": "initial diagnostic excludes lifecycle/startup graph normalization; retained older receipts differ in source revision"
+}

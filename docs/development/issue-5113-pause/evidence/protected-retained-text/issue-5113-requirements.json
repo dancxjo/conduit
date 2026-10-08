@@ -1,0 +1,210 @@
+{
+  "issue": "https://github.com/dancxjo/conduit/issues/5113",
+  "current_state": "OPEN",
+  "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6",
+  "requirements": [
+    {
+      "section": "Universal",
+      "requirement": "protection domain is an architecture-neutral realization beneath ordinary execution regions;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/protected_region.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "Source/semantic code can perform substantial pure computation inside the unprivileged domain;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/domain/timer.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "ordinary semantic execution is not delegated step-by-step back into Root;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/tour_timer_plan.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "effectful operations require exact current Root-held capability admission;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/domain_timer_gate.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "kernel/Root/capability tables/device resources are inaccessible to the domain except through admitted gates;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/arch/ordinary_domain.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "stale/stolen/arbitrary/broadened capability use is refused;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/domain_timer_gate/tests.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "lifecycle replacement/revocation invalidates domain capabilities;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/protected_timer.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "hostile non-effectful looping has a documented bounded return/preemption mechanism;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/arch/riscv64/domain_budget.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "same Source contains no target privilege/page-table facts;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/make/xtask/ordinary_source_conformance.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "Universal",
+      "requirement": "cost measurements exist for crossings, copying and domain memory.",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "docs/architecture/conduitos-protection-domains.md"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "x86_64",
+      "requirement": "ordinary product execution uses CPL3 protection domains, not only the #3078 proof feature;",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/tour_timer_plan.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "x86_64",
+      "requirement": "existing page/I/O/capability negative proof remains valid.",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/ordinary_domain_proof.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "IA-32",
+      "requirement": "ordinary protected execution runs outside ring 0 with page and I/O privilege enforcement.",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/ia32_domain_proof.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "AArch64",
+      "requirement": "ordinary protected execution runs at EL0 under privileged Root/kernel control.",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/aarch64_domain_proof.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "RISC-V64",
+      "requirement": "ordinary protected execution runs in U-mode under the ConduitOS privileged kernel.",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/riscv64_domain_proof.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "LoongArch64",
+      "requirement": "ordinary protected execution runs at the architecture's least-privileged application level with exact exception-gate enforcement.",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/conduitos/src/loongarch64_domain_proof.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    },
+    {
+      "section": "ARMv6 / other backend",
+      "requirement": "current supported backend either implements the same protection contract or explicitly refuses protected execution without claiming parity.",
+      "issue_checkbox_checked": false,
+      "status": "Development proof retained; timer merged with all26 checks PASS. Combined-dev repair CI and exact-main acceptance/proof pending.",
+      "development_evidence": "completion-audit.json; retained1b976349a native receipts; timer5307 merged06beea; final exact-main proof pending",
+      "source_evidence": [
+        "targets/raspberry-pi/make/xtask/armv6_rpi_b_plus_run.rs"
+      ],
+      "candidate": "dec247817026064d5f00d8507b44de6f2af43fb6"
+    }
+  ],
+  "additional_gate": "AGENTS exact-main acceptance through automatic release train beforeclosure",
+  "shared_proof_evidence": [
+    "../protected-standing-timer/1b976349a-all-five-timer-costs.json",
+    "../protected-standing-timer/same-source-conformance-audit.json",
+    "completion-audit.json"
+  ],
+  "qualifications": [
+    "Prior local Source/shape audit uses earlier011f x86 headless proof. Four f0aad CI non-x86 receipts match; x86 graphical CI omits this receipt. Run x86 headless prove on exact accepted main.",
+    "Stopcancels beforeexplicitrevoke; resumefaultquarantines/zeroes immediately thenownercleanupcancelstoken.",
+    "CPUdomain isolation doesnotclaimdriver/DMA/physicalhardwareisolation.",
+    "ARMv6protectedexecutionunsupported; cooperative diagnosticseparate."
+  ],
+  "final_main_gate": "After automatic release acceptance, sequentially run x86 headless prove, ordinary-domain-proof for all5 architectures, and ARMv6 native A3 explicit unsupported disposition on exact accepted main. Retain receipts before closure.",
+  "current_ci_repair": "831360b0cb8a53eb73d19d1ef4ffc8be2d2ceea1",
+  "current_candidate_run": 37815295745,
+  "timer_merge": "06beea3b991b5f12950dd5cd0d38e24074020137"
+}

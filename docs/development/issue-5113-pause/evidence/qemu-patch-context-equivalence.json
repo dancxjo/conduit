@@ -1,0 +1,23 @@
+{
+  "qemu-misc-drdtl.patch": {
+    "old_patch_sha256": "8c03dfb41cca6f70ed40e2fff139f8a314058f9874e4817224e9dd5e010fd288",
+    "new_patch_sha256": "abd2875c1db4a3a7897fda4967c2bddcce60f63db8e46f08d18774748a64cc5e",
+    "applied_source_sha256": {
+      "target/loongarch/csr.c": "a1366d01e1f607a28b69b72f5f0a3f8c3c81fda300c950600abcd5f575dff124",
+      "target/loongarch/tcg/helper.h": "1e5f1131cd219f29bcbad440dbf70cbc15b025552062f69f590794904a8db7af",
+      "target/loongarch/tcg/insn_trans/trans_privileged.c.inc": "34edfe115c09fe61d1e4ab00de7643e85fb0bcd36ee56fc45d0c91bd39067468",
+      "target/loongarch/tcg/csr_helper.c": "30ae094dd0fd93137b615306b26933c1f507b4a341398279c357411a04625dcc"
+    },
+    "applied_source_unchanged": true,
+    "zero_fuzz_and_zero_offset": true
+  },
+  "qemu-nonfault-badi.patch": {
+    "old_patch_sha256": "34942f718ec7219b1d39f28737591e6b74387ddcc880dabcec0e0eaa4569752b",
+    "new_patch_sha256": "df89114623b6d2467a2a5bc77532981ce6b0cccc64b6e4585a7503e4b7af8347",
+    "applied_source_sha256": {
+      "target/loongarch/tcg/tcg_cpu.c": "563647eb4b162dcc474381f78c09d1ae19adedb484d51f810e13e41cfda0634a"
+    },
+    "applied_source_unchanged": true,
+    "zero_fuzz_and_zero_offset": true
+  }
+}

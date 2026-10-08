@@ -1,0 +1,147 @@
+{
+  "objective": "Finish and close dancxjo/conduit#5113; do not close until explicit acceptance and required exact-main evidence are verified",
+  "issue_requirement_source": "https://github.com/dancxjo/conduit/issues/5113",
+  "scope_note": "Acceptance requires at least one real ordinary product path using the shared protection contract on each supported architecture. It does not explicitly require migrating every semantic implementation. Preserve truthful cooperative/unsupported classifications.",
+  "criteria": [
+    {
+      "requirement": "Architecture-neutral realization beneath exact ordinary execution regions",
+      "evidence": [
+        "targets/conduitos/src/protected_region.rs",
+        "targets/conduitos/src/execution_region.rs",
+        "targets/conduitos/src/arch/ordinary_domain.rs",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Substantial private pure computation without per-semantic-step Root RPC",
+      "evidence": [
+        "merged #5294 ordinary Unicode/Morse batch uses one pure entry",
+        "targets/conduitos/domain/timer.rs",
+        "targets/conduitos/src/tour_timer_runtime.rs",
+        "14fd Root compilation selects numeric graph only",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders",
+        "Allfive actual standing timer products use11entries/4Basegates; production FixedScheduler runs bounded192localsteps perprivate command"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Exact current Root-held effect authority and refusal of stale/stolen/arbitrary/broadened claims",
+      "evidence": [
+        "targets/conduitos/src/protection_domain",
+        "targets/conduitos/src/domain_serial_scope.rs",
+        "targets/conduitos/src/domain_timer_scope.rs",
+        "targets/conduitos/src/domain_timer_gate.rs",
+        "0f29 13 focused tests and x86 actual four Base gates",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Kernel/Root/capability/device access denied outside admitted domain",
+      "evidence": [
+        "c35-212 baseline native boundaries all5",
+        "69-file timer delta admits finite 128KiB code,16KiB state,32KiB stack and guards",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Replacement/revocation/provider loss and terminal fault invalidate authority, quiesce physical operations and zero private memory",
+      "evidence": [
+        "TimerGate matching pending lease and epoch tests",
+        "protected_timer.rs run cleanup cancels physical token before revocation",
+        "0f29 x86217088 reserved/zeroed",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending",
+      "qualification": "Stop/ordinary cleanup cancels pending physical token before explicit revoke. A resume fault quarantines and zeroes private memory immediately; owner cleanup then cancels token. Do not claim cancellation always precedes zeroization on faults."
+    },
+    {
+      "requirement": "Hostile non-effectful looping returns under bounded timer/preemption",
+      "evidence": [
+        "all5 native baseline hostile loop/floating loop and Source-wake coexistence",
+        "protected_timer.rs bounded512 Root effect/idle iterations",
+        "domain/timer.rs production kernel advances at most192 local steps per command",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Same checked Source and semantic Plan shape across supported targets, with no target privilege/page facts in Source",
+      "evidence": [
+        "shared ordinary product semantic-shape conformance in all5 baseline collectors",
+        "canonical count-over-time Source via conduit_tour_model stage2",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Cost evidence for crossings, copies, occupancy, setup/teardown, memory, TLB/scheduler/preemption",
+      "evidence": [
+        "0f29 actual x86 receipt79entries/4Basegates/313copied/217088reserved&zeroed",
+        "14fd includes shared-window/interrupt fields; idle suspension removes redundant entries",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders",
+        "Allfive runtime313copied/163sharedpeak; allreservedbytes zeroed; architecture-specific setup/teardown counters retained and documented"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "x86 CPL3, IA32 outside ring0, AArch64 EL0, RISC-V U-mode, LoongArch PLV3 actual ordinary product/proof entrances",
+      "evidence": [
+        "all5 c35-212 ordinary product/boundary proof passed",
+        "0f29 x86 actual protected timer product passed",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "ARMv6/current other backend implements contract or explicitly refuses protected execution",
+      "evidence": [
+        "merged #5194 ARMv6 native A3 refusal",
+        "build/domain_image.rs false protection classification for unsupported builds",
+        "../protected-standing-timer/1b976349a-armv6/rpi-b-plus-emulator-run.json; native A3 explicit protected unsupported, separate cooperative diagnostic"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Ordinary product uses protection, not only synthetic fixtures",
+      "evidence": [
+        "normal text products all5 baseline",
+        "graphical Keyboard and Memory Lantern merged product integration",
+        "merged Morse product path",
+        "tour_timer_plan.rs native product now constructs ProtectedTimer; proof calls same tour_play product entrance",
+        "../protected-standing-timer/1b976349a-all-five-timer-costs.json; per-architecture ordinary-domain proof receipts/UART in sibling folders"
+      ],
+      "status": "Development implementation and retained native emulator evidence verified on1b976349a; current candidate CI and required stable acceptance pending"
+    },
+    {
+      "requirement": "Required checks, documentation exact claims, current-dev PR and stable-main acceptance before closure",
+      "evidence": [
+        "#5303 merged51e9884e3 all checks green repairs twelve-step publisher",
+        "origin/dev51e9884e3 fetched"
+      ],
+      "status": "5310baseline4aa candidate37794508715 and5307timerdec247 candidate37794524209 pending. Currentgallerynamespaceintegrationfailurefixed; local4retentiontests/supportedrefresh/unknownrootrefusalPASS. Exactstableacceptance andfinalmainnativeproofpending."
+    }
+  ],
+  "current_five_architecture_candidate": {
+    "source": "1b976349a947565d53640fc5cc80a24e911fca7e",
+    "native": "all5 PASS, actual120ms product plus terminal replay refusal; same11entries4gates313bytes",
+    "costs": "../protected-standing-timer/1b976349a-all-five-timer-costs.json",
+    "host_focused": "17 PASS",
+    "package_clippy": "PASS-Dwarnings",
+    "remaining": "5310repair831360 CI/merge; automatedstableacceptance; exact-main x86headlessprove/all5domainproof/ARMv6;17criterionaudit and stopline review before close.",
+    "armv6": "PASS explicit protected unsupported on1b976349a",
+    "graphical": "PASS canonical profile and12stepjourney on1b976349a",
+    "candidate_head": "dec247817026064d5f00d8507b44de6f2af43fb6",
+    "local_full_workspace": "PASS source370db229c:6769passed,0failed,13ignored,912suites including doctests",
+    "workspace_clippy": "PASS-Dwarnings alltargets on8a724 publishedcandidate",
+    "ci_scope": "NativeCIlanesproveactualnormalproductboots/conformance/journey; separate diagnosticcommandsprovehostileboundaries/actualstandingtimer. Exactmainmustrunlatterbeforeclosure.",
+    "normal_conformance_qualification": {
+      "source": "f0aad070dee3623c9d18a9b9b709deac892b4597",
+      "archives": "All five GitHub artifact zip SHA256 digests verified; bounded regular JSON extracted",
+      "normal_conformance": "Four non-x86 native product receipts share exact Source, checked, expanded, and semantic-shape identities. x86 graphical product receipt lacks this conformance object; its journey separately proves protected keyboard/retained-text product domains.",
+      "remaining": "Run supported x86 headless prove on exact accepted main; do not infer the absent receipt from graphical CI success."
+    }
+  }
+}
