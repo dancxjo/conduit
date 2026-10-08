@@ -2999,12 +2999,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 continue;
             } else if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
-                if let Some(now_ms) = timer.monotonic_now_ms() {
-                    deadlines.arm(request, duration, now_ms)?;
-                    record_request(&mut requests, request);
-                    continue;
-                }
-                timer.wait(Duration::from_millis(duration));
+                let now_ms = timer
+                    .monotonic_now_ms()
+                    .ok_or_else(|| "admitted monotonic wait Base is unavailable".to_string())?;
+                deadlines.arm(request, duration, now_ms)?;
+                record_request(&mut requests, request);
+                continue;
             } else if contract == &deadline_contract_id {
                 let duration = conduit_core::decode_monotonic_duration(input)
                     .map_err(|error| format!("decode admitted deadline: {error:?}"))?;
