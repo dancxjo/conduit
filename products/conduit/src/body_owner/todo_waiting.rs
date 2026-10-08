@@ -5,8 +5,10 @@
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_core::{
-    port_id, AuthorityGrant, ConnectionTrack, ResourceContentRequirement, TerminalDisposition,
+    port_id, AuthorityGrant, ConnectionTrack, ResourceAccessMode, ResourceContentRequirement,
+    TerminalDisposition,
 };
+use conduit_kernel::KernelEventKind;
 use conduit_presentation::{FaceInteraction, FaceInteractionId, MaskShow};
 use conduit_std_host::body_execution::{
     BodyForeOutputAdapter, BodyRunReport, BodyRunRequest, TodoCheckpointSelection, WaitingTodoFore,
@@ -47,6 +49,8 @@ pub(crate) struct TodoWaitingWorker {
     control: RunControl,
     queue: BodyLiveForeQueue,
     initial: TodoState,
+    checkpoint_identity: CheckpointIdentity,
+    selected_content: ResourceContentRequirement,
     accepted_interaction: Option<FaceInteractionId>,
     started: Receiver<(BodyPlayIdentity, Wake)>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
@@ -170,6 +174,34 @@ impl Owner {
             );
         }
         current.validate().map_err(debug)?;
+        let advertised = self.host.advertisement();
+        let selected_offer = advertised
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION
+                    && offer.capability_id == grant.capability_id
+            })
+            .ok_or("Todo grant does not select the current checkpoint offer")?;
+        if selected_offer.authority_requirements.len() != 1 {
+            return Err("Todo checkpoint offer has unexpected authority".into());
+        }
+        let mut selected = advertised.resources.iter().filter(|resource| {
+            resource.class_id.as_str() == "resource/todo-checkpoint@1"
+                && resource.content.as_ref().is_some_and(|content| {
+                    content.contract.access == ResourceAccessMode::WriteCandidatePublish
+                })
+        });
+        let selected_content = selected
+            .next()
+            .and_then(|resource| resource.content.as_ref())
+            .ok_or("Todo checkpoint has no selected write resource")?
+            .contract
+            .clone();
+        if selected.next().is_some() {
+            return Err("Todo checkpoint has ambiguous selected resources".into());
+        }
         self.plan_checkpoint_once(source, plot, grant)?;
         let proposed = self
             .session
@@ -188,6 +220,7 @@ impl Owner {
         let mut host = self.host.take_for_play()?;
         let worker_control = control.clone();
         let worker_queue = queue.clone();
+        let checkpoint_identity = identity.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
         let (ack_tx, ack_rx) = mpsc::sync_channel(1);
         let thread = thread::Builder::new()
@@ -233,6 +266,8 @@ impl Owner {
             control,
             queue,
             initial: current,
+            checkpoint_identity,
+            selected_content,
             accepted_interaction: None,
             started: started_rx,
             acknowledge: Some(ack_tx),
@@ -326,6 +361,26 @@ impl TodoWaitingWorker {
                 .is_some_and(|status| status.kernel_admitted == 1)
             && count == 1
             && report.fore_deliveries.len() == 1
+            && report.requests.len() == 1
+            && report.requests.first().is_some_and(|request| {
+                [
+                    KernelEventKind::HostCallRequested,
+                    KernelEventKind::HostCallCompleted,
+                ]
+                .into_iter()
+                .all(|kind| {
+                    report
+                        .kernel_events
+                        .iter()
+                        .filter(|event| {
+                            event.kind == kind
+                                && event.node == request.node
+                                && event.request == Some(request.request)
+                        })
+                        .count()
+                        == 1
+                })
+            })
             && report.terminal_sign.active_play_id == Some(report.play.active_play_id.clone())
         {
             Some(TodoState::decode_info(&report.fore_deliveries[0].bytes).map_err(debug)?)
@@ -345,6 +400,17 @@ impl TodoWaitingWorker {
             "interaction_id":self.accepted_interaction.as_ref(),
             "committed_fore_count":count,
             "committed_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
+            "checkpoint_namespace":{
+                "body_id":self.checkpoint_identity.body,
+                "write_plot_id":self.checkpoint_identity.plot,
+                "list_key":self.checkpoint_identity.workload,
+            },
+            "selected_content":self.selected_content,
+            "host_call_request":report.requests.first().map(|request| serde_json::json!({
+                "node":request.node.0,
+                "request":request.request.0,
+                "call":request.call.0,
+            })),
         });
         state::retain(
             state_root,

@@ -175,6 +175,20 @@ fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
     );
     assert!(receipt["terminal_sign"]["active_play_id"].is_string());
     assert!(receipt["committed_fore_sha256"].is_string());
+    assert_eq!(receipt["checkpoint_namespace"]["list_key"], "todo-list");
+    assert_eq!(
+        receipt["checkpoint_namespace"]["body_id"],
+        owner.session.evidence().body_id.as_str()
+    );
+    assert_eq!(
+        receipt["checkpoint_namespace"]["write_plot_id"],
+        plot.expanded.checked_plot_id.as_str()
+    );
+    assert_eq!(
+        receipt["selected_content"]["access"],
+        "WriteCandidatePublish"
+    );
+    assert_eq!(receipt["host_call_request"]["request"], 0);
     assert!(owner.todo_live.is_none());
     assert!(!owner
         .local_face_snapshot()
