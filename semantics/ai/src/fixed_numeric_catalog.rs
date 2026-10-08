@@ -14,14 +14,26 @@ pub const FIXED_NUMERIC_SOURCE: &str = include_str!("../fixed_numeric.conduit");
 pub const FIXED_NUMERIC_SIGNAL_SOURCE: &str = include_str!("../fixed_numeric_signal.conduit");
 pub const FIXED_NUMERIC_REVISION: &str = "conduit.numeric/fixed-f32-libm@1";
 
-/// Checked immutable source metadata; hosted caching never retains resources.
+/// Only immutable checked Source metadata is cached; never resources or grants.
 #[cfg(feature = "hosted-catalog-cache")]
-pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
+fn cached_types() -> &'static Result<Vec<CheckedNativeType>, String> {
     static CHECKED: std::sync::OnceLock<Result<Vec<CheckedNativeType>, String>> =
         std::sync::OnceLock::new();
-    CHECKED.get_or_init(fixed_numeric_types_uncached).clone()
+    CHECKED.get_or_init(fixed_numeric_types_uncached)
 }
-#[cfg(not(feature = "hosted-catalog-cache"))]
+#[cfg(all(
+    not(feature = "hosted-catalog-cache"),
+    feature = "immutable-catalog-cache"
+))]
+fn cached_types() -> &'static Result<Vec<CheckedNativeType>, String> {
+    static CHECKED: spin::Once<Result<Vec<CheckedNativeType>, String>> = spin::Once::new();
+    CHECKED.call_once(fixed_numeric_types_uncached)
+}
+#[cfg(any(feature = "hosted-catalog-cache", feature = "immutable-catalog-cache"))]
+pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
+    cached_types().clone()
+}
+#[cfg(not(any(feature = "hosted-catalog-cache", feature = "immutable-catalog-cache")))]
 pub fn fixed_numeric_types() -> Result<Vec<CheckedNativeType>, String> {
     fixed_numeric_types_uncached()
 }
@@ -43,22 +55,45 @@ fn fixed_numeric_types_uncached() -> Result<Vec<CheckedNativeType>, String> {
 }
 
 pub fn fixed_numeric_type(name: &str) -> Result<StructuredInfoType, String> {
-    fixed_numeric_types()?
-        .into_iter()
-        .find(|ty| ty.name == name)
-        .map(|ty| ty.value_type)
-        .ok_or_else(|| format!("unknown fixed numeric Type {name}"))
+    #[cfg(any(feature = "hosted-catalog-cache", feature = "immutable-catalog-cache"))]
+    {
+        // Clone only the selected checked Type, not the entire cached catalog.
+        cached_types()
+            .as_ref()
+            .map_err(Clone::clone)?
+            .iter()
+            .find(|ty| ty.name == name)
+            .map(|ty| ty.value_type.clone())
+            .ok_or_else(|| format!("unknown fixed numeric Type {name}"))
+    }
+    #[cfg(not(any(feature = "hosted-catalog-cache", feature = "immutable-catalog-cache")))]
+    {
+        fixed_numeric_types()?
+            .into_iter()
+            .find(|ty| ty.name == name)
+            .map(|ty| ty.value_type)
+            .ok_or_else(|| format!("unknown fixed numeric Type {name}"))
+    }
 }
 
-/// Checked immutable source metadata; hosted caching never retains resources.
 #[cfg(feature = "hosted-catalog-cache")]
-pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
+fn cached_contracts() -> &'static Result<Vec<Kind>, String> {
     static CHECKED: std::sync::OnceLock<Result<Vec<Kind>, String>> = std::sync::OnceLock::new();
-    CHECKED
-        .get_or_init(fixed_numeric_contracts_uncached)
-        .clone()
+    CHECKED.get_or_init(fixed_numeric_contracts_uncached)
 }
-#[cfg(not(feature = "hosted-catalog-cache"))]
+#[cfg(all(
+    not(feature = "hosted-catalog-cache"),
+    feature = "immutable-catalog-cache"
+))]
+fn cached_contracts() -> &'static Result<Vec<Kind>, String> {
+    static CHECKED: spin::Once<Result<Vec<Kind>, String>> = spin::Once::new();
+    CHECKED.call_once(fixed_numeric_contracts_uncached)
+}
+#[cfg(any(feature = "hosted-catalog-cache", feature = "immutable-catalog-cache"))]
+pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
+    cached_contracts().clone()
+}
+#[cfg(not(any(feature = "hosted-catalog-cache", feature = "immutable-catalog-cache")))]
 pub fn fixed_numeric_contracts() -> Result<Vec<Kind>, String> {
     fixed_numeric_contracts_uncached()
 }
