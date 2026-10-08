@@ -365,7 +365,6 @@ fn send_chunks(
 mod tests {
     use super::*;
     use crate::bounded_websocket::WebSocketError;
-    use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
     use conduit_presentation::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
 
     #[derive(Default)]
