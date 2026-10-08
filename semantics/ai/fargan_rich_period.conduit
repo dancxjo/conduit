@@ -107,3 +107,12 @@ plot ai/fargan-rich-hold-span (
     >> value: FarganRichHoldPosition
     result: FarganRichHoldSpan >>
 ) = ({ start_frame: .original_query_frame, end_frame_exclusive: .original_query_frame + 160 })
+# Held model effect retains the complete exact onset quantity; integer precision
+# and temporal onset-hold approximation remain separate fidelity obligations.
+type FarganRichHeldPeriodTarget = {
+    span: FarganRichHoldSpan
+    original_q8: SpeechCycleQ8AtRate
+    model_period: U64 in 32..=255
+    policy: FarganRichHoldPolicy
+    where .policy is onset_hold_10ms
+}

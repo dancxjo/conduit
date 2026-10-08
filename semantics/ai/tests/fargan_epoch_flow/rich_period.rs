@@ -8,6 +8,11 @@ const SOURCE: &str = include_str!("../../fargan_rich_period.conduit");
 fn source() -> String {
     String::from(include_str!("../../../speech/timing.conduit"))
         + "\n"
+        + include_str!("../../../speech/pitch_trajectory.conduit")
+            .split("type SpeechSegmentPitchAdmission")
+            .next()
+            .unwrap()
+        + "\n"
         + SOURCE
         + "\ntype FarganPeriod = U16 in 32..=255\n"
 }

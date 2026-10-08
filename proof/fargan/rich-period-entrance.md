@@ -147,3 +147,36 @@ under-preparation refusal, invalid index and malformed input refusal. Measured
 AST storage is 707509 bytes actual retained and 4091629 bytes conservative
 retained/preparation bound. This adapter is a small dependency checkpoint, not a
 whole-model resource or rich waveform proof.
+
+## Separate temporal fidelity and committed-owner composition
+
+The finite aggregate now takes an explicit hold policy; unsupported policy refuses
+through its original Source hold-position guard. It re-admits the complete
+`SpeechLinearPitchTrajectory` using the exact authored declaration from the
+existing Speech owner. Full original revision/effect material remains shared
+outside the bounded Core facts. Each temporal report re-admits position/span,
+replays the retained fixed Source hold program and requires byte-identical output.
+Its Source-admitted held target retains that span, full original Q8 onset fraction,
+selected model period and declared policy. This admits a 160-frame half-open hold
+at 16 kHz, not a claim that interpolation itself is coarticulation.
+
+Core reports classify within-epoch trajectory variation as `Approximation`,
+separately from nearest-integer period `Precision`. The explicit
+`ai/explicit-onset-hold-10ms@1` policy permits only that temporal loss; exact consumers,
+foreign/undeclared policies, omitted facts, Precision substituted for Approximation,
+foreign owner identity and forged but structurally valid hold spans refuse.
+The loss detail states the 160-frame/16-kHz cadence, not an invented bound on
+acoustic error. The native facts retain complete original trajectory and Source
+query. Complete original occurrence/revision/effect material stays in the shared
+owner rather than exceeding the existing Core fact cap.
+
+`components/committed_trajectory_basis.rs` is the separate new-root-SDK composition
+adapter. It borrows the actual `PreparedCommittedWordPitch` owner and obtains the
+selected complete Source pitch/trajectory/rich admission directly from its private
+prepared contents. It retains that original owner by reference and rejects a
+foreign offered owner by address. It typechecks with the actual root owner and
+pinned SDK; it has not independently run the complete committed fixture. Transfer
+to the older FARGAN component uses complete canonical bytes and fresh original
+Source admission, never an ABI cast. Root must still bind each completed actual
+frame receipt/query to its exact selected admission and retain the complete final
+shared carrier before a varying-period inference run.
