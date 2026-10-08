@@ -9,13 +9,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::cli::GlobalOpts;
 
 use super::{
-    demo, journey_input, owner_boot, profile::Paths, qmp, qmp_display, report::git_head,
-    ConduitosArch, ConduitosError, LiveOwnerActionProofArgs, LiveOwnerTodoFaceProofArgs,
+    ConduitosArch, ConduitosError, LiveOwnerActionProofArgs, LiveOwnerTodoActionProofArgs,
+    LiveOwnerTodoFaceProofArgs, demo, journey_input, owner_boot, profile::Paths, qmp, qmp_display,
+    report::git_head,
 };
 
 #[path = "owner_action_coordination.rs"]
@@ -24,6 +25,8 @@ use coordination::{wait_for_resume, write_checkpoint};
 #[path = "owner_action_validation.rs"]
 mod validation;
 use validation::{refreshed_show_after_action, validate_success};
+#[path = "owner_todo_action_proof.rs"]
+mod todo_action;
 #[path = "owner_todo_face_validation.rs"]
 mod todo_validation;
 
@@ -36,7 +39,7 @@ pub(super) fn execute(
     args: &LiveOwnerActionProofArgs,
     opts: &GlobalOpts,
 ) -> Result<(), ConduitosError> {
-    execute_mode(args, opts, None)
+    execute_mode(args, opts, None, None)
 }
 
 pub(super) fn execute_todo_face(
@@ -47,13 +50,32 @@ pub(super) fn execute_todo_face(
     {
         return Err(refusal("native-todo-face-requires-coordinated-body"));
     }
-    execute_mode(&args.route, opts, Some(args))
+    execute_mode(&args.route, opts, Some(args), None)
+}
+
+pub(super) fn execute_todo_action(
+    args: &LiveOwnerTodoActionProofArgs,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    if !args.face.route.coordinate
+        || args.face.expected_body_id.is_empty()
+        || args.face.expected_status.is_empty()
+        || args.expected_after_status.is_empty()
+        || !(1..=64).contains(&args.tab_count)
+        || !args.expected_action_id.starts_with("todo.")
+    {
+        return Err(refusal(
+            "native-todo-action-requires-bounded-coordinated-body",
+        ));
+    }
+    execute_mode(&args.face.route, opts, Some(&args.face), Some(args))
 }
 
 fn execute_mode(
     args: &LiveOwnerActionProofArgs,
     opts: &GlobalOpts,
     expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
+    expected_todo_action: Option<&LiveOwnerTodoActionProofArgs>,
 ) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal("native-owner-proof-requires-live-input"));
@@ -83,6 +105,9 @@ fn execute_mode(
     if source != route.source_identity || !clean_source(&root)? {
         return Err(refusal("native-owner-proof-source-not-exact"));
     }
+    let isolated = expected_todo_action
+        .map(|action| todo_action::validate_isolated_installation(action, &source))
+        .transpose()?;
     let spore = fs::canonicalize(&args.spore)
         .map_err(|error| ConduitosError::refusal("native-owner-proof-spore", error.to_string()))?;
     let spore_str = spore
@@ -119,11 +144,15 @@ fn execute_mode(
         &qemu_args,
         args.coordinate,
         expected_todo,
+        expected_todo_action,
+        isolated.as_ref(),
     );
     let _ = child.kill();
     let _ = child.wait();
     let receipt = result?;
-    let path = directory.join(if expected_todo.is_some() {
+    let path = directory.join(if expected_todo_action.is_some() {
+        "owner-todo-action-proof.json"
+    } else if expected_todo.is_some() {
         "owner-todo-face-proof.json"
     } else {
         "owner-action-proof.json"
@@ -152,6 +181,8 @@ fn prove(
     qemu_args: &[String],
     coordinate: bool,
     expected_todo: Option<&LiveOwnerTodoFaceProofArgs>,
+    expected_todo_action: Option<&LiveOwnerTodoActionProofArgs>,
+    isolated: Option<&todo_action::Isolation>,
 ) -> Result<Value, ConduitosError> {
     let (mut qmp, mut reader) =
         qmp::connect_traced(qmp_path, child, Some(&directory.join("qmp.jsonl")))?;
@@ -226,13 +257,35 @@ fn prove(
     journey_input::key_pair(&mut qmp, &mut reader, "f5", "native-owner-activate")?;
     let (part, before, before_ack) =
         wait_for_arrival(serial_path, child, Duration::from_secs(120))?;
-    if part != standby_part || before.get("face_id") != standby_face.get("face_id") {
+    if part != standby_part
+        || (expected_todo_action.is_none() && before.get("face_id") != standby_face.get("face_id"))
+    {
         return Err(refusal("native-owner-standby-basis-changed"));
     }
     let (before_image, health) =
         qmp_display::capture(&mut qmp, &mut reader, directory, "owner-before")?;
     if let Some(error) = health {
         return Err(error);
+    }
+    if let Some(args) = expected_todo_action {
+        return todo_action::continue_after_arrival(
+            args,
+            isolated.ok_or_else(|| refusal("native-todo-action-isolation-absent"))?,
+            directory,
+            serial_path,
+            child,
+            &mut qmp,
+            &mut reader,
+            route,
+            qemu_args,
+            &standby_part,
+            &standby_face,
+            &part,
+            &before,
+            &before_ack,
+            &standby_image,
+            &before_image,
+        );
     }
     if expected_todo.is_some() {
         if child
@@ -484,7 +537,7 @@ fn bounded_serial(path: &std::path::Path) -> Result<String, ConduitosError> {
             return Err(ConduitosError::refusal(
                 "native-owner-serial-io",
                 error.to_string(),
-            ))
+            ));
         }
     }
     fs::read_to_string(path)
@@ -548,11 +601,13 @@ mod tests {
         assert_eq!(parsed[0]["status"], "accepted");
         assert!(records(&line.repeat(9), OWNER_ACTION).is_err());
         assert!(records(&format!("{OWNER_ACTION}not-json\n"), OWNER_ACTION).is_err());
-        assert!(records(
-            &format!("{line}{OWNER_ACTION}{{\"status\":\"pend"),
-            OWNER_ACTION
-        )
-        .is_ok_and(|records| records.len() == 1));
+        assert!(
+            records(
+                &format!("{line}{OWNER_ACTION}{{\"status\":\"pend"),
+                OWNER_ACTION
+            )
+            .is_ok_and(|records| records.len() == 1)
+        );
     }
 
     #[test]
