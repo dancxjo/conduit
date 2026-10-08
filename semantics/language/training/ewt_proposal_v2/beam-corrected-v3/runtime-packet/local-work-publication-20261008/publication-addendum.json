@@ -1,0 +1,19 @@
+{
+  "draft_pr": "https://github.com/dancxjo/conduit/pull/5313",
+  "additional_snapshots": [
+    {
+      "local_path": "/home/dancxjo/conduit-4907-native-reuse/work/native-record-recipe/publication-pr-body.md",
+      "snapshot_path": "semantics/language/training/ewt_proposal_v2/beam-corrected-v3/runtime-packet/local-work-publication-20261008/snapshot/work/native-record-recipe/publication-pr-body.md",
+      "sha256": "88bfddd2d01c18bd903dba85966cc460a40869c4d2cced56fc3d4f923c9e3907",
+      "bytes": 2234
+    },
+    {
+      "local_path": "/home/dancxjo/conduit-4907-native-reuse/work/native-record-recipe/publication-whitespace.log",
+      "snapshot_path": "semantics/language/training/ewt_proposal_v2/beam-corrected-v3/runtime-packet/local-work-publication-20261008/snapshot/work/native-record-recipe/publication-whitespace.log",
+      "sha256": "52cc0014fe39208f4ebb56c1a48e58568585a8ded2557702f9a0af4e37ca8afd",
+      "bytes": 10535
+    }
+  ],
+  "attachment_note": "App attach tool was called but did not return; no attachment success is claimed.",
+  "note": "Historical snapshot whitespace is preserved verbatim; the whitespace log does not assert functional failure."
+}
