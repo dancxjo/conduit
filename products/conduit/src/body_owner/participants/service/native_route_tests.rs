@@ -54,7 +54,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         panic!("expected native admission challenge")
     };
     let secret = SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap();
-    owner
+    let snapshot = owner
         .browser_complete(
             &root,
             &authorized.window_id,
@@ -131,5 +131,166 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .authority_requirements
         .clear();
     assert!(seal.validate_mask_host_offer(&wrong_offer).is_err());
+
+    let receipt = conduit_body::PortableAdmissionReceipt {
+        schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+        credential: snapshot.credential.clone(),
+        host_advertisement: native_offer.clone(),
+        membership_admitted: true,
+        current_offers_available: false,
+        plan_created: false,
+        play_created: false,
+    };
+    let expires = crate::durable_host::current_time_millis().unwrap() + 60_000;
+    let selected = owner
+        .seal_native_mask_route(&receipt, &face_line, &return_line, expires)
+        .unwrap();
+    assert_eq!(selected, seal);
+    let plan_id = owner
+        .presentation_wardrobe
+        .as_ref()
+        .unwrap()
+        .plan()
+        .plan_id
+        .clone();
+    let placement = selected.planned_mask.show_placement();
+    let play = conduit_core::bind_active_play(
+        &selected.planned_mask.plan.plan_id,
+        &placement.host_id,
+        &placement.boot_id,
+        1,
+    );
+    let show = conduit_presentation::MaskShow::prepared(
+        &selected.planned_mask,
+        &face,
+        play,
+        face.subjects[0].identity.clone(),
+        "native/test".into(),
+        conduit_core::SignId::from("sign/test/native-prepared"),
+    )
+    .unwrap()
+    .transition(
+        conduit_presentation::ManifestationLifecycle::Available,
+        conduit_core::SignId::from("sign/test/native-available"),
+    )
+    .unwrap();
+    let request = conduit_presentation::OwnerFaceSnapshotRequest {
+        schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: snapshot.credential.credential_id.as_str().into(),
+        body_id: snapshot.credential.body_id.clone(),
+        part_id: snapshot.credential.part_id.clone(),
+        host_id: snapshot.credential.host_id.clone(),
+        boot_id: snapshot.credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    let current = Owner::current_presentation_routes_with_native(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        None,
+        owner.pending_native_mask.as_ref(),
+        &owner.session,
+        &face,
+        expires - 1,
+    );
+    assert_eq!(current.len(), 1);
+    let native_mask = selected.planned_mask.mask.plot_identity.clone();
+    let binding = LinkBindingId::from("line/test/native-mask");
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &LinkBindingId::from("line/test/wrong"),
+            &request,
+            None,
+            0,
+            None,
+        )
+        .is_err());
+    let inspected = owner
+        .browser_wardrobe_report(&authorized.window_id, &binding, &request, None, 0, None)
+        .unwrap();
+    assert_eq!(inspected["owner_plan_id"], serde_json::json!(plan_id));
+    assert_eq!(inspected["wardrobe_revision_decimal"], "0");
+    assert_eq!(
+        inspected["route_descriptions"][0]["mask_name"],
+        "native-graphical"
+    );
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &binding,
+            &request,
+            Some(&conduit_core::PlanId::from("plan/stale")),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Doff(
+                native_mask.clone()
+            )),
+        )
+        .is_err());
+    owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &binding,
+            &request,
+            Some(&plan_id),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Doff(
+                native_mask.clone(),
+            )),
+        )
+        .unwrap();
+    assert!(owner.acknowledge_native_mask_show(&request, &show).is_err());
+    assert!(owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &binding,
+            &request,
+            Some(&plan_id),
+            0,
+            Some(conduit_presentation::MaskWardrobeAction::Wear(
+                native_mask.clone()
+            )),
+        )
+        .is_err());
+    owner
+        .browser_wardrobe_report(
+            &authorized.window_id,
+            &binding,
+            &request,
+            Some(&plan_id),
+            1,
+            Some(conduit_presentation::MaskWardrobeAction::Wear(native_mask)),
+        )
+        .unwrap();
+    owner.acknowledge_native_mask_show(&request, &show).unwrap();
+    owner.validate_native_mask_show(&request, &show).unwrap();
+    assert_eq!(
+        owner.presentation_wardrobe.as_ref().unwrap().plan().plan_id,
+        plan_id
+    );
+    let expired = Owner::current_presentation_routes_with_native(
+        owner.host.advertisement(),
+        owner.pending_browser.as_ref(),
+        None,
+        owner.pending_native_mask.as_ref(),
+        &owner.session,
+        &face,
+        expires,
+    );
+    assert!(expired.is_empty());
+    let loss = owner
+        .presentation_wardrobe
+        .as_mut()
+        .unwrap()
+        .admit_or_replace(&owner.session, &face, &expired)
+        .unwrap();
+    assert!(matches!(
+        loss.show,
+        conduit_presentation::MaskShowDisposition::NoCurrentShow { .. }
+    ));
+    assert_eq!(
+        owner.presentation_wardrobe.as_ref().unwrap().plan().plan_id,
+        plan_id
+    );
     std::fs::remove_dir_all(root).unwrap();
 }
