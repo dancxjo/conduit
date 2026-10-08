@@ -5,7 +5,7 @@
 use crate::lexical_proposer_port::token_producer::model_definition::{
     ProposalModelDefinition, ProposalSegmentationAbi,
 };
-use conduit_core::BoundedResourceRef;
+use conduit_core::{semantic_digest, BoundedResourceRef};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Window8DeclarationRefusal {
     Policy,
@@ -66,6 +66,22 @@ pub(crate) fn check_fixed_declaration(
         return Err(R::Signature);
     }
     let source = d.source_contract();
+    // Bind copied declaration metadata to the actual compiled Source material.
+    // concat! retains the exact original byte concatenation without allocation.
+    let actual_feature = concat!(
+        include_str!("../parser_window8_proposal_features.conduit"),
+        include_str!("../parser_window8_proposal_features_v2.conduit")
+    );
+    let actual_window = include_bytes!("../parser_window8.conduit");
+    if source.feature_contract
+        != semantic_digest("language/parser-proposal-window8-scorer-encoding@2", actual_feature.as_bytes())
+        || source.action_contract != semantic_digest("language/parser-window8-action@3", actual_window)
+        || source.availability_contract != semantic_digest("language/parser-window8-available@3", actual_window)
+        || source.joint_choice_contract
+            != semantic_digest("language/parser-window8-choice-search@3", include_bytes!("../parser_window8_search.conduit"))
+    {
+        return Err(R::Source);
+    }
     if source.action_contract
         != [
             235, 217, 53, 61, 150, 129, 92, 141, 42, 119, 48, 38, 129, 158, 150, 221, 11, 115, 12,
