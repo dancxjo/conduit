@@ -108,6 +108,13 @@ fn repeated_fixed_pipeline_performs_no_allocation() {
             &mut first,
             &mut second,
         );
+        vec_result = (|| {
+            morse_characters_from_text_into("00000000000000000000000000000000", &mut vec_first)?;
+            morse_lookup_characters_into(&vec_first, &mut vec_second)?;
+            morse_intersperse_gaps_into(&vec_second, &mut vec_first)?;
+            morse_flatten_groups_into(&vec_first, &mut vec_second)?;
+            morse_symbols_to_pattern_into(&vec_second, 80, &mut vec_first)
+        })();
     }
     let allocations = ALLOCATIONS.with(|count| count.replace(None).unwrap());
     assert!(vec_result.is_ok());
