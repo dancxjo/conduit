@@ -1,7 +1,7 @@
 //! Closed generated-Native dispatch for the fixed public Session factory.
 //! Each whole Source endpoint Type is compared before assembling an ingress.
 use crate::{
-    parser_session_execution::{verification::PreparedSourceVerification, ParserSessionEntry},
+    parser_session_execution::{ParserSessionEntry, verification::PreparedSourceVerification},
     parser_session_fixed_ingress::{
         FixedRefusal, ParserSessionExecutor, PreparedParserFixedIngress,
     },
@@ -23,10 +23,12 @@ pub(crate) fn prepare_fixed_binding<E: ParserSessionExecutor>(
     target_contract: crate::parser_session_target_contract::ParserSessionTargetStorageContract,
     maximum_invocations: u32,
 ) -> Result<PreparedParserFixedIngress<E>, FixedRefusal<E::Error>> {
+    let mut preparation =
+        crate::parser_session_target_contract::ParserTargetPreparationGuard::new(executor);
     macro_rules! prepare {
         ($input:ty, $output:ty) => {
             PreparedParserFixedIngress::from_prepared::<$input, $output>(
-                executor,
+                preparation.release(),
                 entry,
                 original_plan,
                 family,

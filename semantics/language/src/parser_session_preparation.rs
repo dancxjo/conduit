@@ -1,16 +1,17 @@
 //! Closed whole-Session preparation. No port or model can consume ingress until
 //! all original plans, complete Native families and Source owners are ready.
 use crate::{
+    LanguageParserV2ChoiceQuery, LanguageParserV2ModelScores,
     parser_production_families::{
         PreparedProductionParserFamilies, ProductionFamilyLimits, ProductionFamilyRefusal,
     },
     parser_session_canonical_ingress::ParserCanonicalSourceExecutor,
     parser_session_fixed_ingress::{FixedRefusal, PreparedParserFixedIngress},
-    parser_session_fixed_preparation::{prepare_fixed_target, FixedPreparationLimits},
+    parser_session_fixed_preparation::{FixedPreparationLimits, prepare_fixed_target},
     parser_session_historical_base::{HistoricalBaseRefusal, ParserSessionHistoricalBase},
     parser_session_mixed_preparation::{
-        prepare_mixed_targets, MixedPreparationLimits, MixedPreparationRefusal, OwnedNumericTarget,
-        OwnedSourceTarget,
+        MixedPreparationLimits, MixedPreparationRefusal, OwnedNumericTarget, OwnedSourceTarget,
+        prepare_mixed_targets,
     },
     parser_session_numeric_custody::ParserNumericExecutor,
     parser_session_profile::{
@@ -20,8 +21,7 @@ use crate::{
         ParserQueryPreparationLimits, ParserQueryRefusal, PreparedParserSessionQueries,
     },
     parser_session_target_contract::ParserSessionPreparedTarget,
-    parser_session_target_registry::{ParserSessionTargetRegistry, RegistryRefusal, REQUIRED},
-    LanguageParserV2ChoiceQuery, LanguageParserV2ModelScores,
+    parser_session_target_registry::{ParserSessionTargetRegistry, REQUIRED, RegistryRefusal},
 };
 use alloc::{rc::Rc, vec::Vec};
 use conduit_core::Plan;
@@ -65,6 +65,32 @@ where
     pub queries: PreparedParserSessionQueries,
     pub combined_reserved_bytes_bound: usize,
 }
+/// Keeps every not-yet-transferred prepared target cancellable on early
+/// refusal/unwind, including the remaining vector tail. No allocation occurs.
+struct PendingSessionTargets<
+    E: ParserSessionPreparedTarget,
+    S: ParserSessionPreparedTarget,
+    N: ParserSessionPreparedTarget,
+> {
+    targets: Vec<E>,
+    source: Option<S>,
+    numeric: Option<N>,
+}
+impl<E: ParserSessionPreparedTarget, S: ParserSessionPreparedTarget, N: ParserSessionPreparedTarget>
+    Drop for PendingSessionTargets<E, S, N>
+{
+    fn drop(&mut self) {
+        for target in &mut self.targets {
+            target.cancel();
+        }
+        if let Some(target) = &mut self.source {
+            target.cancel();
+        }
+        if let Some(target) = &mut self.numeric {
+            target.cancel();
+        }
+    }
+}
 fn add(a: usize, b: usize) -> Option<usize> {
     a.checked_add(b)
 }
@@ -93,6 +119,14 @@ where
         + ParserNumericExecutor<Error = <N as ParserCanonicalSourceExecutor>::Error>,
 {
     use ParserSessionPreparationRefusal as R;
+    let mut pending = PendingSessionTargets {
+        targets,
+        source: Some(source),
+        numeric: Some(numeric),
+    };
+    let targets = &pending.targets;
+    let source = pending.source.as_ref().expect("owned source target");
+    let numeric = pending.numeric.as_ref().expect("owned numeric target");
     if targets.len() != REQUIRED.len() {
         return Err(R::Entries);
     }
@@ -117,7 +151,7 @@ where
         mul(targets.capacity(), size_of::<E>()).ok_or(R::Pressure)?,
     )
     .ok_or(R::Pressure)?;
-    for target in &targets {
+    for target in targets {
         existing = add(existing, target.storage_contract().combined_bytes()).ok_or(R::Pressure)?;
     }
     existing = add(existing, source.storage_contract().combined_bytes()).ok_or(R::Pressure)?;
@@ -225,7 +259,10 @@ where
         .try_reserve_exact(REQUIRED.len())
         .map_err(|_| R::Pressure)?;
     let mut retained_sources = 0usize;
-    for target in targets {
+    while let Some(target) = pending.targets.pop() {
+        let mut target_preparation =
+            crate::parser_session_target_contract::ParserTargetPreparationGuard::new(target);
+        let target = target_preparation.get();
         let entry = *REQUIRED
             .iter()
             .find(|entry| entry.name() == target.entry())
@@ -238,19 +275,28 @@ where
         )
         .ok_or(R::Pressure)?;
         selected.maximum_combined_bytes = limits.maximum_combined_bytes;
-        let (port, receipt) = prepare_fixed_target(
-            target,
-            entry,
-            families.for_entry(entry).map_err(R::Family)?,
-            selected,
-        )
-        .map_err(R::Fixed)?;
+        let family = families.for_entry(entry).map_err(R::Family)?;
+        let (port, receipt) =
+            prepare_fixed_target(target_preparation.release(), entry, family, selected)
+                .map_err(R::Fixed)?;
         retained_sources =
             add(retained_sources, receipt.source.retained_heap_bytes_bound).ok_or(R::Pressure)?;
         ports.push(port);
     }
-    plans.push(source.original_plan_owner());
-    plans.push(numeric.original_plan_owner());
+    plans.push(
+        pending
+            .source
+            .as_ref()
+            .expect("owned source target")
+            .original_plan_owner(),
+    );
+    plans.push(
+        pending
+            .numeric
+            .as_ref()
+            .expect("owned numeric target")
+            .original_plan_owner(),
+    );
     let mut selected = limits.mixed;
     selected.other_existing_session_reserved_bytes = add(
         base_reserved,
@@ -261,8 +307,14 @@ where
     let family = families
         .for_values::<LanguageParserV2ChoiceQuery, LanguageParserV2ModelScores>()
         .map_err(R::Family)?;
-    let (mixed, mixed_receipt) =
-        prepare_mixed_targets(source, numeric, model, family, selected).map_err(R::Mixed)?;
+    let (mixed, mixed_receipt) = prepare_mixed_targets(
+        pending.source.take().expect("single source transfer"),
+        pending.numeric.take().expect("single numeric transfer"),
+        model,
+        family,
+        selected,
+    )
+    .map_err(R::Mixed)?;
     let queries =
         PreparedParserSessionQueries::prepare(&families, limits.queries).map_err(R::Queries)?;
     let base = ParserSessionHistoricalBase::prepare(

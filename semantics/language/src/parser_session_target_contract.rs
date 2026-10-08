@@ -96,3 +96,30 @@ mod tests {
         assert_eq!(contract.execution_temporary_bytes(), 32);
     }
 }
+
+/// Owns a target before an ingress exists. Any refusal or unwind must cancel
+/// even this unconsumed target; release transfers that obligation to the next
+/// preparation guard or the final prepared ingress. No allocation is performed.
+pub(crate) struct ParserTargetPreparationGuard<E: ParserSessionExecutor> {
+    target: Option<E>,
+}
+impl<E: ParserSessionExecutor> ParserTargetPreparationGuard<E> {
+    pub(crate) fn new(target: E) -> Self {
+        Self {
+            target: Some(target),
+        }
+    }
+    pub(crate) fn get(&self) -> &E {
+        self.target.as_ref().expect("owned target")
+    }
+    pub(crate) fn release(&mut self) -> E {
+        self.target.take().expect("single target transfer")
+    }
+}
+impl<E: ParserSessionExecutor> Drop for ParserTargetPreparationGuard<E> {
+    fn drop(&mut self) {
+        if let Some(target) = &mut self.target {
+            target.cancel();
+        }
+    }
+}

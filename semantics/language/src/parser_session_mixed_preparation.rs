@@ -1,14 +1,15 @@
 //! Complete original Source/model preparation before ingress.
 //! The enclosing Session additionally reserves all histories and revision policy.
 use crate::{
+    LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
     parser_model_selection::PreparedParserModelSelection,
     parser_session_canonical_ingress::{
         ParserCanonicalIngressLimits, ParserCanonicalSourceExecutor,
         PreparedCanonicalParserSessionPort,
     },
     parser_session_execution::{
-        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
-        ParserSessionVerificationLimits,
+        ParserSessionEntry as Entry, ParserSessionVerificationLimits,
+        verification::PreparedSourceVerification,
     },
     parser_session_fixed_ingress::ParserSessionExecutor,
     parser_session_mixed_custody::PreparedParserMixedCustody,
@@ -27,7 +28,6 @@ use crate::{
         ParserSessionPreparedTarget, ParserSessionTargetStorageContract,
     },
     parser_source_native_parity::verify_source_native_parity,
-    LanguageParserV2ChoiceQuery, LanguageParserV2ModelFeatures, LanguageParserV2ModelScores,
 };
 use alloc::{rc::Rc, sync::Arc};
 use conduit_ai::integer_categorical_step::{
@@ -186,17 +186,23 @@ where
     }
     // Guards own cancellation from the first preparation check, including every
     // later failure/unwind before either component has consumed input.
+    let mut source_preparation =
+        crate::parser_session_target_contract::ParserTargetPreparationGuard::new(source);
+    let mut numeric_preparation =
+        crate::parser_session_target_contract::ParserTargetPreparationGuard::new(numeric);
+    let source = source_preparation.get();
+    let numeric = numeric_preparation.get();
     let source_contract = source.storage_contract();
     let numeric_contract = numeric.storage_contract();
     let source_plan = source.original_plan_owner();
     let numeric_plan = numeric.original_plan_owner();
     let source = OwnedSourceTarget {
-        target: source,
+        target: source_preparation.release(),
         original: source_plan.clone(),
         contract: source_contract,
     };
     let numeric = OwnedNumericTarget {
-        target: numeric,
+        target: numeric_preparation.release(),
         contract: numeric_contract,
     };
     let live_native = family

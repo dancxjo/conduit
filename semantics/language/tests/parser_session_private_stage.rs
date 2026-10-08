@@ -234,10 +234,12 @@ fn complete_fixed_query_bank_preserves_native_input_and_refuses_aggregate_pressu
         .decode::<LanguageAnalysisRevisionId>(nominal.leaf(b"session/analysis/1").unwrap())
         .unwrap();
     // Canonical framing does not waive the original nominal value contract.
-    assert!(family
-        .borrow_mut()
-        .decode::<LanguageAnalysisRevisionId>(nominal.leaf(&[b'x'; 65]).unwrap())
-        .is_err());
+    assert!(
+        family
+            .borrow_mut()
+            .decode::<LanguageAnalysisRevisionId>(nominal.leaf(&[b'x'; 65]).unwrap())
+            .is_err()
+    );
     assert!(matches!(
         parser_canonical_nominal::PreparedParserNominal::prepare::<LanguageParserSessionSeedRequest>(
             &family.borrow(),
@@ -414,7 +416,7 @@ impl parser_session_target_contract::ParserSessionPreparedTarget for &mut Kernel
 #[test]
 fn actual_kernel_fixed_seed_preparation_execution_replay_and_late_output_refusal() {
     use parser_session_execution::{
-        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
+        ParserSessionEntry as Entry, verification::PreparedSourceVerification,
     };
     use parser_session_fixed_ingress::{FixedRefusal, ParserFixedFrames};
     use parser_session_fixed_preparation::*;
@@ -612,7 +614,7 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
     use numeric_custody::{ParserNumericFrames, ParserNumericReadmissionBudget};
     use parser_session_canonical_ingress::PreparedParserExecutionFrames;
     use parser_session_execution::{
-        verification::PreparedSourceVerification, ParserSessionEntry as Entry,
+        ParserSessionEntry as Entry, verification::PreparedSourceVerification,
     };
     use parser_session_mixed_preparation::*;
     const GIB: usize = 1024 * 1024 * 1024;
@@ -622,7 +624,11 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
         parser_model_selection::PreparedParserModelSelection::prepare(model.clone(), &lexical)
             .unwrap(),
     );
-    let document=format!("{}\nplot production-model (\n features: LanguageParserV2ModelFeatures...| >> observed: LanguageParserV2ModelScores...|\n) {{\n features >> language-parser-v2-feature-indices() >> {}() >> language-parser-v2-score-observation() >> observed\n}}\n",source(),model.kind_identity(true));
+    let document = format!(
+        "{}\nplot production-model (\n features: LanguageParserV2ModelFeatures...| >> observed: LanguageParserV2ModelScores...|\n) {{\n features >> language-parser-v2-feature-indices() >> {}() >> language-parser-v2-score-observation() >> observed\n}}\n",
+        source(),
+        model.kind_identity(true)
+    );
     let numeric_execution =
         runtime::prepare_source_with_storage(model.clone(), document, "production-model", Some(2));
     let source_execution = runtime::prepare_checked_source_with_catalog(
@@ -817,11 +823,16 @@ mod parser_session_preparation;
 fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress() {
     use parser_session_preparation::*;
     use parser_session_target_contract::*;
-    struct Target(&'static str);
+    struct Target(&'static str, Rc<core::cell::Cell<u32>>);
     impl parser_session_canonical_ingress::ParserCanonicalSourceExecutor for Target {
         type Error = ();
-        fn cancel(&mut self) {}
+        fn cancel(&mut self) {
+            self.1.set(self.1.get() + 1);
+        }
         fn entry(&self) -> &str {
+            if self.0 == "panic-entry" {
+                panic!("metadata callback panic");
+            }
             self.0
         }
         fn input_type_bytes(&self) -> &[u8] {
@@ -859,9 +870,10 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
     let selection = Arc::new(
         parser_model_selection::PreparedParserModelSelection::prepare(model, &lexical).unwrap(),
     );
+    let cancellations = Rc::new(core::cell::Cell::new(0));
     let targets = parser_session_target_registry::REQUIRED
         .iter()
-        .map(|entry| Target(entry.name()))
+        .map(|entry| Target(entry.name(), cancellations.clone()))
         .collect();
     let verification = parser_session_execution::ParserSessionVerificationLimits {
         decoded_program_bytes: GIB,
@@ -907,8 +919,8 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
     };
     let refused = prepare_session_owners(
         targets,
-        Target("features"),
-        NumericTargetBridge(Target("model")),
+        Target("features", cancellations.clone()),
+        NumericTargetBridge(Target("model", cancellations.clone())),
         parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection.clone()),
         limits,
     );
@@ -916,6 +928,56 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
         refused,
         Err(ParserSessionPreparationRefusal::Pressure)
     ));
+    assert_eq!(cancellations.get(), 30);
+    cancellations.set(0);
+    let targets = (0..28)
+        .map(|_| Target("panic-entry", cancellations.clone()))
+        .collect();
+    let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        prepare_session_owners(
+            targets,
+            Target("features", cancellations.clone()),
+            NumericTargetBridge(Target("model", cancellations.clone())),
+            parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection.clone()),
+            limits,
+        )
+    }));
+    assert!(panicked.is_err());
+    assert_eq!(cancellations.get(), 30);
+    cancellations.set(0);
+    let refused = prepare_session_owners(
+        Vec::<Target>::new(),
+        Target("features", cancellations.clone()),
+        NumericTargetBridge(Target("model", cancellations.clone())),
+        parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection.clone()),
+        limits,
+    );
+    assert!(matches!(
+        refused,
+        Err(ParserSessionPreparationRefusal::Entries)
+    ));
+    assert_eq!(cancellations.get(), 2);
+    cancellations.set(0);
+    let tiny_family = Rc::new(core::cell::RefCell::new(
+        PreparedNativeFamily::prepare(
+            &[LanguageParserSubtype::PREPARED_DESCRIPTOR],
+            family_limits().family,
+        )
+        .unwrap(),
+    ));
+    let mut bounded = fixed;
+    bounded.maximum_combined_bytes = 0;
+    let refused = parser_session_fixed_preparation::prepare_fixed_target(
+        Target("language-parser-session-seed", cancellations.clone()),
+        parser_session_execution::ParserSessionEntry::Seed,
+        tiny_family,
+        bounded,
+    );
+    assert!(matches!(
+        refused,
+        Err(parser_session_fixed_ingress::FixedRefusal::Pressure)
+    ));
+    assert_eq!(cancellations.get(), 1);
     assert_eq!(selection.prepared_categorical().dimensions(), (413, 76, 25));
 }
 

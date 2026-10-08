@@ -3,7 +3,7 @@
 //! correlation before assembling ports; histories retain complete original frames.
 use crate::{
     parser_session_canonical_ingress::ParserCanonicalSourceExecutor,
-    parser_session_execution::{verification::PreparedSourceVerification, ParserSessionEntry},
+    parser_session_execution::{ParserSessionEntry, verification::PreparedSourceVerification},
 };
 use alloc::{rc::Rc, vec::Vec};
 use conduit_core::Plan;
@@ -116,6 +116,9 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
         target_contract: crate::parser_session_target_contract::ParserSessionTargetStorageContract,
         maximum_invocations: u32,
     ) -> Result<Self, FixedRefusal<E::Error>> {
+        let mut preparation =
+            crate::parser_session_target_contract::ParserTargetPreparationGuard::new(executor);
+        let executor = preparation.get();
         if maximum_invocations == 0 {
             return Err(FixedRefusal::Pressure);
         }
@@ -165,7 +168,7 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
             return Err(FixedRefusal::Plan);
         }
         Ok(Self {
-            executor,
+            executor: preparation.release(),
             entry,
             original_plan,
             family,

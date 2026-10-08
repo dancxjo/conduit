@@ -2,8 +2,8 @@
 use crate::{
     parser_production_families::port_descriptors,
     parser_session_execution::{
-        verification::PreparedSourceVerification, ParserSessionEntry,
-        ParserSessionVerificationLimits, ParserSessionVerificationReceipt,
+        ParserSessionEntry, ParserSessionVerificationLimits, ParserSessionVerificationReceipt,
+        verification::PreparedSourceVerification,
     },
     parser_session_fixed_bindings::prepare_fixed_binding,
     parser_session_fixed_ingress::{FixedRefusal, PreparedParserFixedIngress},
@@ -12,7 +12,7 @@ use crate::{
         validate_fixed_source_plan_seal, validate_fixed_source_plan_structure,
     },
     parser_session_source_plan_storage::{
-        source_plan_preparation_reservation, SourcePlanPreparationReservation,
+        SourcePlanPreparationReservation, source_plan_preparation_reservation,
     },
     parser_session_target_contract::ParserSessionPreparedTarget,
     parser_source_native_parity::verify_source_native_parity,
@@ -46,6 +46,9 @@ pub(crate) fn prepare_fixed_target<E: ParserSessionPreparedTarget>(
     limits: FixedPreparationLimits,
 ) -> Result<(PreparedParserFixedIngress<E>, FixedPreparationReceipt), FixedRefusal<E::Error>> {
     use FixedRefusal as R;
+    let mut preparation =
+        crate::parser_session_target_contract::ParserTargetPreparationGuard::new(executor);
+    let executor = preparation.get();
     let (input_descriptor, output_descriptor) = port_descriptors(entry).ok_or(R::Entry)?;
     let contract = executor.storage_contract();
     // This complete declared envelope is checked before the first Session-owned
@@ -116,7 +119,7 @@ pub(crate) fn prepare_fixed_target<E: ParserSessionPreparedTarget>(
     validate_fixed_source_plan_seal(executor.expanded_source(), &original_plan, entry)
         .map_err(|_| R::Plan)?;
     let ingress = prepare_fixed_binding(
-        executor,
+        preparation.release(),
         entry,
         original_plan,
         family,
