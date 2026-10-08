@@ -4,12 +4,15 @@ fn immutable_fragment_batch_preserves_exact_binding_and_owner_refusals() {
     let (fragment, lowered, active, placement) = selected();
     let batch = PreparedExpressionFragment::prepare(&fragment, &lowered, &active).unwrap();
     let mut owner = batch.owner(&placement).unwrap();
+    let retained = owner.evaluator_retained_heap_bytes().unwrap();
+    assert!(retained > 0);
     assert_eq!(
         owner
             .invoke(owner.node, HostCallId(0), RequestId(0), &[41])
             .unwrap(),
         &[42]
     );
+    assert_eq!(owner.evaluator_retained_heap_bytes(), Some(retained));
     assert!(matches!(
         batch.owner(&PlacementId::from("foreign")),
         Err(ExpressionCallRefusal::WrongBinding)

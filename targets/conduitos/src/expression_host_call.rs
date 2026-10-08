@@ -82,6 +82,15 @@ impl ExpressionHostCall {
         PreparedExpressionFragment::prepare(fragment, lowered, active)?.owner(placement)
     }
 
+    /// Exhaustive retained evaluator heap, including actual spare capacities.
+    /// Shared schemas are conservatively charged per owner. This excludes this
+    /// inline value, fragment/Plan/catalog owners, kernel queues and execution
+    /// temporaries; callers must reserve those separately. Overflow refuses.
+    pub fn evaluator_retained_heap_bytes(&self) -> Option<usize> {
+        let bytes = self.evaluator.owned_heap_bytes();
+        (bytes != usize::MAX).then_some(bytes)
+    }
+
     /// Evaluate once using storage admitted at preparation; never retry a failed program.
     pub fn invoke(
         &mut self,
