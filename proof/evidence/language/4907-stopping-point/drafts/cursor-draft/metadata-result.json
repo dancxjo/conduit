@@ -1,0 +1,11 @@
+{
+  "compile_exit": 0,
+  "seconds": 3.6049242020235397,
+  "draft_sha256": {
+    "parser_session_window8_observe.rs": "8c9576302fa175b5a33dd82df9c6c6e048ed6e56d6563326dd3143c16430e174",
+    "parser_session_window8_working_set.rs": "375bb2cab52235e7fbbadee787c760f7e8ef9acf275efe7ea9f7bb01c93929c7",
+    "parser_session_window8_run.rs": "c1a0899acd6c6030dcac911cc74ec270f7f4159e077f0ac360e983ec62f7d8ec",
+    "parser_session_window8_session.rs": "1b0a341cad10b95b7ba6f68f5a15fa3919488e515f63167a73f5345cf7bfa0ee"
+  },
+  "scope": "scratch cursor owner changes metadata only; not canonical or runtime"
+}

@@ -1,0 +1,17 @@
+
+running 1 test
+test actual_prepared_window8_initial_epoch ... diagnostic working preflight WorkingSetReceipt { complete_declared_bytes_bound: 19854738738, new_preparation_bytes_bound: 12559671442, new_retained_bytes_bound: 3146393532, source_history_bytes_bound: 4294967296, sum_of_port_history_limits: 9059696640000 }
+complete original numeric Source/Native closure parity PASS; temporary bound 2560193B
+expanding checked Source for language-proposal-window8-v2-feature-values
+planning expanded Source for language-proposal-window8-v2-feature-values
+expanding checked Source for window8-session-selected-model
+planning expanded Source for window8-session-selected-model
+actual conservative Source Plan temporary reservation SourcePlanPreparationReservation { original_plan_retained_bytes: 10848061, temporary_requested_bytes_bound: 4848879040 }
+preparing actual whole Window8 factory with explicit diagnostic ceilings
+factory prepared WorkingSetReceipt { complete_declared_bytes_bound: 31159768999, new_preparation_bytes_bound: 12559671442, new_retained_bytes_bound: 3146393532, source_history_bytes_bound: 4294967296, sum_of_port_history_limits: 9059696640000 }
+advancing actual Partial stable14 revision through one connected epoch
+connected initial epoch published: sources=1179 models=1 admissions=3 calls=1
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 131.65s
+

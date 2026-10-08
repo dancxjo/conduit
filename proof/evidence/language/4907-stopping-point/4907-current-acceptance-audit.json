@@ -1,0 +1,432 @@
+{
+  "issue": 4907,
+  "state": "OPEN",
+  "title": "[Language \u00b7 Streaming analysis] Add a revision-aware linguistic spine for syntax, discourse, and prosody",
+  "current_issue_body_sha256": "94cf76a61aadf92d5eb3d54bf7c634ae9a415829f0e4c6d26092828588e440c7",
+  "scope": "Current gap audit, not completion claim; original scope retained",
+  "acceptance_items": [
+    {
+      "section": "Language ownership",
+      "requirement": "semantics/language is the authoritative owner of portable token, morphology, dependency and discourse meaning.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Language ownership",
+      "requirement": "Speech no longer owns an independent competing syntactic relation vocabulary.",
+      "status": "source_owner_alias_confirmed",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence",
+      "evidence": [
+        "/home/dancxjo/conduit-5212-common-intent/semantics/speech/src/lib.rs:152",
+        "/home/dancxjo/conduit-5212-common-intent/semantics/language/syntax.conduit:3"
+      ],
+      "limits": "Legacy link enum is Language-owned; accepted canonical dependency-to-actual-speech path still part of separate downstream requirements"
+    },
+    {
+      "section": "Language ownership",
+      "requirement": "Token occurrences and source revisions are exact and inspectable.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incrementality",
+      "requirement": "Text can arrive incrementally.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incrementality",
+      "requirement": "Parse hypotheses can revise.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incrementality",
+      "requirement": "Stable and committed facts are distinct.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incrementality",
+      "requirement": "A finite revisable frontier is enforced.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incrementality",
+      "requirement": "No unbounded parse forest is retained.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incrementality",
+      "requirement": "Later text may revise uncommitted analysis without waiting for sentence completion.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Learned boundary",
+      "requirement": "The learned component only scores bounded parser choices/features.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Learned boundary",
+      "requirement": "Checked plots own legal actions and graph mutation.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Learned boundary",
+      "requirement": "Model identity, precision, resources and provenance are explicit.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Learned boundary",
+      "requirement": "No transformer/runtime dependency is required for the first accepted parser.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Learned boundary",
+      "requirement": "A deterministic fallback remains available.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Syntax",
+      "requirement": "Initial relation family is aligned with UD v2.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Syntax",
+      "requirement": "English vocative is represented explicitly.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Syntax",
+      "requirement": "Subject/object/complement/coordination/etc. are portable language truth rather than speech-private tags.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Syntax",
+      "requirement": "Language-specific relation subtypes remain representable.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Discourse / prosody",
+      "requirement": "Syntax does not directly prescribe milliseconds of silence.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Discourse / prosody",
+      "requirement": "Vocative/addressee is distinct from prosodic boundary realization.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Discourse / prosody",
+      "requirement": "Punctuation is evidence/fallback, not the authoritative timing model.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Discourse / prosody",
+      "requirement": "A rate-independent prosodic plan exists.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Discourse / prosody",
+      "requirement": "Compact formant and FARGAN can consume the same linguistic prosody basis.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence",
+      "evidence": [
+        "outputs/committed-common-ipa-greeting",
+        "outputs/committed-common-fargan-greeting",
+        "outputs/fargan-opaque-trajectory-binding"
+      ],
+      "limits": "Both static greetings and six changing-pitch onset joins exist; complete changing-prosody neural consumption and pause/prominence remain incomplete"
+    },
+    {
+      "section": "Speech",
+      "requirement": "Hello, Travis. follows the syntactic/discourse/prosody path rather than comma timing.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence",
+      "evidence": [
+        "outputs/private-independent-vocative-word-stream",
+        "outputs/committed-linguistic-ipa-greeting"
+      ],
+      "limits": "Private original four-revision commits, explicit discourse/prosody and produced formant audio; public Session and completed independent verification still pending"
+    },
+    {
+      "section": "Speech",
+      "requirement": "At least three vocative placements are tested.",
+      "status": "current_teaching_analogue_has_failure; full_selected_public_profile_not_proven",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence",
+      "evidence": [
+        "outputs/native-admission-family/proposal411-teaching-r3/vocative-initial-adverse-snapshot.json",
+        "work/initial-vocative-diagnosis/diagnosis.json"
+      ],
+      "limits": "Original eight-example evaluation has initial-vocative miss plus four object false vocatives; revised27 candidate still not accepted quality/runtime"
+    },
+    {
+      "section": "Speech",
+      "requirement": "POS/syntax can disambiguate at least one pronunciation-sensitive lexical pair.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Speech",
+      "requirement": "Existing compact no-parser speech still works honestly as a fallback.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Revision safety",
+      "requirement": "Played audio is never silently rewritten by later analysis.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual effect-owner ACK/custody and later conflicting revision rejection/correction through public Session; WAV is insufficient"
+    },
+    {
+      "section": "Revision safety",
+      "requirement": "A later contradictory parse is retained as revision/correction evidence.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Revision safety",
+      "requirement": "Pressure/cancellation do not advance language or speech commitment incorrectly.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incoming language",
+      "requirement": "Existing ASR partial/revised/committed events can enter the same revisioned language spine.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Incoming language",
+      "requirement": "No duplicate ASR-only parser architecture is required.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Translation",
+      "requirement": "Translation may consume and produce explicit language structure.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Translation",
+      "requirement": "Structural relationships such as vocative/addressee can survive translation independently of punctuation.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Evidence",
+      "requirement": "A spoken result can be traced back through pronunciation, prosody, discourse, syntax, tokens and exact source revision.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Evidence",
+      "requirement": "Parser model and analysis revision are inspectable.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    },
+    {
+      "section": "Evidence",
+      "requirement": "Stabilization/commit timing is retained.",
+      "status": "not_yet_proven_end_to_end",
+      "evidence_needed": "Actual selected public Session/Source/consumer trace at current accepted model and revision, plus appropriate corpus/resource/refusal evidence"
+    }
+  ],
+  "additional_explicit_evaluation_requirements": [
+    {
+      "requirement": "UAS/LAS or equivalent final dependency accuracy",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "vocative precision/recall on explicit slice",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "POS/lexical disambiguation",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "revision count per token",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "average stabilization delay",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "maximum stabilization delay",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "percentage committed edges later contradicted",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "parser compute time per incoming token",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "parser memory",
+      "status": "complete selected streaming profile evidence not yet verified"
+    },
+    {
+      "requirement": "model size",
+      "status": "complete selected streaming profile evidence not yet verified"
+    }
+  ],
+  "named_corpus": [
+    {
+      "case": "Hello, Travis.",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "Travis, get down!",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "I don't know, Travis, whether that's wise.",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "Thanks, Travis.",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "I record the record.",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "They refuse the refuse.",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "The old man the boats.",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "subject/object distinction",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "complement clause",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "coordination",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "apposition",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "parenthetical",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "question",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "repair/reparandum if supported",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    },
+    {
+      "case": "punctuation disagreement",
+      "status": "full selected public streaming + pronunciation/prosody behavior not yet proven"
+    }
+  ],
+  "currently_live": {},
+  "closure_allowed": false,
+  "latest_verified_component_evidence": {
+    "production_source_head": "6806f08fbb07723237441b97c93cebf5d1e72138",
+    "production_gates": "work/common-intent/renderer-q8-draft/prepared-pitch-production-publication-result.json",
+    "all_57600_pitch_Source_calls": "work/common-intent/prepared-pitch-programs/full-trace-result.json",
+    "actual_constant_and_varying_kernel_pressure_probes": "work/common-intent/gesture-playback-map/kernel-sequence/pitch-actual-result.json",
+    "trained_two_epoch_FARGAN_pressure_resume": "work/fargan-trained-pressure-resume-root-audit.json",
+    "scope": "Component evidence only; full public Session and complete accepted model/resource/profile proof remain missing",
+    "independent_full_production_render": "work/common-intent/renderer-q8-draft/production-full-verification-result.json",
+    "data_owned_prepared_tensor_and_variant_contract_fix": {
+      "commit": "4515e51c99acbd22f956fd58a2824b429a4af2c7",
+      "remote": "origin/codex/4907-native-reuse",
+      "tests": "20existingData+3newData+26Plotgeneration",
+      "checks": "PlotClippy/DataClippy/no-defaultPASS469selectedinputsunchanged",
+      "scope": "Dependency component; complete external ModelSignature family and publicSession not yet proven"
+    },
+    "all_oracle_feature_values_Source_parity": {
+      "vectors": 140922,
+      "states": 33094,
+      "seconds": 971.7488,
+      "scope": "Original411 feature-values arithmetic across oracle/terminal states and controlled origins; full feature-context gate still live, no model/lexical accuracy acceptance"
+    },
+    "borrowed_session_inspection_interface": {
+      "commit": "07264a7a1cd34ad2a4d58bbeabd4874abfce7c80",
+      "remote": "origin/codex/4907-production-custody",
+      "scope": "Standalone no-feature/model-feature metadata compile; actual public driver implementation and runtime evidence pending"
+    },
+    "all_oracle_original_Source_context_and_features": {
+      "vectors": 140922,
+      "seconds": 1465.125587659,
+      "log": "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/actual-source-full-context.log",
+      "scope": "Exact original feature-context and feature-values arithmetic; controlled structural contexts, not full lexical/model/Session acceptance"
+    }
+  },
+  "current_contradictions": [
+    {
+      "issue": "TRAIN reference uses current origin while actual Source uses previous origin/boundary",
+      "evidence": "work/initial-vocative-diagnosis/diagnosis.json",
+      "impact": "Current411 teaching model does not have matching training/runtime feature ABI; retraining and actual Source parity needed before acceptance"
+    },
+    {
+      "issue": "Current411 teaching profile misses initial vocative in Travis, record songs.",
+      "evidence": "outputs/native-admission-family/proposal411-teaching-r3/vocative-initial-adverse-snapshot.json",
+      "impact": "Initial-vocative behavior is unaccepted; this does not assert unrun exact named-corpus cases failed"
+    },
+    {
+      "issue": "Frozen411 teaching evaluation also misses medial vocative",
+      "evidence": "Native worker frozen chunk01 third-row report; full terminal retained receipt pending",
+      "observed": "3rows/16tokens: exact1/3,UAS/LAS12/16,POS16/16,VOC1TP2FN0FP",
+      "limits": "Intermediate frozen teaching observation, not full heldout or exact named-corpus acceptance"
+    },
+    {
+      "issue": "Frozen411 teaching old-man nominal contrast misses",
+      "evidence": "outputs/native-admission-family/proposal411-teaching-r3/chunk-02/result.json",
+      "sha256": "376eaeaeb2f01589f112eca8b416436866e6e36ab3a4d3b0caab65163081f1b9",
+      "chunk_metrics": {
+        "base_las": 0.9166666666666666,
+        "correct_base_labels": 22,
+        "correct_heads": 23,
+        "correct_pos": 22,
+        "exact_graphs": 5,
+        "pos_accuracy": 0.9166666666666666,
+        "refused_rows": 0,
+        "token_scope": "all supplied original tokens, including refused rows and punctuation",
+        "tokens": 24,
+        "uas": 0.9583333333333334,
+        "vocative_fn": 0,
+        "vocative_fp": 0,
+        "vocative_precision": 1.0,
+        "vocative_recall": 1.0,
+        "vocative_tp": 1
+      },
+      "scope": "Terminal6row teaching chunk; full heldout and corrected411 candidate unaccepted"
+    }
+  ]
+}

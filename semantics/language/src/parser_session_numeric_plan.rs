@@ -143,11 +143,22 @@ pub(crate) fn validate_numeric_plan_structure_for(
     {
         return Err(R::Fore);
     }
-    // Source order is explicit: both cords are checked at their original index.
-    // A Plan cannot exchange two equal-Type cords and retain this witness.
+    // Expansion sorts cords by endpoint identity, not execution order. Resolve
+    // each chain edge without reordering the original Source/Plan witness.
+    let mut seen_edges = [false; 2];
     for (i, cord) in source.connections.iter().enumerate() {
-        let from = &source.gears[order[i]];
-        let to = &source.gears[order[i + 1]];
+        let edge = (0..2)
+            .find(|edge| {
+                cord.source_gear_id == source.gears[order[*edge]].gear_id
+                    && cord.sink_gear_id == source.gears[order[*edge + 1]].gear_id
+            })
+            .ok_or(R::Cord)?;
+        if seen_edges[edge] {
+            return Err(R::Cord);
+        }
+        seen_edges[edge] = true;
+        let from = &source.gears[order[edge]];
+        let to = &source.gears[order[edge + 1]];
         if cord.source_gear_id != from.gear_id
             || cord.sink_gear_id != to.gear_id
             || cord.source_port_id != from.outputs[0].port_id

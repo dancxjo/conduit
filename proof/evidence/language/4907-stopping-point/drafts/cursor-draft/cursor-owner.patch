@@ -1,0 +1,315 @@
+--- a/semantics/language/src/parser_session_window8_observe.rs
++++ b/semantics/language/src/parser_session_window8_observe.rs
+@@ -73,6 +73,12 @@
+             snapshot,
+             candidates,
+         })
++    }
++    pub(crate) fn snapshot(&self) -> &[u8] {
++        &self.snapshot
++    }
++    pub(crate) fn snapshot_capacity(&self) -> usize {
++        self.snapshot.capacity()
+     }
+     pub(crate) fn available_candidates(&self) -> usize {
+         self.candidates.len()
+--- a/semantics/language/src/parser_session_window8_run.rs
++++ b/semantics/language/src/parser_session_window8_run.rs
+@@ -48,11 +48,26 @@
+     Complete,
+     EpochLimit,
+ }
++#[derive(Clone, Copy, Debug)]
+ pub(crate) struct InitialRunResult {
+     pub(crate) stop: InitialRunStop,
+     pub(crate) beam: Option<usize>,
+     pub(crate) epochs: u64,
+     pub(crate) model_calls: u64,
++}
++/// Every locator resolves only in the Book published alongside this cursor.
++/// No Native snapshot supplied by a caller can construct this cursor.
++pub(crate) struct InitialRunCursor {
++    pub(crate) availability: usize,
++    pub(crate) initializer: usize,
++    pub(crate) seed: Option<usize>,
++    pub(crate) beam: Option<usize>,
++    pub(crate) token_count: u64,
++    pub(crate) next_identity: u64,
++    pub(crate) classes: Option<[crate::parser_session_window8_classes::Window8ClassDerivation; 76]>,
++    pub(crate) observations: Option<crate::parser_session_window8_observe::EpochObservations>,
++    pub(crate) snapshot: alloc::vec::Vec<u8>,
++    pub(crate) progress: InitialRunResult,
+ }
+ #[derive(Debug)]
+ pub(crate) struct InitialRunRefusal;
+@@ -62,16 +77,20 @@
+     banks: InitialRunBanks<'_>,
+     analysis_identity: &[u8; 64],
+     limits: InitialRunLimits<'_>,
++    mut retained_snapshot: alloc::vec::Vec<u8>,
+ ) -> Result<
+     (
+         ParserSessionStage<'a, Window8Registry<S, N>>,
+         Window8Book,
+-        InitialRunResult,
++        InitialRunCursor,
+     ),
+     InitialRunRefusal,
+ > {
+     let result = (|| {
+-        if limits.maximum_epochs == 0 {
++        if limits.maximum_epochs == 0
++            || !retained_snapshot.is_empty()
++            || retained_snapshot.capacity() < banks.observations.snapshot_capacity()
++        {
+             return Err(InitialRunRefusal);
+         }
+         let initial = crate::parser_session_window8_initialize::initialize(
+@@ -82,11 +101,22 @@
+         )
+         .map_err(|_| InitialRunRefusal)?;
+         let Some(seed) = initial.beam else {
+-            return Ok(InitialRunResult {
+-                stop: InitialRunStop::WaitingEmpty,
++            return Ok(InitialRunCursor {
++                availability: initial.availability,
++                initializer: initial.initial,
++                seed: None,
+                 beam: None,
+-                epochs: 0,
+-                model_calls: 0,
++                token_count: initial.count,
++                next_identity: 0,
++                classes: None,
++                observations: None,
++                snapshot: retained_snapshot,
++                progress: InitialRunResult {
++                    stop: InitialRunStop::WaitingEmpty,
++                    beam: None,
++                    epochs: 0,
++                    model_calls: 0,
++                },
+             });
+         };
+         let observations = limits
+@@ -118,6 +148,7 @@
+         let mut calls = 0;
+         let mut epochs = 0;
+         let mut stop = InitialRunStop::EpochLimit;
++        let mut observations = None;
+         for epoch in 0..limits.maximum_epochs {
+             beam = crate::parser_session_window8_epoch::execute(
+                 &mut stage,
+@@ -146,33 +177,52 @@
+             if completion.active == 0 {
+                 return Err(InitialRunRefusal);
+             }
+-            crate::parser_session_window8_observe::observe(
+-                &mut stage,
+-                banks.queries,
+-                banks.atoms,
+-                banks.ancestry,
+-                banks.snapshots,
+-                banks.observations,
+-                banks.fact,
+-                banks.refinement,
+-                banks.family,
+-                &classes,
+-                beam,
+-                limits.maximum_observation_native_conversion_requested_bytes,
+-                epoch,
+-                calls,
+-            )
+-            .map_err(|_| InitialRunRefusal)?;
++            observations = Some(
++                crate::parser_session_window8_observe::observe(
++                    &mut stage,
++                    banks.queries,
++                    banks.atoms,
++                    banks.ancestry,
++                    banks.snapshots,
++                    banks.observations,
++                    banks.fact,
++                    banks.refinement,
++                    banks.family,
++                    &classes,
++                    beam,
++                    limits.maximum_observation_native_conversion_requested_bytes,
++                    epoch,
++                    calls,
++                )
++                .map_err(|_| InitialRunRefusal)?,
++            );
++            let snapshot = banks.observations.snapshot();
++            if snapshot.len() > retained_snapshot.capacity() {
++                return Err(InitialRunRefusal);
++            }
++            retained_snapshot.clear();
++            retained_snapshot.extend_from_slice(snapshot);
+             if completion.all_complete {
+                 stop = InitialRunStop::Complete;
+                 break;
+             }
+         }
+-        Ok(InitialRunResult {
+-            stop,
++        Ok(InitialRunCursor {
++            availability: initial.availability,
++            initializer: initial.initial,
++            seed: Some(seed),
+             beam: Some(beam),
+-            epochs,
+-            model_calls: calls,
++            token_count: initial.count,
++            next_identity: identity,
++            classes: Some(classes),
++            observations,
++            snapshot: retained_snapshot,
++            progress: InitialRunResult {
++                stop,
++                beam: Some(beam),
++                epochs,
++                model_calls: calls,
++            },
+         })
+     })();
+     match result {
+--- a/semantics/language/src/parser_session_window8_session.rs
++++ b/semantics/language/src/parser_session_window8_session.rs
+@@ -9,7 +9,9 @@
+     parser_session_window8_book::Window8Book,
+     parser_session_window8_model_frames::Window8ModelFrameLimits,
+     parser_session_window8_preparation::PreparedWindow8Factory,
+-    parser_session_window8_run::{self, InitialRunBanks, InitialRunLimits, InitialRunResult},
++    parser_session_window8_run::{
++        self, InitialRunBanks, InitialRunCursor, InitialRunLimits, InitialRunResult,
++    },
+ };
+ use alloc::rc::Rc;
+ #[derive(Clone, Copy, Debug)]
+@@ -25,9 +27,14 @@
+     N: ParserSessionPreparedTarget + ParserNumericExecutor,
+ > {
+     factory: PreparedWindow8Factory<S, N>,
+-    current: Option<Rc<Window8Book>>,
++    current: Option<RetainedWindow8Revision>,
++    prepared_snapshot: Option<alloc::vec::Vec<u8>>,
+     policy: Window8RunPolicy,
+     closed: bool,
++}
++struct RetainedWindow8Revision {
++    book: Rc<Window8Book>,
++    cursor: InitialRunCursor,
+ }
+ pub(crate) struct PublishedWindow8Revision {
+     pub(crate) book: Rc<Window8Book>,
+@@ -50,8 +57,25 @@
+             factory.registry.cancel_all();
+             return Err(Window8SessionRefusal);
+         }
++        // The prepared factory already charged its own inline owner. Charge
++        // only the additional Session inline bytes plus exact snapshot backing.
++        let frame = factory.working.observations.snapshot_capacity();
++        let inline = core::mem::size_of::<Self>()
++            .checked_sub(core::mem::size_of::<PreparedWindow8Factory<S, N>>())
++            .ok_or(Window8SessionRefusal)?;
++        let delta = inline.checked_add(frame).ok_or(Window8SessionRefusal)?;
++        if factory.working.reserve_owner_delta(delta, delta).is_err() {
++            factory.registry.cancel_all();
++            return Err(Window8SessionRefusal);
++        }
++        let mut snapshot = alloc::vec::Vec::new();
++        if snapshot.try_reserve_exact(frame).is_err() || snapshot.capacity() != frame {
++            factory.registry.cancel_all();
++            return Err(Window8SessionRefusal);
++        }
+         Ok(Self {
+             factory,
++            prepared_snapshot: Some(snapshot),
+             current: None,
+             policy,
+             closed: false,
+@@ -127,14 +151,19 @@
+                     .policy
+                     .maximum_observation_conversion_requested_bytes,
+             };
+-            let (guard, mut book, progress) =
+-                parser_session_window8_run::execute(stage, banks, &identity, limits)
++            let snapshot = self.prepared_snapshot.take().ok_or(Window8SessionRefusal)?;
++            let (guard, mut book, cursor) =
++                parser_session_window8_run::execute(stage, banks, &identity, limits, snapshot)
+                     .map_err(|_| Window8SessionRefusal)?;
+             // All fallible Source/model/admission work precedes this single
+             // publication. The Book reservation included its Rc allocation.
+             book.published = true;
+             let book = Rc::new(book);
+-            self.current = Some(Rc::clone(&book));
++            let progress = cursor.progress;
++            self.current = Some(RetainedWindow8Revision {
++                book: Rc::clone(&book),
++                cursor,
++            });
+             guard.publication_complete();
+             Ok(PublishedWindow8Revision { book, progress })
+         })();
+@@ -144,11 +173,14 @@
+         }
+         result
+     }
++    pub(crate) fn progress(&self) -> Option<InitialRunResult> {
++        self.current.as_ref().map(|current| current.cursor.progress)
++    }
+     pub(crate) fn cancel(&mut self) {
+         self.closed = true;
+         self.factory.registry.cancel_all();
+     }
+     pub(crate) fn current(&self) -> Option<&Window8Book> {
+-        self.current.as_deref()
++        self.current.as_ref().map(|current| current.book.as_ref())
+     }
+ }
+--- a/semantics/language/src/parser_session_window8_working_set.rs
++++ b/semantics/language/src/parser_session_window8_working_set.rs
+@@ -79,11 +79,34 @@
+         alloc::rc::Rc<core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>>,
+     pub(crate) receipt: WorkingSetReceipt,
+     history: Window8HistoryOwnership,
++    maximum_complete_bytes: usize,
+ }
+ fn add(a: usize, b: usize) -> Result<usize, WorkingSetRefusal> {
+     a.checked_add(b).ok_or(WorkingSetRefusal)
+ }
+ impl PreparedWindow8WorkingSet {
++    /// Adds an enclosing owner's fully declared inline/backing storage before
++    /// that owner allocates. The original complete profile remains immutable.
++    pub(crate) fn reserve_owner_delta(
++        &mut self,
++        preparation: usize,
++        retained: usize,
++    ) -> Result<(), WorkingSetRefusal> {
++        let complete = add(
++            self.receipt.complete_declared_bytes_bound,
++            preparation.max(retained),
++        )?;
++        let new_preparation = add(self.receipt.new_preparation_bytes_bound, preparation)?;
++        let new_retained = add(self.receipt.new_retained_bytes_bound, retained)?;
++        if complete > self.maximum_complete_bytes {
++            return Err(WorkingSetRefusal);
++        }
++        self.receipt.complete_declared_bytes_bound = complete;
++        self.receipt.new_preparation_bytes_bound = new_preparation;
++        self.receipt.new_retained_bytes_bound = new_retained;
++        Ok(())
++    }
++
+     /// Normal shared-history entrance. Callers cannot substitute per-revision
+     /// limits after aggregate preparation; every linked book uses this profile.
+     pub(crate) fn prepare_book(
+@@ -370,6 +393,7 @@
+             observation_family,
+             receipt,
+             history: limits.history,
++            maximum_complete_bytes: limits.maximum_complete_bytes,
+         })
+     }
+ }

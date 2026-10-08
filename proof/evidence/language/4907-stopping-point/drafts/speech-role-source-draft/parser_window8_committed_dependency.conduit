@@ -1,0 +1,43 @@
+# Exact portable representation of an actual qualified independent commitment.
+# The closed Session retains and replays the original Source request/result and
+# complete qualified lexical/dependency ancestry. This Type is not a standalone
+# commitment capability and does not advance a contiguous or played frontier.
+type LanguageParserWindow8CommittedDependencyProposal = {
+ request: LanguageParserWindow8QualifiedIndependentCommitRequest
+ result: LanguageParserWindow8IndependentCommitSet
+ arc: LanguageDependencyArc
+}
+type LanguageParserWindow8CommittedDependencyAdmission = {
+ request: LanguageParserWindow8QualifiedIndependentCommitRequest
+ result: LanguageParserWindow8IndependentCommitSet
+ arc: LanguageDependencyArc
+ where .result.basis == .request.previous.basis
+ where .result.active.0 == (.request.previous.active.0 || .request.edge.dependent == 0)
+ where .result.edge0 == (.request.previous.active.0 || .request.edge.dependent != 0 ? .request.previous.edge0 : .request.edge)
+ where .result.active.1 == (.request.previous.active.1 || .request.edge.dependent == 1)
+ where .result.edge1 == (.request.previous.active.1 || .request.edge.dependent != 1 ? .request.previous.edge1 : .request.edge)
+ where .result.active.2 == (.request.previous.active.2 || .request.edge.dependent == 2)
+ where .result.edge2 == (.request.previous.active.2 || .request.edge.dependent != 2 ? .request.previous.edge2 : .request.edge)
+ where .result.active.3 == (.request.previous.active.3 || .request.edge.dependent == 3)
+ where .result.edge3 == (.request.previous.active.3 || .request.edge.dependent != 3 ? .request.previous.edge3 : .request.edge)
+ where .result.active.4 == (.request.previous.active.4 || .request.edge.dependent == 4)
+ where .result.edge4 == (.request.previous.active.4 || .request.edge.dependent != 4 ? .request.previous.edge4 : .request.edge)
+ where .result.active.5 == (.request.previous.active.5 || .request.edge.dependent == 5)
+ where .result.edge5 == (.request.previous.active.5 || .request.edge.dependent != 5 ? .request.previous.edge5 : .request.edge)
+ where .result.active.6 == (.request.previous.active.6 || .request.edge.dependent == 6)
+ where .result.edge6 == (.request.previous.active.6 || .request.edge.dependent != 6 ? .request.previous.edge6 : .request.edge)
+ where .result.active.7 == (.request.previous.active.7 || .request.edge.dependent == 7)
+ where .result.edge7 == (.request.previous.active.7 || .request.edge.dependent != 7 ? .request.previous.edge7 : .request.edge)
+ where .arc.dependent.revision == .request.analysis.query.context.query.snapshot.basis.analysis_revision
+ where .arc.dependent.token == .request.analysis.query.dependent.token.identity
+ where (.request.edge.head == 8) == variant/is(.arc.governor,"root")
+ where variant/is(.arc.governor,"token") ? .arc.governor.token.revision == .request.analysis.query.context.query.snapshot.basis.analysis_revision : true
+ where variant/is(.arc.governor,"token") ? .arc.governor.token.token == .request.analysis.query.head.some.token.identity : true
+ where .arc.relation.base == .request.edge.relation.base
+ where .arc.relation.subtype is some ? text/material(.arc.relation.subtype.some) == text/material(.request.edge.relation.subtype) : .request.edge.relation.subtype == ""
+}
+# Representation extraction only. The exact complete original commitment and
+# dependency owners survive beside the admitted output and its execution.
+plot language-window8-committed-dependency-role (
+ input: LanguageParserWindow8CommittedDependencyAdmission...| >> output: SpeechTextTokenRoleRequest...|
+) = { analysis: .request.analysis.query.context.query.snapshot.basis.analysis_revision, basis: .arc, choice: .request.analysis.query.dependent.choice, source: .request.analysis.query.context.query.snapshot.lexical.tape.source, token: .request.analysis.query.dependent.token }
