@@ -894,6 +894,9 @@ references and unsupported or ambiguous notation. A plain record is a definition
 notation/inventory admission remains an explicit additional check.
 
 Run focused conformance with `cargo xtask check speech-ipa`. Typed delimiter
-glyphs such as `[tʰ]` and `/t/` are proposed syntax, not an implemented entrance.
+glyphs such as `p[tʰ]` and `p/t/` are proposed syntax under #5317, not an
+implemented entrance. The same generic mechanism proposes `r/[A-Z]+/i` for
+portable patterns. Existing collections, indexing and bare regex forms retain
+their meanings.
 The compact `EnglishPhone`/`EnglishPhoneme` tags used by the native renderer are
 its terminal profile codes; they do not define canonical linguistic IPA.
