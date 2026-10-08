@@ -282,6 +282,15 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     .unwrap();
     let opening = primary_face_clauses(&face).unwrap().join(" ");
     assert!(opening.starts_with("Groceries. 3 things left · 17 completed"));
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::Summary, 1)
+        .unwrap();
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        vec![opening.clone()]
+    );
     assert!(!opening.contains("Progress"));
     for index in 0..3 {
         assert!(opening.contains(&format!("Open item {index}.")));

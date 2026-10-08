@@ -30,6 +30,10 @@ fn read_current_items_is_a_generic_spoken_command() {
         parse_command("read current items", &reader, &face),
         Ok(ReaderCommand::ReadCurrentItems)
     );
+    assert_eq!(
+        parse_command("summary", &reader, &face),
+        Ok(ReaderCommand::Summary)
+    );
 }
 
 #[test]
