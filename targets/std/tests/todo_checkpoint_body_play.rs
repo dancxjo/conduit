@@ -4,7 +4,7 @@ use conduit_std_host::body_execution::{
     BodyForeExchange, BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
 };
 use conduit_std_host::todo_durable_resource::{
-    CheckpointIdentity, SelectedTodoResidence, READ_OPERATION,
+    CheckpointIdentity, MissingV2Disposition, SelectedTodoResidence, READ_OPERATION,
 };
 use conduit_std_host::{ExternalForeDelivery, ExternalForeInput, RunControl, ThreadTimer};
 use conduit_todo_plot::{TodoCommand, TodoState, STATE_MAX_BYTES};
@@ -236,6 +236,7 @@ fn checkpoint_identity() -> CheckpointIdentity {
         body: "body-1".into(),
         plot: "checked-plot-1".into(),
         workload: "revision-1".into(),
+        missing_v2: MissingV2Disposition::StartNewList,
     }
 }
 

@@ -46,6 +46,16 @@ pub struct CheckpointIdentity {
     pub plot: String,
     /// Stable selected list key within the retained Body.
     pub workload: String,
+    /// What to do when this selected list has no v2 selector. A new list must
+    /// be chosen explicitly; a known v1 write Plot can be inspected exactly.
+    pub missing_v2: MissingV2Disposition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MissingV2Disposition {
+    Refuse,
+    StartNewList,
+    InspectLegacyWritePlot(String),
 }
 
 impl CheckpointIdentity {
@@ -53,6 +63,12 @@ impl CheckpointIdentity {
         [&self.body, &self.plot, &self.workload]
             .iter()
             .all(|s| !s.is_empty() && s.len() <= MAX_ID && !s.chars().any(char::is_control))
+            && match &self.missing_v2 {
+                MissingV2Disposition::InspectLegacyWritePlot(plot) => {
+                    !plot.is_empty() && plot.len() <= MAX_ID && !plot.chars().any(char::is_control)
+                }
+                _ => true,
+            }
     }
 }
 
@@ -62,7 +78,7 @@ pub struct SelectedTodoResidence {
     access: ResourceAccessMode,
     identity: CheckpointIdentity,
     namespace: String,
-    legacy_namespace: String,
+    legacy_namespace: Option<String>,
     semantic: [u8; 32],
     generation: [u8; 32],
 }
@@ -141,18 +157,23 @@ impl SelectedTodoResidence {
             "conduit.todo/checkpoint-namespace@2",
             &key,
         ));
-        // The old format included the operation Plot in its namespace. Refuse
-        // an exact old selection instead of treating it as a new empty list.
-        let mut legacy_key = Vec::new();
-        legacy_key.extend_from_slice(&contract.identity.digest());
-        for part in [&identity.body, &identity.plot, &identity.workload] {
-            legacy_key.extend_from_slice(&(part.len() as u16).to_le_bytes());
-            legacy_key.extend_from_slice(part.as_bytes());
-        }
-        let legacy_namespace = hex(&semantic_digest(
-            "conduit.todo/checkpoint-namespace@1",
-            &legacy_key,
-        ));
+        // The old format included the write Plot. Inspect only a caller-named
+        // old write Plot; a fresh v2 list requires a separate explicit choice.
+        let legacy_namespace = match &identity.missing_v2 {
+            MissingV2Disposition::InspectLegacyWritePlot(plot) => {
+                let mut legacy_key = Vec::new();
+                legacy_key.extend_from_slice(&contract.identity.digest());
+                for part in [&identity.body, plot, &identity.workload] {
+                    legacy_key.extend_from_slice(&(part.len() as u16).to_le_bytes());
+                    legacy_key.extend_from_slice(part.as_bytes());
+                }
+                Some(hex(&semantic_digest(
+                    "conduit.todo/checkpoint-namespace@1",
+                    &legacy_key,
+                )))
+            }
+            _ => None,
+        };
         Ok(Self {
             root,
             authority: authority.clone(),
@@ -190,8 +211,13 @@ impl SelectedTodoResidence {
         ));
         record.extend_from_slice(&payload);
         let current = self.read_selector()?;
-        if current.is_none() && self.legacy_selector_exists()? {
-            return Err(Refusal::MigrationRequired);
+        if current.is_none() {
+            if self.legacy_selector_exists()? {
+                return Err(Refusal::MigrationRequired);
+            }
+            if self.identity.missing_v2 != MissingV2Disposition::StartNewList {
+                return Err(Refusal::Missing);
+            }
         }
         if current.is_some_and(|(_, revision)| revision.checked_add(1) != Some(state.revision))
             || (current.is_none() && state.revision > 1)
@@ -307,7 +333,10 @@ impl SelectedTodoResidence {
         Ok(Some((generation, revision)))
     }
     fn legacy_selector_exists(&self) -> Result<bool, Refusal> {
-        match fs::symlink_metadata(self.root.join(format!("{}.current", self.legacy_namespace))) {
+        let Some(namespace) = &self.legacy_namespace else {
+            return Ok(false);
+        };
+        match fs::symlink_metadata(self.root.join(format!("{namespace}.current"))) {
             Ok(_) => Ok(true),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
             Err(_) => Err(Refusal::Storage),

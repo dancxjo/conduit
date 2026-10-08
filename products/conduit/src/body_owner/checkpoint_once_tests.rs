@@ -3,6 +3,7 @@ use conduit_core::{
     kind_id, BootId, HostId, OfferGeneration, ResourceAccessMode, ResourceContentRequirement,
     ResourceRetention, ResourceSemanticIdentity, ResourceSharing, ResourceVersionIdentity,
 };
+use conduit_std_host::todo_durable_resource::MissingV2Disposition;
 use conduit_std_host::{StdHost, StdHostConfig};
 
 const SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-once.conduit");
@@ -110,6 +111,7 @@ fn first_caller_supplied_action_commits_under_retained_body_before_ack() {
                 body: body_id.as_str().into(),
                 plot: plot.expanded.checked_plot_id.as_str().into(),
                 workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &current,
             &TodoCommand::Add {
@@ -132,6 +134,7 @@ fn first_caller_supplied_action_commits_under_retained_body_before_ack() {
                 body: body_id.as_str().into(),
                 plot: plot.expanded.checked_plot_id.as_str().into(),
                 workload: "todo-list".into()
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &committed,
             &TodoCommand::Add {
@@ -156,6 +159,7 @@ fn foreign_checkpoint_namespace_refuses_before_play_or_publication() {
                 body: "different-body".into(),
                 plot: plot.expanded.checked_plot_id.as_str().into(),
                 workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &current,
             &TodoCommand::Add {
@@ -194,6 +198,7 @@ fn stale_current_and_foreign_grant_refuse_before_play() {
                 body,
                 plot: plot.expanded.checked_plot_id.as_str().into(),
                 workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &stale,
             &TodoCommand::Add {
