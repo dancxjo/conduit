@@ -15,7 +15,7 @@ qemu-system-x86_64 --version > "$proof_transcript/qemu-version.txt"
 sha256sum "$proof_iso" > "$proof_transcript/image-sha256.txt"
 proof_command=(qemu-system-x86_64 -machine q35 -cpu qemu64 -smp 1 -m 512M \
   -display none -serial "file:$proof_transcript/serial.log" -monitor none \
-  -no-reboot -no-shutdown -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+  -no-reboot -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
   -cdrom "$proof_iso" -boot d)
 printf '%q ' "${proof_command[@]}" > "$proof_transcript/command.txt"
 printf '\n' >> "$proof_transcript/command.txt"
