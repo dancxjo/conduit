@@ -3,7 +3,8 @@
 //! ancestry. This module supplies no grammar, legality, facts or commitments.
 use crate::{
     parser_canonical_schema::{shape, Shape},
-    LanguageParserLegalMask, LanguageParserV2ModelScores,
+    parser_session_driver_profile::FixedParserDriverProfile,
+    parser_session_numeric_profile::PinnedFourSlotNumericProfile,
 };
 use conduit_core::ValidatedCanonicalStructuredValue as Value;
 use conduit_plot::rust_binding::PreparedNativeRustBinding;
@@ -60,17 +61,21 @@ pub(crate) fn bool_value(value: Value<'_>) -> Result<bool, DriverRankRefusal> {
         _ => Err(DriverRankRefusal::Value),
     }
 }
-pub(crate) struct PreparedParserDriverRank {
+pub(crate) struct PreparedParserDriverRank<
+    P: FixedParserDriverProfile = PinnedFourSlotNumericProfile,
+> {
+    profile: core::marker::PhantomData<P>,
     scores: [i64; 76],
     allowed: [bool; 76],
     classes: [usize; 4],
     length: usize,
 }
-impl PreparedParserDriverRank {
+impl<P: FixedParserDriverProfile> PreparedParserDriverRank<P> {
     /// Inline finite scratch is charged as part of the Session owner before its
     /// allocation. Runtime ranking neither allocates nor changes the legal mask.
     pub(crate) fn new() -> Self {
         Self {
+            profile: core::marker::PhantomData,
             scores: [0; 76],
             allowed: [false; 76],
             classes: [0; 4],
@@ -82,8 +87,9 @@ impl PreparedParserDriverRank {
         scores: Value<'_>,
         mask: Value<'_>,
     ) -> Result<&[usize], DriverRankRefusal> {
-        if scores.type_bytes() != LanguageParserV2ModelScores::PREPARED_DESCRIPTOR.type_bytes
-            || mask.type_bytes() != LanguageParserLegalMask::PREPARED_DESCRIPTOR.type_bytes
+        if P::SCORE_CLASSES != 76
+            || scores.type_bytes() != P::Scores::PREPARED_DESCRIPTOR.type_bytes
+            || mask.type_bytes() != P::Mask::PREPARED_DESCRIPTOR.type_bytes
         {
             return Err(DriverRankRefusal::Type);
         }

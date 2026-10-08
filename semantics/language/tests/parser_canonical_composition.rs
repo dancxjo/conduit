@@ -370,6 +370,10 @@ fn exact_variant_payload_prepares_fixed_default_relation_without_ordinary_native
     ));
 }
 
+#[path = "../src/parser_session_driver_profile.rs"]
+mod parser_session_driver_profile;
+#[path = "../src/parser_session_numeric_profile.rs"]
+mod parser_session_numeric_profile;
 #[path = "../src/parser_session_rank.rs"]
 mod parser_session_rank;
 
@@ -397,7 +401,7 @@ fn original_integer_rank_observes_all_scores_and_source_mask_without_allocation(
         .unwrap();
     let scores = conduit_core::validate_canonical_structured_value(&scores).unwrap();
     let mask = conduit_core::validate_canonical_structured_value(&mask).unwrap();
-    let mut rank = parser_session_rank::PreparedParserDriverRank::new();
+    let mut rank = parser_session_rank::PreparedParserDriverRank::<parser_session_numeric_profile::PinnedFourSlotNumericProfile>::new();
     REQUESTS.store(0, Ordering::Relaxed);
     TRACK.store(true, Ordering::Relaxed);
     let classes = rank.rank(scores, mask).unwrap();

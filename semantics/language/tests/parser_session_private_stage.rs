@@ -1000,6 +1000,8 @@ fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress
     assert_eq!(selection.prepared_categorical().dimensions(), (413, 76, 25));
 }
 
+#[path = "../src/parser_session_driver_profile.rs"]
+mod parser_session_driver_profile;
 #[path = "../src/parser_session_rank.rs"]
 mod parser_session_rank;
 
