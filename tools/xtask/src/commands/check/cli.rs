@@ -48,6 +48,8 @@ pub enum CheckSuite {
     TodoState,
     /// Prove selected Todo checkpoint persistence and same-Body Host continuity.
     TodoDurability,
+    /// Check canonical IPA notation and first-class phone/phoneme authoring.
+    SpeechIpa,
     InputSemantics,
     /// Prove owner-issued presentation routes without waking the workload.
     OwnerPresentation,

@@ -2,6 +2,8 @@
 mod graph;
 #[path = "build_support/lower.rs"]
 mod lower;
+#[path = "build_support/semantic_source.rs"]
+mod semantic_source;
 use conduit_core::StructuredInfoTypeShape;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -28,22 +30,15 @@ fn main() {
     println!("cargo:rerun-if-changed=linguistic_prosody.conduit");
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
-    let semantic_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
-        include_str!("types.conduit"),
-        include_str!("rule_status.conduit"),
-        include_str!("selection.conduit"),
-        include_str!("listening.conduit"),
-        include_str!("translation.conduit"),
-        include_str!("timing.conduit"),
-        include_str!("intent.conduit"),
-        include_str!("inventory.conduit"),
-        include_str!("profile_phones.conduit"),
-        include_str!("voice_profile.conduit"),
-        include_str!("context_match.conduit"),
-        include_str!("linguistic_prosody.conduit"),
-        include_str!("pitch_trajectory.conduit")
-    );
+    for path in [
+        "ipa.conduit",
+        "ipa_syntax.conduit",
+        "ipa_inventory.conduit",
+        "build_support/semantic_source.rs",
+    ] {
+        println!("cargo:rerun-if-changed={path}");
+    }
+    let semantic_source = semantic_source::source();
     let mut language_types = conduit_language::identity_types();
     language_types.extend(
         conduit_language::prosody::prosody_types()
@@ -86,6 +81,23 @@ fn main() {
         program,
     )
     .expect("retain speech projection");
+    let ipa_expanded = expand_canonical_plot_for_authoring(
+        &semantic,
+        "speech/ipa-supported-unit",
+        &ProfileCatalog::new(),
+    )
+    .expect("checked IPA syntax expands");
+    let [entry] = ipa_expanded.expanded.gears[0].configuration.as_slice() else {
+        panic!("one IPA syntax program")
+    };
+    let conduit_core::ConfigurationValue::Text(program) = &entry.value else {
+        panic!("portable IPA syntax program")
+    };
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("ipa_supported_unit_program.hex"),
+        program,
+    )
+    .expect("retain IPA syntax program");
     let identities = language_types
         .iter()
         .map(|(_, ty)| match ty.shape() {
@@ -99,7 +111,7 @@ fn main() {
         .iter()
         .map(|(name, _)| format!("conduit_language::{name}"))
         .collect::<Vec<_>>();
-    // LanguageVariety is metadata, not consumed by a speech value yet.
+    // IPA profiles retain the exact Language-owned variety Type.
     let bindings = identities
         .iter()
         .zip(&paths)
@@ -107,8 +119,7 @@ fn main() {
         .filter(|(_, (name, _))| {
             !matches!(
                 *name,
-                "LanguageVariety"
-                    | "LanguageTextReferenceMatch"
+                "LanguageTextReferenceMatch"
                     | "LanguageExternalIdentity"
                     | "LanguageProsodyBoundary"
                     | "LanguageProsodyProminence"
