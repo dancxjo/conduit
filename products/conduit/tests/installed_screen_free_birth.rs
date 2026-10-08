@@ -562,6 +562,7 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
     );
     let readout = String::from_utf8(reopened.stdout).unwrap();
     assert!(readout.contains(&format!("Continuing retained Body {body_id}")));
+    assert!(!readout.contains("Commands: Commands:"));
     assert!(readout.contains("Text Face revision="));
     assert!(readout.contains("ticker pace"));
     assert!(readout.contains("Owner action result:"));

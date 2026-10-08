@@ -302,7 +302,7 @@ fn run_body(
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).map_err(debug_error)?;
     writeln!(
         output,
-        "Continuing retained Body {}. Commands: {SCREEN_FREE_COMMANDS} refresh, wardrobe (inspect), wardrobe wear/doff/prefer MASK.",
+        "Continuing retained Body {}. {SCREEN_FREE_COMMANDS} refresh, wardrobe (inspect), wardrobe wear/doff/prefer MASK.",
         body_id.as_str()
     )
     .map_err(|error| error.to_string())?;
