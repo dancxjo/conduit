@@ -3,7 +3,12 @@ use conduit_core::{
     kind_id, BootId, HostId, OfferGeneration, ResourceAccessMode, ResourceContentRequirement,
     ResourceRetention, ResourceSemanticIdentity, ResourceSharing, ResourceVersionIdentity,
 };
+use conduit_presentation::{FaceInteraction, FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
+use conduit_std_host::todo_durable_resource::MissingV2Disposition;
 use conduit_std_host::{StdHost, StdHostConfig};
+
+#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
+mod mask_test_common;
 
 const SOURCE: &str = include_str!("../../../../plots/todo/checkpoint-once.conduit");
 
@@ -98,6 +103,87 @@ fn fixture() -> (
 }
 
 #[test]
+fn todo_face_refuses_a_pre_play_contribution() {
+    let (owner, _, _, _, state_root, _) = fixture();
+    let initial = TodoState::new("Groceries".into()).unwrap();
+    assert!(owner.project_face(Some((&initial, true))).is_err());
+    std::fs::remove_dir_all(state_root).unwrap();
+}
+
+#[test]
+fn waiting_owner_admits_exact_show_action_then_retains_commit_and_sign() {
+    let (mut owner, source, plot, grant, state_root, checkpoint_root) = fixture();
+    let body = owner.session.evidence().body_id.as_str().to_owned();
+    let mut worker = owner
+        .start_waiting_todo(
+            &state_root,
+            &source,
+            &plot,
+            &grant,
+            checkpoint_root,
+            CheckpointIdentity {
+                body,
+                plot: plot.expanded.checked_plot_id.as_str().into(),
+                workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
+            },
+            TodoState::new("Groceries".into()).unwrap(),
+            5_000,
+        )
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while owner.todo_live.is_none() {
+        assert!(worker.progress(&mut owner, &state_root).unwrap().is_none());
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    let face = owner.local_face_snapshot().unwrap();
+    let show = mask_test_common::available_mask_show(&face);
+    let action = FaceInteraction::new(
+        &face,
+        &show,
+        "todo.add",
+        "todo/list",
+        vec![FaceInteractionArgument {
+            name: "text".into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: b"Buy milk".to_vec(),
+        }],
+        1,
+    )
+    .unwrap();
+    assert!(matches!(
+        worker.submit_interaction(&owner, &show, &action).unwrap(),
+        conduit_std_host::BodyLiveForeAdmission::Accepted { .. }
+    ));
+    assert!(worker.submit_interaction(&owner, &show, &action).is_err());
+    let committed = loop {
+        if let Some(committed) = worker.progress(&mut owner, &state_root).unwrap() {
+            break committed;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    };
+    assert_eq!(committed.revision, 1);
+    assert_eq!(committed.items[0].text, "Buy milk");
+    let receipt = owner.todo_commit_receipt().unwrap();
+    assert_eq!(
+        receipt["interaction_id"],
+        serde_json::json!(action.identity)
+    );
+    assert!(receipt["terminal_sign"]["active_play_id"].is_string());
+    assert!(receipt["committed_fore_sha256"].is_string());
+    assert!(owner.todo_live.is_none());
+    assert!(!owner
+        .local_face_snapshot()
+        .unwrap()
+        .actions
+        .iter()
+        .any(|a| a.identity.as_str().starts_with("todo.")));
+    std::fs::remove_dir_all(state_root).unwrap();
+}
+
+#[test]
 fn first_caller_supplied_action_commits_under_retained_body_before_ack() {
     let (mut owner, source, plot, grant, state_root, checkpoint_root) = fixture();
     let body_id = owner.session.evidence().body_id.clone();
@@ -111,6 +197,7 @@ fn first_caller_supplied_action_commits_under_retained_body_before_ack() {
                 body: body_id.as_str().into(),
                 plot: plot.expanded.checked_plot_id.as_str().into(),
                 workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &current,
             &TodoCommand::Add {
@@ -132,7 +219,8 @@ fn first_caller_supplied_action_commits_under_retained_body_before_ack() {
             CheckpointIdentity {
                 body: body_id.as_str().into(),
                 plot: plot.expanded.checked_plot_id.as_str().into(),
-                workload: "todo-list".into()
+                workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &committed,
             &TodoCommand::Add {
@@ -157,6 +245,7 @@ fn foreign_checkpoint_namespace_refuses_before_play_or_publication() {
                 body: "different-body".into(),
                 plot: plot.expanded.checked_plot_id.as_str().into(),
                 workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &current,
             &TodoCommand::Add {
@@ -195,6 +284,7 @@ fn stale_current_and_foreign_grant_refuse_before_play() {
                 body,
                 plot: plot.expanded.checked_plot_id.as_str().into(),
                 workload: "todo-list".into(),
+                missing_v2: MissingV2Disposition::StartNewList,
             },
             &stale,
             &TodoCommand::Add {

@@ -10,10 +10,7 @@ use conduit_body::{
 };
 use conduit_core::HostAdvertisement;
 use conduit_core::{bind_sign, port_id, BaseImplementationId, ConnectionTrack, PortDirection};
-use conduit_presentation::{
-    Face, FaceContext, FaceFocus, FaceNames, FaceResidentPlotName, OwnerFaceSnapshotRequest,
-    Presentation,
-};
+use conduit_presentation::{OwnerFaceSnapshotRequest, Presentation};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -62,6 +59,13 @@ pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
+#[path = "todo_face.rs"]
+mod todo_face;
+#[path = "todo_waiting.rs"]
+#[allow(dead_code)] // Waiting Play enters the installed service after Host selection lands.
+mod todo_waiting;
+#[allow(unused_imports)] // The installed service return wires this worker next.
+pub(crate) use todo_waiting::TodoWaitingWorker;
 pub(crate) fn clock_interval_action() -> &'static str {
     clock_interval::CLOCK_INTERVAL_ACTION
 }
@@ -153,6 +157,9 @@ pub(crate) struct Owner {
     direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
     presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
+    /// Projection cache for the exact currently Playing Todo encounter. The
+    /// next Play must restore through its admitted read Host Call.
+    todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
 }
 impl Owner {
     pub(crate) fn selected_speech_host_is_idle(&self) -> bool {
@@ -245,6 +252,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            todo_live: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -268,6 +276,7 @@ impl Owner {
             direct_spoken_route: None,
             llm_spoken_route: None,
             presentation_wardrobe: None,
+            todo_live: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
@@ -345,35 +354,13 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
-        let plot_name = self
-            .resident
-            .as_ref()
-            .zip(self.resident_name.as_deref())
-            .map(|(resident, name)| FaceResidentPlotName {
-                source_document_id: &resident.source_document_id,
-                checked_plot_id: &resident.checked_plot_id,
-                name,
-            });
-        let plot_names: Vec<_> = plot_name.into_iter().collect();
-        let face = Face::project_with_names(
-            &self.session.evidence().body,
-            self.session
-                .realization()
-                .map(|realization| &realization.wake),
-            self.session.evidence().last_sequence(),
-            FaceContext::Overview,
-            FaceFocus::Body,
-            vec![],
-            FaceNames {
-                body_name: Some(&self.session.evidence().friendly_name),
-                resident_plots: &plot_names,
-            },
-        )
-        .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
-        face.presentation
-            .validate()
-            .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
-        clock_interval::with_clock_action(self, face.presentation)
+        match self.todo_live.as_ref() {
+            Some((play, state)) if self.current_play_id() == Some(play) => {
+                self.project_face(Some((state, true)))
+            }
+            Some(_) => Err("Todo Face projection cache differs from current Play".into()),
+            None => self.project_face(None),
+        }
     }
     pub(super) fn plan(
         &mut self,

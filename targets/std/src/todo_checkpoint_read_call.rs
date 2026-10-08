@@ -155,6 +155,7 @@ pub const fn read_failure_detail(refusal: &Refusal) -> u16 {
         Refusal::InvalidState => 6,
         Refusal::UnknownOutcome => 7,
         Refusal::Storage => 8,
+        Refusal::MigrationRequired => 9,
     }
 }
 
