@@ -4,8 +4,8 @@ use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 mod gates;
 mod morse;
 mod retained_text;
-mod timer_runtime;
 mod timer;
+mod timer_runtime;
 
 pub fn run(record: &boot::BootRecord) -> ! {
     arch::initialize_machine(record, boot::executable_physical_address);

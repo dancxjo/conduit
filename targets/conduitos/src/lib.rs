@@ -25,7 +25,9 @@ pub mod domain_image;
 #[cfg(any(target_os = "none", all(target_arch = "x86", target_os = "linux")))]
 #[path = "../domain/layout.rs"]
 pub(crate) mod domain_layout;
+mod domain_scope_identity;
 pub mod domain_serial_scope;
+pub mod domain_timer_scope;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
 pub mod dual_region_plan;
