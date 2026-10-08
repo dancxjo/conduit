@@ -24,6 +24,7 @@ fn main() {
     for (name, constant) in [
         ("audio/frequency-to-cycle", "FREQUENCY_TO_CYCLE"),
         ("audio/cycle-to-frequency", "CYCLE_TO_FREQUENCY"),
+        ("audio/amplitude-to-power", "AMPLITUDE_TO_POWER"),
     ] {
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(
             &acoustic,
@@ -49,6 +50,11 @@ fn main() {
         &RustBindingOptions {
             derive_serde_for_variants: true,
             copy_record_types: [
+                "AudioRelativeAmplitude".into(),
+                "AudioPowerRatio".into(),
+                "AudioAmplitudePowerSquared".into(),
+                "AudioAmplitudePowerRequest".into(),
+                "AudioAmplitudePowerEligible".into(),
                 "AudioFrequencyHz".into(),
                 "AudioCycleDuration".into(),
                 "AudioResonator".into(),
@@ -81,6 +87,10 @@ fn main() {
             .into(),
             serde_record_types: ["PcmCompatibilityProfile".into()].into(),
             direct_checked_record_constructors: [
+                "AudioRelativeAmplitude".into(),
+                "AudioPowerRatio".into(),
+                "AudioAmplitudePowerSquared".into(),
+                "AudioAmplitudePowerRequest".into(),
                 "AudioFrequencyHz".into(),
                 "AudioCycleDuration".into(),
                 "AudioResonator".into(),

@@ -26,16 +26,17 @@ mod generated {
 }
 
 pub use generated::{
-    AudioCycleDuration, AudioFrequencyHz, AudioRenderDemand, AudioResonator, AudioToneTerminal,
-    AudioToneTerminalForm, BeatReference, CancellationDisposition, Gate, GateForm,
-    IncompatibilityReason, InstrumentAnalogEvent, InstrumentButtonEvent, InstrumentControl,
-    InstrumentMapping, InstrumentPitchMillihertz, ModulationDestination, ModulationDestinationForm,
-    MusicalControl, MusicalControlEvent, MusicalControlModulation, MusicalControlPitchBend,
-    MusicalControlSustain, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, PcmChannelLayout,
-    PcmChannelLayoutForm, PcmClipProfile, PcmCompatibilityProfile, PcmFrameHeader,
-    PcmSampleRepresentation, PcmSampleRepresentationForm, PressureDisposition, RhythmRecoveryState,
-    SoundSeam, SoundStreamState, SoundTerminalBehavior, TimingClassification, TimingFeedback,
-    ToneIntent,
+    AudioAmplitudePowerEligible, AudioAmplitudePowerRelationship, AudioAmplitudePowerRequest,
+    AudioCycleDuration, AudioFrequencyHz, AudioPowerRatio, AudioRelativeAmplitude,
+    AudioRenderDemand, AudioResonator, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
+    CancellationDisposition, Gate, GateForm, IncompatibilityReason, InstrumentAnalogEvent,
+    InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
+    ModulationDestination, ModulationDestinationForm, MusicalControl, MusicalControlEvent,
+    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, MusicalNoteEvent,
+    MusicalPitch, NoteOccurrenceId, PcmChannelLayout, PcmChannelLayoutForm, PcmClipProfile,
+    PcmCompatibilityProfile, PcmFrameHeader, PcmSampleRepresentation, PcmSampleRepresentationForm,
+    PressureDisposition, RhythmRecoveryState, SoundSeam, SoundStreamState, SoundTerminalBehavior,
+    TimingClassification, TimingFeedback, ToneIntent,
 };
 
 mod audio_info;
