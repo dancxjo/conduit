@@ -7,6 +7,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
 mod checked_encoding;
+mod storage;
 pub(crate) use checked_encoding::checked_canonical_hex;
 
 pub const MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES: usize = crate::MAXIMUM_PLOT_SOURCE_BYTES * 64;

@@ -187,3 +187,25 @@ pub(super) fn is_primitive(ty: &StructuredInfoType) -> bool {
         _ => false,
     }
 }
+
+impl PreparedMemberSelection {
+    pub(super) fn owned_heap_bytes(&self) -> usize {
+        let steps = self.steps.iter().fold(
+            self.steps
+                .capacity()
+                .saturating_mul(core::mem::size_of::<Member>()),
+            |total, step| {
+                total.saturating_add(match step {
+                    Member::Field(name) | Member::Variant(name) => name.capacity(),
+                    Member::Index(_) => 0,
+                })
+            },
+        );
+        steps
+            .saturating_add(self.output_type.capacity())
+            .saturating_add(self.output.capacity())
+            .saturating_add(self.source.as_ref().map_or(0, |source| {
+                super::storage::boxed(source.as_ref(), source.owned_heap_bytes())
+            }))
+    }
+}
