@@ -44,46 +44,52 @@ fn retain(root: &Path, name: &str, bytes: &[u8]) -> Result<Value, String> {
     Ok(json!({"path":name,"bytes":bytes.len(),"sha256":sha(bytes)}))
 }
 
-fn invoke(
-    bin: &Path,
-    root: &Path,
-    state: &Path,
-    steps: &mut Vec<Value>,
-    label: &str,
-    command: &[&str],
-    after_state: &[&str],
-    input: Option<&[u8]>,
-) -> Result<(), String> {
-    let mut child = Command::new(bin)
-        .args(command)
-        .arg("--state-dir")
-        .arg(state)
-        .args(after_state)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("start {label}: {e}"))?;
-    if let Some(bytes) = input {
-        child
-            .stdin
-            .take()
-            .ok_or("terminal stdin missing")?
-            .write_all(bytes)
-            .map_err(|e| format!("write {label} commands: {e}"))?;
+struct InstalledCapture<'a> {
+    bin: &'a Path,
+    root: &'a Path,
+    state: &'a Path,
+}
+
+impl InstalledCapture<'_> {
+    fn invoke(
+        &self,
+        steps: &mut Vec<Value>,
+        label: &str,
+        command: &[&str],
+        after_state: &[&str],
+        input: Option<&[u8]>,
+    ) -> Result<(), String> {
+        let mut child = Command::new(self.bin)
+            .args(command)
+            .arg("--state-dir")
+            .arg(self.state)
+            .args(after_state)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("start {label}: {e}"))?;
+        if let Some(bytes) = input {
+            child
+                .stdin
+                .take()
+                .ok_or("terminal stdin missing")?
+                .write_all(bytes)
+                .map_err(|e| format!("write {label} commands: {e}"))?;
+        }
+        let output = child
+            .wait_with_output()
+            .map_err(|e| format!("wait for {label}: {e}"))?;
+        let stdout = retain(self.root, &format!("{label}.stdout"), &output.stdout)?;
+        let stderr = retain(self.root, &format!("{label}.stderr"), &output.stderr)?;
+        let receipt = json!({"command":command,"state_dir":self.state,
+            "arguments_after_state_dir":after_state,"exit_code":output.status.code(),"stdout":stdout,"stderr":stderr});
+        steps.push(receipt);
+        if !output.status.success() {
+            return Err(format!("{label} failed; raw output retained"));
+        }
+        Ok(())
     }
-    let output = child
-        .wait_with_output()
-        .map_err(|e| format!("wait for {label}: {e}"))?;
-    let stdout = retain(root, &format!("{label}.stdout"), &output.stdout)?;
-    let stderr = retain(root, &format!("{label}.stderr"), &output.stderr)?;
-    let receipt = json!({"command":command,"state_dir":state,
-        "arguments_after_state_dir":after_state,"exit_code":output.status.code(),"stdout":stdout,"stderr":stderr});
-    steps.push(receipt);
-    if !output.status.success() {
-        return Err(format!("{label} failed; raw output retained"));
-    }
-    Ok(())
 }
 
 fn parse_capture(root: &Path, label: &str) -> Result<Value, String> {
@@ -183,22 +189,21 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         return Err("cannot identify capture source commit".into());
     }
     let capture_commit = String::from_utf8(capture_commit.stdout)?.trim().to_owned();
+    let capture = InstalledCapture {
+        bin: &bin,
+        root: &output,
+        state: &state,
+    };
     let mut steps = Vec::new();
     let result = (|| -> Result<Value, String> {
-        invoke(
-            &bin,
-            &output,
-            &state,
+        capture.invoke(
             &mut steps,
             "before-status",
             &["host", "service", "status"],
             &["--json"],
             None,
         )?;
-        invoke(
-            &bin,
-            &output,
-            &state,
+        capture.invoke(
             &mut steps,
             "before-face",
             &["body", "face"],
@@ -217,30 +222,21 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             return Err("installed owner Face has no Todo list contribution".into());
         }
         let script_receipt = retain(&output, "terminal.input", &script)?;
-        invoke(
-            &bin,
-            &output,
-            &state,
+        capture.invoke(
             &mut steps,
             "terminal",
             &["body", "terminal"],
             &[],
             Some(&script),
         )?;
-        invoke(
-            &bin,
-            &output,
-            &state,
+        capture.invoke(
             &mut steps,
             "after-status",
             &["host", "service", "status"],
             &["--json"],
             None,
         )?;
-        invoke(
-            &bin,
-            &output,
-            &state,
+        capture.invoke(
             &mut steps,
             "after-face",
             &["body", "face"],
