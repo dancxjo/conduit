@@ -234,6 +234,7 @@ installed_step_dispatch!(
     CombineLatest,
     TodoCombine,
     TodoCheckpoint,
+    TodoCheckpointRead,
     FlowZip,
     FlowGateScalar,
     FlowFirst,

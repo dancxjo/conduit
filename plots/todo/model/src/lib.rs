@@ -33,6 +33,35 @@ pub const TODO_COMBINE_KIND: &str = "todo/combine";
 pub const TODO_COMBINE_REVISION: &str = "conduit.todo/combine@1";
 pub const TODO_CHECKPOINT_KIND: &str = "todo/checkpoint";
 pub const TODO_CHECKPOINT_REVISION: &str = "conduit.todo/checkpoint@1";
+pub const TODO_CHECKPOINT_READ_KIND: &str = "todo/checkpoint-read";
+pub const TODO_CHECKPOINT_READ_REVISION: &str = "conduit.todo/checkpoint-read@1";
+
+/// Restore one exact published generation through a selected read Host Call.
+pub fn todo_checkpoint_read_kind() -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(TODO_CHECKPOINT_READ_KIND),
+        kind_contract_revision: KindIdentity::from(TODO_CHECKPOINT_READ_REVISION),
+        inputs: Vec::new(),
+        outputs: vec![port("restored", TODO_STATE_INFO_ID, PortDirection::Output)],
+        configuration: Vec::new(),
+        semantic_laws: vec![
+            KindSemanticLaw::ValueContracts(vec![value_contract(
+                "restored",
+                TODO_STATE_INFO_ID,
+                STATE_MAX_BYTES,
+                false,
+            )]),
+            KindSemanticLaw::Terminal(KindTerminalBehavior::CompletesWhenInputsClose),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: STATE_MAX_BYTES as u32,
+        },
+    }
+}
 
 /// One planned immutable generation is published before this Gear emits state.
 /// A later command requires a new Plan and a separately restored current state.

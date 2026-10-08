@@ -134,6 +134,7 @@ mod spoken_mask_runtime_tests;
 pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
 pub mod todo_checkpoint_call;
+pub mod todo_checkpoint_read_call;
 pub mod todo_durable_resource;
 mod vision_ocr;
 mod vision_tracker;
@@ -729,6 +730,29 @@ impl StdHost {
         root: &std::path::Path,
         content: conduit_core::ResourceContentRequirement,
     ) -> Result<Self, String> {
+        let offer =
+            conduit_std_offers::todo_checkpoint_offer(content.clone()).map_err(str::to_string)?;
+        Self::new_for_selected_todo_checkpoint(config, root, content, offer)
+    }
+
+    /// Advertise one exact ReadPublished generation and its separate read
+    /// authority before ledger admission on the selected std Host.
+    pub fn new_for_todo_checkpoint_read(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+    ) -> Result<Self, String> {
+        let offer = conduit_std_offers::todo_checkpoint_read_offer(content.clone())
+            .map_err(str::to_string)?;
+        Self::new_for_selected_todo_checkpoint(config, root, content, offer)
+    }
+
+    fn new_for_selected_todo_checkpoint(
+        config: StdHostConfig,
+        root: &std::path::Path,
+        content: conduit_core::ResourceContentRequirement,
+        offer: conduit_core::CapabilityOffer,
+    ) -> Result<Self, String> {
         let metadata = std::fs::symlink_metadata(root)
             .map_err(|error| format!("Todo checkpoint root: {error}"))?;
         if metadata.file_type().is_symlink() || !metadata.is_dir() {
@@ -737,8 +761,6 @@ impl StdHost {
         let root = root
             .canonicalize()
             .map_err(|error| format!("Todo checkpoint root: {error}"))?;
-        let offer =
-            conduit_std_offers::todo_checkpoint_offer(content.clone()).map_err(str::to_string)?;
         let mut advertisement = composition::build_advertisement(
             config,
             StdHostComposition::reference(),

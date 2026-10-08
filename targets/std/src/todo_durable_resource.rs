@@ -110,8 +110,11 @@ impl SelectedTodoResidence {
             || call.contract_id.as_str() != operation
             || call.target_kind.as_ref() != Some(&placement.kind_id)
             || call.maximum_in_flight != 1
-            || call.maximum_input_bytes != 4096
-            || call.maximum_output_bytes != 4096
+            || (contract.access == ResourceAccessMode::WriteCandidatePublish
+                && (call.maximum_input_bytes != 4096 || call.maximum_output_bytes != 4096))
+            || (contract.access == ResourceAccessMode::ReadPublished
+                && (call.maximum_input_bytes != 0
+                    || call.maximum_output_bytes != STATE_MAX_BYTES as u32))
             || authority.contract_id.as_str() != AUTHORITY_CONTRACT
             || authority.host_call_contract_id != call.contract_id
             || authority.host_id != placement.host_id

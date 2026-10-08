@@ -14,6 +14,10 @@ pub const TODO_CHECKPOINT_ARTIFACT: &str = "conduit-std-host/todo-checkpoint@1";
 pub const TODO_CHECKPOINT_PROFILE: &str = "conduit.std/todo-checkpoint@1";
 pub const TODO_CHECKPOINT_PUBLISH_CALL: &str = "conduit.host/todo-checkpoint-publish@1";
 pub const TODO_CHECKPOINT_AUTHORITY: &str = "authority/todo-checkpoint@1";
+pub const TODO_CHECKPOINT_READ_IMPLEMENTATION: &str = "std/kernel-todo-checkpoint-read@1";
+pub const TODO_CHECKPOINT_READ_ARTIFACT: &str = "conduit-std-host/todo-checkpoint-read@1";
+pub const TODO_CHECKPOINT_READ_PROFILE: &str = "conduit.std/todo-checkpoint-read@1";
+pub const TODO_CHECKPOINT_READ_CALL: &str = "conduit.host/todo-checkpoint-read@1";
 pub const TODO_CHECKPOINT_MAX_BYTES: u32 =
     (8 + 1 + 64 + 3 * (1 + 128) + 4 + 4 + 32 + conduit_todo_plot::STATE_MAX_BYTES) as u32;
 
@@ -63,6 +67,59 @@ pub fn todo_checkpoint_offer(
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: TODO_CHECKPOINT_AUTHORITY.into(),
                 host_call_contract_id: TODO_CHECKPOINT_PUBLISH_CALL.into(),
+                subject_kind: kind_id,
+            }],
+        },
+    )
+    .build())
+}
+
+/// One exactly selected published generation, with separate read authority.
+pub fn todo_checkpoint_read_offer(
+    contract: ResourceContentRequirement,
+) -> Result<CapabilityOffer, &'static str> {
+    contract
+        .validate()
+        .map_err(|_| "invalid Todo checkpoint read content contract")?;
+    if contract.access != ResourceAccessMode::ReadPublished
+        || contract.retention != ResourceRetention::ExternalDurable
+        || contract.sharing != ResourceSharing::SingleWriterPublished
+        || contract.content_profile != kind_id("conduit.todo/checkpoint-envelope@1")
+        || contract.maximum_bytes != TODO_CHECKPOINT_MAX_BYTES
+        || contract.maximum_items != 1
+        || contract.generation_slots != 1
+        || contract.publication_slots != 0
+        || contract.reader_leases != 1
+        || contract.sensitive
+    {
+        return Err("unsupported Todo checkpoint read content contract");
+    }
+    let kind = conduit_todo_plot::todo_checkpoint_read_kind();
+    let kind_id = kind.kind_id.clone();
+    Ok(BackOfferBuilder::new(
+        kind,
+        Back {
+            capability_id: CapabilityId::from("std-todo-checkpoint-read-v1"),
+            execution_profile_id: ExecutionProfileId::from(TODO_CHECKPOINT_READ_PROFILE),
+            implementation_id: ImplementationId::from(TODO_CHECKPOINT_READ_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(TODO_CHECKPOINT_READ_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: TODO_CHECKPOINT_READ_CALL.into(),
+                target_kind: Some(kind_id.clone()),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes: conduit_todo_plot::STATE_MAX_BYTES as u32,
+            }],
+            resource_requirements: vec![ResourceRequirement {
+                class_id: "resource/todo-checkpoint@1".into(),
+                units: 1,
+                compute: None,
+                protected_role: None,
+                content: Some(contract),
+            }],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: TODO_CHECKPOINT_AUTHORITY.into(),
+                host_call_contract_id: TODO_CHECKPOINT_READ_CALL.into(),
                 subject_kind: kind_id,
             }],
         },

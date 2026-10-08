@@ -178,6 +178,50 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        self.require_selected_todo_checkpoint_root(root)?;
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((inputs, false, fore_output)),
+            None,
+            Some((root, checkpoint)),
+            started,
+        )
+    }
+
+    /// Restore one typed published state through its selected read Host Call.
+    /// The start callback runs before any external read or Fore delivery.
+    pub fn run_body_plan_with_todo_checkpoint_read_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        root: &Path,
+        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.require_selected_todo_checkpoint_root(root)?;
+        self.run_body_plan_to_with_start_and_clock(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((&[], false, fore_output)),
+            None,
+            Some((root, checkpoint)),
+            started,
+        )
+    }
+
+    fn require_selected_todo_checkpoint_root(&self, root: &Path) -> Result<(), String> {
         let selected = self
             .todo_checkpoint_root
             .as_ref()
@@ -206,17 +250,7 @@ impl StdHost {
                 return Err("Todo checkpoint residence was rebound after advertisement".into());
             }
         }
-        self.run_body_plan_to_with_start_and_clock(
-            request,
-            output,
-            timer,
-            None,
-            None,
-            Some((inputs, false, fore_output)),
-            None,
-            Some((root, checkpoint)),
-            started,
-        )
+        Ok(())
     }
 
     /// Run one retained Body Play while an admitted typed queue receives
