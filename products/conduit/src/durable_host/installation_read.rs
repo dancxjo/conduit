@@ -1,16 +1,18 @@
 //! Bounded installation decoding and identity validation before use or explicit repair.
 use super::{
-    bounded_read, digest, membership, selected_speech, valid_digest, Installation, INSTALL_SCHEMA,
+    bounded_read, digest, membership, selected_speech, selected_todo, valid_digest, Installation,
+    INSTALL_SCHEMA,
 };
 use std::path::Path;
 
 pub(super) fn read_installation(path: &Path) -> Result<Installation, String> {
-    read(path, false)
+    read(path, false, false)
 }
 
 pub(super) fn read_installation_for_equipment_change(
     path: &Path,
     change: &selected_speech::Change,
+    todo_change: &selected_todo::Change,
 ) -> Result<Installation, String> {
     read(
         path,
@@ -18,10 +20,18 @@ pub(super) fn read_installation_for_equipment_change(
             change,
             selected_speech::Change::Replace(_) | selected_speech::Change::Remove
         ),
+        matches!(
+            todo_change,
+            selected_todo::Change::Replace(_) | selected_todo::Change::Remove
+        ),
     )
 }
 
-fn read(path: &Path, explicit_reselection: bool) -> Result<Installation, String> {
+fn read(
+    path: &Path,
+    explicit_reselection: bool,
+    explicit_todo_reselection: bool,
+) -> Result<Installation, String> {
     let bytes = bounded_read(path, 64 * 1024)?;
     let value: Installation =
         serde_json::from_slice(&bytes).map_err(|error| format!("installation state: {error}"))?;
@@ -40,6 +50,22 @@ fn read(path: &Path, explicit_reselection: bool) -> Result<Installation, String>
     }
     if let Some(selection) = &value.selected_model {
         selection.validate()?;
+    }
+    if let Some(selection) = &value.selected_todo_checkpoint {
+        if explicit_todo_reselection {
+            selection.validate_for_reselection()?;
+        } else {
+            selection.validate()?;
+        }
+    }
+    if !explicit_todo_reselection
+        && value.selected_todo_checkpoint.is_some()
+        && (value.selected_speech.is_some() || value.selected_model.is_some())
+    {
+        return Err(
+            "installed Todo checkpoint cannot compose with selected speech or model equipment"
+                .into(),
+        );
     }
     if let Some(binding) = &value.body_state {
         if binding.body_id.is_empty()

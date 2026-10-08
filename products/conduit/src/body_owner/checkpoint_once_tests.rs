@@ -57,6 +57,7 @@ fn fixture() -> (
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     super::super::super::super::write_json_atomic(
         &state_root.join("installation.json"),

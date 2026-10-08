@@ -38,6 +38,7 @@ fn setup() -> (Owner, PathBuf, ResidentPlot) {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_todo_checkpoint: None,
     };
     crate::durable_host::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(SOURCE)
