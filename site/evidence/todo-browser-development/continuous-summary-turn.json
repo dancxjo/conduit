@@ -1,0 +1,12 @@
+{
+  "committed_pcm_bytes": 676860,
+  "completed_segments": 1,
+  "correlation_sha256": "c81e24f453925df4308a4d078ea6370e264e0d0c210f968367b17ab5eb7b7c10",
+  "face_id": "e1d8bfb2b2c024898e9b3927cfd05d1773f47cea2afcb74325e028fbd3173a27",
+  "face_revision": 3748880338788965695,
+  "face_revision_decimal": "3748880338788965695",
+  "outcome": "Completed",
+  "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+  "schema": "conduit.body/spoken-face-turn@1",
+  "source_show_id": "show/93791847e93614bd7f2d554139b1a66621c57590e1886945221289af68058ea7"
+}

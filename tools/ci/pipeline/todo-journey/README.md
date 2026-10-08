@@ -32,8 +32,10 @@ cannot establish that the receipt came from a real command invocation.
 Chapter receipts use `conduit.todo-journey/chapter-receipt@1`. They name the
 same source/run/Body, chapter, unique event, increasing observation time,
 resulting Face ID/revision, Show ID, and a declared producer event receipt.
-`add`, `complete`, and `read` also name the exact typed Face interaction and
-action. Add and complete name distinct Mask kinds. Mutations require a queue
+`add` and `complete` also name the exact typed Face interaction and action.
+They name distinct Mask kinds. `read` instead names the direct spoken Mask's
+`read-current-items` ReaderCommand and exact Mask Play; it is a disclosure of
+the current Face, not an invented Body mutation or Face action. Mutations require a queue
 sequence, produced outcome, and correlated
 child Sign; queue acceptance alone cannot describe the changed list. The
 `conduit.todo-journey/producer-event@1` output repeats those identities and
@@ -61,10 +63,35 @@ requested-detail steps. A declared transcript must match the spoken-text
 digest in both source and capture receipts, and its words appear alongside
 the player. Automated playback is not attended human listening.
 
-The first live capture entrance is `cargo xtask prove todo-journey`. Given an
-installed owner state and its exact copied release executable, it reads the
-current Body status and Face, runs an actual terminal Mask session, then reads
-the status and Face again. For example:
+The current selected voice Boot reserves one create-new WAV destination. Two
+direct recordings may require different Boots; each chapter must retain its
+own exact Boot, Face, Show, Mask Play, speaker Play, and delivered PCM evidence.
+That intermediate Boot does not substitute for the later recovery chapter.
+
+The fresh first-chapter entrance is `cargo xtask prove todo-journey` with a
+checked Todo Plot, an unowned installed Host, an empty selected checkpoint
+directory, an exact-source static Handbook package, and pinned Playwright. It
+births one Body and uses the real browser Mask to add the first item. It retains
+the Birth output, before/after Owner Faces, browser receipt and screenshots,
+and checkpoint inventories. For example:
+
+```sh
+cargo xtask prove todo-journey \
+  --state-dir /path/to/new-installed-host-state \
+  --conduit-bin /path/to/new-installed-host-state/releases/HASH/conduit-linux-x86_64 \
+  --output /path/to/new-birth-add-capture \
+  --fresh-body-source plots/todo/checkpoint-once.conduit \
+  --handbook-package /path/to/exact-source-static-handbook \
+  --pinned-playwright /path/to/pinned/playwright/index.mjs \
+  --first-item-text 'Buy milk'
+```
+
+Its `partial-run.json` records `chapter_scope: ["birth", "add"]` and
+`publication_ready: false`. The producer stops its foreground Owner service
+after capture; later chapters must reopen that same installed Body. The
+terminal encounter entrance can then read the current Body status and Face,
+run an actual terminal Mask session, and read the status and Face again. For
+example:
 
 ```sh
 cargo xtask prove todo-journey \
@@ -74,11 +101,11 @@ cargo xtask prove todo-journey \
   --terminal-script /path/to/utf8-commands-ending-in-quit
 ```
 
-The retained `partial-run.json` records the exact installed release, command
+The terminal `partial-run.json` records the exact installed release, command
 outputs, digests, same-Body before/after Face revisions, and any refusal. The
 terminal script is retained with the output, so use only journey content. The
 default script reads the Face and quits; a supplied script may exercise actual
-Face controls. This entrance does **not** claim to complete the Todo journey,
+Face controls. Neither partial entrance claims to complete the Todo journey,
 write `manifest.json`, or unlock publication. The remaining producer must
 be a trusted
 `cargo xtask prove` capture command that retains its own completed terminal

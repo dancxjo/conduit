@@ -62,6 +62,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         })?;
     validate(&transcript)?;
     let morse = super::protected_morse_proof::validate(&transcript)?;
+    let timer = super::protected_timer_proof::validate(&transcript, "loongarch64")?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/loongarch64-ordinary-domain-proof@1",
         "base_commit": git_head(&paths.root)?, "architecture": "loongarch64",
@@ -69,7 +70,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "proof_class": "freestanding-emulator", "image_sha256": sha256_file(&paths.iso)?,
         "emulator_version": emulator_version, "emulator_sha256": sha256_file(&emulator)?,
         "emulator_misc_drdtl_correction": emulator_version.contains("conduit-diagnostic-misc-drdtl"),
-        "ordinary_product_play": normal, "protected_tour_morse": morse, "negative_entries": NEGATIVES,
+        "ordinary_product_play": normal, "protected_tour_morse": morse, "protected_standing_timer": timer, "negative_entries": NEGATIVES,
         "capability_and_lifecycle_negatives": true,
         "floating_state_restored_before_rust_and_irq_handler": true,
         "source_timer_wake_retained_during_budget_preemption": true,

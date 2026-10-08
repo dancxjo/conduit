@@ -327,11 +327,13 @@ impl TodoWaitingWorker {
                     .started(&authority.host_id, &authority.boot_id, play.clone(), wake)
                     .map_err(debug)
                     .and_then(|_| {
-                        state::retain(
+                        state::retain_session(
                             state_root,
-                            next.evidence(),
+                            &mut next,
                             owner.last_execution.as_ref(),
                             owner.admissions.as_ref(),
+                            None,
+                            None,
                         )
                     });
                 if result.is_ok() {
@@ -439,11 +441,13 @@ impl TodoWaitingWorker {
                 "call":request.call.0,
             })),
         });
-        state::retain(
+        state::retain_session(
             state_root,
-            next.evidence(),
+            &mut next,
             Some(&receipt),
             owner.admissions.as_ref(),
+            None,
+            None,
         )?;
         owner.session = next;
         owner.last_execution = Some(receipt);

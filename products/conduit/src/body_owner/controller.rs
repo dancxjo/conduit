@@ -308,16 +308,13 @@ impl Owner {
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
-        if !self.session.pending_archives().is_empty() {
-            return Err(
-                "owner biography archive capacity requires an admitted archive store".into(),
-            );
-        }
-        state::retain(
+        state::retain_session(
             root,
-            self.session.evidence(),
+            &mut self.session,
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
+            None,
+            None,
         )
     }
     /// A readable name may enter only with the checked source for the exact

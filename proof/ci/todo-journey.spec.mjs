@@ -72,9 +72,13 @@ function fixture({ guestAudio = false } = {}) {
     const event = { ...base, schema: 'conduit.todo-journey/producer-event@1', chapter_id: id,
       event_id: `event/${id}`, observed_at_unix_ms: index + 1, face_id: `face/${id}`,
       face_revision: index, show_id: `show/${id}` };
-    if (['add', 'complete', 'read'].includes(id)) {
+    if (['add', 'complete'].includes(id)) {
       event.interaction_id = `interaction/${id}`; event.action_id = `todo.${id}`;
-      event.mask_kind = id === 'add' ? 'terminal' : id === 'complete' ? 'conduitos-graphical' : 'direct-spoken';
+      event.mask_kind = id === 'add' ? 'terminal' : 'conduitos-graphical';
+    }
+    if (id === 'read') {
+      event.reader_command = 'read-current-items'; event.mask_play_id = 'mask-play/read';
+      event.mask_kind = 'direct-spoken';
     }
     if (['add', 'complete'].includes(id)) {
       event.queue_sequence = index; event.child_sign_id = `sign/${id}`; event.outcome = 'produced';
@@ -242,4 +246,19 @@ test('rejects stale Face and source commit drift', t => {
   manifest.git_commit = 'b'.repeat(40);
   writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest));
   assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }), /journey identity mismatch/);
+});
+
+test('requested spoken detail cannot be recast as a Body Face action', t => {
+  const { root, manifest } = fixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const output = manifest.outputs.find(item => item.id === 'read-receipt');
+  const receipt = JSON.parse(readFileSync(path.join(root, output.path)));
+  receipt.interaction_id = 'interaction/invented-read';
+  receipt.action_id = 'todo.read';
+  const bytes = Buffer.from(JSON.stringify(receipt));
+  writeFileSync(path.join(root, output.path), bytes);
+  output.bytes = bytes.length; output.sha256 = hash(bytes);
+  writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest));
+  assert.throws(() => validateTodoJourney(root, commit, { checkAncestry: false }),
+    /Mask-local command, not an invented Face action/);
 });

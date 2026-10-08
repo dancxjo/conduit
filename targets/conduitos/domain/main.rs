@@ -6,6 +6,7 @@ mod allocation;
 mod frame;
 mod gate;
 mod keymap;
+mod layout;
 mod memory;
 mod morse;
 #[cfg(feature = "proof")]
@@ -24,6 +25,9 @@ mod probes;
 #[cfg(all(feature = "proof", target_arch = "loongarch64"))]
 #[path = "probes_loongarch64.rs"]
 mod probes;
+mod timer;
+#[path = "../src/tour_timer_runtime.rs"]
+mod timer_runtime;
 use frame::{TEXT_CAPACITY, TextFrame};
 #[path = "../src/text_transform.rs"]
 mod text_transform;
@@ -47,6 +51,7 @@ pub unsafe extern "C" fn domain_entry(frame: *mut TextFrame) -> ! {
         6 => unsafe { keymap::initialize_editor(frame) },
         7 => unsafe { keymap::edit_chain(frame) },
         8 => morse::chain(frame),
+        10..=13 => unsafe { timer::execute(frame) },
         9 => {
             if frame.morse_length as usize > frame::MORSE_CAPACITY
                 || frame.capacity != frame::MORSE_CAPACITY as u32

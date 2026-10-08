@@ -15,10 +15,9 @@ use serde_json::{json, Value};
 use std::{sync::mpsc, thread::JoinHandle};
 
 // The retained WAV root admits 64 exact per-Play artifacts. The browser path
-// keeps its one-segment batches; the direct owner Mask reserves one artifact
-// for its opening Show and may request four segments in each later Play.
+// keeps its one-segment batches; the direct owner Mask plays its Show's brief
+// opening through the separate accepted-wording path.
 const MAXIMUM_BATCHES: usize = 64;
-pub(super) const DIRECT_MAXIMUM_BATCHES: usize = MAXIMUM_BATCHES - 1;
 
 #[cfg(all(test, unix))]
 #[path = "speech/tests.rs"]

@@ -18,6 +18,16 @@ mod body;
 pub(crate) use body::BodyTextAdmission;
 
 static NEXT_DOMAIN: AtomicU32 = AtomicU32::new(1);
+
+pub(crate) fn allocate_domain() -> Result<ProtectionDomainId, MachineRunError> {
+    NEXT_DOMAIN
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
+            value.checked_add(1)
+        })
+        .map(ProtectionDomainId)
+        .map_err(|_| MachineRunError::KernelConstruction)
+}
+
 pub(crate) const ROOT_METADATA_CEILING: u32 = {
     let text = core::mem::size_of::<crate::text_planned_kernel::TextPlannedKernel>();
     let dual = core::mem::size_of::<crate::dual_region_kernel::DualRegionKernel>();
@@ -130,11 +140,7 @@ impl ProtectedText {
         kernel_bytes: usize,
     ) -> Result<Self, MachineRunError> {
         let started = TextDomain::ticks();
-        let domain = NEXT_DOMAIN
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
-                value.checked_add(1)
-            })
-            .map_err(|_| MachineRunError::KernelConstruction)?;
+        let domain = allocate_domain()?;
         let fragment = plan
             .fragments
             .iter()
@@ -156,9 +162,8 @@ impl ProtectedText {
         {
             return Err(MachineRunError::KernelConstruction);
         }
-        let binding =
-            RegionBinding::admit(plan, active, &region.region_id, ProtectionDomainId(domain))
-                .map_err(MachineRunError::ProtectionDomain)?;
+        let binding = RegionBinding::admit(plan, active, &region.region_id, domain)
+            .map_err(MachineRunError::ProtectionDomain)?;
         let backend = TextDomain::install().map_err(MachineRunError::ProtectionDomain)?;
         let serial = crate::domain_serial_scope::SerialScope::admit(plan, &binding, fixed)
             .map_err(MachineRunError::ProtectionDomain)?;
@@ -322,7 +327,7 @@ impl<I: TextOwner> ProtectedText<I> {
     }
 }
 
-fn capability_table(generation: u64) -> Result<KernelCapabilityTable, MachineRunError> {
+pub(crate) fn capability_table(generation: u64) -> Result<KernelCapabilityTable, MachineRunError> {
     use crate::cryptographic_entropy::CryptographicEntropyBase;
     let source = crate::arch::DomainEntropy::detect(generation).map_err(|_| {
         MachineRunError::ProtectionDomain(crate::protected_region::DomainRefusal::Unsupported)

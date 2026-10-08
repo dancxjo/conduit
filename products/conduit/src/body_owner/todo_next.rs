@@ -151,9 +151,9 @@ impl Owner {
                 workload: list_key,
                 missing_v2: MissingV2Disposition::Refuse,
             };
-            state::retain_with_source_and_todo_selection(
+            state::retain_session(
                 state_root,
-                self.session.evidence(),
+                &mut self.session,
                 Some(&read_receipt),
                 self.admissions.as_ref(),
                 Some(WRITE_SOURCE.as_bytes()),
@@ -187,9 +187,9 @@ impl Owner {
                     super::super::super::read_installation(&state_root.join("installation.json"))?
                         .selected_todo_checkpoint
                         .ok_or("next Todo rollback lost installed selection")?;
-                state::retain_with_source_and_todo_selection(
+                state::retain_session(
                     state_root,
-                    self.session.evidence(),
+                    &mut self.session,
                     Some(&read_receipt),
                     self.admissions.as_ref(),
                     Some(

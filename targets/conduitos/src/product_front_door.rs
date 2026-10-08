@@ -141,6 +141,7 @@ pub fn run(
         .as_ref()
         .filter(|face| face.interactions_admitted())
         .and(owner_route);
+    let mut current_owner_face = owner_face.clone();
     let mut face_arrival = FaceArrival::prepare(
         host_id.clone(),
         boot_id.clone(),
@@ -222,7 +223,32 @@ pub fn run(
                             && event.transition() == KeyTransition::Pressed
                             && event.usage() == F5
                         {
-                            face_arrival.activate_owner_route(display)?;
+                            let prior = current_owner_face
+                                .as_ref()
+                                .ok_or("native-owner-face-absent")?;
+                            let fresh = match owner_route
+                                .as_mut()
+                                .ok_or("native-owner-return-unavailable")?
+                                .refresh(*identities, prior)
+                            {
+                                Ok(face) => face,
+                                Err(reason) => {
+                                    arch::early_write(b"CONDUIT_NATIVE_OWNER_REFRESH {\"schema\":\"conduit.conduitos/native-owner-refresh@1\",\"status\":\"refused\",\"code\":\"");
+                                    arch::early_write(reason.as_bytes());
+                                    arch::early_write(b"\"}\n");
+                                    owner_route = None;
+                                    owner_route_standby = false;
+                                    face_arrival.retire_owner_route(display)?;
+                                    face_arrival
+                                        .show_owner_result(false, false, reason, display)?;
+                                    return Ok(ProductInputControl::Continue);
+                                }
+                            };
+                            face_arrival.activate_refreshed_owner_route(
+                                fresh.presentation().clone(),
+                                display,
+                            )?;
+                            current_owner_face = Some(fresh);
                             let route = owner_route
                                 .as_mut()
                                 .ok_or("native-owner-return-unavailable")?;

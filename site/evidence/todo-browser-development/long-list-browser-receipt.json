@@ -1,0 +1,21 @@
+{
+  "schema": "conduit.proof/todo-owner-browser-long-list@1",
+  "proof_class": "local pinned Chromium read-only rejoin of the same Body after terminal actions",
+  "owner_source_identity": "459e672cbb83495f4677a3cff60be18be55a8a04",
+  "browser_source_identity": "459e672cbb83495f4677a3cff60be18be55a8a04",
+  "source_relation": "exact-source",
+  "terminal_actions_source_identity": "88f187fdb2263dee9cfca49b7e3182fd7df8a7dd",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "browser_face_id": "16013ead00df0ce9671f2ba7a0f812704ce83839664ec2a6539652bbe8c54f51",
+  "browser_face_revision": "560",
+  "browser_host_id": "browser/26777eb9-e64d-4cf3-bb22-7c339b2bdc54",
+  "open": 3,
+  "completed": 17,
+  "item_count": 20,
+  "handbook_package_sha256": "sha256:049b5b4d2e837d789a339ed30f21318d8c0b414bdcf6028817cd8f0f74dbe923",
+  "screenshots": {
+    "todo-20-card.png": "sha256:2a3d884567b3c5e2cd6fe6b8012f038a79d798e4eb544305dc8e7c3ad8e85232",
+    "todo-20-full.png": "sha256:fe6bfa15e404e7feb64405966ddaa79e3269708457705bf690cc1a910ff37693"
+  },
+  "errors": []
+}

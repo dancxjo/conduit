@@ -15,7 +15,7 @@ pub const OWNER_FACE_REQUEST_SCHEMA: &str = "conduit.presentation/owner-face-req
 pub const OWNER_FACE_RESPONSE_SCHEMA: &str = "conduit.presentation/owner-face-response@1";
 /// Finite v1 owner-Face response profile. A Host route unable to carry this
 /// whole response is ineligible; a larger Face is refused without truncation.
-pub const MAX_OWNER_FACE_RESPONSE_BYTES: usize = 32_768;
+pub const MAX_OWNER_FACE_RESPONSE_BYTES: usize = 60 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

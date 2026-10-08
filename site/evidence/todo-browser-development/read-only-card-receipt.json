@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.proof/todo-owner-browser-read-only-card@1",
+  "original_receipt_sha256": "sha256:bff6c2539aae776e1028fcaee3c3c3909ae0d74e01e2ae29cdf713807a204e93",
+  "owner_source_commit": "99399c157c6e1d7d7fe740a312315b4709dccafd",
+  "browser_runtime_source_commit": "f7778c323e1ffdc4c939ba27e59ca58cf0da7195",
+  "handbook_ui_source_commit": "99399c157c6e1d7d7fe740a312315b4709dccafd",
+  "handbook_package_digest": "sha256:86b3d9867402e51489baea3df72ce5a69732fc0e8cdb9b335e3ac44186335ef9",
+  "source_relation": "development-cross-source",
+  "body_id": "335e956d4370f3373b62cdef8a6990b4a1ed414cd693f3d8ee92403b5fcff287",
+  "item_text": "Pick up prescription",
+  "observation": "Read-only browser rejoin of the same Body after the prior browser Add; no new Todo action performed",
+  "browser_host_id": "browser/5c88fcae-187c-4550-b92e-447d156ecdbe",
+  "face_id": "3ab7bd0b9a4dd9f375cc2455151c6e7c2852802268a1951c841d7175514b5c45",
+  "face_revision": "20",
+  "show_id": "show/444ff6bfb49db2be76dab85c4ccd7f7f6da21798a46bffc042198063afaf4bc5",
+  "screenshots": {
+    "browser-card-after.png": "sha256:583fd720e4a15ab53968582aa8f7cc1c24003954c82c3d8e1417579e654734b5",
+    "browser-full-after.png": "sha256:065ecef721f3351bef1fa8387a7206acd6c61781b3449f0b21d295e8e2136040"
+  }
+}

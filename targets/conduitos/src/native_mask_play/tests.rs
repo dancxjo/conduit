@@ -416,13 +416,13 @@ fn complete_large_faces_cross_the_fore_and_oversized_faces_are_refused() {
             request.display_base_id().clone(),
         )
     };
-    let face = make_face(10);
+    let face = make_face(35);
     let bytes = serde_json::to_vec(&face).unwrap();
-    assert!(bytes.len() >= 11_550 && bytes.len() <= MAX_MASK_VALUE_BYTES);
+    assert!(bytes.len() > 32 * 1024 && bytes.len() <= MAX_MASK_VALUE_BYTES);
     let pending = prepare(&face).unwrap();
     assert_eq!(pending.renderer_request().presentation(), &face);
     pending.cancel().unwrap();
-    let oversized = make_face(40);
+    let oversized = make_face(55);
     assert!(serde_json::to_vec(&oversized).unwrap().len() > MAX_MASK_VALUE_BYTES);
     assert!(matches!(
         prepare(&oversized),

@@ -419,6 +419,7 @@ pub(crate) fn advertisement(
         .capabilities
         .extend([every, count, count_presentation]);
     crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
+    crate::ordinary_base::append_timer(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
@@ -477,6 +478,11 @@ fn bind_native_capability(
     if fixed.kind == conduit_text::TEXT_UPPER_KIND {
         memory_bytes +=
             crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
+    }
+    #[cfg(conduitos_protected_execution)]
+    if fixed.kind == conduit_time::TIME_EVERY_KIND {
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::protected_timer::ROOT_METADATA_CEILING;
     }
     portable
         .resource_requirements

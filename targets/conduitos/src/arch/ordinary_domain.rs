@@ -11,6 +11,8 @@ use crate::{
 mod frame;
 #[path = "ordinary_domain/morse.rs"]
 mod morse;
+#[path = "ordinary_domain/timer.rs"]
+mod timer;
 pub(super) use frame::{TEXT_CAPACITY, TextFrame};
 
 #[cfg(target_arch = "x86_64")]
@@ -33,6 +35,7 @@ pub struct TextDomain {
     cost: DomainCost,
     quarantined: bool,
     keymap_initialized: bool,
+    timer_initialized: bool,
     editor_initialized: bool,
     #[cfg(feature = "ordinary-domain-proof")]
     gate_probe: (u32, u64),
@@ -75,6 +78,7 @@ impl TextDomain {
             },
             quarantined: false,
             keymap_initialized: false,
+            timer_initialized: false,
             editor_initialized: false,
             #[cfg(feature = "ordinary-domain-proof")]
             gate_probe: (0, 0),
@@ -269,6 +273,15 @@ impl DomainBackend for TextDomain {
                 result.origin, result.value
             );
             super::early_write(sign.as_bytes());
+            if self.space.frame().command == 10 && result.origin != 0 {
+                let mut stage = crate::sign_format::FixedText::new();
+                let _ = writeln!(
+                    stage,
+                    "CONDUIT_DOMAIN_TIMER_INIT_STAGE {}",
+                    self.space.frame().timer_status
+                );
+                super::early_write(stage.as_bytes());
+            }
         }
         Ok(match (result.origin, result.value) {
             (0, 0..=2) => {

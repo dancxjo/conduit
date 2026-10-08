@@ -309,9 +309,8 @@ fn serve_presence(
                             if selected.face_id == presentation.identity
                                 && selected.face_revision == presentation.revision =>
                         {
-                            *interactions_admitted = presentation.actions.iter().any(|action| {
-                                action.intent == crate::durable_host::owner::clock_interval_action()
-                            });
+                            *interactions_admitted =
+                                crate::durable_host_control::has_remote_mask_action(presentation);
                             *route = Some(Box::new(selected));
                         }
                         _ => {

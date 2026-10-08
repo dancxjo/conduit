@@ -3,7 +3,9 @@
 use super::*;
 use std::cell::{Cell, RefCell};
 
-const INPUT_CAPACITY: usize = 40 * 1024;
+// The owner frame is bounded separately at 60 KiB; admission basis bytes
+// accompany it at this WASM entrance without crossing the owner Line.
+const INPUT_CAPACITY: usize = 72 * 1024;
 const OUTPUT_CAPACITY: usize = 64 * 1024;
 
 thread_local! {

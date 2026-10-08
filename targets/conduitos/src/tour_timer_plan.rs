@@ -22,7 +22,10 @@ pub struct PreparedTourTimerPlan {
     pub active_play: ActivePlayIdentity,
     pub planned_sign_items: u16,
     pub planned_sign_bytes: u32,
+    #[cfg(not(conduitos_protected_execution))]
     pub(crate) kernel: crate::tour_timer_kernel::TourTimerKernel,
+    #[cfg(conduitos_protected_execution)]
+    pub(crate) kernel: crate::protected_timer::ProtectedTimer,
 }
 
 pub fn prepare(
@@ -30,6 +33,45 @@ pub fn prepare(
     offer: &HostOffer<'_>,
     build_id: &str,
 ) -> Result<PreparedTourTimerPlan, PreparationError> {
+    let description = prepare_description(identities, offer, build_id)?;
+    #[cfg(not(conduitos_protected_execution))]
+    let kernel = crate::tour_timer_kernel::TourTimerKernel::from_prepared_graph(description.graph)
+        .map_err(|_| PreparationError::KernelRejected)?;
+    #[cfg(conduitos_protected_execution)]
+    let kernel = crate::protected_timer::ProtectedTimer::prepare(
+        &description.plan,
+        &description.active_play,
+        offer,
+        description.graph,
+    )
+    .map_err(|error| match error {
+        crate::composition::MachineRunError::ProtectionDomain(refusal) => {
+            PreparationError::Protection(refusal)
+        }
+        _ => PreparationError::KernelRejected,
+    })?;
+    Ok(PreparedTourTimerPlan {
+        plan: description.plan,
+        active_play: description.active_play,
+        planned_sign_items: description.planned_sign_items,
+        planned_sign_bytes: description.planned_sign_bytes,
+        kernel,
+    })
+}
+
+pub(crate) struct PreparedTimerDescription {
+    pub plan: Plan,
+    pub active_play: ActivePlayIdentity,
+    pub planned_sign_items: u16,
+    pub planned_sign_bytes: u32,
+    pub graph: crate::tour_timer_kernel::runtime::PreparedTimerGraph,
+}
+
+pub(crate) fn prepare_description(
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<PreparedTimerDescription, PreparationError> {
     let source =
         conduit_tour_model::tour_stage_source(2, 0).map_err(|_| PreparationError::PlotRejected)?;
     let plot = crate::ordinary_plot::checked_expanded_tour_timer_plot(&source, PLOT_NAME)?;
@@ -76,14 +118,15 @@ pub fn prepare(
         &plan.fragments[0].boot_id,
         0,
     );
-    let kernel = crate::tour_timer_kernel::TourTimerKernel::prepare(&plan.fragments[0], &lowered)
-        .map_err(|_| PreparationError::KernelRejected)?;
-    Ok(PreparedTourTimerPlan {
+    let graph =
+        crate::tour_timer_kernel::TourTimerKernel::prepare_graph(&plan.fragments[0], &lowered)
+            .map_err(|_| PreparationError::KernelRejected)?;
+    Ok(PreparedTimerDescription {
         plan,
         active_play,
         planned_sign_items: lowered.sign_items,
         planned_sign_bytes: lowered.sign_bytes,
-        kernel,
+        graph,
     })
 }
 

@@ -60,12 +60,13 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         })?;
     validate(&transcript)?;
     let morse = super::protected_morse_proof::validate(&transcript)?;
+    let timer = super::protected_timer_proof::validate(&transcript, "riscv64")?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/riscv64-ordinary-domain-proof@1",
         "base_commit": git_head(&paths.root)?, "architecture": "riscv64",
         "privilege": "u-mode", "cpu": "rv64,zkr=true,sv57=off,sv48=off",
         "proof_class": "freestanding-emulator", "image_sha256": sha256_file(&paths.iso)?,
-        "ordinary_product_play": normal, "protected_tour_morse": morse, "negative_entries": NEGATIVES,
+        "ordinary_product_play": normal, "protected_tour_morse": morse, "protected_standing_timer": timer, "negative_entries": NEGATIVES,
         "capability_and_lifecycle_negatives": true,
         "floating_state_restored_before_rust_and_irq_handler": true,
         "source_timer_wake_retained_during_budget_preemption": true,

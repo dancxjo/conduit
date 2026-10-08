@@ -78,6 +78,7 @@ mod product_readiness_matrix;
 mod profile;
 mod protected_morse_proof;
 mod protected_product_receipt;
+mod protected_timer_proof;
 mod protocol_image;
 mod protocol_input;
 mod protocol_run;
@@ -230,6 +231,51 @@ struct LiveOwnerActionProofArgs {
     /// Pause at both Face checkpoints for a live browser participant.
     #[arg(long)]
     coordinate: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerTodoFaceProofArgs {
+    #[command(flatten)]
+    route: LiveOwnerActionProofArgs,
+    /// Body expected in the exact installed Owner admission receipt.
+    #[arg(long)]
+    expected_body_id: String,
+    /// Installed product executable that owns this Body.
+    #[arg(long)]
+    owner_conduit_bin: PathBuf,
+    /// Installed state directory for an independent current Face read.
+    #[arg(long)]
+    owner_state_dir: PathBuf,
+    /// Expected number of Todo item subjects in the current Face.
+    #[arg(long)]
+    expected_item_count: usize,
+    /// Expected human-facing progress text in the current Todo Face.
+    #[arg(long)]
+    expected_status: String,
+}
+
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerTodoActionProofArgs {
+    #[command(flatten)]
+    face: LiveOwnerTodoFaceProofArgs,
+    /// Exact installed checkpoint directory of a disposable, isolated fork.
+    #[arg(long)]
+    isolated_checkpoint_root: PathBuf,
+    /// Exact selected checkpoint version from the installed Owner selection.
+    #[arg(long)]
+    selected_checkpoint_version_hex: String,
+    /// Original checkpoint directory to inventory before and after the action.
+    #[arg(long)]
+    protected_checkpoint_root: PathBuf,
+    /// Exact available Todo action to require in the Owner Face and serial receipt.
+    #[arg(long)]
+    expected_action_id: String,
+    /// Bounded Tab presses to reach that action through the native Mask.
+    #[arg(long)]
+    tab_count: u8,
+    /// Expected human progress text after the Owner accepts the action.
+    #[arg(long)]
+    expected_after_status: String,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -439,6 +485,12 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             opts,
         ),
         ConduitosCommand::LiveOwnerActionProof(args) => owner_action_proof::execute(&args, opts),
+        ConduitosCommand::LiveOwnerTodoFaceProof(args) => {
+            owner_action_proof::execute_todo_face(&args, opts)
+        }
+        ConduitosCommand::LiveOwnerTodoActionProof(args) => {
+            owner_action_proof::execute_todo_action(&args, opts)
+        }
         ConduitosCommand::LiveThreeHostProof(args) => three_host_proof::execute(&args, opts),
         ConduitosCommand::ScreenFreeThreeHostProof(args) => {
             screen_free_three_host_proof::execute(&args, opts)

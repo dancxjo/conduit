@@ -22,6 +22,7 @@ pub(super) fn validate_existing_tree(root: &Path, index: &GalleryIndex) -> Resul
                     | "catalogue.json"
                     | "verticals"
                     | "current"
+                    | "development"
                     | "commits"
             )
         ) {
@@ -155,6 +156,9 @@ mod tests {
                 fs::write(directory.join(format!("{file}.evidence")), []).unwrap();
             }
         }
+        let development_capture = root.join("development/todo-browser/index.html");
+        fs::create_dir_all(development_capture.parent().unwrap()).unwrap();
+        fs::write(&development_capture, "retained development evidence").unwrap();
         let oldest = commits.last().unwrap().clone();
         let newest = commits.first().unwrap().clone();
         let mut index = GalleryIndex {
@@ -170,6 +174,7 @@ mod tests {
         assert!(root.join("commits").join(newest).is_dir());
         assert!(!root.join("commits").join(oldest).exists());
         assert!(index.commits.len() < RETAINED_COMMITS);
+        assert!(development_capture.is_file());
         assert!(tree_bounds(&root).unwrap().0 <= MAX_GALLERY_FILES);
         fs::remove_dir_all(root).unwrap();
     }

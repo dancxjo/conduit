@@ -30,6 +30,40 @@ fn read_current_items_is_a_generic_spoken_command() {
         parse_command("read current items", &reader, &face),
         Ok(ReaderCommand::ReadCurrentItems)
     );
+    assert_eq!(
+        parse_command("summary", &reader, &face),
+        Ok(ReaderCommand::Summary)
+    );
+}
+
+#[test]
+fn selected_readout_keeps_multiple_bounded_segments_in_one_source_batch() {
+    let advertisement = StdHost::new().advertisement().clone();
+    let door = ZeroBodyFrontDoor::from_model(
+        Arc::new(HostedPatchbayAdapter),
+        PatchbayModel::from_advertisement(advertisement.clone()),
+    )
+    .unwrap();
+    let encounter = "00112233-4455-6677-8899-aabbccddeeff";
+    let draft = door.creche_draft(encounter.into()).unwrap();
+    let basis = HostOwnedBirthFaceBasis {
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        encounter_id: encounter.into(),
+    };
+    let mut execution = HostedTerminalMaskExecution::new(&advertisement).unwrap();
+    let (face, show) =
+        super::super::present(&draft, &basis, &mut execution, &mut Vec::new()).unwrap();
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 1)
+        .unwrap();
+    let batch = reader.next_batch_with_limits(4, 64).unwrap().unwrap();
+    assert!(batch.segments.len() > 1);
+    let receipt_segments =
+        super::super::selected_playback::verified_spoken_segments(&face, &show, &batch).unwrap();
+    assert_eq!(receipt_segments.len(), batch.segments.len());
+    assert_eq!(receipt_segments.last().unwrap()["reason"], "final-flush");
 }
 
 #[test]

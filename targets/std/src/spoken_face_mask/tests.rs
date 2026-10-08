@@ -181,6 +181,39 @@ fn direct_opening_leads_with_context_then_result_and_leaves_detail_to_read_all()
 }
 
 #[test]
+fn direct_opening_offers_content_action_without_generic_context_navigation() {
+    let (base, _) = face_with_action();
+    let make_face = |actions| {
+        Presentation::new_with_semantics(
+            base.revision,
+            base.basis.clone(),
+            base.subjects.clone(),
+            base.relationships.clone(),
+            base.properties.clone(),
+            base.text.clone(),
+            actions,
+            vec![PresentationDisclosure {
+                subject: "arrival".into(),
+                level: PresentationDisclosureLevel::Context,
+            }],
+        )
+        .unwrap()
+    };
+    let generic = base.actions[1].clone();
+    let content = base.actions[0].clone();
+    let opening = primary_face_clauses(&make_face(vec![generic.clone(), content])).unwrap();
+    assert!(opening
+        .iter()
+        .any(|clause| clause == "You can Set Body name."));
+    assert!(!opening
+        .iter()
+        .any(|clause| clause == "You can Create Body."));
+
+    let opening = primary_face_clauses(&make_face(vec![generic])).unwrap();
+    assert!(!opening.iter().any(|clause| clause.starts_with("You can ")));
+}
+
+#[test]
 fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
@@ -249,6 +282,15 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     .unwrap();
     let opening = primary_face_clauses(&face).unwrap().join(" ");
     assert!(opening.starts_with("Groceries. 3 things left · 17 completed"));
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::Summary, 1)
+        .unwrap();
+    assert_eq!(
+        reader.take_text_readout().unwrap().unwrap().clauses,
+        vec![opening.clone()]
+    );
     assert!(!opening.contains("Progress"));
     for index in 0..3 {
         assert!(opening.contains(&format!("Open item {index}.")));
@@ -707,6 +749,62 @@ fn fixture_batch_receipt(batch: &SpokenBatch) -> SpokenBatchAudioReceipt {
         pcm_bytes: 256,
         pcm_blocks: 1,
     }
+}
+
+#[test]
+fn requested_items_close_before_later_non_item_face_clauses() {
+    let (base, _) = face_with_action();
+    let mut subjects = base.subjects;
+    let mut disclosures = base.disclosures;
+    for number in 18..=20 {
+        let identity = format!("todo/item/{number}");
+        subjects.push(PresentationSubject {
+            identity: identity.clone(),
+            role: PresentationRole::Item,
+            name: format!("Long-list item {number}"),
+        });
+        disclosures.push(PresentationDisclosure {
+            subject: identity,
+            level: PresentationDisclosureLevel::Primary,
+        });
+    }
+    let face = Presentation::new_with_semantics(
+        base.revision + 1,
+        base.basis,
+        subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        disclosures,
+    )
+    .unwrap();
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::ReadCurrentItems, 1)
+        .unwrap();
+
+    let batch = reader.next_batch_with_limits(4, 64).unwrap().unwrap();
+    assert_eq!(batch.segments.len(), 3);
+    for (number, segment) in (18..=20).zip(&batch.segments) {
+        assert!(segment
+            .segment
+            .text
+            .contains(&format!("Long-list item {number}")));
+    }
+    assert_eq!(
+        batch.segments.last().unwrap().segment.reason,
+        SpeechCommitReason::FinalFlush
+    );
+    let turn = reader
+        .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+            &batch,
+        )))
+        .unwrap()
+        .unwrap();
+    assert_eq!(turn.outcome, SpokenTurnOutcome::Completed);
+    assert!(reader.next_batch_with_limits(4, 64).unwrap().is_none());
 }
 
 #[test]

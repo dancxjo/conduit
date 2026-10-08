@@ -8,6 +8,7 @@ import { retainedThreeHostDevelopmentEvidence, THREE_HOST_DEVELOPMENT_PROOF,
   THREE_HOST_DEVELOPMENT_SUITE } from '../three-host-development-evidence.mjs';
 import { retainedDirectSpokenDevelopmentEvidence, DIRECT_SPOKEN_DEVELOPMENT_PROOF,
   DIRECT_SPOKEN_DEVELOPMENT_SUITE } from '../direct-spoken-development-evidence.mjs';
+import { retainedTodoBrowserDevelopmentEvidence } from '../todo-browser-development-evidence.mjs';
 
 // Retain the last documentary publication as history, never as new execution.
 const HISTORY = 'd9b79319bd78c72e4a6b48ef524e269300a82bdf';
@@ -70,7 +71,27 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     ? renderTodoJourney(TODO_EVIDENCE_ROOT, path.join(directory, 'journeys/current/todo'),
       sourceCommit, styles(), navigation())
     : null;
+  const todoBrowserDevelopment = retainedTodoBrowserDevelopmentEvidence(
+    'site/evidence/todo-browser-development', sourceCommit);
+  mkdirSync(path.join(directory, 'journeys/development'), { recursive: true });
+  cpSync(todoBrowserDevelopment.root,
+    path.join(directory, 'journeys/development/todo-browser'),
+    { recursive: true, errorOnExist: true });
+  const todoBrowserPage = path.join(directory, 'journeys/development/todo-browser/index.html');
+  writeFileSync(todoBrowserPage,
+    readFileSync(todoBrowserPage, 'utf8').replace('</head>', `<style>${styles()}</style></head>`));
   xtask('prove', 'refresh-gallery', path.join(directory, 'journeys'));
+  {
+    const landing = path.join(directory, 'journeys/index.html');
+    const html = readFileSync(landing, 'utf8');
+    const anchor = '<!-- conduit-three-body-flagship@2 -->';
+    if (!html.includes(anchor)) throw new Error('Journeys catalogue has no Todo development card seam');
+    const card = '<article class="journey-card"><p class="eyebrow">Live development steps</p>'
+      + '<h2>Grow a Groceries list across Masks</h2><p>Follow a fresh Body from Birth through a browser'
+      + ' Add, terminal readback, and delivered screen-free audio. A separate longer run shows a native action.</p>'
+      + '<a href="development/todo-browser/">See the captured steps</a></article>';
+    writeFileSync(landing, html.replace(anchor, `${card}${anchor}`));
+  }
   if (directSpokenDevelopment) {
     const landing = path.join(directory, 'journeys/index.html');
     const html = readFileSync(landing, 'utf8');
@@ -135,6 +156,14 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
       path: 'journeys/current/todo/', proof: 'producer-correlated-complete-evidence',
       humanListeningObserved: false,
     } }),
+    todoBrowserDevelopment: {
+      captureSourceCommit: todoBrowserDevelopment.sourceCommit,
+      browserRuntimeSourceCommit: todoBrowserDevelopment.browserRuntimeCommit,
+      longListActionsSourceCommit: todoBrowserDevelopment.longListActionsCommit,
+      longListBrowserSourceCommit: todoBrowserDevelopment.longListBrowserCommit,
+      publicationSourceCommit: sourceCommit, bodyId: todoBrowserDevelopment.bodyId,
+      path: 'journeys/development/todo-browser/', proof: 'retained-cross-source-browser-add',
+    },
   }, null, 2));
 }
 

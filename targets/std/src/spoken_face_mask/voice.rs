@@ -3,6 +3,21 @@ use conduit_core::ValueConstraint;
 use conduit_presentation::readable_finite_text_choices;
 use conduit_presentation::PresentationDisclosureLevel;
 
+/// The same bounded mechanical wording used by the interactive reader,
+/// available to an ordinary direct spoken Mask before it has produced a Show.
+/// This does not acknowledge speech, create a Show, or grant a Host effect.
+pub fn mechanical_face_clauses(face: &Presentation) -> Result<Vec<String>, SpokenFaceRefusal> {
+    let cursor = FaceReadingCursor::new(face).map_err(reading_refusal)?;
+    voice_clauses(face, cursor.plan())
+}
+
+/// The short first encounter for an artifact-output spoken Mask. The complete
+/// provenanced reading remains available through the interactive reader.
+pub fn primary_face_clauses(face: &Presentation) -> Result<Vec<String>, SpokenFaceRefusal> {
+    let cursor = FaceReadingCursor::new(face).map_err(reading_refusal)?;
+    primary_voice_clauses(face, cursor.plan())
+}
+
 /// Select a bounded first utterance from Face wording and explicitly primary
 /// subjects. This is a Mask reading policy, not a replacement for Face truth.
 pub(super) fn primary_voice_clauses(
@@ -100,9 +115,21 @@ pub(super) fn primary_voice_clauses(
             result.push("Type read all for more detail.".into());
         }
     } else if result.len() < 7 {
+        // Application wording should lead to a content action, not a generic
+        // Body or Plot navigation prompt from the same Face.
         let mut offered = face.actions.iter().filter(|action| {
             action.availability.is_available()
                 && action.disclosure == PresentationDisclosureLevel::CurrentAction
+                && (!has_application_wording
+                    || matches!(
+                        subject_role(&action.target),
+                        Some(
+                            PresentationRole::Collection
+                                | PresentationRole::Item
+                                | PresentationRole::Document
+                                | PresentationRole::TextEntry
+                        )
+                    ))
                 && matches!(
                     level(&action.target),
                     None | Some(PresentationDisclosureLevel::Primary)

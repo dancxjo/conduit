@@ -54,10 +54,10 @@ fn fixture() -> (conduit_observatory::ObservatorySnapshot, serde_json::Value) {
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == "text/upper")
         .unwrap();
-    upper.resources[0].units = 4096 + 118784 + 22480;
+    upper.resources[0].units = 4096 + 217088 + 22480;
     (
         snapshot,
-        serde_json::json!({"reserved_bytes":118784,"root_metadata_bytes":22374}),
+        serde_json::json!({"reserved_bytes":217088,"root_metadata_bytes":22374}),
     )
 }
 
@@ -65,7 +65,7 @@ fn fixture() -> (conduit_observatory::ObservatorySnapshot, serde_json::Value) {
 fn protected_text_reservation_covers_measured_storage_without_growing_other_gears() {
     let (snapshot, cost) = fixture();
     validate_protected_realization(&snapshot, &cost).unwrap();
-    for units in [4096, 118784, 4096 + 118784 + 22373, 1048576] {
+    for units in [4096, 217088, 4096 + 217088 + 22373, 1048576] {
         let mut changed = snapshot.clone();
         let upper = changed.plans[0].fragments[0]
             .placements

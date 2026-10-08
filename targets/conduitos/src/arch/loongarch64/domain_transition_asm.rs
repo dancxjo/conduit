@@ -219,7 +219,7 @@ conduitos_loongarch64_domain_gate:
     ld.d $t0, $sp, 256
     li.d $t1, 0x400000
     sub.d $t0, $t0, $t1
-    li.d $t1, 65536
+    li.d $t1, {domain_image_bytes}
     bgeu $t0, $t1, conduitos_loongarch64_domain_invalid_gate
     andi $t1, $t0, 3
     bnez $t1, conduitos_loongarch64_domain_invalid_gate
@@ -394,4 +394,5 @@ conduitos_loongarch64_domain_root_fault:
     csrwr $zero, 4
 2:  idle 0
     b 2b
-"#,proof=const cfg!(feature="ordinary-domain-proof") as u8);
+"#,proof=const cfg!(feature="ordinary-domain-proof") as u8,
+    domain_image_bytes=const crate::domain_image::MAXIMUM_IMAGE_BYTES);
