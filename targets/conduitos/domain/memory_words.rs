@@ -4,7 +4,11 @@ use core::mem::MaybeUninit;
 
 const WORD: usize = core::mem::size_of::<usize>();
 
-/// Caller supplies valid intervals; forward-safe overlap is also supported.
+/// Copy object representation, including uninitialized padding.
+///
+/// # Safety
+/// Both intervals must be valid for `length` bytes. They must not overlap
+/// unless the destination starts at or before the source.
 pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, length: usize) {
     let mut offset = 0;
     while offset < length
@@ -43,7 +47,10 @@ pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, lengt
     }
 }
 
-/// Caller supplies a valid writable interval. Padding and tails remain byte exact.
+/// Fill exactly the requested bytes.
+///
+/// # Safety
+/// The destination must be writable for `length` bytes.
 pub(crate) unsafe fn fill(destination: *mut u8, value: u8, length: usize) {
     let mut offset = 0;
     while offset < length && (destination as usize + offset) & (WORD - 1) != 0 {
@@ -98,6 +105,33 @@ mod tests {
                     );
                 }
             }
+        }
+    }
+
+    #[test]
+    fn tour_timer_domain_copy_accepts_partially_initialized_object_representation() {
+        #[repr(align(16))]
+        struct Bytes<const N: usize>([MaybeUninit<u8>; N]);
+        let mut source = Bytes([MaybeUninit::uninit(); 64]);
+        let mut destination = Bytes([MaybeUninit::new(0xa5); 96]);
+        for index in [0, 3, 7, 8, 63] {
+            source.0[index].write(index as u8 + 1);
+        }
+        unsafe {
+            copy_forward(
+                destination.0.as_mut_ptr().add(16).cast(),
+                source.0.as_ptr().cast(),
+                64,
+            );
+        }
+        for index in [0, 3, 7, 8, 63] {
+            assert_eq!(
+                unsafe { destination.0[index + 16].assume_init() },
+                index as u8 + 1
+            );
+        }
+        for index in (0..16).chain(80..96) {
+            assert_eq!(unsafe { destination.0[index].assume_init() }, 0xa5);
         }
     }
 
