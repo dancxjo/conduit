@@ -63,6 +63,7 @@ pub(super) fn substitute(
 pub(super) fn canonical_initial_bytes(
     kind: &str,
     value: &CanonicalStartupValue,
+    exact_initial_info: &BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
 ) -> Result<Vec<u8>, CanonicalExpansionDiagnostic> {
     let bytes = match value {
         CanonicalStartupValue::Structured(value) => value
@@ -126,7 +127,9 @@ pub(super) fn canonical_initial_bytes(
                 .ok()
                 .map(i128::to_le_bytes)
                 .map(Vec::from),
-            _ => None,
+            _ => exact_initial_info
+                .get(&(conduit_core::kind_id(kind), literal.clone()))
+                .cloned(),
         },
         CanonicalStartupValue::PlotParameter(_) | CanonicalStartupValue::PoolReference(_) => None,
     }

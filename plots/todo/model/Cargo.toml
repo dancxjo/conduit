@@ -8,9 +8,11 @@ publish = false
 conduit-core = { path = "../../../architecture/core", default-features = false }
 conduit-web = { path = "../../../semantics/web", default-features = false }
 conduit-kernel = { path = "../../../architecture/kernel", default-features = false, features = ["alloc"], optional = true }
+conduit-plot = { path = "../../../architecture/plot", default-features = false, optional = true }
 
 [features]
 kernel-step = ["dep:conduit-kernel"]
+authoring = ["dep:conduit-plot"]
 
 [dev-dependencies]
 conduit-kernel = { path = "../../../architecture/kernel", default-features = false, features = ["alloc", "step-test-support"] }
