@@ -2,6 +2,9 @@
 use conduit_core::{
     ConfigurationValue, KindId, StructuredFieldType, StructuredInfoType, StructuredVariantCase,
 };
+use conduit_plot::rust_binding::{
+    PreparedNativeInvariantAdmission, PreparedNativeInvariantStorageLimits,
+};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     BinaryOperator, PortableExpressionEvaluationRefusal, PortableExpressionNode,
@@ -267,6 +270,43 @@ fn capacity_slack_and_recursive_prepared_storage_bound_actual_live_allocations()
                 StructuredInfoType::from_canonical_bytes(&encoded_type[..length]).unwrap_err()
             );
             assert_eq!(live(), before_type);
+        }
+        if entry == "equal" {
+            let before = live();
+            PEAK.store(before, Ordering::SeqCst);
+            let limits = PreparedNativeInvariantStorageLimits {
+                maximum_laws: 2,
+                maximum_input_bytes: usize::MAX,
+                maximum_retained_bytes: usize::MAX,
+                maximum_preparation_peak_bytes: usize::MAX,
+            };
+            let (bank, receipt) =
+                PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+                    &law.input_type,
+                    &[&encoded_program, &encoded_program],
+                    limits,
+                )
+                .unwrap();
+            assert!(receipt.retained_heap_bytes_bound >= (live() - before) as usize);
+            assert!(
+                receipt.preparation_peak_heap_bytes_bound
+                    >= (PEAK.load(Ordering::SeqCst) - before) as usize
+            );
+            drop(bank);
+            assert_eq!(live(), before);
+            let refused = PreparedNativeInvariantStorageLimits {
+                maximum_preparation_peak_bytes: receipt.preparation_peak_heap_bytes_bound - 1,
+                ..limits
+            };
+            assert!(
+                PreparedNativeInvariantAdmission::from_canonical_laws_with_storage_limits(
+                    &law.input_type,
+                    &[&encoded_program, &encoded_program],
+                    refused
+                )
+                .is_err()
+            );
+            assert_eq!(live(), before);
         }
         let before = live();
         let evaluator = PreparedPortableExpressionEvaluator::new(&law).unwrap();

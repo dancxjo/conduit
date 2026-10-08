@@ -15,7 +15,11 @@ mod generate_package;
 #[cfg(test)]
 mod generate_tests;
 mod generate_value;
+mod prepared_invariant_storage;
 mod prepared_invariants;
+pub use prepared_invariant_storage::{
+    PreparedNativeInvariantStorageLimits, PreparedNativeInvariantStorageReceipt,
+};
 #[cfg(test)]
 mod prepared_invariants_tests;
 mod primitive;
