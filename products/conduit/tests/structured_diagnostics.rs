@@ -61,3 +61,25 @@ fn unsupported_kind_keeps_source_identity_and_exact_primary_span() {
 
     fs::remove_file(path).expect("diagnostic fixture should be removable");
 }
+
+#[test]
+fn quoted_ipa_refusal_preserves_the_authored_escape_in_human_and_json_diagnostics() {
+    let source =
+        include_str!("../../../semantics/speech/examples/ipa/quoted-transcriptions.conduit")
+            .replace("ˈt͡ʃãː.n̩", r"t͡ʃ\n");
+    let path = plot_path("ipa-escape", &source);
+    let human = diagnose(&path, false);
+    let machine = diagnose(&path, true);
+    assert!(!human.status.success());
+    assert!(!machine.status.success());
+    let diagnostics: Value = serde_json::from_slice(&machine.stdout).unwrap();
+    let diagnostic = &diagnostics[0];
+    assert_eq!(diagnostic["code"], "CND-SPC-IPA");
+    let start = diagnostic["primary_span"]["start"].as_u64().unwrap() as usize;
+    let end = diagnostic["primary_span"]["end"].as_u64().unwrap() as usize;
+    assert_eq!(&source[start..end], r"\n");
+    let human = String::from_utf8(human.stdout).unwrap();
+    assert!(human.contains(diagnostic["summary"].as_str().unwrap()));
+    assert!(human.contains("CND-SPC-IPA"));
+    fs::remove_file(path).unwrap();
+}

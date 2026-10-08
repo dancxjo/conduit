@@ -2,6 +2,15 @@
 extern crate alloc;
 use alloc::string::String;
 
+/// Build-time Native generation and public authoring import one owner contract.
+pub fn language_identities() -> Result<conduit_plot::CheckedSyntaxDocument, String> {
+    conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(include_str!("../../language/identity.conduit")),
+        &conduit_plot::StartupCatalog::new(),
+    )
+    .map_err(|error| alloc::format!("{error:?}"))
+}
+
 pub fn source() -> String {
     [
         include_str!("../types.conduit"),
@@ -20,6 +29,7 @@ pub fn source() -> String {
         include_str!("../ipa.conduit"),
         include_str!("../ipa_syntax.conduit"),
         include_str!("../ipa_inventory.conduit"),
+        include_str!("../ipa_constructors.conduit"),
     ]
     .join("\n")
 }

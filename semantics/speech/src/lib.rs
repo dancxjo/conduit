@@ -79,6 +79,8 @@ pub mod intent_realization;
 pub mod intent_sources;
 #[cfg(feature = "semantic-bindings")]
 pub mod inventory_admission;
+#[cfg(feature = "semantic-bindings")]
+pub mod ipa_constructors;
 #[cfg(feature = "kernel")]
 pub mod kernel;
 #[cfg(feature = "semantic-bindings")]

@@ -893,6 +893,17 @@ units to the complete supplied inventory and language variety, refusing foreign
 references and unsupported or ambiguous notation. A plain record is a definition;
 notation/inventory admission remains an explicit additional check.
 
+The candidate provides ordinary quoted constructors `speech/phone-from-ipa`,
+`speech/phonetic-from-ipa`, `speech/phoneme-from-ipa` and
+`speech/phonemic-from-ipa`. See the
+[universal transcription](examples/ipa/quoted-transcriptions.conduit) and
+[explicit inventory transcription](examples/ipa/quoted-phonemic.conduit).
+They prepare distinct typed values before Play; phonemic construction requires
+the complete supplied inventory, Language/Variety basis, revision and bindings.
+Human and JSON checking diagnostics retain original quoted-source spans.
+Native generation and public authoring import the same checked Language owner
+contracts; older shape-only schema IDs are not silently coerced.
+
 Run focused conformance with `cargo xtask check speech-ipa`. Typed delimiter
 glyphs such as `p[tʰ]` and `p/t/` are proposed syntax under #5317, not an
 implemented entrance. The same generic mechanism proposes `r/[A-Z]+/i` for
