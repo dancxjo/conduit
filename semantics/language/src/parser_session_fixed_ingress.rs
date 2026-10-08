@@ -56,6 +56,9 @@ impl ParserFixedFrames {
             output: output_buffer,
         })
     }
+    pub(crate) fn into_candidate_buffer(self) -> Vec<u8> {
+        self.input
+    }
     pub(crate) fn retained_bytes(&self) -> Option<usize> {
         self.input.capacity().checked_add(self.output.capacity())
     }
@@ -140,6 +143,9 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
             next_ordinal: 0,
             cancelled: false,
         })
+    }
+    pub(crate) fn entry(&self) -> ParserSessionEntry {
+        self.entry
     }
     pub(crate) fn cancel(&mut self) {
         self.cancelled = true;

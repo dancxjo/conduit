@@ -3,6 +3,7 @@
 //! commitment or frontier authority. Only Session orchestration publishes a book.
 use crate::{
     lexical::PreparedLexicalTape,
+    parser_session_candidate_admission::ParserStableCandidateAdmission,
     parser_session_canonical_ingress::PreparedParserExecutionFrames,
     parser_session_fixed_ingress::{ParserFixedFrames, ParserFixedHistory},
     parser_session_historical_base::ParserSessionHistoricalBase,
@@ -56,6 +57,7 @@ pub(crate) struct ParserRevisionCustody {
     pub(crate) previous: Option<Rc<ParserRevisionCustody>>,
     pub(crate) source_histories: Vec<ParserFixedHistory>,
     pub(crate) mixed_histories: Vec<ParserMixedHistory>,
+    pub(crate) stable_admissions: Vec<ParserStableCandidateAdmission>,
     source_frames: Vec<ParserFixedFrames>,
     mixed_frames: Vec<ReservedMixedFrames>,
     pub(crate) storage: RevisionStorageReceipt,
@@ -184,7 +186,10 @@ impl ParserRevisionCustody {
             source_count,
             add(
                 size_of::<ParserFixedFrames>(),
-                size_of::<ParserFixedHistory>(),
+                add(
+                    size_of::<ParserFixedHistory>(),
+                    size_of::<ParserStableCandidateAdmission>(),
+                )?,
             )?,
         )?;
         let model_headers = mul(
@@ -307,6 +312,7 @@ impl ParserRevisionCustody {
         }
         let source_histories = reserve(source_count)?;
         let mixed_histories = reserve(model_count)?;
+        let stable_admissions = reserve(source_count)?;
         let result = Self {
             lexical,
             original_lexical_bytes: original,
@@ -314,6 +320,7 @@ impl ParserRevisionCustody {
             previous,
             source_histories,
             mixed_histories,
+            stable_admissions,
             source_frames,
             mixed_frames,
             storage: RevisionStorageReceipt {
@@ -363,6 +370,13 @@ impl ParserRevisionCustody {
                 size_of::<ParserMixedHistory>(),
             )?,
         )?;
+        actual = add(
+            actual,
+            mul(
+                result.stable_admissions.capacity(),
+                size_of::<ParserStableCandidateAdmission>(),
+            )?,
+        )?;
         for frame in &result.source_frames {
             actual = add(actual, frame.retained_bytes().ok_or(R::Overflow)?)?;
         }
@@ -408,6 +422,26 @@ impl ParserRevisionCustody {
         }
         let index = self.source_histories.len();
         self.source_histories.push(history);
+        Ok(index)
+    }
+    pub(crate) fn retain_stable_admission(
+        &mut self,
+        admission: ParserStableCandidateAdmission,
+    ) -> Result<usize, RevisionStorageRefusal> {
+        if self.published || self.stable_admissions.len() == self.stable_admissions.capacity() {
+            return Err(RevisionStorageRefusal::Pressure);
+        }
+        if self
+            .source_histories
+            .get(admission.consensus_execution)
+            .is_none_or(|origin| {
+                origin.entry != crate::parser_session_execution::ParserSessionEntry::JointConsensus
+            })
+        {
+            return Err(RevisionStorageRefusal::OriginalTape);
+        }
+        let index = self.stable_admissions.len();
+        self.stable_admissions.push(admission);
         Ok(index)
     }
     pub(crate) fn retain_model(
