@@ -2,6 +2,9 @@
 
 use alloc::vec::Vec;
 
+mod output;
+use output::Output;
+
 use crate::morse_values::decode_symbols;
 use crate::{
     morse_table, MorseError, MAXIMUM_MORSE_CHARACTERS_BYTES, MAXIMUM_MORSE_GAPPED_GROUPS_BYTES,
@@ -19,7 +22,7 @@ const WORD_GAP: u8 = 5;
 ///
 /// These entrances perform no allocation when `output` was prepared with the
 /// named maximum capacity. Hosted implementations use them during Play.
-pub fn morse_characters_from_text_into(text: &str, output: &mut Vec<u8>) -> Result<(), MorseError> {
+fn morse_characters_from_text_write(text: &str, output: &mut Output<'_>) -> Result<(), MorseError> {
     require_capacity(output, MAXIMUM_MORSE_CHARACTERS_BYTES)?;
     if text.is_empty() {
         return Err(MorseError::Empty);
@@ -28,7 +31,7 @@ pub fn morse_characters_from_text_into(text: &str, output: &mut Vec<u8>) -> Resu
         return Err(MorseError::TextTooLong);
     }
     output.clear();
-    output.extend_from_slice(&[VERSION, text.len() as u8]);
+    output.extend_from_slice(&[VERSION, text.len() as u8])?;
     let mut previous_space = true;
     for byte in text.bytes() {
         if byte == b' ' {
@@ -36,14 +39,14 @@ pub fn morse_characters_from_text_into(text: &str, output: &mut Vec<u8>) -> Resu
                 return Err(MorseError::InvalidWordGap);
             }
             previous_space = true;
-            output.push(byte);
+            output.push(byte)?;
         } else {
             let normalized = byte.to_ascii_uppercase();
             if morse_table::symbols(normalized).is_none() {
                 return Err(MorseError::UnsupportedCharacter);
             }
             previous_space = false;
-            output.push(normalized);
+            output.push(normalized)?;
         }
     }
     if previous_space {
@@ -52,35 +55,33 @@ pub fn morse_characters_from_text_into(text: &str, output: &mut Vec<u8>) -> Resu
     Ok(())
 }
 
-pub fn morse_lookup_characters_into(input: &[u8], output: &mut Vec<u8>) -> Result<(), MorseError> {
+fn morse_lookup_characters_write(input: &[u8], output: &mut Output<'_>) -> Result<(), MorseError> {
     require_capacity(output, MAXIMUM_MORSE_SYMBOL_GROUPS_BYTES)?;
     let characters = checked_characters(input)?;
     output.clear();
-    output.extend_from_slice(&[VERSION, characters.len() as u8]);
+    output.extend_from_slice(&[VERSION, characters.len() as u8])?;
     for character in characters {
         if *character == b' ' {
-            output.push(0);
+            output.push(0)?;
         } else {
             let symbols =
                 morse_table::symbols(*character).ok_or(MorseError::UnsupportedCharacter)?;
-            output.push(symbols.len() as u8);
-            output.extend(
-                symbols
-                    .iter()
-                    .map(|symbol| if *symbol == b'.' { DOT } else { DASH }),
-            );
+            output.push(symbols.len() as u8)?;
+            for symbol in symbols {
+                output.push(if *symbol == b'.' { DOT } else { DASH })?;
+            }
         }
     }
     Ok(())
 }
 
-pub fn morse_intersperse_gaps_into(input: &[u8], output: &mut Vec<u8>) -> Result<(), MorseError> {
+fn morse_intersperse_gaps_write(input: &[u8], output: &mut Output<'_>) -> Result<(), MorseError> {
     require_capacity(output, MAXIMUM_MORSE_GAPPED_GROUPS_BYTES)?;
-    if input.len() < 3 || input[0] != VERSION {
+    if input.len() < 3 || input.len() > MAXIMUM_MORSE_SYMBOL_GROUPS_BYTES || input[0] != VERSION {
         return Err(MorseError::MalformedEncoding);
     }
     output.clear();
-    output.extend_from_slice(&[VERSION, 0]);
+    output.extend_from_slice(&[VERSION, 0])?;
     let expected = usize::from(input[1]);
     let mut cursor = 2;
     let mut groups = 0;
@@ -104,9 +105,9 @@ pub fn morse_intersperse_gaps_into(input: &[u8], output: &mut Vec<u8>) -> Result
             }
             gap_before = 7;
         } else {
-            output.push(if letters == 0 { 0 } else { gap_before.max(3) });
-            output.push(length as u8);
-            output.extend_from_slice(group);
+            output.push(if letters == 0 { 0 } else { gap_before.max(3) })?;
+            output.push(length as u8)?;
+            output.extend_from_slice(group)?;
             letters = letters.saturating_add(1);
             gap_before = 0;
         }
@@ -119,13 +120,13 @@ pub fn morse_intersperse_gaps_into(input: &[u8], output: &mut Vec<u8>) -> Result
     Ok(())
 }
 
-pub fn morse_flatten_groups_into(input: &[u8], output: &mut Vec<u8>) -> Result<(), MorseError> {
+fn morse_flatten_groups_write(input: &[u8], output: &mut Output<'_>) -> Result<(), MorseError> {
     require_capacity(output, MAXIMUM_MORSE_SYMBOLS_BYTES)?;
-    if input.len() < 4 || input[0] != VERSION {
+    if input.len() < 4 || input.len() > MAXIMUM_MORSE_GAPPED_GROUPS_BYTES || input[0] != VERSION {
         return Err(MorseError::MalformedEncoding);
     }
     output.clear();
-    output.extend_from_slice(&[VERSION, 0, 0]);
+    output.extend_from_slice(&[VERSION, 0, 0])?;
     let expected = usize::from(input[1]);
     let mut cursor = 2;
     let mut groups = 0;
@@ -147,12 +148,12 @@ pub fn morse_flatten_groups_into(input: &[u8], output: &mut Vec<u8>) -> Result<(
             return Err(MorseError::NonCanonicalEncoding);
         }
         if gap != 0 {
-            output.push(if gap == 3 { LETTER_GAP } else { WORD_GAP });
+            output.push(if gap == 3 { LETTER_GAP } else { WORD_GAP })?;
         }
         for (index, symbol) in symbols.iter().enumerate() {
-            output.push(*symbol);
+            output.push(*symbol)?;
             if index + 1 < symbols.len() {
-                output.push(INTRA_GAP);
+                output.push(INTRA_GAP)?;
             }
         }
         groups += 1;
@@ -167,10 +168,10 @@ pub fn morse_flatten_groups_into(input: &[u8], output: &mut Vec<u8>) -> Result<(
     Ok(())
 }
 
-pub fn morse_symbols_to_pattern_into(
+fn morse_symbols_to_pattern_write(
     input: &[u8],
     unit_millis: u16,
-    output: &mut Vec<u8>,
+    output: &mut Output<'_>,
 ) -> Result<(), MorseError> {
     require_capacity(output, MAXIMUM_MORSE_PATTERN_BYTES)?;
     if !(crate::MINIMUM_MORSE_UNIT_MILLIS..=crate::MAXIMUM_MORSE_UNIT_MILLIS).contains(&unit_millis)
@@ -179,9 +180,9 @@ pub fn morse_symbols_to_pattern_into(
     }
     let tokens = decode_symbols(input)?;
     output.clear();
-    output.push(VERSION);
-    output.extend_from_slice(&unit_millis.to_le_bytes());
-    output.extend_from_slice(&(tokens.len() as u16).to_le_bytes());
+    output.push(VERSION)?;
+    output.extend_from_slice(&unit_millis.to_le_bytes())?;
+    output.extend_from_slice(&(tokens.len() as u16).to_le_bytes())?;
     for token in tokens {
         let (level, units) = match *token {
             DOT => (1, 1),
@@ -191,12 +192,12 @@ pub fn morse_symbols_to_pattern_into(
             WORD_GAP => (0, 7),
             _ => return Err(MorseError::NonCanonicalEncoding),
         };
-        output.extend_from_slice(&[level, units]);
+        output.extend_from_slice(&[level, units])?;
     }
     Ok(())
 }
 
-fn require_capacity(output: &Vec<u8>, required: usize) -> Result<(), MorseError> {
+fn require_capacity(output: &Output<'_>, required: usize) -> Result<(), MorseError> {
     if output.capacity() < required {
         Err(MorseError::OutputCapacity)
     } else {
@@ -205,7 +206,11 @@ fn require_capacity(output: &Vec<u8>, required: usize) -> Result<(), MorseError>
 }
 
 fn checked_characters(input: &[u8]) -> Result<&[u8], MorseError> {
-    if input.len() < 3 || input[0] != VERSION || usize::from(input[1]) + 2 != input.len() {
+    if input.len() < 3
+        || input.len() > MAXIMUM_MORSE_CHARACTERS_BYTES
+        || input[0] != VERSION
+        || usize::from(input[1]) + 2 != input.len()
+    {
         return Err(MorseError::MalformedEncoding);
     }
     let text = core::str::from_utf8(&input[2..]).map_err(|_| MorseError::MalformedEncoding)?;
@@ -226,4 +231,84 @@ fn checked_characters(input: &[u8]) -> Result<&[u8], MorseError> {
         return Err(MorseError::InvalidWordGap);
     }
     Ok(&input[2..])
+}
+
+/// Encode into preallocated Vec storage without growing it.
+pub fn morse_characters_from_text_into(text: &str, output: &mut Vec<u8>) -> Result<(), MorseError> {
+    morse_characters_from_text_write(text, &mut Output::vec(output))
+}
+
+/// Encode into caller-owned fixed storage; return the initialized prefix length.
+pub fn morse_characters_from_text_into_slice(
+    text: &str,
+    storage: &mut [u8],
+) -> Result<usize, MorseError> {
+    let mut output = Output::slice(storage);
+    morse_characters_from_text_write(text, &mut output)?;
+    Ok(output.len())
+}
+
+/// Encode into preallocated Vec storage without growing it.
+pub fn morse_lookup_characters_into(input: &[u8], output: &mut Vec<u8>) -> Result<(), MorseError> {
+    morse_lookup_characters_write(input, &mut Output::vec(output))
+}
+
+/// Encode into caller-owned fixed storage; return the initialized prefix length.
+pub fn morse_lookup_characters_into_slice(
+    input: &[u8],
+    storage: &mut [u8],
+) -> Result<usize, MorseError> {
+    let mut output = Output::slice(storage);
+    morse_lookup_characters_write(input, &mut output)?;
+    Ok(output.len())
+}
+
+/// Encode into preallocated Vec storage without growing it.
+pub fn morse_intersperse_gaps_into(input: &[u8], output: &mut Vec<u8>) -> Result<(), MorseError> {
+    morse_intersperse_gaps_write(input, &mut Output::vec(output))
+}
+
+/// Encode into caller-owned fixed storage; return the initialized prefix length.
+pub fn morse_intersperse_gaps_into_slice(
+    input: &[u8],
+    storage: &mut [u8],
+) -> Result<usize, MorseError> {
+    let mut output = Output::slice(storage);
+    morse_intersperse_gaps_write(input, &mut output)?;
+    Ok(output.len())
+}
+
+/// Encode into preallocated Vec storage without growing it.
+pub fn morse_flatten_groups_into(input: &[u8], output: &mut Vec<u8>) -> Result<(), MorseError> {
+    morse_flatten_groups_write(input, &mut Output::vec(output))
+}
+
+/// Encode into caller-owned fixed storage; return the initialized prefix length.
+pub fn morse_flatten_groups_into_slice(
+    input: &[u8],
+    storage: &mut [u8],
+) -> Result<usize, MorseError> {
+    let mut output = Output::slice(storage);
+    morse_flatten_groups_write(input, &mut output)?;
+    Ok(output.len())
+}
+
+/// Encode into preallocated Vec storage without growing it.
+pub fn morse_symbols_to_pattern_into(
+    input: &[u8],
+    unit_millis: u16,
+    output: &mut Vec<u8>,
+) -> Result<(), MorseError> {
+    morse_symbols_to_pattern_write(input, unit_millis, &mut Output::vec(output))
+}
+
+/// Encode into caller-owned fixed storage; return the initialized prefix length.
+pub fn morse_symbols_to_pattern_into_slice(
+    input: &[u8],
+    unit_millis: u16,
+    storage: &mut [u8],
+) -> Result<usize, MorseError> {
+    let mut output = Output::slice(storage);
+    morse_symbols_to_pattern_write(input, unit_millis, &mut output)?;
+    Ok(output.len())
 }
