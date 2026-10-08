@@ -75,7 +75,7 @@ fn arc_bytes<T>() -> Result<usize, Window8ModelRefusal> {
 /// Allocation-free actual incoming storage inventory. All boxed declaration
 /// buffers are exact-sized; full signature/metadata capacities are counted by
 /// the generic model owner's allocation-free inventory.
-fn incoming_storage(
+pub(crate) fn incoming_storage(
     selection: &PreparedProposalModelSelection,
 ) -> Result<Window8ModelStorageReceipt, Window8ModelRefusal> {
     use Window8ModelRefusal as R;

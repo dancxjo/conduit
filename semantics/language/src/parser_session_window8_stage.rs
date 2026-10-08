@@ -193,6 +193,8 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
         Ok((self.guard, self.book))
     }
     #[allow(clippy::too_many_arguments)]
+    // Source replay borrows these same shared Native owners. Keep only a handle
+    // across replay; mutable family admission starts after replay has finished.
     pub(crate) fn admit_qualified_lexical(
         &mut self,
         source_execution: usize,
@@ -200,7 +202,7 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
             crate::LanguageParserWindow8QualifiedLexicalProposal,
             crate::LanguageParserWindow8QualifiedLexicalAnalysis,
         >,
-        family: &mut conduit_plot::rust_binding::PreparedNativeFamily,
+        family: &alloc::rc::Rc<core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>>,
         buffer: Vec<u8>,
         maximum_native_conversion_requested_bytes: usize,
         epoch: u64,
@@ -240,7 +242,7 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
             {
                 return Err(Window8StageRefusal::Book(BookRefusal::Revision));
             }
-            let native_bytes = family.storage_receipt().conversion_requested_bytes_bound
+            let native_bytes = family.try_borrow().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?.storage_receipt().conversion_requested_bytes_bound
                 .checked_mul(2).ok_or(Window8StageRefusal::Candidate(
                     crate::parser_session_window8_candidate::QualifiedLexicalRefusal::Pressure))?;
             let candidate_bytes = crate::LanguageParserWindow8QualifiedLexicalAnalysis::PREPARED_DESCRIPTOR
@@ -267,7 +269,7 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
                 source_execution,
                 origin,
                 refinement,
-                family,
+                &mut *family.try_borrow_mut().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?,
                 buffer,
             )
             .map_err(Window8StageRefusal::Candidate)?;
@@ -293,7 +295,7 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
             crate::LanguageParserWindow8QualifiedDependencyProposal,
             crate::LanguageParserWindow8QualifiedDependencyAnalysis,
         >,
-        family: &mut conduit_plot::rust_binding::PreparedNativeFamily,
+        family: &alloc::rc::Rc<core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>>,
         buffer: Vec<u8>,
         maximum_bytes: usize,
         maximum_source_replays: usize,
@@ -313,12 +315,13 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
                 .map_err(Window8StageRefusal::Book)?;
             let parents = DependencyParents::resolve(&self.book, source_execution)
                 .map_err(Window8StageRefusal::Dependency)?;
+            let conversion_bound = family.try_borrow().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?.storage_receipt().conversion_requested_bytes_bound;
             let direct_conversions = parents
                 .lexical_indices()
                 .len()
                 .checked_add(2)
                 .and_then(|count| {
-                    count.checked_mul(family.storage_receipt().conversion_requested_bytes_bound)
+                    count.checked_mul(conversion_bound)
                 })
                 .ok_or(Window8StageRefusal::Dependency(
                     QualifiedDependencyRefusal::Pressure,
@@ -359,7 +362,7 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
                 &self.book,
                 &parents,
                 refinement,
-                family,
+                &mut *family.try_borrow_mut().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?,
                 buffer,
                 maximum_bytes,
             )

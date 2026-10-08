@@ -205,3 +205,65 @@ pub(crate) fn execute<S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor
     }
     result
 }
+
+/// Completion observations retain their original Source executions. An empty
+/// beam is exhaustion, never evidence of a completed linguistic analysis.
+pub(crate) struct EpochCompletion {
+    pub(crate) executions: [Option<usize>; 4],
+    pub(crate) active: u8,
+    pub(crate) all_complete: bool,
+}
+pub(crate) fn completion<S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>(
+    stage: &mut Window8RevisionStage<'_, S, N>,
+    queries: &mut PreparedWindow8Queries,
+    beam: usize,
+    epoch: u64,
+    calls: u64,
+) -> Result<EpochCompletion, EpochRefusal> {
+    let result = (|| {
+        let mut observation = EpochCompletion {
+            executions: [None; 4],
+            active: 0,
+            all_complete: true,
+        };
+        for candidate in 0..4 {
+            let parent = StateParent::BeamCandidate {
+                execution: beam,
+                candidate,
+            };
+            let prior = parent.hypothesis(stage.book()).map_err(|_| EpochRefusal)?;
+            if !boolean(field(prior, "active").map_err(|_| EpochRefusal)?)
+                .map_err(|_| EpochRefusal)?
+            {
+                continue;
+            }
+            let query = queries
+                .copy_record(
+                    "language-window8-complete",
+                    parent.state(stage.book()).map_err(|_| EpochRefusal)?,
+                )
+                .map_err(|_| EpochRefusal)?;
+            let execution = stage
+                .source_named("language-window8-complete", query, epoch, calls)
+                .map_err(|_| EpochRefusal)?;
+            let complete = boolean(
+                field(
+                    view(stage.book().source[execution].output_bytes())
+                        .map_err(|_| EpochRefusal)?,
+                    "complete",
+                )
+                .map_err(|_| EpochRefusal)?,
+            )
+            .map_err(|_| EpochRefusal)?;
+            observation.executions[usize::from(candidate)] = Some(execution);
+            observation.active += 1;
+            observation.all_complete &= complete;
+        }
+        observation.all_complete &= observation.active != 0;
+        Ok(observation)
+    })();
+    if result.is_err() {
+        stage.abort();
+    }
+    result
+}
