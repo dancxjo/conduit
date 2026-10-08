@@ -26,3 +26,11 @@ acknowledgement-controlled progress, bounded pressure, cancellation, malformed
 frames/indices, storage failure and Value/Flow completion. Passing these does not
 prove whole preparation allocation bounds, linguistic quality or public Session
 completion. Validation results and exact source hashes are recorded separately.
+
+Tested source commit: `fb2ffdb591be15fceeb47ff8f0a713de4ea6c7f8`.
+The following publication commit adds byte-exact logs and their hashes only;
+implementation and Cargo files remain identical to that tested source.
+The original missing-export diagnostic is retained separately from the ten
+passing runtime tests. Preparation-wide allocation accounting remains an
+inherited limitation; focused allocation-free runtime checks do not establish
+a complete preparation bound.

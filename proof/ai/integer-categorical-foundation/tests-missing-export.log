@@ -1,0 +1,70 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/plan-lowering)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/composite)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/net)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/process)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/presentation)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/purpose)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/alife)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/ai)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/language)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/education)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/mechanisms/protocols/midi)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/wire)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/chat)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/semantics/catalog)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/plots/todo/model)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/mechanisms/protocols/bluetooth)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/targets/std/offers)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/architecture/planner)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-integer-categorical-foundation/proof/conformance/signal)
+error[E0425]: cannot find value `MODEL_READ_AUTHORITY` in this scope
+  --> semantics/ai/tests/model_artifact.rs:18:55
+   |
+18 |         authority_contract: AuthorityContractId::from(MODEL_READ_AUTHORITY),
+   |                                                       ^^^^^^^^^^^^^^^^^^^^
+   |
+  ::: semantics/ai/src/source_extraction_contract.rs:22:1
+   |
+22 | pub const SOURCE_READ_AUTHORITY: &str = "conduit.authority/read-bounded-source@1";
+   | ------------------------------------- similarly named constant `SOURCE_READ_AUTHORITY` defined here
+   |
+help: a constant with a similar name exists
+   |
+18 -         authority_contract: AuthorityContractId::from(MODEL_READ_AUTHORITY),
+18 +         authority_contract: AuthorityContractId::from(SOURCE_READ_AUTHORITY),
+   |
+
+error[E0425]: cannot find value `MODEL_READ_AUTHORITY` in this scope
+  --> semantics/ai/tests/integer_categorical_step.rs:91:29
+   |
+91 |         authority_contract: MODEL_READ_AUTHORITY.into(),
+   |                             ^^^^^^^^^^^^^^^^^^^^
+   |
+  ::: semantics/ai/src/source_extraction_contract.rs:22:1
+   |
+22 | pub const SOURCE_READ_AUTHORITY: &str = "conduit.authority/read-bounded-source@1";
+   | ------------------------------------- similarly named constant `SOURCE_READ_AUTHORITY` defined here
+   |
+help: a constant with a similar name exists
+   |
+91 -         authority_contract: MODEL_READ_AUTHORITY.into(),
+91 +         authority_contract: SOURCE_READ_AUTHORITY.into(),
+   |
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `conduit-ai` (test "model_artifact") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `conduit-ai` (test "integer_categorical_step") due to 1 previous error
