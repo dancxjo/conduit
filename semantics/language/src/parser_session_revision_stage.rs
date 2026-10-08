@@ -106,6 +106,30 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
         query: &[u8],
         links: &[crate::parser_session_fixed_ingress::ParserSourceParentLink],
     ) -> Result<usize, RevisionStageRefusal<E::Error, S::Error, N::Error>> {
+        self.source_with_witnesses(entry, query, links, None)
+    }
+    /// Class and score come from the actual retained mixed execution and Source
+    /// mask. The driver still supplies every other field through fixed parents.
+    pub(crate) fn ranked_source(
+        &mut self,
+        query: &[u8],
+        links: &[crate::parser_session_fixed_ingress::ParserSourceParentLink],
+        parent: crate::parser_session_fixed_ingress::ParserRankParent,
+    ) -> Result<usize, RevisionStageRefusal<E::Error, S::Error, N::Error>> {
+        self.source_with_witnesses(
+            ParserSessionEntry::ScoreProposal,
+            query,
+            links,
+            Some(parent),
+        )
+    }
+    fn source_with_witnesses(
+        &mut self,
+        entry: ParserSessionEntry,
+        query: &[u8],
+        links: &[crate::parser_session_fixed_ingress::ParserSourceParentLink],
+        rank_parent: Option<crate::parser_session_fixed_ingress::ParserRankParent>,
+    ) -> Result<usize, RevisionStageRefusal<E::Error, S::Error, N::Error>> {
         use RevisionStageRefusal as R;
         if self.poisoned {
             return Err(R::Closed);
@@ -118,7 +142,10 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
             if links.len() > crate::parser_session_fixed_ingress::MAXIMUM_SOURCE_PARENT_LINKS {
                 return Err(R::Closed);
             }
-            if !links.is_empty() {
+            if rank_parent.is_some_and(|parent| !book.rank_parent_matches(parent, query)) {
+                return Err(R::Closed);
+            }
+            if !links.is_empty() || rank_parent.is_some() {
                 book.validate_event_order().map_err(R::Storage)?;
                 for link in links {
                     let parent = book
@@ -161,6 +188,7 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
             for (slot, link) in history.parent_links.iter_mut().zip(links) {
                 *slot = Some(*link);
             }
+            history.rank_parent = rank_parent;
             book.retain_source(history).map_err(R::Storage)
         })();
         if result.is_err() {

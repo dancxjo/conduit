@@ -65,6 +65,15 @@ impl ParserFixedFrames {
 }
 pub(crate) const MAXIMUM_SOURCE_PARENT_LINKS: usize = 16;
 
+/// Locators into this actual revision book. Full model/Source frames remain
+/// retained and must replay before the selected scored proposal is consumed.
+#[derive(Clone, Copy)]
+pub(crate) struct ParserRankParent {
+    pub(crate) model_execution: usize,
+    pub(crate) mask_execution: usize,
+    pub(crate) selected_ordinal: usize,
+}
+
 /// Fixed driver-selected record paths. Indices locate full retained execution
 /// frames; equality below is over complete canonical Types and values.
 #[derive(Clone, Copy)]
@@ -115,6 +124,7 @@ pub(crate) struct ParserFixedHistory {
     pub(crate) entry: ParserSessionEntry,
     pub(crate) ordinal: u64,
     pub(crate) parent_links: [Option<ParserSourceParentLink>; MAXIMUM_SOURCE_PARENT_LINKS],
+    pub(crate) rank_parent: Option<ParserRankParent>,
     pub(crate) input: Vec<u8>,
     pub(crate) output: Vec<u8>,
     pub(crate) original_plan: Rc<Plan>,
@@ -325,6 +335,7 @@ impl<E: ParserSessionExecutor> PreparedParserFixedIngress<E> {
             entry: self.entry,
             ordinal: self.next_ordinal,
             parent_links: [None; MAXIMUM_SOURCE_PARENT_LINKS],
+            rank_parent: None,
             input: frames.input,
             output: frames.output,
             original_plan: self.original_plan.clone(),

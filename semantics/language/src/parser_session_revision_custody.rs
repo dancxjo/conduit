@@ -455,6 +455,16 @@ impl ParserRevisionCustody {
                         return Err(RevisionStorageRefusal::OriginalTape);
                     }
                     let history = &self.source_histories[index];
+                    if let Some(parent) = history.rank_parent {
+                        if history.entry
+                            != crate::parser_session_execution::ParserSessionEntry::ScoreProposal
+                            || parent.model_execution >= model
+                            || parent.mask_execution >= source
+                            || !self.rank_parent_matches(parent, &history.input)
+                        {
+                            return Err(RevisionStorageRefusal::OriginalTape);
+                        }
+                    }
                     for link in history.parent_links.iter().flatten() {
                         if self
                             .source_parent(link, index)
@@ -511,6 +521,39 @@ impl ParserRevisionCustody {
             return Err(RevisionStorageRefusal::OriginalTape);
         }
         Ok(())
+    }
+    pub(crate) fn rank_parent_matches(
+        &self,
+        parent: crate::parser_session_fixed_ingress::ParserRankParent,
+        query: &[u8],
+    ) -> bool {
+        use crate::parser_session_execution::ParserSessionEntry;
+        let Some(model) = self.mixed_histories.get(parent.model_execution) else {
+            return false;
+        };
+        let Some(mask) = self.source_histories.get(parent.mask_execution) else {
+            return false;
+        };
+        if !matches!(
+            mask.entry,
+            ParserSessionEntry::LegalMask | ParserSessionEntry::IndependentMask
+        ) {
+            return false;
+        }
+        let Ok(scores) = conduit_core::validate_canonical_structured_value(&model.numeric.output)
+        else {
+            return false;
+        };
+        let Ok(mask) = conduit_core::validate_canonical_structured_value(&mask.output) else {
+            return false;
+        };
+        let Ok(scored) = conduit_core::validate_canonical_structured_value(query) else {
+            return false;
+        };
+        let mut rank = crate::parser_session_rank::PreparedParserDriverRank::<
+            crate::parser_session_numeric_profile::PinnedFourSlotNumericProfile,
+        >::new();
+        rank.matches_selected(scores, mask, scored, parent.selected_ordinal) == Ok(true)
     }
     pub(crate) fn source_frame(&mut self) -> Result<ParserFixedFrames, RevisionStorageRefusal> {
         if self.published {
