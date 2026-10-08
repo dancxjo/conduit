@@ -48,6 +48,15 @@ pub(crate) struct ReservedMixedFrames {
     pub(crate) source: PreparedParserExecutionFrames,
     pub(crate) numeric: ParserNumericFrames,
 }
+/// Exact execution/admission order. These indices only locate the complete
+/// retained material in this immutable book; an event is never fact authority.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ParserRevisionEvent {
+    Source(usize),
+    Model(usize),
+    SeedAdmission { source_execution: usize },
+    StableAdmission(usize),
+}
 /// This owner retains the actual opaque lexical producer, full canonical tape,
 /// original model/profile and every accepted Source/model frame. A prior book
 /// retains all earlier commitments and origins independently of future revisions.
@@ -60,6 +69,7 @@ pub(crate) struct ParserRevisionCustody {
     pub(crate) mixed_histories: Vec<ParserMixedHistory>,
     pub(crate) stable_admissions: Vec<ParserStableCandidateAdmission>,
     pub(crate) seed_admission: Option<ParserSeedBeamAdmission>,
+    pub(crate) events: Vec<ParserRevisionEvent>,
     source_frames: Vec<ParserFixedFrames>,
     mixed_frames: Vec<ReservedMixedFrames>,
     pub(crate) storage: RevisionStorageReceipt,
@@ -167,6 +177,13 @@ impl ParserRevisionCustody {
             return Err(R::OriginalTape);
         }
         let is_new = matches!(&lexical, LexicalStorage::New(_));
+        if is_new {
+            crate::lexical::validate_prepared_lexical_successor(
+                previous.as_ref().map(|prior| prior.lexical.as_ref()),
+                lexical.tape(),
+            )
+            .map_err(|_| R::OriginalTape)?;
+        }
         if let LexicalStorage::Existing(tape, bytes) = &lexical {
             let prior = previous.as_ref().ok_or(R::OriginalTape)?;
             if !Rc::ptr_eq(tape, &prior.lexical)
@@ -184,6 +201,8 @@ impl ParserRevisionCustody {
             add(size_of::<Self>(), 2 * size_of::<usize>())?,
             4 * align_of::<Self>(),
         )?;
+        let event_count = add(source_count, model_count)?;
+        let event_headers = mul(event_count, size_of::<ParserRevisionEvent>())?;
         let source_headers = mul(
             source_count,
             add(
@@ -247,6 +266,7 @@ impl ParserRevisionCustody {
                 )?,
             )?,
         )?;
+        let newly = add(newly, event_headers)?;
         if previous
             .as_ref()
             .is_some_and(|prior| !prior.published || !Rc::ptr_eq(&prior.base, &base))
@@ -312,6 +332,7 @@ impl ParserRevisionCustody {
                 },
             });
         }
+        let events = reserve(event_count)?;
         let source_histories = reserve(source_count)?;
         let mixed_histories = reserve(model_count)?;
         let stable_admissions = reserve(source_count)?;
@@ -324,6 +345,7 @@ impl ParserRevisionCustody {
             mixed_histories,
             stable_admissions,
             seed_admission: None,
+            events,
             source_frames,
             mixed_frames,
             storage: RevisionStorageReceipt {
@@ -380,6 +402,10 @@ impl ParserRevisionCustody {
                 size_of::<ParserStableCandidateAdmission>(),
             )?,
         )?;
+        actual = add(
+            actual,
+            mul(result.events.capacity(), size_of::<ParserRevisionEvent>())?,
+        )?;
         for frame in &result.source_frames {
             actual = add(actual, frame.retained_bytes().ok_or(R::Overflow)?)?;
         }
@@ -396,6 +422,69 @@ impl ParserRevisionCustody {
             return Err(R::Pressure);
         }
         Ok(Rc::new(result))
+    }
+    /// Checks the complete ordered locator tape against retained material. Full
+    /// Source/Native replay is additional and separately reserved; this check
+    /// never treats a locator, count or equal ID as an authorization witness.
+    pub(crate) fn validate_event_order(&self) -> Result<(), RevisionStorageRefusal> {
+        let mut source = 0usize;
+        let mut model = 0usize;
+        let mut stable = 0usize;
+        let mut seed = false;
+        for event in &self.events {
+            match *event {
+                ParserRevisionEvent::Source(index) => {
+                    if index != source || self.source_histories.get(index).is_none() {
+                        return Err(RevisionStorageRefusal::OriginalTape);
+                    }
+                    source = add(source, 1)?;
+                }
+                ParserRevisionEvent::Model(index) => {
+                    if !seed || index != model || self.mixed_histories.get(index).is_none() {
+                        return Err(RevisionStorageRefusal::OriginalTape);
+                    }
+                    model = add(model, 1)?;
+                }
+                ParserRevisionEvent::SeedAdmission { source_execution } => {
+                    if seed
+                        || source_execution >= source
+                        || self
+                            .seed_admission
+                            .as_ref()
+                            .is_none_or(|admission| admission.seed_execution != source_execution)
+                        || self
+                            .source_histories
+                            .get(source_execution)
+                            .is_none_or(|origin| {
+                                origin.entry
+                                    != crate::parser_session_execution::ParserSessionEntry::Seed
+                            })
+                    {
+                        return Err(RevisionStorageRefusal::OriginalTape);
+                    }
+                    seed = true;
+                }
+                ParserRevisionEvent::StableAdmission(index) => {
+                    if index != stable
+                        || self
+                            .stable_admissions
+                            .get(index)
+                            .is_none_or(|admission| admission.stable_proposal_execution >= source)
+                    {
+                        return Err(RevisionStorageRefusal::OriginalTape);
+                    }
+                    stable = add(stable, 1)?;
+                }
+            }
+        }
+        if source != self.source_histories.len()
+            || model != self.mixed_histories.len()
+            || stable != self.stable_admissions.len()
+            || seed != self.seed_admission.is_some()
+        {
+            return Err(RevisionStorageRefusal::OriginalTape);
+        }
+        Ok(())
     }
     pub(crate) fn source_frame(&mut self) -> Result<ParserFixedFrames, RevisionStorageRefusal> {
         if self.published {
@@ -420,18 +509,50 @@ impl ParserRevisionCustody {
         if !self.base.contains_plan(&history.original_plan) {
             return Err(RevisionStorageRefusal::OriginalTape);
         }
-        if self.published || self.source_histories.len() == self.source_histories.capacity() {
+        if self.published
+            || self.source_histories.len() == self.source_histories.capacity()
+            || self.events.len() == self.events.capacity()
+        {
             return Err(RevisionStorageRefusal::Pressure);
         }
         let index = self.source_histories.len();
         self.source_histories.push(history);
+        self.events.push(ParserRevisionEvent::Source(index));
         Ok(index)
+    }
+    pub(crate) fn retain_seed_admission(
+        &mut self,
+        admission: ParserSeedBeamAdmission,
+    ) -> Result<(), RevisionStorageRefusal> {
+        if self.published
+            || self.seed_admission.is_some()
+            || self.events.len() == self.events.capacity()
+        {
+            return Err(RevisionStorageRefusal::Pressure);
+        }
+        let source_execution = admission.seed_execution;
+        if self
+            .source_histories
+            .get(source_execution)
+            .is_none_or(|origin| {
+                origin.entry != crate::parser_session_execution::ParserSessionEntry::Seed
+            })
+        {
+            return Err(RevisionStorageRefusal::OriginalTape);
+        }
+        self.seed_admission = Some(admission);
+        self.events
+            .push(ParserRevisionEvent::SeedAdmission { source_execution });
+        Ok(())
     }
     pub(crate) fn retain_stable_admission(
         &mut self,
         admission: ParserStableCandidateAdmission,
     ) -> Result<usize, RevisionStorageRefusal> {
-        if self.published || self.stable_admissions.len() == self.stable_admissions.capacity() {
+        if self.published
+            || self.stable_admissions.len() == self.stable_admissions.capacity()
+            || self.events.len() == self.events.capacity()
+        {
             return Err(RevisionStorageRefusal::Pressure);
         }
         if self
@@ -445,6 +566,8 @@ impl ParserRevisionCustody {
         }
         let index = self.stable_admissions.len();
         self.stable_admissions.push(admission);
+        self.events
+            .push(ParserRevisionEvent::StableAdmission(index));
         Ok(index)
     }
     pub(crate) fn retain_model(
@@ -460,11 +583,15 @@ impl ParserRevisionCustody {
         {
             return Err(RevisionStorageRefusal::OriginalTape);
         }
-        if self.published || self.mixed_histories.len() == self.mixed_histories.capacity() {
+        if self.published
+            || self.mixed_histories.len() == self.mixed_histories.capacity()
+            || self.events.len() == self.events.capacity()
+        {
             return Err(RevisionStorageRefusal::Pressure);
         }
         let index = self.mixed_histories.len();
         self.mixed_histories.push(history);
+        self.events.push(ParserRevisionEvent::Model(index));
         Ok(index)
     }
 }

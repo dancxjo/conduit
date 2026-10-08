@@ -625,10 +625,11 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
     let document=format!("{}\nplot production-model (\n features: LanguageParserV2ModelFeatures...| >> observed: LanguageParserV2ModelScores...|\n) {{\n features >> language-parser-v2-feature-indices() >> {}() >> language-parser-v2-score-observation() >> observed\n}}\n",source(),model.kind_identity(true));
     let numeric_execution =
         runtime::prepare_source_with_storage(model.clone(), document, "production-model", Some(2));
-    let source_execution = runtime::prepare_checked_source(
+    let source_execution = runtime::prepare_checked_source_with_catalog(
         model.clone(),
         numeric_execution.source_document.clone(),
         numeric_execution.checked_source.clone(),
+        numeric_execution.model_catalog.clone(),
         Entry::V2ModelFeatures.name(),
         Some(2),
     );
@@ -639,6 +640,10 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
     assert!(Rc::ptr_eq(
         &numeric_execution.source_document,
         &source_execution.source_document
+    ));
+    assert!(Rc::ptr_eq(
+        &numeric_execution.model_catalog,
+        &source_execution.model_catalog
     ));
     let source_plan = source_execution.original_plan.clone();
     let numeric_plan = numeric_execution.original_plan.clone();
@@ -803,4 +808,247 @@ fn actual_kernel_complete_mixed_factory_preserves_original_plans_and_cancels_bot
     assert_eq!(source_calls.get(), 2);
     assert_eq!(numeric_calls.get(), 2);
     eprintln!("complete actual mixed factory receipt={receipt:?}");
+}
+
+#[path = "../src/parser_session_preparation.rs"]
+mod parser_session_preparation;
+
+#[test]
+fn whole_session_preparation_refuses_aggregate_budget_before_metadata_or_ingress() {
+    use parser_session_preparation::*;
+    use parser_session_target_contract::*;
+    struct Target(&'static str);
+    impl parser_session_canonical_ingress::ParserCanonicalSourceExecutor for Target {
+        type Error = ();
+        fn cancel(&mut self) {}
+        fn entry(&self) -> &str {
+            self.0
+        }
+        fn input_type_bytes(&self) -> &[u8] {
+            panic!("metadata must not be reached")
+        }
+        fn output_type_bytes(&self) -> &[u8] {
+            panic!("metadata must not be reached")
+        }
+        fn transact(&mut self, _: u64, _: &[u8], _: &mut [u8]) -> Result<usize, Self::Error> {
+            panic!("ingress must not be reached")
+        }
+    }
+    impl parser_session_fixed_ingress::ParserSessionExecutor for Target {
+        fn original_plan(&self) -> &conduit_core::Plan {
+            panic!("Plan must not be reached")
+        }
+    }
+    impl ParserSessionPreparedTarget for Target {
+        fn checked_source(&self) -> &conduit_plot::CheckedSyntaxDocument {
+            panic!("Source must not be reached")
+        }
+        fn expanded_source(&self) -> &conduit_plot::ExpandedAuthoringPlot {
+            panic!("expansion must not be reached")
+        }
+        fn original_plan_owner(&self) -> Rc<conduit_core::Plan> {
+            panic!("Plan owner must not be reached")
+        }
+        fn storage_contract(&self) -> ParserSessionTargetStorageContract {
+            ParserSessionTargetStorageContract::new(1, 0, 1, 1).unwrap()
+        }
+    }
+    const GIB: usize = 1024 * 1024 * 1024;
+    let model = profile();
+    let lexical = parser_model_selection::pinned_v2_lexical_profile().unwrap();
+    let selection = Arc::new(
+        parser_model_selection::PreparedParserModelSelection::prepare(model, &lexical).unwrap(),
+    );
+    let targets = parser_session_target_registry::REQUIRED
+        .iter()
+        .map(|entry| Target(entry.name()))
+        .collect();
+    let verification = parser_session_execution::ParserSessionVerificationLimits {
+        decoded_program_bytes: GIB,
+        preparation_peak_bytes: GIB,
+        retained_bytes: GIB,
+    };
+    let fixed = parser_session_fixed_preparation::FixedPreparationLimits {
+        verification,
+        maximum_metadata_temporary_bytes: GIB,
+        maximum_plan_validation_temporary_bytes: 16 * GIB,
+        maximum_endpoint_encoding_requested_bytes: GIB,
+        maximum_existing_target_bytes: GIB,
+        other_existing_session_reserved_bytes: 0,
+        maximum_combined_bytes: usize::MAX,
+        maximum_invocations: 100,
+    };
+    let mixed = parser_session_mixed_preparation::MixedPreparationLimits {
+        verification,
+        canonical: conduit_ai::integer_categorical_step::CategoricalCanonicalAdmissionLimits {
+            maximum_preparation_peak_bytes: GIB,
+            maximum_retained_bytes: GIB,
+        },
+        maximum_metadata_temporary_bytes: GIB,
+        maximum_plan_validation_temporary_bytes: 16 * GIB,
+        maximum_endpoint_encoding_requested_bytes: GIB,
+        other_existing_session_reserved_bytes: 0,
+        maximum_combined_bytes: usize::MAX,
+        maximum_invocations: 100,
+    };
+    let limits = ParserSessionPreparationLimits {
+        family: family_limits(),
+        fixed,
+        mixed,
+        queries: parser_session_queries::ParserQueryPreparationLimits {
+            maximum_frame_bytes: 262144,
+            maximum_preparation_requested_bytes: GIB,
+            maximum_retained_requested_bytes: GIB,
+        },
+        maximum_existing_profile_bytes: GIB,
+        maximum_historical_base_bytes: 16 * GIB,
+        revision_and_driver_reserved_bytes: GIB,
+        maximum_combined_bytes: 0,
+    };
+    let refused = prepare_session_owners(
+        targets,
+        Target("features"),
+        NumericTargetBridge(Target("model")),
+        parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection.clone()),
+        limits,
+    );
+    assert!(matches!(
+        refused,
+        Err(ParserSessionPreparationRefusal::Pressure)
+    ));
+    assert_eq!(selection.prepared_categorical().dimensions(), (413, 76, 25));
+}
+
+#[path = "../src/parser_session_rank.rs"]
+mod parser_session_rank;
+
+fn storage_only_fixture_plan() -> Rc<conduit_core::Plan> {
+    use conduit_core::*;
+    Rc::new(Plan {
+        plan_id: "fixture/plan".into(),
+        source_document_id: "fixture/source".into(),
+        checked_plot_id: "fixture/checked".into(),
+        expanded_plot_id: "fixture/expanded".into(),
+        completion_policy: PlanCompletionPolicy::Live,
+        realization_backs: vec![],
+        activations: vec![],
+        activation_preparations: vec![],
+        fragments: vec![PlanFragment {
+            plan_id: "fixture/plan".into(),
+            fragment_id: "fixture/fragment".into(),
+            source_document_id: "fixture/source".into(),
+            checked_plot_id: "fixture/checked".into(),
+            expanded_plot_id: "fixture/expanded".into(),
+            completion_policy: PlanCompletionPolicy::Live,
+            realization_backs: vec![],
+            host_id: "fixture/host".into(),
+            boot_id: "fixture/boot".into(),
+            offer_generation: OfferGeneration(1),
+            placements: vec![],
+            execution_regions: vec![],
+            execution_fusions: vec![],
+            states: vec![],
+            connections: vec![],
+            fore_ports: vec![],
+            shared_pools: vec![],
+            startup_dependencies: vec![],
+            startup_order: vec![],
+            cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
+            terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
+            expected_terminals: vec![],
+            expected_sign: vec![],
+            sign_storage_budget: SignStorageBudget {
+                item_capacity: 0,
+                byte_capacity: 0,
+            },
+            plan_fragments: vec![],
+        }],
+    })
+}
+#[test]
+fn revision_storage_reserves_ordered_events_and_refuses_locators_without_parent_material() {
+    use parser_session_revision_custody::*;
+    const GIB: usize = 1024 * 1024 * 1024;
+    let model = profile();
+    let profile = parser_model_selection::pinned_v2_lexical_profile().unwrap();
+    let selection = Arc::new(
+        parser_model_selection::PreparedParserModelSelection::prepare(model, &profile).unwrap(),
+    );
+    let admitted = parser_session_profile::PreparedParserSessionProfile::admit(
+        parser_session_profile::ParserSessionProfile::PinnedFourSlotV2(selection),
+        GIB,
+    )
+    .unwrap();
+    // This fixture exercises ownership/storage only. It is deliberately not a
+    // Source/Plan authorization witness or public Session acceptance test.
+    let base = parser_session_historical_base::ParserSessionHistoricalBase::prepare(
+        admitted,
+        vec![storage_only_fixture_plan()],
+        0,
+        GIB,
+    )
+    .unwrap();
+    let query = query();
+    let original_source = query.lexical().tape().source();
+    let producer = lexical::prepare_lexical_tape(original_source, &profile, None).unwrap();
+    let original = producer.tape().clone().encode().unwrap();
+    let mut family = conduit_plot::rust_binding::PreparedNativeFamily::prepare(
+        &[LanguageLexicalTape::PREPARED_DESCRIPTOR],
+        family_limits().family,
+    )
+    .unwrap();
+    let limits = RevisionStorageLimits {
+        maximum_source_executions: 2,
+        maximum_model_executions: 1,
+        source_input_bytes: 262144,
+        source_output_bytes: 262144,
+        model_input_bytes: 4096,
+        model_output_bytes: 4096,
+        maximum_retained_chain_bytes: GIB,
+        maximum_preparation_peak_bytes: GIB,
+    };
+    let mut book = ParserRevisionCustody::prepare(
+        producer,
+        &original,
+        base.clone(),
+        None,
+        &mut family,
+        limits,
+    )
+    .unwrap();
+    assert_eq!(book.events.capacity(), 3);
+    assert!(book.events.is_empty());
+    book.validate_event_order().unwrap();
+    let receipt = book.storage;
+    let unique = Rc::get_mut(&mut book).unwrap();
+    assert!(matches!(
+        unique.retain_seed_admission(parser_session_seed_admission::ParserSeedBeamAdmission {
+            seed_execution: 0,
+            complete_beam: vec![]
+        }),
+        Err(RevisionStorageRefusal::OriginalTape)
+    ));
+    assert!(unique.events.is_empty());
+    unique.events.push(ParserRevisionEvent::Model(0));
+    assert!(matches!(
+        unique.validate_event_order(),
+        Err(RevisionStorageRefusal::OriginalTape)
+    ));
+    unique.events.clear();
+    unique.validate_event_order().unwrap();
+    let producer = lexical::prepare_lexical_tape(original_source, &profile, None).unwrap();
+    assert!(matches!(
+        ParserRevisionCustody::prepare(
+            producer,
+            &original,
+            base,
+            None,
+            &mut family,
+            RevisionStorageLimits {
+                maximum_retained_chain_bytes: receipt.complete_retained_chain_bytes_bound - 1,
+                ..limits
+            }
+        ),
+        Err(RevisionStorageRefusal::Pressure)
+    ));
 }

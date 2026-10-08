@@ -18,6 +18,7 @@ pub struct Execution {
     remaining_inferences: Option<u16>,
     pub source_document: Rc<String>,
     pub checked_source: Rc<CheckedSyntaxDocument>,
+    pub model_catalog: Rc<ProfileCatalog>,
     pub expanded_source: ExpandedAuthoringPlot,
     pub original_plan: std::rc::Rc<Plan>,
     input_payload: ValuePayload,
@@ -53,7 +54,14 @@ pub fn prepare_source_with_storage(
         .unwrap();
     eprintln!("checking full Source for {entry}");
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    prepare_checked_source(profile, document, checked, entry, maximum_inferences)
+    prepare_checked_source_with_catalog(
+        profile,
+        document,
+        checked,
+        Rc::new(catalogs),
+        entry,
+        maximum_inferences,
+    )
 }
 
 pub fn prepare_checked_source(
@@ -63,13 +71,30 @@ pub fn prepare_checked_source(
     entry: &str,
     maximum_inferences: Option<u16>,
 ) -> Execution {
-    // The exact complete checked package is immutable and retained by every
-    // realized port. Sharing never imports a Type-only subset or drops laws.
-    let document = document.into();
-    let checked = checked.into();
     let mut startup = StartupCatalog::new();
     let mut catalogs = ProfileCatalog::new();
     profile.install(&mut startup, &mut catalogs, true).unwrap();
+    prepare_checked_source_with_catalog(
+        profile,
+        document,
+        checked,
+        Rc::new(catalogs),
+        entry,
+        maximum_inferences,
+    )
+}
+/// Reuses the complete original model-installed catalog. No reinstallation,
+/// Type-only import or Source/law filtering occurs between fixed port owners.
+pub fn prepare_checked_source_with_catalog(
+    profile: Arc<PreparedCategoricalStep>,
+    document: impl Into<Rc<String>>,
+    checked: impl Into<Rc<CheckedSyntaxDocument>>,
+    catalogs: Rc<ProfileCatalog>,
+    entry: &str,
+    maximum_inferences: Option<u16>,
+) -> Execution {
+    let document = document.into();
+    let checked = checked.into();
     eprintln!("expanding checked Source for {entry}");
     let expanded = expand_canonical_plot_for_authoring(&checked, entry, &catalogs).unwrap();
     eprintln!("planning expanded Source for {entry}");
@@ -283,6 +308,7 @@ pub fn prepare_checked_source(
         remaining_inferences: maximum_inferences,
         source_document: document,
         checked_source: checked,
+        model_catalog: catalogs,
         expanded_source: expanded,
         original_plan,
         input_payload,

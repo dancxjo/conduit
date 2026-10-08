@@ -29,6 +29,59 @@ impl PreparedLexicalTape {
     }
 }
 
+/// Borrow the original producer's exact correspondence rule. Surface/span
+/// equality is required under that producer's declared stable scalar prefix.
+fn prior_occurrence<'a>(
+    previous: Option<&'a PreparedLexicalTape>,
+    start: u64,
+    end: u64,
+    surface: &str,
+) -> Option<&'a LinguisticTokenIdentity> {
+    let old = previous?;
+    let stable = u64::from(old.tape.source().stable_prefix().unwrap_or(0));
+    old.tape
+        .tokens()
+        .iter()
+        .find(|token| {
+            *token.span().start() == start
+                && *token.span().end() == end
+                && end <= stable
+                && token.surface() == surface
+                && matches!(token.completeness(), LanguageLexicalCompleteness::Complete)
+        })
+        .map(|token| token.identity())
+}
+/// Allocation-free revalidation against the Session's actual previous producer.
+/// A separately produced tape with equal prior IDs is insufficient: every
+/// original text frontier and full token correspondence must match this owner.
+pub fn validate_prepared_lexical_successor(
+    previous: Option<&PreparedLexicalTape>,
+    candidate: &PreparedLexicalTape,
+) -> Result<(), LexicalRefusal> {
+    if previous.is_some_and(|old| old.tape.profile() != candidate.tape.profile()) {
+        return Err(LexicalRefusal::Profile);
+    }
+    validate_text_revision(
+        previous.map(|old| old.tape.source()),
+        candidate.tape.source(),
+        0,
+        4096,
+    )
+    .map_err(LexicalRefusal::Revision)?;
+    for token in candidate.tape.tokens().iter() {
+        let expected = prior_occurrence(
+            previous,
+            *token.span().start(),
+            *token.span().end(),
+            token.surface(),
+        );
+        if token.prior_occurrence().as_ref() != expected {
+            return Err(LexicalRefusal::Prior);
+        }
+    }
+    Ok(())
+}
+
 pub fn prepare_lexical_tape(
     source: &LanguageTextRevision,
     profile: &LanguageLexicalProfile,
@@ -98,20 +151,8 @@ pub fn prepare_lexical_tape(
                 .map(|entry| entry.candidates().clone())
                 .unwrap_or_default()
         };
-        let prior_occurrence = previous.and_then(|old| {
-            let stable = old.tape.source().stable_prefix().unwrap_or(0) as u64;
-            old.tape
-                .tokens()
-                .iter()
-                .find(|token| {
-                    *token.span().start() == start as u64
-                        && *token.span().end() == cursor as u64
-                        && cursor as u64 <= stable
-                        && token.surface() == &surface
-                        && matches!(token.completeness(), LanguageLexicalCompleteness::Complete)
-                })
-                .map(|token| token.identity().clone())
-        });
+        let prior_occurrence =
+            prior_occurrence(previous, start as u64, cursor as u64, &surface).cloned();
         let identity = LinguisticTokenIdentity::new(
             tokens.len() as u64,
             source.material().identity().clone(),

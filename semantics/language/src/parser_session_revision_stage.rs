@@ -149,10 +149,10 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
                 .map_err(R::Storage)?
                 .into_candidate_buffer();
             let origin = book.source_histories.get(execution).ok_or(R::Closed)?;
-            book.seed_admission = Some(
+            let admission =
                 ParserSeedBeamAdmission::admit(execution, origin, refinement, family, buffer)
-                    .map_err(R::SeedBeam)?,
-            );
+                    .map_err(R::SeedBeam)?;
+            book.retain_seed_admission(admission).map_err(R::Storage)?;
             Ok(())
         })();
         if result.is_err() {
@@ -230,6 +230,8 @@ impl<'a, E: ParserSessionExecutor, S: ParserCanonicalSourceExecutor, N: ParserNu
             return Err(RevisionStageRefusal::Closed);
         }
         let book = Rc::get_mut(&mut self.book).ok_or(RevisionStageRefusal::Closed)?;
+        book.validate_event_order()
+            .map_err(RevisionStageRefusal::Storage)?;
         book.published = true;
         self.guard.publication_complete();
         Ok(self.book)

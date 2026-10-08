@@ -291,3 +291,40 @@ fn listed_punctuation_preserves_exact_mixed_occurrences_and_partial_abstention()
         second.material().revision()
     );
 }
+
+#[test]
+fn successor_custody_rejects_a_native_valid_tape_from_another_equal_id_prior() {
+    let profile = profile();
+    let actual_source = revision("answer", 0, None, Some(6), LanguageTextFinality::Final);
+    let actual = prepare_lexical_tape(&actual_source, &profile, None).unwrap();
+    let foreign_source = revision("record", 0, None, Some(0), LanguageTextFinality::Final);
+    let foreign = prepare_lexical_tape(&foreign_source, &profile, None).unwrap();
+    // The nominal prior IDs are equal, but these complete original values and
+    // stable frontiers differ. Both producers are independently Native-valid.
+    assert_eq!(
+        actual_source.material().revision(),
+        foreign_source.material().revision()
+    );
+    let candidate_source = revision(
+        "answer,",
+        1,
+        Some(&actual_source),
+        Some(6),
+        LanguageTextFinality::Final,
+    );
+    let accepted = prepare_lexical_tape(&candidate_source, &profile, Some(&actual)).unwrap();
+    let other = prepare_lexical_tape(&candidate_source, &profile, Some(&foreign)).unwrap();
+    assert_eq!(accepted.tape().source(), other.tape().source());
+    assert!(accepted.tape().tokens()[0].prior_occurrence().is_some());
+    assert!(other.tape().tokens()[0].prior_occurrence().is_none());
+    validate_prepared_lexical_successor(None, &actual).unwrap();
+    validate_prepared_lexical_successor(Some(&actual), &accepted).unwrap();
+    assert!(matches!(
+        validate_prepared_lexical_successor(Some(&actual), &other),
+        Err(LexicalRefusal::Prior)
+    ));
+    assert!(matches!(
+        validate_prepared_lexical_successor(None, &accepted),
+        Err(LexicalRefusal::Revision(_))
+    ));
+}
