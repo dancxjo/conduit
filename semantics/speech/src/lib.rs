@@ -334,3 +334,6 @@ mod gesture_lowering;
 pub use gesture_lowering::*;
 #[cfg(feature = "semantic-bindings")]
 pub mod contextual_gestures;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod shared_acoustic;
