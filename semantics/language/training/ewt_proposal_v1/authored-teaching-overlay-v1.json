@@ -1,0 +1,102 @@
+{
+  "scope": "Separately authored lexical teaching alternatives; not corpus observed facts, model prediction, or heldout supervision",
+  "legacy_overlay_source": "semantics/language/training/ewt_joint_v3_window8/vocative_lexical_alternatives.json",
+  "legacy_overlay_sha256": "c9a6f5245686dee5436da665460f6549c49734258c6a7457c1523a66e84e6517",
+  "additional_authored_contrast": "The old man the boats. / The old man. preserving oldNOUN+ADJ and manNOUN+VERB ambiguity",
+  "alternatives": {
+    ",": [
+      12
+    ],
+    ".": [
+      12
+    ],
+    "?": [
+      12
+    ],
+    "Do": [
+      3
+    ],
+    "Hello": [
+      6
+    ],
+    "I": [
+      10
+    ],
+    "Thanks": [
+      6
+    ],
+    "The": [
+      5
+    ],
+    "They": [
+      10
+    ],
+    "Travis": [
+      11
+    ],
+    "and": [
+      4
+    ],
+    "arrived": [
+      15
+    ],
+    "barn": [
+      7
+    ],
+    "fell": [
+      15
+    ],
+    "friend": [
+      7
+    ],
+    "horse": [
+      7
+    ],
+    "my": [
+      10
+    ],
+    "past": [
+      1
+    ],
+    "raced": [
+      15
+    ],
+    "record": [
+      7,
+      15
+    ],
+    "refuse": [
+      7,
+      15
+    ],
+    "songs": [
+      7
+    ],
+    "stories": [
+      7
+    ],
+    "the": [
+      5
+    ],
+    "they": [
+      10
+    ],
+    "think": [
+      15
+    ],
+    "you": [
+      10
+    ],
+    "old": [
+      0,
+      7
+    ],
+    "man": [
+      7,
+      15
+    ],
+    "boats": [
+      7
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "status": "Numerical candidate only; no Native runtime/Source/model-selection acceptance or heldout accuracy proof",
+  "dimensions": {
+    "categories": 446,
+    "classes": 76,
+    "lookups": 27
+  },
+  "weight_layout": "class-major little endian i16 after CI16SUM1 and three u32 dimensions",
+  "training": {
+    "scope": "TRAIN+explicit authored supervised feature tuples; no native runtime/heldout/linguistic acceptance proof",
+    "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+    "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+    "teaching_sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+    "extractor_sha256": "f7fbf68fd261544cba1a57c509f11405f8b41c85141586223dd5e988545f7715",
+    "feature_reference_sha256": "5c66467f722e5d988555b3756629eeebbd31cbb1cc4998b19045872f6c53d9ee",
+    "legacy_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8",
+    "train_eligible_rows": 3531,
+    "train_covered_rows": 3530,
+    "train_exclusions": [
+      {
+        "id": "email-enronsent40_01-0023",
+        "missing": [
+          {
+            "ordinal": 0,
+            "surface": "A",
+            "gold_pos": 11,
+            "candidates": [
+              5,
+              14,
+              16,
+              7
+            ]
+          }
+        ]
+      }
+    ],
+    "train_corpus_shape_skips": {
+      "over_eight_tokens": 8809,
+      "multiword_or_empty_node": 196,
+      "unreachable_projective_profile": 8
+    },
+    "authored_rows": 22,
+    "authored_repetitions": 32,
+    "samples": 36114,
+    "samples_sha256": "4085aaab59f4cf6d6f5adb9d615b368bcd9ce2114b5169a907a97e119686e9e4",
+    "origin_training": "all selected boundedTRAIN/authored surfaces in dictionary: reviewed-origin0; unknown-origin1 not observed by this training, origin remains explicit at runtime",
+    "selected_history": "gold TRAIN/authored oracle trajectory, consumed POS retained, current alternatives varied; no runtime gold constraints"
+  },
+  "quantization": 256,
+  "epochs": 12,
+  "seed": 4907,
+  "maximum_absolute_weight": 23547,
+  "conservative_score_bound": 635769,
+  "unchanged_window8_score_ceiling": 1000000,
+  "resources": {
+    "elapsed_seconds": 1.08,
+    "maximum_resident_kib": 14516,
+    "address_space_limit_bytes": 536870912
+  },
+  "diagnostic": {
+    "scope": "External numerical teacher-forced class diagnostic only; not free-running parse, Native acceptance, heldout accuracy or stability proof",
+    "correct_steps": 210,
+    "total_steps": 212
+  },
+  "corpus_license": {
+    "name": "UD English EWT",
+    "release": "UD 2.18",
+    "commit": "b7711cce01cdd4f5fcc0a8199b8a50d951b16c0c",
+    "license": "CC BY-SA 4.0"
+  },
+  "files": {
+    "train_categorical_window8.rs": {
+      "sha256": "3d2336e17a4b2eb5330cc980adc123b283f9bfa52b4f3d3a67ee646516e66bf7",
+      "bytes": 5931
+    },
+    "train_categorical_window8": {
+      "sha256": "0ec6772b18d91b0c1be7f919f3362a1528f71271c7e98f581c9d8422f3155e13",
+      "bytes": 4546912
+    },
+    "training-numerical-v2.log": {
+      "sha256": "2d67fb639e8ae9c205213fbdb190eaed9f42682faaeeb7c3306cec9f1dcddfec",
+      "bytes": 1578
+    },
+    "proposal_window8_features.conduit": {
+      "sha256": "7bc6c52478f6565b399fb8bdc6171a4e5b0d660d98b1db0f2fcc92945bcce301",
+      "bytes": 9650
+    },
+    "proposal_window8_training_reference.py": {
+      "sha256": "5c66467f722e5d988555b3756629eeebbd31cbb1cc4998b19045872f6c53d9ee",
+      "bytes": 2049
+    },
+    "extract_proposal_training.py": {
+      "sha256": "f7fbf68fd261544cba1a57c509f11405f8b41c85141586223dd5e988545f7715",
+      "bytes": 3813
+    },
+    "authored-proposal-window8-teaching-v1.json": {
+      "sha256": "ebecbe9146c5a01a908d08f8a84ce19db7a057abb6c5f6d74083fd526efc434c",
+      "bytes": 22601
+    },
+    "authored-teaching-overlay-v1.json": {
+      "sha256": "97b44f564b65f3a566df7252886732ba80cb077a78db48e1d53fd5673918bdbe",
+      "bytes": 1416
+    },
+    "unknown-policy-overlay-v2.json": {
+      "sha256": "15b59cf71c2d5f12c4ffadc41225a89772b7c6976e6cdd0c54fe4645722c85b7",
+      "bytes": 905
+    },
+    "train-dictionary-authored-overlay-v2/manifest.json": {
+      "sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+      "bytes": 26222
+    },
+    "proposal-446-training-v1/manifest.json": {
+      "sha256": "5cc768852551f86b7856b8a7801cbcf2a59167abd0087f057539ee287103ac27",
+      "bytes": 1679
+    },
+    "proposal-446-training-v1/samples.bin": {
+      "sha256": "4085aaab59f4cf6d6f5adb9d615b368bcd9ce2114b5169a907a97e119686e9e4",
+      "bytes": 4996850
+    },
+    "proposal-446-training-v2/proposal_window8.i16": {
+      "sha256": "2732ce2c0956d1ec83eafa5fe615dc559a10106d6fd781f58074d2ccc331c9af",
+      "bytes": 67812
+    },
+    "diagnose_proposal_candidate.py": {
+      "sha256": "e0a25e3effdbae133980a20c241561536e37b1e9c76f1ebffc0658795e01321a",
+      "bytes": 2183
+    },
+    "proposal-446-training-v2/teacher-forced-diagnostic.json": {
+      "sha256": "af2cebc93284e79e91962cf1ae1e8ea24113ff98c340154ca0154ca81337488d",
+      "bytes": 4899
+    }
+  },
+  "limitations": [
+    "22 analyst-authored teaching rows are training diagnostics, including all 8 original authored evaluation rows; never heldout for this candidate",
+    "Unknown-origin feature 1 has no selected bounded TRAIN/authored training examples",
+    "One eligible TRAIN row excluded for gold POS outside fixed four-alternative dictionary; exclusion retained in full manifest",
+    "Teacher forcing diagnoses class choices, not free-running parsing or Native/Source acceptance",
+    "DEV/TEST have not been evaluated or used for model selection"
+  ]
+}
