@@ -150,11 +150,13 @@ fn independent_branches(offer: &HostOffer<'_>, expected: &[u8]) {
         domain.proof_fixture(false);
         if morse_first {
             if domain.morse(b"sos").map(|value| value == expected) != Ok(true)
+                || domain.uppercase(b"SOS") != Err(Error::KernelFailure)
                 || domain.uppercase(b"sos").map(|value| value == b"SOS") != Ok(true)
             {
                 refuse("morse-first-fanout");
             }
         } else if domain.uppercase(b"sos").map(|value| value == b"SOS") != Ok(true)
+            || domain.morse(b"SOS") != Err(Error::KernelFailure)
             || domain.morse(b"sos").map(|value| value == expected) != Ok(true)
         {
             refuse("uppercase-first-fanout");
