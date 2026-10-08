@@ -187,7 +187,7 @@ package_test_shard!(
     ],
     [
         "--features",
-        "conduit-tongues/speech,conduit-todo-plot/kernel-step,conduit-ai/kernel-step"
+        "conduit-tongues/speech,conduit-todo-plot/kernel-step,conduit-ai/kernel-operation-owners"
     ]
 );
 
