@@ -103,10 +103,8 @@ fn actual_contiguous_commit_correlates_the_complete_retained_fact_and_runtime() 
     validate(runtime.clone()).unwrap();
     // A structurally valid uncommitted snapshot cannot be substituted for the
     // Source operation's actual committed output.
-    let uncommitted = LanguageParserJointRuntimeBeam::new(
-        fact.query().beam().clone(),
-        runtime.selected().clone(),
-    )
-    .unwrap();
+    let uncommitted =
+        LanguageParserJointRuntimeBeam::new(fact.query().beam().clone(), *runtime.selected())
+            .unwrap();
     assert!(validate(uncommitted).is_err());
 }

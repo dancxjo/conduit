@@ -28,12 +28,19 @@ pub struct Blueprint {
 impl Blueprint {
     pub fn prepare(source: String, entry_name: &str) -> Self {
         let source_bytes = source.len();
-        let package = ProtocolSourcePackage::compile(source, &[]).unwrap_or_else(|error| {
-            panic!("{entry_name} ({source_bytes} Source bytes): {error:?}")
-        });
+        // This pure helper requests no Back specializations. Full entry
+        // preparation below checks every declaration, Native law and plot,
+        // including the unchanged source/package bounds.
+        let package = ProtocolSourcePackage {
+            schema: conduitos::protocol_source::PACKAGE_SCHEMA.into(),
+            source,
+            specializations: Vec::new(),
+        };
         let entry =
             PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), entry_name)
-                .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));
+                .unwrap_or_else(|error| {
+                    panic!("{entry_name} ({source_bytes} Source bytes): {error:?}")
+                });
         let mut host = HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: "fixture/language-parser".into(),
