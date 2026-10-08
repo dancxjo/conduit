@@ -293,6 +293,9 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
       || spokenAfterNative.wav?.sha256 !== sha(afterNativeWav).slice(7)
       || spokenAfterNative.wav?.sha256 !== afterNativeBatch?.wav_sha256
       || spokenAfterNative.wav?.pcm_sha256 !== afterNativeBatch?.pcm_sha256
+      || spokenAfterNative.wav?.pcm_bytes !== afterNativeWav.readUInt32LE(40)
+      || spokenAfterNative.wav?.pcm_bytes !== afterNativeWav.length - 44
+      || spokenAfterNative.wav?.pcm_sha256 !== sha(afterNativeWav.subarray(44)).slice(7)
       || spokenAfterNative.wav?.speaker_frames_committed !== afterNativeBatch?.speaker_frames_committed
       || spokenAfterNative.human_hearing_observed !== false
       || spokenAfterNative.todo_actions !== 0
