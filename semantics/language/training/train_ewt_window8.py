@@ -112,8 +112,8 @@ def diagnostic(rows, profile, weights):
 
 def main(args):
     directory = pathlib.Path(__file__).parent / 'ewt_joint_v3_window8'
-    teaching_path = directory / 'reviewed_teaching.json'
-    reviewed_path = directory / 'reviewed_lexical_alternatives.json'
+    teaching_path = args.teaching or directory / 'reviewed_teaching.json'
+    reviewed_path = args.lexical_alternatives or directory / 'reviewed_lexical_alternatives.json'
     teaching, reviewed = json.loads(teaching_path.read_text()), json.loads(reviewed_path.read_text())
     splits, excluded, digests = {}, {}, {}
     for name in ['train', 'dev', 'test']:
@@ -164,6 +164,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--corpus', type=pathlib.Path, required=True)
     parser.add_argument('--output', type=pathlib.Path, required=True)
+    parser.add_argument('--teaching', type=pathlib.Path, help='explicit TRAIN-only teaching data; retained by digest')
+    parser.add_argument('--lexical-alternatives', type=pathlib.Path, help='explicit finite lexical policy; retained by digest')
     parser.add_argument('--epochs', type=int, default=12)
     parser.add_argument('--teaching-repetitions', type=int, default=16)
     parser.add_argument('--teaching-search-rounds', type=int, default=100)
