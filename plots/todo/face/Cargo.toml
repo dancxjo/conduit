@@ -1,0 +1,11 @@
+[package]
+name = "conduit-todo-face"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-todo-plot = { path = "../model" }
+conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+
+[dev-dependencies]
+conduit-core = { path = "../../../architecture/core" }
