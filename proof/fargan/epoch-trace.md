@@ -80,3 +80,17 @@ because constructing the 16 MiB array creates stack temporaries. The fixed store
 itself is boxed during hosted preparation. Static target placement, prepared
 numerical driver storage, fixed SignLog integration and boot execution remain
 unproved; this startup workaround is not target SRAM admission.
+
+
+The primary development PCM sink now prepares at most 256 row buffers plus its
+staging buffer before Play. It copies into bounded staging, then swaps a prepared
+spare into the result pool only at transaction commit. Cancellation before commit
+publishes nothing; oversize rows refuse before input consumption. Two direct
+transaction tests pass without Step/commit allocations. An ordinary authored
+four-output Plan (primary PCM plus three diagnostic streams), ten placements and
+eight cords, drains exact correlated values with zero scheduler-Step/prepared
+expression allocations; pressure and cancellation refuse completion. Its exact
+live ingress maximum is 12,246 bytes for the two synthetic canonical input rows.
+This measured transport fixture does not substitute for the trained carrier run.
+For 64 primary frames the prepared row pool reserves 1,048,576 payload bytes;
+one staging buffer adds 16,384 bytes per primary observer, plus Vec metadata.

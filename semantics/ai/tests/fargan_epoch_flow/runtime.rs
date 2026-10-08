@@ -20,6 +20,8 @@ mod native_control;
 mod native_startup;
 #[path = "runtime/native_utterance.rs"]
 mod native_utterance;
+#[path = "runtime/primary_sink.rs"]
+mod primary_sink;
 #[path = "runtime/trace_hooks.rs"]
 mod trace_hooks;
 #[path = "runtime/trace_outputs.rs"]
@@ -124,11 +126,7 @@ enum Driver {
         next: usize,
     },
     Operation(Box<dyn StepBack<PORTS>>),
-    Sink {
-        received: Rc<std::cell::RefCell<Vec<Vec<u8>>>>,
-        staged: Option<Vec<u8>>,
-        expected: usize,
-    },
+    Sink(primary_sink::PrimarySink),
     Trace(Rc<std::cell::RefCell<trace_hooks::sink::DevelopmentTraceSink>>),
     Inactive,
 }
@@ -152,26 +150,7 @@ impl StepBack<PORTS> for Driver {
             }
             Self::Operation(back) => back.step(io, bytes),
             Self::Trace(back) => back.borrow_mut().step(io, bytes),
-            Self::Sink {
-                received,
-                staged,
-                expected,
-            } => {
-                let Some(input) = bytes.input(KPort(0)) else {
-                    return if io.input_closed(KPort(0)) {
-                        StepOutcome::Complete
-                    } else {
-                        StepOutcome::Await
-                    };
-                };
-                *staged = Some(input.to_vec());
-                io.consume(KPort(0)).unwrap();
-                if received.borrow().len() + 1 == *expected {
-                    StepOutcome::Complete
-                } else {
-                    StepOutcome::Progress
-                }
-            }
+            Self::Sink(back) => back.step(io, bytes),
             Self::Inactive => StepOutcome::Complete,
         }
     }
@@ -189,13 +168,7 @@ impl StepBack<PORTS> for Driver {
                     &mut *back.borrow_mut(),
                 )
             }
-            Self::Sink {
-                received, staged, ..
-            } => {
-                if let Some(value) = staged.take() {
-                    received.borrow_mut().push(value);
-                }
-            }
+            Self::Sink(back) => back.step_committed(),
             Self::Source { staged, next, .. } if *staged => {
                 *next += 1;
                 *staged = false;
@@ -206,6 +179,7 @@ impl StepBack<PORTS> for Driver {
     fn cancel(&mut self) {
         match self {
             Self::Operation(back) => back.cancel(),
+            Self::Sink(back) => back.cancel(),
             Self::Trace(back) => {
                 <trace_hooks::sink::DevelopmentTraceSink as StepBack<PORTS>>::cancel(
                     &mut *back.borrow_mut(),
@@ -531,7 +505,8 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
         factories.push(Box::new(concat));
     }
     context.zip.validate_plan(&plan).unwrap();
-    let received = Rc::new(std::cell::RefCell::new(Vec::with_capacity(expected)));
+    let output_pool = primary_sink::OutputPool::prepare(expected);
+    let received = output_pool.received.clone();
     let filter_factory = fragment
         .placements
         .iter()
@@ -597,11 +572,9 @@ fn run_epoch_stream_plan_with_trace<R: RuntimeTensor>(
                 if let Some(sink) = trace.and_then(|trace| trace.get(name)) {
                     drivers.push(Driver::Trace(sink));
                 } else {
-                    drivers.push(Driver::Sink {
-                        received: received.clone(),
-                        staged: None,
-                        expected,
-                    });
+                    drivers.push(Driver::Sink(primary_sink::PrimarySink::prepare(
+                        output_pool.clone(),
+                    )));
                 }
             }
         }

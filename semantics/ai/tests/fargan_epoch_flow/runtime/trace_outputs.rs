@@ -5,17 +5,40 @@ use super::*;
 fn ordinary_source_trace_outputs_retain_exact_types_and_refuse_pressure_and_cancel() {
     std::thread::Builder::new()
         .stack_size(32 * 1024 * 1024)
-        .spawn(check)
+        .spawn(|| check(false))
         .unwrap()
         .join()
         .unwrap();
 }
-fn check() {
-    let source = super::super::declarations::exact_epoch_declarations()
+#[test]
+fn ordinary_source_trace_and_primary_pcm_sink_allocate_nothing_during_play() {
+    std::thread::Builder::new()
+        .stack_size(32 * 1024 * 1024)
+        .spawn(|| check(true))
+        .unwrap()
+        .join()
+        .unwrap();
+}
+fn check(primary: bool) {
+    let mut source = super::super::declarations::exact_epoch_declarations()
         + "\n"
         + include_str!("../../../../speech/fargan_epoch_trace.conduit")
         + "\n"
         + include_str!("../../../../speech/fargan_trace_flow.conduit");
+    let entry = if primary {
+        source.push_str("\nplot speech/flow-fargan-diagnostic-forward (\n    >> value: FarganPcm16EpochResult...|\n    result: FarganPcm16EpochResult...| >>\n) = .\n");
+        let original = include_str!("../../../../speech/fargan_trace_flow.conduit");
+        let extra = &original[original
+            .find("plot speech/flow-fargan-trace-projections (")
+            .unwrap()..];
+        source.push_str(&extra.replace("speech/flow-fargan-trace-projections (", "speech/flow-fargan-trace-and-primary (")
+            .replace("    pcm_trace: FarganCommittedResultTrace...| >>", "    pcm_trace: FarganCommittedResultTrace...| >>\n    result: FarganPcm16EpochResult...| >>")
+            .replace("    provisional >> features.value", "    forward: speech/flow-fargan-diagnostic-forward\n    provisional >> features.value")
+            .replace("    accepted >> pcm.value", "    accepted >> pcm.value\n    accepted >> forward.value\n    forward.result >> result"));
+        "speech/flow-fargan-trace-and-primary"
+    } else {
+        "speech/flow-fargan-trace-projections"
+    };
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&source),
         &conduit_plot::StartupCatalog::new(),
@@ -48,7 +71,7 @@ fn check() {
     let (plan, context) = super::super::prepare_authored_epoch_entry(
         super::super::prepared_epoch_profiles_with_capacity(true),
         source,
-        "speech/flow-fargan-trace-projections",
+        entry,
         true,
         vec![],
     )
@@ -88,7 +111,7 @@ fn check() {
         inputs.clone(),
         None,
         StreamRun {
-            expected: 0,
+            expected: usize::from(primary),
             mode: ExecutionMode::Normal,
             trace: Some(&traces),
         },
@@ -97,7 +120,10 @@ fn check() {
     assert!(result.drained);
     assert_eq!(result.scheduler_step_allocations, 0);
     assert_eq!(result.prepared_expression_allocations, 0);
-    assert!(result.values.is_empty());
+    assert_eq!(result.values.len(), usize::from(primary));
+    if primary {
+        assert_eq!(result.values[0], accepted);
+    }
     assert!(traces.finished());
     let values: Vec<_> = types
         .iter()
@@ -143,7 +169,7 @@ fn check() {
             inputs.clone(),
             None,
             StreamRun {
-                expected: 0,
+                expected: usize::from(primary),
                 mode,
                 trace: Some(&refused)
             }
