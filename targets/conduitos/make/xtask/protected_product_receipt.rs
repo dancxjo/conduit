@@ -56,7 +56,7 @@ fn validate(cost: &Value, product: &Value, architecture: &str) -> Result<(), Con
             .is_none_or(|bytes| bytes == 0 || bytes > 1048576)
         || cost["setup_copied_bytes"]
             .as_u64()
-            .is_none_or(|bytes| bytes == 0 || bytes > 65536)
+            .is_none_or(|bytes| bytes == 0 || bytes > 131072)
         || cost["setup_ticks"].as_u64().is_none_or(|ticks| ticks == 0)
         || cost["teardown_ticks"]
             .as_u64()
@@ -95,6 +95,19 @@ mod tests {
             "driver_isolation":false
         });
         (cost, product)
+    }
+
+    #[test]
+    fn setup_copy_is_bounded_by_the_admitted_128_kib_code_window() {
+        let (mut cost, product) = records();
+        for bytes in [65_536, 66_420, 131_072] {
+            cost["setup_copied_bytes"] = json!(bytes);
+            assert!(validate(&cost, &product, "ia32").is_ok());
+        }
+        for bytes in [0, 131_073, u64::MAX] {
+            cost["setup_copied_bytes"] = json!(bytes);
+            assert!(validate(&cost, &product, "ia32").is_err());
+        }
     }
 
     #[test]
