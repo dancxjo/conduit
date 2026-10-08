@@ -167,6 +167,7 @@ required-features = ["loongarch64-a4"]
 
 [features]
 default = []
+fargan-native-profile-preparation = ["dep:conduit-ai"]
 # Compile pure ConduitOS description and planning surfaces for hosted repository
 # tooling without enabling any target's runtime or physical device support.
 hosted-tools = []
@@ -245,6 +246,7 @@ conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-web = { path = "../../semantics/web", default-features = false }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
+conduit-ai = { path = "../../semantics/ai", optional = true, default-features = false, features = ["fixed-numeric-owners"] }
 sha2 = { version = "=0.10.9", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 serde-json-core = { version = "0.6", optional = true }

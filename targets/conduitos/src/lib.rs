@@ -9,6 +9,9 @@ extern crate std;
 #[path = "../../../architecture/plot/tests/prepared_structured_payload/allocation.rs"]
 mod test_allocations;
 
+#[cfg(feature = "fargan-native-profile-preparation")]
+pub mod fargan_native_profile_preparation;
+
 pub mod allocation;
 pub mod arch;
 pub mod boot;
