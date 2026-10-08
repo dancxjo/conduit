@@ -32,8 +32,10 @@ cannot establish that the receipt came from a real command invocation.
 Chapter receipts use `conduit.todo-journey/chapter-receipt@1`. They name the
 same source/run/Body, chapter, unique event, increasing observation time,
 resulting Face ID/revision, Show ID, and a declared producer event receipt.
-`add`, `complete`, and `read` also name the exact typed Face interaction and
-action. Add and complete name distinct Mask kinds. Mutations require a queue
+`add` and `complete` also name the exact typed Face interaction and action.
+They name distinct Mask kinds. `read` instead names the direct spoken Mask's
+`read-current-items` ReaderCommand and exact Mask Play; it is a disclosure of
+the current Face, not an invented Body mutation or Face action. Mutations require a queue
 sequence, produced outcome, and correlated
 child Sign; queue acceptance alone cannot describe the changed list. The
 `conduit.todo-journey/producer-event@1` output repeats those identities and
@@ -60,6 +62,11 @@ may be included, but direct speech is required for the screen-free status and
 requested-detail steps. A declared transcript must match the spoken-text
 digest in both source and capture receipts, and its words appear alongside
 the player. Automated playback is not attended human listening.
+
+The current selected voice Boot reserves one create-new WAV destination. Two
+direct recordings may require different Boots; each chapter must retain its
+own exact Boot, Face, Show, Mask Play, speaker Play, and delivered PCM evidence.
+That intermediate Boot does not substitute for the later recovery chapter.
 
 The first live capture entrance is `cargo xtask prove todo-journey`. Given an
 installed owner state and its exact copied release executable, it reads the

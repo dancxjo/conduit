@@ -8,6 +8,55 @@ pub struct ConduitosArgs {
     pub(super) command: ConduitosCommand,
 }
 
+#[cfg(test)]
+mod todo_action_command_tests {
+    use crate::cli::Cli;
+    use clap::Parser;
+
+    #[test]
+    fn native_todo_action_requires_explicit_isolated_checkpoint_contract() {
+        let args = [
+            "xtask",
+            "make",
+            "conduitos",
+            "live-owner-todo-action-proof",
+            "--spore",
+            "spore.iso",
+            "--candidate-id",
+            "candidate/body-owner-route",
+            "--owner-forward",
+            "172.17.0.1:37475",
+            "--output-dir",
+            "native-proof",
+            "--coordinate",
+            "--expected-body-id",
+            "body/exact",
+            "--owner-conduit-bin",
+            "conduit-linux-x86_64",
+            "--owner-state-dir",
+            "host-state",
+            "--expected-item-count",
+            "20",
+            "--expected-status",
+            "3 things left",
+            "--isolated-checkpoint-root",
+            "fork-checkpoints",
+            "--selected-checkpoint-version-hex",
+            "d79376c4ca22f130f80d9c9ecfb1b75c7801f7a15f8027b6452f214d6f635382",
+            "--protected-checkpoint-root",
+            "original-checkpoints",
+            "--expected-action-id",
+            "todo.complete.task-18",
+            "--tab-count",
+            "40",
+            "--expected-after-status",
+            "2 things left",
+        ];
+        assert!(Cli::try_parse_from(args).is_ok());
+        assert!(Cli::try_parse_from(&args[..args.len() - 2]).is_err());
+    }
+}
+
 #[derive(Subcommand, Debug)]
 pub(super) enum ConduitosCommand {
     /// Boot one exact Crèche-exported ConduitOS spore through the product journey.
@@ -38,6 +87,8 @@ pub(super) enum ConduitosCommand {
     LiveOwnerActionProof(LiveOwnerActionProofArgs),
     /// Capture the admitted Todo Face on a live QMP guest without changing it.
     LiveOwnerTodoFaceProof(LiveOwnerTodoFaceProofArgs),
+    /// Prove one Todo action through an isolated selected checkpoint and live native Mask.
+    LiveOwnerTodoActionProof(LiveOwnerTodoActionProofArgs),
     /// Prove one Body across an installed owner, QMP guest, and pinned Chromium.
     LiveThreeHostProof(Box<three_host_proof::Args>),
     /// Birth one Body through the installed screen-free client, then prove three live Hosts.
@@ -144,7 +195,7 @@ mod tests {
         .unwrap();
         assert!(matches!(
             cli.command,
-            Command::Make(MakeArgs {
+            Command::Make(args) if matches!(*args, MakeArgs {
                 target: MakeTarget::Conduitos(ConduitosArgs {
                     command: ConduitosCommand::ProtocolSource(_),
                 }),
@@ -175,7 +226,7 @@ mod tests {
             Cli::try_parse_from(command.into_iter().chain(pairs.into_iter().flatten())).unwrap();
         assert!(matches!(
             cli.command,
-            Command::Make(MakeArgs {
+            Command::Make(args) if matches!(*args, MakeArgs {
                 target: MakeTarget::Conduitos(ConduitosArgs {
                     command: ConduitosCommand::ProtocolImage(_),
                 }),

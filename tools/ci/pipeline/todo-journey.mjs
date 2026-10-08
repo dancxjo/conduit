@@ -150,12 +150,21 @@ export function validateTodoJourney(root, publicationCommit, { checkAncestry = t
       && source.face_revision === receipt.face_revision && source.show_id === receipt.show_id
       && source.observed_at_unix_ms === receipt.observed_at_unix_ms, `${chapter.id} producer event drift`);
     sources.add(receipt.source_receipt_id);
-    if (['add', 'complete', 'read'].includes(chapter.id)) {
+    if (['add', 'complete'].includes(chapter.id)) {
       insist(nonempty(receipt.interaction_id) && nonempty(receipt.action_id)
         && receipt.interaction_id === source.interaction_id && receipt.action_id === source.action_id
         && nonempty(source.mask_kind) && source.mask_kind === receipt.mask_kind,
       `${chapter.id} lacks matching typed Face action`);
       maskKinds.set(chapter.id, source.mask_kind);
+    }
+    if (chapter.id === 'read') {
+      insist(receipt.reader_command === 'read-current-items'
+        && source.reader_command === receipt.reader_command
+        && nonempty(receipt.mask_play_id) && source.mask_play_id === receipt.mask_play_id
+        && receipt.mask_kind === 'direct-spoken' && source.mask_kind === receipt.mask_kind
+        && receipt.interaction_id === undefined && source.interaction_id === undefined
+        && receipt.action_id === undefined && source.action_id === undefined,
+      'read detail must be a correlated Mask-local command, not an invented Face action');
     }
     if (['add', 'complete'].includes(chapter.id)) {
       insist(Number.isSafeInteger(receipt.queue_sequence) && receipt.queue_sequence >= 0

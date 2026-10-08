@@ -193,14 +193,12 @@ impl FaceArrival {
         self.present_owner_face(face, false, display)
     }
 
-    /// A local user resumes the admitted return route only after the owner
-    /// has explicitly selected this Mask. A fresh surface yields a fresh Show
-    /// for the unchanged Face; no stale read-only Show crosses the return Line.
-    pub(super) fn activate_owner_route(
+    /// A refreshed owner Face gets a new Show before any return interaction.
+    pub(super) fn activate_refreshed_owner_route(
         &mut self,
+        face: Presentation,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
-        let face = self.owner_face.clone().ok_or("owner-face-absent")?;
         self.retire_owner_surface()?;
         self.present_owner_face(face, true, display)
     }

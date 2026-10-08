@@ -254,6 +254,30 @@ struct LiveOwnerTodoFaceProofArgs {
     expected_status: String,
 }
 
+#[derive(Args, Debug, Clone)]
+struct LiveOwnerTodoActionProofArgs {
+    #[command(flatten)]
+    face: LiveOwnerTodoFaceProofArgs,
+    /// Exact installed checkpoint directory of a disposable, isolated fork.
+    #[arg(long)]
+    isolated_checkpoint_root: PathBuf,
+    /// Exact selected checkpoint version from the installed Owner selection.
+    #[arg(long)]
+    selected_checkpoint_version_hex: String,
+    /// Original checkpoint directory to inventory before and after the action.
+    #[arg(long)]
+    protected_checkpoint_root: PathBuf,
+    /// Exact available Todo action to require in the Owner Face and serial receipt.
+    #[arg(long)]
+    expected_action_id: String,
+    /// Bounded Tab presses to reach that action through the native Mask.
+    #[arg(long)]
+    tab_count: u8,
+    /// Expected human progress text after the Owner accepts the action.
+    #[arg(long)]
+    expected_after_status: String,
+}
+
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 enum ConduitosDemoArch {
     X86_64,
@@ -464,6 +488,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::LiveOwnerTodoFaceProof(args) => {
             owner_action_proof::execute_todo_face(&args, opts)
         }
+        ConduitosCommand::LiveOwnerTodoActionProof(args) => {
+            owner_action_proof::execute_todo_action(&args, opts)
+        }
         ConduitosCommand::LiveThreeHostProof(args) => three_host_proof::execute(&args, opts),
         ConduitosCommand::ScreenFreeThreeHostProof(args) => {
             screen_free_three_host_proof::execute(&args, opts)
@@ -587,7 +614,7 @@ mod tests {
                     .unwrap_or_else(|error| panic!("{name}: {error}"));
             assert!(matches!(
                 parsed.command,
-                Command::Make(MakeArgs {
+                Command::Make(args) if matches!(*args, MakeArgs {
                     target: MakeTarget::Conduitos(_)
                 })
             ));
@@ -601,7 +628,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             parsed.command,
-            Command::Make(MakeArgs {
+            Command::Make(args) if matches!(*args, MakeArgs {
                 target: MakeTarget::Conduitos(_)
             })
         ));
@@ -636,7 +663,7 @@ mod tests {
             let parsed = Cli::try_parse_from(arguments).unwrap();
             assert!(matches!(
                 parsed.command,
-                Command::Make(MakeArgs {
+                Command::Make(args) if matches!(*args, MakeArgs {
                     target: MakeTarget::Conduitos(_)
                 })
             ));
