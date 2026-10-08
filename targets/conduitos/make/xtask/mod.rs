@@ -55,6 +55,7 @@ mod loongarch64_a2;
 mod loongarch64_a3;
 mod loongarch64_a4;
 mod loongarch64_domain_proof;
+mod loongarch64_emulator;
 mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
@@ -526,6 +527,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
         ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),
         ConduitosCommand::Loongarch64OrdinaryDomainProof => loongarch64_domain_proof::execute(opts),
+        ConduitosCommand::PrepareLoongarch64DomainEmulator => loongarch64_emulator::prepare(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }

@@ -21,10 +21,26 @@ exception still reaches ConduitOS. ConduitOS independently validates syscall
 instructions from its immutable admitted code copy, rather than relying on
 BADI across Root page-table refills.
 
-The internal diagnostic build uses both patches, `loongarch64-softmmu`, and the package-version
-suffix `conduit-diagnostic-misc-drdtl`. The supported proof entrance is
-`cargo xtask make conduitos loongarch64-ordinary-domain-proof`. It may find this
-locally prepared emulator at
+Prepare the reviewed diagnostic emulator through
+`cargo xtask make conduitos prepare-loongarch64-domain-emulator`, then run
+`cargo xtask make conduitos loongarch64-ordinary-domain-proof`.
+Preparation needs a C toolchain, curl, tar, patch, Ninja, Python with venv,
+and development packages for GLib, libfdt and zlib. CI acquires those packages
+only for the LoongArch lane and runs the same preparation entrance.
+
+Preparation verifies the pinned source archive, applies both repository patches
+with zero fuzz, disables dependency downloads and builds only
+`loongarch64-softmmu` with the `conduit-diagnostic-misc-drdtl` version suffix.
+QEMU supplies its pinned Python build wheels in the verified source archive.
+The receipt retains source/patch digests, configure arguments, observed build
+tool/library versions and executable digest. A warm tool must match its actual
+receipt before selection. Interrupted builds retain separate attempt directories.
+Compiler and library environments may differ; this does not claim identical
+emulator bytes across hosts.
+
+The prepared tool lives in an input-digest directory beneath
+`target/conduitos/toolchain/loongarch64-domain-qemu`. Discovery also retains the
+older internal diagnostic location at
 `target/conduitos/toolchain/loongarch64-misc-drdtl/qemu-system-loongarch64`;
 otherwise it uses the existing emulator discovery. The proof receipt records
 the actual emulator version and executable digest and identifies this correction.

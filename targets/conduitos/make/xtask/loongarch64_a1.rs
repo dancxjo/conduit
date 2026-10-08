@@ -301,24 +301,7 @@ pub(super) fn validate(sign: &EntrySign, paths: &Paths) -> Result<(), ConduitosE
 }
 
 pub(super) fn tools(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError> {
-    let local_qemu = paths
-        .root
-        .join("target/conduitos/toolchain/riscv64-root/usr/bin/qemu-system-loongarch64");
-    let qemu = [
-        paths
-            .root
-            .join("target/conduitos/toolchain/loongarch64-misc-drdtl/qemu-system-loongarch64"),
-        local_qemu,
-        PathBuf::from("/usr/bin/qemu-system-loongarch64"),
-    ]
-    .into_iter()
-    .find(|path| path.is_file())
-    .ok_or_else(|| {
-        refusal(
-            "unavailable-loongarch64-emulator",
-            "qemu-system-loongarch64 is required",
-        )
-    })?;
+    let qemu = super::loongarch64_emulator::selected(paths)?;
     require_supported_qemu(&version(&qemu, paths)?)?;
     let firmware = prepare_firmware(paths)?;
     Ok((qemu, firmware))

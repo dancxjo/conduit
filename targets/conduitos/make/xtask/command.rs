@@ -114,6 +114,8 @@ pub(super) enum ConduitosCommand {
     Riscv64OrdinaryDomainProof,
     /// Prove ordinary LoongArch64 PLV3 execution and independent boundary checks.
     Loongarch64OrdinaryDomainProof,
+    /// Prepare the pinned diagnostic QEMU with both reviewed LoongArch corrections.
+    PrepareLoongarch64DomainEmulator,
     /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
     VirtioNetProof,
 }

@@ -328,6 +328,11 @@ refusals, floating-state comparison and Source timer coexistence.
 
 These results use a locally built QEMU 10.2.1 with the two reviewed
 [diagnostic corrections](../../targets/conduitos/proof/tools/loongarch64/README.md).
+`cargo xtask make conduitos prepare-loongarch64-domain-emulator` now prepares
+that tool from a digest-checked source archive and both repository patches.
+It retains the build recipe, observed tool versions and executable digest;
+warm selection verifies the receipt before using the executable. The LoongArch
+CI lane acquires the required development packages and uses the same entrance.
 Stock QEMU marks MISC read-only; Root returns the explicit
 `protected-execution-unsupported` refusal before application entry. A second
 emulator correction prevents recursive faults while recording inaccessible
