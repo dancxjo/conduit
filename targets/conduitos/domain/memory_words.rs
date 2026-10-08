@@ -1,5 +1,8 @@
 //! Bounded volatile compiler support. Aligned words reduce private-state setup
 //! work without reading or writing outside the caller's exact byte interval.
+// MaybeUninit<usize> has no padding and preserves every byte's initializedness
+// and provenance, including partially initialized compiler-generated objects.
+// https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#validity
 use core::mem::MaybeUninit;
 
 const WORD: usize = core::mem::size_of::<usize>();

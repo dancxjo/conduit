@@ -35,8 +35,16 @@ unsafe extern "C" fn memmove(
     source: *const c_void,
     length: usize,
 ) -> *mut c_void {
-    if destination as usize <= source as usize {
-        unsafe { memcpy(destination, source, length) }
+    if destination == source.cast_mut() || length == 0 {
+        return destination;
+    }
+    if (destination as usize) < source as usize {
+        // Use the forward-safe helper directly: overlapping intervals do not
+        // satisfy memcpy's compiler-visible contract.
+        unsafe {
+            words::copy_forward(destination.cast(), source.cast(), length);
+        }
+        destination
     } else {
         for index in (0..length).rev() {
             unsafe {
