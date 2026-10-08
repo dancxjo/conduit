@@ -208,6 +208,7 @@ pub(crate) fn check_document(
         plots: checked_plots,
         source_sugar_expansions,
         structured_types,
+        exact_initial_info: catalog.exact_initial_info.clone(),
     })
 }
 
@@ -1497,6 +1498,43 @@ fn checked_activation(
                 canonicalize_integer_value(value, accumulator.value_kind.as_str(), catalog)
             })
             .map_err(|error| error.diagnostic(initial.span))?;
+        let accumulator_contract = contract(conduit_core::FrontValueLocation::Input(
+            accumulator.port_id.clone(),
+        ))
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code,
+            span: invocation.span,
+            message: format!("{name} accumulator requires one exact finite value contract"),
+        })?;
+        let initial_accumulator_bytes = if let CanonicalStartupValue::Literal(literal) = &initial {
+            if conduit_core::primitive_info_kind(accumulator.value_kind.as_str()).is_none() {
+                let bytes = catalog
+                    .exact_initial_info
+                    .get(&(accumulator.value_kind.clone(), literal.clone()))
+                    .ok_or_else(|| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-064",
+                        span: invocation.span,
+                        message: format!(
+                            "{name} initial custom Info has no owner-validated exact Form"
+                        ),
+                    })?
+                    .clone();
+                accumulator_contract
+                    .validate(&bytes)
+                    .map_err(|_| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-064",
+                        span: invocation.span,
+                        message: format!(
+                            "{name} initial Form differs from its exact accumulator Value contract"
+                        ),
+                    })?;
+                Some(bytes)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         return Ok(crate::CheckedActivation {
             mode,
             selected_plot: invocation.kind.text.clone(),
@@ -1504,7 +1542,7 @@ fn checked_activation(
             accumulator_input: Some(accumulator.clone()),
             output: combined.clone(),
             initial_accumulator: Some(initial),
-            initial_accumulator_bytes: None,
+            initial_accumulator_bytes,
             input_contract: contract(conduit_core::FrontValueLocation::Input(
                 item.port_id.clone(),
             ))
@@ -1526,16 +1564,7 @@ fn checked_activation(
                     item.port_id.clone(),
                 ))
             }),
-            accumulator_contract: Some(
-                contract(conduit_core::FrontValueLocation::Input(
-                    accumulator.port_id.clone(),
-                ))
-                .ok_or_else(|| SyntaxCheckDiagnostic {
-                    code,
-                    span: invocation.span,
-                    message: format!("{name} accumulator requires one exact finite value contract"),
-                })?,
-            ),
+            accumulator_contract: Some(accumulator_contract),
         });
     }
     let ([input], [output]) = (front.inputs(), front.outputs()) else {

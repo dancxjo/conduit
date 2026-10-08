@@ -50,6 +50,24 @@ fn load_with_catalogs(
 }
 
 impl CanonicalSource {
+    /// Checked Plots may be reordered for dependency lowering. The public
+    /// entry is the final top-level Plot the author declared, not the final
+    /// dependency in the checked catalogue.
+    fn authored_entry_name(&self) -> Result<&str, String> {
+        self.syntax
+            .plots
+            .last()
+            .map(|plot| plot.name.text.as_str())
+            .ok_or_else(|| "canonical Plot source contains no Plot".to_string())
+    }
+
+    // The library entrance compiles this source loader independently of the
+    // installed owner binary.
+    #[allow(dead_code)]
+    pub(crate) fn authoring_catalog(&self) -> &ProfileCatalog {
+        &self.profiles
+    }
+
     pub(crate) fn check(&self) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
         if let Some(diagnostic) = self.syntax.diagnostics.first() {
             return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
@@ -68,13 +86,8 @@ impl CanonicalSource {
         &self,
     ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
         let checked = self.check()?;
-        let entry = checked
-            .plots
-            .last()
-            .ok_or_else(|| "canonical Plot source contains no Plot".to_string())?
-            .name
-            .clone();
-        conduit_plot::expand_canonical_plot_for_authoring(&checked, &entry, &self.profiles)
+        let entry = self.authored_entry_name()?;
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, entry, &self.profiles)
             .map_err(|diagnostic| diagnostic.to_string())
     }
 
@@ -86,19 +99,14 @@ impl CanonicalSource {
 
     fn expand_entry_with_backs(&self, recursive: bool) -> Result<ExpandedCanonicalPlot, String> {
         let checked = self.check()?;
-        let entry = checked
-            .plots
-            .last()
-            .ok_or_else(|| "canonical Plot source contains no Plot".to_string())?
-            .name
-            .clone();
+        let entry = self.authored_entry_name()?;
         if recursive {
             let mut backs = CanonicalBackCatalog::new();
             conduit_text::install_morse_backs(&self.startup, &self.profiles, &mut backs)?;
-            conduit_plot::expand_canonical_plot_with_backs(&checked, &entry, &self.profiles, &backs)
+            conduit_plot::expand_canonical_plot_with_backs(&checked, entry, &self.profiles, &backs)
                 .map_err(|diagnostic| diagnostic.to_string())
         } else {
-            conduit_plot::expand_canonical_plot(&checked, &entry, &self.profiles)
+            conduit_plot::expand_canonical_plot(&checked, entry, &self.profiles)
                 .map_err(|diagnostic| diagnostic.to_string())
         }
     }
@@ -107,6 +115,9 @@ impl CanonicalSource {
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
+    // This first Todo vertical has one exact authored initial Form and a leaf
+    // combine Kind. Retained source uses the same catalog after owner restart.
+    conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;
     conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
     conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
@@ -161,6 +172,20 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn authored_entry_survives_checked_dependency_reordering() {
+        let source = parse(include_str!("../../../plots/todo/live.conduit")).unwrap();
+        assert_eq!(source.syntax.plots.last().unwrap().name.text, "todo/main");
+        assert_eq!(
+            source.check().unwrap().plots.last().unwrap().name,
+            "todo/transition"
+        );
+        assert_eq!(
+            source.expand_entry_for_authoring().unwrap().expanded.name,
+            "todo/main"
+        );
+    }
 
     #[test]
     fn product_compiler_checks_the_ordinary_mask_plot_boundary() {

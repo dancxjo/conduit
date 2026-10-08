@@ -4,17 +4,18 @@
 
 use std::collections::BTreeSet;
 
-use crate::{installed_std::InstalledScheduler, ExternalForeInput};
+use crate::{installed_std::InstalledScheduler, BodyLiveForeQueue, ExternalForeInput};
 use conduit_core::{PortDirection, PortTemporal};
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{CordId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::LoweredForePort;
 
-pub(super) const MAX_SEQUENCE_ITEMS: u16 = 32;
+pub(super) const MAX_SEQUENCE_ITEMS: u16 = 64;
 
 pub(super) enum PreparedForeInputs<'a> {
     Single(Vec<SingleInput<'a>>),
     Sequential(SequentialForeFeeder<'a>),
+    Live(Box<LiveForeFeeder>),
 }
 
 pub(super) struct SingleInput<'a> {
@@ -23,6 +24,12 @@ pub(super) struct SingleInput<'a> {
 }
 
 impl<'a> PreparedForeInputs<'a> {
+    pub(super) fn prepare_live(
+        planned: &[&LoweredForePort],
+        queue: &BodyLiveForeQueue,
+    ) -> Result<Self, String> {
+        LiveForeFeeder::prepare(planned, queue).map(|feeder| Self::Live(Box::new(feeder)))
+    }
     pub(super) fn prepare(
         planned: &[&LoweredForePort],
         supplied: &'a [ExternalForeInput],
@@ -82,10 +89,14 @@ impl<'a> PreparedForeInputs<'a> {
         match self {
             Self::Single(_) => 1,
             Self::Sequential(feeder) => feeder.inputs.len() as u16,
+            Self::Live(feeder) => feeder.queue.maximum_items(),
         }
     }
 
     pub(super) fn start(&mut self, scheduler: &mut InstalledScheduler) -> Result<(), String> {
+        if let Self::Live(feeder) = self {
+            return feeder.start(scheduler);
+        }
         let Self::Single(entries) = self else {
             return Ok(());
         };
@@ -111,8 +122,157 @@ impl<'a> PreparedForeInputs<'a> {
     }
 
     pub(super) fn feed_next(&mut self, scheduler: &mut InstalledScheduler) -> Result<(), String> {
-        if let Self::Sequential(feeder) = self {
-            feeder.feed_next(scheduler)?;
+        match self {
+            Self::Sequential(feeder) => feeder.feed_next(scheduler)?,
+            Self::Live(feeder) => feeder.feed_next(scheduler)?,
+            Self::Single(_) => {}
+        }
+        Ok(())
+    }
+
+    pub(super) fn activity_generation(&self) -> Option<u64> {
+        match self {
+            Self::Live(feeder) if !feeder.closed => Some(feeder.queue.observed_generation()),
+            _ => None,
+        }
+    }
+
+    pub(super) fn wait_for_activity(&self, observed: u64) -> Result<bool, String> {
+        let Self::Live(feeder) = self else {
+            return Ok(false);
+        };
+        if feeder.closed {
+            return Ok(false);
+        }
+        if feeder.full {
+            return Err("live Fore input remained pressured without kernel progress".into());
+        }
+        feeder.queue.wait_if_empty(observed)?;
+        Ok(true)
+    }
+}
+
+pub(super) struct LiveForeFeeder {
+    queue: BodyLiveForeQueue,
+    targets: Vec<(RemoteEndpointId, CordId)>,
+    initial_targets: Vec<(RemoteEndpointId, CordId)>,
+    initial_started: bool,
+    closed: bool,
+    full: bool,
+}
+
+impl LiveForeFeeder {
+    fn prepare(planned: &[&LoweredForePort], queue: &BodyLiveForeQueue) -> Result<Self, String> {
+        let expected = queue.port();
+        let initial = queue.initial().map(|(port, _)| port);
+        if planned.len() != 1 + usize::from(initial.is_some())
+            || planned
+                .iter()
+                .filter(|port| port.front_port_id == expected.front_port_id)
+                .count()
+                != 1
+            || planned.iter().any(|port| {
+                let expected = initial
+                    .filter(|initial| initial.front_port_id == port.front_port_id)
+                    .unwrap_or(expected);
+                port.direction != PortDirection::Input
+                    || port.front_port_id != expected.front_port_id
+                    || port.track != expected.track
+                    || port.value_kind != expected.value_kind
+                    || port.value_contract != expected.value_contract
+                    || port.temporal != expected.temporal
+                    || port.byte_capacity != expected.byte_capacity
+                    || port.item_capacity != expected.item_capacity
+                    || port.selected_line.is_some()
+            })
+        {
+            return Err("live Fore queue differs from the sealed local input Flow".into());
+        }
+        Ok(Self {
+            queue: queue.clone(),
+            targets: planned
+                .iter()
+                .filter(|port| port.front_port_id == expected.front_port_id)
+                .map(|port| (port.endpoint, port.cord))
+                .collect(),
+            initial_targets: planned
+                .iter()
+                .filter(|port| {
+                    initial.is_some_and(|initial| initial.front_port_id == port.front_port_id)
+                })
+                .map(|port| (port.endpoint, port.cord))
+                .collect(),
+            initial_started: false,
+            closed: false,
+            full: false,
+        })
+    }
+
+    fn start(&mut self, ingress: &mut impl ForeIngress) -> Result<(), String> {
+        if self.initial_started {
+            return Ok(());
+        }
+        if let Some((_, bytes)) = self.queue.initial() {
+            match ingress.admit(&self.initial_targets, 0, bytes)? {
+                RemoteIngressOutcome::Accepted { sequence: 0 } => {}
+                outcome => {
+                    return Err(format!(
+                        "checkpoint initial Fore was not admitted exactly: {outcome:?}"
+                    ))
+                }
+            }
+            for &(endpoint, cord) in &self.initial_targets {
+                ingress.close(endpoint, cord)?;
+            }
+        }
+        self.initial_started = true;
+        Ok(())
+    }
+
+    fn feed_next(&mut self, ingress: &mut impl ForeIngress) -> Result<(), String> {
+        if self.closed {
+            return Ok(());
+        }
+        let (outcome, should_close) = self.queue.with_front(|front, should_close| {
+            let outcome = front
+                .map(|(sequence, bytes)| ingress.admit(&self.targets, sequence, bytes))
+                .transpose()?;
+            Ok::<_, String>((outcome, should_close))
+        })?;
+        self.full = false;
+        match outcome {
+            Some(RemoteIngressOutcome::Accepted { sequence }) => {
+                self.queue.acknowledge(sequence)?;
+                if self.queue.initial().is_some() {
+                    for &(endpoint, cord) in &self.targets {
+                        ingress.close(endpoint, cord)?;
+                    }
+                    self.queue.mark_checkpoint_kernel_closed()?;
+                    self.closed = true;
+                }
+            }
+            Some(RemoteIngressOutcome::Full { sequence }) => {
+                if self.queue.initial().is_some() {
+                    return Err(format!(
+                        "waiting checkpoint command ingress pressured at sequence {sequence}"
+                    ));
+                }
+                let expected = self
+                    .queue
+                    .with_front(|front, _| front.map(|(next, _)| next));
+                if expected != Some(sequence) {
+                    return Err("live Fore pressure changed the pending sequence".into());
+                }
+                self.full = true;
+            }
+            None if should_close => {
+                for &(endpoint, cord) in &self.targets {
+                    ingress.close(endpoint, cord)?;
+                }
+                self.queue.mark_kernel_closed()?;
+                self.closed = true;
+            }
+            None => {}
         }
         Ok(())
     }
@@ -152,7 +312,7 @@ impl<'a> SequentialForeFeeder<'a> {
     ) -> Result<Self, String> {
         if planned.is_empty() || inputs.is_empty() || inputs.len() > usize::from(MAX_SEQUENCE_ITEMS)
         {
-            return Err("external Fore sequence requires one to 32 admitted input values".into());
+            return Err("external Fore sequence requires one to 64 admitted input values".into());
         }
         let first = planned[0];
         if first.direction != PortDirection::Input
@@ -249,71 +409,5 @@ impl ForeIngress for InstalledScheduler {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Default)]
-    struct PressuredIngress {
-        attempts: Vec<(u64, Vec<u8>)>,
-        accepted: Vec<u64>,
-        closed: Vec<(RemoteEndpointId, CordId)>,
-    }
-
-    impl ForeIngress for PressuredIngress {
-        fn admit(
-            &mut self,
-            _: &[(RemoteEndpointId, CordId)],
-            sequence: u64,
-            bytes: &[u8],
-        ) -> Result<RemoteIngressOutcome, String> {
-            self.attempts.push((sequence, bytes.to_vec()));
-            if self.attempts.len() == 2 {
-                return Ok(RemoteIngressOutcome::Full { sequence });
-            }
-            self.accepted.push(sequence);
-            Ok(RemoteIngressOutcome::Accepted { sequence })
-        }
-
-        fn close(&mut self, endpoint: RemoteEndpointId, cord: CordId) -> Result<(), String> {
-            self.closed.push((endpoint, cord));
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn full_retries_same_value_and_sequence_then_closes_once() {
-        let inputs = [b"first".as_slice(), b"second".as_slice()]
-            .into_iter()
-            .map(|bytes| ExternalForeInput {
-                front_port_id: conduit_core::port_id("values"),
-                track: conduit_core::ConnectionTrack::Payload,
-                bytes: bytes.to_vec(),
-            })
-            .collect::<Vec<_>>();
-        let target = (RemoteEndpointId(0), CordId(0));
-        let mut feeder = SequentialForeFeeder {
-            inputs: &inputs,
-            targets: vec![target],
-            next: 0,
-            closed: false,
-        };
-        let mut ingress = PressuredIngress::default();
-        feeder.feed_next(&mut ingress).unwrap();
-        feeder.feed_next(&mut ingress).unwrap();
-        assert!(feeder.is_pending());
-        assert_eq!(ingress.accepted, vec![0]);
-        feeder.feed_next(&mut ingress).unwrap();
-        assert!(!feeder.is_pending());
-        feeder.feed_next(&mut ingress).unwrap();
-        assert_eq!(ingress.accepted, vec![0, 1]);
-        assert_eq!(ingress.closed, vec![target]);
-        assert_eq!(
-            ingress.attempts,
-            vec![
-                (0, b"first".to_vec()),
-                (1, b"second".to_vec()),
-                (1, b"second".to_vec())
-            ]
-        );
-    }
-}
+#[path = "external_fore_feeder_tests.rs"]
+mod tests;

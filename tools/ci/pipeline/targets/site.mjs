@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { acquire, command, digest, xtask } from './common.mjs';
 import { retainedOneBodyEvidence } from '../one-body-evidence.mjs';
+import { TODO_EVIDENCE_ROOT, renderTodoJourney } from '../todo-journey.mjs';
 import { retainedThreeHostDevelopmentEvidence, THREE_HOST_DEVELOPMENT_PROOF,
   THREE_HOST_DEVELOPMENT_SUITE } from '../three-host-development-evidence.mjs';
 import { retainedDirectSpokenDevelopmentEvidence, DIRECT_SPOKEN_DEVELOPMENT_PROOF,
@@ -62,6 +63,13 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     if (existsSync(destination)) throw new Error('Retained direct spoken route already exists');
     cpSync(directSpokenDevelopment.root, destination, { recursive: true, errorOnExist: true });
   }
+  if (existsSync(TODO_EVIDENCE_ROOT) && !existsSync(path.join(TODO_EVIDENCE_ROOT, 'manifest.json'))) {
+    throw new Error('Todo evidence directory exists without a complete manifest');
+  }
+  const todoJourney = existsSync(path.join(TODO_EVIDENCE_ROOT, 'manifest.json'))
+    ? renderTodoJourney(TODO_EVIDENCE_ROOT, path.join(directory, 'journeys/current/todo'),
+      sourceCommit, styles(), navigation())
+    : null;
   xtask('prove', 'refresh-gallery', path.join(directory, 'journeys'));
   if (directSpokenDevelopment) {
     const landing = path.join(directory, 'journeys/index.html');
@@ -120,6 +128,11 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     ...(directSpokenDevelopment && { directSpokenDevelopment: {
       captureSourceCommit: directSpokenDevelopment.sourceCommit, publicationSourceCommit: sourceCommit,
       path: 'journeys/current/direct-spoken-development/', proof: 'separate-retained-local-selected-alsa-evidence',
+      humanListeningObserved: false,
+    } }),
+    ...(todoJourney && { todoJourney: {
+      captureSourceCommit: todoJourney.sourceCommit, publicationSourceCommit: sourceCommit,
+      path: 'journeys/current/todo/', proof: 'producer-correlated-complete-evidence',
       humanListeningObserved: false,
     } }),
   }, null, 2));

@@ -2,6 +2,46 @@
 use super::*;
 
 impl StartupCatalog {
+    /// Admit one owner-validated initial Form for a custom Info Kind.
+    /// The literal is the exact source spelling, including quotes where used.
+    /// The semantic owner must supply its decoder as `validate`; no raw bytes
+    /// are admitted without passing it at catalog preparation time.
+    pub fn insert_exact_initial_info(
+        &mut self,
+        value_kind: conduit_core::KindId,
+        literal: impl Into<String>,
+        bytes: Vec<u8>,
+        validate: fn(&[u8]) -> bool,
+    ) -> Result<(), String> {
+        let literal = literal.into();
+        if literal.is_empty()
+            || literal.len() > 256
+            || conduit_core::primitive_info_kind(value_kind.as_str()).is_some()
+        {
+            return Err("exact initial Info requires a nonempty literal and custom Kind".into());
+        }
+        if bytes.len() > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES || !validate(&bytes) {
+            return Err("exact initial Info failed its owner's finite Form validation".into());
+        }
+        let key = (value_kind, literal);
+        if self.exact_initial_info.contains_key(&key) {
+            return Err("duplicate exact initial Info literal".into());
+        }
+        if self.exact_initial_info.len() >= 64
+            || self
+                .exact_initial_info
+                .values()
+                .map(Vec::len)
+                .sum::<usize>()
+                .saturating_add(bytes.len())
+                > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err("exact initial Info registry exceeds its finite bound".into());
+        }
+        self.exact_initial_info.insert(key, bytes);
+        Ok(())
+    }
+
     pub fn insert_structured_type(
         &mut self,
         name: impl Into<String>,

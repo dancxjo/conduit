@@ -62,6 +62,7 @@ members = [
 	"semantics/tutorial",
 	"semantics/body-invitation",
 	"plots/tour",
+	"plots/todo/face",
 	"targets/std/patchbay-workbench",
 	"targets/browser/patchbay-workbench",
 	"plots/patchbay/workbench/model",

@@ -236,6 +236,7 @@ impl KernelCompositeHost {
             fronts,
             links,
             active_plays,
+            parent_play_binding: None,
             started: false,
             cancelled: false,
             host_call_obligations,

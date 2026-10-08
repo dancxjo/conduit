@@ -1,18 +1,20 @@
 use conduit_body::{Body, BodyFulfillment, FulfillmentObligation, Wake};
 use conduit_core::{
     bind_active_play, kind_id, seal_plan, AuthorityGrantId, CheckedPlotId, ExpandedPlotId,
-    PlotIdentity, SignId, SourceDocumentId,
+    PlotIdentity, ResourceSemanticIdentity, ResourceVersionIdentity, SignId, SourceDocumentId,
 };
 use conduit_presentation::{
-    render_linear_presentation, Face, FaceContext, FaceContribution, FaceContributionRole,
-    FaceFocus, FaceNames, FaceOperatorActionKind, FaceRefusal, FaceResidentPlotName,
-    GenerativeNarratorRole, GenerativePresenterBounds, GenerativePresenterPolicy,
-    GenerativePresenterRequest, NavigationAspect, NavigationPlace, PresentationAction,
-    PresentationActionAvailability, PresentationAspect, PresentationCompositionKind,
-    PresentationCompositionRelation, PresentationContributionBasis, PresentationCursor,
-    PresentationDepth, PresentationDisclosure, PresentationDisclosureLevel, PresentationFragment,
-    PresentationNavigation, PresentationPlace, PresentationProjection, PresentationPropertyValue,
-    PresentationRole, PresentationSubject, ProjectionItem, ProjectionMembership,
+    render_linear_presentation, CommittedFaceAdmission, CommittedStateBasisRefusal,
+    CommittedStateContributionBasis, CommittedStateOperation, CommittedStateSelection, Face,
+    FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceNames,
+    FaceOperatorActionKind, FaceRefusal, FaceResidentPlotName, GenerativeNarratorRole,
+    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
+    NavigationAspect, NavigationPlace, PresentationAction, PresentationActionAvailability,
+    PresentationAspect, PresentationCompositionKind, PresentationCompositionRelation,
+    PresentationContributionBasis, PresentationCursor, PresentationDepth, PresentationDisclosure,
+    PresentationDisclosureLevel, PresentationFragment, PresentationNavigation, PresentationPlace,
+    PresentationProjection, PresentationPropertyValue, PresentationRole, PresentationSubject,
+    ProjectionItem, ProjectionMembership,
 };
 
 fn born_body() -> Body {
@@ -436,6 +438,98 @@ fn minimal_fragment(
         temporal_references: vec![],
         temporal_facts: vec![],
     }
+}
+
+#[test]
+fn lulled_committed_contribution_requires_exact_selection_and_read_play() {
+    let body = born_body();
+    let selection = CommittedStateSelection {
+        resource: ResourceSemanticIdentity::from_digest([1; 32]),
+        selected_version: ResourceVersionIdentity::from_digest([2; 32]),
+        published_version: ResourceVersionIdentity::from_digest([2; 32]),
+    };
+    let write = CommittedStateOperation {
+        plan_id: "plan/todo-write".into(),
+        play_id: "play/todo-write".into(),
+        terminal_sign_id: "sign/todo-write".into(),
+    };
+    let read = CommittedStateOperation {
+        plan_id: "plan/todo-read".into(),
+        play_id: "play/todo-read".into(),
+        terminal_sign_id: "sign/todo-read".into(),
+    };
+    let basis = CommittedStateContributionBasis {
+        body_id: body.body_id.clone(),
+        checked_plot_id: CheckedPlotId::from("checked/tutorial"),
+        selection: selection.clone(),
+        write,
+        read: read.clone(),
+        state_digest: [3; 32],
+    };
+    let contribution = FaceContribution::from_presentation(
+        FaceContributionRole::Foreground,
+        minimal_fragment(
+            read.plan_id.clone(),
+            read.play_id.clone(),
+            None,
+            "concept/todo-list".into(),
+        ),
+    );
+    assert_eq!(
+        Face::project(
+            &body,
+            None,
+            1,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![contribution.clone()]
+        ),
+        Err(FaceRefusal::PlayNotCurrent)
+    );
+    let face = Face::project_committed(
+        &body,
+        1,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        contribution.clone(),
+        FaceNames::default(),
+        CommittedFaceAdmission {
+            basis: &basis,
+            current_selection: &selection,
+        },
+    )
+    .unwrap();
+    assert!(face
+        .presentation
+        .basis
+        .sign_ids
+        .contains(&read.terminal_sign_id));
+    assert!(face
+        .presentation
+        .basis
+        .sign_ids
+        .contains(&basis.write.terminal_sign_id));
+    let stale = CommittedStateSelection {
+        selected_version: ResourceVersionIdentity::from_digest([4; 32]),
+        ..selection
+    };
+    assert_eq!(
+        Face::project_committed(
+            &body,
+            1,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            contribution,
+            FaceNames::default(),
+            CommittedFaceAdmission {
+                basis: &basis,
+                current_selection: &stale
+            },
+        ),
+        Err(FaceRefusal::CommittedStateBasis(
+            CommittedStateBasisRefusal::CheckpointSelectionChanged,
+        ))
+    );
 }
 
 #[test]

@@ -1,30 +1,40 @@
 //! Local multi-partition composition of the existing kernel and Host effects.
 use super::{
-    kernel_preparation::KernelTables, preparation, simple_presentation_host, InstalledBack,
-    InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
+    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_presentation_host,
+    InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
 };
-use crate::{hosted_keyboard::HostedKeyboardAdapter, RunControl, TimerAdapter};
+use crate::{
+    body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
+    BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
+};
+use conduit_body::BodyPlotPlan;
 use conduit_core::{
     BodyClockCorrelation, BodyTimeQuality, BodyTimeRefusal, BodyTimeRequirement,
     CancellationReason, FailureReason, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::{
     scheduler::{HostCallRequest, SchedulerStatus},
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome, HostedValueStore,
     KernelEvent,
 };
 use conduit_plan_lowering::{
-    fragment_set::{lower_local_fragment_set, FragmentSetBounds},
+    activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
+    fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
     lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
 };
 use std::io::Write;
 
 mod clock_observation;
+mod fore_route;
+mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
+use fore_route::BodyForeRoute;
 
-pub(crate) struct BodyKernel {
+pub(crate) struct BodyKernel<'a> {
     scheduler: InstalledScheduler,
+    fore: BodyForeRoute<'a>,
+    activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostCall>,
     typed_record_hosts: Vec<Option<super::typed_record_back::TypedRecordHost>>,
@@ -34,6 +44,9 @@ pub(crate) struct BodyKernel {
     input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
+    supported_todo_scan: bool,
+    todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
+    todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
 
 pub(crate) struct BodyKernelResult {
@@ -43,6 +56,11 @@ pub(crate) struct BodyKernelResult {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub events: Vec<KernelEvent>,
+    pub scan_child_signs:
+        Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
+    pub scan_cancellation_failed: bool,
+    pub scan_output_completion_failed: bool,
+    pub fore_deliveries: Vec<ExternalForeDelivery>,
     pub clock_observations: Vec<ObservedKernelEvent>,
     pub clock_quality: Option<BodyTimeQuality>,
     pub clock_execution_bounds: Option<(
@@ -65,6 +83,24 @@ fn input_semantic(contract: &conduit_core::HostCallContractId) -> bool {
         contract.as_str(),
         conduit_std_offers::KEYMAP_HOST_CALL | conduit_std_offers::CHORDS_HOST_CALL
     )
+}
+fn todo_checkpoint(operation: &LoweredHostCall) -> bool {
+    operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
+        && operation
+            .target_kind
+            .as_ref()
+            .is_some_and(|kind| kind.as_str() == conduit_todo_plot::TODO_CHECKPOINT_KIND)
+        && operation.binding.maximum_input_bytes == 4096
+        && operation.binding.maximum_output_bytes == 4096
+}
+fn todo_checkpoint_read(operation: &LoweredHostCall) -> bool {
+    operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_READ_CALL
+        && operation
+            .target_kind
+            .as_ref()
+            .is_some_and(|kind| kind.as_str() == conduit_todo_plot::TODO_CHECKPOINT_READ_KIND)
+        && operation.binding.maximum_input_bytes == 0
+        && operation.binding.maximum_output_bytes == conduit_todo_plot::STATE_MAX_BYTES as u32
 }
 fn timer(contract: &conduit_core::HostCallContractId) -> bool {
     contract.as_str() == conduit_core::WAIT_HOST_CALL_CONTRACT
@@ -103,10 +139,87 @@ fn presentation(operation: &LoweredHostCall) -> bool {
     })
 }
 
-impl BodyKernel {
-    pub(crate) fn prepare(fragments: &[&PlanFragment], has_keyboard: bool) -> Result<Self, String> {
-        let lowered = lower_local_fragment_set(
-            fragments,
+impl<'a> BodyKernel<'a> {
+    pub(crate) fn prepare(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+    ) -> Result<Self, String> {
+        Self::prepare_with_live(
+            partitions,
+            has_keyboard,
+            parent_play,
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+            None,
+        )
+    }
+
+    pub(crate) fn prepare_live(
+        partitions: &[BodyPlotPlan],
+        parent_play: &conduit_core::ActivePlayId,
+        queue: &BodyLiveForeQueue,
+        control: &RunControl,
+    ) -> Result<Self, String> {
+        if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
+            return Err("live Fore queue differs from the exact Body Plan or stop control".into());
+        }
+        Self::prepare_with_live(partitions, false, parent_play, &[], true, true, Some(queue))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_with_live(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+        live: Option<&BodyLiveForeQueue>,
+    ) -> Result<Self, String> {
+        let fragments = partitions
+            .iter()
+            .map(|partition| {
+                partition
+                    .plan
+                    .fragments
+                    .first()
+                    .filter(|_| partition.plan.fragments.len() == 1)
+                    .ok_or("local body execution requires one local fragment per Plot")
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        // Activation coordinators belong to the whole sealed Plan. Bind each
+        // entry to its exact local fragment before lowering ordinary nodes.
+        let activations = bind_body_activations(partitions, &fragments)?;
+        let mut scans = scan_route::prepare(partitions, parent_play)?;
+        if scans.len() == 1 {
+            let conduit_core::PlannedActivationEntry::Scan(planned) =
+                &partitions[scans[0].partition].plan.activations[0]
+            else {
+                return Err("installed scan activation changed during preparation".into());
+            };
+            if fore_inputs.len() > usize::from(planned.limits.maximum_items) {
+                return Err("preloaded Todo commands exceed the selected scan bound".into());
+            }
+        }
+        let supported_todo_scan = scans.len() == 1
+            && partitions.len() == 1
+            && fragments[0].placements.len() == 1
+            && !has_keyboard
+            && sequential_fore
+            && has_fore_output
+            && (live.is_some() || fore_inputs.len() <= 64)
+            && fragments[0].placements[0].host_calls.is_empty();
+        let plans = partitions
+            .iter()
+            .map(|partition| &partition.plan)
+            .collect::<Vec<_>>();
+        let lowered = lower_local_fragment_set_from_plans(
+            &plans,
             FIXED_KERNEL_STORAGE_PROFILE,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
@@ -119,6 +232,16 @@ impl BodyKernel {
             },
         )
         .map_err(|error| format!("Body fragment lowering: {error:?}"))?;
+        let fore = if let Some(queue) = live {
+            BodyForeRoute::prepare_live(&lowered.partitions, queue)?
+        } else {
+            BodyForeRoute::prepare(
+                &lowered.partitions,
+                fore_inputs,
+                sequential_fore,
+                has_fore_output,
+            )?
+        };
         for operation in lowered.partitions.iter().flat_map(|part| &part.host_calls) {
             if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                 if !has_keyboard {
@@ -129,6 +252,8 @@ impl BodyKernel {
                 && !image_text(&operation.contract_id)
                 && !text_state(&operation.contract_id)
                 && !input_semantic(&operation.contract_id)
+                && !todo_checkpoint(operation)
+                && !todo_checkpoint_read(operation)
                 && !presentation(operation)
             {
                 return Err(format!(
@@ -142,41 +267,78 @@ impl BodyKernel {
         let mut maximum = 1_u32;
         let mut sign_items = 32_u16;
         let mut request_capacity = 0_usize;
-        for placement in fragments.iter().flat_map(|part| &part.placements) {
-            let budget = preparation::back_budget(placement)?;
-            items = items
-                .checked_add(budget.value_items)
-                .ok_or("Body value item overflow")?;
-            bytes = bytes
-                .checked_add(budget.value_bytes)
-                .filter(|bytes| *bytes <= 16 * 1024 * 1024)
-                .ok_or("Body value byte capacity exceeded")?;
-            maximum = maximum.max(budget.maximum_value_bytes);
-            sign_items = sign_items
-                .checked_add(budget.sign_items)
-                .ok_or("Body Sign overflow")?;
-            request_capacity = request_capacity
-                .checked_add(budget.host_requests)
-                .ok_or("Body request overflow")?;
+        for (partition_index, fragment) in fragments.iter().enumerate() {
+            for placement in &fragment.placements {
+                let ordinary;
+                let budget = if let Some(scan) = scans.iter().find(|scan| {
+                    scan.partition == partition_index && scan.owner == placement.placement_id
+                }) {
+                    &scan.budget
+                } else {
+                    // Ordinary Backs are budgeted only after exact activation
+                    // owners have been consumed by the whole-Plan scan route.
+                    ordinary = preparation::back_budget(placement)?;
+                    &ordinary
+                };
+                items = items
+                    .checked_add(budget.value_items)
+                    .ok_or("Body value item overflow")?;
+                bytes = bytes
+                    .checked_add(budget.value_bytes)
+                    .filter(|bytes| *bytes <= 16 * 1024 * 1024)
+                    .ok_or("Body value byte capacity exceeded")?;
+                maximum = maximum.max(budget.maximum_value_bytes);
+                sign_items = sign_items
+                    .checked_add(budget.sign_items)
+                    .ok_or("Body Sign overflow")?;
+                request_capacity = request_capacity
+                    .checked_add(budget.host_requests)
+                    .ok_or("Body request overflow")?;
+            }
         }
+        for port in fore.input_ports() {
+            items = items
+                .checked_add(port.item_capacity)
+                .ok_or("Body Fore value item overflow")?;
+            bytes = bytes
+                .checked_add(port.byte_capacity)
+                .filter(|bytes| *bytes <= 16 * 1024 * 1024)
+                .ok_or("Body Fore value byte capacity exceeded")?;
+            maximum = maximum.max(port.byte_capacity);
+        }
+        sign_items = sign_items
+            .checked_add(fore.sign_items()?)
+            .ok_or("Body Fore Sign overflow")?;
         let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
             .map_err(|error| format!("Body value store: {error:?}"))?;
         let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
-        for (fragment, part) in fragments.iter().zip(&lowered.partitions) {
+        for (partition_index, (fragment, part)) in
+            fragments.iter().zip(&lowered.partitions).enumerate()
+        {
             for node in &part.nodes {
-                drivers[usize::from(node.node.0)] = preparation::prepare_ordinary_operation(
-                    fragment,
-                    &node.placement_id,
-                    &mut values,
-                )?;
+                drivers[usize::from(node.node.0)] = if let Some(scan) =
+                    scans.iter_mut().find(|scan| {
+                        scan.partition == partition_index && scan.owner == node.placement_id
+                    }) {
+                    InstalledBack::BodyScan(Box::new(
+                        scan.back
+                            .take()
+                            .ok_or("installed scan owner was prepared twice")?,
+                    ))
+                } else {
+                    preparation::prepare_ordinary_operation(
+                        fragment,
+                        &node.placement_id,
+                        &mut values,
+                    )?
+                };
             }
         }
+        if scans.iter().any(|scan| scan.back.is_some()) {
+            return Err("installed scan has no lowered owner node".into());
+        }
         let tables = KernelTables::prepare(&lowered.partitions.iter().collect::<Vec<_>>())?;
-        let signs = HostedSignLog::new(
-            sign_items,
-            u32::from(sign_items) * core::mem::size_of::<KernelEvent>() as u32,
-        )
-        .map_err(|error| format!("Body Sign store: {error:?}"))?;
+        let signs = fore_sign_storage::prepare(sign_items, fore.has_ports())?;
         let typed_record_hosts = fragments
             .iter()
             .flat_map(|fragment| super::typed_record_back::prepare_hosts(fragment))
@@ -198,8 +360,11 @@ impl BodyKernel {
                     .map(super::text_state_back::TextStateHost::from_placement)
             })
             .collect::<Result<Vec<_>, String>>()?;
+        let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
-            scheduler: tables.install(drivers, values, signs)?,
+            scheduler,
+            fore,
+            activations,
             operations: lowered
                 .partitions
                 .iter()
@@ -217,7 +382,104 @@ impl BodyKernel {
             input_keymaps: [conduit_human::ConduitIntlKeymap::new(); MAX_NODES],
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
+            supported_todo_scan,
+            todo_checkpoint: None,
+            todo_checkpoint_read: None,
         })
+    }
+
+    /// Bind at most one selected reader and publisher to their exact lowered
+    /// placements before Play. No ambient storage fallback is available.
+    pub(crate) fn attach_todo_checkpoint(
+        &mut self,
+        partitions: &[BodyPlotPlan],
+        root: &std::path::Path,
+        checkpoint: crate::todo_durable_resource::CheckpointIdentity,
+    ) -> Result<(), String> {
+        let mut selected = 0;
+        for (partition, body_plot) in partitions.iter().enumerate() {
+            let lowered = self
+                .partitions
+                .get(partition)
+                .ok_or("Todo checkpoint partition missing")?;
+            for placement in body_plot
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+            {
+                match placement.implementation_id.as_str() {
+                    conduit_std_offers::TODO_CHECKPOINT_IMPLEMENTATION => {
+                        if self.todo_checkpoint.is_some() {
+                            return Err("duplicate Todo checkpoint publisher".into());
+                        }
+                        self.todo_checkpoint = Some(
+                            crate::todo_checkpoint_call::TodoCheckpointHost::prepare(
+                                root,
+                                placement,
+                                lowered,
+                                checkpoint.clone(),
+                            )
+                            .map_err(|error| {
+                                format!("prepare selected Todo checkpoint: {error:?}")
+                            })?,
+                        );
+                        selected += 1;
+                    }
+                    conduit_std_offers::TODO_CHECKPOINT_READ_IMPLEMENTATION => {
+                        if self.todo_checkpoint_read.is_some() {
+                            return Err("duplicate Todo checkpoint reader".into());
+                        }
+                        self.todo_checkpoint_read = Some(
+                            crate::todo_checkpoint_read_call::TodoCheckpointReadHost::prepare(
+                                root,
+                                placement,
+                                lowered,
+                                checkpoint.clone(),
+                            )
+                            .map_err(|error| {
+                                format!("prepare selected Todo checkpoint read: {error:?}")
+                            })?,
+                        );
+                        selected += 1;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        if selected == 0 {
+            return Err("Body has no selected Todo checkpoint placement".into());
+        }
+        Ok(())
+    }
+
+    /// Only the exact finite pure Todo coordinator has an installed Body
+    /// route, with preloaded or admitted live typed Fore values. Face action
+    /// routing and other activations remain separate or refused.
+    pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        if self.operations.iter().any(|operation| {
+            operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
+        }) && self.todo_checkpoint.is_none()
+        {
+            return Err("planned Todo checkpoint has no selected durable Host residence".into());
+        }
+        if self.operations.iter().any(|operation| {
+            operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_READ_CALL
+        }) && self.todo_checkpoint_read.is_none()
+        {
+            return Err(
+                "planned Todo checkpoint read has no selected durable Host residence".into(),
+            );
+        }
+        if self
+            .activations
+            .iter()
+            .any(|bound| !bound.entries.is_empty())
+            && !self.supported_todo_scan
+        {
+            return Err("Body activation coordinator is not installed".into());
+        }
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -226,6 +488,7 @@ impl BodyKernel {
         output: &mut W,
         clock: &mut T,
         input: Option<&mut dyn HostedKeyboardAdapter>,
+        mut fore_output: Option<&mut dyn BodyForeOutputAdapter>,
         control: &RunControl,
         host_id: &conduit_core::HostId,
         boot_id: &conduit_core::BootId,
@@ -247,6 +510,7 @@ impl BodyKernel {
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
+                self.fore.drain(&mut self.scheduler, &mut fore_output)?;
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
                     clock,
@@ -261,7 +525,9 @@ impl BodyKernel {
                     deadlines.clear();
                     cancelling = true;
                 }
+                let live_observed = self.fore.activity_generation();
                 if !cancelling {
+                    self.fore.start_and_feed(&mut self.scheduler)?;
                     if let Some((requirement, correlation)) = body_time {
                         let sample = match clock.monotonic_observation(host_id, boot_id) {
                             Some(sample) => sample,
@@ -339,6 +605,76 @@ impl BodyKernel {
                         .scheduler
                         .host_value(request.input.value)
                         .map_err(|error| format!("Body request value: {error:?}"))?;
+                    if operation.contract_id.as_str()
+                        == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
+                    {
+                        let checkpoint = self
+                            .todo_checkpoint
+                            .as_ref()
+                            .ok_or("Todo checkpoint Host Call has no selected residence")?;
+                        let outcome = checkpoint.perform(request, input);
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|error| format!("Todo checkpoint completion: {error:?}"))?;
+                        continue;
+                    }
+                    if operation.contract_id.as_str()
+                        == conduit_std_offers::TODO_CHECKPOINT_READ_CALL
+                    {
+                        let reader = self
+                            .todo_checkpoint_read
+                            .as_ref()
+                            .ok_or("Todo checkpoint read Host Call has no selected residence")?;
+                        let result = reader.read(request, input);
+                        let outcome = match result {
+                            Ok(bytes) => {
+                                let value =
+                                    self.scheduler.store_host_value(&bytes).map_err(|error| {
+                                        format!("Todo checkpoint read value storage: {error:?}")
+                                    })?;
+                                let output = BoundedValueRef::new(
+                                    value,
+                                    conduit_todo_plot::STATE_MAX_BYTES as u32,
+                                )
+                                .map_err(|error| {
+                                    format!("Todo checkpoint read bound: {error:?}")
+                                })?;
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Completed,
+                                    output: Some(output),
+                                    failure: None,
+                                }
+                            }
+                            Err(error) => HostCallOutcome {
+                                disposition: if error
+                                    == crate::todo_durable_resource::Refusal::InvalidBinding
+                                {
+                                    HostCallDisposition::Denied
+                                } else {
+                                    HostCallDisposition::Failed
+                                },
+                                output: None,
+                                failure: Some(Failure {
+                                    code: if error
+                                        == crate::todo_durable_resource::Refusal::InvalidBinding
+                                    {
+                                        FailureCode::HostCallDenied
+                                    } else {
+                                        FailureCode::HostCallFailed
+                                    },
+                                    detail: crate::todo_checkpoint_read_call::read_failure_detail(
+                                        &error,
+                                    ),
+                                }),
+                            },
+                        };
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|error| {
+                                format!("Todo checkpoint read completion: {error:?}")
+                            })?;
+                        continue;
+                    }
                     if keyboard(&operation.contract_id) {
                         keys.accept(
                             request,
@@ -636,7 +972,10 @@ impl BodyKernel {
                     boot_id,
                 );
                 match status {
-                    SchedulerStatus::Drained => return Ok(TerminalDisposition::Completed),
+                    SchedulerStatus::Drained => {
+                        self.fore.require_normal_terminal(&self.scheduler)?;
+                        return Ok(TerminalDisposition::Completed);
+                    }
                     SchedulerStatus::Cancelled => {
                         return Ok(TerminalDisposition::Cancelled {
                             reason: CancellationReason::OperatorRequested,
@@ -652,6 +991,11 @@ impl BodyKernel {
                             || deadlines.complete_next(&mut self.scheduler, clock)?
                         {
                             continue;
+                        }
+                        if let Some(observed) = live_observed {
+                            if self.fore.wait_for_activity(observed)? {
+                                continue;
+                            }
                         }
                         if !keys.is_pending() && deadlines.is_empty() {
                             return Err("Body kernel has no admitted progress source".into());
@@ -692,6 +1036,27 @@ impl BodyKernel {
             host_id,
             boot_id,
         );
+        // Presentation snapshots run after the sealed Play. Preserve child
+        // identity and any receipt refusal instead of mixing child events
+        // into the parent's unqualified kernel Sign stream.
+        let scan_child_signs = self
+            .scheduler
+            .drivers()
+            .iter()
+            .filter_map(|driver| match driver {
+                InstalledBack::BodyScan(scan) => Some(scan.as_ref()),
+                _ => None,
+            })
+            .try_fold(Vec::new(), |mut receipts, scan| {
+                receipts.extend(scan.child_sign_receipts()?);
+                Ok(receipts)
+            });
+        let scan_cancellation_failed = self.scheduler.drivers().iter().any(
+            |driver| matches!(driver, InstalledBack::BodyScan(scan) if scan.cancellation_failed()),
+        );
+        let scan_output_completion_failed = self.scheduler.drivers().iter().any(|driver| {
+            matches!(driver, InstalledBack::BodyScan(scan) if scan.output_completion_failed())
+        });
         BodyKernelResult {
             terminal,
             failure,
@@ -699,9 +1064,44 @@ impl BodyKernel {
             partitions: self.partitions,
             requests: self.requests,
             events: self.scheduler.signs().events().collect(),
+            scan_child_signs,
+            scan_cancellation_failed,
+            scan_output_completion_failed,
+            fore_deliveries: self.fore.into_deliveries(),
             clock_observations: self.clock_observations.into_observations(),
             clock_quality,
             clock_execution_bounds: execution_bounds,
         }
     }
 }
+
+fn bind_body_activations(
+    partitions: &[BodyPlotPlan],
+    fragments: &[&PlanFragment],
+) -> Result<Vec<LoweredFragmentActivations>, String> {
+    if partitions.len() != fragments.len() {
+        return Err("Body activation binding partition count differs".into());
+    }
+    partitions
+        .iter()
+        .zip(fragments)
+        .map(|(partition, fragment)| {
+            if partition.plan.fragments.len() != 1
+                || partition.plan.fragments[0].fragment_id != fragment.fragment_id
+                || partition.plan.fragments[0].plan_id != fragment.plan_id
+            {
+                return Err("Body activation binding fragment differs from exact Plan".into());
+            }
+            lower_fragment_activations(&partition.plan, &fragment.fragment_id)
+                .map_err(|error| format!("Body activation binding: {error:?}"))
+        })
+        .collect()
+}
+
+#[cfg(test)]
+#[path = "body_kernel/activation_binding_tests.rs"]
+mod activation_binding_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/live_fore_tests.rs"]
+mod live_fore_tests;

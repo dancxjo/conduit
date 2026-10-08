@@ -173,6 +173,7 @@ package_test_shard!(
         "conduit-tour-model",
         "conduit-tutorial-plot",
         "conduit-todo-plot",
+        "conduit-todo-face",
         "conduit-plot-library",
         "conduit",
         "conduit-xtask-dispatch",

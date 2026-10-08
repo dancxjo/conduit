@@ -191,9 +191,10 @@ impl SpokenFaceSession {
                 if self.reading.take().is_some() {
                     interrupted = Some(self.finish_turn(SpokenTurnOutcome::Cancelled));
                 }
-                self.begin_message("Enter one command per line. Type help to repeat this guide. Type read all for the current view; next, previous, or repeat to move. Type next action to find a control. Type focus followed by an offered action ID when you know it. Type edit followed by the announced argument name and new value, then type activate to apply it. Type stop to interrupt speech, or quit to leave.".into());
+                self.begin_message("Enter one command per line. Type help to repeat this guide. Type read current items for the primary items. Type read all for the complete view; next, previous, or repeat to move. Type next action to find a control. Type focus followed by an offered action ID when you know it. Type edit followed by the announced argument name and new value, then type activate to apply it. Type stop to interrupt speech, or quit to leave.".into());
             }
             ReaderCommand::ReadAll
+            | ReaderCommand::ReadCurrentItems
             | ReaderCommand::Next
             | ReaderCommand::Previous
             | ReaderCommand::Repeat
@@ -207,6 +208,10 @@ impl SpokenFaceSession {
             | ReaderCommand::FocusAction(_) => {
                 let reading_command = match command {
                     ReaderCommand::ReadAll => FaceReadingCommand::ReadAll,
+                    ReaderCommand::ReadCurrentItems => FaceReadingCommand::ReadRoleAtDisclosure(
+                        PresentationRole::Item,
+                        conduit_presentation::PresentationDisclosureLevel::Primary,
+                    ),
                     ReaderCommand::Next => FaceReadingCommand::Next,
                     ReaderCommand::Previous => FaceReadingCommand::Previous,
                     ReaderCommand::Repeat => FaceReadingCommand::Repeat,
@@ -231,6 +236,13 @@ impl SpokenFaceSession {
                         | FaceReadingCommand::PreviousAction
                         | FaceReadingCommand::PreviousRole(_)
                 );
+                let reading_current_items = matches!(
+                    reading_command,
+                    FaceReadingCommand::ReadRoleAtDisclosure(
+                        PresentationRole::Item,
+                        conduit_presentation::PresentationDisclosureLevel::Primary
+                    )
+                );
                 let outcome = self
                     .cursor
                     .command(&self.face, reading_command)
@@ -242,7 +254,9 @@ impl SpokenFaceSession {
                     interrupted = Some(self.finish_turn_receipt(SpokenTurnOutcome::Cancelled));
                 }
                 if outcome.at_boundary {
-                    self.begin_message(if moving_backward {
+                    self.begin_message(if reading_current_items {
+                        "No current items.".into()
+                    } else if moving_backward {
                         "No previous matching item. Focus unchanged.".into()
                     } else {
                         "No next matching item. Focus unchanged.".into()

@@ -33,13 +33,16 @@ pub(super) fn primary_voice_clauses(
             && !matches!(subject_role(&wording.subject), Some(PresentationRole::Body))
     });
     let mut result = Vec::new();
-    if let Some(subject) = face.subjects.iter().find(|subject| {
-        primary(&subject.identity)
-            && matches!(
-                subject.role,
-                PresentationRole::Collection | PresentationRole::Document
-            )
-    }) {
+    let title = face.subjects.iter().find(|subject| {
+        matches!(
+            level(&subject.identity),
+            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+        ) && matches!(
+            subject.role,
+            PresentationRole::Collection | PresentationRole::Document
+        )
+    });
+    if let Some(subject) = title {
         result.push(format!("{}.", subject.name));
     }
     let mut omitted = false;
@@ -52,6 +55,9 @@ pub(super) fn primary_voice_clauses(
     ] {
         for wording in face.text.iter().filter(|wording| {
             level(&wording.subject) == expected
+                && !title.is_some_and(|subject| {
+                    wording.subject == subject.identity && wording.text == subject.name
+                })
                 && !(has_application_wording
                     && matches!(subject_role(&wording.subject), Some(PresentationRole::Body)))
         }) {
@@ -67,11 +73,10 @@ pub(super) fn primary_voice_clauses(
         .iter()
         .filter(|subject| primary(&subject.identity) && subject.role == PresentationRole::Item)
         .collect::<Vec<_>>();
-    if primary_items.len() <= 3 {
-        for subject in primary_items {
-            result.push(format!("{}.", subject.name));
-        }
-    } else {
+    for subject in primary_items.iter().take(3) {
+        result.push(format!("{}.", subject.name));
+    }
+    if primary_items.len() > 3 {
         omitted = true;
     }
     if result.is_empty() {
@@ -89,7 +94,11 @@ pub(super) fn primary_voice_clauses(
         return Err(SpokenFaceRefusal::VoiceBound);
     }
     if omitted {
-        result.push("More details are available on request.".into());
+        if primary_items.len() > 3 {
+            result.push("Type read current items to hear what remains.".into());
+        } else {
+            result.push("Type read all for more detail.".into());
+        }
     } else if result.len() < 7 {
         let mut offered = face.actions.iter().filter(|action| {
             action.availability.is_available()

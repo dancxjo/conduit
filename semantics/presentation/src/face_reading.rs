@@ -8,12 +8,15 @@ use alloc::string::String;
 
 use crate::{
     plan_face_utterances, FaceUtteranceClause, FaceUtteranceClauseKind, FaceUtterancePlan,
-    FaceUtterancePlanError, FaceUtteranceProvenance, Presentation, PresentationRole,
+    FaceUtterancePlanError, FaceUtteranceProvenance, Presentation, PresentationDisclosureLevel,
+    PresentationRole,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FaceReadingCommand {
     ReadAll,
+    /// Read only subjects matching an exact semantic role and disclosure.
+    ReadRoleAtDisclosure(PresentationRole, PresentationDisclosureLevel),
     Next,
     Previous,
     Repeat,
@@ -55,13 +58,26 @@ pub struct FaceReadingRefresh {
     pub interrupted: bool,
 }
 
-/// A cursor and a finite pending range, never a second copy of Face truth.
+/// A cursor and a finite pending selection, never a second copy of Face truth.
 /// The retained plan is the existing provenance-bearing aural projection.
+#[derive(Debug)]
+enum PendingReading {
+    Range {
+        next: usize,
+        end: usize,
+    },
+    Filtered {
+        next: usize,
+        role: PresentationRole,
+        level: PresentationDisclosureLevel,
+    },
+}
+
 #[derive(Debug)]
 pub struct FaceReadingCursor {
     plan: FaceUtterancePlan,
     focus: usize,
-    pending: Option<(usize, usize)>,
+    pending: Option<PendingReading>,
 }
 
 impl FaceReadingCursor {
@@ -138,14 +154,29 @@ impl FaceReadingCursor {
         let interrupted = self.pending.take().is_some();
         let mut at_boundary = false;
         match command {
-            FaceReadingCommand::ReadAll => self.pending = Some((0, self.plan.clauses.len())),
+            FaceReadingCommand::ReadAll => {
+                self.pending = Some(PendingReading::Range {
+                    next: 0,
+                    end: self.plan.clauses.len(),
+                });
+            }
+            FaceReadingCommand::ReadRoleAtDisclosure(role, level) => {
+                if let Some(next) = self.next_matching(current_face, 0, &role, level) {
+                    self.pending = Some(PendingReading::Filtered { next, role, level });
+                } else {
+                    at_boundary = true;
+                }
+            }
             FaceReadingCommand::Next => {
                 if self.focus + 1 == self.plan.clauses.len() {
                     at_boundary = true;
                 } else {
                     self.focus += 1;
                 }
-                self.pending = Some((self.focus, self.focus + 1));
+                self.pending = Some(PendingReading::Range {
+                    next: self.focus,
+                    end: self.focus + 1,
+                });
             }
             FaceReadingCommand::Previous => {
                 if self.focus == 0 {
@@ -153,9 +184,17 @@ impl FaceReadingCursor {
                 } else {
                     self.focus -= 1;
                 }
-                self.pending = Some((self.focus, self.focus + 1));
+                self.pending = Some(PendingReading::Range {
+                    next: self.focus,
+                    end: self.focus + 1,
+                });
             }
-            FaceReadingCommand::Repeat => self.pending = Some((self.focus, self.focus + 1)),
+            FaceReadingCommand::Repeat => {
+                self.pending = Some(PendingReading::Range {
+                    next: self.focus,
+                    end: self.focus + 1,
+                });
+            }
             FaceReadingCommand::NextSubject => {
                 at_boundary = self.move_by_kind(FaceUtteranceClauseKind::Subject, true);
             }
@@ -176,7 +215,10 @@ impl FaceReadingCursor {
             }
             FaceReadingCommand::FocusSubject(_) | FaceReadingCommand::FocusAction(_) => {
                 self.focus = exact_focus.expect("validated exact focus");
-                self.pending = Some((self.focus, self.focus + 1));
+                self.pending = Some(PendingReading::Range {
+                    next: self.focus,
+                    end: self.focus + 1,
+                });
             }
             FaceReadingCommand::Stop => {}
         }
@@ -195,11 +237,32 @@ impl FaceReadingCursor {
         current_face: &Presentation,
     ) -> Result<Option<&FaceUtteranceClause>, FaceReadingRefusal> {
         self.check_current(current_face)?;
-        let Some((next, end)) = self.pending else {
+        let Some(pending) = self.pending.take() else {
             return Ok(None);
         };
+        let next = match pending {
+            PendingReading::Range { next, end } => {
+                self.pending = (next + 1 < end).then_some(PendingReading::Range {
+                    next: next + 1,
+                    end,
+                });
+                next
+            }
+            PendingReading::Filtered { next, role, level } => {
+                let Some(found) = self.next_matching(current_face, next, &role, level) else {
+                    return Ok(None);
+                };
+                if found + 1 < self.plan.clauses.len() {
+                    self.pending = Some(PendingReading::Filtered {
+                        next: found + 1,
+                        role,
+                        level,
+                    });
+                }
+                found
+            }
+        };
         self.focus = next;
-        self.pending = (next + 1 < end).then_some((next + 1, end));
         Ok(Some(&self.plan.clauses[next]))
     }
 
@@ -248,6 +311,27 @@ impl FaceReadingCursor {
         Ok(())
     }
 
+    fn next_matching(
+        &self,
+        face: &Presentation,
+        from: usize,
+        role: &PresentationRole,
+        level: PresentationDisclosureLevel,
+    ) -> Option<usize> {
+        (from..self.plan.clauses.len()).find(|index| {
+            let FaceUtteranceProvenance::Subject(source) = &self.plan.clauses[*index].provenance
+            else {
+                return false;
+            };
+            face.subjects
+                .iter()
+                .any(|subject| subject.identity == *source.identity() && &subject.role == role)
+                && face.disclosures.iter().any(|disclosure| {
+                    disclosure.subject == *source.identity() && disclosure.level == level
+                })
+        })
+    }
+
     /// Return true only when there is no next/previous anchor of this kind.
     fn move_by_kind(&mut self, kind: FaceUtteranceClauseKind, forward: bool) -> bool {
         self.move_where(forward, |clause| clause.kind == kind)
@@ -283,7 +367,10 @@ impl FaceReadingCursor {
         match found {
             Some(index) => {
                 self.focus = index;
-                self.pending = Some((index, index + 1));
+                self.pending = Some(PendingReading::Range {
+                    next: index,
+                    end: index + 1,
+                });
                 false
             }
             None => true,

@@ -5,6 +5,7 @@ use super::audio_play_back::AudioPlayBack;
 use super::audio_tone_back::AudioToneBack;
 use super::body_chat_prompt_back::BodyChatPromptBack;
 use super::body_conversation_context_back::BodyConversationContextBack;
+use super::body_scan_back::BodyScanBack;
 use super::bool_presentation::BoolPresentationBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
@@ -91,7 +92,11 @@ use super::vision_describe_back::VisionDescribeBack;
 use super::vision_experience_back::VisionExperienceBack;
 use super::wav_artifact_back::WavArtifactBack;
 use conduit_data::FlowCollectBack;
+use conduit_todo_plot::TodoCombineBack;
 
+// Todo's fixed scratch is prepared on the heap before Play so every installed
+// operation shares a small driver envelope on the bounded runner stack.
+#[allow(clippy::large_enum_variant)]
 pub(super) enum InstalledBack {
     NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
     DistanceFrequency(DistanceFrequencyBack),
@@ -143,8 +148,12 @@ pub(super) enum InstalledBack {
     StateSelectScalar(StateSelectScalarBack),
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
+    TodoCombine(Box<TodoCombineBack>),
+    TodoCheckpoint(crate::todo_checkpoint_call::TodoCheckpointBack),
+    TodoCheckpointRead(crate::todo_checkpoint_read_call::TodoCheckpointReadBack),
     FlowZip(FlowZipBack),
     FlowCollect(Box<FlowCollectBack>),
+    BodyScan(Box<BodyScanBack>),
     FlowJoinByKey(Box<FlowJoinByKeyBack>),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),
