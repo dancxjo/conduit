@@ -7,9 +7,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import time
 
-from revision_inspector import HTML
+from revision_inspector import HTML, read_trace_bytes
 
-MAXIMUM_BYTES = 32 * 1024 * 1024
 
 
 def producer_state(pid, started=None):
@@ -27,11 +26,9 @@ def producer_state(pid, started=None):
 
 def snapshot(trace, pid, started=None):
     try:
-        raw = trace.read_bytes()
+        raw = read_trace_bytes(trace)
     except FileNotFoundError:
         raw = b''
-    if len(raw) > MAXIMUM_BYTES:
-        raise ValueError('Event file exceeds 32 MiB')
     # An incomplete append is not an event. A malformed complete append refuses
     # the observation; the browser retains its last valid evidence.
     complete = raw[:raw.rfind(b'\n') + 1]

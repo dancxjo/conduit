@@ -35,6 +35,20 @@ try {
  await page.evaluate(text=>window.writeProof(text),first+second+'\n');
  await page.waitForFunction(()=>document.getElementById('ordinal').textContent==='2 / 2');
  assert.deepEqual(JSON.parse(await page.locator('#raw').textContent()),records[1]);
+ // Fault injection: valid JSON cannot rewrite an already observed event.
+ const rewritten=JSON.stringify({...records[0],event:'forged-history'})+'\n'+second+'\n';
+ await page.evaluate(text=>window.writeProof(text),rewritten);
+ await page.waitForFunction(()=>document.getElementById('error').textContent.includes('history changed'));
+ assert.equal(await page.locator('#ordinal').innerText(),'2 / 2');
+ assert.deepEqual(JSON.parse(await page.locator('#raw').textContent()),records[1]);
+ // An unfinished UTF-8 code point in the unflushed line is not a new event.
+ await page.evaluate(async text=>{
+  const prefix=new TextEncoder().encode(text),bytes=new Uint8Array(prefix.length+3);
+  bytes.set(prefix);bytes.set([0x7b,0x22,0xc3],prefix.length);
+  await window.writeProof(bytes);
+ },first+second+'\n');
+ await page.waitForFunction(()=>document.getElementById('error').textContent==='');
+ assert.equal(await page.locator('#ordinal').innerText(),'2 / 2');
  await page.evaluate(text=>window.writeProof(text),first+second+'\n{broken}\n');
  await page.waitForFunction(()=>document.getElementById('error').textContent.length>0);
  assert.equal(await page.locator('#ordinal').innerText(),'2 / 2');
@@ -43,7 +57,7 @@ try {
  await page.waitForTimeout(1200);
  assert.equal(await page.locator('#ordinal').innerText(),'2 / 2');
  assert(await page.locator('#stop').isDisabled());
- const result={native_browser_file_handle:true,flushed_append_observed:true,incomplete_line_ignored:true,malformed_append_preserves_previous:true,stop_preserves_previous:true,os_picker_verified:false,parser_executed:false,events_from_actual_trace:true};
+ const result={native_browser_file_handle:true,flushed_append_observed:true,incomplete_line_ignored:true,incomplete_utf8_line_ignored:true,rewritten_history_preserves_previous:true,malformed_append_preserves_previous:true,stop_preserves_previous:true,os_picker_verified:false,parser_executed:false,events_from_actual_trace:true};
  writeFileSync(join(output,'native-follow-proof.json'),JSON.stringify(result,null,2)+'\n');
  console.log(JSON.stringify(result));
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

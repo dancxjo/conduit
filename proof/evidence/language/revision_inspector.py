@@ -5,6 +5,18 @@ import hashlib
 import json
 from pathlib import Path
 
+MAXIMUM_BYTES = 32 * 1024 * 1024
+
+
+def read_trace_bytes(trace):
+    # Bound the read itself, before retaining a potentially oversized file.
+    with trace.open('rb') as stream:
+        raw = stream.read(MAXIMUM_BYTES + 1)
+    if len(raw) > MAXIMUM_BYTES:
+        raise ValueError('Event file exceeds 32 MiB')
+    return raw
+
+
 HTML = r'''<!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Language revision evidence</title>
@@ -22,14 +34,14 @@ body{font:16px system-ui;margin:2rem auto;padding:0 1rem;max-width:1100px;backgr
 <footer><small id="provenance"></small></footer>
 <script>
 let evidence=__EVIDENCE__;
-let following=false,followTimer=null,reading=false,lastFileStamp=null,followGeneration=0;
+let following=false,followTimer=null,reading=false,lastFileStamp=null,followGeneration=0,followedPrefix=null;
 const $=id=>document.getElementById(id);
 const shown=x=>x===undefined?'unavailable':typeof x==='object'?JSON.stringify(x):String(x);
 function render(){const i=Number($('event').value),x=evidence.events[i];if(!x)return;$('ordinal').textContent=`${i+1} / ${evidence.events.length}`;$('status').textContent=`${following?'Following selected event file; producer status unknown':'Recorded trace'} · ${shown(x.event)} · ${shown(x.source_revision)}`;$('facts').replaceChildren();for(const [title,value] of [['Elapsed in original run (ms)',x.actual_elapsed_ms],['Available',x.available??x.outcome?.availability?.available],['Stable',x.stable],['Committed',x.committed],['Final input',x.final_input??x.outcome?.availability?.final_input],['Admitted model invocations',x.model_invocations]]){let p=document.createElement('div'),b=document.createElement('b');b.textContent=title;p.append(b,document.createTextNode(shown(value)));$('facts').append(p)}$('text').textContent=`Source text: ${shown(x.text??x.outcome?.availability?.text)}`;$('policy').textContent=x.frontier_policy??'No frontier policy field in this event.';$('candidates').replaceChildren();for(const c of x.candidates??[]){let row=document.createElement('tr');for(const value of [c.identity,c.active,c.score,c.choices,c.heads,c.relations,`${shown(c.unread)} / ${shown(c.depth)}`]){let cell=document.createElement('td');cell.textContent=shown(value);row.append(cell)}$('candidates').append(row)}$('identity').textContent=JSON.stringify(Object.fromEntries(['analysis_revision','source_sequence','lexical_profile_identity','model_content_identity','model_execution','retained_executions','joint_lexical_arc_agreement','flow_invocations','preferred_candidate'].map(k=>[k,x[k]??'unavailable'])),null,2);$('raw').textContent=JSON.stringify(x,null,2);$('provenance').textContent=`Recorded file: ${evidence.source} · SHA-256: ${evidence.sha256} · Generator schema 1`;$('previous').disabled=i===0;$('next').disabled=i===evidence.events.length-1}
 function install(){if(!evidence.events.length)throw Error('No recorded events');$('event').max=evidence.events.length-1;$('event').value=0;render()}
-async function readFollowed(handle,generation){if(reading||!following||generation!==followGeneration)return;reading=true;try{const file=await handle.getFile();if(file.size>32*1024*1024)throw Error('Event file exceeds 32 MiB');const stamp=`${file.lastModified}/${file.size}`;if(stamp===lastFileStamp)return;const bytes=await file.arrayBuffer(),text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);const complete=text.slice(0,text.lastIndexOf('\n')+1);const events=complete.split('\n').filter(l=>l.trim()).map(JSON.parse);if(!events.length)return;if(events.some(e=>!e||typeof e!=='object'||Array.isArray(e)||typeof e.event!=='string'))throw Error('Expected JSONL event records');const digest=await crypto.subtle.digest('SHA-256',bytes);if(!following||generation!==followGeneration)return;const atEnd=Number($('event').value)===evidence.events.length-1;const oldIndex=Number($('event').value);evidence={source:file.name,sha256:Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join(''),events};lastFileStamp=stamp;$('event').max=events.length-1;$('event').value=atEnd?events.length-1:Math.min(oldIndex,events.length-1);$('error').textContent='';render()}catch(e){$('error').textContent=e.message}finally{reading=false}}
+async function readFollowed(handle,generation){if(reading||!following||generation!==followGeneration)return;reading=true;try{const file=await handle.getFile();if(file.size>32*1024*1024)throw Error('Event file exceeds 32 MiB');const stamp=`${file.lastModified}/${file.size}`;if(stamp===lastFileStamp)return;const bytes=await file.arrayBuffer(),raw=new Uint8Array(bytes),end=raw.lastIndexOf(10)+1;const completeBytes=raw.subarray(0,end);if(followedPrefix&&(end<followedPrefix.length||followedPrefix.some((value,index)=>completeBytes[index]!==value)))throw Error('Producer history changed; retaining previous evidence');const complete=new TextDecoder('utf-8',{fatal:true}).decode(completeBytes);const events=complete.split('\n').filter(l=>l.trim()).map(JSON.parse);if(!events.length)return;if(events.some(e=>!e||typeof e!=='object'||Array.isArray(e)||typeof e.event!=='string'))throw Error('Expected JSONL event records');const digest=await crypto.subtle.digest('SHA-256',bytes);if(!following||generation!==followGeneration)return;const atEnd=Number($('event').value)===evidence.events.length-1;const oldIndex=Number($('event').value);evidence={source:file.name,sha256:Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join(''),events};followedPrefix=completeBytes.slice();lastFileStamp=stamp;$('event').max=events.length-1;$('event').value=atEnd?events.length-1:Math.min(oldIndex,events.length-1);$('error').textContent='';render()}catch(e){$('error').textContent=e.message}finally{reading=false}}
 function stopFollowing(){followGeneration++;following=false;clearInterval(followTimer);followTimer=null;$('stop').disabled=true;$('follow').disabled=!window.showOpenFilePicker;render()}
-$('follow').disabled=!window.showOpenFilePicker;$('follow').onclick=async()=>{try{const [handle]=await window.showOpenFilePicker({multiple:false});following=true;const generation=++followGeneration;lastFileStamp=null;$('stop').disabled=false;$('follow').disabled=true;await readFollowed(handle,generation);if(following&&generation===followGeneration)followTimer=setInterval(()=>readFollowed(handle,generation),1000);render()}catch(e){stopFollowing();$('error').textContent=e.message}};$('stop').onclick=stopFollowing;
+$('follow').disabled=!window.showOpenFilePicker;$('follow').onclick=async()=>{try{const [handle]=await window.showOpenFilePicker({multiple:false});following=true;const generation=++followGeneration;lastFileStamp=null;followedPrefix=null;$('stop').disabled=false;$('follow').disabled=true;await readFollowed(handle,generation);if(following&&generation===followGeneration)followTimer=setInterval(()=>readFollowed(handle,generation),1000);render()}catch(e){stopFollowing();$('error').textContent=e.message}};$('stop').onclick=stopFollowing;
 $('event').oninput=render;$('previous').onclick=()=>{$('event').value=Number($('event').value)-1;render()};$('next').onclick=()=>{$('event').value=Number($('event').value)+1;render()};$('reload').onclick=()=>{stopFollowing();$('file').click()};$('file').onchange=async()=>{try{const f=$('file').files[0];if(!f)return;if(f.size>32*1024*1024)throw Error('Recorded file exceeds 32 MiB');const bytes=await f.arrayBuffer(),text=new TextDecoder('utf-8',{fatal:true}).decode(bytes),events=text.split('\n').filter(l=>l.trim()).map(JSON.parse);if(!events.length||events.some(e=>!e||typeof e!=='object'||Array.isArray(e)||typeof e.event!=='string'))throw Error('Expected JSONL event records');const digest=await crypto.subtle.digest('SHA-256',bytes);evidence={source:f.name,sha256:Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join(''),events};$('error').textContent='';install()}catch(e){$('error').textContent=e.message}};install();
 </script></html>'''
 
@@ -39,9 +51,10 @@ def main():
     parser.add_argument('trace', type=Path)
     parser.add_argument('output', type=Path)
     args = parser.parse_args()
-    raw = args.trace.read_bytes()
-    if len(raw) > 32 * 1024 * 1024:
-        parser.error('recorded trace exceeds 32 MiB')
+    try:
+        raw = read_trace_bytes(args.trace)
+    except ValueError as error:
+        parser.error(str(error))
     events = [json.loads(line) for line in raw.decode('utf-8').splitlines() if line.strip()]
     if not events or any(not isinstance(e, dict) or not isinstance(e.get('event'), str) for e in events):
         parser.error('expected nonempty JSONL event records')
