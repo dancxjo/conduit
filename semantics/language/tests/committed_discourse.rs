@@ -1,9 +1,8 @@
 //! Continue original retained parser commitments, without rerunning inference.
 extern crate alloc;
+use conduit_language::committed_discourse as owned;
 use conduit_language::{lexical::prepare_lexical_tape, *};
 use conduit_plot::rust_binding::NativeRustBinding;
-#[path = "../src/committed_discourse.rs"]
-mod owned;
 
 #[test]
 #[ignore = "requires original actual word-stream commitment receipt"]

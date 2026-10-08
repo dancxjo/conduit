@@ -229,8 +229,31 @@ fn main() {
         )
         .expect("retain checked language program");
     }
-    let generated = generate_rust_bindings(&checked.native_types, &RustBindingOptions::default())
-        .expect("language semantic Types must generate exact Rust bindings");
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            prepared_family_roots: [
+                "LanguageParserWindow8StableLexicalFact".into(),
+                "LanguageParserWindow8RawState".into(),
+                "LanguageParserWindow8RawWalk".into(),
+                "LanguageParserWindow8RootCount".into(),
+                "LanguageParserWindow8RawClassIndex".into(),
+                "LanguageParserWindow8RawClassRelations".into(),
+                "LanguageParserWindow8RawClass".into(),
+                "LanguageParserWindow8RawBeam".into(),
+                "LanguageParserWindow8RawContext".into(),
+                "LanguageParserWindow8RawResult".into(),
+                "LanguageParserWindow8Completion".into(),
+                "LanguageParserWindow8Selected".into(),
+                "LanguageParserWindow8RawHypothesis".into(),
+                "LanguageParserWindow8RawFeatureContext".into(),
+                "LanguageParserWindow8RawModelFeatures".into(),
+            ]
+            .into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .expect("language semantic Types must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     let source = retain_binding_bytes(&generated.source, output.parent().unwrap());
@@ -245,6 +268,9 @@ fn retain_binding_bytes(source: &str, directory: &std::path::Path) -> String {
     for line in source.lines() {
         if (line.starts_with("pub const ") && line.contains("_SEMANTIC_TYPE: &[u8]"))
             || line.contains("PortableExpressionProgram::from_canonical_bytes(&[")
+            // Prepared families and ordinary constructors share these exact
+            // ordered encoded law resources; retain each byte array once.
+            || line.trim_start().starts_with("&[")
         {
             let start = line.find("&[").expect("generated literal bytes");
             // Constants have an earlier slice Type spelling; their literal starts

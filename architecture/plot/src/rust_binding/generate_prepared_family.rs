@@ -19,24 +19,31 @@ pub(super) fn projection<'a>(
     }
     let owned = types.iter().collect::<Vec<_>>();
     let mut selected = BTreeSet::new();
-    let mut pending = Vec::new();
     for name in &options.prepared_family_roots {
-        let ty = types
+        let root = types
             .iter()
             .find(|ty| &ty.name == name)
             .ok_or(Error::InvalidSemanticType)?;
-        pending.push(ty);
-    }
-    while let Some(ty) = pending.pop() {
-        if !selected.insert(ty.identity.as_str()) {
-            continue;
+        // A shared generated module may serve several finite owners. Check each
+        // complete root closure independently: no owner can split a root's child
+        // validation across families or borrow another owner's descriptor bank.
+        let mut root_selected = BTreeSet::new();
+        let mut pending = vec![root];
+        while let Some(ty) = pending.pop() {
+            if !root_selected.insert(ty.identity.as_str()) {
+                continue;
+            }
+            if root_selected.len() > super::MAXIMUM_NATIVE_FAMILY_TYPES {
+                return Err(Error::InvalidSemanticType);
+            }
+            selected.insert(ty.identity.as_str());
+            if selected.len() > super::MAXIMUM_GENERATED_NATIVE_FAMILY_TYPES {
+                return Err(Error::InvalidSemanticType);
+            }
+            let mut children = Vec::new();
+            children_of(&ty.value_type, true, &owned, names, &mut children)?;
+            pending.extend(children);
         }
-        if selected.len() > super::MAXIMUM_NATIVE_FAMILY_TYPES {
-            return Err(Error::InvalidSemanticType);
-        }
-        let mut children = Vec::new();
-        children_of(&ty.value_type, true, &owned, names, &mut children)?;
-        pending.extend(children);
     }
     Ok(types
         .iter()
@@ -199,13 +206,17 @@ fn layout_bound(
         return Ok(layouts.remove(0));
     }
     Ok(format!(
-        "{{ let mut largest = {}; {} largest }}",
+        "{{
+        let mut largest = {};
+        {}
+        largest
+    }}",
         layouts[0],
         layouts[1..]
             .iter()
             .map(|layout| format!("if {layout} > largest {{ largest = {layout}; }}"))
             .collect::<Vec<_>>()
-            .join(" ")
+            .join("\n        ")
     ))
 }
 

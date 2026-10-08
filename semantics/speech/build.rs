@@ -16,6 +16,7 @@ fn main() {
     println!("cargo:rerun-if-changed=listening.conduit");
     println!("cargo:rerun-if-changed=translation.conduit");
     println!("cargo:rerun-if-changed=translation_structure.conduit");
+    println!("cargo:rerun-if-changed=translation_dependency_projection.conduit");
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
     println!("cargo:rerun-if-changed=syllables.conduit");
@@ -46,6 +47,7 @@ fn main() {
         include_str!("listening.conduit"),
         include_str!("translation.conduit"),
         include_str!("translation_structure.conduit"),
+        include_str!("translation_dependency_projection.conduit"),
         include_str!("timing.conduit"),
         include_str!("intent.conduit"),
         include_str!("syllables.conduit"),
@@ -82,6 +84,25 @@ fn main() {
             }),
     );
     language_types.extend([
+        (
+            "LanguageAnalysisTokenRef",
+            conduit_language::LanguageAnalysisTokenRef::semantic_type()
+                .expect("checked Language Type"),
+        ),
+        (
+            "LanguageDependencyHead",
+            conduit_language::LanguageDependencyHead::semantic_type()
+                .expect("checked Language Type"),
+        ),
+        (
+            "LanguageDependencyRelation",
+            conduit_language::LanguageDependencyRelation::semantic_type()
+                .expect("checked Language Type"),
+        ),
+        (
+            "LanguageLexicalTape",
+            conduit_language::LanguageLexicalTape::semantic_type().expect("checked Language Type"),
+        ),
         (
             "LanguageVocativeDiscourseFact",
             conduit_language::LanguageVocativeDiscourseFact::semantic_type()
@@ -160,6 +181,14 @@ fn main() {
             "ipa_supported_unit_program.hex",
         ),
         (
+            "speech/translation-select-word-pair",
+            "translation_select_word_pair_program.hex",
+        ),
+        (
+            "speech/translation-project-vocative",
+            "translation_project_vocative_program.hex",
+        ),
+        (
             "speech/translation-discourse-anchor",
             "translation_anchor_program.hex",
         ),
@@ -170,7 +199,7 @@ fn main() {
     ] {
         let expanded_translation =
             expand_canonical_plot_for_authoring(&semantic, name, &ProfileCatalog::new())
-                .expect("checked translation projection");
+                .unwrap_or_else(|error| panic!("checked translation projection {name}: {error:?}"));
         assert_eq!(expanded_translation.expanded.gears.len(), 1);
         let [entry] = expanded_translation.expanded.gears[0]
             .configuration
@@ -244,7 +273,7 @@ fn main() {
         .filter(|(_, (name, _))| {
             !matches!(
                 *name,
-                "LanguageVocativeDiscourseFact"
+                "LanguageDependencyHead"
                     | "LanguageTextReferenceMatch"
                     | "LanguageExternalIdentity"
                     | "LanguageProsodyBoundary"

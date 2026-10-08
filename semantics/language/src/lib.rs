@@ -90,6 +90,7 @@ pub use revision_lineage::*;
 
 pub mod lexical;
 
+pub mod committed_discourse;
 pub mod discourse;
 
 pub mod prosody;
@@ -107,6 +108,7 @@ pub use generated::{
 };
 
 pub use generated::{LanguageParserJointMerge, LanguageParserJointRawBeam};
+pub mod prepared_stable_lexical_fact;
 pub mod pronunciation_selection;
 pub mod stable_lexical_selection;
 
@@ -161,6 +163,7 @@ pub use generated::{
     LanguageParserWindow8RawRequest, LanguageParserWindow8RawResult, LanguageParserWindow8Selected,
 };
 pub mod parser_window8;
+pub mod parser_window8_program_bank;
 pub use generated::{LanguageParserJointConsensusObservation, LanguageParserJointConsensusQuery};
 
 #[cfg(all(feature = "parser-model-selection", target_has_atomic = "ptr"))]
