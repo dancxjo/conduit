@@ -89,6 +89,12 @@ mod revision_lineage;
 pub use revision_lineage::*;
 
 pub mod lexical;
+pub mod lexical_proposer_resource;
+pub use generated::{
+    LanguageLexicalProposalOrigin, LanguageLexicalProposalQuery, LanguageLexicalProposedTape,
+    LanguageLexicalProposerDefinition, LanguageLexicalReviewedOrigin, LanguageLexicalTokenProposal,
+    LanguageLexicalUnknownCommitPolicy, LanguageLexicalUnknownOrigin, LanguageLexicalUnknownPolicy,
+};
 
 pub mod discourse;
 
@@ -107,9 +113,9 @@ pub use generated::{
 };
 
 pub use generated::{LanguageParserJointMerge, LanguageParserJointRawBeam};
+pub mod prepared_stable_lexical_fact;
 pub mod pronunciation_selection;
 pub mod stable_lexical_selection;
-pub mod prepared_stable_lexical_fact;
 
 pub use generated::{
     LanguagePronunciationArcTarget, LanguagePronunciationCandidateQuery,

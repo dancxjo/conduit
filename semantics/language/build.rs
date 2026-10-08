@@ -49,6 +49,7 @@ fn main() {
         include_str!("text_revision.conduit"),
         include_str!("revision_lineage.conduit"),
         include_str!("lexical.conduit"),
+        include_str!("lexical_proposer.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_window8.conduit"),
         include_str!("parser_window8_search.conduit"),
@@ -122,6 +123,10 @@ fn main() {
             "window8_move_legal_right_nonroot.hex",
         ),
         ("language-window8-move-apply", "window8_move_apply.hex"),
+        (
+            "language-lexical-token-proposal",
+            "lexical_token_proposal.hex",
+        ),
         ("language-window8-complete", "window8_complete.hex"),
         ("language-window8-rank-insert", "window8_rank_insert.hex"),
         (
@@ -201,6 +206,8 @@ fn main() {
         &checked.native_types,
         &RustBindingOptions {
             prepared_family_roots: [
+                "LanguageLexicalTokenProposal".into(),
+                "LanguageLexicalProposedTape".into(),
                 "LanguageParserWindow8StableLexicalFact".into(),
                 "LanguageParserWindow8RawState".into(),
                 "LanguageParserWindow8RawWalk".into(),
