@@ -547,17 +547,14 @@ fn present(
 }
 
 pub(super) fn opening_commands(spoken: bool) -> impl Iterator<Item = ReaderCommand> {
-    // The Crèche starts at its current name control; a person can request
-    // every clause without waiting through it before their first edit.
-    spoken
-        .then_some(ReaderCommand::Help)
-        .into_iter()
-        .chain(std::iter::once(if spoken {
-            ReaderCommand::Repeat
-        } else {
-            ReaderCommand::ReadAll
-        }))
-        .chain(spoken.then_some(ReaderCommand::FocusAction("creche.name".into())))
+    // Lead with the useful Crèche summary. The complete command guide is
+    // available on request, so Birth does not begin with a long help Play.
+    std::iter::once(if spoken {
+        ReaderCommand::Summary
+    } else {
+        ReaderCommand::ReadAll
+    })
+    .chain(spoken.then_some(ReaderCommand::FocusAction("creche.name".into())))
 }
 
 /// A returning spoken user gets immediate orientation, then chooses whether
