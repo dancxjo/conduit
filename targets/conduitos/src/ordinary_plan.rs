@@ -106,6 +106,27 @@ pub fn prepare(
     )
 }
 
+/// Require a protected text region. Unsupported builds refuse before planning
+/// or constructing a cooperative kernel; supported builds still validate the
+/// actual machine and domain during preparation.
+pub fn prepare_protected(
+    identities: &BootIdentities,
+    fixed_offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<PreparedOrdinaryPlay, PreparationError> {
+    #[cfg(conduitos_protected_execution)]
+    {
+        prepare(identities, fixed_offer, build_id)
+    }
+    #[cfg(not(conduitos_protected_execution))]
+    {
+        let _ = (identities, fixed_offer, build_id);
+        Err(PreparationError::Protection(
+            crate::protected_region::DomainRefusal::Unsupported,
+        ))
+    }
+}
+
 pub fn prepare_source(
     identities: &BootIdentities,
     fixed_offer: &HostOffer<'_>,

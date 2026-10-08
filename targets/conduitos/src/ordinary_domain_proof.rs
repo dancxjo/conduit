@@ -22,7 +22,7 @@ pub fn run(record: &boot::BootRecord) -> ! {
         },
         record.runtime_arena.length,
     );
-    let mut prepared = match ordinary_plan::prepare(&identities, &offer, make.build_id) {
+    let mut prepared = match ordinary_plan::prepare_protected(&identities, &offer, make.build_id) {
         Ok(prepared) => prepared,
         Err(error) => refuse(error.as_str()),
     };

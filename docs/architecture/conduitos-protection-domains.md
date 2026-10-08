@@ -173,7 +173,21 @@ a complete normal graphical Body run.
 | AArch64 | Supported emulator proof runs the normal text region at EL0, with a gated serial effect, completion revocation, nineteen independent boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | RISC-V64 | Supported emulator proof runs the normal text region in U-mode, with a gated serial effect, completion revocation, twenty-two boundary checks, floating-state restoration and Source timer coexistence | Broader implementation coverage, complete cost accounting and release acceptance remain unfinished |
 | LoongArch64 | Ordinary text region at PLV3; normal product and independent boundary proofs passed on a locally corrected diagnostic emulator | Stock QEMU 10.2.1 refuses the unsupported counter control; no stock-emulator, hardware or release parity claim |
-| ARMv6 | No earned protected backend | Protected execution is unsupported; cooperative execution is not confinement |
+| ARMv6 | An explicit protected text request refuses before planning or cooperative kernel construction; the native A3 emulator lane verifies that disposition | No protected backend; its separately labeled cooperative A3 diagnostic establishes no confinement |
+
+`ordinary_plan::prepare_protected` requires a protected text realization and
+returns `protected-execution-unsupported` on builds without that backend.
+It never falls back to cooperative preparation. Actual machine checks remain
+mandatory on supported builds. This also gives additional cooperative profiles
+an explicit refusal path instead of letting a protection request disappear.
+
+`cargo xtask make conduitos run --arch armv6 --board rpi-b-plus-v1.2` verified
+that refusal in the ARMv6 guest before its separate reviewed cooperative A3
+diagnostic was prepared. The retained UART transcript and receipt distinguish
+the refusal from the diagnostic's text/timer completion; the validator rejects
+confinement claims and domain-cost records on that lane. The appliance now
+reserves the current boot contract's 8 MiB arena. This is emulator evidence,
+with no ARM user-mode, MMU-isolation or physical-board claim.
 
 IA-32 owns a flat GDT and a bounded TSS with an out-of-range I/O bitmap.
 Its fixed PAE tables preserve supervisor-only Root identity mappings and place

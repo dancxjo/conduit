@@ -37,6 +37,8 @@ diagnostic emulator, with twenty-three boundary cases, shared capability and
 lifecycle refusals, complete scalar floating/condition-state restoration and
 Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
 counter-disable control and receives `protected-execution-unsupported`.
+ARMv6's native diagnostic verifies the same refusal for an explicit protected
+text request before preparation; its separate A3 execution remains cooperative.
 Other ordinary implementations and architectures remain unfinished.
 DMA/driver isolation remain false; this is not accepted-release evidence.
 See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-execution-work-in-progress-5113).
