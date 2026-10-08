@@ -2,6 +2,7 @@
 //! Root's prepared common owner must supply the actual frame/rich-basis custody;
 //! this numerical component does not establish that provenance or clock mapping.
 use super::*;
+use std::rc::Rc;
 
 const SOURCE: &str = include_str!("../../fargan_rich_period.conduit");
 fn source() -> String {
@@ -55,15 +56,52 @@ fn named(t: &StructuredInfoType, tag: &str) -> StructuredInfoValue {
     )
     .unwrap()
 }
+/// One immutable checked Source document and parsed program per arithmetic profile.
+/// Preparation remains allocating; this is not a Flow or whole-memory admission.
+struct RichPeriodProjector {
+    document: CheckedSyntaxDocument,
+    program: Rc<str>,
+    parsed: PortableExpressionProgram,
+    wide: bool,
+}
+impl RichPeriodProjector {
+    fn prepare(wide: bool) -> Result<Rc<Self>, String> {
+        let document =
+            check_syntax_document(&parse_syntax_document(&source()), &StartupCatalog::new())
+                .map_err(|e| format!("{e:?}"))?;
+        let graph = expand_canonical_plot_for_authoring(
+            &document,
+            if wide {
+                "ai/fargan-rich-wide-nearest-period"
+            } else {
+                "ai/fargan-rich-nearest-period"
+            },
+            &ProfileCatalog::new(),
+        )
+        .map_err(|e| format!("{e:?}"))?;
+        let ConfigurationValue::Text(program) = &graph.expanded.gears[0].configuration[0].value
+        else {
+            return Err("Source program".into());
+        };
+        let parsed =
+            PortableExpressionProgram::from_canonical_hex(program).map_err(|e| format!("{e:?}"))?;
+        Ok(Rc::new(Self {
+            document,
+            program: Rc::from(program.as_str()),
+            parsed,
+            wide,
+        }))
+    }
+}
 pub(super) struct PreparedRichPeriod {
     original_q8: Vec<u8>,
     original_query_frame: Vec<u8>,
-    original_rich_basis: Vec<u8>,
+    original_rich_basis: Rc<[u8]>,
     original_projection: Vec<u8>,
     eligible: Vec<u8>,
     arithmetic: Vec<u8>,
     profile: &'static str,
-    program: String,
+    program: Rc<str>,
     raw: Vec<u8>,
     result: StructuredInfoValue,
     period: StructuredInfoValue,
@@ -117,41 +155,61 @@ impl PreparedRichPeriod {
         policy: StructuredInfoValue,
         cadence: StructuredInfoValue,
     ) -> Result<Self, String> {
+        let projector = RichPeriodProjector::prepare(WIDE)?;
+        Self::prepare_shared(
+            &projector,
+            original_q8,
+            original_query_frame,
+            Rc::from(original_rich_basis),
+            original_projection,
+            epoch_index,
+            (policy, cadence),
+        )
+    }
+    fn prepare_shared(
+        projector: &Rc<RichPeriodProjector>,
+        original_q8: &[u8],
+        original_query_frame: &[u8],
+        original_rich_basis: Rc<[u8]>,
+        original_projection: &[u8],
+        epoch_index: u64,
+        declarations: (StructuredInfoValue, StructuredInfoValue),
+    ) -> Result<Self, String> {
         if original_rich_basis.is_empty() || original_projection.is_empty() {
             return Err("original rich basis/projection required".into());
         }
-        let d = check_syntax_document(&parse_syntax_document(&source()), &StartupCatalog::new())
-            .map_err(|e| format!("{e:?}"))?;
-        if policy.value_type() != ty(&d, "FarganRichPeriodPolicy")
-            || cadence.value_type() != ty(&d, "FarganRichPeriodCadence")
+        let d = &projector.document;
+        let (policy, cadence) = declarations;
+        if policy.value_type() != ty(d, "FarganRichPeriodPolicy")
+            || cadence.value_type() != ty(d, "FarganRichPeriodCadence")
         {
             return Err("foreign quantization policy/cadence Type".into());
         }
         // Independently re-admit original nested Source owner before wrapping it.
-        let q8 = interface::admit_retained_session_native(&d, "SpeechCycleQ8AtRate", original_q8)
+        let q8 = interface::admit_retained_session_native(d, "SpeechCycleQ8AtRate", original_q8)
             .map_err(|e| format!("originalQ8: {e}"))?;
         let query = StructuredInfoValue::from_canonical_bytes(original_query_frame)
             .map_err(|e| format!("{e:?}"))?;
         if query.value_type() != scalar(0).value_type() {
             return Err("original grid frame Type".into());
         }
-        let eligible_name = if WIDE {
+        let eligible_name = if projector.wide {
             "FarganRichWidePeriodEligible"
         } else {
             "FarganRichPeriodEligible"
         };
-        let arithmetic_name = if WIDE {
+        let arithmetic_name = if projector.wide {
             "FarganRichWidePeriodArithmetic"
         } else {
             "FarganRichPeriodArithmetic"
         };
-        let profile = if WIDE {
+        let profile = if projector.wide {
             "ai/fargan-rich-wide-period-eligible@1"
         } else {
             "ai/fargan-rich-period-eligible@1"
         };
         let eligible = record(
-            ty(&d, eligible_name),
+            ty(d, eligible_name),
             &[
                 ("original", q8.clone()),
                 ("policy", policy),
@@ -162,12 +220,12 @@ impl PreparedRichPeriod {
         )
         .canonical_bytes()
         .map_err(|e| format!("{e:?}"))?;
-        interface::admit_retained_session_native(&d, eligible_name, &eligible)
+        interface::admit_retained_session_native(d, eligible_name, &eligible)
             .map_err(|e| format!("eligible: {e}"))?;
         let request = field(&q8, "request");
         let cycle = field(request, "cycle");
         let arithmetic = record(
-            ty(&d, arithmetic_name),
+            ty(d, arithmetic_name),
             &[
                 (
                     "numerator_seconds",
@@ -179,38 +237,23 @@ impl PreparedRichPeriod {
         )
         .canonical_bytes()
         .map_err(|e| format!("{e:?}"))?;
-        interface::admit_retained_session_native(&d, arithmetic_name, &arithmetic)?;
-        let graph = expand_canonical_plot_for_authoring(
-            &d,
-            if WIDE {
-                "ai/fargan-rich-wide-nearest-period"
-            } else {
-                "ai/fargan-rich-nearest-period"
-            },
-            &ProfileCatalog::new(),
-        )
-        .map_err(|e| format!("{e:?}"))?;
-        let ConfigurationValue::Text(program) = &graph.expanded.gears[0].configuration[0].value
-        else {
-            return Err("Source program".into());
-        };
-        let p =
-            PortableExpressionProgram::from_canonical_hex(program).map_err(|e| format!("{e:?}"))?;
-        let raw = p
+        interface::admit_retained_session_native(d, arithmetic_name, &arithmetic)?;
+        let raw = projector
+            .parsed
             .evaluate(&arithmetic)
             .map_err(|e| format!("program evaluation: {e:?}"))?;
-        let result = interface::admit_retained_session_native(&d, "FarganRichPeriodRaw", &raw)
+        let result = interface::admit_retained_session_native(d, "FarganRichPeriodRaw", &raw)
             .map_err(|e| format!("rawresult: {e}"))?;
-        let period = admit_final_period(&d, &result).map_err(|e| format!("finalperiod: {e}"))?;
+        let period = admit_final_period(d, &result).map_err(|e| format!("finalperiod: {e}"))?;
         Ok(Self {
             original_q8: original_q8.to_vec(),
             original_query_frame: original_query_frame.to_vec(),
-            original_rich_basis: original_rich_basis.to_vec(),
+            original_rich_basis,
             original_projection: original_projection.to_vec(),
             eligible,
             arithmetic,
             profile,
-            program: program.clone(),
+            program: Rc::clone(&projector.program),
             raw,
             result,
             period,
@@ -226,7 +269,7 @@ impl PreparedRichPeriod {
         &self.period
     }
     pub(super) fn material(&self) -> Vec<u8> {
-        serde_json::to_vec(&serde_json::json!({"core_fidelity_report":projection::report_material(self),"source":source(),"original_q8":self.original_q8,"original_query_frame":self.original_query_frame,"original_rich_basis":self.original_rich_basis,"original_projection":self.original_projection,"eligible":self.eligible,"arithmetic_profile":self.profile,"arithmetic_input":self.arithmetic,"program":self.program,"raw":self.raw,"admitted_result":self.result.canonical_bytes().unwrap(),"admitted_model_period":self.period.canonical_bytes().unwrap(),"policy":"nearest_whole_sample_ties_up","cadence":"epoch_onset_160_frames_at_16000_hz","scope":"declared grid queries; upstream opaque custody and clock/playback authority not established here"})).unwrap()
+        serde_json::to_vec(&serde_json::json!({"core_fidelity_report":projection::report_material(self),"source":source(),"original_q8":self.original_q8,"original_query_frame":self.original_query_frame,"original_rich_basis":self.original_rich_basis.as_ref(),"original_projection":self.original_projection,"eligible":self.eligible,"arithmetic_profile":self.profile,"arithmetic_input":self.arithmetic,"program":self.program.as_ref(),"raw":self.raw,"admitted_result":self.result.canonical_bytes().unwrap(),"admitted_model_period":self.period.canonical_bytes().unwrap(),"policy":"nearest_whole_sample_ties_up","cadence":"epoch_onset_160_frames_at_16000_hz","scope":"declared grid queries; upstream opaque custody and clock/playback authority not established here"})).unwrap()
     }
 }
 fn admit_final_period(
@@ -799,3 +842,6 @@ fn rich_wide_period_consumes_actual_joined_dsp_frame_receipts() {
         std::fs::write(path, serde_json::to_vec(&receipts).unwrap()).unwrap();
     }
 }
+
+#[path = "rich_period_aggregate.rs"]
+mod aggregate;

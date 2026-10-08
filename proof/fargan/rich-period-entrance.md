@@ -89,3 +89,36 @@ These allocating probes repeat complete shared basis material in each receipt.
 Before full200 projection, the aggregate owner must retain/deduplicate the exact
 immutable basis/programs once and reference them per original query, preserving
 full material and existing preparation limits. No rich model run is claimed.
+
+## Finite shared numerical aggregate
+
+`rich_period_aggregate.rs` stages a finite allocating component with one immutable
+checked Source document/nearest program and one shared original-basis/trajectory
+material owner. Receipts retain Rc references to that owner and program, alongside
+full query, Q8, upstream projection, eligibility, private arithmetic input, raw and
+admitted numerical outputs. This avoids copying the giant original basis into each
+receipt. Serialization of a single legacy receipt still expands its material;
+a future aggregate serializer must emit the shared owner once.
+
+All query count (2..65535), original frame (16 KiB), Q8 (1 KiB), identity/order,
+and checked canonical-byte sums are inspected before parsing Source or evaluating
+any query. The retained canonical quota is at most the existing 256 MiB; it includes
+shared original/trajectory material once, 128 KiB fixed program allowance, all
+per-query originals and 8192 bytes output allowance per epoch. Actual program and
+output material must fit those allowances. Under-budget, oversized, foreign Rc
+basis (even equal material), foreign/swapped query frame and incomplete profiles
+refuse. Source independently admits each finite hold position and executes its
+half-open [ordinal*160, ordinal*160+160) span at 16 kHz. An explicitly named
+`onset_hold_10ms` policy declares the temporal approximation; nearest-sample period
+precision retains its separate existing Core fidelity receipt.
+
+This is a component checkpoint, not a fully admitted rich inference session.
+The byte quota is **not** a Source AST, Native decode, evaluator scratch or whole
+working-memory bound. The matching older cached Core/Plot SDK lacks the newer
+canonical program decode-storage APIs; root's separately bounded immutable
+three-program owner must be composed at that boundary. Trajectory bytes here are
+retained original material, not an independently established upstream opaque
+common owner. Production composition must bind those original trajectories and
+query frames to that owner and add the temporal-approximation Core report; it
+must not infer trajectory preservation from the numerical precision report.
+No fresh full varying-period neural run or waveform is claimed by this component.

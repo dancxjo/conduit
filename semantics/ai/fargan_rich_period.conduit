@@ -83,3 +83,27 @@ plot ai/fargan-rich-wide-nearest-period (
     >> value: FarganRichWidePeriodArithmetic
     result: FarganRichPeriodRaw >>
 ) = ({ period: (.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2), exact: ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator == .numerator_seconds * .sample_rate_hz, model_above_exact: ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator > .numerator_seconds * .sample_rate_hz, error_numerator: (((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator >= .numerator_seconds * .sample_rate_hz) ? (((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator - .numerator_seconds * .sample_rate_hz) : (.numerator_seconds * .sample_rate_hz - ((.numerator_seconds * .sample_rate_hz * 2 + .denominator) / (.denominator * 2)) * .denominator), error_denominator: .denominator })
+
+# Finite cadence admission, separate from the semantic trajectory and model lifecycle.
+# The held target is explicitly an onset approximation over [frame, frame+160).
+type FarganRichHoldPolicy =
+    onset_hold_10ms
+    | unsupported_hold
+type FarganRichHoldPosition = {
+    epoch_count: U64
+    ordinal: U64
+    original_query_frame: U64
+    policy: FarganRichHoldPolicy
+    where .epoch_count >= 2 && .epoch_count <= 65535
+    where .ordinal < .epoch_count
+    where .original_query_frame == .ordinal * 160
+    where .policy is onset_hold_10ms
+}
+type FarganRichHoldSpan = {
+    start_frame: U64
+    end_frame_exclusive: U64
+}
+plot ai/fargan-rich-hold-span (
+    >> value: FarganRichHoldPosition
+    result: FarganRichHoldSpan >>
+) = ({ start_frame: .original_query_frame, end_frame_exclusive: .original_query_frame + 160 })
