@@ -558,10 +558,10 @@ fn mixed_local_remote_ensemble_requires_current_part_and_directional_lines() {
         Err(RemoteOwnerMaskRouteError::FaceExceedsFore)
     );
     assert_eq!(
-        selected_remote.validate_return_payload(50 * 1024),
+        selected_remote.validate_return_payload(62 * 1024),
         Err(RemoteOwnerMaskRouteError::ReturnExceedsFore)
     );
-    assert_eq!(remote.validate_return_payload(50 * 1024), Ok(()));
+    assert_eq!(remote.validate_return_payload(62 * 1024), Ok(()));
     let mut wrong_return = return_line.clone();
     wrong_return.line_id = conduit_core::LineId::from("line/mixed/other-return");
     wrong_return.availability.line_id = wrong_return.line_id.clone();
