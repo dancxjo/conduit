@@ -39,7 +39,15 @@ pub(super) fn validate(program: ProgramView<'_>) -> Result<(), Refusal> {
             }
         }
         PortableExpressionOperation::Collection(nodes) => {
-            let (element, minimum, maximum) = match program.output_type.shape() {
+            let mut representation = program.output_type;
+            while let StructuredInfoTypeShape::Nominal {
+                representation: inner,
+                ..
+            } = representation.shape()
+            {
+                representation = inner;
+            }
+            let (element, minimum, maximum) = match representation.shape() {
                 StructuredInfoTypeShape::Collection { element, length } => {
                     (element, length, length)
                 }

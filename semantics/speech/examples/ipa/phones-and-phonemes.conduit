@@ -1,0 +1,22 @@
+# Distinct first-class domain values, with proper IPA as their notation.
+# Import the Speech domain Types into the authoring catalog.
+plot example/aspirated-t (
+    >> input: SpeechPhone
+    phone: SpeechPhone >>
+) = ({identity: "phone/t-aspirated", ipa: "tʰ", features: [], aliases: [], status: SpeechSegmentStatus.allophonic})
+
+plot example/phone (
+    >> input: SpeechPhone
+    phone: SpeechPhone >>
+) = (.)
+
+plot example/phoneme (
+    >> input: SpeechPhoneme
+    phoneme: SpeechPhoneme >>
+) = (.)
+
+# The caller supplies the optional default; IPA spelling cannot infer it.
+plot example/phonemic-t (
+    >> input: SpeechPhoneme
+    phoneme: SpeechPhoneme >>
+) = ({identity: "phoneme/t", notation: "t", features: [], aliases: [], status: SpeechSegmentStatus.core, default_phone: .default_phone, possible_phones: ["phone/t", "phone/t-aspirated"], allophones: []})
