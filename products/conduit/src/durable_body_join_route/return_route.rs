@@ -361,10 +361,6 @@ mod tests {
         }
     }
 
-    fn chunks(payload: &[u8]) -> Vec<Vec<u8>> {
-        chunks_at(payload, MAX_OWNER_FACE_RESPONSE_BYTES)
-    }
-
     fn chunks_at(payload: &[u8], frame_bytes: usize) -> Vec<Vec<u8>> {
         let digest = Sha256::digest(payload);
         payload
@@ -399,8 +395,9 @@ mod tests {
 
     #[test]
     fn chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pressure() {
-        let payload = vec![0x5a; 2 * (MAX_OWNER_FACE_RESPONSE_BYTES - CHUNK_HEADER_BYTES) + 1];
-        let frames = chunks(&payload);
+        // Return actions retain their own bound when the owner Face profile grows.
+        let payload = vec![0x5a; MAX_RETURN_ACTION_BYTES];
+        let frames = chunks_at(&payload, 32 * 1024);
         assert_eq!(frames.len(), 3);
         let mut assembly = ChunkAssembly::default();
         assert!(!assembly.push(&frames[0]).unwrap());
