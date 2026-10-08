@@ -308,17 +308,19 @@ impl Owner {
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
-        if !self.session.pending_archives().is_empty() {
-            return Err(
-                "owner biography archive capacity requires an admitted archive store".into(),
-            );
-        }
-        state::retain(
+        state::retain_with_archives(
             root,
             self.session.evidence(),
+            self.session.pending_archives(),
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
-        )
+        )?;
+        if let Some(head) = self.session.pending_archives().last() {
+            self.session
+                .acknowledge_archives(head.digest)
+                .map_err(|error| format!("acknowledge committed biography archive: {error:?}"))?;
+        }
+        Ok(())
     }
     /// A readable name may enter only with the checked source for the exact
     /// resident identity. It is rederived after Boot, never treated as a
