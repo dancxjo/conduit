@@ -109,5 +109,7 @@ quantization variants refuse Native admission rather than fall back.
 
 This establishes exact declared rate/cumulative semantics only. Actual clock
 relationships, control-rate/Q-format projections, additional numeric profiles,
-renderer/PCM eligibility, dB/reference conversion, stable acceptance and all
-remaining #5216 requirements remain open.
+renderer/PCM eligibility, stable acceptance and all remaining #5216
+requirements remain open. The separate explicit-reference exact-power-of-ten
+dB capability is documented in [DECIBELS.md](DECIBELS.md); general logarithmic
+conversion remains open.

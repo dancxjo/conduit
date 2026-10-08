@@ -44,9 +44,10 @@ Type encoding; payload length alone is not its full admission cost.
 
 The bounded trajectory prerequisite is documented in [TRAJECTORIES.md](TRAJECTORIES.md).
 Exact declared rate/cumulative projection and its generic fidelity reports are
-documented in [RATE_PROJECTION.md](RATE_PROJECTION.md). Physical clock mapping,
-control-rate/Q-format projection, reference-bearing dB,
-catalog realization and remaining #5216 acceptance are deferred. This local semantic proof does not establish playback,
+documented in [RATE_PROJECTION.md](RATE_PROJECTION.md). Reference-bearing dB and its explicitly bounded exact-power-of-ten conversion
+are documented in [DECIBELS.md](DECIBELS.md). Physical clock mapping,
+control-rate/Q-format projection, catalog realization and remaining #5216
+acceptance are deferred. This local semantic proof does not establish playback,
 platform execution, model conditioning or stable release acceptance.
 
 The portable expression evaluator is a computation seam, not Type-refinement
@@ -106,5 +107,6 @@ Measured static Type / canonical value bytes: amplitude 157/216, power 150/209,
 full request 449/581, eligible wrapper 566/714. Numeric fraction payloads alone
 are 16 bytes; the complete structural encodings must be admitted.
 
-This slice adds amplitude-to-power only. Inverse square root, dB/reference
-conversion, Speech bridging, trajectories and remaining #5216 criteria stay open.
+This slice adds amplitude-to-power only. Inverse square root and Speech bridging stay open. Bounded trajectories and
+explicit-reference exact-power-of-ten dB conversion are implemented separately
+as documented above; they do not complete the remaining #5216 criteria.
