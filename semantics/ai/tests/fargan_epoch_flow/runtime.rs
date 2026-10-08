@@ -18,6 +18,8 @@ mod fixed_storage;
 mod native_control;
 #[path = "runtime/native_startup.rs"]
 mod native_startup;
+#[path = "runtime/native_trace.rs"]
+mod native_trace;
 #[path = "runtime/native_utterance.rs"]
 mod native_utterance;
 #[path = "runtime/primary_sink.rs"]
