@@ -1,0 +1,43 @@
+    Blocking waiting for file lock on build directory
+   Compiling serde v1.0.229
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/plot)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/kernel)
+    Checking byteorder v1.5.0
+    Checking thiserror v2.0.20
+    Checking hash32 v0.2.1
+    Checking heapless v0.7.17
+    Checking cobs v0.3.0
+    Checking postcard v1.1.3
+    Checking conduit-body v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/body)
+    Checking hash32 v0.3.1
+    Checking heapless v0.8.0
+    Checking serde-json-core v0.6.0
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/plan-lowering)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/human)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/audio)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/presentation)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/web)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/text)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/education)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/purpose)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/process)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/ai)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/language)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/mechanisms/protocols/midi)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/chat)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/wire)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/catalog)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/plots/todo/model)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/mechanisms/protocols/bluetooth)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/targets/std/offers)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/architecture/planner)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/proof/conformance/signal)
+    Finished `dev` profile [unoptimized] target(s) in 43.65s
