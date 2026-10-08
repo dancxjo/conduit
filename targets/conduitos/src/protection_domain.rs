@@ -4,97 +4,9 @@
 //! semantic capability authority in `conduit-core`; it seals the already
 //! selected scope into a small domain-local handle suitable for a trap gate.
 
-pub const MAXIMUM_DOMAIN_CAPABILITIES: usize = 8;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ProtectionDomainId(pub u32);
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelCapabilityHandle(u64);
-
-impl KernelCapabilityHandle {
-    #[cfg(feature = "conduitos-isolation-proof")]
-    pub(crate) const fn raw_for_domain(self) -> u64 {
-        self.0
-    }
-
-    #[cfg(feature = "conduitos-isolation-proof")]
-    pub(crate) const fn from_untrusted(raw: u64) -> Self {
-        Self(raw)
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelCapabilityScope {
-    pub host: [u8; 32],
-    pub boot: [u8; 32],
-    pub plan: [u8; 32],
-    pub play: [u8; 32],
-    pub implementation: [u8; 32],
-    pub base: [u8; 32],
-    pub base_generation: u32,
-    pub resource: [u8; 32],
-    pub resource_generation: u32,
-    pub operation: u32,
-    pub subject: [u8; 32],
-    pub authority: [u8; 32],
-    pub maximum_parameter_bytes: u32,
-    pub maximum_work_units: u32,
-    pub maximum_in_flight: u16,
-    pub maximum_operations: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelOperationClaim {
-    pub boot: [u8; 32],
-    pub plan: [u8; 32],
-    pub play: [u8; 32],
-    pub base_generation: u32,
-    pub resource_generation: u32,
-    pub operation: u32,
-    pub parameter_bytes: u32,
-    pub work_units: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelOperationLease {
-    slot: u16,
-    table_generation: u32,
-    sequence: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum KernelCapabilityRefusal {
-    InvalidTable,
-    InvalidScope,
-    TableFull,
-    UnknownHandle,
-    WrongDomain,
-    WrongScope,
-    ParameterEnvelope,
-    WorkEnvelope,
-    InFlightFull,
-    Exhausted,
-    Revoked,
-    StaleLease,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum KernelRevocationCause {
-    PlayCancelled,
-    PlayCompleted,
-    PlanReplaced,
-    AuthorityRevoked,
-    ResourceReplaced,
-    BaseReplaced,
-    BootReplaced,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct KernelRevocationReceipt {
-    pub cause: KernelRevocationCause,
-    pub revoked_handles: u16,
-}
+mod handle;
+mod types;
+pub use types::*;
 
 #[derive(Clone, Copy)]
 struct Entry {
@@ -174,7 +86,7 @@ impl KernelCapabilityTable {
         let issuance = self.next_issuance;
         self.next_issuance = self.next_issuance.wrapping_add(1).max(1);
         let handle =
-            KernelCapabilityHandle(mix_handle(self.secret, domain, slot, issuance, &scope));
+            KernelCapabilityHandle(handle::seal(self.secret, domain, slot, issuance, &scope));
         self.entries[slot] = Entry {
             occupied: true,
             domain,
@@ -188,6 +100,26 @@ impl KernelCapabilityTable {
             revoked: false,
         };
         Ok(handle)
+    }
+
+    /// Root rechecks the entire currently selected scope before accepting an
+    /// untrusted gate claim. A cached handle is never current authority by itself.
+    pub fn authorize_current(
+        &mut self,
+        domain: ProtectionDomainId,
+        handle: KernelCapabilityHandle,
+        current: &KernelCapabilityScope,
+        claim: KernelOperationClaim,
+    ) -> Result<KernelOperationLease, KernelCapabilityRefusal> {
+        let entry = self
+            .entries
+            .iter()
+            .find(|entry| entry.occupied && constant_time_equal(entry.handle.0, handle.0))
+            .ok_or(KernelCapabilityRefusal::UnknownHandle)?;
+        if entry.scope != *current {
+            return Err(KernelCapabilityRefusal::WrongScope);
+        }
+        self.authorize(domain, handle, claim)
     }
 
     pub fn authorize(
@@ -330,30 +262,6 @@ fn validate_scope(
         return Err(KernelCapabilityRefusal::InvalidScope);
     }
     Ok(())
-}
-
-fn mix_handle(
-    secret: u64,
-    domain: ProtectionDomainId,
-    slot: usize,
-    issuance: u32,
-    scope: &KernelCapabilityScope,
-) -> u64 {
-    let mut value =
-        secret ^ (u64::from(domain.0) << 32) ^ issuance as u64 ^ (slot as u64).rotate_left(19);
-    for byte in scope
-        .boot
-        .iter()
-        .chain(scope.plan.iter())
-        .chain(scope.play.iter())
-        .chain(scope.base.iter())
-        .chain(scope.resource.iter())
-        .chain(scope.authority.iter())
-    {
-        value ^= u64::from(*byte);
-        value = value.wrapping_mul(0x100_0000_01b3).rotate_left(11);
-    }
-    value | 1
 }
 
 fn constant_time_equal(left: u64, right: u64) -> bool {

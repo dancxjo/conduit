@@ -9,7 +9,7 @@ use conduit_core::{
 use crate::{
     machine::BaseKind,
     offer::{BaseOffer, HostOffer},
-    ordinary_plan::{COOPERATIVE_REGION_PROFILE, PreparationError},
+    ordinary_plan::{PreparationError, region_profile},
 };
 
 pub(super) fn seal_execution_region(
@@ -231,6 +231,47 @@ fn build_region(
     lane_base_identity: alloc::string::String,
     fragment: &PlanFragment,
 ) -> Result<ExecutionRegion, PreparationError> {
+    let exact_kinds = |kinds: &[&str]| {
+        admitted_placements.len() == kinds.len()
+            && kinds.iter().all(|kind| {
+                fragment
+                    .placements
+                    .iter()
+                    .filter(|p| {
+                        admitted_placements.contains(&p.placement_id) && p.kind_id.as_str() == *kind
+                    })
+                    .count()
+                    == 1
+            })
+    };
+    let ordinary_text = exact_kinds(&[
+        conduit_text::TEXT_LITERAL_KIND,
+        conduit_text::TEXT_UPPER_KIND,
+        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+    ]);
+    let keyboard_text = [
+        conduit_text::TEXT_UPPER_KIND,
+        conduit_semantic_catalog::TEXT_EDIT_KIND,
+    ]
+    .iter()
+    .any(|transform| {
+        exact_kinds(&[
+            conduit_semantic_catalog::KEYBOARD_KIND,
+            conduit_semantic_catalog::KEYMAP_KIND,
+            transform,
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+        ])
+    });
+    let tour_morse = exact_kinds(&[
+        conduit_text::TEXT_LITERAL_KIND,
+        conduit_text::TEXT_UPPER_KIND,
+        conduit_text::TEXT_MORSE_KIND,
+        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
+    ]);
+    let protected = cfg!(conduitos_protected_execution)
+        && matches!(region_id, "region/0" | "region/text")
+        && (ordinary_text || keyboard_text || tour_morse);
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {
             total.checked_add(u32::from(connection.item_capacity))
@@ -260,7 +301,7 @@ fn build_region(
             mandatory_sign_bytes: fragment.sign_storage_budget.byte_capacity,
         },
         admitted_placements,
-        execution_profile_id: ExecutionProfileId::from(COOPERATIVE_REGION_PROFILE),
+        execution_profile_id: ExecutionProfileId::from(region_profile(protected)),
         scheduling: ExecutionScheduling::CooperativeBoundedStep,
         lane_count: 1,
         lane_resource: ResourceBinding {
@@ -280,8 +321,8 @@ fn build_region(
             }),
         },
         lane_base_id: HostBaseId::from(lane_base_identity),
-        preemption_required: false,
-        isolation_required: false,
+        preemption_required: protected,
+        isolation_required: protected,
     })
 }
 

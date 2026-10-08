@@ -1,5 +1,6 @@
 mod aarch64_a0;
 mod aarch64_a1;
+mod aarch64_domain_proof;
 mod acceptance;
 mod active_rescue_proof;
 mod architecture_matrix;
@@ -31,6 +32,7 @@ mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
+mod ia32_domain_proof;
 mod ia32_physical_proof;
 mod ia32_product_boot;
 mod ia32_vga_receipt;
@@ -52,6 +54,9 @@ mod loongarch64_a2;
 #[allow(dead_code)]
 mod loongarch64_a3;
 mod loongarch64_a4;
+mod loongarch64_domain_proof;
+mod loongarch64_emulator;
+mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod opl2_proof;
@@ -59,15 +64,20 @@ mod opl2_proof;
 mod orange_pi_5_image;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_media.rs"]
 mod orange_pi_5_media;
+mod ordinary_domain_proof;
+mod ordinary_source_conformance;
 mod owner_action_proof;
 mod owner_boot;
 mod owner_model_route;
 mod pc_speaker_proof;
 mod prepared_proof_image;
 mod product_journey_gate;
+mod product_observatory;
 mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
+mod protected_morse_proof;
+mod protected_product_receipt;
 mod protocol_image;
 mod protocol_input;
 mod protocol_run;
@@ -76,6 +86,7 @@ mod prove;
 mod prove_many;
 mod ps2_input_proof;
 mod qemu_artifacts;
+mod qemu_source;
 mod qmp;
 mod qmp_display;
 mod removable_media;
@@ -89,6 +100,8 @@ mod riscv64_a2;
 #[allow(dead_code)]
 mod riscv64_a3;
 mod riscv64_a4;
+mod riscv64_domain_proof;
+mod riscv64_emulator;
 mod riscv64_product_boot;
 mod run;
 mod screen_free_three_host_proof;
@@ -514,6 +527,13 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::EmergencyHaltProof => emergency_halt_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
+        ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
+        ConduitosCommand::Ia32OrdinaryDomainProof => ia32_domain_proof::execute(opts),
+        ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
+        ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),
+        ConduitosCommand::Loongarch64OrdinaryDomainProof => loongarch64_domain_proof::execute(opts),
+        ConduitosCommand::PrepareRiscv64DomainEmulator => riscv64_emulator::prepare(opts),
+        ConduitosCommand::PrepareLoongarch64DomainEmulator => loongarch64_emulator::prepare(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),
     }
 }

@@ -1,5 +1,16 @@
 //! Bootloader-neutral bounded boot truth.
 
+/// Requested and validated Limine base revision, shared with retained
+/// provenance so the snapshot cannot report a different boot contract.
+pub const LIMINE_BASE_REVISION: u64 = if cfg!(any(
+    target_arch = "aarch64",
+    all(target_arch = "loongarch64", feature = "loongarch64-product")
+)) {
+    6
+} else {
+    3
+};
+
 #[cfg(any(
     target_arch = "x86_64",
     target_arch = "aarch64",

@@ -68,6 +68,8 @@ extern "C" fn conduitos_start() -> ! {
                         emit_machine_refusal(error.as_str());
                     }
                     initialize_runtime_arena(&record);
+                    #[cfg(feature = "ordinary-domain-proof")]
+                    run_ordinary_domain_proof(&record);
                     // SAFETY: ordinary native startup is the sole privileged Root.
                     // Protocol modules are local administrator boot configuration;
                     // that administrator must separately approve firmware handoff
@@ -207,6 +209,11 @@ fn run_isolation_proof(record: &boot::BootRecord) {
     let identities =
         conduitos::identity::derive(entropy, record.timestamp, record.image_physical_start);
     arch::run_isolation_proof(record, identities.host, identities.boot);
+}
+
+#[cfg(all(target_os = "none", feature = "ordinary-domain-proof"))]
+fn run_ordinary_domain_proof(record: &boot::BootRecord) {
+    conduitos::ordinary_domain_proof::run(record);
 }
 
 #[cfg(target_os = "none")]

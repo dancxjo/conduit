@@ -4,7 +4,7 @@ use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, BootId, CapabilityId, ExecutionProfileId,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
-    Plan, PlanId, ResourceOffer, bind_active_play, resource_offer,
+    Plan, PlanId, ResourceOffer, resource_offer,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{
@@ -92,10 +92,21 @@ pub fn prepare(
     {
         return Err(PreparationError::PlanRejected);
     }
-    let kernel = DualRegionKernel::prepare(fragment, &lowered)
+    #[allow(unused_mut)]
+    let mut kernel = DualRegionKernel::prepare(fragment, &lowered)
         .map_err(|_| PreparationError::KernelRejected)?;
     stage(b"kernel");
-    let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let active_play =
+        crate::ordinary_plan::new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
+    #[cfg(conduitos_protected_execution)]
+    kernel
+        .protect(&plan, &active_play, fixed_offer)
+        .map_err(|error| match error {
+            crate::composition::MachineRunError::ProtectionDomain(refusal) => {
+                PreparationError::Protection(refusal)
+            }
+            _ => PreparationError::KernelRejected,
+        })?;
     Ok(PreparedDualRegionPlay {
         kernel,
         advertisement,
@@ -214,6 +225,7 @@ fn advertisement(
         capabilities,
         planner_capabilities: Vec::new(),
     };
+    crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
@@ -237,11 +249,18 @@ fn bind_native_capability(
         ExecutionProfileId::from("conduitos/single-lane-cooperative@1");
     portable.implementation.implementation_id = ImplementationId::from(fixed.implementation);
     portable.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
+    #[allow(unused_mut)]
+    let mut memory_bytes = 4096;
+    #[cfg(conduitos_protected_execution)]
+    if fixed.kind == conduit_text::TEXT_UPPER_KIND {
+        memory_bytes +=
+            crate::arch::TextDomain::RESERVED_BYTES + crate::text_protection::ROOT_METADATA_CEILING;
+    }
     portable
         .resource_requirements
         .push(conduit_core::resource_requirement(
             "conduit.resource/runtime-memory@1",
-            4_096,
+            memory_bytes,
         ));
     portable.resource_requirements.sort();
 }

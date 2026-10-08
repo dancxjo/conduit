@@ -21,6 +21,20 @@ fn fixture() -> (BootIdentities, HostOffer<'static>) {
 }
 
 #[test]
+fn protected_request_never_falls_back_to_cooperative_preparation() {
+    let (identities, offer) = fixture();
+    let allocations = crate::test_allocations::allocations(|| {
+        assert!(matches!(
+            prepare_protected(&identities, &offer, "build"),
+            Err(PreparationError::Protection(
+                crate::protected_region::DomainRefusal::Unsupported
+            ))
+        ));
+    });
+    assert_eq!(allocations, 0);
+}
+
+#[test]
 fn ordinary_source_checks_plans_lowers_and_installs() {
     let (identities, offer) = fixture();
     let prepared = prepare(&identities, &offer, "build").unwrap();

@@ -10,7 +10,9 @@ pub(super) fn stop() {
     // The transition to mode 1 may itself raise OUT; quiesce acknowledges that
     // pre-arm edge before a new generation can become eligible.
     unsafe {
-        outb(0x21, 0xff);
+        // Retire only IRQ0. Root's independent domain-budget cascade may be
+        // active when a Source timer completes during User execution.
+        outb(0x21, inb(0x21) | 1);
         outb(0x43, 0x32);
         outb(0x40, 0);
         outb(0x40, 0);
@@ -19,14 +21,15 @@ pub(super) fn stop() {
 
 pub(super) fn quiesce() -> Result<(), BaseError> {
     stop();
-    // This Host owns only IRQ0; all other PIC lines remain masked. Poll provides
+    // Poll only IRQ0, then restore the other Root owners' mask bits. Poll provides
     // one bounded acknowledge of a pre-arm/retired IRQ, while the source is
     // stopped and the CPU cannot dispatch it into a fresh timer generation.
     let pending = unsafe {
+        let mask = inb(0x21);
         outb(0x21, 0xfe);
         outb(0x20, 0x0c);
         let pending = inb(0x20);
-        outb(0x21, 0xff);
+        outb(0x21, mask | 1);
         pending
     };
     if pending & 0x80 != 0 {
@@ -45,7 +48,7 @@ pub(super) fn start() {
         outb(0x43, 0x30);
         outb(0x40, TICKS as u8);
         outb(0x40, (TICKS >> 8) as u8);
-        outb(0x21, 0xfe);
+        outb(0x21, inb(0x21) & !1);
     }
 }
 

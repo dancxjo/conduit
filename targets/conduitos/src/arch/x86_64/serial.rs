@@ -4,7 +4,9 @@ use super::io::{inb, outb};
 
 const COM1: u16 = 0x3f8;
 const SERIAL_SPIN_LIMIT: u32 = 100_000;
-const MAX_PRESENT_BYTES: usize = crate::offer::SERIAL_MAXIMUM_BYTES as usize;
+// Text remains limited to 256 bytes by its selected call/window. The same
+// physical provider also serves the independently scoped Morse byte window.
+const MAX_PRESENT_BYTES: usize = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES;
 const MAX_BOOT_DIAGNOSTIC_BYTES: usize = crate::sign_format::MAX_STRUCTURED_SIGN_BYTES;
 
 pub(super) fn initialize() {

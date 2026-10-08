@@ -324,6 +324,10 @@ pub trait TimerBase {
 pub trait SerialBase {
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError>;
     fn presentation_count(&self) -> u32;
+    /// Current Root provider epoch. Unbound providers cannot serve protected calls.
+    fn provider_generation(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait InterruptBase {

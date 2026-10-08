@@ -104,6 +104,20 @@ pub(super) enum ConduitosCommand {
     Opl2Proof,
     /// Prove one x86_64 ring-3 protection domain and exact kernel capability gate.
     IsolationProof,
+    /// Run checked ordinary text Source with its production kernel and CPL3 implementation.
+    OrdinaryDomainProof,
+    /// Prove ordinary IA-32 ring-3 execution and independent hostile entries.
+    Ia32OrdinaryDomainProof,
+    /// Prove ordinary AArch64 EL0 execution and independent boundary checks.
+    Aarch64OrdinaryDomainProof,
+    /// Prove ordinary RISC-V64 U-mode execution and independent boundary checks.
+    Riscv64OrdinaryDomainProof,
+    /// Prove ordinary LoongArch64 PLV3 execution and independent boundary checks.
+    Loongarch64OrdinaryDomainProof,
+    /// Prepare pinned QEMU and OpenSBI for protected RISC-V64 product proofs.
+    PrepareRiscv64DomainEmulator,
+    /// Prepare the pinned diagnostic QEMU with both reviewed LoongArch corrections.
+    PrepareLoongarch64DomainEmulator,
     /// Prove one real fixed-ring VirtIO-net exchange with the QEMU gateway.
     VirtioNetProof,
 }

@@ -95,3 +95,22 @@ pub fn emergency_halt() -> ! {
         unsafe { asm!("hlt", options(nostack, nomem)) };
     }
 }
+
+/// Preserve Root's interrupt state across a hardware/provider transaction.
+pub(super) struct InterruptMask(bool);
+impl InterruptMask {
+    pub fn new() -> Self {
+        let flags: u64;
+        unsafe {
+            asm!("pushfq", "pop {}", "cli", out(reg) flags);
+        }
+        Self(flags & 0x200 != 0)
+    }
+}
+impl Drop for InterruptMask {
+    fn drop(&mut self) {
+        if self.0 {
+            enable_interrupts();
+        }
+    }
+}

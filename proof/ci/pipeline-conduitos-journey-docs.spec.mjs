@@ -9,6 +9,7 @@ import { deflateSync } from 'node:zlib';
 
 const names = [
   'front-door-ready', 'body-born', 'body-woken', 'body-planned', 'body-playing',
+  'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram', 'body-stopped',
 ];
 const commit = '1'.repeat(40);
@@ -17,7 +18,7 @@ const boot = 'b'.repeat(64);
 const body = 'c'.repeat(64);
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('Pages composition publishes only the exact ten-step QMP journey', () => {
+test('Pages composition publishes only the exact twelve-step QMP journey', () => {
   const fixture = makeFixture();
   try {
     const result = publish(fixture);
@@ -27,6 +28,10 @@ test('Pages composition publishes only the exact ten-step QMP journey', () => {
     for (const name of names) assert.match(page, new RegExp(`src="${name}\\.png"`));
     assert.match(page, /A Body, its Patchbay, and its Face/);
     assert.match(page, /What changed:/);
+    assert.match(page, /twelve screenshots/);
+    assert.equal((page.match(/class="journey-step"/g) ?? []).length, 12);
+    const retained = readFileSync(path.join(fixture.site, `journeys/commits/${commit}/conduitos/x86_64/index.html`), 'utf8');
+    for (const name of names) assert.ok(retained.includes(`src="${name}.png"`));
     assert.match(page, /Main navigation/);
     assert.match(page, /cargo xtask make conduitos journey-proof/);
     assert.match(page, /Journey serial transcript/);
@@ -70,6 +75,38 @@ test('Pages composition refuses a transcript from another Body before writing pa
     assert.match(result.stderr, /serial transcript does not match/);
     assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
       '<!-- conduit-conduitos-journey-card@1 -->');
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+for (const checkpoint of ['protected-keyboard-canvas', 'protected-memory-lantern']) {
+  test(`Pages composition refuses a journey missing ${checkpoint}`, () => {
+    const fixture = makeFixture();
+    try {
+      const manifestPath = path.join(fixture.evidence, 'manifest.json');
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      manifest.checkpoints = manifest.checkpoints.filter(entry => entry.checkpoint !== checkpoint);
+      writeFileSync(manifestPath, JSON.stringify(manifest));
+      const result = publish(fixture);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /journey is incomplete/);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+}
+
+test('Pages composition refuses reordered captures', () => {
+  const fixture = makeFixture();
+  try {
+    const manifestPath = path.join(fixture.evidence, 'manifest.json');
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    [manifest.checkpoints[5], manifest.checkpoints[6]] = [manifest.checkpoints[6], manifest.checkpoints[5]];
+    writeFileSync(manifestPath, JSON.stringify(manifest));
+    const result = publish(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /checkpoint 6 violates/);
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }

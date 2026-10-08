@@ -16,75 +16,27 @@ pub const TEXT_EDIT_KIND: &str = "text/edit";
 pub const TEXT_SUBMIT_LINES_KIND: &str = "text/submit-lines";
 pub const TEXT_EDIT_REVISION: &str = "conduit.text/edit@1";
 pub const TEXT_SUBMIT_LINES_REVISION: &str = "conduit.text/submit-lines@1";
-pub const MAXIMUM_EDITED_TEXT_BYTES: u32 = 256;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TextStateMode {
-    Edit,
-    Submit,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TextStateRefusal {
-    InvalidCapacity,
-    InvalidUtf8,
-    CapacityExhausted,
-}
+#[path = "text_state/retained.rs"]
+mod retained;
+pub use retained::{TextStateMode, TextStateRefusal, MAXIMUM_EDITED_TEXT_BYTES};
 
 /// Pre-admitted retained text storage shared by every compatible Host.
 pub struct BoundedTextState {
-    mode: TextStateMode,
+    state: retained::RetainedText,
     text: Vec<u8>,
-    pending_clear: bool,
 }
 
 impl BoundedTextState {
     pub fn new(mode: TextStateMode, maximum_bytes: usize) -> Result<Self, TextStateRefusal> {
-        if maximum_bytes == 0 || maximum_bytes > MAXIMUM_EDITED_TEXT_BYTES as usize {
-            return Err(TextStateRefusal::InvalidCapacity);
-        }
+        let state = retained::RetainedText::new(mode, maximum_bytes)?;
         Ok(Self {
-            mode,
-            text: Vec::with_capacity(maximum_bytes),
-            pending_clear: false,
+            state,
+            text: vec![0; maximum_bytes],
         })
     }
 
     pub fn apply(&mut self, fragment: &[u8]) -> Result<Option<&[u8]>, TextStateRefusal> {
-        if self.pending_clear {
-            self.text.clear();
-            self.pending_clear = false;
-        }
-        let fragment = core::str::from_utf8(fragment).map_err(|_| TextStateRefusal::InvalidUtf8)?;
-        if fragment == "\n" {
-            return match self.mode {
-                TextStateMode::Edit => Ok(Some(&self.text)),
-                TextStateMode::Submit if self.text.is_empty() => Ok(None),
-                TextStateMode::Submit => {
-                    self.pending_clear = true;
-                    Ok(Some(&self.text))
-                }
-            };
-        }
-        if fragment == "\u{8}" {
-            if let Some((index, _)) = core::str::from_utf8(&self.text)
-                .ok()
-                .and_then(|text| text.char_indices().next_back())
-            {
-                self.text.truncate(index);
-            }
-            return Ok(matches!(self.mode, TextStateMode::Edit).then_some(&self.text));
-        }
-        if self
-            .text
-            .len()
-            .checked_add(fragment.len())
-            .is_none_or(|length| length > self.text.capacity())
-        {
-            return Err(TextStateRefusal::CapacityExhausted);
-        }
-        self.text.extend_from_slice(fragment.as_bytes());
-        Ok(matches!(self.mode, TextStateMode::Edit).then_some(&self.text))
+        self.state.apply(&mut self.text, fragment)
     }
 }
 

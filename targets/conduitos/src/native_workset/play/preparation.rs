@@ -27,7 +27,9 @@ pub(super) fn prepare(
         FixedValueStore::<10, 3072>::new(24_576).map_err(|_| WorksetRefusal::Kernel)?;
     let empty = values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?;
     let mut bindings = [None; NODES];
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut editors = core::array::from_fn(|_| None);
+    let mut admitted_editors = [false; PLOTS];
     let mut operations = Vec::with_capacity(NODES);
     for (plot, part) in parts.iter().enumerate() {
         let fragment = &prepared.plan.plots[plot].plan.fragments[0];
@@ -101,16 +103,24 @@ pub(super) fn prepare(
                             _ => None,
                         })
                         .ok_or(WorksetRefusal::Plan)?;
-                    if editors[plot].is_some() {
+                    if admitted_editors[plot] {
                         return Err(WorksetRefusal::Plan);
                     }
-                    editors[plot] = Some(
-                        BoundedTextState::new(
-                            conduit_semantic_catalog::TextStateMode::Edit,
-                            maximum,
-                        )
-                        .map_err(|_| WorksetRefusal::Plan)?,
-                    );
+                    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+                    {
+                        editors[plot] = Some(
+                            BoundedTextState::new(
+                                conduit_semantic_catalog::TextStateMode::Edit,
+                                maximum,
+                            )
+                            .map_err(|_| WorksetRefusal::Plan)?,
+                        );
+                    }
+                    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                    if maximum == 0 || maximum > 256 {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    admitted_editors[plot] = true;
                     // Edit is an ordinary one-input/one-output transform; the
                     // installed host binding gives it retained text semantics.
                     (
@@ -232,9 +242,18 @@ pub(super) fn prepare(
         });
     }
     Ok(NativeWorksetPlay {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        pure_results: core::array::from_fn(|_| None),
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        protected: core::array::from_fn(|_| None),
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        protection_admissions: core::array::from_fn(|index| {
+            prepared.protected_text.get(index).cloned().flatten()
+        }),
         scheduler: Box::new(scheduler),
         bindings,
         keymaps: core::array::from_fn(|_| ConduitIntlKeymap::new()),
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
         editors,
         pending: [None; PLOTS],
         held: [None; 256],
@@ -245,5 +264,7 @@ pub(super) fn prepare(
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         plot_count: count,
         cancelled: false,
+        admitted_plan: prepared.plan.plan_id.clone(),
+        active_body_play: None,
     })
 }

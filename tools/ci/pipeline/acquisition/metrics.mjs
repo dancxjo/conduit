@@ -27,6 +27,7 @@ export function acquisitionIdentity(target, { root = process.cwd(), env = proces
       'tools/xtask/src/commands/avr/rust_toolchain.rs', 'tools/xtask/src/commands/avr/setup.rs',
       'tools/xtask/src/commands/avr/tool_support.rs', 'tools/xtask-dispatch/src/tool_setup.rs',
       'tools/xtask/src/process/tool_command.rs',
+      'targets/conduitos/make/xtask/qemu_source.rs', 'targets/conduitos/make/xtask/riscv64_emulator.rs',
       'targets/rp2040/firmware/pico-w-signal/make/xtask/firmware.rs',
       'targets/rp2040/firmware/pico-w-signal/make/xtask/doctor.rs'].map(name => path.join(root, name)),
   ].filter(existsSync).sort();
@@ -42,6 +43,8 @@ export function acquisitionIdentity(target, { root = process.cwd(), env = proces
   const key = `conduit-acquisition-v1-${safe(platform)}-${safe(arch)}-${safe(runnerImage.os)}-${safe(runnerImage.version)}-${target}-${specificationKey}`;
   const paths = [path.join(home, '.cache/conduit-ci')];
   if (target === 'browser') paths.push(path.join(home, '.cache/ms-playwright'), path.join(home, '.npm'));
+  if (target === 'conduitos-riscv64') paths.push(...['qemu-system-riscv64', 'fw_dynamic.bin', 'receipt.json']
+    .map(name => path.join(root, 'target/conduitos/toolchain/riscv64-domain-qemu/*', name)));
   const rustup = env.RUSTUP_HOME || path.join(home, '.rustup');
   if (['esp32-s3', 'esp32-wroom'].includes(target)) paths.push(path.join(rustup, 'toolchains/esp-conduit-1.91.1'));
   if (target === 'esp32-c3') paths.push(path.join(rustup, `toolchains/1.91.1-${arch === 'x64' ? 'x86_64' : arch}-unknown-linux-gnu`));

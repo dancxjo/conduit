@@ -56,7 +56,12 @@ fn boot_once(
     build: &str,
     binding: &str,
 ) -> Result<(serde_json::Value, serde_json::Value), ConduitosError> {
-    let text = riscv64_a1::boot_until_image(paths, image, OBSERVATORY_PREFIX)?;
+    let text = riscv64_a1::boot_until_image_with_cpu(
+        paths,
+        image,
+        OBSERVATORY_PREFIX,
+        "rv64,zkr=true,sv57=off,sv48=off",
+    )?;
     let product = parse_one(&text, PRODUCT_PREFIX, "product")?;
     if product["schema"] != "conduit.conduitos/riscv64-product@1"
         || product["status"] != "ready"
@@ -72,11 +77,18 @@ fn boot_once(
     {
         return Err(refusal("profile-built-make-mismatch", product.to_string()));
     }
+    let mut product = product;
+    product["ordinary_domain"] =
+        super::protected_product_receipt::capture(&text, &product, "riscv64")?;
     let snapshot = parse_one(&text, OBSERVATORY_PREFIX, "Observatory")?;
     conduit_observatory::validate_snapshot(
         &serde_json::from_value(snapshot.clone()).map_err(invalid)?,
     )
     .map_err(|e| refusal("invalid-riscv64-product-observatory", e.to_string()))?;
+    let ordinary_plan: conduit_core::Plan =
+        serde_json::from_value(snapshot["plans"][0].clone()).map_err(invalid)?;
+    product["ordinary_source_conformance"] =
+        super::ordinary_source_conformance::capture(&ordinary_plan)?;
     if snapshot["hosts"][0]["advertisement"]["host_id"] != product["host_id"]
         || snapshot["hosts"][0]["advertisement"]["boot_id"] != product["boot_id"]
         || snapshot["plans"][0]["plan_id"] != product["ordinary_plan_id"]
@@ -117,7 +129,7 @@ fn prove_patchbay(
         product["ordinary_play_id"].as_str().unwrap_or_default(),
         "BASES 7",
         "lifecycle=Completed",
-        "firmware=sbi",
+        "firmware=uefi64",
         "proof=FreestandingEmulator",
     ] {
         if required.is_empty() || !linear.contains(required) {

@@ -306,6 +306,9 @@ struct ExactTourSerial<'a, S> {
 }
 
 impl<S: SerialBase> SerialBase for ExactTourSerial<'_, S> {
+    fn provider_generation(&self) -> Option<u64> {
+        self.inner.provider_generation()
+    }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         if bytes != self.expected.as_bytes() || self.observed {
             self.mismatch = true;
