@@ -12,6 +12,9 @@ python3 proof/evidence/language/prepare_window8_evaluation.py \
 
 The preparer verifies model bytes, lexical-profile semantic identity, pinned
 TRAIN/DEV/TEST digests, reviewed teaching digest and reference extractor digest.
+For a separately trained candidate, supply `--teaching /path/to/exact-teaching.json`.
+Its digest must match that candidate's manifest; the default remains the original
+eight-row teaching input. A mismatch refuses before creating evaluation output.
 It excludes unsupported profile trees, vocabulary/POS alternatives outside the
 selected profile, and exact form sequences found anywhere in TRAIN or teaching.
 It writes no oracle actions. Reference labels are evaluation inputs, never
@@ -25,6 +28,11 @@ benchmark, or vocative precision/recall evidence. Preserve all instance identiti
 and exclusions; report duplicate surfaces and cross-split overlap in evaluation.
 A larger/general linguistic claim needs stronger coverage and its own frozen
 model, profile, supervision and evaluation membership evidence.
+The separate vocative candidate uses twelve TRAIN teaching rows and a different
+64-entry profile. Its verified reference preparation yields 3 DEV and 5 TEST
+instances; these counts are not Native decoding results. The Native runner below
+still selects the original embedded teaching input, so it must be extended with
+exact candidate teaching custody before evaluating that candidate.
 
 Actual decoding uses the existing ordinary model and checked Source bank:
 

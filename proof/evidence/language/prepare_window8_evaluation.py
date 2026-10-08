@@ -43,7 +43,7 @@ def main(args):
     assert digest(training / "window8_reference.py") == manifest["external_reference_sha256"]
     for split in ["train", "dev", "test"]:
         assert digest(args.corpus / f"en_ewt-ud-{split}.conllu") == manifest["corpus_sha256"][split]
-    teaching_path = training / "ewt_joint_v3_window8/reviewed_teaching.json"
+    teaching_path = args.teaching or training / "ewt_joint_v3_window8/reviewed_teaching.json"
     assert digest(teaching_path) == manifest["reviewed_teaching_sha256"]
     # All TRAIN sequences participate, including trees excluded by profile/oracle.
     train = form_sequences(args.corpus / "en_ewt-ud-train.conllu")
@@ -85,6 +85,7 @@ def main(args):
         "model_artifact_sha256": manifest["artifact_sha256"],
         "lexical_profile_sha256": digest(args.model / "lexical_profile.json"),
         "reference_extractor_sha256": digest(training / "window8_reference.py"),
+        "teaching_sha256": digest(teaching_path),
         "preparer_sha256": digest(Path(__file__)),
         "corpus_sha256": manifest["corpus_sha256"],
         "exact_form_sequence_disjoint_from_all_pinned_train_and_teaching": True,
@@ -99,4 +100,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for argument in ["repo", "model", "corpus", "output"]:
         parser.add_argument(f"--{argument}", type=Path, required=True)
+    parser.add_argument("--teaching", type=Path,
+                        help="Exact TRAIN teaching input pinned by the model manifest")
     main(parser.parse_args())
