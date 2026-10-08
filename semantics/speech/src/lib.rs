@@ -340,3 +340,20 @@ pub mod shared_acoustic;
 
 #[cfg(feature = "semantic-bindings")]
 pub mod ipa_gestures;
+
+#[cfg(feature = "semantic-bindings")]
+mod resonator_programs {
+    include!(concat!(env!("OUT_DIR"), "/resonator_programs.rs"));
+}
+#[cfg(feature = "semantic-bindings")]
+mod resonator_projection;
+#[cfg(feature = "semantic-bindings")]
+pub use resonator_projection::*;
+#[cfg(feature = "semantic-bindings")]
+mod resonator_projection_report;
+#[cfg(feature = "semantic-bindings")]
+pub use resonator_projection_report::*;
+#[cfg(feature = "semantic-bindings")]
+pub mod gesture_renderer;
+#[cfg(feature = "semantic-bindings")]
+pub use gesture_renderer::*;

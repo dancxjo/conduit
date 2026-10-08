@@ -1,11 +1,15 @@
 #[path = "build_support/common_acoustic.rs"]
 mod common_acoustic;
+#[path = "build_support/gesture_dsp.rs"]
+mod gesture_dsp;
 #[path = "build_support/gesture_lowering.rs"]
 mod gesture_lowering;
 #[path = "build_support/graph.rs"]
 mod graph;
 #[path = "build_support/lower.rs"]
 mod lower;
+#[path = "build_support/resonator_projection.rs"]
+mod resonator_projection;
 use conduit_core::StructuredInfoTypeShape;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -86,6 +90,8 @@ fn main() {
         include_str!("phone_composition.conduit"),
         include_str!("common_acoustic_targets.conduit"),
         include_str!("gesture_lowering.conduit"),
+        include_str!("resonator_projection.conduit"),
+        include_str!("gesture_frame_control.conduit"),
         include_str!("gesture_shared.conduit"),
         include_str!("shared_acoustic.conduit"),
     ]
@@ -186,6 +192,7 @@ fn main() {
             .expect("Speaking segment and listening contracts check");
     common_acoustic::write_programs(&semantic);
     gesture_lowering::write_programs(&semantic);
+    resonator_projection::write_programs(&semantic);
     let expanded = expand_canonical_plot_for_authoring(
         &semantic,
         "speech/linguistic-prosody",
@@ -380,10 +387,20 @@ fn main() {
         include_str!("context_match.conduit")
     );
     let source = format!("{}\n{}", source, include_str!("pitch_projection.conduit"));
+    let source = format!(
+        "{}\n{}\n{}",
+        source,
+        include_str!("gesture_frame_control.conduit"),
+        include_str!("gesture_frame_dsp.conduit")
+    );
+    println!("cargo:rerun-if-changed=resonator_projection.conduit");
+    println!("cargo:rerun-if-changed=gesture_frame_control.conduit");
+    println!("cargo:rerun-if-changed=gesture_frame_dsp.conduit");
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked =
         check_syntax_document(&syntax, &StartupCatalog::new()).expect("speech plots check");
+    gesture_dsp::write(&checked);
     let mut generated = String::from("// Generated from exact checked speech plots.\n");
     generated.push_str(&format!(
         "pub const SOURCE_ID: &str = {:?};\n",

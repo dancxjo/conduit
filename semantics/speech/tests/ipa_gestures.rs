@@ -309,6 +309,46 @@ fn joined_original_context_gestures_preserve_ipa_correspondence_and_syllable_cus
                     "t"
                 }
             );
+            // Same opaque IPA/gesture carrier reaches the actual Source DSP.
+            // This manually authored component does not grant text/play authority.
+            use conduit_plot::rust_binding::NativeRustBinding;
+            let grid = conduit_audio::AudioSampleRateBasis::new(
+                timing().anchor().clone(),
+                conduit_audio::AudioFrameQuantization::Floor,
+                8000,
+            )
+            .unwrap();
+            let cycle = conduit_audio::AudioCycleDuration::new(200, 1).unwrap();
+            let renderer = conduit_speech::prepare_speech_gesture_renderer(
+                result.contextual().lowered(),
+                &grid.encode().unwrap(),
+                &cycle.encode().unwrap(),
+            )
+            .unwrap();
+            assert!(core::ptr::eq(
+                renderer.original(),
+                result.contextual().lowered()
+            ));
+            assert_eq!(renderer.frame_range(), 800..1600);
+            let mut cursor = renderer.cursor();
+            let mut frames = 0;
+            let mut aspiration = 0;
+            let mut nonzero = 0;
+            while let Some(frame) = renderer.next(&mut cursor).unwrap() {
+                frames += 1;
+                aspiration += usize::from(*frame.gates().aspiration());
+                nonzero += usize::from(frame.sample() != 0);
+            }
+            assert_eq!(frames, 800);
+            assert_eq!(
+                aspiration,
+                if matches!(stress, SpeechStress::Primary) {
+                    160
+                } else {
+                    0
+                }
+            );
+            assert!(nonzero > 0);
             let foreign_inventory = inventory.clone();
             let foreign = select_intent_allophone(
                 &i,
