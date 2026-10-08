@@ -308,19 +308,14 @@ impl Owner {
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
-        state::retain_with_archives(
+        state::retain_session(
             root,
-            self.session.evidence(),
-            self.session.pending_archives(),
+            &mut self.session,
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
-        )?;
-        if let Some(head) = self.session.pending_archives().last() {
-            self.session
-                .acknowledge_archives(head.digest)
-                .map_err(|error| format!("acknowledge committed biography archive: {error:?}"))?;
-        }
-        Ok(())
+            None,
+            None,
+        )
     }
     /// A readable name may enter only with the checked source for the exact
     /// resident identity. It is rederived after Boot, never treated as a

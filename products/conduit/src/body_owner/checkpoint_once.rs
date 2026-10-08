@@ -228,7 +228,9 @@ impl Owner {
                                 wake.clone(),
                             )
                             .map_err(debug)?;
-                            state::retain(state_root, next.evidence(), None, admissions)?;
+                            state::retain_session(
+                                state_root, &mut next, None, admissions, None, None,
+                            )?;
                             *session = next;
                             Ok(())
                         },
@@ -274,11 +276,13 @@ impl Owner {
             "committed_fore_count":report.fore_deliveries.len(),
             "committed_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
         });
-        state::retain(
+        state::retain_session(
             state_root,
-            next.evidence(),
+            &mut next,
             Some(&receipt),
             self.admissions.as_ref(),
+            None,
+            None,
         )?;
         self.session = next;
         self.last_execution = Some(receipt);

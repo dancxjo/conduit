@@ -256,7 +256,7 @@ impl Owner {
                 .map_err(debug)?;
             Ok::<_, String>(staged)
         })();
-        let staged = match prepared {
+        let mut staged = match prepared {
             Ok(staged) => staged,
             Err(error) => {
                 self.host.transition_todo_checkpoint_offer(checkpoint_root, selected_write.clone())
@@ -264,9 +264,9 @@ impl Owner {
                 return Err(error);
             }
         };
-        if let Err(error) = state::retain_with_source(
+        if let Err(error) = state::retain_session(
             state_root,
-            staged.evidence(),
+            &mut staged,
             Some(&write_receipt),
             self.admissions.as_ref(),
             if fresh_boot {
@@ -274,6 +274,7 @@ impl Owner {
             } else {
                 Some(READ_SOURCE.as_bytes())
             },
+            None,
         ) {
             self.host
                 .transition_todo_checkpoint_offer(checkpoint_root, selected_write.clone())
@@ -351,11 +352,13 @@ impl Owner {
                                 wake.clone(),
                             )
                             .map_err(debug)?;
-                            state::retain(
+                            state::retain_session(
                                 state_root,
-                                next.evidence(),
+                                &mut next,
                                 Some(retained_write),
                                 admissions,
+                                None,
+                                None,
                             )?;
                             *session = next;
                             Ok(())
@@ -470,11 +473,13 @@ impl Owner {
             "selected_content":read_content,
             "restored_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
         });
-        state::retain(
+        state::retain_session(
             state_root,
-            next.evidence(),
+            &mut next,
             Some(&receipt),
             self.admissions.as_ref(),
+            None,
+            None,
         )?;
         self.session = next;
         self.last_execution = Some(receipt);
