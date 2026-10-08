@@ -348,7 +348,7 @@ fn actual_proposal_window8_corpus() {
         candidate.scorer.clone(),
         candidate::numeric_source(&candidate),
         "window8-proposal-v2-learned-model",
-        16383,
+        16127,
     );
     let bank = Window8ProgramBank::prepare_proposal_v2_native_evaluator(
         PreparedNativeFamilyLimits {

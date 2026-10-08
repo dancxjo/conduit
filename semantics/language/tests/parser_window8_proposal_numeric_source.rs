@@ -19,9 +19,22 @@ fn exact_proposal_v2_source_model_outputs_match_full_resource() {
         std::env::var_os("CONDUIT_PROPOSAL_FEATURE_INPUTS").expect("retained complete inputs"),
     );
     let candidate = candidate::prepare();
-    assert!(std::ptr::eq(candidate.selected.categorical(),candidate.scorer.as_ref()));
-    assert_eq!(candidate.selected.declaration().source_contract().feature_contract,candidate.contracts.feature_contract);
-    eprintln!("full original proposer owner reservation: {:?}", candidate.owner.storage_receipt());
+    assert!(std::ptr::eq(
+        candidate.selected.categorical(),
+        candidate.scorer.as_ref()
+    ));
+    assert_eq!(
+        candidate
+            .selected
+            .declaration()
+            .source_contract()
+            .feature_contract,
+        candidate.contracts.feature_contract
+    );
+    eprintln!(
+        "full original proposer owner reservation: {:?}",
+        candidate.owner.storage_receipt()
+    );
     let limits = PreparedNativeFamilyLimits {
         maximum_types: 64,
         maximum_laws_per_type: 64,
@@ -85,4 +98,30 @@ fn exact_proposal_v2_source_model_outputs_match_full_resource() {
         eprintln!("actual original411 Source/model target {name} all76scores exact");
     }
     eprintln!("PASS two exact numeric target calls; pinned fullmodel/dictionary/proposer/Source; no corpus or publicSession claim");
+}
+
+#[test]
+fn journal_overflow_refuses_before_source_preparation() {
+    let candidate = candidate::prepare();
+    let refusal = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        planned::prepare_proposal_window8_v2_source_with_inference_budget(
+            candidate.scorer.clone(),
+            "deliberately invalid Source must never be parsed".into(),
+            "absent-entry",
+            16128,
+        )
+    }));
+    let panic = match refusal {
+        Ok(_) => panic!("one-over journal capacity accepted"),
+        Err(value) => value,
+    };
+    let message = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap();
+    assert_eq!(
+        message,
+        "combined retained journal bound overflows before Source preparation"
+    );
 }

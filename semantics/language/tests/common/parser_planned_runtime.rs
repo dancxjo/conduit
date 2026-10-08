@@ -94,7 +94,8 @@ pub fn prepare_proposal_window8_v2_source_with_inference_budget(
     assert!(maximum_inferences > 0);
     maximum_inferences
         .checked_mul(4)
-        .expect("journal item bound overflows");
+        .and_then(|items| items.checked_add(1024))
+        .expect("combined retained journal bound overflows before Source preparation");
     prepare_source_with_aliases(
         profile,
         document,
