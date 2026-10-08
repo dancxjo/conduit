@@ -1,5 +1,7 @@
 //! Bounded volatile compiler support. Aligned words reduce private-state setup
 //! work without reading or writing outside the caller's exact byte interval.
+use core::mem::MaybeUninit;
+
 const WORD: usize = core::mem::size_of::<usize>();
 
 /// Caller supplies valid intervals; forward-safe overlap is also supported.
@@ -11,7 +13,8 @@ pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, lengt
         unsafe {
             destination
                 .add(offset)
-                .write_volatile(source.add(offset).read_volatile());
+                .cast::<MaybeUninit<u8>>()
+                .write_volatile(source.add(offset).cast::<MaybeUninit<u8>>().read_volatile());
         }
         offset += 1;
     }
@@ -19,8 +22,13 @@ pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, lengt
         unsafe {
             destination
                 .add(offset)
-                .cast::<usize>()
-                .write_volatile(source.add(offset).cast::<usize>().read_volatile());
+                .cast::<MaybeUninit<usize>>()
+                .write_volatile(
+                    source
+                        .add(offset)
+                        .cast::<MaybeUninit<usize>>()
+                        .read_volatile(),
+                );
         }
         offset += WORD;
     }
@@ -28,7 +36,8 @@ pub(crate) unsafe fn copy_forward(destination: *mut u8, source: *const u8, lengt
         unsafe {
             destination
                 .add(offset)
-                .write_volatile(source.add(offset).read_volatile());
+                .cast::<MaybeUninit<u8>>()
+                .write_volatile(source.add(offset).cast::<MaybeUninit<u8>>().read_volatile());
         }
         offset += 1;
     }
