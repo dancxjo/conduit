@@ -33,8 +33,19 @@ pub unsafe fn execute(frame: &mut TextFrame) -> ! {
         }
         let graph =
             PreparedTimerGraph::decode(&frame.input[..length]).unwrap_or_else(|_| gate::finish(3));
+        #[cfg(feature = "proof")]
+        let kernel = TourTimerKernel::from_prepared_graph_with_progress(graph, |stage| {
+            // Bounded diagnostic metadata only; never a capability or semantic input.
+            unsafe { core::ptr::write_volatile(&mut frame.timer_status, stage) };
+        })
+        .unwrap_or_else(|_| gate::finish(3));
+        #[cfg(not(feature = "proof"))]
         let kernel =
             TourTimerKernel::from_prepared_graph(graph).unwrap_or_else(|_| gate::finish(3));
+        #[cfg(feature = "proof")]
+        unsafe {
+            core::ptr::write_volatile(&mut frame.timer_status, 0x308)
+        };
         // This allocation is private, writable and non-executable on every backend.
         unsafe {
             STATE.write(State {

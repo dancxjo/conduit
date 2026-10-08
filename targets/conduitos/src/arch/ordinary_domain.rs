@@ -273,6 +273,15 @@ impl DomainBackend for TextDomain {
                 result.origin, result.value
             );
             super::early_write(sign.as_bytes());
+            if self.space.frame().command == 10 && result.origin != 0 {
+                let mut stage = crate::sign_format::FixedText::new();
+                let _ = writeln!(
+                    stage,
+                    "CONDUIT_DOMAIN_TIMER_INIT_STAGE {}",
+                    self.space.frame().timer_status
+                );
+                super::early_write(stage.as_bytes());
+            }
         }
         Ok(match (result.origin, result.value) {
             (0, 0..=2) => {
