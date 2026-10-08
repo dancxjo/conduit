@@ -1,0 +1,184 @@
+# A bounded authored acoustic approximation profile, not anatomy or a language
+# universal. Existing opaque allophone choice remains the contextual authority.
+type SpeechGestureChannel =
+    laryngeal_voicing
+    | aspiration
+    | frication
+    | closure
+    | release
+    | formant_center
+    | formant_bandwidth
+
+type SpeechGestureConflictPolicy =
+    independent_channels_refuse_same_channel_overlap
+type SpeechGestureShape =
+    step
+
+type SpeechGestureTiming = {
+    anchor: AudioTrajectoryAnchor
+    nominal_start: AudioTimeFraction
+    nominal_end: AudioTimeFraction
+    committed_frontier: AudioTimeFraction
+    lookahead_end: AudioTimeFraction
+}
+
+# Semantic durations remain full U64. This numerical profile requires the exact
+# original common denominator, never a reduction or implicit basis conversion.
+type SpeechGestureU32Timing = {
+    timing: SpeechGestureTiming
+    where .timing.nominal_start.numerator_seconds <= 4294967295
+    where .timing.nominal_end.numerator_seconds <= 4294967295
+    where .timing.committed_frontier.numerator_seconds <= 4294967295
+    where .timing.lookahead_end.numerator_seconds <= 4294967295
+    where .timing.nominal_start.denominator <= 4294967295
+    where .timing.nominal_start.denominator == .timing.nominal_end.denominator
+    where .timing.nominal_start.denominator == .timing.committed_frontier.denominator
+    where .timing.nominal_start.denominator == .timing.lookahead_end.denominator
+    where .timing.nominal_start.numerator_seconds < .timing.nominal_end.numerator_seconds
+    where .timing.committed_frontier.numerator_seconds <= .timing.nominal_start.numerator_seconds
+    where .timing.nominal_end.numerator_seconds <= .timing.lookahead_end.numerator_seconds
+}
+
+type SpeechGesturePhoneClass =
+    vowel_i
+    | vowel_a
+    | vowel_u
+    | plain_t
+    | voiced_d
+    | aspirated_t
+    | affricate_ch
+# Complete IPA string recognition belongs to this named profile only. It is
+# never used as general inventory lookup and leaves the original phone intact.
+type SpeechGestureSymbol = {
+    ipa: Text <= 64B not in [""]
+}
+type SpeechGestureSymbolResult =
+    supported SpeechGesturePhoneClass
+    | unsupported
+plot speech/gesture-symbol-profile (
+    >> value: SpeechGestureSymbol
+    result: SpeechGestureSymbolResult >>
+) = (.ipa == "i" ? SpeechGestureSymbolResult.supported(SpeechGesturePhoneClass.vowel_i) : .ipa == "a" ? SpeechGestureSymbolResult.supported(SpeechGesturePhoneClass.vowel_a) : .ipa == "u" ? SpeechGestureSymbolResult.supported(SpeechGesturePhoneClass.vowel_u) : .ipa == "t" ? SpeechGestureSymbolResult.supported(SpeechGesturePhoneClass.plain_t) : .ipa == "d" ? SpeechGestureSymbolResult.supported(SpeechGesturePhoneClass.voiced_d) : .ipa == "tʰ" ? SpeechGestureSymbolResult.supported(SpeechGesturePhoneClass.aspirated_t) : .ipa == "t͡ʃ" ? SpeechGestureSymbolResult.supported(SpeechGesturePhoneClass.affricate_ch) : SpeechGestureSymbolResult.unsupported)
+
+# Raw arithmetic result is readmitted to AudioTimeFraction by field-copy only.
+# Five times any admitted original numerator is <2^35. Addition is bounded by
+# five times the nominal end; no U64 multiply/add can overflow.
+type SpeechGestureRawPhases = {
+    denominator: U64
+    start: U64
+    closure_end: U64
+    release_end: U64
+    end: U64
+}
+plot speech/gesture-fifths (
+    >> value: SpeechGestureU32Timing
+    result: SpeechGestureRawPhases >>
+) = ({denominator: .timing.nominal_start.denominator * 5, start: .timing.nominal_start.numerator_seconds * 5, closure_end: .timing.nominal_start.numerator_seconds * 5 + (.timing.nominal_end.numerator_seconds - .timing.nominal_start.numerator_seconds) * 3, release_end: .timing.nominal_start.numerator_seconds * 5 + (.timing.nominal_end.numerator_seconds - .timing.nominal_start.numerator_seconds) * 4, end: .timing.nominal_end.numerator_seconds * 5})
+
+# This profile declares which acoustic roles are active, not a renderer code.
+type SpeechGestureRoleRequest = {
+    phone: SpeechGesturePhoneClass
+    channel: SpeechGestureChannel
+}
+plot speech/gesture-role-active (
+    >> value: SpeechGestureRoleRequest
+    result: Boolean >>
+) = (.channel is formant_center || .channel is formant_bandwidth ? true : .channel is laryngeal_voicing ? (.phone is vowel_i || .phone is vowel_a || .phone is vowel_u || .phone is voiced_d) : .channel is closure || .channel is release ? (.phone is plain_t || .phone is voiced_d || .phone is aspirated_t || .phone is affricate_ch) : .channel is aspiration ? .phone is aspirated_t : .phone is affricate_ch)
+
+# Named authored formant approximation values, Hz (not measured vocal-tract data).
+# The first profile preserves bandwidth independently; coefficient projection is
+# not offered here. Consonant loci are explicitly this profile's hypothesis.
+type SpeechGestureRawFormants = {
+    denominator: U64
+    first_center: U64
+    second_center: U64
+    third_center: U64
+    first_bandwidth: U64
+    second_bandwidth: U64
+    third_bandwidth: U64
+}
+plot speech/gesture-formant-profile (
+    >> value: SpeechGesturePhoneClass
+    result: SpeechGestureRawFormants >>
+) = ({denominator: 1, first_center: . is vowel_i ? 270 : . is vowel_a ? 730 : . is vowel_u ? 300 : 400, second_center: . is vowel_i ? 2290 : . is vowel_a ? 1090 : . is vowel_u ? 870 : 1700, third_center: . is vowel_i ? 3010 : . is vowel_a ? 2440 : . is vowel_u ? 2240 : 2600, first_bandwidth: 80, second_bandwidth: 100, third_bandwidth: 140})
+
+plot speech/gesture-choice-supported (
+    >> value: SpeechAllophoneChoiceState
+    result: Boolean >>
+) = (.outcome is selected_allophone || .outcome is selected_default)
+
+# The window decision executes in Source. Rust only traverses named channels.
+type SpeechGestureWindowRequest = {
+    phone: SpeechGesturePhoneClass
+    channel: SpeechGestureChannel
+    phases: SpeechGestureRawPhases
+}
+type SpeechGestureRawWindow = {
+    gain_numerator: U64
+    gain_denominator: U64
+    denominator: U64
+    start: U64
+    end: U64
+}
+plot speech/gesture-role-window (
+    >> value: SpeechGestureWindowRequest
+    result: SpeechGestureRawWindow >>
+) = ({gain_numerator: .channel is closure ? 0 : 1, gain_denominator: 1, denominator: .phases.denominator, start: .channel is release ? .phases.closure_end : (.channel is aspiration || .channel is frication) ? .phases.release_end : .channel is laryngeal_voicing && .phone is voiced_d ? .phases.closure_end : .phases.start, end: .channel is closure ? .phases.closure_end : .channel is release ? .phases.release_end : .phases.end})
+
+type SpeechAcousticGesture = {
+    anchor: AudioTrajectoryAnchor
+    channel: SpeechGestureChannel
+    formant_index: U32 in 0..=3
+    occurrence: LanguageSpeechTokenRef
+    sources: sequence LanguageSegmentRef in 1..=8
+    start: AudioTimeFraction
+    end: AudioTimeFraction
+    quantity: AudioTrajectoryQuantity
+    shape: SpeechGestureShape
+    provenance: SpeechEvidenceProvenance
+    where .channel is formant_center || .channel is formant_bandwidth ? .formant_index > 0 : .formant_index == 0
+    where .channel is formant_center || .channel is formant_bandwidth ? .quantity is frequency : .quantity is amplitude
+}
+
+# Private common-basis overlap request. No arithmetic or normalization is needed.
+type SpeechGestureOverlapRequest = {
+    left_channel: SpeechGestureChannel
+    right_channel: SpeechGestureChannel
+    left_index: U32 in 0..=3
+    right_index: U32 in 0..=3
+    left_start: U64
+    left_end: U64
+    right_start: U64
+    right_end: U64
+}
+plot speech/gesture-conflict (
+    >> value: SpeechGestureOverlapRequest
+    result: Boolean >>
+) = (.left_index == .right_index && .left_start < .right_end && .right_start < .left_end && (.left_channel is laryngeal_voicing ? .right_channel is laryngeal_voicing : .left_channel is aspiration ? .right_channel is aspiration : .left_channel is frication ? .right_channel is frication : .left_channel is closure ? .right_channel is closure : .left_channel is release ? .right_channel is release : .left_channel is formant_center ? .right_channel is formant_center : .right_channel is formant_bandwidth))
+
+type SpeechGestureCommonBasis = {
+    gesture: SpeechAcousticGesture
+    where .gesture.start.denominator == .gesture.end.denominator
+    where .gesture.start.numerator_seconds < .gesture.end.numerator_seconds
+}
+
+# Authored overlap can anticipate or extend the nominal segment, but never the
+# committed frontier/lookahead. This common-basis comparison needs no arithmetic
+# bound: every canonical U64 value can be compared without overflow.
+type SpeechAuthoredGestureEligibility = {
+    gesture: SpeechAcousticGesture
+    timing: SpeechGestureTiming
+    where .gesture.anchor.timeline.value == .timing.anchor.timeline.value
+    where .gesture.anchor.origin.value == .timing.anchor.origin.value
+    where .gesture.start.denominator == .gesture.end.denominator
+    where .gesture.start.denominator == .timing.nominal_start.denominator
+    where .gesture.start.denominator == .timing.nominal_end.denominator
+    where .gesture.start.denominator == .timing.committed_frontier.denominator
+    where .gesture.start.denominator == .timing.lookahead_end.denominator
+    where .timing.nominal_start.numerator_seconds < .timing.nominal_end.numerator_seconds
+    where .timing.committed_frontier.numerator_seconds <= .timing.nominal_start.numerator_seconds
+    where .timing.nominal_end.numerator_seconds <= .timing.lookahead_end.numerator_seconds
+    where .gesture.start.numerator_seconds < .gesture.end.numerator_seconds
+    where .timing.committed_frontier.numerator_seconds <= .gesture.start.numerator_seconds
+    where .gesture.end.numerator_seconds <= .timing.lookahead_end.numerator_seconds
+}
