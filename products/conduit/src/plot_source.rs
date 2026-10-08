@@ -106,6 +106,9 @@ impl CanonicalSource {
 
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
+    // This first Todo vertical has one exact authored initial Form. The same
+    // registration is used when retained source is checked after owner restart.
+    conduit_todo_plot::admit_empty_todo_initial(&mut startup, "Groceries")?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
     conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;

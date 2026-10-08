@@ -390,6 +390,11 @@ impl Owner {
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
         let hosts = [self.host.advertisement().clone()];
+        // Ordinary planning does not attach child Plans for scan/fold/make.
+        // Refuse before sealing a deceptively runnable parent-only Body Plan.
+        if !plot.expanded.activations.is_empty() {
+            return Err("installed Body execution has no activation-aware Plan or Play".into());
+        }
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
         let plan = conduit_planner::plan_expanded_authoring_with_options(

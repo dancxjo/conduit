@@ -4,6 +4,7 @@ use conduit_presentation::PresentationRole;
 use conduit_std_host::StdHostConfig;
 const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
 const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
+const TODO_SOURCE: &str = include_str!("../../../../plots/todo/live.conduit");
 fn source() -> conduit_plot::ExpandedAuthoringPlot {
     crate::plot_source::parse(SOURCE)
         .unwrap()
@@ -22,6 +23,19 @@ fn resident(plot: &conduit_plot::ExpandedAuthoringPlot) -> ResidentPlot {
         plot.expanded.source_document_id.clone(),
         plot.expanded.checked_plot_id.clone(),
     )
+}
+
+#[test]
+fn installed_owner_refuses_live_todo_before_shedding_its_scan_activation() {
+    let plot = crate::plot_source::parse(TODO_SOURCE)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let owner = Owner::open(host("boot/todo-plan"), resident(&plot), None, "Groceries").unwrap();
+    assert_eq!(
+        owner.plan_partition(&plot, &resident(&plot)).unwrap_err(),
+        "installed Body execution has no activation-aware Plan or Play"
+    );
 }
 
 #[test]

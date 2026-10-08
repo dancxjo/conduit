@@ -29,6 +29,7 @@ conduit-robotics = { path = "../../semantics/robotics" }
 conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-plot = { path = "../../architecture/plot" }
+conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-host-make = { path = "../../make/host" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-language = { path = "../../semantics/language" }
@@ -115,7 +116,6 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
-conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-workspace-make = { path = "../../make/workspace" }
