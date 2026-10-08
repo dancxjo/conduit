@@ -134,4 +134,28 @@
  let foreign_rich=prepare_rich_prosody_from_committed_vocative(&case.lexical,2,&foreign_discourse,case.rich.requested().profile()).unwrap();
  assert!(matches!(owner::prepare(&committed,&foreign_rich,&admissions),Err(owner::Refusal::ForeignCommitment)));
  println!("PASS actual original four-revision committed greeting: opaque complete-coverage/rich-owner custody; six Source word-pitch admissions; new complete10segment intent; unchanged Hello; adjacent exact cycles; missing/swapped/foreign-address commitment refusals. Six actual first DSP frames only; no complete waveform or playback.");
+
+ if let Ok(output_directory)=std::env::var("CONDUIT_WORD_PITCH_FULL_OUTPUT") {
+ // Actual complete new IPA-owner realization; Hello retains its original cycles.
+ let hello_renderers=realized_gestures.iter().take(4).zip(cycles.iter().take(4)).map(|(gesture,cycle)|prepare_greeting_renderer_q8(gesture.contextual().profile(),&grid,cycle.admitted_canonical()).unwrap()).collect::<Vec<_>>();
+ let directory=std::path::PathBuf::from(output_directory);std::fs::create_dir_all(&directory).unwrap();
+ use std::io::Write;
+ let mut records=std::io::BufWriter::new(std::fs::File::create(directory.join("pitch-and-dsp-frames.bin")).unwrap());
+ let mut all_samples=Vec::<i16>::new();let mut full_programs=Vec::<String>::new();
+ let mut emit=|pitch:Vec<u8>,rendered:&GreetingRenderedFrame,pitch_executions:&[SpeechCommonAcousticExecution]|{
+  let frame=rendered.rendered();let ordinal=all_samples.len();all_samples.push(i16::try_from(frame.sample()).unwrap());
+  records.write_all(&u32::try_from(ordinal).unwrap().to_le_bytes()).unwrap();
+  for bytes in [pitch.as_slice(),frame.dsp_input_canonical(),frame.dsp_output_canonical()] {records.write_all(&u32::try_from(bytes.len()).unwrap().to_le_bytes()).unwrap();records.write_all(bytes).unwrap();}
+  let executions=pitch_executions.iter().chain(frame.executions()).chain(rendered.target_selection_and_reset_executions()).collect::<Vec<_>>();records.write_all(&u32::try_from(executions.len()).unwrap().to_le_bytes()).unwrap();
+  for execution in executions {let program=full_programs.iter().position(|x|x==execution.source_program_hex()).unwrap_or_else(||{full_programs.push(execution.source_program_hex().into());full_programs.len()-1});records.write_all(&u32::try_from(program).unwrap().to_le_bytes()).unwrap();for bytes in [execution.input_canonical(),execution.output_canonical()] {records.write_all(&u32::try_from(bytes.len()).unwrap().to_le_bytes()).unwrap();records.write_all(bytes).unwrap();}}
+ };
+ // All ten original/new plans, six continuous word partitions, and twelve
+ // pitch endpoints have already been prepared before any complete-run frame.
+ for renderer in &hello_renderers {let mut cursor=renderer.cursor();while let Some(frame)=renderer.next(&mut cursor).unwrap(){emit(Vec::new(),&frame,&[]);}}
+ for renderer in &renderers {let mut cursor=renderer.cursor();while let Some(frame)=renderer.next(&mut cursor).unwrap(){emit(frame.pitch().admission().clone().encode().unwrap(),frame.rendered(),frame.pitch().executions());}}
+ records.flush().unwrap();assert_eq!(all_samples.len(),32000);assert!(all_samples.iter().any(|x|*x!=0));
+ let bytes=u32::try_from(all_samples.len()*2).unwrap();let mut wav=Vec::new();wav.extend_from_slice(b"RIFF");wav.extend_from_slice(&(36+bytes).to_le_bytes());wav.extend_from_slice(b"WAVEfmt ");wav.extend_from_slice(&16u32.to_le_bytes());wav.extend_from_slice(&1u16.to_le_bytes());wav.extend_from_slice(&1u16.to_le_bytes());wav.extend_from_slice(&16000u32.to_le_bytes());wav.extend_from_slice(&32000u32.to_le_bytes());wav.extend_from_slice(&2u16.to_le_bytes());wav.extend_from_slice(&16u16.to_le_bytes());wav.extend_from_slice(b"data");wav.extend_from_slice(&bytes.to_le_bytes());for sample in &all_samples {wav.extend_from_slice(&sample.to_le_bytes());}std::fs::write(directory.join("hello-travis-continuous-word-pitch-16000.wav"),wav).unwrap();
+ std::fs::write(directory.join("carrier-and-pitch.json"),serde_json::to_vec(&serde_json::json!({"scope":"Actual production workspace committed complete greeting, same original/new IPA owners; constant original Hello cycles and continuous Travis word pitch; Source exact-material Q8 and explicit fractional initialization; no pause/prominence/coarticulation/neural/played/attended claim", "record_format":"u32 ordinal; three length-prefixed buffers pitch admission (empty for original constant Hello), DSP input, DSP output; u32 executions, each u32 program index and length-prefixed input/output", "frames":32000,"sample_rate_hz":16000,"original_intent":composite.clone().encode().unwrap(),"realized_intent":prepared.realized().clone().encode().unwrap(),"rich_accepted":rich.prepared().accepted().clone().encode().unwrap(),"admissions":prepared.admissions().iter().map(|x|x.clone().encode().unwrap()).collect::<Vec<_>>(),"source_programs":full_programs,"shared_source_program_storage":{"retained":programs.storage().actual_retained,"retained_bound":programs.storage().retained_bound,"preparation_bound":programs.storage().preparation_bound}})).unwrap()).unwrap();
+
+ }
 }

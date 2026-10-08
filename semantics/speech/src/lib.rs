@@ -97,6 +97,8 @@ pub mod morpheme_intent;
 #[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
 pub mod native_playback_back;
 #[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
+pub mod owned_playback_evidence;
+#[cfg(all(feature = "semantic-bindings", feature = "kernel"))]
 pub mod native_playback_contract;
 #[cfg(feature = "semantic-bindings")]
 pub mod neighbor_match;
