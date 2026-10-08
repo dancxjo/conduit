@@ -205,6 +205,16 @@ impl FaceArrival {
         self.present_owner_face(face, true, display)
     }
 
+    /// A refreshed owner Face gets a new Show before any return interaction.
+    pub(super) fn activate_refreshed_owner_route(
+        &mut self,
+        face: Presentation,
+        display: &mut impl PixelTarget,
+    ) -> Result<CompositionReceipt, &'static str> {
+        self.retire_owner_surface()?;
+        self.present_owner_face(face, true, display)
+    }
+
     pub(super) fn show_owner_standby(
         &mut self,
         display: &mut impl PixelTarget,

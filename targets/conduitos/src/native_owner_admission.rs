@@ -60,7 +60,7 @@ pub struct NativeOwnerReturnGrant {
 }
 
 impl NativeOwnerReturnGrant {
-    fn matches_receipt(&self, receipt: &PortableAdmissionReceipt) -> bool {
+    pub(crate) fn matches_receipt(&self, receipt: &PortableAdmissionReceipt) -> bool {
         let credential = &receipt.credential;
         self.schema == "conduit.body/native-owner-return-grant@1"
             && self.token != [0; 32]
