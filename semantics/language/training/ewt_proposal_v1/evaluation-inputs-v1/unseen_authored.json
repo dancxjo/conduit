@@ -1,0 +1,273 @@
+{
+  "scope": "New analyst-authored evaluation references, never teaching inputs; not independent human review or runtime constraints",
+  "rows": [
+    {
+      "id": "unseen-proposal-v1-initial",
+      "text": "Morgan, we record music.",
+      "forms": [
+        "Morgan",
+        ",",
+        "we",
+        "record",
+        "music",
+        "."
+      ],
+      "pos": [
+        11,
+        12,
+        10,
+        15,
+        7,
+        12
+      ],
+      "heads": [
+        3,
+        3,
+        3,
+        8,
+        3,
+        3
+      ],
+      "relations": [
+        "vocative",
+        "punct",
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ]
+    },
+    {
+      "id": "unseen-proposal-v1-medial",
+      "text": "We record, Morgan, music.",
+      "forms": [
+        "We",
+        "record",
+        ",",
+        "Morgan",
+        ",",
+        "music",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        12,
+        11,
+        12,
+        7,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "punct",
+        "vocative",
+        "punct",
+        "obj",
+        "punct"
+      ]
+    },
+    {
+      "id": "unseen-proposal-v1-final",
+      "text": "We record music, Morgan.",
+      "forms": [
+        "We",
+        "record",
+        "music",
+        ",",
+        "Morgan",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        12,
+        11,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct",
+        "vocative",
+        "punct"
+      ]
+    },
+    {
+      "id": "unseen-proposal-v1-object",
+      "text": "We record Morgan.",
+      "forms": [
+        "We",
+        "record",
+        "Morgan",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        11,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ]
+    },
+    {
+      "id": "unseen-proposal-v1-imperative",
+      "text": "Record Morgan.",
+      "forms": [
+        "Record",
+        "Morgan",
+        "."
+      ],
+      "pos": [
+        15,
+        11,
+        12
+      ],
+      "heads": [
+        8,
+        0,
+        0
+      ],
+      "relations": [
+        "root",
+        "obj",
+        "punct"
+      ]
+    },
+    {
+      "id": "unseen-proposal-v1-nominal",
+      "text": "The old boats.",
+      "forms": [
+        "The",
+        "old",
+        "boats",
+        "."
+      ],
+      "pos": [
+        5,
+        0,
+        7,
+        12
+      ],
+      "heads": [
+        2,
+        2,
+        8,
+        2
+      ],
+      "relations": [
+        "det",
+        "amod",
+        "root",
+        "punct"
+      ]
+    },
+    {
+      "id": "unseen-proposal-v1-garden-path",
+      "text": "Old men man boats.",
+      "forms": [
+        "Old",
+        "men",
+        "man",
+        "boats",
+        "."
+      ],
+      "pos": [
+        0,
+        7,
+        15,
+        7,
+        12
+      ],
+      "heads": [
+        1,
+        2,
+        8,
+        2,
+        2
+      ],
+      "relations": [
+        "amod",
+        "nsubj",
+        "root",
+        "obj",
+        "punct"
+      ]
+    },
+    {
+      "id": "unseen-proposal-v1-clauses",
+      "text": "We record music and they refuse boats.",
+      "forms": [
+        "We",
+        "record",
+        "music",
+        "and",
+        "they",
+        "refuse",
+        "boats",
+        "."
+      ],
+      "pos": [
+        10,
+        15,
+        7,
+        4,
+        10,
+        15,
+        7,
+        12
+      ],
+      "heads": [
+        1,
+        8,
+        1,
+        5,
+        5,
+        1,
+        5,
+        1
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "obj",
+        "cc",
+        "nsubj",
+        "conj",
+        "obj",
+        "punct"
+      ]
+    }
+  ]
+}

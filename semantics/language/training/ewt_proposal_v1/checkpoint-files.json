@@ -1156,6 +1156,26 @@
     "source/lexical_proposer.conduit": {
       "sha256": "2e86166d6e35cd0eb5d58a9311af0567d72e1eba3f784edc02e7ef6f7894e433",
       "bytes": 6197
+    },
+    "prepare_candidate_evaluation.py": {
+      "sha256": "1a9264d8175dc29e7f854e25da43f391c9236a751821f1676642ce7e264a3b95",
+      "bytes": 3001
+    },
+    "evaluation-inputs-v1/unseen_authored.json": {
+      "sha256": "d681806dd97bf0c05e15c8a284fbe9864baf6f9af8021620b28a3a5e0ec9fef0",
+      "bytes": 4073
+    },
+    "evaluation-inputs-v1/manifest.json": {
+      "sha256": "a6a2783e5e5a4526b3108381f815ebcb7a9e7a9fb275e6f63c7ba9061aae38b1",
+      "bytes": 77336
+    },
+    "evaluation-inputs-v1/test.json": {
+      "sha256": "513bbed9ef15ba9523124f98640bc9b5f52f9e100bdd5c374e86404c80942340",
+      "bytes": 619833
+    },
+    "evaluation-inputs-v1/dev.json": {
+      "sha256": "b06007c5c2e13a797ac590ea09ef0ea8a79640c7473f9c21441c1d6c074c8d49",
+      "bytes": 552053
     }
   }
 }
