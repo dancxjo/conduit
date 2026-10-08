@@ -21,6 +21,7 @@ use verification::{PreparedSourceVerification, VerificationRefusal};
 pub enum ParserSessionEntry {
     Availability,
     DecodeComplete,
+    Completion,
     IndependentBranch,
     IndependentCommit,
     IndependentCommitRebase,
@@ -54,6 +55,7 @@ impl ParserSessionEntry {
         match self {
             Self::Availability => "language-parser-availability",
             Self::DecodeComplete => "language-parser-decode-complete",
+            Self::Completion => "language-parser-session-complete",
             Self::IndependentBranch => "language-parser-independent-branch",
             Self::IndependentCommit => "language-parser-independent-commit",
             Self::IndependentCommitRebase => "language-parser-independent-commit-rebase",
@@ -92,6 +94,7 @@ impl ParserSessionEntry {
         match self {
             Self::Availability => generated!("/parser_availability.hex"),
             Self::DecodeComplete => generated!("/parser_decode_complete.hex"),
+            Self::Completion => generated!("/parser_session_complete.hex"),
             Self::IndependentBranch => generated!("/parser_independent_branch.hex"),
             Self::IndependentCommit => generated!("/parser_independent_commit.hex"),
             Self::IndependentCommitRebase => generated!("/parser_independent_commit_rebase.hex"),
@@ -125,7 +128,7 @@ impl ParserSessionEntry {
             Self::WaitState => generated!("/parser_wait_state.hex"),
         }
     }
-    fn chain_custody(self) -> &'static str {
+    pub(crate) fn chain_custody(self) -> &'static str {
         macro_rules! generated {
             ($file:literal) => {
                 include_str!(concat!(env!("OUT_DIR"), $file))
@@ -134,6 +137,7 @@ impl ParserSessionEntry {
         match self {
             Self::Availability => generated!("/parser_availability.custody"),
             Self::DecodeComplete => generated!("/parser_decode_complete.custody"),
+            Self::Completion => generated!("/parser_session_complete.custody"),
             Self::IndependentBranch => generated!("/parser_independent_branch.custody"),
             Self::IndependentCommit => generated!("/parser_independent_commit.custody"),
             Self::IndependentCommitRebase => {

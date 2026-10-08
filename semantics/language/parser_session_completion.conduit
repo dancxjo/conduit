@@ -1,0 +1,12 @@
+# Preserve the original Source completion decision behind a Native observation.
+type LanguageParserCompletionObservation = {
+ complete: Boolean
+}
+plot language-parser-completion-observation (
+ input: Boolean...| >> output: LanguageParserCompletionObservation...|
+) = { complete: . }
+plot language-parser-session-complete (
+ input: LanguageParserState...| >> output: LanguageParserCompletionObservation...|
+) {
+ input >> language-parser-decode-complete() >> language-parser-completion-observation() >> output
+}

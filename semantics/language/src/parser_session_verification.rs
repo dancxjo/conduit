@@ -8,9 +8,9 @@ use conduit_plot::{
     PreparedPortableExpressionEvaluator,
 };
 
-/// Bounds decoded program ownership and cumulative requested evaluator allocations.
-/// Hex/program parsing temporaries, returned Native values and Flow storage are
-/// separate admissions; this is not a whole Session preparation peak claim.
+/// Bounds canonical decoding and cumulative requested preparation allocations,
+/// including temporary program bytes and separately returned endpoint Type owners.
+/// Native values, target execution and Flow storage require separate admission.
 #[derive(Clone, Copy, Debug)]
 pub struct ParserSessionVerificationReceipt {
     pub decoded_program_heap_bytes_bound: usize,
@@ -61,8 +61,65 @@ impl PreparedSourceVerification {
         let mut input_type = None;
         let mut previous_output = None;
         for hex in entry.program_hex().lines() {
-            let program =
-                PortableExpressionProgram::from_canonical_hex(hex).map_err(|_| R::Program)?;
+            // Admit the fixed canonical byte buffer before even decoding hex.
+            let byte_length = hex.len().checked_div(2).ok_or(R::Program)?;
+            if hex.len() % 2 != 0
+                || byte_length > conduit_plot::MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES
+            {
+                return Err(R::Program);
+            }
+            let available = limits
+                .preparation_peak_bytes
+                .checked_sub(preparation)
+                .ok_or(R::Program)?;
+            if byte_length > available {
+                return Err(R::Storage(PreparedExpressionStorageRefusal::Capacity));
+            }
+            let mut bytes = Vec::new();
+            bytes
+                .try_reserve_exact(byte_length)
+                .map_err(|_| R::Storage(PreparedExpressionStorageRefusal::Capacity))?;
+            let byte_capacity = bytes.capacity();
+            if byte_capacity > available {
+                return Err(R::Storage(PreparedExpressionStorageRefusal::Capacity));
+            }
+            fn nibble(byte: u8) -> Result<u8, VerificationRefusal> {
+                match byte {
+                    b'0'..=b'9' => Ok(byte - b'0'),
+                    b'a'..=b'f' => Ok(byte - b'a' + 10),
+                    _ => Err(VerificationRefusal::Program),
+                }
+            }
+            for pair in hex.as_bytes().chunks_exact(2) {
+                bytes.push((nibble(pair[0])? << 4) | nibble(pair[1])?);
+            }
+            // This scan allocates nothing. The original canonical decoder still
+            // enforces complete identity after its entire request ceiling is admitted.
+            let decode_bound = PortableExpressionProgram::canonical_decode_storage_bound(&bytes)
+                .map_err(|_| R::Program)?;
+            let parse_peak = byte_capacity.checked_add(decode_bound).ok_or(R::Program)?;
+            if parse_peak > available
+                || decode_bound
+                    > limits
+                        .decoded_program_bytes
+                        .checked_sub(decoded)
+                        .ok_or(R::Program)?
+            {
+                return Err(R::Storage(PreparedExpressionStorageRefusal::Capacity));
+            }
+            preparation = preparation.checked_add(parse_peak).ok_or(R::Program)?;
+            let program = PortableExpressionProgram::from_canonical_bytes_with_storage_limit(
+                &bytes,
+                decode_bound,
+            )
+            .map_err(|_| R::Program)?;
+            decoded = decoded.checked_add(decode_bound).ok_or(R::Program)?;
+            // This overcounts the full decoded AST for each endpoint; it also
+            // charges both returned full Type owners after the AST is dropped.
+            retained = retained.checked_add(decode_bound).ok_or(R::Program)?;
+            if retained > limits.retained_bytes {
+                return Err(R::Storage(PreparedExpressionStorageRefusal::Capacity));
+            }
             if previous_output
                 .as_ref()
                 .is_some_and(|t| t != &program.input_type)
@@ -72,10 +129,7 @@ impl PreparedSourceVerification {
             let (evaluator, receipt) =
                 PreparedPortableExpressionEvaluator::new_with_storage_limits(
                     &program,
-                    limits
-                        .decoded_program_bytes
-                        .checked_sub(decoded)
-                        .ok_or(R::Program)?,
+                    decode_bound,
                     limits
                         .preparation_peak_bytes
                         .checked_sub(preparation)
@@ -86,9 +140,6 @@ impl PreparedSourceVerification {
                         .ok_or(R::Program)?,
                 )
                 .map_err(R::Storage)?;
-            decoded = decoded
-                .checked_add(receipt.decoded_program_heap_bytes)
-                .ok_or(R::Program)?;
             preparation = preparation
                 .checked_add(receipt.decoded_program_heap_bytes)
                 .and_then(|n| n.checked_add(receipt.preparation_requested_bytes_bound))

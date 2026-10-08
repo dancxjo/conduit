@@ -22,6 +22,7 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_scorer.conduit");
     println!("cargo:rerun-if-changed=parser_mask.conduit");
     println!("cargo:rerun-if-changed=parser_session_seed.conduit");
+    println!("cargo:rerun-if-changed=parser_session_completion.conduit");
     println!("cargo:rerun-if-changed=parser_joint.conduit");
     println!("cargo:rerun-if-changed=parser_joint_decode.conduit");
     println!("cargo:rerun-if-changed=parser_available.conduit");
@@ -69,6 +70,7 @@ fn main() {
         include_str!("parser_mask.conduit"),
         include_str!("parser_joint.conduit"),
         include_str!("parser_session_seed.conduit"),
+        include_str!("parser_session_completion.conduit"),
         include_str!("parser_joint_decode.conduit"),
         include_str!("parser_available.conduit"),
         include_str!("parser_revision.conduit"),
@@ -184,6 +186,10 @@ fn main() {
             "parser_score_proposal.hex",
         ),
         ("language-parser-session-seed", "parser_session_seed.hex"),
+        (
+            "language-parser-session-complete",
+            "parser_session_complete.hex",
+        ),
         ("language-parser-transition", "parser_transition.hex"),
         (
             "language-parser-v2-model-features",
@@ -407,6 +413,8 @@ fn main() {
                 "LanguageParserScoredClass",
                 "LanguageParserScoredProposal",
                 "LanguageParserSessionSeedProposal",
+                "LanguageParserCompletionObservation",
+                "LanguageParserProtectedHypothesisCompatibility",
                 "LanguageParserSessionSeedRequest",
                 "LanguageParserStableDependencyAdmission",
                 "LanguageParserState",

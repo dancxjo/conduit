@@ -222,3 +222,5 @@ pub use generated::{LanguageParserSessionSeedProposal, LanguageParserSessionSeed
 pub mod parser_session_canonical_ingress;
 
 pub mod parser_canonical_history;
+
+pub use generated::LanguageParserCompletionObservation;
