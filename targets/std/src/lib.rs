@@ -135,6 +135,7 @@ pub mod terminal_face_mask;
 pub mod terminal_mask_execution;
 pub mod todo_checkpoint_call;
 pub mod todo_checkpoint_read_call;
+mod todo_checkpoint_transition;
 pub mod todo_durable_resource;
 mod vision_ocr;
 mod vision_tracker;

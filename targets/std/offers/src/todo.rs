@@ -21,6 +21,21 @@ pub const TODO_CHECKPOINT_READ_CALL: &str = "conduit.host/todo-checkpoint-read@1
 pub const TODO_CHECKPOINT_MAX_BYTES: u32 =
     (8 + 1 + 64 + 3 * (1 + 128) + 4 + 4 + 32 + conduit_todo_plot::STATE_MAX_BYTES) as u32;
 
+/// A selected capability is scoped to one semantic resource and immutable
+/// generation. A prior grant cannot name the next generation's capability.
+fn checkpoint_capability_id(prefix: &str, contract: &ResourceContentRequirement) -> CapabilityId {
+    use std::fmt::Write;
+    let mut id = String::with_capacity(prefix.len() + 2 + 128);
+    id.push_str(prefix);
+    for digest in [contract.identity.digest(), contract.version.digest()] {
+        id.push('/');
+        for byte in digest {
+            write!(&mut id, "{byte:02x}").expect("formatting into String cannot fail");
+        }
+    }
+    CapabilityId::from(id)
+}
+
 /// One externally durable immutable generation selected for one Todo command.
 pub fn todo_checkpoint_offer(
     contract: ResourceContentRequirement,
@@ -41,12 +56,13 @@ pub fn todo_checkpoint_offer(
     {
         return Err("unsupported Todo checkpoint content contract");
     }
+    let capability_id = checkpoint_capability_id("std-todo-checkpoint-v1", &contract);
     let kind = conduit_todo_plot::todo_checkpoint_kind();
     let kind_id = kind.kind_id.clone();
     Ok(BackOfferBuilder::new(
         kind,
         Back {
-            capability_id: CapabilityId::from("std-todo-checkpoint-v1"),
+            capability_id,
             execution_profile_id: ExecutionProfileId::from(TODO_CHECKPOINT_PROFILE),
             implementation_id: ImplementationId::from(TODO_CHECKPOINT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(TODO_CHECKPOINT_ARTIFACT),
@@ -94,12 +110,13 @@ pub fn todo_checkpoint_read_offer(
     {
         return Err("unsupported Todo checkpoint read content contract");
     }
+    let capability_id = checkpoint_capability_id("std-todo-checkpoint-read-v1", &contract);
     let kind = conduit_todo_plot::todo_checkpoint_read_kind();
     let kind_id = kind.kind_id.clone();
     Ok(BackOfferBuilder::new(
         kind,
         Back {
-            capability_id: CapabilityId::from("std-todo-checkpoint-read-v1"),
+            capability_id,
             execution_profile_id: ExecutionProfileId::from(TODO_CHECKPOINT_READ_PROFILE),
             implementation_id: ImplementationId::from(TODO_CHECKPOINT_READ_IMPLEMENTATION),
             artifact_id: ArtifactId::from(TODO_CHECKPOINT_READ_ARTIFACT),
