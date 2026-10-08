@@ -289,6 +289,60 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
 }
 
 #[test]
+fn canonical_quantity_presentation_completes_through_the_installed_back() {
+    let source = r#"plot quantity_presentation {
+ source: conduit-test/scalar-literal
+ map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
+ wrap: structured-info/wrap-quantity
+ show: presentation/quantity
+ source.value >> map.in
+ map.out >> wrap.in
+ wrap.out >> show.input
+}
+"#;
+    let (plan, report) = run_presented_quantity(source, "quantity_presentation");
+    assert_quantity_presented(
+        &plan,
+        &report,
+        conduit_core::Quantity::new(50, conduit_core::QuantityUnit::Percent),
+    );
+    let show = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == "presentation/quantity")
+        .unwrap();
+    assert_eq!(
+        show.inputs,
+        conduit_semantic_catalog::quantity_presentation_semantic_contract().inputs
+    );
+    assert_eq!(
+        show.implementation_id.as_str(),
+        conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+    );
+    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
+    for changed_revision in [false, true] {
+        let mut fragment = plan.fragments[0].clone();
+        let show = fragment
+            .placements
+            .iter_mut()
+            .find(|placement| placement.kind_id.as_str() == "presentation/quantity")
+            .unwrap();
+        if changed_revision {
+            show.kind_contract_revision = "presentation/quantity@uninstalled".into();
+        } else {
+            show.inputs[0].value_kind = conduit_core::kind_id(conduit_core::BOOL_INFO_ID);
+        }
+        let mut host = host("quantity-output-host");
+        let mut output = Vec::new();
+        let mut timer = RecordingTimer { waits: Vec::new() };
+        assert!(host
+            .run_fragment_to(fragment, &mut output, &mut timer)
+            .is_err());
+        assert!(output.is_empty(), "contract drift must refuse before Play");
+    }
+}
+
+#[test]
 fn quantity_mapping_completes_one_admitted_kernel_request() {
     let source = r#"plot quantity_success {
  source: conduit-test/scalar-literal

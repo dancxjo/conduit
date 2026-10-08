@@ -337,6 +337,7 @@ pub(super) fn build_advertisement(
     }
     if composition.presentation {
         capabilities.extend([
+            conduit_std_offers::quantity_presentation_std_offer(),
             conduit_std_offers::presentation_icon_offer(),
             conduit_std_offers::presentation_frame_offer(),
             conduit_std_offers::presentation_badge_offer(),

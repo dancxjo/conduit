@@ -29,7 +29,7 @@ pub fn structured_literal_std_offer(
         default_value,
     )
     .expect("structured literal offer requires the exact bounded default");
-    offer(contract, true)
+    offer(contract, true, None)
 }
 
 pub fn structured_presentation_std_offer(
@@ -39,10 +39,24 @@ pub fn structured_presentation_std_offer(
     offer(
         conduit_semantic_catalog::structured_presentation_semantic_contract(type_name, value_type),
         false,
+        None,
     )
 }
 
-fn offer(contract: conduit_core::Kind, source: bool) -> CapabilityOffer {
+/// Realize the canonical Quantity leaf Fore through the structured presentation Host Call.
+pub fn quantity_presentation_std_offer() -> CapabilityOffer {
+    offer(
+        conduit_semantic_catalog::quantity_presentation_semantic_contract(),
+        false,
+        Some(CapabilityId::from("std-quantity-presentation")),
+    )
+}
+
+fn offer(
+    contract: conduit_core::Kind,
+    source: bool,
+    capability_id: Option<CapabilityId>,
+) -> CapabilityOffer {
     let value_kind = contract
         .outputs
         .first()
@@ -54,14 +68,16 @@ fn offer(contract: conduit_core::Kind, source: bool) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
         Back {
-            capability_id: CapabilityId::from(format!(
-                "std-{}-{value_kind}",
-                if source {
-                    "structured-literal"
-                } else {
-                    "structured-presentation"
-                }
-            )),
+            capability_id: capability_id.unwrap_or_else(|| {
+                CapabilityId::from(format!(
+                    "std-{}-{value_kind}",
+                    if source {
+                        "structured-literal"
+                    } else {
+                        "structured-presentation"
+                    }
+                ))
+            }),
             execution_profile_id: ExecutionProfileId::from(if source {
                 STRUCTURED_LITERAL_STD_PROFILE
             } else {
@@ -113,6 +129,10 @@ mod tests {
         .unwrap();
         for (offer, contract) in [
             (
+                quantity_presentation_std_offer(),
+                conduit_semantic_catalog::quantity_presentation_semantic_contract(),
+            ),
+            (
                 structured_literal_std_offer("FileCopyResult", &value_type, &default_value),
                 conduit_semantic_catalog::structured_literal_semantic_contract(
                     "FileCopyResult",
@@ -138,5 +158,18 @@ mod tests {
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
         }
+    }
+
+    #[test]
+    fn quantity_and_generic_presentation_have_distinct_capability_identities() {
+        let quantity = quantity_presentation_std_offer();
+        let generic = structured_presentation_std_offer(
+            "Quantity",
+            &conduit_semantic_catalog::wrapped_quantity_type(),
+        );
+        assert_ne!(quantity.kind_id, generic.kind_id);
+        assert_ne!(quantity.capability_id, generic.capability_id);
+        assert_eq!(quantity.implementation_id, generic.implementation_id);
+        assert_eq!(quantity.host_calls, generic.host_calls);
     }
 }
