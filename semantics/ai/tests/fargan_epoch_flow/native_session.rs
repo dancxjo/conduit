@@ -138,8 +138,11 @@ pub(super) fn prepare_native_tape(
         .collect();
     let offers: Vec<_> = admissions
         .iter()
-        .enumerate()
-        .map(|(event, admission)| OfferedSegmentPitch { event, admission })
+        .zip(shared["pitch_admissions"].as_array().unwrap())
+        .map(|(admission, row)| OfferedSegmentPitch {
+            event: usize::try_from(row["event"].as_u64().unwrap()).unwrap(),
+            admission,
+        })
         .collect();
     let realized = prepare_intent_realization(&intent, &inventory, &voice, &boundary).unwrap();
     let pitch = prepare_utterance_pitch(&intent, &offers).unwrap();
@@ -148,12 +151,9 @@ pub(super) fn prepare_native_tape(
         realized.compiled_source_id(),
         shared["compiled_formant_source_id"].as_str().unwrap()
     );
-    for (span, offered) in realized
-        .timing()
-        .spans()
-        .iter()
-        .zip(shared["event_span_bytes"].as_array().unwrap())
-    {
+    let offered_spans = shared["event_span_bytes"].as_array().unwrap();
+    assert_eq!(realized.timing().spans().len(), offered_spans.len());
+    for (span, offered) in realized.timing().spans().iter().zip(offered_spans) {
         assert_eq!(span.clone().encode().unwrap(), bytes(offered));
     }
     let mut renderer = pitch.renderer(&realized).unwrap();
