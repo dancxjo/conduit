@@ -213,6 +213,14 @@ pub struct TourTimerKernel {
 
 impl TourTimerKernel {
     pub(crate) fn from_prepared_graph(graph: PreparedTimerGraph) -> Result<Self, SchedulerError> {
+        Self::from_prepared_graph_with_progress(graph, |_| {})
+    }
+
+    pub(crate) fn from_prepared_graph_with_progress(
+        graph: PreparedTimerGraph,
+        mut progress: impl FnMut(u32),
+    ) -> Result<Self, SchedulerError> {
+        progress(0x301);
         let indices = [graph.timer.0, graph.count.0, graph.presentation.0];
         if indices.iter().any(|index| usize::from(*index) >= NODES)
             || graph.timer == graph.count
@@ -235,6 +243,7 @@ impl TourTimerKernel {
             BoundedValueRef::new(wait, 8)?,
             BoundedValueRef::new(next_wait, 8)?,
         ];
+        progress(0x302);
         let drivers = core::array::from_fn(|index| {
             if index == usize::from(graph.timer.0) {
                 TimerBack::Every {
@@ -257,28 +266,34 @@ impl TourTimerKernel {
                 }
             }
         });
+        progress(0x303);
         let mut routes = FixedRoutes::<{ NODES * PORTS }, CORDS>::new(PORTS as u16);
         for route in graph.routes.into_iter().flatten() {
             routes.install(route.node, route.port, route.range, &[route.target])?;
         }
         routes.seal()?;
+        progress(0x304);
         let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
         for (node, binding) in graph.bindings.into_iter().flatten() {
             bindings.install(node, binding)?;
         }
         bindings.seal()?;
+        progress(0x305);
         let minimum_sign_bytes = (SIGNS * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGNS>::new(graph.sign_bytes.max(minimum_sign_bytes))?;
+        progress(0x306);
+        let scheduler = FixedScheduler::new_with_host_calls(
+            graph.nodes,
+            graph.cords,
+            routes,
+            bindings,
+            drivers,
+            values,
+            signs,
+        )?;
+        progress(0x307);
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_calls(
-                graph.nodes,
-                graph.cords,
-                routes,
-                bindings,
-                drivers,
-                values,
-                signs,
-            )?,
+            scheduler,
             timer: graph.timer,
             presentation: graph.presentation,
         })
