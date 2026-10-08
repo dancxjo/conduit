@@ -373,3 +373,12 @@ impl NominalWeakeningBack {
 
 mod storage;
 pub use storage::*;
+
+impl PreparedNominalWeakening {
+    pub fn owned_payload_bytes(&self) -> Option<usize> {
+        self.input
+            .owned_heap_bytes()
+            .checked_add(self.output.owned_heap_bytes())?
+            .checked_add(self.identity.capacity())
+    }
+}

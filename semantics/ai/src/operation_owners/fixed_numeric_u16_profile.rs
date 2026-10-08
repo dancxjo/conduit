@@ -6,6 +6,7 @@ use crate::{
 use alloc::{boxed::Box, format, string::String};
 use alloc::{collections::BTreeMap, sync::Arc};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
+use conduit_core::bounded_owner_table::{BoundedOwnerTable, OwnerTableRefusal};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -16,7 +17,7 @@ struct SelectedProfile {
 }
 pub struct U16ProfileOperationFactory {
     implementation: ImplementationId,
-    selected: BTreeMap<PlacementId, SelectedProfile>,
+    selected: BoundedOwnerTable<PlacementId, SelectedProfile>,
 }
 impl U16ProfileOperationFactory {
     pub fn for_plan(plan: &Plan, profiles: &[Arc<PreparedU16Profile>]) -> Result<Self, String> {
@@ -55,7 +56,7 @@ impl U16ProfileOperationFactory {
         }
         Ok(Self {
             implementation: U16_PROFILE_IMPLEMENTATION.into(),
-            selected,
+            selected: super::retained_table::retain(selected)?,
         })
     }
     fn selected(&self, gear: &PlannedGear) -> Result<&SelectedProfile, String> {
@@ -194,5 +195,35 @@ impl U16ProfileOperationFactory {
             super::prepared_numeric_back::PreparedNumericBack::new(back, local),
             r,
         ))
+    }
+}
+
+impl U16ProfileOperationFactory {
+    /// Local retained array/key/offer/profile payload capacities. Shared Arc
+    /// profile payloads, inline factory root and allocator bookkeeping separate.
+    pub fn local_owned_payload_bytes(&self) -> Option<usize> {
+        let mut total = self
+            .implementation
+            .owned_heap_bytes()
+            .checked_add(self.selected.array_capacity_bytes().ok()?)?;
+        for (key, value) in self.selected.iter() {
+            total = total
+                .checked_add(key.owned_heap_bytes())?
+                .checked_add(capability_offer_owned_heap_bytes(&value.offer).ok()?)?;
+        }
+        Some(total)
+    }
+    pub fn retained_selection_array_bytes(&self) -> Result<usize, OwnerTableRefusal> {
+        self.selected.array_capacity_bytes()
+    }
+}
+
+impl U16ProfileOperationFactory {
+    /// Visits exact shared owners without allocating; repeated identities remain
+    /// visible so the composing inventory can deduplicate by Arc pointer.
+    pub fn visit_shared_profiles(&self, visitor: &mut impl FnMut(&Arc<PreparedU16Profile>)) {
+        for (_, selected) in self.selected.iter() {
+            visitor(&selected.profile);
+        }
     }
 }

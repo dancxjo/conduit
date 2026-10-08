@@ -258,3 +258,13 @@ impl ClosingStructuredPairBack {
 
 mod storage;
 pub use storage::*;
+
+impl ClosingStructuredPairProfile {
+    pub fn owned_payload_bytes(&self) -> Option<usize> {
+        self.left
+            .owned_heap_bytes()
+            .checked_add(self.right.owned_heap_bytes())?
+            .checked_add(self.paired.owned_heap_bytes())?
+            .checked_add(self.identity.capacity())
+    }
+}

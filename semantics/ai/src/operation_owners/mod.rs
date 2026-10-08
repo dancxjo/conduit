@@ -15,3 +15,5 @@ pub mod nominal_weakening;
 pub mod closing_structured_pair;
 
 pub mod prepared_numeric_back;
+
+mod retained_table;

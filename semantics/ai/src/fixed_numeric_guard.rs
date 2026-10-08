@@ -238,3 +238,11 @@ impl FixedGuardBack {
 
 mod storage;
 pub use storage::*;
+
+impl FixedGuardProfile {
+    pub fn owned_payload_bytes(&self) -> Option<usize> {
+        self.value_type
+            .owned_heap_bytes()
+            .checked_add(self.identity.capacity())
+    }
+}

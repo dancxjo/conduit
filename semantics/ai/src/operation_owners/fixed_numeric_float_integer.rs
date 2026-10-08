@@ -6,12 +6,13 @@ use crate::{
 use alloc::collections::BTreeMap;
 use alloc::{boxed::Box, format, string::String};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
+use conduit_core::bounded_owner_table::{BoundedOwnerTable, OwnerTableRefusal};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 pub struct FloatIntegerOperationFactory {
     implementation: ImplementationId,
-    selected: BTreeMap<PlacementId, (bool, CapabilityOffer)>,
+    selected: BoundedOwnerTable<PlacementId, (bool, CapabilityOffer)>,
 }
 impl FloatIntegerOperationFactory {
     pub fn for_plan(plan: &Plan) -> Result<Self, String> {
@@ -39,7 +40,7 @@ impl FloatIntegerOperationFactory {
         }
         Ok(Self {
             implementation: FLOAT_INTEGER_IMPLEMENTATION.into(),
-            selected,
+            selected: super::retained_table::retain(selected)?,
         })
     }
     fn selected(&self, gear: &PlannedGear) -> Result<&(bool, CapabilityOffer), String> {
@@ -92,5 +93,25 @@ impl FloatIntegerOperationFactory {
         Ok(super::prepared_numeric_back::PreparedNumericBack::new(
             back, local,
         ))
+    }
+}
+
+impl FloatIntegerOperationFactory {
+    /// Local retained array/key/offer/profile payload capacities. Shared Arc
+    /// profile payloads, inline factory root and allocator bookkeeping separate.
+    pub fn local_owned_payload_bytes(&self) -> Option<usize> {
+        let mut total = self
+            .implementation
+            .owned_heap_bytes()
+            .checked_add(self.selected.array_capacity_bytes().ok()?)?;
+        for (key, value) in self.selected.iter() {
+            total = total
+                .checked_add(key.owned_heap_bytes())?
+                .checked_add(capability_offer_owned_heap_bytes(&value.1).ok()?)?;
+        }
+        Some(total)
+    }
+    pub fn retained_selection_array_bytes(&self) -> Result<usize, OwnerTableRefusal> {
+        self.selected.array_capacity_bytes()
     }
 }

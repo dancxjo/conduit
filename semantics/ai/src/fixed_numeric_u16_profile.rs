@@ -390,3 +390,36 @@ impl U16ProfileBack {
 
 mod storage;
 pub use storage::*;
+
+impl PreparedU16Profile {
+    /// Owned payload only. An aggregate separately charges this shared profile's
+    /// allocation root/header once by identity rather than once per placement.
+    pub fn owned_payload_bytes(&self) -> Option<usize> {
+        let mut total =
+            self.identity
+                .capacity()
+                .checked_add(self.checked.name.capacity())?
+                .checked_add(self.checked.identity.owned_heap_bytes())?
+                .checked_add(self.checked.value_type.owned_heap_bytes())?
+                .checked_add(
+                    self.checked
+                        .value_contracts
+                        .capacity()
+                        .checked_mul(
+                            core::mem::size_of::<conduit_plot::NativeTypeValueContract>(),
+                        )?,
+                )?
+                .checked_add(self.checked.invariants.capacity().checked_mul(
+                    core::mem::size_of::<conduit_plot::PortableExpressionProgram>(),
+                )?)?;
+        for contract in &self.checked.value_contracts {
+            total = total
+                .checked_add(contract.representation_path.capacity())?
+                .checked_add(contract.contract.owned_heap_bytes())?;
+        }
+        for program in &self.checked.invariants {
+            total = total.checked_add(program.owned_heap_bytes())?;
+        }
+        Some(total)
+    }
+}

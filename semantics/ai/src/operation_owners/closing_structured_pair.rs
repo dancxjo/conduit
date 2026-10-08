@@ -2,12 +2,13 @@
 use crate::{closing_structured_pair::*, fixed_numeric_preparation::verify_fixed_placement};
 use alloc::{boxed::Box, collections::BTreeMap, format, string::String, vec::Vec};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
+use conduit_core::bounded_owner_table::{BoundedOwnerTable, OwnerTableRefusal};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
 pub struct ClosingStructuredPairOperationFactory {
     identity: ImplementationId,
-    selected: BTreeMap<PlacementId, (ClosingStructuredPairProfile, CapabilityOffer)>,
+    selected: BoundedOwnerTable<PlacementId, (ClosingStructuredPairProfile, CapabilityOffer)>,
 }
 impl ClosingStructuredPairOperationFactory {
     pub fn for_plan(
@@ -47,7 +48,7 @@ impl ClosingStructuredPairOperationFactory {
         }
         Ok(Self {
             identity: ImplementationId::from(PAIR_IMPLEMENTATION),
-            selected,
+            selected: super::retained_table::retain(selected)?,
         })
     }
     fn profile(&self, gear: &PlannedGear) -> Result<&ClosingStructuredPairProfile, String> {
@@ -162,5 +163,28 @@ impl ClosingStructuredPairOperationFactory {
             super::prepared_numeric_back::PreparedNumericBack::new(back, local),
             r,
         ))
+    }
+}
+
+impl ClosingStructuredPairOperationFactory {
+    /// Local retained array/key/offer/profile payload capacities. Shared Arc
+    /// profile payloads, inline factory root and allocator bookkeeping separate.
+    pub fn local_owned_payload_bytes(&self) -> Option<usize> {
+        let mut total = self
+            .identity
+            .owned_heap_bytes()
+            .checked_add(self.selected.array_capacity_bytes().ok()?)?;
+        for (key, value) in self.selected.iter() {
+            total = total.checked_add(key.owned_heap_bytes())?.checked_add(
+                value
+                    .0
+                    .owned_payload_bytes()?
+                    .checked_add(capability_offer_owned_heap_bytes(&value.1).ok()?)?,
+            )?;
+        }
+        Some(total)
+    }
+    pub fn retained_selection_array_bytes(&self) -> Result<usize, OwnerTableRefusal> {
+        self.selected.array_capacity_bytes()
     }
 }

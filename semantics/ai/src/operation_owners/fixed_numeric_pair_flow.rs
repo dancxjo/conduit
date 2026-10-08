@@ -3,13 +3,14 @@ use crate::{fixed_numeric_pair_flow::*, fixed_numeric_preparation::verify_fixed_
 use alloc::collections::BTreeMap;
 use alloc::{boxed::Box, format, string::String};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
+use conduit_core::bounded_owner_table::{BoundedOwnerTable, OwnerTableRefusal};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
 
 pub struct FixedFlowPairOperationFactory {
     identity: ImplementationId,
-    selected: BTreeMap<PlacementId, CapabilityOffer>,
+    selected: BoundedOwnerTable<PlacementId, CapabilityOffer>,
 }
 impl FixedFlowPairOperationFactory {
     pub fn for_plan(plan: &Plan) -> Result<Self, String> {
@@ -28,7 +29,38 @@ impl FixedFlowPairOperationFactory {
         }
         Ok(Self {
             identity: ImplementationId::from(FLOW_PAIR_IMPLEMENTATION),
-            selected,
+            selected: super::retained_table::retain(selected)?,
+        })
+    }
+    /// Reuses independently prepared exact Source profiles. The complete Plan
+    /// verification and transient selection construction remain upstream prep.
+    pub fn for_plan_with_prepared_profiles(
+        plan: &Plan,
+        profiles: &[&PreparedFixedFlowPairProfile],
+    ) -> Result<Self, String> {
+        if !verify_plan(plan) || plan.fragments.len() != 1 {
+            return Err("Flow pairing requires one sealed fragment".into());
+        }
+        let mut selected = BTreeMap::new();
+        for gear in plan.fragments[0]
+            .placements
+            .iter()
+            .filter(|gear| gear.kind_id.as_str().starts_with("numeric/flow-pair"))
+        {
+            let mut matches = profiles
+                .iter()
+                .filter(|profile| profile.offer().kind_id == gear.kind_id);
+            let profile = matches.next().ok_or("missing prepared Flow pair profile")?;
+            if matches.next().is_some() {
+                return Err("ambiguous prepared Flow pair profile".into());
+            }
+            let offer = profile.offer();
+            verify_fixed_placement(gear, offer).map_err(|error| format!("{error:?}"))?;
+            selected.insert(gear.placement_id.clone(), offer.clone());
+        }
+        Ok(Self {
+            identity: ImplementationId::from(FLOW_PAIR_IMPLEMENTATION),
+            selected: super::retained_table::retain(selected)?,
         })
     }
     fn verify(&self, gear: &PlannedGear) -> Result<(), String> {
@@ -151,5 +183,25 @@ impl FixedFlowPairOperationFactory {
             super::prepared_numeric_back::PreparedNumericBack::new(back, local),
             r,
         ))
+    }
+}
+
+impl FixedFlowPairOperationFactory {
+    /// Local retained array/key/offer/profile payload capacities. Shared Arc
+    /// profile payloads, inline factory root and allocator bookkeeping separate.
+    pub fn local_owned_payload_bytes(&self) -> Option<usize> {
+        let mut total = self
+            .identity
+            .owned_heap_bytes()
+            .checked_add(self.selected.array_capacity_bytes().ok()?)?;
+        for (key, value) in self.selected.iter() {
+            total = total
+                .checked_add(key.owned_heap_bytes())?
+                .checked_add(capability_offer_owned_heap_bytes(value).ok()?)?;
+        }
+        Some(total)
+    }
+    pub fn retained_selection_array_bytes(&self) -> Result<usize, OwnerTableRefusal> {
+        self.selected.array_capacity_bytes()
     }
 }
