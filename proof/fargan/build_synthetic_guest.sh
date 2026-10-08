@@ -18,12 +18,14 @@ mkdir -p "$proof_output"
 proof_stage=$(mktemp -d "$proof_output/image-stage-XXXXXXXX")
 tar -xzf "$proof_archive" -C "$proof_stage"
 proof_limine="$proof_stage/limine-binary"
+make -C "$proof_limine"
 proof_target=${CARGO_TARGET_DIR:-"$proof_root/target"}
 cd "$proof_root"
 CONDUITOS_NUMERIC_FIXTURE_DIR="$proof_fixture" \
 CONDUITOS_MAKE_RECORD="$proof_root/proof/fargan/synthetic_guest_make.rs" \
 CARGO_BUILD_JOBS=1 CARGO_INCREMENTAL=0 CARGO_PROFILE_RELEASE_DEBUG=0 \
-CARGO_PROFILE_RELEASE_OPT_LEVEL=1 CARGO_PROFILE_RELEASE_LTO=false \
+CARGO_PROFILE_RELEASE_OPT_LEVEL=1 CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+RUSTFLAGS='-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend="serial" --cfg aes_force_soft --cfg polyval_force_soft --cfg chacha20_force_soft --cfg poly1305_force_soft' \
 cargo +stable build --locked -p conduitos --bin conduitos \
   --target x86_64-unknown-none --release --no-default-features \
   --features numeric-topology-catalog-cache
