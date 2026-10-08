@@ -2,10 +2,11 @@
 //! Original Plan/fragment identities remain on each partition. This creates
 //! neither an authored plot nor a synthetic Plan and performs no scheduling.
 use crate::lowering::{
-    lower_plan_fragment_for_profile, KernelStorageProfile, LoweredPlanFragment, LoweringError,
+    lower_plan_fragment_for_profile, lower_plan_fragment_for_profile_from_plan,
+    KernelStorageProfile, LoweredPlanFragment, LoweringError,
 };
 use alloc::vec::Vec;
-use conduit_core::{PlanFragment, PortDirection};
+use conduit_core::{Plan, PlanFragment, PortDirection};
 use conduit_kernel::{CordEndpoint, RemoteEndpointId, SignExpectationTarget};
 
 #[derive(Clone, Copy, Debug)]
@@ -60,6 +61,37 @@ pub fn lower_local_fragment_set(
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
+    lower_local_fragment_set_with(fragments, bounds, |_, fragment| {
+        lower_plan_fragment_for_profile(fragment, profile)
+    })
+}
+
+/// Lower local fragments through their complete sealed Plans, preserving
+/// activation commitments that fragment-only PlanId verification cannot see.
+pub fn lower_local_fragment_set_from_plans(
+    plans: &[&Plan],
+    profile: KernelStorageProfile,
+    bounds: FragmentSetBounds,
+) -> Result<LoweredFragmentSet, FragmentSetError> {
+    let fragments = plans
+        .iter()
+        .map(|plan| {
+            plan.fragments
+                .first()
+                .filter(|_| plan.fragments.len() == 1)
+                .ok_or(FragmentSetError::Fragment(LoweringError::InvalidFragment))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    lower_local_fragment_set_with(&fragments, bounds, |index, fragment| {
+        lower_plan_fragment_for_profile_from_plan(plans[index], &fragment.fragment_id, profile)
+    })
+}
+
+fn lower_local_fragment_set_with(
+    fragments: &[&PlanFragment],
+    bounds: FragmentSetBounds,
+    mut lower: impl FnMut(usize, &PlanFragment) -> Result<LoweredPlanFragment, LoweringError>,
+) -> Result<LoweredFragmentSet, FragmentSetError> {
     let first = fragments.first().ok_or(FragmentSetError::Empty)?;
     if fragments.len() > usize::from(bounds.fragments) {
         return Err(capacity(
@@ -92,8 +124,7 @@ pub fn lower_local_fragment_set(
         }) {
             return Err(FragmentSetError::DuplicateFragment);
         }
-        let mut lowered = lower_plan_fragment_for_profile(fragment, profile)
-            .map_err(FragmentSetError::Fragment)?;
+        let mut lowered = lower(index, fragment).map_err(FragmentSetError::Fragment)?;
         if !lowered.remote_endpoints.is_empty()
             || lowered
                 .fore_ports

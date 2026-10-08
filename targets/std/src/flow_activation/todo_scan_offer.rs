@@ -102,4 +102,4 @@ pub(crate) fn validate_planned_todo_scan(
 
 #[cfg(test)]
 #[path = "todo_scan_offer_tests.rs"]
-mod tests;
+pub(crate) mod tests;

@@ -113,14 +113,11 @@ impl KernelCompositeDefinition {
             .map(|front| bind(front, PortDirection::Input))
             .collect::<Result<Vec<_>, _>>()?;
         let output_fronts = vec![bind(output, PortDirection::Output)?];
-        let inputs = input_fronts
-            .iter()
-            .map(|front| front.external_port.clone())
-            .collect();
-        let outputs = output_fronts
-            .iter()
-            .map(|front| front.external_port.clone())
-            .collect();
+        // The selected child Fore names its invocation ports (for a scan,
+        // accumulator and item). The external capability is the owner Back:
+        // its Flow law names the parent's commands and states ports instead.
+        let inputs = owner.inputs.clone();
+        let outputs = owner.outputs.clone();
         Ok(Self {
             host_id: binding.owner_host_id.clone(),
             boot_id: binding.owner_boot_id.clone(),

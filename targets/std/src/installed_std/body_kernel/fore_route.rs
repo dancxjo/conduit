@@ -228,6 +228,6 @@ mod tests {
         let refusal = BodyForeRoute::prepare(&[], &supplied, true, false)
             .err()
             .expect("unplanned Fore Flow must refuse");
-        assert!(refusal.contains("requires one to 32 admitted input values"));
+        assert!(refusal.contains("requires one to 64 admitted input values"));
     }
 }

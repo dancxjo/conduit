@@ -61,26 +61,9 @@ fn host(scan: conduit_core::CapabilityOffer) -> HostAdvertisement {
     }
 }
 
-#[test]
-fn authored_todo_selects_exact_production_offer_and_child() {
+pub(crate) fn authored_todo_plan() -> conduit_core::Plan {
     let (document, authoring, profile) = authored();
-    let initial_state = TodoState::new("Groceries".into()).unwrap();
-    let exact_bytes = initial_state.encode_info().unwrap();
-    let scan = todo_scan_offer(&initial_state, 64).unwrap();
-    assert_eq!(
-        scan.semantic_contract,
-        authoring.expanded.gears[0].semantic_contract
-    );
-    assert_eq!(scan.inputs, authoring.expanded.gears[0].inputs);
-    assert_eq!(scan.outputs, authoring.expanded.gears[0].outputs);
-    assert_eq!(scan.limits.max_queue_bytes, 2 * 1635 + 2 * 75);
-    let KindSemanticLaw::FlowScan(law) = &scan.semantic_contract.laws[1] else {
-        panic!("exact offer lost scan semantic law")
-    };
-    assert_eq!(law.initial_accumulator, exact_bytes);
-    assert_eq!(law.accumulator.maximum_bytes, 1635);
-    assert!(exact_bytes.len() < 1635);
-
+    let scan = todo_scan_offer(&TodoState::new("Groceries".into()).unwrap(), 64).unwrap();
     let hosts = [host(scan)];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let empty_bases = BTreeMap::new();
@@ -119,7 +102,7 @@ fn authored_todo_selects_exact_production_offer_and_child() {
         ),
     ]);
     let bases = [BaseImplementationId::from("conduit.base/local@1")];
-    let plan = plan_expanded_authoring_with_activations(
+    plan_expanded_authoring_with_activations(
         &document,
         &authoring,
         &profile,
@@ -129,12 +112,31 @@ fn authored_todo_selects_exact_production_offer_and_child() {
         &bases,
         options,
         &bounds,
+    )
+    .expect("exact production Todo scan must plan")
+}
+
+#[test]
+fn authored_todo_selects_exact_production_offer_and_child() {
+    let (_, authoring, _) = authored();
+    let initial_state = TodoState::new("Groceries".into()).unwrap();
+    let exact_bytes = initial_state.encode_info().unwrap();
+    let scan = todo_scan_offer(&initial_state, 64).unwrap();
+    assert_eq!(
+        scan.semantic_contract,
+        authoring.expanded.gears[0].semantic_contract
     );
-    assert!(
-        plan.is_ok(),
-        "exact production Todo scan must plan: {plan:?}"
-    );
-    let plan = plan.unwrap();
+    assert_eq!(scan.inputs, authoring.expanded.gears[0].inputs);
+    assert_eq!(scan.outputs, authoring.expanded.gears[0].outputs);
+    assert_eq!(scan.limits.max_queue_bytes, 2 * 1635 + 2 * 75);
+    let KindSemanticLaw::FlowScan(law) = &scan.semantic_contract.laws[1] else {
+        panic!("exact offer lost scan semantic law")
+    };
+    assert_eq!(law.initial_accumulator, exact_bytes);
+    assert_eq!(law.accumulator.maximum_bytes, 1635);
+    assert!(exact_bytes.len() < 1635);
+
+    let plan = authored_todo_plan();
     assert!(verify_plan(&plan));
     let PlannedActivationEntry::Scan(selected) = &plan.activations[0] else {
         panic!("planned Todo did not retain scan activation")

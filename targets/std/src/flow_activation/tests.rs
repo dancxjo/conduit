@@ -484,6 +484,18 @@ pub(crate) fn todo_scan_plan() -> Plan {
     ];
     for port in &mut child_fragment.fore_ports {
         port.byte_capacity = conduit_todo_plot::STATE_MAX_BYTES as u32;
+        port.value_contract = Some(
+            conduit_core::CheckedValueContract::new(
+                port.value_kind.clone(),
+                if port.value_kind == command_kind {
+                    conduit_todo_plot::COMMAND_MAX_BYTES as u32
+                } else {
+                    conduit_todo_plot::STATE_MAX_BYTES as u32
+                },
+                vec![],
+            )
+            .unwrap(),
+        );
     }
     let child = common::seal(child_fragment);
     let sign_budget = child.fragments[0].sign_storage_budget;
@@ -492,9 +504,43 @@ pub(crate) fn todo_scan_plan() -> Plan {
         .encode_info()
         .unwrap();
     let mut outer = common::fragment();
-    outer.placements[0].kind_id = kind_id(conduit_semantic_catalog::FLOW_SCAN_KIND);
-    outer.placements[0].kind_contract_revision =
-        conduit_core::KindIdentity::from(conduit_semantic_catalog::FLOW_SCAN_CONTRACT_REVISION);
+    outer.states.clear();
+    outer.expected_sign = vec![
+        conduit_core::ExpectedSign::PlanFragmentReceived,
+        conduit_core::ExpectedSign::PlanTerminal,
+    ];
+    outer.sign_storage_budget =
+        conduit_core::mandatory_sign_storage_requirement(&outer.expected_sign).unwrap();
+    // Keep the fixture owner a valid scan Kind. Its public Flow ports differ
+    // from the selected combine child's accumulator/item invocation fronts.
+    let scan = conduit_semantic_catalog::flow_scan_semantic_contract(
+        &conduit_core::CheckedValueContract::new(
+            kind_id(conduit_todo_plot::TODO_COMMAND_INFO_ID),
+            conduit_todo_plot::COMMAND_MAX_BYTES as u32,
+            vec![],
+        )
+        .unwrap(),
+        &conduit_core::CheckedValueContract::new(
+            kind_id(conduit_todo_plot::TODO_STATE_INFO_ID),
+            conduit_todo_plot::STATE_MAX_BYTES as u32,
+            vec![],
+        )
+        .unwrap(),
+        &initial,
+        None,
+        4,
+    )
+    .unwrap();
+    let owner = &mut outer.placements[0];
+    owner.kind_id = scan.kind_id;
+    owner.kind_contract_revision = scan.kind_contract_revision;
+    owner.inputs = scan.inputs;
+    owner.outputs = scan.outputs;
+    owner.limits = scan.limits;
+    owner.semantic_contract = conduit_core::KindSemanticContract {
+        configuration: scan.configuration,
+        laws: scan.semantic_laws,
+    };
     conduit_core::seal_plan_with_activation_entries(
         conduit_core::PlotIdentity {
             source_document_id: outer.source_document_id.clone(),
@@ -662,6 +708,7 @@ fn production_todo_scan_preserves_queue_pressure_and_cancellation() {
 #[test]
 fn pure_todo_scan_handoff_preserves_receipts_pressure_and_child_signs() {
     let plan = todo_scan_plan();
+    assert!(conduit_core::verify_plan(&plan));
     let mut host = StdActivationHost::new(identity(), standard_child_registry().unwrap());
     let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     let mut scan = install_pure_todo_scan(&plan, &mut prepared, "scan", &mut host).unwrap();
