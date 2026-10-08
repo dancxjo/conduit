@@ -290,7 +290,12 @@ fn original_intermediate_output_is_retained_and_wrong_frame_refuses() {
         LanguageParserCompletionObservation,
     >(PROGRAM, family.clone(), family, limits())
     .unwrap();
-    let mut history = port.execute(&state(false), frames()).unwrap();
+    let mut pool = frames();
+    pool.intermediates = port
+        .intermediate_capacities()
+        .map(Vec::with_capacity)
+        .collect();
+    let mut history = port.execute(&state(false), pool).unwrap();
     assert_eq!(history.intermediates.len(), 1);
     let first = conduit_plot::PortableExpressionProgram::from_canonical_hex(
         PROGRAM.lines().next().unwrap(),

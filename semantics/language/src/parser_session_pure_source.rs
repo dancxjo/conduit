@@ -316,6 +316,13 @@ impl PreparedParserPureSource {
             combined_preparation_bytes_bound: combined,
         })
     }
+    /// Actual finite buffers already proven by exact prepared Source. The bank
+    /// reserves the complete history pool before constructing these buffers.
+    pub(crate) fn intermediate_capacities(&self) -> impl Iterator<Item = usize> + '_ {
+        self.evaluators[..self.evaluators.len() - 1]
+            .iter()
+            .map(|e| e.output_capacity())
+    }
     pub(crate) fn cancel(&mut self) {
         self.closed = true;
     }
@@ -355,7 +362,8 @@ impl PreparedParserPureSource {
             || frames
                 .intermediates
                 .iter()
-                .any(|frame| frame.capacity() < conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+                .zip(&self.evaluators)
+                .any(|(frame, evaluator)| frame.capacity() < evaluator.output_capacity())
         {
             return Err(R::Pressure);
         }
