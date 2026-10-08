@@ -1,0 +1,58 @@
+# Admitted available prefix. Trailing incomplete tokens are not parser input.
+# Availability never grants finality; finality comes from the exact source tape.
+type LanguageParserAvailableLexical = {
+    tape: LanguageLexicalTape
+    token_count: U64 in 0..=4
+    where .token_count <= sequence/length(.tape.tokens)
+    where sequence/length(.tape.tokens) <= 4
+    where .tape.profile.language == .tape.source.material.language
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).identity.ordinal == 0)
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 0 ? true : (variant/is(sequence/at(.tape.tokens, 0).span.basis,"unicode_scalar"))
+    where .token_count <= 0 ? true : (variant/is(sequence/at(.tape.tokens, 0).completeness,"complete"))
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 0 ? true : (sequence/at(.tape.tokens, 0).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 0 ? true : (sequence/length(sequence/at(.tape.tokens, 0).candidates) >= 1)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).identity.ordinal == 1)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 1 ? true : (variant/is(sequence/at(.tape.tokens, 1).span.basis,"unicode_scalar"))
+    where .token_count <= 1 ? true : (variant/is(sequence/at(.tape.tokens, 1).completeness,"complete"))
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 1 ? true : (sequence/at(.tape.tokens, 1).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 1 ? true : (sequence/length(sequence/at(.tape.tokens, 1).candidates) >= 1)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).identity.ordinal == 2)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 2 ? true : (variant/is(sequence/at(.tape.tokens, 2).span.basis,"unicode_scalar"))
+    where .token_count <= 2 ? true : (variant/is(sequence/at(.tape.tokens, 2).completeness,"complete"))
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 2 ? true : (sequence/at(.tape.tokens, 2).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 2 ? true : (sequence/length(sequence/at(.tape.tokens, 2).candidates) >= 1)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).identity.ordinal == 3)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).span.text_identity == .tape.source.material.identity)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).span.text_revision == .tape.source.material.revision)
+    where .token_count <= 3 ? true : (variant/is(sequence/at(.tape.tokens, 3).span.basis,"unicode_scalar"))
+    where .token_count <= 3 ? true : (variant/is(sequence/at(.tape.tokens, 3).completeness,"complete"))
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).identity.text_identity == .tape.source.material.identity)
+    where .token_count <= 3 ? true : (sequence/at(.tape.tokens, 3).identity.text_revision == .tape.source.material.revision)
+    where .token_count <= 3 ? true : (sequence/length(sequence/at(.tape.tokens, 3).candidates) >= 1)
+}
+
+type LanguageParserAvailability = {
+    lexical: LanguageParserAvailableLexical
+    waiting: Boolean
+    final_input: Boolean
+    where .waiting == (.lexical.token_count == 0)
+    where .final_input == (.lexical.token_count == sequence/length(.lexical.tape.tokens) && variant/is(.lexical.tape.source.finality,"final"))
+}
+type LanguageParserRawAvailability = {
+    lexical: LanguageParserAvailableLexical
+    waiting: Boolean
+    final_input: Boolean
+}
+plot language-parser-availability (
+    input: LanguageParserAvailableLexical...| >> output: LanguageParserRawAvailability...|
+) = { lexical: ., waiting: .token_count == 0, final_input: (.token_count == sequence/length(.tape.tokens) && variant/is(.tape.source.finality,"final")) }
+
