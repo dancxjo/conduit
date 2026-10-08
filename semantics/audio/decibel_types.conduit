@@ -1,0 +1,80 @@
+# A declared positive reference with its original canonical unit and provenance.
+# It grants no measurement, calibration or physical-reference authority.
+type AudioDecibelReferenceRole =
+    amplitude_magnitude
+    | power
+type AudioDecibelReference = {
+    identity: Text <= 128B not in [""]
+    numerator: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+    unit: QuantityUnit
+    role: AudioDecibelReferenceRole
+    provenance: AudioTrajectoryProvenance
+}
+type AudioDecibelConvention =
+    amplitude_twenty_log10
+    | power_ten_log10
+type AudioDecibelBasis = {
+    reference: AudioDecibelReference
+    convention: AudioDecibelConvention
+    where .reference.role is amplitude_magnitude ? .convention is amplitude_twenty_log10 : .convention is power_ten_log10
+}
+type AudioLevelRatio =
+    amplitude AudioRelativeAmplitude
+    | power AudioPowerRatio
+type AudioReferencedLevelRatio = {
+    basis: AudioDecibelBasis
+    ratio: AudioLevelRatio
+    where .ratio is amplitude ? .basis.convention is amplitude_twenty_log10 : .basis.convention is power_ten_log10
+}
+# General finite exact rational dB representation, not the first numeric profile.
+type AudioDecibelFraction = {
+    numerator_db: I64
+    denominator: U64 in 1..=18446744073709551615
+}
+type AudioDecibelValue =
+    finite AudioDecibelFraction
+    | negative_infinity
+type AudioDecibelLevel = {
+    basis: AudioDecibelBasis
+    value: AudioDecibelValue
+}
+# Explicit declaration linking amplitude/power references under the existing
+# common-positive-proportionality premise; no measured k or impedance inferred.
+type AudioAmplitudePowerReferences = {
+    amplitude: AudioDecibelReference
+    power: AudioDecibelReference
+    relationship: AudioAmplitudePowerRelationship
+    where .amplitude.role is amplitude_magnitude
+    where .power.role is power
+}
+type AudioReferencedAmplitudePowerRequest = {
+    references: AudioAmplitudePowerReferences
+    amplitude: AudioRelativeAmplitude
+}
+# Private numeric working carriers; all logarithmic decisions are checked Source.
+type AudioDecibelRatioWorking = {
+    quotient: U64
+    remainder: U64
+    reciprocal: Boolean
+    zero: Boolean
+}
+type AudioExactPowerOfTen = {
+    supported: Boolean
+    exponent: I64
+    zero: Boolean
+}
+type AudioExactPowerOfTenEligible = {
+    recognition: AudioExactPowerOfTen
+    convention: AudioDecibelConvention
+    where .recognition.supported
+    where .recognition.exponent >= -18 && .recognition.exponent <= 18
+}
+type AudioDecibelInverseInput = {
+    value: AudioDecibelValue
+    convention: AudioDecibelConvention
+}
+type AudioDecibelRatioRaw = {
+    numerator: U64
+    denominator: U64
+}
