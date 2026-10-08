@@ -17,6 +17,7 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_window8.conduit");
     println!("cargo:rerun-if-changed=parser_window8_search.conduit");
     println!("cargo:rerun-if-changed=parser_window8_proposal_features.conduit");
+    println!("cargo:rerun-if-changed=parser_window8_proposal_features_v2.conduit");
     println!("cargo:rerun-if-changed=parser_window8_facts.conduit");
     println!("cargo:rerun-if-changed=parser_window8_lexical_selection.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
@@ -68,6 +69,7 @@ fn main() {
         include_str!("parser_window8.conduit"),
         include_str!("parser_window8_search.conduit"),
         include_str!("parser_window8_proposal_features.conduit"),
+        include_str!("parser_window8_proposal_features_v2.conduit"),
         include_str!("parser_window8_facts.conduit"),
         include_str!("parser_window8_lexical_selection.conduit"),
         include_str!("parser_beam.conduit"),
@@ -305,6 +307,7 @@ fn main() {
         ("language-proposal-window8-origins", "proposal_window8_origins.hex"),
         ("language-proposal-window8-feature-context", "proposal_window8_feature_context.hex"),
         ("language-proposal-window8-feature-values", "proposal_window8_feature_values.hex"),
+        ("language-proposal-window8-v2-feature-values", "proposal_window8_v2_feature_values.hex"),
         ("language-window8-complete", "window8_complete.hex"),
         ("language-window8-rank-insert", "window8_rank_insert.hex"),
         (
@@ -478,6 +481,7 @@ fn main() {
                 "LanguageParserProposalWindow8Origins",
                 "LanguageParserProposalWindow8FeatureContext",
                 "LanguageParserProposalWindow8Features",
+                "LanguageParserProposalWindow8V2Features",
             ]
             .into_iter()
             .map(str::to_owned)

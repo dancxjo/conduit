@@ -1,0 +1,11 @@
+{
+  "segmentation_abi": "UnicodeScalarAlphanumericApostropheV1",
+  "unicode_classifier_version": [
+    17,
+    0,
+    0
+  ],
+  "scope": "Exact current core::char classifier used by original revision producer; closed profile must refuse an unreviewed classifier version change",
+  "feature_abi": "selected-history-origin/411-27-76@2",
+  "source_sha256": "5a90a621fbd5d2b87dfea79698e9317639453f602e2cbc0762874171a79f0082"
+}
