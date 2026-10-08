@@ -689,10 +689,11 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
     ));
     fs::create_dir_all(&state).unwrap();
     seed_installation(&state);
-    // The journal can be written, but publication of its biography cannot
-    // replace a directory. This models a failure after the commit decision.
-    fs::create_dir_all(state.join("body/biography.json")).unwrap();
     let mut service = start_service(&state);
+    // The journal can be written, but publication of its biography cannot
+    // replace a directory. Inject this after startup so archive validation does
+    // not refuse the Host before Birth reaches its commit decision.
+    fs::create_dir_all(state.join("body/biography.json")).unwrap();
     let attempt = product_with_stdin(
         &["body", "birth", "--screen-free", "--state-dir", path(&state)],
         b"focus creche.name\nedit value Ada\nactivate\nfocus creche.plot.1\nedit value true\nactivate\nfocus creche.birth\nactivate\n",
