@@ -93,6 +93,7 @@ pub use revision_lineage::*;
 pub mod lexical;
 
 pub mod committed_discourse;
+pub mod committed_prosody;
 pub mod discourse;
 
 pub mod prosody;
