@@ -3,7 +3,7 @@
 use super::*;
 use std::cell::{Cell, RefCell};
 
-const INPUT_CAPACITY: usize = 40 * 1024;
+const INPUT_CAPACITY: usize = 64 * 1024;
 const OUTPUT_CAPACITY: usize = 64 * 1024;
 
 thread_local! {
