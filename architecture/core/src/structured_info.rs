@@ -332,7 +332,7 @@ impl StructuredInfoType {
     }
 
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, StructuredInfoRefusal> {
-        let mut encoded = Vec::new();
+        let mut encoded = Vec::with_capacity(self.canonical_byte_length()?);
         encode_type(self, &mut encoded);
         check_encoding_size(encoded)
     }

@@ -51,6 +51,10 @@ fn capacity_slack_and_recursive_prepared_storage_bound_actual_live_allocations()
     let ty = StructuredInfoType::record(KindId(schema), fields).unwrap();
     assert_eq!(ty.owned_heap_bytes(), (live() - before) as usize);
     assert!(ty.owned_heap_bytes() > 128 + 256);
+    assert_eq!(
+        ty.canonical_byte_length().unwrap(),
+        ty.canonical_bytes().unwrap().len()
+    );
     drop(ty);
     assert_eq!(live(), before);
 
@@ -67,6 +71,14 @@ fn capacity_slack_and_recursive_prepared_storage_bound_actual_live_allocations()
         let before_program = live();
         let law = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
         assert!(law.owned_heap_bytes() >= (live() - before_program) as usize);
+        assert_eq!(
+            law.input_type.canonical_byte_length().unwrap(),
+            law.input_type.canonical_bytes().unwrap().len()
+        );
+        assert_eq!(
+            law.output_type.canonical_byte_length().unwrap(),
+            law.output_type.canonical_bytes().unwrap().len()
+        );
         let before = live();
         let evaluator = PreparedPortableExpressionEvaluator::new(&law).unwrap();
         let actual = (live() - before) as usize;

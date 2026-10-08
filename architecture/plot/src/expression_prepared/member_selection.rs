@@ -1,5 +1,8 @@
 //! Borrow nested exact members; only a structured final result needs scratch.
-use super::{storage_bound, EvaluationInput, PreparedPortableExpressionEvaluator, Refusal};
+use super::{
+    storage_bound, EvaluationInput, PreparedInput, PreparedPortableExpressionEvaluator,
+    ProgramView, Refusal,
+};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
@@ -20,6 +23,7 @@ enum Member {
 pub(super) fn prepare(
     node: &PortableExpressionNode,
     input: &StructuredInfoType,
+    prepared_input: &PreparedInput,
 ) -> Result<PreparedMemberSelection, Refusal> {
     fn collect<'a>(
         node: &'a PortableExpressionNode,
@@ -98,11 +102,14 @@ pub(super) fn prepare(
     let primitive = is_primitive(&node.value_type);
     let source = computed
         .map(|node| {
-            PreparedPortableExpressionEvaluator::new(&crate::PortableExpressionProgram {
-                input_type: input.clone(),
-                output_type: node.value_type.clone(),
-                root: node.clone(),
-            })
+            PreparedPortableExpressionEvaluator::prepare(
+                ProgramView {
+                    input_type: input,
+                    output_type: &node.value_type,
+                    root: node,
+                },
+                prepared_input.clone(),
+            )
         })
         .transpose()?
         .map(Box::new);

@@ -13,9 +13,8 @@ pub(super) fn output(ty: &StructuredInfoType) -> Result<usize, Refusal> {
 }
 pub(super) fn canonical(ty: &StructuredInfoType) -> Result<usize, Refusal> {
     let prefix = ty
-        .canonical_bytes()
-        .map_err(|_| Refusal::InvalidProgram)?
-        .len();
+        .canonical_byte_length()
+        .map_err(|_| Refusal::InvalidProgram)?;
     Ok(add(prefix, node(ty)).min(MAXIMUM_STRUCTURED_CANONICAL_BYTES))
 }
 fn node(ty: &StructuredInfoType) -> usize {
